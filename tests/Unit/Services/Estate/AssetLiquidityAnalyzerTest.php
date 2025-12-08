@@ -5,11 +5,11 @@ declare(strict_types=1);
 use App\Models\Estate\Asset;
 use App\Services\Estate\AssetLiquidityAnalyzer;
 
-describe('AssetLiquidityAnalyzer', function () {
-    beforeEach(function () {
-        $this->analyzer = new AssetLiquidityAnalyzer;
-    });
+beforeEach(function () {
+    $this->analyzer = new AssetLiquidityAnalyzer;
+});
 
+describe('AssetLiquidityAnalyzer', function () {
     describe('analyzeAssetLiquidity', function () {
         it('classifies liquid assets correctly', function () {
             $assets = collect([

@@ -38,12 +38,14 @@ class AssetLiquidityAnalyzer
 
             $assetData = [
                 'id' => $asset->id,
-                'name' => $asset->asset_name,
-                'type' => $asset->asset_type,
-                'value' => $asset->current_value,
+                'asset_name' => $asset->asset_name,
+                'asset_type' => $asset->asset_type,
+                'current_value' => (float) $asset->current_value,
+                'is_main_residence' => $asset->is_main_residence ?? false,
                 'is_giftable' => $classification['is_giftable'],
                 'not_giftable_reason' => $classification['not_giftable_reason'],
                 'gifting_considerations' => $classification['gifting_considerations'],
+                'liquidity_classification' => $classification,
             ];
 
             if ($classification['liquidity'] === 'liquid') {

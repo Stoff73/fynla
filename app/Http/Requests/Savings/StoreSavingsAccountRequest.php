@@ -25,15 +25,15 @@ class StoreSavingsAccountRequest extends FormRequest
             'access_type' => 'required|in:immediate,notice,fixed',
             'notice_period_days' => 'nullable|integer|min:0',
             'maturity_date' => 'nullable|date|after:today',
-            'is_emergency_fund' => 'required|boolean',
+            'is_emergency_fund' => 'nullable|boolean',
             'is_isa' => 'required|boolean',
             'country' => 'nullable|string|max:255',
             'isa_type' => 'nullable|required_if:is_isa,true|in:cash,stocks_shares,LISA',
             'isa_subscription_year' => 'nullable|required_if:is_isa,true|string',
             'isa_subscription_amount' => 'nullable|required_if:is_isa,true|numeric|min:0',
 
-            // Ownership
-            'ownership_type' => ['required', Rule::in(['individual', 'joint', 'trust'])],
+            // Ownership - defaults to 'individual' if not provided
+            'ownership_type' => ['nullable', Rule::in(['individual', 'joint', 'trust'])],
             'ownership_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'joint_owner_id' => ['nullable', 'required_if:ownership_type,joint', 'exists:users,id'],
             'trust_id' => ['nullable', 'required_if:ownership_type,trust', 'exists:trusts,id'],

@@ -29,29 +29,47 @@ class CoverageGapAnalyzer
 
     /**
      * Calculate debt protection need.
-     * Pulls from actual mortgages and liabilities tables to reflect current situation.
+     * Uses ProtectionProfile fields if provided, otherwise pulls from actual records.
      */
     public function calculateDebtProtectionNeed(ProtectionProfile $profile): float
     {
+        // Use ProtectionProfile summary fields if available
+        $mortgageBalance = (float) ($profile->mortgage_balance ?? 0);
+        $otherDebts = (float) ($profile->other_debts ?? 0);
+
+        // If profile has data, use it
+        if ($mortgageBalance > 0 || $otherDebts > 0) {
+            return $mortgageBalance + $otherDebts;
+        }
+
+        // Otherwise, pull from actual records
         $user = $profile->user;
 
         // Get total mortgage debt from mortgages table
-        $totalMortgageDebt = $user->mortgages()->sum('outstanding_balance');
+        $totalMortgageDebt = (float) $user->mortgages()->sum('outstanding_balance');
 
         // Get total other liabilities from liabilities table
-        $totalOtherDebt = $user->liabilities()->sum('current_balance');
+        $totalOtherDebt = (float) $user->liabilities()->sum('current_balance');
 
         return $totalMortgageDebt + $totalOtherDebt;
     }
 
     /**
      * Calculate education funding need.
-     * NOTE: Disabled for current phase - will be implemented in next phase.
+     * Assumes £9,000 per year until age 21 for each child.
      */
     public function calculateEducationFunding(int $numChildren, array $ages): float
     {
-        // Placeholder - coming in next phase
-        return 0;
+        $annualCostPerChild = 9000;
+        $educationEndAge = 21;
+        $totalFunding = 0.0;
+
+        foreach ($ages as $age) {
+            $yearsRemaining = max(0, $educationEndAge - $age);
+            $totalFunding += $annualCostPerChild * $yearsRemaining;
+        }
+
+        return $totalFunding;
     }
 
     /**
@@ -157,13 +175,18 @@ class CoverageGapAnalyzer
                              + $coverage['disability_coverage']
                              + $coverage['sickness_illness_coverage'];
 
-        // Calculate total coverage used
+        // Use passed total_coverage (life + CI) for reporting
+        $totalCoverage = $coverage['total_coverage'] ?? ($lifeCoverage + ($coverage['critical_illness_coverage'] ?? 0));
+
+        // Calculate total coverage used (from allocation)
         $totalCoverageUsed = $debtCovered + $humanCapitalCovered + $finalExpensesCovered + $educationCovered;
-        $totalGap = max(0, $totalNeed - $totalCoverageUsed);
+
+        // Total gap is based on total coverage (life + CI), not just allocated amount
+        $totalGap = max(0, $totalNeed - $totalCoverage);
 
         return [
             'total_need' => $totalNeed,
-            'total_coverage' => $lifeCoverage,
+            'total_coverage' => $totalCoverage,
             'total_coverage_used' => $totalCoverageUsed,
             'total_gap' => $totalGap,
             'gaps_by_category' => [
@@ -183,7 +206,7 @@ class CoverageGapAnalyzer
                 'excess_unused' => max(0, $lifeCoverage - $totalCoverageUsed),
             ],
             'income_replacement_coverage' => $totalIncomeCoverage,
-            'coverage_percentage' => $totalNeed > 0 ? ($totalCoverageUsed / $totalNeed) * 100 : 100,
+            'coverage_percentage' => $totalNeed > 0 ? ($totalCoverage / $totalNeed) * 100 : 100,
         ];
     }
 
@@ -304,11 +327,15 @@ class CoverageGapAnalyzer
         // Total need = Human capital (income difference) + debt + education + final expenses
         $totalNeed = $humanCapital + $debtProtection + $educationFunding + $finalExpenses;
 
+        // Income protection need = 60% of gross income (standard IP recommendation)
+        $incomeProtectionNeed = $userGrossIncome * 0.6;
+
         return [
             'human_capital' => $humanCapital,
             'debt_protection' => $debtProtection,
             'education_funding' => $educationFunding,
             'final_expenses' => $finalExpenses,
+            'income_protection_need' => $incomeProtectionNeed,
             'total_need' => $totalNeed,
             'gross_income' => $userGrossIncome,
             'net_income' => $userNetIncome,

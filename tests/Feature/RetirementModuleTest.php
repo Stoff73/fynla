@@ -5,9 +5,14 @@ use App\Models\DCPension;
 use App\Models\RetirementProfile;
 use App\Models\StatePension;
 use App\Models\User;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
+
+beforeEach(function () {
+    $this->seed(TaxConfigurationSeeder::class);
+});
 
 // Authenticated Tests
 describe('Retirement Index Endpoint (Authenticated)', function () {
@@ -237,6 +242,7 @@ describe('DC Pension CRUD Endpoints (Authenticated)', function () {
         $response = $this->putJson("/api/retirement/pensions/dc/{$pension->id}", [
             'scheme_name' => $pension->scheme_name,
             'scheme_type' => $pension->scheme_type,
+            'pension_type' => $pension->pension_type ?? 'occupational',
             'provider' => $pension->provider,
             'current_fund_value' => 60000,
             'retirement_age' => 67,
@@ -273,6 +279,7 @@ describe('DC Pension CRUD Endpoints (Authenticated)', function () {
 
         $response = $this->putJson("/api/retirement/pensions/dc/{$pension->id}", [
             'scheme_name' => 'Updated Name',
+            'pension_type' => 'occupational',
             'current_fund_value' => 100000,
         ]);
 
@@ -459,8 +466,10 @@ describe('Retirement API Authorization Checks', function () {
         $dcPension = DCPension::factory()->create(['user_id' => $otherUser->id]);
         $dbPension = DBPension::factory()->create(['user_id' => $otherUser->id]);
 
-        // Try to update other user's pensions
+        // Try to update other user's pensions (with required fields)
         $this->putJson("/api/retirement/pensions/dc/{$dcPension->id}", [
+            'scheme_name' => 'Test Scheme',
+            'pension_type' => 'occupational',
             'current_fund_value' => 999999,
         ])->assertStatus(403);
 

@@ -26,6 +26,16 @@ uses(
     Illuminate\Foundation\Testing\RefreshDatabase::class,
 )->in('Integration');
 
+// Global setup for all tests that need TaxConfiguration
+beforeEach(function () {
+    // Ensure active tax configuration exists for tests
+    if (class_exists(\App\Models\TaxConfiguration::class)) {
+        if (! \App\Models\TaxConfiguration::where('is_active', true)->exists()) {
+            \App\Models\TaxConfiguration::factory()->create(['is_active' => true]);
+        }
+    }
+})->in('Feature', 'Unit/Services', 'Integration');
+
 /*
 |--------------------------------------------------------------------------
 | Expectations

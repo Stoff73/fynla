@@ -7,7 +7,6 @@ use App\Models\User;
 use App\Services\Protection\CoverageGapAnalyzer;
 use App\Services\TaxConfigService;
 use App\Services\UKTaxCalculator;
-use Mockery;
 
 beforeEach(function () {
     // Mock TaxConfigService
@@ -43,11 +42,9 @@ beforeEach(function () {
     $mockTaxConfig->shouldReceive('getDividendTax')
         ->andReturn([
             'allowance' => 500,
-            'rates' => [
-                'basic_rate' => 0.0875,
-                'higher_rate' => 0.3375,
-                'additional_rate' => 0.3935,
-            ],
+            'basic_rate' => 0.0875,
+            'higher_rate' => 0.3375,
+            'additional_rate' => 0.3935,
         ]);
 
     // Create UKTaxCalculator with mocked TaxConfigService

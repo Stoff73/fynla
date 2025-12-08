@@ -7,12 +7,15 @@ use App\Models\Investment\InvestmentAccount;
 use App\Models\Investment\InvestmentGoal;
 use App\Models\Investment\RiskProfile;
 use App\Models\User;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
+    $this->seed(TaxConfigurationSeeder::class);
+
     $this->user = User::factory()->create([
         'name' => 'Test Investor',
         'email' => 'investor@example.com',
@@ -123,7 +126,8 @@ describe('Holdings Management', function () {
         ]);
 
         $response = $this->postJson('/api/investment/holdings', [
-            'investment_account_id' => $account->id,
+            'holdable_id' => $account->id,
+            'holdable_type' => InvestmentAccount::class,
             'asset_type' => 'equity',
             'security_name' => 'Vanguard S&P 500 ETF',
             'ticker' => 'VOO',
@@ -152,7 +156,8 @@ describe('Holdings Management', function () {
             ]);
 
         $this->assertDatabaseHas('holdings', [
-            'investment_account_id' => $account->id,
+            'holdable_id' => $account->id,
+            'holdable_type' => InvestmentAccount::class,
             'security_name' => 'Vanguard S&P 500 ETF',
             'ticker' => 'VOO',
         ]);
@@ -164,7 +169,8 @@ describe('Holdings Management', function () {
         ]);
 
         $holding = Holding::factory()->create([
-            'investment_account_id' => $account->id,
+            'holdable_id' => $account->id,
+            'holdable_type' => InvestmentAccount::class,
             'current_price' => 400,
             'current_value' => 40000,
         ]);
@@ -190,7 +196,8 @@ describe('Holdings Management', function () {
         ]);
 
         $holding = Holding::factory()->create([
-            'investment_account_id' => $account->id,
+            'holdable_id' => $account->id,
+            'holdable_type' => InvestmentAccount::class,
         ]);
 
         $response = $this->deleteJson("/api/investment/holdings/{$holding->id}");
@@ -209,7 +216,8 @@ describe('Holdings Management', function () {
         ]);
 
         $holding = Holding::factory()->create([
-            'investment_account_id' => $otherAccount->id,
+            'holdable_id' => $otherAccount->id,
+            'holdable_type' => InvestmentAccount::class,
         ]);
 
         $response = $this->putJson("/api/investment/holdings/{$holding->id}", [
@@ -354,7 +362,8 @@ describe('Portfolio Analysis', function () {
         ]);
 
         Holding::factory()->count(3)->create([
-            'investment_account_id' => $account->id,
+            'holdable_id' => $account->id,
+            'holdable_type' => InvestmentAccount::class,
         ]);
 
         RiskProfile::factory()->create([
@@ -399,7 +408,8 @@ describe('Portfolio Analysis', function () {
         ]);
 
         Holding::factory()->count(2)->create([
-            'investment_account_id' => $account->id,
+            'holdable_id' => $account->id,
+            'holdable_type' => InvestmentAccount::class,
         ]);
 
         $response = $this->getJson('/api/investment/recommendations');

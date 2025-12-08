@@ -31,9 +31,11 @@ describe('ProfileCompletenessChecker - Married Users', function () {
         ]);
 
         // Create dependant
-        FamilyMember::create([
+        FamilyMember::factory()->create([
             'user_id' => $user->id,
             'name' => 'Child',
+            'first_name' => 'Test',
+            'last_name' => 'Child',
             'relationship' => 'child',
             'date_of_birth' => now()->subYears(10),
             'is_dependent' => true,
@@ -89,9 +91,11 @@ describe('ProfileCompletenessChecker - Married Users', function () {
             'annual_employment_income' => 50000,
         ]);
 
-        FamilyMember::create([
+        FamilyMember::factory()->create([
             'user_id' => $user->id,
             'name' => 'Child',
+            'first_name' => 'Test',
+            'last_name' => 'Child',
             'relationship' => 'child',
             'date_of_birth' => now()->subYears(10),
             'is_dependent' => true,
@@ -167,9 +171,11 @@ describe('ProfileCompletenessChecker - Married Users', function () {
             'annual_employment_income' => 50000,
         ]);
 
-        FamilyMember::create([
+        FamilyMember::factory()->create([
             'user_id' => $user->id,
             'name' => 'Child',
+            'first_name' => 'Test',
+            'last_name' => 'Child',
             'relationship' => 'child',
             'date_of_birth' => now()->subYears(10),
             'is_dependent' => true,
@@ -210,9 +216,11 @@ describe('ProfileCompletenessChecker - Single Users', function () {
             'liabilities_reviewed' => true,
         ]);
 
-        FamilyMember::create([
+        FamilyMember::factory()->create([
             'user_id' => $user->id,
             'name' => 'Child',
+            'first_name' => 'Test',
+            'last_name' => 'Child',
             'relationship' => 'child',
             'date_of_birth' => now()->subYears(10),
             'is_dependent' => true,
@@ -268,9 +276,11 @@ describe('ProfileCompletenessChecker - Single Users', function () {
             'annual_other_income' => 0,
         ]);
 
-        FamilyMember::create([
+        FamilyMember::factory()->create([
             'user_id' => $user->id,
             'name' => 'Child',
+            'first_name' => 'Test',
+            'last_name' => 'Child',
             'relationship' => 'child',
             'date_of_birth' => now()->subYears(10),
             'is_dependent' => true,
@@ -306,9 +316,11 @@ describe('ProfileCompletenessChecker - Single Users', function () {
             'annual_employment_income' => 50000,
         ]);
 
-        FamilyMember::create([
+        FamilyMember::factory()->create([
             'user_id' => $user->id,
             'name' => 'Child',
+            'first_name' => 'Test',
+            'last_name' => 'Child',
             'relationship' => 'child',
             'date_of_birth' => now()->subYears(10),
             'is_dependent' => true,
@@ -338,9 +350,11 @@ describe('ProfileCompletenessChecker - Single Users', function () {
             'annual_employment_income' => 50000,
         ]);
 
-        FamilyMember::create([
+        FamilyMember::factory()->create([
             'user_id' => $user->id,
             'name' => 'Child',
+            'first_name' => 'Test',
+            'last_name' => 'Child',
             'relationship' => 'child',
             'date_of_birth' => now()->subYears(10),
             'is_dependent' => true,
@@ -389,9 +403,11 @@ describe('ProfileCompletenessChecker - Edge Cases', function () {
             'annual_employment_income' => 50000,
         ]);
 
-        FamilyMember::create([
+        FamilyMember::factory()->create([
             'user_id' => $user->id,
             'name' => 'Child',
+            'first_name' => 'Test',
+            'last_name' => 'Child',
             'relationship' => 'child',
             'date_of_birth' => now()->subYears(10),
             'is_dependent' => true,

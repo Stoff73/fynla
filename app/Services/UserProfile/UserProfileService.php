@@ -426,7 +426,7 @@ class UserProfileService
 
                 $commitments['retirement'][] = [
                     'id' => $pension->id,
-                    'name' => $pension->pension_name ?? 'DC Pension',
+                    'name' => $pension->scheme_name ?? 'DC Pension',
                     'type' => 'dc_pension',
                     'monthly_amount' => $pension->monthly_contribution_amount,
                     'is_joint' => false,

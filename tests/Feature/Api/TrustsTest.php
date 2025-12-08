@@ -7,9 +7,11 @@ use App\Models\Household;
 use App\Models\Property;
 use App\Models\User;
 use Carbon\Carbon;
+use Database\Seeders\TaxConfigurationSeeder;
 use Laravel\Sanctum\Sanctum;
 
 beforeEach(function () {
+    $this->seed(TaxConfigurationSeeder::class);
     $this->user = User::factory()->create();
     $this->household = Household::factory()->create();
     Sanctum::actingAs($this->user);

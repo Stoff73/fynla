@@ -4,10 +4,15 @@ use App\Models\Estate\Asset;
 use App\Models\FamilyMember;
 use App\Models\ProtectionProfile;
 use App\Models\User;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 
 uses(RefreshDatabase::class);
+
+beforeEach(function () {
+    $this->seed(TaxConfigurationSeeder::class);
+});
 
 describe('Profile Completeness API', function () {
     it('requires authentication', function () {

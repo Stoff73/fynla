@@ -7,9 +7,11 @@ use App\Services\Investment\PortfolioAnalyzer;
 use App\Services\Protection\ProtectionAgent;
 use App\Services\Retirement\RetirementProjector;
 use App\Services\Savings\EmergencyFundAnalyzer;
+use Database\Seeders\TaxConfigurationSeeder;
 use Laravel\Sanctum\Sanctum;
 
 beforeEach(function () {
+    $this->seed(TaxConfigurationSeeder::class);
     $this->user = User::factory()->create();
     Sanctum::actingAs($this->user);
 

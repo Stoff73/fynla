@@ -7,7 +7,6 @@ use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Savings\ISATracker;
 use App\Services\TaxConfigService;
-use Mockery;
 
 // Mock TaxConfigService before running tests
 beforeEach(function () {

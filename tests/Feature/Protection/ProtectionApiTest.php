@@ -8,6 +8,11 @@ use App\Models\LifeInsurancePolicy;
 use App\Models\ProtectionProfile;
 use App\Models\SicknessIllnessPolicy;
 use App\Models\User;
+use Database\Seeders\TaxConfigurationSeeder;
+
+beforeEach(function () {
+    $this->seed(TaxConfigurationSeeder::class);
+});
 
 describe('Protection API - Authentication', function () {
     it('requires authentication for protection index', function () {

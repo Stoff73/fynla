@@ -276,7 +276,7 @@ class PropertyTaxServiceTest extends TestCase
         $property = Property::factory()->create([
             'user_id' => $this->user->id,
             'property_type' => 'buy_to_let',
-            'annual_rental_income' => 15000,
+            'monthly_rental_income' => 1250, // £1,250/month = £15,000/year
             'annual_service_charge' => 1200,
             'annual_insurance' => 500,
             'annual_ground_rent' => null,
@@ -290,9 +290,9 @@ class PropertyTaxServiceTest extends TestCase
         // Allowable expenses: £2,700
         // Taxable profit: £12,300
         // Tax at 40% (higher rate): £4,920
-        expect($result['gross_income'])->toBe(15000.0);
-        expect($result['allowable_expenses'])->toBe(2700.0);
-        expect($result['taxable_profit'])->toBe(12300.0);
+        expect($result['gross_income'])->toEqual(15000);
+        expect($result['allowable_expenses'])->toEqual(2700);
+        expect($result['taxable_profit'])->toEqual(12300);
         expect($result['tax_liability'])->toBeGreaterThan(0.0);
     }
 
@@ -301,7 +301,7 @@ class PropertyTaxServiceTest extends TestCase
         $property = Property::factory()->create([
             'user_id' => $this->user->id,
             'property_type' => 'buy_to_let',
-            'annual_rental_income' => 15000,
+            'monthly_rental_income' => 1250, // £1,250/month = £15,000/year
             'annual_service_charge' => 1000,
         ]);
 
@@ -321,20 +321,19 @@ class PropertyTaxServiceTest extends TestCase
         expect($result['mortgage_interest_relief'])->toBeGreaterThan(0.0);
     }
 
-    public function test_rental_income_tax_with_occupancy_rate(): void
+    public function test_rental_income_tax_uses_full_occupancy(): void
     {
         $property = Property::factory()->create([
             'user_id' => $this->user->id,
             'property_type' => 'buy_to_let',
-            'annual_rental_income' => 12000,
-            'occupancy_rate_percent' => 90,
+            'monthly_rental_income' => 1000, // £1,000/month = £12,000/year
             'annual_service_charge' => 1000,
         ]);
 
         $result = $this->taxService->calculateRentalIncomeTax($property, $this->user);
 
-        // Income: £12,000 * 0.9 = £10,800
-        expect($result['gross_income'])->toBe(10800.0);
+        // Income: £12,000 (100% occupancy now assumed)
+        expect($result['gross_income'])->toBe(12000.0);
     }
 
     public function test_rental_income_tax_basic_rate_taxpayer(): void
@@ -344,7 +343,7 @@ class PropertyTaxServiceTest extends TestCase
         $property = Property::factory()->create([
             'user_id' => $basicRateUser->id,
             'property_type' => 'buy_to_let',
-            'annual_rental_income' => 10000,
+            'monthly_rental_income' => 833.33, // ~£10,000/year
             'annual_service_charge' => 1000,
         ]);
 

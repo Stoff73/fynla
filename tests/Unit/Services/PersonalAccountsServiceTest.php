@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-use App\Models\CashAccount;
 use App\Models\Household;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\Mortgage;
 use App\Models\Property;
+use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\UserProfile\PersonalAccountsService;
 use Carbon\Carbon;
@@ -57,8 +57,8 @@ beforeEach(function () {
         'ownership_percentage' => 100.00,
     ]);
 
-    // Create cash account
-    $this->cashAccount = CashAccount::factory()->create([
+    // Create cash account - Service uses SavingsAccount model
+    $this->cashAccount = SavingsAccount::factory()->create([
         'user_id' => $this->user->id,
         'current_balance' => 25000.00,
         'ownership_percentage' => 100.00,
@@ -266,9 +266,9 @@ describe('calculateBalanceSheet', function () {
 
         $result = $this->service->calculateBalanceSheet($this->user, $asOfDate);
 
+        // Filter by category field, not line_item string
         $propertyAssets = collect($result['assets'])->filter(function ($asset) {
-            return str_contains($asset['line_item'], 'Property') ||
-                   str_contains($asset['line_item'], 'Properties');
+            return $asset['category'] === 'property';
         })->sum('amount');
 
         expect($propertyAssets)->toBeGreaterThan(0);
@@ -279,8 +279,9 @@ describe('calculateBalanceSheet', function () {
 
         $result = $this->service->calculateBalanceSheet($this->user, $asOfDate);
 
+        // Filter by category field, not line_item string
         $investmentAssets = collect($result['assets'])->filter(function ($asset) {
-            return str_contains($asset['line_item'], 'Investment');
+            return $asset['category'] === 'investment';
         })->sum('amount');
 
         expect($investmentAssets)->toBeGreaterThan(0);
@@ -300,8 +301,9 @@ describe('calculateBalanceSheet', function () {
 
         $result = $this->service->calculateBalanceSheet($this->user, $asOfDate);
 
+        // Filter by category field, not line_item string
         $mortgageLiabilities = collect($result['liabilities'])->filter(function ($liability) {
-            return str_contains($liability['line_item'], 'Mortgage');
+            return $liability['category'] === 'mortgage';
         })->sum('amount');
 
         expect($mortgageLiabilities)->toBeGreaterThan(0);

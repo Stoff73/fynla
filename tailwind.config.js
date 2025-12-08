@@ -8,70 +8,78 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Primary Colors
+        // Professional Palette (Deep Navy & Slate)
         primary: {
-          50: '#EFF6FF',
-          100: '#DBEAFE',
-          500: '#3B82F6',
-          600: '#2563EB',
-          700: '#1E4D7B',
-          900: '#0A2540',
+          50: '#FFFFFF',      // Was Pastel Blue
+          100: '#F1F5F9',     // Slate 100
+          200: '#E2E8F0',     // Slate 200
+          300: '#CBD5E1',     // Slate 300
+          400: '#94A3B8',     // Slate 400
+          500: '#3B82F6',     // Default Blue (keeping as bright accent)
+          600: '#1257A0',     // Trust Blue (Main Brand Color)
+          700: '#0E3A66',     // Deep Navy
+          800: '#0B2C4F',     // Darker Navy
+          900: '#051B33',     // Darkest Navy
+          950: '#020617',
         },
-        // Secondary Colors
+        // Secondary (Neutrals/Slate instead of Teal)
         secondary: {
-          50: '#F0FDFA',
-          100: '#CCFBF1',
-          500: '#2DD4BF',
-          600: '#14B8A6',
-          700: '#0F766E',
+          50: '#FFFFFF',
+          100: '#F1F5F9',
+          200: '#E2E8F0',
+          500: '#64748B',     // Slate 500
+          600: '#475569',     // Slate 600
+          700: '#334155',     // Slate 700
+          800: '#1E293B',     // Slate 800
+          900: '#0F172A',     // Slate 900
         },
-        // Accent Colors
-        amber: {
-          50: '#FFFBEB',
-          100: '#FEF3C7',
-          500: '#F59E0B',
-          600: '#D97706',
-          700: '#B45309',
-        },
-        purple: {
-          50: '#FAF5FF',
-          100: '#F3E8FF',
-          500: '#A855F7',
-          600: '#9333EA',
-          700: '#7C3AED',
-        },
-        // Status Colors
+        // Action/Status Colors (Solid, not Pastel)
         success: {
-          50: '#F0FDF4',
-          100: '#DCFCE7',
-          500: '#22C55E',
-          600: '#16A34A',
-          700: '#15803D',
+          50: '#FFFFFF',
+          100: '#F0FDF4',     // Very subtle
+          500: '#15803D',     // Solid Green
+          600: '#166534',
+          700: '#14532D',
+          800: '#14532D',
+          900: '#14532D',
         },
         error: {
-          50: '#FEF2F2',
-          100: '#FEE2E2',
-          500: '#EF4444',
-          600: '#DC2626',
-          700: '#B91C1C',
+          50: '#FFFFFF',
+          100: '#FEF2F2',     // Very subtle
+          500: '#EF4444',     // Solid Red
+          600: '#B91C1C',     // Darker Red
+          700: '#991B1B',
+          800: '#7F1D1D',
+          900: '#450A0A',
+        },
+        warning: {
+          50: '#FFFFFF',
+          100: '#FFFBEB',
+          500: '#F59E0B',     // Solid Amber
+          600: '#D97706',
+          700: '#B45309',
+          800: '#92400E',
+          900: '#78350F',
         },
         info: {
-          50: '#F0F9FF',
-          100: '#E0F2FE',
+          50: '#FFFFFF',
+          100: '#F0F9FF',
           500: '#0EA5E9',
           600: '#0284C7',
           700: '#0369A1',
+          800: '#075985',
+          900: '#0C4A6E',
         },
-        // Chart Colors
+        // Chart Colors (Keep diverse but professional)
         chart: {
-          1: '#2563EB',
-          2: '#14B8A6',
-          3: '#A855F7',
-          4: '#F59E0B',
-          5: '#EC4899',
-          6: '#10B981',
-          7: '#F97316',
-          8: '#6366F1',
+          1: '#1257A0', // Trust Blue
+          2: '#475569', // Slate
+          3: '#15803D', // Green
+          4: '#D97706', // Amber
+          5: '#B91C1C', // Red
+          6: '#7C3AED', // Purple (kept only for charts)
+          7: '#C2410C', // Orange
+          8: '#0F172A', // Navy
         },
       },
       fontFamily: {

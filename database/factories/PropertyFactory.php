@@ -36,8 +36,6 @@ class PropertyFactory extends Factory
             'valuation_date' => fake()->dateTimeBetween('-6 months', 'now'),
             'sdlt_paid' => $purchasePrice * 0.03, // Simplified SDLT calculation
             'monthly_rental_income' => $propertyType === 'buy_to_let' ? fake()->numberBetween(800, 2500) : null,
-            'annual_rental_income' => $propertyType === 'buy_to_let' ? fake()->numberBetween(9600, 30000) : null,
-            'occupancy_rate_percent' => $propertyType === 'buy_to_let' ? fake()->numberBetween(85, 100) : null,
             'tenant_name' => $propertyType === 'buy_to_let' ? fake()->optional()->name() : null,
             'lease_start_date' => $propertyType === 'buy_to_let' ? fake()->dateTimeBetween('-2 years', 'now') : null,
             'lease_end_date' => $propertyType === 'buy_to_let' ? fake()->dateTimeBetween('now', '+2 years') : null,

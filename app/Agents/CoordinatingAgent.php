@@ -22,7 +22,14 @@ class CoordinatingAgent extends BaseAgent
         private PriorityRanker $priorityRanker,
         private HolisticPlanner $holisticPlanner,
         private CashFlowCoordinator $cashFlowCoordinator,
-    ) {}
+        private ProtectionAgent $protectionAgent,
+        private InvestmentAgent $investmentAgent,
+        private SavingsAgent $savingsAgent,
+        private RetirementAgent $retirementAgent,
+        // EstateAgent not yet implemented as standalone agent, using Service/Controller logic via adapter if needed
+        // For now, we'll keep the mock for Estate or assume a service exists.
+    ) {
+    }
 
     /**
      * Analyze user data and generate insights (BaseAgent requirement)
@@ -191,40 +198,43 @@ class CoordinatingAgent extends BaseAgent
     /**
      * Collect analysis from all module agents
      */
+    /**
+     * Collect analysis from all module agents
+     */
     private function collectModuleAnalysis(int $userId, ?array $moduleAgents): array
     {
         $analysis = [];
 
-        // For now, return placeholder data
-        // In full implementation, would call each module agent's analyze() method
-        // Example: $analysis['protection'] = $protectionAgent->analyze($userId);
+        // Protection Module
+        try {
+            $analysis['protection'] = $this->protectionAgent->analyze($userId);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("Protection analysis failed: " . $e->getMessage());
+            $analysis['protection'] = ['error' => 'Analysis failed'];
+        }
 
-        $analysis['protection'] = [
-            'adequacy_score' => 65,
-            'coverage_gap' => 150000,
-            'recommendations' => [],
-        ];
+        // Savings Module
+        try {
+            $analysis['savings'] = $this->savingsAgent->analyze($userId);
+        } catch (\Exception $e) {
+            $analysis['savings'] = ['error' => 'Analysis failed'];
+        }
 
-        $analysis['savings'] = [
-            'emergency_fund_months' => 4,
-            'total_savings' => 15000,
-            'recommendations' => [],
-        ];
+        // Investment Module
+        try {
+            $analysis['investment'] = $this->investmentAgent->analyze($userId);
+        } catch (\Exception $e) {
+            $analysis['investment'] = ['error' => 'Analysis failed'];
+        }
 
-        $analysis['investment'] = [
-            'total_portfolio_value' => 50000,
-            'portfolio_health_score' => 70,
-            'annual_return_percent' => 7.5,
-            'recommendations' => [],
-        ];
+        // Retirement Module
+        try {
+            $analysis['retirement'] = $this->retirementAgent->analyze($userId);
+        } catch (\Exception $e) {
+            $analysis['retirement'] = ['error' => 'Analysis failed'];
+        }
 
-        $analysis['retirement'] = [
-            'readiness_score' => 55,
-            'total_pension_value' => 120000,
-            'projected_annual_income' => 18000,
-            'recommendations' => [],
-        ];
-
+        // Estate Module (Placeholder until EstateAgent is fully implemented)
         $analysis['estate'] = [
             'net_worth' => 350000,
             'iht_liability' => 10000,
@@ -234,8 +244,15 @@ class CoordinatingAgent extends BaseAgent
             'recommendations' => [],
         ];
 
+        /*
         $analysis['user'] = [
             'age' => 42,
+        ];
+        */
+        // Retrieve user age from profile if possible, or leave as placeholder logic
+        $user = \App\Models\User::find($userId);
+        $analysis['user'] = [
+            'age' => $user && $user->date_of_birth ? $user->date_of_birth->age : 40,
         ];
 
         return $analysis;
@@ -294,7 +311,7 @@ class CoordinatingAgent extends BaseAgent
         $demands = [];
 
         foreach ($recommendations as $rec) {
-            if (! isset($rec['module'])) {
+            if (!isset($rec['module'])) {
                 continue;
             }
 
@@ -307,7 +324,7 @@ class CoordinatingAgent extends BaseAgent
                 ?? 0;
 
             if ($amount > 0) {
-                if (! isset($demands[$category])) {
+                if (!isset($demands[$category])) {
                     $demands[$category] = [
                         'amount' => 0,
                         'urgency' => $rec['urgency_score'] ?? 50,

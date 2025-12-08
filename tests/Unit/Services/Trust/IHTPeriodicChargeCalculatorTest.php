@@ -2,12 +2,19 @@
 
 use App\Models\Estate\Trust;
 use App\Models\Household;
+use App\Models\TaxConfiguration;
 use App\Models\User;
 use App\Services\Trust\IHTPeriodicChargeCalculator;
 use Carbon\Carbon;
 
 beforeEach(function () {
-    $this->calculator = new IHTPeriodicChargeCalculator;
+    // Ensure active tax configuration exists
+    if (! TaxConfiguration::where('is_active', true)->exists()) {
+        TaxConfiguration::factory()->create(['is_active' => true]);
+    }
+
+    $taxConfig = app(\App\Services\TaxConfigService::class);
+    $this->calculator = new IHTPeriodicChargeCalculator($taxConfig);
     $this->user = User::factory()->create();
     $this->household = Household::factory()->create();
 });

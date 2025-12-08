@@ -5,9 +5,12 @@ declare(strict_types=1);
 use App\Agents\ProtectionAgent;
 use App\Models\ProtectionProfile;
 use App\Models\User;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Support\Facades\Cache;
 
 beforeEach(function () {
+    // Seed tax configuration - required for ProtectionAgent
+    $this->seed(TaxConfigurationSeeder::class);
     // Clear all cache before each test
     Cache::flush();
 });

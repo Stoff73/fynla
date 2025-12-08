@@ -80,6 +80,13 @@ const routes = [
     name: 'Onboarding',
     component: Onboarding,
     meta: { requiresAuth: true, hideNavbar: true },
+    children: [
+      {
+        path: ':step',
+        name: 'OnboardingStep',
+        component: Onboarding, // Re-use the same component as it handles step rendering internally via store
+      },
+    ],
   },
   {
     path: '/dashboard',

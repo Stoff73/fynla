@@ -138,9 +138,11 @@ describe('GET /api/user/family-members/{id}', function () {
 
 describe('POST /api/user/family-members', function () {
     test('creates a new family member successfully', function () {
+        // API uses first_name and last_name instead of name
         $newMemberData = [
             'relationship' => 'child',
-            'name' => 'New Child',
+            'first_name' => 'New',
+            'last_name' => 'Child',
             'date_of_birth' => '2020-05-15',
             'gender' => 'female',
             'is_dependent' => true,
@@ -157,34 +159,37 @@ describe('POST /api/user/family-members', function () {
                 'message' => 'Family member added successfully',
             ]);
 
-        // Verify database
+        // Verify database - name is constructed from first_name + last_name
         $this->assertDatabaseHas('family_members', [
             'user_id' => $this->user->id,
-            'name' => 'New Child',
+            'first_name' => 'New',
+            'last_name' => 'Child',
             'relationship' => 'child',
         ]);
 
         // Verify response data
-        expect($response->json('data.family_member.name'))->toBe('New Child');
+        expect($response->json('data.family_member.first_name'))->toBe('New');
         expect($response->json('data.family_member.relationship'))->toBe('child');
     });
 
     test('validates required fields', function () {
         $invalidData = [
             'relationship' => '', // Required
-            'name' => '', // Required
+            'first_name' => '', // Required
+            'last_name' => '', // Required
         ];
 
         $response = $this->postJson('/api/user/family-members', $invalidData);
 
         $response->assertStatus(422)
-            ->assertJsonValidationErrors(['relationship', 'name']);
+            ->assertJsonValidationErrors(['relationship', 'first_name', 'last_name']);
     });
 
     test('validates relationship enum values', function () {
         $invalidData = [
             'relationship' => 'invalid_relationship',
-            'name' => 'Test Name',
+            'first_name' => 'Test',
+            'last_name' => 'Name',
         ];
 
         $response = $this->postJson('/api/user/family-members', $invalidData);
@@ -196,7 +201,8 @@ describe('POST /api/user/family-members', function () {
     test('validates date format', function () {
         $invalidData = [
             'relationship' => 'child',
-            'name' => 'Test Child',
+            'first_name' => 'Test',
+            'last_name' => 'Child',
             'date_of_birth' => 'not-a-date',
         ];
 

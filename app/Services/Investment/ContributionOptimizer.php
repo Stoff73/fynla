@@ -28,8 +28,10 @@ class ContributionOptimizer
 {
     public function __construct(
         private ISAAllowanceOptimizer $isaOptimizer,
-        private GoalProbabilityCalculator $probabilityCalculator
-    ) {}
+        private GoalProbabilityCalculator $probabilityCalculator,
+        private \App\Services\TaxConfigService $taxConfig
+    ) {
+    }
 
     /**
      * Optimize contribution strategy for a user
@@ -143,6 +145,11 @@ class ContributionOptimizer
         string $incomeTaxBand,
         User $user
     ): array {
+        // Check remaining allowance from Tax Config if not provided by optimizer
+        // Note: keeping isaStatus['remaining'] usage as per original logic, 
+        // but typically we'd fetch the annual limit from config.
+        // $isaAnnualLimit = $this->taxConfig->get('isa.annual_allowance', 20000);
+
         $isaRemaining = $isaStatus['remaining'] ?? 0;
         $isaMonthlyLimit = $isaRemaining / max(1, $this->getMonthsRemainingInTaxYear());
 
@@ -161,6 +168,7 @@ class ContributionOptimizer
         }
 
         // Priority 2: Pension contributions (if higher/additional rate taxpayer and retirement goal)
+        // Check config for tax bands, though simplified logic relies on 'higher'/'additional' strings
         if (in_array($incomeTaxBand, ['higher', 'additional']) && $monthlyAmount > 0) {
             // Suggest pension contribution for tax relief
             $pensionAllocation = $monthlyAmount * 0.5; // 50% of remaining
@@ -311,15 +319,21 @@ class ContributionOptimizer
 
         $annualContribution = $pensionContribution * 12;
 
-        // Basic rate relief (20%) is automatic
-        $basicRateRelief = $annualContribution * 0.20;
+        // Basic rate tax relief
+        $basicRate = $this->taxConfig->get('pension.tax_relief.basic_rate', 0.20);
+        $basicRateRelief = $annualContribution * $basicRate;
 
-        // Higher rate relief (20% additional) claimed via tax return
+        // Higher rate relief claimed via tax return
+        $higherRate = $this->taxConfig->get('pension.tax_relief.higher_rate', 0.40);
+        $additionalRate = $this->taxConfig->get('pension.tax_relief.additional_rate', 0.45);
+
         $higherRateRelief = 0;
         if ($incomeTaxBand === 'higher') {
-            $higherRateRelief = $annualContribution * 0.20;
+            // Relief usually calculated as difference between paid rate and basic rate
+            // But simplified logic here:
+            $higherRateRelief = $annualContribution * $basicRate;
         } elseif ($incomeTaxBand === 'additional') {
-            $higherRateRelief = $annualContribution * 0.25; // 45% - 20% = 25%
+            $higherRateRelief = $annualContribution * ($additionalRate - $basicRate);
         }
 
         $totalRelief = $basicRateRelief + $higherRateRelief;
@@ -435,7 +449,7 @@ class ContributionOptimizer
                 'type' => 'isa_allowance',
                 'priority' => 'high',
                 'title' => 'Utilize ISA Allowance',
-                'description' => 'You have £'.number_format($isaStatus['remaining'], 0).' of your ISA allowance remaining this tax year.',
+                'description' => 'You have £' . number_format($isaStatus['remaining'], 0) . ' of your ISA allowance remaining this tax year.',
                 'action' => 'Consider increasing ISA contributions to maximize tax-free growth.',
             ];
         }
@@ -446,7 +460,7 @@ class ContributionOptimizer
                 'type' => 'pension_tax_relief',
                 'priority' => 'high',
                 'title' => 'Maximize Pension Tax Relief',
-                'description' => 'As a '.$incomeTaxBand.' rate taxpayer, you benefit from significant pension tax relief.',
+                'description' => 'As a ' . $incomeTaxBand . ' rate taxpayer, you benefit from significant pension tax relief.',
                 'action' => 'Consider pension contributions to reduce your tax liability.',
             ];
         }
@@ -458,7 +472,7 @@ class ContributionOptimizer
                 'priority' => 'medium',
                 'title' => 'Lump Sum Investment Strategy',
                 'description' => $lumpSumAnalysis['rationale'],
-                'action' => 'Consider '.($lumpSumAnalysis['recommendation'] === 'lump_sum' ? 'investing the lump sum immediately' : 'DCA over 6-12 months').'.',
+                'action' => 'Consider ' . ($lumpSumAnalysis['recommendation'] === 'lump_sum' ? 'investing the lump sum immediately' : 'DCA over 6-12 months') . '.',
             ];
         }
 
@@ -484,10 +498,10 @@ class ContributionOptimizer
         $taxYearStart = $now->copy()->month(4)->day(6);
 
         if ($now < $taxYearStart) {
-            return ($now->year - 1).'/'.substr((string) $now->year, -2);
+            return ($now->year - 1) . '/' . substr((string) $now->year, -2);
         }
 
-        return $now->year.'/'.substr((string) ($now->year + 1), -2);
+        return $now->year . '/' . substr((string) ($now->year + 1), -2);
     }
 
     private function getMonthsRemainingInTaxYear(): int
@@ -504,13 +518,16 @@ class ContributionOptimizer
 
     private function getExpectedReturnByRisk(string $riskTolerance): float
     {
+        $assumptions = $this->taxConfig->get('assumptions', []);
+
         return match ($riskTolerance) {
             'conservative' => 0.045,  // 4.5%
             'moderately_conservative' => 0.055,  // 5.5%
-            'balanced' => 0.065,  // 6.5%
+            // Use config assumption for 'balanced' as pivot
+            'balanced' => $assumptions['investment_growth_rate'] ?? 0.065,
             'moderately_aggressive' => 0.075,  // 7.5%
             'aggressive' => 0.085,  // 8.5%
-            default => 0.065,
+            default => $assumptions['investment_growth_rate'] ?? 0.065,
         };
     }
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\Investment\Holding;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\User;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Laravel\Sanctum\Sanctum;
@@ -12,6 +13,8 @@ use Laravel\Sanctum\Sanctum;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
+    $this->seed(TaxConfigurationSeeder::class);
+
     $this->user = User::factory()->create([
         'name' => 'Test Portfolio Manager',
         'email' => 'portfolio@example.com',
@@ -31,7 +34,8 @@ beforeEach(function () {
     $this->holdings = [
         // UK Equity
         Holding::factory()->create([
-            'investment_account_id' => $this->account->id,
+            'holdable_id' => $this->account->id,
+            'holdable_type' => InvestmentAccount::class,
             'asset_type' => 'uk_equity',
             'security_name' => 'Vanguard FTSE 100 ETF',
             'ticker' => 'VUKE',
@@ -44,7 +48,8 @@ beforeEach(function () {
         ]),
         // US Equity
         Holding::factory()->create([
-            'investment_account_id' => $this->account->id,
+            'holdable_id' => $this->account->id,
+            'holdable_type' => InvestmentAccount::class,
             'asset_type' => 'us_equity',
             'security_name' => 'Vanguard S&P 500 ETF',
             'ticker' => 'VOO',
@@ -57,7 +62,8 @@ beforeEach(function () {
         ]),
         // Bonds
         Holding::factory()->create([
-            'investment_account_id' => $this->account->id,
+            'holdable_id' => $this->account->id,
+            'holdable_type' => InvestmentAccount::class,
             'asset_type' => 'bond',
             'security_name' => 'Vanguard UK Gilt ETF',
             'ticker' => 'VGOV',
@@ -70,7 +76,8 @@ beforeEach(function () {
         ]),
         // Global Equity
         Holding::factory()->create([
-            'investment_account_id' => $this->account->id,
+            'holdable_id' => $this->account->id,
+            'holdable_type' => InvestmentAccount::class,
             'asset_type' => 'international_equity',
             'security_name' => 'Vanguard All-World ETF',
             'ticker' => 'VWRL',
@@ -137,7 +144,9 @@ describe('Efficient Frontier Calculation', function () {
 
     it('returns error when user has no holdings', function () {
         // Delete all holdings
-        Holding::where('investment_account_id', $this->account->id)->delete();
+        Holding::where('holdable_type', InvestmentAccount::class)
+            ->where('holdable_id', $this->account->id)
+            ->delete();
 
         $response = $this->postJson('/api/investment/optimization/efficient-frontier');
 
@@ -150,7 +159,8 @@ describe('Efficient Frontier Calculation', function () {
 
     it('returns error when user has only one holding', function () {
         // Delete all but one holding
-        Holding::where('investment_account_id', $this->account->id)
+        Holding::where('holdable_type', InvestmentAccount::class)
+            ->where('holdable_id', $this->account->id)
             ->skip(1)
             ->take(3)
             ->delete();
@@ -467,7 +477,8 @@ describe('Correlation Matrix Calculation', function () {
         ]);
 
         Holding::factory()->create([
-            'investment_account_id' => $account2->id,
+            'holdable_id' => $account2->id,
+            'holdable_type' => InvestmentAccount::class,
             'asset_type' => 'bond',
             'current_value' => 20000.00,
         ]);
@@ -546,7 +557,8 @@ describe('Cache Invalidation on Holdings Changes', function () {
 
         // Create new holding
         $this->postJson('/api/investment/holdings', [
-            'investment_account_id' => $this->account->id,
+            'holdable_id' => $this->account->id,
+            'holdable_type' => InvestmentAccount::class,
             'asset_type' => 'equity',
             'security_name' => 'Test Stock',
             'ticker' => 'TEST',
@@ -624,7 +636,8 @@ describe('Security and Authorization', function () {
         ]);
 
         Holding::factory()->count(3)->create([
-            'investment_account_id' => $otherAccount->id,
+            'holdable_id' => $otherAccount->id,
+            'holdable_type' => InvestmentAccount::class,
         ]);
 
         // Try to filter by other user's account

@@ -24,7 +24,9 @@ class HoldingFactory extends Factory
         $currentValue = $quantity * $currentPrice;
 
         return [
-            'investment_account_id' => InvestmentAccount::factory(),
+            // Polymorphic relationship - default to InvestmentAccount
+            'holdable_id' => InvestmentAccount::factory(),
+            'holdable_type' => InvestmentAccount::class,
             'asset_type' => $this->faker->randomElement(['equity', 'bond', 'fund', 'etf', 'alternative']),
             'security_name' => $this->faker->randomElement([
                 'Vanguard S&P 500 ETF',
@@ -45,6 +47,17 @@ class HoldingFactory extends Factory
             'dividend_yield' => $this->faker->randomFloat(4, 0, 5),
             'ocf_percent' => $this->faker->randomFloat(4, 0.05, 1.5),
         ];
+    }
+
+    /**
+     * Assign holding to a specific investment account
+     */
+    public function forAccount(InvestmentAccount $account): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'holdable_id' => $account->id,
+            'holdable_type' => InvestmentAccount::class,
+        ]);
     }
 
     public function equity(): static

@@ -12,7 +12,6 @@ use App\Services\TaxConfigService;
 use App\Services\UKTaxCalculator;
 use App\Services\UserProfile\UserProfileService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Mockery;
 
 uses(RefreshDatabase::class);
 
@@ -82,11 +81,12 @@ beforeEach(function () {
         'name' => 'Test Child',
     ]);
 
-    // Create assets
+    // Create assets - include monthly_rental_income so rental income is calculated from properties
     $this->property = Property::factory()->create([
         'user_id' => $this->user->id,
         'current_value' => 500000.00,
         'ownership_percentage' => 100.00,
+        'monthly_rental_income' => 1000.00, // 12000/year to match user's annual_rental_income
     ]);
 
     $this->investment = InvestmentAccount::factory()->create([
@@ -138,8 +138,9 @@ describe('getCompleteProfile', function () {
         ]);
 
         expect($profile['income_occupation']['occupation'])->toBe('Software Engineer');
-        expect($profile['income_occupation']['annual_employment_income'])->toBe('75000.00');
-        expect($profile['income_occupation']['total_annual_income'])->toBe(90000.00);
+        // Service returns numeric value, not string
+        expect((float) $profile['income_occupation']['annual_employment_income'])->toBe(75000.0);
+        expect($profile['income_occupation']['total_annual_income'])->toBe(90000.0);
     });
 
     test('calculates total annual income correctly', function () {
@@ -158,18 +159,20 @@ describe('getCompleteProfile', function () {
     test('includes family members in profile', function () {
         $profile = $this->service->getCompleteProfile($this->user);
 
-        expect($profile['family_members'])->toBeInstanceOf(\Illuminate\Database\Eloquent\Collection::class);
+        // Service returns array, not Collection
+        expect($profile['family_members'])->toBeArray();
         expect($profile['family_members'])->toHaveCount(1);
-        expect($profile['family_members'][0]->name)->toBe('Test Child');
+        expect($profile['family_members'][0]['name'])->toBe('Test Child');
     });
 
-    test('returns empty collection when user has no family members', function () {
+    test('returns empty array when user has no family members', function () {
         // Delete family members
         FamilyMember::where('user_id', $this->user->id)->delete();
 
         $profile = $this->service->getCompleteProfile($this->user);
 
-        expect($profile['family_members'])->toBeInstanceOf(\Illuminate\Database\Eloquent\Collection::class);
+        // Service returns array, not Collection
+        expect($profile['family_members'])->toBeArray();
         expect($profile['family_members'])->toHaveCount(0);
     });
 
@@ -252,7 +255,8 @@ describe('updateIncomeOccupation', function () {
 
         expect($updatedUser->occupation)->toBe('Senior Developer');
         expect($updatedUser->employer)->toBe('New Company Ltd');
-        expect($updatedUser->annual_employment_income)->toBe('95000.00');
+        // Model casts return float, not string
+        expect((float) $updatedUser->annual_employment_income)->toBe(95000.0);
     });
 
     test('persists updated income information to database', function () {
@@ -266,8 +270,9 @@ describe('updateIncomeOccupation', function () {
         // Refresh user from database
         $this->user->refresh();
 
-        expect($this->user->annual_employment_income)->toBe('100000.00');
-        expect($this->user->annual_self_employment_income)->toBe('20000.00');
+        // Model casts return float, not string
+        expect((float) $this->user->annual_employment_income)->toBe(100000.0);
+        expect((float) $this->user->annual_self_employment_income)->toBe(20000.0);
     });
 
     test('returns updated User model', function () {

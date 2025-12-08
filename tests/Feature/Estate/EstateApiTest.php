@@ -8,12 +8,14 @@ use App\Models\Estate\IHTProfile;
 use App\Models\Estate\Liability;
 use App\Models\User;
 use Carbon\Carbon;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
+    $this->seed(TaxConfigurationSeeder::class);
     $this->user = User::factory()->create();
     Sanctum::actingAs($this->user);
 });

@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 use App\Models\Household;
 use App\Models\User;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
+    $this->seed(TaxConfigurationSeeder::class);
     // Create a household
     $this->household = Household::factory()->create();
 

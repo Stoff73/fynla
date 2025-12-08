@@ -1,6 +1,5 @@
 import './bootstrap';
-import '../css/app.css';
-import '../css/slippery-mode.css'; // Import Slippery Mode CSS directly
+// Import Slippery Mode CSS directly
 
 import { createApp } from 'vue';
 import App from './App.vue';

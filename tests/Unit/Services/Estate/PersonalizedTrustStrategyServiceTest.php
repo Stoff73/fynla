@@ -2,13 +2,20 @@
 
 use App\Models\Estate\Asset;
 use App\Models\Estate\IHTProfile;
+use App\Models\TaxConfiguration;
 use App\Models\User;
 use App\Services\Estate\AssetLiquidityAnalyzer;
 use App\Services\Estate\PersonalizedTrustStrategyService;
 
 beforeEach(function () {
+    // Ensure active tax configuration exists
+    if (! TaxConfiguration::where('is_active', true)->exists()) {
+        TaxConfiguration::factory()->create(['is_active' => true]);
+    }
+
     $this->liquidityAnalyzer = new AssetLiquidityAnalyzer;
-    $this->service = new PersonalizedTrustStrategyService($this->liquidityAnalyzer);
+    $taxConfig = app(\App\Services\TaxConfigService::class);
+    $this->service = new PersonalizedTrustStrategyService($this->liquidityAnalyzer, $taxConfig);
 
     $this->user = new User([
         'id' => 1,

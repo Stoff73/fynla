@@ -10,6 +10,7 @@ use App\Models\InvestmentAccount;
 use App\Models\Liability;
 use App\Models\SavingsAccount;
 use App\Models\User;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -31,6 +32,7 @@ class CrossModuleIntegrationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->seed(TaxConfigurationSeeder::class);
 
         $this->user = User::factory()->create([
             'email' => 'test@example.com',

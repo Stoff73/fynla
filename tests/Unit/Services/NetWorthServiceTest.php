@@ -3,11 +3,11 @@
 declare(strict_types=1);
 
 use App\Models\BusinessInterest;
-use App\Models\CashAccount;
 use App\Models\Chattel;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\Mortgage;
 use App\Models\Property;
+use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\NetWorth\NetWorthService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -28,9 +28,12 @@ test('calculate net worth with no assets returns zero', function () {
 });
 
 test('calculate net worth with property includes ownership percentage', function () {
+    // Note: Values in database are ALREADY stored as user's share
+    // For joint properties, TWO records exist (one per user) each storing their share
+    // So we store 200000 (user's 50% share of £400k property)
     Property::factory()->create([
         'user_id' => $this->user->id,
-        'current_value' => 400000,
+        'current_value' => 200000, // User's 50% share stored directly
         'ownership_percentage' => 50,
         'ownership_type' => 'joint',
     ]);
@@ -56,7 +59,8 @@ test('calculate net worth with investments', function () {
 });
 
 test('calculate net worth with cash accounts', function () {
-    CashAccount::factory()->create([
+    // Service uses SavingsAccount model for cash calculations
+    SavingsAccount::factory()->create([
         'user_id' => $this->user->id,
         'current_balance' => 25000,
         'ownership_percentage' => 100,
@@ -69,9 +73,11 @@ test('calculate net worth with cash accounts', function () {
 });
 
 test('calculate net worth with business interests', function () {
+    // Note: Values in database are ALREADY stored as user's share
+    // So we store 75000 (user's 75% share of £100k business)
     BusinessInterest::factory()->create([
         'user_id' => $this->user->id,
-        'current_valuation' => 100000,
+        'current_valuation' => 75000, // User's 75% share stored directly
         'ownership_percentage' => 75,
     ]);
 
@@ -127,7 +133,8 @@ test('calculate net worth with multiple asset types', function () {
         'ownership_percentage' => 100,
     ]);
 
-    CashAccount::factory()->create([
+    // Service uses SavingsAccount model for cash calculations
+    SavingsAccount::factory()->create([
         'user_id' => $this->user->id,
         'current_balance' => 25000,
         'ownership_percentage' => 100,

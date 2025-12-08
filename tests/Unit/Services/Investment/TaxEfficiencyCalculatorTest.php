@@ -9,25 +9,32 @@ use App\Services\TaxConfigService;
 
 beforeEach(function () {
     $this->taxConfig = Mockery::mock(TaxConfigService::class);
-    $this->taxCalculator = new TaxEfficiencyCalculator($this->taxConfig);
 
-    // Mock UK tax config
-    config([
-        'uk_tax_config.dividend_tax' => [
-            'dividend_allowance' => 500,
-            'basic_rate' => 0.0875,
-            'higher_rate' => 0.3375,
-            'additional_rate' => 0.3935,
-        ],
-        'uk_tax_config.capital_gains_tax' => [
-            'annual_exempt_amount' => 3000,
-            'basic_rate' => 0.10,
-            'higher_rate' => 0.20,
-        ],
-        'uk_tax_config.income_tax.bands' => [
-            'personal_allowance' => 12570,
-        ],
+    // Set up mock expectations for TaxConfigService methods
+    $this->taxConfig->shouldReceive('getDividendTax')->andReturn([
+        'allowance' => 500,
+        'basic_rate' => 0.0875,
+        'higher_rate' => 0.3375,
+        'additional_rate' => 0.3935,
     ]);
+
+    $this->taxConfig->shouldReceive('getCapitalGainsTax')->andReturn([
+        'annual_exempt_amount' => 3000,
+        'basic_rate' => 0.10,
+        'higher_rate' => 0.20,
+    ]);
+
+    $this->taxConfig->shouldReceive('getIncomeTax')->andReturn([
+        'bands' => [
+            ['name' => 'Personal Allowance', 'threshold' => 0, 'rate' => 0],
+            ['name' => 'Basic Rate', 'threshold' => 12570, 'rate' => 0.20],
+            ['name' => 'Higher Rate', 'threshold' => 50270, 'rate' => 0.40],
+            ['name' => 'Additional Rate', 'threshold' => 125140, 'rate' => 0.45],
+        ],
+        'personal_allowance' => 12570,
+    ]);
+
+    $this->taxCalculator = new TaxEfficiencyCalculator($this->taxConfig);
 });
 
 describe('calculateUnrealizedGains', function () {

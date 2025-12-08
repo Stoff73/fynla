@@ -152,8 +152,10 @@ class PropertyTaxService
         $basicRateThreshold = $personalAllowance + $incomeTaxBands[0]['max'];
 
         // Get CGT rates for residential property
-        $cgtRates = $cgtConfig['rates']['residential'];
-        $cgtRate = $totalIncome > $basicRateThreshold ? $cgtRates['higher_rate'] * 100 : $cgtRates['basic_rate'] * 100;
+        // Config uses flat keys: residential_property_basic_rate, residential_property_higher_rate
+        $basicCgtRate = $cgtConfig['residential_property_basic_rate'] ?? $cgtConfig['basic_rate'] ?? 18;
+        $higherCgtRate = $cgtConfig['residential_property_higher_rate'] ?? $cgtConfig['higher_rate'] ?? 24;
+        $cgtRate = $totalIncome > $basicRateThreshold ? $higherCgtRate : $basicCgtRate;
         $cgtLiability = $taxableGain * ($cgtRate / 100);
 
         $effectiveRate = $gain > 0 ? ($cgtLiability / $gain) * 100 : 0;
@@ -177,9 +179,11 @@ class PropertyTaxService
      */
     public function calculateRentalIncomeTax(Property $property, User $user): array
     {
-        // Rental income
-        $annualRentalIncome = $property->annual_rental_income ?? 0;
-        $occupancyRate = ($property->occupancy_rate_percent ?? 100) / 100;
+        // Rental income - calculate annual from monthly
+        $monthlyRentalIncome = $property->monthly_rental_income ?? 0;
+        $annualRentalIncome = $monthlyRentalIncome * 12;
+        // Occupancy rate defaults to 100% if not set
+        $occupancyRate = 1.0;
         $actualIncome = $annualRentalIncome * $occupancyRate;
 
         // Allowable expenses
@@ -252,7 +256,8 @@ class PropertyTaxService
             // Detailed nested structures
             'rental_income' => [
                 'gross_annual' => $annualRentalIncome,
-                'occupancy_rate_percent' => $property->occupancy_rate_percent ?? 100,
+                'monthly_rental_income' => $monthlyRentalIncome,
+                'occupancy_rate_percent' => 100, // Always 100% now
                 'actual_income' => $actualIncome,
             ],
             'allowable_expenses_detail' => [

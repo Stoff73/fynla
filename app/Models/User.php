@@ -26,6 +26,7 @@ class User extends Authenticatable
      */
     protected $guarded = [
         'id',
+        'is_admin',
         'email_verified_at',
         'remember_token',
         'created_at',
@@ -312,7 +313,7 @@ class User extends Authenticatable
     public function hasAcceptedSpousePermission(): bool
     {
         // No spouse linked
-        if (! $this->spouse_id) {
+        if (!$this->spouse_id) {
             return false;
         }
 
@@ -344,7 +345,7 @@ class User extends Authenticatable
      */
     public function calculateYearsUKResident(): ?int
     {
-        if (! $this->uk_arrival_date) {
+        if (!$this->uk_arrival_date) {
             return null;
         }
 
@@ -371,7 +372,7 @@ class User extends Authenticatable
         }
 
         // If no UK arrival date, cannot calculate deemed domicile
-        if (! $this->uk_arrival_date) {
+        if (!$this->uk_arrival_date) {
             return false;
         }
 

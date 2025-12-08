@@ -6,7 +6,7 @@ namespace App\Services\Investment\Tax;
 
 use App\Models\Investment\Holding;
 use App\Models\Investment\InvestmentAccount;
-use App\Models\Savings\SavingsAccount;
+use App\Models\SavingsAccount;
 use App\Services\TaxConfigService;
 use Illuminate\Support\Collection;
 
@@ -54,7 +54,7 @@ class ISAAllowanceOptimizer
         $annualAllowance = $isaConfig['annual_allowance'];
 
         // Get current ISA usage
-        $currentUsage = $this->calculateCurrentUsage($userId, $taxYear);
+        $currentUsage = $this->calculateAllowanceUsage($userId, $taxYear);
 
         // Get available funds
         $availableFunds = $options['available_funds'] ?? null;
@@ -115,7 +115,7 @@ class ISAAllowanceOptimizer
      * @param  string  $taxYear  Tax year
      * @return array Current ISA usage
      */
-    private function calculateCurrentUsage(int $userId, string $taxYear): array
+    public function calculateAllowanceUsage(int $userId, string $taxYear): array
     {
         $investmentISAs = InvestmentAccount::where('user_id', $userId)
             ->whereIn('account_type', ['isa', 'stocks_shares_isa', 'lifetime_isa'])
@@ -532,7 +532,7 @@ class ISAAllowanceOptimizer
         }
 
         // Sort by priority
-        usort($actions, fn ($a, $b) => $a['priority'] <=> $b['priority']);
+        usort($actions, fn($a, $b) => $a['priority'] <=> $b['priority']);
 
         return $actions;
     }

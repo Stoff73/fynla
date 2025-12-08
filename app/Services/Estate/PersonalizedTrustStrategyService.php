@@ -77,13 +77,15 @@ class PersonalizedTrustStrategyService
      */
     private function calculateGiftableAmounts(array $liquidityAnalysis): array
     {
-        $liquidAssets = $liquidityAnalysis['assets_by_liquidity']['liquid'] ?? [];
-        $semiLiquidAssets = $liquidityAnalysis['assets_by_liquidity']['semi_liquid'] ?? [];
-        $illiquidAssets = $liquidityAnalysis['assets_by_liquidity']['illiquid'] ?? [];
+        // AssetLiquidityAnalyzer returns structure with 'liquid', 'semi_liquid', 'illiquid' keys
+        // Each contains 'assets' (array), 'total_value', 'count', 'description'
+        $liquidAssets = $liquidityAnalysis['liquid']['assets'] ?? [];
+        $semiLiquidAssets = $liquidityAnalysis['semi_liquid']['assets'] ?? [];
+        $illiquidAssets = $liquidityAnalysis['illiquid']['assets'] ?? [];
 
-        $immediatelyGiftable = collect($liquidAssets)->sum('current_value');
-        $giftableWithPlanning = collect($semiLiquidAssets)->sum('current_value');
-        $notGiftable = collect($illiquidAssets)->sum('current_value');
+        $immediatelyGiftable = (float) ($liquidityAnalysis['liquid']['total_value'] ?? 0);
+        $giftableWithPlanning = (float) ($liquidityAnalysis['semi_liquid']['total_value'] ?? 0);
+        $notGiftable = (float) ($liquidityAnalysis['illiquid']['total_value'] ?? 0);
 
         return [
             'immediately_giftable' => $immediatelyGiftable,
@@ -155,10 +157,12 @@ class PersonalizedTrustStrategyService
         float $availableNRB,
         array $liquidityAnalysis
     ): array {
-        $liquidAssets = collect($liquidityAnalysis['assets_by_liquidity']['liquid'] ?? []);
+        $liquidAssets = collect($liquidityAnalysis['liquid']['assets'] ?? []);
 
-        $amountToTrust = min($giftableAmounts['immediately_giftable'], $availableNRB);
-        $excessOverNRB = max(0, $amountToTrust - $availableNRB);
+        // For Immediate CLT, you can transfer all liquid assets (not capped at NRB)
+        // The NRB determines tax-free portion, not maximum transfer amount
+        $amountToTrust = (float) $giftableAmounts['immediately_giftable'];
+        $excessOverNRB = max(0.0, $amountToTrust - $availableNRB);
 
         // CLT taxation: 20% on excess over NRB (or 25% if settlor pays)
         $lifetimeCharge = $excessOverNRB * 0.20;
@@ -311,9 +315,9 @@ class PersonalizedTrustStrategyService
             $schedule[] = [
                 'cycle' => $i + 1,
                 'year' => $year,
-                'amount' => $amountPerCycle,
-                'nrb_available' => $nrb,
-                'immediate_charge' => 0, // Within NRB
+                'amount' => (float) $amountPerCycle,
+                'nrb_available' => (float) $nrb,
+                'immediate_charge' => 0.0, // Within NRB
                 'description' => 'Transfer £'.number_format($amountPerCycle, 0)." in year $year",
             ];
         }
@@ -379,7 +383,7 @@ class PersonalizedTrustStrategyService
         array $giftableAmounts,
         array $liquidityAnalysis
     ): array {
-        $liquidAssets = collect($liquidityAnalysis['assets_by_liquidity']['liquid'] ?? []);
+        $liquidAssets = collect($liquidityAnalysis['liquid']['assets'] ?? []);
         $totalLiquid = $giftableAmounts['immediately_giftable'];
 
         // Loan trust: lend money to trust, loan stays in estate but growth doesn't
@@ -392,10 +396,10 @@ class PersonalizedTrustStrategyService
             'strategy_name' => 'Loan Trust Strategy',
             'priority' => 3,
             'description' => 'Lend assets to a trust - loan stays in estate but future growth is IHT-free',
-            'amount' => $loanAmount,
-            'iht_saving_potential' => $ihtSaving,
-            'lifetime_tax_charge' => 0, // No immediate charge (it's a loan, not a gift)
-            'potential_death_charge' => 0, // Loan itself stays in estate
+            'amount' => (float) $loanAmount,
+            'iht_saving_potential' => (float) $ihtSaving,
+            'lifetime_tax_charge' => 0.0, // No immediate charge (it's a loan, not a gift)
+            'potential_death_charge' => 0.0, // Loan itself stays in estate
             'time_frame' => 'Immediate effect (growth is immediately outside estate)',
             'risk_level' => 'Low',
             'suitable_for' => 'Large estates, those wanting to retain access to capital',
@@ -439,7 +443,7 @@ class PersonalizedTrustStrategyService
         array $liquidityAnalysis,
         User $user
     ): array {
-        $liquidAssets = collect($liquidityAnalysis['assets_by_liquidity']['liquid'] ?? []);
+        $liquidAssets = collect($liquidityAnalysis['liquid']['assets'] ?? []);
         $totalLiquid = $giftableAmounts['immediately_giftable'];
 
         // Get IHT configuration
@@ -512,7 +516,7 @@ class PersonalizedTrustStrategyService
     private function buildPropertyTrustStrategy(
         array $liquidityAnalysis
     ): array {
-        $illiquidAssets = collect($liquidityAnalysis['assets_by_liquidity']['illiquid'] ?? []);
+        $illiquidAssets = collect($liquidityAnalysis['illiquid']['assets'] ?? []);
         $mainResidence = $illiquidAssets->firstWhere('is_main_residence', true);
 
         if (! $mainResidence) {

@@ -3,9 +3,11 @@
 declare(strict_types=1);
 
 use App\Models\User;
+use Database\Seeders\TaxConfigurationSeeder;
 use Laravel\Sanctum\Sanctum;
 
 beforeEach(function () {
+    $this->seed(TaxConfigurationSeeder::class);
     // Create admin and regular users
     $this->adminUser = User::factory()->create([
         'name' => 'Admin User',

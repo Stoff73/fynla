@@ -2,7 +2,10 @@ import axios from 'axios';
 
 // Create axios instance with default config
 // Use environment-specific base URL (production or local development)
-const apiBaseURL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
+// Use environment-specific base URL (production or local development)
+// Force local backend if running on localhost to avoid CORS issues from accidental prod env vars
+const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+const apiBaseURL = isLocal ? 'http://127.0.0.1:8000' : (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000');
 const api = axios.create({
   baseURL: `${apiBaseURL}/api`,
   headers: {
@@ -37,7 +40,7 @@ api.interceptors.response.use(
       if (error.response.status === 401) {
         // Don't redirect if we're already on login/register endpoints (let component handle it)
         const isAuthEndpoint = error.config?.url?.includes('/auth/login') ||
-                               error.config?.url?.includes('/auth/register');
+          error.config?.url?.includes('/auth/register');
 
         if (!isAuthEndpoint) {
           console.error('[API] 401 Unauthorized - Token expired or invalid. Redirecting to login...');

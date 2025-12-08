@@ -6,12 +6,14 @@ use App\Models\CashAccount;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\Property;
 use App\Models\User;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
+    $this->seed(TaxConfigurationSeeder::class);
     $this->user = User::factory()->create();
     Sanctum::actingAs($this->user);
 });

@@ -187,12 +187,13 @@ describe('Phase 02 Architecture Tests', function () {
             expect($constructor === null || $constructor->getNumberOfParameters() === 0)->toBeTrue();
         });
 
-        it('UserProfileService has no dependencies (uses Eloquent relationships)', function () {
+        it('UserProfileService uses dependency injection for cross-module services', function () {
             $reflection = new ReflectionClass(UserProfileService::class);
             $constructor = $reflection->getConstructor();
 
-            // UserProfileService uses Eloquent relationships, no DI needed
-            expect($constructor === null || $constructor->getNumberOfParameters() === 0)->toBeTrue();
+            // UserProfileService uses CrossModuleAssetAggregator and UKTaxCalculator
+            expect($constructor)->not->toBeNull();
+            expect($constructor->getNumberOfParameters())->toBeGreaterThanOrEqual(1);
         });
     });
 });

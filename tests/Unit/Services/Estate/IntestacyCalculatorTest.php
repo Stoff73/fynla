@@ -37,11 +37,15 @@ describe('IntestacyCalculator', function () {
             'user_id' => $user->id,
             'relationship' => 'child',
             'name' => 'Child 1',
+            'first_name' => 'Child',
+            'last_name' => 'One',
         ]);
         FamilyMember::factory()->create([
             'user_id' => $user->id,
             'relationship' => 'child',
             'name' => 'Child 2',
+            'first_name' => 'Child',
+            'last_name' => 'Two',
         ]);
 
         $result = $this->calculator->calculateDistribution($user->id, 200000);
@@ -63,11 +67,15 @@ describe('IntestacyCalculator', function () {
             'user_id' => $user->id,
             'relationship' => 'child',
             'name' => 'Child 1',
+            'first_name' => 'Child',
+            'last_name' => 'One',
         ]);
         FamilyMember::factory()->create([
             'user_id' => $user->id,
             'relationship' => 'child',
             'name' => 'Child 2',
+            'first_name' => 'Child',
+            'last_name' => 'Two',
         ]);
 
         $result = $this->calculator->calculateDistribution($user->id, 500000);
@@ -93,11 +101,15 @@ describe('IntestacyCalculator', function () {
             'user_id' => $user->id,
             'relationship' => 'child',
             'name' => 'Child 1',
+            'first_name' => 'Child',
+            'last_name' => 'One',
         ]);
         FamilyMember::factory()->create([
             'user_id' => $user->id,
             'relationship' => 'child',
             'name' => 'Child 2',
+            'first_name' => 'Child',
+            'last_name' => 'Two',
         ]);
 
         $result = $this->calculator->calculateDistribution($user->id, 300000);
@@ -118,11 +130,15 @@ describe('IntestacyCalculator', function () {
             'user_id' => $user->id,
             'relationship' => 'parent',
             'name' => 'Parent 1',
+            'first_name' => 'Parent',
+            'last_name' => 'One',
         ]);
         FamilyMember::factory()->create([
             'user_id' => $user->id,
             'relationship' => 'parent',
             'name' => 'Parent 2',
+            'first_name' => 'Parent',
+            'last_name' => 'Two',
         ]);
 
         $result = $this->calculator->calculateDistribution($user->id, 300000);

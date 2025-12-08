@@ -6,6 +6,11 @@ use App\Models\ExpenditureProfile;
 use App\Models\SavingsAccount;
 use App\Models\SavingsGoal;
 use App\Models\User;
+use Database\Seeders\TaxConfigurationSeeder;
+
+beforeEach(function () {
+    $this->seed(TaxConfigurationSeeder::class);
+});
 
 describe('Savings API', function () {
     describe('GET /api/savings', function () {

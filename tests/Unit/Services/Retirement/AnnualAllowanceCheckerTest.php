@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 use App\Services\Retirement\AnnualAllowanceChecker;
 use App\Services\TaxConfigService;
-use Mockery;
 
 beforeEach(function () {
     // Mock TaxConfigService

@@ -2,11 +2,9 @@
   <PublicLayout>
     <!-- Hero Section -->
     <div class="relative min-h-[90vh] flex items-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 overflow-hidden">
-      <!-- Animated Background Elements -->
-      <div class="absolute inset-0 overflow-hidden">
-        <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
-        <div class="absolute top-1/3 right-1/4 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
-        <div class="absolute bottom-1/4 left-1/3 w-96 h-96 bg-teal-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
+      <!-- Background Elements -->
+      <div class="absolute inset-0 bg-slate-900">
+        <div class="absolute inset-0 bg-gradient-to-br from-primary-900 to-slate-900 opacity-90"></div>
       </div>
 
       <!-- Grid Pattern Overlay -->
@@ -15,14 +13,14 @@
       <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div class="text-center">
           <!-- Badge -->
-          <div class="inline-flex items-center px-4 py-2 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-200 text-sm font-medium mb-8 backdrop-blur-sm">
-            <span class="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></span>
+          <div class="inline-flex items-center px-4 py-2 rounded-full bg-slate-800/50 border border-slate-700 text-blue-200 text-sm font-medium mb-8 backdrop-blur-sm">
+            <span class="w-2 h-2 bg-primary-500 rounded-full mr-2"></span>
             Demo Version Available
           </div>
 
           <h1 class="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight">
             Your Complete
-            <span class="bg-gradient-to-r from-blue-400 via-teal-400 to-emerald-400 bg-clip-text text-transparent">
+            <span class="text-primary-500">
               Financial Planning
             </span>
             Platform
@@ -35,7 +33,7 @@
           <div class="flex flex-col sm:flex-row justify-center gap-4 mb-16">
             <router-link
               to="/register"
-              class="group px-8 py-4 bg-gradient-to-r from-blue-500 to-teal-500 text-white rounded-xl font-semibold text-lg hover:from-blue-600 hover:to-teal-600 transition-all shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 hover:scale-105"
+              class="group px-8 py-4 bg-primary-600 text-white rounded-xl font-semibold text-lg hover:bg-primary-700 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5"
             >
               <span class="flex items-center justify-center">
                 Get Started Free
@@ -97,38 +95,30 @@
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <!-- Feature Card 1 -->
-          <div class="group bg-white rounded-2xl p-8 shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 hover:border-blue-200">
+          <!-- Feature Card 1 -->
+          <div class="group bg-white rounded-2xl p-8 shadow-sm hover:shadow-md transition-all duration-300 border border-secondary-200">
             <div class="flex items-start gap-5">
-              <div class="flex-shrink-0 w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30">
-                <svg class="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div class="flex-shrink-0 w-14 h-14 bg-primary-100 rounded-xl flex items-center justify-center">
+                <svg class="w-7 h-7 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
               </div>
               <div class="flex-1">
-                <h3 class="text-xl font-bold text-slate-900 mb-2 group-hover:text-blue-600 transition-colors">Personal Information & Income</h3>
-                <p class="text-slate-600 mb-4">
-                  Enter comprehensive personal details, occupation information, and income from multiple sources.
-                </p>
-                <div class="flex flex-wrap gap-2">
-                  <span class="px-3 py-1 bg-slate-100 text-slate-600 text-xs font-medium rounded-full">Employment Details</span>
-                  <span class="px-3 py-1 bg-slate-100 text-slate-600 text-xs font-medium rounded-full">Multiple Income Streams</span>
-                  <span class="px-3 py-1 bg-slate-100 text-slate-600 text-xs font-medium rounded-full">Expenditure Tracking</span>
-                  <span class="px-3 py-1 bg-slate-100 text-slate-600 text-xs font-medium rounded-full">Family Members</span>
-                </div>
               </div>
             </div>
           </div>
 
           <!-- Feature Card 2 -->
-          <div class="group bg-white rounded-2xl p-8 shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 hover:border-red-200">
+          <!-- Feature Card 2 -->
+          <div class="group bg-white rounded-2xl p-8 shadow-sm hover:shadow-md transition-all duration-300 border border-secondary-200">
             <div class="flex items-start gap-5">
-              <div class="flex-shrink-0 w-14 h-14 bg-gradient-to-br from-red-500 to-rose-600 rounded-xl flex items-center justify-center shadow-lg shadow-red-500/30">
-                <svg class="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div class="flex-shrink-0 w-14 h-14 bg-primary-100 rounded-xl flex items-center justify-center">
+                <svg class="w-7 h-7 text-primary-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                 </svg>
               </div>
               <div class="flex-1">
-                <h3 class="text-xl font-bold text-slate-900 mb-2 group-hover:text-red-600 transition-colors">Estate Planning</h3>
+                <h3 class="text-xl font-bold text-slate-900 mb-2 transition-colors">Estate Planning</h3>
                 <p class="text-slate-600 mb-4">
                   Comprehensive estate analysis with current and projected IHT liability calculations.
                 </p>
@@ -143,15 +133,16 @@
           </div>
 
           <!-- Feature Card 3 -->
-          <div class="group bg-white rounded-2xl p-8 shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 hover:border-green-200">
+          <!-- Feature Card 3 -->
+          <div class="group bg-white rounded-2xl p-8 shadow-sm hover:shadow-md transition-all duration-300 border border-secondary-200">
             <div class="flex items-start gap-5">
-              <div class="flex-shrink-0 w-14 h-14 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-green-500/30">
-                <svg class="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div class="flex-shrink-0 w-14 h-14 bg-primary-100 rounded-xl flex items-center justify-center">
+                <svg class="w-7 h-7 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
               </div>
               <div class="flex-1">
-                <h3 class="text-xl font-bold text-slate-900 mb-2 group-hover:text-green-600 transition-colors">Protection Planning</h3>
+                <h3 class="text-xl font-bold text-slate-900 mb-2 transition-colors">Protection Planning</h3>
                 <p class="text-slate-600 mb-4">
                   Analyse your current protection coverage and identify any gaps in life and income protection.
                 </p>
@@ -166,15 +157,16 @@
           </div>
 
           <!-- Feature Card 4 -->
-          <div class="group bg-white rounded-2xl p-8 shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 hover:border-purple-200">
+          <!-- Feature Card 4 -->
+          <div class="group bg-white rounded-2xl p-8 shadow-sm hover:shadow-md transition-all duration-300 border border-secondary-200">
             <div class="flex items-start gap-5">
-              <div class="flex-shrink-0 w-14 h-14 bg-gradient-to-br from-purple-500 to-violet-600 rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/30">
-                <svg class="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div class="flex-shrink-0 w-14 h-14 bg-primary-100 rounded-xl flex items-center justify-center">
+                <svg class="w-7 h-7 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               </div>
               <div class="flex-1">
-                <h3 class="text-xl font-bold text-slate-900 mb-2 group-hover:text-purple-600 transition-colors">Comprehensive Data Entry</h3>
+                <h3 class="text-xl font-bold text-slate-900 mb-2 transition-colors">Comprehensive Data Entry</h3>
                 <p class="text-slate-600 mb-4">
                   Enter and manage all your financial assets, accounts, and property details.
                 </p>
@@ -190,12 +182,12 @@
         </div>
 
         <!-- Additional Features Banner -->
-        <div class="mt-12 bg-gradient-to-r from-slate-800 to-slate-900 rounded-2xl p-8 md:p-10">
+        <div class="mt-12 bg-slate-900 rounded-2xl p-8 md:p-10">
           <h3 class="text-2xl font-bold text-white mb-8 text-center">Additional Features Available</h3>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div class="flex items-center gap-4">
-              <div class="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                <svg class="w-6 h-6 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div class="w-12 h-12 bg-slate-800 rounded-xl flex items-center justify-center flex-shrink-0">
+                <svg class="w-6 h-6 text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                 </svg>
               </div>
@@ -206,8 +198,8 @@
             </div>
 
             <div class="flex items-center gap-4">
-              <div class="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                <svg class="w-6 h-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div class="w-12 h-12 bg-slate-800 rounded-xl flex items-center justify-center flex-shrink-0">
+                <svg class="w-6 h-6 text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               </div>
@@ -218,8 +210,8 @@
             </div>
 
             <div class="flex items-center gap-4">
-              <div class="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                <svg class="w-6 h-6 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div class="w-12 h-12 bg-slate-800 rounded-xl flex items-center justify-center flex-shrink-0">
+                <svg class="w-6 h-6 text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
               </div>
@@ -237,7 +229,7 @@
     <div class="bg-white py-24">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-16">
-          <span class="text-teal-600 font-semibold text-sm uppercase tracking-wider">The Vision</span>
+          <span class="text-primary-600 font-semibold text-sm uppercase tracking-wider">The Vision</span>
           <h2 class="text-4xl md:text-5xl font-bold text-slate-900 mt-3 mb-4">
             What TenGo Will Become
           </h2>
@@ -248,14 +240,14 @@
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <!-- Module Cards -->
-          <div class="group relative bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-6 border border-green-100 hover:border-green-300 transition-all hover:shadow-lg hover:-translate-y-1">
-            <div class="absolute top-4 right-4 w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+          <div class="group relative bg-white rounded-2xl p-6 border border-secondary-200 hover:border-primary-500 transition-all hover:shadow-md hover:-translate-y-1">
+            <div class="absolute top-4 right-4 w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
               <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
             </div>
-            <div class="w-12 h-12 bg-green-600 rounded-xl flex items-center justify-center mb-4 shadow-lg shadow-green-600/30">
-              <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div class="w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center mb-4">
+              <svg class="w-6 h-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
               </svg>
             </div>
@@ -263,14 +255,14 @@
             <p class="text-sm text-slate-600">Showing any gaps, issues and strategies to protect you and your family.</p>
           </div>
 
-          <div class="group relative bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-100 hover:border-blue-300 transition-all hover:shadow-lg hover:-translate-y-1">
-            <div class="absolute top-4 right-4 w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+          <div class="group relative bg-white rounded-2xl p-6 border border-secondary-200 hover:border-primary-500 transition-all hover:shadow-md hover:-translate-y-1">
+            <div class="absolute top-4 right-4 w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
               <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
             </div>
-            <div class="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center mb-4 shadow-lg shadow-blue-600/30">
-              <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div class="w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center mb-4">
+              <svg class="w-6 h-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
               </svg>
             </div>
@@ -278,14 +270,14 @@
             <p class="text-sm text-slate-600">All the relevant tools to optimise both tax and portfolio performance.</p>
           </div>
 
-          <div class="group relative bg-gradient-to-br from-purple-50 to-violet-50 rounded-2xl p-6 border border-purple-100 hover:border-purple-300 transition-all hover:shadow-lg hover:-translate-y-1">
-            <div class="absolute top-4 right-4 w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+          <div class="group relative bg-white rounded-2xl p-6 border border-secondary-200 hover:border-primary-500 transition-all hover:shadow-md hover:-translate-y-1">
+            <div class="absolute top-4 right-4 w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
               <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
             </div>
-            <div class="w-12 h-12 bg-purple-600 rounded-xl flex items-center justify-center mb-4 shadow-lg shadow-purple-600/30">
-              <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div class="w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center mb-4">
+              <svg class="w-6 h-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
@@ -293,14 +285,14 @@
             <p class="text-sm text-slate-600">For accumulation and decumulation, ensuring tax optimal strategies for both.</p>
           </div>
 
-          <div class="group relative bg-gradient-to-br from-red-50 to-rose-50 rounded-2xl p-6 border border-red-100 hover:border-red-300 transition-all hover:shadow-lg hover:-translate-y-1">
-            <div class="absolute top-4 right-4 w-8 h-8 bg-red-500 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+          <div class="group relative bg-white rounded-2xl p-6 border border-secondary-200 hover:border-primary-500 transition-all hover:shadow-md hover:-translate-y-1">
+            <div class="absolute top-4 right-4 w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
               <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
             </div>
-            <div class="w-12 h-12 bg-red-600 rounded-xl flex items-center justify-center mb-4 shadow-lg shadow-red-600/30">
-              <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div class="w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center mb-4">
+              <svg class="w-6 h-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
               </svg>
             </div>
@@ -308,14 +300,14 @@
             <p class="text-sm text-slate-600">Linking all modules for tax-optimised generational wealth transfer.</p>
           </div>
 
-          <div class="group relative bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl p-6 border border-amber-100 hover:border-amber-300 transition-all hover:shadow-lg hover:-translate-y-1">
-            <div class="absolute top-4 right-4 w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+          <div class="group relative bg-white rounded-2xl p-6 border border-secondary-200 hover:border-primary-500 transition-all hover:shadow-md hover:-translate-y-1">
+            <div class="absolute top-4 right-4 w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
               <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
             </div>
-            <div class="w-12 h-12 bg-amber-600 rounded-xl flex items-center justify-center mb-4 shadow-lg shadow-amber-600/30">
-              <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div class="w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center mb-4">
+              <svg class="w-6 h-6 text-start-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
               </svg>
             </div>
@@ -323,14 +315,14 @@
             <p class="text-sm text-slate-600">Secure storage for all your important financial and tax documents.</p>
           </div>
 
-          <div class="group relative bg-gradient-to-br from-teal-50 to-cyan-50 rounded-2xl p-6 border border-teal-100 hover:border-teal-300 transition-all hover:shadow-lg hover:-translate-y-1">
-            <div class="absolute top-4 right-4 w-8 h-8 bg-teal-500 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+          <div class="group relative bg-white rounded-2xl p-6 border border-secondary-200 hover:border-primary-500 transition-all hover:shadow-md hover:-translate-y-1">
+            <div class="absolute top-4 right-4 w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
               <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
             </div>
-            <div class="w-12 h-12 bg-teal-600 rounded-xl flex items-center justify-center mb-4 shadow-lg shadow-teal-600/30">
-              <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div class="w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center mb-4">
+              <svg class="w-6 h-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
               </svg>
             </div>
@@ -338,14 +330,14 @@
             <p class="text-sm text-slate-600">Spouse access to all important information in the event of illness or death.</p>
           </div>
 
-          <div class="group relative bg-gradient-to-br from-pink-50 to-rose-50 rounded-2xl p-6 border border-pink-100 hover:border-pink-300 transition-all hover:shadow-lg hover:-translate-y-1">
-            <div class="absolute top-4 right-4 w-8 h-8 bg-pink-500 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+          <div class="group relative bg-white rounded-2xl p-6 border border-secondary-200 hover:border-primary-500 transition-all hover:shadow-md hover:-translate-y-1">
+            <div class="absolute top-4 right-4 w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
               <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
             </div>
-            <div class="w-12 h-12 bg-pink-600 rounded-xl flex items-center justify-center mb-4 shadow-lg shadow-pink-600/30">
-              <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div class="w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center mb-4">
+              <svg class="w-6 h-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
               </svg>
@@ -354,14 +346,14 @@
             <p class="text-sm text-slate-600">View-only access for advisers with death certificate verification.</p>
           </div>
 
-          <div class="group relative bg-gradient-to-br from-yellow-50 to-amber-50 rounded-2xl p-6 border border-yellow-100 hover:border-yellow-300 transition-all hover:shadow-lg hover:-translate-y-1">
-            <div class="absolute top-4 right-4 w-8 h-8 bg-yellow-500 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+          <div class="group relative bg-white rounded-2xl p-6 border border-secondary-200 hover:border-primary-500 transition-all hover:shadow-md hover:-translate-y-1">
+            <div class="absolute top-4 right-4 w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
               <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
             </div>
-            <div class="w-12 h-12 bg-yellow-600 rounded-xl flex items-center justify-center mb-4 shadow-lg shadow-yellow-600/30">
-              <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div class="w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center mb-4">
+              <svg class="w-6 h-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
               </svg>
             </div>
@@ -369,14 +361,14 @@
             <p class="text-sm text-slate-600">Comprehensive tracking of all your personal financial accounts.</p>
           </div>
 
-          <div class="group relative bg-gradient-to-br from-indigo-50 to-blue-50 rounded-2xl p-6 border border-indigo-100 hover:border-indigo-300 transition-all hover:shadow-lg hover:-translate-y-1">
-            <div class="absolute top-4 right-4 w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+          <div class="group relative bg-white rounded-2xl p-6 border border-secondary-200 hover:border-primary-500 transition-all hover:shadow-md hover:-translate-y-1">
+            <div class="absolute top-4 right-4 w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
               <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
             </div>
-            <div class="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center mb-4 shadow-lg shadow-indigo-600/30">
-              <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div class="w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center mb-4">
+              <svg class="w-6 h-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
@@ -391,7 +383,7 @@
     <div class="bg-slate-100 py-24">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-12">
-          <span class="text-blue-600 font-semibold text-sm uppercase tracking-wider">Stay Informed</span>
+          <span class="text-primary-600 font-semibold text-sm uppercase tracking-wider">Stay Informed</span>
           <h2 class="text-4xl md:text-5xl font-bold text-slate-900 mt-3 mb-4">
             Latest Financial News
           </h2>
@@ -408,9 +400,9 @@
               :key="source.id"
               @click="activeNewsSource = source.id"
               :class="[
-                'px-6 py-2 rounded-lg text-sm font-medium transition-all',
+                  'px-6 py-2 rounded-lg text-sm font-medium transition-all',
                 activeNewsSource === source.id
-                  ? 'bg-blue-600 text-white shadow-sm'
+                  ? 'bg-primary-600 text-white shadow-sm'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
               ]"
             >
@@ -483,9 +475,8 @@
     <!-- CTA Section -->
     <div class="relative bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 py-24 overflow-hidden">
       <!-- Background Elements -->
-      <div class="absolute inset-0 overflow-hidden">
-        <div class="absolute top-1/2 left-1/4 w-64 h-64 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20"></div>
-        <div class="absolute top-1/2 right-1/4 w-64 h-64 bg-teal-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20"></div>
+      <div class="absolute inset-0 overflow-hidden bg-slate-900">
+        <div class="absolute inset-0 bg-gradient-to-br from-primary-900 to-slate-900 opacity-90"></div>
       </div>
 
       <div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">

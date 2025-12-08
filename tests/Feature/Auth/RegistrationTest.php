@@ -3,6 +3,11 @@
 declare(strict_types=1);
 
 use App\Models\User;
+use Database\Seeders\TaxConfigurationSeeder;
+
+beforeEach(function () {
+    $this->seed(TaxConfigurationSeeder::class);
+});
 
 test('user can register with valid data', function () {
     $userData = [

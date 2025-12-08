@@ -5,12 +5,14 @@ use App\Models\DCPension;
 use App\Models\RetirementProfile;
 use App\Models\StatePension;
 use App\Models\User;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
+    $this->seed(TaxConfigurationSeeder::class);
     $this->user = User::factory()->create();
     $this->actingAs($this->user, 'sanctum');
 });

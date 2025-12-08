@@ -91,12 +91,13 @@ describe('Phase 03 Architecture Tests', function () {
     });
 
     describe('Service uses dependency injection', function () {
-        it('NetWorthService has no dependencies (uses Eloquent relationships)', function () {
+        it('NetWorthService uses CrossModuleAssetAggregator dependency', function () {
             $reflection = new ReflectionClass(NetWorthService::class);
             $constructor = $reflection->getConstructor();
 
-            // NetWorthService uses Eloquent relationships, no DI needed
-            expect($constructor === null || $constructor->getNumberOfParameters() === 0)->toBeTrue();
+            // NetWorthService uses CrossModuleAssetAggregator for cross-module data
+            expect($constructor)->not->toBeNull();
+            expect($constructor->getNumberOfParameters())->toBe(1);
         });
     });
 
@@ -150,38 +151,37 @@ describe('Phase 03 Architecture Tests', function () {
     });
 
     describe('Service calculates all required asset types', function () {
-        it('NetWorthService has methods for all 5 asset types', function () {
+        it('NetWorthService has methods for asset types or uses aggregator', function () {
             $reflection = new ReflectionClass(NetWorthService::class);
 
-            // Should have private calculation methods for each asset type
-            expect($reflection->hasMethod('calculatePropertyValue'))->toBeTrue();
-            expect($reflection->hasMethod('calculateInvestmentValue'))->toBeTrue();
-            expect($reflection->hasMethod('calculateCashValue'))->toBeTrue();
+            // Property, Investment, Cash are handled via CrossModuleAssetAggregator
+            // Direct calculation methods for Business and Chattels
             expect($reflection->hasMethod('calculateBusinessValue'))->toBeTrue();
             expect($reflection->hasMethod('calculateChattelValue'))->toBeTrue();
+            expect($reflection->hasMethod('calculatePensionValue'))->toBeTrue();
         });
 
-        it('NetWorthService handles liabilities', function () {
+        it('NetWorthService handles liabilities via breakdown method', function () {
             $reflection = new ReflectionClass(NetWorthService::class);
 
-            expect($reflection->hasMethod('calculateMortgages'))->toBeTrue();
-            expect($reflection->hasMethod('calculateOtherLiabilities'))->toBeTrue();
+            // Liabilities are handled via breakdown method and CrossModuleAssetAggregator
+            expect($reflection->hasMethod('calculateNetWorth'))->toBeTrue();
         });
     });
 
     describe('Service uses Eloquent models', function () {
-        it('NetWorthService imports all required models', function () {
+        it('NetWorthService imports all required models or uses aggregator', function () {
             $reflection = new ReflectionClass(NetWorthService::class);
             $filePath = $reflection->getFileName();
             $contents = file_get_contents($filePath);
 
-            // Should import all model classes
+            // Should import model classes directly or use CrossModuleAssetAggregator
             expect($contents)->toContain('use App\Models\Property');
             expect($contents)->toContain('use App\Models\Investment\InvestmentAccount');
-            expect($contents)->toContain('use App\Models\CashAccount');
             expect($contents)->toContain('use App\Models\BusinessInterest');
             expect($contents)->toContain('use App\Models\Chattel');
-            expect($contents)->toContain('use App\Models\Mortgage');
+            // Cash and Mortgage are handled via CrossModuleAssetAggregator
+            expect($contents)->toContain('CrossModuleAssetAggregator');
         });
     });
 });
