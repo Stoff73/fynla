@@ -79,7 +79,7 @@
           <div class="space-y-3">
             <div class="border border-gray-200 rounded-lg p-4">
               <div class="flex justify-between items-center mb-2">
-                <span class="text-sm font-medium text-gray-700">Fund OCF (Ongoing Charges)</span>
+                <span class="text-sm font-medium text-gray-700">Fund Ongoing Charges (OCF)</span>
                 <span class="text-xl font-bold text-gray-800">
                   £{{ formatNumber(feeData.breakdown.fund_ocf || 0) }}
                 </span>
@@ -162,7 +162,7 @@
               <tr class="border-b border-gray-200">
                 <th class="text-left py-3 px-4 font-semibold text-gray-700">Holding</th>
                 <th class="text-right py-3 px-4 font-semibold text-gray-700">Value</th>
-                <th class="text-right py-3 px-4 font-semibold text-gray-700">OCF</th>
+                <th class="text-right py-3 px-4 font-semibold text-gray-700">Ongoing Charges</th>
                 <th class="text-right py-3 px-4 font-semibold text-gray-700">Annual Fee</th>
                 <th class="text-right py-3 px-4 font-semibold text-gray-700">Fee Category</th>
                 <th class="text-right py-3 px-4 font-semibold text-gray-700">Action</th>
@@ -283,12 +283,16 @@ export default {
   },
 
   computed: {
+    isPreviewMode() {
+      return this.$store.getters['preview/isPreviewMode'];
+    },
+
     feeTypeChartOptions() {
       return {
         chart: {
           type: 'donut',
         },
-        labels: ['Fund OCF', 'Platform Fees', 'Trading Costs', 'Other Fees'],
+        labels: ['Fund Ongoing Charges', 'Platform Fees', 'Trading Costs', 'Other Fees'],
         colours: ['#EF4444', '#F97316', '#FBBF24', '#9CA3AF'],
         legend: {
           position: 'bottom',
@@ -374,11 +378,20 @@ export default {
   },
 
   mounted() {
-    this.loadFeeData();
+    if (!this.isPreviewMode) {
+      this.loadFeeData();
+    } else {
+      console.log('[FeeBreakdown] Preview mode - skipping API call');
+      this.loading = false;
+    }
   },
 
   methods: {
     async loadFeeData() {
+      if (this.isPreviewMode) {
+        console.log('[FeeBreakdown] Preview mode - skipping loadFeeData');
+        return;
+      }
       this.loading = true;
       this.error = null;
 
@@ -394,6 +407,10 @@ export default {
     },
 
     async viewAlternatives(holdingId) {
+      if (this.isPreviewMode) {
+        console.log('[FeeBreakdown] Preview mode - skipping viewAlternatives');
+        return;
+      }
       try {
         const response = await api.get(`/investment/fee-impact/holdings/${holdingId}/alternatives`);
         // Open modal or navigate to alternatives view

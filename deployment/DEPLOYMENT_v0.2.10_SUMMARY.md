@@ -1,4 +1,4 @@
-# TenGo v0.2.10 (Boma Build) - Deployment Summary
+# Fynla v0.2.10 (Boma Build) - Deployment Summary
 
 **Version**: v0.2.10
 **Release Name**: Boma Build

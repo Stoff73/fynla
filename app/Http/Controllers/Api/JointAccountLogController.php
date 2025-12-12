@@ -54,7 +54,7 @@ class JointAccountLogController extends Controller
             $jointOwnerName = $log->jointOwner?->name ?? 'Unknown User';
 
             $editedBy = $log->user_id === $user->id ? 'You' : $userName;
-            $affectedUser = $log->joint_owner_id === $user->id ? 'your' : ($jointOwnerName . "'s");
+            $affectedUser = $log->joint_owner_id === $user->id ? 'your' : ($jointOwnerName."'s");
 
             // Determine asset type for display
             $assetType = match ($log->loggable_type) {

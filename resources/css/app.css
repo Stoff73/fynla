@@ -52,11 +52,16 @@
   }
 
   .card {
-    @apply bg-white rounded-card border border-gray-200 shadow-sm p-6;
+    @apply bg-white rounded-card border border-gray-200 shadow-sm p-6 transition-all duration-200;
+  }
+
+  /* Clickable cards get premium hover effects automatically */
+  .card.cursor-pointer {
+    @apply hover:shadow-md hover:-translate-y-0.5 hover:border-primary-400;
   }
 
   .card-hover {
-    @apply bg-white rounded-card border border-gray-200 shadow-sm hover:shadow-md transform hover:-translate-y-0.5 transition-all duration-200 cursor-pointer p-6;
+    @apply bg-white rounded-card border border-gray-200 shadow-sm hover:shadow-md transform hover:-translate-y-0.5 hover:border-primary-400 transition-all duration-200 cursor-pointer p-6;
   }
 
   .input-field {

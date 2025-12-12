@@ -40,37 +40,39 @@
 
     <!-- Entry Mode Toggle -->
     <div class="bg-white border border-gray-200 rounded-lg p-4">
-      <div class="flex items-center justify-between">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h4 class="text-body font-medium text-gray-900">Entry Method</h4>
           <p class="text-body-sm text-gray-600 mt-1">
             Choose how you'd like to enter your expenditure
           </p>
         </div>
-        <div class="flex items-center space-x-3">
+        <div class="flex items-center space-x-2 sm:space-x-3">
           <button
             type="button"
             :class="[
-              'px-4 py-2 rounded-md text-body-sm font-medium transition-colors',
+              'px-3 sm:px-4 py-2 rounded-md text-xs sm:text-body-sm font-medium transition-colors flex-1 sm:flex-none',
               useSimpleEntry
                 ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 : 'bg-primary-600 text-white'
             ]"
             @click="useSimpleEntry = false"
           >
-            Detailed Breakdown
+            <span class="hidden sm:inline">Detailed Breakdown</span>
+            <span class="sm:hidden">Detailed</span>
           </button>
           <button
             type="button"
             :class="[
-              'px-4 py-2 rounded-md text-body-sm font-medium transition-colors',
+              'px-3 sm:px-4 py-2 rounded-md text-xs sm:text-body-sm font-medium transition-colors flex-1 sm:flex-none',
               useSimpleEntry
                 ? 'bg-primary-600 text-white'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             ]"
             @click="useSimpleEntry = true"
           >
-            Simple Total
+            <span class="hidden sm:inline">Simple Total</span>
+            <span class="sm:hidden">Simple</span>
           </button>
         </div>
       </div>
@@ -1841,6 +1843,14 @@ export default {
 
     // Fetch financial commitments
     const fetchFinancialCommitments = async () => {
+      // Check if in preview mode - skip API call
+      const isPreviewMode = store.getters['preview/isPreviewMode'];
+      if (isPreviewMode) {
+        console.log('[ExpenditureForm] Preview mode - skipping financial commitments fetch');
+        loadingCommitments.value = false;
+        return;
+      }
+
       loadingCommitments.value = true;
       try {
         const response = await userProfileService.getFinancialCommitments();

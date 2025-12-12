@@ -1,5 +1,5 @@
 ================================================================================
-TenGo v0.2.12 DEPLOYMENT - QUICK COMMAND REFERENCE
+Fynla v0.2.12 DEPLOYMENT - QUICK COMMAND REFERENCE
 ================================================================================
 
 Production URL: https://csjones.co/tengo

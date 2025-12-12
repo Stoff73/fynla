@@ -1,4 +1,4 @@
-# TenGo v0.2.12 (22 November 2025 Complete Patch) - Production Deployment Instructions
+# Fynla v0.2.12 (22 November 2025 Complete Patch) - Production Deployment Instructions
 
 **Date**: November 22, 2025
 **Branch**: main (style branch merged)
@@ -951,7 +951,7 @@ tail -f ~/tengo-app/storage/logs/laravel.log
 
 **Send deployment notification** (if applicable):
 ```
-Subject: TenGo v0.2.12 Deployed - Security & Feature Updates
+Subject: Fynla v0.2.12 Deployed - Security & Feature Updates
 
 Key Updates:
 ✅ Enhanced security (password validation, CORS, logging)
@@ -1252,7 +1252,7 @@ sudo systemctl restart php8.2-fpm nginx
 
 ```sql
 -- ============================================
--- TenGo v0.2.12 Database Verification Script
+-- Fynla v0.2.12 Database Verification Script
 -- ============================================
 
 -- 1. Verify dc_pensions.provider is nullable

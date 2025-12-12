@@ -1,6 +1,6 @@
 <template>
   <AppLayout>
-    <div class="px-4 sm:px-0 py-6">
+    <div class="py-4 sm:py-6">
       <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
         <!-- Card 1: Net Worth -->
         <NetWorthOverviewCard />
@@ -83,7 +83,7 @@
             </div>
 
             <!-- Plan Buttons -->
-            <div class="grid grid-cols-2 gap-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <!-- Protection Plan -->
               <button
                 @click="$router.push('/protection-plan')"
@@ -97,7 +97,7 @@
                   </div>
                   <div class="text-left">
                     <p class="text-sm font-semibold text-gray-900 group-hover:text-primary-600 transition-colors">Protection Plan</p>
-                    <p class="text-xs text-secondary-500">Life, CI & IP coverage</p>
+                    <p class="text-xs text-secondary-500">Life, critical illness & income protection</p>
                   </div>
                 </div>
                 <svg class="w-5 h-5 text-gray-400 group-hover:text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -118,7 +118,7 @@
                   </div>
                   <div class="text-left">
                     <p class="text-sm font-semibold text-gray-900 group-hover:text-primary-600 transition-colors">Estate Plan</p>
-                    <p class="text-xs text-secondary-500">IHT & succession planning</p>
+                    <p class="text-xs text-secondary-500">Inheritance tax & succession planning</p>
                   </div>
                 </div>
                 <svg class="w-5 h-5 text-gray-400 group-hover:text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -320,6 +320,14 @@ export default {
 
   methods: {
     async loadAllData() {
+      // Check if we're in preview mode - load persona data instead of making API calls
+      const isPreviewMode = this.$store.getters['preview/isPreviewMode'];
+      if (isPreviewMode) {
+        console.log('[Dashboard] Preview mode detected - loading persona data');
+        await this.loadPreviewData();
+        return;
+      }
+
       // Determine which estate calculation to use based on marital status
       const user = this.$store.state.auth.user;
       const isMarried = user && user.marital_status === 'married';
@@ -372,7 +380,27 @@ export default {
       });
     },
 
+    /**
+     * Handle preview mode - stores are already populated by preview/loadPersona
+     * This just clears loading states since no API calls are needed
+     */
+    async loadPreviewData() {
+      console.log('[Dashboard] Preview mode - stores already populated, clearing loading states');
+      // Preview store's loadPersona already set up all module stores with persona data
+      // Just clear loading states
+      Object.keys(this.loading).forEach(key => {
+        this.loading[key] = false;
+      });
+    },
+
     async retryLoadModule(moduleName) {
+      // Skip in preview mode
+      const isPreviewMode = this.$store.getters['preview/isPreviewMode'];
+      if (isPreviewMode) {
+        console.log('[Dashboard] Preview mode - skipping retryLoadModule');
+        return;
+      }
+
       this.loading[moduleName] = true;
       this.errors[moduleName] = null;
 
@@ -401,6 +429,13 @@ export default {
     },
 
     async refreshDashboard() {
+      // Skip in preview mode
+      const isPreviewMode = this.$store.getters['preview/isPreviewMode'];
+      if (isPreviewMode) {
+        console.log('[Dashboard] Preview mode - skipping refreshDashboard');
+        return;
+      }
+
       this.refreshing = true;
       // Use refreshNetWorth to bypass cache, then load other modules
       try {

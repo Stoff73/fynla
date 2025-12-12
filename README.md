@@ -1,4 +1,4 @@
-# TenGo - UK Financial Planning System
+# Fynla - UK Financial Planning System
 
 A comprehensive financial planning web application designed for UK individuals and families, covering five integrated modules: Protection, Savings, Investment, Retirement, and Estate Planning.
 
@@ -26,7 +26,7 @@ A comprehensive financial planning web application designed for UK individuals a
 
 ## 🎯 Overview
 
-**TenGo** is a UK-focused comprehensive financial planning application that helps individuals and families:
+**Fynla** is a UK-focused comprehensive financial planning application that helps individuals and families:
 
 - **Analyze** their current financial situation across all major areas
 - **Identify** gaps, risks, and opportunities
@@ -36,9 +36,9 @@ A comprehensive financial planning web application designed for UK individuals a
 
 ### Current Status
 
-**Version**: v0.2.10 "Boma Build" (Production)
+**Version**: v0.2.17 (Production)
 **Production URL**: https://csjones.co/tengo
-**Last Deployment**: November 20, 2025
+**Last Deployment**: December 10, 2025
 
 **Completion Status**:
 - ✅ **Foundation**: 100% (Authentication, routing, testing framework)
@@ -48,6 +48,7 @@ A comprehensive financial planning web application designed for UK individuals a
 - ✅ **Admin Panel**: 100% (User management, backups, tax configuration)
 - ✅ **UI/UX**: Enhanced (Uniform dashboard cards, wealth summary, financial commitments integration)
 - ✅ **Expenditure Tracking**: Three-mode system (Simple/Joint/Separate) with financial commitments
+- ✅ **Document Upload**: AI-powered extraction from PDFs, images, and Excel spreadsheets
 
 ---
 
@@ -107,6 +108,31 @@ Four comprehensive tabs:
 - **Part 3**: Long-term plans (estate documents, beneficiaries, education)
 - **Part 4**: Funeral and final wishes
 - **Dual View**: Each spouse can edit their own letter and view partner's (read-only)
+
+### 📄 Document Upload with AI Extraction
+
+Upload financial documents and let AI extract the data automatically:
+
+- **Supported Formats**: PDF, PNG, JPG, JPEG, WebP, Excel (XLSX, XLS), CSV
+- **AI-Powered Extraction**: Uses Claude Sonnet 4.5 for intelligent data extraction
+- **Document Types**:
+  - Pension statements (DC, DB, State Pension)
+  - Insurance policies (Life, Critical Illness, Income Protection)
+  - Investment statements (ISA, GIA, bonds)
+  - Mortgage statements
+  - Savings/bank statements
+- **Review & Confirm**: Review extracted data before saving to your profile
+- **Confidence Scores**: AI provides confidence levels for each extracted field
+- **Automatic Type Detection**: AI identifies document type if not specified
+- **Excel Processing**: Spreadsheets parsed server-side and converted to structured text
+- **Image Compression**: Large images automatically resized for API limits
+
+**Workflow**:
+1. Upload document (drag & drop or click to browse)
+2. AI extracts relevant financial data
+3. Review extracted fields with confidence indicators
+4. Edit any fields if needed
+5. Confirm to save data to appropriate module
 
 ---
 
@@ -172,27 +198,22 @@ Four comprehensive tabs:
 
 ### 📈 Investment Module
 
-**Purpose**: Portfolio analysis, optimization, and goal-based planning
+**Purpose**: Portfolio tracking with planned optimization and goal-based planning
 
-**Features**:
-- **Portfolio Management**: Track investment accounts and holdings
+**Working Features**:
+- **Portfolio Overview**: Track investment accounts with summary information
 - **Holdings Management**: Add, edit, remove holdings with quantity and value tracking
-- **Risk Metrics**: Alpha, Beta, Sharpe Ratio, Volatility, Max Drawdown, VaR (95%)
-- **Asset Allocation**: Breakdown by asset class with diversification scoring
-- **Monte Carlo Simulations**: 1,000 iterations with 5th, 50th, 95th percentile projections
-- **Efficient Frontier**: Optimal risk/return positioning
-- **Fee Analysis**: Platform fees, fund OCFs, total cost impact
-- **Tax Efficiency**: Analyze tax drag and optimize account types
-- **Rebalancing Support**: Compare current vs. target allocation
-- **Goal Probability**: Likelihood of reaching investment goals
+- **Asset Allocation Chart**: Visual breakdown by asset class
 - **Account Types**: ISA, GIA, NS&I, Onshore/Offshore Bonds, VCT, EIS
-- **Investment & Savings Plans**: Consolidated view with risk dashboard
 
-**Advanced Analytics**:
-- Portfolio optimization (maximize Sharpe ratio)
-- Tax-loss harvesting opportunities
-- Low-cost alternative recommendations
-- Asset location optimization (tax-efficient wrapper selection)
+**Coming Soon** (UI prepared, functionality pending):
+- **Performance Tab**: Risk metrics (Alpha, Beta, Sharpe Ratio), performance attribution, benchmark comparison
+- **Portfolio Optimisation Tab**: Efficient frontier, risk-return optimization
+- **Rebalancing Tab**: Compare current vs. target allocation, trade recommendations
+- **Goals Tab**: Investment goals, progress tracking, probability of success
+- **Tax Efficiency Tab**: Tax drag analysis, asset location optimization
+- **Fees Tab**: Platform fees, fund OCFs, fee impact analysis
+- **Strategy Tab**: Recommendations and suggested actions
 
 ### 🏖️ Retirement Module
 
@@ -263,6 +284,8 @@ Four comprehensive tabs:
 - **Cache**: Memcached 1.6+ (configurable to array for development)
 - **Queue**: Laravel Queues (database-backed) for Monte Carlo simulations
 - **Authentication**: Laravel Sanctum (token-based API authentication)
+- **AI Integration**: Anthropic Claude API (Sonnet 4.5) for document extraction
+- **Excel Processing**: PhpSpreadsheet for XLSX/XLS/CSV parsing
 - **Testing**: Pest PHP (60+ passing tests)
 - **Code Quality**: Laravel Pint (PSR-12 compliant)
 
@@ -274,7 +297,7 @@ Four comprehensive tabs:
 - **Charts**: ApexCharts (line, area, bar, donut, heatmap, gauge)
 - **CSS**: Tailwind CSS 3.x (utility-first)
 - **HTTP Client**: Axios
-- **Components**: 150+ Vue components
+- **Components**: 175+ Vue components
 - **Routing**: Vue Router with nested routes
 
 ### Architecture
@@ -286,18 +309,19 @@ Four comprehensive tabs:
 │ Presentation Layer                  │
 │ Vue.js 3 + ApexCharts + Tailwind   │
 └─────────────────┬───────────────────┘
-                  │ REST API (80+ endpoints)
+                  │ REST API (100+ endpoints)
                   ↓
 ┌─────────────────────────────────────┐
 │ Application Layer                   │
 │ Laravel Controllers + 6 Agents      │
-│ 40+ Services + Business Logic       │
+│ 65+ Services + Business Logic       │
+│ Claude AI Integration (Documents)   │
 └─────────────────┬───────────────────┘
                   │ Eloquent ORM
                   ↓
 ┌─────────────────────────────────────┐
 │ Data Layer                          │
-│ MySQL 8.0+ (45+ tables)            │
+│ MySQL 8.0+ (50+ tables)            │
 │ Memcached (calculation caching)    │
 └─────────────────────────────────────┘
 ```
@@ -607,7 +631,7 @@ stdout_logfile=/path/to/tengo/storage/logs/worker.log
 
 ### API Documentation
 
-- **80+ API Endpoints** across all modules
+- **100+ API Endpoints** across all modules
 - RESTful design with consistent response format
 - Sanctum token-based authentication
 - JSON request/response format
@@ -648,7 +672,71 @@ For issues, questions, or contributions:
 
 ---
 
-## 📋 Recent Updates (November 2025)
+## 📋 Recent Updates
+
+### December 8, 2025 - v0.2.17 - Document Upload with AI Extraction
+
+**New Feature: AI-Powered Document Upload**
+
+Upload financial documents and automatically extract data using Claude AI:
+
+**Backend Components**:
+- `DocumentController` - Handles upload, extraction, confirmation endpoints
+- `DocumentProcessor` - Orchestrates the upload → extract → validate → save workflow
+- `AIExtractionService` - Calls Claude Sonnet 4.5 API for intelligent extraction
+- `ExcelParserService` - Parses XLSX/XLS/CSV files using PhpSpreadsheet
+- `ImageResizeService` - Compresses large images for API limits
+- `DocumentTypeDetector` - Identifies document type and maps to target model
+- Field Mappers: `DCPensionMapper`, `DBPensionMapper`, `LifeInsuranceMapper`, `InvestmentAccountMapper`
+
+**Frontend Components**:
+- `DocumentUploadModal.vue` - Main upload interface with drag & drop
+- `UploadDropZone.vue` - Shared drop zone component with file type icons
+- Integration with Retirement, Protection, and Investment dashboards
+
+**Database Tables**:
+- `documents` - Stores uploaded files with status tracking
+- `document_extractions` - Stores AI extraction results with versioning
+- `document_extraction_logs` - Audit trail of all document operations
+
+**Supported Document Types**:
+- Pension statements (DC, DB, State Pension)
+- Insurance policies (Life, Critical Illness, Income Protection)
+- Investment statements (ISA, GIA, bonds)
+- Mortgage statements
+- Savings statements
+
+**Supported File Formats**:
+- PDF (native Claude document support)
+- Images: PNG, JPG, JPEG, WebP (with auto-compression)
+- Spreadsheets: XLSX, XLS, CSV (parsed to structured text)
+
+**Key Features**:
+- Confidence scores for each extracted field
+- Review and edit before saving
+- Automatic document type detection
+- Version tracking for re-extractions
+- Comprehensive audit logging
+
+---
+
+### November 27, 2025 - v0.2.16
+
+**UI/UX Improvements**:
+1. Income Protection Display Fix - Benefit amount now displays correctly on dashboard card
+2. Investment & Savings Plan - Added scaffold warning banner
+3. Emergency Fund Data - Fixed data not pulling through (SavingsAgent fallback to User model)
+4. Demo Mode - Disabled edit buttons for Property, Investment, and Savings accounts
+5. Family Member Form - Made Date of Birth a required field
+6. Onboarding UI - Property cards now use PropertyCard component from Net Worth
+7. Onboarding UI - Retirement cards styled to match RetirementReadiness.vue
+8. Onboarding UI - Investment cards styled to match PortfolioOverview.vue
+9. Onboarding UI - Cash/Savings cards styled to match CurrentSituation.vue
+10. Will Planning - Added "Preview Mode" notice with legal disclaimer
+11. Business Interests - Updated Coming Soon banner to match app style
+12. Chattels & Valuables - Updated Coming Soon banner to match app style
+
+---
 
 ### November 20, 2025 - v0.2.10 "Boma Build" - Production Release
 
@@ -1125,14 +1213,16 @@ For issues, questions, or contributions:
 
 ---
 
-**Current Version**: v0.2.10 "Boma Build" (Production)
+**Current Version**: v0.2.17 (Production)
 
 **Production URL**: https://csjones.co/tengo
 
-**Last Updated**: November 20, 2025
+**Last Updated**: December 10, 2025
 
 **Status**: 🚀 Production Ready - All Core Features Complete
 
 ---
 
 🤖 **Built with [Claude Code](https://claude.com/claude-code)**
+
+Co-Authored-By: Claude <noreply@anthropic.com>

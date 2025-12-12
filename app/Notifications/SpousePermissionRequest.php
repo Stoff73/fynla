@@ -40,7 +40,7 @@ class SpousePermissionRequest extends Notification implements ShouldQueue
     {
         return (new MailMessage)
             ->subject('Spouse Data Sharing Request')
-            ->line($this->requesterName . ' has requested permission to view your financial data.')
+            ->line($this->requesterName.' has requested permission to view your financial data.')
             ->line('This allows for holistic family financial planning.')
             ->action('View Request', url('/settings/spouse-permission'))
             ->line('If you did not expect this request, no further action is required.');
@@ -54,7 +54,7 @@ class SpousePermissionRequest extends Notification implements ShouldQueue
     public function toArray(object $notifiable): array
     {
         return [
-            'message' => $this->requesterName . ' requested data access.',
+            'message' => $this->requesterName.' requested data access.',
         ];
     }
 }

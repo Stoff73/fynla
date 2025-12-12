@@ -1,4 +1,4 @@
-# TenGo v0.2.11 (22 November 2025 Patch) - Production Deployment Instructions
+# Fynla v0.2.11 (22 November 2025 Patch) - Production Deployment Instructions
 
 **Date**: November 22, 2025
 **Branch**: main (style branch merged)

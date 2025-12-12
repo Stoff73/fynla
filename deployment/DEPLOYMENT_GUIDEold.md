@@ -1,4 +1,4 @@
-# TenGo v0.1.2.13 - Production Deployment Guide
+# Fynla v0.1.2.13 - Production Deployment Guide
 
 **Target Environment**: SiteGround Shared Hosting
 **URL**: https://csjones.co/tengo
@@ -29,7 +29,7 @@
 This version introduces a comprehensive "Letter to Spouse" feature in the User Profile:
 
 **Key Features**:
-- **Auto-Population**: Automatically aggregates data from all TenGo modules (Protection, Estate, Savings, Investment, Properties, Liabilities)
+- **Auto-Population**: Automatically aggregates data from all Fynla modules (Protection, Estate, Savings, Investment, Properties, Liabilities)
 - **Four-Part Structure**:
   - Part 1: What to do immediately (key contacts, executor, attorney, financial advisor, employer benefits)
   - Part 2: Accessing and managing accounts (bank accounts, investments, insurance, properties, liabilities)
@@ -47,7 +47,7 @@ This version introduces a comprehensive "Letter to Spouse" feature in the User P
 - `PUT /api/user/letter-to-spouse` - Update current user's letter
 
 **Rebranding**:
-- Application name changed from "FPS" to "TenGo" across all interfaces
+- Application name changed from "FPS" to "Fynla" across all interfaces
 
 ---
 
@@ -653,7 +653,7 @@ If connection fails, check `.env` database credentials.
 
 ### Step 3: Run Database Migrations
 
-**IMPORTANT**: This creates all 40+ database tables required for TenGo.
+**IMPORTANT**: This creates all 40+ database tables required for Fynla.
 
 ```bash
 php artisan migrate --force
@@ -762,7 +762,7 @@ php artisan tinker
 Then run:
 ```php
 $admin = new \App\Models\User();
-$admin->name = 'TenGo Admin';
+$admin->name = 'Fynla Admin';
 $admin->email = 'admin@fps.com';
 $admin->password = bcrypt('YOUR_SECURE_PASSWORD_HERE');
 $admin->email_verified_at = now();
@@ -790,7 +790,7 @@ Using cPanel File Manager or FTP:
 3. Update all configuration values:
 
 ```ini
-APP_NAME="TenGo - Financial Planning System"
+APP_NAME="Fynla - Financial Planning System"
 APP_ENV=production
 APP_KEY=base64:YOUR_GENERATED_APP_KEY
 APP_DEBUG=false
@@ -967,7 +967,7 @@ find bootstrap/cache -type d -exec chmod 775 {} \;
 
 1. Open browser
 2. Navigate to: `https://csjones.co/tengo`
-3. Should see TenGo landing page with:
+3. Should see Fynla landing page with:
    - Hero section
    - Module cards (Protection, Savings, Investment, Retirement, Estate)
    - Login/Register buttons
@@ -1019,9 +1019,9 @@ php artisan tinker
 ```
 
 ```php
-Mail::raw('Test email from TenGo', function($message) {
+Mail::raw('Test email from Fynla', function($message) {
     $message->to('YOUR_EMAIL@example.com')
-            ->subject('TenGo Test Email');
+            ->subject('Fynla Test Email');
 });
 exit
 ```
@@ -1391,7 +1391,7 @@ Use this final checklist before going live:
 ---
 
 **Deployment Guide Version**: 1.0
-**TenGo Version**: v0.1.2.13
+**Fynla Version**: v0.1.2.13
 **Last Updated**: October 28, 2025
 **Deployment Target**: SiteGround Shared Hosting (csjones.co/tengo)
 

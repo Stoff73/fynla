@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ==================================================
-# TenGo Development Server Startup Script
+# Fynla Development Server Startup Script
 # ==================================================
 # This script starts both Laravel and Vite dev servers
 # with correct local environment variables exported.
@@ -19,7 +19,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 echo -e "${BLUE}===================================================${NC}"
-echo -e "${BLUE}  TenGo Development Environment${NC}"
+echo -e "${BLUE}  Fynla Development Environment${NC}"
 echo -e "${BLUE}===================================================${NC}"
 echo ""
 
@@ -104,9 +104,9 @@ echo ""
 echo -e "${GREEN}Starting servers...${NC}"
 echo ""
 
-# Start Laravel server in background
+# Start Laravel server in background with increased upload limits
 echo -e "${BLUE}Starting Laravel backend on http://127.0.0.1:8000${NC}"
-php artisan serve > /dev/null 2>&1 &
+php -d upload_max_filesize=100M -d post_max_size=110M -d memory_limit=512M -d max_execution_time=300 -d max_input_time=300 artisan serve > /dev/null 2>&1 &
 LARAVEL_PID=$!
 
 # Wait for Laravel to start

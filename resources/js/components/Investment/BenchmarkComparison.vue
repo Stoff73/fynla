@@ -281,6 +281,10 @@ export default {
   },
 
   computed: {
+    isPreviewMode() {
+      return this.$store.getters['preview/isPreviewMode'];
+    },
+
     performanceChartOptions() {
       return {
         chart: {
@@ -408,11 +412,19 @@ export default {
   },
 
   mounted() {
-    this.compareSelected();
+    if (!this.isPreviewMode) {
+      this.compareSelected();
+    } else {
+      console.log('[BenchmarkComparison] Preview mode - skipping API call');
+    }
   },
 
   methods: {
     async compareSelected() {
+      if (this.isPreviewMode) {
+        console.log('[BenchmarkComparison] Preview mode - skipping compareSelected');
+        return;
+      }
       if (this.selectedBenchmarks.length === 0) return;
 
       this.loading = true;

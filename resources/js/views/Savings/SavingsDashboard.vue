@@ -1,7 +1,7 @@
 <template>
   <component :is="isEmbedded ? 'div' : 'AppLayout'">
-    <div class="savings-dashboard py-6">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="savings-dashboard py-2 sm:py-6">
+      <div class="max-w-7xl mx-auto">
       <!-- Account Detail View (when embedded and account selected) -->
       <SavingsAccountDetailInline
         v-if="isEmbedded && selectedAccount"
@@ -64,7 +64,7 @@
                   activeTab === tab.id
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
-                  'whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm transition-colors duration-200',
+                  'whitespace-nowrap py-3 sm:py-4 px-3 sm:px-6 border-b-2 font-medium text-xs sm:text-sm transition-colors duration-200 flex-shrink-0',
                 ]"
               >
                 {{ tab.label }}

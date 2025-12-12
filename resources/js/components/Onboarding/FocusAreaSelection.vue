@@ -3,7 +3,7 @@
     <!-- Main Welcome Card -->
     <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-6 mb-6">
       <h1 class="text-h2 font-display text-gray-900 mb-4">
-        Welcome {{ userName }} to TenGo Demo
+        Welcome {{ userName }} to Fynla Demo
       </h1>
       <p class="text-body text-gray-700 mb-4">
         This demo tries to show the potential for a full financial planning app. Currently we have the following functionality:
@@ -130,7 +130,7 @@
       <div class="text-body-sm text-gray-700 space-y-4">
         <p>Dear {{ userName }},</p>
         <p>
-          Thank you so much for giving your time to check out TenGo.
+          Thank you so much for giving your time to check out Fynla.
         </p>
         <p>
           It has taken 2 months to put this together, and the point of asking you to go through this app is to see if this is viable or not. The feedback form is pretty simple, or just email me, <a href="mailto:c.jones@csjones.co" class="text-primary-600 hover:text-primary-700 underline">c.jones@csjones.co</a> or just give me a call.

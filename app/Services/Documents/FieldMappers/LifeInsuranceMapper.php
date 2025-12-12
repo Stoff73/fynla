@@ -78,7 +78,7 @@ class LifeInsuranceMapper extends AbstractFieldMapper
      */
     private function normalizePolicyType(?string $type): ?string
     {
-        if (!$type) {
+        if (! $type) {
             return 'term';
         }
 
@@ -99,7 +99,7 @@ class LifeInsuranceMapper extends AbstractFieldMapper
      */
     private function normalizeFrequency(?string $frequency): ?string
     {
-        if (!$frequency) {
+        if (! $frequency) {
             return 'monthly';
         }
 

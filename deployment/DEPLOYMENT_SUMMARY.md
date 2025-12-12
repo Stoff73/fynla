@@ -1,4 +1,4 @@
-# TenGo v0.2.7 - Deployment Package Summary
+# Fynla v0.2.7 - Deployment Package Summary
 
 **Deployment Target**: https://csjones.co/tengo
 **Package Date**: November 12, 2025
@@ -9,7 +9,7 @@
 
 ## Package Contents
 
-This deployment package contains everything needed to deploy TenGo to SiteGround hosting at https://csjones.co/tengo (subdirectory deployment).
+This deployment package contains everything needed to deploy Fynla to SiteGround hosting at https://csjones.co/tengo (subdirectory deployment).
 
 ### Documentation Files
 
@@ -513,7 +513,7 @@ public/build/                     ~5 MB  Built frontend assets (uncompressed)
 ## Version Information
 
 ```
-Application: TenGo
+Application: Fynla
 Version: 0.2.7
 Release Date: November 12, 2025
 Status: Production Ready
@@ -537,7 +537,7 @@ Build:
 
 ## Next Steps
 
-**To deploy TenGo v0.2.7**:
+**To deploy Fynla v0.2.7**:
 
 1. **Review** this summary document
 2. **Read** `BUILD_VERIFICATION_REPORT.md` (understand what you're deploying)
@@ -559,7 +559,7 @@ Build:
 
 ## Contact & Credits
 
-**Application**: TenGo - UK Financial Planning System
+**Application**: Fynla - UK Financial Planning System
 **Version**: v0.2.7
 **Target Deployment**: https://csjones.co/tengo
 **Deployment Package Prepared**: November 12, 2025

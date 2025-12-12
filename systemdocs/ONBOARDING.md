@@ -1,6 +1,6 @@
-# TenGo Onboarding System Documentation
+# Fynla Onboarding System Documentation
 
-Complete technical reference for the TenGo onboarding flow.
+Complete technical reference for the Fynla onboarding flow.
 
 ---
 
@@ -20,7 +20,7 @@ Complete technical reference for the TenGo onboarding flow.
 
 ## 🎯 Overview
 
-The TenGo onboarding system is a multi-step wizard that collects comprehensive financial information from users during their initial setup. The system is designed to be:
+The Fynla onboarding system is a multi-step wizard that collects comprehensive financial information from users during their initial setup. The system is designed to be:
 
 - **Modular**: Each step is a self-contained Vue component
 - **Flexible**: Steps can be skipped with user confirmation
@@ -47,7 +47,7 @@ The TenGo onboarding system is a multi-step wizard that collects comprehensive f
 |------|----------|---------|
 | **OnboardingView.vue** | `resources/js/views/Onboarding/` | Root view component - Simple wrapper that renders OnboardingWizard |
 | **OnboardingWizard.vue** | `resources/js/components/Onboarding/` | Main orchestrator component - Manages step flow, progress bar, transitions, and skip modals |
-| **FocusAreaSelection.vue** | `resources/js/components/Onboarding/` | Welcome screen - Shows "Welcome to TenGo" with feature list and "Continue to Onboarding" button |
+| **FocusAreaSelection.vue** | `resources/js/components/Onboarding/` | Welcome screen - Shows "Welcome to Fynla" with feature list and "Continue to Onboarding" button |
 
 #### 2. Helper Components
 
@@ -117,7 +117,7 @@ OnboardingWizard.vue loads
    ↓
 Fetches onboarding status from API
    ↓
-Shows FocusAreaSelection.vue ("Welcome to TenGo")
+Shows FocusAreaSelection.vue ("Welcome to Fynla")
 ```
 
 **Components Involved:**

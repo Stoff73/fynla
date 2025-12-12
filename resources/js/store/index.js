@@ -14,6 +14,8 @@ import trusts from './modules/trusts';
 import recommendations from './modules/recommendations';
 import spousePermission from './modules/spousePermission';
 import onboarding from './modules/onboarding';
+import preview from './modules/preview';
+import guidance from './modules/guidance';
 
 const store = createStore({
   modules: {
@@ -32,6 +34,8 @@ const store = createStore({
     recommendations,
     spousePermission,
     onboarding,
+    preview,
+    guidance,
   },
   strict: process.env.NODE_ENV !== 'production',
 });

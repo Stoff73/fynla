@@ -2101,7 +2101,7 @@ c6fb1ab - fix: Add missing ownership fields to SavingsAccount model
 
 ## Summary
 
-This deployment patch represents a significant quality improvement to the TenGo application, addressing **7 critical bugs**, implementing **6 major UI enhancements**, and completing **2 architectural refactorings**. All changes have been thoroughly tested in the local development environment and are ready for production deployment.
+This deployment patch represents a significant quality improvement to the Fynla application, addressing **7 critical bugs**, implementing **6 major UI enhancements**, and completing **2 architectural refactorings**. All changes have been thoroughly tested in the local development environment and are ready for production deployment.
 
 **Key Achievements**:
 - ✅ Fixed all blocking issues in Protection, Savings, and Net Worth modules

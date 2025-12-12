@@ -11,8 +11,8 @@
     </p>
     <div class="flex gap-2 flex-wrap">
       <span class="badge-success">Income Tax</span>
-      <span class="badge-info">CGT</span>
-      <span class="badge-warning">IHT</span>
+      <span class="badge-info">Capital Gains Tax</span>
+      <span class="badge-warning">Inheritance Tax</span>
     </div>
   </div>
 
@@ -338,7 +338,7 @@
                 </div>
                 <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
                   <p class="text-sm text-amber-900">
-                    <strong>MPAA (Money Purchase Annual Allowance):</strong> £{{ formatNumber(taxConfig.pension.money_purchase_annual_allowance) }}
+                    <strong>Reduced Allowance After Accessing Pension:</strong> £{{ formatNumber(taxConfig.pension.money_purchase_annual_allowance) }}
                     <br>
                     <em class="text-xs">After accessing pension flexibly</em>
                   </p>
@@ -412,11 +412,11 @@
           <!-- ISAs Tab -->
           <div v-if="activeTab === 'isas'" class="space-y-6">
             <div>
-              <h3 class="text-h3 text-gray-900 mb-4">ISA Allowances</h3>
+              <h3 class="text-h3 text-gray-900 mb-4">Tax-Free Savings Account Allowances</h3>
 
               <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
                 <p class="text-sm text-green-900">
-                  <strong>Total Annual ISA Allowance:</strong> £{{ formatNumber(taxConfig.isa.annual_allowance) }}
+                  <strong>Total Annual Tax-Free Savings Allowance:</strong> £{{ formatNumber(taxConfig.isa.annual_allowance) }}
                   <br>
                   <em class="text-xs">Split across Cash ISA, Stocks & Shares ISA, Innovative Finance ISA, and Lifetime ISA</em>
                 </p>
@@ -425,7 +425,7 @@
               <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                   <tr>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ISA Type</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Account Type</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Annual Allowance</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Notes</th>
                   </tr>
@@ -456,7 +456,7 @@
             </div>
 
             <div>
-              <h4 class="text-h4 text-gray-900 mb-3">Lifetime ISA (LISA) Details</h4>
+              <h4 class="text-h4 text-gray-900 mb-3">Lifetime ISA Details</h4>
               <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
                 <ul class="text-sm text-purple-900 space-y-2">
                   <li><strong>Max Age to Open:</strong> {{ taxConfig.isa.lifetime_isa.max_age_to_open }} years</li>
@@ -535,7 +535,7 @@
           <!-- Calculations Tab -->
           <div v-if="activeTab === 'calculations'" class="space-y-6">
             <div>
-              <h3 class="text-h3 text-gray-900 mb-4">How TenGo Calculations Work</h3>
+              <h3 class="text-h3 text-gray-900 mb-4">How Fynla Calculations Work</h3>
               <p class="text-sm text-gray-600 mb-6">
                 This section explains the key financial calculations used throughout the Financial Planning System.
               </p>
@@ -906,11 +906,11 @@ export default {
     };
 
     const tabs = [
-      { id: 'income', label: 'Income Tax & NI' },
-      { id: 'cgt', label: 'CGT & Dividends' },
+      { id: 'income', label: 'Income Tax & National Insurance' },
+      { id: 'cgt', label: 'Capital Gains Tax & Dividends' },
       { id: 'iht', label: 'Inheritance Tax' },
       { id: 'pensions', label: 'Pensions' },
-      { id: 'isas', label: 'ISAs' },
+      { id: 'isas', label: 'Tax-Free Savings (ISAs)' },
       { id: 'other', label: 'Other Allowances' },
       { id: 'calculations', label: 'Calculations' },
     ];

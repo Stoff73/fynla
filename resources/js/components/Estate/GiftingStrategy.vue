@@ -476,6 +476,10 @@ export default {
     ...mapState('estate', ['gifts']),
     ...mapGetters('estate', ['giftsWithin7Years', 'giftsWithin7YearsValue']),
 
+    isPreviewMode() {
+      return this.$store.getters['preview/isPreviewMode'];
+    },
+
     giftsWithin7YearsCount() {
       return this.giftsWithin7Years.length;
     },
@@ -513,6 +517,12 @@ export default {
   },
 
   mounted() {
+    if (this.isPreviewMode) {
+      console.log('[GiftingStrategy] Preview mode - skipping API calls');
+      this.loadingStrategy = false;
+      this.loadingPersonalizedStrategy = false;
+      return;
+    }
     this.loadPlannedStrategy();
     this.loadPersonalizedStrategy();
   },

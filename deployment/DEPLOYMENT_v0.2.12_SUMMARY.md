@@ -1,4 +1,4 @@
-# TenGo v0.2.12 Deployment Summary
+# Fynla v0.2.12 Deployment Summary
 
 **Date**: November 22, 2025
 **Version**: v0.2.12 (Complete Patch)

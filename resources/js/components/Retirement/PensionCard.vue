@@ -1,5 +1,5 @@
 <template>
-  <div class="pension-card bg-white rounded-lg shadow hover:shadow-md transition-shadow duration-200 cursor-pointer" @click="viewDetails">
+  <div class="pension-card bg-white rounded-lg shadow border border-gray-200 hover:shadow-md hover:-translate-y-0.5 hover:border-primary-500 transition-all duration-200 cursor-pointer" @click="viewDetails">
     <!-- Card Header -->
     <div class="p-5 border-b border-gray-200">
       <div class="flex items-center justify-between">

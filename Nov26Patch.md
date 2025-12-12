@@ -1,4 +1,4 @@
-# TenGo v0.2.15 Patch - November 26, 2025
+# Fynla v0.2.15 Patch - November 26, 2025
 
 ## Overview
 

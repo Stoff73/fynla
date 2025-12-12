@@ -6,6 +6,9 @@ const state = {
   trustAssets: null,
   loading: false,
   error: null,
+  // Preview mode state
+  isPreviewMode: false,
+  previewData: null,
 };
 
 const getters = {
@@ -23,7 +26,12 @@ const getters = {
 };
 
 const actions = {
-  async fetchTrusts({ commit }) {
+  async fetchTrusts({ commit, state }) {
+    // Skip API call if in preview mode
+    if (state.isPreviewMode) {
+      console.log('[trusts] Skipping fetchTrusts - preview mode active');
+      return;
+    }
     commit('setLoading', true);
     commit('setError', null);
 
@@ -40,7 +48,12 @@ const actions = {
     }
   },
 
-  async fetchTrustById({ commit }, id) {
+  async fetchTrustById({ commit, state }, id) {
+    // Skip API call if in preview mode
+    if (state.isPreviewMode) {
+      console.log('[trusts] Skipping fetchTrustById - preview mode active');
+      return;
+    }
     commit('setLoading', true);
     commit('setError', null);
 
@@ -60,7 +73,12 @@ const actions = {
     }
   },
 
-  async fetchTrustAssets({ commit }, trustId) {
+  async fetchTrustAssets({ commit, state }, trustId) {
+    // Skip API call if in preview mode
+    if (state.isPreviewMode) {
+      console.log('[trusts] Skipping fetchTrustAssets - preview mode active');
+      return;
+    }
     commit('setLoading', true);
     commit('setError', null);
 
@@ -128,7 +146,12 @@ const actions = {
     }
   },
 
-  async calculateTrustIHTImpact({ commit }, trustId) {
+  async calculateTrustIHTImpact({ commit, state }, trustId) {
+    // Skip API call if in preview mode
+    if (state.isPreviewMode) {
+      console.log('[trusts] Skipping calculateTrustIHTImpact - preview mode active');
+      return;
+    }
     commit('setLoading', true);
     commit('setError', null);
 
@@ -144,7 +167,12 @@ const actions = {
     }
   },
 
-  async fetchUpcomingTaxReturns({ commit }, monthsAhead = 12) {
+  async fetchUpcomingTaxReturns({ commit, state }, monthsAhead = 12) {
+    // Skip API call if in preview mode
+    if (state.isPreviewMode) {
+      console.log('[trusts] Skipping fetchUpcomingTaxReturns - preview mode active');
+      return;
+    }
     commit('setLoading', true);
     commit('setError', null);
 
@@ -186,6 +214,19 @@ const mutations = {
 
   clearError(state) {
     state.error = null;
+  },
+
+  // Preview mode mutation
+  SET_PREVIEW_MODE(state, { isPreview, data }) {
+    state.isPreviewMode = isPreview;
+    state.previewData = data;
+
+    if (isPreview && data?.trusts) {
+      state.trusts = data.trusts;
+    } else if (!isPreview) {
+      state.isPreviewMode = false;
+      state.previewData = null;
+    }
   },
 };
 

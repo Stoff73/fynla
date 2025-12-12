@@ -1,0 +1,455 @@
+{
+  "id": "peak_earners",
+  "name": "David & Sarah Mitchell",
+  "tagline": "High earners approaching retirement",
+  "description": "A couple in their late 40s with high incomes, BTL property, substantial investments, and complex pension arrangements including DB schemes.",
+
+  "user": {
+    "first_name": "David",
+    "last_name": "Mitchell",
+    "email": "david.mitchell@example.com",
+    "date_of_birth": "1976-11-08",
+    "age": 48,
+    "gender": "male",
+    "marital_status": "married",
+    "annual_income": 145000,
+    "employment_status": "employed",
+    "employer_name": "Global Finance Corp",
+    "occupation": "Finance Director",
+    "target_retirement_age": 60,
+    "target_retirement_income": 75000,
+    "monthly_expenditure": 9500,
+    "health_status": "yes",
+    "smoking_status": "never",
+    "has_will": true,
+    "has_lasting_power_of_attorney": true,
+    "address": {
+      "line_1": "The Willows, 15 Chestnut Lane",
+      "city": "Guildford",
+      "county": "Surrey",
+      "postcode": "GU1 4RH"
+    }
+  },
+
+  "spouse": {
+    "first_name": "Sarah",
+    "last_name": "Mitchell",
+    "date_of_birth": "1978-04-22",
+    "age": 46,
+    "gender": "female",
+    "annual_income": 120000,
+    "employment_status": "employed",
+    "employer_name": "Surrey NHS Trust",
+    "occupation": "GP Partner"
+  },
+
+  "family_members": [
+    {
+      "id": 1,
+      "first_name": "William",
+      "last_name": "Mitchell",
+      "relationship": "child",
+      "date_of_birth": "2007-09-15",
+      "age": 17,
+      "is_dependent": true,
+      "notes": "Year 13, private school"
+    },
+    {
+      "id": 2,
+      "first_name": "Charlotte",
+      "last_name": "Mitchell",
+      "relationship": "child",
+      "date_of_birth": "2010-02-28",
+      "age": 14,
+      "is_dependent": true,
+      "notes": "Year 10, private school"
+    }
+  ],
+
+  "properties": [
+    {
+      "id": 1,
+      "property_name": "The Willows",
+      "address": "15 Chestnut Lane, Guildford, Surrey, GU1 4RH",
+      "property_type": "main_residence",
+      "current_value": 850000,
+      "purchase_price": 625000,
+      "purchase_date": "2012-04-01",
+      "ownership_type": "joint",
+      "ownership_percentage": 100,
+      "is_primary_residence": true,
+      "bedrooms": 5,
+      "estimated_rental_value": 0,
+      "council_tax_band": "G"
+    },
+    {
+      "id": 2,
+      "property_name": "City Centre Flat",
+      "address": "Flat 42, Riverside Apartments, London, SE1 8XX",
+      "property_type": "buy_to_let",
+      "current_value": 425000,
+      "purchase_price": 340000,
+      "purchase_date": "2018-10-15",
+      "ownership_type": "joint",
+      "ownership_percentage": 100,
+      "is_primary_residence": false,
+      "bedrooms": 2,
+      "estimated_rental_value": 1800,
+      "actual_rental_income": 1800,
+      "council_tax_band": "E"
+    }
+  ],
+
+  "mortgages": [
+    {
+      "id": 1,
+      "property_id": 1,
+      "lender_name": "HSBC",
+      "outstanding_balance": 280000,
+      "original_amount": 450000,
+      "mortgage_type": "repayment",
+      "interest_rate": 4.29,
+      "rate_type": "fixed",
+      "fixed_rate_end_date": "2027-04-01",
+      "monthly_payment": 2350,
+      "remaining_term_months": 156,
+      "mortgage_start_date": "2012-04-01",
+      "ownership_type": "joint",
+      "ownership_percentage": 100
+    },
+    {
+      "id": 2,
+      "property_id": 2,
+      "lender_name": "Barclays",
+      "outstanding_balance": 220000,
+      "original_amount": 272000,
+      "mortgage_type": "interest_only",
+      "interest_rate": 5.19,
+      "rate_type": "tracker",
+      "monthly_payment": 952,
+      "remaining_term_months": 180,
+      "mortgage_start_date": "2018-10-15",
+      "ownership_type": "joint",
+      "ownership_percentage": 100,
+      "notes": "BTL mortgage"
+    }
+  ],
+
+  "savings_accounts": [
+    {
+      "id": 1,
+      "account_name": "David's Cash ISA",
+      "provider_name": "Nationwide",
+      "account_type": "cash_isa",
+      "current_balance": 22500,
+      "interest_rate": 4.25,
+      "is_isa": true,
+      "isa_subscription_current_year": 10000,
+      "access_type": "immediate",
+      "ownership_type": "individual",
+      "monthly_contribution": 0
+    },
+    {
+      "id": 2,
+      "account_name": "Sarah's Cash ISA",
+      "provider_name": "Nationwide",
+      "account_type": "cash_isa",
+      "current_balance": 22500,
+      "interest_rate": 4.25,
+      "is_isa": true,
+      "isa_subscription_current_year": 10000,
+      "access_type": "immediate",
+      "ownership_type": "individual",
+      "monthly_contribution": 0
+    },
+    {
+      "id": 3,
+      "account_name": "Premium Bonds",
+      "provider_name": "NS&I",
+      "account_type": "premium_bonds",
+      "current_balance": 50000,
+      "interest_rate": 0,
+      "is_isa": false,
+      "access_type": "immediate",
+      "ownership_type": "joint",
+      "notes": "Maximum allowed holding"
+    }
+  ],
+
+  "investment_accounts": [
+    {
+      "id": 1,
+      "account_name": "David's S&S ISA",
+      "provider_name": "Hargreaves Lansdown",
+      "account_type": "isa",
+      "current_value": 95000,
+      "annual_contribution": 10000,
+      "ownership_type": "individual",
+      "risk_profile": "adventurous",
+      "holdings": [
+        {
+          "id": 1,
+          "holding_name": "Fundsmith Equity",
+          "asset_type": "fund",
+          "current_value": 35000,
+          "allocation_percentage": 36.8,
+          "annual_fee": 0.95
+        },
+        {
+          "id": 2,
+          "holding_name": "Scottish Mortgage IT",
+          "asset_type": "uk_equity",
+          "current_value": 25000,
+          "allocation_percentage": 26.3,
+          "annual_fee": 0.34
+        },
+        {
+          "id": 3,
+          "holding_name": "Vanguard FTSE All-World",
+          "asset_type": "etf",
+          "current_value": 35000,
+          "allocation_percentage": 36.9,
+          "annual_fee": 0.22
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "account_name": "Sarah's S&S ISA",
+      "provider_name": "Hargreaves Lansdown",
+      "account_type": "isa",
+      "current_value": 85000,
+      "annual_contribution": 10000,
+      "ownership_type": "individual",
+      "risk_profile": "balanced",
+      "holdings": [
+        {
+          "id": 4,
+          "holding_name": "Vanguard LifeStrategy 80",
+          "asset_type": "fund",
+          "current_value": 85000,
+          "allocation_percentage": 100,
+          "annual_fee": 0.22
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "account_name": "Joint GIA",
+      "provider_name": "AJ Bell",
+      "account_type": "gia",
+      "current_value": 95000,
+      "annual_contribution": 12000,
+      "ownership_type": "joint",
+      "risk_profile": "balanced",
+      "holdings": [
+        {
+          "id": 5,
+          "holding_name": "iShares Core MSCI World",
+          "asset_type": "etf",
+          "current_value": 50000,
+          "allocation_percentage": 52.6,
+          "annual_fee": 0.2
+        },
+        {
+          "id": 6,
+          "holding_name": "Vanguard UK Govt Bond",
+          "asset_type": "bond",
+          "current_value": 25000,
+          "allocation_percentage": 26.3,
+          "annual_fee": 0.12
+        },
+        {
+          "id": 7,
+          "holding_name": "iShares Physical Gold",
+          "asset_type": "alternative",
+          "current_value": 20000,
+          "allocation_percentage": 21.1,
+          "annual_fee": 0.12
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "account_name": "VCT Holdings",
+      "provider_name": "Various",
+      "account_type": "vct",
+      "current_value": 30000,
+      "annual_contribution": 0,
+      "ownership_type": "individual",
+      "notes": "Tax-efficient VCT investments"
+    }
+  ],
+
+  "dc_pensions": [
+    {
+      "id": 1,
+      "scheme_name": "David's SIPP",
+      "provider_name": "AJ Bell",
+      "pension_type": "sipp",
+      "scheme_type": "sipp",
+      "current_fund_value": 320000,
+      "monthly_contribution_amount": 2000,
+      "retirement_age": 60,
+      "ownership_type": "individual",
+      "notes": "Personal contributions plus employer pension scheme transfer",
+      "holdings": [
+        {
+          "id": 1,
+          "holding_name": "Vanguard Global Equity",
+          "asset_type": "fund",
+          "current_value": 160000,
+          "allocation_percentage": 50,
+          "annual_fee": 0.23
+        },
+        {
+          "id": 2,
+          "holding_name": "BlackRock Corporate Bond",
+          "asset_type": "bond",
+          "current_value": 96000,
+          "allocation_percentage": 30,
+          "annual_fee": 0.18
+        },
+        {
+          "id": 3,
+          "holding_name": "L&G UK Property",
+          "asset_type": "property",
+          "current_value": 64000,
+          "allocation_percentage": 20,
+          "annual_fee": 0.68
+        }
+      ]
+    }
+  ],
+
+  "db_pensions": [
+    {
+      "id": 1,
+      "scheme_name": "NHS Pension Scheme",
+      "pension_type": "public_sector",
+      "accrued_annual_pension": 35000,
+      "normal_retirement_age": 60,
+      "inflation_protection": "cpi",
+      "lump_sum_entitlement": 105000,
+      "spouse_benefit_percentage": 50,
+      "years_of_service": 18,
+      "notes": "Sarah's NHS pension - 2015 scheme"
+    }
+  ],
+
+  "state_pension": {
+    "forecast_weekly_amount": 221.20,
+    "forecast_annual_amount": 11502,
+    "state_pension_age": 67,
+    "qualifying_years": 30,
+    "years_remaining": 8
+  },
+
+  "life_insurance_policies": [
+    {
+      "id": 1,
+      "policy_type": "level_term",
+      "provider_name": "Vitality",
+      "sum_assured": 500000,
+      "premium_amount": 85,
+      "premium_frequency": "monthly",
+      "policy_start_date": "2020-01-01",
+      "policy_end_date": "2040-01-01",
+      "in_trust": true,
+      "joint_life": true,
+      "policy_reference": "VIT-LT-456789",
+      "notes": "Family protection - in trust for IHT efficiency"
+    }
+  ],
+
+  "critical_illness_policies": [
+    {
+      "id": 1,
+      "policy_type": "standalone",
+      "provider_name": "Legal & General",
+      "sum_assured": 200000,
+      "premium_amount": 125,
+      "premium_frequency": "monthly",
+      "policy_start_date": "2020-01-01",
+      "policy_end_date": "2040-01-01",
+      "policy_reference": "LG-CI-789123",
+      "notes": "Joint standalone critical illness cover"
+    }
+  ],
+
+  "income_protection_policies": [],
+
+  "disability_policies": [],
+
+  "sickness_illness_policies": [],
+
+  "liabilities": [
+    {
+      "id": 1,
+      "liability_type": "personal_loan",
+      "liability_name": "School Fees Loan",
+      "current_balance": 25000,
+      "original_amount": 40000,
+      "interest_rate": 3.9,
+      "monthly_payment": 750,
+      "start_date": "2021-09-01",
+      "end_date": "2025-09-01",
+      "lender_name": "Barclays"
+    }
+  ],
+
+  "gifts": [],
+
+  "trusts": [],
+
+  "business_interests": [],
+
+  "chattels": [
+    {
+      "id": 1,
+      "item_name": "Art Collection",
+      "current_value": 35000,
+      "ownership_type": "joint",
+      "notes": "Various contemporary artworks"
+    },
+    {
+      "id": 2,
+      "item_name": "Classic Car",
+      "current_value": 45000,
+      "ownership_type": "individual",
+      "notes": "1967 Jaguar E-Type - David's"
+    }
+  ],
+
+  "expenditure": {
+    "total_monthly": 9500,
+    "categories": {
+      "housing": 3302,
+      "utilities": 400,
+      "food": 800,
+      "transport": 600,
+      "school_fees": 2800,
+      "insurance": 350,
+      "entertainment": 500,
+      "holidays": 500,
+      "other": 248
+    }
+  },
+
+  "key_concerns": [
+    "Are we on track for retirement at 60?",
+    "How do we optimise our tax position with tapered pension allowance?",
+    "Should we pay off the mortgage or invest more?",
+    "What is the best strategy for the BTL property?"
+  ],
+
+  "highlights": {
+    "investment_profile": {
+      "portfolio_allocation": "65% equities, 20% bonds, 15% alternatives",
+      "risk_score": 72,
+      "isa_utilisation": "Both maximising annual allowance"
+    },
+    "net_worth_range": "1.5m - 2m",
+    "primary_focus": "Tax efficiency, pension allowances"
+  }
+}

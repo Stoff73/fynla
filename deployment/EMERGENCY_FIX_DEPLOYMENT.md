@@ -1,4 +1,4 @@
-# EMERGENCY FIX - TenGo Blank Page Issue Resolution
+# EMERGENCY FIX - Fynla Blank Page Issue Resolution
 
 **Date**: November 12, 2025
 **Issue**: Blank page with 1 byte response
@@ -208,7 +208,7 @@ nano .env
 
 **CRITICAL .env settings**:
 ```env
-APP_NAME="TenGo - Financial Planning System"
+APP_NAME="Fynla - Financial Planning System"
 APP_ENV=production
 APP_KEY=                                    # Generate in next step
 APP_DEBUG=false
@@ -320,7 +320,7 @@ curl -I https://csjones.co/tengo
 **Open in browser**: https://csjones.co/tengo
 
 **Expected**: Landing page should load with:
-- TenGo branding
+- Fynla branding
 - "Get Started" button
 - "Login" link
 - Full CSS styling

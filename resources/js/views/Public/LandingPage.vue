@@ -13,16 +13,25 @@
       <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div class="text-center">
           <!-- Badge -->
-          <div class="inline-flex items-center px-4 py-2 rounded-full bg-slate-800/50 border border-slate-700 text-blue-200 text-sm font-medium mb-8 backdrop-blur-sm">
-            <span class="w-2 h-2 bg-primary-500 rounded-full mr-2"></span>
-            Demo Version Available
-          </div>
+          <button
+            type="button"
+            @click="enterPreviewMode"
+            class="inline-flex items-center px-4 py-2 rounded-full bg-amber-500/20 border border-amber-400/50 text-amber-200 text-sm font-medium mb-8 backdrop-blur-sm hover:bg-amber-500/30 transition-colors cursor-pointer"
+          >
+            <span class="w-2 h-2 bg-amber-400 rounded-full mr-2 animate-pulse"></span>
+            Interactive Demo - No Sign-up Required
+          </button>
 
           <h1 class="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight">
-            Your Complete
-            <span class="text-primary-500">
-              Financial Planning
-            </span>
+            Your Complete <br class="sm:hidden" />
+            <span class="hero-word-container">
+              <transition name="hero-fade" mode="out-in">
+                <span
+                  :class="['hero-word', currentWordColor]"
+                  :key="currentWord"
+                >{{ currentWord }}</span>
+              </transition>
+            </span><span :class="['hero-word', currentWordColor]">Planning</span><br class="sm:hidden" />
             Platform
           </h1>
 
@@ -31,6 +40,27 @@
           </p>
 
           <div class="flex flex-col sm:flex-row justify-center gap-4 mb-16">
+            <button
+              type="button"
+              @click="enterPreviewMode"
+              :disabled="enteringPreview"
+              class="group px-8 py-4 bg-amber-500 text-slate-900 rounded-xl font-semibold text-lg hover:bg-amber-400 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-wait"
+            >
+              <span class="flex items-center justify-center">
+                <svg v-if="enteringPreview" class="w-5 h-5 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <svg v-else class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+                {{ enteringPreview ? 'Loading...' : 'Try the Demo' }}
+                <svg v-if="!enteringPreview" class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </span>
+            </button>
             <router-link
               to="/register"
               class="group px-8 py-4 bg-primary-600 text-white rounded-xl font-semibold text-lg hover:bg-primary-700 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5"
@@ -96,7 +126,7 @@
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <!-- Feature Card 1 -->
           <!-- Feature Card 1 -->
-          <div class="group bg-white rounded-2xl p-8 shadow-sm hover:shadow-md transition-all duration-300 border border-secondary-200">
+          <div class="group bg-white rounded-2xl p-8 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 border border-secondary-200">
             <div class="flex items-start gap-5">
               <div class="flex-shrink-0 w-14 h-14 bg-primary-100 rounded-xl flex items-center justify-center">
                 <svg class="w-7 h-7 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -110,7 +140,7 @@
 
           <!-- Feature Card 2 -->
           <!-- Feature Card 2 -->
-          <div class="group bg-white rounded-2xl p-8 shadow-sm hover:shadow-md transition-all duration-300 border border-secondary-200">
+          <div class="group bg-white rounded-2xl p-8 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 border border-secondary-200">
             <div class="flex items-start gap-5">
               <div class="flex-shrink-0 w-14 h-14 bg-primary-100 rounded-xl flex items-center justify-center">
                 <svg class="w-7 h-7 text-primary-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -134,7 +164,7 @@
 
           <!-- Feature Card 3 -->
           <!-- Feature Card 3 -->
-          <div class="group bg-white rounded-2xl p-8 shadow-sm hover:shadow-md transition-all duration-300 border border-secondary-200">
+          <div class="group bg-white rounded-2xl p-8 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 border border-secondary-200">
             <div class="flex items-start gap-5">
               <div class="flex-shrink-0 w-14 h-14 bg-primary-100 rounded-xl flex items-center justify-center">
                 <svg class="w-7 h-7 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -158,7 +188,7 @@
 
           <!-- Feature Card 4 -->
           <!-- Feature Card 4 -->
-          <div class="group bg-white rounded-2xl p-8 shadow-sm hover:shadow-md transition-all duration-300 border border-secondary-200">
+          <div class="group bg-white rounded-2xl p-8 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 border border-secondary-200">
             <div class="flex items-start gap-5">
               <div class="flex-shrink-0 w-14 h-14 bg-primary-100 rounded-xl flex items-center justify-center">
                 <svg class="w-7 h-7 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -231,7 +261,7 @@
         <div class="text-center mb-16">
           <span class="text-primary-600 font-semibold text-sm uppercase tracking-wider">The Vision</span>
           <h2 class="text-4xl md:text-5xl font-bold text-slate-900 mt-3 mb-4">
-            What TenGo Will Become
+            What Fynla Will Become
           </h2>
           <p class="text-xl text-slate-600 max-w-3xl mx-auto">
             Full financial planning software ensuring you're covered for all financial planning scenarios
@@ -484,7 +514,7 @@
           Ready to Plan Your Financial Future?
         </h2>
         <p class="text-xl text-slate-300 mb-10 max-w-2xl mx-auto">
-          Get started with TenGo today. Create your free account and access all planning tools.
+          Get started with Fynla today. Create your free account and access all planning tools.
         </p>
         <div class="flex flex-col sm:flex-row justify-center gap-4">
           <router-link
@@ -513,6 +543,7 @@
 </template>
 
 <script>
+import { mapActions } from 'vuex';
 import PublicLayout from '@/layouts/PublicLayout.vue';
 
 export default {
@@ -526,6 +557,16 @@ export default {
     return {
       loadingNews: true,
       activeNewsSource: 'all',
+      enteringPreview: false,
+      // Rotating hero words with colors
+      heroWords: [
+        { word: 'Financial', color: 'text-primary-400' },
+        { word: 'Retirement', color: 'text-emerald-400' },
+        { word: 'Investment', color: 'text-amber-400' },
+        { word: 'Estate', color: 'text-rose-400' },
+      ],
+      currentWordIndex: 0,
+      heroWordInterval: null,
       newsSources: [
         { id: 'all', name: 'All Sources' },
         { id: 'fca', name: 'FCA' },
@@ -537,6 +578,12 @@ export default {
   },
 
   computed: {
+    currentWord() {
+      return this.heroWords[this.currentWordIndex].word;
+    },
+    currentWordColor() {
+      return this.heroWords[this.currentWordIndex].color;
+    },
     filteredNews() {
       if (this.activeNewsSource === 'all') {
         return this.newsItems.slice(0, 6);
@@ -547,9 +594,52 @@ export default {
 
   mounted() {
     this.loadNews();
+    this.startHeroWordRotation();
+  },
+
+  beforeUnmount() {
+    // Clean up interval to prevent memory leaks
+    if (this.heroWordInterval) {
+      clearInterval(this.heroWordInterval);
+    }
   },
 
   methods: {
+    ...mapActions('preview', ['loadPersona']),
+
+    startHeroWordRotation() {
+      // Rotate words every 3 seconds
+      this.heroWordInterval = setInterval(() => {
+        this.currentWordIndex = (this.currentWordIndex + 1) % this.heroWords.length;
+      }, 3000);
+    },
+
+    async enterPreviewMode() {
+      console.log('[LandingPage] enterPreviewMode called');
+      if (this.enteringPreview) {
+        console.log('[LandingPage] Already entering preview, returning');
+        return;
+      }
+
+      this.enteringPreview = true;
+      console.log('[LandingPage] Set enteringPreview to true');
+
+      try {
+        console.log('[LandingPage] About to call loadPersona...');
+        await this.$store.dispatch('preview/loadPersona', 'young_family');
+        console.log('[LandingPage] loadPersona completed');
+        console.log('[LandingPage] isPreviewMode:', this.$store.getters['preview/isPreviewMode']);
+        console.log('[LandingPage] Navigating to /dashboard...');
+        this.$router.push('/dashboard');
+      } catch (error) {
+        console.error('[LandingPage] Failed to enter preview mode:', error);
+        alert('Failed to load demo data: ' + error.message);
+      } finally {
+        this.enteringPreview = false;
+        console.log('[LandingPage] enterPreviewMode finished');
+      }
+    },
+
     loadNews() {
       // Curated news from multiple sources - in production, this could fetch from APIs/RSS feeds
       setTimeout(() => {
@@ -628,6 +718,36 @@ export default {
 </script>
 
 <style scoped>
+/* Hero word animation */
+.hero-word {
+  display: inline-block;
+  transition: color 0.5s ease-in-out;
+}
+
+/* Fixed width container to prevent layout shift */
+.hero-word-container {
+  display: inline-block;
+  min-width: 5.5em; /* Width based on "Investment" - longest word */
+  text-align: left;
+  margin-right: 0.2em; /* Space before "Planning" */
+}
+
+/* Vue transition for rotating words */
+.hero-fade-enter-active,
+.hero-fade-leave-active {
+  transition: all 0.4s ease;
+}
+
+.hero-fade-enter-from {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.hero-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-20px);
+}
+
 @keyframes blob {
   0% {
     transform: translate(0px, 0px) scale(1);

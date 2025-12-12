@@ -13,7 +13,7 @@
         <!-- Plans Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <!-- Investment & Savings Plan Card -->
-          <div class="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 p-6 cursor-pointer border-2 border-transparent hover:border-blue-500" @click="navigateToInvestmentPlan">
+          <div class="bg-white rounded-lg shadow-md border border-gray-200 p-6 cursor-pointer hover:shadow-lg hover:-translate-y-0.5 hover:border-blue-500 transition-all duration-200" @click="navigateToInvestmentPlan">
             <div class="flex items-center mb-4">
               <div class="p-3 bg-blue-100 rounded-lg">
                 <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

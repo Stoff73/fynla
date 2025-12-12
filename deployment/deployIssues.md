@@ -1,4 +1,4 @@
-# TenGo Deployment Issues & Resolutions
+# Fynla Deployment Issues & Resolutions
 
 **Date**: October 29, 2025
 **Target Server**: SiteGround (csjones.co/tengo)
@@ -338,7 +338,7 @@ DB_PASSWORD=PixieRebecca2020
 
 ### Application Configuration (.env)
 ```env
-APP_NAME="TenGo - Financial Planning System"
+APP_NAME="Fynla - Financial Planning System"
 APP_ENV=production
 APP_DEBUG=false
 APP_KEY=base64:0W/VOUin57ayBYmOgETvpiLrgUI359PrtPdtst+K914=

@@ -366,6 +366,10 @@ export default {
   },
 
   computed: {
+    isPreviewMode() {
+      return this.$store.getters['preview/isPreviewMode'];
+    },
+
     isMarried() {
       return this.$store.state.auth?.user?.marital_status === 'married' && this.$store.state.auth?.user?.spouse_id;
     },
@@ -384,9 +388,14 @@ export default {
   },
 
   mounted() {
-    this.loadWill();
-    this.loadBequests();
-    this.loadNetEstateValue();
+    if (!this.isPreviewMode) {
+      this.loadWill();
+      this.loadBequests();
+      this.loadNetEstateValue();
+    } else {
+      console.log('[WillPlanning] Preview mode - skipping API calls');
+      this.loading = false;
+    }
   },
 
   methods: {
@@ -410,6 +419,10 @@ export default {
     },
 
     async loadWill() {
+      if (this.isPreviewMode) {
+        console.log('[WillPlanning] Preview mode - skipping loadWill');
+        return;
+      }
       try {
         const response = await api.get('/estate/will');
         this.will = response.data.data;
@@ -433,6 +446,10 @@ export default {
     },
 
     async loadBequests() {
+      if (this.isPreviewMode) {
+        console.log('[WillPlanning] Preview mode - skipping loadBequests');
+        return;
+      }
       try {
         const response = await api.get('/estate/bequests');
         this.bequests = response.data.data;
@@ -442,6 +459,10 @@ export default {
     },
 
     async loadNetEstateValue() {
+      if (this.isPreviewMode) {
+        console.log('[WillPlanning] Preview mode - skipping loadNetEstateValue');
+        return;
+      }
       try {
         const response = await api.post('/estate/calculate-iht');
         // NEW: Use iht_summary.current.net_estate from unified structure
@@ -460,6 +481,10 @@ export default {
     },
 
     async saveWill() {
+      if (this.isPreviewMode) {
+        console.log('[WillPlanning] Preview mode - skipping saveWill');
+        return;
+      }
       this.saving = true;
       this.errorMessage = '';
 
@@ -493,6 +518,10 @@ export default {
     },
 
     async deleteBequest(id) {
+      if (this.isPreviewMode) {
+        console.log('[WillPlanning] Preview mode - skipping deleteBequest');
+        return;
+      }
       if (!confirm('Are you sure you want to delete this bequest?')) return;
 
       try {

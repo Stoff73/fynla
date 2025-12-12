@@ -6,6 +6,9 @@ const state = {
     alerts: [],
     loading: false,
     error: null,
+    // Preview mode state
+    isPreviewMode: false,
+    previewData: null,
 };
 
 const getters = {
@@ -35,7 +38,12 @@ const getters = {
 
 const actions = {
     // Fetch all dashboard data
-    async fetchDashboardData({ commit }) {
+    async fetchDashboardData({ commit, state }) {
+        // Skip API call if in preview mode
+        if (state.isPreviewMode) {
+            console.log('[dashboard] Skipping fetchDashboardData - preview mode active');
+            return;
+        }
         commit('setLoading', true);
         commit('setError', null);
 
@@ -53,7 +61,12 @@ const actions = {
     },
 
     // Fetch financial health score
-    async fetchFinancialHealthScore({ commit }) {
+    async fetchFinancialHealthScore({ commit, state }) {
+        // Skip API call if in preview mode
+        if (state.isPreviewMode) {
+            console.log('[dashboard] Skipping fetchFinancialHealthScore - preview mode active');
+            return;
+        }
         commit('setLoading', true);
         commit('setError', null);
 
@@ -71,7 +84,12 @@ const actions = {
     },
 
     // Fetch alerts
-    async fetchAlerts({ commit }) {
+    async fetchAlerts({ commit, state }) {
+        // Skip API call if in preview mode
+        if (state.isPreviewMode) {
+            console.log('[dashboard] Skipping fetchAlerts - preview mode active');
+            return;
+        }
         commit('setLoading', true);
         commit('setError', null);
 
@@ -107,7 +125,12 @@ const actions = {
     },
 
     // Fetch all dashboard data in parallel with graceful error handling
-    async fetchAllDashboardData({ commit }) {
+    async fetchAllDashboardData({ commit, state }) {
+        // Skip API call if in preview mode
+        if (state.isPreviewMode) {
+            console.log('[dashboard] Skipping fetchAllDashboardData - preview mode active');
+            return;
+        }
         commit('setLoading', true);
         commit('setError', null);
 
@@ -169,6 +192,25 @@ const mutations = {
 
     setError(state, error) {
         state.error = error;
+    },
+
+    // Preview mode mutation
+    SET_PREVIEW_MODE(state, { isPreview, data }) {
+        state.isPreviewMode = isPreview;
+        state.previewData = data;
+
+        if (isPreview && data) {
+            // Set dashboard data from preview if available
+            if (data.dashboard_overview) {
+                state.overviewData = data.dashboard_overview;
+            }
+            if (data.financial_health_score) {
+                state.financialHealthScore = data.financial_health_score;
+            }
+        } else if (!isPreview) {
+            state.isPreviewMode = false;
+            state.previewData = null;
+        }
     },
 };
 

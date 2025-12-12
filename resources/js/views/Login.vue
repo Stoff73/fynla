@@ -10,7 +10,7 @@
     <div class="max-w-md w-full space-y-8">
       <div>
         <h1 class="text-center font-display text-h1 text-gray-900">
-          TenGo
+          Fynla
         </h1>
         <h2 class="mt-6 text-center text-h3 text-gray-900">
           Sign in to your account

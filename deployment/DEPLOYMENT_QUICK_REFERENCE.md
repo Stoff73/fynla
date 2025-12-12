@@ -1,4 +1,4 @@
-# TenGo Deployment - Quick Reference
+# Fynla Deployment - Quick Reference
 
 **Version**: v0.1.2.13
 **Target**: SiteGround (https://csjones.co/tengo)
@@ -109,7 +109,7 @@ php artisan tinker
 
 ```php
 $admin = new \App\Models\User();
-$admin->name = 'TenGo Admin';
+$admin->name = 'Fynla Admin';
 $admin->email = 'admin@fps.com';
 $admin->password = bcrypt('YOUR_SECURE_PASSWORD');
 $admin->email_verified_at = now();
@@ -322,7 +322,7 @@ See **DEPLOYMENT.md** for complete step-by-step guide with explanations.
 ---
 
 **Guide Version**: 2.0
-**TenGo Version**: v0.1.2.13
+**Fynla Version**: v0.1.2.13
 **Deployment Time**: ~30 minutes
 **Last Updated**: October 30, 2025
 

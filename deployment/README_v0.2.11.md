@@ -1,4 +1,4 @@
-# TenGo v0.2.11 Deployment Package
+# Fynla v0.2.11 Deployment Package
 
 **Version**: v0.2.11 (22 November 2025 Patch)
 **Status**: Ready for Production Deployment

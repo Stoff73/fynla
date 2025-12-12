@@ -1,4 +1,4 @@
-# TenGo v0.2.7 - SiteGround Deployment Guide
+# Fynla v0.2.7 - SiteGround Deployment Guide
 
 **Target Environment**: SiteGround Shared/Cloud Hosting
 **Production URL**: https://csjones.co/tengo
@@ -326,7 +326,7 @@ rm ~/www/csjones.co/tengo-build-assets.tar.gz
 
 ### 2.2 PHP Version Configuration
 
-**TenGo requires PHP 8.1 or higher**
+**Fynla requires PHP 8.1 or higher**
 
 1. Go to **Site Tools > Devs > PHP Manager**
 2. Select your domain: **csjones.co**
@@ -920,7 +920,7 @@ chmod 775 storage/framework/cache storage/framework/sessions storage/framework/v
 
 ```bash
 #!/bin/bash
-# TenGo - Production Permission Setup
+# Fynla - Production Permission Setup
 
 cd ~/www/csjones.co/tengo-app
 
@@ -1016,7 +1016,7 @@ nano .env
 
 ```env
 # Application
-APP_NAME="TenGo - Financial Planning System"
+APP_NAME="Fynla - Financial Planning System"
 APP_ENV=production
 APP_KEY=base64:GENERATE_NEW_KEY_SEE_BELOW
 APP_DEBUG=false
@@ -1368,7 +1368,7 @@ RedirectMatch 403 ^/tengo/storage/
 **Test via browser:**
 
 1. **Homepage**: https://csjones.co/tengo
-   - ✅ Should load TenGo landing page
+   - ✅ Should load Fynla landing page
    - ✅ No 404 or 500 errors
    - ✅ CSS/JS assets loaded (check browser dev tools)
 
@@ -1515,11 +1515,11 @@ curl -I https://csjones.co/tengo/api/admin/tax-config
 
 ```bash
 #!/bin/bash
-# TenGo - 403 Error Testing Suite
+# Fynla - 403 Error Testing Suite
 
 BASE_URL="https://csjones.co/tengo"
 
-echo "🔍 TenGo 403 Error Testing Suite"
+echo "🔍 Fynla 403 Error Testing Suite"
 echo "=================================="
 echo ""
 
@@ -2089,7 +2089,7 @@ cd ~/tengo-app && php artisan optimize:clear && php artisan config:cache && php 
 
 **Set up automated backups via Admin Panel:**
 
-1. Login to TenGo admin: https://csjones.co/tengo/admin
+1. Login to Fynla admin: https://csjones.co/tengo/admin
 2. Navigate to **System Settings > Database Backups**
 3. Configure automatic backups:
    - Frequency: Daily
@@ -2114,7 +2114,7 @@ php artisan backup:run
    - Check daily for unusual errors
 
 2. **Disk Space**: Site Tools > Statistics > Disk Space
-   - Ensure sufficient space (TenGo ~500MB)
+   - Ensure sufficient space (Fynla ~500MB)
 
 3. **Database Size**: Site Tools > MySQL > Databases
    - Monitor growth, optimize if needed
@@ -2194,7 +2194,7 @@ php artisan tinker
 - Deployment: https://laravel.com/docs/10.x/deployment
 - Configuration: https://laravel.com/docs/10.x/configuration
 
-**TenGo Application:**
+**Fynla Application:**
 - Version: v0.2.7
 - Admin Access: admin@fps.com / admin123
 - Demo Access: demo@fps.com / password
@@ -2203,6 +2203,6 @@ php artisan tinker
 
 **Deployment Guide Version**: 1.0
 **Last Updated**: November 12, 2025
-**Application Version**: TenGo v0.2.7
+**Application Version**: Fynla v0.2.7
 
 Built with Claude Code by Anthropic

@@ -378,6 +378,9 @@ export default {
   },
 
   computed: {
+    isPreviewMode() {
+      return this.$store.getters['preview/isPreviewMode'];
+    },
     policy() {
       return this.strategy?.whole_of_life_policy || {};
     },
@@ -387,10 +390,126 @@ export default {
   },
 
   mounted() {
+    if (this.isPreviewMode) {
+      console.log('[LifePolicyStrategy] Preview mode - computing from preview data');
+      this.computePreviewStrategy();
+      return;
+    }
     this.loadStrategy();
   },
 
   methods: {
+    computePreviewStrategy() {
+      // Get IHT data from estate store or compute it
+      const estateState = this.$store.state.estate;
+      const previewData = this.$store.state.preview?.personaData;
+
+      // Calculate total assets from estate store
+      const assetsValue = estateState.assets?.reduce((sum, a) => sum + parseFloat(a.current_value || 0), 0) || 0;
+      const investmentsValue = estateState.investmentAccounts?.reduce((sum, i) => sum + parseFloat(i.current_value || 0), 0) || 0;
+      const totalAssets = assetsValue + investmentsValue;
+
+      // Calculate total liabilities
+      const totalLiabilities = estateState.liabilities?.reduce((sum, l) => sum + parseFloat(l.current_balance || 0), 0) || 0;
+
+      // Calculate net estate
+      const netEstate = totalAssets - totalLiabilities;
+
+      // IHT allowances (UK 2025/26)
+      const nrb = 325000;
+      const hasMainResidence = estateState.assets?.some(a => a.asset_type === 'property') || false;
+      const rnrb = hasMainResidence ? 175000 : 0;
+      const totalAllowance = nrb + rnrb;
+
+      // Calculate taxable estate and IHT liability
+      const taxableEstate = Math.max(0, netEstate - totalAllowance);
+      const ihtLiability = taxableEstate * 0.40;
+
+      // Get user data
+      const user = previewData?.user;
+      const currentAge = user?.age || 40;
+      const estimatedDeathAge = user?.gender === 'female' ? 84 : 81;
+      const yearsUntilDeath = estimatedDeathAge - currentAge;
+
+      if (ihtLiability === 0) {
+        // No IHT liability - show "No Life Insurance Required" message
+        this.noIHTLiability = true;
+        this.noIHTMessage = `Your current estate of ${this.formatCurrency(netEstate)} is below the IHT threshold of ${this.formatCurrency(totalAllowance)}. No inheritance tax liability is projected.`;
+        this.loading = false;
+        console.log('[LifePolicyStrategy] Preview mode - no IHT liability');
+        return;
+      }
+
+      // Has IHT liability - compute strategy
+      const monthlyPremium = Math.round((ihtLiability * 0.03) / 12); // Approx 3% annual premium for whole of life
+      const annualPremium = monthlyPremium * 12;
+      const totalPremiums = annualPremium * yearsUntilDeath;
+
+      this.strategy = {
+        cover_amount: ihtLiability,
+        current_age: currentAge,
+        years_until_death: yearsUntilDeath,
+        is_joint_policy: previewData?.user?.marital_status === 'married',
+        whole_of_life_policy: {
+          policy_type: 'Whole of Life Insurance',
+          description: 'Guaranteed payout on death to cover IHT liability',
+          cover_amount: ihtLiability,
+          monthly_premium: monthlyPremium,
+          annual_premium: annualPremium,
+          total_premiums_paid: totalPremiums,
+          term_years: yearsUntilDeath,
+          cost_benefit_ratio: Math.round(ihtLiability / totalPremiums * 10) / 10,
+          key_features: [
+            'Guaranteed payout regardless of when you die',
+            'Fixed premiums for life',
+            'Can be placed in trust to avoid IHT on payout',
+            'No medical underwriting concerns once in force',
+          ],
+          implementation_steps: [
+            'Compare quotes from multiple providers',
+            'Complete medical questionnaire',
+            'Set up policy in trust (recommended)',
+            'Set up direct debit for premiums',
+          ],
+        },
+        self_insurance: {
+          strategy_name: 'Self-Insurance Fund',
+          description: 'Build a dedicated fund to cover IHT liability',
+          required_fund: ihtLiability,
+          monthly_contribution: Math.round(ihtLiability / (yearsUntilDeath * 12)),
+          current_fund_value: 0,
+          projected_fund_value: ihtLiability,
+          is_sufficient: true,
+          coverage_percentage: 100,
+          confidence_level: 'Medium',
+          key_benefits: [
+            'Money stays in your control',
+            'Potential investment growth',
+            'Flexible - can use for other purposes if needed',
+            'No ongoing premium commitments',
+          ],
+          key_risks: [
+            'Early death may leave shortfall',
+            'Investment performance uncertainty',
+            'Discipline required to maintain contributions',
+          ],
+        },
+        comparison: {
+          recommended_approach: ihtLiability > 100000 ? 'Whole of Life Insurance' : 'Self-Insurance',
+          summary: ihtLiability > 100000
+            ? 'Given the significant IHT liability, whole of life insurance provides certainty of coverage regardless of when death occurs.'
+            : 'With a moderate IHT liability, self-insurance may be more cost-effective if you have the discipline to build and maintain the fund.',
+        },
+      };
+
+      this.loading = false;
+      console.log('[LifePolicyStrategy] Preview mode - strategy computed:', {
+        ihtLiability,
+        monthlyPremium,
+        yearsUntilDeath,
+      });
+    },
+
     async loadStrategy() {
       this.loading = true;
       this.error = null;

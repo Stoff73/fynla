@@ -5,7 +5,7 @@
       <div class="mb-8">
         <h1 class="text-h2 font-display text-gray-900">Help & Documentation</h1>
         <p class="mt-2 text-body-base text-gray-600">
-          Comprehensive guide to using TenGo Financial Planning System
+          Comprehensive guide to using Fynla Financial Planning System
         </p>
       </div>
 
@@ -21,7 +21,7 @@
             v-model="searchQuery"
             type="text"
             class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-            placeholder="Search help articles... (e.g., 'how to add protection policy', 'IHT calculation', 'spouse linking')"
+            placeholder="Search help articles... (e.g., 'how to add protection policy', 'inheritance tax', 'spouse linking')"
           >
         </div>
         <p v-if="searchQuery && filteredSections.length === 0" class="mt-2 text-sm text-red-600">
@@ -60,9 +60,9 @@
 
             <div class="space-y-6">
               <div>
-                <h3 class="text-h5 font-semibold text-gray-900 mb-2">Welcome to TenGo</h3>
+                <h3 class="text-h5 font-semibold text-gray-900 mb-2">Welcome to Fynla</h3>
                 <p class="text-body-base text-gray-700 mb-4">
-                  TenGo is a comprehensive financial planning system designed for UK users. It helps you manage your protection, estate, retirement, investment, and savings planning all in one place.
+                  Fynla is a comprehensive financial planning system designed for UK users. It helps you manage your protection, estate, retirement, investment, and savings planning all in one place.
                 </p>
               </div>
 
@@ -106,7 +106,7 @@
                 <h3 class="text-h5 font-semibold text-gray-900 mb-2">Dashboard Cards</h3>
                 <ul class="space-y-3 text-body-base text-gray-700">
                   <li><strong>Net Worth:</strong> Total assets minus liabilities across all categories</li>
-                  <li><strong>Estate Planning:</strong> Current IHT position and net worth breakdown</li>
+                  <li><strong>Estate Planning:</strong> Current inheritance tax position and net worth breakdown</li>
                   <li><strong>Protection:</strong> Coverage gap analysis for life, critical illness, and income protection</li>
                   <li><strong>Trusts:</strong> Number of trusts and total assets held in trust</li>
                   <li><strong>Plans:</strong> Quick access to Protection, Estate, Retirement, and Investment/Savings plans</li>
@@ -151,7 +151,7 @@
               <div>
                 <h3 class="text-h5 font-semibold text-gray-900 mb-2">Domicile Information</h3>
                 <p class="text-body-base text-gray-700 mb-4">
-                  Enter your UK domicile status, residency details, and any foreign assets. This is critical for IHT calculations and estate planning, as domicile status affects tax liability.
+                  Enter your UK domicile status, residency details, and any foreign assets. This is critical for inheritance tax calculations and estate planning, as domicile status affects tax liability.
                 </p>
               </div>
 
@@ -229,39 +229,39 @@
               <div>
                 <h3 class="text-h5 font-semibold text-gray-900 mb-2">Overview</h3>
                 <p class="text-body-base text-gray-700 mb-4">
-                  The Estate Planning module calculates your Inheritance Tax (IHT) liability, tracks your net worth, and provides strategies for reducing IHT.
+                  The Estate Planning module calculates your inheritance tax liability, tracks your net worth, and provides strategies for reducing the tax your beneficiaries will pay.
                 </p>
               </div>
 
               <div>
                 <h3 class="text-h5 font-semibold text-gray-900 mb-2">Current Situation Tab</h3>
                 <p class="text-body-base text-gray-700 mb-4">
-                  View your net worth breakdown and current IHT position:
+                  View your net worth breakdown and current inheritance tax position:
                 </p>
                 <ul class="list-disc list-inside space-y-1 text-body-base text-gray-700 ml-4">
                   <li><strong>Assets:</strong> Property, pensions, investments, savings, business, other assets</li>
                   <li><strong>Liabilities:</strong> Mortgages, loans, credit cards, other debts</li>
                   <li><strong>Net Estate:</strong> Total assets minus liabilities</li>
-                  <li><strong>IHT Calculation:</strong> NRB (£325k), RNRB (£175k for main residence), IHT liability</li>
+                  <li><strong>Inheritance Tax Calculation:</strong> Tax-free allowance (£325k), home allowance (£175k for main residence), tax liability</li>
                 </ul>
               </div>
 
               <div>
-                <h3 class="text-h5 font-semibold text-gray-900 mb-2">IHT Planning Tab</h3>
+                <h3 class="text-h5 font-semibold text-gray-900 mb-2">Inheritance Tax Planning Tab</h3>
                 <p class="text-body-base text-gray-700 mb-4">
-                  For married couples, view Second Death IHT analysis with combined nil rate bands (NRB up to £650k, RNRB up to £350k). Includes spouse exemption on first death.
+                  For married couples, view Second Death analysis with combined tax-free allowances (up to £650k basic allowance, plus up to £350k home allowance). Includes spouse exemption on first death.
                 </p>
               </div>
 
               <div>
                 <h3 class="text-h5 font-semibold text-gray-900 mb-2">Gifting Timeline</h3>
                 <p class="text-body-base text-gray-700 mb-4">
-                  Track gifts made in the last 7 years. Gifts older than 7 years are outside the estate for IHT purposes. The timeline shows:
+                  Track gifts made in the last 7 years. Gifts older than 7 years are outside the estate for inheritance tax purposes. The timeline shows:
                 </p>
                 <ul class="list-disc list-inside space-y-1 text-body-base text-gray-700 ml-4">
                   <li><strong>Potentially Exempt Transfers (PETs):</strong> Gifts to individuals, exempt after 7 years</li>
-                  <li><strong>Chargeable Lifetime Transfers (CLTs):</strong> Gifts to trusts, subject to IHT immediately</li>
-                  <li><strong>Taper Relief:</strong> Reduces IHT on gifts made 3-7 years before death</li>
+                  <li><strong>Chargeable Lifetime Transfers:</strong> Gifts to trusts, subject to inheritance tax immediately</li>
+                  <li><strong>Taper Relief:</strong> Reduces inheritance tax on gifts made 3-7 years before death</li>
                 </ul>
               </div>
 
@@ -296,16 +296,16 @@
               <div>
                 <h3 class="text-h5 font-semibold text-gray-900 mb-2">Pension Types</h3>
                 <ul class="space-y-2 text-body-base text-gray-700">
-                  <li><strong>DC Pensions:</strong> Defined Contribution (pot-based) pensions with portfolio holdings management</li>
-                  <li><strong>DB Pensions:</strong> Defined Benefit (final salary) pensions with guaranteed income</li>
+                  <li><strong>Money Purchase Pensions:</strong> Defined contribution (pot-based) pensions with portfolio holdings management</li>
+                  <li><strong>Final Salary Pensions:</strong> Defined benefit pensions with guaranteed income</li>
                   <li><strong>State Pension:</strong> UK State Pension based on National Insurance contributions</li>
                 </ul>
               </div>
 
               <div>
-                <h3 class="text-h5 font-semibold text-gray-900 mb-2">DC Pension Holdings</h3>
+                <h3 class="text-h5 font-semibold text-gray-900 mb-2">Money Purchase Pension Holdings</h3>
                 <p class="text-body-base text-gray-700 mb-4">
-                  Manage individual fund holdings within DC pension pots including fund names, ISIN codes, units held, and fees. Access portfolio analysis including:
+                  Manage individual fund holdings within money purchase pension pots including fund names, ISIN codes, units held, and fees. Access portfolio analysis including:
                 </p>
                 <ul class="list-disc list-inside space-y-1 text-body-base text-gray-700 ml-4">
                   <li>Asset allocation breakdown (Equities, Bonds, Property, Cash, Alternatives)</li>
@@ -419,7 +419,7 @@
                 <ul class="list-disc list-inside space-y-1 text-body-base text-gray-700 ml-4">
                   <li>View spouse's protection policies</li>
                   <li>View spouse's estate information</li>
-                  <li>View spouse's gifts for IHT timeline</li>
+                  <li>View spouse's gifts for inheritance tax timeline</li>
                   <li>View spouse's Letter to Spouse</li>
                   <li>Permissions must be accepted by both parties</li>
                 </ul>
@@ -453,7 +453,7 @@
                   Choose your primary focus area to customise the onboarding journey:
                 </p>
                 <ul class="list-disc list-inside space-y-1 text-body-base text-gray-700 ml-4">
-                  <li><strong>Estate Planning:</strong> IHT reduction and will planning</li>
+                  <li><strong>Estate Planning:</strong> Inheritance tax reduction and will planning</li>
                   <li><strong>Protection:</strong> Insurance coverage gap analysis</li>
                   <li><strong>Retirement:</strong> Pension planning and projections</li>
                   <li><strong>Investment:</strong> Portfolio management and optimisation</li>
@@ -515,23 +515,23 @@
               </div>
 
               <div>
-                <h3 class="text-h5 font-semibold text-gray-900 mb-2">How is IHT calculated?</h3>
+                <h3 class="text-h5 font-semibold text-gray-900 mb-2">How is inheritance tax calculated?</h3>
                 <p class="text-body-base text-gray-700">
-                  IHT is charged at 40% on your estate above the nil rate bands. For 2025/26: NRB £325k (transferable to spouse), RNRB £175k (for main residence, transferable to spouse). Married couples can have combined NRB of £650k and RNRB of £350k on second death.
+                  Inheritance tax is charged at 40% on your estate above the tax-free allowances. For 2025/26: £325k basic allowance (transferable to spouse), £175k home allowance (for main residence left to children, transferable to spouse). Married couples can have combined allowances of £650k basic plus £350k home allowance on second death.
                 </p>
               </div>
 
               <div>
-                <h3 class="text-h5 font-semibold text-gray-900 mb-2">What's the difference between DC and DB pensions?</h3>
+                <h3 class="text-h5 font-semibold text-gray-900 mb-2">What's the difference between money purchase and final salary pensions?</h3>
                 <p class="text-body-base text-gray-700">
-                  DC (Defined Contribution) pensions are pot-based - you contribute, it grows, and you draw from the pot. DB (Defined Benefit) pensions provide guaranteed income based on your final salary and years of service. TenGo supports full holdings management for DC pensions with portfolio analysis.
+                  Money purchase (defined contribution) pensions are pot-based - you contribute, it grows, and you draw from the pot. Final salary (defined benefit) pensions provide guaranteed income based on your salary and years of service. Fynla supports full holdings management for money purchase pensions with portfolio analysis.
                 </p>
               </div>
 
               <div>
                 <h3 class="text-h5 font-semibold text-gray-900 mb-2">Can I have multiple ISAs?</h3>
                 <p class="text-body-base text-gray-700">
-                  Yes, but you can only contribute to one Cash ISA and one Stocks & Shares ISA per tax year. Total contributions across all ISAs cannot exceed £20,000 per tax year (April 6 - April 5). TenGo automatically tracks your ISA allowance usage.
+                  Yes, but you can only contribute to one Cash ISA and one Stocks & Shares ISA per tax year. Total contributions across all ISAs cannot exceed £20,000 per tax year (April 6 - April 5). Fynla automatically tracks your ISA allowance usage.
                 </p>
               </div>
 
@@ -552,7 +552,7 @@
               <div>
                 <h3 class="text-h5 font-semibold text-gray-900 mb-2">What are the portfolio risk metrics?</h3>
                 <p class="text-body-base text-gray-700">
-                  TenGo calculates: Alpha (excess returns vs benchmark), Beta (market sensitivity), Sharpe Ratio (risk-adjusted returns), Volatility (standard deviation), Max Drawdown (largest peak-to-trough decline), and VaR 95% (potential loss at 95% confidence).
+                  Fynla calculates: Alpha (excess returns vs benchmark), Beta (market sensitivity), Sharpe Ratio (risk-adjusted returns), Volatility (standard deviation), Max Drawdown (largest peak-to-trough decline), and VaR 95% (potential loss at 95% confidence).
                 </p>
               </div>
 
@@ -566,7 +566,7 @@
               <div>
                 <h3 class="text-h5 font-semibold text-gray-900 mb-2">Is my data secure?</h3>
                 <p class="text-body-base text-gray-700">
-                  Yes. TenGo uses Laravel Sanctum for authentication, all API routes are protected, and users can only access their own data. Passwords are hashed, and all communication uses HTTPS. For demonstration purposes, this system should not be used for real financial planning.
+                  Yes. Fynla uses Laravel Sanctum for authentication, all API routes are protected, and users can only access their own data. Passwords are hashed, and all communication uses HTTPS. For demonstration purposes, this system should not be used for real financial planning.
                 </p>
               </div>
             </div>
@@ -591,16 +591,16 @@
               </div>
 
               <div>
-                <h3 class="text-h5 font-semibold text-gray-900 mb-2">IHT calculation seems wrong</h3>
+                <h3 class="text-h5 font-semibold text-gray-900 mb-2">Inheritance tax calculation seems wrong</h3>
                 <p class="text-body-base text-gray-700 mb-4">
                   Common issues:
                 </p>
                 <ul class="list-disc list-inside space-y-1 text-body-base text-gray-700 ml-4">
                   <li>Verify all assets are entered correctly (check Estate → Current Situation)</li>
                   <li>Ensure liabilities are entered (they reduce net estate)</li>
-                  <li>Check domicile status (affects IHT liability)</li>
-                  <li>For married couples, check if NRB transfer from deceased spouse is set correctly</li>
-                  <li>Verify RNRB eligibility (requires leaving main residence to direct descendants)</li>
+                  <li>Check domicile status (affects inheritance tax liability)</li>
+                  <li>For married couples, check if tax-free allowance transfer from deceased spouse is set correctly</li>
+                  <li>Verify home allowance eligibility (requires leaving main residence to direct descendants)</li>
                 </ul>
               </div>
 
@@ -680,7 +680,7 @@
               <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
                 <h3 class="text-h5 font-semibold text-gray-900 mb-2">Important Note</h3>
                 <p class="text-body-base text-gray-700">
-                  TenGo is a demonstration financial planning system. It is <strong>not</strong> a regulated financial advice service. For actual financial planning, please consult with a qualified, FCA-regulated financial adviser.
+                  Fynla is a demonstration financial planning system. It is <strong>not</strong> a regulated financial advice service. For actual financial planning, please consult with a qualified, FCA-regulated financial adviser.
                 </p>
               </div>
 

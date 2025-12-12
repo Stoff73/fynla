@@ -1,13 +1,13 @@
 # SiteGround Laravel Deployment Summary
 
-This file contains essential information extracted from SiteGround's official Laravel installation guide and adapted for the TenGo deployment.
+This file contains essential information extracted from SiteGround's official Laravel installation guide and adapted for the Fynla deployment.
 
 ---
 
 ## Server Requirements
 
 **PHP Requirements**:
-- PHP >= 8.2 (TenGo requirement, higher than SiteGround's base 7.4.28)
+- PHP >= 8.2 (Fynla requirement, higher than SiteGround's base 7.4.28)
 - Required Extensions:
   - OpenSSL
   - PDO & PDO_MySQL
@@ -191,7 +191,7 @@ nano .env
 
 **Essential Settings**:
 ```ini
-APP_NAME="TenGo - Financial Planning System"
+APP_NAME="Fynla - Financial Planning System"
 APP_ENV=production
 APP_DEBUG=false
 APP_URL=https://csjones.co/tengo
@@ -471,7 +471,7 @@ EXIT;
 - Configuration: https://laravel.com/docs/10.x/configuration
 - Database Migrations: https://laravel.com/docs/10.x/migrations
 
-**TenGo Project Documentation**:
+**Fynla Project Documentation**:
 - Full Deployment Guide: `DEPLOYMENT.md`
 - Quick Reference: `DEPLOYMENT_QUICK_REFERENCE.md`
 - Development Guide: `CLAUDE.md`
@@ -493,7 +493,7 @@ EXIT;
 ---
 
 **Last Updated**: October 30, 2025
-**TenGo Version**: v0.1.2.13
+**Fynla Version**: v0.1.2.13
 **Tested On**: SiteGround UK Shared Hosting
 
 🤖 **Generated with [Claude Code](https://claude.com/claude-code)**

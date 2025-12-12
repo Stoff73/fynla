@@ -210,8 +210,7 @@
                     :key="stepIndex"
                     class="text-sm"
                     :class="step.startsWith('**') ? 'font-bold text-gray-900 mt-3' : 'text-gray-700'"
-                    v-html="formatStep(step)"
-                  ></li>
+                  >{{ sanitizeText(step) }}</li>
                 </ol>
               </div>
             </div>
@@ -269,7 +268,7 @@
                     <svg class="w-5 h-5 text-green-600 mr-2 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                     </svg>
-                    <span v-html="benefit.replace('✓ ', '')"></span>
+                    <span>{{ sanitizeText(benefit.replace('✓ ', '')) }}</span>
                   </li>
                 </ul>
               </div>
@@ -284,7 +283,7 @@
                     <svg class="w-5 h-5 text-red-600 mr-2 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
                     </svg>
-                    <span v-html="risk.replace('✗ ', '')"></span>
+                    <span>{{ sanitizeText(risk.replace('✗ ', '')) }}</span>
                   </li>
                 </ul>
               </div>
@@ -389,6 +388,9 @@ export default {
   },
 
   computed: {
+    isPreviewMode() {
+      return this.$store.getters['preview/isPreviewMode'];
+    },
     applicableStrategies() {
       if (!this.trustStrategy?.strategies) return [];
       return this.trustStrategy.strategies.filter(s => s.applicable !== false);
@@ -396,6 +398,11 @@ export default {
   },
 
   mounted() {
+    if (this.isPreviewMode) {
+      console.log('[TrustPlanningStrategy] Preview mode - skipping API calls');
+      this.loadingTrustStrategy = false;
+      return;
+    }
     this.loadTrustStrategy();
   },
 
@@ -450,9 +457,23 @@ export default {
       return 'bg-gray-100 text-gray-800';
     },
 
+    /**
+     * Sanitize text by removing markdown formatting and HTML tags
+     * This prevents XSS attacks while preserving readable text content
+     */
+    sanitizeText(text) {
+      if (!text) return '';
+      // Remove markdown bold formatting (**text** -> text)
+      let sanitized = text.replace(/\*\*(.*?)\*\*/g, '$1');
+      // Remove any HTML tags for security
+      sanitized = sanitized.replace(/<[^>]*>/g, '');
+      return sanitized;
+    },
+
     formatStep(step) {
-      // Format markdown-style bold (**text**)
-      return step.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      // DEPRECATED: Use sanitizeText instead for security
+      // This method kept for backward compatibility but now returns plain text
+      return this.sanitizeText(step);
     },
 
     formatAssetType(type) {

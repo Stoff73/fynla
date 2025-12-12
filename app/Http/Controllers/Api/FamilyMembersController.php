@@ -267,7 +267,7 @@ class FamilyMembersController extends Controller
                 $spouseUser->annual_employment_income = $data['annual_income'];
             }
             // Copy address from current user if spouse doesn't have one
-            if (!$spouseUser->address_line_1 && $currentUser->address_line_1) {
+            if (! $spouseUser->address_line_1 && $currentUser->address_line_1) {
                 $spouseUser->address_line_1 = $currentUser->address_line_1;
                 $spouseUser->address_line_2 = $currentUser->address_line_2;
                 $spouseUser->city = $currentUser->city;
@@ -504,7 +504,7 @@ class FamilyMembersController extends Controller
             $firstName = $data['first_name'] ?? $familyMember->first_name ?? '';
             $middleName = $data['middle_name'] ?? $familyMember->middle_name ?? '';
             $lastName = $data['last_name'] ?? $familyMember->last_name ?? '';
-            $data['name'] = trim($firstName . ($middleName ? ' ' . $middleName : '') . ' ' . $lastName);
+            $data['name'] = trim($firstName.($middleName ? ' '.$middleName : '').' '.$lastName);
         }
 
         $familyMember->update($data);

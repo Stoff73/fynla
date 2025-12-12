@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\DocumentController;
 use App\Http\Controllers\Api\Estate\GiftingController;
 use App\Http\Controllers\Api\Estate\IHTController;
 use App\Http\Controllers\Api\Estate\LifePolicyController;
@@ -33,6 +34,7 @@ use App\Http\Controllers\Api\OnboardingController;
 use App\Http\Controllers\Api\PersonalAccountsController;
 use App\Http\Controllers\Api\Plans\InvestmentSavingsPlanController;
 use App\Http\Controllers\Api\PortfolioOptimizationController;
+use App\Http\Controllers\Api\PreviewController;
 use App\Http\Controllers\Api\ProfileCompletenessController;
 use App\Http\Controllers\Api\PropertyController;
 use App\Http\Controllers\Api\ProtectionController;
@@ -43,7 +45,6 @@ use App\Http\Controllers\Api\SavingsController;
 use App\Http\Controllers\Api\SpousePermissionController;
 use App\Http\Controllers\Api\UKTaxesController;
 use App\Http\Controllers\Api\UserProfileController;
-use App\Http\Controllers\Api\DocumentController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -115,6 +116,11 @@ Route::middleware('auth:sanctum')->prefix('user')->group(function () {
         Route::put('/line-item/{id}', [PersonalAccountsController::class, 'updateLineItem']);
         Route::delete('/line-item/{id}', [PersonalAccountsController::class, 'deleteLineItem']);
     });
+
+    // Preview/Guidance routes
+    Route::post('/seed-persona-data', [PreviewController::class, 'seedPersonaData']);
+    Route::get('/guidance-status', [PreviewController::class, 'getGuidanceStatus']);
+    Route::post('/guidance-status', [PreviewController::class, 'updateGuidanceStatus']);
 });
 
 // Spouse Permission routes

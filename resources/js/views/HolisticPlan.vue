@@ -1,20 +1,20 @@
 <template>
   <div class="holistic-plan-container">
     <!-- Page Header -->
-    <div class="bg-white shadow-sm border-b border-gray-200 mb-6">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div class="flex items-center justify-between">
+    <div class="bg-white shadow-sm border-b border-gray-200 mb-4 sm:mb-6">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 class="text-3xl font-bold text-gray-900">Holistic Financial Plan</h1>
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Holistic Financial Plan</h1>
             <p class="mt-1 text-sm text-gray-600">
               Your comprehensive financial strategy across all modules
             </p>
           </div>
-          <div class="flex space-x-3">
+          <div class="flex space-x-3 flex-shrink-0">
             <button
               @click="refreshPlan"
               :disabled="loading"
-              class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+              class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 w-full sm:w-auto"
             >
               <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
@@ -61,7 +61,7 @@
       <!-- Tab Navigation -->
       <div class="bg-white shadow rounded-lg mb-6">
         <div class="border-b border-gray-200">
-          <nav class="flex -mb-px" aria-label="Tabs">
+          <nav class="flex -mb-px overflow-x-auto scrollbar-hide" aria-label="Tabs">
             <button
               v-for="tab in tabs"
               :key="tab.id"
@@ -70,15 +70,16 @@
                 activeTab === tab.id
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
-                'flex-1 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-center'
+                'whitespace-nowrap py-3 sm:py-4 px-3 sm:px-4 border-b-2 font-medium text-xs sm:text-sm text-center flex-shrink-0'
               ]"
             >
-              {{ tab.label }}
+              <span class="hidden sm:inline">{{ tab.label }}</span>
+              <span class="sm:hidden">{{ getShortLabel(tab.id) }}</span>
               <span
                 v-if="tab.badge"
                 :class="[
                   activeTab === tab.id ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600',
-                  'ml-2 py-0.5 px-2.5 rounded-full text-xs font-medium'
+                  'ml-1 sm:ml-2 py-0.5 px-1.5 sm:px-2.5 rounded-full text-xs font-medium'
                 ]"
               >
                 {{ tab.badge }}
@@ -217,6 +218,10 @@ export default {
       'activeRecommendations',
     ]),
 
+    isPreviewMode() {
+      return this.$store.getters['preview/isPreviewMode'];
+    },
+
     tabs() {
       return [
         {
@@ -249,6 +254,11 @@ export default {
   },
 
   async mounted() {
+    if (this.isPreviewMode) {
+      console.log('[HolisticPlan] Preview mode - computing from preview data');
+      this.computePreviewPlan();
+      return;
+    }
     await this.loadPlan();
   },
 
@@ -262,6 +272,100 @@ export default {
       'updateRecommendationNotes',
       'clearError',
     ]),
+
+    computePreviewPlan() {
+      const previewData = this.$store.state.preview?.personaData;
+      if (!previewData) return;
+
+      const user = previewData.user || {};
+      const investments = previewData.investment_accounts || [];
+      const savings = previewData.savings_accounts || [];
+      const properties = previewData.properties || [];
+      const mortgages = previewData.mortgages || [];
+      const pensions = previewData.dc_pensions || [];
+      const protection = previewData.life_insurance_policies || [];
+
+      // Calculate totals
+      const totalInvestments = investments.reduce((sum, a) => sum + parseFloat(a.current_value || 0), 0);
+      const totalSavings = savings.reduce((sum, a) => sum + parseFloat(a.current_balance || 0), 0);
+      const totalProperty = properties.reduce((sum, p) => sum + parseFloat(p.current_value || 0), 0);
+      const totalMortgages = mortgages.reduce((sum, m) => sum + parseFloat(m.outstanding_balance || 0), 0);
+      const totalPensions = pensions.reduce((sum, p) => sum + parseFloat(p.current_fund_value || 0), 0);
+      const netWorth = totalInvestments + totalSavings + totalProperty + totalPensions - totalMortgages;
+
+      // Create preview plan data
+      const plan = {
+        executive_summary: {
+          total_net_worth: netWorth,
+          total_assets: totalInvestments + totalSavings + totalProperty + totalPensions,
+          total_liabilities: totalMortgages,
+          monthly_income: user.annual_income ? user.annual_income / 12 : 0,
+          monthly_expenses: user.monthly_expenditure || 0,
+          health_score: 70,
+        },
+        module_summaries: {
+          protection: {
+            score: protection.length > 0 ? 60 : 20,
+            status: protection.length > 0 ? 'Partial Coverage' : 'Gaps Identified',
+            key_metrics: { policies: protection.length },
+          },
+          savings: {
+            score: totalSavings > 10000 ? 80 : 50,
+            status: totalSavings > 10000 ? 'On Track' : 'Building',
+            key_metrics: { total: totalSavings },
+          },
+          investment: {
+            score: totalInvestments > 0 ? 70 : 40,
+            status: totalInvestments > 0 ? 'Active' : 'Not Started',
+            key_metrics: { total: totalInvestments },
+          },
+          retirement: {
+            score: totalPensions > 0 ? 65 : 30,
+            status: totalPensions > 0 ? 'Contributing' : 'Not Started',
+            key_metrics: { total: totalPensions },
+          },
+          estate: {
+            score: user.has_will ? 60 : 30,
+            status: user.has_will ? 'Will in Place' : 'No Will',
+            key_metrics: { net_worth: netWorth },
+          },
+        },
+        recommendations: [
+          {
+            id: 1,
+            title: 'Review Protection Coverage',
+            description: 'Ensure adequate life and income protection for your family.',
+            priority: 'high',
+            module: 'protection',
+            status: 'pending',
+          },
+          {
+            id: 2,
+            title: 'Maximise Pension Contributions',
+            description: 'Take advantage of tax relief on pension contributions.',
+            priority: 'medium',
+            module: 'retirement',
+            status: 'pending',
+          },
+          {
+            id: 3,
+            title: 'Build Emergency Fund',
+            description: 'Aim for 6 months of expenses in easily accessible savings.',
+            priority: 'medium',
+            module: 'savings',
+            status: 'pending',
+          },
+        ],
+        conflicts: [],
+      };
+
+      // Set plan in store
+      this.$store.commit('holistic/SET_PLAN', plan);
+      this.$store.commit('holistic/SET_RECOMMENDATIONS', plan.recommendations);
+      this.$store.commit('holistic/SET_LOADING', false);
+
+      console.log('[HolisticPlan] Preview plan computed:', { netWorth });
+    },
 
     async loadPlan() {
       try {
@@ -312,6 +416,17 @@ export default {
         this.$toast?.error('Failed to update notes');
       }
     },
+
+    getShortLabel(tabId) {
+      const labels = {
+        'action-plan': 'Actions',
+        cashflow: 'Cashflow',
+        projection: 'Projection',
+        risk: 'Risk',
+        modules: 'Modules',
+      };
+      return labels[tabId] || tabId;
+    },
   },
 };
 </script>
@@ -320,5 +435,15 @@ export default {
 .holistic-plan-container {
   min-height: calc(100vh - 64px);
   background-color: #f9fafb;
+}
+
+/* Hide scrollbar for horizontal tab navigation */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }
 </style>

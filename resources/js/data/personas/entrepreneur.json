@@ -1,0 +1,390 @@
+{
+  "id": "entrepreneur",
+  "name": "Alex Chen",
+  "tagline": "Self-made tech entrepreneur",
+  "description": "A 38-year-old single tech consultancy owner with business interests, SIPP, and key person insurance considerations.",
+
+  "user": {
+    "first_name": "Alex",
+    "last_name": "Chen",
+    "email": "alex.chen@example.com",
+    "date_of_birth": "1986-09-18",
+    "age": 38,
+    "gender": "male",
+    "marital_status": "single",
+    "annual_income": 180000,
+    "employment_status": "self_employed",
+    "business_name": "Chen Tech Consulting Ltd",
+    "occupation": "Owner/Director",
+    "target_retirement_age": 55,
+    "target_retirement_income": 50000,
+    "monthly_expenditure": 5500,
+    "health_status": "yes",
+    "smoking_status": "never",
+    "has_will": false,
+    "has_lasting_power_of_attorney": false,
+    "address": {
+      "line_1": "Penthouse 3, The Lofts",
+      "line_2": "42 Deansgate",
+      "city": "Manchester",
+      "postcode": "M3 4LQ"
+    }
+  },
+
+  "spouse": null,
+
+  "family_members": [
+    {
+      "id": 1,
+      "first_name": "Wei",
+      "last_name": "Chen",
+      "relationship": "parent",
+      "date_of_birth": "1958-02-14",
+      "age": 66,
+      "is_dependent": false,
+      "notes": "Father - may need care support in future"
+    },
+    {
+      "id": 2,
+      "first_name": "Mei",
+      "last_name": "Chen",
+      "relationship": "parent",
+      "date_of_birth": "1961-07-22",
+      "age": 63,
+      "is_dependent": false,
+      "notes": "Mother - in good health"
+    }
+  ],
+
+  "properties": [
+    {
+      "id": 1,
+      "property_name": "City Centre Penthouse",
+      "address": "Penthouse 3, The Lofts, 42 Deansgate, Manchester, M3 4LQ",
+      "property_type": "main_residence",
+      "current_value": 380000,
+      "purchase_price": 320000,
+      "purchase_date": "2020-03-01",
+      "ownership_type": "individual",
+      "ownership_percentage": 100,
+      "is_primary_residence": true,
+      "bedrooms": 2,
+      "estimated_rental_value": 2000,
+      "council_tax_band": "F"
+    }
+  ],
+
+  "mortgages": [
+    {
+      "id": 1,
+      "property_id": 1,
+      "lender_name": "Metro Bank",
+      "outstanding_balance": 190000,
+      "original_amount": 256000,
+      "mortgage_type": "repayment",
+      "interest_rate": 4.49,
+      "rate_type": "fixed",
+      "fixed_rate_end_date": "2027-03-01",
+      "monthly_payment": 1350,
+      "remaining_term_months": 204,
+      "mortgage_start_date": "2020-03-01",
+      "ownership_type": "individual",
+      "ownership_percentage": 100
+    }
+  ],
+
+  "savings_accounts": [
+    {
+      "id": 1,
+      "account_name": "Business Emergency Fund",
+      "provider_name": "Tide",
+      "account_type": "easy_access",
+      "current_balance": 25000,
+      "interest_rate": 3.75,
+      "is_isa": false,
+      "access_type": "immediate",
+      "ownership_type": "individual",
+      "monthly_contribution": 0,
+      "notes": "Business contingency fund"
+    },
+    {
+      "id": 2,
+      "account_name": "Personal Notice Account",
+      "provider_name": "Aldermore",
+      "account_type": "notice",
+      "current_balance": 40000,
+      "interest_rate": 5.1,
+      "is_isa": false,
+      "access_type": "notice",
+      "notice_period_days": 90,
+      "ownership_type": "individual",
+      "monthly_contribution": 1000
+    }
+  ],
+
+  "investment_accounts": [
+    {
+      "id": 1,
+      "account_name": "Stocks & Shares ISA",
+      "provider_name": "Interactive Investor",
+      "account_type": "isa",
+      "current_value": 95000,
+      "annual_contribution": 20000,
+      "ownership_type": "individual",
+      "risk_profile": "adventurous",
+      "holdings": [
+        {
+          "id": 1,
+          "holding_name": "Baillie Gifford American",
+          "asset_type": "fund",
+          "current_value": 30000,
+          "allocation_percentage": 31.6,
+          "annual_fee": 0.51
+        },
+        {
+          "id": 2,
+          "holding_name": "Scottish Mortgage IT",
+          "asset_type": "uk_equity",
+          "current_value": 25000,
+          "allocation_percentage": 26.3,
+          "annual_fee": 0.34
+        },
+        {
+          "id": 3,
+          "holding_name": "Polar Capital Tech",
+          "asset_type": "fund",
+          "current_value": 20000,
+          "allocation_percentage": 21.1,
+          "annual_fee": 0.79
+        },
+        {
+          "id": 4,
+          "holding_name": "iShares MSCI World Tech",
+          "asset_type": "etf",
+          "current_value": 20000,
+          "allocation_percentage": 21.1,
+          "annual_fee": 0.4
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "account_name": "General Investment Account",
+      "provider_name": "AJ Bell",
+      "account_type": "gia",
+      "current_value": 45000,
+      "annual_contribution": 12000,
+      "ownership_type": "individual",
+      "risk_profile": "adventurous",
+      "holdings": [
+        {
+          "id": 5,
+          "holding_name": "Nvidia",
+          "asset_type": "us_equity",
+          "current_value": 15000,
+          "allocation_percentage": 33.3,
+          "annual_fee": 0
+        },
+        {
+          "id": 6,
+          "holding_name": "Microsoft",
+          "asset_type": "us_equity",
+          "current_value": 15000,
+          "allocation_percentage": 33.3,
+          "annual_fee": 0
+        },
+        {
+          "id": 7,
+          "holding_name": "Amazon",
+          "asset_type": "us_equity",
+          "current_value": 15000,
+          "allocation_percentage": 33.3,
+          "annual_fee": 0
+        }
+      ]
+    }
+  ],
+
+  "dc_pensions": [
+    {
+      "id": 1,
+      "scheme_name": "Alex's SIPP",
+      "provider_name": "AJ Bell",
+      "pension_type": "sipp",
+      "scheme_type": "sipp",
+      "current_fund_value": 185000,
+      "monthly_contribution_amount": 3333,
+      "retirement_age": 55,
+      "ownership_type": "individual",
+      "notes": "Company contributions via employer pension scheme",
+      "holdings": [
+        {
+          "id": 1,
+          "holding_name": "Vanguard Global All Cap",
+          "asset_type": "fund",
+          "current_value": 92500,
+          "allocation_percentage": 50,
+          "annual_fee": 0.23
+        },
+        {
+          "id": 2,
+          "holding_name": "HSBC FTSE All-World",
+          "asset_type": "etf",
+          "current_value": 55500,
+          "allocation_percentage": 30,
+          "annual_fee": 0.13
+        },
+        {
+          "id": 3,
+          "holding_name": "Fundsmith Equity",
+          "asset_type": "fund",
+          "current_value": 37000,
+          "allocation_percentage": 20,
+          "annual_fee": 0.95
+        }
+      ]
+    }
+  ],
+
+  "db_pensions": [],
+
+  "state_pension": {
+    "forecast_weekly_amount": 185.15,
+    "forecast_annual_amount": 9628,
+    "state_pension_age": 68,
+    "qualifying_years": 12,
+    "years_remaining": 23,
+    "notes": "Reduced forecast due to self-employment gaps"
+  },
+
+  "life_insurance_policies": [
+    {
+      "id": 1,
+      "policy_type": "level_term",
+      "provider_name": "Zurich",
+      "sum_assured": 200000,
+      "premium_amount": 18,
+      "premium_frequency": "monthly",
+      "policy_start_date": "2021-01-01",
+      "policy_end_date": "2046-01-01",
+      "in_trust": false,
+      "joint_life": false,
+      "policy_reference": "ZUR-LT-567890",
+      "notes": "Personal life cover"
+    },
+    {
+      "id": 2,
+      "policy_type": "level_term",
+      "provider_name": "Legal & General",
+      "sum_assured": 500000,
+      "premium_amount": 95,
+      "premium_frequency": "monthly",
+      "policy_start_date": "2022-06-01",
+      "policy_end_date": "2032-06-01",
+      "in_trust": false,
+      "joint_life": false,
+      "policy_reference": "LG-KP-234567",
+      "notes": "Key person insurance - paid by company"
+    }
+  ],
+
+  "critical_illness_policies": [],
+
+  "income_protection_policies": [],
+
+  "disability_policies": [],
+
+  "sickness_illness_policies": [],
+
+  "liabilities": [
+    {
+      "id": 1,
+      "liability_type": "business_loan",
+      "liability_name": "Director's Loan to Company",
+      "current_balance": 35000,
+      "interest_rate": 0,
+      "lender_name": "Chen Tech Consulting Ltd",
+      "notes": "Loan from company - repayable"
+    }
+  ],
+
+  "gifts": [],
+
+  "trusts": [],
+
+  "business_interests": [
+    {
+      "id": 1,
+      "business_name": "Chen Tech Consulting Ltd",
+      "business_type": "limited_company",
+      "ownership_percentage": 60,
+      "current_value": 450000,
+      "annual_profit": 280000,
+      "role": "Director and Shareholder",
+      "employees": 8,
+      "sector": "Technology Consulting",
+      "notes": "40% owned by business partner Marcus Wong",
+      "succession_plan": false,
+      "buy_sell_agreement": false,
+      "shareholder_protection": false
+    }
+  ],
+
+  "chattels": [
+    {
+      "id": 1,
+      "item_name": "Porsche 911",
+      "current_value": 85000,
+      "ownership_type": "individual",
+      "notes": "2022 992 Carrera S"
+    },
+    {
+      "id": 2,
+      "item_name": "Art Collection",
+      "current_value": 25000,
+      "ownership_type": "individual",
+      "notes": "Contemporary art pieces"
+    },
+    {
+      "id": 3,
+      "item_name": "Watch Collection",
+      "current_value": 35000,
+      "ownership_type": "individual",
+      "notes": "Rolex, Omega, IWC"
+    }
+  ],
+
+  "expenditure": {
+    "total_monthly": 5500,
+    "categories": {
+      "housing": 1350,
+      "utilities": 200,
+      "food": 600,
+      "transport": 800,
+      "insurance": 350,
+      "entertainment": 800,
+      "holidays": 500,
+      "clothing": 300,
+      "gym_wellness": 200,
+      "other": 400
+    }
+  },
+
+  "key_concerns": [
+    "What happens to my business if something happens to me?",
+    "How do I balance pension contributions vs. business investment?",
+    "Should I buy more property or diversify investments?",
+    "How do I plan for parents who may need care?"
+  ],
+
+  "highlights": {
+    "business_protection": {
+      "succession_plan": "None in place",
+      "buy_sell_agreement": "Not established",
+      "key_person_insurance": "500,000 exists but no succession trigger",
+      "shareholder_protection": "Needs discussion"
+    },
+    "net_worth_range": "800k - 1m",
+    "primary_focus": "Business protection, single estate"
+  }
+}

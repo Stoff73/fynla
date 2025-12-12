@@ -942,7 +942,7 @@ sudo systemctl status nginx
 ### Quick Health Check Script
 ```bash
 #!/bin/bash
-echo "=== TenGo v0.2.9 Health Check ==="
+echo "=== Fynla v0.2.9 Health Check ==="
 echo ""
 echo "1. Checking PHP-FPM..."
 sudo systemctl is-active php8.2-fpm

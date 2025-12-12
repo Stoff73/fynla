@@ -29,9 +29,17 @@ const state = {
     feeAnalysis: null,                 // Phase 2.5: Detailed fee analysis
     loading: false,
     error: null,
+
+    // Preview mode state
+    isPreviewMode: false,
+    previewData: null,
 };
 
 const getters = {
+    // Preview mode getters
+    isPreviewMode: (state) => state.isPreviewMode,
+    previewData: (state) => state.previewData,
+
     // Get accounts
     accounts: (state) => state.accounts,
 
@@ -249,7 +257,13 @@ const getters = {
 
 const actions = {
     // Fetch all investment data
-    async fetchInvestmentData({ commit }) {
+    async fetchInvestmentData({ commit, state }) {
+        // Skip API call if in preview mode - data is already loaded
+        if (state.isPreviewMode) {
+            console.log('[investment] Skipping fetchInvestmentData - preview mode active');
+            return;
+        }
+
         commit('setLoading', true);
         commit('setError', null);
 
@@ -269,7 +283,13 @@ const actions = {
     },
 
     // Analyse investment portfolio
-    async analyseInvestment({ commit }) {
+    async analyseInvestment({ commit, state }) {
+        // Skip API call if in preview mode
+        if (state.isPreviewMode) {
+            console.log('[investment] Skipping analyseInvestment - preview mode active');
+            return;
+        }
+
         commit('setLoading', true);
         commit('setError', null);
 
@@ -288,7 +308,13 @@ const actions = {
     },
 
     // Fetch recommendations
-    async fetchRecommendations({ commit }) {
+    async fetchRecommendations({ commit, state }) {
+        // Skip API call if in preview mode
+        if (state.isPreviewMode) {
+            console.log('[investment] Skipping fetchRecommendations - preview mode active');
+            return;
+        }
+
         commit('setLoading', true);
         commit('setError', null);
 
@@ -306,7 +332,13 @@ const actions = {
     },
 
     // Run scenario analysis
-    async runScenario({ commit }, scenarioData) {
+    async runScenario({ commit, state }, scenarioData) {
+        // Skip API call if in preview mode
+        if (state.isPreviewMode) {
+            console.log('[investment] Skipping runScenario - preview mode active');
+            return;
+        }
+
         commit('setLoading', true);
         commit('setError', null);
 
@@ -1146,6 +1178,11 @@ const actions = {
             commit('setLoading', false);
         }
     },
+
+    // Preview mode action
+    setPreviewMode({ commit }, { isPreview, data }) {
+        commit('SET_PREVIEW_MODE', { isPreview, data });
+    },
 };
 
 const mutations = {
@@ -1396,6 +1433,44 @@ const mutations = {
 
     setFeeAnalysis(state, data) {
         state.feeAnalysis = data;
+    },
+
+    // Preview mode mutations
+    SET_PREVIEW_MODE(state, { isPreview, data }) {
+        state.isPreviewMode = isPreview;
+        state.previewData = data;
+
+        // If entering preview mode with data, populate investment state
+        if (isPreview && data) {
+            // Set investment accounts with holdings
+            if (data.investment_accounts) {
+                state.accounts = data.investment_accounts;
+            }
+
+            // Set investment goals
+            if (data.investment_goals) {
+                state.goals = data.investment_goals;
+            }
+
+            // Set risk profile
+            if (data.risk_profile) {
+                state.riskProfile = data.risk_profile;
+            }
+
+            // Set analysis from preview calculations if available
+            if (data.investment_analysis) {
+                state.analysis = data.investment_analysis;
+            }
+        } else if (!isPreview) {
+            state.isPreviewMode = false;
+            state.previewData = null;
+        }
+    },
+
+    SET_PREVIEW_ANALYSIS(state, analysis) {
+        if (state.isPreviewMode && analysis) {
+            state.analysis = analysis;
+        }
     },
 };
 

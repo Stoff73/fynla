@@ -178,7 +178,7 @@
                 class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
               />
               <label for="is_isa" class="ml-2 block text-sm text-gray-700">
-                This is an ISA account
+                This is a tax-free savings account (ISA)
               </label>
             </div>
 
@@ -210,7 +210,7 @@
                   <option value="">Select ISA type...</option>
                   <option value="cash">Cash ISA</option>
                   <option value="stocks_shares">Stocks & Shares ISA</option>
-                  <option value="LISA">Lifetime ISA (LISA)</option>
+                  <option value="LISA">Lifetime ISA</option>
                 </select>
               </div>
 

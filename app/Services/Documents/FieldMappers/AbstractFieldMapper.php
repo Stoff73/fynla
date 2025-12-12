@@ -53,7 +53,7 @@ abstract class AbstractFieldMapper implements FieldMapperInterface
 
         // Check required fields
         foreach ($this->getRequiredFields() as $field) {
-            if (!isset($mappedData[$field]) || $mappedData[$field] === null || $mappedData[$field] === '') {
+            if (! isset($mappedData[$field]) || $mappedData[$field] === null || $mappedData[$field] === '') {
                 $errors[$field] = "Required field '{$field}' is missing";
             }
         }
@@ -66,7 +66,7 @@ abstract class AbstractFieldMapper implements FieldMapperInterface
      */
     protected function parseDate(?string $date): ?string
     {
-        if (!$date || trim($date) === '') {
+        if (! $date || trim($date) === '') {
             return null;
         }
 

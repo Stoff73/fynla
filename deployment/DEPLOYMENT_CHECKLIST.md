@@ -1,4 +1,4 @@
-# TenGo v0.2.7 - SiteGround Deployment Checklist
+# Fynla v0.2.7 - SiteGround Deployment Checklist
 
 **Target URL**: https://csjones.co/tengo
 **Deployment Date**: _________________
@@ -380,7 +380,7 @@ EOF
   ```
 
 - [ ] **.env Configuration Complete**
-  - [ ] `APP_NAME="TenGo - Financial Planning System"`
+  - [ ] `APP_NAME="Fynla - Financial Planning System"`
   - [ ] `APP_ENV=production`
   - [ ] `APP_KEY=` (will be generated)
   - [ ] `APP_DEBUG=false` (CRITICAL)
@@ -877,7 +877,7 @@ _____________________________________________________________________________
 ---
 
 **Deployment Checklist Version**: 1.0
-**Application Version**: TenGo v0.2.7
+**Application Version**: Fynla v0.2.7
 **Last Updated**: November 12, 2025
 
 Built with Claude Code by Anthropic

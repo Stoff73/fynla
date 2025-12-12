@@ -72,7 +72,7 @@ class DBPensionMapper extends AbstractFieldMapper
      */
     private function normalizeSchemeType(?string $type): ?string
     {
-        if (!$type) {
+        if (! $type) {
             return null;
         }
 
@@ -116,7 +116,7 @@ class DBPensionMapper extends AbstractFieldMapper
      */
     private function normalizeInflationProtection(?string $value): ?string
     {
-        if (!$value) {
+        if (! $value) {
             return null;
         }
 

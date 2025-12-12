@@ -43,7 +43,7 @@
     <form @submit.prevent="handleSubmit" class="space-y-6">
       <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <p class="text-body-sm text-blue-800">
-          <strong>Why this matters:</strong> UK domicile status determines which assets are subject to UK Inheritance Tax. Non-UK domiciled individuals only pay IHT on UK assets, while UK domiciled individuals pay IHT on worldwide assets.
+          <strong>Why this matters:</strong> UK domicile status determines which assets are subject to UK inheritance tax. Non-UK domiciled individuals only pay tax on UK assets, while UK domiciled individuals pay tax on worldwide assets.
         </p>
       </div>
 
@@ -97,10 +97,10 @@
             <strong>Domicile Status:</strong> {{ domicileStatusLabel }}
           </p>
           <p v-if="isDeemedDomiciled" class="mt-2 text-body-sm text-amber-700">
-            You are considered deemed domiciled in the UK because you have been resident for at least 15 of the last 20 tax years. This means you are subject to UK IHT on your worldwide assets.
+            You are considered deemed domiciled in the UK because you have been resident for at least 15 of the last 20 tax years. This means you are subject to UK inheritance tax on your worldwide assets.
           </p>
           <p v-else class="mt-2 text-body-sm text-blue-700">
-            You are not yet deemed domiciled. You only pay UK IHT on UK assets. You will need {{ 15 - yearsResident }} more year(s) of UK residence to become deemed domiciled.
+            You are not yet deemed domiciled. You only pay UK inheritance tax on UK assets. You will need {{ 15 - yearsResident }} more year(s) of UK residence to become deemed domiciled.
           </p>
         </div>
       </div>
@@ -169,6 +169,10 @@ export default {
   },
 
   computed: {
+    isPreviewMode() {
+      return this.$store.getters['preview/isPreviewMode'];
+    },
+
     today() {
       return new Date().toISOString().split('T')[0];
     },
@@ -290,6 +294,10 @@ export default {
     },
 
     async handleSubmit() {
+      if (this.isPreviewMode) {
+        console.log('[DomicileInformation] Preview mode - skipping handleSubmit');
+        return;
+      }
       // Validate required fields
       if (!this.form.country_of_birth) {
         this.errorMessage = 'Please select your country of birth';

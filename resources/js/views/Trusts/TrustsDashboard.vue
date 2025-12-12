@@ -1,18 +1,18 @@
 <template>
   <AppLayout>
-    <div class="px-4 sm:px-0">
+    <div class="py-2 sm:py-0">
       <!-- Header -->
       <div class="mb-6">
-        <div class="flex items-center justify-between">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 class="font-display text-h1 text-gray-900">Trusts Dashboard</h1>
+            <h1 class="font-display text-2xl sm:text-h1 text-gray-900">Trusts Dashboard</h1>
             <p class="text-body text-gray-600 mt-2">
-              Manage your trusts and track IHT implications
+              Manage your trusts and track inheritance tax implications
             </p>
           </div>
           <button
             @click="openCreateTrustModal"
-            class="btn-primary flex items-center"
+            class="btn-primary flex items-center justify-center w-full sm:w-auto flex-shrink-0"
           >
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -35,7 +35,7 @@
       <!-- Content -->
       <div v-else>
         <!-- Summary Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 mb-6">
           <div class="card">
             <p class="text-sm text-gray-600 mb-1">Active Trusts</p>
             <p class="text-3xl font-bold text-gray-900">{{ activeTrusts.length }}</p>
@@ -63,20 +63,20 @@
 
         <!-- Filter Tabs -->
         <div class="border-b border-gray-200 mb-6">
-          <nav class="flex space-x-8">
+          <nav class="flex overflow-x-auto scrollbar-hide space-x-4 sm:space-x-8 -webkit-overflow-scrolling-touch">
             <button
               v-for="filter in filters"
               :key="filter.id"
               @click="activeFilter = filter.id"
               :class="[
-                'py-4 px-1 border-b-2 font-medium text-sm transition-colors',
+                'py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm transition-colors whitespace-nowrap flex-shrink-0',
                 activeFilter === filter.id
                   ? 'border-purple-600 text-purple-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               ]"
             >
               {{ filter.label }}
-              <span v-if="filter.count !== undefined" class="ml-2 px-2 py-1 text-xs rounded-full bg-gray-100">
+              <span v-if="filter.count !== undefined" class="ml-1 sm:ml-2 px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs rounded-full bg-gray-100">
                 {{ filter.count }}
               </span>
             </button>
@@ -211,6 +211,10 @@ export default {
   computed: {
     ...mapState('trusts', ['trusts']),
 
+    isPreviewMode() {
+      return this.$store.getters['preview/isPreviewMode'];
+    },
+
     safeTrusts() {
       return this.trusts || [];
     },
@@ -330,6 +334,10 @@ export default {
     },
 
     async calculateTrustIHT(trust) {
+      if (this.isPreviewMode) {
+        console.log('[TrustsDashboard] Preview mode - skipping calculateTrustIHT');
+        return;
+      }
       try {
         const response = await this.$http.post(`/api/estate/trusts/${trust.id}/calculate-iht-impact`);
         if (response.data.success) {
@@ -361,3 +369,19 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+/* Hide scrollbar for horizontal tab navigation */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Smooth scrolling on iOS */
+.-webkit-overflow-scrolling-touch {
+  -webkit-overflow-scrolling: touch;
+}
+</style>

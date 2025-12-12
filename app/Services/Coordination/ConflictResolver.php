@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Coordination;
 
+use App\Services\TaxConfigService;
+
 /**
  * ConflictResolver
  *
@@ -15,6 +17,10 @@ namespace App\Services\Coordination;
  */
 class ConflictResolver
 {
+    public function __construct(
+        private TaxConfigService $taxConfig
+    ) {}
+
     /**
      * Identify conflicts between recommendations from different modules
      *
@@ -275,7 +281,9 @@ class ConflictResolver
      */
     private function detectISAConflicts(array $recommendations): ?array
     {
-        $isaAllowance = 20000; // 2025/26 tax year
+        // Get ISA allowance from tax configuration
+        $isaConfig = $this->taxConfig->getISAAllowances();
+        $isaAllowance = $isaConfig['annual_allowance'] ?? 20000;
         $cashISADemand = 0;
         $stocksSharesISADemand = 0;
 

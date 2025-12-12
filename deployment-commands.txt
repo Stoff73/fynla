@@ -1,4 +1,4 @@
-# TenGo v0.2.13 Deployment Commands
+# Fynla v0.2.13 Deployment Commands
 # ===================================
 
 # 1. Upload the tar file to the server

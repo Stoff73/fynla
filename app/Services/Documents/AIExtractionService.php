@@ -14,13 +14,18 @@ use RuntimeException;
 class AIExtractionService
 {
     private const API_URL = 'https://api.anthropic.com/v1/messages';
-    private const MODEL = 'claude-3-5-sonnet-20241022';
+
+    private const MODEL = 'claude-sonnet-4-5';
+
     private const MAX_TOKENS = 4096;
+
     private const TIMEOUT_SECONDS = 120;
 
     public function __construct(
         private DocumentUploadService $uploadService,
         private DocumentTypeDetector $typeDetector,
+        private ImageResizeService $imageResizeService,
+        private ExcelParserService $excelParserService,
     ) {}
 
     /**
@@ -41,15 +46,21 @@ class AIExtractionService
         );
 
         try {
-            // Get file as base64
-            $base64 = $this->uploadService->getBase64($document);
             $mediaType = $document->mime_type;
 
             // Build the extraction prompt
             $prompt = $this->buildExtractionPrompt($document);
 
-            // Call Claude Vision API
-            $response = $this->callClaudeAPI($base64, $mediaType, $prompt);
+            // Handle spreadsheets differently - convert to text
+            if ($this->excelParserService->isSpreadsheet($mediaType)) {
+                $fileContents = $this->uploadService->getFileContents($document);
+                $spreadsheetText = $this->excelParserService->parseFromContent($fileContents, $mediaType);
+                $response = $this->callClaudeAPIWithText($spreadsheetText, $prompt);
+            } else {
+                // Get file as base64 for images/PDFs
+                $base64 = $this->uploadService->getBase64($document);
+                $response = $this->callClaudeAPI($base64, $mediaType, $prompt);
+            }
 
             // Parse the response
             $extractedData = $this->parseResponse($response);
@@ -62,7 +73,7 @@ class AIExtractionService
                     'detected_document_subtype' => $detection['subtype'],
                     'detection_confidence' => $detection['confidence'],
                 ]);
-            } elseif (!$document->detected_document_subtype && isset($extractedData['document_subtype'])) {
+            } elseif (! $document->detected_document_subtype && isset($extractedData['document_subtype'])) {
                 $document->update([
                     'detected_document_subtype' => $extractedData['document_subtype'],
                 ]);
@@ -137,29 +148,45 @@ class AIExtractionService
     {
         $apiKey = config('services.anthropic.api_key');
 
-        if (!$apiKey) {
+        if (! $apiKey) {
             throw new RuntimeException('Anthropic API key not configured');
         }
 
-        $response = Http::withHeaders([
+        // For images, resize if exceeds Claude API 5MB limit
+        $processedData = $base64;
+        $processedMediaType = $mediaType;
+
+        if ($mediaType !== 'application/pdf') {
+            $result = $this->imageResizeService->processForClaudeAPI($base64, $mediaType);
+            $processedData = $result['data'];
+            $processedMediaType = $result['media_type'];
+
+            if ($result['was_resized']) {
+                Log::info('Image was resized for Claude API', [
+                    'original_media_type' => $mediaType,
+                    'new_media_type' => $processedMediaType,
+                ]);
+            }
+        }
+
+        // Build content based on media type
+        $contentBlock = $this->buildContentBlock($processedData, $processedMediaType);
+
+        // Build headers - PDF support is now GA, no beta header needed
+        $headers = [
             'x-api-key' => $apiKey,
             'anthropic-version' => '2023-06-01',
             'content-type' => 'application/json',
-        ])->timeout(self::TIMEOUT_SECONDS)->post(self::API_URL, [
+        ];
+
+        $response = Http::withHeaders($headers)->timeout(self::TIMEOUT_SECONDS)->post(self::API_URL, [
             'model' => self::MODEL,
             'max_tokens' => self::MAX_TOKENS,
             'messages' => [
                 [
                     'role' => 'user',
                     'content' => [
-                        [
-                            'type' => 'image',
-                            'source' => [
-                                'type' => 'base64',
-                                'media_type' => $mediaType,
-                                'data' => $base64,
-                            ],
-                        ],
+                        $contentBlock,
                         [
                             'type' => 'text',
                             'text' => $prompt,
@@ -169,13 +196,81 @@ class AIExtractionService
             ],
         ]);
 
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             $errorBody = $response->json();
             $errorMessage = $errorBody['error']['message'] ?? $response->body();
-            throw new RuntimeException('Claude API error: ' . $errorMessage);
+            throw new RuntimeException('Claude API error: '.$errorMessage);
         }
 
         return $response->json();
+    }
+
+    /**
+     * Call Claude API with text content (for spreadsheets).
+     */
+    private function callClaudeAPIWithText(string $textContent, string $prompt): array
+    {
+        $apiKey = config('services.anthropic.api_key');
+
+        if (! $apiKey) {
+            throw new RuntimeException('Anthropic API key not configured');
+        }
+
+        $headers = [
+            'x-api-key' => $apiKey,
+            'anthropic-version' => '2023-06-01',
+            'content-type' => 'application/json',
+        ];
+
+        // Combine spreadsheet content with the prompt
+        $fullPrompt = "Here is the spreadsheet data:\n\n{$textContent}\n\n{$prompt}";
+
+        $response = Http::withHeaders($headers)->timeout(self::TIMEOUT_SECONDS)->post(self::API_URL, [
+            'model' => self::MODEL,
+            'max_tokens' => self::MAX_TOKENS,
+            'messages' => [
+                [
+                    'role' => 'user',
+                    'content' => $fullPrompt,
+                ],
+            ],
+        ]);
+
+        if (! $response->successful()) {
+            $errorBody = $response->json();
+            $errorMessage = $errorBody['error']['message'] ?? $response->body();
+            throw new RuntimeException('Claude API error: '.$errorMessage);
+        }
+
+        return $response->json();
+    }
+
+    /**
+     * Build the appropriate content block based on media type.
+     * PDFs use 'document' type, images use 'image' type.
+     */
+    private function buildContentBlock(string $base64, string $mediaType): array
+    {
+        if ($mediaType === 'application/pdf') {
+            return [
+                'type' => 'document',
+                'source' => [
+                    'type' => 'base64',
+                    'media_type' => 'application/pdf',
+                    'data' => $base64,
+                ],
+            ];
+        }
+
+        // For images (jpeg, png, gif, webp)
+        return [
+            'type' => 'image',
+            'source' => [
+                'type' => 'base64',
+                'media_type' => $mediaType,
+                'data' => $base64,
+            ],
+        ];
     }
 
     /**
@@ -195,7 +290,7 @@ class AIExtractionService
             default => $this->getUnknownTypePrompt(),
         };
 
-        return $basePrompt . "\n\n" . $typeGuidance;
+        return $basePrompt."\n\n".$typeGuidance;
     }
 
     /**
@@ -456,7 +551,7 @@ PROMPT;
             ]);
 
             throw new RuntimeException(
-                'Failed to parse extraction response: ' . json_last_error_msg()
+                'Failed to parse extraction response: '.json_last_error_msg()
             );
         }
 

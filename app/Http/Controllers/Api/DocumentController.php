@@ -69,7 +69,7 @@ class DocumentController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Document processing failed: ' . $e->getMessage(),
+                'message' => 'Document processing failed: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -98,7 +98,7 @@ class DocumentController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Upload failed: ' . $e->getMessage(),
+                'message' => 'Upload failed: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -139,7 +139,7 @@ class DocumentController extends Controller
 
         $extraction = $document->latestExtraction;
 
-        if (!$extraction) {
+        if (! $extraction) {
             return response()->json([
                 'success' => false,
                 'message' => 'No extraction found for this document',
@@ -193,7 +193,7 @@ class DocumentController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to save data: ' . $e->getMessage(),
+                'message' => 'Failed to save data: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -225,7 +225,7 @@ class DocumentController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Reprocessing failed: ' . $e->getMessage(),
+                'message' => 'Reprocessing failed: '.$e->getMessage(),
             ], 500);
         }
     }

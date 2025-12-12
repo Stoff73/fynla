@@ -64,6 +64,13 @@ export default {
     });
 
     const fetchSpouseData = async () => {
+      // Skip in preview mode
+      const isPreviewMode = store.getters['preview/isPreviewMode'];
+      if (isPreviewMode) {
+        console.log('[ExpenditureOverview] Preview mode - skipping spouse fetch');
+        return;
+      }
+
       if (!user.value?.spouse_id) return;
 
       try {
@@ -122,6 +129,13 @@ export default {
     };
 
     onMounted(() => {
+      // Skip API calls in preview mode - data already loaded
+      const isPreviewMode = store.getters['preview/isPreviewMode'];
+      if (isPreviewMode) {
+        console.log('[ExpenditureOverview] Preview mode - skipping onMounted API calls');
+        return;
+      }
+
       if (!profile.value) {
         store.dispatch('userProfile/fetchProfile');
       }

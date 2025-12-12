@@ -5,11 +5,10 @@ declare(strict_types=1);
 namespace App\Services\Documents;
 
 use App\Models\Document;
-use App\Models\DocumentExtraction;
 use App\Models\DocumentExtractionLog;
 use App\Models\User;
-use App\Services\Documents\FieldMappers\DCPensionMapper;
 use App\Services\Documents\FieldMappers\DBPensionMapper;
+use App\Services\Documents\FieldMappers\DCPensionMapper;
 use App\Services\Documents\FieldMappers\FieldMapperInterface;
 use App\Services\Documents\FieldMappers\InvestmentAccountMapper;
 use App\Services\Documents\FieldMappers\LifeInsuranceMapper;
@@ -135,14 +134,14 @@ class DocumentProcessor
         return DB::transaction(function () use ($document, $confirmedData, $user) {
             $extraction = $document->latestExtraction;
 
-            if (!$extraction) {
+            if (! $extraction) {
                 throw new RuntimeException('No extraction found for document');
             }
 
             $modelClass = $extraction->target_model;
 
-            if (!$modelClass || !class_exists($modelClass)) {
-                throw new RuntimeException('Invalid target model: ' . ($modelClass ?? 'null'));
+            if (! $modelClass || ! class_exists($modelClass)) {
+                throw new RuntimeException('Invalid target model: '.($modelClass ?? 'null'));
             }
 
             // Merge confirmed data with user_id
@@ -210,7 +209,7 @@ class DocumentProcessor
     {
         $extraction = $document->latestExtraction;
 
-        if (!$extraction) {
+        if (! $extraction) {
             return [
                 'fields' => [],
                 'confidence' => [],
@@ -262,10 +261,10 @@ class DocumentProcessor
     private function registerMappers(): void
     {
         $this->mappers = [
-            \App\Models\DCPension::class => new DCPensionMapper(),
-            \App\Models\DBPension::class => new DBPensionMapper(),
-            \App\Models\LifeInsurancePolicy::class => new LifeInsuranceMapper(),
-            \App\Models\Investment\InvestmentAccount::class => new InvestmentAccountMapper(),
+            \App\Models\DCPension::class => new DCPensionMapper,
+            \App\Models\DBPension::class => new DBPensionMapper,
+            \App\Models\LifeInsurancePolicy::class => new LifeInsuranceMapper,
+            \App\Models\Investment\InvestmentAccount::class => new InvestmentAccountMapper,
             // Additional mappers can be added here:
             // \App\Models\CriticalIllnessPolicy::class => new CriticalIllnessMapper(),
             // \App\Models\IncomeProtectionPolicy::class => new IncomeProtectionMapper(),

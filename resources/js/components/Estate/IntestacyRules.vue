@@ -184,8 +184,19 @@ export default {
     };
   },
 
+  computed: {
+    isPreviewMode() {
+      return this.$store.getters['preview/isPreviewMode'];
+    },
+  },
+
   mounted() {
-    this.calculateIntestacy();
+    if (!this.isPreviewMode) {
+      this.calculateIntestacy();
+    } else {
+      console.log('[IntestacyRules] Preview mode - skipping API call');
+      this.loading = false;
+    }
   },
 
   watch: {
@@ -196,6 +207,10 @@ export default {
 
   methods: {
     async calculateIntestacy() {
+      if (this.isPreviewMode) {
+        console.log('[IntestacyRules] Preview mode - skipping calculateIntestacy');
+        return;
+      }
       this.loading = true;
       this.error = null;
 

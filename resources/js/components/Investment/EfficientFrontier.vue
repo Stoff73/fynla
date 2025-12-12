@@ -230,6 +230,9 @@ export default {
   },
 
   computed: {
+    isPreviewMode() {
+      return this.$store.getters['preview/isPreviewMode'];
+    },
     hasData() {
       return this.frontierData && this.frontierData.frontier_points && this.frontierData.frontier_points.length > 0;
     },
@@ -437,6 +440,11 @@ export default {
   },
 
   mounted() {
+    if (this.isPreviewMode) {
+      console.log('[EfficientFrontier] Preview mode - skipping API calls');
+      this.loading = false;
+      return;
+    }
     this.loadFrontier();
   },
 };

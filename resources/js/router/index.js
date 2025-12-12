@@ -396,13 +396,113 @@ const routes = [
       requiresAuth: false,
     },
   },
+  // SECURITY: Debug route restricted to development environment and admin users only
   {
     path: '/debug-env',
     name: 'DebugEnv',
     component: DebugEnv,
     meta: {
-      public: true,
+      requiresAuth: true,
+      requiresAdmin: true,
+      devOnly: true, // Additional flag for extra protection
     },
+    beforeEnter: (to, from, next) => {
+      // Block access in production even if someone bypasses route guards
+      if (import.meta.env.PROD) {
+        console.warn('[Security] Debug route blocked in production');
+        next({ name: 'Dashboard' });
+        return;
+      }
+      next();
+    },
+  },
+
+  // Preview routes - accessible without authentication
+  // These routes load the same components as authenticated routes but in preview mode
+  {
+    path: '/preview',
+    name: 'PreviewDashboard',
+    component: Dashboard,
+    meta: { public: true, previewMode: true },
+    beforeEnter: async (to, from, next) => {
+      // Load persona from query param or default to young_family
+      const personaId = to.query.persona || 'young_family';
+      try {
+        await store.dispatch('preview/loadPersona', personaId);
+        next();
+      } catch (error) {
+        console.error('Failed to load preview persona:', error);
+        next('/');
+      }
+    },
+  },
+  {
+    path: '/preview/net-worth',
+    component: NetWorthDashboard,
+    meta: { public: true, previewMode: true },
+    children: [
+      {
+        path: '',
+        name: 'PreviewNetWorth',
+        redirect: 'overview',
+      },
+      {
+        path: 'overview',
+        name: 'PreviewNetWorthOverview',
+        component: NetWorthOverview,
+      },
+      {
+        path: 'property',
+        name: 'PreviewNetWorthProperty',
+        component: PropertyList,
+      },
+      {
+        path: 'cash',
+        name: 'PreviewNetWorthCash',
+        component: SavingsDashboard,
+      },
+      {
+        path: 'investments',
+        name: 'PreviewNetWorthInvestments',
+        component: InvestmentDashboard,
+      },
+    ],
+  },
+  {
+    path: '/preview/protection',
+    name: 'PreviewProtection',
+    component: ProtectionDashboard,
+    meta: { public: true, previewMode: true },
+  },
+  {
+    path: '/preview/savings',
+    name: 'PreviewSavings',
+    component: SavingsDashboard,
+    meta: { public: true, previewMode: true },
+  },
+  {
+    path: '/preview/investment',
+    name: 'PreviewInvestment',
+    component: InvestmentDashboard,
+    meta: { public: true, previewMode: true },
+  },
+  {
+    path: '/preview/retirement',
+    name: 'PreviewRetirement',
+    component: RetirementDashboard,
+    meta: { public: true, previewMode: true },
+  },
+  {
+    path: '/preview/estate',
+    name: 'PreviewEstate',
+    component: EstateDashboard,
+    meta: { public: true, previewMode: true },
+  },
+  {
+    path: '/preview/profile',
+    name: 'PreviewProfile',
+    component: UserProfile,
+    meta: { public: true, previewMode: true },
   },
 ];
 
@@ -412,21 +512,73 @@ const router = createRouter({
 });
 
 // Navigation guards
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const isAuthenticated = store.getters['auth/isAuthenticated'];
   const isAdmin = store.getters['auth/isAdmin'];
+  const isPreviewMode = store.getters['preview/isPreviewMode'];
+  const isPreviewRoute = to.meta.previewMode || to.path.startsWith('/preview');
 
-  if (to.meta.requiresAuth && !isAuthenticated) {
-    // Redirect to login if route requires authentication
+  // Debug logging
+  if (import.meta.env.DEV) {
+    console.log('[Router Guard]', {
+      to: to.path,
+      requiresAuth: to.meta.requiresAuth,
+      isAuthenticated,
+      isPreviewMode,
+      isPreviewRoute,
+      previewState: store.state.preview,
+    });
+  }
+
+  // Handle preview route access
+  if (isPreviewRoute) {
+    // If authenticated user tries to access preview, redirect to authenticated version
+    if (isAuthenticated) {
+      const authenticatedPath = to.path.replace('/preview', '');
+      next(authenticatedPath || '/dashboard');
+      return;
+    }
+
+    // Handle persona from query param
+    if (to.query.persona && !to.meta._personaLoaded) {
+      try {
+        await store.dispatch('preview/loadPersona', to.query.persona);
+        // Mark that we've handled the persona to prevent loops
+        to.meta._personaLoaded = true;
+      } catch (error) {
+        console.error('Failed to load persona from URL:', error);
+      }
+    }
+
+    next();
+    return;
+  }
+
+  // Allow access to authenticated routes when in preview mode
+  if (to.meta.requiresAuth && !isAuthenticated && !isPreviewMode) {
+    // Redirect to login if route requires authentication and not in preview mode
+    console.log('[Router Guard] Redirecting to login - not authenticated and not in preview mode');
     next({ name: 'Login' });
   } else if (to.meta.requiresGuest && isAuthenticated) {
     // Redirect to dashboard if already authenticated
     next({ name: 'Dashboard' });
   } else if (to.meta.requiresAdmin && !isAdmin) {
-    // Redirect to dashboard if route requires admin access
+    // Redirect to dashboard if route requires admin access (preview mode cannot access admin)
     next({ name: 'Dashboard' });
   } else {
     next();
+  }
+});
+
+// Update URL when persona changes (for shareable preview links)
+store.subscribe((mutation, state) => {
+  if (mutation.type === 'preview/SET_CURRENT_PERSONA' && state.preview.isPreviewMode) {
+    const currentRoute = router.currentRoute.value;
+    if (currentRoute.path.startsWith('/preview') && mutation.payload) {
+      // Update URL with new persona without triggering navigation
+      const newQuery = { ...currentRoute.query, persona: mutation.payload };
+      router.replace({ path: currentRoute.path, query: newQuery });
+    }
   }
 });
 

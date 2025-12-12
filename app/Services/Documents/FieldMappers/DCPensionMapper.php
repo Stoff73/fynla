@@ -54,7 +54,6 @@ class DCPensionMapper extends AbstractFieldMapper
     public function getRequiredFields(): array
     {
         return [
-            'scheme_name',
             'pension_type',
             'current_fund_value',
         ];
@@ -64,6 +63,7 @@ class DCPensionMapper extends AbstractFieldMapper
     {
         return [
             'provider',
+            'scheme_name',
             'member_number',
             'annual_salary',
             'employee_contribution_percent',
@@ -81,7 +81,7 @@ class DCPensionMapper extends AbstractFieldMapper
      */
     private function normalizePensionType(?string $type): ?string
     {
-        if (!$type) {
+        if (! $type) {
             return 'personal'; // Default
         }
 

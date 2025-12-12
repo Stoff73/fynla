@@ -1,4 +1,5 @@
 import axios from 'axios';
+import store from '@/store';
 
 // Create axios instance with default config
 // Use environment-specific base URL (production or local development)
@@ -42,7 +43,10 @@ api.interceptors.response.use(
         const isAuthEndpoint = error.config?.url?.includes('/auth/login') ||
           error.config?.url?.includes('/auth/register');
 
-        if (!isAuthEndpoint) {
+        // Check if we're in preview mode - don't redirect, just reject silently
+        const isPreviewMode = store.getters['preview/isPreviewMode'];
+
+        if (!isAuthEndpoint && !isPreviewMode) {
           console.error('[API] 401 Unauthorized - Token expired or invalid. Redirecting to login...');
           // Clear token and redirect to login for protected routes
           localStorage.removeItem('auth_token');

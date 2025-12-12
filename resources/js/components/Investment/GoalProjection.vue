@@ -328,6 +328,10 @@ export default {
   },
 
   computed: {
+    isPreviewMode() {
+      return this.$store.getters['preview/isPreviewMode'];
+    },
+
     distributionChartOptions() {
       return {
         chart: {
@@ -539,11 +543,19 @@ export default {
   },
 
   mounted() {
-    this.loadGoals();
+    if (!this.isPreviewMode) {
+      this.loadGoals();
+    } else {
+      console.log('[GoalProjection] Preview mode - skipping API calls');
+    }
   },
 
   methods: {
     async loadGoals() {
+      if (this.isPreviewMode) {
+        console.log('[GoalProjection] Preview mode - skipping loadGoals');
+        return;
+      }
       try {
         // This would typically come from a Vuex store or API call
         const response = await api.get('/investment/goals');
@@ -559,6 +571,10 @@ export default {
     },
 
     async loadGoalProjection() {
+      if (this.isPreviewMode) {
+        console.log('[GoalProjection] Preview mode - skipping loadGoalProjection');
+        return;
+      }
       if (!this.selectedGoalId) return;
 
       this.loading = true;

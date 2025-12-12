@@ -28,6 +28,10 @@ const state = {
     selectedMortgage: null,
     loading: false,
     error: null,
+
+    // Preview mode state
+    isPreviewMode: false,
+    previewData: null,
 };
 
 const mutations = {
@@ -157,10 +161,224 @@ const mutations = {
             state.selectedMortgage = null;
         }
     },
+
+    // Preview mode mutations
+    SET_PREVIEW_MODE(state, { isPreview, data }) {
+        state.isPreviewMode = isPreview;
+        state.previewData = data;
+
+        // If entering preview mode with data, populate state from preview data
+        if (isPreview && data) {
+            // Set properties from preview data
+            if (data.properties) {
+                state.properties = data.properties;
+            }
+            // Set mortgages from preview data
+            if (data.mortgages) {
+                state.mortgages = data.mortgages;
+            }
+            // Calculate overview from preview data
+            const totalAssets = calculatePreviewTotalAssets(data);
+            const totalLiabilities = calculatePreviewTotalLiabilities(data);
+            state.overview = {
+                totalAssets,
+                totalLiabilities,
+                netWorth: totalAssets - totalLiabilities,
+                breakdown: calculatePreviewAssetBreakdown(data),
+                liabilitiesBreakdown: calculatePreviewLiabilityBreakdown(data),
+                asOfDate: new Date().toISOString(),
+            };
+            // Set assets summary
+            state.assetsSummary = calculatePreviewAssetsSummary(data);
+        }
+    },
+
+    SET_PREVIEW_CALCULATION(state, result) {
+        if (state.isPreviewMode && result) {
+            state.overview = {
+                totalAssets: result.total_assets || 0,
+                totalLiabilities: result.total_liabilities || 0,
+                netWorth: result.net_worth || 0,
+                breakdown: result.breakdown || {},
+                liabilitiesBreakdown: result.liabilities_breakdown || {},
+                asOfDate: new Date().toISOString(),
+            };
+        }
+    },
 };
 
+// Helper functions for preview calculations
+function calculatePreviewTotalAssets(data) {
+    let total = 0;
+
+    // Properties
+    if (data.properties) {
+        total += data.properties.reduce((sum, p) => {
+            const value = parseFloat(p.current_value || 0);
+            const ownership = parseFloat(p.ownership_percentage || 100) / 100;
+            return sum + (value * ownership);
+        }, 0);
+    }
+
+    // Savings accounts
+    if (data.savings_accounts) {
+        total += data.savings_accounts.reduce((sum, s) => sum + parseFloat(s.current_balance || 0), 0);
+    }
+
+    // Investment accounts
+    if (data.investment_accounts) {
+        total += data.investment_accounts.reduce((sum, i) => sum + parseFloat(i.current_value || 0), 0);
+    }
+
+    // DC Pensions
+    if (data.dc_pensions) {
+        total += data.dc_pensions.reduce((sum, p) => sum + parseFloat(p.current_fund_value || 0), 0);
+    }
+
+    // DB Pensions (20x annual pension as proxy value)
+    if (data.db_pensions) {
+        total += data.db_pensions.reduce((sum, p) => {
+            const annual = parseFloat(p.accrued_annual_pension || 0);
+            const lumpSum = parseFloat(p.lump_sum_entitlement || 0);
+            return sum + (annual * 20) + lumpSum;
+        }, 0);
+    }
+
+    return total;
+}
+
+function calculatePreviewTotalLiabilities(data) {
+    let total = 0;
+
+    // Mortgages
+    if (data.mortgages) {
+        total += data.mortgages.reduce((sum, m) => {
+            const balance = parseFloat(m.outstanding_balance || 0);
+            const ownership = parseFloat(m.ownership_percentage || 100) / 100;
+            return sum + (balance * ownership);
+        }, 0);
+    }
+
+    // Other liabilities
+    if (data.liabilities) {
+        total += data.liabilities.reduce((sum, l) => sum + parseFloat(l.current_balance || 0), 0);
+    }
+
+    return total;
+}
+
+function calculatePreviewAssetBreakdown(data) {
+    const breakdown = {};
+
+    if (data.properties?.length > 0) {
+        breakdown.property = data.properties.reduce((sum, p) => {
+            const value = parseFloat(p.current_value || 0);
+            const ownership = parseFloat(p.ownership_percentage || 100) / 100;
+            return sum + (value * ownership);
+        }, 0);
+    }
+
+    if (data.savings_accounts?.length > 0) {
+        breakdown.cash = data.savings_accounts.reduce((sum, s) => sum + parseFloat(s.current_balance || 0), 0);
+    }
+
+    if (data.investment_accounts?.length > 0) {
+        breakdown.investments = data.investment_accounts.reduce((sum, i) => sum + parseFloat(i.current_value || 0), 0);
+    }
+
+    const dcTotal = data.dc_pensions?.reduce((sum, p) => sum + parseFloat(p.current_fund_value || 0), 0) || 0;
+    const dbTotal = data.db_pensions?.reduce((sum, p) => {
+        const annual = parseFloat(p.accrued_annual_pension || 0);
+        const lumpSum = parseFloat(p.lump_sum_entitlement || 0);
+        return sum + (annual * 20) + lumpSum;
+    }, 0) || 0;
+
+    if (dcTotal > 0 || dbTotal > 0) {
+        breakdown.pensions = dcTotal + dbTotal;
+    }
+
+    return breakdown;
+}
+
+function calculatePreviewLiabilityBreakdown(data) {
+    const breakdown = {};
+
+    if (data.mortgages?.length > 0) {
+        breakdown.mortgages = data.mortgages.reduce((sum, m) => {
+            const balance = parseFloat(m.outstanding_balance || 0);
+            const ownership = parseFloat(m.ownership_percentage || 100) / 100;
+            return sum + (balance * ownership);
+        }, 0);
+    }
+
+    if (data.liabilities?.length > 0) {
+        data.liabilities.forEach(l => {
+            const type = l.liability_type || 'other';
+            if (!breakdown[type]) {
+                breakdown[type] = 0;
+            }
+            breakdown[type] += parseFloat(l.current_balance || 0);
+        });
+    }
+
+    return breakdown;
+}
+
+function calculatePreviewAssetsSummary(data) {
+    return {
+        pensions: {
+            count: (data.dc_pensions?.length || 0) + (data.db_pensions?.length || 0) + (data.state_pension ? 1 : 0),
+            total_value: (data.dc_pensions?.reduce((sum, p) => sum + parseFloat(p.current_fund_value || 0), 0) || 0) +
+                (data.db_pensions?.reduce((sum, p) => (parseFloat(p.accrued_annual_pension || 0) * 20) + parseFloat(p.lump_sum_entitlement || 0), 0) || 0),
+            breakdown: {
+                dc: data.dc_pensions?.reduce((sum, p) => sum + parseFloat(p.current_fund_value || 0), 0) || 0,
+                db: data.db_pensions?.reduce((sum, p) => (parseFloat(p.accrued_annual_pension || 0) * 20) + parseFloat(p.lump_sum_entitlement || 0), 0) || 0,
+                state: 0,
+            },
+        },
+        property: {
+            count: data.properties?.length || 0,
+            total_value: data.properties?.reduce((sum, p) => {
+                const value = parseFloat(p.current_value || 0);
+                const ownership = parseFloat(p.ownership_percentage || 100) / 100;
+                return sum + (value * ownership);
+            }, 0) || 0,
+        },
+        investments: {
+            count: data.investment_accounts?.length || 0,
+            total_value: data.investment_accounts?.reduce((sum, i) => sum + parseFloat(i.current_value || 0), 0) || 0,
+        },
+        cash: {
+            count: data.savings_accounts?.length || 0,
+            total_value: data.savings_accounts?.reduce((sum, s) => sum + parseFloat(s.current_balance || 0), 0) || 0,
+        },
+        business: {
+            count: data.business_interests?.length || 0,
+            total_value: data.business_interests?.reduce((sum, b) => {
+                const value = parseFloat(b.current_value || 0);
+                const ownership = parseFloat(b.ownership_percentage || 100) / 100;
+                return sum + (value * ownership);
+            }, 0) || 0,
+        },
+        chattels: {
+            count: data.chattels?.length || 0,
+            total_value: data.chattels?.reduce((sum, c) => {
+                const value = parseFloat(c.current_value || 0);
+                const ownership = parseFloat(c.ownership_percentage || 100) / 100;
+                return sum + (value * ownership);
+            }, 0) || 0,
+        },
+    };
+}
+
 const actions = {
-    async fetchOverview({ commit }) {
+    async fetchOverview({ commit, state }) {
+        // Skip API call if in preview mode - data is already loaded
+        if (state.isPreviewMode) {
+            console.log('[netWorth] Skipping fetchOverview - preview mode active');
+            return;
+        }
+
         commit('SET_LOADING', true);
         commit('CLEAR_ERROR');
 
@@ -187,7 +405,13 @@ const actions = {
         }
     },
 
-    async fetchTrend({ commit }, months = 12) {
+    async fetchTrend({ commit, state }, months = 12) {
+        // Skip API call if in preview mode
+        if (state.isPreviewMode) {
+            console.log('[netWorth] Skipping fetchTrend - preview mode active');
+            return;
+        }
+
         commit('SET_LOADING', true);
         commit('CLEAR_ERROR');
 
@@ -208,7 +432,13 @@ const actions = {
         }
     },
 
-    async fetchAssetsSummary({ commit }) {
+    async fetchAssetsSummary({ commit, state }) {
+        // Skip API call if in preview mode
+        if (state.isPreviewMode) {
+            console.log('[netWorth] Skipping fetchAssetsSummary - preview mode active');
+            return;
+        }
+
         commit('SET_LOADING', true);
         commit('CLEAR_ERROR');
 
@@ -229,7 +459,13 @@ const actions = {
         }
     },
 
-    async fetchJointAssets({ commit }) {
+    async fetchJointAssets({ commit, state }) {
+        // Skip API call if in preview mode
+        if (state.isPreviewMode) {
+            console.log('[netWorth] Skipping fetchJointAssets - preview mode active');
+            return;
+        }
+
         commit('SET_LOADING', true);
         commit('CLEAR_ERROR');
 
@@ -617,9 +853,18 @@ const actions = {
     resetState({ commit }) {
         commit('RESET_STATE');
     },
+
+    // Preview mode action
+    setPreviewMode({ commit }, { isPreview, data }) {
+        commit('SET_PREVIEW_MODE', { isPreview, data });
+    },
 };
 
 const getters = {
+    // Preview mode getters
+    isPreviewMode: (state) => state.isPreviewMode,
+    previewData: (state) => state.previewData,
+
     netWorth: (state) => state.overview.netWorth,
 
     totalAssets: (state) => state.overview.totalAssets,

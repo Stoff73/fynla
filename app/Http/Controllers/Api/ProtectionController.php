@@ -20,11 +20,14 @@ use App\Models\IncomeProtectionPolicy;
 use App\Models\LifeInsurancePolicy;
 use App\Models\ProtectionProfile;
 use App\Models\SicknessIllnessPolicy;
+use App\Traits\SanitizedErrorResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ProtectionController extends Controller
 {
+    use SanitizedErrorResponse;
+
     /**
      * Create a new controller instance.
      */
@@ -96,10 +99,7 @@ class ProtectionController extends Controller
 
             return response()->json($analysis);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to analyze protection coverage: '.$e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Protection analysis', 500, ['user_id' => $userId]);
         }
     }
 
@@ -116,10 +116,7 @@ class ProtectionController extends Controller
 
             return response()->json($recommendations);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to generate recommendations: '.$e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Recommendations generation', 500, ['user_id' => $userId]);
         }
     }
 

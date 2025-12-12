@@ -1,4 +1,4 @@
-# TenGo v0.2.11 Deployment Checklist
+# Fynla v0.2.11 Deployment Checklist
 
 **Version**: v0.2.11 (22 November 2025 Patch)
 **Type**: Mixed (1 Migration + Code Updates)

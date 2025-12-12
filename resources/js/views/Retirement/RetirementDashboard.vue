@@ -1,6 +1,6 @@
 <template>
   <component :is="isEmbedded ? 'div' : 'AppLayout'">
-    <div class="retirement-dashboard p-6">
+    <div class="retirement-dashboard py-2 sm:py-6 px-0 sm:px-6">
       <!-- Header (only show when not embedded) -->
     <div v-if="!isEmbedded" class="mb-8">
       <h1 class="text-3xl font-bold text-gray-900">Retirement Planning</h1>
@@ -21,13 +21,13 @@
     <div v-else>
       <!-- Tab Navigation -->
       <div class="mb-6 border-b border-gray-200">
-        <nav class="flex overflow-x-auto">
+        <nav class="flex overflow-x-auto scrollbar-hide -webkit-overflow-scrolling-touch">
           <button
             v-for="tab in currentTabs"
             :key="tab.id"
             @click="handleTabClick(tab.id)"
             :class="[
-              'px-6 py-4 text-sm font-medium whitespace-nowrap transition-colors duration-200 bg-transparent',
+              'px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium whitespace-nowrap transition-colors duration-200 bg-transparent flex-shrink-0',
               activeTab === tab.id
                 ? 'text-indigo-600 border-b-2 border-indigo-600'
                 : 'text-gray-600 hover:text-gray-900 border-b-2 border-transparent'
@@ -197,21 +197,17 @@ export default {
   opacity: 0;
 }
 
-/* Scrollbar styling for tab navigation */
-nav::-webkit-scrollbar {
-  height: 4px;
+/* Hide scrollbar for horizontal tab navigation */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }
 
-nav::-webkit-scrollbar-track {
-  background: #f1f1f1;
-}
-
-nav::-webkit-scrollbar-thumb {
-  background: #888;
-  border-radius: 4px;
-}
-
-nav::-webkit-scrollbar-thumb:hover {
-  background: #555;
+/* Smooth scrolling on iOS */
+.-webkit-overflow-scrolling-touch {
+  -webkit-overflow-scrolling: touch;
 }
 </style>

@@ -1,4 +1,4 @@
--- TenGo v0.2.11 Migration Verification SQL
+-- Fynla v0.2.11 Migration Verification SQL
 -- File: verify_v0.2.11_migration.sql
 -- Purpose: Verify database changes after migration deployment
 -- Migration: 2025_11_22_092125_add_joint_ownership_to_liabilities_table.php

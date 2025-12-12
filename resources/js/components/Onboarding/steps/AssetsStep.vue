@@ -53,7 +53,7 @@
         </div>
 
         <p class="text-body-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
-          Pensions are often one of the largest components of retirement planning. Add your DC pensions, DB pensions, and State Pension forecast to get a complete retirement picture.
+          Pensions are often one of the largest components of retirement planning. Add your money purchase pensions, final salary pensions, and State Pension forecast to get a complete retirement picture.
         </p>
 
         <!-- Pensions Grid -->
@@ -158,7 +158,7 @@
                   </div>
 
                   <div class="detail-row">
-                    <span class="detail-label">NI Years</span>
+                    <span class="detail-label">National Insurance Years</span>
                     <span class="detail-value">{{ pensions.state.ni_years_completed || 0 }} / 35</span>
                   </div>
 
@@ -179,14 +179,14 @@
             class="btn-secondary"
             @click="openPensionForm('dc')"
           >
-            + Add DC Pension
+            + Add Money Purchase Pension
           </button>
           <button
             type="button"
             class="btn-secondary"
             @click="openPensionForm('db')"
           >
-            + Add DB Pension
+            + Add Final Salary Pension
           </button>
           <button
             type="button"

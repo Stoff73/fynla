@@ -1,4 +1,4 @@
-TenGo v0.2.11 - RAPID DEPLOYMENT GUIDE
+Fynla v0.2.11 - RAPID DEPLOYMENT GUIDE
 ========================================
 22 November 2025 Patch | MIGRATION INCLUDED | 20-25 minutes
 

@@ -1,4 +1,4 @@
-# TenGo v0.2.12 Deployment Package
+# Fynla v0.2.12 Deployment Package
 
 **Complete Patch Deployment - ALL 34 Sections from friFixes21Nov.md**
 
@@ -6,7 +6,7 @@
 
 ## What's in This Deployment?
 
-This is the **most comprehensive deployment package** for TenGo to date, covering:
+This is the **most comprehensive deployment package** for Fynla to date, covering:
 
 - **34 complete sections** from friFixes21Nov.md
 - **41 files modified** (15 backend + 26 frontend)
@@ -506,7 +506,7 @@ A: Minimum 30 minutes. Watch for database errors, CORS errors, and 500 errors.
 **Deployment Package Created**: November 22, 2025
 **Source Documentation**: friFixes21Nov.md (all 34 sections)
 **Production URL**: https://csjones.co/tengo
-**Project**: TenGo Financial Planning System
+**Project**: Fynla Financial Planning System
 
 Built with Claude Code
 https://claude.com/claude-code

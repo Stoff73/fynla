@@ -3,7 +3,7 @@
     class="recommendation-card bg-white rounded-lg border shadow-sm transition-all duration-200"
     :class="[
       borderColourClass,
-      isExpanded ? 'shadow-md' : 'hover:shadow-md',
+      isExpanded ? 'shadow-md' : 'hover:shadow-md hover:-translate-y-0.5',
     ]"
   >
     <!-- Card Header -->

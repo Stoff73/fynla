@@ -16,12 +16,15 @@ use App\Models\SavingsAccount;
 use App\Models\SavingsGoal;
 use App\Services\NetWorth\NetWorthService;
 use App\Services\Savings\ISATracker;
+use App\Traits\SanitizedErrorResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
 class SavingsController extends Controller
 {
+    use SanitizedErrorResponse;
+
     public function __construct(
         private SavingsAgent $savingsAgent,
         private ISATracker $isaTracker,
@@ -99,10 +102,7 @@ class SavingsController extends Controller
                 'data' => $analysis,
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Analysis failed: '.$e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Savings analysis', 500, ['user_id' => $user->id]);
         }
     }
 
@@ -122,10 +122,7 @@ class SavingsController extends Controller
                 'data' => $recommendations,
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to generate recommendations: '.$e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Savings recommendations', 500, ['user_id' => $user->id]);
         }
     }
 
@@ -144,10 +141,7 @@ class SavingsController extends Controller
                 'data' => $scenarios,
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to build scenarios: '.$e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Savings scenarios', 500, ['user_id' => $user->id]);
         }
     }
 
@@ -166,10 +160,7 @@ class SavingsController extends Controller
                 'data' => $allowanceStatus,
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to get ISA allowance: '.$e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'ISA allowance retrieval', 500, ['user_id' => $user->id, 'tax_year' => $taxYear]);
         }
     }
 

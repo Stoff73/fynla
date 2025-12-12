@@ -4,7 +4,7 @@
       <!-- Header -->
       <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
         <h3 class="text-xl font-semibold text-gray-900">
-          {{ isEdit ? 'Edit' : 'Add' }} DC Pension
+          {{ isEdit ? 'Edit' : 'Add' }} Money Purchase Pension
         </h3>
         <button @click="$emit('close')" class="text-gray-400 hover:text-gray-600 transition-colors">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -30,12 +30,12 @@
             >
               <option value="">Select pension type...</option>
               <option value="occupational">Occupational (Workplace)</option>
-              <option value="sipp">SIPP (Self-Invested Personal Pension)</option>
+              <option value="sipp">Self-Invested Personal Pension (SIPP)</option>
               <option value="personal">Personal Pension</option>
               <option value="stakeholder">Stakeholder Pension</option>
             </select>
             <p class="text-xs text-gray-500 mt-1">
-              Occupational: employer scheme with % contributions. SIPP/Personal/Stakeholder: fixed £ contributions
+              Workplace pensions use % of salary contributions. Personal pensions use fixed monthly amounts
             </p>
           </div>
 
@@ -239,7 +239,7 @@
               <p v-if="validationErrors.retirement_age" class="text-xs text-red-500 mt-1">
                 {{ validationErrors.retirement_age }}
               </p>
-              <p v-else class="text-xs text-gray-500 mt-1">DC pensions can only be accessed from 55</p>
+              <p v-else class="text-xs text-gray-500 mt-1">Pensions can usually be accessed from age 55</p>
             </div>
           </div>
 
@@ -438,7 +438,7 @@ export default {
       const age = this.formData.retirement_age;
 
       if (age !== null && age !== '' && age < 55) {
-        this.validationErrors.retirement_age = 'DC pensions can only be accessed from 55, so this is the youngest age you can enter';
+        this.validationErrors.retirement_age = 'Pensions can only be accessed from age 55, so this is the youngest age you can enter';
       }
     },
 

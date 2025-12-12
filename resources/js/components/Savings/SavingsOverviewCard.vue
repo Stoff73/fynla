@@ -1,6 +1,6 @@
 <template>
   <div
-    class="savings-overview-card bg-white rounded-lg shadow-md p-6 cursor-pointer hover:shadow-lg transition-shadow duration-200"
+    class="savings-overview-card bg-white rounded-lg shadow-md p-6 cursor-pointer border border-gray-200 hover:shadow-lg hover:-translate-y-0.5 hover:border-primary-500 transition-all duration-200"
     @click="navigateToSavings"
   >
     <div class="flex justify-between items-start mb-4">

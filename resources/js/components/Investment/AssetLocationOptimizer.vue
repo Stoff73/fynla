@@ -101,7 +101,7 @@
           <!-- GIA Allocation -->
           <div class="border border-gray-200 rounded-lg p-4">
             <div class="flex items-center justify-between mb-3">
-              <h4 class="text-md font-semibold text-gray-800">GIA (Taxable)</h4>
+              <h4 class="text-md font-semibold text-gray-800">General Investment Account (Taxable)</h4>
               <span v-if="analysis?.current_allocation?.gia_tax_drag > 1" class="px-2 py-1 bg-red-100 text-red-800 text-xs font-semibold rounded">HIGH TAX</span>
               <span v-else class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-semibold rounded">MODERATE</span>
             </div>
@@ -191,7 +191,7 @@
               <tr class="border-b border-gray-200">
                 <th class="text-left py-3 px-4 font-semibold text-gray-700">Asset Type</th>
                 <th class="text-center py-3 px-4 font-semibold text-green-700">ISA (Tax-Free)</th>
-                <th class="text-center py-3 px-4 font-semibold text-gray-700">GIA (Taxable)</th>
+                <th class="text-center py-3 px-4 font-semibold text-gray-700">General Account (Taxable)</th>
                 <th class="text-center py-3 px-4 font-semibold text-blue-700">Pension (Deferred)</th>
               </tr>
             </thead>
@@ -245,7 +245,7 @@
                 </td>
               </tr>
               <tr>
-                <td class="py-3 px-4 font-medium">REITs (Real Estate)</td>
+                <td class="py-3 px-4 font-medium">Property Investment Trusts (REITs)</td>
                 <td class="text-center py-3 px-4">
                   <span class="inline-block w-full px-2 py-1 bg-green-100 text-green-800 rounded font-semibold">BEST</span>
                 </td>
@@ -273,7 +273,7 @@
               <svg class="h-4 w-4 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
               </svg>
-              Growth stocks can be tax-efficient in GIAs (CGT allowance, lower rates than income tax)
+              Growth stocks can be tax-efficient in General Investment Accounts (capital gains tax allowance, lower rates than income tax)
             </li>
             <li class="flex items-start">
               <svg class="h-4 w-4 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -324,6 +324,10 @@ export default {
   },
 
   computed: {
+    isPreviewMode() {
+      return this.$store.getters['preview/isPreviewMode'];
+    },
+
     optimizationScoreChartOptions() {
       return {
         chart: {
@@ -377,11 +381,20 @@ export default {
   },
 
   mounted() {
-    this.loadAnalysis();
+    if (!this.isPreviewMode) {
+      this.loadAnalysis();
+    } else {
+      console.log('[AssetLocationOptimizer] Preview mode - skipping API call');
+      this.loading = false;
+    }
   },
 
   methods: {
     async loadAnalysis() {
+      if (this.isPreviewMode) {
+        console.log('[AssetLocationOptimizer] Preview mode - skipping loadAnalysis');
+        return;
+      }
       this.loading = true;
       this.error = null;
 

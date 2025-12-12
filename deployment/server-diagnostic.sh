@@ -1,6 +1,6 @@
 #!/bin/bash
 ################################################################################
-# TenGo Server Diagnostic Script
+# Fynla Server Diagnostic Script
 #
 # Run this on the SiteGround server to diagnose deployment issues
 #
@@ -10,7 +10,7 @@
 ################################################################################
 
 echo "========================================"
-echo "  TenGo v0.2.7 - Server Diagnostics"
+echo "  Fynla v0.2.7 - Server Diagnostics"
 echo "========================================"
 echo ""
 
@@ -33,7 +33,7 @@ check_item() {
 }
 
 # Start logging
-echo "TenGo Diagnostic Report - $(date)" > "$LOG_FILE"
+echo "Fynla Diagnostic Report - $(date)" > "$LOG_FILE"
 echo "======================================" >> "$LOG_FILE"
 echo ""
 
@@ -42,7 +42,7 @@ echo "1. DIRECTORY STRUCTURE"
 echo "======================"
 
 if [ -d "$TENGO_DIR" ]; then
-    echo "✓ TenGo directory exists: $TENGO_DIR"
+    echo "✓ Fynla directory exists: $TENGO_DIR"
     cd "$TENGO_DIR"
 
     # Check critical directories
@@ -54,7 +54,7 @@ if [ -d "$TENGO_DIR" ]; then
         fi
     done
 else
-    echo "✗ TenGo directory NOT FOUND: $TENGO_DIR"
+    echo "✗ Fynla directory NOT FOUND: $TENGO_DIR"
     echo "   Please check the deployment path."
     exit 1
 fi

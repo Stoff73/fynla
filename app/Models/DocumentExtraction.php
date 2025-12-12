@@ -118,7 +118,7 @@ class DocumentExtraction extends Model
         $extracted = $this->extracted_fields ?? [];
 
         foreach ($requiredFields as $field) {
-            if (!isset($extracted[$field]) || $extracted[$field] === null) {
+            if (! isset($extracted[$field]) || $extracted[$field] === null) {
                 return false;
             }
         }
@@ -163,7 +163,7 @@ class DocumentExtraction extends Model
      */
     public function hasWarnings(): bool
     {
-        return !empty($this->warnings);
+        return ! empty($this->warnings);
     }
 
     /**
@@ -171,7 +171,7 @@ class DocumentExtraction extends Model
      */
     public function hasValidationErrors(): bool
     {
-        return !empty($this->validation_errors);
+        return ! empty($this->validation_errors);
     }
 
     /**
@@ -179,11 +179,11 @@ class DocumentExtraction extends Model
      */
     public function getTargetModelInstance(): ?Model
     {
-        if (!$this->target_model || !$this->target_model_id) {
+        if (! $this->target_model || ! $this->target_model_id) {
             return null;
         }
 
-        if (!class_exists($this->target_model)) {
+        if (! class_exists($this->target_model)) {
             return null;
         }
 
@@ -195,7 +195,7 @@ class DocumentExtraction extends Model
      */
     public function getTargetModelNameAttribute(): ?string
     {
-        if (!$this->target_model) {
+        if (! $this->target_model) {
             return null;
         }
 

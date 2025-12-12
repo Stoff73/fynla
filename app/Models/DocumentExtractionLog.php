@@ -29,12 +29,19 @@ class DocumentExtractionLog extends Model
      * Action constants
      */
     public const ACTION_UPLOADED = 'uploaded';
+
     public const ACTION_EXTRACTION_STARTED = 'extraction_started';
+
     public const ACTION_EXTRACTION_COMPLETED = 'extraction_completed';
+
     public const ACTION_EXTRACTION_FAILED = 'extraction_failed';
+
     public const ACTION_FIELDS_MODIFIED = 'fields_modified';
+
     public const ACTION_CONFIRMED = 'confirmed';
+
     public const ACTION_SAVED_TO_MODEL = 'saved_to_model';
+
     public const ACTION_DELETED = 'deleted';
 
     /**

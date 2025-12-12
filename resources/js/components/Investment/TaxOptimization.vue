@@ -195,6 +195,9 @@ export default {
   },
 
   computed: {
+    isPreviewMode() {
+      return this.$store.getters['preview/isPreviewMode'];
+    },
     efficiencyScoreChartOptions() {
       const score = this.taxAnalysis?.efficiency_score?.score || 0;
       const grade = this.taxAnalysis?.efficiency_score?.grade || 'N/A';
@@ -251,6 +254,11 @@ export default {
   },
 
   mounted() {
+    if (this.isPreviewMode) {
+      console.log('[TaxOptimization] Preview mode - skipping API calls');
+      this.loading = false;
+      return;
+    }
     this.loadAllData();
   },
 

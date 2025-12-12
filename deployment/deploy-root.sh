@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ###############################################################################
-# TenGo v0.2.5 - Production Deployment Script (ROOT DIRECTORY)
+# Fynla v0.2.5 - Production Deployment Script (ROOT DIRECTORY)
 # Target: csjones.co (root)
 # Server: SiteGround Shared Hosting
 ###############################################################################
@@ -9,7 +9,7 @@
 set -e  # Exit on error
 
 echo "================================================"
-echo "TenGo v0.2.5 - Root Directory Production Build"
+echo "Fynla v0.2.5 - Root Directory Production Build"
 echo "================================================"
 echo ""
 
@@ -144,7 +144,7 @@ BUILD_DATE=$(date '+%Y-%m-%d %H:%M:%S')
 BUILD_TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 
 cat > deployment-info.txt << EOF
-TenGo v0.2.5 - Production Build (ROOT DIRECTORY)
+Fynla v0.2.5 - Production Build (ROOT DIRECTORY)
 ================================================
 
 Build Information:

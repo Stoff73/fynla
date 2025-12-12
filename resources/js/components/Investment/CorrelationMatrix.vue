@@ -240,6 +240,9 @@ export default {
   },
 
   computed: {
+    isPreviewMode() {
+      return this.$store.getters['preview/isPreviewMode'];
+    },
     labels() {
       return this.correlationData?.labels || [];
     },
@@ -445,6 +448,11 @@ export default {
   },
 
   mounted() {
+    if (this.isPreviewMode) {
+      console.log('[CorrelationMatrix] Preview mode - skipping API calls');
+      this.loading = false;
+      return;
+    }
     this.loadCorrelationData();
   },
 };

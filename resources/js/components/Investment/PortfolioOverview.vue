@@ -144,7 +144,7 @@
             <span class="text-sm font-medium text-gray-900">{{ formatCurrency(unrealisedGains) }}</span>
           </div>
           <div class="flex justify-between">
-            <span class="text-sm text-gray-600">ISA Allowance Used:</span>
+            <span class="text-sm text-gray-600">Tax-Free Allowance Used:</span>
             <span class="text-sm font-medium text-gray-900">{{ isaAllowancePercentage.toFixed(1) }}%</span>
           </div>
         </div>
@@ -165,7 +165,7 @@
 
         <!-- YTD Return -->
         <div class="border-l-4 pl-4" :class="ytdReturn >= 0 ? 'border-green-500' : 'border-red-500'">
-          <p class="text-sm text-gray-600 mb-1">YTD Return</p>
+          <p class="text-sm text-gray-600 mb-1">Return (This Year)</p>
           <p class="text-2xl font-bold" :class="ytdReturn >= 0 ? 'text-green-600' : 'text-red-600'">{{ formattedYtdReturn }}</p>
           <p class="text-sm text-gray-500 mt-1">{{ holdingsCount }} holding{{ holdingsCount !== 1 ? 's' : '' }}</p>
         </div>
@@ -299,15 +299,15 @@ export default {
 
     formatAccountType(type) {
       const types = {
-        'isa': 'ISA',
-        'sipp': 'SIPP',
-        'gia': 'GIA',
+        'isa': 'Stocks & Shares ISA',
+        'sipp': 'Self-Invested Pension',
+        'gia': 'General Investment',
         'pension': 'Pension',
         'nsi': 'NS&I',
         'onshore_bond': 'Onshore Bond',
         'offshore_bond': 'Offshore Bond',
-        'vct': 'VCT',
-        'eis': 'EIS',
+        'vct': 'Venture Capital Trust',
+        'eis': 'Enterprise Scheme',
         'other': 'Other',
       };
       return types[type] || type;

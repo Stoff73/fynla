@@ -1,4 +1,4 @@
-# TenGo v0.2.13 Patch - 24 November 2025
+# Fynla v0.2.13 Patch - 24 November 2025
 
 **Date**: 24 November 2025
 **Branch**: main

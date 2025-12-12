@@ -1,5 +1,5 @@
 <template>
-  <div class="account-card bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+  <div class="account-card bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md hover:-translate-y-0.5 hover:border-primary-500 transition-all duration-200">
     <!-- Account Header -->
     <div class="flex justify-between items-start mb-4">
       <div class="flex-1">

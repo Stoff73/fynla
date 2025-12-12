@@ -171,7 +171,7 @@
             </div>
 
             <!-- Premium Amount -->
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">
                   Premium Amount <span class="text-red-500">*</span>
@@ -260,7 +260,7 @@
                 </label>
               </div>
               <p class="text-xs text-gray-500 mt-1 ml-6">
-                Policies held in trust can help reduce inheritance tax liability. If you are not sure leave this blank
+                Policies held in trust can help reduce the inheritance tax your family may need to pay. If you're not sure, leave this blank
               </p>
             </div>
 
@@ -526,6 +526,9 @@ export default {
   },
 
   computed: {
+    isPreviewMode() {
+      return this.$store.getters['preview/isPreviewMode'];
+    },
     coverageLabel() {
       const type = this.formData.policyType || this.policy?.policy_type;
       if (type === 'life' || type === 'criticalIllness') {
@@ -626,6 +629,11 @@ export default {
 
   methods: {
     async loadFamilyMembers() {
+      if (this.isPreviewMode) {
+        console.log('[PolicyFormModal] Preview mode - using store data for family members');
+        this.familyMembers = this.$store.state.userProfile?.familyMembers || [];
+        return;
+      }
       try {
         const familyMembersService = (await import('@/services/familyMembersService')).default;
         const response = await familyMembersService.getFamilyMembers();

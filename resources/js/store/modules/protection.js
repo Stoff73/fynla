@@ -13,9 +13,17 @@ const state = {
     recommendations: [],
     loading: false,
     error: null,
+
+    // Preview mode state
+    isPreviewMode: false,
+    previewData: null,
 };
 
 const getters = {
+    // Preview mode getters
+    isPreviewMode: (state) => state.isPreviewMode,
+    previewData: (state) => state.previewData,
+
     // Get adequacy score from analysis
     adequacyScore: (state) => {
         return state.analysis?.adequacy_score || 0;
@@ -190,7 +198,13 @@ const actions = {
     },
 
     // Fetch all protection data
-    async fetchProtectionData({ commit }) {
+    async fetchProtectionData({ commit, state }) {
+        // Skip API call if in preview mode - data is already loaded
+        if (state.isPreviewMode) {
+            console.log('[protection] Skipping fetchProtectionData - preview mode active');
+            return;
+        }
+
         commit('setLoading', true);
         commit('setError', null);
 
@@ -226,7 +240,13 @@ const actions = {
     },
 
     // Analyse protection coverage
-    async analyseProtection({ commit }, data) {
+    async analyseProtection({ commit, state }, data) {
+        // Skip API call if in preview mode
+        if (state.isPreviewMode) {
+            console.log('[protection] Skipping analyseProtection - preview mode active');
+            return;
+        }
+
         commit('setLoading', true);
         commit('setError', null);
 
@@ -247,7 +267,13 @@ const actions = {
     },
 
     // Fetch recommendations
-    async fetchRecommendations({ commit }) {
+    async fetchRecommendations({ commit, state }) {
+        // Skip API call if in preview mode
+        if (state.isPreviewMode) {
+            console.log('[protection] Skipping fetchRecommendations - preview mode active');
+            return;
+        }
+
         commit('setLoading', true);
         commit('setError', null);
 
@@ -650,6 +676,11 @@ const actions = {
             commit('setLoading', false);
         }
     },
+
+    // Preview mode action
+    setPreviewMode({ commit }, { isPreview, data }) {
+        commit('SET_PREVIEW_MODE', { isPreview, data });
+    },
 };
 
 const mutations = {
@@ -699,6 +730,48 @@ const mutations = {
 
     setError(state, error) {
         state.error = error;
+    },
+
+    // Preview mode mutations
+    SET_PREVIEW_MODE(state, { isPreview, data }) {
+        state.isPreviewMode = isPreview;
+        state.previewData = data;
+
+        // If entering preview mode with data, populate policies from preview data
+        if (isPreview && data) {
+            // Map preview data protection policies to store structure
+            state.policies = {
+                life: data.life_insurance_policies || data.policies?.life || [],
+                criticalIllness: data.critical_illness_policies || data.policies?.criticalIllness || [],
+                incomeProtection: data.income_protection_policies || data.policies?.incomeProtection || [],
+                disability: data.disability_policies || data.policies?.disability || [],
+                sicknessIllness: data.sickness_illness_policies || data.policies?.sicknessIllness || [],
+            };
+
+            // Set user profile data for gap analysis
+            if (data.user) {
+                state.profile = {
+                    annual_income: data.user.annual_income || 0,
+                    employment_status: data.user.employment_status || 'employed',
+                    has_dependents: (data.family_members?.length || 0) > 0,
+                };
+            }
+
+            // Set analysis from preview calculations if available
+            if (data.protection_analysis) {
+                state.analysis = data.protection_analysis;
+            }
+        } else if (!isPreview) {
+            // Exiting preview mode - don't reset, let normal fetch repopulate
+            state.isPreviewMode = false;
+            state.previewData = null;
+        }
+    },
+
+    SET_PREVIEW_ANALYSIS(state, analysis) {
+        if (state.isPreviewMode && analysis) {
+            state.analysis = analysis;
+        }
     },
 };
 

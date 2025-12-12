@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-6">
     <div class="card">
-      <h2 class="text-h2 text-gray-900 mb-4">How TenGo Calculations Work</h2>
+      <h2 class="text-h2 text-gray-900 mb-4">How Fynla Calculations Work</h2>
       <p class="text-body text-gray-600 mb-6">
         This section explains the key financial calculations used throughout the Financial Planning System.
       </p>

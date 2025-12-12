@@ -1,5 +1,5 @@
 -- ============================================
--- TenGo v0.2.12 Database Verification Script
+-- Fynla v0.2.12 Database Verification Script
 -- Date: November 22, 2025
 -- ============================================
 

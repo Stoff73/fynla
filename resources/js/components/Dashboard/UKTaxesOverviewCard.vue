@@ -1,6 +1,6 @@
 <template>
   <div
-    class="card cursor-pointer hover:shadow-lg transition-shadow"
+    class="card cursor-pointer hover:shadow-lg hover:-translate-y-0.5 hover:border-primary-500 transition-all duration-200 border border-gray-200"
     @click="navigateToModule"
   >
     <div class="flex items-center justify-between mb-4">
@@ -20,7 +20,7 @@
         <span class="text-body font-semibold text-gray-900">£12,570</span>
       </div>
       <div class="flex justify-between items-center">
-        <span class="text-body-sm text-gray-600">ISA Allowance</span>
+        <span class="text-body-sm text-gray-600">Tax-Free Savings Allowance</span>
         <span class="text-body font-semibold text-gray-900">£20,000</span>
       </div>
       <div class="flex justify-between items-center">
@@ -31,8 +31,8 @@
 
     <div class="flex gap-2 flex-wrap mb-3">
       <span class="badge-success">Income Tax</span>
-      <span class="badge-info">CGT</span>
-      <span class="badge-warning">IHT</span>
+      <span class="badge-info">Capital Gains Tax</span>
+      <span class="badge-warning">Inheritance Tax</span>
       <span class="badge-secondary">Pensions</span>
     </div>
 

@@ -3,7 +3,7 @@
     <div class="max-w-md w-full space-y-8">
       <div>
         <h1 class="text-center font-display text-h1 text-gray-900">
-          TenGo
+          Fynla
         </h1>
         <h2 class="mt-6 text-center text-h3 text-gray-900">
           Create your account
@@ -14,6 +14,20 @@
             sign in to existing account
           </router-link>
         </p>
+
+        <!-- Preview mode indicator -->
+        <div v-if="wasInPreview" class="mt-4 bg-amber-50 border border-amber-200 rounded-lg p-3">
+          <div class="flex items-center gap-2 text-sm text-amber-800">
+            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            <span>
+              Registering from preview mode.
+              <strong>{{ currentPersonaName }}</strong>'s data can be saved after registration.
+            </span>
+          </div>
+        </div>
       </div>
 
       <form class="mt-8 space-y-6" @submit.prevent="handleRegister">
@@ -112,16 +126,29 @@
         </p>
       </form>
     </div>
+
+    <!-- Keep Data or Fresh Modal (for preview mode registrations) -->
+    <KeepDataOrFreshModal
+      :is-open="showKeepDataModal"
+      :persona="currentPersona"
+      @choice="handleKeepDataChoice"
+    />
   </div>
 </template>
 
 <script>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useStore } from 'vuex';
 import { useRouter } from 'vue-router';
+import KeepDataOrFreshModal from '@/components/Preview/KeepDataOrFreshModal.vue';
+import api from '@/services/api';
 
 export default {
   name: 'Register',
+
+  components: {
+    KeepDataOrFreshModal,
+  },
 
   setup() {
     const store = useStore();
@@ -136,17 +163,57 @@ export default {
 
     const errors = ref({});
     const errorMessage = ref('');
+    const showKeepDataModal = ref(false);
+    const previewPersonaId = ref(null);
 
     const loading = computed(() => store.getters['auth/loading']);
+
+    // Check if user is coming from preview mode
+    const wasInPreview = computed(() => store.getters['preview/isPreviewMode']);
+    const currentPersona = computed(() => store.getters['preview/currentPersona']);
+    const currentPersonaName = computed(() => currentPersona.value?.name || 'Demo User');
+
+    // Pre-fill name from persona if in preview mode
+    onMounted(() => {
+      if (wasInPreview.value && currentPersona.value) {
+        // Extract first person's name from persona (e.g., "James & Emily Wilson" -> "James Wilson")
+        const personaName = currentPersona.value.name || '';
+        if (personaName.includes('&')) {
+          // For couples, don't pre-fill - let them enter their own name
+        } else {
+          // For single personas, optionally pre-fill
+          // form.value.name = personaName; // Commented out - let user enter their own name
+        }
+      }
+    });
 
     const handleRegister = async () => {
       errors.value = {};
       errorMessage.value = '';
 
       try {
-        await store.dispatch('auth/register', form.value);
-        // Redirect to onboarding after successful registration
-        router.push({ name: 'Onboarding' });
+        // Include registration source if from preview
+        const registrationData = {
+          ...form.value,
+        };
+
+        if (wasInPreview.value) {
+          registrationData.registration_source = 'preview';
+          registrationData.preview_persona_id = currentPersona.value?.id;
+        }
+
+        await store.dispatch('auth/register', registrationData);
+
+        // Check if coming from preview mode
+        if (wasInPreview.value && currentPersona.value) {
+          // Show keep/fresh modal
+          previewPersonaId.value = currentPersona.value.id;
+          showKeepDataModal.value = true;
+        } else {
+          // Direct registration - go to dashboard with guidance
+          await store.dispatch('guidance/showWelcomeModal');
+          router.push({ name: 'Dashboard' });
+        }
       } catch (error) {
         if (error.errors) {
           errors.value = error.errors;
@@ -156,12 +223,42 @@ export default {
       }
     };
 
+    const handleKeepDataChoice = async ({ choice, createSpouseAccount, personaId }) => {
+      try {
+        if (choice === 'keep') {
+          // Seed persona data to user's account
+          await api.post('/user/seed-persona-data', {
+            persona_id: personaId,
+            create_spouse_account: createSpouseAccount,
+          });
+        }
+
+        // Clear preview mode
+        await store.dispatch('preview/exitPreview');
+
+        // Start guidance for new user
+        await store.dispatch('guidance/showWelcomeModal');
+
+        // Navigate to dashboard
+        router.push({ name: 'Dashboard' });
+      } catch (error) {
+        console.error('Failed to handle keep data choice:', error);
+        errorMessage.value = 'Failed to set up your account. Please try again.';
+        showKeepDataModal.value = false;
+      }
+    };
+
     return {
       form,
       errors,
       errorMessage,
       loading,
+      showKeepDataModal,
+      wasInPreview,
+      currentPersona,
+      currentPersonaName,
       handleRegister,
+      handleKeepDataChoice,
     };
   },
 };

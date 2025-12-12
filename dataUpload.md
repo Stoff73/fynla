@@ -5,7 +5,7 @@
 This feature allows users to upload financial documents (pension statements, insurance policies, investment statements, savings statements) and have them automatically analysed using Claude Vision API. The extracted data is mapped to the appropriate database models and presented to users for verification before saving.
 
 **Implementation Date**: December 2025
-**Branch**: TengoMVP
+**Branch**: FynlaMVP
 
 ---
 

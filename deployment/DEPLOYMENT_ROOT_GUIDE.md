@@ -1,4 +1,4 @@
-# TenGo v0.2.5 - Root Directory Deployment Guide
+# Fynla v0.2.5 - Root Directory Deployment Guide
 
 **Target**: https://csjones.co (ROOT DIRECTORY)
 **Server**: SiteGround Shared Hosting
@@ -132,7 +132,7 @@ nano .env
 
 ```ini
 # Application
-APP_NAME="TenGo - Financial Planning System"
+APP_NAME="Fynla - Financial Planning System"
 APP_ENV=production
 APP_KEY=                          # Generate in next step
 APP_DEBUG=false
@@ -388,9 +388,9 @@ Visit: **https://csjones.co**
 
 ## 🐛 Troubleshooting
 
-### Issue 1: Old Site Loading Instead of TenGo
+### Issue 1: Old Site Loading Instead of Fynla
 
-**Symptom**: Visiting https://csjones.co shows old website content instead of TenGo application
+**Symptom**: Visiting https://csjones.co shows old website content instead of Fynla application
 
 **Cause**: Old site files (e.g., `oldsite/` directory) taking precedence
 
@@ -676,7 +676,7 @@ php artisan view:cache
 ---
 
 **Deployment Guide Version**: 1.0
-**TenGo Application Version**: v0.2.5
+**Fynla Application Version**: v0.2.5
 **Target Environment**: SiteGround Shared Hosting (Root Directory)
 **Expected Deployment Time**: 45 minutes
 **Guide Last Updated**: November 11, 2025

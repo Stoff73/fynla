@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-white shadow-lg rounded-lg p-6 cursor-pointer hover:shadow-xl transition-shadow duration-300" @click="navigateToDashboard">
+  <div class="bg-white shadow-lg rounded-lg p-6 cursor-pointer border border-gray-200 hover:shadow-xl hover:-translate-y-0.5 hover:border-indigo-500 transition-all duration-200" @click="navigateToDashboard">
     <div class="flex items-center justify-between mb-4">
       <h2 class="text-xl font-semibold text-gray-800">Retirement Planning</h2>
       <svg class="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

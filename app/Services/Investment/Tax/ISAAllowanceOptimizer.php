@@ -532,7 +532,7 @@ class ISAAllowanceOptimizer
         }
 
         // Sort by priority
-        usort($actions, fn($a, $b) => $a['priority'] <=> $b['priority']);
+        usort($actions, fn ($a, $b) => $a['priority'] <=> $b['priority']);
 
         return $actions;
     }

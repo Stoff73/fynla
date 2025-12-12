@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Development guidelines for Claude Code when working with the TenGo financial planning application.
+Development guidelines for Claude Code when working with the Fynla financial planning application.
 
 ---
 
@@ -384,11 +384,11 @@ printenv | grep -E "^APP_|^DB_|^VITE_|^CACHE_"
 
 ## Project Overview
 
-**TenGo** - UK-focused comprehensive financial planning application covering five integrated modules: Protection, Savings, Investment, Retirement, and Estate Planning.
+**Fynla** - UK-focused comprehensive financial planning application covering five integrated modules: Protection, Savings, Investment, Retirement, and Estate Planning.
 
-**Current Version**: v0.2.14 (Production)
+**Current Version**: v0.2.17 (Production)
 **Tech Stack**: Laravel 10.x (PHP 8.2+) + Vue.js 3 + MySQL 8.0+ + Memcached
-**Status**: All core modules complete, 95% advanced features complete
+**Status**: All core modules complete, Document Upload with AI Extraction feature added
 **Production URL**: https://csjones.co/tengo
 
 ---
@@ -936,7 +936,18 @@ resources/js/
 
 ## Version History
 
-### v0.2.16 (27 November 2025) - Latest
+### v0.2.17 (8 December 2025) - Latest
+
+**Document Upload with AI Extraction**:
+- AI-powered document extraction using Claude Sonnet 4.5
+- Support for PDF, images (PNG, JPG, WebP), and Excel files (XLSX, XLS, CSV)
+- Field mappers for DC Pension, DB Pension, Life Insurance, Investment Account
+- Image compression for large files
+- Excel parsing via PhpSpreadsheet
+- Review and confirm workflow before saving extracted data
+- Confidence scores for extracted fields
+
+### v0.2.16 (27 November 2025)
 
 **UI/UX Improvements**:
 1. Income Protection Display Fix - Benefit amount now displays correctly on dashboard card
@@ -1037,9 +1048,9 @@ For any bugs encountered, please use the `systematic-debugging` skill to investi
 
 ---
 
-**Current Version**: v0.2.16 (Production)
+**Current Version**: v0.2.17 (Production)
 **Production URL**: https://csjones.co/tengo
-**Last Updated**: November 27, 2025
+**Last Updated**: December 10, 2025
 **Status**: Production Ready - All Core Features Complete
 
 ---

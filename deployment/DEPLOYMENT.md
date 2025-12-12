@@ -1,4 +1,4 @@
-# TenGo v0.1.2.13 - Production Deployment to SiteGround
+# Fynla v0.1.2.13 - Production Deployment to SiteGround
 
 **DEFINITIVE DEPLOYMENT GUIDE**
 
@@ -28,7 +28,7 @@
 
 ### What This Guide Provides
 
-- **Single source of truth** for deploying TenGo to SiteGround
+- **Single source of truth** for deploying Fynla to SiteGround
 - **Step-by-step instructions** tested on SiteGround UK servers
 - **Symlink security setup** (keeps application code outside web root)
 - **Troubleshooting guide** for common issues
@@ -83,7 +83,7 @@ cd /Users/Chris/Desktop/fpsApp/tengo
 
 # Create .env.production with production API URL
 cat > .env.production << 'EOF'
-VITE_APP_NAME="TenGo - Financial Planning System"
+VITE_APP_NAME="Fynla - Financial Planning System"
 VITE_API_BASE_URL=https://csjones.co/tengo
 EOF
 
@@ -487,7 +487,7 @@ php -r "if (class_exists('Memcached')) { echo 'Memcached available\n'; } else { 
 Update these values in the `.env` file:
 
 ```ini
-APP_NAME="TenGo - Financial Planning System"
+APP_NAME="Fynla - Financial Planning System"
 APP_ENV=production
 APP_KEY=
 APP_DEBUG=false
@@ -610,7 +610,7 @@ php artisan tinker
 **In tinker**:
 ```php
 $admin = new \App\Models\User();
-$admin->name = 'TenGo Admin';
+$admin->name = 'Fynla Admin';
 $admin->email = 'admin@fps.com';
 $admin->password = bcrypt('PixieRebecca2020');
 $admin->email_verified_at = now();
@@ -718,7 +718,7 @@ composer dump-autoload --optimize
 **Open browser** and navigate to: **https://csjones.co/tengo**
 
 **You should see**:
-- TenGo landing page
+- Fynla landing page
 - Hero section with tagline
 - Five module cards (Protection, Savings, Investment, Retirement, Estate)
 - Login and Register buttons
@@ -1106,7 +1106,7 @@ php artisan db:prune
 
 ## Deployment Complete!
 
-Your TenGo application should now be live at: **https://csjones.co/tengo**
+Your Fynla application should now be live at: **https://csjones.co/tengo**
 
 ### Final Checklist
 
@@ -1145,7 +1145,7 @@ This section documents issues encountered during actual deployment and their sol
 1. Create `.env.production` file BEFORE building:
    ```bash
    cat > .env.production << 'EOF'
-   VITE_APP_NAME="TenGo - Financial Planning System"
+   VITE_APP_NAME="Fynla - Financial Planning System"
    VITE_API_BASE_URL=https://csjones.co/tengo
    EOF
    ```
@@ -1253,7 +1253,7 @@ php artisan migrate:status | grep "2025_10_23_154600"
 ---
 
 **Deployment Guide Version**: 3.0
-**TenGo Version**: v0.1.2.13
+**Fynla Version**: v0.1.2.13
 **Last Updated**: October 30, 2025
 **Tested On**: SiteGround UK Servers
 **Deployment Date**: October 30, 2025 (Successful)

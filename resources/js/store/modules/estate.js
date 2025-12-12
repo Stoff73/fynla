@@ -14,9 +14,17 @@ const state = {
     secondDeathPlanning: null, // Second death IHT planning data
     loading: false,
     error: null,
+
+    // Preview mode state
+    isPreviewMode: false,
+    previewData: null,
 };
 
 const getters = {
+    // Preview mode getters
+    isPreviewMode: (state) => state.isPreviewMode,
+    previewData: (state) => state.previewData,
+
     // All assets (manual + investment accounts)
     allAssets: (state) => {
         const manualAssets = Array.isArray(state.assets) ? state.assets : [];
@@ -208,7 +216,13 @@ const getters = {
 
 const actions = {
     // Fetch all estate data
-    async fetchEstateData({ commit }) {
+    async fetchEstateData({ commit, state }) {
+        // Skip API call if in preview mode - data is already loaded
+        if (state.isPreviewMode) {
+            console.log('[estate] Skipping fetchEstateData - preview mode active');
+            return;
+        }
+
         commit('setLoading', true);
         commit('setError', null);
 
@@ -231,7 +245,13 @@ const actions = {
     },
 
     // Analyse estate
-    async analyseEstate({ commit }, data) {
+    async analyseEstate({ commit, state }, data) {
+        // Skip API call if in preview mode
+        if (state.isPreviewMode) {
+            console.log('[estate] Skipping analyseEstate - preview mode active');
+            return;
+        }
+
         commit('setLoading', true);
         commit('setError', null);
 
@@ -250,7 +270,13 @@ const actions = {
     },
 
     // Fetch recommendations
-    async fetchRecommendations({ commit }) {
+    async fetchRecommendations({ commit, state }) {
+        // Skip API call if in preview mode
+        if (state.isPreviewMode) {
+            console.log('[estate] Skipping fetchRecommendations - preview mode active');
+            return;
+        }
+
         commit('setLoading', true);
         commit('setError', null);
 
@@ -268,7 +294,13 @@ const actions = {
     },
 
     // Calculate IHT
-    async calculateIHT({ commit }, data) {
+    async calculateIHT({ commit, state }, data) {
+        // Skip API call if in preview mode - data is already loaded
+        if (state.isPreviewMode) {
+            console.log('[estate] Skipping calculateIHT - preview mode active');
+            return;
+        }
+
         commit('setLoading', true);
         commit('setError', null);
 
@@ -287,7 +319,13 @@ const actions = {
     },
 
     // Fetch net worth
-    async fetchNetWorth({ commit }) {
+    async fetchNetWorth({ commit, state }) {
+        // Skip API call if in preview mode
+        if (state.isPreviewMode) {
+            console.log('[estate] Skipping fetchNetWorth - preview mode active');
+            return;
+        }
+
         commit('setLoading', true);
         commit('setError', null);
 
@@ -305,7 +343,13 @@ const actions = {
     },
 
     // Fetch cash flow
-    async fetchCashFlow({ commit }, taxYear) {
+    async fetchCashFlow({ commit, state }, taxYear) {
+        // Skip API call if in preview mode
+        if (state.isPreviewMode) {
+            console.log('[estate] Skipping fetchCashFlow - preview mode active');
+            return;
+        }
+
         commit('setLoading', true);
         commit('setError', null);
 
@@ -481,7 +525,13 @@ const actions = {
     },
 
     // Second Death IHT Planning action
-    async calculateSecondDeathIHTPlanning({ commit }) {
+    async calculateSecondDeathIHTPlanning({ commit, state }) {
+        // Skip API call if in preview mode - data is already loaded
+        if (state.isPreviewMode) {
+            console.log('[estate] Skipping calculateSecondDeathIHTPlanning - preview mode active');
+            return;
+        }
+
         commit('setLoading', true);
         commit('setError', null);
 
@@ -506,7 +556,13 @@ const actions = {
     },
 
     // Trust actions
-    async fetchTrusts({ commit }) {
+    async fetchTrusts({ commit, state }) {
+        // Skip API call if in preview mode
+        if (state.isPreviewMode) {
+            console.log('[estate] Skipping fetchTrusts - preview mode active');
+            return;
+        }
+
         commit('setLoading', true);
         commit('setError', null);
 
@@ -572,6 +628,11 @@ const actions = {
         } finally {
             commit('setLoading', false);
         }
+    },
+
+    // Preview mode action
+    setPreviewMode({ commit }, { isPreview, data }) {
+        commit('SET_PREVIEW_MODE', { isPreview, data });
     },
 };
 
@@ -698,6 +759,122 @@ const mutations = {
 
     setError(state, error) {
         state.error = error;
+    },
+
+    // Preview mode mutations
+    SET_PREVIEW_MODE(state, { isPreview, data }) {
+        state.isPreviewMode = isPreview;
+        state.previewData = data;
+
+        // If entering preview mode with data, populate estate state from preview data
+        if (isPreview && data) {
+            // Set assets (combine properties, investments, savings)
+            const assets = [];
+
+            // Add properties as assets
+            if (data.properties) {
+                data.properties.forEach(p => {
+                    assets.push({
+                        id: `property_${p.id || assets.length}`,
+                        asset_type: 'property',
+                        asset_name: p.property_name || p.address || 'Property',
+                        current_value: parseFloat(p.current_value || 0),
+                        ownership_percentage: p.ownership_percentage || 100,
+                        is_iht_exempt: false,
+                    });
+                });
+            }
+
+            // Add savings as assets
+            if (data.savings_accounts) {
+                data.savings_accounts.forEach(s => {
+                    assets.push({
+                        id: `savings_${s.id || assets.length}`,
+                        asset_type: 'cash',
+                        asset_name: s.account_name || 'Savings Account',
+                        current_value: parseFloat(s.current_balance || 0),
+                        ownership_percentage: 100,
+                        is_iht_exempt: false,
+                    });
+                });
+            }
+
+            state.assets = assets;
+
+            // Set investment accounts
+            if (data.investment_accounts) {
+                state.investmentAccounts = data.investment_accounts.map(i => ({
+                    id: i.id || `inv_${state.investmentAccounts.length}`,
+                    account_type: i.account_type || 'gia',
+                    account_name: i.account_name || 'Investment Account',
+                    current_value: parseFloat(i.current_value || 0),
+                    is_iht_exempt: false,
+                }));
+            }
+
+            // Set liabilities
+            const liabilities = [];
+            if (data.mortgages) {
+                data.mortgages.forEach(m => {
+                    liabilities.push({
+                        id: `mortgage_${m.id || liabilities.length}`,
+                        liability_type: 'mortgage',
+                        liability_name: m.lender_name || 'Mortgage',
+                        current_balance: parseFloat(m.outstanding_balance || 0),
+                    });
+                });
+            }
+            if (data.liabilities) {
+                data.liabilities.forEach(l => {
+                    liabilities.push({
+                        id: l.id || `liability_${liabilities.length}`,
+                        liability_type: l.liability_type || 'other',
+                        liability_name: l.liability_name || 'Liability',
+                        current_balance: parseFloat(l.current_balance || 0),
+                    });
+                });
+            }
+            state.liabilities = liabilities;
+
+            // Set gifts
+            if (data.gifts) {
+                state.gifts = data.gifts;
+            }
+
+            // Set trusts
+            if (data.trusts) {
+                state.trusts = data.trusts;
+            }
+
+            // Set IHT profile from user data
+            if (data.user) {
+                state.ihtProfile = {
+                    marital_status: data.user.marital_status || 'single',
+                    spouse_nationality: data.spouse?.nationality || 'uk',
+                    available_nrb: 325000,
+                    available_rnrb: data.properties?.some(p => p.property_type === 'main_residence') ? 175000 : 0,
+                    transferred_nrb: 0,
+                    transferred_rnrb: 0,
+                };
+            }
+
+            // Set analysis from preview calculations if available
+            if (data.iht_analysis) {
+                state.analysis = data.iht_analysis;
+                state.secondDeathPlanning = data.iht_analysis;
+            }
+        } else if (!isPreview) {
+            // Exiting preview mode
+            state.isPreviewMode = false;
+            state.previewData = null;
+        }
+    },
+
+    SET_PREVIEW_IHT_ANALYSIS(state, analysis) {
+        if (state.isPreviewMode && analysis) {
+            state.analysis = analysis;
+            state.secondDeathPlanning = analysis;
+        }
     },
 };
 

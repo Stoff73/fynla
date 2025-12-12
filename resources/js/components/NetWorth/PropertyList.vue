@@ -93,6 +93,10 @@ export default {
   },
 
   computed: {
+    isPreviewMode() {
+      return this.$store.getters['preview/isPreviewMode'];
+    },
+
     filteredProperties() {
       // Sort by value (high to low) by default
       return [...this.properties].sort((a, b) => b.current_value - a.current_value);
@@ -131,6 +135,10 @@ export default {
     },
 
     async handleSaveProperty(data) {
+      if (this.isPreviewMode) {
+        console.log('[PropertyList] Preview mode - skipping save');
+        return;
+      }
       this.clearMessages();
 
       try {
@@ -194,6 +202,11 @@ export default {
     },
 
     async fetchProperties() {
+      if (this.isPreviewMode) {
+        console.log('[PropertyList] Preview mode - loading properties from store');
+        this.properties = this.$store.state.netWorth?.properties || [];
+        return;
+      }
       this.loading = true;
       this.error = null;
 
@@ -207,11 +220,14 @@ export default {
         this.loading = false;
       }
     },
+
   },
 
   async mounted() {
-    // Fetch family members to ensure spouse data is available
-    await this.$store.dispatch('userProfile/fetchFamilyMembers');
+    if (!this.isPreviewMode) {
+      // Fetch family members to ensure spouse data is available
+      await this.$store.dispatch('userProfile/fetchFamilyMembers');
+    }
     await this.fetchProperties();
   },
 };

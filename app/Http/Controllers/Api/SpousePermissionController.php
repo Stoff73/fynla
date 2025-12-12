@@ -28,7 +28,7 @@ class SpousePermissionController extends Controller
             ->where('relationship', 'spouse')
             ->first();
 
-        if (!$hasLinkedSpouse && !$spouseFamilyMember) {
+        if (! $hasLinkedSpouse && ! $spouseFamilyMember) {
             return response()->json([
                 'success' => true,
                 'data' => [
@@ -88,7 +88,7 @@ class SpousePermissionController extends Controller
     {
         $user = $request->user();
 
-        if (!$user->spouse_id) {
+        if (! $user->spouse_id) {
             return response()->json([
                 'success' => false,
                 'message' => 'You do not have a linked spouse',
@@ -142,7 +142,7 @@ class SpousePermissionController extends Controller
     {
         $user = $request->user();
 
-        if (!$user->spouse_id) {
+        if (! $user->spouse_id) {
             return response()->json([
                 'success' => false,
                 'message' => 'You do not have a linked spouse',
@@ -155,7 +155,7 @@ class SpousePermissionController extends Controller
             ->where('status', 'pending')
             ->first();
 
-        if (!$permission) {
+        if (! $permission) {
             return response()->json([
                 'success' => false,
                 'message' => 'No pending permission request found',
@@ -183,7 +183,7 @@ class SpousePermissionController extends Controller
     {
         $user = $request->user();
 
-        if (!$user->spouse_id) {
+        if (! $user->spouse_id) {
             return response()->json([
                 'success' => false,
                 'message' => 'You do not have a linked spouse',
@@ -196,7 +196,7 @@ class SpousePermissionController extends Controller
             ->where('status', 'pending')
             ->first();
 
-        if (!$permission) {
+        if (! $permission) {
             return response()->json([
                 'success' => false,
                 'message' => 'No pending permission request found',
@@ -224,7 +224,7 @@ class SpousePermissionController extends Controller
     {
         $user = $request->user();
 
-        if (!$user->spouse_id) {
+        if (! $user->spouse_id) {
             return response()->json([
                 'success' => false,
                 'message' => 'You do not have a linked spouse',
@@ -240,7 +240,7 @@ class SpousePermissionController extends Controller
                 ->where('spouse_id', $user->id);
         })->first();
 
-        if (!$permission) {
+        if (! $permission) {
             return response()->json([
                 'success' => false,
                 'message' => 'No permission found to revoke',

@@ -6,6 +6,7 @@ namespace App\Services\Investment\AssetLocation;
 
 use App\Models\Investment\Holding;
 use App\Models\Investment\InvestmentAccount;
+use App\Services\TaxConfigService;
 use App\Services\UKTaxCalculator;
 
 /**
@@ -21,7 +22,8 @@ use App\Services\UKTaxCalculator;
 class TaxDragCalculator
 {
     public function __construct(
-        private UKTaxCalculator $taxCalculator
+        private UKTaxCalculator $taxCalculator,
+        private TaxConfigService $taxConfig
     ) {}
 
     /**
@@ -129,13 +131,15 @@ class TaxDragCalculator
         $incomeTaxRate = $userTaxProfile['income_tax_rate'] ?? 0.20;
         $cgtRate = $userTaxProfile['cgt_rate'] ?? 0.20;
 
-        // CGT allowance (£12,300 for 2024/25)
-        $cgtAllowance = 12300;
+        // Get CGT allowance from tax configuration
+        $cgtConfig = $this->taxConfig->getCapitalGainsTax();
+        $cgtAllowance = $cgtConfig['annual_exempt_amount'] ?? 3000;
         $cgtAllowanceUsed = $userTaxProfile['cgt_allowance_used'] ?? 0;
         $remainingCGTAllowance = max(0, $cgtAllowance - $cgtAllowanceUsed);
 
-        // Dividend allowance (£500 for 2024/25)
-        $dividendAllowance = 500;
+        // Get Dividend allowance from tax configuration
+        $dividendConfig = $this->taxConfig->getDividendTax();
+        $dividendAllowance = $dividendConfig['allowance'] ?? 500;
         $dividendAllowanceUsed = $userTaxProfile['dividend_allowance_used'] ?? 0;
         $remainingDividendAllowance = max(0, $dividendAllowance - $dividendAllowanceUsed);
 

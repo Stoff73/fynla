@@ -44,7 +44,7 @@ Monitor official announcements:
 
 **Step 2: Access Admin Panel (March)**
 
-1. Log in to TenGo application with admin credentials
+1. Log in to Fynla application with admin credentials
 2. Navigate to **Admin Panel** (admin icon in top navigation)
 3. Click **Tax Configuration** in the sidebar
 

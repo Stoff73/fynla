@@ -8,6 +8,7 @@ use App\Services\Coordination\CashFlowCoordinator;
 use App\Services\Coordination\ConflictResolver;
 use App\Services\Coordination\HolisticPlanner;
 use App\Services\Coordination\PriorityRanker;
+use App\Services\TaxConfigService;
 
 /**
  * CoordinatingAgent
@@ -26,10 +27,8 @@ class CoordinatingAgent extends BaseAgent
         private InvestmentAgent $investmentAgent,
         private SavingsAgent $savingsAgent,
         private RetirementAgent $retirementAgent,
-        // EstateAgent not yet implemented as standalone agent, using Service/Controller logic via adapter if needed
-        // For now, we'll keep the mock for Estate or assume a service exists.
-    ) {
-    }
+        private TaxConfigService $taxConfig
+    ) {}
 
     /**
      * Analyze user data and generate insights (BaseAgent requirement)
@@ -172,7 +171,9 @@ class CoordinatingAgent extends BaseAgent
                     break;
 
                 case 'isa_allowance_conflict':
-                    $isaAllowance = 20000; // 2025/26
+                    // Get ISA allowance from tax configuration
+                    $isaConfig = $this->taxConfig->getISAAllowances();
+                    $isaAllowance = $isaConfig['annual_allowance'] ?? 20000;
                     $resolution = $this->conflictResolver->resolveISAAllocation($isaAllowance, $conflict['demands']);
                     $resolved['conflict_resolutions'][] = [
                         'type' => 'isa_allowance',
@@ -209,7 +210,7 @@ class CoordinatingAgent extends BaseAgent
         try {
             $analysis['protection'] = $this->protectionAgent->analyze($userId);
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error("Protection analysis failed: " . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error('Protection analysis failed: '.$e->getMessage());
             $analysis['protection'] = ['error' => 'Analysis failed'];
         }
 
@@ -311,7 +312,7 @@ class CoordinatingAgent extends BaseAgent
         $demands = [];
 
         foreach ($recommendations as $rec) {
-            if (!isset($rec['module'])) {
+            if (! isset($rec['module'])) {
                 continue;
             }
 
@@ -324,7 +325,7 @@ class CoordinatingAgent extends BaseAgent
                 ?? 0;
 
             if ($amount > 0) {
-                if (!isset($demands[$category])) {
+                if (! isset($demands[$category])) {
                     $demands[$category] = [
                         'amount' => 0,
                         'urgency' => $rec['urgency_score'] ?? 50,

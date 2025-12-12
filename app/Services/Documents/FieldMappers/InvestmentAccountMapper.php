@@ -103,14 +103,14 @@ class InvestmentAccountMapper extends AbstractFieldMapper
      */
     private function normalizeAccountType(?string $type): ?string
     {
-        if (!$type) {
+        if (! $type) {
             return 'gia';
         }
 
         $type = strtolower(trim($type));
 
         return match (true) {
-            str_contains($type, 'isa') && !str_contains($type, 'cash') => 'isa',
+            str_contains($type, 'isa') && ! str_contains($type, 'cash') => 'isa',
             str_contains($type, 'gia') || str_contains($type, 'general') => 'gia',
             str_contains($type, 'nsi') || str_contains($type, 'ns&i') || str_contains($type, 'national savings') => 'nsi',
             str_contains($type, 'onshore') => 'onshore_bond',
@@ -126,7 +126,7 @@ class InvestmentAccountMapper extends AbstractFieldMapper
      */
     private function normalizeAssetType(?string $type): ?string
     {
-        if (!$type) {
+        if (! $type) {
             return 'fund';
         }
 

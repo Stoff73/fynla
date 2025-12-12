@@ -135,7 +135,7 @@
               </div>
 
               <div class="detail-row">
-                <span class="detail-label">NI Years</span>
+                <span class="detail-label">National Insurance Years</span>
                 <span class="detail-value">{{ niYears }} / 35</span>
               </div>
 
@@ -155,14 +155,14 @@
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <!-- DC Pensions -->
         <div class="border-l-4 border-blue-500 pl-4">
-          <p class="text-sm text-gray-600 mb-1">DC Pensions</p>
+          <p class="text-sm text-gray-600 mb-1">Money Purchase Pensions</p>
           <p class="text-2xl font-bold text-gray-900">{{ formatCurrency(dcPensionValue) }}</p>
           <p class="text-sm text-gray-500 mt-1">{{ dcPensionCount }} pension{{ dcPensionCount !== 1 ? 's' : '' }}</p>
         </div>
 
         <!-- DB Pensions -->
         <div class="border-l-4 border-purple-500 pl-4">
-          <p class="text-sm text-gray-600 mb-1">DB Pensions</p>
+          <p class="text-sm text-gray-600 mb-1">Final Salary Pensions</p>
           <p class="text-2xl font-bold text-gray-900">{{ formatCurrency(dbPensionIncome) }}<span class="text-sm text-gray-500">/year</span></p>
           <p class="text-sm text-gray-500 mt-1">{{ dbPensionCount }} scheme{{ dbPensionCount !== 1 ? 's' : '' }}</p>
         </div>
@@ -171,7 +171,7 @@
         <div class="border-l-4 border-green-500 pl-4">
           <p class="text-sm text-gray-600 mb-1">State Pension</p>
           <p class="text-2xl font-bold text-gray-900">{{ formatCurrency(statePensionForecast) }}<span class="text-sm text-gray-500">/year</span></p>
-          <p class="text-sm text-gray-500 mt-1">{{ niYears }} NI years</p>
+          <p class="text-sm text-gray-500 mt-1">{{ niYears }} National Insurance years</p>
         </div>
       </div>
     </div>

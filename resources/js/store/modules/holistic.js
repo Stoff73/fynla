@@ -8,6 +8,9 @@ const state = {
     completedRecommendations: [],
     loading: false,
     error: null,
+    // Preview mode state
+    isPreviewMode: false,
+    previewData: null,
 };
 
 const getters = {
@@ -139,10 +142,37 @@ const mutations = {
         state.completedRecommendations = [];
         state.error = null;
     },
+
+    // Preview mode mutation
+    SET_PREVIEW_MODE(state, { isPreview, data }) {
+        state.isPreviewMode = isPreview;
+        state.previewData = data;
+
+        if (isPreview && data) {
+            // Set holistic analysis from preview if available
+            if (data.holistic_analysis) {
+                state.analysis = data.holistic_analysis;
+            }
+            if (data.holistic_plan) {
+                state.plan = data.holistic_plan;
+            }
+            if (data.recommendations) {
+                state.recommendations = data.recommendations;
+            }
+        } else if (!isPreview) {
+            state.isPreviewMode = false;
+            state.previewData = null;
+        }
+    },
 };
 
 const actions = {
-    async fetchAnalysis({ commit }) {
+    async fetchAnalysis({ commit, state }) {
+        // Skip API call if in preview mode
+        if (state.isPreviewMode) {
+            console.log('[holistic] Skipping fetchAnalysis - preview mode active');
+            return state.analysis;
+        }
         commit('SET_LOADING', true);
         commit('CLEAR_ERROR');
 
@@ -158,7 +188,12 @@ const actions = {
         }
     },
 
-    async fetchPlan({ commit }) {
+    async fetchPlan({ commit, state }) {
+        // Skip API call if in preview mode
+        if (state.isPreviewMode) {
+            console.log('[holistic] Skipping fetchPlan - preview mode active');
+            return state.plan;
+        }
         commit('SET_LOADING', true);
         commit('CLEAR_ERROR');
 
@@ -179,7 +214,12 @@ const actions = {
         }
     },
 
-    async fetchRecommendations({ commit }) {
+    async fetchRecommendations({ commit, state }) {
+        // Skip API call if in preview mode
+        if (state.isPreviewMode) {
+            console.log('[holistic] Skipping fetchRecommendations - preview mode active');
+            return state.recommendations;
+        }
         commit('SET_LOADING', true);
         commit('CLEAR_ERROR');
 
@@ -195,7 +235,12 @@ const actions = {
         }
     },
 
-    async fetchCashFlowAnalysis({ commit }) {
+    async fetchCashFlowAnalysis({ commit, state }) {
+        // Skip API call if in preview mode
+        if (state.isPreviewMode) {
+            console.log('[holistic] Skipping fetchCashFlowAnalysis - preview mode active');
+            return state.cashFlowAnalysis;
+        }
         commit('SET_LOADING', true);
         commit('CLEAR_ERROR');
 
@@ -272,6 +317,11 @@ const actions = {
 
     clearAll({ commit }) {
         commit('CLEAR_ALL');
+    },
+
+    // Preview mode action
+    setPreviewMode({ commit }, { isPreview, data }) {
+        commit('SET_PREVIEW_MODE', { isPreview, data });
     },
 };
 

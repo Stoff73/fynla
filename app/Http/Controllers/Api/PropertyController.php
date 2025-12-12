@@ -277,123 +277,15 @@ class PropertyController extends Controller
 
         $validated = $request->validated();
 
-        // Check if this is a joint property
+        // Handle joint property updates with value splitting
         $isJointProperty = in_array($property->ownership_type, ['joint', 'tenants_in_common']) && $property->joint_owner_id;
 
         if ($isJointProperty) {
-            // For joint properties, current_value in the form is the FULL value
-            // We need to split it according to ownership percentages
-            $reciprocalProperty = Property::where('user_id', $property->joint_owner_id)
-                ->where('joint_owner_id', $user->id)
-                ->where('address_line_1', $property->address_line_1)
-                ->where('postcode', $property->postcode)
-                ->first();
-
-            if ($reciprocalProperty) {
-                // Capture before values for logging
-                $beforeValues = [
-                    'current_value' => [
-                        'user_share' => $property->current_value,
-                        'joint_owner_share' => $reciprocalProperty->current_value,
-                        'full_value' => $property->current_value + $reciprocalProperty->current_value,
-                    ],
-                ];
-
-                // Get ownership percentages
-                $userPercentage = $property->ownership_percentage;
-                $jointOwnerPercentage = $reciprocalProperty->ownership_percentage;
-
-                // For tenants_in_common, allow percentage change from form
-                if ($property->ownership_type === 'tenants_in_common' && isset($validated['ownership_percentage'])) {
-                    $userPercentage = $validated['ownership_percentage'];
-                    $jointOwnerPercentage = 100.00 - $userPercentage;
-                }
-
-                // If current_value is provided, it's the FULL value - split it
-                if (isset($validated['current_value'])) {
-                    $fullValue = $validated['current_value'];
-                    $validated['current_value'] = $fullValue * ($userPercentage / 100);
-
-                    // Also split costs and rental income if provided (they are also FULL values)
-                    $costFields = [
-                        'monthly_rental_income',
-                        'monthly_council_tax',
-                        'monthly_gas',
-                        'monthly_electricity',
-                        'monthly_water',
-                        'monthly_building_insurance',
-                        'monthly_contents_insurance',
-                        'monthly_service_charge',
-                        'monthly_maintenance_reserve',
-                        'other_monthly_costs',
-                    ];
-
-                    foreach ($costFields as $field) {
-                        if (isset($validated[$field])) {
-                            $fullFieldValue = $validated[$field];
-                            $validated[$field] = $fullFieldValue * ($userPercentage / 100);
-                        }
-                    }
-
-                    // Prepare reciprocal update data
-                    $reciprocalData = $validated;
-                    $reciprocalData['current_value'] = $fullValue * ($jointOwnerPercentage / 100);
-                    $reciprocalData['ownership_percentage'] = $jointOwnerPercentage;
-
-                    // Split costs/income for reciprocal property
-                    foreach ($costFields as $field) {
-                        if (isset($validated[$field])) {
-                            // Recalculate from full value using joint owner's percentage
-                            $fullFieldValue = $validated[$field] / ($userPercentage / 100); // Get back full value
-                            $reciprocalData[$field] = $fullFieldValue * ($jointOwnerPercentage / 100);
-                        }
-                    }
-
-                    // Update reciprocal property
-                    $reciprocalProperty->update($reciprocalData);
-
-                    // Capture after values for logging
-                    $afterValues = [
-                        'current_value' => [
-                            'user_share' => $validated['current_value'],
-                            'joint_owner_share' => $reciprocalData['current_value'],
-                            'full_value' => $fullValue,
-                        ],
-                    ];
-
-                    // Log the joint account edit
-                    \App\Models\JointAccountLog::logEdit(
-                        $user->id,
-                        $property->joint_owner_id,
-                        $property,
-                        [
-                            'before' => $beforeValues,
-                            'after' => $afterValues,
-                            'fields_changed' => ['current_value'],
-                        ],
-                        'update'
-                    );
-                } else {
-                    // No value change, just update other fields on both properties
-                    $reciprocalProperty->update($validated);
-                }
-
-                // Update user's percentage if tenants_in_common
-                if ($property->ownership_type === 'tenants_in_common' && isset($validated['ownership_percentage'])) {
-                    $validated['ownership_percentage'] = $userPercentage;
-                }
-
-                // Sync rental income for joint owner
-                $jointOwner = \App\Models\User::find($property->joint_owner_id);
-                if ($jointOwner) {
-                    $this->syncUserRentalIncome($jointOwner);
-                }
-            }
+            $validated = $this->handleJointPropertyUpdate($property, $validated, $user);
         }
 
         // Update the user's property
         $property->update($validated);
-
         $property->load(['mortgages', 'household', 'trust']);
 
         // Sync rental income to user table
@@ -408,6 +300,177 @@ class PropertyController extends Controller
                 'property' => $summary,
             ],
         ]);
+    }
+
+    /**
+     * Handle joint property update by splitting values between owners
+     */
+    private function handleJointPropertyUpdate(Property $property, array $validated, \App\Models\User $user): array
+    {
+        $reciprocalProperty = Property::where('user_id', $property->joint_owner_id)
+            ->where('joint_owner_id', $user->id)
+            ->where('address_line_1', $property->address_line_1)
+            ->where('postcode', $property->postcode)
+            ->first();
+
+        if (! $reciprocalProperty) {
+            return $validated;
+        }
+
+        // Capture before values for logging
+        $beforeValues = $this->capturePropertyValues($property, $reciprocalProperty);
+
+        // Get ownership percentages (allow change for tenants_in_common)
+        [$userPercentage, $jointOwnerPercentage] = $this->calculateOwnershipPercentages(
+            $property,
+            $reciprocalProperty,
+            $validated
+        );
+
+        // Split values if current_value is provided
+        if (isset($validated['current_value'])) {
+            $fullValue = $validated['current_value'];
+            $validated = $this->splitPropertyValues($validated, $userPercentage);
+
+            // Prepare and update reciprocal property
+            $reciprocalData = $this->prepareReciprocalData($validated, $fullValue, $userPercentage, $jointOwnerPercentage);
+            $reciprocalProperty->update($reciprocalData);
+
+            // Log the joint account edit
+            $this->logJointPropertyUpdate($user, $property, $beforeValues, $validated, $reciprocalData, $fullValue);
+        } else {
+            // No value change, just update other fields on both properties
+            $reciprocalProperty->update($validated);
+        }
+
+        // Update user's percentage if tenants_in_common
+        if ($property->ownership_type === 'tenants_in_common' && isset($validated['ownership_percentage'])) {
+            $validated['ownership_percentage'] = $userPercentage;
+        }
+
+        // Sync rental income for joint owner
+        $jointOwner = \App\Models\User::find($property->joint_owner_id);
+        if ($jointOwner) {
+            $this->syncUserRentalIncome($jointOwner);
+        }
+
+        return $validated;
+    }
+
+    /**
+     * Capture property values before update for logging
+     */
+    private function capturePropertyValues(Property $property, Property $reciprocalProperty): array
+    {
+        return [
+            'current_value' => [
+                'user_share' => $property->current_value,
+                'joint_owner_share' => $reciprocalProperty->current_value,
+                'full_value' => $property->current_value + $reciprocalProperty->current_value,
+            ],
+        ];
+    }
+
+    /**
+     * Calculate ownership percentages for joint property update
+     */
+    private function calculateOwnershipPercentages(Property $property, Property $reciprocalProperty, array $validated): array
+    {
+        $userPercentage = $property->ownership_percentage;
+        $jointOwnerPercentage = $reciprocalProperty->ownership_percentage;
+
+        // For tenants_in_common, allow percentage change from form
+        if ($property->ownership_type === 'tenants_in_common' && isset($validated['ownership_percentage'])) {
+            $userPercentage = $validated['ownership_percentage'];
+            $jointOwnerPercentage = 100.00 - $userPercentage;
+        }
+
+        return [$userPercentage, $jointOwnerPercentage];
+    }
+
+    /**
+     * Split property values by ownership percentage
+     */
+    private function splitPropertyValues(array $validated, float $userPercentage): array
+    {
+        $costFields = $this->getPropertyCostFields();
+        $fullValue = $validated['current_value'];
+        $validated['current_value'] = $fullValue * ($userPercentage / 100);
+
+        foreach ($costFields as $field) {
+            if (isset($validated[$field])) {
+                $validated[$field] = $validated[$field] * ($userPercentage / 100);
+            }
+        }
+
+        return $validated;
+    }
+
+    /**
+     * Get list of property cost/income fields that need splitting
+     */
+    private function getPropertyCostFields(): array
+    {
+        return [
+            'monthly_rental_income',
+            'monthly_council_tax',
+            'monthly_gas',
+            'monthly_electricity',
+            'monthly_water',
+            'monthly_building_insurance',
+            'monthly_contents_insurance',
+            'monthly_service_charge',
+            'monthly_maintenance_reserve',
+            'other_monthly_costs',
+        ];
+    }
+
+    /**
+     * Prepare reciprocal property data for joint owner
+     */
+    private function prepareReciprocalData(array $validated, float $fullValue, float $userPercentage, float $jointOwnerPercentage): array
+    {
+        $reciprocalData = $validated;
+        $reciprocalData['current_value'] = $fullValue * ($jointOwnerPercentage / 100);
+        $reciprocalData['ownership_percentage'] = $jointOwnerPercentage;
+
+        // Recalculate cost fields for joint owner's percentage
+        $costFields = $this->getPropertyCostFields();
+        foreach ($costFields as $field) {
+            if (isset($validated[$field])) {
+                // Get back full value from user's split, then apply joint owner's percentage
+                $fullFieldValue = $validated[$field] / ($userPercentage / 100);
+                $reciprocalData[$field] = $fullFieldValue * ($jointOwnerPercentage / 100);
+            }
+        }
+
+        return $reciprocalData;
+    }
+
+    /**
+     * Log joint property update for audit trail
+     */
+    private function logJointPropertyUpdate(\App\Models\User $user, Property $property, array $beforeValues, array $validated, array $reciprocalData, float $fullValue): void
+    {
+        $afterValues = [
+            'current_value' => [
+                'user_share' => $validated['current_value'],
+                'joint_owner_share' => $reciprocalData['current_value'],
+                'full_value' => $fullValue,
+            ],
+        ];
+
+        \App\Models\JointAccountLog::logEdit(
+            $user->id,
+            $property->joint_owner_id,
+            $property,
+            [
+                'before' => $beforeValues,
+                'after' => $afterValues,
+                'fields_changed' => ['current_value'],
+            ],
+            'update'
+        );
     }
 
     /**

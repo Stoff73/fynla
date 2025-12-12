@@ -326,6 +326,10 @@ export default {
   },
 
   computed: {
+    isPreviewMode() {
+      return this.$store.getters['preview/isPreviewMode'];
+    },
+
     attributionChartOptions() {
       return {
         chart: {
@@ -382,11 +386,20 @@ export default {
   },
 
   mounted() {
-    this.loadPerformanceData();
+    if (!this.isPreviewMode) {
+      this.loadPerformanceData();
+    } else {
+      console.log('[PerformanceAttribution] Preview mode - skipping API call');
+      this.loading = false;
+    }
   },
 
   methods: {
     async loadPerformanceData() {
+      if (this.isPreviewMode) {
+        console.log('[PerformanceAttribution] Preview mode - skipping loadPerformanceData');
+        return;
+      }
       this.loading = true;
       this.error = null;
 

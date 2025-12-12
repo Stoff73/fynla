@@ -259,6 +259,10 @@ export default {
       'allPolicies',
     ]),
 
+    isPreviewMode() {
+      return this.$store.getters['preview/isPreviewMode'];
+    },
+
     hasNoPolicies() {
       // Check if all policy types have zero policies
       const totalPolicies =
@@ -392,6 +396,10 @@ export default {
     },
 
     async updateHasNoPoliciesFlag() {
+      if (this.isPreviewMode) {
+        console.log('[CurrentSituation] Preview mode - skipping API call');
+        return;
+      }
       try {
 
         // Call the API directly using protectionService and WAIT for it to complete

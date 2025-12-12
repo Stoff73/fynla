@@ -92,6 +92,10 @@ class User extends Authenticatable
         'onboarding_completed_at' => 'datetime',
         'uk_arrival_date' => 'date',
         'deemed_domicile_date' => 'date',
+        // Guidance system casts
+        'guidance_active' => 'boolean',
+        'guidance_completed' => 'boolean',
+        'guidance_current_step' => 'integer',
     ];
 
     /**
@@ -313,7 +317,7 @@ class User extends Authenticatable
     public function hasAcceptedSpousePermission(): bool
     {
         // No spouse linked
-        if (!$this->spouse_id) {
+        if (! $this->spouse_id) {
             return false;
         }
 
@@ -345,7 +349,7 @@ class User extends Authenticatable
      */
     public function calculateYearsUKResident(): ?int
     {
-        if (!$this->uk_arrival_date) {
+        if (! $this->uk_arrival_date) {
             return null;
         }
 
@@ -372,7 +376,7 @@ class User extends Authenticatable
         }
 
         // If no UK arrival date, cannot calculate deemed domicile
-        if (!$this->uk_arrival_date) {
+        if (! $this->uk_arrival_date) {
             return false;
         }
 

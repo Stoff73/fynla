@@ -101,6 +101,10 @@ export default {
     ...mapState('netWorth', ['loading', 'error', 'overview']),
     ...mapGetters('netWorth', ['formattedNetWorth', 'netWorth', 'totalAssets', 'totalLiabilities']),
 
+    isPreviewMode() {
+      return this.$store.getters['preview/isPreviewMode'];
+    },
+
     breakdown() {
       return this.overview.breakdown || {};
     },
@@ -136,6 +140,10 @@ export default {
     },
 
     async retry() {
+      if (this.isPreviewMode) {
+        console.log('[NetWorthOverviewCard] Preview mode - skipping retry');
+        return;
+      }
       await this.fetchOverview();
     },
   },

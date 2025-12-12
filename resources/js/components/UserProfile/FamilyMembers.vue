@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div class="mb-6 flex justify-between items-start">
+    <div class="mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
       <div>
         <h2 class="text-h4 font-semibold text-gray-900">Family Members</h2>
         <p class="mt-1 text-body-sm text-gray-600">
@@ -9,7 +9,7 @@
       </div>
       <button
         @click="openAddModal"
-        class="btn-primary"
+        class="btn-primary w-full sm:w-auto flex-shrink-0"
       >
         Add Family Member
       </button>
@@ -35,37 +35,39 @@
       >
         <div class="flex justify-between items-start">
           <div class="flex-1">
-            <div class="flex items-center space-x-3">
+            <div class="flex flex-wrap items-center gap-2 sm:gap-3">
               <h3 class="text-h5 font-semibold text-gray-900">{{ member.name }}</h3>
               <span
-                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize"
+                class="inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-xs font-medium capitalize"
                 :class="getRelationshipBadgeClass(member.relationship)"
               >
                 {{ formatRelationship(member.relationship) }}
               </span>
               <span
                 v-if="member.is_dependent"
-                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800"
+                class="inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800"
               >
                 Dependent
               </span>
               <span
                 v-if="member.is_shared && member.owner === 'spouse'"
-                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                class="inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
                 title="This family member is managed by your spouse"
               >
-                Shared from Spouse
+                <span class="hidden sm:inline">Shared from Spouse</span>
+                <span class="sm:hidden">Shared</span>
               </span>
               <!-- Linked Account Indicator for Spouse -->
               <span
                 v-if="member.relationship === 'spouse' && member.email"
-                class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"
+                class="inline-flex items-center gap-1 px-2 sm:px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"
                 title="Spouse account is linked"
               >
                 <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                 </svg>
-                Account Linked
+                <span class="hidden sm:inline">Account Linked</span>
+                <span class="sm:hidden">Linked</span>
               </span>
             </div>
 
@@ -211,6 +213,14 @@ export default {
     const charitableBequest = computed(() => store.state.auth.user?.charitable_bequest);
 
     const loadFamilyMembers = async () => {
+      // Check if in preview mode - use store data instead of API
+      const isPreviewMode = store.getters['preview/isPreviewMode'];
+      if (isPreviewMode) {
+        console.log('[FamilyMembers] Preview mode - using store data');
+        familyMembers.value = store.state.userProfile.familyMembers || [];
+        return;
+      }
+
       try {
         const response = await familyMembersService.getFamilyMembers();
         familyMembers.value = response.data?.family_members || [];

@@ -1,0 +1,279 @@
+{
+  "id": "young_family",
+  "name": "Emily & James Carter",
+  "tagline": "Young family building their future",
+  "description": "A young married couple in their early 30s with two children, mortgage, and workplace pensions. Good earnings but gaps in protection coverage.",
+
+  "user": {
+    "first_name": "James",
+    "last_name": "Carter",
+    "email": "james.carter@example.com",
+    "date_of_birth": "1990-05-15",
+    "age": 34,
+    "gender": "male",
+    "marital_status": "married",
+    "annual_income": 62000,
+    "employment_status": "employed",
+    "employer_name": "TechCorp Ltd",
+    "occupation": "Software Developer",
+    "target_retirement_age": 65,
+    "target_retirement_income": 35000,
+    "monthly_expenditure": 4200,
+    "health_status": "yes",
+    "smoking_status": "never",
+    "has_will": false,
+    "has_lasting_power_of_attorney": false,
+    "address": {
+      "line_1": "42 Oak Avenue",
+      "city": "Birmingham",
+      "postcode": "B15 2TT"
+    }
+  },
+
+  "spouse": {
+    "first_name": "Emily",
+    "last_name": "Carter",
+    "date_of_birth": "1992-08-22",
+    "age": 32,
+    "gender": "female",
+    "annual_income": 48000,
+    "employment_status": "employed",
+    "employer_name": "MediaGroup PLC",
+    "occupation": "Marketing Manager"
+  },
+
+  "family_members": [
+    {
+      "id": 1,
+      "first_name": "Oliver",
+      "last_name": "Carter",
+      "relationship": "child",
+      "date_of_birth": "2018-03-10",
+      "age": 6,
+      "is_dependent": true
+    },
+    {
+      "id": 2,
+      "first_name": "Sophie",
+      "last_name": "Carter",
+      "relationship": "child",
+      "date_of_birth": "2021-07-25",
+      "age": 3,
+      "is_dependent": true
+    }
+  ],
+
+  "properties": [
+    {
+      "id": 1,
+      "property_name": "Family Home",
+      "address": "42 Oak Avenue, Birmingham, B15 2TT",
+      "property_type": "main_residence",
+      "current_value": 320000,
+      "purchase_price": 285000,
+      "purchase_date": "2019-06-15",
+      "ownership_type": "joint",
+      "ownership_percentage": 100,
+      "is_primary_residence": true,
+      "bedrooms": 3,
+      "estimated_rental_value": 0,
+      "council_tax_band": "D"
+    }
+  ],
+
+  "mortgages": [
+    {
+      "id": 1,
+      "property_id": 1,
+      "lender_name": "Nationwide",
+      "outstanding_balance": 245000,
+      "original_amount": 256500,
+      "mortgage_type": "repayment",
+      "interest_rate": 4.89,
+      "rate_type": "fixed",
+      "fixed_rate_end_date": "2026-06-30",
+      "monthly_payment": 1485,
+      "remaining_term_months": 276,
+      "mortgage_start_date": "2019-06-15",
+      "ownership_type": "joint",
+      "ownership_percentage": 100
+    }
+  ],
+
+  "savings_accounts": [
+    {
+      "id": 1,
+      "account_name": "Emergency Fund",
+      "provider_name": "Marcus",
+      "account_type": "instant_access",
+      "current_balance": 8500,
+      "interest_rate": 4.55,
+      "is_isa": false,
+      "access_type": "immediate",
+      "ownership_type": "joint",
+      "monthly_contribution": 200
+    },
+    {
+      "id": 2,
+      "account_name": "Oliver's Junior ISA",
+      "provider_name": "Vanguard",
+      "account_type": "junior_isa",
+      "current_balance": 2800,
+      "interest_rate": 0,
+      "is_isa": true,
+      "ownership_type": "individual",
+      "monthly_contribution": 100,
+      "notes": "For Oliver's future education"
+    },
+    {
+      "id": 3,
+      "account_name": "Sophie's Junior ISA",
+      "provider_name": "Vanguard",
+      "account_type": "junior_isa",
+      "current_balance": 1400,
+      "interest_rate": 0,
+      "is_isa": true,
+      "ownership_type": "individual",
+      "monthly_contribution": 100,
+      "notes": "For Sophie's future education"
+    }
+  ],
+
+  "investment_accounts": [
+    {
+      "id": 1,
+      "account_name": "James's S&S ISA",
+      "provider_name": "Vanguard",
+      "account_type": "isa",
+      "current_value": 15000,
+      "annual_contribution": 4800,
+      "ownership_type": "individual",
+      "risk_profile": "balanced",
+      "holdings": [
+        {
+          "id": 1,
+          "holding_name": "Vanguard LifeStrategy 80%",
+          "asset_type": "fund",
+          "current_value": 15000,
+          "allocation_percentage": 100,
+          "annual_fee": 0.22
+        }
+      ]
+    }
+  ],
+
+  "dc_pensions": [
+    {
+      "id": 1,
+      "scheme_name": "TechCorp Pension Scheme",
+      "provider_name": "Scottish Widows",
+      "pension_type": "occupational",
+      "scheme_type": "workplace",
+      "current_fund_value": 45000,
+      "employee_contribution_percent": 5,
+      "employer_contribution_percent": 8,
+      "annual_salary": 62000,
+      "retirement_age": 65,
+      "ownership_type": "individual",
+      "notes": "Auto-enrolled workplace pension"
+    },
+    {
+      "id": 2,
+      "scheme_name": "MediaGroup Pension",
+      "provider_name": "Aviva",
+      "pension_type": "occupational",
+      "scheme_type": "workplace",
+      "current_fund_value": 22000,
+      "employee_contribution_percent": 4,
+      "employer_contribution_percent": 5,
+      "annual_salary": 48000,
+      "retirement_age": 65,
+      "ownership_type": "individual",
+      "notes": "Emily's workplace pension"
+    }
+  ],
+
+  "db_pensions": [],
+
+  "state_pension": null,
+
+  "life_insurance_policies": [
+    {
+      "id": 1,
+      "policy_type": "level_term",
+      "provider_name": "Legal & General",
+      "sum_assured": 350000,
+      "premium_amount": 32,
+      "premium_frequency": "monthly",
+      "policy_start_date": "2019-07-01",
+      "policy_end_date": "2044-07-01",
+      "in_trust": false,
+      "joint_life": true,
+      "policy_reference": "LG-TERM-789456",
+      "notes": "Joint level term for mortgage protection"
+    }
+  ],
+
+  "critical_illness_policies": [],
+
+  "income_protection_policies": [],
+
+  "disability_policies": [],
+
+  "sickness_illness_policies": [],
+
+  "liabilities": [
+    {
+      "id": 1,
+      "liability_type": "hire_purchase",
+      "liability_name": "Ford Focus Car Finance",
+      "current_balance": 12000,
+      "original_amount": 18000,
+      "interest_rate": 6.9,
+      "monthly_payment": 350,
+      "start_date": "2022-09-01",
+      "end_date": "2026-09-01",
+      "lender_name": "Ford Credit"
+    }
+  ],
+
+  "gifts": [],
+
+  "trusts": [],
+
+  "business_interests": [],
+
+  "chattels": [],
+
+  "expenditure": {
+    "total_monthly": 4200,
+    "categories": {
+      "housing": 1485,
+      "utilities": 250,
+      "food": 600,
+      "transport": 450,
+      "childcare": 800,
+      "insurance": 150,
+      "entertainment": 200,
+      "clothing": 100,
+      "other": 165
+    }
+  },
+
+  "key_concerns": [
+    "Do we have enough life insurance if something happens?",
+    "How much should we have in our emergency fund?",
+    "Are we saving enough for our children's education?",
+    "When can we afford to move to a bigger house?"
+  ],
+
+  "highlights": {
+    "protection_gaps": [
+      "No critical illness coverage - gap identified",
+      "No income protection - gap identified",
+      "Life insurance exists but adequacy score shows potential shortfall"
+    ],
+    "net_worth_range": "80k - 120k",
+    "primary_focus": "Protection gaps, emergency fund"
+  }
+}

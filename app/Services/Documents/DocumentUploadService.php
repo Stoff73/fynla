@@ -22,12 +22,16 @@ class DocumentUploadService
         'image/jpeg',
         'image/png',
         'image/webp',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // xlsx
+        'application/vnd.ms-excel', // xls
+        'text/csv',
+        'application/csv',
     ];
 
     /**
-     * Maximum file size in bytes (10MB).
+     * Maximum file size in bytes (100MB).
      */
-    private const MAX_FILE_SIZE = 10 * 1024 * 1024;
+    private const MAX_FILE_SIZE = 100 * 1024 * 1024;
 
     /**
      * Upload a document and create a database record.
@@ -42,7 +46,7 @@ class DocumentUploadService
 
         // Generate secure filename using UUID
         $extension = $file->getClientOriginalExtension() ?: $this->getExtensionFromMime($file->getMimeType());
-        $storedFilename = Str::uuid()->toString() . '.' . $extension;
+        $storedFilename = Str::uuid()->toString().'.'.$extension;
 
         // Store in user-specific directory
         $path = "documents/{$user->id}/{$storedFilename}";
@@ -147,9 +151,9 @@ class DocumentUploadService
     private function validateFile(UploadedFile $file): void
     {
         // Check MIME type
-        if (!in_array($file->getMimeType(), self::ALLOWED_MIME_TYPES, true)) {
+        if (! in_array($file->getMimeType(), self::ALLOWED_MIME_TYPES, true)) {
             throw new InvalidArgumentException(
-                'Invalid file type. Allowed types: PDF, JPEG, PNG, WebP'
+                'Invalid file type. Allowed types: PDF, JPEG, PNG, WebP, Excel (XLSX, XLS), CSV'
             );
         }
 
@@ -161,7 +165,7 @@ class DocumentUploadService
         }
 
         // Check if file is readable
-        if (!$file->isReadable()) {
+        if (! $file->isReadable()) {
             throw new InvalidArgumentException(
                 'Unable to read the uploaded file'
             );
@@ -178,6 +182,9 @@ class DocumentUploadService
             'image/jpeg' => 'jpg',
             'image/png' => 'png',
             'image/webp' => 'webp',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => 'xlsx',
+            'application/vnd.ms-excel' => 'xls',
+            'text/csv', 'application/csv' => 'csv',
             default => 'bin',
         };
     }

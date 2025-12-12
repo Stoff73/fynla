@@ -107,12 +107,26 @@ export default {
     };
   },
 
+  computed: {
+    isPreviewMode() {
+      return this.$store.getters['preview/isPreviewMode'];
+    },
+  },
+
   mounted() {
-    this.fetchLogs();
+    if (!this.isPreviewMode) {
+      this.fetchLogs();
+    } else {
+      console.log('[JointAccountHistory] Preview mode - skipping API call');
+    }
   },
 
   methods: {
     async fetchLogs() {
+      if (this.isPreviewMode) {
+        console.log('[JointAccountHistory] Preview mode - skipping fetchLogs');
+        return;
+      }
       this.loading = true;
       this.error = null;
 

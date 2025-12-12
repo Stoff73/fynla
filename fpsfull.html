@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TenGo Decision Platform - Complete Documentation</title>
+    <title>Fynla Decision Platform - Complete Documentation</title>
     <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
     <style>
         :root {
@@ -310,7 +310,7 @@
 </head>
 <body>
     <header>
-        <h1>TenGo Decision Platform</h1>
+        <h1>Fynla Decision Platform</h1>
         <p>Next-Generation Financial Planning Software Ecosystem</p>
     </header>
 
@@ -332,13 +332,13 @@
     <div class="container">
         <section id="executive-summary">
             <h2>Executive Summary</h2>
-            <p><strong>TenGo Decision Platform</strong> is the intelligent backend core of <strong>TenGo</strong>, a next-generation <strong>Financial Planning Software</strong> ecosystem. It centralizes and operationalizes the <strong>rules, decision trees, regulations, and financial calculations</strong> that autonomous agents use to deliver expert financial guidance.</p>
+            <p><strong>Fynla Decision Platform</strong> is the intelligent backend core of <strong>Fynla</strong>, a next-generation <strong>Financial Planning Software</strong> ecosystem. It centralizes and operationalizes the <strong>rules, decision trees, regulations, and financial calculations</strong> that autonomous agents use to deliver expert financial guidance.</p>
 
-            <p>Together, TenGo Decision Platform (backend) and TenGo (frontend) enable the delivery of <strong>professional-grade financial advice — without the need for a human advisor</strong>.</p>
+            <p>Together, Fynla Decision Platform (backend) and Fynla (frontend) enable the delivery of <strong>professional-grade financial advice — without the need for a human advisor</strong>.</p>
 
-            <p>Targeting <strong>high-net-worth individuals</strong>, TenGo offers a <strong>holistic, data-driven approach</strong> to financial planning — encompassing investments, taxation, insurance, retirement, and estate management in a single, integrated experience.</p>
+            <p>Targeting <strong>high-net-worth individuals</strong>, Fynla offers a <strong>holistic, data-driven approach</strong> to financial planning — encompassing investments, taxation, insurance, retirement, and estate management in a single, integrated experience.</p>
 
-            <p>Unlike traditional financial planning tools that operate in silos, the TenGo ecosystem fuses human-level reasoning with machine precision. It ensures that every recommendation is <strong>consistent, compliant, and personalized</strong> — grounded in real-time data and a transparent decision logic layer.</p>
+            <p>Unlike traditional financial planning tools that operate in silos, the Fynla ecosystem fuses human-level reasoning with machine precision. It ensures that every recommendation is <strong>consistent, compliant, and personalized</strong> — grounded in real-time data and a transparent decision logic layer.</p>
 
             <h3>Key Architectural Innovations</h3>
             <ul>
@@ -346,7 +346,7 @@
                 <li><strong>Clean Layer Separation:</strong> Application layer (agents, workflow, dashboards) strictly separated from runtime services layer (calculation engines, data stores) via MCP interface. This enables independent scaling, deployment, and evolution of each layer.</li>
                 <li><strong>Modular Architecture:</strong> Five domain-specific modules (Protection, Savings, Investment, Retirement, Estate Planning), each with a runtime service (stateless calculation engine) and application agent (intelligent orchestrator). Services accessed exclusively via MCP tools.</li>
                 <li><strong>Governing Advice Agent:</strong> Application-layer orchestrator that invokes module agents, reconciles cross-module trade-offs, and delivers coherent, household-level financial plans to the main dashboard.</li>
-                <li><strong>Bidirectional Dashboard Architecture:</strong> TenGo Frontend interconnects Main Dashboard and Module Dashboards bidirectionally, enabling seamless navigation. Main Dashboard displays unified insights from Governing Agent; Module Dashboards show domain-specific details from Module Agents.</li>
+                <li><strong>Bidirectional Dashboard Architecture:</strong> Fynla Frontend interconnects Main Dashboard and Module Dashboards bidirectionally, enabling seamless navigation. Main Dashboard displays unified insights from Governing Agent; Module Dashboards show domain-specific details from Module Agents.</li>
                 <li><strong>Goal-Driven Decision Flow:</strong> Module agents retrieve goals from Context Store, invoke module services via MCP for calculations, and produce actionable recommendations with steps, products, and timelines.</li>
             </ul>
         </section>
@@ -371,7 +371,7 @@
             <p>Consumers — even high-net-worth individuals — face a fragmented experience: costly, inconsistent, and often misaligned with their holistic financial goals.</p>
 
             <div class="highlight">
-                <p>The <strong>TenGo Decision Platform</strong> addresses these problems by systematizing the <strong>logic, regulations, and decision models</strong> behind financial advice, making expert-level financial planning available <strong>instantly, transparently, and at scale</strong> — without human bottlenecks or bias.</p>
+                <p>The <strong>Fynla Decision Platform</strong> addresses these problems by systematizing the <strong>logic, regulations, and decision models</strong> behind financial advice, making expert-level financial planning available <strong>instantly, transparently, and at scale</strong> — without human bottlenecks or bias.</p>
             </div>
         </section>
 
@@ -416,7 +416,7 @@
                 <li>
                     <h4>Application Layer (Agents + Workflow + UI)</h4>
                     <ul>
-                        <li><strong>TenGo Frontend:</strong> Web/mobile interface with main dashboard and module-specific dashboards. Main dashboard displays aggregated insights; module dashboards show detailed domain-specific views. All dashboards interconnect bidirectionally for seamless navigation.</li>
+                        <li><strong>Fynla Frontend:</strong> Web/mobile interface with main dashboard and module-specific dashboards. Main dashboard displays aggregated insights; module dashboards show detailed domain-specific views. All dashboards interconnect bidirectionally for seamless navigation.</li>
                         <li><strong>Governing Advice Agent:</strong> Application-layer orchestrator that calls module agents, consumes their recommendations, applies goal-driven priority & constraint solver, and produces unified household-level plans. Accesses runtime services exclusively via MCP tools.</li>
                         <li><strong>Module Agents:</strong> Domain-specific agents (Protection, Savings, Investment, Retirement, Estate Planning) that retrieve state via <code>context.*</code>, call module-specific MCP tools to access runtime services, and return structured <code>Recommendation</code> objects. Driven by the Governing Agent.</li>
                         <li><strong>Workflow Orchestrator:</strong> Owns process/state machine, determines which agent runs next, supplies user context, and persists session state.</li>
@@ -447,7 +447,7 @@
             <h3>Architectural Flow Summary</h3>
             <p><strong>User Interaction Flow:</strong></p>
             <ol>
-                <li>User accesses <strong>TenGo Frontend</strong> (application layer) and navigates between Main Dashboard and Module Dashboards bidirectionally.</li>
+                <li>User accesses <strong>Fynla Frontend</strong> (application layer) and navigates between Main Dashboard and Module Dashboards bidirectionally.</li>
                 <li><strong>Main Dashboard</strong> requests unified plan from <strong>Governing Advice Agent</strong> (application layer).</li>
                 <li><strong>Governing Advice Agent</strong> invokes <strong>Module Agents</strong> (Protection, Savings, Investment, etc.) in application layer.</li>
                 <li><strong>Module Agents</strong> retrieve user context/goals from <strong>Context Store</strong> (application layer), then call <strong>Module Services</strong> via <strong>MCP tools</strong>.</li>
@@ -524,7 +524,7 @@
                   MODTOOLS --> ModSvc
 
                   subgraph App["Application Layer"]
-                    UI[TenGo Frontend]
+                    UI[Fynla Frontend]
                     MAIN[Main Dashboard]
                     DASH[Module Dashboards]
 
@@ -1112,7 +1112,7 @@
 
         <section id="authoring">
             <h2>No-Code Authoring Studio</h2>
-            <p>The Authoring Studio enables non-technical users (compliance officers, regulatory specialists, financial experts) to maintain the decision logic that powers TenGo — without writing code.</p>
+            <p>The Authoring Studio enables non-technical users (compliance officers, regulatory specialists, financial experts) to maintain the decision logic that powers Fynla — without writing code.</p>
 
             <h3>Authoring Methods</h3>
             <table>
@@ -1364,7 +1364,7 @@ Action {
             <h2>Target Users</h2>
 
             <h3>Primary User Segment: High-Net-Worth Individuals (HNWIs)</h3>
-            <p>TenGo is built for <strong>individuals seeking holistic, compliant financial guidance</strong> — without the bias or cost of traditional advisors. These users typically manage complex financial lives with multiple assets, obligations, and jurisdictions, and require accuracy, transparency, and convenience in one system.</p>
+            <p>Fynla is built for <strong>individuals seeking holistic, compliant financial guidance</strong> — without the bias or cost of traditional advisors. These users typically manage complex financial lives with multiple assets, obligations, and jurisdictions, and require accuracy, transparency, and convenience in one system.</p>
 
             <h4>Key Characteristics</h4>
             <ul>
@@ -1374,17 +1374,17 @@ Action {
                 <li><strong>Goals:</strong> Optimize and protect wealth through compliant, holistic planning that evolves automatically as their financial environment changes.</li>
             </ul>
 
-            <h4>How TenGo Serves Them</h4>
+            <h4>How Fynla Serves Them</h4>
             <ul>
-                <li>Users interact directly with the <strong>TenGo frontend</strong>, providing input data manually or via <strong>secure, user-authorized API integrations</strong> with their financial institutions.</li>
-                <li>These integrations allow TenGo to <strong>automatically ingest and refresh financial data</strong> — including accounts, holdings, insurance, loans, tax documents, and market products — reducing friction and human error.</li>
+                <li>Users interact directly with the <strong>Fynla frontend</strong>, providing input data manually or via <strong>secure, user-authorized API integrations</strong> with their financial institutions.</li>
+                <li>These integrations allow Fynla to <strong>automatically ingest and refresh financial data</strong> — including accounts, holdings, insurance, loans, tax documents, and market products — reducing friction and human error.</li>
                 <li>All API access is <strong>permission-based</strong> and fully transparent; users can review, grant, or revoke data connections at any time.</li>
-                <li>The TenGo Decision Platform processes this data through validated rules and models, generating <strong>recommendations and explanations</strong> that are accurate, up-to-date, and auditable.</li>
+                <li>The Fynla Decision Platform processes this data through validated rules and models, generating <strong>recommendations and explanations</strong> that are accurate, up-to-date, and auditable.</li>
                 <li>Users can include <strong>family members or dependents</strong>, ensuring true household-level financial planning and decision impact analysis.</li>
             </ul>
 
             <h3>Secondary User Segment: Financial Services Professionals</h3>
-            <p>While the initial rollout focuses on individuals, TenGo is designed for seamless expansion into the professional space.</p>
+            <p>While the initial rollout focuses on individuals, Fynla is designed for seamless expansion into the professional space.</p>
 
             <h4>Regulatory Authors & Compliance Officers</h4>
             <ul>
@@ -1395,7 +1395,7 @@ Action {
 
             <h4>Financial Advisors (Future)</h4>
             <ul>
-                <li><strong>Role:</strong> Use TenGo Decision Platform as a decision verification and automation layer.</li>
+                <li><strong>Role:</strong> Use Fynla Decision Platform as a decision verification and automation layer.</li>
                 <li><strong>Access:</strong> Secure API / Dashboard with client-authorized data sharing.</li>
                 <li><strong>Output:</strong> Validation reports, compliance summaries, bulk client evaluations.</li>
             </ul>
@@ -1415,7 +1415,7 @@ Action {
                 <tbody>
                     <tr>
                         <td>Individual / Family</td>
-                        <td>TenGo Frontend (Web/Mobile)</td>
+                        <td>Fynla Frontend (Web/Mobile)</td>
                         <td>User-controlled</td>
                         <td>Manual input + User-authorized APIs</td>
                         <td>Personalized Recommendations & Explanations</td>
@@ -1604,7 +1604,7 @@ Action {
 
             <h3>Core Features (Must Have)</h3>
 
-            <h4>Backend – TenGo Decision Platform</h4>
+            <h4>Backend – Fynla Decision Platform</h4>
             <table>
                 <thead>
                     <tr>
@@ -1692,7 +1692,7 @@ Action {
                 </tbody>
             </table>
 
-            <h4>Frontend – TenGo Application</h4>
+            <h4>Frontend – Fynla Application</h4>
             <table>
                 <thead>
                     <tr>
@@ -1806,7 +1806,7 @@ Action {
                   MOD_T --> MVP_Svc
 
                   subgraph App_MVP["Application Layer (MVP)"]
-                    UI_MVP[TenGo Frontend]
+                    UI_MVP[Fynla Frontend]
                     MAIN_DASH[Main Dashboard]
                     MOD_DASH[Module Dashboards x5]
 
@@ -1966,7 +1966,7 @@ Action {
             <div class="mermaid">
                 flowchart TB
                   subgraph AppLayer["Application Layer"]
-                    UI[TenGo Frontend]
+                    UI[Fynla Frontend]
                     MAIN_D[Main Dashboard]
                     MOD_D[Module Dashboards]
 
@@ -2094,7 +2094,7 @@ Action {
                     </tr>
                 </tbody>
             </table>
-            <p><strong>Dashboard Interconnection:</strong> TenGo Frontend enables bidirectional navigation between Main Dashboard and Module Dashboards. Users can drill down from aggregated insights to domain-specific details and back seamlessly.</p>
+            <p><strong>Dashboard Interconnection:</strong> Fynla Frontend enables bidirectional navigation between Main Dashboard and Module Dashboards. Users can drill down from aggregated insights to domain-specific details and back seamlessly.</p>
         </section>
 
         <section id="roadmap">
@@ -2103,7 +2103,7 @@ Action {
             <h3>Long-Term Vision</h3>
             <p>To create a <strong>global, compliant, and explainable financial decision infrastructure</strong> that unifies financial rules, tax systems, and products across jurisdictions — enabling consistent, regulatory-grade advice anywhere a user holds assets or obligations.</p>
 
-            <h3>Phase 2A: Professional & Advisor Enablement (TenGo Pro)</h3>
+            <h3>Phase 2A: Professional & Advisor Enablement (Fynla Pro)</h3>
             <table>
                 <thead>
                     <tr>
@@ -2116,7 +2116,7 @@ Action {
                     <tr>
                         <td>Advisor Portal / Dashboard</td>
                         <td>Dedicated interface for professionals to view, validate, and override recommendations with reasoning logs</td>
-                        <td>TenGo Pro dashboard + client linking</td>
+                        <td>Fynla Pro dashboard + client linking</td>
                     </tr>
                     <tr>
                         <td>Client-Advisor Collaboration</td>
@@ -2147,7 +2147,7 @@ Action {
             </table>
 
             <h3>Phase 2B: Cross-Border Integration (Global Expansion Foundations)</h3>
-            <p><strong>Objective:</strong> Extend TenGo's decision intelligence to support <strong>multi-jurisdictional financial planning</strong> — beginning with <strong>South Africa</strong>, <strong>Australia</strong>, and the <strong>United States</strong>.</p>
+            <p><strong>Objective:</strong> Extend Fynla's decision intelligence to support <strong>multi-jurisdictional financial planning</strong> — beginning with <strong>South Africa</strong>, <strong>Australia</strong>, and the <strong>United States</strong>.</p>
 
             <h4>Deliverables by Jurisdiction</h4>
             <table>
@@ -2197,8 +2197,8 @@ Action {
             <ul>
                 <li><strong>Institutional Partnerships:</strong> Direct integrations with banks, insurers, pension providers, custodians.</li>
                 <li><strong>Third-Party Marketplace:</strong> Plugin architecture for additional services (legal, accounting, mortgage brokerage).</li>
-                <li><strong>API-First Platform:</strong> Enable external developers to build on TenGo infrastructure.</li>
-                <li><strong>White-Label Offerings:</strong> Financial institutions deploy TenGo as their advisory backbone.</li>
+                <li><strong>API-First Platform:</strong> Enable external developers to build on Fynla infrastructure.</li>
+                <li><strong>White-Label Offerings:</strong> Financial institutions deploy Fynla as their advisory backbone.</li>
             </ul>
 
             <h3>Phase 5: Regulatory Certification & Trust</h3>
@@ -2213,7 +2213,7 @@ Action {
             <div class="mermaid">
                 gantt
                     dateFormat  YYYY-MM-DD
-                    title TenGo Roadmap
+                    title Fynla Roadmap
 
                     section Phase 1
                     MVP Core Platform (5 Modules) :active, p1, 2025-10-01, 2025-12-31
@@ -2278,11 +2278,11 @@ Action {
             <p><strong>Post-2027:</strong> Phase 5 (Regulatory Certification) continues into 2028-2029, focusing on formal regulatory approval, SOC2 Type II certification, industry standards contribution, and academic validation.</p>
 
             <h3>Ultimate Outcome</h3>
-            <p>TenGo evolves from a decision engine into the <strong>digital backbone of financial planning</strong> —
+            <p>Fynla evolves from a decision engine into the <strong>digital backbone of financial planning</strong> —
             a platform where logic, data, and compliance converge to give every individual and professional access to <strong>perfectly transparent, adaptive financial advice</strong>.</p>
 
             <blockquote>
-                <em>"TenGo doesn't replace the advisor. It replaces everything that limits one."</em>
+                <em>"Fynla doesn't replace the advisor. It replaces everything that limits one."</em>
             </blockquote>
         </section>
 

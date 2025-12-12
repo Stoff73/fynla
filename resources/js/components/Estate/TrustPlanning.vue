@@ -236,9 +236,17 @@ export default {
 
   computed: {
     ...mapState('estate', ['trusts']),
+    isPreviewMode() {
+      return this.$store.getters['preview/isPreviewMode'];
+    },
   },
 
   mounted() {
+    if (this.isPreviewMode) {
+      console.log('[TrustPlanning] Preview mode - skipping API calls');
+      this.loading = false;
+      return;
+    }
     this.loadTrusts();
     this.loadRecommendations();
   },

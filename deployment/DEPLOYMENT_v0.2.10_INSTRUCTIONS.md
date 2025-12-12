@@ -1,4 +1,4 @@
-# TenGo v0.2.10 (Boma Build) - Production Deployment Instructions
+# Fynla v0.2.10 (Boma Build) - Production Deployment Instructions
 
 **Date**: November 20, 2025
 **Branch**: Boma

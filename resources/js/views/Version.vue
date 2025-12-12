@@ -5,7 +5,7 @@
       <div class="mb-8">
         <h1 class="text-h2 font-display text-gray-900">Version Information</h1>
         <p class="mt-2 text-body-base text-gray-600">
-          TenGo - Financial Planning System version history and changelog
+          Fynla - Financial Planning System version history and changelog
         </p>
       </div>
 
@@ -340,7 +340,7 @@
                   <li>• Letter to Spouse feature with comprehensive emergency instructions</li>
                   <li>• Dual view mode (edit own letter, view spouse's letter)</li>
                   <li>• Auto-population from all modules (Protection, Estate, Savings, etc.)</li>
-                  <li>• Application rebranding from "FPS" to "TenGo"</li>
+                  <li>• Application rebranding from "FPS" to "Fynla"</li>
                 </ul>
               </div>
               <div>

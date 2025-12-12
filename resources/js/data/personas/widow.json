@@ -1,0 +1,443 @@
+{
+  "id": "widow",
+  "name": "Margaret Thompson",
+  "tagline": "Retired widow with estate concerns",
+  "description": "A 68-year-old retired headteacher who was widowed 2 years ago. Multiple properties, substantial investments, and complex estate planning needs.",
+
+  "user": {
+    "first_name": "Margaret",
+    "last_name": "Thompson",
+    "email": "margaret.thompson@example.com",
+    "date_of_birth": "1956-03-14",
+    "age": 68,
+    "gender": "female",
+    "marital_status": "widowed",
+    "annual_income": 39500,
+    "employment_status": "retired",
+    "former_employer": "Gloucestershire County Council",
+    "occupation": "Retired Headteacher",
+    "monthly_expenditure": 3200,
+    "health_status": "yes_previous",
+    "smoking_status": "never",
+    "has_will": true,
+    "has_lasting_power_of_attorney": true,
+    "address": {
+      "line_1": "Rose Cottage, 8 Church Lane",
+      "city": "Bourton-on-the-Water",
+      "county": "Gloucestershire",
+      "postcode": "GL54 2BY"
+    }
+  },
+
+  "spouse": {
+    "first_name": "Robert",
+    "last_name": "Thompson",
+    "date_of_birth": "1954-06-22",
+    "date_of_death": "2022-11-15",
+    "deceased": true,
+    "notes": "Passed away 2 years ago - transferred NRB and RNRB"
+  },
+
+  "family_members": [
+    {
+      "id": 1,
+      "first_name": "Andrew",
+      "last_name": "Thompson",
+      "relationship": "child",
+      "date_of_birth": "1982-05-20",
+      "age": 42,
+      "is_dependent": false,
+      "notes": "Eldest son, lives in London"
+    },
+    {
+      "id": 2,
+      "first_name": "Catherine",
+      "last_name": "Williams",
+      "relationship": "child",
+      "date_of_birth": "1984-08-12",
+      "age": 40,
+      "is_dependent": false,
+      "notes": "Daughter, lives locally with 2 children"
+    },
+    {
+      "id": 3,
+      "first_name": "Richard",
+      "last_name": "Thompson",
+      "relationship": "child",
+      "date_of_birth": "1988-01-30",
+      "age": 36,
+      "is_dependent": false,
+      "notes": "Youngest son, lives in Bristol"
+    },
+    {
+      "id": 4,
+      "first_name": "Emily",
+      "last_name": "Williams",
+      "relationship": "other_dependent",
+      "date_of_birth": "2014-04-15",
+      "age": 10,
+      "is_dependent": false,
+      "notes": "Grandchild - Catherine's daughter"
+    },
+    {
+      "id": 5,
+      "first_name": "James",
+      "last_name": "Williams",
+      "relationship": "other_dependent",
+      "date_of_birth": "2017-09-22",
+      "age": 7,
+      "is_dependent": false,
+      "notes": "Grandchild - Catherine's son"
+    },
+    {
+      "id": 6,
+      "first_name": "Sophie",
+      "last_name": "Thompson",
+      "relationship": "other_dependent",
+      "date_of_birth": "2016-03-10",
+      "age": 8,
+      "is_dependent": false,
+      "notes": "Grandchild - Andrew's daughter"
+    },
+    {
+      "id": 7,
+      "first_name": "Oliver",
+      "last_name": "Thompson",
+      "relationship": "other_dependent",
+      "date_of_birth": "2019-07-05",
+      "age": 5,
+      "is_dependent": false,
+      "notes": "Grandchild - Andrew's son"
+    },
+    {
+      "id": 8,
+      "first_name": "Lucy",
+      "last_name": "Thompson",
+      "relationship": "other_dependent",
+      "date_of_birth": "2018-11-28",
+      "age": 6,
+      "is_dependent": false,
+      "notes": "Grandchild - Richard's daughter"
+    }
+  ],
+
+  "properties": [
+    {
+      "id": 1,
+      "property_name": "Rose Cottage",
+      "address": "8 Church Lane, Bourton-on-the-Water, Gloucestershire, GL54 2BY",
+      "property_type": "main_residence",
+      "current_value": 625000,
+      "purchase_price": 280000,
+      "purchase_date": "2002-05-01",
+      "ownership_type": "individual",
+      "ownership_percentage": 100,
+      "is_primary_residence": true,
+      "bedrooms": 4,
+      "estimated_rental_value": 0,
+      "council_tax_band": "F",
+      "notes": "Mortgage paid off - full ownership"
+    },
+    {
+      "id": 2,
+      "property_name": "Seaside Cottage",
+      "address": "14 Harbour View, Padstow, Cornwall, PL28 8AE",
+      "property_type": "secondary_residence",
+      "current_value": 285000,
+      "purchase_price": 175000,
+      "purchase_date": "2008-06-15",
+      "ownership_type": "individual",
+      "ownership_percentage": 100,
+      "is_primary_residence": false,
+      "bedrooms": 2,
+      "estimated_rental_value": 1200,
+      "actual_rental_income": 0,
+      "council_tax_band": "D",
+      "notes": "Holiday cottage - family use only, not let"
+    }
+  ],
+
+  "mortgages": [],
+
+  "savings_accounts": [
+    {
+      "id": 1,
+      "account_name": "Cash ISA",
+      "provider_name": "Nationwide",
+      "account_type": "cash_isa",
+      "current_balance": 85000,
+      "interest_rate": 4.5,
+      "is_isa": true,
+      "isa_subscription_current_year": 10000,
+      "access_type": "immediate",
+      "ownership_type": "individual",
+      "monthly_contribution": 500
+    },
+    {
+      "id": 2,
+      "account_name": "NS&I Direct Saver",
+      "provider_name": "NS&I",
+      "account_type": "nsi",
+      "current_balance": 50000,
+      "interest_rate": 4.0,
+      "is_isa": false,
+      "access_type": "immediate",
+      "ownership_type": "individual",
+      "notes": "Government-backed savings"
+    }
+  ],
+
+  "investment_accounts": [
+    {
+      "id": 1,
+      "account_name": "Stocks & Shares ISA",
+      "provider_name": "Hargreaves Lansdown",
+      "account_type": "isa",
+      "current_value": 220000,
+      "annual_contribution": 10000,
+      "ownership_type": "individual",
+      "risk_profile": "cautious",
+      "holdings": [
+        {
+          "id": 1,
+          "holding_name": "Vanguard LifeStrategy 40",
+          "asset_type": "fund",
+          "current_value": 110000,
+          "allocation_percentage": 50,
+          "annual_fee": 0.22
+        },
+        {
+          "id": 2,
+          "holding_name": "iShares Corporate Bond",
+          "asset_type": "bond",
+          "current_value": 66000,
+          "allocation_percentage": 30,
+          "annual_fee": 0.2
+        },
+        {
+          "id": 3,
+          "holding_name": "Vanguard UK Equity Income",
+          "asset_type": "fund",
+          "current_value": 44000,
+          "allocation_percentage": 20,
+          "annual_fee": 0.22
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "account_name": "Offshore Bond",
+      "provider_name": "Quilter International",
+      "account_type": "offshore_bond",
+      "current_value": 150000,
+      "annual_contribution": 0,
+      "ownership_type": "individual",
+      "notes": "For tax-efficient withdrawals in retirement"
+    },
+    {
+      "id": 3,
+      "account_name": "General Investment Account",
+      "provider_name": "Hargreaves Lansdown",
+      "account_type": "gia",
+      "current_value": 180000,
+      "annual_contribution": 0,
+      "ownership_type": "individual",
+      "risk_profile": "balanced",
+      "holdings": [
+        {
+          "id": 4,
+          "holding_name": "City of London IT",
+          "asset_type": "uk_equity",
+          "current_value": 60000,
+          "allocation_percentage": 33.3,
+          "annual_fee": 0.38
+        },
+        {
+          "id": 5,
+          "holding_name": "Finsbury Growth & Income",
+          "asset_type": "fund",
+          "current_value": 60000,
+          "allocation_percentage": 33.3,
+          "annual_fee": 0.65
+        },
+        {
+          "id": 6,
+          "holding_name": "Bankers IT",
+          "asset_type": "uk_equity",
+          "current_value": 60000,
+          "allocation_percentage": 33.3,
+          "annual_fee": 0.48
+        }
+      ]
+    }
+  ],
+
+  "dc_pensions": [],
+
+  "db_pensions": [
+    {
+      "id": 1,
+      "scheme_name": "Teachers' Pension Scheme",
+      "pension_type": "public_sector",
+      "accrued_annual_pension": 28000,
+      "normal_retirement_age": 60,
+      "inflation_protection": "cpi",
+      "lump_sum_entitlement": 84000,
+      "spouse_benefit_percentage": 0,
+      "years_of_service": 35,
+      "notes": "Already in payment - lump sum taken at retirement"
+    }
+  ],
+
+  "state_pension": {
+    "forecast_weekly_amount": 221.20,
+    "forecast_annual_amount": 11502,
+    "state_pension_age": 66,
+    "already_receiving": true,
+    "notes": "Full new state pension - already in payment"
+  },
+
+  "life_insurance_policies": [
+    {
+      "id": 1,
+      "policy_type": "whole_of_life",
+      "provider_name": "Aviva",
+      "sum_assured": 100000,
+      "premium_amount": 150,
+      "premium_frequency": "monthly",
+      "policy_start_date": "2010-01-01",
+      "in_trust": true,
+      "joint_life": false,
+      "policy_reference": "AV-WOL-123456",
+      "notes": "Written in trust for IHT purposes - pays outside estate"
+    }
+  ],
+
+  "critical_illness_policies": [],
+
+  "income_protection_policies": [],
+
+  "disability_policies": [],
+
+  "sickness_illness_policies": [],
+
+  "liabilities": [],
+
+  "gifts": [
+    {
+      "id": 1,
+      "gift_type": "pet",
+      "recipient_name": "Andrew Thompson",
+      "recipient_relationship": "child",
+      "amount": 15000,
+      "gift_date": "2022-12-15",
+      "notes": "House deposit contribution",
+      "status": "within_7_years"
+    },
+    {
+      "id": 2,
+      "gift_type": "pet",
+      "recipient_name": "Catherine Williams",
+      "recipient_relationship": "child",
+      "amount": 15000,
+      "gift_date": "2023-03-01",
+      "notes": "House deposit contribution",
+      "status": "within_7_years"
+    },
+    {
+      "id": 3,
+      "gift_type": "pet",
+      "recipient_name": "Richard Thompson",
+      "recipient_relationship": "child",
+      "amount": 15000,
+      "gift_date": "2023-06-15",
+      "notes": "House deposit contribution",
+      "status": "within_7_years"
+    },
+    {
+      "id": 4,
+      "gift_type": "annual_exemption",
+      "recipient_name": "Various grandchildren",
+      "amount": 3000,
+      "gift_date": "2023-04-06",
+      "notes": "Annual exemption for 2023/24 tax year",
+      "status": "exempt"
+    },
+    {
+      "id": 5,
+      "gift_type": "annual_exemption",
+      "recipient_name": "Various grandchildren",
+      "amount": 3000,
+      "gift_date": "2024-04-06",
+      "notes": "Annual exemption for 2024/25 tax year",
+      "status": "exempt"
+    }
+  ],
+
+  "trusts": [],
+
+  "business_interests": [],
+
+  "chattels": [
+    {
+      "id": 1,
+      "item_name": "Antique Furniture Collection",
+      "current_value": 25000,
+      "ownership_type": "individual",
+      "notes": "Various Georgian and Victorian pieces"
+    },
+    {
+      "id": 2,
+      "item_name": "Jewellery",
+      "current_value": 15000,
+      "ownership_type": "individual",
+      "notes": "Including late husband's watch collection"
+    }
+  ],
+
+  "expenditure": {
+    "total_monthly": 3200,
+    "categories": {
+      "housing": 400,
+      "utilities": 300,
+      "food": 400,
+      "transport": 200,
+      "insurance": 250,
+      "entertainment": 300,
+      "holidays": 500,
+      "gifts_charity": 400,
+      "health": 200,
+      "other": 250
+    }
+  },
+
+  "iht_profile": {
+    "marital_status": "widowed",
+    "available_nrb": 325000,
+    "available_rnrb": 175000,
+    "transferred_nrb": 325000,
+    "transferred_rnrb": 175000,
+    "spouse_deceased": true,
+    "spouse_death_date": "2022-11-15",
+    "notes": "Full NRB and RNRB transferred from late husband's estate"
+  },
+
+  "key_concerns": [
+    "How much IHT will my children have to pay?",
+    "Should I gift money now or wait?",
+    "Is my will up to date after my husband's passing?",
+    "What is the best way to help grandchildren with house deposits?"
+  ],
+
+  "highlights": {
+    "estate_planning": {
+      "gross_estate_value": 1595000,
+      "available_nrb": 650000,
+      "available_rnrb": 350000,
+      "current_iht_estimate": 238000,
+      "gifts_in_last_7_years": 45000
+    },
+    "net_worth_range": "1.4m - 1.6m",
+    "primary_focus": "IHT planning, gifting strategy"
+  }
+}

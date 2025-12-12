@@ -1,4 +1,4 @@
-# TenGo v0.2.7 - Quick Start Deployment Guide
+# Fynla v0.2.7 - Quick Start Deployment Guide
 
 **For**: SiteGround Hosting at https://csjones.co/tengo
 **Time Required**: 30-45 minutes (first deployment)
@@ -299,7 +299,7 @@ exit
 ---
 
 **Quick Start Version**: 1.0
-**Application**: TenGo v0.2.7
+**Application**: Fynla v0.2.7
 **Target**: https://csjones.co/tengo
 
 Built with Claude Code by Anthropic

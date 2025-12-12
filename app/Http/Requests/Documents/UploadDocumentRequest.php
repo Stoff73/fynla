@@ -26,12 +26,12 @@ class UploadDocumentRequest extends FormRequest
             'document' => [
                 'required',
                 'file',
-                'mimes:pdf,jpeg,jpg,png,webp',
-                'max:10240', // 10MB
+                'mimes:pdf,jpeg,jpg,png,webp,xlsx,xls,csv',
+                'max:102400', // 100MB
             ],
             'document_type' => [
                 'nullable',
-                'in:' . implode(',', [
+                'in:'.implode(',', [
                     Document::TYPE_PENSION_STATEMENT,
                     Document::TYPE_INSURANCE_POLICY,
                     Document::TYPE_INVESTMENT_STATEMENT,
@@ -51,8 +51,8 @@ class UploadDocumentRequest extends FormRequest
         return [
             'document.required' => 'Please select a document to upload.',
             'document.file' => 'The uploaded item must be a file.',
-            'document.mimes' => 'Document must be a PDF or image (JPEG, PNG, WebP).',
-            'document.max' => 'Document must be less than 10MB.',
+            'document.mimes' => 'Document must be a PDF, image (JPEG, PNG, WebP), or spreadsheet (Excel, CSV).',
+            'document.max' => 'Document must be less than 100MB.',
             'document_type.in' => 'Invalid document type specified.',
         ];
     }

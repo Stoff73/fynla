@@ -1,5 +1,5 @@
 <template>
-  <div class="card hover:shadow-lg transition-shadow">
+  <div class="card border border-gray-200 hover:shadow-lg hover:-translate-y-0.5 hover:border-purple-500 transition-all duration-200 cursor-pointer">
     <!-- Header -->
     <div class="flex items-start justify-between mb-4">
       <div class="flex-1">
@@ -60,7 +60,7 @@
         <button
           @click="$emit('calculate-iht', trust)"
           class="p-2 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
-          title="Calculate IHT Impact"
+          title="Calculate inheritance tax impact"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />

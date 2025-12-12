@@ -595,18 +595,31 @@ export default {
   },
 
   computed: {
+    isPreviewMode() {
+      return this.$store.getters['preview/isPreviewMode'];
+    },
+
     isReadOnly() {
       return this.viewMode === 'spouse';
     },
   },
 
   async mounted() {
-    await this.loadMyLetter();
-    await this.checkSpouse();
+    if (!this.isPreviewMode) {
+      await this.loadMyLetter();
+      await this.checkSpouse();
+    } else {
+      console.log('[LetterToSpouse] Preview mode - skipping API calls');
+      this.loading = false;
+    }
   },
 
   methods: {
     async loadMyLetter() {
+      if (this.isPreviewMode) {
+        console.log('[LetterToSpouse] Preview mode - skipping loadMyLetter');
+        return;
+      }
       this.loading = true;
       try {
         const response = await api.get('/user/letter-to-spouse');
@@ -623,6 +636,10 @@ export default {
     },
 
     async checkSpouse() {
+      if (this.isPreviewMode) {
+        console.log('[LetterToSpouse] Preview mode - skipping checkSpouse');
+        return;
+      }
       try {
         const userResponse = await api.get('/auth/user');
         const user = userResponse.data;
@@ -642,6 +659,10 @@ export default {
     },
 
     async loadSpouseLetter() {
+      if (this.isPreviewMode) {
+        console.log('[LetterToSpouse] Preview mode - skipping loadSpouseLetter');
+        return;
+      }
       if (this.viewMode === 'spouse' && this.spouseLetterData) {
         this.populateForm(this.spouseLetterData);
         return;
@@ -676,7 +697,10 @@ export default {
     },
 
     async saveLetter() {
-      if (this.isReadOnly) return;
+      if (this.isPreviewMode || this.isReadOnly) {
+        console.log('[LetterToSpouse] Preview mode or read only - skipping saveLetter');
+        return;
+      }
 
       this.saving = true;
       try {

@@ -102,7 +102,7 @@ class DocumentTypeDetector
         $type = $document->document_type;
         $subtype = $document->detected_document_subtype;
 
-        if (!isset(self::TYPE_MODEL_MAP[$type])) {
+        if (! isset(self::TYPE_MODEL_MAP[$type])) {
             return null;
         }
 
@@ -114,7 +114,7 @@ class DocumentTypeDetector
         // Return first model for type if subtype not matched
         $models = self::TYPE_MODEL_MAP[$type];
 
-        return !empty($models) ? array_values($models)[0] : null;
+        return ! empty($models) ? array_values($models)[0] : null;
     }
 
     /**

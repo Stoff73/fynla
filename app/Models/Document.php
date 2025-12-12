@@ -44,22 +44,34 @@ class Document extends Model
      * Document type constants
      */
     public const TYPE_PENSION_STATEMENT = 'pension_statement';
+
     public const TYPE_INSURANCE_POLICY = 'insurance_policy';
+
     public const TYPE_INVESTMENT_STATEMENT = 'investment_statement';
+
     public const TYPE_MORTGAGE_STATEMENT = 'mortgage_statement';
+
     public const TYPE_SAVINGS_STATEMENT = 'savings_statement';
+
     public const TYPE_PROPERTY_DOCUMENT = 'property_document';
+
     public const TYPE_UNKNOWN = 'unknown';
 
     /**
      * Status constants
      */
     public const STATUS_UPLOADED = 'uploaded';
+
     public const STATUS_PROCESSING = 'processing';
+
     public const STATUS_EXTRACTED = 'extracted';
+
     public const STATUS_REVIEW_PENDING = 'review_pending';
+
     public const STATUS_CONFIRMED = 'confirmed';
+
     public const STATUS_FAILED = 'failed';
+
     public const STATUS_ARCHIVED = 'archived';
 
     /**
@@ -182,7 +194,7 @@ class Document extends Model
             $bytes /= 1024;
         }
 
-        return round($bytes, 2) . ' ' . $units[$i];
+        return round($bytes, 2).' '.$units[$i];
     }
 
     /**

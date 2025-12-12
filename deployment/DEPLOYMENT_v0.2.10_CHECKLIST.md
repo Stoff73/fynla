@@ -1,4 +1,4 @@
-# TenGo v0.2.10 - Deployment Checklist
+# Fynla v0.2.10 - Deployment Checklist
 
 **Version**: v0.2.10 (Boma Build)
 **Date**: November 20, 2025

@@ -2476,7 +2476,7 @@ navigateToProtectionModule() {
 
 **Visual Layout:**
 ```
-© 2025 TenGo - Financial Planning System. For demonstration purposes only. | v0.2.10 | Boma Build
+© 2025 Fynla - Financial Planning System. For demonstration purposes only. | v0.2.10 | Boma Build
 ```
 
 **Impact:**

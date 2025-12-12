@@ -427,6 +427,10 @@ export default {
   },
 
   computed: {
+    isPreviewMode() {
+      return this.$store.getters['preview/isPreviewMode'];
+    },
+
     taxEfficiencyChartOptions() {
       return {
         chart: {
@@ -481,6 +485,10 @@ export default {
 
   methods: {
     async optimiseContributions() {
+      if (this.isPreviewMode) {
+        console.log('[ContributionPlanner] Preview mode - skipping API call');
+        return;
+      }
       this.optimising = true;
       this.error = null;
 

@@ -30,8 +30,7 @@ class ContributionOptimizer
         private ISAAllowanceOptimizer $isaOptimizer,
         private GoalProbabilityCalculator $probabilityCalculator,
         private \App\Services\TaxConfigService $taxConfig
-    ) {
-    }
+    ) {}
 
     /**
      * Optimize contribution strategy for a user
@@ -145,11 +144,7 @@ class ContributionOptimizer
         string $incomeTaxBand,
         User $user
     ): array {
-        // Check remaining allowance from Tax Config if not provided by optimizer
-        // Note: keeping isaStatus['remaining'] usage as per original logic, 
-        // but typically we'd fetch the annual limit from config.
-        // $isaAnnualLimit = $this->taxConfig->get('isa.annual_allowance', 20000);
-
+        // Use remaining ISA allowance from status (already accounts for current year contributions)
         $isaRemaining = $isaStatus['remaining'] ?? 0;
         $isaMonthlyLimit = $isaRemaining / max(1, $this->getMonthsRemainingInTaxYear());
 
@@ -449,7 +444,7 @@ class ContributionOptimizer
                 'type' => 'isa_allowance',
                 'priority' => 'high',
                 'title' => 'Utilize ISA Allowance',
-                'description' => 'You have £' . number_format($isaStatus['remaining'], 0) . ' of your ISA allowance remaining this tax year.',
+                'description' => 'You have £'.number_format($isaStatus['remaining'], 0).' of your ISA allowance remaining this tax year.',
                 'action' => 'Consider increasing ISA contributions to maximize tax-free growth.',
             ];
         }
@@ -460,7 +455,7 @@ class ContributionOptimizer
                 'type' => 'pension_tax_relief',
                 'priority' => 'high',
                 'title' => 'Maximize Pension Tax Relief',
-                'description' => 'As a ' . $incomeTaxBand . ' rate taxpayer, you benefit from significant pension tax relief.',
+                'description' => 'As a '.$incomeTaxBand.' rate taxpayer, you benefit from significant pension tax relief.',
                 'action' => 'Consider pension contributions to reduce your tax liability.',
             ];
         }
@@ -472,7 +467,7 @@ class ContributionOptimizer
                 'priority' => 'medium',
                 'title' => 'Lump Sum Investment Strategy',
                 'description' => $lumpSumAnalysis['rationale'],
-                'action' => 'Consider ' . ($lumpSumAnalysis['recommendation'] === 'lump_sum' ? 'investing the lump sum immediately' : 'DCA over 6-12 months') . '.',
+                'action' => 'Consider '.($lumpSumAnalysis['recommendation'] === 'lump_sum' ? 'investing the lump sum immediately' : 'DCA over 6-12 months').'.',
             ];
         }
 
@@ -498,10 +493,10 @@ class ContributionOptimizer
         $taxYearStart = $now->copy()->month(4)->day(6);
 
         if ($now < $taxYearStart) {
-            return ($now->year - 1) . '/' . substr((string) $now->year, -2);
+            return ($now->year - 1).'/'.substr((string) $now->year, -2);
         }
 
-        return $now->year . '/' . substr((string) ($now->year + 1), -2);
+        return $now->year.'/'.substr((string) ($now->year + 1), -2);
     }
 
     private function getMonthsRemainingInTaxYear(): int

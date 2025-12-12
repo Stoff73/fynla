@@ -24,6 +24,9 @@ const actions = {
     // Clear any existing auth state to prevent data leakage
     commit('clearAuth');
 
+    // Clear preview mode - user is now registering as a real user
+    await dispatch('preview/exitPreview', null, { root: true }).catch(() => {});
+
     try {
       const response = await authService.register(userData);
       // Store ONLY the token
@@ -48,6 +51,9 @@ const actions = {
 
     // Clear any existing auth state to prevent data leakage
     commit('clearAuth');
+
+    // Clear preview mode - user is now logging in as a real user
+    await dispatch('preview/exitPreview', null, { root: true }).catch(() => {});
 
     try {
       const response = await authService.login(credentials);

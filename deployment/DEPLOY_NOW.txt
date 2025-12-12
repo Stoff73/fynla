@@ -1,5 +1,5 @@
 ═══════════════════════════════════════════════════════════════════
-   TenGo v0.2.10 (Boma Build) - QUICK DEPLOYMENT GUIDE
+   Fynla v0.2.10 (Boma Build) - QUICK DEPLOYMENT GUIDE
 ═══════════════════════════════════════════════════════════════════
 
 ✅ READY TO DEPLOY

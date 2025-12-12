@@ -1,4 +1,4 @@
-# TenGo v0.2.7 - Production Deployment to /tengo Subfolder
+# Fynla v0.2.7 - Production Deployment to /tengo Subfolder
 
 **Date**: November 12, 2025
 **Target**: https://csjones.co/tengo
@@ -254,7 +254,7 @@ nano .env
 Edit the `.env` file with these **EXACT** values:
 
 ```env
-APP_NAME="TenGo - Financial Planning System"
+APP_NAME="Fynla - Financial Planning System"
 APP_ENV=production
 APP_KEY=
 APP_DEBUG=false
@@ -682,7 +682,7 @@ Open browser and navigate to:
 https://csjones.co/tengo
 ```
 
-**Expected**: Should see TenGo landing page, no errors
+**Expected**: Should see Fynla landing page, no errors
 
 **If blank page**: Check browser console for errors
 **If 500 error**: Check `storage/logs/laravel.log`
@@ -1213,6 +1213,6 @@ Use this quick checklist during deployment:
 
 **Deployment Guide Version**: 1.0
 **Last Updated**: November 12, 2025
-**For**: TenGo v0.2.7 deployment to /tengo subfolder
+**For**: Fynla v0.2.7 deployment to /tengo subfolder
 
 🤖 **Generated with [Claude Code](https://claude.com/claude-code)**

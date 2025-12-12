@@ -11,6 +11,7 @@ use App\Models\Investment\Holding;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\Investment\InvestmentGoal;
 use App\Models\Investment\RiskProfile;
+use App\Traits\SanitizedErrorResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -19,6 +20,8 @@ use Illuminate\Validation\Rule;
 
 class InvestmentController extends Controller
 {
+    use SanitizedErrorResponse;
+
     public function __construct(
         private InvestmentAgent $investmentAgent
     ) {}
