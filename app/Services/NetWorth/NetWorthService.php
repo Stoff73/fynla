@@ -11,6 +11,7 @@ use App\Models\DCPension;
 use App\Models\Estate\Liability;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\Property;
+use App\Models\SavingsAccount;
 use App\Models\StatePension;
 use App\Models\User;
 use App\Services\Shared\CrossModuleAssetAggregator;
@@ -291,6 +292,123 @@ class NetWorthService
             'chattels' => [
                 'count' => Chattel::where('user_id', $userId)->count(),
                 'total_value' => $this->calculateChattelValue($userId),
+            ],
+        ];
+    }
+
+    /**
+     * Get assets summary with detailed individual account lists
+     * Used for the Net Worth Overview cards
+     */
+    public function getAssetsSummaryWithDetails(User $user): array
+    {
+        $userId = $user->id;
+
+        // Get pension items
+        $dcPensions = DCPension::where('user_id', $userId)->get();
+        $dbPensions = DBPension::where('user_id', $userId)->get();
+
+        $pensionItems = [];
+
+        foreach ($dcPensions as $pension) {
+            $name = $pension->scheme_name ?: ($pension->provider.' '.$pension->pension_type);
+            $pensionItems[] = [
+                'id' => $pension->id,
+                'type' => 'dc',
+                'name' => $name,
+                'provider' => $pension->provider,
+                'value' => (float) $pension->current_fund_value,
+            ];
+        }
+
+        foreach ($dbPensions as $pension) {
+            $name = $pension->scheme_name ?: 'DB Pension';
+            // Capital value = (Annual pension × 20) + Lump sum
+            $capitalValue = (($pension->accrued_annual_pension ?? 0) * 20) + ($pension->lump_sum_entitlement ?? 0);
+            $pensionItems[] = [
+                'id' => $pension->id,
+                'type' => 'db',
+                'name' => $name,
+                'provider' => $pension->employer,
+                'value' => (float) $capitalValue,
+                'annual_pension' => (float) ($pension->accrued_annual_pension ?? 0),
+            ];
+        }
+
+        // Get property items
+        $properties = Property::where('user_id', $userId)->get();
+        $propertyItems = $properties->map(function ($property) {
+            $name = $property->address_line_1 ?: $property->property_type;
+            return [
+                'id' => $property->id,
+                'name' => $name,
+                'type' => $property->property_type,
+                'value' => (float) $property->current_value,
+                'ownership_type' => $property->ownership_type,
+            ];
+        })->toArray();
+
+        // Get investment items
+        $investments = InvestmentAccount::where('user_id', $userId)->get();
+        $investmentItems = $investments->map(function ($investment) {
+            $name = $investment->provider;
+            if ($investment->account_type) {
+                $name .= ' - '.ucwords(str_replace('_', ' ', $investment->account_type));
+            }
+            return [
+                'id' => $investment->id,
+                'name' => $name,
+                'account_type' => $investment->account_type,
+                'provider' => $investment->provider,
+                'value' => (float) $investment->current_value,
+                'ownership_type' => $investment->ownership_type,
+            ];
+        })->toArray();
+
+        // Get cash/savings items
+        $savingsAccounts = SavingsAccount::where('user_id', $userId)->get();
+        $cashItems = $savingsAccounts->map(function ($account) {
+            $name = $account->institution;
+            if ($account->account_type) {
+                $name .= ' - '.ucwords(str_replace('_', ' ', $account->account_type));
+            }
+            return [
+                'id' => $account->id,
+                'name' => $name,
+                'account_type' => $account->account_type,
+                'institution' => $account->institution,
+                'value' => (float) $account->current_balance,
+                'is_isa' => $account->is_isa,
+                'is_emergency_fund' => $account->is_emergency_fund,
+            ];
+        })->toArray();
+
+        // Calculate totals
+        $pensionTotal = array_sum(array_column($pensionItems, 'value'));
+        $propertyTotal = array_sum(array_column($propertyItems, 'value'));
+        $investmentTotal = array_sum(array_column($investmentItems, 'value'));
+        $cashTotal = array_sum(array_column($cashItems, 'value'));
+
+        return [
+            'pensions' => [
+                'count' => count($pensionItems),
+                'total_value' => round($pensionTotal, 2),
+                'items' => $pensionItems,
+            ],
+            'property' => [
+                'count' => count($propertyItems),
+                'total_value' => round($propertyTotal, 2),
+                'items' => $propertyItems,
+            ],
+            'investments' => [
+                'count' => count($investmentItems),
+                'total_value' => round($investmentTotal, 2),
+                'items' => $investmentItems,
+            ],
+            'cash' => [
+                'count' => count($cashItems),
+                'total_value' => round($cashTotal, 2),
+                'items' => $cashItems,
             ],
         ];
     }

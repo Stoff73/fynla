@@ -39,6 +39,15 @@ export default {
     },
 
     /**
+     * Get assets summary with detailed individual account lists
+     * Used for the Net Worth Overview cards
+     */
+    async getAssetsSummaryDetailed() {
+        const response = await api.get(`${API_BASE}/assets-summary-detailed`);
+        return response.data;
+    },
+
+    /**
      * Get joint assets
      */
     async getJointAssets() {

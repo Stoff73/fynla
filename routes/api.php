@@ -157,6 +157,7 @@ Route::middleware('auth:sanctum')->prefix('net-worth')->group(function () {
     Route::get('/breakdown', [NetWorthController::class, 'getBreakdown']);
     Route::get('/trend', [NetWorthController::class, 'getTrend']);
     Route::get('/assets-summary', [NetWorthController::class, 'getAssetsSummary']);
+    Route::get('/assets-summary-detailed', [NetWorthController::class, 'getAssetsSummaryWithDetails']);
     Route::get('/joint-assets', [NetWorthController::class, 'getJointAssets']);
     Route::post('/refresh', [NetWorthController::class, 'refresh']);
 });
