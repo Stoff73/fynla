@@ -52,15 +52,17 @@ class PreviewUserSeeder extends Seeder
     {
         $jsonPath = resource_path("js/data/personas/{$personaId}.json");
 
-        if (!file_exists($jsonPath)) {
+        if (! file_exists($jsonPath)) {
             $this->command->warn("Persona file not found: {$jsonPath}");
+
             return;
         }
 
         $data = json_decode(file_get_contents($jsonPath), true);
 
-        if (!$data) {
+        if (! $data) {
             $this->command->error("Failed to parse persona JSON: {$personaId}");
+
             return;
         }
 
@@ -71,6 +73,7 @@ class PreviewUserSeeder extends Seeder
 
         if ($existingUser) {
             $this->command->info("Preview user for {$personaId} already exists, skipping.");
+
             return;
         }
 
@@ -81,7 +84,7 @@ class PreviewUserSeeder extends Seeder
 
         // Create spouse if exists (pass expenditure data for household sharing)
         $spouse = null;
-        if (!empty($data['spouse'])) {
+        if (! empty($data['spouse'])) {
             $spouse = $this->createSpouse($data['spouse'], $personaId, $user, $data['expenditure'] ?? null);
         }
 
@@ -121,14 +124,14 @@ class PreviewUserSeeder extends Seeder
      */
     private function createUser(array $userData, string $personaId, ?array $expenditureData = null): User
     {
-        $user = new User();
+        $user = new User;
 
         // Set preview user flags (bypassing guarded)
         $user->is_preview_user = true;
         $user->preview_persona_id = $personaId;
 
         // Basic info
-        $user->name = ($userData['first_name'] ?? '') . ' ' . ($userData['last_name'] ?? '');
+        $user->name = ($userData['first_name'] ?? '').' '.($userData['last_name'] ?? '');
         $user->email = "preview_{$personaId}@fynla.local";
         $user->password = Hash::make(Str::random(32)); // Random password - never used
 
@@ -147,7 +150,7 @@ class PreviewUserSeeder extends Seeder
 
         // Expenditure categories (from separate expenditure data in persona JSON)
         // Use 0 as default for any missing categories to avoid NOT NULL constraint violations
-        if ($expenditureData && !empty($expenditureData['categories'])) {
+        if ($expenditureData && ! empty($expenditureData['categories'])) {
             $categories = $expenditureData['categories'];
             $user->monthly_expenditure = $expenditureData['total_monthly'] ?? $userData['monthly_expenditure'] ?? 0;
             $user->food_groceries = $categories['food'] ?? 0;
@@ -168,7 +171,7 @@ class PreviewUserSeeder extends Seeder
         }
 
         // Address
-        if (!empty($userData['address'])) {
+        if (! empty($userData['address'])) {
             $user->address_line_1 = $userData['address']['line_1'] ?? null;
             $user->address_line_2 = $userData['address']['line_2'] ?? null;
             $user->city = $userData['address']['city'] ?? null;
@@ -187,14 +190,14 @@ class PreviewUserSeeder extends Seeder
      */
     private function createSpouse(array $spouseData, string $personaId, User $primaryUser, ?array $expenditureData = null): User
     {
-        $spouse = new User();
+        $spouse = new User;
 
         // Set preview user flags
         $spouse->is_preview_user = true;
         $spouse->preview_persona_id = "{$personaId}_spouse";
 
         // Basic info
-        $spouse->name = ($spouseData['first_name'] ?? '') . ' ' . ($spouseData['last_name'] ?? '');
+        $spouse->name = ($spouseData['first_name'] ?? '').' '.($spouseData['last_name'] ?? '');
         $spouse->email = "preview_{$personaId}_spouse@fynla.local";
         $spouse->password = Hash::make(Str::random(32));
 
@@ -209,7 +212,7 @@ class PreviewUserSeeder extends Seeder
 
         // Expenditure: Split household expenditure proportionally or 50/50
         // For a household scenario, spouse gets their share of joint costs
-        if ($expenditureData && !empty($expenditureData['categories'])) {
+        if ($expenditureData && ! empty($expenditureData['categories'])) {
             $categories = $expenditureData['categories'];
             // Use 50% of household expenditure as default spouse share
             $share = 0.5;
@@ -256,8 +259,12 @@ class PreviewUserSeeder extends Seeder
     }
 
     /**
-     * Create properties and return a map of old ID to new ID.
-     * For joint properties, creates reciprocal records (one for each owner with their 50% share).
+     * Create properties.
+     *
+     * Single-Record Architecture:
+     * - ONE record stores the FULL property value
+     * - joint_owner_id links to secondary owner
+     * - NO reciprocal record creation
      */
     private function createProperties(User $user, ?User $spouse, array $properties): array
     {
@@ -270,18 +277,16 @@ class PreviewUserSeeder extends Seeder
             // Parse the address if provided as a single string
             $addressParts = $this->parseAddress($prop['address'] ?? '');
 
-            // For joint properties, each owner's record shows their 50% share
-            $userValue = $isJoint ? $totalValue * 0.5 : $totalValue;
-
+            // Single-record pattern: Store FULL value directly (no splitting)
             $property = Property::create([
                 'user_id' => $user->id,
                 'property_type' => $prop['property_type'] ?? 'main_residence',
-                'current_value' => $userValue,
+                'current_value' => $totalValue, // FULL value
                 'purchase_price' => $prop['purchase_price'] ?? null,
                 'purchase_date' => $prop['purchase_date'] ?? null,
                 'ownership_type' => $prop['ownership_type'] ?? 'individual',
                 'ownership_percentage' => $isJoint ? 50 : 100,
-                'monthly_rental_income' => $prop['estimated_rental_value'] ?? null,
+                'monthly_rental_income' => $prop['actual_rental_income'] ?? $prop['estimated_rental_value'] ?? null,
                 'joint_owner_id' => $isJoint && $spouse ? $spouse->id : null,
                 'address_line_1' => $addressParts['line_1'],
                 'city' => $addressParts['city'],
@@ -290,28 +295,7 @@ class PreviewUserSeeder extends Seeder
             ]);
 
             $propertyMap[$prop['id']] = $property->id;
-
-            // Create reciprocal property for spouse if joint
-            if ($isJoint && $spouse) {
-                $spouseProperty = Property::create([
-                    'user_id' => $spouse->id,
-                    'property_type' => $prop['property_type'] ?? 'main_residence',
-                    'current_value' => $totalValue * 0.5, // Spouse's 50% share
-                    'purchase_price' => $prop['purchase_price'] ?? null,
-                    'purchase_date' => $prop['purchase_date'] ?? null,
-                    'ownership_type' => 'joint',
-                    'ownership_percentage' => 50,
-                    'monthly_rental_income' => $prop['estimated_rental_value'] ?? null,
-                    'joint_owner_id' => $user->id, // Points back to primary user
-                    'address_line_1' => $addressParts['line_1'],
-                    'city' => $addressParts['city'],
-                    'county' => $addressParts['county'] ?: null,
-                    'postcode' => $addressParts['postcode'] ?: null,
-                ]);
-
-                // Store spouse's property ID for mortgage creation
-                $propertyMap["{$prop['id']}_spouse"] = $spouseProperty->id;
-            }
+            // Single-record pattern: NO reciprocal property for spouse
         }
 
         return $propertyMap;
@@ -364,7 +348,11 @@ class PreviewUserSeeder extends Seeder
 
     /**
      * Create mortgages linked to properties.
-     * For joint mortgages, creates reciprocal records (one for each owner with their 50% share).
+     *
+     * Single-Record Architecture:
+     * - ONE record stores the FULL mortgage balance
+     * - joint_owner_id links to secondary owner
+     * - NO reciprocal record creation
      */
     private function createMortgages(User $user, ?User $spouse, array $mortgages, array $propertyMap): void
     {
@@ -372,56 +360,37 @@ class PreviewUserSeeder extends Seeder
             $propertyId = $propertyMap[$mort['property_id']] ?? null;
             $isJoint = ($mort['ownership_type'] ?? 'individual') === 'joint';
             $totalBalance = $mort['outstanding_balance'] ?? 0;
+            $totalPayment = $mort['monthly_payment'] ?? null;
 
-            // For joint mortgages, each owner's record shows their 50% share
-            $userBalance = $isJoint ? $totalBalance * 0.5 : $totalBalance;
-            $userPayment = $isJoint ? ($mort['monthly_payment'] ?? 0) * 0.5 : ($mort['monthly_payment'] ?? null);
-
+            // Single-record pattern: Store FULL balances directly (no splitting)
             Mortgage::create([
                 'user_id' => $user->id,
                 'property_id' => $propertyId,
                 'lender_name' => $mort['lender_name'] ?? '',
-                'outstanding_balance' => $userBalance,
+                'outstanding_balance' => $totalBalance, // FULL balance
                 'original_loan_amount' => $mort['original_amount'] ?? null,
                 'mortgage_type' => $mort['mortgage_type'] ?? 'repayment',
                 'interest_rate' => $mort['interest_rate'] ?? null,
                 'rate_type' => $mort['rate_type'] ?? 'fixed',
                 'rate_fix_end_date' => $mort['fixed_rate_end_date'] ?? null,
-                'monthly_payment' => $userPayment,
+                'monthly_payment' => $totalPayment, // FULL payment
                 'remaining_term_months' => $mort['remaining_term_months'] ?? null,
                 'start_date' => $mort['mortgage_start_date'] ?? null,
                 'ownership_type' => $mort['ownership_type'] ?? 'individual',
+                'ownership_percentage' => $isJoint ? 50 : 100,
                 'joint_owner_id' => $isJoint && $spouse ? $spouse->id : null,
             ]);
-
-            // Create reciprocal mortgage for spouse if joint
-            if ($isJoint && $spouse) {
-                $spousePropertyId = $propertyMap["{$mort['property_id']}_spouse"] ?? null;
-
-                Mortgage::create([
-                    'user_id' => $spouse->id,
-                    'property_id' => $spousePropertyId,
-                    'lender_name' => $mort['lender_name'] ?? '',
-                    'outstanding_balance' => $totalBalance * 0.5, // Spouse's 50% share
-                    'original_loan_amount' => $mort['original_amount'] ?? null,
-                    'mortgage_type' => $mort['mortgage_type'] ?? 'repayment',
-                    'interest_rate' => $mort['interest_rate'] ?? null,
-                    'rate_type' => $mort['rate_type'] ?? 'fixed',
-                    'rate_fix_end_date' => $mort['fixed_rate_end_date'] ?? null,
-                    'monthly_payment' => ($mort['monthly_payment'] ?? 0) * 0.5,
-                    'remaining_term_months' => $mort['remaining_term_months'] ?? null,
-                    'start_date' => $mort['mortgage_start_date'] ?? null,
-                    'ownership_type' => 'joint',
-                    'joint_owner_id' => $user->id, // Points back to primary user
-                ]);
-            }
+            // Single-record pattern: NO reciprocal mortgage for spouse
         }
     }
 
     /**
      * Create savings accounts.
-     * For joint accounts, creates reciprocal records (one for each owner with their 50% share).
-     * For individual accounts, detects if it belongs to spouse based on account name.
+     *
+     * Single-Record Architecture:
+     * - ONE record stores the FULL account balance
+     * - joint_owner_id links to secondary owner
+     * - NO reciprocal record creation
      */
     private function createSavingsAccounts(User $user, ?User $spouse, array $accounts): void
     {
@@ -433,21 +402,18 @@ class PreviewUserSeeder extends Seeder
             $owner = $this->determineAccountOwner($account, $user, $spouse);
             $isSpouseOwned = $owner->id !== $user->id;
 
-            // For joint accounts, each owner gets 50% of the balance in their record
-            $userBalance = $isJoint ? $totalBalance * 0.5 : $totalBalance;
-
-            // For individual accounts owned by spouse, assign to spouse directly
             // For joint accounts, set the correct joint owner
             $jointOwnerId = null;
             if ($isJoint && $spouse) {
                 $jointOwnerId = $isSpouseOwned ? $user->id : $spouse->id;
             }
 
-            $primaryAccount = SavingsAccount::create([
+            // Single-record pattern: Store FULL balance directly (no splitting)
+            SavingsAccount::create([
                 'user_id' => $owner->id,
                 'institution' => $account['provider_name'] ?? '',
                 'account_type' => $account['account_type'] ?? 'instant_access',
-                'current_balance' => $userBalance,
+                'current_balance' => $totalBalance, // FULL balance
                 'interest_rate' => $account['interest_rate'] ?? null,
                 'is_isa' => $account['is_isa'] ?? false,
                 'access_type' => $account['access_type'] ?? 'immediate',
@@ -455,30 +421,17 @@ class PreviewUserSeeder extends Seeder
                 'ownership_percentage' => $isJoint ? 50 : 100,
                 'joint_owner_id' => $jointOwnerId,
             ]);
-
-            // Create reciprocal account for the other owner if joint
-            if ($isJoint && $spouse) {
-                $otherOwner = $isSpouseOwned ? $user : $spouse;
-                SavingsAccount::create([
-                    'user_id' => $otherOwner->id,
-                    'institution' => $account['provider_name'] ?? '',
-                    'account_type' => $account['account_type'] ?? 'instant_access',
-                    'current_balance' => $totalBalance * 0.5,
-                    'interest_rate' => $account['interest_rate'] ?? null,
-                    'is_isa' => $account['is_isa'] ?? false,
-                    'access_type' => $account['access_type'] ?? 'immediate',
-                    'ownership_type' => 'joint',
-                    'ownership_percentage' => 50,
-                    'joint_owner_id' => $owner->id,
-                ]);
-            }
+            // Single-record pattern: NO reciprocal account for other owner
         }
     }
 
     /**
      * Create investment accounts with their holdings.
-     * For joint accounts, creates reciprocal records (one for each owner with their 50% share).
-     * For individual accounts, detects if it belongs to spouse based on account name.
+     *
+     * Single-Record Architecture:
+     * - ONE record stores the FULL account value
+     * - joint_owner_id links to secondary owner
+     * - NO reciprocal record creation
      */
     private function createInvestmentAccounts(User $user, ?User $spouse, array $accounts): void
     {
@@ -490,20 +443,18 @@ class PreviewUserSeeder extends Seeder
             $owner = $this->determineAccountOwner($account, $user, $spouse);
             $isSpouseOwned = $owner->id !== $user->id;
 
-            // For joint accounts, each owner gets 50% of the value in their record
-            $userValue = $isJoint ? $totalValue * 0.5 : $totalValue;
-
             // For joint accounts, set the correct joint owner
             $jointOwnerId = null;
             if ($isJoint && $spouse) {
                 $jointOwnerId = $isSpouseOwned ? $user->id : $spouse->id;
             }
 
+            // Single-record pattern: Store FULL value directly (no splitting)
             $investmentAccount = InvestmentAccount::create([
                 'user_id' => $owner->id,
                 'provider' => $account['provider_name'] ?? '',
                 'account_type' => $account['account_type'] ?? 'gia',
-                'current_value' => $userValue,
+                'current_value' => $totalValue, // FULL value
                 'contributions_ytd' => $account['annual_contribution'] ?? 0,
                 'tax_year' => '2024/25',
                 'ownership_type' => $account['ownership_type'] ?? 'individual',
@@ -511,48 +462,19 @@ class PreviewUserSeeder extends Seeder
                 'joint_owner_id' => $jointOwnerId,
             ]);
 
-            // Create holdings for the account owner
+            // Create holdings for the account (FULL values)
             foreach ($account['holdings'] ?? [] as $holding) {
-                $holdingValue = $isJoint ? ($holding['current_value'] ?? 0) * 0.5 : ($holding['current_value'] ?? 0);
                 Holding::create([
                     'holdable_type' => InvestmentAccount::class,
                     'holdable_id' => $investmentAccount->id,
                     'security_name' => $holding['holding_name'] ?? '',
                     'asset_type' => $holding['asset_type'] ?? 'fund',
-                    'current_value' => $holdingValue,
+                    'current_value' => $holding['current_value'] ?? 0, // FULL value
                     'allocation_percent' => $holding['allocation_percentage'] ?? null,
                     'ocf_percent' => $holding['annual_fee'] ?? null,
                 ]);
             }
-
-            // Create reciprocal account for the other owner if joint
-            if ($isJoint && $spouse) {
-                $otherOwner = $isSpouseOwned ? $user : $spouse;
-                $spouseAccount = InvestmentAccount::create([
-                    'user_id' => $otherOwner->id,
-                    'provider' => $account['provider_name'] ?? '',
-                    'account_type' => $account['account_type'] ?? 'gia',
-                    'current_value' => $totalValue * 0.5,
-                    'contributions_ytd' => $account['annual_contribution'] ?? 0,
-                    'tax_year' => '2024/25',
-                    'ownership_type' => 'joint',
-                    'ownership_percentage' => 50,
-                    'joint_owner_id' => $owner->id,
-                ]);
-
-                // Create holdings for the other owner
-                foreach ($account['holdings'] ?? [] as $holding) {
-                    Holding::create([
-                        'holdable_type' => InvestmentAccount::class,
-                        'holdable_id' => $spouseAccount->id,
-                        'security_name' => $holding['holding_name'] ?? '',
-                        'asset_type' => $holding['asset_type'] ?? 'fund',
-                        'current_value' => ($holding['current_value'] ?? 0) * 0.5,
-                        'allocation_percent' => $holding['allocation_percentage'] ?? null,
-                        'ocf_percent' => $holding['annual_fee'] ?? null,
-                    ]);
-                }
-            }
+            // Single-record pattern: NO reciprocal account for other owner
         }
     }
 
@@ -590,7 +512,7 @@ class PreviewUserSeeder extends Seeder
     private function determinePensionOwner(array $pension, User $user, ?User $spouse): User
     {
         // No spouse means it belongs to primary user
-        if (!$spouse) {
+        if (! $spouse) {
             return $user;
         }
 
@@ -632,7 +554,7 @@ class PreviewUserSeeder extends Seeder
     private function determineAccountOwner(array $account, User $user, ?User $spouse): User
     {
         // No spouse means it belongs to primary user
-        if (!$spouse) {
+        if (! $spouse) {
             return $user;
         }
 

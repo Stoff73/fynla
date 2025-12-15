@@ -15,67 +15,92 @@ use App\Models\Mortgage;
 use App\Models\Property;
 use App\Models\SavingsAccount;
 use App\Models\User;
+use App\Traits\CalculatesOwnershipShare;
 use Illuminate\Support\Collection;
 
 /**
  * Service for aggregating estate assets and liabilities across all modules
  *
- * Consolidates asset gathering logic previously duplicated in EstateController and IHTController
+ * Single-Record Architecture:
+ * - ONE database record stores the FULL asset value
+ * - user_id = primary owner, joint_owner_id = secondary owner
+ * - Query pattern: where('user_id', $id)->orWhere('joint_owner_id', $id)
+ * - User's share calculated from full value * ownership_percentage
+ *
+ * IHT Considerations:
+ * - Joint tenancy: Passes to survivor (may exclude from first death estate)
+ * - Tenants in common: User's share included in estate
  */
 class EstateAssetAggregatorService
 {
+    use CalculatesOwnershipShare;
+
     /**
      * Gather all assets for a user from all modules
      *
-     * Returns a collection of standardized asset objects suitable for IHT calculations
+     * Single-record pattern: Query assets where user is owner OR joint_owner.
+     * Returns a collection of standardized asset objects suitable for IHT calculations.
      */
     public function gatherUserAssets(User $user): Collection
     {
         $assets = Asset::where('user_id', $user->id)->get();
 
-        // Investment accounts
-        $investmentAccounts = InvestmentAccount::where('user_id', $user->id)->get();
+        // Investment accounts - Single-record pattern
+        $investmentAccounts = InvestmentAccount::where('user_id', $user->id)
+            ->orWhere('joint_owner_id', $user->id)
+            ->get();
         $investmentAssets = $investmentAccounts->map(function ($account) use ($user) {
             return (object) [
                 'user_id' => $user->id,
                 'asset_type' => 'investment',
                 'asset_name' => $account->provider.' - '.strtoupper($account->account_type),
-                'current_value' => $account->current_value,
+                'current_value' => $this->calculateUserShare($account, $user->id),
+                'full_value' => (float) $account->current_value,
                 'ownership_type' => $account->ownership_type ?? 'individual',
+                'ownership_percentage' => $account->ownership_percentage ?? 100,
+                'is_primary_owner' => $this->isPrimaryOwner($account, $user->id),
                 'is_iht_exempt' => false, // ISAs are NOT IHT-exempt
             ];
         });
 
-        // Properties
-        $properties = Property::where('user_id', $user->id)->get();
+        // Properties - Single-record pattern
+        $properties = Property::where('user_id', $user->id)
+            ->orWhere('joint_owner_id', $user->id)
+            ->get();
         $propertyAssets = $properties->map(function ($property) use ($user) {
-            // Database already stores the user's share of the value
-            // Do NOT apply ownership_percentage calculation here
             return (object) [
                 'user_id' => $user->id,
                 'asset_type' => 'property',
                 'asset_name' => $property->address_line_1 ?: 'Property',
-                'current_value' => $property->current_value,
+                'current_value' => $this->calculateUserShare($property, $user->id),
+                'full_value' => (float) $property->current_value,
                 'ownership_type' => $property->ownership_type ?? 'individual',
-                'property_type' => $property->property_type ?? 'unknown', // Include property type for RNRB eligibility
+                'ownership_percentage' => $property->ownership_percentage ?? 100,
+                'is_primary_owner' => $this->isPrimaryOwner($property, $user->id),
+                'property_type' => $property->property_type ?? 'unknown', // For RNRB eligibility
                 'is_iht_exempt' => false,
             ];
         });
 
-        // Savings/Cash
-        $savingsAccounts = SavingsAccount::where('user_id', $user->id)->get();
+        // Savings/Cash - Single-record pattern
+        $savingsAccounts = SavingsAccount::where('user_id', $user->id)
+            ->orWhere('joint_owner_id', $user->id)
+            ->get();
         $savingsAssets = $savingsAccounts->map(function ($account) use ($user) {
             return (object) [
                 'user_id' => $user->id,
                 'asset_type' => 'cash',
                 'asset_name' => $account->institution.' - '.ucfirst($account->account_type),
-                'current_value' => $account->current_balance,
+                'current_value' => $this->calculateUserShare($account, $user->id),
+                'full_value' => (float) $account->current_balance,
                 'ownership_type' => $account->ownership_type ?? 'individual',
+                'ownership_percentage' => $account->ownership_percentage ?? 100,
+                'is_primary_owner' => $this->isPrimaryOwner($account, $user->id),
                 'is_iht_exempt' => false, // Cash ISAs are NOT IHT-exempt
             ];
         });
 
-        // Business Interests
+        // Business Interests - apply ownership percentage
         $businessInterests = BusinessInterest::where('user_id', $user->id)->get();
         $businessAssets = $businessInterests->map(function ($business) use ($user) {
             $ownershipPercentage = $business->ownership_percentage ?? 100;
@@ -86,7 +111,10 @@ class EstateAssetAggregatorService
                 'asset_type' => 'business',
                 'asset_name' => $business->business_name,
                 'current_value' => $userValue,
+                'full_value' => (float) $business->current_valuation,
                 'ownership_type' => 'individual', // Business interests typically individual
+                'ownership_percentage' => $ownershipPercentage,
+                'is_primary_owner' => true,
                 'is_iht_exempt' => false, // May qualify for Business Relief (BR) at 50% or 100%
             ];
         });
@@ -102,7 +130,10 @@ class EstateAssetAggregatorService
                 'asset_type' => 'chattel',
                 'asset_name' => $chattel->name,
                 'current_value' => $userValue,
+                'full_value' => (float) $chattel->current_value,
                 'ownership_type' => 'individual',
+                'ownership_percentage' => $ownershipPercentage,
+                'is_primary_owner' => true,
                 'is_iht_exempt' => false,
             ];
         });
@@ -115,7 +146,10 @@ class EstateAssetAggregatorService
                 'asset_type' => 'dc_pension',
                 'asset_name' => $pension->scheme_name,
                 'current_value' => $pension->current_fund_value,
+                'full_value' => (float) $pension->current_fund_value,
                 'ownership_type' => 'individual',
+                'ownership_percentage' => 100,
+                'is_primary_owner' => true,
                 'is_iht_exempt' => true, // DC pensions outside estate if beneficiary nominated
             ];
         });
@@ -128,7 +162,10 @@ class EstateAssetAggregatorService
                 'asset_type' => 'db_pension',
                 'asset_name' => $pension->scheme_name,
                 'current_value' => 0, // DB pensions have no IHT value (die with member)
+                'full_value' => 0,
                 'ownership_type' => 'individual',
+                'ownership_percentage' => 100,
+                'is_primary_owner' => true,
                 'is_iht_exempt' => true,
                 'annual_income' => $pension->expected_annual_pension ?? 0, // For income projections
             ];
@@ -146,41 +183,55 @@ class EstateAssetAggregatorService
 
     /**
      * Calculate total liabilities for a user
-     * IMPORTANT: Applies 50/50 split for joint liabilities to avoid double counting
+     *
+     * Single-record pattern: Query liabilities where user is owner OR joint_owner.
+     * Calculate user's share from full value.
      */
     public function calculateUserLiabilities(User $user): float
     {
-        // Get liabilities - database already stores the user's share
-        $liabilitiesCollection = Liability::where('user_id', $user->id)->get();
-        $liabilities = $liabilitiesCollection->sum(function ($liability) {
-            $isJoint = ($liability->ownership_type ?? 'individual') === 'joint';
-            // Database already stores the user's share - do NOT divide by 2
-            $value = $liability->current_balance;
-            \Log::info('Liability: '.($liability->institution ?? 'Unknown').' | Type: '.($liability->type ?? 'Unknown').' | Joint: '.($isJoint ? 'YES' : 'NO').' | Value: £'.$value);
+        // Get liabilities - single-record pattern
+        $liabilitiesCollection = Liability::where('user_id', $user->id)
+            ->orWhere('joint_owner_id', $user->id)
+            ->get();
+        $liabilities = $liabilitiesCollection->sum(function ($liability) use ($user) {
+            // Calculate user's share using the trait
+            $userShare = $this->calculateUserShare($liability, $user->id);
+            \Log::info('Liability: '.($liability->institution ?? 'Unknown').' | Type: '.($liability->type ?? 'Unknown').' | User Share: £'.$userShare);
 
-            return $value;
+            return $userShare;
         });
 
-        // Get mortgages - database already stores the user's share
-        $mortgages = Mortgage::where('user_id', $user->id)->sum('outstanding_balance');
+        // Get mortgages - single-record pattern
+        $mortgages = Mortgage::where('user_id', $user->id)
+            ->orWhere('joint_owner_id', $user->id)
+            ->get()
+            ->sum(fn ($mortgage) => $this->calculateUserMortgageShare($mortgage, $user->id));
 
         return $liabilities + $mortgages;
     }
 
     /**
      * Get mortgages collection for a user
+     *
+     * Single-record pattern: Returns mortgages where user is owner OR joint_owner.
      */
     public function getUserMortgages(User $user): Collection
     {
-        return Mortgage::where('user_id', $user->id)->get();
+        return Mortgage::where('user_id', $user->id)
+            ->orWhere('joint_owner_id', $user->id)
+            ->get();
     }
 
     /**
      * Get liabilities collection for a user
+     *
+     * Single-record pattern: Returns liabilities where user is owner OR joint_owner.
      */
     public function getUserLiabilities(User $user): Collection
     {
-        return Liability::where('user_id', $user->id)->get();
+        return Liability::where('user_id', $user->id)
+            ->orWhere('joint_owner_id', $user->id)
+            ->get();
     }
 
     /**

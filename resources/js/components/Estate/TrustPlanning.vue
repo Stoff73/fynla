@@ -113,7 +113,7 @@
           <div v-if="trust.trust_type === 'loan' && trust.loan_amount" class="mt-3 pt-3 border-t border-gray-200">
             <p class="text-xs text-green-700">
               <strong>Loan Balance:</strong> {{ formatCurrency(trust.loan_amount) }}
-              <span v-if="trust.loan_interest_bearing">| Interest Rate: {{ trust.loan_interest_rate }}%</span>
+              <span v-if="trust.loan_interest_bearing">| Interest Rate: {{ parseFloat(trust.loan_interest_rate).toFixed(2) }}%</span>
             </p>
           </div>
 

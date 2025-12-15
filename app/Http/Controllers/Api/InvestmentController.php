@@ -11,6 +11,7 @@ use App\Models\Investment\Holding;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\Investment\InvestmentGoal;
 use App\Models\Investment\RiskProfile;
+use App\Traits\CalculatesOwnershipShare;
 use App\Traits\SanitizedErrorResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,8 +19,18 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
+/**
+ * Investment Controller
+ *
+ * Single-Record Architecture:
+ * - ONE database record stores the FULL account value in current_value
+ * - user_id = primary owner (can edit/delete)
+ * - joint_owner_id = secondary owner (view access)
+ * - ownership_percentage = primary owner's share (default 50 for joint)
+ */
 class InvestmentController extends Controller
 {
+    use CalculatesOwnershipShare;
     use SanitizedErrorResponse;
 
     public function __construct(
@@ -28,15 +39,32 @@ class InvestmentController extends Controller
 
     /**
      * Get all investment data for user
+     *
+     * Single-record pattern: Get accounts where user is owner OR joint_owner.
+     * Includes calculated user_share and full_value fields.
+     *
+     * GET /api/investment
      */
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
 
-        // Get user's own accounts (includes their share of joint accounts via reciprocal records)
+        // Single-record pattern: Get accounts where user is owner OR joint_owner
         $accounts = InvestmentAccount::where('user_id', $user->id)
+            ->orWhere('joint_owner_id', $user->id)
             ->with('holdings')
             ->get();
+
+        // Add calculated fields for each account
+        $accounts = $accounts->map(function ($account) use ($user) {
+            $accountData = $account->toArray();
+            $accountData['user_share'] = $this->calculateUserShare($account, $user->id);
+            $accountData['full_value'] = (float) $account->current_value;
+            $accountData['is_primary_owner'] = $this->isPrimaryOwner($account, $user->id);
+            $accountData['is_shared'] = $this->isSharedOwnership($account);
+
+            return $accountData;
+        });
 
         $goals = InvestmentGoal::where('user_id', $user->id)->get();
         $riskProfile = RiskProfile::where('user_id', $user->id)->first();
@@ -230,12 +258,14 @@ class InvestmentController extends Controller
 
     /**
      * Store a new investment account
+     *
+     * Single-record pattern: Store FULL value directly, no splitting.
+     * Joint owner is linked via joint_owner_id field.
+     *
+     * POST /api/investment/accounts
      */
     public function storeAccount(Request $request): JsonResponse
     {
-        // Log incoming request data for debugging
-        \Log::info('Investment account creation attempt', ['data' => $request->all()]);
-
         $validated = $request->validate([
             'account_type' => ['required', Rule::in(['isa', 'gia', 'nsi', 'onshore_bond', 'offshore_bond', 'vct', 'eis', 'other'])],
             'account_type_other' => 'required_if:account_type,other|nullable|string|max:255',
@@ -249,6 +279,7 @@ class InvestmentController extends Controller
             'isa_type' => ['nullable', Rule::in(['stocks_and_shares', 'lifetime', 'innovative_finance'])],
             'isa_subscription_current_year' => 'nullable|numeric|min:0|max:20000',
             'ownership_type' => ['nullable', Rule::in(['individual', 'joint', 'trust'])],
+            'ownership_percentage' => 'nullable|numeric|min:0|max:100',
             'joint_owner_id' => 'nullable|exists:users,id',
             'trust_id' => 'nullable|exists:trusts,id',
         ]);
@@ -267,13 +298,10 @@ class InvestmentController extends Controller
             ], 422);
         }
 
-        // IMPORTANT: For joint ownership, divide the current_value by 2 and store each user's share
-        // This ensures consistency with properties and other assets
+        // Single-record pattern: Store FULL value directly (no splitting)
+        // For joint ownership, default to 50% if not specified
         if ($validated['ownership_type'] === 'joint' && isset($validated['joint_owner_id'])) {
-            $validated['ownership_percentage'] = 50.00;
-            $validated['current_value'] = $validated['current_value'] / 2;
-            $validated['contributions_ytd'] = ($validated['contributions_ytd'] ?? 0) / 2;
-            $validated['isa_subscription_current_year'] = ($validated['isa_subscription_current_year'] ?? 0) / 2;
+            $validated['ownership_percentage'] = $validated['ownership_percentage'] ?? 50.00;
         } else {
             $validated['ownership_percentage'] = $validated['ownership_percentage'] ?? 100.00;
         }
@@ -297,27 +325,45 @@ class InvestmentController extends Controller
             'ocf_percent' => 0.00,
         ]);
 
-        // If joint ownership, create reciprocal account for joint owner
-        if (isset($validated['ownership_type']) && $validated['ownership_type'] === 'joint' && isset($validated['joint_owner_id'])) {
-            $this->createJointInvestmentAccount($account, $validated['joint_owner_id']);
-        }
+        // Single-record pattern: NO reciprocal account creation
+        // Joint owner sees this account via the joint_owner_id query
 
         // Clear cache
         $this->investmentAgent->clearCache($user->id);
 
+        // If joint owner, clear their cache too
+        if (isset($validated['joint_owner_id'])) {
+            $this->investmentAgent->clearCache($validated['joint_owner_id']);
+        }
+
+        // Add calculated fields to response
+        $accountData = $account->load('holdings')->toArray();
+        $accountData['user_share'] = $this->calculateUserShare($account, $user->id);
+        $accountData['full_value'] = (float) $account->current_value;
+        $accountData['is_primary_owner'] = true;
+
         return response()->json([
             'success' => true,
-            'data' => $account->load('holdings'), // Include the cash holding in response
+            'data' => $accountData,
         ], 201);
     }
 
     /**
      * Update an investment account
+     *
+     * Only primary owner (user_id) can update.
+     * Single-record pattern: Update the single record directly.
+     *
+     * PUT /api/investment/accounts/{id}
      */
     public function updateAccount(Request $request, int $id): JsonResponse
     {
         $user = $request->user();
-        $account = InvestmentAccount::where('user_id', $user->id)->findOrFail($id);
+
+        // Only primary owner can update
+        $account = InvestmentAccount::where('user_id', $user->id)
+            ->where('id', $id)
+            ->firstOrFail();
 
         $validated = $request->validate([
             'account_type' => ['nullable', Rule::in(['isa', 'gia', 'nsi', 'onshore_bond', 'offshore_bond', 'vct', 'eis', 'other'])],
@@ -333,59 +379,63 @@ class InvestmentController extends Controller
             'isa_subscription_current_year' => 'nullable|numeric|min:0|max:20000',
         ]);
 
-        $account->update($validated);
-
-        // If this is a joint account, also update the reciprocal account
-        if ($account->joint_owner_id) {
-            $reciprocalAccount = InvestmentAccount::where('user_id', $account->joint_owner_id)
-                ->where('joint_owner_id', $user->id)
-                ->where('provider', $account->provider)
-                ->where('current_value', $account->current_value)
-                ->first();
-
-            if ($reciprocalAccount) {
-                $reciprocalAccount->update($validated);
-                // Clear cache for joint owner
-                $this->investmentAgent->clearCache($account->joint_owner_id);
-            }
+        // Log joint account update if applicable
+        if ($this->isSharedOwnership($account) && $account->joint_owner_id && isset($validated['current_value'])) {
+            $this->logJointAccountUpdate($user, $account, $validated);
         }
+
+        // Single-record pattern: Update directly (no reciprocal update)
+        $account->update($validated);
 
         // Clear cache
         $this->investmentAgent->clearCache($user->id);
 
+        // If joint owner, clear their cache too
+        if ($account->joint_owner_id) {
+            $this->investmentAgent->clearCache($account->joint_owner_id);
+        }
+
+        // Add calculated fields to response
+        $accountData = $account->fresh()->toArray();
+        $accountData['user_share'] = $this->calculateUserShare($account, $user->id);
+        $accountData['full_value'] = (float) $account->current_value;
+        $accountData['is_primary_owner'] = true;
+
         return response()->json([
             'success' => true,
-            'data' => $account->fresh(),
+            'data' => $accountData,
         ]);
     }
 
     /**
      * Delete an investment account
+     *
+     * Only primary owner (user_id) can delete.
+     * Single-record pattern: Delete the single record.
+     *
+     * DELETE /api/investment/accounts/{id}
      */
     public function destroyAccount(Request $request, int $id): JsonResponse
     {
         $user = $request->user();
-        $account = InvestmentAccount::where('user_id', $user->id)->findOrFail($id);
 
-        // If this is a joint account, also delete the reciprocal account
-        if ($account->joint_owner_id) {
-            $reciprocalAccount = InvestmentAccount::where('user_id', $account->joint_owner_id)
-                ->where('joint_owner_id', $user->id)
-                ->where('provider', $account->provider)
-                ->where('current_value', $account->current_value)
-                ->first();
+        // Only primary owner can delete
+        $account = InvestmentAccount::where('user_id', $user->id)
+            ->where('id', $id)
+            ->firstOrFail();
 
-            if ($reciprocalAccount) {
-                $reciprocalAccount->delete();
-                // Clear cache for joint owner
-                $this->investmentAgent->clearCache($account->joint_owner_id);
-            }
-        }
+        $jointOwnerId = $account->joint_owner_id;
 
+        // Single-record pattern: Just delete the one record
         $account->delete();
 
         // Clear cache
         $this->investmentAgent->clearCache($user->id);
+
+        // If joint owner, clear their cache too
+        if ($jointOwnerId) {
+            $this->investmentAgent->clearCache($jointOwnerId);
+        }
 
         return response()->json([
             'success' => true,
@@ -674,49 +724,34 @@ class InvestmentController extends Controller
     }
 
     /**
-     * Create a reciprocal investment account record for joint owner
-     *
-     * IMPORTANT: The originalAccount should already have current_value divided by 2 (each user's share)
-     * and ownership_percentage set to 50. We just copy these values to the joint owner's record.
+     * Log joint investment account update for audit trail
      */
-    private function createJointInvestmentAccount(InvestmentAccount $originalAccount, int $jointOwnerId): void
+    private function logJointAccountUpdate(\App\Models\User $user, InvestmentAccount $account, array $validated): void
     {
-        // Get joint owner
-        $jointOwner = \App\Models\User::findOrFail($jointOwnerId);
+        $beforeValues = [
+            'current_value' => [
+                'full_value' => $account->current_value,
+                'user_share' => $this->calculateUserShare($account, $user->id),
+            ],
+        ];
 
-        // Create the reciprocal account (values already divided in original account)
-        $jointAccountData = $originalAccount->toArray();
+        $afterValues = [
+            'current_value' => [
+                'full_value' => $validated['current_value'],
+                'user_share' => $validated['current_value'] * (($account->ownership_percentage ?? 100) / 100),
+            ],
+        ];
 
-        // Remove auto-generated fields
-        unset($jointAccountData['id'], $jointAccountData['created_at'], $jointAccountData['updated_at']);
-
-        // Update fields for joint owner
-        $jointAccountData['user_id'] = $jointOwnerId;
-        $jointAccountData['joint_owner_id'] = $originalAccount->user_id;
-
-        // Values are already divided and ownership_percentage is already 50 from original account
-        $jointAccount = InvestmentAccount::create($jointAccountData);
-
-        // Create cash holding for the joint account (mirror of original)
-        Holding::create([
-            'holdable_id' => $jointAccount->id,
-            'holdable_type' => InvestmentAccount::class,
-            'asset_type' => 'cash',
-            'security_name' => 'Cash',
-            'allocation_percent' => 100.00,
-            'current_value' => $jointAccount->current_value,
-            'quantity' => null,
-            'purchase_price' => null,
-            'purchase_date' => null,
-            'current_price' => null,
-            'cost_basis' => null,
-            'ocf_percent' => 0.00,
-        ]);
-
-        // Update original account with joint_owner_id
-        $originalAccount->update(['joint_owner_id' => $jointOwnerId]);
-
-        // Clear cache for joint owner
-        $this->investmentAgent->clearCache($jointOwnerId);
+        \App\Models\JointAccountLog::logEdit(
+            $user->id,
+            $account->joint_owner_id,
+            $account,
+            [
+                'before' => $beforeValues,
+                'after' => $afterValues,
+                'fields_changed' => ['current_value'],
+            ],
+            'update'
+        );
     }
 }

@@ -115,8 +115,9 @@ class GoalProgressAnalyzer
      */
     public function analyzeAllGoals(int $userId): array
     {
+        // Note: investment_goals table does not have a status column
+        // Get all goals for the user
         $goals = InvestmentGoal::where('user_id', $userId)
-            ->where('status', 'active')
             ->get();
 
         if ($goals->isEmpty()) {

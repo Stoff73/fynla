@@ -206,8 +206,9 @@ export default {
     },
 
     formatInterestRate(rate) {
-      // Convert decimal to percentage (e.g., 0.05 -> 5)
-      return (parseFloat(rate) * 100).toFixed(2);
+      // Rate is stored as a percentage (e.g., 4.55 = 4.55%)
+      // Display directly without multiplying
+      return parseFloat(rate || 0).toFixed(2);
     },
 
     // Modal handlers

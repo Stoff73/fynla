@@ -57,7 +57,7 @@
               <p class="text-sm text-gray-600">Full Balance</p>
               <p class="text-2xl font-bold text-gray-900">{{ formatCurrency(fullBalance) }}</p>
               <p v-if="account.ownership_type === 'joint'" class="text-xs text-gray-600 mt-1">
-                Your Share ({{ account.ownership_percentage }}%): {{ formatCurrency(account.current_balance) }}
+                Your Share ({{ account.ownership_percentage }}%): {{ formatCurrency(userShare) }}
               </p>
             </div>
             <div class="bg-gray-50 rounded-lg p-4">
@@ -109,7 +109,7 @@
                 </div>
                 <div v-if="account.ownership_type === 'joint'" class="flex justify-between">
                   <dt class="text-sm text-gray-600">Your Share ({{ account.ownership_percentage }}%):</dt>
-                  <dd class="text-sm font-medium text-blue-600">{{ formatCurrency(account.current_balance) }}</dd>
+                  <dd class="text-sm font-medium text-blue-600">{{ formatCurrency(userShare) }}</dd>
                 </div>
                 <div class="flex justify-between">
                   <dt class="text-sm text-gray-600">Interest Rate:</dt>
@@ -225,12 +225,22 @@ export default {
   computed: {
     fullBalance() {
       if (!this.account) return 0;
-      // If joint ownership, calculate full balance from user's share
-      if (this.account.ownership_type === 'joint' && this.account.ownership_percentage) {
-        return this.account.current_balance / (this.account.ownership_percentage / 100);
+      // Single-record pattern: DB stores FULL balance
+      // Use full_balance from API if available, otherwise current_balance is already full
+      return this.account.full_balance ?? this.account.current_balance ?? 0;
+    },
+
+    userShare() {
+      if (!this.account) return 0;
+      // Single-record pattern: Use user_share from API if available
+      if (this.account.user_share !== undefined) {
+        return this.account.user_share;
       }
-      // For individual ownership, user's share = full balance
-      return this.account.current_balance;
+      // Fallback: calculate from full balance
+      if (this.account.ownership_type === 'joint' && this.account.ownership_percentage) {
+        return this.fullBalance * (this.account.ownership_percentage / 100);
+      }
+      return this.fullBalance;
     },
 
     monthlyInterest() {
@@ -360,9 +370,9 @@ export default {
     },
 
     formatInterestRate(rate) {
-      // Convert from decimal to percentage (e.g., 0.01 -> 1.00%)
-      // The rate from database is already in decimal form (0.01 = 1%)
-      return `${(rate * 100).toFixed(2)}%`;
+      // Rate is stored as a percentage (e.g., 4.55 = 4.55%)
+      // Display directly without multiplying
+      return `${parseFloat(rate || 0).toFixed(2)}%`;
     },
   },
 };

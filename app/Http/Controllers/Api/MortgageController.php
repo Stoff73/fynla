@@ -10,11 +10,23 @@ use App\Http\Requests\UpdateMortgageRequest;
 use App\Models\Mortgage;
 use App\Models\Property;
 use App\Services\Property\MortgageService;
+use App\Traits\CalculatesOwnershipShare;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
+/**
+ * Mortgage Controller
+ *
+ * Single-Record Architecture:
+ * - ONE database record stores the FULL mortgage balance in outstanding_balance
+ * - user_id = primary owner (can edit/delete)
+ * - joint_owner_id = secondary owner (view access)
+ * - ownership_percentage = primary owner's share (default 50 for joint)
+ */
 class MortgageController extends Controller
 {
+    use CalculatesOwnershipShare;
+
     public function __construct(
         private MortgageService $mortgageService
     ) {}
@@ -22,20 +34,35 @@ class MortgageController extends Controller
     /**
      * Get all mortgages for a property
      *
+     * Allows access if user is owner OR joint_owner of the property.
+     *
      * GET /api/properties/{propertyId}/mortgages
      */
     public function index(Request $request, int $propertyId): JsonResponse
     {
         $user = $request->user();
 
-        // Verify property ownership
+        // Single-record pattern: Allow access if user is owner OR joint_owner
         $property = Property::where('id', $propertyId)
-            ->where('user_id', $user->id)
+            ->where(function ($query) use ($user) {
+                $query->where('user_id', $user->id)
+                    ->orWhere('joint_owner_id', $user->id);
+            })
             ->firstOrFail();
 
         $mortgages = Mortgage::where('property_id', $propertyId)
             ->orderBy('start_date', 'desc')
             ->get();
+
+        // Add calculated fields for each mortgage
+        $mortgages = $mortgages->map(function ($mortgage) use ($user) {
+            $mortgageData = $mortgage->toArray();
+            $mortgageData['user_share'] = $this->calculateUserMortgageShare($mortgage, $user->id);
+            $mortgageData['full_balance'] = (float) $mortgage->outstanding_balance;
+            $mortgageData['is_primary_owner'] = $this->isPrimaryOwner($mortgage, $user->id);
+
+            return $mortgageData;
+        });
 
         return response()->json([
             'success' => true,
@@ -49,13 +76,16 @@ class MortgageController extends Controller
     /**
      * Store a new mortgage for a property
      *
+     * Single-record pattern: Store FULL balance directly, no splitting.
+     * Only primary property owner can add mortgages.
+     *
      * POST /api/properties/{propertyId}/mortgages
      */
     public function store(StoreMortgageRequest $request, int $propertyId): JsonResponse
     {
         $user = $request->user();
 
-        // Verify property ownership
+        // Only primary owner can add mortgages
         $property = Property::where('id', $propertyId)
             ->where('user_id', $user->id)
             ->firstOrFail();
@@ -63,13 +93,13 @@ class MortgageController extends Controller
         $validated = $request->validated();
 
         // Set sensible defaults for optional fields
-        $validated['ownership_type'] = $validated['ownership_type'] ?? 'individual';
+        $validated['ownership_type'] = $validated['ownership_type'] ?? $property->ownership_type ?? 'individual';
+        $validated['ownership_percentage'] = $validated['ownership_percentage'] ?? $property->ownership_percentage ?? 100;
         $validated['lender_name'] = $validated['lender_name'] ?? 'To be completed';
         $validated['mortgage_type'] = $validated['mortgage_type'] ?? 'repayment';
         $validated['interest_rate'] = $validated['interest_rate'] ?? 0.0000;
         $validated['rate_type'] = $validated['rate_type'] ?? 'fixed';
         $validated['start_date'] = $validated['start_date'] ?? now();
-        // Note: original_loan_amount is optional and should NOT be auto-filled if not provided
 
         // Calculate maturity date if not provided (assume 25 year term)
         if (! isset($validated['maturity_date'])) {
@@ -80,7 +110,6 @@ class MortgageController extends Controller
         if (! isset($validated['remaining_term_months']) &&
             isset($validated['start_date']) && $validated['start_date'] &&
             isset($validated['maturity_date']) && $validated['maturity_date']) {
-            // Convert to Carbon if not already
             $startDate = $validated['start_date'] instanceof \Carbon\Carbon
                 ? $validated['start_date']
                 : \Carbon\Carbon::parse($validated['start_date']);
@@ -93,19 +122,14 @@ class MortgageController extends Controller
             $validated['remaining_term_months'] = $validated['remaining_term_months'] ?? 300; // 25 years default
         }
 
-        // For joint or tenants_in_common ownership, split financial values by ownership percentage
-        if (isset($validated['ownership_type']) && in_array($validated['ownership_type'], ['joint', 'tenants_in_common'])) {
-            // Get ownership percentage from property, default to 50% for joint
-            $ownershipPercentage = $property->ownership_percentage ?? 50;
-            $validated['outstanding_balance'] = $validated['outstanding_balance'] * ($ownershipPercentage / 100);
+        // Single-record pattern: Store FULL values directly (no splitting)
+        // outstanding_balance, monthly_payment, original_loan_amount are FULL amounts
 
-            // Also split monthly_payment and original_loan_amount
-            if (isset($validated['monthly_payment'])) {
-                $validated['monthly_payment'] = $validated['monthly_payment'] * ($ownershipPercentage / 100);
-            }
-            if (isset($validated['original_loan_amount'])) {
-                $validated['original_loan_amount'] = $validated['original_loan_amount'] * ($ownershipPercentage / 100);
-            }
+        // Copy joint ownership from property if applicable
+        if (in_array($property->ownership_type, ['joint', 'tenants_in_common']) && $property->joint_owner_id) {
+            $validated['joint_owner_id'] = $property->joint_owner_id;
+            $jointOwner = \App\Models\User::find($property->joint_owner_id);
+            $validated['joint_owner_name'] = $jointOwner ? $jointOwner->name : null;
         }
 
         $mortgage = Mortgage::create([
@@ -114,16 +138,17 @@ class MortgageController extends Controller
             ...$validated,
         ]);
 
-        // If joint or tenants_in_common ownership, create reciprocal mortgage for joint owner
-        if (isset($validated['ownership_type']) && in_array($validated['ownership_type'], ['joint', 'tenants_in_common']) && isset($validated['joint_owner_id'])) {
-            $this->createJointMortgage($mortgage, $validated['joint_owner_id'], $property);
-        }
+        // Add calculated fields to response
+        $mortgageData = $mortgage->toArray();
+        $mortgageData['user_share'] = $this->calculateUserMortgageShare($mortgage, $user->id);
+        $mortgageData['full_balance'] = (float) $mortgage->outstanding_balance;
+        $mortgageData['is_primary_owner'] = true;
 
         return response()->json([
             'success' => true,
             'message' => 'Mortgage added successfully',
             'data' => [
-                'mortgage' => $mortgage,
+                'mortgage' => $mortgageData,
             ],
         ], 201);
     }
@@ -131,27 +156,41 @@ class MortgageController extends Controller
     /**
      * Get a single mortgage
      *
+     * Allows access if user is owner OR joint_owner.
+     *
      * GET /api/mortgages/{id}
      */
     public function show(Request $request, int $id): JsonResponse
     {
         $user = $request->user();
 
+        // Single-record pattern: Allow access if user is owner OR joint_owner
         $mortgage = Mortgage::where('id', $id)
-            ->where('user_id', $user->id)
+            ->where(function ($query) use ($user) {
+                $query->where('user_id', $user->id)
+                    ->orWhere('joint_owner_id', $user->id);
+            })
             ->with('property')
             ->firstOrFail();
+
+        $mortgageData = $mortgage->toArray();
+        $mortgageData['user_share'] = $this->calculateUserMortgageShare($mortgage, $user->id);
+        $mortgageData['full_balance'] = (float) $mortgage->outstanding_balance;
+        $mortgageData['is_primary_owner'] = $this->isPrimaryOwner($mortgage, $user->id);
 
         return response()->json([
             'success' => true,
             'data' => [
-                'mortgage' => $mortgage,
+                'mortgage' => $mortgageData,
             ],
         ]);
     }
 
     /**
      * Update a mortgage
+     *
+     * Only primary owner (user_id) can update.
+     * Single-record pattern: Update the single record directly.
      *
      * PUT /api/mortgages/{id}
      * PUT /api/properties/{propertyId}/mortgages/{mortgageId}
@@ -163,6 +202,7 @@ class MortgageController extends Controller
         // Handle both route patterns
         $id = $mortgageId ?? $propertyId;
 
+        // Only primary owner can update
         $mortgage = Mortgage::where('id', $id)
             ->where('user_id', $user->id)
             ->firstOrFail();
@@ -177,119 +217,34 @@ class MortgageController extends Controller
             $validated['remaining_term_months'] = ($interval->y * 12) + $interval->m;
         }
 
-        // Get the property to check ownership type
-        $property = $mortgage->property;
-
-        // Check if this is a joint mortgage - check BOTH mortgage AND property ownership type
-        // Some mortgages might have ownership_type='individual' but belong to a joint property
-        $isJointMortgage = (
-            (in_array($mortgage->ownership_type, ['joint', 'tenants_in_common']) && $mortgage->joint_owner_id) ||
-            (in_array($property->ownership_type, ['joint', 'tenants_in_common']) && $property->joint_owner_id)
-        );
-
-        if ($isJointMortgage) {
-            // Use property's joint_owner_id if mortgage doesn't have one
-            $jointOwnerId = $mortgage->joint_owner_id ?? $property->joint_owner_id;
-
-            // Find the reciprocal property
-            $reciprocalProperty = Property::where('user_id', $jointOwnerId)
-                ->where('joint_owner_id', $user->id)
-                ->where('address_line_1', $property->address_line_1)
-                ->where('postcode', $property->postcode)
-                ->first();
-
-            $reciprocalMortgage = null;
-            if ($reciprocalProperty) {
-                $reciprocalMortgage = Mortgage::where('property_id', $reciprocalProperty->id)
-                    ->where('user_id', $jointOwnerId)
-                    ->first();
-            }
-
-            if ($reciprocalMortgage) {
-                // Capture before values for logging
-                $beforeValues = [
-                    'outstanding_balance' => [
-                        'user_share' => $mortgage->outstanding_balance,
-                        'joint_owner_share' => $reciprocalMortgage->outstanding_balance,
-                        'full_balance' => $mortgage->outstanding_balance + $reciprocalMortgage->outstanding_balance,
-                    ],
-                ];
-
-                // Get ownership percentages from the properties
-                $userPercentage = $property->ownership_percentage;
-                $jointOwnerPercentage = $reciprocalProperty->ownership_percentage;
-
-                // Prepare reciprocal update data
-                $reciprocalData = $validated;
-                $fieldsChanged = [];
-
-                // If outstanding_balance is provided, it's the FULL balance - split it
-                if (isset($validated['outstanding_balance'])) {
-                    $fullBalance = $validated['outstanding_balance'];
-                    $validated['outstanding_balance'] = $fullBalance * ($userPercentage / 100);
-                    $reciprocalData['outstanding_balance'] = $fullBalance * ($jointOwnerPercentage / 100);
-                    $fieldsChanged[] = 'outstanding_balance';
-                }
-
-                // If monthly_payment is provided, it's the FULL payment - split it
-                if (isset($validated['monthly_payment'])) {
-                    $fullPayment = $validated['monthly_payment'];
-                    $validated['monthly_payment'] = $fullPayment * ($userPercentage / 100);
-                    $reciprocalData['monthly_payment'] = $fullPayment * ($jointOwnerPercentage / 100);
-                    $fieldsChanged[] = 'monthly_payment';
-                }
-
-                // If original_loan_amount is provided, it's the FULL amount - split it
-                if (isset($validated['original_loan_amount'])) {
-                    $fullLoan = $validated['original_loan_amount'];
-                    $validated['original_loan_amount'] = $fullLoan * ($userPercentage / 100);
-                    $reciprocalData['original_loan_amount'] = $fullLoan * ($jointOwnerPercentage / 100);
-                    $fieldsChanged[] = 'original_loan_amount';
-                }
-
-                // Update reciprocal mortgage
-                $reciprocalMortgage->update($reciprocalData);
-
-                // Log the joint account edit if any financial fields changed
-                if (! empty($fieldsChanged)) {
-                    // Capture after values for logging
-                    $afterValues = [
-                        'outstanding_balance' => [
-                            'user_share' => $validated['outstanding_balance'] ?? $mortgage->outstanding_balance,
-                            'joint_owner_share' => $reciprocalData['outstanding_balance'] ?? $reciprocalMortgage->outstanding_balance,
-                            'full_balance' => ($validated['outstanding_balance'] ?? $mortgage->outstanding_balance) + ($reciprocalData['outstanding_balance'] ?? $reciprocalMortgage->outstanding_balance),
-                        ],
-                    ];
-
-                    \App\Models\JointAccountLog::logEdit(
-                        $user->id,
-                        $jointOwnerId,
-                        $mortgage,
-                        [
-                            'before' => $beforeValues,
-                            'after' => $afterValues,
-                            'fields_changed' => $fieldsChanged,
-                        ],
-                        'update'
-                    );
-                }
-            }
+        // Log joint mortgage update if applicable
+        if ($this->isSharedOwnership($mortgage) && $mortgage->joint_owner_id && isset($validated['outstanding_balance'])) {
+            $this->logJointMortgageUpdate($user, $mortgage, $validated);
         }
 
-        // Update the user's mortgage
+        // Single-record pattern: Update directly (no splitting, no reciprocal)
         $mortgage->update($validated);
+
+        // Add calculated fields to response
+        $mortgageData = $mortgage->toArray();
+        $mortgageData['user_share'] = $this->calculateUserMortgageShare($mortgage, $user->id);
+        $mortgageData['full_balance'] = (float) $mortgage->outstanding_balance;
+        $mortgageData['is_primary_owner'] = true;
 
         return response()->json([
             'success' => true,
             'message' => 'Mortgage updated successfully',
             'data' => [
-                'mortgage' => $mortgage,
+                'mortgage' => $mortgageData,
             ],
         ]);
     }
 
     /**
      * Delete a mortgage
+     *
+     * Only primary owner (user_id) can delete.
+     * Single-record pattern: Delete the single record.
      *
      * DELETE /api/mortgages/{id}
      * DELETE /api/properties/{propertyId}/mortgages/{mortgageId}
@@ -301,24 +256,12 @@ class MortgageController extends Controller
 
         $user = $request->user();
 
+        // Only primary owner can delete
         $mortgage = Mortgage::where('id', $id)
             ->where('user_id', $user->id)
             ->firstOrFail();
 
-        // If this is a joint mortgage, also delete the reciprocal mortgage
-        if ($mortgage->joint_owner_id) {
-            // Find the reciprocal mortgage - match on user IDs AND lender + balance to ensure correct mortgage
-            $reciprocalMortgage = Mortgage::where('user_id', $mortgage->joint_owner_id)
-                ->where('joint_owner_id', $user->id)
-                ->where('lender_name', $mortgage->lender_name)
-                ->where('outstanding_balance', $mortgage->outstanding_balance)
-                ->first();
-
-            if ($reciprocalMortgage) {
-                $reciprocalMortgage->delete();
-            }
-        }
-
+        // Single-record pattern: Just delete the one record
         $mortgage->delete();
 
         return response()->json([
@@ -336,8 +279,12 @@ class MortgageController extends Controller
     {
         $user = $request->user();
 
+        // Allow access if user is owner OR joint_owner
         $mortgage = Mortgage::where('id', $id)
-            ->where('user_id', $user->id)
+            ->where(function ($query) use ($user) {
+                $query->where('user_id', $user->id)
+                    ->orWhere('joint_owner_id', $user->id);
+            })
             ->firstOrFail();
 
         $schedule = $this->mortgageService->generateAmortizationSchedule($mortgage);
@@ -385,62 +332,34 @@ class MortgageController extends Controller
     }
 
     /**
-     * Create a reciprocal mortgage record for joint owner
+     * Log joint mortgage update for audit trail
      */
-    private function createJointMortgage(Mortgage $originalMortgage, int $jointOwnerId, Property $property): void
+    private function logJointMortgageUpdate(\App\Models\User $user, Mortgage $mortgage, array $validated): void
     {
-        // Get joint owner
-        $jointOwner = \App\Models\User::findOrFail($jointOwnerId);
+        $beforeValues = [
+            'outstanding_balance' => [
+                'full_balance' => $mortgage->outstanding_balance,
+                'user_share' => $this->calculateUserMortgageShare($mortgage, $user->id),
+            ],
+        ];
 
-        // Find the joint owner's corresponding property record
-        // (This should exist if the property is joint-owned)
-        $jointProperty = Property::where('user_id', $jointOwnerId)
-            ->where('joint_owner_id', $property->user_id)
-            ->where('address_line_1', $property->address_line_1)
-            ->where('postcode', $property->postcode)
-            ->first();
+        $afterValues = [
+            'outstanding_balance' => [
+                'full_balance' => $validated['outstanding_balance'],
+                'user_share' => $validated['outstanding_balance'] * (($mortgage->ownership_percentage ?? 100) / 100),
+            ],
+        ];
 
-        // If no joint property found, we can't create the mortgage
-        if (! $jointProperty) {
-            \Log::warning("Joint property not found for user {$jointOwnerId}. Mortgage will not be duplicated.");
-
-            return;
-        }
-
-        // Create the reciprocal mortgage
-        $jointMortgageData = $originalMortgage->toArray();
-
-        // Remove auto-generated fields
-        unset($jointMortgageData['id'], $jointMortgageData['created_at'], $jointMortgageData['updated_at']);
-
-        // Update fields for joint owner
-        $jointMortgageData['user_id'] = $jointOwnerId;
-        $jointMortgageData['property_id'] = $jointProperty->id;
-        $jointMortgageData['joint_owner_id'] = $originalMortgage->user_id;
-
-        // Calculate joint owner's share based on ownership percentages
-        // Original mortgage already has user's share (split in store())
-        // Joint owner's share = user's share * (joint_owner% / user%)
-        $userPercentage = $property->ownership_percentage ?? 50;
-        $jointOwnerPercentage = $jointProperty->ownership_percentage ?? 50;
-
-        // Prevent division by zero
-        if ($userPercentage > 0) {
-            $ratio = $jointOwnerPercentage / $userPercentage;
-
-            // Recalculate joint owner's share of financial values
-            $jointMortgageData['outstanding_balance'] = $originalMortgage->outstanding_balance * $ratio;
-            if ($originalMortgage->monthly_payment) {
-                $jointMortgageData['monthly_payment'] = $originalMortgage->monthly_payment * $ratio;
-            }
-            if ($originalMortgage->original_loan_amount) {
-                $jointMortgageData['original_loan_amount'] = $originalMortgage->original_loan_amount * $ratio;
-            }
-        }
-
-        $jointMortgage = Mortgage::create($jointMortgageData);
-
-        // Update original mortgage with joint_owner_id
-        $originalMortgage->update(['joint_owner_id' => $jointOwnerId]);
+        \App\Models\JointAccountLog::logEdit(
+            $user->id,
+            $mortgage->joint_owner_id,
+            $mortgage,
+            [
+                'before' => $beforeValues,
+                'after' => $afterValues,
+                'fields_changed' => ['outstanding_balance'],
+            ],
+            'update'
+        );
     }
 }

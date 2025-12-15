@@ -117,7 +117,8 @@ export default {
       const userRates = this.categories.map((category) => {
         const accountType = this.getAccountTypeKey(category);
         const account = this.accounts.find((acc) => acc.account_type === accountType);
-        return account ? parseFloat(account.interest_rate) * 100 : 0;
+        // Interest rate is stored as a percentage (e.g., 4.55 = 4.55%)
+        return account ? parseFloat(account.interest_rate) : 0;
       });
 
       const marketRates = this.categories.map((category) => {
