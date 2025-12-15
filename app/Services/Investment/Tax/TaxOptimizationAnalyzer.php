@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Investment\Tax;
 
 use App\Models\Investment\InvestmentAccount;
-use App\Models\Savings\SavingsAccount;
+use App\Models\SavingsAccount;
 use App\Services\TaxConfigService;
 use Illuminate\Support\Collection;
 

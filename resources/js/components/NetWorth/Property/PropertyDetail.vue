@@ -51,7 +51,7 @@
           </div>
           <div class="bg-gray-50 rounded-lg p-4">
             <p class="text-sm text-gray-600">Your Share ({{ property.ownership_percentage }}%)</p>
-            <p class="text-2xl font-bold text-gray-900">{{ formatCurrency(property.current_value) }}</p>
+            <p class="text-2xl font-bold text-gray-900">{{ formatCurrency(calculateUserPropertyShare()) }}</p>
           </div>
           <div class="bg-gray-50 rounded-lg p-4">
             <p class="text-sm text-gray-600">Equity</p>
@@ -141,7 +141,7 @@
                   </div>
                   <div class="flex justify-between">
                     <dt class="text-sm text-gray-600">Your Share ({{ property.ownership_percentage }}%):</dt>
-                    <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(property.current_value) }}</dd>
+                    <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(calculateUserPropertyShare()) }}</dd>
                   </div>
                   <div class="flex justify-between">
                     <dt class="text-sm text-gray-600">Valuation Date:</dt>
@@ -160,12 +160,20 @@
                 <h3 class="text-lg font-semibold text-gray-800 mb-3">Rental Income</h3>
                 <dl class="space-y-2">
                   <div class="flex justify-between">
-                    <dt class="text-sm text-gray-600">Monthly Rental Income:</dt>
+                    <dt class="text-sm text-gray-600">Full Monthly Rental Income:</dt>
                     <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(property.monthly_rental_income) }}</dd>
                   </div>
+                  <div v-if="isSharedOwnership" class="flex justify-between">
+                    <dt class="text-sm text-gray-600">Your Share ({{ property.ownership_percentage }}%):</dt>
+                    <dd class="text-sm font-medium text-blue-600">{{ formatCurrency(calculateUserRentalIncome()) }}</dd>
+                  </div>
                   <div class="flex justify-between">
-                    <dt class="text-sm text-gray-600">Annual Rental Income:</dt>
+                    <dt class="text-sm text-gray-600">Full Annual Rental Income:</dt>
                     <dd class="text-sm font-medium text-gray-900">{{ formatCurrency((property.monthly_rental_income || 0) * 12) }}</dd>
+                  </div>
+                  <div v-if="isSharedOwnership" class="flex justify-between">
+                    <dt class="text-sm text-gray-600">Your Annual Share:</dt>
+                    <dd class="text-sm font-medium text-blue-600">{{ formatCurrency(calculateUserRentalIncome() * 12) }}</dd>
                   </div>
                   <div class="flex justify-between" v-if="property.tenant_name">
                     <dt class="text-sm text-gray-600">Tenant:</dt>
@@ -257,9 +265,9 @@
                         <dt class="text-sm text-gray-600">Full Outstanding Balance:</dt>
                         <dd class="text-sm font-medium text-blue-600 font-semibold">{{ formatCurrency(calculateFullOutstandingBalance(mortgage)) }}</dd>
                       </div>
-                      <div v-if="property.ownership_type === 'joint'" class="flex justify-between">
+                      <div v-if="property.ownership_type === 'joint' || property.ownership_type === 'tenants_in_common'" class="flex justify-between">
                         <dt class="text-sm text-gray-600">Your Share ({{ property.ownership_percentage }}%):</dt>
-                        <dd class="text-sm font-medium text-blue-600">{{ formatCurrency(mortgage.outstanding_balance) }}</dd>
+                        <dd class="text-sm font-medium text-blue-600">{{ formatCurrency(calculateUserMortgageShare(mortgage)) }}</dd>
                       </div>
                       <div v-if="mortgage.original_loan_amount" class="flex justify-between">
                         <dt class="text-sm text-gray-600">Amount Paid Off:</dt>
@@ -278,7 +286,7 @@
                     <dl class="space-y-2">
                       <div v-if="mortgage.rate_type !== 'mixed'" class="flex justify-between">
                         <dt class="text-sm text-gray-600">Interest Rate:</dt>
-                        <dd class="text-sm font-medium text-gray-900">{{ mortgage.interest_rate }}%</dd>
+                        <dd class="text-sm font-medium text-gray-900">{{ parseFloat(mortgage.interest_rate).toFixed(2) }}%</dd>
                       </div>
                       <div class="flex justify-between">
                         <dt class="text-sm text-gray-600">Rate Type:</dt>
@@ -309,7 +317,7 @@
                       </div>
                       <div v-if="property.ownership_type === 'joint' || property.ownership_type === 'tenants_in_common'" class="flex justify-between">
                         <dt class="text-sm text-gray-600">Your Share ({{ property.ownership_percentage }}%):</dt>
-                        <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(mortgage.monthly_payment) }}</dd>
+                        <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(calculateFullMonthlyPayment(mortgage) * (property.ownership_percentage / 100)) }}</dd>
                       </div>
                       <div class="flex justify-between">
                         <dt class="text-sm text-gray-600">Full Annual Payment:</dt>
@@ -601,30 +609,60 @@ export default {
     },
 
     calculateFullOutstandingBalance(mortgage) {
-      // If joint ownership, calculate full balance from user's share
-      if ((this.property?.ownership_type === 'joint' || this.property?.ownership_type === 'tenants_in_common') && this.property?.ownership_percentage) {
-        return mortgage.outstanding_balance / (this.property.ownership_percentage / 100);
-      }
-      // For individual ownership, user's share = full balance
-      return mortgage.outstanding_balance;
+      // Single-record pattern: DB stores FULL balance
+      // Use mortgage_full_balance from API if available, otherwise outstanding_balance is already full
+      return mortgage.mortgage_full_balance ?? mortgage.outstanding_balance ?? 0;
     },
 
     calculateFullMonthlyPayment(mortgage) {
-      // If joint ownership, calculate full payment from user's share
-      if ((this.property?.ownership_type === 'joint' || this.property?.ownership_type === 'tenants_in_common') && this.property?.ownership_percentage) {
-        return mortgage.monthly_payment / (this.property.ownership_percentage / 100);
-      }
-      // For individual ownership, user's share = full payment
-      return mortgage.monthly_payment;
+      // Single-record pattern: DB stores FULL payment
+      // For now, monthly_payment in DB is full value
+      return mortgage.monthly_payment ?? 0;
     },
 
     calculateFullPropertyValue() {
-      // If joint ownership, calculate full value from user's share
-      if ((this.property?.ownership_type === 'joint' || this.property?.ownership_type === 'tenants_in_common') && this.property?.ownership_percentage) {
-        return this.property.current_value / (this.property.ownership_percentage / 100);
+      // Single-record pattern: DB stores FULL value
+      // Use full_value from API if available, otherwise current_value is already full
+      return this.property?.full_value ?? this.property?.current_value ?? 0;
+    },
+
+    calculateUserPropertyShare() {
+      // Single-record pattern: Calculate user's share from full value
+      if (this.property?.user_share !== undefined) {
+        return this.property.user_share;
       }
-      // For individual ownership, user's share = full value
-      return this.property?.current_value || 0;
+      // Fallback: calculate from full value
+      const fullValue = this.calculateFullPropertyValue();
+      if (this.isSharedOwnership && this.property?.ownership_percentage) {
+        return fullValue * (this.property.ownership_percentage / 100);
+      }
+      return fullValue;
+    },
+
+    calculateUserMortgageShare(mortgage) {
+      // Single-record pattern: Use mortgage_user_share from API if available
+      if (this.property?.mortgage_user_share !== undefined) {
+        return this.property.mortgage_user_share;
+      }
+      // Fallback: calculate from full balance
+      const fullBalance = this.calculateFullOutstandingBalance(mortgage);
+      if (this.isSharedOwnership && this.property?.ownership_percentage) {
+        return fullBalance * (this.property.ownership_percentage / 100);
+      }
+      return fullBalance;
+    },
+
+    isSharedOwnership() {
+      return this.property?.ownership_type === 'joint' || this.property?.ownership_type === 'tenants_in_common';
+    },
+
+    calculateUserRentalIncome() {
+      // Single-record pattern: Calculate user's share of rental income
+      const fullRentalIncome = this.property?.monthly_rental_income || 0;
+      if (this.isSharedOwnership() && this.property?.ownership_percentage) {
+        return fullRentalIncome * (this.property.ownership_percentage / 100);
+      }
+      return fullRentalIncome;
     },
 
     calculateLTV(mortgage) {

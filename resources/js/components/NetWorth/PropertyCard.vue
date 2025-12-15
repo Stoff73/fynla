@@ -32,7 +32,7 @@
 
           <div class="detail-row">
             <span class="detail-label">{{ isSharedOwnership ? `Your Share (${property.ownership_percentage}%)` : 'Current Value' }}</span>
-            <span class="detail-value">{{ formatCurrency(property.current_value) }}</span>
+            <span class="detail-value">{{ formatCurrency(userShare) }}</span>
           </div>
 
           <div v-if="hasMortgage" class="detail-row">
@@ -91,13 +91,21 @@ export default {
     },
 
     fullPropertyValue() {
-      // Calculate full property value from user's share
-      // For shared ownership: divide user's share by ownership percentage
-      if (this.isSharedOwnership && this.property.ownership_percentage) {
-        return this.property.current_value / (this.property.ownership_percentage / 100);
+      // Single-record pattern: current_value in DB is the FULL value
+      // Use full_value from API response if available, otherwise current_value
+      return this.property.full_value ?? this.property.current_value ?? 0;
+    },
+
+    userShare() {
+      // Single-record pattern: API provides user_share, or calculate from full value
+      if (this.property.user_share !== undefined) {
+        return this.property.user_share;
       }
-      // For individual properties, user's share = full value
-      return this.property.current_value || 0;
+      // Fallback: calculate from full value
+      if (this.isSharedOwnership && this.property.ownership_percentage) {
+        return this.fullPropertyValue * (this.property.ownership_percentage / 100);
+      }
+      return this.fullPropertyValue;
     },
 
     mortgageLabel() {
@@ -117,19 +125,27 @@ export default {
     },
 
     mortgageAmount() {
-      // Get mortgage from mortgages relationship (already user's share)
-      if (this.property.mortgages && this.property.mortgages.length > 0) {
-        return this.property.mortgages.reduce((total, m) => total + (m.outstanding_balance || 0), 0);
+      // Single-record pattern: Use mortgage_user_share from API if available
+      if (this.property.mortgage_user_share !== undefined) {
+        return this.property.mortgage_user_share;
       }
-      return this.property.outstanding_mortgage || 0;
+      // Fallback: Calculate from full mortgage balance
+      let fullMortgage = 0;
+      if (this.property.mortgages && this.property.mortgages.length > 0) {
+        fullMortgage = this.property.mortgages.reduce((total, m) => total + (m.outstanding_balance || 0), 0);
+      } else {
+        fullMortgage = this.property.outstanding_mortgage || 0;
+      }
+      // Calculate user's share of mortgage
+      if (this.isSharedOwnership && this.property.ownership_percentage) {
+        return fullMortgage * (this.property.ownership_percentage / 100);
+      }
+      return fullMortgage;
     },
 
     equity() {
-      // Both current_value and mortgage are already the user's share from database
-      // No need to multiply by ownership percentage
-      const value = this.property.current_value || 0;
-      const mortgage = this.mortgageAmount;
-      return value - mortgage;
+      // Single-record pattern: Calculate equity from user's share values
+      return this.userShare - this.mortgageAmount;
     },
   },
 

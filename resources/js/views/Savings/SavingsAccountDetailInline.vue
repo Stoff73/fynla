@@ -47,9 +47,8 @@
           </div>
           <div class="flex space-x-2">
             <button
-              disabled
-              class="px-4 py-2 bg-gray-300 text-gray-500 rounded-md cursor-not-allowed"
-              title="This functionality is not available for this demo"
+              @click="showEditModal = true"
+              class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
             >
               Edit
             </button>
@@ -68,7 +67,7 @@
             <p class="text-sm text-gray-600">Full Balance</p>
             <p class="text-2xl font-bold text-gray-900">{{ formatCurrency(fullBalance) }}</p>
             <p v-if="account.ownership_type === 'joint'" class="text-xs text-gray-600 mt-1">
-              Your Share ({{ account.ownership_percentage }}%): {{ formatCurrency(account.current_balance) }}
+              Your Share ({{ account.ownership_percentage }}%): {{ formatCurrency(userShare) }}
             </p>
           </div>
           <div class="bg-gray-50 rounded-lg p-4">
@@ -120,7 +119,7 @@
               </div>
               <div v-if="account.ownership_type === 'joint'" class="flex justify-between">
                 <dt class="text-sm text-gray-600">Your Share ({{ account.ownership_percentage }}%):</dt>
-                <dd class="text-sm font-medium text-blue-600">{{ formatCurrency(account.current_balance) }}</dd>
+                <dd class="text-sm font-medium text-blue-600">{{ formatCurrency(userShare) }}</dd>
               </div>
               <div class="flex justify-between">
                 <dt class="text-sm text-gray-600">Interest Rate:</dt>
@@ -193,7 +192,7 @@
       v-if="showEditModal"
       :account="account"
       @close="showEditModal = false"
-      @saved="handleAccountSaved"
+      @save="handleAccountSaved"
     />
 
     <ConfirmationModal
@@ -241,10 +240,21 @@ export default {
   computed: {
     fullBalance() {
       if (!this.account) return 0;
-      if (this.account.ownership_type === 'joint' && this.account.ownership_percentage) {
-        return this.account.current_balance / (this.account.ownership_percentage / 100);
+      // Single-record pattern: DB stores FULL balance
+      return this.account.full_balance ?? this.account.current_balance ?? 0;
+    },
+
+    userShare() {
+      if (!this.account) return 0;
+      // Single-record pattern: Use user_share from API if available
+      if (this.account.user_share !== undefined) {
+        return this.account.user_share;
       }
-      return this.account.current_balance;
+      // Fallback: calculate from full balance
+      if (this.account.ownership_type === 'joint' && this.account.ownership_percentage) {
+        return this.fullBalance * (this.account.ownership_percentage / 100);
+      }
+      return this.fullBalance;
     },
 
     monthlyInterest() {
@@ -304,9 +314,17 @@ export default {
       }
     },
 
-    async handleAccountSaved() {
+    async handleAccountSaved(savedData) {
       this.showEditModal = false;
-      await this.loadAccount();
+      // Update local state immediately for UI feedback
+      if (savedData && this.account) {
+        this.account = { ...this.account, ...savedData };
+      }
+      // In preview mode, don't reload from API (it would overwrite our local changes)
+      const isPreview = this.$store.getters['preview/isPreviewMode'];
+      if (!isPreview) {
+        await this.loadAccount();
+      }
     },
 
     confirmDelete() {
@@ -374,7 +392,9 @@ export default {
     },
 
     formatInterestRate(rate) {
-      return `${(rate * 100).toFixed(2)}%`;
+      // Rate is stored as a percentage (e.g., 4.55 = 4.55%)
+      // Display directly without multiplying
+      return `${parseFloat(rate || 0).toFixed(2)}%`;
     },
   },
 };

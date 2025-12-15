@@ -16,13 +16,24 @@ use App\Models\SavingsAccount;
 use App\Models\SavingsGoal;
 use App\Services\NetWorth\NetWorthService;
 use App\Services\Savings\ISATracker;
+use App\Traits\CalculatesOwnershipShare;
 use App\Traits\SanitizedErrorResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
+/**
+ * Savings Controller
+ *
+ * Single-Record Architecture:
+ * - ONE database record stores the FULL balance in current_balance
+ * - user_id = primary owner (can edit/delete)
+ * - joint_owner_id = secondary owner (view access)
+ * - ownership_percentage = primary owner's share (default 50 for joint)
+ */
 class SavingsController extends Controller
 {
+    use CalculatesOwnershipShare;
     use SanitizedErrorResponse;
 
     public function __construct(
@@ -34,16 +45,27 @@ class SavingsController extends Controller
     /**
      * Get all savings data for authenticated user
      *
-     * Note: Joint accounts are already handled via reciprocal records.
-     * Each spouse has their own record with their share, so we only
-     * need to fetch the user's own accounts.
+     * Single-record pattern: Get accounts where user is owner OR joint_owner.
      */
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
 
-        // Get user's own accounts (includes their joint account records)
-        $accounts = SavingsAccount::where('user_id', $user->id)->get();
+        // Single-record pattern: Get accounts where user is owner OR joint_owner
+        $accounts = SavingsAccount::where('user_id', $user->id)
+            ->orWhere('joint_owner_id', $user->id)
+            ->get();
+
+        // Add calculated fields for each account
+        $accounts = $accounts->map(function ($account) use ($user) {
+            $accountData = $account->toArray();
+            $accountData['user_share'] = $this->calculateUserShare($account, $user->id);
+            $accountData['full_balance'] = (float) $account->current_balance;
+            $accountData['is_primary_owner'] = $this->isPrimaryOwner($account, $user->id);
+            $accountData['is_shared'] = $this->isSharedOwnership($account);
+
+            return $accountData;
+        });
 
         $goals = SavingsGoal::where('user_id', $user->id)->get();
 
@@ -166,6 +188,8 @@ class SavingsController extends Controller
 
     /**
      * Store a new savings account
+     *
+     * Single-record pattern: Store FULL balance directly, no splitting.
      */
     public function storeAccount(StoreSavingsAccountRequest $request): JsonResponse
     {
@@ -188,26 +212,26 @@ class SavingsController extends Controller
                 $data['ownership_percentage'] = 50.00;
             }
 
-            // Split the current_balance based on ownership percentage
-            $totalBalance = $data['current_balance'];
-            $userOwnershipPercentage = $data['ownership_percentage'];
-            $data['current_balance'] = $totalBalance * ($userOwnershipPercentage / 100);
+            // Single-record pattern: Store FULL balance directly (no splitting)
+            // current_balance already contains the full account balance from the form
 
             $account = SavingsAccount::create($data);
-
-            // If joint ownership, create reciprocal account for joint owner
-            if (isset($data['ownership_type']) && $data['ownership_type'] === 'joint' && isset($data['joint_owner_id'])) {
-                $this->createJointSavingsAccount($account, $data['joint_owner_id'], $userOwnershipPercentage, $totalBalance);
-            }
 
             // Invalidate cache
             Cache::forget("savings_analysis_{$user->id}");
             $this->netWorthService->invalidateCache($user->id);
 
+            // Add calculated fields to response
+            $accountData = $account->toArray();
+            $accountData['user_share'] = $this->calculateUserShare($account, $user->id);
+            $accountData['full_balance'] = (float) $account->current_balance;
+            $accountData['is_primary_owner'] = true;
+            $accountData['is_shared'] = $this->isSharedOwnership($account);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Savings account created successfully',
-                'data' => $account,
+                'data' => $accountData,
             ], 201);
         } catch (\Exception $e) {
             return response()->json([
@@ -219,19 +243,31 @@ class SavingsController extends Controller
 
     /**
      * Get a single savings account
+     *
+     * Allows access if user is owner OR joint_owner.
      */
     public function showAccount(Request $request, int $id): JsonResponse
     {
         $user = $request->user();
 
         try {
+            // Single-record pattern: Allow access if user is owner OR joint_owner
             $account = SavingsAccount::where('id', $id)
-                ->where('user_id', $user->id)
+                ->where(function ($query) use ($user) {
+                    $query->where('user_id', $user->id)
+                        ->orWhere('joint_owner_id', $user->id);
+                })
                 ->firstOrFail();
+
+            $accountData = $account->toArray();
+            $accountData['user_share'] = $this->calculateUserShare($account, $user->id);
+            $accountData['full_balance'] = (float) $account->current_balance;
+            $accountData['is_primary_owner'] = $this->isPrimaryOwner($account, $user->id);
+            $accountData['is_shared'] = $this->isSharedOwnership($account);
 
             return response()->json([
                 'success' => true,
-                'data' => $account,
+                'data' => $accountData,
             ]);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json([
@@ -248,42 +284,43 @@ class SavingsController extends Controller
 
     /**
      * Update a savings account
+     *
+     * Only primary owner (user_id) can update.
+     * Single-record pattern: Update the single record directly.
      */
     public function updateAccount(UpdateSavingsAccountRequest $request, int $id): JsonResponse
     {
         $user = $request->user();
 
         try {
+            // Only primary owner can update
             $account = SavingsAccount::where('id', $id)
                 ->where('user_id', $user->id)
                 ->firstOrFail();
 
+            // Single-record pattern: Update directly (no reciprocal)
             $account->update($request->validated());
-
-            // If this is a joint account, also update the reciprocal account
-            if ($account->joint_owner_id) {
-                $reciprocalAccount = SavingsAccount::where('user_id', $account->joint_owner_id)
-                    ->where('joint_owner_id', $user->id)
-                    ->where('institution', $account->institution)
-                    ->where('current_balance', $account->current_balance)
-                    ->first();
-
-                if ($reciprocalAccount) {
-                    $reciprocalAccount->update($request->validated());
-                    // Invalidate cache for joint owner
-                    Cache::forget("savings_analysis_{$account->joint_owner_id}");
-                    $this->netWorthService->invalidateCache($account->joint_owner_id);
-                }
-            }
 
             // Invalidate cache
             Cache::forget("savings_analysis_{$user->id}");
             $this->netWorthService->invalidateCache($user->id);
 
+            // Also invalidate cache for joint owner if applicable
+            if ($account->joint_owner_id) {
+                Cache::forget("savings_analysis_{$account->joint_owner_id}");
+                $this->netWorthService->invalidateCache($account->joint_owner_id);
+            }
+
+            $accountData = $account->fresh()->toArray();
+            $accountData['user_share'] = $this->calculateUserShare($account->fresh(), $user->id);
+            $accountData['full_balance'] = (float) $account->fresh()->current_balance;
+            $accountData['is_primary_owner'] = true;
+            $accountData['is_shared'] = $this->isSharedOwnership($account->fresh());
+
             return response()->json([
                 'success' => true,
                 'message' => 'Savings account updated successfully',
-                'data' => $account->fresh(),
+                'data' => $accountData,
             ]);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json([
@@ -300,37 +337,34 @@ class SavingsController extends Controller
 
     /**
      * Delete a savings account
+     *
+     * Only primary owner (user_id) can delete.
+     * Single-record pattern: Delete the single record.
      */
     public function destroyAccount(Request $request, int $id): JsonResponse
     {
         $user = $request->user();
 
         try {
+            // Only primary owner can delete
             $account = SavingsAccount::where('id', $id)
                 ->where('user_id', $user->id)
                 ->firstOrFail();
 
-            // If this is a joint account, also delete the reciprocal account
-            if ($account->joint_owner_id) {
-                $reciprocalAccount = SavingsAccount::where('user_id', $account->joint_owner_id)
-                    ->where('joint_owner_id', $user->id)
-                    ->where('institution', $account->institution)
-                    ->where('current_balance', $account->current_balance)
-                    ->first();
+            $jointOwnerId = $account->joint_owner_id;
 
-                if ($reciprocalAccount) {
-                    $reciprocalAccount->delete();
-                    // Invalidate cache for joint owner
-                    Cache::forget("savings_analysis_{$account->joint_owner_id}");
-                    $this->netWorthService->invalidateCache($account->joint_owner_id);
-                }
-            }
-
+            // Single-record pattern: Just delete the one record
             $account->delete();
 
             // Invalidate cache
             Cache::forget("savings_analysis_{$user->id}");
             $this->netWorthService->invalidateCache($user->id);
+
+            // Also invalidate cache for joint owner if applicable
+            if ($jointOwnerId) {
+                Cache::forget("savings_analysis_{$jointOwnerId}");
+                $this->netWorthService->invalidateCache($jointOwnerId);
+            }
 
             return response()->json([
                 'success' => true,
@@ -500,41 +534,5 @@ class SavingsController extends Controller
                 'message' => 'Failed to update goal progress: '.$e->getMessage(),
             ], 500);
         }
-    }
-
-    /**
-     * Create a reciprocal savings account record for joint owner
-     * Follows the same pattern as Property joint ownership
-     */
-    private function createJointSavingsAccount(SavingsAccount $originalAccount, int $jointOwnerId, float $ownershipPercentage, float $totalBalance): void
-    {
-        // Calculate the reciprocal ownership percentage
-        $reciprocalPercentage = 100.00 - $ownershipPercentage;
-
-        // Get joint owner
-        $jointOwner = \App\Models\User::findOrFail($jointOwnerId);
-
-        // Create the reciprocal account
-        $jointAccountData = $originalAccount->toArray();
-
-        // Remove auto-generated fields
-        unset($jointAccountData['id'], $jointAccountData['created_at'], $jointAccountData['updated_at']);
-
-        // Update fields for joint owner
-        $jointAccountData['user_id'] = $jointOwnerId;
-        $jointAccountData['joint_owner_id'] = $originalAccount->user_id;
-        $jointAccountData['ownership_percentage'] = $reciprocalPercentage;
-
-        // Calculate joint owner's share of the total balance
-        $jointAccountData['current_balance'] = $totalBalance * ($reciprocalPercentage / 100);
-
-        $jointAccount = SavingsAccount::create($jointAccountData);
-
-        // Update original account with joint_owner_id
-        $originalAccount->update(['joint_owner_id' => $jointOwnerId]);
-
-        // Invalidate cache for joint owner
-        Cache::forget("savings_analysis_{$jointOwnerId}");
-        $this->netWorthService->invalidateCache($jointOwnerId);
     }
 }

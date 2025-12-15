@@ -28,18 +28,19 @@ test('calculate net worth with no assets returns zero', function () {
 });
 
 test('calculate net worth with property includes ownership percentage', function () {
-    // Note: Values in database are ALREADY stored as user's share
-    // For joint properties, TWO records exist (one per user) each storing their share
-    // So we store 200000 (user's 50% share of £400k property)
+    // Single-record pattern: Database stores FULL value, share calculated from percentage
+    // For joint properties, ONE record exists with full value
+    // User's share = full_value * (ownership_percentage / 100)
     Property::factory()->create([
         'user_id' => $this->user->id,
-        'current_value' => 200000, // User's 50% share stored directly
+        'current_value' => 400000, // FULL property value stored
         'ownership_percentage' => 50,
         'ownership_type' => 'joint',
     ]);
 
     $result = $this->service->calculateNetWorth($this->user);
 
+    // User's share is 50% of £400k = £200k
     expect($result['total_assets'])->toBe(200000.0)
         ->and($result['breakdown']['property'])->toBe(200000.0)
         ->and($result['net_worth'])->toBe(200000.0);
@@ -73,7 +74,8 @@ test('calculate net worth with cash accounts', function () {
 });
 
 test('calculate net worth with business interests', function () {
-    // Note: Values in database are ALREADY stored as user's share
+    // Note: Business interests are NOT in the single-record pattern scope.
+    // They still store user's share directly in current_valuation.
     // So we store 75000 (user's 75% share of £100k business)
     BusinessInterest::factory()->create([
         'user_id' => $this->user->id,
@@ -182,9 +184,10 @@ test('get assets summary returns counts and totals', function () {
 });
 
 test('get joint assets filters correctly', function () {
+    // Single-record pattern: FULL value stored, share calculated
     Property::factory()->create([
         'user_id' => $this->user->id,
-        'current_value' => 400000,
+        'current_value' => 400000, // FULL property value
         'ownership_percentage' => 50,
         'ownership_type' => 'joint',
         'address_line_1' => '123 Test Street',

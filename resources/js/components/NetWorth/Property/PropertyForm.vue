@@ -1269,7 +1269,7 @@
             </button>
 
             <button
-              v-if="currentStep < totalSteps"
+              v-if="currentStep < totalSteps && !isEditMode"
               type="button"
               @click="nextStep"
               class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
@@ -1278,7 +1278,16 @@
             </button>
 
             <button
-              v-else
+              v-if="currentStep < totalSteps && isEditMode"
+              type="button"
+              @click="nextStep"
+              class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
+            >
+              Next Step
+            </button>
+
+            <button
+              v-if="currentStep >= totalSteps || isEditMode"
               type="submit"
               :disabled="submitting"
               class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -1589,23 +1598,11 @@ export default {
       this.form.household_id = this.property.household_id || null;
       this.form.trust_id = this.property.trust_id || null;
       this.form.trust_name = this.property.trust_name || '';
-      // For joint properties WITH a linked joint owner, calculate full value from user's share
-      // Only do this if joint_owner_id exists - otherwise the stored value might already be full
-      // This matches the calculation used in PropertyDetail.vue's calculateFullPropertyValue()
-      const isLinkedJointProperty = (this.property.ownership_type === 'joint' || this.property.ownership_type === 'tenants_in_common') &&
-                                     this.property.joint_owner_id &&
-                                     this.property.ownership_percentage &&
-                                     this.property.ownership_percentage < 100;
 
-      if (isLinkedJointProperty) {
-        // Calculate full property value from user's share: userShare / (percentage / 100)
-        const ownershipDecimal = this.property.ownership_percentage / 100;
-        this.form.current_value = this.property.current_value ? Math.round(this.property.current_value / ownershipDecimal) : null;
-        this.form.purchase_price = this.property.purchase_price ? Math.round(this.property.purchase_price / ownershipDecimal) : null;
-      } else {
-        this.form.current_value = this.property.current_value || null;
-        this.form.purchase_price = this.property.purchase_price || null;
-      }
+      // Single-record pattern: DB stores FULL values directly
+      // No conversion needed - just use values directly
+      this.form.current_value = this.property.current_value || null;
+      this.form.purchase_price = this.property.purchase_price || null;
 
       // Set joint owner selection state
       if (this.form.joint_owner_id) {
@@ -1674,21 +1671,10 @@ export default {
         this.mortgageForm.joint_owner_id = mortgage.joint_owner_id || null;
         this.mortgageForm.joint_owner_name = mortgage.joint_owner_name || '';
 
-        // For joint mortgages, calculate full balance from user's share using ownership percentage
-        // This matches the calculation used in PropertyDetail.vue's calculateFullOutstandingBalance()
-        const isJointMortgage = (mortgage.ownership_type === 'joint' || mortgage.ownership_type === 'tenants_in_common') &&
-                                mortgage.joint_owner_id &&
-                                this.property.ownership_percentage &&
-                                this.property.ownership_percentage < 100;
-        if (isJointMortgage) {
-          // Calculate full mortgage balance from user's share: userShare / (percentage / 100)
-          const ownershipDecimal = this.property.ownership_percentage / 100;
-          this.mortgageForm.outstanding_balance = mortgage.outstanding_balance ? Math.round(mortgage.outstanding_balance / ownershipDecimal) : null;
-          this.mortgageForm.original_loan_amount = mortgage.original_loan_amount ? Math.round(mortgage.original_loan_amount / ownershipDecimal) : null;
-        } else {
-          this.mortgageForm.outstanding_balance = mortgage.outstanding_balance || null;
-          this.mortgageForm.original_loan_amount = mortgage.original_loan_amount || null;
-        }
+        // Single-record pattern: DB stores FULL mortgage balances
+        // No conversion needed - just use values directly
+        this.mortgageForm.outstanding_balance = mortgage.outstanding_balance || null;
+        this.mortgageForm.original_loan_amount = mortgage.original_loan_amount || null;
 
         // Set mortgage joint owner selection state
         if (this.mortgageForm.joint_owner_id) {
@@ -1820,11 +1806,14 @@ export default {
     },
 
     async handleSubmit() {
+      console.log('[PropertyForm] handleSubmit called');
       if (!this.validateForm()) {
+        console.log('[PropertyForm] Validation failed:', this.error);
         // Scroll to top to show error message
         this.$el.querySelector('.px-6.py-4').scrollIntoView({ behavior: 'smooth', block: 'start' });
         return;
       }
+      console.log('[PropertyForm] Validation passed, form data:', this.form);
 
       this.submitting = true;
       this.error = null;
@@ -1859,6 +1848,7 @@ export default {
       }
 
       // Emit 'save' event (NOT 'submit' - see CLAUDE.md)
+      console.log('[PropertyForm] Emitting save event with:', { property: this.form, mortgage: cleanedMortgage });
       this.$emit('save', {
         property: this.form,
         mortgage: cleanedMortgage,
