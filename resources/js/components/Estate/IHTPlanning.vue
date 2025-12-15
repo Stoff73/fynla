@@ -1448,14 +1448,11 @@ export default {
     },
 
     async loadIHTCalculation() {
-      // Handle preview mode - compute IHT from preview data
+      // Preview mode now uses real database users, so we use the API call
+      // The old client-side computePreviewIHTData() is no longer needed
       const isPreviewMode = this.$store.getters['preview/isPreviewMode'];
       if (isPreviewMode) {
-        console.log('[IHTPlanning] Preview mode - computing IHT from preview data');
-        this.loading = true;
-        this.computePreviewIHTData();
-        this.loading = false;
-        return;
+        console.log('[IHTPlanning] Preview mode - using API with real database users');
       }
 
       this.loading = true;

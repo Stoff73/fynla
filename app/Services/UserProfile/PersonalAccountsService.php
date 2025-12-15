@@ -64,6 +64,9 @@ class PersonalAccountsService
                    ($property->other_annual_costs ?? 0);
         });
 
+        // Calculate personal/living expenses from user expenditure fields (annualized)
+        $livingExpenses = ($user->monthly_expenditure ?? 0) * 12;
+
         $expenses = [
             [
                 'line_item' => 'Mortgage Payments',
@@ -74,6 +77,11 @@ class PersonalAccountsService
                 'line_item' => 'Property Expenses',
                 'category' => 'expense',
                 'amount' => $propertyExpenses,
+            ],
+            [
+                'line_item' => 'Living Expenses',
+                'category' => 'expense',
+                'amount' => $livingExpenses,
             ],
         ];
 
@@ -156,6 +164,9 @@ class PersonalAccountsService
             return $annualSalary * ($employeePercent / 100);
         });
 
+        // Living expenses (annualized)
+        $livingExpenses = ($user->monthly_expenditure ?? 0) * 12;
+
         $outflows = [
             [
                 'line_item' => 'Mortgage Payments',
@@ -166,6 +177,11 @@ class PersonalAccountsService
                 'line_item' => 'Property Expenses',
                 'category' => 'cash_outflow',
                 'amount' => $propertyExpenses,
+            ],
+            [
+                'line_item' => 'Living Expenses',
+                'category' => 'cash_outflow',
+                'amount' => $livingExpenses,
             ],
             [
                 'line_item' => 'Pension Contributions',
@@ -211,40 +227,58 @@ class PersonalAccountsService
 
         $assets = [];
 
-        // Cash accounts - individual line items
-        $cashAccounts = SavingsAccount::where('user_id', $user->id)->get();
+        // Cash accounts - individual line items (include joint accounts where user is joint_owner)
+        $cashAccounts = SavingsAccount::where('user_id', $user->id)
+            ->orWhere('joint_owner_id', $user->id)
+            ->get();
         foreach ($cashAccounts as $account) {
+            // For joint accounts, show user's share (50% for joint ownership)
+            $amount = $account->current_balance;
+            if ($account->ownership_type === 'joint' && $account->joint_owner_id) {
+                $amount = $account->current_balance * 0.5;
+            }
             $assets[] = [
                 'line_item' => $account->institution ? "{$account->institution} - {$account->account_type}" : $account->account_type,
                 'category' => 'cash',
-                'amount' => $account->current_balance,
+                'amount' => $amount,
             ];
         }
 
-        // Investment accounts - individual line items
-        // IMPORTANT: current_value is ALREADY stored as the user's share in the database
-        // (divided by ownership_percentage when saving). No need to multiply again.
-        foreach ($user->investmentAccounts as $account) {
+        // Investment accounts - individual line items (include joint accounts)
+        $investmentAccounts = \App\Models\Investment\InvestmentAccount::where('user_id', $user->id)
+            ->orWhere('joint_owner_id', $user->id)
+            ->get();
+        foreach ($investmentAccounts as $account) {
+            // For joint accounts, show user's share (50% for joint ownership)
+            $amount = $account->current_value;
+            if ($account->ownership_type === 'joint' && $account->joint_owner_id) {
+                $amount = $account->current_value * 0.5;
+            }
             $assets[] = [
                 'line_item' => $account->provider ? "{$account->provider} - {$account->account_type}" : $account->account_type,
                 'category' => 'investment',
-                'amount' => $account->current_value,
+                'amount' => $amount,
             ];
         }
 
-        // Properties - individual line items
-        // IMPORTANT: current_value is ALREADY stored as the user's share in the database.
-        // For joint properties, TWO records exist (one per user) each storing their share.
-        // No need to multiply by ownership_percentage again.
-        foreach ($user->properties as $property) {
+        // Properties - individual line items (include joint properties)
+        $properties = \App\Models\Property::where('user_id', $user->id)
+            ->orWhere('joint_owner_id', $user->id)
+            ->get();
+        foreach ($properties as $property) {
             $propertyLabel = $property->address_line_1;
             if ($property->property_type) {
                 $propertyLabel .= ' ('.str_replace('_', ' ', ucwords($property->property_type, '_')).')';
             }
+            // For joint properties, show user's share (50% for joint ownership)
+            $amount = $property->current_value;
+            if ($property->ownership_type === 'joint' && $property->joint_owner_id) {
+                $amount = $property->current_value * 0.5;
+            }
             $assets[] = [
                 'line_item' => $propertyLabel,
                 'category' => 'property',
-                'amount' => $property->current_value,
+                'amount' => $amount,
             ];
         }
 
@@ -283,33 +317,50 @@ class PersonalAccountsService
 
         $liabilities = [];
 
-        // Mortgages - individual line items
-        foreach ($user->mortgages as $mortgage) {
+        // Mortgages - individual line items (include joint mortgages)
+        $mortgages = \App\Models\Mortgage::where('user_id', $user->id)
+            ->orWhere('joint_owner_id', $user->id)
+            ->get();
+        foreach ($mortgages as $mortgage) {
             // Include property address to ensure uniqueness when multiple mortgages have same lender
             $mortgageLabel = $mortgage->lender_name ?? 'Mortgage';
 
             // Try to get property address for this mortgage
-            $property = $user->properties->firstWhere('id', $mortgage->property_id);
+            $property = $properties->firstWhere('id', $mortgage->property_id);
             if ($property && $property->address_line_1) {
                 $mortgageLabel .= " ({$property->address_line_1})";
             } else {
                 $mortgageLabel .= ' - Mortgage';
             }
 
+            // For joint mortgages, show user's share (50% for joint ownership)
+            $amount = $mortgage->outstanding_balance;
+            if ($mortgage->ownership_type === 'joint' && $mortgage->joint_owner_id) {
+                $amount = $mortgage->outstanding_balance * 0.5;
+            }
+
             $liabilities[] = [
                 'line_item' => $mortgageLabel,
                 'category' => 'mortgage',
-                'amount' => $mortgage->outstanding_balance,
+                'amount' => $amount,
             ];
         }
 
-        // Other liabilities - individual line items
-        foreach ($user->liabilities as $liability) {
+        // Other liabilities - individual line items (include joint liabilities)
+        $userLiabilities = \App\Models\Estate\Liability::where('user_id', $user->id)
+            ->orWhere('joint_owner_id', $user->id)
+            ->get();
+        foreach ($userLiabilities as $liability) {
             $typeLabel = str_replace('_', ' ', ucwords($liability->liability_type, '_'));
+            // For joint liabilities, show user's share (50% for joint ownership)
+            $amount = $liability->current_balance;
+            if ($liability->ownership_type === 'joint' && $liability->joint_owner_id) {
+                $amount = $liability->current_balance * 0.5;
+            }
             $liabilities[] = [
                 'line_item' => $liability->liability_name ?? $typeLabel,
                 'category' => 'liability',
-                'amount' => $liability->current_balance,
+                'amount' => $amount,
             ];
         }
 
@@ -332,6 +383,7 @@ class PersonalAccountsService
                 ],
             ],
             'total_equity' => $equity,
+            'net_worth' => $equity,  // Alias for compatibility
         ];
     }
 }

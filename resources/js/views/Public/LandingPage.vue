@@ -539,18 +539,38 @@
         </div>
       </div>
     </div>
+    <!-- Persona Intro Modal -->
+    <PersonaIntroModal
+      :is-open="showIntroModal"
+      :persona="selectedPersona"
+      @close="cancelPreview"
+      @explore="confirmPreview"
+    />
   </PublicLayout>
 </template>
 
 <script>
 import { mapActions } from 'vuex';
+import { nextTick } from 'vue';
 import PublicLayout from '@/layouts/PublicLayout.vue';
+import PersonaIntroModal from '@/components/Preview/PersonaIntroModal.vue';
+
+// Default persona metadata for the intro modal
+const DEFAULT_PERSONA = {
+  id: 'young_family',
+  name: 'Emily & James Carter',
+  tagline: 'Young family building their future',
+  netWorthRange: '£80k - £120k',
+  focus: 'Protection gaps, emergency fund',
+  description: 'A young married couple in their early 30s with two children, mortgage, and workplace pensions.',
+};
 
 export default {
   name: 'LandingPage',
 
   components: {
     PublicLayout,
+    PersonaIntroModal,
   },
 
   data() {
@@ -558,6 +578,8 @@ export default {
       loadingNews: true,
       activeNewsSource: 'all',
       enteringPreview: false,
+      showIntroModal: false,
+      selectedPersona: null,
       // Rotating hero words with colors
       heroWords: [
         { word: 'Financial', color: 'text-primary-400' },
@@ -614,21 +636,47 @@ export default {
       }, 3000);
     },
 
-    async enterPreviewMode() {
-      console.log('[LandingPage] enterPreviewMode called');
+    enterPreviewMode() {
+      // Show the intro modal instead of directly navigating
+      this.selectedPersona = DEFAULT_PERSONA;
+      this.showIntroModal = true;
+    },
+
+    cancelPreview() {
+      // User clicked Cancel on the modal
+      this.showIntroModal = false;
+      this.selectedPersona = null;
+    },
+
+    async confirmPreview() {
+      // User clicked "Explore Dashboard" on the modal
+      console.log('[LandingPage] confirmPreview called');
       if (this.enteringPreview) {
         console.log('[LandingPage] Already entering preview, returning');
         return;
       }
 
       this.enteringPreview = true;
-      console.log('[LandingPage] Set enteringPreview to true');
+      this.showIntroModal = false;
 
       try {
         console.log('[LandingPage] About to call loadPersona...');
         await this.$store.dispatch('preview/loadPersona', 'young_family');
         console.log('[LandingPage] loadPersona completed');
-        console.log('[LandingPage] isPreviewMode:', this.$store.getters['preview/isPreviewMode']);
+
+        // Verify auth state is set correctly
+        const isAuthenticated = this.$store.getters['auth/isAuthenticated'];
+        const isPreviewMode = this.$store.getters['preview/isPreviewMode'];
+        console.log('[LandingPage] isAuthenticated:', isAuthenticated);
+        console.log('[LandingPage] isPreviewMode:', isPreviewMode);
+
+        if (!isAuthenticated && !isPreviewMode) {
+          throw new Error('Authentication failed - state not set correctly');
+        }
+
+        // Wait for Vue to process store updates before navigating
+        await nextTick();
+
         console.log('[LandingPage] Navigating to /dashboard...');
         this.$router.push('/dashboard');
       } catch (error) {
@@ -636,7 +684,7 @@ export default {
         alert('Failed to load demo data: ' + error.message);
       } finally {
         this.enteringPreview = false;
-        console.log('[LandingPage] enterPreviewMode finished');
+        console.log('[LandingPage] confirmPreview finished');
       }
     },
 

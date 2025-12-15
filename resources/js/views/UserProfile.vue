@@ -151,13 +151,9 @@ export default {
     };
 
     onMounted(() => {
-      // Skip API calls in preview mode - data already loaded
-      const isPreviewMode = store.getters['preview/isPreviewMode'];
-      if (!isPreviewMode) {
-        loadProfile();
-      } else {
-        console.log('[UserProfile] Preview mode - data already loaded');
-      }
+      // Load profile for all users (including preview mode)
+      // Preview users are real database users and use the same code paths
+      loadProfile();
 
       // Check for section query parameter and set active tab
       const urlParams = new URLSearchParams(window.location.search);

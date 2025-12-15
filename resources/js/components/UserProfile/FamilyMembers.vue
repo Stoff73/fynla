@@ -181,12 +181,17 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useStore } from 'vuex';
 import FamilyMemberFormModal from './FamilyMemberFormModal.vue';
 import ConfirmationModal from '@/components/Common/ConfirmationModal.vue';
 import SpouseSuccessModal from '@/components/Shared/SpouseSuccessModal.vue';
 import familyMembersService from '@/services/familyMembersService';
+
+// Preview mode messages
+const PREVIEW_ADD_MESSAGE = 'Family member added for this session only (preview mode).';
+const PREVIEW_UPDATE_MESSAGE = 'Family member updated for this session only (preview mode).';
+const PREVIEW_DELETE_MESSAGE = 'Family member removed for this session only (preview mode).';
 
 export default {
   name: 'FamilyMembers',
@@ -210,17 +215,25 @@ export default {
     const temporaryPassword = ref(null);
     const familyMembers = ref([]);
 
+    // Watch for changes in the store's familyMembers and update local ref
+    const storeFamilyMembers = computed(() => store.state.userProfile.familyMembers);
+    watch(storeFamilyMembers, (newMembers) => {
+      if (newMembers && newMembers.length > 0) {
+        familyMembers.value = newMembers;
+      }
+    }, { immediate: true });
+
     const charitableBequest = computed(() => store.state.auth.user?.charitable_bequest);
 
     const loadFamilyMembers = async () => {
-      // Check if in preview mode - use store data instead of API
-      const isPreviewMode = store.getters['preview/isPreviewMode'];
-      if (isPreviewMode) {
-        console.log('[FamilyMembers] Preview mode - using store data');
-        familyMembers.value = store.state.userProfile.familyMembers || [];
+      // First try to use store data (from fetchProfile) which includes spouse
+      const storeMembers = store.state.userProfile.familyMembers;
+      if (storeMembers && storeMembers.length > 0) {
+        familyMembers.value = storeMembers;
         return;
       }
 
+      // Fallback to API call (note: this doesn't include spouse as virtual record)
       try {
         const response = await familyMembersService.getFamilyMembers();
         familyMembers.value = response.data?.family_members || [];
@@ -293,16 +306,20 @@ export default {
 
     const handleSave = async (formData) => {
       try {
+        const isPreviewMode = store.getters['preview/isPreviewMode'];
+
         if (selectedMember.value) {
           // Update existing member
           await familyMembersService.updateFamilyMember(selectedMember.value.id, formData);
-          successMessage.value = 'Family member updated successfully!';
+          successMessage.value = isPreviewMode
+            ? PREVIEW_UPDATE_MESSAGE
+            : 'Family member updated successfully!';
         } else {
           // Add new member - use same service as onboarding
           const response = await familyMembersService.createFamilyMember(formData);
 
-          // Check if spouse account was created or linked
-          if (formData.relationship === 'spouse' && response.data) {
+          // Check if spouse account was created or linked (not applicable in preview mode)
+          if (!isPreviewMode && formData.relationship === 'spouse' && response.data) {
             if (response.data.created) {
               // Show spouse success modal with credentials
               spouseCreated.value = true;
@@ -327,13 +344,16 @@ export default {
               successMessage.value = 'Family member added successfully!';
             }
           } else {
-            successMessage.value = 'Family member added successfully!';
+            successMessage.value = isPreviewMode
+              ? PREVIEW_ADD_MESSAGE
+              : 'Family member added successfully!';
           }
         }
 
         closeModal();
-        // Refresh family members list
-        await loadFamilyMembers();
+        // Refresh family members list by refreshing the profile store
+        // This ensures the store has the latest data including spouse
+        await store.dispatch('userProfile/fetchProfile');
 
         // Clear success message after 5 seconds
         if (successMessage.value) {
@@ -360,11 +380,16 @@ export default {
 
     const handleDelete = async () => {
       try {
+        const isPreviewMode = store.getters['preview/isPreviewMode'];
+
         await familyMembersService.deleteFamilyMember(memberToDelete.value.id);
-        successMessage.value = 'Family member deleted successfully!';
+        successMessage.value = isPreviewMode
+          ? PREVIEW_DELETE_MESSAGE
+          : 'Family member deleted successfully!';
         showDeleteConfirm.value = false;
         memberToDelete.value = null;
-        await loadFamilyMembers();
+        // Refresh family members list by refreshing the profile store
+        await store.dispatch('userProfile/fetchProfile');
 
         // Clear success message after 3 seconds
         setTimeout(() => {

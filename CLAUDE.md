@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Fynla** is a UK-focused comprehensive financial planning application (Laravel 10 + Vue.js 3 + MySQL 8). It covers five integrated modules: Protection, Savings, Investment, Retirement, and Estate Planning.
 
 **Production URL**: https://csjones.co/fynla
-**Version**: v0.2.18
+**Version**: v0.2.20
 
 ## Essential Commands
 
@@ -163,7 +163,39 @@ Build locally: `NODE_ENV=production npm run build`
 Use exact field names from schema:
 - Liabilities: `liability_name` (not `description`), `current_balance` (not `amount`)
 - DC Pensions: `monthly_contribution_amount` (not `employee_contribution_amount`)
+- DB Pensions: `accrued_annual_pension` (not `current_annual_pension`), `lump_sum_entitlement` (not `lump_sum_option`)
 - Mortgages: `ownership_type`, `joint_owner_id`, `joint_owner_name`
+
+### Reciprocal Records Pattern (Joint Assets)
+
+Joint assets create TWO database records - one for each owner with their share:
+
+```php
+// Creating a joint property (£320,000 total, 50/50 split)
+// Record 1: Primary user
+Property::create([
+    'user_id' => $user->id,
+    'joint_owner_id' => $spouse->id,
+    'current_value' => 160000,  // User's 50% share
+    'ownership_percentage' => 50,
+    'ownership_type' => 'joint',
+]);
+
+// Record 2: Spouse (reciprocal)
+Property::create([
+    'user_id' => $spouse->id,
+    'joint_owner_id' => $user->id,
+    'current_value' => 160000,  // Spouse's 50% share
+    'ownership_percentage' => 50,
+    'ownership_type' => 'joint',
+]);
+```
+
+**Key principles:**
+- Each record stores the owner's share in `current_value` (not the total)
+- Services only query by `user_id` - no complex joint_owner_id logic needed
+- Applies to: Properties, Mortgages, Savings, Investments
+- Individual pensions are assigned to the correct spouse via owner detection
 
 ### Date Formatting
 
@@ -242,3 +274,56 @@ watch: {
 
 - **User**: demo@fps.com / password
 - **Admin**: admin@fps.com / admin123
+
+## Preview Mode
+
+Preview mode uses database-backed personas with real user records (`is_preview_user=true`).
+
+### Seeding Preview Users
+
+```bash
+# Delete and reseed all preview users
+php artisan db:seed --class=PreviewUserSeeder --force
+```
+
+### Preview Personas
+
+| Persona | Primary | Spouse | Key Data |
+|---------|---------|--------|----------|
+| young_family | James Carter | Emily Carter | Joint property, workplace pensions |
+| peak_earners | David Mitchell | Sarah Mitchell | Multiple properties, SIPP + NHS DB pension |
+| widow | Margaret Thompson | Robert (deceased) | Estate planning focus |
+| entrepreneur | Alex Chen | None | SIPP, business interests |
+
+### Owner Detection for Pensions/Accounts
+
+The seeder uses multiple detection methods to assign pensions and accounts to the correct spouse:
+
+1. **Explicit owner flag**: `'owner' => 'spouse'` in JSON
+2. **Name matching**: Account/pension name contains spouse's first name
+3. **Employer matching**: Scheme name contains spouse's employer
+4. **Salary matching**: Pension salary matches spouse's income (within 1%)
+
+### Frontend Components in Preview Mode
+
+**Important**: Preview users are real database users. Frontend components should NOT bypass API calls in preview mode.
+
+```javascript
+// WRONG - bypasses API in preview mode
+async loadData() {
+    if (this.$store.getters['preview/isPreviewMode']) {
+        this.computePreviewData();  // Client-side calculation
+        return;
+    }
+    // API call...
+}
+
+// CORRECT - all users use API
+async loadData() {
+    // Preview users are real DB users - use normal API
+    const response = await api.get('/endpoint');
+    // ...
+}
+```
+
+Write operations can still be blocked in preview mode using `PreviewWriteInterceptor` middleware.

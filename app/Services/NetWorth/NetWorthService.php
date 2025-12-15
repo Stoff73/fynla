@@ -111,10 +111,13 @@ class NetWorthService
      *
      * Returns an array with keys: loans, credit_cards, other
      * (mortgages are calculated separately via CrossModuleAssetAggregator)
+     *
+     * Each user has their own liability records. For joint liabilities,
+     * reciprocal records exist with each owner's share stored in current_balance.
      */
     private function calculateLiabilitiesBreakdown(int $userId): array
     {
-        // Get all liabilities from the liabilities table
+        // Get all liabilities from the liabilities table for this user
         $liabilities = Liability::where('user_id', $userId)->get();
 
         $breakdown = [

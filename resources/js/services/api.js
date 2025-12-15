@@ -30,9 +30,15 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle errors
+// Response interceptor to handle errors and preview mode
 api.interceptors.response.use(
   (response) => {
+    // Check if this is a preview mode write operation
+    if (response.data?.preview_mode === true) {
+      console.info('[Preview Mode] Changes are session-only and will not be saved.');
+      // Store the preview notice for components to display if needed
+      response.data._preview_notice = response.data.preview_notice || 'Changes are session-only and will be lost on refresh.';
+    }
     return response;
   },
   (error) => {
