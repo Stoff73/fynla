@@ -40,8 +40,8 @@
           <span class="detail-value highlight">{{ formatCurrency(displayValue) }}</span>
         </div>
         <div v-if="account.ownership_type === 'joint'" class="detail-item">
-          <span class="detail-label">Your Share (50%)</span>
-          <span class="detail-value">{{ formatCurrency(account.current_value) }}</span>
+          <span class="detail-label">Your Share ({{ account.ownership_percentage || 50 }}%)</span>
+          <span class="detail-value">{{ formatCurrency(account.current_value * ((account.ownership_percentage || 50) / 100)) }}</span>
         </div>
         <div v-if="account.ytd_return !== null && account.ytd_return !== undefined" class="detail-item">
           <span class="detail-label">YTD Return</span>
@@ -83,11 +83,11 @@
       <div class="details-grid">
         <div class="detail-item">
           <span class="detail-label">Full Account Value</span>
-          <span class="detail-value highlight">{{ formatCurrency(account.current_value * 2) }}</span>
+          <span class="detail-value highlight">{{ formatCurrency(account.current_value) }}</span>
         </div>
         <div class="detail-item">
           <span class="detail-label">Your Share</span>
-          <span class="detail-value">50%</span>
+          <span class="detail-value">{{ account.ownership_percentage || 50 }}%</span>
         </div>
         <div v-if="account.joint_owner_name" class="detail-item">
           <span class="detail-label">Joint Owner</span>
@@ -137,9 +137,7 @@ export default {
 
   computed: {
     displayValue() {
-      if (this.account.ownership_type === 'joint') {
-        return this.account.current_value * 2;
-      }
+      // current_value IS the full value (single-record pattern)
       return this.account.current_value;
     },
 

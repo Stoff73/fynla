@@ -113,11 +113,16 @@ export default {
       type: Boolean,
       default: false,
     },
+    initialPensionType: {
+      type: String,
+      default: null,
+    },
   },
 
   data() {
     return {
-      mainPensionType: null, // Start with no selection
+      // Use initialPensionType if provided (edit mode), otherwise null for type selection
+      mainPensionType: this.initialPensionType || null,
     };
   },
 

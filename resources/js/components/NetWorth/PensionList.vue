@@ -7,6 +7,7 @@
       :pension-type="selectedPensionType"
       @back="clearSelection"
       @deleted="handlePensionDeleted"
+      @pension-updated="handlePensionUpdated"
     />
 
     <!-- Pension List View (default) -->
@@ -245,7 +246,12 @@ export default {
       this.selectedPension = null;
       this.selectedPensionType = null;
       this.setDetailView(false);
-      this.fetchRetirementData();
+
+      // In preview mode, don't reload from API (changes are session-only)
+      const isPreview = this.$store.getters['preview/isPreviewMode'];
+      if (!isPreview) {
+        this.fetchRetirementData();
+      }
     },
 
     handlePensionDeleted() {
@@ -257,6 +263,12 @@ export default {
       setTimeout(() => {
         this.successMessage = null;
       }, 5000);
+    },
+
+    handlePensionUpdated(updatedPension) {
+      // In preview mode, update the selected pension locally
+      // This keeps the changes visible in the UI until page refresh
+      this.selectedPension = updatedPension;
     },
 
     closePensionForm() {

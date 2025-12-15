@@ -56,19 +56,30 @@
             <!-- Account Type -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">
-                Account Type <span class="text-red-500">*</span>
+                Product Type <span class="text-red-500">*</span>
               </label>
               <select
                 v-model="formData.account_type"
                 required
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
-                <option value="">Select account type...</option>
-                <option value="savings_account">Savings Account</option>
-                <option value="current_account">Current Account</option>
-                <option value="easy_access">Easy Access</option>
-                <option value="notice">Notice Account</option>
-                <option value="fixed">Fixed Term</option>
+                <option value="">Select product type...</option>
+                <optgroup label="Bank Accounts">
+                  <option value="savings_account">Savings Account</option>
+                  <option value="current_account">Current Account</option>
+                  <option value="easy_access">Easy Access</option>
+                  <option value="instant_access">Instant Access</option>
+                  <option value="notice">Notice Account</option>
+                  <option value="fixed">Fixed Term</option>
+                </optgroup>
+                <optgroup label="ISAs">
+                  <option value="cash_isa">Cash ISA</option>
+                  <option value="junior_isa">Junior ISA</option>
+                </optgroup>
+                <optgroup label="NS&I Products">
+                  <option value="premium_bonds">Premium Bonds</option>
+                  <option value="nsi">NS&I Savings</option>
+                </optgroup>
               </select>
             </div>
 
@@ -169,8 +180,8 @@
               </label>
             </div>
 
-            <!-- ISA Status -->
-            <div class="flex items-center">
+            <!-- ISA Status (hidden when product type is already ISA) -->
+            <div v-if="!isISAProductType" class="flex items-center">
               <input
                 v-model="formData.is_isa"
                 type="checkbox"
@@ -182,8 +193,8 @@
               </label>
             </div>
 
-            <!-- Country Selector (hidden for ISAs - UK only by law) -->
-            <div v-if="!formData.is_isa">
+            <!-- Country Selector (hidden for ISAs and NS&I - UK only) -->
+            <div v-if="!formData.is_isa && !isISAProductType && !isNSIProductType">
               <label for="country" class="block text-sm font-medium text-gray-700 mb-1">
                 Account Country
               </label>
@@ -195,8 +206,8 @@
               <p class="text-sm text-gray-500 mt-1">Country where the savings account is held</p>
             </div>
 
-            <!-- ISA Details (if is_isa is true) -->
-            <div v-if="formData.is_isa" class="space-y-4 pl-6 border-l-2 border-blue-200">
+            <!-- ISA Details (if is_isa is true or ISA product type selected) -->
+            <div v-if="formData.is_isa || isISAProductType" class="space-y-4 pl-6 border-l-2 border-blue-200">
               <!-- ISA Type -->
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">
@@ -377,6 +388,35 @@ export default {
   computed: {
     spouse() {
       return this.$store.getters['userProfile/spouse'];
+    },
+
+    isISAProductType() {
+      return ['cash_isa', 'junior_isa'].includes(this.formData.account_type);
+    },
+
+    isNSIProductType() {
+      return ['premium_bonds', 'nsi'].includes(this.formData.account_type);
+    },
+  },
+
+  watch: {
+    'formData.account_type'(newType) {
+      // Auto-set ISA fields when ISA product type is selected
+      if (this.isISAProductType) {
+        this.formData.is_isa = true;
+        this.formData.country = 'United Kingdom';
+        // Set isa_type based on account_type
+        if (newType === 'cash_isa') {
+          this.formData.isa_type = 'cash';
+        } else if (newType === 'junior_isa') {
+          this.formData.isa_type = 'junior';
+        }
+      }
+      // Auto-set country for NS&I products
+      if (this.isNSIProductType) {
+        this.formData.country = 'United Kingdom';
+        this.formData.is_isa = false;
+      }
     },
   },
 

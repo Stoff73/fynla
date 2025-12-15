@@ -51,9 +51,9 @@
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
           <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
             <p class="text-sm text-gray-600">Current Value</p>
-            <p class="text-2xl font-bold text-blue-600">{{ formatCurrency(displayValue) }}</p>
+            <p class="text-2xl font-bold text-blue-600">{{ formatCurrency(account.current_value) }}</p>
             <p v-if="account.ownership_type === 'joint'" class="text-sm text-purple-600 mt-1">
-              Your 50% share: {{ formatCurrency(account.current_value) }}
+              Your {{ account.ownership_percentage ?? 50 }}% share: {{ formatCurrency(userShareValue) }}
             </p>
           </div>
           <div class="bg-gray-50 rounded-lg p-4">
@@ -155,7 +155,7 @@
 
     <!-- Edit Modal -->
     <AccountForm
-      v-if="showEditModal"
+      :show="showEditModal"
       :account="account"
       :is-edit="true"
       @close="showEditModal = false"
@@ -214,7 +214,7 @@ export default {
     },
   },
 
-  emits: ['back', 'deleted', 'updated'],
+  emits: ['back', 'deleted', 'updated', 'account-updated'],
 
   data() {
     return {
@@ -238,9 +238,11 @@ export default {
       ];
     },
 
-    displayValue() {
+    userShareValue() {
+      // For joint accounts, calculate the user's share
       if (this.account.ownership_type === 'joint') {
-        return this.account.current_value * 2;
+        const percentage = this.account.ownership_percentage ?? 50;
+        return this.account.current_value * (percentage / 100);
       }
       return this.account.current_value;
     },
@@ -341,9 +343,19 @@ export default {
 
     async handleUpdate(data) {
       try {
-        await this.updateAccount({ id: this.account.id, data });
+        await this.updateAccount({ id: this.account.id, accountData: data });
         this.showEditModal = false;
-        await this.fetchInvestmentData();
+
+        // In preview mode, emit updated data to parent (can't mutate prop directly)
+        const isPreview = this.$store.getters['preview/isPreviewMode'];
+        if (isPreview) {
+          // Emit updated account data to parent so it can update local state
+          this.$emit('account-updated', { ...this.account, ...data });
+        } else {
+          // Normal mode: reload from API
+          await this.fetchInvestmentData();
+        }
+
         this.$emit('updated');
         this.$emit('back');
       } catch (error) {

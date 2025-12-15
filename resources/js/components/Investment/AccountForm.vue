@@ -440,7 +440,22 @@ export default {
       },
     },
     show(newVal) {
-      if (!newVal) {
+      if (newVal) {
+        // Re-populate form when modal opens (in case it was reset)
+        if (this.account) {
+          this.formData = {
+            ...this.account,
+            account_type_other: this.account.account_type_other || '',
+            isa_type: this.account.isa_type || 'stocks_and_shares',
+            isa_subscription_current_year: this.account.isa_subscription_current_year || null,
+            ownership_type: this.account.ownership_type || 'individual',
+            joint_owner_id: this.account.joint_owner_id || null,
+            trust_id: this.account.trust_id || null,
+          };
+        }
+        this.errors = {};
+        this.submitting = false;
+      } else {
         this.errors = {};
       }
     },

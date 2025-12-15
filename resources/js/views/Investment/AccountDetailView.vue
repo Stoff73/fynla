@@ -14,9 +14,9 @@
         </div>
         <div class="text-right">
           <p class="text-sm text-gray-600">Current Value</p>
-          <p class="text-2xl font-bold text-gray-900">{{ formatCurrency(displayValue) }}</p>
+          <p class="text-2xl font-bold text-gray-900">{{ formatCurrency(account.current_value) }}</p>
           <p v-if="account.ownership_type === 'joint'" class="text-sm text-purple-600">
-            Your 50% share: {{ formatCurrency(account.current_value) }}
+            Your {{ account.ownership_percentage || 50 }}% share: {{ formatCurrency(account.current_value * ((account.ownership_percentage || 50) / 100)) }}
           </p>
         </div>
       </div>
@@ -86,11 +86,8 @@ export default {
   emits: ['open-holding-modal'],
 
   computed: {
-    // For joint accounts, display full value (user's share × 2)
+    // current_value IS the full value (single-record pattern)
     displayValue() {
-      if (this.account.ownership_type === 'joint') {
-        return this.account.current_value * 2;
-      }
       return this.account.current_value;
     },
   },

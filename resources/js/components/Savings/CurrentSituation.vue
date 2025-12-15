@@ -211,8 +211,13 @@ export default {
         savings_account: 'Savings Account',
         current_account: 'Current Account',
         easy_access: 'Easy Access',
+        instant_access: 'Instant Access',
         notice: 'Notice Account',
         fixed: 'Fixed Term',
+        cash_isa: 'Cash ISA',
+        junior_isa: 'Junior ISA',
+        premium_bonds: 'Premium Bonds',
+        nsi: 'NS&I Savings',
       };
       return types[type] || type;
     },
