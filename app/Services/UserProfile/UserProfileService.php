@@ -106,6 +106,14 @@ class UserProfileService
             'expenditure' => [
                 'monthly_expenditure' => $user->monthly_expenditure,
                 'annual_expenditure' => $user->annual_expenditure,
+                'categories' => [
+                    'food_groceries' => $user->food_groceries,
+                    'transport_fuel' => $user->transport_fuel,
+                    'clothing_personal_care' => $user->clothing_personal_care,
+                    'entertainment_dining' => $user->entertainment_dining,
+                    'childcare' => $user->childcare,
+                    'other_expenditure' => $user->other_expenditure,
+                ],
             ],
             'family_members' => $this->getFamilyMembersWithSharing($user),
             'domicile_info' => $user->getDomicileInfo(),

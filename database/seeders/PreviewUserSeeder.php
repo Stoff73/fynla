@@ -76,13 +76,13 @@ class PreviewUserSeeder extends Seeder
 
         $this->command->info("Seeding persona: {$personaId}");
 
-        // Create primary user
-        $user = $this->createUser($data['user'], $personaId);
+        // Create primary user (pass expenditure data if available)
+        $user = $this->createUser($data['user'], $personaId, $data['expenditure'] ?? null);
 
-        // Create spouse if exists
+        // Create spouse if exists (pass expenditure data for household sharing)
         $spouse = null;
         if (!empty($data['spouse'])) {
-            $spouse = $this->createSpouse($data['spouse'], $personaId, $user);
+            $spouse = $this->createSpouse($data['spouse'], $personaId, $user, $data['expenditure'] ?? null);
         }
 
         // Create family members
@@ -119,7 +119,7 @@ class PreviewUserSeeder extends Seeder
     /**
      * Create the primary preview user.
      */
-    private function createUser(array $userData, string $personaId): User
+    private function createUser(array $userData, string $personaId, ?array $expenditureData = null): User
     {
         $user = new User();
 
@@ -145,6 +145,28 @@ class PreviewUserSeeder extends Seeder
         $user->health_status = $userData['health_status'] ?? null;
         $user->smoking_status = $userData['smoking_status'] ?? null;
 
+        // Expenditure categories (from separate expenditure data in persona JSON)
+        // Use 0 as default for any missing categories to avoid NOT NULL constraint violations
+        if ($expenditureData && !empty($expenditureData['categories'])) {
+            $categories = $expenditureData['categories'];
+            $user->monthly_expenditure = $expenditureData['total_monthly'] ?? $userData['monthly_expenditure'] ?? 0;
+            $user->food_groceries = $categories['food'] ?? 0;
+            $user->transport_fuel = $categories['transport'] ?? 0;
+            $user->clothing_personal_care = $categories['clothing'] ?? 0;
+            $user->entertainment_dining = $categories['entertainment'] ?? 0;
+            $user->childcare = $categories['childcare'] ?? 0;
+            $user->other_expenditure = $categories['other'] ?? 0;
+        } else {
+            // Set defaults if no expenditure data provided
+            $user->monthly_expenditure = $userData['monthly_expenditure'] ?? 0;
+            $user->food_groceries = 0;
+            $user->transport_fuel = 0;
+            $user->clothing_personal_care = 0;
+            $user->entertainment_dining = 0;
+            $user->childcare = 0;
+            $user->other_expenditure = 0;
+        }
+
         // Address
         if (!empty($userData['address'])) {
             $user->address_line_1 = $userData['address']['line_1'] ?? null;
@@ -161,8 +183,9 @@ class PreviewUserSeeder extends Seeder
 
     /**
      * Create the spouse as a separate preview user.
+     * For household expenditure, spouse gets a proportional share based on their income.
      */
-    private function createSpouse(array $spouseData, string $personaId, User $primaryUser): User
+    private function createSpouse(array $spouseData, string $personaId, User $primaryUser, ?array $expenditureData = null): User
     {
         $spouse = new User();
 
@@ -183,6 +206,21 @@ class PreviewUserSeeder extends Seeder
         $spouse->occupation = $spouseData['occupation'] ?? null;
         $spouse->employer = $spouseData['employer_name'] ?? null;
         $spouse->annual_employment_income = $spouseData['annual_income'] ?? null;
+
+        // Expenditure: Split household expenditure proportionally or 50/50
+        // For a household scenario, spouse gets their share of joint costs
+        if ($expenditureData && !empty($expenditureData['categories'])) {
+            $categories = $expenditureData['categories'];
+            // Use 50% of household expenditure as default spouse share
+            $share = 0.5;
+            $spouse->monthly_expenditure = round(($expenditureData['total_monthly'] ?? 0) * $share);
+            $spouse->food_groceries = round(($categories['food'] ?? 0) * $share);
+            $spouse->transport_fuel = round(($categories['transport'] ?? 0) * $share);
+            $spouse->clothing_personal_care = round(($categories['clothing'] ?? 0) * $share);
+            $spouse->entertainment_dining = round(($categories['entertainment'] ?? 0) * $share);
+            $spouse->childcare = round(($categories['childcare'] ?? 0) * $share);
+            $spouse->other_expenditure = round(($categories['other'] ?? 0) * $share);
+        }
 
         $spouse->save();
 
@@ -219,6 +257,7 @@ class PreviewUserSeeder extends Seeder
 
     /**
      * Create properties and return a map of old ID to new ID.
+     * For joint properties, creates reciprocal records (one for each owner with their 50% share).
      */
     private function createProperties(User $user, ?User $spouse, array $properties): array
     {
@@ -226,18 +265,22 @@ class PreviewUserSeeder extends Seeder
 
         foreach ($properties as $prop) {
             $isJoint = ($prop['ownership_type'] ?? 'individual') === 'joint';
+            $totalValue = $prop['current_value'] ?? 0;
 
             // Parse the address if provided as a single string
             $addressParts = $this->parseAddress($prop['address'] ?? '');
 
+            // For joint properties, each owner's record shows their 50% share
+            $userValue = $isJoint ? $totalValue * 0.5 : $totalValue;
+
             $property = Property::create([
                 'user_id' => $user->id,
                 'property_type' => $prop['property_type'] ?? 'main_residence',
-                'current_value' => $prop['current_value'] ?? 0,
+                'current_value' => $userValue,
                 'purchase_price' => $prop['purchase_price'] ?? null,
                 'purchase_date' => $prop['purchase_date'] ?? null,
                 'ownership_type' => $prop['ownership_type'] ?? 'individual',
-                'ownership_percentage' => $prop['ownership_percentage'] ?? 100,
+                'ownership_percentage' => $isJoint ? 50 : 100,
                 'monthly_rental_income' => $prop['estimated_rental_value'] ?? null,
                 'joint_owner_id' => $isJoint && $spouse ? $spouse->id : null,
                 'address_line_1' => $addressParts['line_1'],
@@ -247,6 +290,28 @@ class PreviewUserSeeder extends Seeder
             ]);
 
             $propertyMap[$prop['id']] = $property->id;
+
+            // Create reciprocal property for spouse if joint
+            if ($isJoint && $spouse) {
+                $spouseProperty = Property::create([
+                    'user_id' => $spouse->id,
+                    'property_type' => $prop['property_type'] ?? 'main_residence',
+                    'current_value' => $totalValue * 0.5, // Spouse's 50% share
+                    'purchase_price' => $prop['purchase_price'] ?? null,
+                    'purchase_date' => $prop['purchase_date'] ?? null,
+                    'ownership_type' => 'joint',
+                    'ownership_percentage' => 50,
+                    'monthly_rental_income' => $prop['estimated_rental_value'] ?? null,
+                    'joint_owner_id' => $user->id, // Points back to primary user
+                    'address_line_1' => $addressParts['line_1'],
+                    'city' => $addressParts['city'],
+                    'county' => $addressParts['county'] ?: null,
+                    'postcode' => $addressParts['postcode'] ?: null,
+                ]);
+
+                // Store spouse's property ID for mortgage creation
+                $propertyMap["{$prop['id']}_spouse"] = $spouseProperty->id;
+            }
         }
 
         return $propertyMap;
@@ -299,96 +364,213 @@ class PreviewUserSeeder extends Seeder
 
     /**
      * Create mortgages linked to properties.
+     * For joint mortgages, creates reciprocal records (one for each owner with their 50% share).
      */
     private function createMortgages(User $user, ?User $spouse, array $mortgages, array $propertyMap): void
     {
         foreach ($mortgages as $mort) {
             $propertyId = $propertyMap[$mort['property_id']] ?? null;
             $isJoint = ($mort['ownership_type'] ?? 'individual') === 'joint';
+            $totalBalance = $mort['outstanding_balance'] ?? 0;
+
+            // For joint mortgages, each owner's record shows their 50% share
+            $userBalance = $isJoint ? $totalBalance * 0.5 : $totalBalance;
+            $userPayment = $isJoint ? ($mort['monthly_payment'] ?? 0) * 0.5 : ($mort['monthly_payment'] ?? null);
 
             Mortgage::create([
                 'user_id' => $user->id,
                 'property_id' => $propertyId,
                 'lender_name' => $mort['lender_name'] ?? '',
-                'outstanding_balance' => $mort['outstanding_balance'] ?? 0,
+                'outstanding_balance' => $userBalance,
                 'original_loan_amount' => $mort['original_amount'] ?? null,
                 'mortgage_type' => $mort['mortgage_type'] ?? 'repayment',
                 'interest_rate' => $mort['interest_rate'] ?? null,
                 'rate_type' => $mort['rate_type'] ?? 'fixed',
                 'rate_fix_end_date' => $mort['fixed_rate_end_date'] ?? null,
-                'monthly_payment' => $mort['monthly_payment'] ?? null,
+                'monthly_payment' => $userPayment,
                 'remaining_term_months' => $mort['remaining_term_months'] ?? null,
                 'start_date' => $mort['mortgage_start_date'] ?? null,
                 'ownership_type' => $mort['ownership_type'] ?? 'individual',
                 'joint_owner_id' => $isJoint && $spouse ? $spouse->id : null,
             ]);
-        }
-    }
 
-    /**
-     * Create savings accounts.
-     */
-    private function createSavingsAccounts(User $user, ?User $spouse, array $accounts): void
-    {
-        foreach ($accounts as $account) {
-            $isJoint = ($account['ownership_type'] ?? 'individual') === 'joint';
+            // Create reciprocal mortgage for spouse if joint
+            if ($isJoint && $spouse) {
+                $spousePropertyId = $propertyMap["{$mort['property_id']}_spouse"] ?? null;
 
-            SavingsAccount::create([
-                'user_id' => $user->id,
-                'institution' => $account['provider_name'] ?? '',
-                'account_type' => $account['account_type'] ?? 'instant_access',
-                'current_balance' => $account['current_balance'] ?? 0,
-                'interest_rate' => $account['interest_rate'] ?? null,
-                'is_isa' => $account['is_isa'] ?? false,
-                'access_type' => $account['access_type'] ?? 'immediate',
-                'ownership_type' => $account['ownership_type'] ?? 'individual',
-                'joint_owner_id' => $isJoint && $spouse ? $spouse->id : null,
-            ]);
-        }
-    }
-
-    /**
-     * Create investment accounts with their holdings.
-     */
-    private function createInvestmentAccounts(User $user, ?User $spouse, array $accounts): void
-    {
-        foreach ($accounts as $account) {
-            $isJoint = ($account['ownership_type'] ?? 'individual') === 'joint';
-
-            $investmentAccount = InvestmentAccount::create([
-                'user_id' => $user->id,
-                'provider' => $account['provider_name'] ?? '',
-                'account_type' => $account['account_type'] ?? 'gia',
-                'current_value' => $account['current_value'] ?? 0,
-                'contributions_ytd' => $account['annual_contribution'] ?? 0,
-                'tax_year' => '2024/25',
-                'ownership_type' => $account['ownership_type'] ?? 'individual',
-                'joint_owner_id' => $isJoint && $spouse ? $spouse->id : null,
-            ]);
-
-            // Create holdings
-            foreach ($account['holdings'] ?? [] as $holding) {
-                Holding::create([
-                    'holdable_type' => InvestmentAccount::class,
-                    'holdable_id' => $investmentAccount->id,
-                    'security_name' => $holding['holding_name'] ?? '',
-                    'asset_type' => $holding['asset_type'] ?? 'fund',
-                    'current_value' => $holding['current_value'] ?? 0,
-                    'allocation_percent' => $holding['allocation_percentage'] ?? null,
-                    'ocf_percent' => $holding['annual_fee'] ?? null,
+                Mortgage::create([
+                    'user_id' => $spouse->id,
+                    'property_id' => $spousePropertyId,
+                    'lender_name' => $mort['lender_name'] ?? '',
+                    'outstanding_balance' => $totalBalance * 0.5, // Spouse's 50% share
+                    'original_loan_amount' => $mort['original_amount'] ?? null,
+                    'mortgage_type' => $mort['mortgage_type'] ?? 'repayment',
+                    'interest_rate' => $mort['interest_rate'] ?? null,
+                    'rate_type' => $mort['rate_type'] ?? 'fixed',
+                    'rate_fix_end_date' => $mort['fixed_rate_end_date'] ?? null,
+                    'monthly_payment' => ($mort['monthly_payment'] ?? 0) * 0.5,
+                    'remaining_term_months' => $mort['remaining_term_months'] ?? null,
+                    'start_date' => $mort['mortgage_start_date'] ?? null,
+                    'ownership_type' => 'joint',
+                    'joint_owner_id' => $user->id, // Points back to primary user
                 ]);
             }
         }
     }
 
     /**
+     * Create savings accounts.
+     * For joint accounts, creates reciprocal records (one for each owner with their 50% share).
+     * For individual accounts, detects if it belongs to spouse based on account name.
+     */
+    private function createSavingsAccounts(User $user, ?User $spouse, array $accounts): void
+    {
+        foreach ($accounts as $account) {
+            $isJoint = ($account['ownership_type'] ?? 'individual') === 'joint';
+            $totalBalance = $account['current_balance'] ?? 0;
+
+            // Determine owner for individual accounts (might belong to spouse)
+            $owner = $this->determineAccountOwner($account, $user, $spouse);
+            $isSpouseOwned = $owner->id !== $user->id;
+
+            // For joint accounts, each owner gets 50% of the balance in their record
+            $userBalance = $isJoint ? $totalBalance * 0.5 : $totalBalance;
+
+            // For individual accounts owned by spouse, assign to spouse directly
+            // For joint accounts, set the correct joint owner
+            $jointOwnerId = null;
+            if ($isJoint && $spouse) {
+                $jointOwnerId = $isSpouseOwned ? $user->id : $spouse->id;
+            }
+
+            $primaryAccount = SavingsAccount::create([
+                'user_id' => $owner->id,
+                'institution' => $account['provider_name'] ?? '',
+                'account_type' => $account['account_type'] ?? 'instant_access',
+                'current_balance' => $userBalance,
+                'interest_rate' => $account['interest_rate'] ?? null,
+                'is_isa' => $account['is_isa'] ?? false,
+                'access_type' => $account['access_type'] ?? 'immediate',
+                'ownership_type' => $account['ownership_type'] ?? 'individual',
+                'ownership_percentage' => $isJoint ? 50 : 100,
+                'joint_owner_id' => $jointOwnerId,
+            ]);
+
+            // Create reciprocal account for the other owner if joint
+            if ($isJoint && $spouse) {
+                $otherOwner = $isSpouseOwned ? $user : $spouse;
+                SavingsAccount::create([
+                    'user_id' => $otherOwner->id,
+                    'institution' => $account['provider_name'] ?? '',
+                    'account_type' => $account['account_type'] ?? 'instant_access',
+                    'current_balance' => $totalBalance * 0.5,
+                    'interest_rate' => $account['interest_rate'] ?? null,
+                    'is_isa' => $account['is_isa'] ?? false,
+                    'access_type' => $account['access_type'] ?? 'immediate',
+                    'ownership_type' => 'joint',
+                    'ownership_percentage' => 50,
+                    'joint_owner_id' => $owner->id,
+                ]);
+            }
+        }
+    }
+
+    /**
+     * Create investment accounts with their holdings.
+     * For joint accounts, creates reciprocal records (one for each owner with their 50% share).
+     * For individual accounts, detects if it belongs to spouse based on account name.
+     */
+    private function createInvestmentAccounts(User $user, ?User $spouse, array $accounts): void
+    {
+        foreach ($accounts as $account) {
+            $isJoint = ($account['ownership_type'] ?? 'individual') === 'joint';
+            $totalValue = $account['current_value'] ?? 0;
+
+            // Determine owner for individual accounts (might belong to spouse)
+            $owner = $this->determineAccountOwner($account, $user, $spouse);
+            $isSpouseOwned = $owner->id !== $user->id;
+
+            // For joint accounts, each owner gets 50% of the value in their record
+            $userValue = $isJoint ? $totalValue * 0.5 : $totalValue;
+
+            // For joint accounts, set the correct joint owner
+            $jointOwnerId = null;
+            if ($isJoint && $spouse) {
+                $jointOwnerId = $isSpouseOwned ? $user->id : $spouse->id;
+            }
+
+            $investmentAccount = InvestmentAccount::create([
+                'user_id' => $owner->id,
+                'provider' => $account['provider_name'] ?? '',
+                'account_type' => $account['account_type'] ?? 'gia',
+                'current_value' => $userValue,
+                'contributions_ytd' => $account['annual_contribution'] ?? 0,
+                'tax_year' => '2024/25',
+                'ownership_type' => $account['ownership_type'] ?? 'individual',
+                'ownership_percentage' => $isJoint ? 50 : 100,
+                'joint_owner_id' => $jointOwnerId,
+            ]);
+
+            // Create holdings for the account owner
+            foreach ($account['holdings'] ?? [] as $holding) {
+                $holdingValue = $isJoint ? ($holding['current_value'] ?? 0) * 0.5 : ($holding['current_value'] ?? 0);
+                Holding::create([
+                    'holdable_type' => InvestmentAccount::class,
+                    'holdable_id' => $investmentAccount->id,
+                    'security_name' => $holding['holding_name'] ?? '',
+                    'asset_type' => $holding['asset_type'] ?? 'fund',
+                    'current_value' => $holdingValue,
+                    'allocation_percent' => $holding['allocation_percentage'] ?? null,
+                    'ocf_percent' => $holding['annual_fee'] ?? null,
+                ]);
+            }
+
+            // Create reciprocal account for the other owner if joint
+            if ($isJoint && $spouse) {
+                $otherOwner = $isSpouseOwned ? $user : $spouse;
+                $spouseAccount = InvestmentAccount::create([
+                    'user_id' => $otherOwner->id,
+                    'provider' => $account['provider_name'] ?? '',
+                    'account_type' => $account['account_type'] ?? 'gia',
+                    'current_value' => $totalValue * 0.5,
+                    'contributions_ytd' => $account['annual_contribution'] ?? 0,
+                    'tax_year' => '2024/25',
+                    'ownership_type' => 'joint',
+                    'ownership_percentage' => 50,
+                    'joint_owner_id' => $owner->id,
+                ]);
+
+                // Create holdings for the other owner
+                foreach ($account['holdings'] ?? [] as $holding) {
+                    Holding::create([
+                        'holdable_type' => InvestmentAccount::class,
+                        'holdable_id' => $spouseAccount->id,
+                        'security_name' => $holding['holding_name'] ?? '',
+                        'asset_type' => $holding['asset_type'] ?? 'fund',
+                        'current_value' => ($holding['current_value'] ?? 0) * 0.5,
+                        'allocation_percent' => $holding['allocation_percentage'] ?? null,
+                        'ocf_percent' => $holding['annual_fee'] ?? null,
+                    ]);
+                }
+            }
+        }
+    }
+
+    /**
      * Create DC pensions.
+     * Assigns pensions to spouse based on:
+     * 1. Explicit 'owner' field set to 'spouse'
+     * 2. Notes mentioning spouse's name
+     * 3. Matching annual_salary with spouse's income
      */
     private function createDCPensions(User $user, ?User $spouse, array $pensions): void
     {
         foreach ($pensions as $pension) {
+            // Determine if this pension belongs to spouse
+            $owner = $this->determinePensionOwner($pension, $user, $spouse);
+
             DCPension::create([
-                'user_id' => $user->id,
+                'user_id' => $owner->id,
                 'scheme_name' => $pension['scheme_name'] ?? '',
                 'provider' => $pension['provider_name'] ?? '',
                 'pension_type' => $pension['pension_type'] ?? 'occupational',
@@ -403,18 +585,95 @@ class PreviewUserSeeder extends Seeder
     }
 
     /**
+     * Determine who owns a pension based on various indicators.
+     */
+    private function determinePensionOwner(array $pension, User $user, ?User $spouse): User
+    {
+        // No spouse means it belongs to primary user
+        if (!$spouse) {
+            return $user;
+        }
+
+        // Check for explicit owner field
+        if (isset($pension['owner']) && $pension['owner'] === 'spouse') {
+            return $spouse;
+        }
+
+        // Check if notes mention spouse's first name
+        $notes = strtolower($pension['notes'] ?? '');
+        $spouseFirstName = strtolower(explode(' ', $spouse->name)[0] ?? '');
+        if ($spouseFirstName && str_contains($notes, $spouseFirstName)) {
+            return $spouse;
+        }
+
+        // Check if scheme name contains spouse's employer
+        $schemeName = strtolower($pension['scheme_name'] ?? '');
+        $spouseEmployer = strtolower($spouse->employer ?? '');
+        if ($spouseEmployer && str_contains($schemeName, $spouseEmployer)) {
+            return $spouse;
+        }
+
+        // Check if annual salary matches spouse's income (within 1%)
+        $pensionSalary = $pension['annual_salary'] ?? 0;
+        $spouseIncome = $spouse->annual_employment_income ?? 0;
+        if ($pensionSalary > 0 && $spouseIncome > 0) {
+            $difference = abs($pensionSalary - $spouseIncome) / $spouseIncome;
+            if ($difference < 0.01) { // Within 1%
+                return $spouse;
+            }
+        }
+
+        return $user;
+    }
+
+    /**
+     * Determine who owns a savings/investment account based on account name.
+     */
+    private function determineAccountOwner(array $account, User $user, ?User $spouse): User
+    {
+        // No spouse means it belongs to primary user
+        if (!$spouse) {
+            return $user;
+        }
+
+        // Check for explicit owner field
+        if (isset($account['owner']) && $account['owner'] === 'spouse') {
+            return $spouse;
+        }
+
+        // Check if account name contains spouse's first name
+        $accountName = strtolower($account['account_name'] ?? '');
+        $spouseFirstName = strtolower(explode(' ', $spouse->name)[0] ?? '');
+        if ($spouseFirstName && str_contains($accountName, $spouseFirstName)) {
+            return $spouse;
+        }
+
+        // Check if notes mention spouse's first name
+        $notes = strtolower($account['notes'] ?? '');
+        if ($spouseFirstName && str_contains($notes, $spouseFirstName)) {
+            return $spouse;
+        }
+
+        return $user;
+    }
+
+    /**
      * Create DB pensions.
+     * Uses same owner determination logic as DC pensions.
      */
     private function createDBPensions(User $user, ?User $spouse, array $pensions): void
     {
         foreach ($pensions as $pension) {
+            // Determine if this pension belongs to spouse
+            $owner = $this->determinePensionOwner($pension, $user, $spouse);
+
             DBPension::create([
-                'user_id' => $user->id,
+                'user_id' => $owner->id,
                 'scheme_name' => $pension['scheme_name'] ?? '',
                 'scheme_type' => $pension['pension_type'] ?? 'final_salary',
-                'accrued_annual_pension' => $pension['current_annual_pension'] ?? 0,
+                'accrued_annual_pension' => $pension['accrued_annual_pension'] ?? $pension['current_annual_pension'] ?? 0,
                 'normal_retirement_age' => $pension['normal_retirement_age'] ?? 65,
-                'lump_sum_entitlement' => $pension['lump_sum_option'] ?? null,
+                'lump_sum_entitlement' => $pension['lump_sum_entitlement'] ?? $pension['lump_sum_option'] ?? null,
                 'inflation_protection' => $pension['inflation_protection'] ?? 'cpi',
             ]);
         }

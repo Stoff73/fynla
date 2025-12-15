@@ -259,6 +259,9 @@
 import { ref, computed, watch } from 'vue';
 import { useStore } from 'vuex';
 
+// Preview mode message
+const PREVIEW_SUCCESS_MESSAGE = 'Changes saved for this session only (preview mode).';
+
 export default {
   name: 'PersonalInformation',
 
@@ -350,14 +353,19 @@ export default {
           return acc;
         }, {});
 
-        await store.dispatch('userProfile/updatePersonalInfo', cleanedData);
-        successMessage.value = 'Personal information updated successfully!';
+        const response = await store.dispatch('userProfile/updatePersonalInfo', cleanedData);
+
+        // Check if we're in preview mode
+        const isPreviewMode = store.getters['preview/isPreviewMode'];
+        successMessage.value = isPreviewMode
+          ? PREVIEW_SUCCESS_MESSAGE
+          : 'Personal information updated successfully!';
         isEditing.value = false;
 
-        // Clear success message after 3 seconds
+        // Clear success message after 3 seconds (longer for preview)
         setTimeout(() => {
           successMessage.value = '';
-        }, 3000);
+        }, isPreviewMode ? 5000 : 3000);
       } catch (error) {
         console.error('Update error:', error);
         // Show validation errors if available

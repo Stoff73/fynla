@@ -117,11 +117,12 @@ class IHTCalculator
 
     public function calculateLiabilities(int $userId): float
     {
-        // Mortgages (Net Worth module)
+        // Mortgages (Net Worth module) - each user has their share
         $mortgages = Mortgage::where('user_id', $userId)->sum('outstanding_balance');
 
         // Other liabilities (Estate module)
-        $liabilities = Liability::where('user_id', $userId)->sum('amount');
+        // Use 'current_balance' (not 'amount') - correct field name
+        $liabilities = Liability::where('user_id', $userId)->sum('current_balance');
 
         return $mortgages + $liabilities;
     }
@@ -188,45 +189,66 @@ public function index(Request $request)
 
 ---
 
-### 5. Joint Ownership
+### 5. Joint Ownership (Reciprocal Records Pattern)
 
-**Pattern**: Assets can be jointly owned by spouses, creating reciprocal records.
+**Pattern**: Joint assets create TWO database records - one for each owner with their share.
 
 **Database schema**:
 ```php
-$table->enum('ownership_type', ['individual', 'joint', 'trust'])->default('individual');
+$table->enum('ownership_type', ['individual', 'joint', 'tenants_in_common', 'trust'])->default('individual');
+$table->decimal('ownership_percentage', 5, 2)->default(100);
 $table->bigInteger('joint_owner_id')->nullable();
 $table->foreignId('trust_id')->nullable();
 ```
 
-**Creating jointly owned assets**:
+**Creating jointly owned assets (50/50 split)**:
 ```php
-// User creates property with joint ownership
+// Joint property worth £500,000 total
+
+// Record 1: User's 50% share
 $property = Property::create([
     'user_id' => $userId,
     'ownership_type' => 'joint',
+    'ownership_percentage' => 50,
     'joint_owner_id' => $spouseId,
-    'current_value' => 500000,
+    'current_value' => 250000,  // User's share (50% of total)
     // ... other fields
 ]);
 
-// Automatically create reciprocal property for spouse
+// Record 2: Spouse's 50% share (reciprocal)
 Property::create([
     'user_id' => $spouseId,
     'ownership_type' => 'joint',
+    'ownership_percentage' => 50,
     'joint_owner_id' => $userId,
-    'current_value' => 500000,
+    'current_value' => 250000,  // Spouse's share (50% of total)
     // ... same fields
 ]);
 ```
 
+**Key principles**:
+- Each record stores the owner's share in `current_value` (not the total)
+- Services only query by `user_id` - no complex joint_owner_id logic needed
+- Both spouses see identical records (just with user_id/joint_owner_id swapped)
+- No risk of double-counting when aggregating across modules
+
+**Query pattern** (simplified):
+```php
+// CrossModuleAssetAggregator.php
+public function calculatePropertyTotal(int $userId): float
+{
+    // Simple query - each user has their own record with their share
+    return (float) Property::where('user_id', $userId)->sum('current_value');
+}
+```
+
 **Assets supporting joint ownership**:
 - Properties
+- Mortgages
 - Investment Accounts (except ISAs - UK rule)
 - Savings Accounts (except ISAs - UK rule)
 - Business Interests
 - Chattels
-- Mortgages
 
 **ISA restriction**:
 ```php
@@ -238,6 +260,8 @@ if ($validated['account_type'] === 'isa' && $validated['ownership_type'] !== 'in
     ], 422);
 }
 ```
+
+**See also**: `CLAUDE.md` - Reciprocal Records Pattern section
 
 ---
 

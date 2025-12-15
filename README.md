@@ -36,9 +36,9 @@ A comprehensive financial planning web application designed for UK individuals a
 
 ### Current Status
 
-**Version**: v0.2.18 (Production)
+**Version**: v0.2.20 (Production)
 **Production URL**: https://csjones.co/fynla
-**Last Deployment**: December 12, 2025
+**Last Deployment**: December 15, 2025
 
 **Completion Status**:
 - ✅ **Foundation**: 100% (Authentication, routing, testing framework)
@@ -700,6 +700,62 @@ For issues, questions, or contributions:
 
 ## 📋 Recent Updates
 
+### December 15, 2025 - Preview Mode Fixes (v0.2.20)
+
+**Major Fix: Spouse Data Display in Preview Mode**
+
+Fixed preview mode personas to correctly display spouse-specific data across all modules.
+
+**Key Changes**:
+
+1. **Reciprocal Records Pattern**:
+   - Joint assets now create TWO database records (one per owner with their share)
+   - Each record stores the owner's 50% share in `current_value`
+   - Services only query by `user_id` - no complex joint_owner_id logic needed
+   - Applied to: Properties, Mortgages, Savings, Investments
+
+2. **Owner Detection for Pensions/Accounts**:
+   - Added `determinePensionOwner()` method to assign pensions to correct spouse
+   - Added `determineAccountOwner()` method for savings and investment accounts
+   - Detection based on: explicit owner flag, name matching, employer matching, salary matching
+
+3. **DB Pension Field Mapping Fix**:
+   - Fixed seeder to use `accrued_annual_pension` (not `current_annual_pension`)
+   - Fixed seeder to use `lump_sum_entitlement` (not `lump_sum_option`)
+   - Sarah Mitchell's NHS DB pension now correctly shows £35,000 annual + £105,000 lump sum
+
+4. **Estate Module Frontend Fixes**:
+   - Fixed `IHTPlanning.vue` to use API calls instead of client-side calculation in preview mode
+   - Fixed `WillPlanning.vue` to load data via API in preview mode
+   - Estate IHT Planning tab now shows full spouse data breakdown
+   - Combined NRB (£650,000) and spouse assets/liabilities now display correctly
+
+5. **Preview Modal Flow Fix**:
+   - Fixed `PersonaSelector.vue` - modal now stays open until user clicks "Explore Dashboard"
+   - Fixed `LandingPage.vue` - added intro modal before entering preview mode
+   - Added `nextTick()` to ensure Vue reactivity settles before navigation
+
+**Files Modified**:
+- `database/seeders/PreviewUserSeeder.php` - Added owner detection, reciprocal records, field mapping fixes
+- `app/Services/Shared/CrossModuleAssetAggregator.php` - Simplified to use user_id only queries
+- `app/Services/NetWorth/NetWorthService.php` - Updated liabilities breakdown
+- `resources/js/components/Estate/IHTPlanning.vue` - Removed preview mode API bypass
+- `resources/js/components/Estate/WillPlanning.vue` - Removed preview mode API bypass
+- `resources/js/components/Preview/PersonaSelector.vue` - Removed immediate `switchPersona()` call
+- `resources/js/views/Public/LandingPage.vue` - Added PersonaIntroModal with proper confirm flow
+
+**Verification Results** (All 4 personas):
+| Persona | Primary Net Worth | Spouse Net Worth | Status |
+|---------|------------------|------------------|--------|
+| young_family | £93,950 | £63,750 | ✅ |
+| peak_earners | £902,500 | £1,372,500 | ✅ |
+| widow | £2,239,000 | £0 (deceased) | ✅ |
+| entrepreneur | £545,000 | N/A | ✅ |
+
+**Documentation**: See `CLAUDE.md` for reciprocal records pattern and preview mode details.
+
+---
+
 ### December 12, 2025 - Preview Mode Refactoring (Database-Backed Architecture)
 
 **Major Architecture Change**: Preview mode has been completely refactored from client-side JSON files to database-backed users.
@@ -1274,11 +1330,11 @@ Upload financial documents and automatically extract data using Claude AI:
 
 ---
 
-**Current Version**: v0.2.18 (Production)
+**Current Version**: v0.2.20 (Production)
 
 **Production URL**: https://csjones.co/fynla
 
-**Last Updated**: December 12, 2025
+**Last Updated**: December 15, 2025
 
 **Status**: 🚀 Production Ready - All Core Features Complete
 

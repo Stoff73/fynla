@@ -388,14 +388,10 @@ export default {
   },
 
   mounted() {
-    if (!this.isPreviewMode) {
-      this.loadWill();
-      this.loadBequests();
-      this.loadNetEstateValue();
-    } else {
-      console.log('[WillPlanning] Preview mode - skipping API calls');
-      this.loading = false;
-    }
+    // Preview users are real DB users - use normal API to fetch their data
+    this.loadWill();
+    this.loadBequests();
+    this.loadNetEstateValue();
   },
 
   methods: {

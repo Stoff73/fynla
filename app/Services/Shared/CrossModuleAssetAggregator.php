@@ -21,6 +21,10 @@ use Illuminate\Support\Collection;
  * - Investment values (from Investment module)
  * - Cash/Savings values (from Savings module)
  * - Mortgage liabilities (from Property module)
+ *
+ * NOTE: Joint assets use the reciprocal records pattern. Each owner has their own
+ * database record with their share (e.g., 50%) stored in current_value. Therefore,
+ * we query only by user_id and the values are already correct.
  */
 class CrossModuleAssetAggregator
 {
@@ -54,65 +58,70 @@ class CrossModuleAssetAggregator
     /**
      * Get property assets
      *
-     * IMPORTANT: current_value is ALREADY stored as the user's share in the database.
-     * For joint properties, TWO records exist (one per user) each storing their share.
-     * NO need to multiply by ownership_percentage again.
+     * Each user has their own property record with their share stored in current_value.
+     * For joint properties, reciprocal records exist so we only query by user_id.
      */
     public function getPropertyAssets(int $userId): Collection
     {
-        return Property::where('user_id', $userId)->get()->map(function ($property) {
-            return (object) [
-                'asset_type' => 'property',
-                'asset_name' => $property->address_line_1 ?: 'Property',
-                'current_value' => (float) $property->current_value,
-                'is_iht_exempt' => false,
-                'source_id' => $property->id,
-                'source_model' => 'Property',
-            ];
-        });
+        return Property::where('user_id', $userId)
+            ->get()
+            ->map(function ($property) {
+                return (object) [
+                    'asset_type' => 'property',
+                    'asset_name' => $property->address_line_1 ?: 'Property',
+                    'current_value' => (float) $property->current_value,
+                    'is_iht_exempt' => false,
+                    'source_id' => $property->id,
+                    'source_model' => 'Property',
+                ];
+            });
     }
 
     /**
      * Get investment account assets
      *
-     * IMPORTANT: current_value is ALREADY stored as the user's share in the database
-     * (divided by ownership_percentage when saving). No need to multiply again.
+     * Each user has their own investment account record with their share stored in current_value.
+     * For joint accounts, reciprocal records exist so we only query by user_id.
      */
     public function getInvestmentAssets(int $userId): Collection
     {
-        return InvestmentAccount::where('user_id', $userId)->get()->map(function ($account) {
-            // Determine if ISA (ISAs are NOT IHT-exempt - only exempt from income/CGT)
-            $isISA = in_array($account->account_type, ['isa', 'stocks_and_shares_isa', 'lifetime_isa']);
-
-            return (object) [
-                'asset_type' => 'investment',
-                'asset_name' => $account->provider.' - '.strtoupper($account->account_type),
-                'current_value' => (float) $account->current_value,
-                'is_iht_exempt' => false, // ISAs are IHT taxable
-                'account_type' => $account->account_type,
-                'source_id' => $account->id,
-                'source_model' => 'InvestmentAccount',
-            ];
-        });
+        return InvestmentAccount::where('user_id', $userId)
+            ->get()
+            ->map(function ($account) {
+                return (object) [
+                    'asset_type' => 'investment',
+                    'asset_name' => $account->provider.' - '.strtoupper($account->account_type),
+                    'current_value' => (float) $account->current_value,
+                    'is_iht_exempt' => false, // ISAs are IHT taxable
+                    'account_type' => $account->account_type,
+                    'source_id' => $account->id,
+                    'source_model' => 'InvestmentAccount',
+                ];
+            });
     }
 
     /**
      * Get savings/cash account assets
+     *
+     * Each user has their own savings account record with their share stored in current_balance.
+     * For joint accounts, reciprocal records exist so we only query by user_id.
      */
     public function getSavingsAssets(int $userId): Collection
     {
-        return SavingsAccount::where('user_id', $userId)->get()->map(function ($account) {
-            // Cash ISAs are NOT IHT-exempt - only exempt from income tax
-            return (object) [
-                'asset_type' => 'cash',
-                'asset_name' => $account->institution.' - '.ucfirst($account->account_type),
-                'current_value' => $account->current_balance,
-                'is_iht_exempt' => false, // Cash ISAs are IHT taxable
-                'account_type' => $account->account_type,
-                'source_id' => $account->id,
-                'source_model' => 'SavingsAccount',
-            ];
-        });
+        return SavingsAccount::where('user_id', $userId)
+            ->get()
+            ->map(function ($account) {
+                // Cash ISAs are NOT IHT-exempt - only exempt from income tax
+                return (object) [
+                    'asset_type' => 'cash',
+                    'asset_name' => $account->institution.' - '.ucfirst($account->account_type),
+                    'current_value' => (float) $account->current_balance,
+                    'is_iht_exempt' => false, // Cash ISAs are IHT taxable
+                    'account_type' => $account->account_type,
+                    'source_id' => $account->id,
+                    'source_model' => 'SavingsAccount',
+                ];
+            });
     }
 
     /**
@@ -130,9 +139,8 @@ class CrossModuleAssetAggregator
     /**
      * Calculate total property value
      *
-     * IMPORTANT: current_value is ALREADY stored as the user's share in the database.
-     * For joint properties, TWO records exist (one per user) each storing their share.
-     * Simply sum the current_value - NO need to multiply by ownership_percentage.
+     * Each user has their own record with their share stored in current_value.
+     * Simply sum all properties for this user.
      */
     public function calculatePropertyTotal(int $userId): float
     {
@@ -143,8 +151,8 @@ class CrossModuleAssetAggregator
     /**
      * Calculate total investment value
      *
-     * IMPORTANT: current_value is ALREADY stored as the user's share in the database
-     * (divided by ownership_percentage when saving). No need to multiply again.
+     * Each user has their own record with their share stored in current_value.
+     * Simply sum all investment accounts for this user.
      */
     public function calculateInvestmentTotal(int $userId): float
     {
@@ -154,6 +162,9 @@ class CrossModuleAssetAggregator
 
     /**
      * Calculate total cash/savings value
+     *
+     * Each user has their own record with their share stored in current_balance.
+     * Simply sum all savings accounts for this user.
      */
     public function calculateCashTotal(int $userId): float
     {
@@ -163,6 +174,8 @@ class CrossModuleAssetAggregator
 
     /**
      * Get all mortgages for a user
+     *
+     * Each user has their own mortgage record with their share.
      */
     public function getMortgages(int $userId): Collection
     {
@@ -171,6 +184,9 @@ class CrossModuleAssetAggregator
 
     /**
      * Calculate total mortgage liabilities
+     *
+     * Each user has their own record with their share stored in outstanding_balance.
+     * Simply sum all mortgages for this user.
      */
     public function calculateMortgageTotal(int $userId): float
     {

@@ -225,18 +225,13 @@ export default {
             this.pendingPersona = null;
         },
 
-        async doSwitch(persona) {
+        doSwitch(persona) {
             this.isOpen = false;
 
-            // Emit event for parent to show intro modal if desired
+            // Emit event for parent (PreviewBanner) to show intro modal
+            // The actual switchPersona() call happens in PreviewBanner.confirmPersonaSwitch()
+            // when the user clicks "Explore Dashboard" button in the modal
             this.$emit('persona-selected', persona);
-
-            try {
-                await this.switchPersona(persona.id);
-                // Page reload will happen in PreviewBanner's handlePersonaChange
-            } catch (error) {
-                console.error('Failed to switch persona:', error);
-            }
         },
 
         personaButtonClasses(persona) {
