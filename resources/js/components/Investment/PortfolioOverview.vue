@@ -56,17 +56,15 @@
             <p class="account-type">{{ account.account_name }}</p>
 
             <div class="account-details">
-              <!-- Joint account: DB stores user's 50% share, display both full value (share × 2) and user's share -->
+              <!-- Joint account: DB stores FULL value, calculate user's share -->
               <div v-if="account.ownership_type === 'joint'">
                 <div class="detail-row">
                   <span class="detail-label">Full Value</span>
-                  <!-- Full value = user's share × 2 (each user has reciprocal 50% record) -->
-                  <span class="detail-value">{{ formatCurrency(account.current_value * 2) }}</span>
+                  <span class="detail-value">{{ formatCurrency(account.current_value) }}</span>
                 </div>
                 <div class="detail-row">
-                  <span class="detail-label">Your Share (50%)</span>
-                  <!-- DB stores user's 50% share directly, no division needed -->
-                  <span class="detail-value text-purple-600">{{ formatCurrency(account.current_value) }}</span>
+                  <span class="detail-label">Your Share ({{ account.ownership_percentage || 50 }}%)</span>
+                  <span class="detail-value text-purple-600">{{ formatCurrency(account.current_value * ((account.ownership_percentage || 50) / 100)) }}</span>
                 </div>
               </div>
 

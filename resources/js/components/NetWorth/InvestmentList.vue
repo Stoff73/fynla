@@ -7,6 +7,7 @@
       @back="clearSelection"
       @deleted="handleAccountDeleted"
       @updated="handleAccountUpdated"
+      @account-updated="handlePreviewAccountUpdated"
     />
 
     <!-- Investment List View (default) -->
@@ -69,11 +70,11 @@
               <template v-if="account.ownership_type === 'joint'">
                 <div class="detail-row">
                   <span class="detail-label">Full Value</span>
-                  <span class="detail-value">{{ formatCurrency(account.current_value * 2) }}</span>
+                  <span class="detail-value">{{ formatCurrency(account.current_value) }}</span>
                 </div>
                 <div class="detail-row">
-                  <span class="detail-label">Your Share (50%)</span>
-                  <span class="detail-value text-purple-600">{{ formatCurrency(account.current_value) }}</span>
+                  <span class="detail-label">Your Share ({{ account.ownership_percentage || 50 }}%)</span>
+                  <span class="detail-value text-purple-600">{{ formatCurrency(account.current_value * ((account.ownership_percentage || 50) / 100)) }}</span>
                 </div>
               </template>
               <!-- Individual account -->
@@ -355,7 +356,12 @@ export default {
     clearSelection() {
       this.selectedAccount = null;
       this.setDetailView(false);
-      this.loadData();
+
+      // In preview mode, don't reload from API (changes are session-only)
+      const isPreview = this.$store.getters['preview/isPreviewMode'];
+      if (!isPreview) {
+        this.loadData();
+      }
     },
 
     handleAccountDeleted() {
@@ -369,7 +375,17 @@ export default {
     },
 
     handleAccountUpdated() {
-      this.loadData();
+      // In preview mode, we handle updates via handlePreviewAccountUpdated
+      const isPreview = this.$store.getters['preview/isPreviewMode'];
+      if (!isPreview) {
+        this.loadData();
+      }
+    },
+
+    handlePreviewAccountUpdated(updatedAccount) {
+      // In preview mode, update the selected account locally
+      // This keeps the changes visible in the UI until page refresh
+      this.selectedAccount = updatedAccount;
     },
 
     closeAccountForm() {

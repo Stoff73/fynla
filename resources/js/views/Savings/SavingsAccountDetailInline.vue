@@ -191,6 +191,7 @@
     <SaveAccountModal
       v-if="showEditModal"
       :account="account"
+      :is-editing="true"
       @close="showEditModal = false"
       @save="handleAccountSaved"
     />
@@ -298,7 +299,7 @@ export default {
   },
 
   methods: {
-    ...mapActions('savings', ['fetchAccount', 'deleteAccount']),
+    ...mapActions('savings', ['fetchAccount', 'updateAccount', 'deleteAccount']),
 
     async loadAccount() {
       this.loading = true;
@@ -315,15 +316,23 @@ export default {
     },
 
     async handleAccountSaved(savedData) {
-      this.showEditModal = false;
-      // Update local state immediately for UI feedback
-      if (savedData && this.account) {
-        this.account = { ...this.account, ...savedData };
-      }
-      // In preview mode, don't reload from API (it would overwrite our local changes)
-      const isPreview = this.$store.getters['preview/isPreviewMode'];
-      if (!isPreview) {
-        await this.loadAccount();
+      try {
+        // Call the API to update the account
+        await this.updateAccount({ id: this.accountId, accountData: savedData });
+        this.showEditModal = false;
+
+        // In preview mode, update local state only (API returned fake success, DB not updated)
+        const isPreview = this.$store.getters['preview/isPreviewMode'];
+        if (isPreview) {
+          // Update local account with submitted data
+          this.account = { ...this.account, ...savedData };
+        } else {
+          // Normal mode: reload from API
+          await this.loadAccount();
+        }
+      } catch (error) {
+        console.error('Failed to update account:', error);
+        this.error = 'Failed to update account. Please try again.';
       }
     },
 
@@ -366,8 +375,13 @@ export default {
         savings_account: 'Savings Account',
         current_account: 'Current Account',
         easy_access: 'Easy Access',
+        instant_access: 'Instant Access',
         notice: 'Notice Account',
         fixed: 'Fixed Term',
+        cash_isa: 'Cash ISA',
+        junior_isa: 'Junior ISA',
+        premium_bonds: 'Premium Bonds',
+        nsi: 'NS&I Savings',
       };
       return types[type] || type;
     },

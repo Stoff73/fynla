@@ -372,7 +372,7 @@ export default {
     },
   },
 
-  emits: ['back', 'deleted'],
+  emits: ['back', 'deleted', 'pension-updated'],
 
   data() {
     return {
@@ -496,7 +496,17 @@ export default {
         }
 
         this.showEditModal = false;
-        await this.fetchRetirementData();
+
+        // In preview mode, update local state only (API returned fake success, DB not updated)
+        const isPreview = this.$store.getters['preview/isPreviewMode'];
+        if (isPreview) {
+          // Emit updated pension data to parent so it can update local state
+          this.$emit('pension-updated', { ...this.pension, ...data });
+        } else {
+          // Normal mode: reload from API
+          await this.fetchRetirementData();
+        }
+
         this.$emit('back'); // Return to list to show updated data
       } catch (error) {
         console.error('Failed to update pension:', error);

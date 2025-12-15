@@ -2,160 +2,111 @@
 
 ## Overview
 
-Comprehensive API testing revealed 6 bugs across the Investment and Recommendations modules. All bugs have been fixed and verified.
+This update fixes multiple bugs related to editing functionality in the Net Worth module, including investment accounts, savings accounts, and pensions. Key fixes address preview mode edit persistence and various form/modal issues.
 
-## Bugs Fixed
+## Changes Made
 
-### 1. ModelPortfolioController Type Mismatch
+### 1. Investment Edit Modal Fix
+**File:** `resources/js/components/NetWorth/InvestmentDetailInline.vue`
 
-**File:** `app/Http/Controllers/Api/Investment/ModelPortfolioController.php`
+- Added missing `:show="showEditModal"` prop to AccountForm component
+- Fixed `handleUpdate` method to use correct parameter name (`accountData` instead of `data`)
 
-**Problem:** Route parameter `{riskLevel}` was passed as a string (e.g., "moderate") but the controller expected an integer.
+### 2. Joint Investment Value Display Fix
+**Files:**
+- `resources/js/components/NetWorth/InvestmentDetailInline.vue`
+- `resources/js/components/NetWorth/InvestmentList.vue`
+- `resources/js/views/Investment/AccountSummaryPanel.vue`
+- `resources/js/views/Investment/AccountDetailView.vue`
+- `resources/js/components/Investment/PortfolioOverview.vue`
+- `resources/js/components/Onboarding/steps/AssetsStep.vue`
 
-**Error:**
-```
-Argument #2 ($riskLevel) must be of type int, string given
-```
+**Issue:** Joint investment accounts were incorrectly doubling the `current_value` field.
 
-**Fix:** Changed parameter type from `int` to `string` and added a mapping for both numeric (1-5) and string names:
+**Root Cause:** Code assumed `current_value` stored only the user's 50% share and multiplied by 2 for the full value.
 
-```php
-$riskLevelMap = [
-    'conservative' => 1,
-    'moderately_conservative' => 2,
-    'moderate' => 3,
-    'moderately_aggressive' => 4,
-    'aggressive' => 5,
-];
-```
+**Fix:** Investments use **Single-Record Architecture** where `current_value` IS the full account value. Removed all `* 2` multiplications. User's share is calculated as `current_value * (ownership_percentage / 100)`.
 
----
+### 3. Savings Edit Modal Empty Fields Fix
+**File:** `resources/js/views/Savings/SavingsAccountDetailInline.vue`
 
-### 2. SavingsAccount Model Namespace
+- Added missing `:is-editing="true"` prop to SaveAccountModal component
 
-**File:** `app/Services/Investment/Tax/TaxOptimizationAnalyzer.php`
+### 4. Savings Account Types Fix
+**File:** `resources/js/components/Savings/SaveAccountModal.vue`
 
-**Problem:** Incorrect namespace for SavingsAccount model.
+- Added missing product types: `cash_isa`, `junior_isa`, `premium_bonds`, `nsi`, `instant_access`
+- Organised product types into grouped optgroups (Bank Accounts, ISAs, NS&I Products)
+- Added watchers to auto-set ISA/country fields based on account type selection
 
-**Error:**
-```
-Class "App\Models\Savings\SavingsAccount" not found
-```
+### 5. Savings Edit Not Saving Fix
+**File:** `resources/js/views/Savings/SavingsAccountDetailInline.vue`
 
-**Fix:** Changed import from:
-```php
-use App\Models\Savings\SavingsAccount;
-```
-To:
-```php
-use App\Models\SavingsAccount;
-```
+- Added `updateAccount` to Vuex mapActions
+- Fixed `handleAccountSaved` method to call the store's `updateAccount` action
 
----
+### 6. Pension Edit Form Fix
+**File:** `resources/js/components/Retirement/UnifiedPensionForm.vue`
 
-### 3. Missing Status Column in investment_goals
+- Added missing `initialPensionType` prop definition
+- Fixed `mainPensionType` data property to use the prop value in edit mode
 
-**File:** `app/Services/Investment/Goals/GoalProgressAnalyzer.php`
+### 7. Preview Mode Edit Persistence Fix
+**Files:**
+- `resources/js/components/NetWorth/InvestmentDetailInline.vue`
+- `resources/js/components/NetWorth/InvestmentList.vue`
+- `resources/js/views/Savings/SavingsAccountDetailInline.vue`
+- `resources/js/components/NetWorth/PensionDetailInline.vue`
+- `resources/js/components/NetWorth/PensionList.vue`
 
-**Problem:** Query referenced a `status` column that doesn't exist in the `investment_goals` table.
+**Issue:** In preview mode, edits appeared to not save. The UI would revert to original data after editing.
 
-**Error:**
-```
-Column not found: 1054 Unknown column 'status' in 'where clause'
-```
+**Root Cause:** After a successful API call, components were reloading data from the database. In preview mode, `PreviewWriteInterceptor` returns a fake success response without actually saving to the database, so the reload would fetch the original (unchanged) data.
 
-**Fix:** Removed the status filter:
-```php
-// Before
-$goals = InvestmentGoal::where('user_id', $userId)
-    ->where('status', 'active')
-    ->get();
+**Fix:** After updates in preview mode:
+1. Skip the API reload (`fetchInvestmentData`, `loadAccount`, `fetchRetirementData`)
+2. Update local component state with the submitted form data
+3. Emit events to parent components so they can update their local state
 
-// After
-$goals = InvestmentGoal::where('user_id', $userId)
-    ->get();
-```
-
----
-
-### 4. RecommendationsAggregatorService Wrong Dependencies
-
-**File:** `app/Services/Coordination/RecommendationsAggregatorService.php`
-
-**Problem:** Service was using wrong dependencies that didn't have `analyze()` methods.
-
-**Errors:**
-```
-Call to undefined method EmergencyFundCalculator::analyze()
-Call to undefined method PensionProjector::analyze()
+**Key Pattern:**
+```javascript
+const isPreview = this.$store.getters['preview/isPreviewMode'];
+if (isPreview) {
+  // Update local state or emit to parent
+  this.$emit('account-updated', { ...this.account, ...data });
+} else {
+  // Normal mode: reload from API
+  await this.fetchData();
+}
 ```
 
-**Fix:** Updated dependencies to use proper agents:
+**Note:** Changes in preview mode persist only for the session. Refreshing the page will revert to original data (by design).
 
-| Before | After |
-|--------|-------|
-| `EmergencyFundCalculator` | `SavingsAgent` |
-| `PensionProjector` | `RetirementAgent` |
-| `NetWorthAnalyzer` | `ComprehensiveEstatePlanService` |
+## Architecture Notes
 
----
+### Single-Record vs Reciprocal Records
 
-### 5. Non-Array Recommendations Handling
+| Asset Type | Pattern | Description |
+|------------|---------|-------------|
+| Investments | Single-Record | ONE record stores FULL value in `current_value` |
+| Properties | Reciprocal Records | TWO records - one per owner with their share |
+| Savings | Reciprocal Records | TWO records - one per owner with their share |
 
-**File:** `app/Services/Coordination/RecommendationsAggregatorService.php`
+### Preview Mode Data Flow
 
-**Problem:** `formatRecommendations()` received boolean values instead of arrays from some analyzers.
+1. User submits edit form
+2. API call made via Vuex action
+3. Backend `PreviewWriteInterceptor` intercepts, returns fake success
+4. Component checks `isPreviewMode`
+5. If preview: update local state, skip API reload
+6. If normal: reload from API to get fresh data
 
-**Error:**
-```
-determineCategory(): Argument #1 ($rec) must be of type array, true given
-```
+## Testing
 
-**Fix:** Added filter to skip non-array items:
-```php
-$validRecommendations = array_filter($recommendations, function ($rec) {
-    return is_array($rec);
-});
-```
-
----
-
-## Test Results
-
-### Before Fixes
-| Endpoint | Status |
-|----------|--------|
-| `/api/investment/model-portfolio/moderate` | 500 |
-| `/api/investment/tax-optimization/analyze` | 500 |
-| `/api/investment/goals/progress/all` | 500 |
-| `/api/recommendations` | 500 |
-| `/api/recommendations/summary` | 500 |
-
-### After Fixes
-| Endpoint | Status | Notes |
-|----------|--------|-------|
-| `/api/investment/model-portfolio/moderate` | 200 | Accepts string names |
-| `/api/investment/model-portfolio/3` | 200 | Also accepts numeric |
-| `/api/investment/tax-optimization/analyze` | 200 | Fixed |
-| `/api/investment/goals/progress/all` | 404 | Expected (no goals for user) |
-| `/api/recommendations` | 200 | Fixed |
-| `/api/recommendations/summary` | 200 | Fixed |
-
----
-
-## Files Modified
-
-1. `app/Http/Controllers/Api/Investment/ModelPortfolioController.php`
-2. `app/Services/Investment/Tax/TaxOptimizationAnalyzer.php`
-3. `app/Services/Investment/Goals/GoalProgressAnalyzer.php`
-4. `app/Services/Coordination/RecommendationsAggregatorService.php`
-
----
-
-## Comprehensive API Test Summary
-
-Total endpoints tested: **51**
-- Passed: **49**
-- Expected failures (admin-only): **2** (403 - not bugs)
-
-All core functionality is now working correctly.
+1. Login as preview user (any persona)
+2. Navigate to Net Worth > Investments/Cash/Retirement
+3. Click on an account/pension to view details
+4. Click Edit, change a value
+5. Submit - value should persist in the UI
+6. Navigate away and back - value should still show (session state)
+7. Refresh page - value should revert to original (correct behaviour)

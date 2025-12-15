@@ -299,15 +299,15 @@
               <p class="account-type">{{ investment.account_name || investment.platform || '' }}</p>
 
               <div class="account-details">
-                <!-- Joint account: show full value and user's share -->
+                <!-- Joint account: current_value IS the full value -->
                 <div v-if="investment.ownership_type === 'joint'">
                   <div class="detail-row">
                     <span class="detail-label">Full Value</span>
-                    <span class="detail-value">{{ formatCurrency(investment.current_value * 2) }}</span>
+                    <span class="detail-value">{{ formatCurrency(investment.current_value) }}</span>
                   </div>
                   <div class="detail-row">
-                    <span class="detail-label">Your Share (50%)</span>
-                    <span class="detail-value text-purple-600">{{ formatCurrency(investment.current_value) }}</span>
+                    <span class="detail-label">Your Share ({{ investment.ownership_percentage || 50 }}%)</span>
+                    <span class="detail-value text-purple-600">{{ formatCurrency(investment.current_value * ((investment.ownership_percentage || 50) / 100)) }}</span>
                   </div>
                 </div>
 
