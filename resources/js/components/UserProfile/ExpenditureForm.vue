@@ -1843,14 +1843,8 @@ export default {
 
     // Fetch financial commitments
     const fetchFinancialCommitments = async () => {
-      // Check if in preview mode - skip API call
-      const isPreviewMode = store.getters['preview/isPreviewMode'];
-      if (isPreviewMode) {
-        console.log('[ExpenditureForm] Preview mode - skipping financial commitments fetch');
-        loadingCommitments.value = false;
-        return;
-      }
-
+      // Fetch for all users (including preview mode)
+      // Preview users are real database users and use the same code paths
       loadingCommitments.value = true;
       try {
         const response = await userProfileService.getFinancialCommitments();

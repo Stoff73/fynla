@@ -64,13 +64,8 @@ export default {
     });
 
     const fetchSpouseData = async () => {
-      // Skip in preview mode
-      const isPreviewMode = store.getters['preview/isPreviewMode'];
-      if (isPreviewMode) {
-        console.log('[ExpenditureOverview] Preview mode - skipping spouse fetch');
-        return;
-      }
-
+      // Fetch spouse data for all users (including preview mode)
+      // Preview users are real database users and use the same code paths
       if (!user.value?.spouse_id) return;
 
       try {
@@ -110,11 +105,15 @@ export default {
         await store.dispatch('userProfile/fetchProfile');
         await fetchSpouseData();
 
-        successMessage.value = 'Expenditure updated successfully';
+        // Check if we're in preview mode
+        const isPreviewMode = store.getters['preview/isPreviewMode'];
+        successMessage.value = isPreviewMode
+          ? 'Expenditure saved for this session only (preview mode).'
+          : 'Expenditure updated successfully';
 
         setTimeout(() => {
           successMessage.value = null;
-        }, 3000);
+        }, isPreviewMode ? 5000 : 3000);
       } catch (err) {
         error.value = err.response?.data?.message || 'Failed to update expenditure. Please try again.';
       }
@@ -129,13 +128,8 @@ export default {
     };
 
     onMounted(() => {
-      // Skip API calls in preview mode - data already loaded
-      const isPreviewMode = store.getters['preview/isPreviewMode'];
-      if (isPreviewMode) {
-        console.log('[ExpenditureOverview] Preview mode - skipping onMounted API calls');
-        return;
-      }
-
+      // Load data for all users (including preview mode)
+      // Preview users are real database users and use the same code paths
       if (!profile.value) {
         store.dispatch('userProfile/fetchProfile');
       }

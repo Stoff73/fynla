@@ -38,6 +38,15 @@ class PreviewWriteInterceptor
     ];
 
     /**
+     * Route patterns that should be excluded (calculation endpoints are read operations).
+     * These POST endpoints compute and return data without modifying anything.
+     */
+    private const EXCLUDED_PATTERNS = [
+        '/calculate',           // All calculation endpoints (personal-accounts, IHT, SDLT, etc.)
+        '/calculate-',          // Hyphenated calculation endpoints (calculate-sdlt, calculate-iht)
+    ];
+
+    /**
      * Handle an incoming request.
      */
     public function handle(Request $request, Closure $next): Response
@@ -59,6 +68,13 @@ class PreviewWriteInterceptor
         $currentPath = $request->path();
         foreach (self::EXCLUDED_ROUTES as $excludedRoute) {
             if (str_starts_with($currentPath, $excludedRoute)) {
+                return $next($request);
+            }
+        }
+
+        // Check if this route matches an excluded pattern (e.g., calculation endpoints)
+        foreach (self::EXCLUDED_PATTERNS as $pattern) {
+            if (str_contains($currentPath, $pattern)) {
                 return $next($request);
             }
         }
