@@ -2,175 +2,111 @@
   <div class="wealth-summary">
     <h3 class="chart-title">Wealth Summary</h3>
 
-    <div v-if="hasData" class="summary-content">
-      <!-- Single User or User Column -->
-      <div :class="hasSpouse ? 'user-column' : 'single-user'">
-        <h4 class="user-heading">{{ userName }}</h4>
-
-        <!-- Assets Section -->
-        <div class="section-block assets-section">
-          <div class="section-header">
-            <svg class="section-icon text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
-            </svg>
-            <h5 class="section-title">Assets</h5>
-          </div>
-          <div class="breakdown-items">
-            <div v-if="userBreakdown.property > 0" class="breakdown-item">
-              <span class="item-label">Property</span>
-              <span class="item-value">{{ formatCurrency(userBreakdown.property) }}</span>
-            </div>
-            <div v-if="userBreakdown.investments > 0" class="breakdown-item">
-              <span class="item-label">Investments</span>
-              <span class="item-value">{{ formatCurrency(userBreakdown.investments) }}</span>
-            </div>
-            <div v-if="userBreakdown.cash > 0" class="breakdown-item">
-              <span class="item-label">Cash & Savings</span>
-              <span class="item-value">{{ formatCurrency(userBreakdown.cash) }}</span>
-            </div>
-            <div v-if="userBreakdown.pensions > 0" class="breakdown-item">
-              <span class="item-label">Pensions</span>
-              <span class="item-value">{{ formatCurrency(userBreakdown.pensions) }}</span>
-            </div>
-            <div v-if="userBreakdown.business > 0" class="breakdown-item">
-              <span class="item-label">Business</span>
-              <span class="item-value">{{ formatCurrency(userBreakdown.business) }}</span>
-            </div>
-            <div v-if="userBreakdown.chattels > 0" class="breakdown-item">
-              <span class="item-label">Chattels</span>
-              <span class="item-value">{{ formatCurrency(userBreakdown.chattels) }}</span>
-            </div>
-          </div>
-          <div class="section-total assets-total">
-            <span class="total-label">Total Assets</span>
-            <span class="total-value">{{ formatCurrency(userTotalAssets) }}</span>
-          </div>
-        </div>
-
-        <!-- Liabilities Section -->
-        <div class="section-block liabilities-section">
-          <div class="section-header">
-            <svg class="section-icon text-red-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6L9 12.75l4.286-4.286a11.948 11.948 0 014.306 6.43l.776 2.898m0 0l3.182-5.511m-3.182 5.51l-5.511-3.181" />
-            </svg>
-            <h5 class="section-title">Liabilities</h5>
-          </div>
-          <div class="breakdown-items">
-            <div v-if="userLiabilitiesBreakdown.mortgages > 0" class="breakdown-item">
-              <span class="item-label">Mortgages</span>
-              <span class="item-value">{{ formatCurrency(userLiabilitiesBreakdown.mortgages) }}</span>
-            </div>
-            <div v-if="userLiabilitiesBreakdown.loans > 0" class="breakdown-item">
-              <span class="item-label">Loans</span>
-              <span class="item-value">{{ formatCurrency(userLiabilitiesBreakdown.loans) }}</span>
-            </div>
-            <div v-if="userLiabilitiesBreakdown.credit_cards > 0" class="breakdown-item">
-              <span class="item-label">Credit Cards</span>
-              <span class="item-value">{{ formatCurrency(userLiabilitiesBreakdown.credit_cards) }}</span>
-            </div>
-            <div v-if="userLiabilitiesBreakdown.other > 0" class="breakdown-item">
-              <span class="item-label">Other</span>
-              <span class="item-value">{{ formatCurrency(userLiabilitiesBreakdown.other) }}</span>
-            </div>
-          </div>
-          <div class="section-total liabilities-total">
-            <span class="total-label">Total Liabilities</span>
-            <span class="total-value">{{ formatCurrency(userTotalLiabilities) }}</span>
-          </div>
-        </div>
-
-        <!-- Net Worth -->
-        <div class="section-block net-worth-section">
-          <div class="net-worth-total">
-            <span class="net-worth-label">Net Worth</span>
-            <span class="net-worth-value" :class="userNetWorthClass">{{ formatCurrency(userNetWorth) }}</span>
-          </div>
-        </div>
+    <div v-if="hasData" class="summary-content" :class="{ 'has-spouse': hasSpouse }">
+      <!-- Column Headers -->
+      <div class="summary-row header-row">
+        <div class="row-label"></div>
+        <div class="column-header">{{ userName }}</div>
+        <div v-if="hasSpouse" class="column-header">{{ spouseName }}</div>
       </div>
 
-      <!-- Spouse Column (if linked account exists) -->
-      <div v-if="hasSpouse" class="user-column">
-        <h4 class="user-heading">{{ spouseName }}</h4>
-
-        <!-- Assets Section -->
-        <div class="section-block assets-section">
-          <div class="section-header">
-            <svg class="section-icon text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
-            </svg>
-            <h5 class="section-title">Assets</h5>
-          </div>
-          <div class="breakdown-items">
-            <div v-if="spouseBreakdown.property > 0" class="breakdown-item">
-              <span class="item-label">Property</span>
-              <span class="item-value">{{ formatCurrency(spouseBreakdown.property) }}</span>
-            </div>
-            <div v-if="spouseBreakdown.investments > 0" class="breakdown-item">
-              <span class="item-label">Investments</span>
-              <span class="item-value">{{ formatCurrency(spouseBreakdown.investments) }}</span>
-            </div>
-            <div v-if="spouseBreakdown.cash > 0" class="breakdown-item">
-              <span class="item-label">Cash & Savings</span>
-              <span class="item-value">{{ formatCurrency(spouseBreakdown.cash) }}</span>
-            </div>
-            <div v-if="spouseBreakdown.pensions > 0" class="breakdown-item">
-              <span class="item-label">Pensions</span>
-              <span class="item-value">{{ formatCurrency(spouseBreakdown.pensions) }}</span>
-            </div>
-            <div v-if="spouseBreakdown.business > 0" class="breakdown-item">
-              <span class="item-label">Business</span>
-              <span class="item-value">{{ formatCurrency(spouseBreakdown.business) }}</span>
-            </div>
-            <div v-if="spouseBreakdown.chattels > 0" class="breakdown-item">
-              <span class="item-label">Chattels</span>
-              <span class="item-value">{{ formatCurrency(spouseBreakdown.chattels) }}</span>
-            </div>
-          </div>
-          <div class="section-total assets-total">
-            <span class="total-label">Total Assets</span>
-            <span class="total-value">{{ formatCurrency(spouseTotalAssets) }}</span>
-          </div>
+      <!-- Assets Section Header -->
+      <div class="summary-row section-header-row">
+        <div class="row-label section-label">
+          <svg class="section-icon text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
+          </svg>
+          <span>Assets</span>
         </div>
+        <div class="column-value"></div>
+        <div v-if="hasSpouse" class="column-value"></div>
+      </div>
 
-        <!-- Liabilities Section -->
-        <div class="section-block liabilities-section">
-          <div class="section-header">
-            <svg class="section-icon text-red-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6L9 12.75l4.286-4.286a11.948 11.948 0 014.306 6.43l.776 2.898m0 0l3.182-5.511m-3.182 5.51l-5.511-3.181" />
-            </svg>
-            <h5 class="section-title">Liabilities</h5>
-          </div>
-          <div class="breakdown-items">
-            <div v-if="spouseLiabilitiesBreakdown.mortgages > 0" class="breakdown-item">
-              <span class="item-label">Mortgages</span>
-              <span class="item-value">{{ formatCurrency(spouseLiabilitiesBreakdown.mortgages) }}</span>
-            </div>
-            <div v-if="spouseLiabilitiesBreakdown.loans > 0" class="breakdown-item">
-              <span class="item-label">Loans</span>
-              <span class="item-value">{{ formatCurrency(spouseLiabilitiesBreakdown.loans) }}</span>
-            </div>
-            <div v-if="spouseLiabilitiesBreakdown.credit_cards > 0" class="breakdown-item">
-              <span class="item-label">Credit Cards</span>
-              <span class="item-value">{{ formatCurrency(spouseLiabilitiesBreakdown.credit_cards) }}</span>
-            </div>
-            <div v-if="spouseLiabilitiesBreakdown.other > 0" class="breakdown-item">
-              <span class="item-label">Other</span>
-              <span class="item-value">{{ formatCurrency(spouseLiabilitiesBreakdown.other) }}</span>
-            </div>
-          </div>
-          <div class="section-total liabilities-total">
-            <span class="total-label">Total Liabilities</span>
-            <span class="total-value">{{ formatCurrency(spouseTotalLiabilities) }}</span>
-          </div>
-        </div>
+      <!-- Asset Breakdown Rows -->
+      <div v-if="showAssetRow('property')" class="summary-row breakdown-row">
+        <div class="row-label">Property</div>
+        <div class="column-value">{{ formatCurrency(userBreakdown.property) }}</div>
+        <div v-if="hasSpouse" class="column-value">{{ formatCurrency(spouseBreakdown.property) }}</div>
+      </div>
+      <div v-if="showAssetRow('investments')" class="summary-row breakdown-row">
+        <div class="row-label">Investments</div>
+        <div class="column-value">{{ formatCurrency(userBreakdown.investments) }}</div>
+        <div v-if="hasSpouse" class="column-value">{{ formatCurrency(spouseBreakdown.investments) }}</div>
+      </div>
+      <div v-if="showAssetRow('cash')" class="summary-row breakdown-row">
+        <div class="row-label">Cash & Savings</div>
+        <div class="column-value">{{ formatCurrency(userBreakdown.cash) }}</div>
+        <div v-if="hasSpouse" class="column-value">{{ formatCurrency(spouseBreakdown.cash) }}</div>
+      </div>
+      <div v-if="showAssetRow('pensions')" class="summary-row breakdown-row">
+        <div class="row-label">Pensions</div>
+        <div class="column-value">{{ formatCurrency(userBreakdown.pensions) }}</div>
+        <div v-if="hasSpouse" class="column-value">{{ formatCurrency(spouseBreakdown.pensions) }}</div>
+      </div>
+      <div v-if="showAssetRow('business')" class="summary-row breakdown-row">
+        <div class="row-label">Business</div>
+        <div class="column-value">{{ formatCurrency(userBreakdown.business) }}</div>
+        <div v-if="hasSpouse" class="column-value">{{ formatCurrency(spouseBreakdown.business) }}</div>
+      </div>
+      <div v-if="showAssetRow('chattels')" class="summary-row breakdown-row">
+        <div class="row-label">Chattels</div>
+        <div class="column-value">{{ formatCurrency(userBreakdown.chattels) }}</div>
+        <div v-if="hasSpouse" class="column-value">{{ formatCurrency(spouseBreakdown.chattels) }}</div>
+      </div>
 
-        <!-- Net Worth -->
-        <div class="section-block net-worth-section">
-          <div class="net-worth-total">
-            <span class="net-worth-label">Net Worth</span>
-            <span class="net-worth-value" :class="spouseNetWorthClass">{{ formatCurrency(spouseNetWorth) }}</span>
-          </div>
+      <!-- Total Assets Row -->
+      <div class="summary-row total-row assets-total-row">
+        <div class="row-label total-label">Total Assets</div>
+        <div class="column-value total-value">{{ formatCurrency(userTotalAssets) }}</div>
+        <div v-if="hasSpouse" class="column-value total-value">{{ formatCurrency(spouseTotalAssets) }}</div>
+      </div>
+
+      <!-- Liabilities Section Header -->
+      <div class="summary-row section-header-row liabilities-header">
+        <div class="row-label section-label">
+          <svg class="section-icon text-red-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6L9 12.75l4.286-4.286a11.948 11.948 0 014.306 6.43l.776 2.898m0 0l3.182-5.511m-3.182 5.51l-5.511-3.181" />
+          </svg>
+          <span>Liabilities</span>
         </div>
+        <div class="column-value"></div>
+        <div v-if="hasSpouse" class="column-value"></div>
+      </div>
+
+      <!-- Liability Breakdown Rows -->
+      <div v-if="showLiabilityRow('mortgages')" class="summary-row breakdown-row">
+        <div class="row-label">Mortgages</div>
+        <div class="column-value">{{ formatCurrency(userLiabilitiesBreakdown.mortgages) }}</div>
+        <div v-if="hasSpouse" class="column-value">{{ formatCurrency(spouseLiabilitiesBreakdown.mortgages) }}</div>
+      </div>
+      <div v-if="showLiabilityRow('loans')" class="summary-row breakdown-row">
+        <div class="row-label">Loans</div>
+        <div class="column-value">{{ formatCurrency(userLiabilitiesBreakdown.loans) }}</div>
+        <div v-if="hasSpouse" class="column-value">{{ formatCurrency(spouseLiabilitiesBreakdown.loans) }}</div>
+      </div>
+      <div v-if="showLiabilityRow('credit_cards')" class="summary-row breakdown-row">
+        <div class="row-label">Credit Cards</div>
+        <div class="column-value">{{ formatCurrency(userLiabilitiesBreakdown.credit_cards) }}</div>
+        <div v-if="hasSpouse" class="column-value">{{ formatCurrency(spouseLiabilitiesBreakdown.credit_cards) }}</div>
+      </div>
+      <div v-if="showLiabilityRow('other')" class="summary-row breakdown-row">
+        <div class="row-label">Other</div>
+        <div class="column-value">{{ formatCurrency(userLiabilitiesBreakdown.other) }}</div>
+        <div v-if="hasSpouse" class="column-value">{{ formatCurrency(spouseLiabilitiesBreakdown.other) }}</div>
+      </div>
+
+      <!-- Total Liabilities Row -->
+      <div class="summary-row total-row liabilities-total-row">
+        <div class="row-label total-label">Total Liabilities</div>
+        <div class="column-value total-value">{{ formatCurrency(userTotalLiabilities) }}</div>
+        <div v-if="hasSpouse" class="column-value total-value">{{ formatCurrency(spouseTotalLiabilities) }}</div>
+      </div>
+
+      <!-- Net Worth Row -->
+      <div class="summary-row total-row net-worth-row">
+        <div class="row-label total-label net-worth-label">Net Worth</div>
+        <div class="column-value total-value net-worth-value" :class="userNetWorthClass">{{ formatCurrency(userNetWorth) }}</div>
+        <div v-if="hasSpouse" class="column-value total-value net-worth-value" :class="spouseNetWorthClass">{{ formatCurrency(spouseNetWorth) }}</div>
       </div>
     </div>
 
@@ -319,6 +255,20 @@ export default {
         maximumFractionDigits: 0,
       }).format(value);
     },
+
+    showAssetRow(key) {
+      // Show row if either user or spouse has a value > 0
+      const userValue = this.userBreakdown[key] || 0;
+      const spouseValue = this.hasSpouse ? (this.spouseBreakdown[key] || 0) : 0;
+      return userValue > 0 || spouseValue > 0;
+    },
+
+    showLiabilityRow(key) {
+      // Show row if either user or spouse has a value > 0
+      const userValue = this.userLiabilitiesBreakdown[key] || 0;
+      const spouseValue = this.hasSpouse ? (this.spouseLiabilitiesBreakdown[key] || 0) : 0;
+      return userValue > 0 || spouseValue > 0;
+    },
   },
 };
 </script>
@@ -339,142 +289,136 @@ export default {
   margin: 0 0 24px 0;
 }
 
+/* Table-like layout */
 .summary-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.summary-row {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 32px;
+  grid-template-columns: 200px 1fr;
+  gap: 16px;
+  align-items: center;
 }
 
-.summary-content:has(.user-column) {
-  grid-template-columns: 1fr 1fr;
-  gap: 48px;
+.summary-content.has-spouse .summary-row {
+  grid-template-columns: 200px 1fr 1fr;
 }
 
-.single-user {
-  max-width: 600px;
-  margin: 0 auto;
-}
-
-.user-column {
-  min-width: 0;
-}
-
-.user-heading {
-  font-size: 16px;
-  font-weight: 600;
-  color: #111827;
-  margin: 0 0 16px 0;
-  padding-bottom: 8px;
+/* Header row */
+.header-row {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
   border-bottom: 2px solid #e5e7eb;
 }
 
-.section-block {
-  margin-bottom: 20px;
-}
-
-.section-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.section-icon {
-  width: 20px;
-  height: 20px;
-}
-
-.section-title {
-  font-size: 14px;
+.column-header {
+  font-size: 16px;
   font-weight: 600;
-  color: #6b7280;
-  margin: 0;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  color: #111827;
+  text-align: right;
+  padding-right: 16px;
 }
 
-.breakdown-items {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.breakdown-item {
-  display: flex;
-  justify-content: space-between;
-  padding: 8px 12px;
-  background: #f9fafb;
-  border-radius: 6px;
-}
-
-.item-label {
+/* Row labels */
+.row-label {
   font-size: 14px;
   color: #6b7280;
   font-weight: 500;
 }
 
-.item-value {
+/* Section header rows */
+.section-header-row {
+  margin-top: 20px;
+  margin-bottom: 12px;
+}
+
+.section-header-row .section-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.liabilities-header {
+  margin-top: 24px;
+}
+
+.section-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+/* Breakdown rows */
+.breakdown-row {
+  padding: 8px 0;
+}
+
+.breakdown-row .column-value {
+  text-align: right;
+  padding: 8px 16px;
+  background: #f9fafb;
+  border-radius: 6px;
   font-size: 14px;
   color: #111827;
   font-weight: 600;
 }
 
-.section-total {
-  display: flex;
-  justify-content: space-between;
-  padding: 12px 12px;
-  border-radius: 8px;
+/* Total rows - consistent sizing */
+.total-row {
   margin-top: 8px;
 }
 
-.assets-total {
-  background: #d1fae5;
-  border: 1px solid #10b981;
-}
-
-.liabilities-total {
-  background: #fee2e2;
-  border: 1px solid #ef4444;
-}
-
-.total-label {
+.total-row .row-label.total-label {
   font-size: 14px;
   font-weight: 600;
   color: #111827;
 }
 
-.total-value {
+.total-row .column-value.total-value {
+  text-align: right;
+  padding: 12px 16px;
+  border-radius: 8px;
   font-size: 16px;
   font-weight: 700;
   color: #111827;
 }
 
-.net-worth-section {
+/* Assets total row styling */
+.assets-total-row .column-value.total-value {
+  background: #d1fae5;
+  border: 1px solid #10b981;
+}
+
+/* Liabilities total row styling */
+.liabilities-total-row .column-value.total-value {
+  background: #fee2e2;
+  border: 1px solid #ef4444;
+}
+
+/* Net worth row styling */
+.net-worth-row {
   margin-top: 16px;
   padding-top: 16px;
   border-top: 2px solid #e5e7eb;
 }
 
-.net-worth-total {
-  display: flex;
-  justify-content: space-between;
-  padding: 16px;
-  background: linear-gradient(135deg, #f0f9ff 0%, #ffffff 100%);
-  border: 2px solid #3b82f6;
-  border-radius: 8px;
-}
-
-.net-worth-label {
+.net-worth-row .row-label.net-worth-label {
   font-size: 16px;
   font-weight: 700;
-  color: #111827;
 }
 
-.net-worth-value {
+.net-worth-row .column-value.net-worth-value {
+  background: linear-gradient(135deg, #f0f9ff 0%, #ffffff 100%);
+  border: 2px solid #3b82f6;
   font-size: 20px;
-  font-weight: 700;
-  color: #111827;
 }
 
 .net-worth-value.positive {
@@ -497,13 +441,6 @@ export default {
 }
 
 /* Mobile responsive */
-@media (max-width: 1024px) {
-  .summary-content:has(.user-column) {
-    grid-template-columns: 1fr;
-    gap: 32px;
-  }
-}
-
 @media (max-width: 768px) {
   .wealth-summary {
     padding: 16px;
@@ -514,12 +451,26 @@ export default {
     margin-bottom: 16px;
   }
 
-  .user-heading {
-    font-size: 14px;
+  .summary-row {
+    grid-template-columns: 120px 1fr;
+    gap: 8px;
   }
 
-  .section-header {
-    margin-bottom: 8px;
+  .summary-content.has-spouse .summary-row {
+    grid-template-columns: 120px 1fr 1fr;
+  }
+
+  .column-header {
+    font-size: 14px;
+    padding-right: 8px;
+  }
+
+  .row-label {
+    font-size: 13px;
+  }
+
+  .section-header-row .section-label {
+    font-size: 12px;
   }
 
   .section-icon {
@@ -527,41 +478,32 @@ export default {
     height: 16px;
   }
 
-  .section-title {
-    font-size: 12px;
-  }
-
-  .breakdown-item {
+  .breakdown-row .column-value {
     padding: 6px 10px;
-  }
-
-  .item-label,
-  .item-value {
     font-size: 13px;
   }
 
-  .section-total {
-    padding: 10px;
-  }
-
-  .total-label {
-    font-size: 13px;
-  }
-
-  .total-value {
+  .total-row .column-value.total-value {
+    padding: 10px 12px;
     font-size: 14px;
   }
 
-  .net-worth-total {
-    padding: 12px;
+  .net-worth-row .column-value.net-worth-value {
+    font-size: 16px;
   }
 
-  .net-worth-label {
+  .net-worth-row .row-label.net-worth-label {
     font-size: 14px;
   }
+}
 
-  .net-worth-value {
-    font-size: 18px;
+@media (max-width: 480px) {
+  .summary-row {
+    grid-template-columns: 100px 1fr;
+  }
+
+  .summary-content.has-spouse .summary-row {
+    grid-template-columns: 100px 1fr 1fr;
   }
 }
 </style>

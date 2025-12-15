@@ -1,149 +1,243 @@
 <template>
   <div class="net-worth-overview">
-    <div class="summary-cards">
-      <div class="summary-card assets-card clickable" @click="navigateToAssets">
-        <div class="card-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
-          </svg>
+    <div v-if="loading" class="loading-state">
+      <div class="spinner"></div>
+      <p>Loading your assets...</p>
+    </div>
+
+    <div v-else class="overview-cards">
+      <!-- Retirement Card -->
+      <div class="asset-card retirement-card" @click="navigateTo('retirement')">
+        <div class="card-header">
+          <div class="card-icon retirement">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div class="card-title-section">
+            <h3 class="card-title">Retirement</h3>
+            <p class="card-total">{{ formatCurrency(assetsSummaryDetailed.pensions?.total_value || 0) }}</p>
+          </div>
+          <div class="card-arrow">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+            </svg>
+          </div>
         </div>
-        <div class="card-content">
-          <p class="card-label">Total Assets</p>
-          <p class="card-value">{{ formattedAssets }}</p>
+        <div class="card-items">
+          <div v-if="pensionItems.length === 0" class="empty-state">
+            <p>No pensions recorded</p>
+          </div>
+          <div v-else>
+            <div
+              v-for="item in displayedPensions"
+              :key="`pension-${item.type}-${item.id}`"
+              class="item-row"
+            >
+              <span class="item-name">{{ item.name }}</span>
+              <span class="item-value">{{ formatCurrency(item.value) }}</span>
+            </div>
+            <div v-if="pensionItems.length > maxDisplayItems" class="view-all">
+              +{{ pensionItems.length - maxDisplayItems }} more
+            </div>
+          </div>
         </div>
       </div>
 
-      <div class="summary-card liabilities-card clickable" @click="navigateToLiabilities">
-        <div class="card-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6L9 12.75l4.286-4.286a11.948 11.948 0 014.306 6.43l.776 2.898m0 0l3.182-5.511m-3.182 5.51l-5.511-3.181" />
-          </svg>
+      <!-- Property Card -->
+      <div class="asset-card property-card" @click="navigateTo('property')">
+        <div class="card-header">
+          <div class="card-icon property">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+            </svg>
+          </div>
+          <div class="card-title-section">
+            <h3 class="card-title">Property</h3>
+            <p class="card-total">{{ formatCurrency(assetsSummaryDetailed.property?.total_value || 0) }}</p>
+          </div>
+          <div class="card-arrow">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+            </svg>
+          </div>
         </div>
-        <div class="card-content">
-          <p class="card-label">Total Liabilities</p>
-          <p class="card-value">{{ formattedLiabilities }}</p>
+        <div class="card-items">
+          <div v-if="propertyItems.length === 0" class="empty-state">
+            <p>No properties recorded</p>
+          </div>
+          <div v-else>
+            <div
+              v-for="item in displayedProperties"
+              :key="`property-${item.id}`"
+              class="item-row"
+            >
+              <span class="item-name">{{ item.name }}</span>
+              <span class="item-value">{{ formatCurrency(item.value) }}</span>
+            </div>
+            <div v-if="propertyItems.length > maxDisplayItems" class="view-all">
+              +{{ propertyItems.length - maxDisplayItems }} more
+            </div>
+          </div>
         </div>
       </div>
 
-      <div class="summary-card net-worth-card highlighted clickable" @click="navigateToBalanceSheet">
-        <div class="card-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
+      <!-- Investments Card -->
+      <div class="asset-card investments-card" @click="navigateTo('investments')">
+        <div class="card-header">
+          <div class="card-icon investments">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+            </svg>
+          </div>
+          <div class="card-title-section">
+            <h3 class="card-title">Investments</h3>
+            <p class="card-total">{{ formatCurrency(assetsSummaryDetailed.investments?.total_value || 0) }}</p>
+          </div>
+          <div class="card-arrow">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+            </svg>
+          </div>
         </div>
-        <div class="card-content">
-          <p class="card-label">Net Worth</p>
-          <p class="card-value" :class="netWorthClass">{{ formattedNetWorth }}</p>
+        <div class="card-items">
+          <div v-if="investmentItems.length === 0" class="empty-state">
+            <p>No investments recorded</p>
+          </div>
+          <div v-else>
+            <div
+              v-for="item in displayedInvestments"
+              :key="`investment-${item.id}`"
+              class="item-row"
+            >
+              <span class="item-name">{{ item.name }}</span>
+              <span class="item-value">{{ formatCurrency(item.value) }}</span>
+            </div>
+            <div v-if="investmentItems.length > maxDisplayItems" class="view-all">
+              +{{ investmentItems.length - maxDisplayItems }} more
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cash Card -->
+      <div class="asset-card cash-card" @click="navigateTo('cash')">
+        <div class="card-header">
+          <div class="card-icon cash">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
+            </svg>
+          </div>
+          <div class="card-title-section">
+            <h3 class="card-title">Cash</h3>
+            <p class="card-total">{{ formatCurrency(assetsSummaryDetailed.cash?.total_value || 0) }}</p>
+          </div>
+          <div class="card-arrow">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+            </svg>
+          </div>
+        </div>
+        <div class="card-items">
+          <div v-if="cashItems.length === 0" class="empty-state">
+            <p>No cash accounts recorded</p>
+          </div>
+          <div v-else>
+            <div
+              v-for="item in displayedCash"
+              :key="`cash-${item.id}`"
+              class="item-row"
+            >
+              <span class="item-name">
+                {{ item.name }}
+                <span v-if="item.is_isa" class="badge isa">ISA</span>
+                <span v-if="item.is_emergency_fund" class="badge emergency">Emergency</span>
+              </span>
+              <span class="item-value">{{ formatCurrency(item.value) }}</span>
+            </div>
+            <div v-if="cashItems.length > maxDisplayItems" class="view-all">
+              +{{ cashItems.length - maxDisplayItems }} more
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
-    <div class="chart-full-width">
-      <WealthSummary
-        :breakdown="overview.breakdown"
-        :liabilities-breakdown="overview.liabilitiesBreakdown"
-        :total-assets="overview.totalAssets"
-        :total-liabilities="overview.totalLiabilities"
-        :spouse-data="spouseOverview"
-        :user-name="currentUserName"
-        :spouse-name="spouseUserName"
-      />
-    </div>
-
-    <div class="charts-grid">
-      <div class="chart-item">
-        <AssetAllocationDonut :breakdown="overview.breakdown" />
-      </div>
-      <div class="chart-item">
-        <NetWorthTrendChart :trend="trend" />
-      </div>
-    </div>
-
-    <div v-if="asOfDate" class="last-updated">
-      <p>Last updated: {{ formatDate(asOfDate) }}</p>
-    </div>
   </div>
 </template>
 
 <script>
 import { mapState, mapGetters, mapActions } from 'vuex';
-import AssetAllocationDonut from './AssetAllocationDonut.vue';
-import NetWorthTrendChart from './NetWorthTrendChart.vue';
-import WealthSummary from './WealthSummary.vue';
 
 export default {
   name: 'NetWorthOverview',
 
-  components: {
-    AssetAllocationDonut,
-    NetWorthTrendChart,
-    WealthSummary,
+  data() {
+    return {
+      maxDisplayItems: 3,
+    };
   },
 
   computed: {
-    ...mapState('netWorth', ['overview', 'trend', 'loading', 'spouseOverview']),
-    ...mapGetters('netWorth', [
-      'formattedNetWorth',
-      'formattedAssets',
-      'formattedLiabilities',
-      'netWorth',
-    ]),
+    ...mapState('netWorth', ['assetsSummaryDetailed', 'loading']),
 
-    asOfDate() {
-      return this.overview.asOfDate;
+    pensionItems() {
+      return this.assetsSummaryDetailed.pensions?.items || [];
     },
 
-    netWorthClass() {
-      if (this.netWorth < 0) {
-        return 'negative';
-      } else if (this.netWorth > 0) {
-        return 'positive';
-      }
-      return '';
+    propertyItems() {
+      return this.assetsSummaryDetailed.property?.items || [];
     },
 
-    currentUserName() {
-      const user = this.$store.getters['auth/currentUser'];
-      return user?.name || 'Your Wealth';
+    investmentItems() {
+      return this.assetsSummaryDetailed.investments?.items || [];
     },
 
-    spouseUserName() {
-      const user = this.$store.getters['auth/currentUser'];
-      const spouseName = user?.spouse?.name;
-      return spouseName || 'Spouse';
+    cashItems() {
+      return this.assetsSummaryDetailed.cash?.items || [];
+    },
+
+    displayedPensions() {
+      return this.pensionItems.slice(0, this.maxDisplayItems);
+    },
+
+    displayedProperties() {
+      return this.propertyItems.slice(0, this.maxDisplayItems);
+    },
+
+    displayedInvestments() {
+      return this.investmentItems.slice(0, this.maxDisplayItems);
+    },
+
+    displayedCash() {
+      return this.cashItems.slice(0, this.maxDisplayItems);
     },
   },
 
   methods: {
-    ...mapActions('netWorth', ['loadAllData']),
+    ...mapActions('netWorth', ['fetchAssetsSummaryDetailed']),
 
-    formatDate(dateString) {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('en-GB', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      });
+    formatCurrency(value) {
+      return new Intl.NumberFormat('en-GB', {
+        style: 'currency',
+        currency: 'GBP',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      }).format(value ?? 0);
     },
 
-    navigateToAssets() {
-      this.$router.push('/profile?section=assets');
-    },
-
-    navigateToLiabilities() {
-      this.$router.push('/profile?section=liabilities');
-    },
-
-    navigateToBalanceSheet() {
-      this.$router.push('/profile?section=accounts');
+    navigateTo(section) {
+      const isPreview = this.$route.path.startsWith('/preview');
+      const basePath = isPreview ? '/preview/net-worth' : '/net-worth';
+      this.$router.push(`${basePath}/${section}`);
     },
   },
 
   async mounted() {
     try {
-      await this.loadAllData();
+      await this.fetchAssetsSummaryDetailed();
     } catch (error) {
-      console.error('Failed to load net worth data:', error);
+      console.error('Failed to load assets summary:', error);
     }
   },
 };
@@ -156,137 +250,211 @@ export default {
   gap: 24px;
 }
 
-.summary-cards {
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+  color: #6b7280;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e5e7eb;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.overview-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: 20px;
 }
 
-.summary-card {
+.asset-card {
   background: white;
   border-radius: 12px;
-  padding: 24px;
+  padding: 20px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   border: 1px solid #e5e7eb;
-  display: flex;
-  align-items: center;
-  gap: 16px;
+  cursor: pointer;
   transition: all 0.2s;
 }
 
-.summary-card.clickable {
-  cursor: pointer;
-}
-
-.summary-card:hover {
+.asset-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: #3b82f6;
 }
 
-.summary-card.highlighted {
-  border: 2px solid #3b82f6;
-  background: linear-gradient(135deg, #f0f9ff 0%, #ffffff 100%);
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .card-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
 
-.assets-card .card-icon {
-  background: #d1fae5;
-  color: #10b981;
-}
-
-.liabilities-card .card-icon {
-  background: #fee2e2;
-  color: #ef4444;
-}
-
-.net-worth-card .card-icon {
-  background: #dbeafe;
-  color: #3b82f6;
-}
-
 .card-icon svg {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
 }
 
-.card-content {
+.card-icon.retirement {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.card-icon.property {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.card-icon.investments {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.card-icon.cash {
+  background: #ede9fe;
+  color: #7c3aed;
+}
+
+.card-title-section {
   flex: 1;
 }
 
-.card-label {
-  font-size: 14px;
-  color: #6b7280;
-  font-weight: 500;
-  margin: 0 0 8px 0;
+.card-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 4px 0;
 }
 
-.card-value {
-  font-size: 28px;
+.card-total {
+  font-size: 24px;
   font-weight: 700;
   color: #111827;
   margin: 0;
 }
 
-.card-value.positive {
-  color: #10b981;
+.card-arrow {
+  width: 24px;
+  height: 24px;
+  color: #9ca3af;
+  flex-shrink: 0;
 }
 
-.card-value.negative {
-  color: #ef4444;
-}
-
-.charts-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-  gap: 24px;
-}
-
-.chart-item {
-  min-width: 0;
-}
-
-.chart-full-width {
+.card-arrow svg {
   width: 100%;
+  height: 100%;
 }
 
-.last-updated {
-  text-align: center;
-  padding: 12px;
-  background: #f9fafb;
-  border-radius: 8px;
+.card-items {
+  min-height: 80px;
 }
 
-.last-updated p {
-  margin: 0;
+.empty-state {
+  color: #9ca3af;
   font-size: 14px;
-  color: #6b7280;
+  text-align: center;
+  padding: 16px 0;
+}
+
+.empty-state p {
+  margin: 0;
+}
+
+.item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.item-row:last-child {
+  border-bottom: none;
+}
+
+.item-name {
+  font-size: 14px;
+  color: #4b5563;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.badge.isa {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.badge.emergency {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.item-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+  flex-shrink: 0;
+  margin-left: 12px;
+}
+
+.view-all {
+  font-size: 13px;
+  color: #3b82f6;
+  text-align: center;
+  padding: 8px 0 0 0;
+  font-weight: 500;
 }
 
 /* Mobile responsive */
+@media (max-width: 1024px) {
+  .overview-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 768px) {
-  .summary-cards {
-    grid-template-columns: 1fr;
-  }
-
-  .charts-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .summary-card {
-    padding: 16px;
-  }
-
-  .card-value {
-    font-size: 24px;
+  .card-total {
+    font-size: 20px;
   }
 
   .card-icon {

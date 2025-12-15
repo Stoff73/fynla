@@ -142,6 +142,11 @@ export default {
   },
 
   mounted() {
+    // Reset detail view state when mounted (for embedded mode)
+    if (this.isEmbedded) {
+      this.setDetailView(false);
+    }
+
     this.loadSavingsData();
 
     // Check for tab query parameter and set active tab
@@ -153,6 +158,7 @@ export default {
 
   methods: {
     ...mapActions('savings', ['fetchSavingsData']),
+    ...mapActions('netWorth', ['setDetailView']),
 
     async loadSavingsData() {
       try {
@@ -166,6 +172,7 @@ export default {
     selectAccount(account) {
       if (this.isEmbedded) {
         this.selectedAccount = account;
+        this.setDetailView(true);
       } else {
         // When not embedded, use router navigation
         this.$router.push({ name: 'SavingsAccountDetail', params: { id: account.id } });
@@ -174,12 +181,14 @@ export default {
 
     clearSelection() {
       this.selectedAccount = null;
+      this.setDetailView(false);
       // Refresh data after returning
       this.loadSavingsData();
     },
 
     handleAccountDeleted() {
       this.selectedAccount = null;
+      this.setDetailView(false);
       this.loadSavingsData();
     },
   },
