@@ -971,17 +971,28 @@ export default {
     };
 
     const getFullSavingsBalance = (account) => {
-      // If joint ownership, calculate full balance from user's share
-      if (account.ownership_type === 'joint' && account.ownership_percentage) {
-        return account.current_balance / (account.ownership_percentage / 100);
+      // Single-record pattern: DB stores FULL balance
+      // Use full_balance from API if available, otherwise current_balance is already full
+      return account.full_balance ?? account.current_balance ?? 0;
+    };
+
+    const getUserSavingsShare = (account) => {
+      // Single-record pattern: Use user_share from API if available
+      if (account.user_share !== undefined) {
+        return account.user_share;
       }
-      // For individual ownership, user's share = full balance
-      return account.current_balance;
+      // Fallback: calculate from full balance
+      const fullBalance = getFullSavingsBalance(account);
+      if (account.ownership_type === 'joint' && account.ownership_percentage) {
+        return fullBalance * (account.ownership_percentage / 100);
+      }
+      return fullBalance;
     };
 
     const formatInterestRate = (rate) => {
-      // Convert from decimal to percentage (e.g., 0.01 -> 1.00%)
-      return `${(rate * 100).toFixed(2)}%`;
+      // Rate is stored as a percentage (e.g., 4.55 = 4.55%)
+      // Display directly without multiplying
+      return `${parseFloat(rate || 0).toFixed(2)}%`;
     };
 
     // Common ownership helper functions

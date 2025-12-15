@@ -5,21 +5,21 @@ declare(strict_types=1);
 namespace App\Services\Coordination;
 
 use App\Agents\ProtectionAgent;
+use App\Agents\RetirementAgent;
+use App\Agents\SavingsAgent;
 use App\Models\User;
-use App\Services\Estate\NetWorthAnalyzer;
+use App\Services\Estate\ComprehensiveEstatePlanService;
 use App\Services\Investment\PortfolioAnalyzer;
-use App\Services\Retirement\PensionProjector;
-use App\Services\Savings\EmergencyFundCalculator;
 use Illuminate\Support\Facades\Log;
 
 class RecommendationsAggregatorService
 {
     public function __construct(
         private ProtectionAgent $protectionEngine,
-        private EmergencyFundCalculator $savingsCalculator,
+        private SavingsAgent $savingsCalculator,
         private PortfolioAnalyzer $investmentAnalyzer,
-        private PensionProjector $retirementProjector,
-        private NetWorthAnalyzer $estateAnalyzer
+        private RetirementAgent $retirementAgent,
+        private ComprehensiveEstatePlanService $estatePlanService
     ) {}
 
     /**
@@ -66,7 +66,7 @@ class RecommendationsAggregatorService
 
         // Retirement module
         try {
-            $retirementAnalysis = $this->retirementProjector->analyze($userId);
+            $retirementAnalysis = $this->retirementAgent->analyze($userId);
             $retirementRecs = $retirementAnalysis['recommendations'] ?? [];
             $formattedRetirement = $this->formatRecommendations($retirementRecs, 'retirement');
             $allRecommendations = array_merge($allRecommendations, $formattedRetirement);
@@ -76,8 +76,8 @@ class RecommendationsAggregatorService
 
         // Estate module
         try {
-            $estateAnalysis = $this->estateAnalyzer->analyze($userId);
-            $estateRecs = $estateAnalysis['recommendations'] ?? [];
+            $estatePlan = $this->estatePlanService->generateComprehensiveEstatePlan($user);
+            $estateRecs = $estatePlan['recommendations'] ?? [];
             $formattedEstate = $this->formatRecommendations($estateRecs, 'estate');
             $allRecommendations = array_merge($allRecommendations, $formattedEstate);
         } catch (\Exception $e) {
@@ -97,6 +97,11 @@ class RecommendationsAggregatorService
      */
     private function formatRecommendations(array $recommendations, string $module): array
     {
+        // Filter out non-array items (some analyzers may return booleans or other types)
+        $validRecommendations = array_filter($recommendations, function ($rec) {
+            return is_array($rec);
+        });
+
         return array_map(function ($rec) use ($module) {
             return [
                 'recommendation_id' => $rec['recommendation_id'] ?? $rec['id'] ?? uniqid("{$module}_"),
@@ -110,7 +115,7 @@ class RecommendationsAggregatorService
                 'potential_benefit' => $rec['potential_benefit'] ?? $rec['benefit'] ?? null,
                 'status' => $rec['status'] ?? 'pending',
             ];
-        }, $recommendations);
+        }, $validRecommendations);
     }
 
     /**

@@ -8,6 +8,7 @@ use App\Models\Investment\InvestmentAccount;
 use App\Models\Mortgage;
 use App\Models\Property;
 use App\Models\SavingsAccount;
+use App\Traits\CalculatesOwnershipShare;
 use Illuminate\Support\Collection;
 
 /**
@@ -22,19 +23,28 @@ use Illuminate\Support\Collection;
  * - Cash/Savings values (from Savings module)
  * - Mortgage liabilities (from Property module)
  *
- * NOTE: Joint assets use the reciprocal records pattern. Each owner has their own
- * database record with their share (e.g., 50%) stored in current_value. Therefore,
- * we query only by user_id and the values are already correct.
+ * Single-Record Architecture:
+ * - ONE database record stores the FULL asset value in current_value/current_balance
+ * - user_id = primary owner, joint_owner_id = secondary owner
+ * - ownership_percentage = primary owner's share (default 50 for joint)
+ * - Query pattern: where('user_id', $id)->orWhere('joint_owner_id', $id)
+ * - User's share = full_value * (percentage / 100) for primary owner
+ * - User's share = full_value * ((100 - percentage) / 100) for joint owner
  */
 class CrossModuleAssetAggregator
 {
+    use CalculatesOwnershipShare;
+
     /**
      * Get all cross-module assets for a user
      *
      * Returns a collection of asset objects in standardized format:
      * - asset_type: string
      * - asset_name: string
-     * - current_value: float
+     * - current_value: float (user's share)
+     * - full_value: float (total asset value)
+     * - ownership_percentage: float
+     * - is_primary_owner: bool
      */
     public function getAllAssets(int $userId): Collection
     {
@@ -56,20 +66,29 @@ class CrossModuleAssetAggregator
     }
 
     /**
-     * Get property assets
+     * Get property assets for a user.
      *
-     * Each user has their own property record with their share stored in current_value.
-     * For joint properties, reciprocal records exist so we only query by user_id.
+     * Single-record pattern: Query assets where user is owner OR joint_owner.
+     * Calculate user's share based on ownership_percentage.
      */
     public function getPropertyAssets(int $userId): Collection
     {
         return Property::where('user_id', $userId)
+            ->orWhere('joint_owner_id', $userId)
             ->get()
-            ->map(function ($property) {
+            ->map(function ($property) use ($userId) {
+                $userShare = $this->calculateUserShare($property, $userId);
+                $fullValue = $this->getFullValue($property);
+
                 return (object) [
                     'asset_type' => 'property',
                     'asset_name' => $property->address_line_1 ?: 'Property',
-                    'current_value' => (float) $property->current_value,
+                    'current_value' => $userShare,
+                    'full_value' => $fullValue,
+                    'ownership_type' => $property->ownership_type ?? 'individual',
+                    'ownership_percentage' => $property->ownership_percentage ?? 100,
+                    'is_primary_owner' => $this->isPrimaryOwner($property, $userId),
+                    'is_shared' => $this->isSharedOwnership($property),
                     'is_iht_exempt' => false,
                     'source_id' => $property->id,
                     'source_model' => 'Property',
@@ -78,20 +97,29 @@ class CrossModuleAssetAggregator
     }
 
     /**
-     * Get investment account assets
+     * Get investment account assets for a user.
      *
-     * Each user has their own investment account record with their share stored in current_value.
-     * For joint accounts, reciprocal records exist so we only query by user_id.
+     * Single-record pattern: Query assets where user is owner OR joint_owner.
+     * Calculate user's share based on ownership_percentage.
      */
     public function getInvestmentAssets(int $userId): Collection
     {
         return InvestmentAccount::where('user_id', $userId)
+            ->orWhere('joint_owner_id', $userId)
             ->get()
-            ->map(function ($account) {
+            ->map(function ($account) use ($userId) {
+                $userShare = $this->calculateUserShare($account, $userId);
+                $fullValue = $this->getFullValue($account);
+
                 return (object) [
                     'asset_type' => 'investment',
                     'asset_name' => $account->provider.' - '.strtoupper($account->account_type),
-                    'current_value' => (float) $account->current_value,
+                    'current_value' => $userShare,
+                    'full_value' => $fullValue,
+                    'ownership_type' => $account->ownership_type ?? 'individual',
+                    'ownership_percentage' => $account->ownership_percentage ?? 100,
+                    'is_primary_owner' => $this->isPrimaryOwner($account, $userId),
+                    'is_shared' => $this->isSharedOwnership($account),
                     'is_iht_exempt' => false, // ISAs are IHT taxable
                     'account_type' => $account->account_type,
                     'source_id' => $account->id,
@@ -101,21 +129,29 @@ class CrossModuleAssetAggregator
     }
 
     /**
-     * Get savings/cash account assets
+     * Get savings/cash account assets for a user.
      *
-     * Each user has their own savings account record with their share stored in current_balance.
-     * For joint accounts, reciprocal records exist so we only query by user_id.
+     * Single-record pattern: Query assets where user is owner OR joint_owner.
+     * Calculate user's share based on ownership_percentage.
      */
     public function getSavingsAssets(int $userId): Collection
     {
         return SavingsAccount::where('user_id', $userId)
+            ->orWhere('joint_owner_id', $userId)
             ->get()
-            ->map(function ($account) {
-                // Cash ISAs are NOT IHT-exempt - only exempt from income tax
+            ->map(function ($account) use ($userId) {
+                $userShare = $this->calculateUserShare($account, $userId);
+                $fullValue = $this->getFullValue($account);
+
                 return (object) [
                     'asset_type' => 'cash',
                     'asset_name' => $account->institution.' - '.ucfirst($account->account_type),
-                    'current_value' => (float) $account->current_balance,
+                    'current_value' => $userShare,
+                    'full_value' => $fullValue,
+                    'ownership_type' => $account->ownership_type ?? 'individual',
+                    'ownership_percentage' => $account->ownership_percentage ?? 100,
+                    'is_primary_owner' => $this->isPrimaryOwner($account, $userId),
+                    'is_shared' => $this->isSharedOwnership($account),
                     'is_iht_exempt' => false, // Cash ISAs are IHT taxable
                     'account_type' => $account->account_type,
                     'source_id' => $account->id,
@@ -137,83 +173,103 @@ class CrossModuleAssetAggregator
     }
 
     /**
-     * Calculate total property value
+     * Calculate total property value (user's share).
      *
-     * Each user has their own record with their share stored in current_value.
-     * Simply sum all properties for this user.
+     * Single-record pattern: Sum user's share of all properties where user
+     * is owner OR joint_owner.
      */
     public function calculatePropertyTotal(int $userId): float
     {
-        return (float) Property::where('user_id', $userId)
-            ->sum('current_value');
+        return Property::where('user_id', $userId)
+            ->orWhere('joint_owner_id', $userId)
+            ->get()
+            ->sum(fn ($property) => $this->calculateUserShare($property, $userId));
     }
 
     /**
-     * Calculate total investment value
+     * Calculate total investment value (user's share).
      *
-     * Each user has their own record with their share stored in current_value.
-     * Simply sum all investment accounts for this user.
+     * Single-record pattern: Sum user's share of all investments where user
+     * is owner OR joint_owner.
      */
     public function calculateInvestmentTotal(int $userId): float
     {
-        return (float) InvestmentAccount::where('user_id', $userId)
-            ->sum('current_value');
+        return InvestmentAccount::where('user_id', $userId)
+            ->orWhere('joint_owner_id', $userId)
+            ->get()
+            ->sum(fn ($account) => $this->calculateUserShare($account, $userId));
     }
 
     /**
-     * Calculate total cash/savings value
+     * Calculate total cash/savings value (user's share).
      *
-     * Each user has their own record with their share stored in current_balance.
-     * Simply sum all savings accounts for this user.
+     * Single-record pattern: Sum user's share of all savings accounts where user
+     * is owner OR joint_owner.
      */
     public function calculateCashTotal(int $userId): float
     {
-        return (float) SavingsAccount::where('user_id', $userId)
-            ->sum('current_balance');
+        return SavingsAccount::where('user_id', $userId)
+            ->orWhere('joint_owner_id', $userId)
+            ->get()
+            ->sum(fn ($account) => $this->calculateUserShare($account, $userId));
     }
 
     /**
-     * Get all mortgages for a user
+     * Get all mortgages for a user.
      *
-     * Each user has their own mortgage record with their share.
+     * Single-record pattern: Query mortgages where user is owner OR joint_owner.
      */
     public function getMortgages(int $userId): Collection
     {
-        return Mortgage::where('user_id', $userId)->get();
+        return Mortgage::where('user_id', $userId)
+            ->orWhere('joint_owner_id', $userId)
+            ->get();
     }
 
     /**
-     * Calculate total mortgage liabilities
+     * Calculate total mortgage liabilities (user's share).
      *
-     * Each user has their own record with their share stored in outstanding_balance.
-     * Simply sum all mortgages for this user.
+     * Single-record pattern: Sum user's share of all mortgages where user
+     * is owner OR joint_owner.
      */
     public function calculateMortgageTotal(int $userId): float
     {
-        return (float) Mortgage::where('user_id', $userId)
-            ->sum('outstanding_balance');
+        return Mortgage::where('user_id', $userId)
+            ->orWhere('joint_owner_id', $userId)
+            ->get()
+            ->sum(fn ($mortgage) => $this->calculateUserMortgageShare($mortgage, $userId));
     }
 
     /**
-     * Get asset breakdown with counts
+     * Get asset breakdown with counts.
+     *
+     * Note: Count includes all assets where user is owner OR joint_owner.
      */
     public function getAssetBreakdown(int $userId): array
     {
         return [
             'property' => [
-                'count' => Property::where('user_id', $userId)->count(),
+                'count' => Property::where('user_id', $userId)
+                    ->orWhere('joint_owner_id', $userId)
+                    ->count(),
                 'total' => $this->calculatePropertyTotal($userId),
             ],
             'investment' => [
-                'count' => InvestmentAccount::where('user_id', $userId)->count(),
+                'count' => InvestmentAccount::where('user_id', $userId)
+                    ->orWhere('joint_owner_id', $userId)
+                    ->count(),
                 'total' => $this->calculateInvestmentTotal($userId),
             ],
             'cash' => [
-                'count' => SavingsAccount::where('user_id', $userId)->count(),
+                'count' => SavingsAccount::where('user_id', $userId)
+                    ->orWhere('joint_owner_id', $userId)
+                    ->count(),
                 'total' => $this->calculateCashTotal($userId),
             ],
             'mortgages' => [
-                'count' => Mortgage::where('user_id', $userId)->count(),
+                'count' => Mortgage::where('user_id', $userId)
+                    ->orWhere('joint_owner_id', $userId)
+                    ->count(),
                 'total' => $this->calculateMortgageTotal($userId),
             ],
         ];

@@ -5,11 +5,24 @@ declare(strict_types=1);
 namespace App\Services\Property;
 
 use App\Models\Property;
+use App\Traits\CalculatesOwnershipShare;
 
+/**
+ * Property Service
+ *
+ * Single-Record Architecture:
+ * - ONE database record stores the FULL property value in current_value
+ * - Calculate user's share using ownership_percentage
+ */
 class PropertyService
 {
+    use CalculatesOwnershipShare;
+
     /**
      * Calculate property equity (current value - outstanding mortgage balance)
+     *
+     * Single-record pattern: Returns FULL equity (not user's share).
+     * Use calculateUserEquity() for user's share.
      */
     public function calculateEquity(Property $property): float
     {
@@ -24,29 +37,56 @@ class PropertyService
             $mortgageBalance = $property->outstanding_mortgage;
         }
 
-        // IMPORTANT: Both current_value and mortgageBalance are ALREADY stored as the user's share
-        // in the database (divided by ownership_percentage when saving). Therefore, we do NOT
-        // multiply by ownership_percentage here - that would divide the equity in half again.
-        //
-        // Equity = current_value - mortgage_balance (both already user's share from database)
+        // Single-record pattern: Both current_value and mortgageBalance are FULL values
         return max(0, $currentValue - $mortgageBalance);
     }
 
     /**
+     * Calculate user's share of property equity.
+     *
+     * Single-record pattern: Applies ownership percentage to calculate
+     * the user's share of the total equity.
+     */
+    public function calculateUserEquity(Property $property, int $userId): float
+    {
+        $fullEquity = $this->calculateEquity($property);
+
+        // Apply ownership percentage to get user's share
+        $ownershipType = $property->ownership_type ?? 'individual';
+
+        if ($ownershipType === 'individual' || $ownershipType === 'trust') {
+            return $property->user_id === $userId ? $fullEquity : 0.0;
+        }
+
+        $percentage = (float) ($property->ownership_percentage ?? 50);
+
+        if ($property->user_id === $userId) {
+            return $fullEquity * ($percentage / 100);
+        }
+
+        if (($property->joint_owner_id ?? null) === $userId) {
+            return $fullEquity * ((100 - $percentage) / 100);
+        }
+
+        return 0.0;
+    }
+
+    /**
      * Calculate total monthly costs for the property
-     * Note: All cost values are ALREADY stored as user's share in database
+     *
+     * Single-record pattern: Returns FULL monthly costs (not user's share).
      */
     public function calculateTotalMonthlyCosts(Property $property): float
     {
         $costs = 0;
 
-        // Mortgage costs (monthly) - already user's share
+        // Mortgage costs (monthly) - FULL amounts
         $mortgages = $property->mortgages;
         foreach ($mortgages as $mortgage) {
             $costs += $mortgage->monthly_payment ?? 0;
         }
 
-        // Property-specific costs (monthly) - already user's share
+        // Property-specific costs (monthly) - FULL amounts
         $costs += $property->monthly_council_tax ?? 0;
         $costs += $property->monthly_gas ?? 0;
         $costs += $property->monthly_electricity ?? 0;
@@ -93,7 +133,9 @@ class PropertyService
 
     /**
      * Get comprehensive property summary
-     * Note: All values are ALREADY user's share in database
+     *
+     * Single-record pattern: All values are FULL values.
+     * Includes user_share and full_value fields for frontend display.
      */
     public function getPropertySummary(Property $property): array
     {
@@ -124,6 +166,7 @@ class PropertyService
             'property_type' => $property->property_type,
             'ownership_type' => $property->ownership_type,
             'ownership_percentage' => (float) $property->ownership_percentage,
+            'joint_owner_id' => $property->joint_owner_id,
             'household_id' => $property->household_id,
             'trust_id' => $property->trust_id,
             'current_value' => (float) $currentValue,
@@ -245,6 +288,7 @@ class PropertyService
                     'maturity_date' => $mortgage->maturity_date?->format('Y-m-d'),
                     'remaining_term_months' => (int) ($mortgage->remaining_term_months ?? 0),
                     'ownership_type' => $mortgage->ownership_type,
+                    'ownership_percentage' => (float) ($mortgage->ownership_percentage ?? 100),
                     'joint_owner_id' => $mortgage->joint_owner_id,
                     'joint_owner_name' => $mortgage->joint_owner_name,
                     'notes' => $mortgage->notes,

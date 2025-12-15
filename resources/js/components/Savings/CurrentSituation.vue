@@ -56,7 +56,7 @@
 
               <div v-if="account.ownership_type === 'joint'" class="detail-row">
                 <span class="detail-label">Your Share ({{ account.ownership_percentage }}%)</span>
-                <span class="detail-value">{{ formatCurrency(account.current_balance) }}</span>
+                <span class="detail-value">{{ formatCurrency(getUserShare(account)) }}</span>
               </div>
 
               <div v-if="account.interest_rate > 0" class="detail-row">
@@ -180,12 +180,21 @@ export default {
     },
 
     getFullBalance(account) {
-      // If joint ownership, calculate full balance from user's share
-      if (account.ownership_type === 'joint' && account.ownership_percentage) {
-        return account.current_balance / (account.ownership_percentage / 100);
+      // Single-record pattern: current_balance in DB is the FULL value
+      // Use full_value from API if available, otherwise current_balance
+      return account.full_value ?? account.current_balance ?? 0;
+    },
+
+    getUserShare(account) {
+      // Single-record pattern: API provides user_share, or calculate from full balance
+      if (account.user_share !== undefined) {
+        return account.user_share;
       }
-      // For individual ownership, user's share = full balance
-      return account.current_balance;
+      // Fallback: calculate from full balance
+      if (account.ownership_type === 'joint' && account.ownership_percentage) {
+        return this.getFullBalance(account) * (account.ownership_percentage / 100);
+      }
+      return this.getFullBalance(account);
     },
 
     formatCurrency(value) {
@@ -227,9 +236,9 @@ export default {
     },
 
     formatInterestRate(rate) {
-      // Convert from decimal to percentage (e.g., 0.01 -> 1.00%)
-      // The rate from database is already in decimal form (0.01 = 1%)
-      return `${(rate * 100).toFixed(2)}%`;
+      // Rate is stored as a percentage (e.g., 4.55 = 4.55%)
+      // Display directly without multiplying
+      return `${parseFloat(rate || 0).toFixed(2)}%`;
     },
 
     // Modal handlers

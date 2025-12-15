@@ -30,18 +30,37 @@ class ModelPortfolioController extends Controller
      * Get model portfolio by risk level
      *
      * GET /api/investment/model-portfolio/{riskLevel}
+     *
+     * @param  Request  $request
+     * @param  string|int  $riskLevel  Numeric (1-5) or string (conservative, moderate, etc.)
      */
-    public function getModelPortfolio(Request $request, int $riskLevel): JsonResponse
+    public function getModelPortfolio(Request $request, string $riskLevel): JsonResponse
     {
         try {
-            if ($riskLevel < 1 || $riskLevel > 5) {
+            // Map string risk levels to numeric values
+            $riskLevelMap = [
+                'conservative' => 1,
+                'moderately_conservative' => 2,
+                'moderate' => 3,
+                'moderately_aggressive' => 4,
+                'aggressive' => 5,
+            ];
+
+            // Convert to integer if it's a numeric string or map from name
+            if (is_numeric($riskLevel)) {
+                $riskLevelInt = (int) $riskLevel;
+            } else {
+                $riskLevelInt = $riskLevelMap[strtolower($riskLevel)] ?? null;
+            }
+
+            if ($riskLevelInt === null || $riskLevelInt < 1 || $riskLevelInt > 5) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Risk level must be between 1 and 5',
+                    'message' => 'Risk level must be between 1 and 5, or a valid name (conservative, moderate, aggressive)',
                 ], 422);
             }
 
-            $portfolio = $this->builder->getModelPortfolio($riskLevel);
+            $portfolio = $this->builder->getModelPortfolio($riskLevelInt);
 
             return response()->json([
                 'success' => true,
