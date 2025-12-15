@@ -21,6 +21,12 @@ const state = {
         business: { count: 0, total_value: 0 },
         chattels: { count: 0, total_value: 0 },
     },
+    assetsSummaryDetailed: {
+        pensions: { count: 0, total_value: 0, items: [] },
+        property: { count: 0, total_value: 0, items: [] },
+        investments: { count: 0, total_value: 0, items: [] },
+        cash: { count: 0, total_value: 0, items: [] },
+    },
     jointAssets: [],
     properties: [],
     selectedProperty: null,
@@ -28,6 +34,7 @@ const state = {
     selectedMortgage: null,
     loading: false,
     error: null,
+    isDetailView: false,
 };
 
 const mutations = {
@@ -54,6 +61,10 @@ const mutations = {
         state.assetsSummary = summary;
     },
 
+    SET_ASSETS_SUMMARY_DETAILED(state, summary) {
+        state.assetsSummaryDetailed = summary;
+    },
+
     SET_JOINT_ASSETS(state, jointAssets) {
         state.jointAssets = jointAssets;
     },
@@ -68,6 +79,10 @@ const mutations = {
 
     CLEAR_ERROR(state) {
         state.error = null;
+    },
+
+    SET_DETAIL_VIEW(state, isDetailView) {
+        state.isDetailView = isDetailView;
     },
 
     RESET_STATE(state) {
@@ -88,6 +103,12 @@ const mutations = {
             cash: { count: 0, total_value: 0 },
             business: { count: 0, total_value: 0 },
             chattels: { count: 0, total_value: 0 },
+        };
+        state.assetsSummaryDetailed = {
+            pensions: { count: 0, total_value: 0, items: [] },
+            property: { count: 0, total_value: 0, items: [] },
+            investments: { count: 0, total_value: 0, items: [] },
+            cash: { count: 0, total_value: 0, items: [] },
         };
         state.jointAssets = [];
         state.properties = [];
@@ -160,6 +181,10 @@ const mutations = {
 };
 
 const actions = {
+    setDetailView({ commit }, isDetailView) {
+        commit('SET_DETAIL_VIEW', isDetailView);
+    },
+
     async fetchOverview({ commit }) {
         commit('SET_LOADING', true);
         commit('CLEAR_ERROR');
@@ -243,6 +268,27 @@ const actions = {
             }
         } catch (error) {
             const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch joint assets';
+            commit('SET_ERROR', errorMessage);
+            throw error;
+        } finally {
+            commit('SET_LOADING', false);
+        }
+    },
+
+    async fetchAssetsSummaryDetailed({ commit }) {
+        commit('SET_LOADING', true);
+        commit('CLEAR_ERROR');
+
+        try {
+            const response = await netWorthService.getAssetsSummaryDetailed();
+
+            if (response.success) {
+                commit('SET_ASSETS_SUMMARY_DETAILED', response.data);
+            } else {
+                throw new Error(response.message || 'Failed to fetch detailed assets summary');
+            }
+        } catch (error) {
+            const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch detailed assets summary';
             commit('SET_ERROR', errorMessage);
             throw error;
         } finally {

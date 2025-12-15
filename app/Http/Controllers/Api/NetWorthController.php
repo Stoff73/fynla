@@ -198,6 +198,37 @@ class NetWorthController extends Controller
     }
 
     /**
+     * Get assets summary with detailed individual account lists
+     * Used for the Net Worth Overview cards
+     */
+    public function getAssetsSummaryWithDetails(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user();
+
+            if (! $user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User not authenticated',
+                ], 401);
+            }
+
+            $summary = $this->netWorthService->getAssetsSummaryWithDetails($user);
+
+            return response()->json([
+                'success' => true,
+                'data' => $summary,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to get assets summary with details',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Refresh net worth (bypass cache)
      */
     public function refresh(Request $request): JsonResponse

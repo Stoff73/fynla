@@ -18,7 +18,10 @@ const Settings = () => import('@/views/Settings.vue');
 const UserProfile = () => import('@/views/UserProfile.vue');
 const NetWorthDashboard = () => import('@/views/NetWorth/NetWorthDashboard.vue');
 const NetWorthOverview = () => import('@/components/NetWorth/NetWorthOverview.vue');
+const NetWorthWealthSummary = () => import('@/components/NetWorth/NetWorthWealthSummary.vue');
 const PropertyList = () => import('@/components/NetWorth/PropertyList.vue');
+const PensionList = () => import('@/components/NetWorth/PensionList.vue');
+const InvestmentList = () => import('@/components/NetWorth/InvestmentList.vue');
 const PropertyDetail = () => import('@/components/NetWorth/Property/PropertyDetail.vue');
 const BusinessInterestsList = () => import('@/components/NetWorth/BusinessInterestsList.vue');
 const ChattelsList = () => import('@/components/NetWorth/ChattelsList.vue');
@@ -133,9 +136,14 @@ const routes = [
         component: NetWorthOverview,
       },
       {
+        path: 'wealth-summary',
+        name: 'NetWorthWealthSummary',
+        component: NetWorthWealthSummary,
+      },
+      {
         path: 'retirement',
         name: 'NetWorthRetirement',
-        component: RetirementDashboard,
+        component: PensionList,
       },
       {
         path: 'property',
@@ -145,7 +153,7 @@ const routes = [
       {
         path: 'investments',
         name: 'NetWorthInvestments',
-        component: InvestmentDashboard,
+        component: InvestmentList,
       },
       {
         path: 'cash',
@@ -452,6 +460,16 @@ const routes = [
         component: NetWorthOverview,
       },
       {
+        path: 'wealth-summary',
+        name: 'PreviewNetWorthWealthSummary',
+        component: NetWorthWealthSummary,
+      },
+      {
+        path: 'retirement',
+        name: 'PreviewNetWorthRetirement',
+        component: PensionList,
+      },
+      {
         path: 'property',
         name: 'PreviewNetWorthProperty',
         component: PropertyList,
@@ -464,7 +482,7 @@ const routes = [
       {
         path: 'investments',
         name: 'PreviewNetWorthInvestments',
-        component: InvestmentDashboard,
+        component: InvestmentList,
       },
     ],
   },

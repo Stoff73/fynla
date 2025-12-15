@@ -65,6 +65,7 @@
 </template>
 
 <script>
+import { mapActions } from 'vuex';
 import PropertyCard from './PropertyCard.vue';
 import PropertyForm from './Property/PropertyForm.vue';
 import PropertyDetailInline from '@/components/NetWorth/Property/PropertyDetailInline.vue';
@@ -104,19 +105,24 @@ export default {
   },
 
   methods: {
+    ...mapActions('netWorth', ['setDetailView']),
+
     // Property selection for detail view
     selectProperty(property) {
       this.selectedProperty = property;
+      this.setDetailView(true);
     },
 
     clearSelection() {
       this.selectedProperty = null;
+      this.setDetailView(false);
       // Refresh properties list after returning
       this.fetchProperties();
     },
 
     handlePropertyDeleted() {
       this.selectedProperty = null;
+      this.setDetailView(false);
       this.fetchProperties();
       this.successMessage = 'Property deleted successfully';
       setTimeout(() => {
@@ -220,6 +226,7 @@ export default {
   },
 
   async mounted() {
+    this.setDetailView(false);
     // Fetch family members to ensure spouse data is available (works for both regular and preview users)
     await this.$store.dispatch('userProfile/fetchFamilyMembers');
     await this.fetchProperties();
