@@ -629,11 +629,7 @@ export default {
 
   methods: {
     async loadFamilyMembers() {
-      if (this.isPreviewMode) {
-        console.log('[PolicyFormModal] Preview mode - using store data for family members');
-        this.familyMembers = this.$store.state.userProfile?.familyMembers || [];
-        return;
-      }
+      // Preview users are real DB users - use normal API to fetch their data
       try {
         const familyMembersService = (await import('@/services/familyMembersService')).default;
         const response = await familyMembersService.getFamilyMembers();

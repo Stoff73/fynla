@@ -381,20 +381,13 @@ export default {
   },
 
   mounted() {
-    if (!this.isPreviewMode) {
-      this.loadAnalysis();
-    } else {
-      console.log('[AssetLocationOptimizer] Preview mode - skipping API call');
-      this.loading = false;
-    }
+    // Preview users are real DB users - use normal API to fetch their data
+    this.loadAnalysis();
   },
 
   methods: {
     async loadAnalysis() {
-      if (this.isPreviewMode) {
-        console.log('[AssetLocationOptimizer] Preview mode - skipping loadAnalysis');
-        return;
-      }
+      // Preview users are real DB users - use normal API to fetch their data
       this.loading = true;
       this.error = null;
 

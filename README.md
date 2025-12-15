@@ -36,9 +36,9 @@ A comprehensive financial planning web application designed for UK individuals a
 
 ### Current Status
 
-**Version**: v0.2.17 (Production)
-**Production URL**: https://csjones.co/tengo
-**Last Deployment**: December 10, 2025
+**Version**: v0.2.18 (Production)
+**Production URL**: https://csjones.co/fynla
+**Last Deployment**: December 12, 2025
 
 **Completion Status**:
 - ✅ **Foundation**: 100% (Authentication, routing, testing framework)
@@ -49,6 +49,7 @@ A comprehensive financial planning web application designed for UK individuals a
 - ✅ **UI/UX**: Enhanced (Uniform dashboard cards, wealth summary, financial commitments integration)
 - ✅ **Expenditure Tracking**: Three-mode system (Simple/Joint/Separate) with financial commitments
 - ✅ **Document Upload**: AI-powered extraction from PDFs, images, and Excel spreadsheets
+- ✅ **Preview Mode**: Database-backed personas with same code paths as real users
 
 ---
 
@@ -133,6 +134,31 @@ Upload financial documents and let AI extract the data automatically:
 3. Review extracted fields with confidence indicators
 4. Edit any fields if needed
 5. Confirm to save data to appropriate module
+
+### 👀 Preview Mode (Interactive Demo)
+
+Try the full application with realistic financial data before registering:
+
+- **Database-Backed Personas**: 4 pre-configured personas with complete financial data
+- **Same Code Paths**: Preview users use identical API calls as registered users
+- **Interactive Forms**: Forms can be "saved" (changes are session-only, lost on refresh)
+- **No Registration Required**: Explore all modules immediately
+
+**Available Personas**:
+| Persona | Description | Net Worth |
+|---------|-------------|-----------|
+| Emily & James Carter | Young family with mortgage, workplace pensions | ~£80k-£120k |
+| David & Sarah Mitchell | Peak earners, BTL property, complex pensions | ~£1.5m-£2m |
+| Margaret Thompson | Retired widow with estate planning needs | ~£1.4m-£1.6m |
+| Alex Chen | Single tech entrepreneur with SIPP | ~£800k-£1m |
+
+**Access**: Click "Try the Demo" on landing page or visit `/preview`
+
+**Technical Details**:
+- Preview users are real database records with `is_preview_user=true`
+- Sanctum token authentication for API access
+- Write operations intercepted by middleware (return success without persisting)
+- See `preview.md` for full architecture documentation
 
 ---
 
@@ -367,8 +393,8 @@ Response ← Store Mutation ← Component ← JSON ← Controller ← Calculatio
 1. **Clone Repository**
 
 ```bash
-git clone <repository-url> tengo
-cd tengo
+git clone <repository-url> fynla
+cd fynla
 ```
 
 2. **Install Dependencies**
@@ -581,8 +607,8 @@ APP_URL=https://your-domain.com
 
 DB_CONNECTION=mysql
 DB_HOST=your-db-host
-DB_DATABASE=tengo_production
-DB_USERNAME=tengo_user
+DB_DATABASE=fynla_production
+DB_USERNAME=fynla_user
 DB_PASSWORD=<strong-password>
 
 CACHE_DRIVER=memcached
@@ -604,18 +630,18 @@ MEMCACHED_PORT=11211
 
 ### Queue Worker (Supervisor)
 
-Create `/etc/supervisor/conf.d/tengo-worker.conf`:
+Create `/etc/supervisor/conf.d/fynla-worker.conf`:
 
 ```ini
-[program:tengo-worker]
+[program:fynla-worker]
 process_name=%(program_name)s_%(process_num)02d
-command=php /path/to/tengo/artisan queue:work database --sleep=3 --tries=3
+command=php /path/to/fynla/artisan queue:work database --sleep=3 --tries=3
 autostart=true
 autorestart=true
 user=www-data
 numprocs=2
 redirect_stderr=true
-stdout_logfile=/path/to/tengo/storage/logs/worker.log
+stdout_logfile=/path/to/fynla/storage/logs/worker.log
 ```
 
 ---
@@ -673,6 +699,41 @@ For issues, questions, or contributions:
 ---
 
 ## 📋 Recent Updates
+
+### December 12, 2025 - Preview Mode Refactoring (Database-Backed Architecture)
+
+**Major Architecture Change**: Preview mode has been completely refactored from client-side JSON files to database-backed users.
+
+**What Changed**:
+- Preview personas are now **real database users** with `is_preview_user=true` flag
+- Preview users use the **same API code paths** as registered users
+- Data loads via normal APIs (no more `skipIfPreviewMode` flags)
+- Write operations intercepted by `PreviewWriteInterceptor` middleware
+- Simplified `preview.js` store (~100 lines, down from ~454 lines)
+- Removed `setPreviewMode` actions from all 8 module stores
+- Removed `computePreviewPlan()` methods from 6 components
+
+**Backend Components Added**:
+- `PreviewController.php` - Login/switch/exit endpoints
+- `PreviewWriteInterceptor.php` - Middleware to intercept writes
+- `PreviewUserSeeder.php` - Seeds 4 personas with complete data
+- `ResetPreviewData.php` - Artisan command to reset preview data
+
+**Frontend Components Simplified**:
+- `preview.js` - Now just handles auth, reads from `auth.user.is_preview_user`
+- `PreviewBanner.vue` - Removed edit tracking, simplified UI
+- Removed: `EditablePreviewField.vue`, `PersonalInfoWarningModal.vue`, `PreviewLoadingSkeleton.vue`, `previewFieldConfig.js`
+- Removed: `resources/js/data/personas/*.json` (4 files)
+
+**Benefits**:
+- ~2,000+ lines of code removed
+- Single code path for real and preview users
+- Easier to maintain and debug
+- More realistic preview experience
+
+**Documentation**: See `preview.md` for complete architecture details.
+
+---
 
 ### December 8, 2025 - v0.2.17 - Document Upload with AI Extraction
 
@@ -1213,11 +1274,11 @@ Upload financial documents and automatically extract data using Claude AI:
 
 ---
 
-**Current Version**: v0.2.17 (Production)
+**Current Version**: v0.2.18 (Production)
 
-**Production URL**: https://csjones.co/tengo
+**Production URL**: https://csjones.co/fynla
 
-**Last Updated**: December 10, 2025
+**Last Updated**: December 12, 2025
 
 **Status**: 🚀 Production Ready - All Core Features Complete
 

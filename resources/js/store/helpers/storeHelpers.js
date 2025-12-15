@@ -6,7 +6,6 @@
  * - Loading state management
  * - Error handling
  * - CRUD mutations
- * - Preview mode management
  */
 
 /**
@@ -19,8 +18,6 @@ export function createBaseState(additionalState = {}) {
     return {
         loading: false,
         error: null,
-        isPreviewMode: false,
-        previewData: null,
         ...additionalState,
     };
 }
@@ -35,14 +32,12 @@ export function createBaseGetters(additionalGetters = {}) {
     return {
         loading: (state) => state.loading,
         error: (state) => state.error,
-        isPreviewMode: (state) => state.isPreviewMode,
-        previewData: (state) => state.previewData,
         ...additionalGetters,
     };
 }
 
 /**
- * Creates standard mutations for loading, error, and preview mode
+ * Creates standard mutations for loading and error
  *
  * @param {Object} additionalMutations - Module-specific mutations
  * @returns {Object} Combined mutations object
@@ -55,11 +50,6 @@ export function createBaseMutations(additionalMutations = {}) {
 
         setError(state, error) {
             state.error = error;
-        },
-
-        SET_PREVIEW_MODE(state, { isPreview, data }) {
-            state.isPreviewMode = isPreview;
-            state.previewData = data;
         },
 
         ...additionalMutations,
@@ -142,23 +132,15 @@ export async function withLoading(commit, asyncFn, options = {}) {
  * @param {Object} options - Configuration options
  * @param {string} options.errorMessage - Error message to display on failure
  * @param {Function} options.onSuccess - Callback function on success (receives response)
- * @param {boolean} options.skipIfPreviewMode - Skip API call if in preview mode
  * @returns {Function} Vuex action function
  */
 export function createAsyncAction(serviceFn, options = {}) {
     const {
         errorMessage = 'Operation failed',
         onSuccess = null,
-        skipIfPreviewMode = false,
     } = options;
 
-    return async ({ commit, state }, payload) => {
-        // Skip API call if in preview mode
-        if (skipIfPreviewMode && state.isPreviewMode) {
-            console.log(`[store] Skipping action - preview mode active`);
-            return;
-        }
-
+    return async ({ commit }, payload) => {
         return withLoading(
             commit,
             async () => {

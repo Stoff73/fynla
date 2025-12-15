@@ -386,20 +386,13 @@ export default {
   },
 
   mounted() {
-    if (!this.isPreviewMode) {
-      this.loadPerformanceData();
-    } else {
-      console.log('[PerformanceAttribution] Preview mode - skipping API call');
-      this.loading = false;
-    }
+    // Preview users are real DB users - use normal API to fetch their data
+    this.loadPerformanceData();
   },
 
   methods: {
     async loadPerformanceData() {
-      if (this.isPreviewMode) {
-        console.log('[PerformanceAttribution] Preview mode - skipping loadPerformanceData');
-        return;
-      }
+      // Preview users are real DB users - use normal API to fetch their data
       this.loading = true;
       this.error = null;
 

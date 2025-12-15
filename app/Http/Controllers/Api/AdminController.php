@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Traits\SafeErrorResponse;
 use App\Models\User;
 use App\Services\Admin\DatabaseMetricsService;
 use Illuminate\Http\JsonResponse;
@@ -15,6 +16,8 @@ use Illuminate\Support\Facades\Validator;
 
 class AdminController extends Controller
 {
+    use SafeErrorResponse;
+
     public function __construct(private DatabaseMetricsService $databaseMetrics) {}
 
     /**
@@ -37,10 +40,7 @@ class AdminController extends Controller
                 'data' => $stats,
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to load dashboard: '.$e->getMessage(),
-            ], 500);
+            return $this->safeErrorResponse('Failed to load dashboard', $e);
         }
     }
 
@@ -50,12 +50,26 @@ class AdminController extends Controller
     public function getUsers(Request $request): JsonResponse
     {
         try {
-            $perPage = $request->query('per_page', 15);
+            $validator = Validator::make($request->all(), [
+                'per_page' => 'sometimes|integer|min:1|max:100',
+                'search' => 'sometimes|string|max:100',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+
+            $perPage = min((int) $request->query('per_page', 15), 100);
             $search = $request->query('search');
 
             $query = User::with('spouse:id,name,email');
 
             if ($search) {
+                $search = substr($search, 0, 100); // Extra safety: truncate to max 100 chars
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
                         ->orWhere('email', 'like', "%{$search}%");
@@ -69,10 +83,7 @@ class AdminController extends Controller
                 'data' => $users,
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to fetch users: '.$e->getMessage(),
-            ], 500);
+            return $this->safeErrorResponse('Failed to fetch users', $e);
         }
     }
 
@@ -84,8 +95,15 @@ class AdminController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8',
+            'password' => [
+                'required',
+                'string',
+                'min:8',
+                'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).+$/',
+            ],
             'is_admin' => 'boolean',
+        ], [
+            'password.regex' => 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.',
         ]);
 
         if ($validator->fails()) {
@@ -110,10 +128,7 @@ class AdminController extends Controller
                 'data' => $user,
             ], 201);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create user: '.$e->getMessage(),
-            ], 500);
+            return $this->safeErrorResponse('Failed to create user', $e);
         }
     }
 
@@ -134,8 +149,15 @@ class AdminController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'sometimes|string|max:255',
             'email' => 'sometimes|string|email|max:255|unique:users,email,'.$id,
-            'password' => 'sometimes|string|min:8',
+            'password' => [
+                'sometimes',
+                'string',
+                'min:8',
+                'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).+$/',
+            ],
             'is_admin' => 'sometimes|boolean',
+        ], [
+            'password.regex' => 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.',
         ]);
 
         if ($validator->fails()) {
@@ -168,10 +190,7 @@ class AdminController extends Controller
                 'data' => $user,
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update user: '.$e->getMessage(),
-            ], 500);
+            return $this->safeErrorResponse('Failed to update user', $e);
         }
     }
 
@@ -205,10 +224,7 @@ class AdminController extends Controller
                 'message' => 'User deleted successfully',
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to delete user: '.$e->getMessage(),
-            ], 500);
+            return $this->safeErrorResponse('Failed to delete user', $e);
         }
     }
 
@@ -276,10 +292,7 @@ class AdminController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create backup: '.$e->getMessage(),
-            ], 500);
+            return $this->safeErrorResponse('Failed to create backup', $e);
         }
     }
 
@@ -323,10 +336,7 @@ class AdminController extends Controller
                 'data' => $backups,
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to list backups: '.$e->getMessage(),
-            ], 500);
+            return $this->safeErrorResponse('Failed to list backups', $e);
         }
     }
 
@@ -336,7 +346,7 @@ class AdminController extends Controller
     public function restoreBackup(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'filename' => 'required|string',
+            'filename' => ['required', 'string', 'regex:/^backup_[\d\-_]+\.sql$/'],
         ]);
 
         if ($validator->fails()) {
@@ -348,8 +358,19 @@ class AdminController extends Controller
         }
 
         try {
-            $filename = $request->filename;
-            $path = storage_path('app/backups/'.$filename);
+            $filename = basename($request->filename); // Prevent path traversal
+            $backupsDir = storage_path('app/backups');
+            $path = $backupsDir.'/'.$filename;
+
+            // Security: Verify the resolved path is within the backups directory
+            $realPath = realpath($path);
+            $realBackupsDir = realpath($backupsDir);
+            if ($realPath === false || $realBackupsDir === false || ! str_starts_with($realPath, $realBackupsDir)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid backup file path',
+                ], 403);
+            }
 
             if (! file_exists($path)) {
                 return response()->json([
@@ -401,10 +422,7 @@ class AdminController extends Controller
                 'message' => 'Database restored successfully',
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to restore backup: '.$e->getMessage(),
-            ], 500);
+            return $this->safeErrorResponse('Failed to restore backup', $e);
         }
     }
 
@@ -414,7 +432,7 @@ class AdminController extends Controller
     public function deleteBackup(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'filename' => 'required|string',
+            'filename' => ['required', 'string', 'regex:/^backup_[\d\-_]+\.sql$/'],
         ]);
 
         if ($validator->fails()) {
@@ -426,8 +444,19 @@ class AdminController extends Controller
         }
 
         try {
-            $filename = $request->filename;
-            $path = storage_path('app/backups/'.$filename);
+            $filename = basename($request->filename); // Prevent path traversal
+            $backupsDir = storage_path('app/backups');
+            $path = $backupsDir.'/'.$filename;
+
+            // Security: Verify the resolved path is within the backups directory
+            $realPath = realpath($path);
+            $realBackupsDir = realpath($backupsDir);
+            if ($realPath === false || $realBackupsDir === false || ! str_starts_with($realPath, $realBackupsDir)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid backup file path',
+                ], 403);
+            }
 
             if (! file_exists($path)) {
                 return response()->json([
@@ -443,10 +472,7 @@ class AdminController extends Controller
                 'message' => 'Backup deleted successfully',
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to delete backup: '.$e->getMessage(),
-            ], 500);
+            return $this->safeErrorResponse('Failed to delete backup', $e);
         }
     }
 

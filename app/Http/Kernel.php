@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http;
 
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
@@ -43,6 +45,7 @@ class Kernel extends HttpKernel
             \Illuminate\Routing\Middleware\ThrottleRequests::class.':api',
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
             \App\Http\Middleware\SanitizeInput::class, // SECURITY: Sanitize user input to prevent XSS
+            \App\Http\Middleware\PreviewWriteInterceptor::class, // Intercept writes for preview users
         ],
     ];
 

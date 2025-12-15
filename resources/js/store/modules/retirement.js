@@ -20,10 +20,6 @@ const state = {
     portfolioAnalysis: null, // Portfolio optimization data
     loading: false,
     error: null,
-
-    // Preview mode state
-    isPreviewMode: false,
-    previewData: null,
 };
 
 const mutations = {
@@ -87,76 +83,10 @@ const mutations = {
     SET_PORTFOLIO_ANALYSIS(state, analysis) {
         state.portfolioAnalysis = analysis;
     },
-
-    // Preview mode mutations
-    SET_PREVIEW_MODE(state, { isPreview, data }) {
-        state.isPreviewMode = isPreview;
-        state.previewData = data;
-
-        // If entering preview mode with data, populate retirement state
-        if (isPreview && data) {
-            // Set DC pensions
-            if (data.dc_pensions) {
-                state.dcPensions = data.dc_pensions;
-            }
-
-            // Set DB pensions
-            if (data.db_pensions) {
-                state.dbPensions = data.db_pensions;
-            }
-
-            // Set state pension
-            if (data.state_pension) {
-                state.statePension = data.state_pension;
-            }
-
-            // Set retirement profile from user data
-            if (data.user) {
-                state.profile = {
-                    current_age: data.user.age || data.user.date_of_birth ? calculateAge(data.user.date_of_birth) : 40,
-                    target_retirement_age: data.user.target_retirement_age || 65,
-                    target_retirement_income: data.user.target_retirement_income || 30000,
-                };
-            }
-
-            // Set analysis from preview calculations if available
-            if (data.retirement_analysis) {
-                state.analysis = data.retirement_analysis;
-            }
-        } else if (!isPreview) {
-            state.isPreviewMode = false;
-            state.previewData = null;
-        }
-    },
-
-    SET_PREVIEW_ANALYSIS(state, analysis) {
-        if (state.isPreviewMode && analysis) {
-            state.analysis = analysis;
-        }
-    },
 };
 
-// Helper function to calculate age from date of birth
-function calculateAge(dateOfBirth) {
-    if (!dateOfBirth) return 40;
-    const today = new Date();
-    const birthDate = new Date(dateOfBirth);
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-        age--;
-    }
-    return age;
-}
-
 const actions = {
-    async fetchRetirementData({ commit, state }) {
-        // Skip API call if in preview mode - data is already loaded
-        if (state.isPreviewMode) {
-            console.log('[retirement] Skipping fetchRetirementData - preview mode active');
-            return;
-        }
-
+    async fetchRetirementData({ commit }) {
         commit('SET_LOADING', true);
         commit('SET_ERROR', null);
         try {
@@ -173,13 +103,7 @@ const actions = {
         }
     },
 
-    async analyseRetirement({ commit, state }, data) {
-        // Skip API call if in preview mode
-        if (state.isPreviewMode) {
-            console.log('[retirement] Skipping analyseRetirement - preview mode active');
-            return state.analysis;
-        }
-
+    async analyseRetirement({ commit }, data) {
         commit('SET_LOADING', true);
         commit('SET_ERROR', null);
         try {
@@ -194,13 +118,7 @@ const actions = {
         }
     },
 
-    async fetchRecommendations({ commit, state }) {
-        // Skip API call if in preview mode
-        if (state.isPreviewMode) {
-            console.log('[retirement] Skipping fetchRecommendations - preview mode active');
-            return;
-        }
-
+    async fetchRecommendations({ commit }) {
         // If request is already ongoing, return that promise
         if (ongoingRequests.fetchRecommendations) {
             return ongoingRequests.fetchRecommendations;
@@ -225,13 +143,7 @@ const actions = {
         return ongoingRequests.fetchRecommendations;
     },
 
-    async runScenario({ commit, state }, scenarioData) {
-        // Skip API call if in preview mode
-        if (state.isPreviewMode) {
-            console.log('[retirement] Skipping runScenario - preview mode active');
-            return;
-        }
-
+    async runScenario({ commit }, scenarioData) {
         commit('SET_LOADING', true);
         commit('SET_ERROR', null);
         try {
@@ -246,13 +158,7 @@ const actions = {
         }
     },
 
-    async fetchAnnualAllowance({ commit, state }, taxYear) {
-        // Skip API call if in preview mode
-        if (state.isPreviewMode) {
-            console.log('[retirement] Skipping fetchAnnualAllowance - preview mode active');
-            return;
-        }
-
+    async fetchAnnualAllowance({ commit }, taxYear) {
         // If request is already ongoing for this tax year, return that promise
         const requestKey = `fetchAnnualAllowance_${taxYear}`;
         if (ongoingRequests[requestKey]) {
@@ -389,13 +295,7 @@ const actions = {
     },
 
     // Portfolio Analysis Actions
-    async fetchPortfolioAnalysis({ commit, state }, dcPensionId = null) {
-        // Skip API call if in preview mode
-        if (state.isPreviewMode) {
-            console.log('[retirement] Skipping fetchPortfolioAnalysis - preview mode active');
-            return;
-        }
-
+    async fetchPortfolioAnalysis({ commit }, dcPensionId = null) {
         // If request is already ongoing, return that promise
         const requestKey = dcPensionId ? `fetchPortfolioAnalysis_${dcPensionId}` : 'fetchPortfolioAnalysis';
         if (ongoingRequests[requestKey]) {
@@ -468,18 +368,9 @@ const actions = {
             throw error;
         }
     },
-
-    // Preview mode action
-    setPreviewMode({ commit }, { isPreview, data }) {
-        commit('SET_PREVIEW_MODE', { isPreview, data });
-    },
 };
 
 const getters = {
-    // Preview mode getters
-    isPreviewMode: (state) => state.isPreviewMode,
-    previewData: (state) => state.previewData,
-
     totalPensionWealth: (state) => {
         const dcTotal = state.dcPensions.reduce((sum, p) => sum + parseFloat(p.current_fund_value || 0), 0);
         // DB pensions don't have a "value" - they're income streams

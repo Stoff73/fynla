@@ -21,3 +21,10 @@ yarn-error.log
 /.fleet
 /.idea
 /.vscode
+
+# Administrative files (documentation, dev tools, design mockups)
+/.admin
+
+# macOS system files
+.DS_Store
+**/.DS_Store

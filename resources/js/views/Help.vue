@@ -671,7 +671,7 @@
               <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
                 <h3 class="text-h5 font-semibold text-gray-900 mb-4">Support Information</h3>
                 <ul class="space-y-2 text-body-base text-gray-700">
-                  <li><strong>Email:</strong> support@tengo-fps.com</li>
+                  <li><strong>Email:</strong> support@fynla.com</li>
                   <li><strong>Response Time:</strong> Within 24 hours</li>
                   <li><strong>Available:</strong> Monday - Friday, 9am - 5pm GMT</li>
                 </ul>

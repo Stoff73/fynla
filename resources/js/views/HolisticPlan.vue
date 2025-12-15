@@ -218,10 +218,6 @@ export default {
       'activeRecommendations',
     ]),
 
-    isPreviewMode() {
-      return this.$store.getters['preview/isPreviewMode'];
-    },
-
     tabs() {
       return [
         {
@@ -254,11 +250,6 @@ export default {
   },
 
   async mounted() {
-    if (this.isPreviewMode) {
-      console.log('[HolisticPlan] Preview mode - computing from preview data');
-      this.computePreviewPlan();
-      return;
-    }
     await this.loadPlan();
   },
 
@@ -272,100 +263,6 @@ export default {
       'updateRecommendationNotes',
       'clearError',
     ]),
-
-    computePreviewPlan() {
-      const previewData = this.$store.state.preview?.personaData;
-      if (!previewData) return;
-
-      const user = previewData.user || {};
-      const investments = previewData.investment_accounts || [];
-      const savings = previewData.savings_accounts || [];
-      const properties = previewData.properties || [];
-      const mortgages = previewData.mortgages || [];
-      const pensions = previewData.dc_pensions || [];
-      const protection = previewData.life_insurance_policies || [];
-
-      // Calculate totals
-      const totalInvestments = investments.reduce((sum, a) => sum + parseFloat(a.current_value || 0), 0);
-      const totalSavings = savings.reduce((sum, a) => sum + parseFloat(a.current_balance || 0), 0);
-      const totalProperty = properties.reduce((sum, p) => sum + parseFloat(p.current_value || 0), 0);
-      const totalMortgages = mortgages.reduce((sum, m) => sum + parseFloat(m.outstanding_balance || 0), 0);
-      const totalPensions = pensions.reduce((sum, p) => sum + parseFloat(p.current_fund_value || 0), 0);
-      const netWorth = totalInvestments + totalSavings + totalProperty + totalPensions - totalMortgages;
-
-      // Create preview plan data
-      const plan = {
-        executive_summary: {
-          total_net_worth: netWorth,
-          total_assets: totalInvestments + totalSavings + totalProperty + totalPensions,
-          total_liabilities: totalMortgages,
-          monthly_income: user.annual_income ? user.annual_income / 12 : 0,
-          monthly_expenses: user.monthly_expenditure || 0,
-          health_score: 70,
-        },
-        module_summaries: {
-          protection: {
-            score: protection.length > 0 ? 60 : 20,
-            status: protection.length > 0 ? 'Partial Coverage' : 'Gaps Identified',
-            key_metrics: { policies: protection.length },
-          },
-          savings: {
-            score: totalSavings > 10000 ? 80 : 50,
-            status: totalSavings > 10000 ? 'On Track' : 'Building',
-            key_metrics: { total: totalSavings },
-          },
-          investment: {
-            score: totalInvestments > 0 ? 70 : 40,
-            status: totalInvestments > 0 ? 'Active' : 'Not Started',
-            key_metrics: { total: totalInvestments },
-          },
-          retirement: {
-            score: totalPensions > 0 ? 65 : 30,
-            status: totalPensions > 0 ? 'Contributing' : 'Not Started',
-            key_metrics: { total: totalPensions },
-          },
-          estate: {
-            score: user.has_will ? 60 : 30,
-            status: user.has_will ? 'Will in Place' : 'No Will',
-            key_metrics: { net_worth: netWorth },
-          },
-        },
-        recommendations: [
-          {
-            id: 1,
-            title: 'Review Protection Coverage',
-            description: 'Ensure adequate life and income protection for your family.',
-            priority: 'high',
-            module: 'protection',
-            status: 'pending',
-          },
-          {
-            id: 2,
-            title: 'Maximise Pension Contributions',
-            description: 'Take advantage of tax relief on pension contributions.',
-            priority: 'medium',
-            module: 'retirement',
-            status: 'pending',
-          },
-          {
-            id: 3,
-            title: 'Build Emergency Fund',
-            description: 'Aim for 6 months of expenses in easily accessible savings.',
-            priority: 'medium',
-            module: 'savings',
-            status: 'pending',
-          },
-        ],
-        conflicts: [],
-      };
-
-      // Set plan in store
-      this.$store.commit('holistic/SET_PLAN', plan);
-      this.$store.commit('holistic/SET_RECOMMENDATIONS', plan.recommendations);
-      this.$store.commit('holistic/SET_LOADING', false);
-
-      console.log('[HolisticPlan] Preview plan computed:', { netWorth });
-    },
 
     async loadPlan() {
       try {

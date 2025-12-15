@@ -140,10 +140,7 @@ export default {
     },
 
     async retry() {
-      if (this.isPreviewMode) {
-        console.log('[NetWorthOverviewCard] Preview mode - skipping retry');
-        return;
-      }
+      // Preview users are real DB users - use normal API to fetch their data
       await this.fetchOverview();
     },
   },

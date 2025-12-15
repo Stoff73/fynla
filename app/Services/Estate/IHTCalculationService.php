@@ -81,7 +81,8 @@ class IHTCalculationService
         // 8. Calculate taxable estate and IHT (CURRENT values)
         $totalAllowances = $nrbAvailable + $rnrbData['rnrb_available'];
         $taxableEstate = max(0, $totalNetEstate - $totalAllowances);
-        $ihtLiability = $taxableEstate * 0.40;
+        $ihtRate = $ihtConfig['standard_rate']; // 0.40 (40%)
+        $ihtLiability = $taxableEstate * $ihtRate;
         $effectiveRate = $totalNetEstate > 0 ? ($ihtLiability / $totalNetEstate * 100) : 0;
 
         // 9. Calculate PROJECTED values at death using actuarial tables and 4.7% growth
@@ -92,7 +93,8 @@ class IHTCalculationService
             $totalLiabilities,
             $nrbAvailable,
             $rnrbData,
-            $isMarried
+            $isMarried,
+            $ihtRate
         );
 
         // 10. Build result array with CURRENT and PROJECTED values
@@ -154,7 +156,8 @@ class IHTCalculationService
         float $currentLiabilities,
         float $nrbAvailable,
         array $rnrbData,
-        bool $isMarried
+        bool $isMarried,
+        float $ihtRate = 0.40
     ): array {
         // Get years to death from actuarial table
         $yearsToGrowth = 4.7; // 4.7% annual growth rate
@@ -198,7 +201,7 @@ class IHTCalculationService
         // Calculate projected IHT using same allowances
         $totalAllowances = $nrbAvailable + $rnrbData['rnrb_available'];
         $projectedTaxableEstate = max(0, $projectedNetEstate - $totalAllowances);
-        $projectedIHTLiability = $projectedTaxableEstate * 0.40;
+        $projectedIHTLiability = $projectedTaxableEstate * $ihtRate;
 
         return [
             'projected_gross_assets' => round($projectedGrossAssets, 2),

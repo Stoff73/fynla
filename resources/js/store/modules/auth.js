@@ -17,15 +17,20 @@ const getters = {
 };
 
 const actions = {
-  async register({ commit, dispatch }, userData) {
+  async register({ commit, dispatch, rootState }, userData) {
     commit('setLoading', true);
     commit('setError', null);
+
+    // Check if in preview mode BEFORE clearing auth
+    const wasInPreviewMode = rootState.auth?.user?.is_preview_user === true;
 
     // Clear any existing auth state to prevent data leakage
     commit('clearAuth');
 
-    // Clear preview mode - user is now registering as a real user
-    await dispatch('preview/exitPreview', null, { root: true }).catch(() => {});
+    // If was in preview mode, just clear localStorage (don't redirect via exitPreview)
+    if (wasInPreviewMode) {
+      localStorage.removeItem('auth_token');
+    }
 
     try {
       const response = await authService.register(userData);
@@ -45,15 +50,20 @@ const actions = {
     }
   },
 
-  async login({ commit, dispatch }, credentials) {
+  async login({ commit, dispatch, rootState }, credentials) {
     commit('setLoading', true);
     commit('setError', null);
+
+    // Check if in preview mode BEFORE clearing auth
+    const wasInPreviewMode = rootState.auth?.user?.is_preview_user === true;
 
     // Clear any existing auth state to prevent data leakage
     commit('clearAuth');
 
-    // Clear preview mode - user is now logging in as a real user
-    await dispatch('preview/exitPreview', null, { root: true }).catch(() => {});
+    // If was in preview mode, just clear localStorage (don't redirect via exitPreview)
+    if (wasInPreviewMode) {
+      localStorage.removeItem('auth_token');
+    }
 
     try {
       const response = await authService.login(credentials);

@@ -11,21 +11,15 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                         </svg>
                         <span class="font-semibold text-sm">Preview</span>
-                        <span v-if="hasEdits" class="text-amber-100 text-xs">{{ editCount }} edit{{ editCount === 1 ? '' : 's' }}</span>
                     </div>
                     <PersonaSelector variant="dark" size="small" @persona-selected="handlePersonaSelected" />
                 </div>
 
                 <!-- Bottom row: Actions -->
                 <div class="flex items-center justify-between">
-                    <div class="flex items-center space-x-2">
-                        <button v-if="hasEdits" @click="handleClearEdits" class="text-amber-100 hover:text-white text-xs font-medium">
-                            Reset
-                        </button>
-                        <button @click="exitPreviewMode" class="text-amber-100 hover:text-white text-xs font-medium">
-                            Exit
-                        </button>
-                    </div>
+                    <button @click="exitPreviewMode" class="text-amber-100 hover:text-white text-xs font-medium">
+                        Exit
+                    </button>
                     <router-link to="/register" class="bg-white text-amber-600 px-3 py-1 rounded-md font-medium text-xs hover:bg-amber-50 transition-colors shadow-sm">
                         Register
                     </router-link>
@@ -74,14 +68,6 @@
                         @persona-selected="handlePersonaSelected"
                     />
 
-                    <!-- Edit count indicator -->
-                    <span v-if="hasEdits" class="text-amber-100 text-sm flex items-center gap-1">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                        </svg>
-                        {{ editCount }} edit{{ editCount === 1 ? '' : 's' }}
-                    </span>
-
                     <span v-if="switching" class="text-amber-100 text-sm flex items-center gap-2">
                         <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -93,18 +79,6 @@
 
                 <!-- Right side: Actions -->
                 <div class="flex items-center space-x-3">
-                    <!-- Clear edits button (only show if has edits) -->
-                    <button
-                        v-if="hasEdits"
-                        @click="handleClearEdits"
-                        class="text-amber-100 hover:text-white text-sm font-medium transition-colors flex items-center gap-1"
-                    >
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                        Reset
-                    </button>
-
                     <!-- Exit Preview -->
                     <button
                         @click="exitPreviewMode"
@@ -159,8 +133,6 @@ export default {
         ...mapGetters('preview', [
             'currentPersona',
             'currentPersonaId',
-            'hasEdits',
-            'editCount',
         ]),
 
         currentPersonaName() {
@@ -169,7 +141,7 @@ export default {
     },
 
     methods: {
-        ...mapActions('preview', ['exitPreview', 'switchPersona', 'clearEdits']),
+        ...mapActions('preview', ['exitPreview', 'switchPersona']),
 
         async exitPreviewMode() {
             await this.exitPreview();
@@ -195,19 +167,10 @@ export default {
 
             try {
                 await this.switchPersona(this.selectedPersona.id);
-                // Reload the page to refresh all components with new persona data
-                // Preview mode persists to sessionStorage, so it will be restored on reload
-                this.$router.go(0);
+                // switchPersona will reload the page
             } catch (error) {
                 console.error('Failed to switch persona:', error);
                 this.switching = false;
-            }
-            // Note: don't reset switching in finally because page will reload
-        },
-
-        async handleClearEdits() {
-            if (confirm('Reset all changes and restore original persona data?')) {
-                await this.clearEdits();
             }
         },
     },

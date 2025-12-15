@@ -191,12 +191,8 @@ export default {
   },
 
   mounted() {
-    if (!this.isPreviewMode) {
-      this.calculateIntestacy();
-    } else {
-      console.log('[IntestacyRules] Preview mode - skipping API call');
-      this.loading = false;
-    }
+    // Preview users are real DB users - use normal API to fetch their data
+    this.calculateIntestacy();
   },
 
   watch: {
@@ -207,10 +203,7 @@ export default {
 
   methods: {
     async calculateIntestacy() {
-      if (this.isPreviewMode) {
-        console.log('[IntestacyRules] Preview mode - skipping calculateIntestacy');
-        return;
-      }
+      // Preview users are real DB users - use normal API for calculations
       this.loading = true;
       this.error = null;
 

@@ -9,17 +9,9 @@ const state = {
     recommendations: [],
     loading: false,
     error: null,
-
-    // Preview mode state
-    isPreviewMode: false,
-    previewData: null,
 };
 
 const getters = {
-    // Preview mode getters
-    isPreviewMode: (state) => state.isPreviewMode,
-    previewData: (state) => state.previewData,
-
     // Get total savings across all accounts
     totalSavings: (state) => {
         return state.accounts.reduce((sum, account) => {
@@ -124,13 +116,7 @@ const getters = {
 
 const actions = {
     // Fetch all savings data
-    async fetchSavingsData({ commit, state }) {
-        // Skip API call if in preview mode - data is already loaded
-        if (state.isPreviewMode) {
-            console.log('[savings] Skipping fetchSavingsData - preview mode active');
-            return;
-        }
-
+    async fetchSavingsData({ commit }) {
         commit('setLoading', true);
         commit('setError', null);
 
@@ -154,13 +140,7 @@ const actions = {
     },
 
     // Analyse savings
-    async analyseSavings({ commit, state }, data) {
-        // Skip API call if in preview mode
-        if (state.isPreviewMode) {
-            console.log('[savings] Skipping analyseSavings - preview mode active');
-            return;
-        }
-
+    async analyseSavings({ commit }, data) {
         commit('setLoading', true);
         commit('setError', null);
 
@@ -178,13 +158,7 @@ const actions = {
     },
 
     // Fetch recommendations
-    async fetchRecommendations({ commit, state }) {
-        // Skip API call if in preview mode
-        if (state.isPreviewMode) {
-            console.log('[savings] Skipping fetchRecommendations - preview mode active');
-            return;
-        }
-
+    async fetchRecommendations({ commit }) {
         commit('setLoading', true);
         commit('setError', null);
 
@@ -355,11 +329,6 @@ const actions = {
             commit('setLoading', false);
         }
     },
-
-    // Preview mode action
-    setPreviewMode({ commit }, { isPreview, data }) {
-        commit('SET_PREVIEW_MODE', { isPreview, data });
-    },
 };
 
 const mutations = {
@@ -429,67 +398,6 @@ const mutations = {
 
     setError(state, error) {
         state.error = error;
-    },
-
-    // Preview mode mutations
-    SET_PREVIEW_MODE(state, { isPreview, data }) {
-        state.isPreviewMode = isPreview;
-        state.previewData = data;
-
-        // If entering preview mode with data, populate savings state
-        if (isPreview && data) {
-            // Set savings accounts
-            if (data.savings_accounts) {
-                state.accounts = data.savings_accounts;
-            }
-
-            // Set savings goals
-            if (data.savings_goals) {
-                state.goals = data.savings_goals;
-            }
-
-            // Set expenditure profile
-            if (data.expenditure) {
-                state.expenditureProfile = {
-                    total_monthly_expenditure: parseFloat(data.expenditure.total_monthly || 0),
-                    categories: data.expenditure.categories || {},
-                };
-            } else if (data.user?.monthly_expenditure) {
-                state.expenditureProfile = {
-                    total_monthly_expenditure: parseFloat(data.user.monthly_expenditure || 0),
-                };
-            }
-
-            // Set ISA allowance tracking
-            if (data.isa_allowance) {
-                state.isaAllowance = data.isa_allowance;
-            } else {
-                // Calculate ISA usage from accounts
-                const cashISAUsed = (data.savings_accounts || [])
-                    .filter(a => a.is_isa)
-                    .reduce((sum, a) => sum + parseFloat(a.isa_subscription_current_year || 0), 0);
-
-                state.isaAllowance = {
-                    total_allowance: 20000,
-                    cash_isa_used: cashISAUsed,
-                    stocks_shares_isa_used: 0, // Will be set by investment module
-                };
-            }
-
-            // Set analysis from preview calculations if available
-            if (data.savings_analysis) {
-                state.analysis = data.savings_analysis;
-            }
-        } else if (!isPreview) {
-            state.isPreviewMode = false;
-            state.previewData = null;
-        }
-    },
-
-    SET_PREVIEW_ANALYSIS(state, analysis) {
-        if (state.isPreviewMode && analysis) {
-            state.analysis = analysis;
-        }
     },
 };
 

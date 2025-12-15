@@ -66,7 +66,20 @@ Route::prefix('auth')->group(function () {
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/user', [AuthController::class, 'user']);
-        Route::post('/change-password', [AuthController::class, 'changePassword']);
+        Route::post('/change-password', [AuthController::class, 'changePassword'])->middleware('throttle:5,1');
+    });
+});
+
+// Preview Mode routes (allows unauthenticated preview access)
+Route::prefix('preview')->group(function () {
+    // Public routes - no auth required (rate limited)
+    Route::get('/personas', [PreviewController::class, 'getPersonas']);
+    Route::post('/login/{personaId}', [PreviewController::class, 'login'])->middleware('throttle:10,1');
+
+    // Authenticated preview routes
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::post('/switch/{personaId}', [PreviewController::class, 'switch'])->middleware('throttle:20,1');
+        Route::post('/exit', [PreviewController::class, 'exit']);
     });
 });
 
@@ -752,11 +765,13 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     Route::put('/users/{id}', [\App\Http\Controllers\Api\AdminController::class, 'updateUser']);
     Route::delete('/users/{id}', [\App\Http\Controllers\Api\AdminController::class, 'deleteUser']);
 
-    // Database backup and restore
-    Route::post('/backup/create', [\App\Http\Controllers\Api\AdminController::class, 'createBackup']);
-    Route::get('/backup/list', [\App\Http\Controllers\Api\AdminController::class, 'listBackups']);
-    Route::post('/backup/restore', [\App\Http\Controllers\Api\AdminController::class, 'restoreBackup']);
-    Route::delete('/backup/delete', [\App\Http\Controllers\Api\AdminController::class, 'deleteBackup']);
+    // Database backup and restore (rate limited for security)
+    Route::middleware('throttle:3,1')->group(function () {
+        Route::post('/backup/create', [\App\Http\Controllers\Api\AdminController::class, 'createBackup']);
+        Route::get('/backup/list', [\App\Http\Controllers\Api\AdminController::class, 'listBackups']);
+        Route::post('/backup/restore', [\App\Http\Controllers\Api\AdminController::class, 'restoreBackup']);
+        Route::delete('/backup/delete', [\App\Http\Controllers\Api\AdminController::class, 'deleteBackup']);
+    });
 });
 
 // Tax Settings routes (Admin only)
@@ -771,15 +786,15 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('tax-settings')->group(func
     Route::delete('/{id}', [\App\Http\Controllers\Api\TaxSettingsController::class, 'delete']);
 });
 
-// Document Upload & AI Extraction routes
-Route::middleware('auth:sanctum')->prefix('documents')->group(function () {
+// Document Upload & AI Extraction routes (rate limited for security)
+Route::middleware(['auth:sanctum', 'throttle:30,1'])->prefix('documents')->group(function () {
     Route::get('/', [DocumentController::class, 'index']);
     Route::get('/types', [DocumentController::class, 'types']);
-    Route::post('/upload', [DocumentController::class, 'upload']);
-    Route::post('/upload-only', [DocumentController::class, 'uploadOnly']);
+    Route::post('/upload', [DocumentController::class, 'upload'])->middleware('throttle:10,1');
+    Route::post('/upload-only', [DocumentController::class, 'uploadOnly'])->middleware('throttle:10,1');
     Route::get('/{id}', [DocumentController::class, 'show']);
     Route::get('/{id}/extraction', [DocumentController::class, 'getExtraction']);
     Route::post('/{id}/confirm', [DocumentController::class, 'confirm']);
-    Route::post('/{id}/reprocess', [DocumentController::class, 'reprocess']);
+    Route::post('/{id}/reprocess', [DocumentController::class, 'reprocess'])->middleware('throttle:5,1');
     Route::delete('/{id}', [DocumentController::class, 'destroy']);
 });

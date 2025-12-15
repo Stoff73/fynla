@@ -507,7 +507,7 @@ const routes = [
 ];
 
 const router = createRouter({
-  history: createWebHistory(import.meta.env.PROD ? '/tengo/' : '/'),
+  history: createWebHistory(import.meta.env.PROD ? '/fynla/' : '/'),
   routes,
 });
 
@@ -539,10 +539,10 @@ router.beforeEach(async (to, from, next) => {
       return;
     }
 
-    // Handle persona from query param
+    // Handle persona from query param - redirect to login as that persona
     if (to.query.persona && !to.meta._personaLoaded) {
       try {
-        await store.dispatch('preview/loadPersona', to.query.persona);
+        await store.dispatch('preview/enterPreviewMode', to.query.persona);
         // Mark that we've handled the persona to prevent loops
         to.meta._personaLoaded = true;
       } catch (error) {
@@ -567,18 +567,6 @@ router.beforeEach(async (to, from, next) => {
     next({ name: 'Dashboard' });
   } else {
     next();
-  }
-});
-
-// Update URL when persona changes (for shareable preview links)
-store.subscribe((mutation, state) => {
-  if (mutation.type === 'preview/SET_CURRENT_PERSONA' && state.preview.isPreviewMode) {
-    const currentRoute = router.currentRoute.value;
-    if (currentRoute.path.startsWith('/preview') && mutation.payload) {
-      // Update URL with new persona without triggering navigation
-      const newQuery = { ...currentRoute.query, persona: mutation.payload };
-      router.replace({ path: currentRoute.path, query: newQuery });
-    }
   }
 });
 

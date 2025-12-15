@@ -47,9 +47,6 @@ const state = {
   spouseAccounts: getInitialSpouseAccounts(),
   loading: false,
   error: null,
-  // Preview mode state
-  isPreviewMode: false,
-  previewData: null,
 };
 
 const getters = {
@@ -114,13 +111,7 @@ const actions = {
   /**
    * Fetch complete user profile
    */
-  async fetchProfile({ commit, state }) {
-    // Skip API call if in preview mode - data is already loaded
-    if (state.isPreviewMode) {
-      console.log('[userProfile] Skipping fetchProfile - preview mode active');
-      return;
-    }
-
+  async fetchProfile({ commit }) {
     commit('setLoading', true);
     commit('setError', null);
 
@@ -312,12 +303,7 @@ const actions = {
   /**
    * Fetch family members
    */
-  async fetchFamilyMembers({ commit, state }) {
-    // Skip API call if in preview mode
-    if (state.isPreviewMode) {
-      console.log('[userProfile] Skipping fetchFamilyMembers - preview mode active');
-      return;
-    }
+  async fetchFamilyMembers({ commit }) {
     commit('setLoading', true);
     commit('setError', null);
 
@@ -413,12 +399,7 @@ const actions = {
   /**
    * Calculate personal accounts
    */
-  async calculatePersonalAccounts({ commit, state }, params = {}) {
-    // Skip API call if in preview mode
-    if (state.isPreviewMode) {
-      console.log('[userProfile] Skipping calculatePersonalAccounts - preview mode active');
-      return;
-    }
+  async calculatePersonalAccounts({ commit }, params = {}) {
     commit('setLoading', true);
     commit('setError', null);
 
@@ -513,11 +494,6 @@ const actions = {
       commit('setLoading', false);
     }
   },
-
-  // Preview mode action
-  setPreviewMode({ commit }, { isPreview, data }) {
-    commit('SET_PREVIEW_MODE', { isPreview, data });
-  },
 };
 
 const mutations = {
@@ -584,49 +560,6 @@ const mutations = {
 
   setError(state, error) {
     state.error = error;
-  },
-
-  // Preview mode mutations
-  SET_PREVIEW_MODE(state, { isPreview, data }) {
-    state.isPreviewMode = isPreview;
-    state.previewData = data;
-
-    // If entering preview mode with data, populate state from preview data
-    if (isPreview && data) {
-      // Set user profile from persona data
-      if (data.user) {
-        state.personalInfo = {
-          first_name: data.user.first_name,
-          last_name: data.user.last_name,
-          email: data.user.email,
-          date_of_birth: data.user.date_of_birth,
-          gender: data.user.gender,
-          marital_status: data.user.marital_status,
-          health_status: data.user.health_status,
-          smoking_status: data.user.smoking_status,
-          address: data.user.address,
-        };
-        state.incomeOccupation = {
-          annual_income: data.user.annual_income,
-          employment_status: data.user.employment_status,
-          employer_name: data.user.employer_name,
-          occupation: data.user.occupation,
-        };
-        state.profile = {
-          personal_info: state.personalInfo,
-          income_occupation: state.incomeOccupation,
-          target_retirement_age: data.user.target_retirement_age,
-          target_retirement_income: data.user.target_retirement_income,
-          monthly_expenditure: data.user.monthly_expenditure,
-          has_will: data.user.has_will,
-          has_lasting_power_of_attorney: data.user.has_lasting_power_of_attorney,
-        };
-      }
-      // Set family members from persona data
-      if (data.family_members) {
-        state.familyMembers = data.family_members;
-      }
-    }
   },
 };
 

@@ -202,11 +202,7 @@ export default {
     },
 
     async fetchProperties() {
-      if (this.isPreviewMode) {
-        console.log('[PropertyList] Preview mode - loading properties from store');
-        this.properties = this.$store.state.netWorth?.properties || [];
-        return;
-      }
+      // Preview users are real DB users - use normal API to fetch their data
       this.loading = true;
       this.error = null;
 
@@ -224,10 +220,8 @@ export default {
   },
 
   async mounted() {
-    if (!this.isPreviewMode) {
-      // Fetch family members to ensure spouse data is available
-      await this.$store.dispatch('userProfile/fetchFamilyMembers');
-    }
+    // Fetch family members to ensure spouse data is available (works for both regular and preview users)
+    await this.$store.dispatch('userProfile/fetchFamilyMembers');
     await this.fetchProperties();
   },
 };

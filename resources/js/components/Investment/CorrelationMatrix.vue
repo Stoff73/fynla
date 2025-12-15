@@ -448,11 +448,7 @@ export default {
   },
 
   mounted() {
-    if (this.isPreviewMode) {
-      console.log('[CorrelationMatrix] Preview mode - skipping API calls');
-      this.loading = false;
-      return;
-    }
+    // Preview users are real DB users - use normal API to fetch their data
     this.loadCorrelationData();
   },
 };

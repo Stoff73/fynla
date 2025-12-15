@@ -114,19 +114,13 @@ export default {
   },
 
   mounted() {
-    if (!this.isPreviewMode) {
-      this.fetchLogs();
-    } else {
-      console.log('[JointAccountHistory] Preview mode - skipping API call');
-    }
+    // Preview users are real DB users - use normal API to fetch their data
+    this.fetchLogs();
   },
 
   methods: {
     async fetchLogs() {
-      if (this.isPreviewMode) {
-        console.log('[JointAccountHistory] Preview mode - skipping fetchLogs');
-        return;
-      }
+      // Preview users are real DB users - use normal API to fetch their data
       this.loading = true;
       this.error = null;
 

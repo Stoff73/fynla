@@ -605,21 +605,14 @@ export default {
   },
 
   async mounted() {
-    if (!this.isPreviewMode) {
-      await this.loadMyLetter();
-      await this.checkSpouse();
-    } else {
-      console.log('[LetterToSpouse] Preview mode - skipping API calls');
-      this.loading = false;
-    }
+    // Preview users are real DB users - use normal API to fetch their data
+    await this.loadMyLetter();
+    await this.checkSpouse();
   },
 
   methods: {
     async loadMyLetter() {
-      if (this.isPreviewMode) {
-        console.log('[LetterToSpouse] Preview mode - skipping loadMyLetter');
-        return;
-      }
+      // Preview users are real DB users - use normal API to fetch their data
       this.loading = true;
       try {
         const response = await api.get('/user/letter-to-spouse');
@@ -636,10 +629,7 @@ export default {
     },
 
     async checkSpouse() {
-      if (this.isPreviewMode) {
-        console.log('[LetterToSpouse] Preview mode - skipping checkSpouse');
-        return;
-      }
+      // Preview users are real DB users - use normal API to fetch their data
       try {
         const userResponse = await api.get('/auth/user');
         const user = userResponse.data;
@@ -659,10 +649,7 @@ export default {
     },
 
     async loadSpouseLetter() {
-      if (this.isPreviewMode) {
-        console.log('[LetterToSpouse] Preview mode - skipping loadSpouseLetter');
-        return;
-      }
+      // Preview users are real DB users - use normal API to fetch their data
       if (this.viewMode === 'spouse' && this.spouseLetterData) {
         this.populateForm(this.spouseLetterData);
         return;

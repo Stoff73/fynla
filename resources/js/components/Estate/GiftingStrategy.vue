@@ -517,12 +517,7 @@ export default {
   },
 
   mounted() {
-    if (this.isPreviewMode) {
-      console.log('[GiftingStrategy] Preview mode - skipping API calls');
-      this.loadingStrategy = false;
-      this.loadingPersonalizedStrategy = false;
-      return;
-    }
+    // Preview users are real DB users - use normal API to fetch their data
     this.loadPlannedStrategy();
     this.loadPersonalizedStrategy();
   },

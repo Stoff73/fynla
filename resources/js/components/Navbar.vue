@@ -4,8 +4,8 @@
       <div class="flex justify-between h-16">
         <div class="flex">
           <div class="flex-shrink-0 flex items-center">
-            <router-link to="/dashboard" class="font-display text-h4 text-primary-600 hover:text-primary-700 transition-colors cursor-pointer">
-              Fynla
+            <router-link to="/dashboard" class="cursor-pointer">
+              <img :src="logoUrl" alt="Fynla" class="h-20 w-auto" />
             </router-link>
           </div>
           <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
@@ -222,6 +222,7 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useStore } from 'vuex';
 import { useRoute, useRouter } from 'vue-router';
+import logoImage from '@/assets/logo.png';
 
 export default {
   name: 'Navbar',
@@ -231,6 +232,7 @@ export default {
     const route = useRoute();
     const router = useRouter();
 
+    const logoUrl = logoImage;
     const mobileMenuOpen = ref(false);
     const userDropdownOpen = ref(false);
 
@@ -278,6 +280,7 @@ export default {
     });
 
     return {
+      logoUrl,
       mobileMenuOpen,
       userDropdownOpen,
       userName,

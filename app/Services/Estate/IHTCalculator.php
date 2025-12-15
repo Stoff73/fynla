@@ -146,8 +146,8 @@ class IHTCalculator
             }
         }
 
-        // Default to full 40% rate if within 3 years
-        return $giftValue * 0.40;
+        // Default to full IHT rate if within 3 years
+        return $giftValue * (float) $this->ihtConfig['standard_rate'];
     }
 
     /**

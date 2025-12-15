@@ -8,24 +8,26 @@ This document describes how different parts of the FPS system integrate with eac
 
 ### 1. UK Tax Configuration
 
-**Location**: `config/uk_tax_config.php`
+**Location**: `app/Services/TaxConfigService.php` (database-backed)
 
-All modules must reference centralized UK tax configuration for rates, allowances, and thresholds.
+All modules must reference centralized UK tax configuration via TaxConfigService for rates, allowances, and thresholds.
 
 **Usage**:
 ```php
-// Get current tax year configuration
-$taxConfig = config('uk_tax_config.current_tax_year');
+use App\Services\TaxConfigService;
 
-// Access specific values
-$isaAllowance = $taxConfig['isa_allowance']; // £20,000
-$nrb = $taxConfig['iht_nil_rate_band']; // £325,000
-$rnrb = $taxConfig['iht_residence_nil_rate_band']; // £175,000
-$pensionAnnualAllowance = $taxConfig['pension_annual_allowance']; // £60,000
+public function __construct(private TaxConfigService $taxConfig) {}
+
+// Access specific sections
+$isaAllowance = $this->taxConfig->getISAAllowances()['annual_allowance']; // £20,000
+$nrb = $this->taxConfig->getInheritanceTax()['nil_rate_band']; // £325,000
+$rnrb = $this->taxConfig->getInheritanceTax()['residence_nil_rate_band']; // £175,000
+$pensionAnnualAllowance = $this->taxConfig->getPensionAllowances()['annual_allowance']; // £60,000
 
 // Income tax bands
-$personalAllowance = $taxConfig['income_tax']['personal_allowance'];
-$basicRateLimit = $taxConfig['income_tax']['basic_rate_limit'];
+$incomeTax = $this->taxConfig->getIncomeTax();
+$personalAllowance = $incomeTax['personal_allowance'];
+$basicRateLimit = $personalAllowance + $incomeTax['bands'][0]['max'];
 ```
 
 **When to use**:

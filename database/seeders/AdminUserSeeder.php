@@ -14,15 +14,18 @@ class AdminUserSeeder extends Seeder
     public function run(): void
     {
         // Create admin user (not linked to any household)
-        User::create([
-            'name' => 'Admin User',
-            'email' => 'admin@fps.com',
-            'password' => Hash::make('admin123'),
-            'role' => 'admin',
-            'is_primary_account' => true,
-            'date_of_birth' => '1975-01-01',
-            'gender' => 'male',
-            'marital_status' => 'single',
-        ]);
+        User::updateOrCreate(
+            ['email' => 'admin@fps.com'],
+            [
+                'name' => 'Admin User',
+                'password' => Hash::make('admin123'),
+                'role' => 'admin',
+                'is_admin' => true,  // Required for admin access checks
+                'is_primary_account' => true,
+                'date_of_birth' => '1975-01-01',
+                'gender' => 'male',
+                'marital_status' => 'single',
+            ]
+        );
     }
 }

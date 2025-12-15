@@ -76,7 +76,7 @@ class TaxConfigurationSeeder extends Seeder
                         'upper_limit' => 50270,    // Display value: absolute threshold
                         'min' => 0,                // Calculator value: band width
                         'max' => 37700,            // Calculator value: band width
-                        'rate' => 20,              // Display as percentage
+                        'rate' => 0.20,            // Decimal format (20%)
                     ],
                     [
                         'name' => 'Higher Rate',
@@ -84,7 +84,7 @@ class TaxConfigurationSeeder extends Seeder
                         'upper_limit' => 125140,
                         'min' => 37700,
                         'max' => 125140,
-                        'rate' => 40,
+                        'rate' => 0.40,            // Decimal format (40%)
                     ],
                     [
                         'name' => 'Additional Rate',
@@ -92,7 +92,7 @@ class TaxConfigurationSeeder extends Seeder
                         'upper_limit' => null,
                         'min' => 125140,
                         'max' => null,
-                        'rate' => 45,
+                        'rate' => 0.45,            // Decimal format (45%)
                     ],
                 ],
 
@@ -129,13 +129,13 @@ class TaxConfigurationSeeder extends Seeder
             'capital_gains_tax' => [
                 // Individual rates
                 'annual_exempt_amount' => 3000,
-                'basic_rate' => 18,                              // Individuals - basic rate taxpayer
-                'higher_rate' => 24,                             // Individuals - higher/additional rate taxpayer
-                'residential_property_basic_rate' => 18,         // Individuals - residential property (basic rate)
-                'residential_property_higher_rate' => 24,        // Individuals - residential property (higher/additional rate)
+                'basic_rate' => 0.18,                            // Decimal format (18%)
+                'higher_rate' => 0.24,                           // Decimal format (24%)
+                'residential_property_basic_rate' => 0.18,       // Decimal format (18%)
+                'residential_property_higher_rate' => 0.24,      // Decimal format (24%)
 
                 // Trust rates (2025/26 - verified from gov.uk)
-                'trust_rate' => 24,                              // Trusts - all assets (flat rate from 30 Oct 2024)
+                'trust_rate' => 0.24,                            // Decimal format (24%)
                 'trust_annual_exempt_amount' => 1500,            // Standard trusts
                 'trust_vulnerable_beneficiary_exempt_amount' => 3000,  // Vulnerable beneficiary trusts
             ],
@@ -143,16 +143,16 @@ class TaxConfigurationSeeder extends Seeder
             'dividend_tax' => [
                 // Individual rates
                 'allowance' => 500,                              // Individuals only (trusts have no allowance)
-                'basic_rate' => 8.75,                            // Individuals - basic rate taxpayer
-                'higher_rate' => 33.75,                          // Individuals - higher rate taxpayer
-                'additional_rate' => 39.35,                      // Individuals - additional rate taxpayer
+                'basic_rate' => 0.0875,                          // Decimal format (8.75%)
+                'higher_rate' => 0.3375,                         // Decimal format (33.75%)
+                'additional_rate' => 0.3935,                     // Decimal format (39.35%)
 
                 // Trust rates (2025/26 - verified from gov.uk)
-                'trust_dividend_rate' => 39.35,                  // Trusts - dividend income
-                'trust_other_income_rate' => 45,                 // Trusts - non-dividend income
+                'trust_dividend_rate' => 0.3935,                 // Decimal format (39.35%)
+                'trust_other_income_rate' => 0.45,               // Decimal format (45%)
                 'trust_de_minimis_allowance' => 500,             // If income exceeds £500, ALL income is taxable
-                'trust_management_expenses_dividend_rate' => 8.75,   // Trust management expenses - dividends
-                'trust_management_expenses_other_rate' => 20,        // Trust management expenses - other income
+                'trust_management_expenses_dividend_rate' => 0.0875,  // Decimal format (8.75%)
+                'trust_management_expenses_other_rate' => 0.20,       // Decimal format (20%)
             ],
 
             'isa' => [

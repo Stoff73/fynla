@@ -485,10 +485,7 @@ export default {
 
   methods: {
     async optimiseContributions() {
-      if (this.isPreviewMode) {
-        console.log('[ContributionPlanner] Preview mode - skipping API call');
-        return;
-      }
+      // Preview users are real DB users - use normal API for calculations
       this.optimising = true;
       this.error = null;
 

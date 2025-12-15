@@ -5,8 +5,8 @@ import path from 'path';
 
 export default defineConfig({
     // Development: use root path
-    // Production: use '/tengo/build/' for subfolder deployment at csjones.co/tengo
-    base: process.env.NODE_ENV === 'production' ? '/tengo/build/' : '/',
+    // Production: use '/fynla/build/' for subfolder deployment at csjones.co/fynla
+    base: process.env.NODE_ENV === 'production' ? '/fynla/build/' : '/',
     server: {
         host: '127.0.0.1',
         port: 5173,

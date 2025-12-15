@@ -27,6 +27,8 @@ class User extends Authenticatable
     protected $guarded = [
         'id',
         'is_admin',
+        'is_preview_user',
+        'preview_persona_id',
         'email_verified_at',
         'remember_token',
         'created_at',
@@ -52,6 +54,7 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
         'is_admin' => 'boolean',
+        'is_preview_user' => 'boolean',
         'must_change_password' => 'boolean',
         'date_of_birth' => 'date',
         'retirement_date' => 'date',

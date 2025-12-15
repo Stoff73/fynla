@@ -25,25 +25,13 @@ class GiftingStrategy
     public function __construct(
         private ?TaxConfigService $taxConfig = null
     ) {
-        if ($this->taxConfig) {
-            $this->ihtConfig = $this->taxConfig->getInheritanceTax();
-            $this->giftingConfig = $this->taxConfig->getGiftingExemptions();
-        } else {
-            // Default values if no TaxConfigService provided
-            $this->ihtConfig = [
-                'nil_rate_band' => 325000,
-                'standard_rate' => 0.40,
-            ];
-            $this->giftingConfig = [
-                'annual_exemption' => 3000,
-                'small_gifts_limit' => 250,
-                'wedding_gifts' => [
-                    'parent' => 5000,
-                    'grandparent' => 2500,
-                    'other' => 1000,
-                ],
-            ];
+        // TaxConfigService is required - resolve from container if not provided
+        if ($this->taxConfig === null) {
+            $this->taxConfig = app(TaxConfigService::class);
         }
+
+        $this->ihtConfig = $this->taxConfig->getInheritanceTax();
+        $this->giftingConfig = $this->taxConfig->getGiftingExemptions();
     }
 
     /**
@@ -102,7 +90,7 @@ class GiftingStrategy
      */
     public function calculateAnnualExemption(int $userId, string $taxYear): float
     {
-        $annualExemption = (float) ($this->giftingConfig['annual_exemption'] ?? 3000);
+        $annualExemption = (float) $this->giftingConfig['annual_exemption'];
 
         // Get tax year boundaries
         $startYear = (int) $taxYear;
@@ -141,7 +129,7 @@ class GiftingStrategy
      */
     public function identifySmallGifts(Collection $gifts): array
     {
-        $smallGiftsLimit = (float) ($this->giftingConfig['small_gifts_limit'] ?? 250);
+        $smallGiftsLimit = (float) $this->giftingConfig['small_gifts_limit'];
 
         // Filter to small gift type
         $smallGifts = $gifts->filter(fn ($gift) => ($gift->gift_type ?? '') === 'small_gift');
@@ -177,16 +165,12 @@ class GiftingStrategy
      */
     public function calculateMarriageGifts(string $relationship): float
     {
-        $weddingGifts = $this->giftingConfig['wedding_gifts'] ?? [
-            'parent' => 5000,
-            'grandparent' => 2500,
-            'other' => 1000,
-        ];
+        $weddingGifts = $this->giftingConfig['wedding_gifts'];
 
         return match (strtolower($relationship)) {
-            'child', 'son', 'daughter' => (float) ($weddingGifts['parent'] ?? 5000),
-            'grandchild', 'grandson', 'granddaughter', 'great_grandchild' => (float) ($weddingGifts['grandparent'] ?? 2500),
-            default => (float) ($weddingGifts['other'] ?? 1000),
+            'child', 'son', 'daughter' => (float) $weddingGifts['child'],
+            'grandchild', 'grandson', 'granddaughter', 'great_grandchild' => (float) $weddingGifts['grandchild_great_grandchild'],
+            default => (float) $weddingGifts['other'],
         };
     }
 
@@ -199,11 +183,11 @@ class GiftingStrategy
      */
     public function recommendOptimalGiftingStrategy(float $estateValue, IHTProfile $profile): array
     {
-        $nrb = (float) ($this->ihtConfig['nil_rate_band'] ?? 325000);
+        $nrb = (float) $this->ihtConfig['nil_rate_band'];
         $nrbFromSpouse = (float) ($profile->nrb_transferred_from_spouse ?? 0);
         $totalNrb = $nrb + $nrbFromSpouse;
 
-        $ihtRate = (float) ($this->ihtConfig['standard_rate'] ?? 0.40);
+        $ihtRate = (float) $this->ihtConfig['standard_rate'];
 
         // Calculate current IHT liability
         $taxableEstate = max(0, $estateValue - $totalNrb);
@@ -213,7 +197,7 @@ class GiftingStrategy
         $priority = [];
 
         // 1. Annual Exemption recommendation
-        $annualExemption = (float) ($this->giftingConfig['annual_exemption'] ?? 3000);
+        $annualExemption = (float) $this->giftingConfig['annual_exemption'];
         $recommendations[] = [
             'strategy' => 'Annual Exemption',
             'description' => "Gift up to £{$annualExemption} per year tax-free",

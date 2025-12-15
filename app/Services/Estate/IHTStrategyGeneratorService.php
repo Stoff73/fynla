@@ -37,14 +37,18 @@ class IHTStrategyGeneratorService
             return null;
         }
 
+        $ihtConfig = $this->taxConfig->getInheritanceTax();
+        $giftingConfig = $this->taxConfig->getGiftingExemptions();
+        $ihtRate = (float) $ihtConfig['standard_rate']; // 0.40 (40%)
+
         $strategies = [];
         $totalIhtSaved = 0;
 
-        // 1. Annual Exemption Strategy (£3,000/year)
-        $annualExemption = 3000;
+        // 1. Annual Exemption Strategy
+        $annualExemption = (float) $giftingConfig['annual_exemption'];
         $yearsToProject = min(20, 30); // Project 20 years or to age 90
         $totalAnnualGifting = $annualExemption * $yearsToProject;
-        $annualIhtSaved = $totalAnnualGifting * 0.40;
+        $annualIhtSaved = $totalAnnualGifting * $ihtRate;
 
         $strategies[] = [
             'strategy_name' => 'Annual Exemption Gifting',
@@ -60,9 +64,9 @@ class IHTStrategyGeneratorService
         $totalIhtSaved += $annualIhtSaved;
 
         // 2. Potentially Exempt Transfers (PETs) - Lump Sum Gifting
-        $targetReduction = min($ihtLiability / 0.40, 1000000); // Max £1m or enough to eliminate IHT
+        $targetReduction = min($ihtLiability / $ihtRate, 1000000); // Max £1m or enough to eliminate IHT
         $petGifting = $targetReduction;
-        $petIhtSaved = $petGifting * 0.40;
+        $petIhtSaved = $petGifting * $ihtRate;
 
         $strategies[] = [
             'strategy_name' => 'Potentially Exempt Transfers (PETs)',
@@ -151,7 +155,7 @@ class IHTStrategyGeneratorService
             $totalNRB = $secondDeathAnalysis['iht_calculation']['total_nrb'] ?? $ihtConfig['nil_rate_band'];
             $totalAllowance = $totalNRB + $rnrb;
             $potentialTaxableEstate = max(0, $taxableNetEstate - $totalAllowance);
-            $effectiveIHTLiability = $potentialTaxableEstate * 0.40; // 40% IHT rate
+            $effectiveIHTLiability = $potentialTaxableEstate * $ihtConfig['standard_rate']; // 40% IHT rate
         }
 
         // Only show strategies if there's actual or potential IHT liability
@@ -230,15 +234,17 @@ class IHTStrategyGeneratorService
         }
 
         // 3. RNRB Strategy (only if not already claimed and estate qualifies)
-        if (! $rnrbEligible && $estateValue <= 2000000) {
-            $ihtConfig = $this->taxConfig->getInheritanceTax();
+        $ihtConfig = $this->taxConfig->getInheritanceTax();
+        $rnrbTaperThreshold = (float) ($ihtConfig['rnrb_taper_threshold'] ?? 2000000);
+        if (! $rnrbEligible && $estateValue <= $rnrbTaperThreshold) {
             $rnrbAmount = $ihtConfig['residence_nil_rate_band'];
+            $ihtRate = (float) $ihtConfig['standard_rate'];
 
             $strategies[] = [
                 'priority' => 3,
                 'strategy_name' => 'Claim Residence Nil Rate Band (RNRB)',
                 'effectiveness' => 'Medium',
-                'iht_saved' => $rnrbAmount * 0.40, // RNRB * IHT rate
+                'iht_saved' => $rnrbAmount * $ihtRate, // RNRB * IHT rate
                 'implementation_complexity' => 'Low',
                 'description' => 'Ensure main residence passes to direct descendants to claim £'.number_format($rnrbAmount, 0).' RNRB',
                 'specific_actions' => [
@@ -252,7 +258,9 @@ class IHTStrategyGeneratorService
         // 4. Charitable Giving (if not already at 10%+)
         if ($profile->charitable_giving_percent < 10 && $effectiveIHTLiability > 0) {
             $charitableAmount = $estateValue * 0.10;
-            $rateDifference = 0.04; // 40% - 36%
+            $standardRate = (float) $ihtConfig['standard_rate']; // 0.40
+            $charityRate = (float) ($ihtConfig['charity_rate'] ?? 0.36); // 0.36
+            $rateDifference = $standardRate - $charityRate; // 40% - 36% = 4%
             $saving = ($estateValue - ($secondDeathAnalysis['iht_calculation']['total_nrb'] + $rnrb)) * $rateDifference;
 
             if ($saving > 5000) {

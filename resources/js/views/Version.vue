@@ -18,7 +18,7 @@
               <p class="mt-1 text-body-sm text-gray-600">Latest release information</p>
             </div>
             <div class="text-right">
-              <div class="text-3xl font-bold text-primary-600">v0.2.15</div>
+              <div class="text-3xl font-bold text-primary-600">v0.2.18</div>
               <div class="text-body-sm text-gray-500 mt-1">Production Ready</div>
             </div>
           </div>
@@ -28,7 +28,7 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
               <h3 class="text-body-sm font-semibold text-gray-700 mb-2">Release Date</h3>
-              <p class="text-body-base text-gray-900">27 November 2025</p>
+              <p class="text-body-base text-gray-900">12 December 2025</p>
             </div>
             <div>
               <h3 class="text-body-sm font-semibold text-gray-700 mb-2">Status</h3>
@@ -40,50 +40,143 @@
 
           <!-- What's New -->
           <div class="mb-6">
-            <h3 class="text-body-lg font-semibold text-gray-900 mb-4">🚀 Improvements in v0.2.15</h3>
+            <h3 class="text-body-lg font-semibold text-gray-900 mb-4">🚀 Preview Mode Refactoring in v0.2.18</h3>
             <ul class="space-y-2">
               <li class="flex items-start">
                 <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
-                <span class="text-body-base text-gray-700"><strong>Dashboard Spacing:</strong> Improved visual spacing between dashboard cards, navigation and footer for a cleaner look.</span>
+                <span class="text-body-base text-gray-700"><strong>Database-Backed Personas:</strong> Preview personas are now real database users with complete financial data, using the same code paths as registered users.</span>
               </li>
               <li class="flex items-start">
                 <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
-                <span class="text-body-base text-gray-700"><strong>Plan UI Cleanup:</strong> Removed breadcrumb navigation from Comprehensive Estate Plan and Comprehensive Protection Plan views for cleaner presentation.</span>
+                <span class="text-body-base text-gray-700"><strong>Sanctum Token Authentication:</strong> Preview users authenticate via Sanctum tokens for consistent API access.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-gray-700"><strong>Write Interception Middleware:</strong> POST/PUT/DELETE requests return success without persisting, allowing forms to work while keeping data session-only.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-gray-700"><strong>Code Reduction:</strong> Removed ~2,000+ lines of duplicate preview logic from 8 module stores and 6 components.</span>
               </li>
             </ul>
           </div>
 
-          <!-- Critical Bug Fixes -->
+          <!-- Technical Changes -->
           <div class="mb-6">
-            <h3 class="text-body-lg font-semibold text-gray-900 mb-4">🐛 Bug Fixes in v0.2.15</h3>
+            <h3 class="text-body-lg font-semibold text-gray-900 mb-4">⚙️ Technical Changes</h3>
+            <ul class="space-y-2">
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-blue-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-gray-700"><strong>Backend:</strong> Added PreviewController, PreviewWriteInterceptor middleware, PreviewUserSeeder, and preview:reset command.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-blue-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-gray-700"><strong>Frontend:</strong> Simplified preview.js store (~100 lines, down from ~454), removed setPreviewMode from all module stores.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-blue-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-gray-700"><strong>Deleted:</strong> EditablePreviewField.vue, PersonalInfoWarningModal.vue, PreviewLoadingSkeleton.vue, previewFieldConfig.js, and persona JSON files.</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Version History Divider -->
+        <div class="border-t border-gray-200 my-8"></div>
+
+        <!-- Previous Version: v0.2.17 -->
+        <div class="mb-8 px-6">
+          <h2 class="text-h3 font-display text-gray-900 mb-4">Previous Release: v0.2.17</h2>
+          <p class="text-body-sm text-gray-600 mb-4">Released: 8 December 2025</p>
+
+          <div class="mb-6">
+            <h3 class="text-body-lg font-semibold text-gray-900 mb-4">📄 Document Upload with AI Extraction</h3>
+            <ul class="space-y-2">
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-gray-700"><strong>AI-Powered Extraction:</strong> Upload PDFs, images, and Excel files to extract financial data using Claude Sonnet 4.5.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-gray-700"><strong>Supported Documents:</strong> Pension statements, insurance policies, investment statements, mortgages, savings.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-gray-700"><strong>Review & Confirm:</strong> Review extracted fields with confidence scores before saving to your profile.</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Previous Version: v0.2.16 -->
+        <div class="mb-8 px-6">
+          <h2 class="text-h3 font-display text-gray-900 mb-4">v0.2.16</h2>
+          <p class="text-body-sm text-gray-600 mb-4">Released: 27 November 2025</p>
+
+          <div class="mb-6">
+            <h3 class="text-body-lg font-semibold text-gray-900 mb-4">🚀 UI/UX Improvements</h3>
+            <ul class="space-y-2">
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-gray-700">Income Protection benefit display fix, Investment & Savings Plan scaffold banner, Emergency Fund data fix.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-gray-700">Onboarding UI improvements: Property, Retirement, Investment, and Savings cards now match module dashboards.</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Previous Version: v0.2.15 -->
+        <div class="mb-8 px-6">
+          <h2 class="text-h3 font-display text-gray-900 mb-4">v0.2.15</h2>
+          <p class="text-body-sm text-gray-600 mb-4">Released: 26 November 2025</p>
+
+          <div class="mb-6">
+            <h3 class="text-body-lg font-semibold text-gray-900 mb-4">🐛 Bug Fixes</h3>
             <ul class="space-y-2">
               <li class="flex items-start">
                 <svg class="w-5 h-5 text-red-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
-                <span class="text-body-base text-gray-700"><strong>Joint Expenditure 50/50 Split:</strong> Fixed expenditure not being halved when using joint/default mode during onboarding. Each spouse now correctly receives 50% of household expenses instead of full amounts.</span>
+                <span class="text-body-base text-gray-700"><strong>Joint Expenditure 50/50 Split:</strong> Fixed expenditure not being halved when using joint mode during onboarding.</span>
               </li>
               <li class="flex items-start">
                 <svg class="w-5 h-5 text-red-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
-                <span class="text-body-base text-gray-700"><strong>Spouse Edit Sync:</strong> Fixed editing spouse family member not updating the linked User account. Name, DOB, gender, income, and NI number changes now properly sync to spouse's User record.</span>
+                <span class="text-body-base text-gray-700"><strong>Spouse Edit Sync:</strong> Fixed editing spouse family member not updating the linked User account.</span>
               </li>
               <li class="flex items-start">
                 <svg class="w-5 h-5 text-red-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
-                <span class="text-body-base text-gray-700"><strong>Estate Plan Spouse Children:</strong> Fixed Comprehensive Estate Plan not showing children added by spouse. Children from linked accounts now appear in user profile section of estate plan.</span>
-              </li>
-              <li class="flex items-start">
-                <svg class="w-5 h-5 text-red-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                </svg>
-                <span class="text-body-base text-gray-700"><strong>Plan Completeness Dependants Check:</strong> Fixed "Add dependants" warning appearing even when spouse has added children. ProfileCompletenessChecker now checks both user's and spouse's family members for dependants.</span>
+                <span class="text-body-base text-gray-700"><strong>Estate Plan Spouse Children:</strong> Fixed Comprehensive Estate Plan not showing children added by spouse.</span>
               </li>
             </ul>
           </div>

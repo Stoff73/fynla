@@ -412,19 +412,13 @@ export default {
   },
 
   mounted() {
-    if (!this.isPreviewMode) {
-      this.compareSelected();
-    } else {
-      console.log('[BenchmarkComparison] Preview mode - skipping API call');
-    }
+    // Preview users are real DB users - use normal API to fetch their data
+    this.compareSelected();
   },
 
   methods: {
     async compareSelected() {
-      if (this.isPreviewMode) {
-        console.log('[BenchmarkComparison] Preview mode - skipping compareSelected');
-        return;
-      }
+      // Preview users are real DB users - use normal API for comparisons
       if (this.selectedBenchmarks.length === 0) return;
 
       this.loading = true;

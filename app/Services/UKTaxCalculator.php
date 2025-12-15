@@ -102,15 +102,15 @@ class UKTaxCalculator
         // Higher rate band ends at personal_allowance + band max
         $higherRateLimit = $personalAllowance + $bands[1]['max']; // £12,570 + £150,000 = £162,570 (for historical)
 
-        // Convert percentage rates to decimals (20% -> 0.20)
-        $basicRate = $bands[0]['rate'] / 100;
-        $higherRate = $bands[1]['rate'] / 100;
-        $additionalRate = $bands[2]['rate'] / 100;
+        // Tax rates are stored as decimals (0.20 for 20%)
+        $basicRate = $bands[0]['rate'];
+        $higherRate = $bands[1]['rate'];
+        $additionalRate = $bands[2]['rate'];
 
-        // Get dividend tax rates (flattened structure, convert percentages to decimals)
-        $basicDividendRate = $dividendTax['basic_rate'] / 100;         // 8.75% -> 0.0875
-        $higherDividendRate = $dividendTax['higher_rate'] / 100;       // 33.75% -> 0.3375
-        $additionalDividendRate = $dividendTax['additional_rate'] / 100; // 39.35% -> 0.3935
+        // Dividend tax rates (stored as decimals)
+        $basicDividendRate = $dividendTax['basic_rate'];           // 0.0875 (8.75%)
+        $higherDividendRate = $dividendTax['higher_rate'];         // 0.3375 (33.75%)
+        $additionalDividendRate = $dividendTax['additional_rate']; // 0.3935 (39.35%)
 
         $tax = 0;
 

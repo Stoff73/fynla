@@ -419,10 +419,7 @@ export default {
     },
 
     async loadWill() {
-      if (this.isPreviewMode) {
-        console.log('[WillPlanning] Preview mode - skipping loadWill');
-        return;
-      }
+      // Preview users are real DB users - use normal API
       try {
         const response = await api.get('/estate/will');
         this.will = response.data.data;
@@ -446,10 +443,7 @@ export default {
     },
 
     async loadBequests() {
-      if (this.isPreviewMode) {
-        console.log('[WillPlanning] Preview mode - skipping loadBequests');
-        return;
-      }
+      // Preview users are real DB users - use normal API
       try {
         const response = await api.get('/estate/bequests');
         this.bequests = response.data.data;
@@ -459,10 +453,7 @@ export default {
     },
 
     async loadNetEstateValue() {
-      if (this.isPreviewMode) {
-        console.log('[WillPlanning] Preview mode - skipping loadNetEstateValue');
-        return;
-      }
+      // Preview users are real DB users - use normal API
       try {
         const response = await api.post('/estate/calculate-iht');
         // NEW: Use iht_summary.current.net_estate from unified structure

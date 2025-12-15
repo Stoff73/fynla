@@ -390,11 +390,7 @@ export default {
   },
 
   mounted() {
-    if (this.isPreviewMode) {
-      console.log('[LifePolicyStrategy] Preview mode - computing from preview data');
-      this.computePreviewStrategy();
-      return;
-    }
+    // Preview users are real DB users - use normal API to fetch their data
     this.loadStrategy();
   },
 

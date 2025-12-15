@@ -39,6 +39,168 @@ class PreviewController extends Controller
     ];
 
     /**
+     * Persona metadata for display in UI
+     */
+    private const PERSONA_METADATA = [
+        'young_family' => [
+            'id' => 'young_family',
+            'name' => 'Emily & James Carter',
+            'tagline' => 'Young family building their future',
+            'description' => 'A young married couple in their early 30s with two children, mortgage, and workplace pensions.',
+        ],
+        'peak_earners' => [
+            'id' => 'peak_earners',
+            'name' => 'David & Sarah Mitchell',
+            'tagline' => 'Peak earners planning ahead',
+            'description' => 'A couple in their late 40s at peak earning capacity, with substantial assets and complex planning needs.',
+        ],
+        'widow' => [
+            'id' => 'widow',
+            'name' => 'Margaret Thompson',
+            'tagline' => 'Recently widowed, adjusting finances',
+            'description' => 'A 68-year-old widow navigating inherited wealth and estate planning considerations.',
+        ],
+        'entrepreneur' => [
+            'id' => 'entrepreneur',
+            'name' => 'Alex Chen',
+            'tagline' => 'Entrepreneur with business interests',
+            'description' => 'A 42-year-old business owner with complex income streams and business succession planning needs.',
+        ],
+    ];
+
+    /**
+     * Login as a preview user (no credentials required)
+     *
+     * POST /api/preview/login/{personaId}
+     */
+    public function login(string $personaId): JsonResponse
+    {
+        if (!in_array($personaId, self::VALID_PERSONAS)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid persona ID',
+            ], 400);
+        }
+
+        // Find the preview user for this persona
+        $previewUser = User::where('is_preview_user', true)
+            ->where('preview_persona_id', $personaId)
+            ->first();
+
+        if (!$previewUser) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Preview user not found. Please run php artisan db:seed --class=PreviewUserSeeder',
+            ], 404);
+        }
+
+        // Create a Sanctum token for the preview user
+        $token = $previewUser->createToken('preview-access')->plainTextToken;
+
+        return response()->json([
+            'success' => true,
+            'token' => $token,
+            'user' => [
+                'id' => $previewUser->id,
+                'name' => $previewUser->name,
+                'email' => $previewUser->email,
+                'is_preview_user' => true,
+                'preview_persona_id' => $personaId,
+            ],
+            'persona' => self::PERSONA_METADATA[$personaId] ?? null,
+        ]);
+    }
+
+    /**
+     * Switch to a different preview persona
+     *
+     * POST /api/preview/switch/{personaId}
+     */
+    public function switch(Request $request, string $personaId): JsonResponse
+    {
+        $currentUser = $request->user();
+
+        if (!$currentUser || !$currentUser->is_preview_user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Not currently in preview mode',
+            ], 400);
+        }
+
+        if (!in_array($personaId, self::VALID_PERSONAS)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid persona ID',
+            ], 400);
+        }
+
+        // Find the new preview user
+        $newPreviewUser = User::where('is_preview_user', true)
+            ->where('preview_persona_id', $personaId)
+            ->first();
+
+        if (!$newPreviewUser) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Preview user not found for this persona',
+            ], 404);
+        }
+
+        // Revoke current user's tokens
+        $currentUser->tokens()->delete();
+
+        // Create new token for the new persona
+        $token = $newPreviewUser->createToken('preview-access')->plainTextToken;
+
+        return response()->json([
+            'success' => true,
+            'token' => $token,
+            'user' => [
+                'id' => $newPreviewUser->id,
+                'name' => $newPreviewUser->name,
+                'email' => $newPreviewUser->email,
+                'is_preview_user' => true,
+                'preview_persona_id' => $personaId,
+            ],
+            'persona' => self::PERSONA_METADATA[$personaId] ?? null,
+        ]);
+    }
+
+    /**
+     * Exit preview mode (logout)
+     *
+     * POST /api/preview/exit
+     */
+    public function exit(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if ($user) {
+            // Only delete tokens if user is a preview user
+            if ($user->is_preview_user) {
+                $user->tokens()->delete();
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Exited preview mode',
+        ]);
+    }
+
+    /**
+     * Get available personas with metadata
+     *
+     * GET /api/preview/personas
+     */
+    public function getPersonas(): JsonResponse
+    {
+        return response()->json([
+            'personas' => array_values(self::PERSONA_METADATA),
+        ]);
+    }
+
+    /**
      * Seed persona data to authenticated user's account
      *
      * POST /api/user/seed-persona-data

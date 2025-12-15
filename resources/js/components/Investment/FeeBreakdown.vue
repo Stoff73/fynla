@@ -378,20 +378,13 @@ export default {
   },
 
   mounted() {
-    if (!this.isPreviewMode) {
-      this.loadFeeData();
-    } else {
-      console.log('[FeeBreakdown] Preview mode - skipping API call');
-      this.loading = false;
-    }
+    // Preview users are real DB users - use normal API to fetch their data
+    this.loadFeeData();
   },
 
   methods: {
     async loadFeeData() {
-      if (this.isPreviewMode) {
-        console.log('[FeeBreakdown] Preview mode - skipping loadFeeData');
-        return;
-      }
+      // Preview users are real DB users - use normal API to fetch their data
       this.loading = true;
       this.error = null;
 
@@ -407,10 +400,7 @@ export default {
     },
 
     async viewAlternatives(holdingId) {
-      if (this.isPreviewMode) {
-        console.log('[FeeBreakdown] Preview mode - skipping viewAlternatives');
-        return;
-      }
+      // Preview users are real DB users - use normal API
       try {
         const response = await api.get(`/investment/fee-impact/holdings/${holdingId}/alternatives`);
         // Open modal or navigate to alternatives view

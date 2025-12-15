@@ -8,7 +8,7 @@
           <span class="block sm:hidden text-xs mt-1">For demonstration purposes only.</span>
           <span class="hidden sm:inline ml-2 text-gray-400">|</span>
           <router-link to="/version" class="sm:ml-2 font-semibold text-primary-600 hover:text-primary-700 hover:underline">
-            v0.2.15
+            v0.2.18
           </router-link>
           <span class="ml-2 text-gray-400">|</span>
           <a href="https://csjones.co" target="_blank" rel="noopener noreferrer" class="ml-2 font-semibold text-primary-600 hover:text-primary-700 hover:underline">

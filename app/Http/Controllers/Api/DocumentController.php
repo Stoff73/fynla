@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Documents\ConfirmExtractionRequest;
 use App\Http\Requests\Documents\UploadDocumentRequest;
+use App\Http\Traits\SafeErrorResponse;
 use App\Models\Document;
 use App\Services\Documents\DocumentProcessor;
 use Illuminate\Http\JsonResponse;
@@ -14,6 +15,8 @@ use Illuminate\Http\Request;
 
 class DocumentController extends Controller
 {
+    use SafeErrorResponse;
+
     public function __construct(
         private DocumentProcessor $processor
     ) {}
@@ -67,10 +70,7 @@ class DocumentController extends Controller
                 ],
             ], 201);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Document processing failed: '.$e->getMessage(),
-            ], 500);
+            return $this->safeErrorResponse('Document processing failed', $e);
         }
     }
 
@@ -96,10 +96,7 @@ class DocumentController extends Controller
                 ],
             ], 201);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Upload failed: '.$e->getMessage(),
-            ], 500);
+            return $this->safeErrorResponse('Upload failed', $e);
         }
     }
 
@@ -191,10 +188,7 @@ class DocumentController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to save data: '.$e->getMessage(),
-            ], 500);
+            return $this->safeErrorResponse('Failed to save data', $e);
         }
     }
 
@@ -223,10 +217,7 @@ class DocumentController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Reprocessing failed: '.$e->getMessage(),
-            ], 500);
+            return $this->safeErrorResponse('Reprocessing failed', $e);
         }
     }
 

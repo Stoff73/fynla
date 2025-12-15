@@ -6,7 +6,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreTaxConfigurationRequest;
+use App\Http\Traits\SafeErrorResponse;
 use App\Models\TaxConfiguration;
+use App\Models\TaxConfigurationAudit;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -14,6 +16,27 @@ use Illuminate\Support\Facades\Validator;
 
 class TaxSettingsController extends Controller
 {
+    use SafeErrorResponse;
+
+    /**
+     * Log an audit record for a tax configuration change
+     */
+    private function logAudit(
+        TaxConfiguration $config,
+        string $changeType,
+        ?array $beforeState = null,
+        ?string $rationale = null
+    ): void {
+        TaxConfigurationAudit::log(
+            $config,
+            $changeType,
+            $beforeState,
+            auth()->id(),
+            $rationale,
+            request()->ip()
+        );
+    }
+
     /**
      * Get current active tax configuration
      */
@@ -48,10 +71,7 @@ class TaxSettingsController extends Controller
                 'data' => $response,
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to fetch tax configuration: '.$e->getMessage(),
-            ], 500);
+            return $this->safeErrorResponse('Failed to fetch tax configuration', $e);
         }
     }
 
@@ -68,10 +88,7 @@ class TaxSettingsController extends Controller
                 'data' => $configs,
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to fetch tax configurations: '.$e->getMessage(),
-            ], 500);
+            return $this->safeErrorResponse('Failed to fetch tax configurations', $e);
         }
     }
 
@@ -106,36 +123,46 @@ class TaxSettingsController extends Controller
         }
 
         try {
-            if ($request->has('tax_year')) {
-                $config->tax_year = $request->tax_year;
-            }
-            if ($request->has('effective_from')) {
-                $config->effective_from = $request->effective_from;
-            }
-            if ($request->has('effective_to')) {
-                $config->effective_to = $request->effective_to;
-            }
-            if ($request->has('config_data')) {
-                $config->config_data = $request->config_data;
-            }
-            if ($request->has('is_active') && $request->is_active) {
-                // Deactivate all others first
-                TaxConfiguration::where('is_active', true)->update(['is_active' => false]);
-                $config->is_active = true;
-            }
+            return DB::transaction(function () use ($config, $request) {
+                // Capture before state for audit
+                $beforeState = $config->config_data;
 
-            $config->save();
+                if ($request->has('tax_year')) {
+                    $config->tax_year = $request->tax_year;
+                }
+                if ($request->has('effective_from')) {
+                    $config->effective_from = $request->effective_from;
+                }
+                if ($request->has('effective_to')) {
+                    $config->effective_to = $request->effective_to;
+                }
+                if ($request->has('config_data')) {
+                    $config->config_data = $request->config_data;
+                }
+                if ($request->has('is_active') && $request->is_active) {
+                    // Deactivate all others first
+                    TaxConfiguration::where('is_active', true)->update(['is_active' => false]);
+                    $config->is_active = true;
+                }
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Tax configuration updated successfully',
-                'data' => $config,
-            ]);
+                $config->save();
+
+                // Log audit
+                $this->logAudit(
+                    $config,
+                    'updated',
+                    $beforeState,
+                    $request->input('rationale')
+                );
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Tax configuration updated successfully',
+                    'data' => $config,
+                ]);
+            });
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update tax configuration: '.$e->getMessage(),
-            ], 500);
+            return $this->safeErrorResponse('Failed to update tax configuration', $e);
         }
     }
 
@@ -159,6 +186,14 @@ class TaxSettingsController extends Controller
                     'is_active' => $request->is_active ?? false,
                 ]);
 
+                // Log audit
+                $this->logAudit(
+                    $config,
+                    'created',
+                    null,
+                    $request->input('rationale')
+                );
+
                 return response()->json([
                     'success' => true,
                     'message' => 'Tax configuration created successfully',
@@ -166,17 +201,14 @@ class TaxSettingsController extends Controller
                 ], 201);
             });
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create tax configuration: '.$e->getMessage(),
-            ], 500);
+            return $this->safeErrorResponse('Failed to create tax configuration', $e);
         }
     }
 
     /**
      * Set a tax configuration as active
      */
-    public function setActive(int $id): JsonResponse
+    public function setActive(Request $request, int $id): JsonResponse
     {
         $config = TaxConfiguration::find($id);
 
@@ -188,23 +220,40 @@ class TaxSettingsController extends Controller
         }
 
         try {
-            // Deactivate all others
-            TaxConfiguration::where('is_active', true)->update(['is_active' => false]);
+            return DB::transaction(function () use ($config, $request) {
+                // Log deactivation of current active config
+                $currentActive = TaxConfiguration::where('is_active', true)->first();
+                if ($currentActive && $currentActive->id !== $config->id) {
+                    $currentActive->is_active = false;
+                    $currentActive->save();
+                    $this->logAudit($currentActive, 'deactivated');
+                }
 
-            // Activate this one
-            $config->is_active = true;
-            $config->save();
+                // Deactivate all others
+                TaxConfiguration::where('is_active', true)
+                    ->where('id', '!=', $config->id)
+                    ->update(['is_active' => false]);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Tax configuration activated successfully',
-                'data' => $config,
-            ]);
+                // Activate this one
+                $config->is_active = true;
+                $config->save();
+
+                // Log activation
+                $this->logAudit(
+                    $config,
+                    'activated',
+                    null,
+                    $request->input('rationale')
+                );
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Tax configuration activated successfully',
+                    'data' => $config,
+                ]);
+            });
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to activate tax configuration: '.$e->getMessage(),
-            ], 500);
+            return $this->safeErrorResponse('Failed to activate tax configuration', $e);
         }
     }
 
@@ -293,10 +342,7 @@ class TaxSettingsController extends Controller
                 'data' => $calculations,
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to fetch calculations: '.$e->getMessage(),
-            ], 500);
+            return $this->safeErrorResponse('Failed to fetch calculations', $e);
         }
     }
 
@@ -339,6 +385,14 @@ class TaxSettingsController extends Controller
                     'is_active' => false, // New config starts as inactive
                 ]);
 
+                // Log audit
+                $this->logAudit(
+                    $duplicate,
+                    'duplicated',
+                    null,
+                    "Duplicated from tax year {$source->tax_year}"
+                );
+
                 return response()->json([
                     'success' => true,
                     'message' => 'Tax configuration duplicated successfully',
@@ -346,10 +400,7 @@ class TaxSettingsController extends Controller
                 ], 201);
             });
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to duplicate tax configuration: '.$e->getMessage(),
-            ], 500);
+            return $this->safeErrorResponse('Failed to duplicate tax configuration', $e);
         }
     }
 
@@ -383,10 +434,7 @@ class TaxSettingsController extends Controller
                 'message' => 'Tax configuration deleted successfully',
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to delete tax configuration: '.$e->getMessage(),
-            ], 500);
+            return $this->safeErrorResponse('Failed to delete tax configuration', $e);
         }
     }
 }

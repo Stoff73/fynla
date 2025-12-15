@@ -151,12 +151,11 @@ class PropertyTaxService
         $personalAllowance = $incomeTaxConfig['personal_allowance'];
         $basicRateThreshold = $personalAllowance + $incomeTaxBands[0]['max'];
 
-        // Get CGT rates for residential property
-        // Config uses flat keys: residential_property_basic_rate, residential_property_higher_rate
-        $basicCgtRate = $cgtConfig['residential_property_basic_rate'] ?? $cgtConfig['basic_rate'] ?? 18;
-        $higherCgtRate = $cgtConfig['residential_property_higher_rate'] ?? $cgtConfig['higher_rate'] ?? 24;
+        // Get CGT rates for residential property (stored as decimals, e.g., 0.18 for 18%)
+        $basicCgtRate = $cgtConfig['residential_property_basic_rate'] ?? $cgtConfig['basic_rate'] ?? 0.18;
+        $higherCgtRate = $cgtConfig['residential_property_higher_rate'] ?? $cgtConfig['higher_rate'] ?? 0.24;
         $cgtRate = $totalIncome > $basicRateThreshold ? $higherCgtRate : $basicCgtRate;
-        $cgtLiability = $taxableGain * ($cgtRate / 100);
+        $cgtLiability = $taxableGain * $cgtRate;
 
         $effectiveRate = $gain > 0 ? ($cgtLiability / $gain) * 100 : 0;
 
@@ -168,7 +167,7 @@ class PropertyTaxService
             'gross_gain' => $gain,
             'annual_exempt_amount' => $annualExemptAmount,
             'taxable_gain' => $taxableGain,
-            'cgt_rate' => (float) $cgtRate,
+            'cgt_rate' => (float) ($cgtRate * 100), // Convert decimal to percentage for display
             'cgt_liability' => round($cgtLiability, 2),
             'effective_rate' => round($effectiveRate, 2),
         ];
