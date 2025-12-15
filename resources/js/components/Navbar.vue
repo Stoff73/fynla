@@ -5,7 +5,7 @@
         <div class="flex">
           <div class="flex-shrink-0 flex items-center">
             <router-link to="/dashboard" class="cursor-pointer">
-              <img :src="logoUrl" alt="Fynla" class="h-20 w-auto" />
+              <img :src="logoUrl" alt="Fynla" class="h-36 w-auto mt-4" />
             </router-link>
           </div>
           <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
