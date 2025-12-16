@@ -134,7 +134,7 @@ class AssetAllocationOptimizer
 
         // Normalize to 100%
         $total = array_sum($baseAllocation);
-        if ($total != 100) {
+        if ($total > 0 && $total != 100) {
             foreach ($baseAllocation as $key => $value) {
                 $baseAllocation[$key] = round(($value / $total) * 100, 1);
             }
@@ -225,7 +225,7 @@ class AssetAllocationOptimizer
         $totalWeight = 0;
 
         foreach ($goals as $goal) {
-            $weight = $goal['target_value'] / $totalPortfolioValue;
+            $weight = $totalPortfolioValue > 0 ? $goal['target_value'] / $totalPortfolioValue : 0;
             $goalAllocation = $this->optimizeByTimeHorizon(
                 $goal['years_to_goal'],
                 $goal['target_value'],

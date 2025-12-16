@@ -25,19 +25,19 @@ class StoreDisabilityPolicyRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'provider' => ['required', 'string', 'max:255'],
+            'provider' => ['nullable', 'string', 'max:255'],
             'policy_number' => ['nullable', 'string', 'max:255'],
-            'benefit_amount' => ['required', 'numeric', 'min:100', 'max:9999999.99'],
-            'benefit_frequency' => ['required', Rule::in(['monthly', 'weekly'])],
+            'benefit_amount' => ['nullable', 'numeric', 'min:0', 'max:9999999.99'],
+            'benefit_frequency' => ['nullable', Rule::in(['monthly', 'weekly'])],
             'deferred_period_weeks' => ['nullable', 'integer', 'min:0', 'max:104'],
             'benefit_period_months' => ['nullable', 'integer', 'min:1', 'max:720'],
-            'premium_amount' => ['required', 'numeric', 'min:0', 'max:9999999.99'],
-            'premium_frequency' => ['required', Rule::in(['monthly', 'quarterly', 'annually'])],
+            'premium_amount' => ['nullable', 'numeric', 'min:0', 'max:9999999.99'],
+            'premium_frequency' => ['nullable', Rule::in(['monthly', 'quarterly', 'annually'])],
             'occupation_class' => ['nullable', 'string', 'max:255'],
             'policy_start_date' => ['nullable', 'date', 'before_or_equal:today'],
             'policy_end_date' => ['nullable', 'date', 'after:policy_start_date'],
             'policy_term_years' => ['nullable', 'integer', 'min:1', 'max:50'],
-            'coverage_type' => ['required', Rule::in(['accident_only', 'accident_and_sickness'])],
+            'coverage_type' => ['nullable', Rule::in(['accident_only', 'accident_and_sickness'])],
         ];
     }
 

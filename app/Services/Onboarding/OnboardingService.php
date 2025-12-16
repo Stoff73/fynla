@@ -718,6 +718,11 @@ class OnboardingService
      */
     private function calculateMortgagePayment(float $principal, float $annualRate, int $years): float
     {
+        // Prevent division by zero if years is 0
+        if ($years <= 0) {
+            return 0.0;
+        }
+
         if ($annualRate == 0) {
             return $principal / ($years * 12);
         }
@@ -725,8 +730,12 @@ class OnboardingService
         $monthlyRate = $annualRate / 12;
         $numPayments = $years * 12;
 
-        $payment = $principal * ($monthlyRate * pow(1 + $monthlyRate, $numPayments)) /
-                   (pow(1 + $monthlyRate, $numPayments) - 1);
+        $denominator = pow(1 + $monthlyRate, $numPayments) - 1;
+        if ($denominator == 0) {
+            return 0.0;
+        }
+
+        $payment = $principal * ($monthlyRate * pow(1 + $monthlyRate, $numPayments)) / $denominator;
 
         return round($payment, 2);
     }

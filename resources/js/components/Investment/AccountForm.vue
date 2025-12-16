@@ -29,14 +29,13 @@
             <!-- Account Type -->
             <div>
               <label for="account_type" class="block text-sm font-medium text-gray-700 mb-1">
-                Account Type <span class="text-red-500">*</span>
+                Account Type
               </label>
               <select
                 id="account_type"
                 v-model="formData.account_type"
                 class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 :class="{ 'border-red-500': errors.account_type }"
-                required
               >
                 <option value="">Select account type</option>
                 <option value="isa">ISA (Stocks & Shares)</option>
@@ -54,7 +53,7 @@
             <!-- Custom Account Type (if 'other' selected) -->
             <div v-if="formData.account_type === 'other'">
               <label for="account_type_other" class="block text-sm font-medium text-gray-700 mb-1">
-                Specify Account Type <span class="text-red-500">*</span>
+                Specify Account Type
               </label>
               <input
                 id="account_type_other"
@@ -63,7 +62,6 @@
                 class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 :class="{ 'border-red-500': errors.account_type_other }"
                 placeholder="e.g., Gold, Cryptocurrency, Classic Cars, Art Collection"
-                :required="formData.account_type === 'other'"
               />
               <p v-if="errors.account_type_other" class="mt-1 text-sm text-red-600">{{ errors.account_type_other }}</p>
               <p class="mt-1 text-xs text-gray-500">Enter the custom asset class for this investment</p>
@@ -72,7 +70,7 @@
             <!-- Provider -->
             <div>
               <label for="provider" class="block text-sm font-medium text-gray-700 mb-1">
-                Provider <span class="text-red-500">*</span>
+                Provider
               </label>
               <input
                 id="provider"
@@ -81,7 +79,6 @@
                 class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 :class="{ 'border-red-500': errors.provider }"
                 placeholder="e.g., Vanguard, Hargreaves Lansdown, Interactive Investor"
-                required
               />
               <p v-if="errors.provider" class="mt-1 text-sm text-red-600">{{ errors.provider }}</p>
             </div>
@@ -114,7 +111,7 @@
             <!-- Current Value -->
             <div>
               <label for="current_value" class="block text-sm font-medium text-gray-700 mb-1">
-                Current Value (£) <span class="text-red-500">*</span>
+                Current Value (£)
               </label>
               <input
                 id="current_value"
@@ -125,7 +122,6 @@
                 class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 :class="{ 'border-red-500': errors.current_value }"
                 placeholder="0.00"
-                required
               />
               <p v-if="errors.current_value" class="mt-1 text-sm text-red-600">{{ errors.current_value }}</p>
               <p class="mt-1 text-xs text-gray-500">Current total value of the account</p>
@@ -134,14 +130,13 @@
             <!-- Tax Year -->
             <div>
               <label for="tax_year" class="block text-sm font-medium text-gray-700 mb-1">
-                Tax Year <span class="text-red-500">*</span>
+                Tax Year
               </label>
               <select
                 id="tax_year"
                 v-model="formData.tax_year"
                 class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 :class="{ 'border-red-500': errors.tax_year }"
-                required
               >
                 <option value="2025/26">2025/26</option>
                 <option value="2024/25">2024/25</option>
@@ -246,13 +241,12 @@
               <!-- Ownership Type -->
               <div>
                 <label for="ownership_type" class="block text-sm font-medium text-gray-700 mb-1">
-                  Ownership Type <span class="text-red-500">*</span>
+                  Ownership Type
                 </label>
                 <select
                   id="ownership_type"
                   v-model="formData.ownership_type"
                   class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
                 >
                   <option value="individual">Individual Owner</option>
                   <option value="joint">Joint Owner</option>
@@ -263,12 +257,11 @@
               <!-- Joint Owner (if ownership_type is joint) -->
               <div v-if="formData.ownership_type === 'joint'">
                 <label for="joint_owner_id" class="block text-sm font-medium text-gray-700 mb-1">
-                  Joint Owner <span class="text-red-500">*</span>
+                  Joint Owner
                 </label>
                 <select
                   id="joint_owner_id"
                   v-model="formData.joint_owner_id"
-                  :required="formData.ownership_type === 'joint'"
                   class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Select joint owner</option>
@@ -283,12 +276,11 @@
               <!-- Trust (if ownership_type is trust) -->
               <div v-if="formData.ownership_type === 'trust'">
                 <label for="trust_id" class="block text-sm font-medium text-gray-700 mb-1">
-                  Trust <span class="text-red-500">*</span>
+                  Trust
                 </label>
                 <select
                   id="trust_id"
                   v-model="formData.trust_id"
-                  :required="formData.ownership_type === 'trust'"
                   class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Select trust</option>

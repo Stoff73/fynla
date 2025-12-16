@@ -36,12 +36,12 @@ class StoreDCPensionRequest extends FormRequest
     public function rules(): array
     {
         $rules = [
-            'scheme_name' => ['required', 'string', 'max:255'],
+            'scheme_name' => ['nullable', 'string', 'max:255'],
             'scheme_type' => ['nullable', 'in:workplace,sipp,personal'],
             'provider' => ['nullable', 'string', 'max:255'],
-            'pension_type' => ['required', 'in:occupational,sipp,personal,stakeholder'],
+            'pension_type' => ['nullable', 'in:occupational,sipp,personal,stakeholder'],
             'member_number' => ['nullable', 'string', 'max:255'],
-            'current_fund_value' => ['required', 'numeric', 'min:0'],
+            'current_fund_value' => ['nullable', 'numeric', 'min:0'],
             'annual_salary' => ['nullable', 'numeric', 'min:0'],
             'employee_contribution_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'employer_contribution_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
@@ -52,13 +52,6 @@ class StoreDCPensionRequest extends FormRequest
             'retirement_age' => ['nullable', 'integer', 'min:55', 'max:75'],
             'projected_value_at_retirement' => ['nullable', 'numeric', 'min:0'],
         ];
-
-        // For workplace pensions, require annual_salary if percentage contributions are provided
-        if ($this->input('scheme_type') === 'workplace') {
-            if ($this->filled('employee_contribution_percent') || $this->filled('employer_contribution_percent')) {
-                $rules['annual_salary'][] = 'required';
-            }
-        }
 
         return $rules;
     }

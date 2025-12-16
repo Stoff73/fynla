@@ -42,12 +42,11 @@
             <!-- Institution -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">
-                Institution <span class="text-red-500">*</span>
+                Institution
               </label>
               <input
                 v-model="formData.institution"
                 type="text"
-                required
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="e.g., Halifax, Barclays, Marcus"
               />
@@ -56,11 +55,10 @@
             <!-- Account Type -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">
-                Product Type <span class="text-red-500">*</span>
+                Product Type
               </label>
               <select
                 v-model="formData.account_type"
-                required
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="">Select product type...</option>
@@ -86,7 +84,7 @@
             <!-- Current Balance -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">
-                Current Balance <span class="text-red-500">*</span>
+                Current Balance
               </label>
               <div class="relative">
                 <span class="absolute left-3 top-2.5 text-gray-500">£</span>
@@ -94,7 +92,6 @@
                   v-model.number="formData.current_balance"
                   type="number"
                   step="0.01"
-                  required
                   min="0"
                   class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="0.00"
@@ -105,14 +102,13 @@
             <!-- Interest Rate -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">
-                Interest Rate <span class="text-red-500">*</span>
+                Interest Rate
               </label>
               <div class="relative">
                 <input
                   v-model.number="formData.interest_rate"
                   type="number"
                   step="0.01"
-                  required
                   min="0"
                   max="20"
                   class="w-full pr-8 pl-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -128,11 +124,10 @@
             <!-- Access Type -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">
-                Access Type <span class="text-red-500">*</span>
+                Access Type
               </label>
               <select
                 v-model="formData.access_type"
-                required
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="immediate">Immediate</option>
@@ -211,11 +206,10 @@
               <!-- ISA Type -->
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">
-                  ISA Type <span class="text-red-500">*</span>
+                  ISA Type
                 </label>
                 <select
                   v-model="formData.isa_type"
-                  :required="formData.is_isa"
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="">Select ISA type...</option>
@@ -228,11 +222,10 @@
               <!-- ISA Subscription Year -->
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">
-                  Tax Year <span class="text-red-500">*</span>
+                  Tax Year
                 </label>
                 <select
                   v-model="formData.isa_subscription_year"
-                  :required="formData.is_isa"
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="">Select tax year...</option>
@@ -270,11 +263,10 @@
               <!-- Ownership Type -->
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">
-                  Ownership Type <span class="text-red-500">*</span>
+                  Ownership Type
                 </label>
                 <select
                   v-model="formData.ownership_type"
-                  required
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="individual">Individual Owner</option>
@@ -285,11 +277,10 @@
               <!-- Joint Owner (if ownership_type is joint) -->
               <div v-if="formData.ownership_type === 'joint'">
                 <label class="block text-sm font-medium text-gray-700 mb-1">
-                  Joint Owner <span class="text-red-500">*</span>
+                  Joint Owner
                 </label>
                 <select
                   v-model="formData.joint_owner_id"
-                  :required="formData.ownership_type === 'joint'"
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="">Select joint owner</option>

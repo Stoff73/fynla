@@ -16,11 +16,11 @@ class StoreSavingsGoalRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'goal_name' => 'required|string|max:255',
-            'target_amount' => 'required|numeric|min:0',
+            'goal_name' => 'nullable|string|max:255',
+            'target_amount' => 'nullable|numeric|min:0',
             'current_saved' => 'nullable|numeric|min:0',
-            'target_date' => 'required|date|after:today',
-            'priority' => 'required|in:high,medium,low',
+            'target_date' => 'nullable|date|after:today',
+            'priority' => 'nullable|in:high,medium,low',
             'linked_account_id' => 'nullable|exists:savings_accounts,id',
             'auto_transfer_amount' => 'nullable|numeric|min:0',
         ];

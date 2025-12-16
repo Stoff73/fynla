@@ -15,7 +15,8 @@ class TestUsersSeeder extends Seeder
     {
         // Create first spouse (primary account holder)
         $johnSmith = User::create([
-            'name' => 'John Smith',
+            'first_name' => 'John',
+            'surname' => 'Smith',
             'email' => 'john@example.com',
             'password' => Hash::make('password'),
             'household_id' => 1, // Smith Family
@@ -38,7 +39,8 @@ class TestUsersSeeder extends Seeder
 
         // Create second spouse
         $janeSmith = User::create([
-            'name' => 'Jane Smith',
+            'first_name' => 'Jane',
+            'surname' => 'Smith',
             'email' => 'jane@example.com',
             'password' => Hash::make('password'),
             'household_id' => 1, // Smith Family
@@ -65,7 +67,8 @@ class TestUsersSeeder extends Seeder
 
         // Create single user in second household
         User::create([
-            'name' => 'Sarah Jones',
+            'first_name' => 'Sarah',
+            'surname' => 'Jones',
             'email' => 'sarah@example.com',
             'password' => Hash::make('password'),
             'household_id' => 2, // Jones Family

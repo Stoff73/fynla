@@ -130,8 +130,10 @@ class PreviewUserSeeder extends Seeder
         $user->is_preview_user = true;
         $user->preview_persona_id = $personaId;
 
-        // Basic info
-        $user->name = ($userData['first_name'] ?? '').' '.($userData['last_name'] ?? '');
+        // Basic info - using new separate name fields
+        $user->first_name = $userData['first_name'] ?? null;
+        $user->middle_name = $userData['middle_name'] ?? null;
+        $user->surname = $userData['last_name'] ?? null;
         $user->email = "preview_{$personaId}@fynla.local";
         $user->password = Hash::make(Str::random(32)); // Random password - never used
 
@@ -196,8 +198,10 @@ class PreviewUserSeeder extends Seeder
         $spouse->is_preview_user = true;
         $spouse->preview_persona_id = "{$personaId}_spouse";
 
-        // Basic info
-        $spouse->name = ($spouseData['first_name'] ?? '').' '.($spouseData['last_name'] ?? '');
+        // Basic info - using new separate name fields
+        $spouse->first_name = $spouseData['first_name'] ?? null;
+        $spouse->middle_name = $spouseData['middle_name'] ?? null;
+        $spouse->surname = $spouseData['last_name'] ?? null;
         $spouse->email = "preview_{$personaId}_spouse@fynla.local";
         $spouse->password = Hash::make(Str::random(32));
 

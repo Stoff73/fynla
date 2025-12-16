@@ -125,9 +125,9 @@ class PerformanceAttributionAnalyzer
 
         // Calculate percentages and expected returns
         foreach ($breakdown as $assetClass => &$data) {
-            $data['percentage'] = ($data['value'] / $totalValue) * 100;
+            $data['percentage'] = $totalValue > 0 ? ($data['value'] / $totalValue) * 100 : 0;
             $data['return'] = $data['value'] > 0 ? ($data['gain_loss'] / $data['value']) * 100 : 0;
-            $data['contribution_to_return'] = ($data['value'] / $totalValue) * $data['return'];
+            $data['contribution_to_return'] = $totalValue > 0 ? ($data['value'] / $totalValue) * $data['return'] : 0;
         }
 
         // Sort by value descending
@@ -176,7 +176,7 @@ class PerformanceAttributionAnalyzer
 
         // Calculate percentages
         foreach ($breakdown as $sector => &$data) {
-            $data['percentage'] = ($data['value'] / $totalValue) * 100;
+            $data['percentage'] = $totalValue > 0 ? ($data['value'] / $totalValue) * 100 : 0;
             $data['return'] = $data['value'] > 0 ? ($data['gain_loss'] / $data['value']) * 100 : 0;
         }
 
@@ -225,7 +225,7 @@ class PerformanceAttributionAnalyzer
 
         // Calculate percentages
         foreach ($breakdown as $geography => &$data) {
-            $data['percentage'] = ($data['value'] / $totalValue) * 100;
+            $data['percentage'] = $totalValue > 0 ? ($data['value'] / $totalValue) * 100 : 0;
             $data['return'] = $data['value'] > 0 ? ($data['gain_loss'] / $data['value']) * 100 : 0;
         }
 
@@ -255,9 +255,9 @@ class PerformanceAttributionAnalyzer
             }
 
             $gainLoss = $holding->current_value - $holding->cost_basis;
-            $return = ($gainLoss / $holding->cost_basis) * 100;
-            $weight = ($holding->current_value / $totalValue) * 100;
-            $contribution = ($gainLoss / $totalValue) * 100;
+            $return = $holding->cost_basis > 0 ? ($gainLoss / $holding->cost_basis) * 100 : 0;
+            $weight = $totalValue > 0 ? ($holding->current_value / $totalValue) * 100 : 0;
+            $contribution = $totalValue > 0 ? ($gainLoss / $totalValue) * 100 : 0;
 
             $contributions[] = [
                 'holding_id' => $holding->id,

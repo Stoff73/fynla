@@ -231,8 +231,8 @@ class AssetLocationOptimizer
 
         // Deduct for unrealized savings potential
         $potentialSaving = $recommendations['total_potential_annual_saving'] ?? 0;
-        $totalValue = $portfolioTaxDrag['total_portfolio_value'] ?? 1;
-        $savingPercent = ($potentialSaving / $totalValue) * 100;
+        $totalValue = $portfolioTaxDrag['total_portfolio_value'] ?? 0;
+        $savingPercent = $totalValue > 0 ? ($potentialSaving / $totalValue) * 100 : 0;
 
         if ($savingPercent > 0.5) {
             $deduction = min(25, ($savingPercent - 0.5) * 20);

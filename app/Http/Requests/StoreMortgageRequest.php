@@ -23,18 +23,18 @@ class StoreMortgageRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'lender_name' => ['required', 'string', 'max:255'],
+            'lender_name' => ['nullable', 'string', 'max:255'],
             'mortgage_account_number' => ['nullable', 'string', 'max:50'],
             'mortgage_type' => ['nullable', Rule::in(['repayment', 'interest_only', 'mixed'])],
             'country' => ['nullable', 'string', 'max:255'],
 
             // Mixed mortgage type fields (repayment vs interest-only split)
-            'repayment_percentage' => ['nullable', 'numeric', 'min:0', 'max:100', 'required_if:mortgage_type,mixed'],
-            'interest_only_percentage' => ['nullable', 'numeric', 'min:0', 'max:100', 'required_if:mortgage_type,mixed'],
+            'repayment_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'interest_only_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
 
-            // Loan details - outstanding_balance and monthly_payment required
+            // Loan details - all optional now
             'original_loan_amount' => ['nullable', 'numeric', 'min:0'],
-            'outstanding_balance' => ['required', 'numeric', 'min:0'],
+            'outstanding_balance' => ['nullable', 'numeric', 'min:0'],
 
             // Interest - optional, default to 0 if not provided
             'interest_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
@@ -42,13 +42,13 @@ class StoreMortgageRequest extends FormRequest
             'rate_fix_end_date' => ['nullable', 'date'],
 
             // Mixed rate type fields (fixed vs variable split)
-            'fixed_rate_percentage' => ['nullable', 'numeric', 'min:0', 'max:100', 'required_if:rate_type,mixed'],
-            'variable_rate_percentage' => ['nullable', 'numeric', 'min:0', 'max:100', 'required_if:rate_type,mixed'],
-            'fixed_interest_rate' => ['nullable', 'numeric', 'min:0', 'max:100', 'required_if:rate_type,mixed'],
-            'variable_interest_rate' => ['nullable', 'numeric', 'min:0', 'max:100', 'required_if:rate_type,mixed'],
+            'fixed_rate_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'variable_rate_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'fixed_interest_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'variable_interest_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
 
             // Payment
-            'monthly_payment' => ['required', 'numeric', 'min:0'],
+            'monthly_payment' => ['nullable', 'numeric', 'min:0'],
 
             // Dates
             'start_date' => ['nullable', 'date'],

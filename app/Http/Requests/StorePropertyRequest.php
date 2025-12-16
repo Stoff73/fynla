@@ -24,7 +24,7 @@ class StorePropertyRequest extends FormRequest
     {
         return [
             'trust_id' => ['nullable', 'exists:trusts,id'],
-            'property_type' => ['required', Rule::in(['main_residence', 'secondary_residence', 'buy_to_let'])],
+            'property_type' => ['nullable', Rule::in(['main_residence', 'secondary_residence', 'buy_to_let'])],
             'ownership_type' => ['nullable', Rule::in(['individual', 'joint', 'tenants_in_common', 'trust'])],
             'joint_ownership_type' => ['nullable', Rule::in(['joint_tenancy', 'tenants_in_common'])],
             'country' => ['nullable', 'string', 'max:255'],
@@ -39,17 +39,17 @@ class StorePropertyRequest extends FormRequest
             'lease_remaining_years' => ['nullable', 'integer', 'min:0', 'max:999'],
             'lease_expiry_date' => ['nullable', 'date'],
 
-            // Address - using separate fields (address_line_1 is the primary field)
-            'address_line_1' => ['required', 'string', 'max:255'],
+            // Address - all fields optional
+            'address_line_1' => ['nullable', 'string', 'max:255'],
             'address_line_2' => ['nullable', 'string', 'max:255'],
-            'city' => ['required', 'string', 'max:255'],
+            'city' => ['nullable', 'string', 'max:255'],
             'county' => ['nullable', 'string', 'max:255'],
-            'postcode' => ['required', 'string', 'max:10'],
+            'postcode' => ['nullable', 'string', 'max:10'],
 
             // Financial
             'purchase_date' => ['nullable', 'date'],
             'purchase_price' => ['nullable', 'numeric', 'min:0'],
-            'current_value' => ['required', 'numeric', 'min:0'],
+            'current_value' => ['nullable', 'numeric', 'min:0'],
             'valuation_date' => ['nullable', 'date'],
             'sdlt_paid' => ['nullable', 'numeric', 'min:0'],
             'outstanding_mortgage' => ['nullable', 'numeric', 'min:0'],

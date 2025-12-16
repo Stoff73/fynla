@@ -190,7 +190,7 @@ class EfficientFrontierCalculator
         if ($totalValue == 0) {
             $n = $holdings->count();
 
-            return array_fill(0, $n, 1 / $n); // Equal weight if no values
+            return $n > 0 ? array_fill(0, $n, 1 / $n) : []; // Equal weight if no values
         }
 
         $weights = [];

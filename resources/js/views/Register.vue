@@ -36,22 +36,60 @@
         </div>
 
         <div class="space-y-4">
-          <div>
-            <label for="name" class="label">
-              Full Name
-            </label>
-            <input
-              id="name"
-              v-model="form.name"
-              type="text"
-              required
-              class="input-field"
-              :class="{ 'border-error-600': errors.name }"
-              placeholder="John Smith"
-            >
-            <p v-if="errors.name" class="mt-1 text-body-sm text-error-600">
-              {{ errors.name[0] }}
-            </p>
+          <!-- Name Fields Row -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label for="first_name" class="label">
+                First Name <span class="text-error-600">*</span>
+              </label>
+              <input
+                id="first_name"
+                v-model="form.first_name"
+                type="text"
+                required
+                class="input-field"
+                :class="{ 'border-error-600': errors.first_name }"
+                placeholder="John"
+              >
+              <p v-if="errors.first_name" class="mt-1 text-body-sm text-error-600">
+                {{ errors.first_name[0] }}
+              </p>
+            </div>
+
+            <div>
+              <label for="middle_name" class="label">
+                Middle Name
+              </label>
+              <input
+                id="middle_name"
+                v-model="form.middle_name"
+                type="text"
+                class="input-field"
+                :class="{ 'border-error-600': errors.middle_name }"
+                placeholder="David"
+              >
+              <p v-if="errors.middle_name" class="mt-1 text-body-sm text-error-600">
+                {{ errors.middle_name[0] }}
+              </p>
+            </div>
+
+            <div>
+              <label for="surname" class="label">
+                Surname <span class="text-error-600">*</span>
+              </label>
+              <input
+                id="surname"
+                v-model="form.surname"
+                type="text"
+                required
+                class="input-field"
+                :class="{ 'border-error-600': errors.surname }"
+                placeholder="Smith"
+              >
+              <p v-if="errors.surname" class="mt-1 text-body-sm text-error-600">
+                {{ errors.surname[0] }}
+              </p>
+            </div>
           </div>
 
           <div>
@@ -155,7 +193,9 @@ export default {
     const router = useRouter();
 
     const form = ref({
-      name: '',
+      first_name: '',
+      middle_name: '',
+      surname: '',
       email: '',
       password: '',
       password_confirmation: '',

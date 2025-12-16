@@ -17,7 +17,8 @@ class AdminUserSeeder extends Seeder
         User::updateOrCreate(
             ['email' => 'admin@fps.com'],
             [
-                'name' => 'Admin User',
+                'first_name' => 'Admin',
+                'surname' => 'User',
                 'password' => Hash::make('admin123'),
                 'role' => 'admin',
                 'is_admin' => true,  // Required for admin access checks

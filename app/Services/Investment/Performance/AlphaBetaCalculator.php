@@ -227,7 +227,7 @@ class AlphaBetaCalculator
      */
     private function calculateMean(array $values): float
     {
-        return array_sum($values) / count($values);
+        return count($values) > 0 ? array_sum($values) / count($values) : 0.0;
     }
 
     /**

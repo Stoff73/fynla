@@ -19,12 +19,11 @@
           <!-- Pension Type -->
           <div>
             <label for="pension_type" class="block text-sm font-medium text-gray-700 mb-2">
-              Pension Type <span class="text-red-500">*</span>
+              Pension Type
             </label>
             <select
               id="pension_type"
               v-model="formData.pension_type"
-              required
               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               @change="handlePensionTypeChange"
             >
@@ -42,13 +41,12 @@
           <!-- Scheme Name -->
           <div>
             <label for="scheme_name" class="block text-sm font-medium text-gray-700 mb-2">
-              Scheme Name <span class="text-red-500">*</span>
+              Scheme Name
             </label>
             <input
               id="scheme_name"
               v-model="formData.scheme_name"
               type="text"
-              required
               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               placeholder="e.g., Aviva Master Trust"
             />
@@ -85,7 +83,7 @@
           <!-- Current Fund Value -->
           <div>
             <label for="current_fund_value" class="block text-sm font-medium text-gray-700 mb-2">
-              Current Fund Value (£) <span class="text-red-500">*</span>
+              Current Fund Value (£)
             </label>
             <input
               id="current_fund_value"
@@ -93,7 +91,6 @@
               type="number"
               step="0.01"
               min="0"
-              required
               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               placeholder="e.g., 50000.00"
             />
@@ -102,7 +99,7 @@
           <!-- Workplace Pension: Annual Salary -->
           <div v-if="isWorkplacePension">
             <label for="annual_salary" class="block text-sm font-medium text-gray-700 mb-2">
-              Annual Salary (£) <span class="text-red-500">*</span>
+              Annual Salary (£)
             </label>
             <input
               id="annual_salary"
@@ -110,7 +107,6 @@
               type="number"
               step="0.01"
               min="0"
-              :required="isWorkplacePension"
               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               placeholder="e.g., 50000.00"
             />

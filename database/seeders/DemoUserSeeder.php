@@ -15,7 +15,8 @@ class DemoUserSeeder extends Seeder
     {
         // Create a demo user
         User::create([
-            'name' => 'Demo User',
+            'first_name' => 'Demo',
+            'surname' => 'User',
             'email' => 'demo@fps.com',
             'password' => Hash::make('password'),
             'email_verified_at' => now(),

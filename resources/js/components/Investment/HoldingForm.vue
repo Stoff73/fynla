@@ -29,7 +29,7 @@
             <!-- Account Selection -->
             <div>
               <label for="account_id" class="block text-sm font-medium text-gray-700 mb-1">
-                Account <span class="text-red-500">*</span>
+                Account
               </label>
               <select
                 id="account_id"
@@ -37,7 +37,6 @@
                 class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 :class="{ 'border-red-500': errors.investment_account_id }"
                 :disabled="accounts.length === 0"
-                required
               >
                 <option value="">{{ accounts.length === 0 ? 'No accounts available' : 'Select an account' }}</option>
                 <option v-for="account in accounts" :key="account.id" :value="account.id">
@@ -53,7 +52,7 @@
             <!-- Security Name -->
             <div>
               <label for="security_name" class="block text-sm font-medium text-gray-700 mb-1">
-                Security Name <span class="text-red-500">*</span>
+                Security Name
               </label>
               <input
                 id="security_name"
@@ -62,7 +61,6 @@
                 class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 :class="{ 'border-red-500': errors.security_name }"
                 placeholder="e.g., Vanguard FTSE All-World"
-                required
               />
               <p v-if="errors.security_name" class="mt-1 text-sm text-red-600">{{ errors.security_name }}</p>
             </div>
@@ -98,14 +96,13 @@
             <!-- Asset Type -->
             <div>
               <label for="asset_type" class="block text-sm font-medium text-gray-700 mb-1">
-                Asset Type <span class="text-red-500">*</span>
+                Asset Type
               </label>
               <select
                 id="asset_type"
                 v-model="formData.asset_type"
                 class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 :class="{ 'border-red-500': errors.asset_type }"
-                required
               >
                 <option value="">Select asset type</option>
                 <option value="uk_equity">UK Equity</option>
@@ -125,7 +122,7 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label for="allocation_percent" class="block text-sm font-medium text-gray-700 mb-1">
-                  Allocation % of Account <span class="text-red-500">*</span>
+                  Allocation % of Account
                 </label>
                 <div class="relative">
                   <input
@@ -138,7 +135,6 @@
                     class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-8"
                     :class="{ 'border-red-500': errors.allocation_percent }"
                     placeholder="e.g., 25.5"
-                    required
                   />
                   <span class="absolute right-3 top-2.5 text-gray-500">%</span>
                 </div>

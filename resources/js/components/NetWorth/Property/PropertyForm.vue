@@ -72,12 +72,11 @@
             <h4 class="text-lg font-semibold text-gray-800 mb-4">Basic Information</h4>
 
             <div>
-              <label for="property_type" class="block text-sm font-medium text-gray-700 mb-1">Property Type <span class="text-red-500">*</span></label>
+              <label for="property_type" class="block text-sm font-medium text-gray-700 mb-1">Property Type</label>
               <select
                 id="property_type"
                 name="property_type"
                 v-model="form.property_type"
-                required
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">Select property type</option>
@@ -89,13 +88,12 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label for="address_line_1" class="block text-sm font-medium text-gray-700 mb-1">Address Line 1 <span class="text-red-500">*</span></label>
+                <label for="address_line_1" class="block text-sm font-medium text-gray-700 mb-1">Address Line 1</label>
                 <input
                   id="address_line_1"
                   name="address_line_1"
                   v-model="form.address_line_1"
                   type="text"
-                  required
                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -112,13 +110,12 @@
               </div>
 
               <div>
-                <label for="city" class="block text-sm font-medium text-gray-700 mb-1">City <span class="text-red-500">*</span></label>
+                <label for="city" class="block text-sm font-medium text-gray-700 mb-1">City</label>
                 <input
                   id="city"
                   name="city"
                   v-model="form.city"
                   type="text"
-                  required
                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -135,13 +132,12 @@
               </div>
 
               <div>
-                <label for="postcode" class="block text-sm font-medium text-gray-700 mb-1">Postcode <span class="text-red-500">*</span></label>
+                <label for="postcode" class="block text-sm font-medium text-gray-700 mb-1">Postcode</label>
                 <input
                   id="postcode"
                   name="postcode"
                   v-model="form.postcode"
                   type="text"
-                  required
                   pattern="^[A-Z]{1,2}[0-9]{1,2}[A-Z]?\s?[0-9][A-Z]{2}$"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase"
                   placeholder="SW1A 1AA"
@@ -151,12 +147,11 @@
 
             <!-- Country Selector -->
             <div>
-              <label for="country" class="block text-sm font-medium text-gray-700 mb-1">Property Country <span class="text-red-500">*</span></label>
+              <label for="country" class="block text-sm font-medium text-gray-700 mb-1">Property Country</label>
               <CountrySelector
                 v-model="form.country"
                 placeholder="Select country where property is located"
                 id="country"
-                :required="true"
               />
               <p class="text-sm text-gray-500 mt-1">Country where the property is located</p>
 
@@ -198,7 +193,7 @@
 
               <div>
                 <label for="current_value" class="block text-sm font-medium text-gray-700 mb-1">
-                  {{ isJointPropertyEdit ? 'Full Property Value (£)' : 'Current Value (£)' }} <span class="text-red-500">*</span>
+                  {{ isJointPropertyEdit ? 'Full Property Value (£)' : 'Current Value (£)' }}
                 </label>
                 <input
                   id="current_value"
@@ -207,7 +202,6 @@
                   type="number"
                   step="any"
                   min="0"
-                  required
                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <p v-if="isJointPropertyEdit" class="text-xs text-blue-600 mt-1">
@@ -247,14 +241,13 @@
 
             <!-- Tenure Type -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Tenure Type <span class="text-red-500">*</span></label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Tenure Type</label>
               <div class="space-y-2">
                 <label class="flex items-center">
                   <input
                     type="radio"
                     v-model="form.tenure_type"
                     value="freehold"
-                    required
                     class="mr-2"
                   />
                   <span>Freehold</span>
@@ -264,7 +257,6 @@
                     type="radio"
                     v-model="form.tenure_type"
                     value="leasehold"
-                    required
                     class="mr-2"
                   />
                   <span>Leasehold</span>
@@ -281,7 +273,7 @@
 
               <div>
                 <label for="lease_remaining_years" class="block text-sm font-medium text-gray-700 mb-1">
-                  Remaining Lease Term (Years) <span class="text-red-500">*</span>
+                  Remaining Lease Term (Years)
                 </label>
                 <input
                   id="lease_remaining_years"
@@ -289,7 +281,6 @@
                   type="number"
                   min="1"
                   max="999"
-                  required
                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <p v-if="form.lease_remaining_years && form.lease_remaining_years < 80" class="text-xs text-amber-600 mt-1">
@@ -315,14 +306,13 @@
 
             <!-- Ownership Type -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Ownership Type <span class="text-red-500">*</span></label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Ownership Type</label>
               <div class="space-y-2">
                 <label class="flex items-start">
                   <input
                     type="radio"
                     v-model="form.ownership_type"
                     value="individual"
-                    required
                     class="mr-2 mt-0.5"
                   />
                   <div>
@@ -335,7 +325,6 @@
                     type="radio"
                     v-model="form.ownership_type"
                     value="joint"
-                    required
                     class="mr-2 mt-0.5"
                   />
                   <div>
@@ -348,7 +337,6 @@
                     type="radio"
                     v-model="form.ownership_type"
                     value="tenants_in_common"
-                    required
                     class="mr-2 mt-0.5"
                   />
                   <div>
@@ -361,7 +349,6 @@
                     type="radio"
                     v-model="form.ownership_type"
                     value="trust"
-                    required
                     class="mr-2 mt-0.5"
                   />
                   <div>
@@ -399,13 +386,12 @@
               <!-- Joint Owner Selection -->
               <div>
                 <label for="joint_owner_selection" class="block text-sm font-medium text-gray-700 mb-1">
-                  Joint Owner <span class="text-red-500">*</span>
+                  Joint Owner
                 </label>
                 <select
                   id="joint_owner_selection"
                   v-model="jointOwnerSelection"
                   @change="handleJointOwnerSelection"
-                  required
                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Select joint owner</option>
@@ -417,13 +403,12 @@
               <!-- Free Text Joint Owner Name -->
               <div v-if="jointOwnerSelection === 'other'">
                 <label for="joint_owner_name" class="block text-sm font-medium text-gray-700 mb-1">
-                  Joint Owner Name <span class="text-red-500">*</span>
+                  Joint Owner Name
                 </label>
                 <input
                   id="joint_owner_name"
                   v-model="form.joint_owner_name"
                   type="text"
-                  required
                   placeholder="Enter joint owner's full name"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
@@ -444,7 +429,7 @@
               <!-- Ownership Percentage Input -->
               <div>
                 <label for="ownership_percentage" class="block text-sm font-medium text-gray-700 mb-1">
-                  Your Ownership Share (%) <span class="text-red-500">*</span>
+                  Your Ownership Share (%)
                 </label>
                 <input
                   id="ownership_percentage"
@@ -452,7 +437,6 @@
                   type="number"
                   min="1"
                   max="99"
-                  required
                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                 />
                 <p class="text-xs text-gray-500 mt-1">
@@ -483,13 +467,12 @@
               <!-- Joint Owner Selection -->
               <div>
                 <label for="tenants_joint_owner_selection" class="block text-sm font-medium text-gray-700 mb-1">
-                  Co-Owner <span class="text-red-500">*</span>
+                  Co-Owner
                 </label>
                 <select
                   id="tenants_joint_owner_selection"
                   v-model="jointOwnerSelection"
                   @change="handleJointOwnerSelection"
-                  required
                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                 >
                   <option value="">Select co-owner</option>
@@ -501,13 +484,12 @@
               <!-- Free Text Joint Owner Name -->
               <div v-if="jointOwnerSelection === 'other'">
                 <label for="tenants_joint_owner_name" class="block text-sm font-medium text-gray-700 mb-1">
-                  Co-Owner Name <span class="text-red-500">*</span>
+                  Co-Owner Name
                 </label>
                 <input
                   id="tenants_joint_owner_name"
                   v-model="form.joint_owner_name"
                   type="text"
-                  required
                   placeholder="Enter co-owner's full name"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                 />
@@ -558,13 +540,12 @@
               <!-- Trust Selection -->
               <div>
                 <label for="trust_selection" class="block text-sm font-medium text-gray-700 mb-1">
-                  Trust <span class="text-red-500">*</span>
+                  Trust
                 </label>
                 <select
                   id="trust_selection"
                   v-model="trustSelection"
                   @change="handleTrustSelection"
-                  required
                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
                   <option value="">Select trust</option>
@@ -576,13 +557,12 @@
               <!-- Free Text Trust Name -->
               <div v-if="trustSelection === 'other'">
                 <label for="trust_name" class="block text-sm font-medium text-gray-700 mb-1">
-                  Trust Name <span class="text-red-500">*</span>
+                  Trust Name
                 </label>
                 <input
                   id="trust_name"
                   v-model="form.trust_name"
                   type="text"
-                  required
                   placeholder="Enter trust name"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
@@ -599,7 +579,7 @@
 
             <div>
               <label for="lender_name" class="block text-sm font-medium text-gray-700 mb-1">
-                Lender Name <span class="text-red-500">*</span>
+                Lender Name
               </label>
               <input
                 id="lender_name"
@@ -650,7 +630,7 @@
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label for="repayment_percentage" class="block text-sm font-medium text-blue-900 mb-1">
-                    Repayment Portion (%) <span class="text-red-500">*</span>
+                    Repayment Portion (%)
                   </label>
                   <input
                     id="repayment_percentage"
@@ -659,7 +639,6 @@
                     step="0.01"
                     min="0"
                     max="100"
-                    :required="mortgageForm.mortgage_type === 'mixed'"
                     class="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                     placeholder="e.g., 40"
                   />
@@ -668,7 +647,7 @@
 
                 <div>
                   <label for="interest_only_percentage" class="block text-sm font-medium text-blue-900 mb-1">
-                    Interest-Only Portion (%) <span class="text-red-500">*</span>
+                    Interest-Only Portion (%)
                   </label>
                   <input
                     id="interest_only_percentage"
@@ -677,7 +656,6 @@
                     step="0.01"
                     min="0"
                     max="100"
-                    :required="mortgageForm.mortgage_type === 'mixed'"
                     class="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                     placeholder="e.g., 60"
                   />
@@ -708,7 +686,7 @@
 
               <div>
                 <label for="outstanding_balance" class="block text-sm font-medium text-gray-700 mb-1">
-                  {{ isJointPropertyEdit ? 'Full Outstanding Balance (£)' : 'Outstanding Balance (£)' }} <span class="text-red-500">*</span>
+                  {{ isJointPropertyEdit ? 'Full Outstanding Balance (£)' : 'Outstanding Balance (£)' }}
                 </label>
                 <input
                   id="outstanding_balance"
@@ -716,7 +694,6 @@
                   type="number"
                   step="0.01"
                   min="0"
-                  required
                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <p v-if="isJointPropertyEdit" class="text-xs text-blue-600 mt-1">
@@ -784,7 +761,7 @@
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label for="fixed_rate_percentage" class="block text-sm font-medium text-green-900 mb-1">
-                    Fixed Rate Portion (%) <span class="text-red-500">*</span>
+                    Fixed Rate Portion (%)
                   </label>
                   <input
                     id="fixed_rate_percentage"
@@ -793,7 +770,6 @@
                     step="0.01"
                     min="0"
                     max="100"
-                    :required="mortgageForm.rate_type === 'mixed'"
                     class="w-full px-3 py-2 border border-green-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
                     placeholder="e.g., 20"
                   />
@@ -802,7 +778,7 @@
 
                 <div>
                   <label for="variable_rate_percentage" class="block text-sm font-medium text-green-900 mb-1">
-                    Variable Rate Portion (%) <span class="text-red-500">*</span>
+                    Variable Rate Portion (%)
                   </label>
                   <input
                     id="variable_rate_percentage"
@@ -811,7 +787,6 @@
                     step="0.01"
                     min="0"
                     max="100"
-                    :required="mortgageForm.rate_type === 'mixed'"
                     class="w-full px-3 py-2 border border-green-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
                     placeholder="e.g., 80"
                   />
@@ -822,7 +797,7 @@
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label for="fixed_interest_rate" class="block text-sm font-medium text-green-900 mb-1">
-                    Fixed Interest Rate (%) <span class="text-red-500">*</span>
+                    Fixed Interest Rate (%)
                   </label>
                   <input
                     id="fixed_interest_rate"
@@ -831,7 +806,6 @@
                     step="0.01"
                     min="0"
                     max="100"
-                    :required="mortgageForm.rate_type === 'mixed'"
                     class="w-full px-3 py-2 border border-green-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
                     placeholder="e.g., 3.5"
                   />
@@ -840,7 +814,7 @@
 
                 <div>
                   <label for="variable_interest_rate" class="block text-sm font-medium text-green-900 mb-1">
-                    Variable Interest Rate (%) <span class="text-red-500">*</span>
+                    Variable Interest Rate (%)
                   </label>
                   <input
                     id="variable_interest_rate"
@@ -849,7 +823,6 @@
                     step="0.01"
                     min="0"
                     max="100"
-                    :required="mortgageForm.rate_type === 'mixed'"
                     class="w-full px-3 py-2 border border-green-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
                     placeholder="e.g., 4.2"
                   />
@@ -867,7 +840,7 @@
 
             <div>
               <label for="monthly_payment" class="block text-sm font-medium text-gray-700 mb-1">
-                Monthly Payment (£) <span class="text-red-500">*</span>
+                Monthly Payment (£)
               </label>
               <input
                 id="monthly_payment"
@@ -875,7 +848,6 @@
                 type="number"
                 step="0.01"
                 min="0"
-                required
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <p class="text-sm text-gray-500 mt-1">Enter your monthly mortgage payment amount</p>

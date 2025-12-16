@@ -25,14 +25,14 @@ class StoreLifePolicyRequest extends FormRequest
     public function rules(): array
     {
         $rules = [
-            'policy_type' => ['required', Rule::in(['term', 'whole_of_life', 'decreasing_term', 'family_income_benefit', 'level_term'])],
-            'provider' => ['required', 'string', 'max:255'],
+            'policy_type' => ['nullable', Rule::in(['term', 'whole_of_life', 'decreasing_term', 'family_income_benefit', 'level_term'])],
+            'provider' => ['nullable', 'string', 'max:255'],
             'policy_number' => ['nullable', 'string', 'max:255'],
-            'sum_assured' => ['required', 'numeric', 'min:1000', 'max:9999999999999.99'],
-            'premium_amount' => ['required', 'numeric', 'min:0', 'max:9999999.99'],
-            'premium_frequency' => ['required', Rule::in(['monthly', 'quarterly', 'annually'])],
-            'in_trust' => ['required', 'boolean'],
-            'is_mortgage_protection' => ['required', 'boolean'],
+            'sum_assured' => ['nullable', 'numeric', 'min:0', 'max:9999999999999.99'],
+            'premium_amount' => ['nullable', 'numeric', 'min:0', 'max:9999999.99'],
+            'premium_frequency' => ['nullable', Rule::in(['monthly', 'quarterly', 'annually'])],
+            'in_trust' => ['nullable', 'boolean'],
+            'is_mortgage_protection' => ['nullable', 'boolean'],
             'beneficiaries' => ['nullable', 'string', 'max:1000'],
         ];
 
@@ -41,9 +41,9 @@ class StoreLifePolicyRequest extends FormRequest
         $policyType = $this->input('policy_type');
 
         if ($policyType === 'decreasing_term') {
-            // Decreasing policies need start value and decreasing rate for calculations
-            $rules['start_value'] = ['required', 'numeric', 'min:1000', 'max:9999999999999.99'];
-            $rules['decreasing_rate'] = ['required', 'numeric', 'min:0', 'max:1'];
+            // Decreasing policies may have start value and decreasing rate for calculations
+            $rules['start_value'] = ['nullable', 'numeric', 'min:0', 'max:9999999999999.99'];
+            $rules['decreasing_rate'] = ['nullable', 'numeric', 'min:0', 'max:1'];
             $rules['policy_start_date'] = ['nullable', 'date', 'before_or_equal:today'];
             $rules['policy_end_date'] = ['nullable', 'date', 'after:today'];
             $rules['policy_term_years'] = ['nullable', 'integer', 'min:1', 'max:50'];

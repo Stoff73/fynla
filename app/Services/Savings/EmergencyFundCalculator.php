@@ -25,7 +25,7 @@ class EmergencyFundCalculator
      */
     public function calculateAdequacy(float $runway, int $targetMonths = 6): array
     {
-        $adequacyScore = min(100, ($runway / $targetMonths) * 100);
+        $adequacyScore = $targetMonths > 0 ? min(100, ($runway / $targetMonths) * 100) : 0;
         $shortfall = max(0, $targetMonths - $runway);
 
         return [

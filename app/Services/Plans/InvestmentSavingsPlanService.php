@@ -565,8 +565,8 @@ class InvestmentSavingsPlanService
 
         // Fee efficiency score (inverse of fee drag - estimate)
         if (isset($analysis['fee_analysis']['total_annual_fees'])) {
-            $totalValue = $analysis['portfolio_summary']['total_value'] ?? 1;
-            $feePercent = ($analysis['fee_analysis']['total_annual_fees'] / $totalValue) * 100;
+            $totalValue = $analysis['portfolio_summary']['total_value'] ?? 0;
+            $feePercent = $totalValue > 0 ? ($analysis['fee_analysis']['total_annual_fees'] / $totalValue) * 100 : 0;
             // Score: 100 for 0% fees, decreases as fees increase
             $feeScore = max(0, 100 - ($feePercent * 50)); // Penalize heavily for high fees
             $scores[] = $feeScore;

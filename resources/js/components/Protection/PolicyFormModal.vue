@@ -42,11 +42,10 @@
             <!-- Policy Type Selection (only for new policies) -->
             <div v-if="!isEditing">
               <label class="block text-sm font-medium text-gray-700 mb-1">
-                Policy Type <span class="text-red-500">*</span>
+                Policy Type
               </label>
               <select
                 v-model="formData.policyType"
-                required
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="">Select policy type...</option>
@@ -61,11 +60,10 @@
             <!-- Life Policy Type (appears when Life Insurance is selected) -->
             <div v-if="showLifePolicyType">
               <label class="block text-sm font-medium text-gray-700 mb-1">
-                Life Policy Type <span class="text-red-500">*</span>
+                Life Policy Type
               </label>
               <select
                 v-model="formData.life_policy_type"
-                required
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="">Select life policy type...</option>
@@ -78,12 +76,11 @@
             <!-- Provider -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">
-                Provider <span class="text-red-500">*</span>
+                Provider
               </label>
               <input
                 v-model="formData.provider"
                 type="text"
-                required
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="e.g., Aviva, Legal & General"
               />
@@ -105,7 +102,7 @@
             <!-- Sum Assured / Benefit Amount -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">
-                {{ coverageLabel }} <span class="text-red-500">*</span>
+                {{ coverageLabel }}
               </label>
               <div class="relative">
                 <span class="absolute left-3 top-2.5 text-gray-500">£</span>
@@ -113,14 +110,13 @@
                   v-model.number="formData.coverage_amount"
                   type="number"
                   :step="isIncomeProtection ? 100 : 1000"
-                  required
-                  :min="isIncomeProtection ? 1000 : 0"
+                  min="0"
                   class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="0"
                 />
               </div>
               <p v-if="isIncomeProtection" class="text-xs text-gray-500 mt-1">
-                This is the monthly amount paid out if you are unable to work. Minimum £1,000 per month.
+                This is the monthly amount paid out if you are unable to work.
               </p>
             </div>
 
@@ -131,7 +127,7 @@
               <!-- Start Value -->
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">
-                  Start Value <span class="text-red-500">*</span>
+                  Start Value
                 </label>
                 <div class="relative">
                   <span class="absolute left-3 top-2.5 text-gray-500">£</span>
@@ -139,8 +135,7 @@
                     v-model.number="formData.start_value"
                     type="number"
                     step="1000"
-                    required
-                    min="1000"
+                    min="0"
                     class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="e.g., 500000"
                   />
@@ -151,14 +146,13 @@
               <!-- Decreasing Rate -->
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">
-                  Decreasing Rate (Annual %) <span class="text-red-500">*</span>
+                  Decreasing Rate (Annual %)
                 </label>
                 <div class="relative">
                   <input
                     v-model.number="formData.decreasing_rate"
                     type="number"
                     step="0.01"
-                    required
                     min="0"
                     max="100"
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -174,7 +168,7 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">
-                  Premium Amount <span class="text-red-500">*</span>
+                  Premium Amount
                 </label>
                 <div class="relative">
                   <span class="absolute left-3 top-2.5 text-gray-500">£</span>
@@ -182,7 +176,6 @@
                     v-model.number="formData.premium_amount"
                     type="number"
                     step="0.01"
-                    required
                     min="0"
                     class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="0.00"
@@ -192,11 +185,10 @@
 
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">
-                  Frequency <span class="text-red-500">*</span>
+                  Frequency
                 </label>
                 <select
                   v-model="formData.premium_frequency"
-                  required
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="monthly">Monthly</option>
@@ -289,13 +281,12 @@
               <!-- Beneficiary Selection -->
               <div>
                 <label for="beneficiary_selection" class="block text-sm font-medium text-gray-700 mb-1">
-                  Beneficiary <span class="text-red-500">*</span>
+                  Beneficiary
                 </label>
                 <select
                   id="beneficiary_selection"
                   v-model="beneficiarySelection"
                   @change="handleBeneficiarySelection"
-                  required
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="">Select beneficiary...</option>
@@ -309,13 +300,12 @@
               <!-- Free Text Beneficiary Name (when "Add Beneficiary" selected) -->
               <div v-if="beneficiarySelection === 'other'">
                 <label for="beneficiary_name" class="block text-sm font-medium text-gray-700 mb-1">
-                  Beneficiary Name <span class="text-red-500">*</span>
+                  Beneficiary Name
                 </label>
                 <input
                   id="beneficiary_name"
                   v-model="formData.beneficiary_name"
                   type="text"
-                  required
                   placeholder="Enter beneficiary's full name"
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
@@ -327,7 +317,7 @@
               <!-- Beneficiary Percentage (shows when beneficiary selected) -->
               <div v-if="beneficiarySelection">
                 <label for="beneficiary_percentage" class="block text-sm font-medium text-gray-700 mb-1">
-                  Beneficiary Share (%) <span class="text-red-500">*</span>
+                  Beneficiary Share (%)
                 </label>
                 <input
                   id="beneficiary_percentage"
@@ -335,7 +325,6 @@
                   type="number"
                   min="1"
                   max="100"
-                  required
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
                 <p class="text-xs text-gray-500 mt-1">

@@ -36,9 +36,9 @@ class StoreDBPensionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'scheme_name' => ['required', 'string', 'max:255'],
-            'scheme_type' => ['required', 'in:final_salary,career_average,public_sector'],
-            'accrued_annual_pension' => ['required', 'numeric', 'min:0'],
+            'scheme_name' => ['nullable', 'string', 'max:255'],
+            'scheme_type' => ['nullable', 'in:final_salary,career_average,public_sector'],
+            'accrued_annual_pension' => ['nullable', 'numeric', 'min:0'],
             'pensionable_service_years' => ['nullable', 'numeric', 'min:0', 'max:50'],
             'pensionable_salary' => ['nullable', 'numeric', 'min:0'],
             'normal_retirement_age' => ['nullable', 'integer', 'min:55', 'max:75'],

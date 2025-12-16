@@ -102,6 +102,31 @@ class User extends Authenticatable
     ];
 
     /**
+     * Get the user's full name (backwards compatibility accessor).
+     *
+     * If the new name fields exist (first_name, surname), combines them.
+     * Otherwise, falls back to the legacy 'name' column from the database.
+     */
+    public function getNameAttribute(): string
+    {
+        // Check if new name columns have values
+        $firstName = $this->attributes['first_name'] ?? null;
+        $surname = $this->attributes['surname'] ?? null;
+
+        if ($firstName || $surname) {
+            // Use new name structure
+            return trim(implode(' ', array_filter([
+                $firstName,
+                $this->attributes['middle_name'] ?? null,
+                $surname,
+            ]))) ?: 'User';
+        }
+
+        // Fall back to legacy 'name' column
+        return $this->attributes['name'] ?? 'User';
+    }
+
+    /**
      * Get the user's protection profile.
      */
     public function protectionProfile(): HasOne

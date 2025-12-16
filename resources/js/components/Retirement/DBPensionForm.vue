@@ -35,13 +35,12 @@
           <!-- Employer Name -->
           <div>
             <label for="employer_name" class="block text-sm font-medium text-gray-700 mb-2">
-              Employer / Scheme Name <span class="text-red-500">*</span>
+              Employer / Scheme Name
             </label>
             <input
               id="employer_name"
               v-model="formData.employer_name"
               type="text"
-              required
               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               placeholder="e.g., NHS Pension Scheme"
             />
@@ -51,12 +50,11 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label for="scheme_status" class="block text-sm font-medium text-gray-700 mb-2">
-                Scheme Status <span class="text-red-500">*</span>
+                Scheme Status
               </label>
               <select
                 id="scheme_status"
                 v-model="formData.scheme_status"
-                required
                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               >
                 <option value="">Select status</option>
@@ -83,7 +81,7 @@
           <!-- Annual Income -->
           <div>
             <label for="annual_income" class="block text-sm font-medium text-gray-700 mb-2">
-              Annual Income at Retirement (£) <span class="text-red-500">*</span>
+              Annual Income at Retirement (£)
             </label>
             <input
               id="annual_income"
@@ -91,7 +89,6 @@
               type="number"
               step="0.01"
               min="0"
-              required
               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               placeholder="e.g., 15000.00"
             />
@@ -102,7 +99,7 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label for="service_years" class="block text-sm font-medium text-gray-700 mb-2">
-                Service Years <span class="text-red-500">*</span>
+                Service Years
               </label>
               <input
                 id="service_years"
@@ -110,7 +107,6 @@
                 type="number"
                 step="0.1"
                 min="0"
-                required
                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 placeholder="e.g., 20.5"
               />

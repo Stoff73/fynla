@@ -339,7 +339,7 @@ class CashFlowProjector
         $surplusYears = count(array_filter($projections, fn ($p) => $p['net_cash_flow'] > 0));
         $totalYears = count($projections);
 
-        $surplusPercentage = ($surplusYears / $totalYears) * 100;
+        $surplusPercentage = $totalYears > 0 ? ($surplusYears / $totalYears) * 100 : 0;
 
         $health = match (true) {
             $surplusPercentage >= 80 => [
