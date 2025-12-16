@@ -52,6 +52,14 @@
         :account="account"
         :key="'fees'"
       />
+
+      <!-- Tax Status Panel -->
+      <TaxStatusPanel
+        v-else-if="activeTab === 'account-tax-status'"
+        product-category="investment"
+        :product-type="account.account_type"
+        :key="'tax-status'"
+      />
     </transition>
   </div>
 </template>
@@ -61,6 +69,7 @@ import AccountSummaryPanel from '@/views/Investment/AccountSummaryPanel.vue';
 import AccountHoldingsPanel from '@/views/Investment/AccountHoldingsPanel.vue';
 import AccountPerformancePanel from '@/views/Investment/AccountPerformancePanel.vue';
 import AccountFeesPanel from '@/views/Investment/AccountFeesPanel.vue';
+import TaxStatusPanel from '@/components/Common/TaxStatusPanel.vue';
 
 export default {
   name: 'AccountDetailView',
@@ -70,6 +79,7 @@ export default {
     AccountHoldingsPanel,
     AccountPerformancePanel,
     AccountFeesPanel,
+    TaxStatusPanel,
   },
 
   props: {

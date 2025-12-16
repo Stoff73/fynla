@@ -750,6 +750,13 @@ Route::middleware('auth:sanctum')->prefix('recommendations')->group(function () 
     Route::patch('/{id}/notes', [RecommendationsController::class, 'updateNotes']);
 });
 
+// Tax Product Information routes (Tax status for products)
+Route::middleware('auth:sanctum')->prefix('tax-info')->group(function () {
+    Route::get('/investment/{accountType}', [\App\Http\Controllers\Api\TaxProductInfoController::class, 'getInvestmentTaxInfo']);
+    Route::get('/savings/{accountType}', [\App\Http\Controllers\Api\TaxProductInfoController::class, 'getSavingsTaxInfo']);
+    Route::get('/summary', [\App\Http\Controllers\Api\TaxProductInfoController::class, 'getTaxSummary']);
+});
+
 // UK Taxes & Allowances routes (Admin only)
 Route::middleware(['auth:sanctum', 'admin'])->prefix('uk-taxes')->group(function () {
     Route::get('/', [UKTaxesController::class, 'index']);

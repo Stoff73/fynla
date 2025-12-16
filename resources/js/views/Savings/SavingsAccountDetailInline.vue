@@ -81,15 +81,32 @@
         </div>
       </div>
 
-      <!-- Account Details -->
-      <div class="bg-white rounded-lg shadow-md p-6">
-        <h3 class="text-lg font-semibold text-gray-800 mb-6">Account Details</h3>
+      <!-- Tab Navigation -->
+      <div class="border-b border-gray-200">
+        <nav class="flex overflow-x-auto scrollbar-hide -webkit-overflow-scrolling-touch">
+          <button
+            v-for="tab in tabs"
+            :key="tab.id"
+            @click="activeTab = tab.id"
+            :class="[
+              'px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors duration-200 flex-shrink-0',
+              activeTab === tab.id
+                ? 'text-blue-600 border-b-2 border-blue-600'
+                : 'text-gray-600 hover:text-gray-900 border-b-2 border-transparent'
+            ]"
+          >
+            {{ tab.label }}
+          </button>
+        </nav>
+      </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <!-- Account Information -->
-          <div>
-            <h5 class="text-sm font-semibold text-gray-800 mb-3">Account Information</h5>
-            <dl class="space-y-2">
+      <!-- Tab Content -->
+      <transition name="fade" mode="out-in">
+        <!-- Overview Tab -->
+        <div v-if="activeTab === 'overview'" class="bg-white rounded-lg shadow-md p-6" :key="'overview'">
+          <h3 class="text-lg font-semibold text-gray-800 mb-6">Account Information</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <dl class="space-y-3">
               <div class="flex justify-between">
                 <dt class="text-sm text-gray-600">Institution:</dt>
                 <dd class="text-sm font-medium text-gray-900 text-right">{{ account.institution }}</dd>
@@ -106,13 +123,33 @@
                 <dt class="text-sm text-gray-600">Country:</dt>
                 <dd class="text-sm font-medium text-gray-900">{{ account.country }}</dd>
               </div>
+              <div class="flex justify-between">
+                <dt class="text-sm text-gray-600">Ownership:</dt>
+                <dd class="text-sm font-medium text-gray-900 capitalize">{{ account.ownership_type || 'Individual' }}</dd>
+              </div>
+            </dl>
+            <dl class="space-y-3">
+              <div class="flex justify-between">
+                <dt class="text-sm text-gray-600">Emergency Fund:</dt>
+                <dd class="text-sm font-medium" :class="account.is_emergency_fund ? 'text-green-600' : 'text-gray-500'">
+                  {{ account.is_emergency_fund ? 'Yes' : 'No' }}
+                </dd>
+              </div>
+              <div class="flex justify-between">
+                <dt class="text-sm text-gray-600">ISA Account:</dt>
+                <dd class="text-sm font-medium" :class="account.is_isa ? 'text-blue-600' : 'text-gray-500'">
+                  {{ account.is_isa ? 'Yes' : 'No' }}
+                </dd>
+              </div>
             </dl>
           </div>
+        </div>
 
-          <!-- Balance & Interest -->
-          <div>
-            <h5 class="text-sm font-semibold text-gray-800 mb-3">Balance & Interest</h5>
-            <dl class="space-y-2">
+        <!-- Balance & Interest Tab -->
+        <div v-else-if="activeTab === 'balance'" class="bg-white rounded-lg shadow-md p-6" :key="'balance'">
+          <h3 class="text-lg font-semibold text-gray-800 mb-6">Balance & Interest</h3>
+          <dl class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="space-y-3">
               <div class="flex justify-between">
                 <dt class="text-sm text-gray-600">Full Balance:</dt>
                 <dd class="text-sm font-medium text-gray-900 font-semibold">{{ formatCurrency(fullBalance) }}</dd>
@@ -125,6 +162,8 @@
                 <dt class="text-sm text-gray-600">Interest Rate:</dt>
                 <dd class="text-sm font-medium text-gray-900">{{ formatInterestRate(account.interest_rate) }}</dd>
               </div>
+            </div>
+            <div class="space-y-3">
               <div class="flex justify-between">
                 <dt class="text-sm text-gray-600">Monthly Interest:</dt>
                 <dd class="text-sm font-medium text-green-600">{{ formatCurrency(monthlyInterest) }}</dd>
@@ -133,58 +172,67 @@
                 <dt class="text-sm text-gray-600">Annual Interest:</dt>
                 <dd class="text-sm font-medium text-green-600">{{ formatCurrency(annualInterest) }}</dd>
               </div>
-            </dl>
-          </div>
-
-          <!-- Access & Terms -->
-          <div>
-            <h5 class="text-sm font-semibold text-gray-800 mb-3">Access & Terms</h5>
-            <dl class="space-y-2">
-              <div class="flex justify-between">
-                <dt class="text-sm text-gray-600">Access Type:</dt>
-                <dd class="text-sm font-medium text-gray-900 capitalize">{{ formatAccessType(account.access_type) }}</dd>
-              </div>
-              <div v-if="account.access_type === 'notice' && account.notice_period_days" class="flex justify-between">
-                <dt class="text-sm text-gray-600">Notice Period:</dt>
-                <dd class="text-sm font-medium text-orange-600">{{ account.notice_period_days }} days</dd>
-              </div>
-              <div v-if="account.access_type === 'fixed' && account.maturity_date" class="flex justify-between">
-                <dt class="text-sm text-gray-600">Maturity Date:</dt>
-                <dd class="text-sm font-medium" :class="isMatured ? 'text-gray-600' : 'text-orange-600'">
-                  {{ formatDate(account.maturity_date) }}
-                </dd>
-              </div>
-              <div v-if="account.access_type === 'fixed' && account.maturity_date" class="flex justify-between">
-                <dt class="text-sm text-gray-600">Time to Maturity:</dt>
-                <dd class="text-sm font-medium text-gray-900">{{ calculateTimeToMaturity }}</dd>
-              </div>
-            </dl>
-          </div>
-
-          <!-- ISA Details (if applicable) -->
-          <div v-if="account.is_isa">
-            <h5 class="text-sm font-semibold text-gray-800 mb-3">ISA Details</h5>
-            <dl class="space-y-2">
-              <div class="flex justify-between">
-                <dt class="text-sm text-gray-600">ISA Type:</dt>
-                <dd class="text-sm font-medium text-gray-900">{{ formatISAType(account.isa_type) }}</dd>
-              </div>
-              <div v-if="account.isa_subscription_year" class="flex justify-between">
-                <dt class="text-sm text-gray-600">Subscription Year:</dt>
-                <dd class="text-sm font-medium text-gray-900">{{ account.isa_subscription_year }}</dd>
-              </div>
-              <div v-if="account.isa_subscription_amount" class="flex justify-between">
-                <dt class="text-sm text-gray-600">Subscription Amount:</dt>
-                <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(account.isa_subscription_amount) }}</dd>
-              </div>
-              <div class="flex justify-between">
-                <dt class="text-sm text-gray-600">Tax-Free Status:</dt>
-                <dd class="text-sm font-medium text-green-600">✓ Tax-Free Interest</dd>
-              </div>
-            </dl>
-          </div>
+            </div>
+          </dl>
         </div>
-      </div>
+
+        <!-- Access & Terms Tab -->
+        <div v-else-if="activeTab === 'access'" class="bg-white rounded-lg shadow-md p-6" :key="'access'">
+          <h3 class="text-lg font-semibold text-gray-800 mb-6">Access & Terms</h3>
+          <dl class="space-y-3 max-w-md">
+            <div class="flex justify-between">
+              <dt class="text-sm text-gray-600">Access Type:</dt>
+              <dd class="text-sm font-medium text-gray-900 capitalize">{{ formatAccessType(account.access_type) }}</dd>
+            </div>
+            <div v-if="account.access_type === 'notice' && account.notice_period_days" class="flex justify-between">
+              <dt class="text-sm text-gray-600">Notice Period:</dt>
+              <dd class="text-sm font-medium text-orange-600">{{ account.notice_period_days }} days</dd>
+            </div>
+            <div v-if="account.access_type === 'fixed' && account.maturity_date" class="flex justify-between">
+              <dt class="text-sm text-gray-600">Maturity Date:</dt>
+              <dd class="text-sm font-medium" :class="isMatured ? 'text-gray-600' : 'text-orange-600'">
+                {{ formatDate(account.maturity_date) }}
+              </dd>
+            </div>
+            <div v-if="account.access_type === 'fixed' && account.maturity_date" class="flex justify-between">
+              <dt class="text-sm text-gray-600">Time to Maturity:</dt>
+              <dd class="text-sm font-medium text-gray-900">{{ calculateTimeToMaturity }}</dd>
+            </div>
+          </dl>
+        </div>
+
+        <!-- ISA Details Tab (conditional) -->
+        <div v-else-if="activeTab === 'isa' && account.is_isa" class="bg-white rounded-lg shadow-md p-6" :key="'isa'">
+          <h3 class="text-lg font-semibold text-gray-800 mb-6">ISA Details</h3>
+          <dl class="space-y-3 max-w-md">
+            <div class="flex justify-between">
+              <dt class="text-sm text-gray-600">ISA Type:</dt>
+              <dd class="text-sm font-medium text-gray-900">{{ formatISAType(account.isa_type) }}</dd>
+            </div>
+            <div v-if="account.isa_subscription_year" class="flex justify-between">
+              <dt class="text-sm text-gray-600">Subscription Year:</dt>
+              <dd class="text-sm font-medium text-gray-900">{{ account.isa_subscription_year }}</dd>
+            </div>
+            <div v-if="account.isa_subscription_amount" class="flex justify-between">
+              <dt class="text-sm text-gray-600">Subscription Amount:</dt>
+              <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(account.isa_subscription_amount) }}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-sm text-gray-600">Tax-Free Status:</dt>
+              <dd class="text-sm font-medium text-green-600">Tax-Free Interest</dd>
+            </div>
+          </dl>
+        </div>
+
+        <!-- Tax Status Tab -->
+        <TaxStatusPanel
+          v-else-if="activeTab === 'tax-status'"
+          product-category="savings"
+          :product-type="taxProductType"
+          :is-isa="account.is_isa"
+          :key="'tax-status'"
+        />
+      </transition>
     </div>
 
     <!-- Modals -->
@@ -210,6 +258,7 @@
 import { mapActions } from 'vuex';
 import SaveAccountModal from '@/components/Savings/SaveAccountModal.vue';
 import ConfirmationModal from '@/components/Common/ConfirmationModal.vue';
+import TaxStatusPanel from '@/components/Common/TaxStatusPanel.vue';
 
 export default {
   name: 'SavingsAccountDetailInline',
@@ -217,6 +266,7 @@ export default {
   components: {
     SaveAccountModal,
     ConfirmationModal,
+    TaxStatusPanel,
   },
 
   props: {
@@ -235,10 +285,59 @@ export default {
       error: null,
       showEditModal: false,
       showDeleteConfirm: false,
+      activeTab: 'overview',
     };
   },
 
   computed: {
+    /**
+     * Dynamic tabs based on account type
+     */
+    tabs() {
+      const baseTabs = [
+        { id: 'overview', label: 'Overview' },
+        { id: 'balance', label: 'Balance & Interest' },
+        { id: 'access', label: 'Access & Terms' },
+      ];
+
+      // Conditionally add ISA tab
+      if (this.account?.is_isa) {
+        baseTabs.push({ id: 'isa', label: 'ISA Details' });
+      }
+
+      // Always add Tax Status
+      baseTabs.push({ id: 'tax-status', label: 'Tax Status' });
+
+      return baseTabs;
+    },
+
+    /**
+     * Map account type to tax product type for TaxStatusPanel
+     */
+    taxProductType() {
+      if (!this.account) return 'easy_access';
+
+      // Special handling for specific account types
+      if (this.account.account_type === 'premium_bonds') {
+        return 'premium_bonds';
+      }
+      if (this.account.account_type === 'nsi' || this.account.account_type === 'nsi_savings') {
+        return 'nsi';
+      }
+      if (this.account.is_isa) {
+        if (this.account.isa_type === 'lifetime' || this.account.isa_type === 'lisa') {
+          return 'lifetime_isa';
+        }
+        if (this.account.account_type === 'junior_isa') {
+          return 'junior_isa';
+        }
+        return 'cash_isa';
+      }
+
+      // Map based on access type
+      return this.account.access_type || 'easy_access';
+    },
+
     fullBalance() {
       if (!this.account) return 0;
       // Single-record pattern: DB stores FULL balance
@@ -446,5 +545,30 @@ export default {
 .back-button:hover {
   background: #f3f4f6;
   border-color: #d1d5db;
+}
+
+/* Hide scrollbar for horizontal tab navigation */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Smooth scrolling on iOS */
+.-webkit-overflow-scrolling-touch {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Fade transition for tab switching */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>

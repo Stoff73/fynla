@@ -225,13 +225,14 @@ export default {
         { id: 'fees', label: 'Fees' },
         { id: 'recommendations', label: 'Strategy' },
       ],
-      // Detail Mode Tabs (5 tabs)
+      // Detail Mode Tabs (6 tabs)
       detailTabs: [
         { id: 'portfolio-overview', label: 'Portfolio Overview' },
         { id: 'account-overview', label: 'Overview' },
         { id: 'account-holdings', label: 'Holdings' },
         { id: 'account-performance', label: 'Performance' },
         { id: 'account-fees', label: 'Fees' },
+        { id: 'account-tax-status', label: 'Tax Status' },
       ],
     };
   },

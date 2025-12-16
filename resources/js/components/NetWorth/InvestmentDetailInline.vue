@@ -141,6 +141,13 @@
             </div>
           </div>
 
+          <!-- Tax Status Tab -->
+          <TaxStatusPanel
+            v-else-if="activeTab === 'tax-status'"
+            product-category="investment"
+            :product-type="account.account_type"
+          />
+
           <!-- Documents Tab -->
           <div v-else-if="activeTab === 'documents'" class="text-center py-12 text-gray-500">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-12 h-12 mx-auto mb-4 text-gray-400">
@@ -192,6 +199,7 @@ import AccountHoldingsPanel from '@/views/Investment/AccountHoldingsPanel.vue';
 import AccountPerformancePanel from '@/views/Investment/AccountPerformancePanel.vue';
 import AccountFeesPanel from '@/views/Investment/AccountFeesPanel.vue';
 import HoldingForm from '@/components/Investment/HoldingForm.vue';
+import TaxStatusPanel from '@/components/Common/TaxStatusPanel.vue';
 import { TAX_CONFIG } from '@/constants/taxConfig';
 
 export default {
@@ -205,6 +213,7 @@ export default {
     AccountPerformancePanel,
     AccountFeesPanel,
     HoldingForm,
+    TaxStatusPanel,
   },
 
   props: {
@@ -234,6 +243,7 @@ export default {
         { id: 'holdings', label: 'Holdings' },
         { id: 'performance', label: 'Performance' },
         { id: 'fees', label: 'Fees' },
+        { id: 'tax-status', label: 'Tax Status' },
         { id: 'documents', label: 'Documents' },
       ];
     },
