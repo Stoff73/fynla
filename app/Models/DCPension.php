@@ -39,6 +39,8 @@ class DCPension extends Model
         'retirement_age',
         'expected_return_percent',
         'projected_value_at_retirement',
+        'risk_preference',
+        'has_custom_risk',
     ];
 
     protected $casts = [
@@ -52,6 +54,11 @@ class DCPension extends Model
         'retirement_age' => 'integer',
         'expected_return_percent' => 'decimal:2',
         'projected_value_at_retirement' => 'decimal:2',
+        'has_custom_risk' => 'boolean',
+    ];
+
+    protected $attributes = [
+        'has_custom_risk' => false,
     ];
 
     /**

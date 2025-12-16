@@ -132,6 +132,7 @@
       "annual_contribution": 20000,
       "ownership_type": "individual",
       "risk_profile": "adventurous",
+      "risk_preference": "high",
       "holdings": [
         {
           "id": 1,
@@ -176,6 +177,7 @@
       "annual_contribution": 12000,
       "ownership_type": "individual",
       "risk_profile": "adventurous",
+      "risk_preference": "high",
       "holdings": [
         {
           "id": 5,
@@ -216,6 +218,8 @@
       "monthly_contribution_amount": 3333,
       "retirement_age": 55,
       "ownership_type": "individual",
+      "risk_preference": "upper_medium",
+      "has_custom_risk": true,
       "notes": "Company contributions via employer pension scheme",
       "holdings": [
         {
@@ -386,5 +390,10 @@
     },
     "net_worth_range": "800k - 1m",
     "primary_focus": "Business protection, single estate"
+  },
+
+  "risk_profile": {
+    "main_risk_level": "high",
+    "notes": "Single tech entrepreneur with high risk tolerance, aggressive growth strategy, slightly more conservative for pension given early retirement goal"
   }
 }

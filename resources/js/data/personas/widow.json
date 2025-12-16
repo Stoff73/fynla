@@ -197,6 +197,7 @@
       "annual_contribution": 10000,
       "ownership_type": "individual",
       "risk_profile": "cautious",
+      "risk_preference": "lower_medium",
       "holdings": [
         {
           "id": 1,
@@ -232,6 +233,7 @@
       "current_value": 150000,
       "annual_contribution": 0,
       "ownership_type": "individual",
+      "risk_preference": "lower_medium",
       "notes": "For tax-efficient withdrawals in retirement"
     },
     {
@@ -243,6 +245,8 @@
       "annual_contribution": 0,
       "ownership_type": "individual",
       "risk_profile": "balanced",
+      "risk_preference": "medium",
+      "has_custom_risk": true,
       "holdings": [
         {
           "id": 4,
@@ -439,5 +443,10 @@
     },
     "net_worth_range": "1.4m - 1.6m",
     "primary_focus": "IHT planning, gifting strategy"
+  },
+
+  "risk_profile": {
+    "main_risk_level": "lower_medium",
+    "notes": "Retired widow focused on capital preservation and income, cautious approach with estate planning priorities"
   }
 }

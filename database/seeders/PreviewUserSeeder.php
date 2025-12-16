@@ -12,6 +12,7 @@ use App\Models\FamilyMember;
 use App\Models\IncomeProtectionPolicy;
 use App\Models\Investment\Holding;
 use App\Models\Investment\InvestmentAccount;
+use App\Models\Investment\RiskProfile;
 use App\Models\LifeInsurancePolicy;
 use App\Models\Mortgage;
 use App\Models\Property;
@@ -112,6 +113,9 @@ class PreviewUserSeeder extends Seeder
 
         // Create liabilities
         $this->createLiabilities($user, $spouse, $data['liabilities'] ?? []);
+
+        // Create risk profiles
+        $this->createRiskProfiles($user, $spouse, $data['risk_profile'] ?? null);
 
         $this->command->info("  Created user: {$user->name} ({$user->email})");
         if ($spouse) {
@@ -464,6 +468,8 @@ class PreviewUserSeeder extends Seeder
                 'ownership_type' => $account['ownership_type'] ?? 'individual',
                 'ownership_percentage' => $isJoint ? 50 : 100,
                 'joint_owner_id' => $jointOwnerId,
+                'risk_preference' => $account['risk_preference'] ?? null,
+                'has_custom_risk' => ! empty($account['has_custom_risk']),
             ]);
 
             // Create holdings for the account (FULL values)
@@ -506,6 +512,8 @@ class PreviewUserSeeder extends Seeder
                 'employer_contribution_percent' => $pension['employer_contribution_percent'] ?? null,
                 'annual_salary' => $pension['annual_salary'] ?? null,
                 'retirement_age' => $pension['retirement_age'] ?? 65,
+                'risk_preference' => $pension['risk_preference'] ?? null,
+                'has_custom_risk' => ! empty($pension['has_custom_risk']),
             ]);
         }
     }
@@ -679,5 +687,75 @@ class PreviewUserSeeder extends Seeder
                 'maturity_date' => $liability['end_date'] ?? null,
             ]);
         }
+    }
+
+    /**
+     * Create risk profiles for users.
+     */
+    private function createRiskProfiles(User $user, ?User $spouse, ?array $riskData): void
+    {
+        if (! $riskData) {
+            return;
+        }
+
+        // Create risk profile for primary user
+        if (! empty($riskData['main_risk_level'])) {
+            RiskProfile::create([
+                'user_id' => $user->id,
+                'risk_level' => $riskData['main_risk_level'],
+                'risk_tolerance' => $this->mapRiskLevelToTolerance($riskData['main_risk_level']),
+                'capacity_for_loss_percent' => $this->mapRiskLevelToCapacity($riskData['main_risk_level']),
+                'time_horizon_years' => 10,
+                'knowledge_level' => 'intermediate',
+                'attitude_to_volatility' => 'comfortable',
+                'esg_preference' => false,
+                'risk_assessed_at' => now(),
+                'is_self_assessed' => true,
+            ]);
+        }
+
+        // Create risk profile for spouse if they have one
+        if ($spouse && ! empty($riskData['spouse_risk_level'])) {
+            RiskProfile::create([
+                'user_id' => $spouse->id,
+                'risk_level' => $riskData['spouse_risk_level'],
+                'risk_tolerance' => $this->mapRiskLevelToTolerance($riskData['spouse_risk_level']),
+                'capacity_for_loss_percent' => $this->mapRiskLevelToCapacity($riskData['spouse_risk_level']),
+                'time_horizon_years' => 10,
+                'knowledge_level' => 'intermediate',
+                'attitude_to_volatility' => 'comfortable',
+                'esg_preference' => false,
+                'risk_assessed_at' => now(),
+                'is_self_assessed' => true,
+            ]);
+        }
+    }
+
+    /**
+     * Map risk level to legacy tolerance value.
+     */
+    private function mapRiskLevelToTolerance(string $riskLevel): string
+    {
+        return match ($riskLevel) {
+            'low', 'lower_medium' => 'cautious',
+            'medium' => 'balanced',
+            'upper_medium', 'high' => 'adventurous',
+            default => 'balanced',
+        };
+    }
+
+    /**
+     * Map risk level to capacity for loss percentage.
+     */
+    private function mapRiskLevelToCapacity(string $riskLevel): int
+    {
+        return match ($riskLevel) {
+            'low' => 10,
+            'lower_medium' => 20,
+            'medium' => 35,
+            'upper_medium' => 50,
+            'high' => 70,
+            default => 35,
+        };
     }
 }

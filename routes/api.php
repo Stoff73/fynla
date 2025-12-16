@@ -25,6 +25,7 @@ use App\Http\Controllers\Api\Investment\RebalancingActionsController;
 use App\Http\Controllers\Api\Investment\RebalancingCalculationController;
 use App\Http\Controllers\Api\Investment\RebalancingStrategiesController;
 use App\Http\Controllers\Api\Investment\RiskProfileController;
+use App\Http\Controllers\Api\RiskPreferenceController;
 use App\Http\Controllers\Api\Investment\TaxOptimizationController;
 use App\Http\Controllers\Api\InvestmentController;
 use App\Http\Controllers\Api\LetterToSpouseController;
@@ -490,7 +491,7 @@ Route::middleware('auth:sanctum')->prefix('investment')->group(function () {
         Route::delete('/clear-cache', [FeeImpactController::class, 'clearCache']);
     });
 
-    // Risk Profiling
+    // Risk Profiling (Questionnaire-based)
     Route::prefix('risk-profile')->group(function () {
         // Questionnaire
         Route::get('/questionnaire', [RiskProfileController::class, 'getQuestionnaire']);
@@ -505,6 +506,25 @@ Route::middleware('auth:sanctum')->prefix('investment')->group(function () {
 
         // Cache management
         Route::delete('/clear-cache', [RiskProfileController::class, 'clearCache']);
+    });
+
+    // Risk Preference (Self-select 5-level system)
+    Route::prefix('risk')->group(function () {
+        // Get all available risk levels with descriptions
+        Route::get('/levels', [RiskPreferenceController::class, 'getLevels']);
+
+        // User's main risk profile
+        Route::get('/profile', [RiskPreferenceController::class, 'getProfile']);
+        Route::post('/profile', [RiskPreferenceController::class, 'setProfile']);
+
+        // Allowed levels for product override (main level +/- 1)
+        Route::get('/allowed-levels', [RiskPreferenceController::class, 'getAllowedLevels']);
+
+        // Validate a product risk level
+        Route::post('/validate-product-level', [RiskPreferenceController::class, 'validateProductLevel']);
+
+        // Get configuration for a specific risk level
+        Route::get('/config/{level}', [RiskPreferenceController::class, 'getRiskConfig']);
     });
 
     // Model Portfolio Builder

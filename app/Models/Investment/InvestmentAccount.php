@@ -35,6 +35,8 @@ class InvestmentAccount extends Model
         'platform_fee_percent',
         'isa_type',
         'isa_subscription_current_year',
+        'risk_preference',
+        'has_custom_risk',
     ];
 
     protected $casts = [
@@ -43,12 +45,14 @@ class InvestmentAccount extends Model
         'platform_fee_percent' => 'float',
         'isa_subscription_current_year' => 'float',
         'ownership_percentage' => 'decimal:2',
+        'has_custom_risk' => 'boolean',
     ];
 
     protected $attributes = [
         'contributions_ytd' => 0,
         'platform_fee_percent' => 0,
         'isa_subscription_current_year' => 0,
+        'has_custom_risk' => false,
     ];
 
     /**

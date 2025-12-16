@@ -10,10 +10,68 @@ class AssetAllocationOptimizer
 {
     /**
      * Get target allocation based on risk profile
+     *
+     * Supports both the new 5-level risk_level system and the legacy 3-level risk_tolerance.
      */
     public function getTargetAllocation(RiskProfile $profile): array
     {
-        $allocation = match ($profile->risk_tolerance) {
+        // Prefer new risk_level, fall back to legacy risk_tolerance
+        $level = $profile->risk_level ?? $this->mapLegacyTolerance($profile->risk_tolerance);
+
+        $allocation = $this->getAllocationForLevel($level);
+
+        // Convert to array of objects
+        return collect($allocation)->map(fn ($percentage, $assetType) => [
+            'asset_type' => $assetType,
+            'percentage' => (float) $percentage,
+        ])->values()->toArray();
+    }
+
+    /**
+     * Get target allocation for a specific risk level
+     */
+    public function getTargetAllocationForLevel(string $riskLevel): array
+    {
+        $allocation = $this->getAllocationForLevel($riskLevel);
+
+        return collect($allocation)->map(fn ($percentage, $assetType) => [
+            'asset_type' => $assetType,
+            'percentage' => (float) $percentage,
+        ])->values()->toArray();
+    }
+
+    /**
+     * Get allocation percentages for a risk level
+     */
+    private function getAllocationForLevel(string $level): array
+    {
+        return match ($level) {
+            'low' => [
+                'equity' => 10,
+                'bond' => 70,
+                'cash' => 20,
+            ],
+            'lower_medium' => [
+                'equity' => 30,
+                'bond' => 55,
+                'cash' => 15,
+            ],
+            'medium' => [
+                'equity' => 50,
+                'bond' => 40,
+                'cash' => 10,
+            ],
+            'upper_medium' => [
+                'equity' => 75,
+                'bond' => 20,
+                'cash' => 5,
+            ],
+            'high' => [
+                'equity' => 90,
+                'bond' => 5,
+                'cash' => 5,
+            ],
+            // Legacy values for backwards compatibility
             'cautious' => [
                 'equity' => 20,
                 'bond' => 60,
@@ -30,17 +88,24 @@ class AssetAllocationOptimizer
                 'cash' => 5,
             ],
             default => [
-                'equity' => 60,
-                'bond' => 30,
+                'equity' => 50,
+                'bond' => 40,
                 'cash' => 10,
             ],
         };
+    }
 
-        // Convert to array of objects
-        return collect($allocation)->map(fn ($percentage, $assetType) => [
-            'asset_type' => $assetType,
-            'percentage' => (float) $percentage,
-        ])->values()->toArray();
+    /**
+     * Map legacy 3-level tolerance to new 5-level system
+     */
+    private function mapLegacyTolerance(?string $tolerance): string
+    {
+        return match ($tolerance) {
+            'cautious' => 'lower_medium',
+            'balanced' => 'medium',
+            'adventurous' => 'upper_medium',
+            default => 'medium',
+        };
     }
 
     /**

@@ -163,6 +163,40 @@
               <p class="mt-1 text-xs text-gray-500">Annual platform/administration fee as a percentage</p>
             </div>
 
+            <!-- Risk Level Section -->
+            <div v-if="hasRiskProfile" class="pt-4 border-t border-gray-200">
+              <RiskLevelSelector
+                v-model="formData.risk_preference"
+                :allowed-levels="allowedRiskLevels"
+                :compact="true"
+                :show-allocation="false"
+                :show-returns="false"
+                :collapsible="true"
+                label="Risk Level for This Account"
+              />
+              <p class="mt-2 text-xs text-gray-500">
+                Your main risk profile is <strong>{{ mainRiskLevelDisplay }}</strong>.
+                You can adjust this account within one level of your main preference.
+              </p>
+            </div>
+            <div v-else class="pt-4 border-t border-gray-200">
+              <div class="bg-blue-50 border border-blue-200 rounded-md p-3">
+                <div class="flex items-start gap-2">
+                  <svg class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div>
+                    <p class="text-sm text-blue-800">
+                      <router-link to="/risk-profile" class="font-medium underline hover:text-blue-900">
+                        Set your risk profile
+                      </router-link>
+                      to get personalised risk guidance for your investments.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <!-- ISA-specific fields -->
             <div v-if="isISAType" class="bg-blue-50 border border-blue-200 rounded-md p-4 space-y-4">
               <div class="flex items-start gap-2 mb-3">
@@ -318,12 +352,15 @@
 
 <script>
 import CountrySelector from '@/components/Shared/CountrySelector.vue';
+import RiskLevelSelector from '@/components/Shared/RiskLevelSelector.vue';
+import riskService from '@/services/riskService';
 
 export default {
   name: 'AccountForm',
 
   components: {
     CountrySelector,
+    RiskLevelSelector,
   },
 
   props: {
@@ -354,16 +391,28 @@ export default {
         ownership_type: 'individual',
         joint_owner_id: null,
         trust_id: null,
+        risk_preference: null,
       },
       errors: {},
       submitting: false,
       ISA_ALLOWANCE: 20000, // 2025/26 tax year
+      // Risk profile state
+      mainRiskLevel: null,
+      allowedRiskLevels: ['low', 'lower_medium', 'medium', 'upper_medium', 'high'],
     };
   },
 
   computed: {
     isEditMode() {
       return !!this.account;
+    },
+
+    hasRiskProfile() {
+      return !!this.mainRiskLevel;
+    },
+
+    mainRiskLevelDisplay() {
+      return riskService.getDisplayName(this.mainRiskLevel);
     },
 
     spouse() {
@@ -431,7 +480,7 @@ export default {
         }
       },
     },
-    show(newVal) {
+    async show(newVal) {
       if (newVal) {
         // Re-populate form when modal opens (in case it was reset)
         if (this.account) {
@@ -443,10 +492,23 @@ export default {
             ownership_type: this.account.ownership_type || 'individual',
             joint_owner_id: this.account.joint_owner_id || null,
             trust_id: this.account.trust_id || null,
+            risk_preference: this.account.risk_preference || null,
           };
         }
         this.errors = {};
         this.submitting = false;
+
+        // Load risk profile when modal opens
+        await this.loadRiskProfile();
+
+        // If no risk profile set, redirect to risk profile page
+        if (!this.hasRiskProfile) {
+          this.closeModal();
+          this.$router.push({
+            path: '/risk-profile',
+            query: { redirect: this.$route.fullPath, reason: 'investment' },
+          });
+        }
       } else {
         this.errors = {};
       }
@@ -465,6 +527,26 @@ export default {
   },
 
   methods: {
+    async loadRiskProfile() {
+      try {
+        const [profileResponse, allowedResponse] = await Promise.all([
+          riskService.getProfile(),
+          riskService.getAllowedLevels(),
+        ]);
+
+        if (profileResponse.data?.risk_level) {
+          this.mainRiskLevel = profileResponse.data.risk_level;
+        }
+
+        if (allowedResponse.data?.allowed_levels) {
+          this.allowedRiskLevels = allowedResponse.data.allowed_levels;
+        }
+      } catch (error) {
+        // Silently fail - risk profile is optional
+        console.log('Risk profile not loaded:', error.message);
+      }
+    },
+
     async submitForm() {
       this.errors = {};
       this.submitting = true;
@@ -563,6 +645,7 @@ export default {
         account_type_other: '',
         provider: '',
         platform: '',
+        country: 'United Kingdom',
         current_value: null,
         tax_year: '2025/26',
         contributions_ytd: null,
@@ -572,6 +655,7 @@ export default {
         ownership_type: 'individual',
         joint_owner_id: null,
         trust_id: null,
+        risk_preference: null,
       };
       this.errors = {};
     },

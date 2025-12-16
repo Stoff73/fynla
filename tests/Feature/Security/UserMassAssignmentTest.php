@@ -14,7 +14,8 @@ class UserMassAssignmentTest extends TestCase
     public function is_admin_attribute_is_not_mass_assignable()
     {
         $userData = [
-            'name' => 'Test User',
+            'first_name' => 'Test',
+            'surname' => 'User',
             'email' => 'test@example.com',
             'password' => 'password',
             'is_admin' => true,

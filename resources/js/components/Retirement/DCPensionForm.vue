@@ -239,6 +239,40 @@
             </div>
           </div>
 
+          <!-- Risk Level Section -->
+          <div v-if="hasRiskProfile" class="pt-4 border-t border-gray-200">
+            <RiskLevelSelector
+              v-model="formData.risk_preference"
+              :allowed-levels="allowedRiskLevels"
+              :compact="true"
+              :show-allocation="false"
+              :show-returns="false"
+              :collapsible="true"
+              label="Risk Level for This Pension"
+            />
+            <p class="mt-2 text-xs text-gray-500">
+              Your main risk profile is <strong>{{ mainRiskLevelDisplay }}</strong>.
+              You can adjust this pension within one level of your main preference.
+            </p>
+          </div>
+          <div v-else class="pt-4 border-t border-gray-200">
+            <div class="bg-blue-50 border border-blue-200 rounded-md p-3">
+              <div class="flex items-start gap-2">
+                <svg class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div>
+                  <p class="text-sm text-blue-800">
+                    <router-link to="/risk-profile" class="font-medium underline hover:text-blue-900">
+                      Set your risk profile
+                    </router-link>
+                    to get personalised risk guidance for your pension investments.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Salary Sacrifice (Workplace Pensions Only) -->
           <div v-if="isWorkplacePension" class="flex items-center">
             <input
@@ -290,9 +324,15 @@
 
 <script>
 import { mapGetters } from 'vuex';
+import RiskLevelSelector from '@/components/Shared/RiskLevelSelector.vue';
+import riskService from '@/services/riskService';
 
 export default {
   name: 'DCPensionForm',
+
+  components: {
+    RiskLevelSelector,
+  },
 
   props: {
     pension: {
@@ -323,17 +363,29 @@ export default {
         retirement_age: null, // Will be populated from user profile
         salary_sacrifice: false,
         notes: '',
+        risk_preference: null,
       },
       validationErrors: {
         employee_contribution_percent: '',
         employer_contribution_percent: '',
         retirement_age: '',
       },
+      // Risk profile state
+      mainRiskLevel: null,
+      allowedRiskLevels: ['low', 'lower_medium', 'medium', 'upper_medium', 'high'],
     };
   },
 
   computed: {
     ...mapGetters('auth', ['currentUser']),
+
+    hasRiskProfile() {
+      return !!this.mainRiskLevel;
+    },
+
+    mainRiskLevelDisplay() {
+      return riskService.getDisplayName(this.mainRiskLevel);
+    },
 
     isWorkplacePension() {
       return this.formData.pension_type === 'occupational';
@@ -364,7 +416,10 @@ export default {
       handler(newPension) {
         if (newPension) {
           // Editing existing pension - populate form with pension data
-          this.formData = { ...newPension };
+          this.formData = {
+            ...newPension,
+            risk_preference: newPension.risk_preference || null,
+          };
         } else {
           // Adding new pension - populate retirement age from user profile
           if (this.currentUser && this.currentUser.target_retirement_age) {
@@ -375,11 +430,41 @@ export default {
     },
   },
 
-  mounted() {
-    // Watcher handles form population, mounted just ensures currentUser is available
+  async mounted() {
+    // Load risk profile when component mounts
+    await this.loadRiskProfile();
+
+    // If no risk profile set, redirect to risk profile page
+    if (!this.hasRiskProfile) {
+      this.$emit('close');
+      this.$router.push({
+        path: '/risk-profile',
+        query: { redirect: this.$route.fullPath, reason: 'retirement' },
+      });
+    }
   },
 
   methods: {
+    async loadRiskProfile() {
+      try {
+        const [profileResponse, allowedResponse] = await Promise.all([
+          riskService.getProfile(),
+          riskService.getAllowedLevels(),
+        ]);
+
+        if (profileResponse.data?.risk_level) {
+          this.mainRiskLevel = profileResponse.data.risk_level;
+        }
+
+        if (allowedResponse.data?.allowed_levels) {
+          this.allowedRiskLevels = allowedResponse.data.allowed_levels;
+        }
+      } catch (error) {
+        // Silently fail - risk profile is optional
+        console.log('Risk profile not loaded:', error.message);
+      }
+    },
+
     handlePensionTypeChange() {
       // Clear fields that don't apply to the selected pension type
       if (this.isWorkplacePension) {

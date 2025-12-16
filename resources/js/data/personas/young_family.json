@@ -149,6 +149,7 @@
       "annual_contribution": 4800,
       "ownership_type": "individual",
       "risk_profile": "balanced",
+      "risk_preference": "medium",
       "holdings": [
         {
           "id": 1,
@@ -175,6 +176,7 @@
       "annual_salary": 62000,
       "retirement_age": 65,
       "ownership_type": "individual",
+      "risk_preference": "medium",
       "notes": "Auto-enrolled workplace pension"
     },
     {
@@ -189,6 +191,8 @@
       "annual_salary": 48000,
       "retirement_age": 65,
       "ownership_type": "individual",
+      "risk_preference": "medium",
+      "owner": "spouse",
       "notes": "Emily's workplace pension"
     }
   ],
@@ -275,5 +279,11 @@
     ],
     "net_worth_range": "80k - 120k",
     "primary_focus": "Protection gaps, emergency fund"
+  },
+
+  "risk_profile": {
+    "main_risk_level": "medium",
+    "spouse_risk_level": "medium",
+    "notes": "Young couple with long investment horizon, balanced approach suitable for long-term growth"
   }
 }

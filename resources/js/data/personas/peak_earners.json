@@ -186,6 +186,8 @@
       "annual_contribution": 10000,
       "ownership_type": "individual",
       "risk_profile": "adventurous",
+      "risk_preference": "high",
+      "has_custom_risk": true,
       "holdings": [
         {
           "id": 1,
@@ -222,6 +224,8 @@
       "annual_contribution": 10000,
       "ownership_type": "individual",
       "risk_profile": "balanced",
+      "risk_preference": "medium",
+      "owner": "spouse",
       "holdings": [
         {
           "id": 4,
@@ -242,6 +246,7 @@
       "annual_contribution": 12000,
       "ownership_type": "joint",
       "risk_profile": "balanced",
+      "risk_preference": "upper_medium",
       "holdings": [
         {
           "id": 5,
@@ -277,6 +282,8 @@
       "current_value": 30000,
       "annual_contribution": 0,
       "ownership_type": "individual",
+      "risk_preference": "high",
+      "has_custom_risk": true,
       "notes": "Tax-efficient VCT investments"
     }
   ],
@@ -292,6 +299,7 @@
       "monthly_contribution_amount": 2000,
       "retirement_age": 60,
       "ownership_type": "individual",
+      "risk_preference": "upper_medium",
       "notes": "Personal contributions plus employer pension scheme transfer",
       "holdings": [
         {
@@ -451,5 +459,11 @@
     },
     "net_worth_range": "1.5m - 2m",
     "primary_focus": "Tax efficiency, pension allowances"
+  },
+
+  "risk_profile": {
+    "main_risk_level": "upper_medium",
+    "spouse_risk_level": "medium",
+    "notes": "High earners with substantial wealth, David prefers growth-focused approach while Sarah is more balanced given NHS pension security"
   }
 }

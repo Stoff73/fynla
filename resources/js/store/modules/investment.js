@@ -83,9 +83,24 @@ const getters = {
         return state.analysis?.diversification_score || 0;
     },
 
-    // Get risk level
+    // Get risk level (from analysis)
     riskLevel: (state) => {
         return state.analysis?.risk_metrics?.risk_level || 'medium';
+    },
+
+    // Get main risk level from profile (5-level system)
+    mainRiskLevel: (state) => {
+        return state.riskProfile?.risk_level || null;
+    },
+
+    // Check if user has set a risk profile
+    hasRiskProfile: (state) => {
+        return !!state.riskProfile?.risk_level;
+    },
+
+    // Get products with custom risk settings
+    productsWithCustomRisk: (state) => {
+        return state.accounts.filter(a => a.has_custom_risk && a.risk_preference);
     },
 
     // Get all holdings across all accounts
@@ -369,6 +384,24 @@ const actions = {
             commit('setMonteCarloStatus', { jobId, status: 'failed' });
             commit('setError', errorMessage);
             throw error;
+        }
+    },
+
+    // Fetch accounts only (lightweight alternative to fetchInvestmentData)
+    async fetchAccounts({ commit }) {
+        commit('setLoading', true);
+        commit('setError', null);
+
+        try {
+            const response = await investmentService.getInvestmentData();
+            commit('setAccounts', response.data.accounts);
+            return response.data.accounts;
+        } catch (error) {
+            const errorMessage = error.message || 'Failed to fetch accounts';
+            commit('setError', errorMessage);
+            throw error;
+        } finally {
+            commit('setLoading', false);
         }
     },
 

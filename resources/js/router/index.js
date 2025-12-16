@@ -31,8 +31,7 @@ const PolicyDetail = () => import('@/components/Protection/PolicyDetail.vue');
 const ComprehensiveProtectionPlan = () => import('@/views/Protection/ComprehensiveProtectionPlan.vue');
 const SavingsDashboard = () => import('@/views/Savings/SavingsDashboard.vue');
 const SavingsAccountDetail = () => import('@/views/Savings/SavingsAccountDetail.vue');
-const InvestmentDashboard = () => import('@/views/Investment/InvestmentDashboard.vue');
-const RetirementDashboard = () => import('@/views/Retirement/RetirementDashboard.vue');
+const RiskProfilePage = () => import('@/views/Risk/RiskProfilePage.vue');
 const PensionDetail = () => import('@/views/Retirement/PensionDetail.vue');
 const EstateDashboard = () => import('@/views/Estate/EstateDashboard.vue');
 const ComprehensiveEstatePlan = () => import('@/views/Estate/ComprehensiveEstatePlan.vue');
@@ -267,13 +266,18 @@ const routes = [
   },
   {
     path: '/investment',
-    name: 'Investment',
-    component: InvestmentDashboard,
+    redirect: '/net-worth/investments',
+  },
+  {
+    path: '/risk-profile',
+    name: 'RiskProfile',
+    component: RiskProfilePage,
     meta: {
       requiresAuth: true,
       breadcrumb: [
         { label: 'Home', path: '/dashboard' },
         { label: 'Investment', path: '/investment' },
+        { label: 'Risk Profile', path: '/risk-profile' },
       ],
     },
   },
@@ -500,15 +504,11 @@ const routes = [
   },
   {
     path: '/preview/investment',
-    name: 'PreviewInvestment',
-    component: InvestmentDashboard,
-    meta: { public: true, previewMode: true },
+    redirect: '/preview/net-worth/investments',
   },
   {
     path: '/preview/retirement',
-    name: 'PreviewRetirement',
-    component: RetirementDashboard,
-    meta: { public: true, previewMode: true },
+    redirect: '/preview/net-worth/retirement',
   },
   {
     path: '/preview/estate',

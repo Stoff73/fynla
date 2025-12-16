@@ -16,17 +16,22 @@ class RiskProfile extends Model
     protected $fillable = [
         'user_id',
         'risk_tolerance',
+        'risk_level',
         'capacity_for_loss_percent',
         'time_horizon_years',
         'knowledge_level',
         'attitude_to_volatility',
         'esg_preference',
+        'risk_assessed_at',
+        'is_self_assessed',
     ];
 
     protected $casts = [
         'capacity_for_loss_percent' => 'float',
         'time_horizon_years' => 'integer',
         'esg_preference' => 'boolean',
+        'risk_assessed_at' => 'datetime',
+        'is_self_assessed' => 'boolean',
     ];
 
     /**

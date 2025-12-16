@@ -5,6 +5,14 @@ export default {
     "./resources/**/*.js",
     "./resources/**/*.vue",
   ],
+  safelist: [
+    // Risk level colors - ensure these are always included
+    'bg-green-50', 'bg-green-100', 'bg-green-600', 'text-green-700', 'text-green-800', 'border-green-200', 'ring-green-400',
+    'bg-teal-50', 'bg-teal-100', 'bg-teal-600', 'text-teal-700', 'text-teal-800', 'border-teal-200', 'ring-teal-400',
+    'bg-blue-50', 'bg-blue-100', 'bg-blue-600', 'text-blue-700', 'text-blue-800', 'border-blue-200', 'ring-blue-400',
+    'bg-amber-50', 'bg-amber-100', 'bg-amber-600', 'text-amber-700', 'text-amber-800', 'border-amber-200', 'ring-amber-400',
+    'bg-red-50', 'bg-red-100', 'bg-red-600', 'text-red-700', 'text-red-800', 'border-red-200', 'ring-red-400',
+  ],
   theme: {
     extend: {
       colors: {

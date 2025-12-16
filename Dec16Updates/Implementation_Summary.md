@@ -1,7 +1,7 @@
 # Dec 16 Implementation Summary
 
 ## Overview
-Implemented optional fields across the application and refactored user registration to use separate name fields.
+Implemented optional fields across the application, refactored user registration to use separate name fields, and added a comprehensive 5-level risk preference system.
 
 ---
 
@@ -141,13 +141,43 @@ Updated to use new name fields (`first_name`, `middle_name`, `surname`):
 
 ## Required Seeders
 
-After migration, run these seeders:
+After migration, run the main seeder (now includes all reference data):
 
 ```bash
+php artisan db:seed
+```
+
+Or run individually:
+
+```bash
+# Reference data (REQUIRED for app to function)
 php artisan db:seed --class=TaxConfigurationSeeder --force
 php artisan db:seed --class=TaxProductReferenceSeeder --force
+php artisan db:seed --class=UKLifeExpectancySeeder --force
+php artisan db:seed --class=ActuarialLifeTablesSeeder --force
+
+# User data (development only)
 php artisan db:seed --class=PreviewUserSeeder --force
+php artisan db:seed --class=AdminUserSeeder --force
 ```
+
+**Full seeding documentation**: See `/seedMigration.md` in the project root.
+
+### DatabaseSeeder Updates
+
+**File**: `database/seeders/DatabaseSeeder.php`
+
+Now orchestrates all seeders in correct order:
+- Phase 1: Reference data (TaxConfiguration, TaxProductReference, UKLifeExpectancy, ActuarialLifeTables)
+- Phase 2: User data (Household, TestUsers, Admin, PreviewUsers) - only in dev/staging
+
+### Common Seeding Issues
+
+| Issue | Fix |
+|-------|-----|
+| Tax Status tab empty | `php artisan db:seed --class=TaxProductReferenceSeeder --force` |
+| Tax calculations failing | `php artisan db:seed --class=TaxConfigurationSeeder --force` |
+| Preview personas broken | `php artisan db:seed --class=PreviewUserSeeder --force` |
 
 ---
 
@@ -189,6 +219,130 @@ php artisan db:seed --class=PreviewUserSeeder --force
 
 ---
 
+## Phase 6: Risk Module Integration (COMPLETED)
+
+### Overview
+Integrated a comprehensive 5-level risk preference system allowing users to:
+- Set a main risk level via self-selection (Low → High)
+- Override risk per product within ±1 level of their main preference
+- See risk indicators on dashboard cards and forms
+- View a dedicated Risk Profile page with educational content
+
+### Risk Levels
+
+| Level | DB Value | Display Name | Equity/Bond/Cash | Expected Return |
+|-------|----------|--------------|------------------|-----------------|
+| 1 | `low` | Low | 10/70/20 | 1-3% |
+| 2 | `lower_medium` | Lower-Medium | 30/55/10 | 2-4.5% |
+| 3 | `medium` | Medium | 50/40/5 | 3.5-6.5% |
+| 4 | `upper_medium` | Upper-Medium | 75/20/0 | 5-8.5% |
+| 5 | `high` | High | 90/5/0 | 6-12% |
+
+### Database Migrations
+
+| File | Purpose |
+|------|---------|
+| `2025_12_16_152549_add_risk_level_to_risk_profiles_table.php` | Added `risk_level`, `risk_assessed_at`, `is_self_assessed` to risk_profiles |
+| `2025_12_16_152550_add_risk_preference_to_investment_accounts_table.php` | Added `risk_preference`, `has_custom_risk` to investment_accounts |
+| `2025_12_16_152552_add_risk_preference_to_dc_pensions_table.php` | Added `risk_preference`, `has_custom_risk` to dc_pensions |
+
+### Backend Service
+
+**File**: `app/Services/Risk/RiskPreferenceService.php`
+
+Key methods:
+- `getAvailableRiskLevels()` - Returns all 5 risk levels with configurations
+- `setMainRiskLevel(userId, riskLevel)` - Sets user's main risk preference
+- `getMainRiskLevel(userId)` - Gets current risk level
+- `getAllowedProductRiskLevels(userId)` - Returns levels within ±1 of main
+- `validateProductRiskLevel(userId, riskLevel)` - Validates product-level override
+- `getRiskLevelConfig(riskLevel)` - Returns asset allocation and return expectations
+
+### API Controller
+
+**File**: `app/Http/Controllers/Api/RiskPreferenceController.php`
+
+### API Routes (under `/api/investment/risk/`)
+
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| GET | `/levels` | Get all available risk levels with descriptions |
+| GET | `/profile` | Get user's current risk profile |
+| POST | `/profile` | Set or update user's main risk level |
+| GET | `/allowed-levels` | Get allowed levels for product override (±1) |
+| POST | `/validate-product-level` | Validate a product risk level |
+| GET | `/config/{level}` | Get configuration for a specific risk level |
+
+### Model Updates
+
+| Model | Changes |
+|-------|---------|
+| `RiskProfile.php` | Added `risk_level`, `risk_assessed_at`, `is_self_assessed` to fillable/casts |
+| `InvestmentAccount.php` | Added `risk_preference`, `has_custom_risk` to fillable/casts |
+| `DCPension.php` | Added `risk_preference`, `has_custom_risk` to fillable/casts |
+
+### Frontend Components Created
+
+| File | Purpose |
+|------|---------|
+| `components/Shared/RiskLevelSelector.vue` | Interactive 5-level selector with colors, info panels |
+| `components/Shared/RiskBadge.vue` | Compact badge for cards (size variants, custom-risk indicator) |
+| `components/Risk/RiskFactorsPanel.vue` | 4-quadrant investment risk factors display |
+| `components/Risk/CapacityForLossSection.vue` | Interactive spectrum visualization |
+| `components/Risk/TimeHorizonSection.vue` | Time horizon selector with risk/horizon matrix |
+| `components/Risk/InvestmentTypesAccordion.vue` | Expandable asset class explanations |
+| `views/Risk/RiskProfilePage.vue` | Complete risk profile page with educational content |
+| `services/riskService.js` | API wrapper for all risk endpoints |
+
+### Frontend Components Modified
+
+| File | Changes |
+|------|---------|
+| `components/Investment/AccountForm.vue` | Added RiskLevelSelector, redirect to risk-profile if no profile set |
+| `components/Retirement/DCPensionForm.vue` | Added RiskLevelSelector, redirect to risk-profile if no profile set |
+| `components/NetWorth/InvestmentList.vue` | Added RiskBadge in card header |
+| `components/NetWorth/PensionList.vue` | Added RiskBadge for DC pensions (top-right corner) |
+| `components/Shared/RiskLevelSelector.vue` | Uses inline styles for colors (fixes Tailwind purging issue) |
+| `router/index.js` | Added `/risk-profile` route |
+| `store/modules/investment.js` | Added risk profile getters and actions |
+
+### Frontend Components Deleted (Unused)
+
+| File | Reason |
+|------|--------|
+| `components/Investment/AccountCard.vue` | Not used - InvestmentList renders cards inline |
+| `components/Investment/Accounts.vue` | Not used - InvestmentList is the actual component |
+| `components/Retirement/PensionCard.vue` | Not used - PensionList renders cards inline |
+| `views/Retirement/PensionInventory.vue` | Not used - not in router |
+
+### Risk Level Color Scheme
+
+| Level | Tailwind Classes |
+|-------|-----------------|
+| Low | `bg-green-100 text-green-800` |
+| Lower-Medium | `bg-teal-100 text-teal-800` |
+| Medium | `bg-blue-100 text-blue-800` |
+| Upper-Medium | `bg-amber-100 text-amber-800` |
+| High | `bg-red-100 text-red-800` |
+
+### Educational Content Sections (RiskProfilePage)
+
+1. **Introduction** - Why understanding risk matters
+2. **Risk Factors Panel** - 4 key investment risks (value falls, capacity, inflation, liquidity)
+3. **Capacity for Loss** - Interactive spectrum with interpretation
+4. **Time Horizon** - How investment timeline affects risk tolerance
+5. **Risk Level Selection** - Main risk level selector
+6. **Investment Types** - Expandable accordion explaining asset classes
+7. **Custom Products** - List of products with custom risk settings
+
+### Product-Level Risk Override
+
+- Users can set per-product risk levels within ±1 of their main level
+- `has_custom_risk` flag indicates when product differs from main profile
+- Custom risk shown with amber ring on badges
+
+---
+
 ## Testing Verification
 
 All API endpoints tested and working:
@@ -198,8 +352,12 @@ All API endpoints tested and working:
 - `/api/net-worth/assets-summary-detailed` - Detailed assets
 - `/api/properties` - Property data
 - `/api/savings` - Savings accounts
-- `/api/retirement` - Pension data
+- `/api/retirement` - Pension data (now includes `risk_preference`, `has_custom_risk`)
+- `/api/investment` - Investment accounts (now includes `risk_preference`, `has_custom_risk`)
 - `/api/tax-info/investment/{type}` - Tax status information
+- `/api/investment/risk/levels` - Risk levels configuration
+- `/api/investment/risk/profile` - User risk profile
+- `/api/investment/risk/allowed-levels` - Allowed product risk levels
 
 ---
 
@@ -207,12 +365,22 @@ All API endpoints tested and working:
 
 ### Backend (PHP)
 - app/Models/User.php
+- app/Models/Investment/RiskProfile.php (added risk_level fields)
+- app/Models/Investment/InvestmentAccount.php (added risk_preference fields)
+- app/Models/DCPension.php (added risk_preference fields)
 - app/Http/Controllers/Api/AuthController.php
+- app/Http/Controllers/Api/RiskPreferenceController.php (new)
 - app/Http/Requests/RegisterRequest.php
+- app/Services/Risk/RiskPreferenceService.php (new)
+- app/Services/Investment/AssetAllocationOptimizer.php (updated for 5-level system)
+- routes/api.php (added risk routes)
 - 22 Form Request files (see Phase 2)
 - 9 Service files (see Phase 4)
 - database/migrations/2025_12_16_103303_refactor_users_name_fields.php
 - database/migrations/2025_12_16_103444_make_all_data_columns_nullable.php
+- database/migrations/2025_12_16_152549_add_risk_level_to_risk_profiles_table.php (new)
+- database/migrations/2025_12_16_152550_add_risk_preference_to_investment_accounts_table.php (new)
+- database/migrations/2025_12_16_152552_add_risk_preference_to_dc_pensions_table.php (new)
 - database/seeders/PreviewUserSeeder.php
 - database/seeders/TestUsersSeeder.php
 - database/seeders/AdminUserSeeder.php
@@ -220,17 +388,94 @@ All API endpoints tested and working:
 
 ### Frontend (Vue)
 - resources/js/views/Register.vue
-- resources/js/router/index.js (preview mode register access fix)
+- resources/js/views/Risk/RiskProfilePage.vue (new)
+- resources/js/router/index.js (preview mode fix + risk-profile route)
 - resources/js/components/Footer.vue (version and link update)
 - resources/js/views/Public/LandingPage.vue (Boma Build removal)
 - resources/js/assets/images/logo.png (new logo asset)
+- resources/js/components/Shared/RiskLevelSelector.vue (new - uses inline styles)
+- resources/js/components/Shared/RiskBadge.vue (new)
+- resources/js/components/Risk/RiskFactorsPanel.vue (new)
+- resources/js/components/Risk/CapacityForLossSection.vue (new)
+- resources/js/components/Risk/TimeHorizonSection.vue (new)
+- resources/js/components/Risk/InvestmentTypesAccordion.vue (new)
+- resources/js/components/Investment/AccountForm.vue (added RiskLevelSelector + redirect)
+- resources/js/components/Retirement/DCPensionForm.vue (added RiskLevelSelector + redirect)
+- resources/js/components/NetWorth/InvestmentList.vue (added RiskBadge)
+- resources/js/components/NetWorth/PensionList.vue (added RiskBadge, top-right positioning)
+- resources/js/services/riskService.js (new)
+- resources/js/store/modules/investment.js (added risk getters/actions)
+- tailwind.config.js (added safelist for risk level colors)
 - 9 form components (see Phase 3)
+
+### Frontend Files Deleted
+- resources/js/components/Investment/AccountCard.vue (unused)
+- resources/js/components/Investment/Accounts.vue (unused)
+- resources/js/components/Retirement/PensionCard.vue (unused)
+- resources/js/views/Retirement/PensionInventory.vue (unused)
+
+### New Documentation
+- /seedMigration.md (comprehensive seeding guide)
 
 ---
 
 ## Deployment Notes
 
 1. Run migrations: `php artisan migrate --force`
+   - Includes 3 new risk module migrations
 2. Run seeders (see Required Seeders section)
 3. Clear caches: `php artisan config:clear && php artisan cache:clear`
 4. Rebuild frontend: `npm run build`
+
+---
+
+## New Routes
+
+### Risk Profile Page
+- **URL**: `/risk-profile`
+- **Component**: `views/Risk/RiskProfilePage.vue`
+- **Purpose**: Educational content and main risk level selection
+
+---
+
+## Usage Notes
+
+### Setting Risk Profile
+1. Navigate to `/risk-profile` or click "Set Risk Profile" link in investment/pension forms
+2. Review educational content about investment risks
+3. Select main risk level (Low → High)
+4. Risk level is saved to user's risk profile
+
+### Per-Product Risk Override
+1. Open investment account or DC pension form
+2. If main risk profile is set, RiskLevelSelector appears
+3. Select risk level within ±1 of main profile
+4. If different from main, `has_custom_risk` flag is set
+
+### Risk Badges on Cards
+- Appear on InvestmentList and PensionList cards when risk_preference is set
+- Color-coded by risk level (green → teal → blue → amber → red)
+- Amber ring indicates custom risk (different from main profile)
+- DC Pension badges positioned in top-right corner of card
+
+---
+
+## New Documentation Files
+
+| File | Purpose |
+|------|---------|
+| `/seedMigration.md` | Comprehensive database seeding guide for all Claude instances |
+| `/CLAUDE.md` (updated) | Added quick reference for seeding commands |
+
+---
+
+## Preview Persona Risk Data
+
+All preview personas now include risk profile data:
+
+| Persona | Main Risk | Investment Risks | DC Pension Risks |
+|---------|-----------|------------------|------------------|
+| young_family | medium | ISA: medium | Workplace: medium |
+| peak_earners | David: upper_medium, Sarah: medium | ISA: high/medium, GIA: upper_medium, VCT: high | SIPP: upper_medium |
+| widow | lower_medium | ISA: lower_medium, Bond: lower_medium, GIA: medium | N/A |
+| entrepreneur | high | ISA: high, GIA: high | SIPP: upper_medium |

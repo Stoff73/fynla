@@ -42,7 +42,21 @@ php artisan queue:work database      # Queue worker (optional, for Monte Carlo)
 
 ```bash
 php artisan migrate                  # Run migrations
-php artisan db:seed --class=TaxConfigurationSeeder  # Seed tax config
+php artisan db:seed                  # Seed all data (reference + users in dev)
+```
+
+**IMPORTANT:** After migrations, always ensure reference data is seeded. See **`/seedMigration.md`** for full documentation.
+
+Quick reference for common issues:
+```bash
+# Tax Status tab empty? Run:
+php artisan db:seed --class=TaxProductReferenceSeeder --force
+
+# Tax calculations failing? Run:
+php artisan db:seed --class=TaxConfigurationSeeder --force
+
+# Preview personas broken? Run:
+php artisan db:seed --class=PreviewUserSeeder --force
 ```
 
 ## Architecture

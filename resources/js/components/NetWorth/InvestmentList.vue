@@ -13,7 +13,18 @@
     <!-- Investment List View (default) -->
     <template v-else>
       <div class="list-header">
-        <h2 class="list-title">Investments</h2>
+        <div class="title-row">
+          <h2 class="list-title">Investments</h2>
+          <router-link
+            to="/risk-profile"
+            class="risk-profile-link"
+          >
+            <svg class="risk-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+            Risk Profile
+          </router-link>
+        </div>
         <div class="header-buttons">
           <button @click="showAccountForm = true" class="add-account-button">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="button-icon">
@@ -61,6 +72,13 @@
             <span :class="['badge', accountTypeBadgeClass(account.account_type)]">
               {{ formatAccountType(account.account_type) }}
             </span>
+            <RiskBadge
+              v-if="account.risk_preference"
+              :level="account.risk_preference"
+              size="sm"
+              :abbreviated="true"
+              :has-custom-risk="account.has_custom_risk"
+            />
           </div>
           <div class="card-content">
             <h4 class="account-provider">{{ account.provider }}</h4>
@@ -270,6 +288,7 @@ import { mapState, mapGetters, mapActions } from 'vuex';
 import InvestmentDetailInline from './InvestmentDetailInline.vue';
 import AccountForm from '@/components/Investment/AccountForm.vue';
 import DocumentUploadModal from '@/components/Shared/DocumentUploadModal.vue';
+import RiskBadge from '@/components/Shared/RiskBadge.vue';
 import Holdings from '@/components/Investment/Holdings.vue';
 import Performance from '@/components/Investment/Performance.vue';
 import PerformanceAttribution from '@/components/Investment/PerformanceAttribution.vue';
@@ -290,6 +309,7 @@ export default {
     InvestmentDetailInline,
     AccountForm,
     DocumentUploadModal,
+    RiskBadge,
     Holdings,
     Performance,
     PerformanceAttribution,
@@ -580,11 +600,40 @@ export default {
   gap: 16px;
 }
 
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
 .list-title {
   font-size: 24px;
   font-weight: 700;
   color: #111827;
   margin: 0;
+}
+
+.risk-profile-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #eff6ff;
+  color: #2563eb;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.risk-profile-link:hover {
+  background: #dbeafe;
+}
+
+.risk-icon {
+  width: 16px;
+  height: 16px;
 }
 
 .header-buttons {

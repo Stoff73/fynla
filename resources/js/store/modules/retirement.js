@@ -439,6 +439,10 @@ const getters = {
     pensionsWithHoldings: (state) => {
         return state.portfolioAnalysis?.pensions_breakdown || [];
     },
+
+    // Direct state accessors for risk profile page
+    dcPensions: (state) => state.dcPensions,
+    dbPensions: (state) => state.dbPensions,
 };
 
 export default {
