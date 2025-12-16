@@ -151,6 +151,25 @@ php artisan db:seed --class=PreviewUserSeeder --force
 
 ---
 
+## Bug Fixes (COMPLETED)
+
+### Router Guard Fix for Preview Mode
+**File**: `resources/js/router/index.js`
+
+**Issue**: Clicking "Register to Save Your Data" button in preview mode banner did nothing.
+
+**Cause**: Router guard was blocking authenticated users from accessing guest routes. Preview mode sets `isAuthenticated=true`, so preview users were being redirected away from the register page.
+
+**Fix**: Added `&& !isPreviewMode` condition to allow preview users to access the register page:
+```javascript
+} else if (to.meta.requiresGuest && isAuthenticated && !isPreviewMode) {
+  // Redirect to dashboard if already authenticated (but allow preview users to register)
+  next({ name: 'Dashboard' });
+}
+```
+
+---
+
 ## Testing Verification
 
 All API endpoints tested and working:
@@ -182,6 +201,7 @@ All API endpoints tested and working:
 
 ### Frontend (Vue)
 - resources/js/views/Register.vue
+- resources/js/router/index.js (preview mode register access fix)
 - 9 form components (see Phase 3)
 
 ---
