@@ -239,7 +239,7 @@
 
     <!-- Account Form Modal -->
     <AccountForm
-      v-if="showAccountForm"
+      :show="showAccountForm"
       :account="editingAccount"
       :is-edit="!!editingAccount"
       @close="closeAccountForm"
@@ -400,7 +400,13 @@ export default {
         } else {
           await this.createAccount(data);
         }
-        await this.loadData();
+
+        // In preview mode, don't reload from API as the data wasn't persisted
+        const isPreview = this.$store.getters['preview/isPreviewMode'];
+        if (!isPreview) {
+          await this.loadData();
+        }
+
         this.successMessage = 'Investment account saved successfully';
         setTimeout(() => {
           this.successMessage = null;
