@@ -168,6 +168,25 @@ php artisan db:seed --class=PreviewUserSeeder --force
 }
 ```
 
+### Registration Page Logo
+**File**: `resources/js/views/Register.vue`
+
+- Replaced "Fynla" text heading with logo image
+- Logo imported from `@/assets/images/logo.png`
+- Styled at h-48 (192px height) with reduced spacing
+
+### Footer Updates
+**File**: `resources/js/components/Footer.vue`
+
+- Updated version from v0.2.18 to v0.2.20
+- Changed link from csjones.co to csjones.co/fynla
+- Removed "Boma Build" branding, replaced with "csjones.co/fynla"
+
+### Landing Page Updates
+**File**: `resources/js/views/Public/LandingPage.vue`
+
+- Changed heading from "What's in the Boma Build" to "What's in the Demo"
+
 ---
 
 ## Testing Verification
@@ -202,6 +221,9 @@ All API endpoints tested and working:
 ### Frontend (Vue)
 - resources/js/views/Register.vue
 - resources/js/router/index.js (preview mode register access fix)
+- resources/js/components/Footer.vue (version and link update)
+- resources/js/views/Public/LandingPage.vue (Boma Build removal)
+- resources/js/assets/images/logo.png (new logo asset)
 - 9 form components (see Phase 3)
 
 ---
