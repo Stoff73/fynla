@@ -577,8 +577,8 @@ router.beforeEach(async (to, from, next) => {
     // Redirect to login if route requires authentication and not in preview mode
     console.log('[Router Guard] Redirecting to login - not authenticated and not in preview mode');
     next({ name: 'Login' });
-  } else if (to.meta.requiresGuest && isAuthenticated) {
-    // Redirect to dashboard if already authenticated
+  } else if (to.meta.requiresGuest && isAuthenticated && !isPreviewMode) {
+    // Redirect to dashboard if already authenticated (but allow preview users to register)
     next({ name: 'Dashboard' });
   } else if (to.meta.requiresAdmin && !isAdmin) {
     // Redirect to dashboard if route requires admin access (preview mode cannot access admin)
