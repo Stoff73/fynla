@@ -197,3 +197,44 @@ Convert from sections to tabs:
   - [ ] Feature tests (deferred)
   - [x] Manual API testing (passed)
   - [x] Frontend build verification (passed)
+
+---
+
+## Additional Updates (Dec 16, 2025)
+
+### Corrections Made
+
+1. **Wrong Component Initially Modified**
+   - Initially modified `AccountDetailView.vue` (used by InvestmentDashboard)
+   - The actual view used when clicking investment accounts is `InvestmentDetailInline.vue` in NetWorth folder
+   - Fixed by adding Tax Status tab to the correct component
+
+2. **Removed Allowances Section**
+   - User feedback: "Current Allowances" section was confusing as it showed generic allowances not specific to the product type
+   - Removed the allowances grid from TaxStatusPanel.vue
+
+### Bug Fixes
+
+3. **Investment Form Not Opening** (`7b5a09a`)
+   - `AccountForm` component was missing required `:show` prop in `InvestmentList.vue`
+   - Added `:show="showAccountForm"` prop
+
+4. **Preview Mode Data Not Persisting**
+   - After saving a new investment in preview mode, `loadData()` was called which fetched from API
+   - Since preview mode doesn't actually save to database, the new account would disappear
+   - Fixed by skipping `loadData()` in preview mode after save
+
+### Files Modified (Additional)
+
+| File | Changes |
+|------|---------|
+| `resources/js/components/NetWorth/InvestmentDetailInline.vue` | Added Tax Status tab (the correct detail view) |
+| `resources/js/components/NetWorth/InvestmentList.vue` | Fixed AccountForm show prop, preview mode save |
+| `resources/js/components/Common/TaxStatusPanel.vue` | Removed allowances section |
+
+### Git Commits
+
+| Commit | Description |
+|--------|-------------|
+| `f952746` | feat: Add Tax Status tab to Investment and Savings detail views |
+| `7b5a09a` | fix: Investment form missing show prop and preview mode data persistence |
