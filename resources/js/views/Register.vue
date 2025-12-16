@@ -2,10 +2,10 @@
   <div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
     <div class="max-w-md w-full space-y-8">
       <div>
-        <h1 class="text-center font-display text-h1 text-gray-900">
-          Fynla
-        </h1>
-        <h2 class="mt-6 text-center text-h3 text-gray-900">
+        <div class="flex justify-center">
+          <img :src="logoImage" alt="Fynla" class="h-48 w-auto">
+        </div>
+        <h2 class="mt-2 text-center text-h3 text-gray-900">
           Create your account
         </h2>
         <p class="mt-2 text-center text-body-sm text-gray-600">
@@ -180,6 +180,7 @@ import { useStore } from 'vuex';
 import { useRouter } from 'vue-router';
 import KeepDataOrFreshModal from '@/components/Preview/KeepDataOrFreshModal.vue';
 import api from '@/services/api';
+import logoImage from '@/assets/images/logo.png';
 
 export default {
   name: 'Register',
@@ -299,6 +300,7 @@ export default {
       currentPersonaName,
       handleRegister,
       handleKeepDataChoice,
+      logoImage,
     };
   },
 };

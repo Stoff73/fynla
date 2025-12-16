@@ -116,7 +116,7 @@
         <div class="text-center mb-16">
           <span class="text-blue-600 font-semibold text-sm uppercase tracking-wider">Demo Features</span>
           <h2 class="text-4xl md:text-5xl font-bold text-slate-900 mt-3 mb-4">
-            What's in the Boma Build
+            What's in the Demo
           </h2>
           <p class="text-xl text-slate-600 max-w-3xl mx-auto">
             A comprehensive testing environment showcasing core planning features and data integration
