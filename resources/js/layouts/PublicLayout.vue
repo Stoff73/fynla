@@ -7,7 +7,7 @@
           <div class="flex items-center">
             <!-- Logo -->
             <router-link to="/" class="flex items-center">
-              <img :src="logoUrl" alt="Fynla" class="h-16 w-auto" />
+              <img :src="logoUrl" alt="Fynla" class="h-32 w-auto" />
             </router-link>
 
             <!-- Navigation Links -->
@@ -118,7 +118,7 @@
           <!-- Company Info -->
           <div class="col-span-1 md:col-span-2">
             <div class="flex items-center mb-4">
-              <img :src="logoUrl" alt="Fynla" class="h-40 w-auto" />
+              <img :src="logoUrl" alt="Fynla" class="h-80 w-auto" />
             </div>
             <p class="text-gray-400 text-sm mb-4">
               Financial Planning System - Your comprehensive solution for UK financial planning.
