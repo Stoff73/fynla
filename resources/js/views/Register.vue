@@ -1,5 +1,15 @@
 <template>
   <div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <!-- Verification Code Modal -->
+    <VerificationCodeModal
+      :is-open="showVerificationModal"
+      :user-email="pendingEmail"
+      :user-id="pendingUserId"
+      type="registration"
+      @verified="handleVerified"
+      @close="handleVerificationClose"
+    />
+
     <div class="max-w-md w-full space-y-8">
       <div>
         <div class="flex justify-center">
@@ -179,7 +189,9 @@ import { ref, computed, onMounted } from 'vue';
 import { useStore } from 'vuex';
 import { useRouter } from 'vue-router';
 import KeepDataOrFreshModal from '@/components/Preview/KeepDataOrFreshModal.vue';
+import VerificationCodeModal from '@/components/Auth/VerificationCodeModal.vue';
 import api from '@/services/api';
+import authService from '@/services/authService';
 import logoImage from '@/assets/images/logo.png';
 
 export default {
@@ -187,6 +199,7 @@ export default {
 
   components: {
     KeepDataOrFreshModal,
+    VerificationCodeModal,
   },
 
   setup() {
@@ -206,13 +219,21 @@ export default {
     const errorMessage = ref('');
     const showKeepDataModal = ref(false);
     const previewPersonaId = ref(null);
+    const showVerificationModal = ref(false);
+    const pendingUserId = ref(null);
+    const pendingEmail = ref('');
+    const isSubmitting = ref(false);
 
-    const loading = computed(() => store.getters['auth/loading']);
+    const loading = computed(() => store.getters['auth/loading'] || isSubmitting.value);
 
     // Check if user is coming from preview mode
     const wasInPreview = computed(() => store.getters['preview/isPreviewMode']);
     const currentPersona = computed(() => store.getters['preview/currentPersona']);
     const currentPersonaName = computed(() => currentPersona.value?.name || 'Demo User');
+
+    // Store preview state before registration clears it
+    let cachedWasInPreview = false;
+    let cachedCurrentPersona = null;
 
     // Pre-fill name from persona if in preview mode
     onMounted(() => {
@@ -231,6 +252,11 @@ export default {
     const handleRegister = async () => {
       errors.value = {};
       errorMessage.value = '';
+      isSubmitting.value = true;
+
+      // Cache preview state before it gets cleared
+      cachedWasInPreview = wasInPreview.value;
+      cachedCurrentPersona = currentPersona.value;
 
       try {
         // Include registration source if from preview
@@ -238,30 +264,68 @@ export default {
           ...form.value,
         };
 
-        if (wasInPreview.value) {
+        if (cachedWasInPreview) {
           registrationData.registration_source = 'preview';
-          registrationData.preview_persona_id = currentPersona.value?.id;
+          registrationData.preview_persona_id = cachedCurrentPersona?.id;
         }
 
-        await store.dispatch('auth/register', registrationData);
+        // Call register API directly to handle verification response
+        const response = await api.post('/auth/register', registrationData);
 
-        // Check if coming from preview mode
-        if (wasInPreview.value && currentPersona.value) {
-          // Show keep/fresh modal
-          previewPersonaId.value = currentPersona.value.id;
-          showKeepDataModal.value = true;
-        } else {
-          // Direct registration - go to dashboard with guidance
-          await store.dispatch('guidance/showWelcomeModal');
-          router.push({ name: 'Dashboard' });
+        // Check if verification is required
+        if (response.data.requires_verification) {
+          pendingUserId.value = response.data.data.user_id;
+          pendingEmail.value = response.data.data.email;
+          showVerificationModal.value = true;
+          return;
+        }
+
+        // No verification needed - proceed with token (shouldn't happen but handle it)
+        if (response.data.data?.access_token) {
+          await completeRegistration(response.data.data);
         }
       } catch (error) {
-        if (error.errors) {
-          errors.value = error.errors;
+        if (error.response?.data?.errors) {
+          errors.value = error.response.data.errors;
         } else {
-          errorMessage.value = error.message || 'Registration failed. Please try again.';
+          errorMessage.value = error.response?.data?.message || error.message || 'Registration failed. Please try again.';
         }
+      } finally {
+        isSubmitting.value = false;
       }
+    };
+
+    const handleVerified = async (data) => {
+      showVerificationModal.value = false;
+      await completeRegistration(data);
+    };
+
+    const completeRegistration = async (data) => {
+      // Store the token
+      authService.setToken(data.access_token);
+      store.commit('auth/setToken', data.access_token);
+      store.commit('auth/setUser', data.user);
+
+      // Check if coming from preview mode (use cached values)
+      if (cachedWasInPreview && cachedCurrentPersona) {
+        // Show keep/fresh modal
+        previewPersonaId.value = cachedCurrentPersona.id;
+        showKeepDataModal.value = true;
+      } else {
+        // Direct registration - go to dashboard with guidance
+        try {
+          await store.dispatch('guidance/showWelcomeModal');
+        } catch (e) {
+          // Guidance module might not exist
+        }
+        router.push({ name: 'Dashboard' });
+      }
+    };
+
+    const handleVerificationClose = () => {
+      showVerificationModal.value = false;
+      pendingUserId.value = null;
+      pendingEmail.value = '';
     };
 
     const handleKeepDataChoice = async ({ choice, createSpouseAccount, personaId }) => {
@@ -278,7 +342,11 @@ export default {
         await store.dispatch('preview/exitPreview');
 
         // Start guidance for new user
-        await store.dispatch('guidance/showWelcomeModal');
+        try {
+          await store.dispatch('guidance/showWelcomeModal');
+        } catch (e) {
+          // Guidance module might not exist
+        }
 
         // Navigate to dashboard
         router.push({ name: 'Dashboard' });
@@ -295,10 +363,15 @@ export default {
       errorMessage,
       loading,
       showKeepDataModal,
+      showVerificationModal,
+      pendingUserId,
+      pendingEmail,
       wasInPreview,
       currentPersona,
       currentPersonaName,
       handleRegister,
+      handleVerified,
+      handleVerificationClose,
       handleKeepDataChoice,
       logoImage,
     };

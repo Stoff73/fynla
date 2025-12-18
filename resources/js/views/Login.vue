@@ -7,6 +7,16 @@
       @success="handlePasswordChanged"
     />
 
+    <!-- Verification Code Modal -->
+    <VerificationCodeModal
+      :is-open="showVerificationModal"
+      :user-email="pendingEmail"
+      :user-id="pendingUserId"
+      type="login"
+      @verified="handleVerified"
+      @close="handleVerificationClose"
+    />
+
     <div class="max-w-md w-full space-y-8">
       <div>
         <h1 class="text-center font-display text-h1 text-gray-900">
@@ -107,13 +117,16 @@ import { ref, computed } from 'vue';
 import { useStore } from 'vuex';
 import { useRouter } from 'vue-router';
 import ChangePasswordModal from '../components/Auth/ChangePasswordModal.vue';
+import VerificationCodeModal from '../components/Auth/VerificationCodeModal.vue';
 import authService from '../services/authService';
+import api from '../services/api';
 
 export default {
   name: 'Login',
 
   components: {
     ChangePasswordModal,
+    VerificationCodeModal,
   },
 
   setup() {
@@ -129,33 +142,77 @@ export default {
     const errors = ref({});
     const errorMessage = ref('');
     const showPasswordModal = ref(false);
+    const showVerificationModal = ref(false);
+    const pendingUserId = ref(null);
+    const pendingEmail = ref('');
+    const isSubmitting = ref(false);
 
-    const loading = computed(() => store.getters['auth/loading']);
+    const loading = computed(() => store.getters['auth/loading'] || isSubmitting.value);
 
     const handleLogin = async () => {
       errors.value = {};
       errorMessage.value = '';
+      isSubmitting.value = true;
 
       try {
-        const response = await store.dispatch('auth/login', {
+        // Call login API directly to handle verification response
+        const response = await api.post('/auth/login', {
           email: form.value.email,
           password: form.value.password,
         });
 
-        // Check if user must change password
-        if (response?.data?.must_change_password) {
-          showPasswordModal.value = true;
-        } else {
-          // Redirect to dashboard after successful login
-          router.push({ name: 'Dashboard' });
+        // Check if verification is required
+        if (response.data.requires_verification) {
+          pendingUserId.value = response.data.data.user_id;
+          pendingEmail.value = response.data.data.email;
+          showVerificationModal.value = true;
+          return;
+        }
+
+        // No verification needed (preview user) - proceed with token
+        if (response.data.data?.access_token) {
+          authService.setToken(response.data.data.access_token);
+          store.commit('auth/setToken', response.data.data.access_token);
+          await store.dispatch('auth/fetchUser');
+
+          // Check if user must change password
+          if (response.data.data.must_change_password) {
+            showPasswordModal.value = true;
+          } else {
+            router.push({ name: 'Dashboard' });
+          }
         }
       } catch (error) {
-        if (error.errors) {
-          errors.value = error.errors;
+        if (error.response?.data?.errors) {
+          errors.value = error.response.data.errors;
         } else {
-          errorMessage.value = error.message || 'Invalid credentials. Please try again.';
+          errorMessage.value = error.response?.data?.message || error.message || 'Invalid credentials. Please try again.';
         }
+      } finally {
+        isSubmitting.value = false;
       }
+    };
+
+    const handleVerified = async (data) => {
+      showVerificationModal.value = false;
+
+      // Store the token
+      authService.setToken(data.access_token);
+      store.commit('auth/setToken', data.access_token);
+      store.commit('auth/setUser', data.user);
+
+      // Check if user must change password
+      if (data.must_change_password) {
+        showPasswordModal.value = true;
+      } else {
+        router.push({ name: 'Dashboard' });
+      }
+    };
+
+    const handleVerificationClose = () => {
+      showVerificationModal.value = false;
+      pendingUserId.value = null;
+      pendingEmail.value = '';
     };
 
     const handlePasswordChanged = () => {
@@ -174,7 +231,12 @@ export default {
       errorMessage,
       loading,
       showPasswordModal,
+      showVerificationModal,
+      pendingUserId,
+      pendingEmail,
       handleLogin,
+      handleVerified,
+      handleVerificationClose,
       handlePasswordChanged,
     };
   },

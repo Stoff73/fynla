@@ -7,11 +7,14 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
+use App\Mail\VerificationCode;
+use App\Models\EmailVerificationCode;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 
 class AuthController extends Controller
 {
@@ -28,19 +31,29 @@ class AuthController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
-        $token = $user->createToken('auth_token')->plainTextToken;
-
         \Log::info('User registered', [
             'user_id' => $user->id,
         ]);
 
+        // Generate verification code and send email
+        $verificationCode = EmailVerificationCode::generate($user->id, 'registration');
+
+        try {
+            Mail::to($user->email)->send(new VerificationCode($user, $verificationCode->code, 'registration'));
+        } catch (\Exception $e) {
+            \Log::error('Failed to send verification email', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
         return response()->json([
             'success' => true,
-            'message' => 'User registered successfully',
+            'message' => 'Registration successful. Please check your email for verification code.',
+            'requires_verification' => true,
             'data' => [
-                'user' => $user,
-                'access_token' => $token,
-                'token_type' => 'Bearer',
+                'user_id' => $user->id,
+                'email' => $this->maskEmail($user->email),
             ],
         ], 201);
     }
@@ -59,21 +72,46 @@ class AuthController extends Controller
 
         $user = User::where('email', $request->email)->firstOrFail();
 
-        // Load spouse relationship if spouse_id exists
-        if ($user->spouse_id) {
-            $user->load('spouse');
+        // Skip verification for preview users - return token immediately
+        if ($user->is_preview_user) {
+            // Load spouse relationship if spouse_id exists
+            if ($user->spouse_id) {
+                $user->load('spouse');
+            }
+
+            $token = $user->createToken('auth_token')->plainTextToken;
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Login successful',
+                'data' => [
+                    'user' => $user,
+                    'access_token' => $token,
+                    'token_type' => 'Bearer',
+                    'must_change_password' => $user->must_change_password,
+                ],
+            ]);
         }
 
-        $token = $user->createToken('auth_token')->plainTextToken;
+        // Generate verification code and send email for regular users
+        $verificationCode = EmailVerificationCode::generate($user->id, 'login');
+
+        try {
+            Mail::to($user->email)->send(new VerificationCode($user, $verificationCode->code, 'login'));
+        } catch (\Exception $e) {
+            \Log::error('Failed to send verification email', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         return response()->json([
             'success' => true,
-            'message' => 'Login successful',
+            'message' => 'Please check your email for verification code.',
+            'requires_verification' => true,
             'data' => [
-                'user' => $user,
-                'access_token' => $token,
-                'token_type' => 'Bearer',
-                'must_change_password' => $user->must_change_password,
+                'user_id' => $user->id,
+                'email' => $this->maskEmail($user->email),
             ],
         ]);
     }
@@ -155,5 +193,136 @@ class AuthController extends Controller
             'success' => true,
             'message' => 'Password changed successfully',
         ]);
+    }
+
+    /**
+     * Verify email code and return auth token.
+     */
+    public function verifyCode(Request $request): JsonResponse
+    {
+        $request->validate([
+            'user_id' => 'required|integer|exists:users,id',
+            'code' => 'required|string|size:6',
+            'type' => 'required|string|in:login,registration',
+        ]);
+
+        $verification = EmailVerificationCode::findValidCode(
+            $request->user_id,
+            $request->code,
+            $request->type
+        );
+
+        if (! $verification) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid or expired verification code',
+            ], 422);
+        }
+
+        // Mark code as verified
+        $verification->markAsVerified();
+
+        // Get user and create token
+        $user = User::findOrFail($request->user_id);
+
+        // Load spouse relationship if spouse_id exists
+        if ($user->spouse_id) {
+            $user->load('spouse');
+        }
+
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Verification successful',
+            'data' => [
+                'user' => $user,
+                'access_token' => $token,
+                'token_type' => 'Bearer',
+                'must_change_password' => $user->must_change_password,
+            ],
+        ]);
+    }
+
+    /**
+     * Resend verification code.
+     */
+    public function resendCode(Request $request): JsonResponse
+    {
+        $request->validate([
+            'user_id' => 'required|integer|exists:users,id',
+            'type' => 'required|string|in:login,registration',
+        ]);
+
+        $user = User::findOrFail($request->user_id);
+
+        // Get the latest code for this user and type
+        $existingCode = EmailVerificationCode::getLatest($user->id, $request->type);
+
+        if ($existingCode && ! $existingCode->canResend()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Maximum resend limit reached. Please refresh and try again.',
+                'can_resend' => false,
+            ], 429);
+        }
+
+        // Generate new code (or regenerate existing)
+        if ($existingCode) {
+            try {
+                $verificationCode = $existingCode->regenerate();
+            } catch (\Exception $e) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Maximum resend limit reached. Please refresh and try again.',
+                    'can_resend' => false,
+                ], 429);
+            }
+        } else {
+            $verificationCode = EmailVerificationCode::generate($user->id, $request->type);
+        }
+
+        // Send email
+        try {
+            Mail::to($user->email)->send(new VerificationCode($user, $verificationCode->code, $request->type));
+        } catch (\Exception $e) {
+            \Log::error('Failed to send verification email', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send verification email. Please try again.',
+            ], 500);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Verification code sent',
+            'data' => [
+                'resend_count' => $verificationCode->resend_count,
+                'can_resend' => $verificationCode->canResend(),
+                'remaining_resends' => max(0, 2 - $verificationCode->resend_count),
+            ],
+        ]);
+    }
+
+    /**
+     * Mask email address for privacy.
+     */
+    private function maskEmail(string $email): string
+    {
+        $parts = explode('@', $email);
+        $name = $parts[0];
+        $domain = $parts[1] ?? '';
+
+        if (strlen($name) <= 2) {
+            $masked = $name[0].'***';
+        } else {
+            $masked = $name[0].str_repeat('*', strlen($name) - 2).substr($name, -1);
+        }
+
+        return $masked.'@'.$domain;
     }
 }

@@ -116,6 +116,36 @@ const authService = {
     const response = await api.post('/auth/change-password', passwordData);
     return response.data;
   },
+
+  /**
+   * Verify email code and get auth token
+   * @param {number} userId - User ID
+   * @param {string} code - 6-digit verification code
+   * @param {string} type - 'login' or 'registration'
+   * @returns {Promise}
+   */
+  async verifyCode(userId, code, type) {
+    const response = await api.post('/auth/verify-code', {
+      user_id: userId,
+      code,
+      type,
+    });
+    return response.data;
+  },
+
+  /**
+   * Resend verification code
+   * @param {number} userId - User ID
+   * @param {string} type - 'login' or 'registration'
+   * @returns {Promise}
+   */
+  async resendCode(userId, type) {
+    const response = await api.post('/auth/resend-code', {
+      user_id: userId,
+      type,
+    });
+    return response.data;
+  },
 };
 
 export default authService;
