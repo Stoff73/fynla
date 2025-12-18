@@ -95,3 +95,77 @@
     text-wrap: balance;
   }
 }
+
+/* PDF Header - hidden on screen, shown when generating PDF */
+.pdf-header {
+  display: none;
+}
+
+/* Print Styles for PDF Reports */
+@media print {
+  /* Hide navigation, footer, preview banner */
+  nav,
+  footer,
+  [class*="PreviewBanner"] {
+    display: none !important;
+  }
+
+  /* Hide elements marked no-print */
+  .no-print {
+    display: none !important;
+  }
+
+  /* Show print-only elements */
+  .print-only {
+    display: block !important;
+  }
+
+  /* Remove shadows */
+  .shadow-lg,
+  .shadow-md,
+  .shadow-sm,
+  .shadow {
+    box-shadow: none !important;
+  }
+
+  /* Full width for print */
+  .max-w-7xl {
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+
+  /* White background */
+  body,
+  .bg-gray-50 {
+    background: white !important;
+  }
+
+  /* Page setup */
+  @page {
+    margin: 1cm 1.5cm;
+    size: A4;
+  }
+
+  /* Prevent page breaks inside cards/sections */
+  .card,
+  .grid > div,
+  .space-y-4 > div,
+  .space-y-6 > div,
+  .gap-6 > div {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Preserve background colors */
+  [class*="bg-gradient"],
+  .bg-blue-50,
+  .bg-green-50,
+  .bg-red-50,
+  .bg-amber-50,
+  .bg-purple-50,
+  .bg-indigo-50,
+  .bg-emerald-50 {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}

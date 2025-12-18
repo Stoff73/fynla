@@ -1,8 +1,9 @@
 <template>
   <AppLayout>
+    <PrintHeader title="Comprehensive Estate Plan" />
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <!-- Header with Download Button -->
-      <div class="mb-8 flex items-center justify-between">
+      <div class="no-print mb-8 flex items-center justify-between">
         <div>
           <h1 class="text-3xl font-bold text-gray-900">Your Comprehensive Estate Plan</h1>
           <p class="text-gray-600 mt-1">A complete estate planning strategy combining gifting, trusts, and life insurance</p>
@@ -41,8 +42,17 @@
 
       <!-- Estate Plan Document -->
       <div v-else-if="plan" id="estate-plan-document" class="bg-white shadow-lg rounded-lg">
+        <!-- PDF Logo Header -->
+        <div class="pdf-header flex items-center justify-between p-6 border-b-2 border-gray-200">
+          <img :src="logoUrl" alt="Fynla" class="h-12 w-auto" />
+          <div class="text-right">
+            <div class="text-lg font-semibold text-gray-700">Comprehensive Estate Plan</div>
+            <div class="text-sm text-gray-500">{{ plan.plan_metadata.generated_date }}</div>
+          </div>
+        </div>
+
         <!-- Document Header -->
-        <div class="bg-gradient-to-r from-primary-600 to-primary-700 text-white p-8 rounded-t-lg">
+        <div class="bg-gradient-to-r from-primary-600 to-primary-700 text-white p-8">
           <h2 class="text-3xl font-bold mb-2">{{ plan.executive_summary.title }}</h2>
           <p class="text-primary-100">Generated on {{ plan.plan_metadata.generated_date }} at {{ plan.plan_metadata.generated_time }}</p>
           <p class="text-primary-100">Plan Version: {{ plan.plan_metadata.plan_version }}</p>
@@ -174,7 +184,7 @@
           </section>
 
           <!-- User Profile -->
-          <section class="mb-12">
+          <section class="mb-12 pdf-page-break">
             <h3 class="text-2xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-primary-600">Your Profile</h3>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -223,7 +233,7 @@
           </section>
 
           <!-- Estate Overview -->
-          <section class="mb-12">
+          <section class="mb-12 pdf-page-break">
             <h3 class="text-2xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-primary-600">Estate Overview for IHT</h3>
 
             <!-- User Estate Section -->
@@ -429,7 +439,7 @@
           </section>
 
           <!-- Current IHT Position -->
-          <section class="mb-12">
+          <section class="mb-12 pdf-page-break">
             <h3 class="text-2xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-primary-600">IHT Position</h3>
 
             <!-- Married Couple - Show NOW and PROJECTED -->
@@ -557,7 +567,7 @@
           </section>
 
           <!-- Optimised Combined Strategy -->
-          <section class="mb-12">
+          <section class="mb-12 pdf-page-break">
             <h3 class="text-2xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-primary-600">Optimised Combined Strategy</h3>
 
             <div class="bg-gradient-to-r from-emerald-50 to-green-50 rounded-lg p-6 mb-6 border border-emerald-200">
@@ -634,7 +644,7 @@
           </section>
 
           <!-- Implementation Timeline -->
-          <section class="mb-12">
+          <section class="mb-12 pdf-page-break">
             <h3 class="text-2xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-primary-600">Implementation Timeline</h3>
 
             <div class="space-y-3">
@@ -661,7 +671,7 @@
           </section>
 
           <!-- Next Steps -->
-          <section class="mb-12">
+          <section class="mb-12 pdf-page-break">
             <h3 class="text-2xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-primary-600">Next Steps</h3>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -730,13 +740,17 @@
 
 <script>
 import AppLayout from '@/layouts/AppLayout.vue';
+import PrintHeader from '@/components/Common/PrintHeader.vue';
 import estateService from '@/services/estateService';
+import html2pdf from 'html2pdf.js';
+import logoImage from '@/assets/logo.png';
 
 export default {
   name: 'ComprehensiveEstatePlan',
 
   components: {
     AppLayout,
+    PrintHeader,
   },
 
   data() {
@@ -744,6 +758,7 @@ export default {
       plan: null,
       loading: false,
       error: null,
+      logoUrl: logoImage,
     };
   },
 
@@ -772,8 +787,26 @@ export default {
     },
 
     downloadPDF() {
-      // Use browser print functionality with custom CSS for PDF
-      window.print();
+      const element = document.getElementById('estate-plan-document');
+      if (!element) return;
+
+      // Show the PDF header before generating
+      const pdfHeader = element.querySelector('.pdf-header');
+      if (pdfHeader) pdfHeader.style.display = 'flex';
+
+      const opt = {
+        margin: [10, 10, 10, 10],
+        filename: `Estate_Plan_${new Date().toISOString().split('T')[0]}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['css'], before: '.pdf-page-break' },
+      };
+
+      html2pdf().set(opt).from(element).save().then(() => {
+        // Hide the PDF header after generating
+        if (pdfHeader) pdfHeader.style.display = 'none';
+      });
     },
 
     formatCurrency(value) {
@@ -882,22 +915,5 @@ export default {
 </script>
 
 <style scoped>
-/* Print-specific styles for PDF download */
-@media print {
-  .max-w-7xl {
-    max-width: 100%;
-  }
-
-  button {
-    display: none !important;
-  }
-
-  #estate-plan-document {
-    box-shadow: none;
-  }
-
-  @page {
-    margin: 1cm;
-  }
-}
+/* Print styles moved to global app.css */
 </style>

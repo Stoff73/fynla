@@ -1,7 +1,7 @@
 # December 18, 2025 Updates
 
 ## Overview
-This update includes improvements to the Net Worth Overview page, a complete redesign of the Letter to Spouse component, landing page persona selection modal, and a new email verification system for login and registration.
+This update includes improvements to the Net Worth Overview page, a complete redesign of the Letter to Spouse component, landing page persona selection modal, a new email verification system for login and registration, and PDF report download improvements for the planning module.
 
 ---
 

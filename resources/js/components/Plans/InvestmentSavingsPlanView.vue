@@ -105,7 +105,7 @@
       </div>
 
       <!-- Investment Section -->
-      <div class="bg-white rounded-lg shadow-md overflow-hidden">
+      <div class="bg-white rounded-lg shadow-md overflow-hidden pdf-page-break">
         <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
           <h2 class="text-2xl font-bold text-white">Investment Portfolio</h2>
           <p class="text-sm text-blue-100 mt-1">Portfolio analysis, holdings, and optimisation strategy</p>
@@ -342,7 +342,7 @@
       </div>
 
       <!-- Savings Section -->
-      <div class="bg-white rounded-lg shadow-md overflow-hidden">
+      <div class="bg-white rounded-lg shadow-md overflow-hidden pdf-page-break">
         <div class="bg-gradient-to-r from-green-600 to-green-700 px-6 py-4">
           <h2 class="text-2xl font-bold text-white">Savings & Emergency Fund</h2>
           <p class="text-sm text-green-100 mt-1">Cash reserves, emergency fund analysis, and savings strategy</p>
@@ -494,7 +494,7 @@
       </div>
 
       <!-- Combined Action Plan -->
-      <div class="bg-white rounded-lg shadow-md overflow-hidden">
+      <div class="bg-white rounded-lg shadow-md overflow-hidden pdf-page-break">
         <div class="bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-4">
           <h2 class="text-2xl font-bold text-white">Priority Action Plan</h2>
           <p class="text-sm text-purple-100 mt-1">
