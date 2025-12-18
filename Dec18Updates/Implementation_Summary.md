@@ -1,7 +1,7 @@
 # December 18, 2025 Updates
 
 ## Overview
-This update includes improvements to the Net Worth Overview page and a complete redesign of the Letter to Spouse component to match the site's card-based styling.
+This update includes improvements to the Net Worth Overview page, a complete redesign of the Letter to Spouse component, landing page persona selection modal, and a new email verification system for login and registration.
 
 ---
 
@@ -172,6 +172,76 @@ Fixed an issue where some personas would redirect to login instead of dashboard 
 
 ---
 
+## 5. Email Verification System
+
+### Overview
+Added 6-digit email verification codes for both registration and login flows. Codes expire every 60 seconds and can be auto-resent up to 2 times per session.
+
+### Features
+- **6-digit codes** sent via email from `noreply@fynla.org`
+- **60-second expiry** with automatic countdown timer
+- **Auto-resend** up to 2 times, then requires session refresh
+- **Preview mode bypass** - demo users skip verification entirely
+- **Responsive modal** with individual digit inputs and paste support
+
+### Files Created
+
+| File | Description |
+|------|-------------|
+| `database/migrations/2025_12_18_162231_create_email_verification_codes_table.php` | Migration for verification codes table |
+| `app/Models/EmailVerificationCode.php` | Eloquent model with validation methods |
+| `app/Mail/VerificationCode.php` | Mailable class for sending codes |
+| `resources/views/emails/verification-code.blade.php` | Email template with prominent code display |
+| `resources/js/components/Auth/VerificationCodeModal.vue` | Vue modal component |
+
+### Files Modified
+
+| File | Changes |
+|------|---------|
+| `app/Http/Controllers/Api/AuthController.php` | Added verification logic to register/login, new verifyCode/resendCode methods |
+| `routes/api.php` | Added `/auth/verify-code` and `/auth/resend-code` routes |
+| `resources/js/views/Login.vue` | Added verification modal integration |
+| `resources/js/views/Register.vue` | Added verification modal integration |
+| `resources/js/services/authService.js` | Added verifyCode and resendCode methods |
+
+### API Endpoints
+
+#### POST /api/auth/verify-code
+Verify a 6-digit code and return auth token.
+
+```json
+// Request
+{ "user_id": 123, "code": "123456", "type": "login" }
+
+// Response
+{ "success": true, "data": { "user": {...}, "access_token": "..." } }
+```
+
+#### POST /api/auth/resend-code
+Resend verification code (max 2 resends per session).
+
+```json
+// Request
+{ "user_id": 123, "type": "login" }
+
+// Response
+{ "success": true, "data": { "resend_count": 1, "can_resend": true, "remaining_resends": 1 } }
+```
+
+### Login/Registration Flow
+1. User submits credentials
+2. Backend validates, generates 6-digit code, sends email
+3. Returns `{ requires_verification: true, user_id, masked_email }`
+4. Frontend shows VerificationCodeModal
+5. User enters code (or code auto-resends on expiry)
+6. Backend validates code, returns auth token
+7. Frontend stores token, navigates to dashboard
+
+### Preview Mode
+Preview users (demo personas) bypass verification entirely and receive tokens immediately.
+
+---
+
 ## Files Changed Summary
 
 | File | Change Type | Description |
@@ -185,6 +255,16 @@ Fixed an issue where some personas would redirect to login instead of dashboard 
 | `resources/js/views/Public/LandingPage.vue` | Modified | Use new PersonaSelectionModal, fix auth timing |
 | `resources/js/store/modules/preview.js` | Modified | Fix auth race condition in enterPreviewMode |
 | `CLAUDE.md` | Modified | Added "Keep It Simple" as Critical Rule #1 |
+| `database/migrations/2025_12_18_162231_create_email_verification_codes_table.php` | Created | Email verification codes table |
+| `app/Models/EmailVerificationCode.php` | Created | Verification code model |
+| `app/Mail/VerificationCode.php` | Created | Mailable for verification emails |
+| `resources/views/emails/verification-code.blade.php` | Created | Email template |
+| `resources/js/components/Auth/VerificationCodeModal.vue` | Created | 6-digit code input modal |
+| `app/Http/Controllers/Api/AuthController.php` | Modified | Added verification logic |
+| `routes/api.php` | Modified | Added verify-code and resend-code routes |
+| `resources/js/views/Login.vue` | Modified | Verification modal integration |
+| `resources/js/views/Register.vue` | Modified | Verification modal integration |
+| `resources/js/services/authService.js` | Modified | Added verifyCode/resendCode methods |
 
 ---
 
@@ -201,3 +281,17 @@ Fixed an issue where some personas would redirect to login instead of dashboard 
    - Modal shows all 4 personas in a 2x2 grid
    - Each card has correct colours, emoji, and info
    - Clicking a card loads that persona and navigates to dashboard
+5. **Email Verification - Registration**: Register a new user and verify:
+   - Verification modal appears after form submission
+   - Email is received with 6-digit code
+   - Entering correct code logs user in and redirects to dashboard
+   - 60-second countdown timer works
+   - Resend button sends new code (up to 2 times)
+6. **Email Verification - Login**: Login with a real (non-preview) user and verify:
+   - Verification modal appears
+   - Code expires after 60 seconds
+   - Invalid code shows error message
+   - After 2 resends, shows "session expired" message
+7. **Preview Mode Bypass**: Login as a preview persona and verify:
+   - No verification modal appears
+   - Direct redirect to dashboard
