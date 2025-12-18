@@ -51,7 +51,6 @@
           <h3 class="text-sm font-medium text-green-800">Spouse Exemption Applied</h3>
           <p class="mt-2 text-sm text-green-700">
             <strong>{{ formatCurrency(ihtData.spouse_exemption) }}</strong> ({{ formatPercent((ihtData.spouse_exemption / ihtData.net_estate_value)) }}) of your estate is exempt from inheritance tax due to unlimited spousal transfer on death.
-            <span v-if="ihtData.death_scenario === 'user_only'">This calculation assumes only you pass away. Change to "Both Dying" scenario in the Will tab for simultaneous death planning.</span>
           </p>
         </div>
       </div>

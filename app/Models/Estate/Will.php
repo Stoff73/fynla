@@ -17,18 +17,18 @@ class Will extends Model
     protected $fillable = [
         'user_id',
         'has_will',
-        'death_scenario',
         'spouse_primary_beneficiary',
         'spouse_bequest_percentage',
+        'executor_name',
         'executor_notes',
-        'last_reviewed_date',
+        'will_last_updated',
     ];
 
     protected $casts = [
         'has_will' => 'boolean',
         'spouse_primary_beneficiary' => 'boolean',
         'spouse_bequest_percentage' => 'decimal:2',
-        'last_reviewed_date' => 'date',
+        'will_last_updated' => 'date',
     ];
 
     /**
@@ -45,14 +45,6 @@ class Will extends Model
     public function bequests(): HasMany
     {
         return $this->hasMany(Bequest::class);
-    }
-
-    /**
-     * Check if this will involves simultaneous death scenario
-     */
-    public function isBothDying(): bool
-    {
-        return $this->death_scenario === 'both_simultaneous';
     }
 
     /**

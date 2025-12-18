@@ -31,6 +31,13 @@ php artisan queue:work database      # Queue worker (optional, for Monte Carlo)
 ./vendor/bin/pest tests/Unit/Services/Protection/AdequacyScorerTest.php  # Single file
 ```
 
+**IMPORTANT:** Pest tests may truncate the database. After running tests, reseed reference data:
+```bash
+php artisan db:seed --class=TaxConfigurationSeeder --force
+php artisan db:seed --class=TaxProductReferenceSeeder --force
+php artisan db:seed --class=PreviewUserSeeder --force
+```
+
 ### Code Quality
 
 ```bash
@@ -341,3 +348,104 @@ async loadData() {
 ```
 
 Write operations can still be blocked in preview mode using `PreviewWriteInterceptor` middleware.
+
+## API Testing
+
+### Authentication
+```bash
+# Login with preview persona (returns token)
+curl -X POST "http://localhost:8000/api/preview/login/young_family" -H "Accept: application/json"
+
+# Use token for authenticated requests
+curl -H "Authorization: Bearer TOKEN" -H "Accept: application/json" "http://localhost:8000/api/endpoint"
+```
+
+### Key API Routes
+
+| Module | Endpoint | Method | Description |
+|--------|----------|--------|-------------|
+| **Auth** | `/api/preview/login/{persona}` | POST | Login as preview persona |
+| **Profile** | `/api/user/profile` | GET | User profile with income/tax |
+| **Profile** | `/api/user/family-members` | GET | Family members list |
+| **Profile** | `/api/user/spouse` | GET | Spouse data |
+| **Net Worth** | `/api/properties` | GET | Properties list |
+| **Net Worth** | `/api/liabilities` | GET | Liabilities list |
+| **Savings** | `/api/savings` | GET | Savings accounts |
+| **Savings** | `/api/savings/accounts` | POST | Create savings account |
+| **Investment** | `/api/investment` | GET | Investment accounts |
+| **Investment** | `/api/investment/risk/profile` | GET | Risk profile |
+| **Retirement** | `/api/retirement` | GET | All pension data |
+| **Retirement** | `/api/retirement/dc-pensions` | GET | DC pensions |
+| **Retirement** | `/api/retirement/db-pensions` | GET | DB pensions |
+| **Protection** | `/api/protection` | GET | All policies |
+| **Protection** | `/api/protection/policies/life` | POST | Create life policy |
+| **Protection** | `/api/protection/adequacy` | GET | Adequacy analysis |
+| **Estate** | `/api/estate` | GET | Estate overview |
+| **Estate** | `/api/estate/calculate-iht` | POST | Calculate IHT |
+| **Dashboard** | `/api/dashboard` | GET | Dashboard summary |
+| **Tax** | `/api/tax-info/investment/isa` | GET | ISA tax info |
+| **Tax** | `/api/tax-settings/current` | GET | Current tax settings (admin) |
+
+### CRUD Pattern for Protection Policies
+```bash
+# Create
+POST /api/protection/policies/life
+POST /api/protection/policies/critical-illness
+POST /api/protection/policies/income-protection
+
+# Update
+PUT /api/protection/policies/life/{id}
+
+# Delete
+DELETE /api/protection/policies/life/{id}
+```
+
+### CRUD Pattern for Savings
+```bash
+POST   /api/savings/accounts        # Create
+GET    /api/savings/accounts/{id}   # Read
+PUT    /api/savings/accounts/{id}   # Update
+DELETE /api/savings/accounts/{id}   # Delete
+```
+
+## Troubleshooting
+
+### Common API Errors
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| `No active tax configuration found` | TaxConfigurationSeeder not run | `php artisan db:seed --class=TaxConfigurationSeeder --force` |
+| `Preview user not found` | PreviewUserSeeder not run | `php artisan db:seed --class=PreviewUserSeeder --force` |
+| `401 Unauthenticated` | Missing/invalid Bearer token | Get fresh token from `/api/preview/login/{persona}` |
+| `403 Admin access required` | Endpoint requires admin role | Use admin credentials or different endpoint |
+| `405 Method Not Allowed` | Wrong HTTP method | Check route with `php artisan route:list --path=endpoint` |
+| Tax Status tab empty | TaxProductReferenceSeeder not run | `php artisan db:seed --class=TaxProductReferenceSeeder --force` |
+
+### After Running Pest Tests
+
+Pest tests may clear reference data. Always reseed after running tests:
+```bash
+php artisan db:seed --class=TaxConfigurationSeeder --force
+php artisan db:seed --class=TaxProductReferenceSeeder --force
+php artisan db:seed --class=PreviewUserSeeder --force
+```
+
+### Checking Routes
+
+```bash
+# List all routes
+php artisan route:list
+
+# Filter by path
+php artisan route:list --path=protection
+php artisan route:list --path=estate
+php artisan route:list --path=savings
+```
+
+### Response Headers
+
+All API responses include rate limiting headers:
+- `X-RateLimit-Limit`: Maximum requests allowed (1000 for most endpoints, 5-10 for auth)
+- `X-RateLimit-Remaining`: Remaining requests in window
+- `Content-Type: application/json`
+- `Cache-Control: no-cache, private`

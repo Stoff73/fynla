@@ -465,5 +465,68 @@
     "main_risk_level": "upper_medium",
     "spouse_risk_level": "medium",
     "notes": "High earners with substantial wealth, David prefers growth-focused approach while Sarah is more balanced given NHS pension security"
+  },
+
+  "will": {
+    "has_will": true,
+    "spouse_primary_beneficiary": true,
+    "spouse_bequest_percentage": 100,
+    "executor_name": "Sarah Mitchell & Barclays Wealth",
+    "executor_notes": "Mirror wills prepared by Henderson & Co Solicitors. Reviewed after purchase of holiday let property. Life insurance policies held in trust outside estate. Consider updating after children finish university.",
+    "will_last_updated": "2022-03-15",
+    "bequests": [
+      {
+        "beneficiary_name": "William Mitchell",
+        "bequest_type": "percentage",
+        "percentage_of_estate": 50,
+        "priority_order": 2,
+        "conditions": "To receive share at age 25, held in trust until then"
+      },
+      {
+        "beneficiary_name": "Charlotte Mitchell",
+        "bequest_type": "percentage",
+        "percentage_of_estate": 50,
+        "priority_order": 2,
+        "conditions": "To receive share at age 25, held in trust until then"
+      },
+      {
+        "beneficiary_name": "Cancer Research UK",
+        "bequest_type": "specific_amount",
+        "specific_amount": 10000,
+        "priority_order": 1,
+        "conditions": null
+      }
+    ],
+    "spouse_will": {
+      "has_will": true,
+      "spouse_primary_beneficiary": true,
+      "spouse_bequest_percentage": 100,
+      "executor_name": "David Mitchell & Barclays Wealth",
+      "executor_notes": "Mirror will matching David's arrangements. NHS pension has separate death benefits nomination form on file.",
+      "will_last_updated": "2022-03-15",
+      "bequests": [
+        {
+          "beneficiary_name": "William Mitchell",
+          "bequest_type": "percentage",
+          "percentage_of_estate": 50,
+          "priority_order": 2,
+          "conditions": "To receive share at age 25, held in trust until then"
+        },
+        {
+          "beneficiary_name": "Charlotte Mitchell",
+          "bequest_type": "percentage",
+          "percentage_of_estate": 50,
+          "priority_order": 2,
+          "conditions": "To receive share at age 25, held in trust until then"
+        },
+        {
+          "beneficiary_name": "British Heart Foundation",
+          "bequest_type": "specific_amount",
+          "specific_amount": 10000,
+          "priority_order": 1,
+          "conditions": null
+        }
+      ]
+    }
   }
 }

@@ -285,5 +285,18 @@
     "main_risk_level": "medium",
     "spouse_risk_level": "medium",
     "notes": "Young couple with long investment horizon, balanced approach suitable for long-term growth"
+  },
+
+  "will": {
+    "has_will": false,
+    "spouse_primary_beneficiary": true,
+    "spouse_bequest_percentage": 100,
+    "executor_name": null,
+    "executor_notes": null,
+    "will_last_updated": null,
+    "bequests": [],
+    "spouse_will": {
+      "has_will": false
+    }
   }
 }

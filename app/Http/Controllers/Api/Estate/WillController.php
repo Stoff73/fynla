@@ -72,7 +72,6 @@ class WillController extends Controller
             $isMarried = in_array($user->marital_status, ['married']) && $user->spouse_id !== null;
             $will = Will::create([
                 'user_id' => $user->id,
-                'death_scenario' => 'user_only',
                 'spouse_primary_beneficiary' => $isMarried,
                 'spouse_bequest_percentage' => $isMarried ? 100.00 : 0.00,
             ]);
@@ -93,7 +92,6 @@ class WillController extends Controller
 
         $validated = $request->validate([
             'has_will' => 'nullable|boolean',
-            'death_scenario' => 'required|in:user_only,both_simultaneous',
             'spouse_primary_beneficiary' => 'boolean',
             'spouse_bequest_percentage' => 'nullable|numeric|min:0|max:100',
             'executor_name' => 'nullable|string|max:255',
@@ -152,7 +150,6 @@ class WillController extends Controller
         $will = Will::firstOrCreate(
             ['user_id' => $user->id],
             [
-                'death_scenario' => 'user_only',
                 'spouse_primary_beneficiary' => false,
                 'spouse_bequest_percentage' => 0.00,
             ]

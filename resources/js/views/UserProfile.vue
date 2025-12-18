@@ -71,6 +71,7 @@
             <HealthInformation v-show="activeTab === 'health'" />
             <FamilyMembers v-show="activeTab === 'family'" />
             <LetterToSpouse v-if="activeTab === 'letter'" />
+            <WillPlanning v-if="activeTab === 'will'" />
             <IncomeOccupation v-show="activeTab === 'income'" />
             <ExpenditureOverview v-show="activeTab === 'expenditure'" />
             <AssetsOverview v-show="activeTab === 'assets'" />
@@ -92,6 +93,7 @@ import DomicileInformation from '@/components/UserProfile/DomicileInformation.vu
 import HealthInformation from '@/components/UserProfile/HealthInformation.vue';
 import FamilyMembers from '@/components/UserProfile/FamilyMembers.vue';
 import LetterToSpouse from '@/components/UserProfile/LetterToSpouse.vue';
+import WillPlanning from '@/components/Estate/WillPlanning.vue';
 import IncomeOccupation from '@/components/UserProfile/IncomeOccupation.vue';
 import ExpenditureOverview from '@/components/UserProfile/ExpenditureOverview.vue';
 import AssetsOverview from '@/components/UserProfile/AssetsOverview.vue';
@@ -108,6 +110,7 @@ export default {
     HealthInformation,
     FamilyMembers,
     LetterToSpouse,
+    WillPlanning,
     IncomeOccupation,
     ExpenditureOverview,
     AssetsOverview,
@@ -119,12 +122,19 @@ export default {
     const store = useStore();
     const activeTab = ref('personal');
 
-    const tabs = [
+    const loading = computed(() => store.getters['userProfile/loading']);
+    const error = computed(() => store.getters['userProfile/error']);
+    const user = computed(() => store.getters['userProfile/user']);
+    const domicileInfo = computed(() => store.getters['userProfile/domicileInfo']);
+
+    // Define all tabs
+    const allTabs = [
       { id: 'personal', label: 'Personal Info' },
       { id: 'domicile', label: 'Domicile Status' },
       { id: 'health', label: 'Health' },
       { id: 'family', label: 'Family' },
       { id: 'letter', label: 'Letter to Spouse' },
+      { id: 'will', label: 'Will' },
       { id: 'income', label: 'Income & Occupation' },
       { id: 'expenditure', label: 'Expenditure' },
       { id: 'assets', label: 'Assets' },
@@ -132,10 +142,15 @@ export default {
       { id: 'accounts', label: 'Financial Statements' },
     ];
 
-    const loading = computed(() => store.getters['userProfile/loading']);
-    const error = computed(() => store.getters['userProfile/error']);
-    const user = computed(() => store.getters['userProfile/user']);
-    const domicileInfo = computed(() => store.getters['userProfile/domicileInfo']);
+    // Filter tabs based on user's marital status
+    // Hide Letter to Spouse for widowed users
+    const tabs = computed(() => {
+      const maritalStatus = user.value?.marital_status;
+      if (maritalStatus === 'widowed') {
+        return allTabs.filter(tab => tab.id !== 'letter');
+      }
+      return allTabs;
+    });
 
     const loadProfile = async () => {
       try {
@@ -159,7 +174,7 @@ export default {
       const urlParams = new URLSearchParams(window.location.search);
       const section = urlParams.get('section');
       if (section) {
-        const validTabIds = tabs.map(tab => tab.id);
+        const validTabIds = allTabs.map(tab => tab.id);
         if (validTabIds.includes(section)) {
           activeTab.value = section;
         }

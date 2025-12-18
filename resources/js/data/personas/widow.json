@@ -448,5 +448,58 @@
   "risk_profile": {
     "main_risk_level": "lower_medium",
     "notes": "Retired widow focused on capital preservation and income, cautious approach with estate planning priorities"
+  },
+
+  "will": {
+    "has_will": true,
+    "spouse_primary_beneficiary": false,
+    "spouse_bequest_percentage": 0,
+    "executor_name": "Andrew Thompson & Smithson Solicitors LLP",
+    "executor_notes": "Will updated following Robert's death. Includes NRB discretionary trust provisions. LPA for health and finance in place with Andrew and Catherine as attorneys. Funeral wishes documented separately.",
+    "will_last_updated": "2023-06-10",
+    "bequests": [
+      {
+        "beneficiary_name": "Andrew Thompson",
+        "bequest_type": "percentage",
+        "percentage_of_estate": 40,
+        "priority_order": 2,
+        "conditions": null
+      },
+      {
+        "beneficiary_name": "Catherine Williams",
+        "bequest_type": "percentage",
+        "percentage_of_estate": 40,
+        "priority_order": 2,
+        "conditions": null
+      },
+      {
+        "beneficiary_name": "Grandchildren's Education Trust",
+        "bequest_type": "percentage",
+        "percentage_of_estate": 15,
+        "priority_order": 2,
+        "conditions": "To be held in trust for grandchildren's education until age 21"
+      },
+      {
+        "beneficiary_name": "Cotswold Care Hospice",
+        "bequest_type": "specific_amount",
+        "specific_amount": 25000,
+        "priority_order": 1,
+        "conditions": "In memory of Robert"
+      },
+      {
+        "beneficiary_name": "St Lawrence Church, Bourton",
+        "bequest_type": "specific_amount",
+        "specific_amount": 5000,
+        "priority_order": 1,
+        "conditions": null
+      },
+      {
+        "beneficiary_name": "Catherine Williams",
+        "bequest_type": "specific_asset",
+        "specific_asset_description": "Rose Cottage, Bourton-on-the-Water (main residence)",
+        "priority_order": 1,
+        "conditions": "To retain family home in the village"
+      }
+    ]
   }
 }

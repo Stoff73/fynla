@@ -1,23 +1,31 @@
 <template>
   <div class="will-planning-tab">
-    <!-- Development Notice -->
-    <div class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-5 mb-6 shadow-sm">
+    <!-- Preview Mode Notice -->
+    <div v-if="isPreviewMode" class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-5 mb-6 shadow-sm">
       <div class="flex items-start">
         <div class="flex-shrink-0">
-          <svg class="h-6 w-6 text-amber-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+          <svg class="h-6 w-6 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.64 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.64 0-8.573-3.007-9.963-7.178z" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
         </div>
         <div class="ml-4">
-          <h3 class="text-base font-semibold text-amber-800">Will Planning - Preview Mode</h3>
-          <p class="mt-1 text-sm text-amber-700">
-            This section is currently under development. You can explore the basic will configuration options, but advanced features like detailed bequest management, trust integration, and professional will review recommendations are coming soon.
+          <h3 class="text-base font-semibold text-blue-800">You're Viewing a Sample Profile</h3>
+          <p class="mt-1 text-sm text-blue-700">
+            This is a preview using sample data to help you explore how Fynla can support your will planning. Any changes you make here won't be saved.
           </p>
-          <p class="mt-2 text-xs text-amber-600">
-            <strong>Important:</strong> This tool is for planning purposes only and does not replace professional legal advice. Always consult a solicitor for creating or updating your will.
+          <p class="mt-2 text-sm text-blue-700">
+            <router-link to="/register" class="font-semibold text-blue-600 hover:text-blue-800 underline">Create your free account</router-link> to record your own will details, track when it was last updated, and ensure your estate planning information is always at your fingertips.
           </p>
         </div>
       </div>
+    </div>
+
+    <!-- Legal Disclaimer (always shown) -->
+    <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
+      <p class="text-xs text-gray-600">
+        <strong>Important:</strong> This tool is for planning and record-keeping purposes only and does not constitute legal advice. Always consult a qualified solicitor when creating or updating your will.
+      </p>
     </div>
 
     <!-- Loading State -->
@@ -121,43 +129,8 @@
             </p>
           </div>
 
-          <!-- Death Scenario -->
-          <div class="border-t border-gray-200 pt-6">
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              Death Scenario
-            </label>
-            <div class="space-y-3">
-              <label class="flex items-start cursor-pointer">
-                <input
-                  type="radio"
-                  v-model="form.death_scenario"
-                  value="user_only"
-                  class="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-                  @change="handleScenarioChange"
-                />
-                <div class="ml-3">
-                  <span class="block text-sm font-medium text-gray-900">Your death only</span>
-                  <span class="block text-xs text-gray-500">Calculate IHT assuming only you pass away (spouse survives)</span>
-                </div>
-              </label>
-              <label class="flex items-start cursor-pointer">
-                <input
-                  type="radio"
-                  v-model="form.death_scenario"
-                  value="both_simultaneous"
-                  class="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-                  @change="handleScenarioChange"
-                />
-                <div class="ml-3">
-                  <span class="block text-sm font-medium text-gray-900">Both dying (simultaneous death)</span>
-                  <span class="block text-xs text-gray-500">Calculate IHT if both you and your spouse die together</span>
-                </div>
-              </label>
-            </div>
-          </div>
-
-          <!-- Spouse Bequest (only show if married and user_only scenario) -->
-          <div v-if="isMarried && form.death_scenario === 'user_only'" class="border-t border-gray-200 pt-6">
+          <!-- Spouse Bequest (only show if married) -->
+          <div v-if="isMarried" class="border-t border-gray-200 pt-6">
             <div class="flex items-center justify-between mb-4">
               <label class="block text-sm font-medium text-gray-700">
                 Spouse as Primary Beneficiary
@@ -208,23 +181,6 @@
               <p class="text-sm text-amber-800">
                 Your spouse is not set as the primary beneficiary. The entire estate will be subject to IHT calculation.
               </p>
-            </div>
-          </div>
-
-          <!-- Both Dying Notice -->
-          <div v-if="form.death_scenario === 'both_simultaneous'" class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div class="flex">
-              <div class="flex-shrink-0">
-                <svg class="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-                </svg>
-              </div>
-              <div class="ml-3">
-                <h3 class="text-sm font-medium text-blue-800">Simultaneous Death Scenario</h3>
-                <p class="mt-1 text-sm text-blue-700">
-                  Spouse exemption does not apply in this scenario. The full estate value will be subject to IHT calculation. Bequests below will determine distribution to beneficiaries.
-                </p>
-              </div>
             </div>
           </div>
 
@@ -352,7 +308,6 @@ export default {
         has_will: null,
         will_last_updated: '',
         executor_name: '',
-        death_scenario: 'user_only',
         spouse_primary_beneficiary: true,
         spouse_bequest_percentage: 100,
         executor_notes: '',
@@ -424,7 +379,6 @@ export default {
           has_will: this.will.has_will,
           will_last_updated: this.formatDateForInput(this.will.will_last_updated),
           executor_name: this.will.executor_name || '',
-          death_scenario: this.will.death_scenario,
           spouse_primary_beneficiary: this.will.spouse_primary_beneficiary,
           spouse_bequest_percentage: parseFloat(this.will.spouse_bequest_percentage),
           executor_notes: this.will.executor_notes || '',
@@ -492,10 +446,6 @@ export default {
     },
 
     handleWillStatusChange() {
-      this.saveWill();
-    },
-
-    handleScenarioChange() {
       this.saveWill();
     },
 

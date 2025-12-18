@@ -395,5 +395,15 @@
   "risk_profile": {
     "main_risk_level": "high",
     "notes": "Single tech entrepreneur with high risk tolerance, aggressive growth strategy, slightly more conservative for pension given early retirement goal"
+  },
+
+  "will": {
+    "has_will": false,
+    "spouse_primary_beneficiary": false,
+    "spouse_bequest_percentage": 0,
+    "executor_name": null,
+    "executor_notes": null,
+    "will_last_updated": null,
+    "bequests": []
   }
 }

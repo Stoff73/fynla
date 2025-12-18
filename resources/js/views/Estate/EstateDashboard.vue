@@ -74,9 +74,6 @@
           <!-- IHT Planning Tab -->
           <IHTPlanning v-if="activeTab === 'iht'" @will-updated="reloadIHTCalculation" @switch-tab="switchTab" />
 
-          <!-- Will Tab -->
-          <WillPlanning v-else-if="activeTab === 'will'" @will-updated="reloadIHTCalculation" />
-
           <!-- Gifting Strategy Tab -->
           <GiftingStrategy v-else-if="activeTab === 'gifting'" />
 
@@ -99,7 +96,6 @@ import IHTPlanning from '@/components/Estate/IHTPlanning.vue';
 import GiftingStrategy from '@/components/Estate/GiftingStrategy.vue';
 import LifePolicyStrategy from '@/components/Estate/LifePolicyStrategy.vue';
 import TrustPlanning from '@/components/Estate/TrustPlanning.vue';
-import WillPlanning from '@/components/Estate/WillPlanning.vue';
 import ProfileCompletenessAlert from '@/components/Shared/ProfileCompletenessAlert.vue';
 import api from '@/services/api';
 
@@ -112,7 +108,6 @@ export default {
     GiftingStrategy,
     LifePolicyStrategy,
     TrustPlanning,
-    WillPlanning,
     ProfileCompletenessAlert,
   },
 
@@ -122,7 +117,6 @@ export default {
       initialLoading: true,
       tabs: [
         { id: 'iht', label: 'IHT Planning' },
-        { id: 'will', label: 'Will' },
         { id: 'gifting', label: 'Gifting Strategy' },
         { id: 'life-policy', label: 'Life Policy Strategy' },
         { id: 'trusts', label: 'Trust Strategy' },

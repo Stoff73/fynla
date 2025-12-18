@@ -7,7 +7,9 @@ namespace Database\Seeders;
 use App\Models\CriticalIllnessPolicy;
 use App\Models\DBPension;
 use App\Models\DCPension;
+use App\Models\Estate\Bequest;
 use App\Models\Estate\Liability;
+use App\Models\Estate\Will;
 use App\Models\FamilyMember;
 use App\Models\IncomeProtectionPolicy;
 use App\Models\Investment\Holding;
@@ -116,6 +118,9 @@ class PreviewUserSeeder extends Seeder
 
         // Create risk profiles
         $this->createRiskProfiles($user, $spouse, $data['risk_profile'] ?? null);
+
+        // Create wills and bequests
+        $this->createWills($user, $spouse, $data['will'] ?? null);
 
         $this->command->info("  Created user: {$user->name} ({$user->email})");
         if ($spouse) {
@@ -757,5 +762,70 @@ class PreviewUserSeeder extends Seeder
             'high' => 70,
             default => 35,
         };
+    }
+
+    /**
+     * Create wills and bequests for users.
+     */
+    private function createWills(User $user, ?User $spouse, ?array $willData): void
+    {
+        if (! $willData) {
+            return;
+        }
+
+        // Create will for primary user
+        $will = Will::create([
+            'user_id' => $user->id,
+            'has_will' => $willData['has_will'] ?? false,
+            'spouse_primary_beneficiary' => $willData['spouse_primary_beneficiary'] ?? true,
+            'spouse_bequest_percentage' => $willData['spouse_bequest_percentage'] ?? 100,
+            'executor_name' => $willData['executor_name'] ?? null,
+            'executor_notes' => $willData['executor_notes'] ?? null,
+            'will_last_updated' => $willData['will_last_updated'] ?? null,
+        ]);
+
+        // Create bequests for the will
+        foreach ($willData['bequests'] ?? [] as $bequestData) {
+            Bequest::create([
+                'will_id' => $will->id,
+                'user_id' => $user->id,
+                'beneficiary_name' => $bequestData['beneficiary_name'] ?? '',
+                'bequest_type' => $bequestData['bequest_type'] ?? 'percentage',
+                'percentage_of_estate' => $bequestData['percentage_of_estate'] ?? null,
+                'specific_amount' => $bequestData['specific_amount'] ?? null,
+                'specific_asset_description' => $bequestData['specific_asset_description'] ?? null,
+                'priority_order' => $bequestData['priority_order'] ?? 1,
+                'conditions' => $bequestData['conditions'] ?? null,
+            ]);
+        }
+
+        // Create will for spouse if they have will data
+        if ($spouse && ! empty($willData['spouse_will'])) {
+            $spouseWillData = $willData['spouse_will'];
+            $spouseWill = Will::create([
+                'user_id' => $spouse->id,
+                'has_will' => $spouseWillData['has_will'] ?? $willData['has_will'] ?? false,
+                'spouse_primary_beneficiary' => $spouseWillData['spouse_primary_beneficiary'] ?? true,
+                'spouse_bequest_percentage' => $spouseWillData['spouse_bequest_percentage'] ?? 100,
+                'executor_name' => $spouseWillData['executor_name'] ?? $willData['executor_name'] ?? null,
+                'executor_notes' => $spouseWillData['executor_notes'] ?? null,
+                'will_last_updated' => $spouseWillData['will_last_updated'] ?? $willData['will_last_updated'] ?? null,
+            ]);
+
+            // Create bequests for spouse's will
+            foreach ($spouseWillData['bequests'] ?? [] as $bequestData) {
+                Bequest::create([
+                    'will_id' => $spouseWill->id,
+                    'user_id' => $spouse->id,
+                    'beneficiary_name' => $bequestData['beneficiary_name'] ?? '',
+                    'bequest_type' => $bequestData['bequest_type'] ?? 'percentage',
+                    'percentage_of_estate' => $bequestData['percentage_of_estate'] ?? null,
+                    'specific_amount' => $bequestData['specific_amount'] ?? null,
+                    'specific_asset_description' => $bequestData['specific_asset_description'] ?? null,
+                    'priority_order' => $bequestData['priority_order'] ?? 1,
+                    'conditions' => $bequestData['conditions'] ?? null,
+                ]);
+            }
+        }
     }
 }
