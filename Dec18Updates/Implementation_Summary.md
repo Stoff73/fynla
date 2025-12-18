@@ -1,7 +1,7 @@
 # December 18, 2025 Updates
 
 ## Overview
-This update includes improvements to the Net Worth Overview page, a complete redesign of the Letter to Spouse component, landing page persona selection modal, a new email verification system for login and registration, and PDF report download improvements for the planning module.
+This update includes improvements to the Net Worth Overview page, a complete redesign of the Letter to Spouse component, landing page persona selection modal, a new email verification system for login and registration, PDF report download improvements for the planning module, and logo improvements with transparent background.
 
 ---
 
@@ -265,6 +265,25 @@ Preview users (demo personas) bypass verification entirely and receive tokens im
 | `resources/js/views/Login.vue` | Modified | Verification modal integration |
 | `resources/js/views/Register.vue` | Modified | Verification modal integration |
 | `resources/js/services/authService.js` | Modified | Added verifyCode/resendCode methods |
+| `resources/js/assets/logo.png` | Modified | Removed background, made transparent |
+| `resources/js/layouts/PublicLayout.vue` | Modified | Navbar h-20, logo h-16 navbar / h-40 footer |
+
+---
+
+## 6. Logo Improvements
+
+### Changes Made
+- **Removed background** from logo image using Python PIL - eliminated grey/white background and shadows for transparent PNG
+- **Resized navbar logo** to `h-16` (64px) to fit within navbar
+- **Increased navbar height** from `h-16` to `h-20` (80px) for better logo spacing
+- **Footer logo** remains larger at `h-40` (160px)
+
+### Files Modified
+
+| File | Change |
+|------|--------|
+| `resources/js/assets/logo.png` | Removed background, made transparent |
+| `resources/js/layouts/PublicLayout.vue` | Adjusted navbar height and logo sizes |
 
 ---
 
@@ -295,3 +314,7 @@ Preview users (demo personas) bypass verification entirely and receive tokens im
 7. **Preview Mode Bypass**: Login as a preview persona and verify:
    - No verification modal appears
    - Direct redirect to dashboard
+8. **Logo**: Visit landing page and verify:
+   - Logo has transparent background (no grey/white box)
+   - Navbar logo fits cleanly within header
+   - Footer logo displays larger

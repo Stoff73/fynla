@@ -3,11 +3,11 @@
     <!-- Navigation -->
     <nav class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between h-16">
+        <div class="flex justify-between h-20">
           <div class="flex items-center">
             <!-- Logo -->
             <router-link to="/" class="flex items-center">
-              <img :src="logoUrl" alt="Fynla" class="h-20 w-auto" />
+              <img :src="logoUrl" alt="Fynla" class="h-16 w-auto" />
             </router-link>
 
             <!-- Navigation Links -->
@@ -118,7 +118,7 @@
           <!-- Company Info -->
           <div class="col-span-1 md:col-span-2">
             <div class="flex items-center mb-4">
-              <img :src="logoUrl" alt="Fynla" class="h-20 w-auto" />
+              <img :src="logoUrl" alt="Fynla" class="h-40 w-auto" />
             </div>
             <p class="text-gray-400 text-sm mb-4">
               Financial Planning System - Your comprehensive solution for UK financial planning.
