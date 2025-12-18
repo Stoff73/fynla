@@ -26,6 +26,8 @@ const state = {
         property: { count: 0, total_value: 0, items: [] },
         investments: { count: 0, total_value: 0, items: [] },
         cash: { count: 0, total_value: 0, items: [] },
+        business: { count: 0, total_value: 0, items: [] },
+        chattels: { count: 0, total_value: 0, items: [] },
     },
     jointAssets: [],
     properties: [],
@@ -109,6 +111,8 @@ const mutations = {
             property: { count: 0, total_value: 0, items: [] },
             investments: { count: 0, total_value: 0, items: [] },
             cash: { count: 0, total_value: 0, items: [] },
+            business: { count: 0, total_value: 0, items: [] },
+            chattels: { count: 0, total_value: 0, items: [] },
         };
         state.jointAssets = [];
         state.properties = [];

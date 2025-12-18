@@ -161,6 +161,88 @@
           </div>
         </div>
       </div>
+
+      <!-- Business Interest Card -->
+      <div class="asset-card business-card" @click="navigateTo('business')">
+        <div class="card-header">
+          <div class="card-icon business">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />
+            </svg>
+          </div>
+          <div class="card-title-section">
+            <h3 class="card-title">Business Interest</h3>
+            <p class="card-total">{{ formatCurrency(assetsSummaryDetailed.business?.total_value || 0) }}</p>
+          </div>
+          <div class="card-arrow">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+            </svg>
+          </div>
+        </div>
+        <div class="card-items">
+          <div v-if="businessItems.length === 0" class="empty-state">
+            <p>No business interests recorded</p>
+          </div>
+          <div v-else>
+            <div
+              v-for="item in displayedBusiness"
+              :key="`business-${item.id}`"
+              class="item-row"
+            >
+              <span class="item-name">
+                {{ item.name }}
+                <span class="badge business-type">{{ formatBusinessType(item.business_type) }}</span>
+              </span>
+              <span class="item-value">{{ formatCurrency(item.value) }}</span>
+            </div>
+            <div v-if="businessItems.length > maxDisplayItems" class="view-all">
+              +{{ businessItems.length - maxDisplayItems }} more
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chattels Card -->
+      <div class="asset-card chattels-card" @click="navigateTo('chattels')">
+        <div class="card-header">
+          <div class="card-icon chattels">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
+            </svg>
+          </div>
+          <div class="card-title-section">
+            <h3 class="card-title">Chattels</h3>
+            <p class="card-total">{{ formatCurrency(assetsSummaryDetailed.chattels?.total_value || 0) }}</p>
+          </div>
+          <div class="card-arrow">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+            </svg>
+          </div>
+        </div>
+        <div class="card-items">
+          <div v-if="chattelItems.length === 0" class="empty-state">
+            <p>No chattels recorded</p>
+          </div>
+          <div v-else>
+            <div
+              v-for="item in displayedChattels"
+              :key="`chattel-${item.id}`"
+              class="item-row"
+            >
+              <span class="item-name">
+                {{ item.name }}
+                <span class="badge chattel-type">{{ formatChattelType(item.chattel_type) }}</span>
+              </span>
+              <span class="item-value">{{ formatCurrency(item.value) }}</span>
+            </div>
+            <div v-if="chattelItems.length > maxDisplayItems" class="view-all">
+              +{{ chattelItems.length - maxDisplayItems }} more
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
   </div>
@@ -197,6 +279,14 @@ export default {
       return this.assetsSummaryDetailed.cash?.items || [];
     },
 
+    businessItems() {
+      return this.assetsSummaryDetailed.business?.items || [];
+    },
+
+    chattelItems() {
+      return this.assetsSummaryDetailed.chattels?.items || [];
+    },
+
     displayedPensions() {
       return this.pensionItems.slice(0, this.maxDisplayItems);
     },
@@ -211,6 +301,14 @@ export default {
 
     displayedCash() {
       return this.cashItems.slice(0, this.maxDisplayItems);
+    },
+
+    displayedBusiness() {
+      return this.businessItems.slice(0, this.maxDisplayItems);
+    },
+
+    displayedChattels() {
+      return this.chattelItems.slice(0, this.maxDisplayItems);
     },
   },
 
@@ -230,6 +328,29 @@ export default {
       const isPreview = this.$route.path.startsWith('/preview');
       const basePath = isPreview ? '/preview/net-worth' : '/net-worth';
       this.$router.push(`${basePath}/${section}`);
+    },
+
+    formatBusinessType(type) {
+      const types = {
+        sole_trader: 'Sole Trader',
+        partnership: 'Partnership',
+        limited_company: 'Ltd',
+        llp: 'LLP',
+        other: 'Other',
+      };
+      return types[type] || type;
+    },
+
+    formatChattelType(type) {
+      const types = {
+        vehicle: 'Vehicle',
+        art: 'Art',
+        antique: 'Antique',
+        jewelry: 'Jewellery',
+        collectible: 'Collectible',
+        other: 'Other',
+      };
+      return types[type] || type;
     },
   },
 
@@ -277,7 +398,8 @@ export default {
 
 .overview-cards {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(2, auto);
   gap: 20px;
 }
 
@@ -295,6 +417,14 @@ export default {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   border-color: #3b82f6;
+}
+
+.asset-card.business-card:hover {
+  border-color: #a855f7;
+}
+
+.asset-card.chattels-card:hover {
+  border-color: #ec4899;
 }
 
 .card-header {
@@ -339,6 +469,16 @@ export default {
 .card-icon.cash {
   background: #ede9fe;
   color: #7c3aed;
+}
+
+.card-icon.business {
+  background: #fae8ff;
+  color: #a21caf;
+}
+
+.card-icon.chattels {
+  background: #fce7f3;
+  color: #db2777;
 }
 
 .card-title-section {
@@ -429,6 +569,16 @@ export default {
   color: #b45309;
 }
 
+.badge.business-type {
+  background: #fae8ff;
+  color: #86198f;
+}
+
+.badge.chattel-type {
+  background: #fce7f3;
+  color: #9d174d;
+}
+
 .item-value {
   font-size: 14px;
   font-weight: 600;
@@ -446,9 +596,17 @@ export default {
 }
 
 /* Mobile responsive */
-@media (max-width: 1024px) {
+@media (max-width: 1200px) {
+  .overview-cards {
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(3, auto);
+  }
+}
+
+@media (max-width: 768px) {
   .overview-cards {
     grid-template-columns: 1fr;
+    grid-template-rows: auto;
   }
 }
 

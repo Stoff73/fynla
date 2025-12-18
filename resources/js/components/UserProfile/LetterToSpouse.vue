@@ -1,37 +1,64 @@
 <template>
-  <div class="letter-to-spouse">
-    <!-- Header -->
-    <div class="bg-white shadow-sm rounded-lg p-6 mb-6">
-      <h2 class="text-2xl font-bold text-gray-900 mb-2">Letter to Spouse</h2>
-      <p class="text-gray-600 mb-4">
-        This letter provides crucial information for your spouse in the event of your death. It will be auto-populated with information from your profile.
-        Your spouse can view this letter but cannot edit it. You can view your spouse's letter in read-only mode.
-      </p>
+  <div>
+    <div class="mb-6 flex justify-between items-start">
+      <div>
+        <h2 class="text-h4 font-semibold text-gray-900">Letter to Spouse</h2>
+        <p class="mt-1 text-body-sm text-gray-600">
+          Important information for your spouse in the event of your death
+        </p>
+      </div>
+      <button
+        v-if="!isReadOnly"
+        @click="saveLetter"
+        :disabled="saving"
+        class="btn-primary"
+      >
+        {{ saving ? 'Saving...' : 'Save Letter' }}
+      </button>
+    </div>
 
-      <!-- View Toggle -->
-      <div v-if="hasSpouse" class="flex space-x-4 mt-4">
-        <button
-          @click="viewMode = 'my'"
-          :class="[
-            'px-4 py-2 rounded-lg font-medium transition-colors',
-            viewMode === 'my'
-              ? 'bg-primary-600 text-white'
-              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-          ]"
-        >
-          My Letter
-        </button>
-        <button
-          @click="loadSpouseLetter"
-          :class="[
-            'px-4 py-2 rounded-lg font-medium transition-colors',
-            viewMode === 'spouse'
-              ? 'bg-primary-600 text-white'
-              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-          ]"
-        >
-          {{ spouseName }}'s Letter
-        </button>
+    <!-- Info Banner -->
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+      <p class="text-body-sm text-blue-800">
+        <strong>Why this matters:</strong> This letter provides crucial information for your spouse to manage financial affairs after your death. Auto-populated sections show your current profile data.
+      </p>
+    </div>
+
+    <!-- View Toggle -->
+    <div v-if="hasSpouse" class="flex space-x-4 mb-6">
+      <button
+        @click="switchToMyLetter"
+        :class="[
+          'px-4 py-2 rounded-lg font-medium transition-colors',
+          viewMode === 'my'
+            ? 'bg-primary-600 text-white'
+            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+        ]"
+      >
+        My Letter
+      </button>
+      <button
+        @click="loadSpouseLetter"
+        :class="[
+          'px-4 py-2 rounded-lg font-medium transition-colors',
+          viewMode === 'spouse'
+            ? 'bg-primary-600 text-white'
+            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+        ]"
+      >
+        {{ spouseName }}'s Letter
+      </button>
+    </div>
+
+    <!-- Read-only Banner for Spouse View -->
+    <div v-if="viewMode === 'spouse'" class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+      <div class="flex items-center">
+        <svg class="h-5 w-5 text-amber-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+        </svg>
+        <p class="text-body-sm text-amber-800 font-medium">
+          Viewing {{ spouseName }}'s letter (read-only)
+        </p>
       </div>
     </div>
 
@@ -42,494 +69,429 @@
 
     <!-- Letter Content -->
     <div v-else class="space-y-6">
-      <!-- Read-only Banner for Spouse View -->
-      <div v-if="viewMode === 'spouse'" class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
-        <div class="flex items-center">
-          <svg class="h-5 w-5 text-blue-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-          </svg>
-          <p class="text-sm text-blue-700 font-medium">
-            Viewing {{ spouseName }}'s letter (read-only). You cannot edit this letter.
-          </p>
-        </div>
-      </div>
-
       <!-- Part 1: What to Do Immediately -->
-      <div class="bg-white shadow-sm rounded-lg p-6">
-        <h3 class="text-xl font-bold text-gray-900 mb-4 border-b-2 border-primary-600 pb-2">
-          Part 1: What to Do Immediately
-        </h3>
-
-        <div class="space-y-4">
+      <div class="bg-white rounded-lg shadow border border-gray-200">
+        <div class="border-b border-gray-200 px-6 py-4">
+          <h3 class="text-lg font-semibold text-gray-900">Part 1: What to Do Immediately</h3>
+        </div>
+        <div class="p-6 space-y-6">
           <!-- Immediate Actions -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
+            <label class="block text-body-sm font-medium text-gray-700 mb-2">
               Immediate Actions Checklist
             </label>
             <textarea
               v-model="formData.immediate_actions"
               :readonly="isReadOnly"
-              rows="8"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
-              :class="isReadOnly ? 'bg-gray-100' : ''"
-              placeholder="1. Contact executor immediately&#10;2. Notify employer HR&#10;3. Access joint accounts for immediate expenses..."
+              rows="5"
+              class="input-field"
+              :class="isReadOnly ? 'bg-gray-50' : ''"
+              placeholder="1. Contact executor immediately&#10;2. Notify employer HR&#10;3. Access joint bank accounts for immediate expenses..."
             ></textarea>
           </div>
 
           <!-- Key Contacts Grid -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Executor Name</label>
-              <input
-                v-model="formData.executor_name"
-                :readonly="isReadOnly"
-                type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
-                :class="isReadOnly ? 'bg-gray-100' : ''"
-                placeholder="Full name"
-              />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Executor Contact</label>
-              <input
-                v-model="formData.executor_contact"
-                :readonly="isReadOnly"
-                type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
-                :class="isReadOnly ? 'bg-gray-100' : ''"
-                placeholder="Phone / email"
-              />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Attorney Name</label>
-              <input
-                v-model="formData.attorney_name"
-                :readonly="isReadOnly"
-                type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
-                :class="isReadOnly ? 'bg-gray-100' : ''"
-                placeholder="Full name"
-              />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Attorney Contact</label>
-              <input
-                v-model="formData.attorney_contact"
-                :readonly="isReadOnly"
-                type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
-                :class="isReadOnly ? 'bg-gray-100' : ''"
-                placeholder="Phone / email"
-              />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Financial Advisor Name</label>
-              <input
-                v-model="formData.financial_advisor_name"
-                :readonly="isReadOnly"
-                type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
-                :class="isReadOnly ? 'bg-gray-100' : ''"
-                placeholder="Full name"
-              />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Financial Advisor Contact</label>
-              <input
-                v-model="formData.financial_advisor_contact"
-                :readonly="isReadOnly"
-                type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
-                :class="isReadOnly ? 'bg-gray-100' : ''"
-                placeholder="Phone / email"
-              />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Accountant Name</label>
-              <input
-                v-model="formData.accountant_name"
-                :readonly="isReadOnly"
-                type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
-                :class="isReadOnly ? 'bg-gray-100' : ''"
-                placeholder="Full name"
-              />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Accountant Contact</label>
-              <input
-                v-model="formData.accountant_contact"
-                :readonly="isReadOnly"
-                type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
-                :class="isReadOnly ? 'bg-gray-100' : ''"
-                placeholder="Phone / email"
-              />
-            </div>
-          </div>
-
-          <!-- Immediate Funds Access -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              Accessing Immediate Funds
-            </label>
-            <textarea
-              v-model="formData.immediate_funds_access"
-              :readonly="isReadOnly"
-              rows="4"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
-              :class="isReadOnly ? 'bg-gray-100' : ''"
-              placeholder="Explain which joint accounts can be accessed immediately, where emergency cash is kept, etc."
-            ></textarea>
+            <h4 class="text-body font-semibold text-gray-800 mb-4">Key Contacts</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                <div class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Executor</div>
+                <input
+                  v-model="formData.executor_name"
+                  :readonly="isReadOnly"
+                  type="text"
+                  class="input-field mb-2"
+                  :class="isReadOnly ? 'bg-white' : ''"
+                  placeholder="Name"
+                />
+                <input
+                  v-model="formData.executor_contact"
+                  :readonly="isReadOnly"
+                  type="text"
+                  class="input-field"
+                  :class="isReadOnly ? 'bg-white' : ''"
+                  placeholder="Phone / Email"
+                />
+              </div>
+              <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                <div class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Solicitor</div>
+                <input
+                  v-model="formData.attorney_name"
+                  :readonly="isReadOnly"
+                  type="text"
+                  class="input-field mb-2"
+                  :class="isReadOnly ? 'bg-white' : ''"
+                  placeholder="Name"
+                />
+                <input
+                  v-model="formData.attorney_contact"
+                  :readonly="isReadOnly"
+                  type="text"
+                  class="input-field"
+                  :class="isReadOnly ? 'bg-white' : ''"
+                  placeholder="Phone / Email"
+                />
+              </div>
+              <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                <div class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Financial Adviser</div>
+                <input
+                  v-model="formData.financial_advisor_name"
+                  :readonly="isReadOnly"
+                  type="text"
+                  class="input-field mb-2"
+                  :class="isReadOnly ? 'bg-white' : ''"
+                  placeholder="Name"
+                />
+                <input
+                  v-model="formData.financial_advisor_contact"
+                  :readonly="isReadOnly"
+                  type="text"
+                  class="input-field"
+                  :class="isReadOnly ? 'bg-white' : ''"
+                  placeholder="Phone / Email"
+                />
+              </div>
+              <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                <div class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Accountant</div>
+                <input
+                  v-model="formData.accountant_name"
+                  :readonly="isReadOnly"
+                  type="text"
+                  class="input-field mb-2"
+                  :class="isReadOnly ? 'bg-white' : ''"
+                  placeholder="Name"
+                />
+                <input
+                  v-model="formData.accountant_contact"
+                  :readonly="isReadOnly"
+                  type="text"
+                  class="input-field"
+                  :class="isReadOnly ? 'bg-white' : ''"
+                  placeholder="Phone / Email"
+                />
+              </div>
+            </div>
           </div>
 
-          <!-- Employer Information -->
+          <!-- Immediate Funds & Employer -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Employer HR Contact</label>
+              <label class="block text-body-sm font-medium text-gray-700 mb-2">Accessing Immediate Funds</label>
+              <textarea
+                v-model="formData.immediate_funds_access"
+                :readonly="isReadOnly"
+                rows="3"
+                class="input-field"
+                :class="isReadOnly ? 'bg-gray-50' : ''"
+                placeholder="Which accounts can be accessed immediately..."
+              ></textarea>
+            </div>
+            <div>
+              <label class="block text-body-sm font-medium text-gray-700 mb-2">Employer HR Contact</label>
               <input
                 v-model="formData.employer_hr_contact"
                 :readonly="isReadOnly"
                 type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
-                :class="isReadOnly ? 'bg-gray-100' : ''"
+                class="input-field mb-2"
+                :class="isReadOnly ? 'bg-gray-50' : ''"
                 placeholder="HR phone / email"
               />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Employer Benefits Information</label>
               <input
                 v-model="formData.employer_benefits_info"
                 :readonly="isReadOnly"
                 type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
-                :class="isReadOnly ? 'bg-gray-100' : ''"
-                placeholder="Life insurance, pension contact details"
+                class="input-field"
+                :class="isReadOnly ? 'bg-gray-50' : ''"
+                placeholder="Benefits info (life insurance, pension)"
               />
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Part 2: Accessing and Managing Accounts -->
-      <div class="bg-white shadow-sm rounded-lg p-6">
-        <h3 class="text-xl font-bold text-gray-900 mb-4 border-b-2 border-primary-600 pb-2">
-          Part 2: Accessing and Managing Accounts
-        </h3>
-
-        <div class="space-y-4">
-          <!-- Online Accounts -->
+      <!-- Part 2: Financial Overview (Auto-populated) -->
+      <div class="bg-white rounded-lg shadow border border-gray-200">
+        <div class="border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+          <h3 class="text-lg font-semibold text-gray-900">Part 2: Financial Overview</h3>
+          <span class="text-xs font-medium text-blue-600 bg-blue-100 px-2 py-1 rounded">Auto-populated</span>
+        </div>
+        <div class="p-6 space-y-6">
+          <!-- Bank Accounts / Savings -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              Password Manager / Online Account Access
-            </label>
-            <textarea
-              v-model="formData.password_manager_info"
-              :readonly="isReadOnly"
-              rows="3"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
-              :class="isReadOnly ? 'bg-gray-100' : ''"
-              placeholder="e.g., 1Password account details, master password location, emergency access setup..."
-            ></textarea>
+            <div class="flex justify-between items-center mb-3">
+              <h4 class="text-body font-semibold text-gray-800">Bank Accounts & Savings</h4>
+              <span class="text-lg font-bold text-gray-900">{{ formatCurrency(profileData.totalSavings) }}</span>
+            </div>
+            <div v-if="profileData.savings.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div
+                v-for="account in profileData.savings"
+                :key="account.id"
+                class="bg-gray-50 rounded-lg p-4 border border-gray-200"
+              >
+                <div class="flex justify-between items-start">
+                  <div>
+                    <div class="font-medium text-gray-900">{{ account.account_name }}</div>
+                    <div class="text-sm text-gray-500">{{ account.provider }}</div>
+                  </div>
+                  <span v-if="account.is_isa" class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">ISA</span>
+                </div>
+                <div class="mt-2 text-lg font-semibold text-gray-900">{{ formatCurrency(account.current_balance) }}</div>
+              </div>
+            </div>
+            <div v-else class="text-sm text-gray-500 italic">No savings accounts recorded</div>
           </div>
 
+          <!-- Investment Accounts -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              Phone Plan Information
-            </label>
-            <textarea
-              v-model="formData.phone_plan_info"
-              :readonly="isReadOnly"
-              rows="2"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
-              :class="isReadOnly ? 'bg-gray-100' : ''"
-              placeholder="Keep my phone active for account verification purposes. Provider, account number..."
-            ></textarea>
+            <div class="flex justify-between items-center mb-3">
+              <h4 class="text-body font-semibold text-gray-800">Investments</h4>
+              <span class="text-lg font-bold text-gray-900">{{ formatCurrency(profileData.totalInvestments) }}</span>
+            </div>
+            <div v-if="profileData.investments.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div
+                v-for="account in profileData.investments"
+                :key="account.id"
+                class="bg-gray-50 rounded-lg p-4 border border-gray-200"
+              >
+                <div class="flex justify-between items-start">
+                  <div>
+                    <div class="font-medium text-gray-900">{{ account.account_name }}</div>
+                    <div class="text-sm text-gray-500">{{ account.provider }}</div>
+                  </div>
+                  <span v-if="account.account_type === 'isa'" class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">ISA</span>
+                  <span v-else-if="account.account_type === 'sipp'" class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">SIPP</span>
+                </div>
+                <div class="mt-2 text-lg font-semibold text-gray-900">{{ formatCurrency(account.current_value) }}</div>
+              </div>
+            </div>
+            <div v-else class="text-sm text-gray-500 italic">No investment accounts recorded</div>
           </div>
 
-          <!-- Financial Accounts -->
+          <!-- Properties -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              Bank Accounts (Auto-populated)
-            </label>
-            <textarea
-              v-model="formData.bank_accounts_info"
-              :readonly="isReadOnly"
-              rows="6"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 font-mono text-sm"
-              :class="isReadOnly ? 'bg-gray-100' : ''"
-              placeholder="List of bank accounts will appear here..."
-            ></textarea>
+            <div class="flex justify-between items-center mb-3">
+              <h4 class="text-body font-semibold text-gray-800">Properties</h4>
+              <span class="text-lg font-bold text-gray-900">{{ formatCurrency(profileData.totalPropertyValue) }}</span>
+            </div>
+            <div v-if="profileData.properties.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div
+                v-for="property in profileData.properties"
+                :key="property.id"
+                class="bg-gray-50 rounded-lg p-4 border border-gray-200"
+              >
+                <div class="flex justify-between items-start">
+                  <div>
+                    <div class="font-medium text-gray-900">{{ property.property_name || property.address_line_1 }}</div>
+                    <div class="text-sm text-gray-500">{{ formatPropertyType(property.property_type) }}</div>
+                  </div>
+                  <span :class="ownershipBadgeClass(property.ownership_type)" class="text-xs px-2 py-0.5 rounded">
+                    {{ formatOwnershipType(property.ownership_type) }}
+                  </span>
+                </div>
+                <div class="mt-2 flex justify-between">
+                  <div>
+                    <div class="text-sm text-gray-500">Value</div>
+                    <div class="font-semibold text-gray-900">{{ formatCurrency(property.current_value) }}</div>
+                  </div>
+                  <div v-if="property.mortgage_balance">
+                    <div class="text-sm text-gray-500">Mortgage</div>
+                    <div class="font-semibold text-red-600">{{ formatCurrency(property.mortgage_balance) }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div v-else class="text-sm text-gray-500 italic">No properties recorded</div>
           </div>
 
+          <!-- Insurance Policies -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              Investment Accounts (Auto-populated)
-            </label>
-            <textarea
-              v-model="formData.investment_accounts_info"
-              :readonly="isReadOnly"
-              rows="6"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 font-mono text-sm"
-              :class="isReadOnly ? 'bg-gray-100' : ''"
-              placeholder="List of investment accounts will appear here..."
-            ></textarea>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              Insurance Policies (Auto-populated)
-            </label>
-            <textarea
-              v-model="formData.insurance_policies_info"
-              :readonly="isReadOnly"
-              rows="6"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 font-mono text-sm"
-              :class="isReadOnly ? 'bg-gray-100' : ''"
-              placeholder="Life insurance, critical illness, income protection, home, and auto insurance details..."
-            ></textarea>
-          </div>
-
-          <!-- Assets -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              Real Estate (Auto-populated)
-            </label>
-            <textarea
-              v-model="formData.real_estate_info"
-              :readonly="isReadOnly"
-              rows="6"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 font-mono text-sm"
-              :class="isReadOnly ? 'bg-gray-100' : ''"
-              placeholder="Property details, title deeds location..."
-            ></textarea>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              Vehicles
-            </label>
-            <textarea
-              v-model="formData.vehicles_info"
-              :readonly="isReadOnly"
-              rows="3"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
-              :class="isReadOnly ? 'bg-gray-100' : ''"
-              placeholder="Car make/model, registration, V5C location, finance details..."
-            ></textarea>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              Valuable Items / Collectibles
-            </label>
-            <textarea
-              v-model="formData.valuable_items_info"
-              :readonly="isReadOnly"
-              rows="3"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
-              :class="isReadOnly ? 'bg-gray-100' : ''"
-              placeholder="Jewelry, art, antiques, watch collection, etc. Include valuations and insurance details..."
-            ></textarea>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              Cryptocurrency
-            </label>
-            <textarea
-              v-model="formData.cryptocurrency_info"
-              :readonly="isReadOnly"
-              rows="3"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
-              :class="isReadOnly ? 'bg-gray-100' : ''"
-              placeholder="Wallet addresses, exchange accounts, hardware wallet location and recovery seed information..."
-            ></textarea>
+            <div class="flex justify-between items-center mb-3">
+              <h4 class="text-body font-semibold text-gray-800">Life Insurance & Protection</h4>
+              <span class="text-lg font-bold text-green-600">{{ formatCurrency(profileData.totalCoverage) }}</span>
+            </div>
+            <div v-if="profileData.policies.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div
+                v-for="policy in profileData.policies"
+                :key="`${policy.policy_type}-${policy.id}`"
+                class="bg-gray-50 rounded-lg p-4 border border-gray-200"
+              >
+                <div class="flex justify-between items-start">
+                  <div>
+                    <div class="font-medium text-gray-900">{{ policy.provider }}</div>
+                    <div class="text-sm text-gray-500">{{ formatPolicyType(policy.policy_type) }}</div>
+                  </div>
+                </div>
+                <div class="mt-2">
+                  <div class="text-sm text-gray-500">Sum Assured</div>
+                  <div class="font-semibold text-green-600">{{ formatCurrency(policy.sum_assured || policy.benefit_amount) }}</div>
+                </div>
+              </div>
+            </div>
+            <div v-else class="text-sm text-gray-500 italic">No protection policies recorded</div>
           </div>
 
           <!-- Liabilities -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              Liabilities (Auto-populated)
-            </label>
-            <textarea
-              v-model="formData.liabilities_info"
-              :readonly="isReadOnly"
-              rows="6"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 font-mono text-sm"
-              :class="isReadOnly ? 'bg-gray-100' : ''"
-              placeholder="Mortgages, loans, credit cards, and other debts..."
-            ></textarea>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              Recurring Bills
-            </label>
-            <textarea
-              v-model="formData.recurring_bills_info"
-              :readonly="isReadOnly"
-              rows="4"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
-              :class="isReadOnly ? 'bg-gray-100' : ''"
-              placeholder="Council tax, utilities, subscriptions, insurance premiums, etc."
-            ></textarea>
+            <div class="flex justify-between items-center mb-3">
+              <h4 class="text-body font-semibold text-gray-800">Liabilities & Debts</h4>
+              <span class="text-lg font-bold text-red-600">{{ formatCurrency(profileData.totalLiabilities) }}</span>
+            </div>
+            <div v-if="profileData.liabilities.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div
+                v-for="liability in profileData.liabilities"
+                :key="liability.id"
+                class="bg-gray-50 rounded-lg p-4 border border-gray-200"
+              >
+                <div class="font-medium text-gray-900">{{ liability.liability_name }}</div>
+                <div class="text-sm text-gray-500">{{ formatLiabilityType(liability.liability_type) }}</div>
+                <div class="mt-2 font-semibold text-red-600">{{ formatCurrency(liability.current_balance) }}</div>
+              </div>
+            </div>
+            <div v-else class="text-sm text-gray-500 italic">No liabilities recorded</div>
           </div>
         </div>
       </div>
 
-      <!-- Part 3: Long-term Plans -->
-      <div class="bg-white shadow-sm rounded-lg p-6">
-        <h3 class="text-xl font-bold text-gray-900 mb-4 border-b-2 border-primary-600 pb-2">
-          Part 3: Long-term Plans and Considerations
-        </h3>
-
-        <div class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              Estate Documents Location
-            </label>
-            <textarea
-              v-model="formData.estate_documents_location"
-              :readonly="isReadOnly"
-              rows="3"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
-              :class="isReadOnly ? 'bg-gray-100' : ''"
-              placeholder="Location of will, trust documents, power of attorney, etc. (e.g., safe deposit box, solicitor's office, home safe)"
-            ></textarea>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              Beneficiary Information (Auto-populated)
-            </label>
-            <textarea
-              v-model="formData.beneficiary_info"
-              :readonly="isReadOnly"
-              rows="4"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 font-mono text-sm"
-              :class="isReadOnly ? 'bg-gray-100' : ''"
-              placeholder="Beneficiaries of life insurance, pensions, and estate..."
-            ></textarea>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              Children's Education Plans (Auto-populated)
-            </label>
-            <textarea
-              v-model="formData.children_education_plans"
-              :readonly="isReadOnly"
-              rows="4"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 font-mono text-sm"
-              :class="isReadOnly ? 'bg-gray-100' : ''"
-              placeholder="University plans, savings accounts for education, guardian preferences..."
-            ></textarea>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              Financial Guidance (Auto-populated)
-            </label>
-            <textarea
-              v-model="formData.financial_guidance"
-              :readonly="isReadOnly"
-              rows="6"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 font-mono text-sm"
-              :class="isReadOnly ? 'bg-gray-100' : ''"
-              placeholder="General financial advice, contacts for financial advisors..."
-            ></textarea>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              State Pension / Social Security Information
-            </label>
-            <textarea
-              v-model="formData.social_security_info"
-              :readonly="isReadOnly"
-              rows="3"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
-              :class="isReadOnly ? 'bg-gray-100' : ''"
-              placeholder="National Insurance number, State Pension forecast, when to claim, survivor benefits..."
-            ></textarea>
+      <!-- Part 3: Additional Information (Manual Entry) -->
+      <div class="bg-white rounded-lg shadow border border-gray-200">
+        <div class="border-b border-gray-200 px-6 py-4">
+          <h3 class="text-lg font-semibold text-gray-900">Part 3: Additional Information</h3>
+        </div>
+        <div class="p-6 space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-body-sm font-medium text-gray-700 mb-2">Password Manager / Online Access</label>
+              <textarea
+                v-model="formData.password_manager_info"
+                :readonly="isReadOnly"
+                rows="3"
+                class="input-field"
+                :class="isReadOnly ? 'bg-gray-50' : ''"
+                placeholder="1Password details, emergency access..."
+              ></textarea>
+            </div>
+            <div>
+              <label class="block text-body-sm font-medium text-gray-700 mb-2">Estate Documents Location</label>
+              <textarea
+                v-model="formData.estate_documents_location"
+                :readonly="isReadOnly"
+                rows="3"
+                class="input-field"
+                :class="isReadOnly ? 'bg-gray-50' : ''"
+                placeholder="Will, trust documents, power of attorney..."
+              ></textarea>
+            </div>
+            <div>
+              <label class="block text-body-sm font-medium text-gray-700 mb-2">Vehicles</label>
+              <textarea
+                v-model="formData.vehicles_info"
+                :readonly="isReadOnly"
+                rows="2"
+                class="input-field"
+                :class="isReadOnly ? 'bg-gray-50' : ''"
+                placeholder="Car details, V5C location..."
+              ></textarea>
+            </div>
+            <div>
+              <label class="block text-body-sm font-medium text-gray-700 mb-2">Valuable Items</label>
+              <textarea
+                v-model="formData.valuable_items_info"
+                :readonly="isReadOnly"
+                rows="2"
+                class="input-field"
+                :class="isReadOnly ? 'bg-gray-50' : ''"
+                placeholder="Jewellery, art, antiques..."
+              ></textarea>
+            </div>
+            <div>
+              <label class="block text-body-sm font-medium text-gray-700 mb-2">Cryptocurrency</label>
+              <textarea
+                v-model="formData.cryptocurrency_info"
+                :readonly="isReadOnly"
+                rows="2"
+                class="input-field"
+                :class="isReadOnly ? 'bg-gray-50' : ''"
+                placeholder="Wallet addresses, recovery seeds..."
+              ></textarea>
+            </div>
+            <div>
+              <label class="block text-body-sm font-medium text-gray-700 mb-2">Recurring Bills</label>
+              <textarea
+                v-model="formData.recurring_bills_info"
+                :readonly="isReadOnly"
+                rows="2"
+                class="input-field"
+                :class="isReadOnly ? 'bg-gray-50' : ''"
+                placeholder="Council tax, utilities, subscriptions..."
+              ></textarea>
+            </div>
           </div>
         </div>
       </div>
 
       <!-- Part 4: Funeral and Final Wishes -->
-      <div class="bg-white shadow-sm rounded-lg p-6">
-        <h3 class="text-xl font-bold text-gray-900 mb-4 border-b-2 border-primary-600 pb-2">
-          Part 4: Funeral and Final Wishes
-        </h3>
-
-        <div class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              Funeral Preference
-            </label>
-            <select
-              v-model="formData.funeral_preference"
-              :disabled="isReadOnly"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
-              :class="isReadOnly ? 'bg-gray-100' : ''"
-            >
-              <option value="not_specified">Not Specified</option>
-              <option value="burial">Burial</option>
-              <option value="cremation">Cremation</option>
-            </select>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              Funeral Service Details
-            </label>
-            <textarea
-              v-model="formData.funeral_service_details"
-              :readonly="isReadOnly"
-              rows="4"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
-              :class="isReadOnly ? 'bg-gray-100' : ''"
-              placeholder="Preferred funeral home, religious/secular service, readings, music, attendees, location, etc."
-            ></textarea>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              Obituary Wishes
-            </label>
-            <textarea
-              v-model="formData.obituary_wishes"
-              :readonly="isReadOnly"
-              rows="3"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
-              :class="isReadOnly ? 'bg-gray-100' : ''"
-              placeholder="Key accomplishments, charities for donations in lieu of flowers, etc."
-            ></textarea>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              Additional Wishes
-            </label>
-            <textarea
-              v-model="formData.additional_wishes"
-              :readonly="isReadOnly"
-              rows="4"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
-              :class="isReadOnly ? 'bg-gray-100' : ''"
-              placeholder="Any other final wishes, messages to loved ones, etc."
-            ></textarea>
+      <div class="bg-white rounded-lg shadow border border-gray-200">
+        <div class="border-b border-gray-200 px-6 py-4">
+          <h3 class="text-lg font-semibold text-gray-900">Part 4: Funeral and Final Wishes</h3>
+        </div>
+        <div class="p-6 space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-body-sm font-medium text-gray-700 mb-2">Funeral Preference</label>
+              <select
+                v-model="formData.funeral_preference"
+                :disabled="isReadOnly"
+                class="input-field"
+                :class="isReadOnly ? 'bg-gray-50' : ''"
+              >
+                <option value="not_specified">Not Specified</option>
+                <option value="burial">Burial</option>
+                <option value="cremation">Cremation</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-body-sm font-medium text-gray-700 mb-2">Funeral Service Details</label>
+              <textarea
+                v-model="formData.funeral_service_details"
+                :readonly="isReadOnly"
+                rows="2"
+                class="input-field"
+                :class="isReadOnly ? 'bg-gray-50' : ''"
+                placeholder="Service preferences, music, location..."
+              ></textarea>
+            </div>
+            <div>
+              <label class="block text-body-sm font-medium text-gray-700 mb-2">Obituary Wishes</label>
+              <textarea
+                v-model="formData.obituary_wishes"
+                :readonly="isReadOnly"
+                rows="2"
+                class="input-field"
+                :class="isReadOnly ? 'bg-gray-50' : ''"
+                placeholder="Key accomplishments, charities..."
+              ></textarea>
+            </div>
+            <div>
+              <label class="block text-body-sm font-medium text-gray-700 mb-2">Additional Wishes</label>
+              <textarea
+                v-model="formData.additional_wishes"
+                :readonly="isReadOnly"
+                rows="2"
+                class="input-field"
+                :class="isReadOnly ? 'bg-gray-50' : ''"
+                placeholder="Messages to loved ones..."
+              ></textarea>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Save Button -->
-      <div v-if="!isReadOnly" class="flex justify-end space-x-4">
+      <!-- Bottom Save Button -->
+      <div v-if="!isReadOnly" class="flex justify-end">
         <button
           @click="saveLetter"
           :disabled="saving"
-          class="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+          class="btn-primary"
         >
           {{ saving ? 'Saving...' : 'Save Letter' }}
         </button>
@@ -548,11 +510,10 @@ export default {
     return {
       loading: true,
       saving: false,
-      viewMode: 'my', // 'my' or 'spouse'
+      viewMode: 'my',
       hasSpouse: false,
       spouseName: '',
       formData: {
-        // Part 1
         immediate_actions: '',
         executor_name: '',
         executor_contact: '',
@@ -565,29 +526,28 @@ export default {
         immediate_funds_access: '',
         employer_hr_contact: '',
         employer_benefits_info: '',
-        // Part 2
         password_manager_info: '',
-        phone_plan_info: '',
-        bank_accounts_info: '',
-        investment_accounts_info: '',
-        insurance_policies_info: '',
-        real_estate_info: '',
+        estate_documents_location: '',
         vehicles_info: '',
         valuable_items_info: '',
         cryptocurrency_info: '',
-        liabilities_info: '',
         recurring_bills_info: '',
-        // Part 3
-        estate_documents_location: '',
-        beneficiary_info: '',
-        children_education_plans: '',
-        financial_guidance: '',
-        social_security_info: '',
-        // Part 4
         funeral_preference: 'not_specified',
         funeral_service_details: '',
         obituary_wishes: '',
         additional_wishes: '',
+      },
+      profileData: {
+        savings: [],
+        investments: [],
+        properties: [],
+        policies: [],
+        liabilities: [],
+        totalSavings: 0,
+        totalInvestments: 0,
+        totalPropertyValue: 0,
+        totalCoverage: 0,
+        totalLiabilities: 0,
       },
       myLetterData: null,
       spouseLetterData: null,
@@ -605,15 +565,15 @@ export default {
   },
 
   async mounted() {
-    // Preview users are real DB users - use normal API to fetch their data
-    await this.loadMyLetter();
-    await this.checkSpouse();
+    await Promise.all([
+      this.loadMyLetter(),
+      this.loadProfileData(),
+      this.checkSpouse(),
+    ]);
   },
 
   methods: {
     async loadMyLetter() {
-      // Preview users are real DB users - use normal API to fetch their data
-      this.loading = true;
       try {
         const response = await api.get('/user/letter-to-spouse');
         this.myLetterData = response.data.data;
@@ -622,23 +582,60 @@ export default {
         }
       } catch (error) {
         console.error('Error loading letter:', error);
-        this.$emit('error', 'Failed to load your letter');
+      }
+    },
+
+    async loadProfileData() {
+      this.loading = true;
+      try {
+        const [savingsRes, investmentsRes, propertiesRes, protectionRes, estateRes] = await Promise.all([
+          api.get('/savings').catch(() => ({ data: { data: [] } })),
+          api.get('/investment').catch(() => ({ data: { data: [] } })),
+          api.get('/properties').catch(() => ({ data: { data: [] } })),
+          api.get('/protection').catch(() => ({ data: { data: {} } })),
+          api.get('/estate').catch(() => ({ data: { data: { liabilities: [] } } })),
+        ]);
+
+        // Extract savings accounts from nested structure
+        this.profileData.savings = savingsRes.data.data?.accounts || savingsRes.data?.accounts || [];
+        this.profileData.investments = investmentsRes.data.data?.accounts || investmentsRes.data?.accounts || [];
+        this.profileData.properties = propertiesRes.data.data || propertiesRes.data || [];
+        // Liabilities come from estate endpoint
+        const estate = estateRes.data.data || estateRes.data || {};
+        this.profileData.liabilities = estate.liabilities || [];
+
+        // Combine all protection policies - handle nested policies structure
+        const protection = protectionRes.data.data || protectionRes.data || {};
+        const policies = protection.policies || protection;
+        this.profileData.policies = [
+          ...(policies.life_insurance || []).map(p => ({ ...p, policy_type: 'life' })),
+          ...(policies.critical_illness || []).map(p => ({ ...p, policy_type: 'critical_illness' })),
+          ...(policies.income_protection || []).map(p => ({ ...p, policy_type: 'income_protection' })),
+        ];
+
+        // Calculate totals
+        this.profileData.totalSavings = this.profileData.savings.reduce((sum, a) => sum + (parseFloat(a.current_balance) || 0), 0);
+        this.profileData.totalInvestments = this.profileData.investments.reduce((sum, a) => sum + (parseFloat(a.current_value) || 0), 0);
+        this.profileData.totalPropertyValue = this.profileData.properties.reduce((sum, p) => sum + (parseFloat(p.current_value) || 0), 0);
+        this.profileData.totalCoverage = this.profileData.policies.reduce((sum, p) => sum + (parseFloat(p.sum_assured) || parseFloat(p.benefit_amount) || 0), 0);
+        this.profileData.totalLiabilities = this.profileData.liabilities.reduce((sum, l) => sum + (parseFloat(l.current_balance) || 0), 0);
+      } catch (error) {
+        console.error('Error loading profile data:', error);
       } finally {
         this.loading = false;
       }
     },
 
     async checkSpouse() {
-      // Preview users are real DB users - use normal API to fetch their data
       try {
         const userResponse = await api.get('/auth/user');
-        const user = userResponse.data;
+        const user = userResponse.data.data?.user || userResponse.data;
         this.hasSpouse = !!user.spouse_id;
 
         if (this.hasSpouse) {
-          // Get spouse info from family members
           const familyResponse = await api.get('/user/family-members');
-          const spouse = familyResponse.data.find(m => m.relationship === 'spouse');
+          const members = familyResponse.data.data || familyResponse.data;
+          const spouse = Array.isArray(members) ? members.find(m => m.relationship === 'spouse') : null;
           if (spouse) {
             this.spouseName = spouse.name;
           }
@@ -648,10 +645,13 @@ export default {
       }
     },
 
+    switchToMyLetter() {
+      this.viewMode = 'my';
+      this.populateForm(this.myLetterData);
+    },
+
     async loadSpouseLetter() {
-      // Preview users are real DB users - use normal API to fetch their data
       if (this.viewMode === 'spouse' && this.spouseLetterData) {
-        this.populateForm(this.spouseLetterData);
         return;
       }
 
@@ -665,7 +665,6 @@ export default {
         this.populateForm(this.spouseLetterData);
       } catch (error) {
         console.error('Error loading spouse letter:', error);
-        this.$emit('error', 'Failed to load spouse letter');
         this.viewMode = 'my';
         this.populateForm(this.myLetterData);
       } finally {
@@ -675,7 +674,6 @@ export default {
 
     populateForm(data) {
       if (!data) return;
-
       Object.keys(this.formData).forEach(key => {
         if (data[key] !== undefined && data[key] !== null) {
           this.formData[key] = data[key];
@@ -684,10 +682,7 @@ export default {
     },
 
     async saveLetter() {
-      if (this.isPreviewMode || this.isReadOnly) {
-        console.log('[LetterToSpouse] Preview mode or read only - skipping saveLetter');
-        return;
-      }
+      if (this.isPreviewMode || this.isReadOnly) return;
 
       this.saving = true;
       try {
@@ -701,12 +696,45 @@ export default {
         this.saving = false;
       }
     },
+
+    formatCurrency(value) {
+      if (!value) return '£0';
+      return new Intl.NumberFormat('en-GB', {
+        style: 'currency',
+        currency: 'GBP',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      }).format(value);
+    },
+
+    formatPropertyType(type) {
+      const types = { main_residence: 'Main Residence', secondary_residence: 'Secondary', buy_to_let: 'Buy to Let' };
+      return types[type] || type;
+    },
+
+    formatOwnershipType(type) {
+      const types = { individual: 'Sole', joint: 'Joint', tenants_in_common: 'TIC' };
+      return types[type] || type;
+    },
+
+    ownershipBadgeClass(type) {
+      if (type === 'joint') return 'bg-blue-100 text-blue-700';
+      if (type === 'tenants_in_common') return 'bg-purple-100 text-purple-700';
+      return 'bg-gray-100 text-gray-700';
+    },
+
+    formatPolicyType(type) {
+      const types = { life: 'Life Insurance', critical_illness: 'Critical Illness', income_protection: 'Income Protection' };
+      return types[type] || type;
+    },
+
+    formatLiabilityType(type) {
+      const types = {
+        mortgage: 'Mortgage', personal_loan: 'Personal Loan', credit_card: 'Credit Card',
+        student_loan: 'Student Loan', car_loan: 'Car Loan', other: 'Other'
+      };
+      return types[type] || type;
+    },
   },
 };
 </script>
-
-<style scoped>
-.letter-to-spouse {
-  @apply max-w-5xl mx-auto;
-}
-</style>

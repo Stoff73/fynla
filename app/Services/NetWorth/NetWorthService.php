@@ -383,11 +383,45 @@ class NetWorthService
             ];
         })->toArray();
 
+        // Get business interest items
+        $businesses = BusinessInterest::where('user_id', $userId)->get();
+        $businessItems = $businesses->map(function ($business) {
+            return [
+                'id' => $business->id,
+                'name' => $business->business_name,
+                'business_type' => $business->business_type,
+                'value' => (float) $business->current_valuation,
+                'ownership_type' => $business->ownership_type,
+                'ownership_percentage' => (float) ($business->ownership_percentage ?? 100),
+                'annual_revenue' => (float) ($business->annual_revenue ?? 0),
+                'annual_profit' => (float) ($business->annual_profit ?? 0),
+            ];
+        })->toArray();
+
+        // Get chattel items
+        $chattels = Chattel::where('user_id', $userId)->get();
+        $chattelItems = $chattels->map(function ($chattel) {
+            return [
+                'id' => $chattel->id,
+                'name' => $chattel->name,
+                'chattel_type' => $chattel->chattel_type,
+                'value' => (float) $chattel->current_value,
+                'ownership_type' => $chattel->ownership_type,
+                'ownership_percentage' => (float) ($chattel->ownership_percentage ?? 100),
+                'make' => $chattel->make,
+                'model' => $chattel->model,
+                'year' => $chattel->year,
+                'registration_number' => $chattel->registration_number,
+            ];
+        })->toArray();
+
         // Calculate totals
         $pensionTotal = array_sum(array_column($pensionItems, 'value'));
         $propertyTotal = array_sum(array_column($propertyItems, 'value'));
         $investmentTotal = array_sum(array_column($investmentItems, 'value'));
         $cashTotal = array_sum(array_column($cashItems, 'value'));
+        $businessTotal = array_sum(array_column($businessItems, 'value'));
+        $chattelTotal = array_sum(array_column($chattelItems, 'value'));
 
         return [
             'pensions' => [
@@ -409,6 +443,16 @@ class NetWorthService
                 'count' => count($cashItems),
                 'total_value' => round($cashTotal, 2),
                 'items' => $cashItems,
+            ],
+            'business' => [
+                'count' => count($businessItems),
+                'total_value' => round($businessTotal, 2),
+                'items' => $businessItems,
+            ],
+            'chattels' => [
+                'count' => count($chattelItems),
+                'total_value' => round($chattelTotal, 2),
+                'items' => $chattelItems,
             ],
         ];
     }
