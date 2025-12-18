@@ -19,9 +19,9 @@
 
     <div class="max-w-md w-full space-y-8">
       <div>
-        <h1 class="text-center font-display text-h1 text-gray-900">
-          Fynla
-        </h1>
+        <div class="text-center">
+          <img :src="logoUrl" alt="Fynla" class="h-48 w-auto mx-auto" />
+        </div>
         <h2 class="mt-6 text-center text-h3 text-gray-900">
           Sign in to your account
         </h2>
@@ -120,6 +120,7 @@ import ChangePasswordModal from '../components/Auth/ChangePasswordModal.vue';
 import VerificationCodeModal from '../components/Auth/VerificationCodeModal.vue';
 import authService from '../services/authService';
 import api from '../services/api';
+import logoImage from '@/assets/logo.png';
 
 export default {
   name: 'Login',
@@ -234,6 +235,7 @@ export default {
       showVerificationModal,
       pendingUserId,
       pendingEmail,
+      logoUrl: logoImage,
       handleLogin,
       handleVerified,
       handleVerificationClose,
