@@ -136,18 +136,17 @@ const actions = {
         commit('SET_ERROR', null);
 
         try {
-            // Call the preview login endpoint
+            // Clear any existing auth state first
+            localStorage.removeItem('auth_token');
+            commit('auth/clearAuth', null, { root: true });
+
             const response = await api.post(`/preview/login/${personaId}`);
 
             if (response.data.success) {
-                // Store the token
                 const token = response.data.token;
                 localStorage.setItem('auth_token', token);
-
-                // Update auth state with the preview user
-                commit('auth/setUser', response.data.user, { root: true });
                 commit('auth/setToken', token, { root: true });
-
+                commit('auth/setUser', response.data.user, { root: true });
                 return response.data;
             } else {
                 throw new Error(response.data.message || 'Failed to enter preview mode');

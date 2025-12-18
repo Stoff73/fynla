@@ -108,6 +108,70 @@ Remain as editable forms within white card sections:
 
 ---
 
+## 4. Landing Page Persona Selection Modal
+
+### Problem
+When clicking "Try the Demo" or "Interactive Demo" buttons on the landing page, the modal only showed one persona (young_family) with no option to choose from all 4 available personas.
+
+### Solution
+Created a new persona selection modal that displays all 4 personas in a 2x2 grid, allowing users to choose which scenario they want to explore.
+
+**Files Created:**
+- `resources/js/components/Preview/PersonaSelectionModal.vue`
+
+**Files Modified:**
+- `resources/js/views/Public/LandingPage.vue`
+- `CLAUDE.md` (added "Keep It Simple" as Critical Rule #1)
+
+### New Component (`PersonaSelectionModal.vue`)
+A modal displaying all 4 personas in a responsive 2x2 grid:
+
+| Persona | Name | Net Worth | Focus |
+|---------|------|-----------|-------|
+| young_family | Emily & James Carter | £80k-£120k | Protection gaps |
+| peak_earners | David & Sarah Mitchell | £1.5m-£2m | Tax efficiency |
+| widow | Margaret Thompson | £1.4m-£1.6m | IHT planning |
+| entrepreneur | Alex Chen | £800k-£1m | Business protection |
+
+**Features:**
+- Colour-coded gradient headers (blue/green/purple/orange)
+- Emoji avatars for each persona
+- Net worth and focus badges
+- Loading spinner on selected card
+- Escape key and backdrop click to close
+
+### LandingPage Changes
+- Replaced `PersonaIntroModal` with `PersonaSelectionModal`
+- Added `mapGetters` for `availablePersonas` from preview store
+- Simplified `handlePersonaSelect()` method - loads selected persona and navigates to dashboard
+
+### Flow
+1. User clicks "Try the Demo" button
+2. PersonaSelectionModal opens showing all 4 personas
+3. User clicks a persona card
+4. Loading spinner appears, persona loads via API
+5. User navigates to dashboard with that persona
+
+### Existing Behaviour Unchanged
+- PersonaSelector dropdown in dashboard still works as before
+- PersonaIntroModal still appears when switching personas inside the app
+
+### Bug Fix: Persona Authentication Race Condition
+Fixed an issue where some personas would redirect to login instead of dashboard after selection.
+
+**Root Cause:** Vue reactivity timing issue where the router navigation occurred before the Vuex store state had fully propagated.
+
+**Solution:**
+1. Clear existing auth state before making the preview login API call
+2. Set token before user in the store commits
+3. Add `nextTick()` after dispatch to ensure Vue reactivity has propagated before navigation
+
+**Files Modified:**
+- `resources/js/store/modules/preview.js` - Clear auth state before API call, reorder commits
+- `resources/js/views/Public/LandingPage.vue` - Add nextTick before router.push
+
+---
+
 ## Files Changed Summary
 
 | File | Change Type | Description |
@@ -117,6 +181,10 @@ Remain as editable forms within white card sections:
 | `resources/js/store/modules/netWorth.js` | Modified | Added business/chattels state |
 | `resources/js/components/NetWorth/NetWorthOverview.vue` | Modified | Added 2 cards, changed grid to 2x3 |
 | `resources/js/components/UserProfile/LetterToSpouse.vue` | Rewritten | Card-based auto-populated financial data |
+| `resources/js/components/Preview/PersonaSelectionModal.vue` | Created | New 2x2 grid persona selector |
+| `resources/js/views/Public/LandingPage.vue` | Modified | Use new PersonaSelectionModal, fix auth timing |
+| `resources/js/store/modules/preview.js` | Modified | Fix auth race condition in enterPreviewMode |
+| `CLAUDE.md` | Modified | Added "Keep It Simple" as Critical Rule #1 |
 
 ---
 
@@ -129,3 +197,7 @@ Remain as editable forms within white card sections:
    - Totals display correctly for each category
    - Badges show for ISA accounts, ownership types
    - Parts 1, 3, 4 remain editable
+4. **Landing Page Persona Selection**: Go to landing page, click "Try the Demo" and verify:
+   - Modal shows all 4 personas in a 2x2 grid
+   - Each card has correct colours, emoji, and info
+   - Clicking a card loads that persona and navigates to dashboard

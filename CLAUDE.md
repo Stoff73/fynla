@@ -102,7 +102,13 @@ Vue Component → JS Service → API → Controller → Agent → Services → M
 
 ## Critical Rules
 
-### 1. Use Available Skills
+### 1. Keep It Simple
+
+**ALWAYS use the simplest solution.** Do not over-engineer, over-complicate, or add unnecessary validation/checks. Write minimal, clean code that does exactly what's needed - nothing more.
+
+Before writing code, ask: "What's the simplest way to do this?" If your solution has excessive error handling, verbose logging, or redundant checks - simplify it.
+
+### 2. Use Available Skills
 
 Check for relevant skills before starting any task:
 - **systematic-debugging** - For ALL bugs and troubleshooting
@@ -114,7 +120,7 @@ Agents available:
 - **laravel-stack-deployer** - Production deployments
 - **code-quality-auditor** - Code quality audits
 
-### 2. Never Hardcode Tax Values
+### 3. Never Hardcode Tax Values
 
 All UK tax values come from database via `TaxConfigService`:
 
@@ -132,7 +138,7 @@ public function calculate()
 
 **Never use** `config('uk_tax_config')` - it's deprecated.
 
-### 3. Unified Form Components
+### 4. Unified Form Components
 
 One form serves all contexts (onboarding, dashboard, edit):
 
@@ -147,7 +153,7 @@ One form serves all contexts (onboarding, dashboard, edit):
 
 **Critical**: Use `@save` not `@submit` (causes double submission bug).
 
-### 4. Canonical Data Types
+### 5. Canonical Data Types
 
 Use exact values from database enums:
 
@@ -160,7 +166,7 @@ Use exact values from database enums:
 
 **Never use** `sole` (use `individual`), `second_home`, `part_and_part`.
 
-### 5. Environment Variables
+### 6. Environment Variables
 
 **Never export production env vars in development:**
 ```bash
@@ -171,7 +177,7 @@ export $(cat .env.production | xargs)
 ./dev.sh
 ```
 
-### 6. Deployment
+### 7. Deployment
 
 **Never include `public/build/` in deployment packages without permission.**
 

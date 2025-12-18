@@ -544,7 +544,6 @@ router.beforeEach(async (to, from, next) => {
       isAuthenticated,
       isPreviewMode,
       isPreviewRoute,
-      previewState: store.state.preview,
     });
   }
 
