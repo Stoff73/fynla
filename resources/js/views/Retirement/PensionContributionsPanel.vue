@@ -60,17 +60,31 @@
       <div class="details-section">
         <h3 class="section-title">Contribution Details</h3>
         <div class="details-grid">
-          <div class="detail-item">
-            <span class="detail-label">Salary Sacrifice</span>
-            <span class="detail-value">{{ pension.salary_sacrifice ? 'Yes' : 'No' }}</span>
+          <div v-if="pension.employee_contribution_percent" class="detail-item">
+            <span class="detail-label">Employee Rate</span>
+            <span class="detail-value">{{ pension.employee_contribution_percent }}% of salary</span>
+          </div>
+          <div v-if="pension.employer_contribution_percent" class="detail-item">
+            <span class="detail-label">Employer Rate</span>
+            <span class="detail-value">{{ pension.employer_contribution_percent }}% of salary</span>
+          </div>
+          <div v-if="pension.employer_matching_limit" class="detail-item">
+            <span class="detail-label">Employer Matching</span>
+            <span class="detail-value">
+              {{ pension.employer_matching_limit === 100 ? 'Full matching' : 'Up to ' + pension.employer_matching_limit + '% of salary' }}
+            </span>
+          </div>
+          <div v-if="pension.annual_salary" class="detail-item">
+            <span class="detail-label">Pensionable Salary</span>
+            <span class="detail-value">{{ formatCurrency(pension.annual_salary) }}</span>
           </div>
           <div class="detail-item">
             <span class="detail-label">Tax Relief Method</span>
-            <span class="detail-value">{{ pension.salary_sacrifice ? 'Net Pay' : 'Relief at Source' }}</span>
+            <span class="detail-value">{{ pension.salary_sacrifice ? 'Net Pay (Salary Sacrifice)' : 'Relief at Source' }}</span>
           </div>
-          <div class="detail-item">
-            <span class="detail-label">Contribution Start Date</span>
-            <span class="detail-value">{{ formatDate(pension.start_date) }}</span>
+          <div v-if="pension.scheme_type" class="detail-item">
+            <span class="detail-label">Scheme Type</span>
+            <span class="detail-value">{{ formatSchemeType(pension.scheme_type) }}</span>
           </div>
         </div>
       </div>
@@ -264,19 +278,37 @@ export default {
 
   computed: {
     // DC Pension calculations
+    // For occupational pensions: calculate from percentage * salary
+    // For SIPPs: use monthly_contribution_amount
     monthlyEmployeeContribution() {
+      // If percentage-based (occupational pension)
+      if (this.pension.employee_contribution_percent && this.pension.annual_salary) {
+        return (this.pension.annual_salary * this.pension.employee_contribution_percent / 100) / 12;
+      }
+      // If fixed amount (SIPP)
       return this.pension.monthly_contribution_amount || 0;
     },
 
     annualEmployeeContribution() {
+      // If percentage-based
+      if (this.pension.employee_contribution_percent && this.pension.annual_salary) {
+        return this.pension.annual_salary * this.pension.employee_contribution_percent / 100;
+      }
       return this.monthlyEmployeeContribution * 12;
     },
 
     monthlyEmployerContribution() {
-      return this.pension.employer_contribution_amount || 0;
+      // Employer contributions are always percentage-based for occupational pensions
+      if (this.pension.employer_contribution_percent && this.pension.annual_salary) {
+        return (this.pension.annual_salary * this.pension.employer_contribution_percent / 100) / 12;
+      }
+      return 0;
     },
 
     annualEmployerContribution() {
+      if (this.pension.employer_contribution_percent && this.pension.annual_salary) {
+        return this.pension.annual_salary * this.pension.employer_contribution_percent / 100;
+      }
       return this.monthlyEmployerContribution * 12;
     },
 
@@ -339,6 +371,16 @@ export default {
         month: 'short',
         year: 'numeric',
       });
+    },
+
+    formatSchemeType(type) {
+      const types = {
+        workplace: 'Workplace Pension',
+        sipp: 'Self-Invested Personal Pension (SIPP)',
+        personal: 'Personal Pension',
+        stakeholder: 'Stakeholder Pension',
+      };
+      return types[type] || type;
     },
   },
 };
