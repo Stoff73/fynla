@@ -485,8 +485,8 @@ export default {
         (form.value.annual_trust_income || 0);
 
       return new Intl.NumberFormat('en-GB', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
       }).format(total);
     });
 
