@@ -88,7 +88,7 @@
               </div>
               <div class="detail-row">
                 <span class="detail-label">Monthly Contribution</span>
-                <span class="detail-value">{{ formatCurrency(pension.monthly_contribution_amount || 0) }}</span>
+                <span class="detail-value">{{ formatCurrency(calculateMonthlyContribution(pension)) }}</span>
               </div>
             </div>
           </div>
@@ -338,6 +338,19 @@ export default {
         minimumFractionDigits: 0,
         maximumFractionDigits: 0,
       }).format(value);
+    },
+
+    calculateMonthlyContribution(pension) {
+      // For occupational pensions, calculate from percentages
+      if (pension.employee_contribution_percent && pension.annual_salary) {
+        const employeeMonthly = (pension.annual_salary * pension.employee_contribution_percent / 100) / 12;
+        const employerMonthly = pension.employer_contribution_percent
+          ? (pension.annual_salary * pension.employer_contribution_percent / 100) / 12
+          : 0;
+        return employeeMonthly + employerMonthly;
+      }
+      // For SIPPs and personal pensions, use the fixed monthly amount
+      return pension.monthly_contribution_amount || 0;
     },
 
     formatDCPensionType(type) {
