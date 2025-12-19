@@ -9,6 +9,7 @@ use App\Models\DBPension;
 use App\Models\DCPension;
 use App\Models\Estate\Bequest;
 use App\Models\Estate\Liability;
+use App\Models\Estate\Trust;
 use App\Models\Estate\Will;
 use App\Models\FamilyMember;
 use App\Models\IncomeProtectionPolicy;
@@ -121,6 +122,9 @@ class PreviewUserSeeder extends Seeder
 
         // Create wills and bequests
         $this->createWills($user, $spouse, $data['will'] ?? null);
+
+        // Create trusts
+        $this->createTrusts($user, $data['trusts'] ?? []);
 
         $this->command->info("  Created user: {$user->name} ({$user->email})");
         if ($spouse) {
@@ -826,6 +830,30 @@ class PreviewUserSeeder extends Seeder
                     'conditions' => $bequestData['conditions'] ?? null,
                 ]);
             }
+        }
+    }
+
+    /**
+     * Create trusts for users.
+     */
+    private function createTrusts(User $user, array $trusts): void
+    {
+        foreach ($trusts as $trust) {
+            Trust::create([
+                'user_id' => $user->id,
+                'trust_name' => $trust['trust_name'] ?? '',
+                'trust_type' => $trust['trust_type'] ?? 'discretionary',
+                'trust_creation_date' => $trust['trust_creation_date'] ?? null,
+                'initial_value' => $trust['initial_value'] ?? 0,
+                'current_value' => $trust['current_value'] ?? 0,
+                'settlor' => $trust['settlor'] ?? null,
+                'beneficiaries' => $trust['beneficiaries'] ?? null,
+                'trustees' => $trust['trustees'] ?? null,
+                'purpose' => $trust['purpose'] ?? null,
+                'notes' => $trust['notes'] ?? null,
+                'is_relevant_property_trust' => $trust['is_relevant_property_trust'] ?? false,
+                'is_active' => $trust['is_active'] ?? true,
+            ]);
         }
     }
 }

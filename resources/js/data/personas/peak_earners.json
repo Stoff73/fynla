@@ -408,7 +408,23 @@
 
   "gifts": [],
 
-  "trusts": [],
+  "trusts": [
+    {
+      "id": 1,
+      "trust_name": "Mitchell Children's Education Trust",
+      "trust_type": "discretionary",
+      "trust_creation_date": "2020-09-01",
+      "initial_value": 150000,
+      "current_value": 185000,
+      "settlor": "David Mitchell",
+      "beneficiaries": "William Mitchell, Charlotte Mitchell",
+      "trustees": "David Mitchell, Sarah Mitchell, Barclays Trustee Services",
+      "purpose": "Education funding for William and Charlotte including university fees, accommodation, and living expenses",
+      "is_relevant_property_trust": true,
+      "is_active": true,
+      "notes": "Set up when William started secondary school. Trustees have discretion to distribute for any educational purpose. Growth of £35k since inception."
+    }
+  ],
 
   "business_interests": [],
 
