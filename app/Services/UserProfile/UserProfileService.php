@@ -71,40 +71,7 @@ class UserProfileService
                 'name' => $user->spouse->name,
                 'email' => $user->spouse->email,
             ] : null,
-            'income_occupation' => array_merge(
-                [
-                    'occupation' => $user->occupation,
-                    'employer' => $user->employer,
-                    'industry' => $user->industry,
-                    'employment_status' => $user->employment_status,
-                    'target_retirement_age' => $user->target_retirement_age,
-                    'retirement_date' => $user->retirement_date,
-                    'annual_employment_income' => $user->annual_employment_income,
-                    'annual_self_employment_income' => $user->annual_self_employment_income,
-                    'annual_rental_income' => $this->calculateAnnualRentalIncome($user),
-                    'annual_dividend_income' => $user->annual_dividend_income,
-                    'annual_interest_income' => $user->annual_interest_income,
-                    'annual_trust_income' => $user->annual_trust_income,
-                    'annual_pension_income' => $this->calculateAnnualPensionIncome($user),
-                    'total_annual_income' => (
-                        ($user->annual_employment_income ?? 0) +
-                        ($user->annual_self_employment_income ?? 0) +
-                        $this->calculateAnnualRentalIncome($user) +
-                        ($user->annual_dividend_income ?? 0) +
-                        ($user->annual_interest_income ?? 0) +
-                        ($user->annual_trust_income ?? 0) +
-                        $this->calculateAnnualPensionIncome($user)
-                    ),
-                ],
-                $this->taxCalculator->calculateNetIncome(
-                    (float) ($user->annual_employment_income ?? 0),
-                    (float) ($user->annual_self_employment_income ?? 0),
-                    (float) $this->calculateAnnualRentalIncome($user),
-                    (float) ($user->annual_dividend_income ?? 0),
-                    (float) ($user->annual_interest_income ?? 0),
-                    (float) (($user->annual_trust_income ?? 0) + $this->calculateAnnualPensionIncome($user))
-                )
-            ),
+            'income_occupation' => $this->buildIncomeOccupation($user),
             'expenditure' => [
                 'monthly_expenditure' => $user->monthly_expenditure,
                 'annual_expenditure' => $user->annual_expenditure,
@@ -226,6 +193,95 @@ class UserProfileService
         }
 
         return $pensionIncome;
+    }
+
+    /**
+     * Get the primary trust type for tax calculation purposes.
+     * If user has multiple trusts, returns the type of the first active trust.
+     */
+    private function getPrimaryTrustType(User $user): ?string
+    {
+        // Load trusts if not already loaded
+        if (! $user->relationLoaded('trusts')) {
+            $user->load('trusts');
+        }
+
+        // Get the first active trust
+        $primaryTrust = $user->trusts
+            ->where('is_active', true)
+            ->first();
+
+        return $primaryTrust?->trust_type;
+    }
+
+    /**
+     * Build income and occupation section with detailed tax breakdown
+     */
+    private function buildIncomeOccupation(User $user): array
+    {
+        $rentalIncome = $this->calculateAnnualRentalIncome($user);
+        $pensionIncome = $this->calculateAnnualPensionIncome($user);
+
+        $employmentIncome = (float) ($user->annual_employment_income ?? 0);
+        $selfEmploymentIncome = (float) ($user->annual_self_employment_income ?? 0);
+        $dividendIncome = (float) ($user->annual_dividend_income ?? 0);
+        $interestIncome = (float) ($user->annual_interest_income ?? 0);
+        $trustIncome = (float) ($user->annual_trust_income ?? 0);
+
+        // Get primary trust type if user has trusts (for correct tax treatment)
+        $trustType = $this->getPrimaryTrustType($user);
+
+        $totalAnnualIncome = $employmentIncome + $selfEmploymentIncome + $rentalIncome
+            + $dividendIncome + $interestIncome + $trustIncome + $pensionIncome;
+
+        // Get detailed tax breakdown (new method with per-income breakdowns)
+        $detailedTax = $this->taxCalculator->calculateDetailedNetIncome(
+            $employmentIncome,
+            $selfEmploymentIncome,
+            $rentalIncome,
+            $pensionIncome,
+            $trustIncome,
+            $interestIncome,
+            $dividendIncome,
+            $trustType
+        );
+
+        // Get simple calculation for backwards compatibility
+        $simpleTax = $this->taxCalculator->calculateNetIncome(
+            $employmentIncome,
+            $selfEmploymentIncome,
+            $rentalIncome,
+            $dividendIncome,
+            $interestIncome,
+            $trustIncome + $pensionIncome
+        );
+
+        return [
+            'occupation' => $user->occupation,
+            'employer' => $user->employer,
+            'industry' => $user->industry,
+            'employment_status' => $user->employment_status,
+            'target_retirement_age' => $user->target_retirement_age,
+            'retirement_date' => $user->retirement_date,
+            'annual_employment_income' => $user->annual_employment_income,
+            'annual_self_employment_income' => $user->annual_self_employment_income,
+            'annual_rental_income' => $rentalIncome,
+            'annual_dividend_income' => $user->annual_dividend_income,
+            'annual_interest_income' => $user->annual_interest_income,
+            'annual_trust_income' => $user->annual_trust_income,
+            'annual_pension_income' => $pensionIncome,
+            'total_annual_income' => $totalAnnualIncome,
+            // Backwards compatible fields from simple calculation
+            'gross_income' => $simpleTax['gross_income'],
+            'income_tax' => $simpleTax['income_tax'],
+            'national_insurance' => $simpleTax['national_insurance'],
+            'total_deductions' => $simpleTax['total_deductions'],
+            'net_income' => $simpleTax['net_income'],
+            'effective_tax_rate' => $simpleTax['effective_tax_rate'],
+            'breakdown' => $simpleTax['breakdown'],
+            // New detailed breakdown for UI display
+            'detailed_tax_breakdown' => $detailedTax,
+        ];
     }
 
     /**

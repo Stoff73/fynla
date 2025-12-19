@@ -241,6 +241,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the user's trusts (Estate module).
+     */
+    public function trusts(): HasMany
+    {
+        return $this->hasMany(\App\Models\Estate\Trust::class);
+    }
+
+    /**
      * Get the user's business interests.
      */
     public function businessInterests(): HasMany

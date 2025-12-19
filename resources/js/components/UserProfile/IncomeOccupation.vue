@@ -373,62 +373,36 @@
       </div>
 
       <!-- Tax Calculations -->
-      <div v-if="incomeOccupation?.net_income" class="card p-6 bg-gradient-to-r from-blue-50 to-blue-100">
+      <div v-if="detailedTaxBreakdown?.summary" class="card p-6">
         <h3 class="text-h5 font-semibold text-gray-900 mb-4">UK Tax & NI Calculations</h3>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <!-- Gross Income -->
-          <div class="flex justify-between items-center p-3 bg-white rounded-lg">
-            <span class="text-body-sm font-medium text-gray-700">Gross Annual Income</span>
-            <span class="text-body font-semibold text-gray-900">{{ formatCurrency(incomeOccupation.gross_income) }}</span>
-          </div>
+        <!-- Summary Card -->
+        <TaxSummaryCard
+          :summary="{
+            ...detailedTaxBreakdown.summary,
+            tax_year: detailedTaxBreakdown.tax_year
+          }"
+          class="mb-6"
+        />
 
-          <!-- Income Tax -->
-          <div class="flex justify-between items-center p-3 bg-white rounded-lg">
-            <span class="text-body-sm font-medium text-gray-700">Income Tax</span>
-            <span class="text-body font-semibold text-error-600">-{{ formatCurrency(incomeOccupation.income_tax) }}</span>
-          </div>
-
-          <!-- National Insurance -->
-          <div class="flex justify-between items-center p-3 bg-white rounded-lg">
-            <span class="text-body-sm font-medium text-gray-700">National Insurance</span>
-            <span class="text-body font-semibold text-error-600">-{{ formatCurrency(incomeOccupation.national_insurance) }}</span>
-          </div>
-
-          <!-- Total Deductions -->
-          <div class="flex justify-between items-center p-3 bg-white rounded-lg">
-            <span class="text-body-sm font-medium text-gray-700">Total Deductions</span>
-            <span class="text-body font-semibold text-error-600">-{{ formatCurrency(incomeOccupation.total_deductions) }}</span>
-          </div>
-        </div>
-
-        <!-- Net Income (Prominent Display) -->
-        <div class="mt-6 p-4 bg-white rounded-lg border-2 border-success-500">
-          <div class="flex justify-between items-center">
-            <div>
-              <p class="text-body-sm font-medium text-gray-700">Net Annual Income (Take-Home)</p>
-              <p class="text-body-xs text-gray-500 mt-1">After tax and NI deductions</p>
-            </div>
-            <div class="text-right">
-              <p class="text-h4 font-bold text-success-700">{{ formatCurrency(incomeOccupation.net_income) }}</p>
-              <p class="text-body-sm text-gray-600">{{ formatCurrency(incomeOccupation.net_income / 12) }}/month</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Effective Tax Rate -->
-        <div class="mt-4 p-3 bg-white rounded-lg">
-          <div class="flex justify-between items-center">
-            <span class="text-body-sm font-medium text-gray-700">Effective Tax Rate</span>
-            <span class="text-body font-semibold text-gray-900">{{ incomeOccupation.effective_tax_rate }}%</span>
-          </div>
+        <!-- Income Type Cards -->
+        <div
+          v-if="detailedTaxBreakdown.income_breakdowns?.length > 0"
+          class="grid grid-cols-1 md:grid-cols-2 gap-4"
+        >
+          <TaxIncomeCard
+            v-for="(breakdown, index) in detailedTaxBreakdown.income_breakdowns"
+            :key="breakdown.income_type + '-' + index"
+            :breakdown="breakdown"
+          />
         </div>
 
         <!-- Info Note -->
         <div class="mt-4 p-3 bg-blue-100 rounded-lg">
           <p class="text-body-xs text-blue-800">
-            <strong>Note:</strong> Tax calculations use 2025/26 UK tax rates.
-            Personal Allowance: £12,570 | Basic Rate: 20% | Higher Rate: 40% | Additional Rate: 45%
+            <strong>Note:</strong> Tax calculations use {{ detailedTaxBreakdown.tax_year }} UK tax rates.
+            Income is taxed in priority order: employment income uses the Personal Allowance first,
+            with other income types taxed at remaining band positions.
           </p>
         </div>
       </div>
@@ -459,9 +433,16 @@
 <script>
 import { ref, computed, watch } from 'vue';
 import { useStore } from 'vuex';
+import TaxIncomeCard from './TaxIncomeCard.vue';
+import TaxSummaryCard from './TaxSummaryCard.vue';
 
 export default {
   name: 'IncomeOccupation',
+
+  components: {
+    TaxIncomeCard,
+    TaxSummaryCard,
+  },
 
   setup() {
     const store = useStore();
@@ -471,6 +452,7 @@ export default {
     const errorMessage = ref('');
 
     const incomeOccupation = computed(() => store.getters['userProfile/incomeOccupation']);
+    const detailedTaxBreakdown = computed(() => incomeOccupation.value?.detailed_tax_breakdown || null);
 
     const form = ref({
       occupation: '',
@@ -639,6 +621,7 @@ export default {
       retirementAge,
       showEarlyRetirementWarning,
       incomeOccupation,
+      detailedTaxBreakdown,
       handleSubmit,
       handleCancel,
       formatCurrency,

@@ -24,6 +24,504 @@ class UKTaxCalculator
     }
 
     /**
+     * Calculate detailed net income with per-income-type breakdowns.
+     * Uses stack-order allocation: employment uses PA first, other income taxed at remaining band position.
+     *
+     * @param  float  $employmentIncome  Employment income (PAYE)
+     * @param  float  $selfEmploymentIncome  Self-employment income
+     * @param  float  $rentalIncome  Rental income (property)
+     * @param  float  $pensionIncome  Pension income (DB/state)
+     * @param  float  $trustIncome  Trust income (gross amount)
+     * @param  float  $interestIncome  Interest income (savings)
+     * @param  float  $dividendIncome  Dividend income
+     * @param  string|null  $trustType  Type of trust: 'discretionary', 'interest_in_possession', 'bare', etc.
+     * @return array Detailed breakdown per income type with tax bands and NI
+     */
+    public function calculateDetailedNetIncome(
+        float $employmentIncome = 0,
+        float $selfEmploymentIncome = 0,
+        float $rentalIncome = 0,
+        float $pensionIncome = 0,
+        float $trustIncome = 0,
+        float $interestIncome = 0,
+        float $dividendIncome = 0,
+        ?string $trustType = null
+    ): array {
+        $incomeTaxConfig = $this->taxConfig->getIncomeTax();
+        $tracker = new TaxBandTracker($incomeTaxConfig);
+
+        $incomeBreakdowns = [];
+        $totalGross = 0;
+        $totalTax = 0;
+        $totalNI = 0;
+
+        // Priority 1: Employment income (uses PA first, has NI)
+        if ($employmentIncome > 0) {
+            $taxAllocation = $tracker->allocateIncome($employmentIncome);
+            $niBreakdown = $this->calculateClass1NIDetailed($employmentIncome);
+
+            $incomeBreakdowns[] = [
+                'income_type' => 'employment',
+                'income_type_label' => 'Employment Income',
+                'gross_amount' => round($employmentIncome, 2),
+                'tax_breakdown' => $taxAllocation,
+                'ni_breakdown' => $niBreakdown,
+                'total_deductions' => round($taxAllocation['total_income_tax'] + $niBreakdown['total_ni'], 2),
+                'net_income' => round($employmentIncome - $taxAllocation['total_income_tax'] - $niBreakdown['total_ni'], 2),
+            ];
+
+            $totalGross += $employmentIncome;
+            $totalTax += $taxAllocation['total_income_tax'];
+            $totalNI += $niBreakdown['total_ni'];
+        }
+
+        // Priority 2: Self-employment income (has Class 4 NI)
+        if ($selfEmploymentIncome > 0) {
+            $taxAllocation = $tracker->allocateIncome($selfEmploymentIncome);
+            $niBreakdown = $this->calculateClass4NIDetailed($selfEmploymentIncome);
+
+            $incomeBreakdowns[] = [
+                'income_type' => 'self_employment',
+                'income_type_label' => 'Self-Employment Income',
+                'gross_amount' => round($selfEmploymentIncome, 2),
+                'tax_breakdown' => $taxAllocation,
+                'ni_breakdown' => $niBreakdown,
+                'total_deductions' => round($taxAllocation['total_income_tax'] + $niBreakdown['total_ni'], 2),
+                'net_income' => round($selfEmploymentIncome - $taxAllocation['total_income_tax'] - $niBreakdown['total_ni'], 2),
+            ];
+
+            $totalGross += $selfEmploymentIncome;
+            $totalTax += $taxAllocation['total_income_tax'];
+            $totalNI += $niBreakdown['total_ni'];
+        }
+
+        // Priority 3: Rental income (no NI)
+        if ($rentalIncome > 0) {
+            $taxAllocation = $tracker->allocateIncome($rentalIncome);
+
+            $incomeBreakdowns[] = [
+                'income_type' => 'rental',
+                'income_type_label' => 'Rental Income',
+                'gross_amount' => round($rentalIncome, 2),
+                'tax_breakdown' => $taxAllocation,
+                'ni_breakdown' => null,
+                'total_deductions' => round($taxAllocation['total_income_tax'], 2),
+                'net_income' => round($rentalIncome - $taxAllocation['total_income_tax'], 2),
+            ];
+
+            $totalGross += $rentalIncome;
+            $totalTax += $taxAllocation['total_income_tax'];
+        }
+
+        // Priority 4: Pension income (no NI)
+        if ($pensionIncome > 0) {
+            $taxAllocation = $tracker->allocateIncome($pensionIncome);
+
+            $incomeBreakdowns[] = [
+                'income_type' => 'pension',
+                'income_type_label' => 'Pension Income',
+                'gross_amount' => round($pensionIncome, 2),
+                'tax_breakdown' => $taxAllocation,
+                'ni_breakdown' => null,
+                'total_deductions' => round($taxAllocation['total_income_tax'], 2),
+                'net_income' => round($pensionIncome - $taxAllocation['total_income_tax'], 2),
+            ];
+
+            $totalGross += $pensionIncome;
+            $totalTax += $taxAllocation['total_income_tax'];
+        }
+
+        // Priority 5: Trust income (no NI, special taxation based on trust type)
+        if ($trustIncome > 0) {
+            // Pass tracker to calculate personalized reclaim based on beneficiary's marginal rate
+            $trustTaxBreakdown = $this->calculateTrustIncomeTax($trustIncome, $trustType, $tracker);
+
+            $incomeBreakdowns[] = [
+                'income_type' => 'trust',
+                'income_type_label' => 'Trust Income',
+                'gross_amount' => round($trustIncome, 2),
+                'tax_breakdown' => $trustTaxBreakdown,
+                'ni_breakdown' => null,
+                'total_deductions' => round($trustTaxBreakdown['total_income_tax'], 2),
+                'net_income' => round($trustIncome - $trustTaxBreakdown['total_income_tax'], 2),
+            ];
+
+            // Trust income is taxed at source by the trust, so doesn't consume beneficiary's tax bands
+            // Only add to totals
+            $totalGross += $trustIncome;
+            $totalTax += $trustTaxBreakdown['total_income_tax'];
+        }
+
+        // Priority 6: Interest income (with PSA, no NI)
+        if ($interestIncome > 0) {
+            $interestBreakdown = $this->calculateInterestTaxDetailed($interestIncome, $tracker);
+
+            $incomeBreakdowns[] = [
+                'income_type' => 'interest',
+                'income_type_label' => 'Interest Income',
+                'gross_amount' => round($interestIncome, 2),
+                'tax_breakdown' => $interestBreakdown,
+                'ni_breakdown' => null,
+                'total_deductions' => round($interestBreakdown['total_income_tax'], 2),
+                'net_income' => round($interestIncome - $interestBreakdown['total_income_tax'], 2),
+            ];
+
+            $totalGross += $interestIncome;
+            $totalTax += $interestBreakdown['total_income_tax'];
+        }
+
+        // Priority 7: Dividend income (with allowance, special rates, no NI)
+        if ($dividendIncome > 0) {
+            $dividendBreakdown = $this->calculateDividendTaxDetailed($dividendIncome, $tracker);
+
+            $incomeBreakdowns[] = [
+                'income_type' => 'dividend',
+                'income_type_label' => 'Dividend Income',
+                'gross_amount' => round($dividendIncome, 2),
+                'tax_breakdown' => $dividendBreakdown,
+                'ni_breakdown' => null,
+                'total_deductions' => round($dividendBreakdown['total_income_tax'], 2),
+                'net_income' => round($dividendIncome - $dividendBreakdown['total_income_tax'], 2),
+            ];
+
+            $totalGross += $dividendIncome;
+            $totalTax += $dividendBreakdown['total_income_tax'];
+        }
+
+        $totalDeductions = $totalTax + $totalNI;
+        $netIncome = $totalGross - $totalDeductions;
+
+        return [
+            'income_breakdowns' => $incomeBreakdowns,
+            'summary' => [
+                'total_gross_income' => round($totalGross, 2),
+                'total_income_tax' => round($totalTax, 2),
+                'total_national_insurance' => round($totalNI, 2),
+                'total_deductions' => round($totalDeductions, 2),
+                'net_income' => round($netIncome, 2),
+                'effective_tax_rate' => $totalGross > 0 ? round(($totalDeductions / $totalGross) * 100, 2) : 0,
+                'monthly_net_income' => round($netIncome / 12, 2),
+            ],
+            'tax_year' => $this->taxConfig->getTaxYear(),
+        ];
+    }
+
+    /**
+     * Calculate Class 1 NI with detailed breakdown
+     */
+    private function calculateClass1NIDetailed(float $employmentIncome): array
+    {
+        $niConfig = $this->taxConfig->getNationalInsurance();
+        $class1Employee = $niConfig['class_1']['employee'];
+
+        $primaryThreshold = $class1Employee['primary_threshold'];
+        $upperEarningsLimit = $class1Employee['upper_earnings_limit'];
+        $mainRate = $class1Employee['main_rate'];
+        $additionalRate = $class1Employee['additional_rate'];
+
+        $breakdown = [
+            'class' => 'Class 1',
+            'main_rate' => ['earnings' => 0, 'contribution' => 0, 'rate' => $mainRate],
+            'additional_rate' => ['earnings' => 0, 'contribution' => 0, 'rate' => $additionalRate],
+            'total_ni' => 0,
+        ];
+
+        if ($employmentIncome <= $primaryThreshold) {
+            return $breakdown;
+        }
+
+        // Main rate: earnings between primary threshold and upper earnings limit
+        if ($employmentIncome > $primaryThreshold) {
+            $mainRateEarnings = min($employmentIncome - $primaryThreshold, $upperEarningsLimit - $primaryThreshold);
+            $breakdown['main_rate']['earnings'] = round($mainRateEarnings, 2);
+            $breakdown['main_rate']['contribution'] = round($mainRateEarnings * $mainRate, 2);
+        }
+
+        // Additional rate: earnings above upper earnings limit
+        if ($employmentIncome > $upperEarningsLimit) {
+            $additionalRateEarnings = $employmentIncome - $upperEarningsLimit;
+            $breakdown['additional_rate']['earnings'] = round($additionalRateEarnings, 2);
+            $breakdown['additional_rate']['contribution'] = round($additionalRateEarnings * $additionalRate, 2);
+        }
+
+        $breakdown['total_ni'] = $breakdown['main_rate']['contribution'] + $breakdown['additional_rate']['contribution'];
+
+        return $breakdown;
+    }
+
+    /**
+     * Calculate Class 4 NI with detailed breakdown
+     */
+    private function calculateClass4NIDetailed(float $selfEmploymentIncome): array
+    {
+        $niConfig = $this->taxConfig->getNationalInsurance();
+        $class4 = $niConfig['class_4'];
+
+        $lowerProfitsLimit = $class4['lower_profits_limit'];
+        $upperProfitsLimit = $class4['upper_profits_limit'];
+        $mainRate = $class4['main_rate'];
+        $additionalRate = $class4['additional_rate'];
+
+        $breakdown = [
+            'class' => 'Class 4',
+            'main_rate' => ['earnings' => 0, 'contribution' => 0, 'rate' => $mainRate],
+            'additional_rate' => ['earnings' => 0, 'contribution' => 0, 'rate' => $additionalRate],
+            'total_ni' => 0,
+        ];
+
+        if ($selfEmploymentIncome <= $lowerProfitsLimit) {
+            return $breakdown;
+        }
+
+        // Main rate
+        if ($selfEmploymentIncome > $lowerProfitsLimit) {
+            $mainRateEarnings = min($selfEmploymentIncome - $lowerProfitsLimit, $upperProfitsLimit - $lowerProfitsLimit);
+            $breakdown['main_rate']['earnings'] = round($mainRateEarnings, 2);
+            $breakdown['main_rate']['contribution'] = round($mainRateEarnings * $mainRate, 2);
+        }
+
+        // Additional rate
+        if ($selfEmploymentIncome > $upperProfitsLimit) {
+            $additionalRateEarnings = $selfEmploymentIncome - $upperProfitsLimit;
+            $breakdown['additional_rate']['earnings'] = round($additionalRateEarnings, 2);
+            $breakdown['additional_rate']['contribution'] = round($additionalRateEarnings * $additionalRate, 2);
+        }
+
+        $breakdown['total_ni'] = $breakdown['main_rate']['contribution'] + $breakdown['additional_rate']['contribution'];
+
+        return $breakdown;
+    }
+
+    /**
+     * Calculate interest tax with PSA consideration
+     */
+    private function calculateInterestTaxDetailed(float $interestIncome, TaxBandTracker $tracker): array
+    {
+        $config = $tracker->getConfig();
+        $bandPosition = $tracker->getCurrentBandPosition();
+
+        // Determine PSA based on current band position
+        $psa = match ($bandPosition) {
+            'personal_allowance', 'basic' => 1000,
+            'higher' => 500,
+            default => 0,
+        };
+
+        $taxableInterest = max(0, $interestIncome - $psa);
+        $taxAllocation = $tracker->allocateIncome($taxableInterest);
+
+        // Add PSA info to breakdown
+        $taxAllocation['personal_savings_allowance'] = $psa;
+        $taxAllocation['taxable_after_psa'] = $taxableInterest;
+
+        return $taxAllocation;
+    }
+
+    /**
+     * Calculate dividend tax with allowance and special rates
+     */
+    private function calculateDividendTaxDetailed(float $dividendIncome, TaxBandTracker $tracker): array
+    {
+        $dividendTax = $this->taxConfig->getDividendTax();
+        $config = $tracker->getConfig();
+
+        $allowance = $dividendTax['allowance'];
+        $basicRate = $dividendTax['basic_rate'];
+        $higherRate = $dividendTax['higher_rate'];
+        $additionalRate = $dividendTax['additional_rate'];
+
+        $taxableDividends = max(0, $dividendIncome - $allowance);
+
+        $breakdown = [
+            'dividend_allowance' => $allowance,
+            'taxable_after_allowance' => $taxableDividends,
+            'basic_rate' => ['taxable' => 0, 'tax' => 0, 'rate' => $basicRate],
+            'higher_rate' => ['taxable' => 0, 'tax' => 0, 'rate' => $higherRate],
+            'additional_rate' => ['taxable' => 0, 'tax' => 0, 'rate' => $additionalRate],
+            'total_income_tax' => 0,
+        ];
+
+        if ($taxableDividends <= 0) {
+            return $breakdown;
+        }
+
+        // Allocate dividends to remaining bands
+        $remaining = $taxableDividends;
+
+        // Basic rate band
+        $basicAvailable = $tracker->getRemainingBasicBand();
+        if ($basicAvailable > 0 && $remaining > 0) {
+            $basicUsed = min($remaining, $basicAvailable);
+            $breakdown['basic_rate']['taxable'] = $basicUsed;
+            $breakdown['basic_rate']['tax'] = round($basicUsed * $basicRate, 2);
+            $remaining -= $basicUsed;
+        }
+
+        // Higher rate band
+        $higherAvailable = $tracker->getRemainingHigherBand();
+        if ($higherAvailable > 0 && $remaining > 0) {
+            $higherUsed = min($remaining, $higherAvailable);
+            $breakdown['higher_rate']['taxable'] = $higherUsed;
+            $breakdown['higher_rate']['tax'] = round($higherUsed * $higherRate, 2);
+            $remaining -= $higherUsed;
+        }
+
+        // Additional rate
+        if ($remaining > 0) {
+            $breakdown['additional_rate']['taxable'] = $remaining;
+            $breakdown['additional_rate']['tax'] = round($remaining * $additionalRate, 2);
+        }
+
+        $breakdown['total_income_tax'] = $breakdown['basic_rate']['tax']
+            + $breakdown['higher_rate']['tax']
+            + $breakdown['additional_rate']['tax'];
+
+        return $breakdown;
+    }
+
+    /**
+     * Calculate trust income tax based on trust type.
+     *
+     * Trust taxation rules:
+     * - Discretionary/Accumulation trusts: Trust pays 45% at source (39.35% for dividends)
+     * - Interest in Possession trusts: Trust pays 20% at source (8.75% for dividends)
+     * - Bare trusts: Beneficiary pays at their marginal rate (not handled here)
+     *
+     * For most trusts, the TRUST pays tax at source and the beneficiary receives
+     * income net of this tax. The beneficiary may be able to reclaim tax if their
+     * marginal rate is lower than the trust rate.
+     */
+    private function calculateTrustIncomeTax(float $trustIncome, ?string $trustType, TaxBandTracker $tracker): array
+    {
+        $trustsConfig = $this->taxConfig->getTrusts();
+
+        // Determine tax rate based on trust type
+        $taxRate = 0.45; // Default to discretionary rate
+        $trustTypeLabel = 'Discretionary Trust';
+        $taxDescription = 'Tax paid by trust at 45%';
+
+        switch ($trustType) {
+            case 'discretionary':
+            case 'accumulation_maintenance':
+                $taxRate = $trustsConfig['income_tax']['discretionary']['standard_rate'] ?? 0.45;
+                $trustTypeLabel = $trustType === 'discretionary' ? 'Discretionary Trust' : 'Accumulation & Maintenance Trust';
+                $taxDescription = 'Tax paid by trust at 45%';
+                break;
+
+            case 'interest_in_possession':
+                $taxRate = $trustsConfig['income_tax']['interest_in_possession']['standard_rate'] ?? 0.20;
+                $trustTypeLabel = 'Interest in Possession Trust';
+                $taxDescription = 'Tax paid by trust at 20%';
+                break;
+
+            case 'bare':
+                // Bare trusts - beneficiary pays at their marginal rate
+                $taxRate = 0;
+                $trustTypeLabel = 'Bare Trust';
+                $taxDescription = 'Taxed as beneficiary\'s income';
+                break;
+
+            case 'settlor_interested':
+                // Settlor-interested trusts - settlor pays at their marginal rate
+                $taxRate = 0;
+                $trustTypeLabel = 'Settlor-Interested Trust';
+                $taxDescription = 'Taxed as settlor\'s income';
+                break;
+
+            case 'life_insurance':
+            case 'loan':
+            case 'discounted_gift':
+                // These don't typically generate regular income
+                $taxRate = 0;
+                $trustTypeLabel = ucwords(str_replace('_', ' ', $trustType ?? 'Trust'));
+                $taxDescription = 'No regular income tax applies';
+                break;
+
+            default:
+                // Default to discretionary rates for unknown types
+                $taxRate = 0.45;
+                $taxDescription = 'Tax paid by trust at 45%';
+        }
+
+        $taxPaidByTrust = round($trustIncome * $taxRate, 2);
+
+        // Calculate personalized reclaim based on beneficiary's marginal rate
+        $beneficiaryMarginalRate = $this->getBeneficiaryMarginalRate($tracker);
+        $beneficiaryMarginalRateLabel = $this->getMarginalRateLabel($beneficiaryMarginalRate);
+        $taxAtMarginalRate = round($trustIncome * $beneficiaryMarginalRate, 2);
+
+        $reclaimInfo = null;
+        if ($taxRate > 0) {
+            $difference = $taxPaidByTrust - $taxAtMarginalRate;
+            if ($difference > 0) {
+                // Can reclaim
+                $reclaimInfo = [
+                    'type' => 'reclaim',
+                    'amount' => round($difference, 2),
+                    'message' => 'You can reclaim £'.number_format($difference, 0)." as you are a {$beneficiaryMarginalRateLabel} taxpayer (".round($beneficiaryMarginalRate * 100).'%) but the trust paid '.round($taxRate * 100).'% tax.',
+                ];
+            } elseif ($difference < 0) {
+                // Owes additional tax
+                $reclaimInfo = [
+                    'type' => 'owe',
+                    'amount' => round(abs($difference), 2),
+                    'message' => 'You owe an additional £'.number_format(abs($difference), 0)." as you are a {$beneficiaryMarginalRateLabel} taxpayer (".round($beneficiaryMarginalRate * 100).'%) but the trust only paid '.round($taxRate * 100).'% tax.',
+                ];
+            } else {
+                // No difference
+                $reclaimInfo = [
+                    'type' => 'none',
+                    'amount' => 0,
+                    'message' => "No additional tax due - trust rate matches your {$beneficiaryMarginalRateLabel} rate.",
+                ];
+            }
+        }
+
+        return [
+            'trust_type' => $trustType,
+            'trust_type_label' => $trustTypeLabel,
+            'tax_rate' => $taxRate,
+            'tax_description' => $taxDescription,
+            'tax_paid_by_trust' => $taxPaidByTrust,
+            'total_income_tax' => $taxPaidByTrust,
+            'net_to_beneficiary' => round($trustIncome - $taxPaidByTrust, 2),
+            'beneficiary_marginal_rate' => $beneficiaryMarginalRate,
+            'beneficiary_marginal_rate_label' => $beneficiaryMarginalRateLabel,
+            'tax_at_marginal_rate' => $taxAtMarginalRate,
+            'reclaim_info' => $reclaimInfo,
+        ];
+    }
+
+    /**
+     * Get the beneficiary's marginal tax rate based on current band position
+     */
+    private function getBeneficiaryMarginalRate(TaxBandTracker $tracker): float
+    {
+        $bandPosition = $tracker->getCurrentBandPosition();
+
+        return match ($bandPosition) {
+            'personal_allowance' => 0.0,
+            'basic' => 0.20,
+            'higher' => 0.40,
+            'additional' => 0.45,
+            default => 0.20,
+        };
+    }
+
+    /**
+     * Get a human-readable label for the marginal rate
+     */
+    private function getMarginalRateLabel(float $rate): string
+    {
+        return match (true) {
+            $rate === 0.0 => 'non',
+            $rate <= 0.20 => 'basic rate',
+            $rate <= 0.40 => 'higher rate',
+            default => 'additional rate',
+        };
+    }
+
+    /**
      * Calculate net income after income tax and National Insurance.
      *
      * @param  float  $employmentIncome  Employment income (PAYE)
