@@ -291,6 +291,22 @@
   "dc_pensions": [
     {
       "id": 1,
+      "scheme_name": "Global Finance Corp Pension",
+      "provider_name": "Fidelity",
+      "pension_type": "occupational",
+      "scheme_type": "workplace",
+      "current_fund_value": 180000,
+      "employee_contribution_percent": 8,
+      "employer_contribution_percent": 8,
+      "employer_matching_limit": 100,
+      "annual_salary": 145000,
+      "retirement_age": 60,
+      "ownership_type": "individual",
+      "risk_preference": "upper_medium",
+      "notes": "Full employer matching - employer matches 100% of employee contribution"
+    },
+    {
+      "id": 2,
       "scheme_name": "David's SIPP",
       "provider_name": "AJ Bell",
       "pension_type": "sipp",

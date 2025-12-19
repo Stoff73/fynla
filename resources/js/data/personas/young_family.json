@@ -171,13 +171,14 @@
       "pension_type": "occupational",
       "scheme_type": "workplace",
       "current_fund_value": 45000,
-      "employee_contribution_percent": 5,
-      "employer_contribution_percent": 8,
+      "employee_contribution_percent": 3,
+      "employer_contribution_percent": 3,
+      "employer_matching_limit": 10,
       "annual_salary": 62000,
       "retirement_age": 65,
       "ownership_type": "individual",
       "risk_preference": "medium",
-      "notes": "Auto-enrolled workplace pension"
+      "notes": "Employer matches contributions up to 10% of salary"
     },
     {
       "id": 2,

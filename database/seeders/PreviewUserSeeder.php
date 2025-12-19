@@ -522,6 +522,8 @@ class PreviewUserSeeder extends Seeder
                 'current_fund_value' => $pension['current_fund_value'] ?? 0,
                 'employee_contribution_percent' => $pension['employee_contribution_percent'] ?? null,
                 'employer_contribution_percent' => $pension['employer_contribution_percent'] ?? null,
+                'employer_matching_limit' => $pension['employer_matching_limit'] ?? null,
+                'monthly_contribution_amount' => $pension['monthly_contribution_amount'] ?? null,
                 'annual_salary' => $pension['annual_salary'] ?? null,
                 'retirement_age' => $pension['retirement_age'] ?? 65,
                 'risk_preference' => $pension['risk_preference'] ?? null,

@@ -210,6 +210,21 @@
   "dc_pensions": [
     {
       "id": 1,
+      "scheme_name": "Chen Tech Consulting Pension",
+      "provider_name": "Nest",
+      "pension_type": "occupational",
+      "scheme_type": "workplace",
+      "current_fund_value": 45000,
+      "employee_contribution_percent": 5,
+      "employer_contribution_percent": 10,
+      "annual_salary": 180000,
+      "retirement_age": 55,
+      "ownership_type": "individual",
+      "risk_preference": "upper_medium",
+      "notes": "Company director pension - employer contribution via company"
+    },
+    {
+      "id": 2,
       "scheme_name": "Alex's SIPP",
       "provider_name": "AJ Bell",
       "pension_type": "sipp",
@@ -220,7 +235,7 @@
       "ownership_type": "individual",
       "risk_preference": "upper_medium",
       "has_custom_risk": true,
-      "notes": "Company contributions via employer pension scheme",
+      "notes": "Personal SIPP with additional contributions",
       "holdings": [
         {
           "id": 1,
