@@ -24,8 +24,7 @@ class TaxProductInfoController extends Controller
     /**
      * Get tax information for an investment account type.
      *
-     * @param string $accountType Account type (isa, gia, onshore_bond, etc.)
-     * @return JsonResponse
+     * @param  string  $accountType  Account type (isa, gia, onshore_bond, etc.)
      *
      * @route GET /api/tax-info/investment/{accountType}
      */
@@ -42,9 +41,7 @@ class TaxProductInfoController extends Controller
     /**
      * Get tax information for a savings account type.
      *
-     * @param Request $request
-     * @param string $accountType Account type (easy_access, notice, etc.)
-     * @return JsonResponse
+     * @param  string  $accountType  Account type (easy_access, notice, etc.)
      *
      * @route GET /api/tax-info/savings/{accountType}
      */
@@ -62,8 +59,6 @@ class TaxProductInfoController extends Controller
     /**
      * Get tax summary for quick display (badges, tooltips).
      *
-     * @param Request $request
-     * @return JsonResponse
      *
      * @route GET /api/tax-info/summary
      */

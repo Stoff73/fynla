@@ -16,7 +16,7 @@ return new class extends Migration
         Schema::table('dc_pensions', function (Blueprint $table) {
             // Add risk preference for this specific pension
             $table->enum('risk_preference', ['low', 'lower_medium', 'medium', 'upper_medium', 'high'])
-                  ->nullable();
+                ->nullable();
 
             // Flag to indicate this pension has a different risk level than the user's main profile
             $table->boolean('has_custom_risk')->default(false);

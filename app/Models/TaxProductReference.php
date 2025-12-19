@@ -66,22 +66,27 @@ class TaxProductReference extends Model
      * Tax status constants.
      */
     public const STATUS_EXEMPT = 'exempt';
+
     public const STATUS_TAXABLE = 'taxable';
+
     public const STATUS_DEFERRED = 'deferred';
+
     public const STATUS_RELIEF = 'relief';
+
     public const STATUS_LIMIT = 'limit';
 
     /**
      * Product category constants.
      */
     public const CATEGORY_INVESTMENT = 'investment';
+
     public const CATEGORY_SAVINGS = 'savings';
 
     /**
      * Get tax info for a specific product type within a category.
      *
-     * @param string $category Product category ('investment' or 'savings')
-     * @param string $productType Product type (e.g., 'isa', 'gia', 'cash_isa')
+     * @param  string  $category  Product category ('investment' or 'savings')
+     * @param  string  $productType  Product type (e.g., 'isa', 'gia', 'cash_isa')
      * @return Collection<int, self>
      */
     public static function getForProductType(string $category, string $productType): Collection
@@ -124,7 +129,7 @@ class TaxProductReference extends Model
     /**
      * Get unique product types for a category.
      *
-     * @param string $category Product category
+     * @param  string  $category  Product category
      * @return array<int, string>
      */
     public static function getProductTypes(string $category): array
@@ -139,9 +144,8 @@ class TaxProductReference extends Model
     /**
      * Check if a product type has any tax-exempt aspects.
      *
-     * @param string $category Product category
-     * @param string $productType Product type
-     * @return bool
+     * @param  string  $category  Product category
+     * @param  string  $productType  Product type
      */
     public static function hasTaxExemptAspects(string $category, string $productType): bool
     {
@@ -156,8 +160,8 @@ class TaxProductReference extends Model
      * Get a summary of tax status for a product type.
      * Useful for dashboard displays showing overall tax efficiency.
      *
-     * @param string $category Product category
-     * @param string $productType Product type
+     * @param  string  $category  Product category
+     * @param  string  $productType  Product type
      * @return array{exempt: int, taxable: int, deferred: int, relief: int}
      */
     public static function getTaxStatusSummary(string $category, string $productType): array

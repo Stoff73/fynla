@@ -339,6 +339,7 @@ class NetWorthService
         $properties = Property::where('user_id', $userId)->get();
         $propertyItems = $properties->map(function ($property) {
             $name = $property->address_line_1 ?: $property->property_type;
+
             return [
                 'id' => $property->id,
                 'name' => $name,
@@ -355,6 +356,7 @@ class NetWorthService
             if ($investment->account_type) {
                 $name .= ' - '.ucwords(str_replace('_', ' ', $investment->account_type));
             }
+
             return [
                 'id' => $investment->id,
                 'name' => $name,
@@ -372,6 +374,7 @@ class NetWorthService
             if ($account->account_type) {
                 $name .= ' - '.ucwords(str_replace('_', ' ', $account->account_type));
             }
+
             return [
                 'id' => $account->id,
                 'name' => $name,

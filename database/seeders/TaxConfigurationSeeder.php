@@ -331,6 +331,202 @@ class TaxConfigurationSeeder extends Seeder
                     ],
                 ],
             ],
+
+            // UK Trusts - Tax Rates and Types (2025/26 verified from gov.uk)
+            'trusts' => [
+                // Income Tax for Trusts
+                'income_tax' => [
+                    // Discretionary and Accumulation trusts (Relevant Property Trusts)
+                    'discretionary' => [
+                        'standard_rate' => 0.45,           // 45% on non-dividend income
+                        'dividend_rate' => 0.3935,         // 39.35% on dividends
+                    ],
+                    // Interest in Possession trusts
+                    'interest_in_possession' => [
+                        'standard_rate' => 0.20,           // 20% on non-dividend income
+                        'dividend_rate' => 0.0875,         // 8.75% on dividends
+                    ],
+                    // Tax-free allowance (standard rate band)
+                    'tax_free_allowance' => 500,           // £500 de minimis - if income exceeds this, ALL is taxable
+                    'tax_free_allowance_minimum' => 100,   // Minimum when multiple trusts share allowance
+                    'notes' => 'The £500 allowance is divided equally between trusts created by the same settlor. Minimum £100 per trust.',
+                ],
+
+                // Capital Gains Tax for Trusts
+                'capital_gains_tax' => [
+                    'rate' => 0.24,                        // 24% flat rate (no basic/higher split for trusts)
+                    'annual_exempt_amount' => 1500,        // £1,500 standard
+                    'vulnerable_beneficiary_exempt_amount' => 3000, // £3,000 for vulnerable beneficiaries
+                    'notes' => 'Trusts pay CGT at a flat 24% rate. The annual exempt amount is half the individual allowance.',
+                ],
+
+                // IHT Charges for Trusts
+                'inheritance_tax' => [
+                    'entry_charge' => 0.20,                // 20% on CLTs exceeding NRB (paid at time of gift)
+                    'periodic_charge_max' => 0.06,         // Max 6% on 10-year anniversary
+                    'exit_charge_max' => 0.06,             // Max 6% when assets leave trust (proportionate)
+                    'periodic_charge_interval' => 10,      // Years between periodic charges
+                    'no_exit_charge_period' => 3,          // Months - no exit charge if distributed within 3 months of setup
+                    'will_trust_no_exit_charge_period' => 24, // Months - discretionary will trust: no exit charge within 2 years of death
+                    'notes' => 'Relevant Property Trusts face IHT charges every 10 years. Exit charges are proportionate based on time since last periodic charge.',
+                ],
+
+                // Management Expenses Relief
+                'management_expenses' => [
+                    'dividend_relief_rate' => 0.0875,      // 8.75% credit for expenses against dividends
+                    'other_income_relief_rate' => 0.20,    // 20% credit for expenses against other income
+                    'notes' => 'Trustees can claim relief for legitimate trust management expenses.',
+                ],
+
+                // Trust Type Definitions
+                'types' => [
+                    'bare' => [
+                        'name' => 'Bare Trust',
+                        'description' => 'Assets held by trustees for a beneficiary who has an absolute right to capital and income. Simple and tax-efficient.',
+                        'income_tax_treatment' => 'beneficiary',  // Taxed as beneficiary\'s income
+                        'cgt_treatment' => 'beneficiary',         // Uses beneficiary\'s CGT allowance
+                        'iht_treatment' => 'pet',                 // Potentially Exempt Transfer (7-year rule)
+                        'is_relevant_property_trust' => false,
+                        'suitable_for' => ['Gifts to children/grandchildren', 'Simple inheritance planning'],
+                        'key_features' => [
+                            'Beneficiary absolutely entitled at age 18',
+                            'No trustee discretion over distributions',
+                            'Tax efficient - uses beneficiary\'s allowances',
+                            'PET treatment - exempt after 7 years',
+                        ],
+                    ],
+                    'interest_in_possession' => [
+                        'name' => 'Interest in Possession Trust',
+                        'description' => 'Beneficiary (life tenant) has right to trust income. Capital passes to remainder beneficiaries on life tenant\'s death.',
+                        'income_tax_treatment' => 'trust_iip',    // 20%/8.75% rates
+                        'cgt_treatment' => 'trust',               // Trust rates apply
+                        'iht_treatment' => 'life_tenant_estate',  // Counts in life tenant\'s estate if qualifying
+                        'is_relevant_property_trust' => false,    // Pre-2006 IIP trusts are not RPTs
+                        'suitable_for' => ['Providing for spouse while preserving capital for children', 'Second marriages'],
+                        'key_features' => [
+                            'Life tenant receives all income',
+                            'Capital preserved for remainder beneficiaries',
+                            'Lower trust tax rates than discretionary',
+                            'May be part of life tenant\'s estate for IHT',
+                        ],
+                    ],
+                    'discretionary' => [
+                        'name' => 'Discretionary Trust',
+                        'description' => 'Trustees have full discretion over income and capital distributions among beneficiaries. Maximum flexibility.',
+                        'income_tax_treatment' => 'trust_discretionary', // 45%/39.35% rates
+                        'cgt_treatment' => 'trust',
+                        'iht_treatment' => 'relevant_property',   // Subject to 10-year and exit charges
+                        'is_relevant_property_trust' => true,
+                        'suitable_for' => ['Protecting vulnerable beneficiaries', 'Flexibility for changing circumstances', 'Tax planning'],
+                        'key_features' => [
+                            'Maximum flexibility for trustees',
+                            'Protects assets from beneficiary creditors',
+                            'Higher income tax rates (45%/39.35%)',
+                            '10-year periodic charges (up to 6%)',
+                            'Exit charges when capital distributed',
+                        ],
+                    ],
+                    'accumulation_maintenance' => [
+                        'name' => 'Accumulation & Maintenance Trust',
+                        'description' => 'Trust where income is accumulated for beneficiaries who will become entitled at a specified age (now maximum 18).',
+                        'income_tax_treatment' => 'trust_discretionary',
+                        'cgt_treatment' => 'trust',
+                        'iht_treatment' => 'relevant_property',
+                        'is_relevant_property_trust' => true,
+                        'suitable_for' => ['Education planning', 'Gifts to minor children'],
+                        'key_features' => [
+                            'Income accumulated until beneficiary reaches specified age',
+                            'Post-2006 trusts: beneficiary must be entitled by age 18',
+                            'Same tax treatment as discretionary trusts',
+                        ],
+                    ],
+                    'life_insurance' => [
+                        'name' => 'Life Insurance Trust',
+                        'description' => 'Trust holding life insurance policy proceeds, keeping them outside the estate for IHT purposes.',
+                        'income_tax_treatment' => 'none',         // No income (payout on death)
+                        'cgt_treatment' => 'none',                // No CGT on life policy proceeds
+                        'iht_treatment' => 'outside_estate',      // Outside settlor\'s estate
+                        'is_relevant_property_trust' => false,    // Not RPT if no trust assets other than policy
+                        'suitable_for' => ['IHT planning', 'Providing liquidity to pay IHT', 'Business protection'],
+                        'key_features' => [
+                            'Policy proceeds paid outside estate',
+                            'Provides liquid funds to pay IHT',
+                            'Beneficiaries receive proceeds directly',
+                            'No IHT on policy proceeds (if written correctly)',
+                        ],
+                    ],
+                    'discounted_gift' => [
+                        'name' => 'Discounted Gift Trust',
+                        'description' => 'Settlor gifts capital but retains right to regular income. Immediate IHT reduction based on actuarial calculation.',
+                        'income_tax_treatment' => 'settlor',      // Settlor taxed on retained income
+                        'cgt_treatment' => 'trust',
+                        'iht_treatment' => 'partial_pet',         // Discounted value is a PET
+                        'is_relevant_property_trust' => false,
+                        'suitable_for' => ['Those needing income but wanting to reduce estate', 'Older settlors (better discount)'],
+                        'key_features' => [
+                            'Immediate IHT reduction (30-60% typical)',
+                            'Retain regular income stream for life',
+                            'Growth outside estate from day one',
+                            'Discount based on age and health at setup',
+                        ],
+                    ],
+                    'loan' => [
+                        'name' => 'Loan Trust',
+                        'description' => 'Settlor loans money to trust (interest-free). Loan can be repaid but growth accrues outside estate.',
+                        'income_tax_treatment' => 'trust_discretionary',
+                        'cgt_treatment' => 'trust',
+                        'iht_treatment' => 'loan_in_estate',      // Outstanding loan remains in estate
+                        'is_relevant_property_trust' => true,
+                        'suitable_for' => ['Those wanting access to capital', 'Flexible IHT planning'],
+                        'key_features' => [
+                            'No 7-year wait for original loan amount',
+                            'Growth accrues outside estate immediately',
+                            'Can repay loan if capital needed',
+                            'Outstanding loan counts in estate at death',
+                        ],
+                    ],
+                    'mixed' => [
+                        'name' => 'Mixed Trust',
+                        'description' => 'Trust with elements of different trust types, e.g., part discretionary and part interest in possession.',
+                        'income_tax_treatment' => 'mixed',
+                        'cgt_treatment' => 'trust',
+                        'iht_treatment' => 'mixed',
+                        'is_relevant_property_trust' => true,     // Usually treated as RPT
+                        'suitable_for' => ['Complex family situations', 'Tailored estate planning'],
+                        'key_features' => [
+                            'Combines features of different trust types',
+                            'Complex tax treatment',
+                            'Professional advice essential',
+                        ],
+                    ],
+                    'settlor_interested' => [
+                        'name' => 'Settlor-Interested Trust',
+                        'description' => 'Trust where settlor or spouse can benefit. Income and gains taxed on settlor.',
+                        'income_tax_treatment' => 'settlor',      // Settlor taxed on all income
+                        'cgt_treatment' => 'settlor',             // Settlor taxed on gains
+                        'iht_treatment' => 'in_estate',           // Remains in settlor\'s estate
+                        'is_relevant_property_trust' => false,
+                        'suitable_for' => ['Very limited use cases'],
+                        'key_features' => [
+                            'Settlor taxed on all income (even if not received)',
+                            'Settlor taxed on capital gains',
+                            'Assets remain in estate for IHT',
+                            'Limited tax planning benefit',
+                        ],
+                    ],
+                ],
+
+                // Periodic Charges Configuration
+                'periodic_charges' => [
+                    'max_rate' => 0.06,                    // Maximum 6% of trust value
+                    'calculation_method' => 'cumulative', // Based on cumulative transfers in 7 years before setup
+                    'nrb_applies' => true,                // NRB available against trust value
+                    'notes' => 'Effective rate depends on how much of the NRB has been used by previous CLTs.',
+                ],
+
+                // General Notes
+                'notes' => 'UK trust taxation is complex. The rates above apply to 2025/26. Trusts must file annual self-assessment returns if they have taxable income or gains. Professional advice recommended for trust planning.',
+            ],
         ];
     }
 

@@ -75,7 +75,7 @@ class PreviewController extends Controller
      */
     public function login(string $personaId): JsonResponse
     {
-        if (!in_array($personaId, self::VALID_PERSONAS)) {
+        if (! in_array($personaId, self::VALID_PERSONAS)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid persona ID',
@@ -87,7 +87,7 @@ class PreviewController extends Controller
             ->where('preview_persona_id', $personaId)
             ->first();
 
-        if (!$previewUser) {
+        if (! $previewUser) {
             return response()->json([
                 'success' => false,
                 'message' => 'Preview user not found. Please run php artisan db:seed --class=PreviewUserSeeder',
@@ -120,14 +120,14 @@ class PreviewController extends Controller
     {
         $currentUser = $request->user();
 
-        if (!$currentUser || !$currentUser->is_preview_user) {
+        if (! $currentUser || ! $currentUser->is_preview_user) {
             return response()->json([
                 'success' => false,
                 'message' => 'Not currently in preview mode',
             ], 400);
         }
 
-        if (!in_array($personaId, self::VALID_PERSONAS)) {
+        if (! in_array($personaId, self::VALID_PERSONAS)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid persona ID',
@@ -139,7 +139,7 @@ class PreviewController extends Controller
             ->where('preview_persona_id', $personaId)
             ->first();
 
-        if (!$newPreviewUser) {
+        if (! $newPreviewUser) {
             return response()->json([
                 'success' => false,
                 'message' => 'Preview user not found for this persona',

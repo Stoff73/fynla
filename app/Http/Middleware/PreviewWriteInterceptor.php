@@ -55,12 +55,12 @@ class PreviewWriteInterceptor
         $user = $this->resolveUserFromToken($request);
 
         // If not authenticated or not a preview user, proceed normally
-        if (!$user || !$user->is_preview_user) {
+        if (! $user || ! $user->is_preview_user) {
             return $next($request);
         }
 
         // If this is a read operation (GET, HEAD, OPTIONS), proceed normally
-        if (!in_array($request->method(), self::WRITE_METHODS)) {
+        if (! in_array($request->method(), self::WRITE_METHODS)) {
             return $next($request);
         }
 
@@ -93,7 +93,7 @@ class PreviewWriteInterceptor
     {
         $token = $request->bearerToken();
 
-        if (!$token) {
+        if (! $token) {
             return null;
         }
 
@@ -101,7 +101,7 @@ class PreviewWriteInterceptor
         // We need to find the token and get its owner
         $accessToken = PersonalAccessToken::findToken($token);
 
-        if (!$accessToken) {
+        if (! $accessToken) {
             return null;
         }
 
@@ -138,8 +138,8 @@ class PreviewWriteInterceptor
             $requestData = $request->all();
 
             // Generate a temporary ID for newly created records
-            if ($method === 'POST' && !isset($requestData['id'])) {
-                $requestData['id'] = 'preview_' . uniqid();
+            if ($method === 'POST' && ! isset($requestData['id'])) {
+                $requestData['id'] = 'preview_'.uniqid();
             }
 
             $responseData['data'] = $requestData;

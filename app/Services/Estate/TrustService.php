@@ -65,20 +65,25 @@ class TrustService
         $ihtConfig = $this->taxConfig->getInheritanceTax();
         $nrb = $ihtConfig['nil_rate_band'];
 
+        // Get max periodic charge rate from trusts config (defaults to 6%)
+        $maxRate = $trustsConfig['periodic_charges']['max_rate'] ?? 0.06;
+
         // Simplified calculation - in practice this is complex
         // Rate is up to 6% based on how much trust exceeds NRB
-        $trustValue = $trust->current_value;
+        $trustValue = (float) $trust->current_value;
         $excessOverNRB = max(0, $trustValue - $nrb);
 
         // Effective rate calculation (simplified)
-        $effectiveRate = min($trustsConfig['periodic_charges']['max_rate'],
-            ($excessOverNRB / $trustValue) * 0.06);
+        // If trust value is zero, avoid division by zero
+        $effectiveRate = $trustValue > 0
+            ? min($maxRate, ($excessOverNRB / $trustValue) * 0.06)
+            : 0;
 
         $chargeAmount = $trustValue * $effectiveRate;
 
         return [
             'charge_amount' => round($chargeAmount, 2),
-            'effective_rate' => $effectiveRate,
+            'effective_rate' => round($effectiveRate, 4),
             'trust_value' => round($trustValue, 2),
             'nrb' => round($nrb, 2),
             'excess_over_nrb' => round($excessOverNRB, 2),
@@ -103,28 +108,34 @@ class TrustService
     public function analyzeTrustEfficiency(Trust $trust): array
     {
         $trustsConfig = $this->taxConfig->getTrusts();
-        $trustConfig = $trustsConfig['types'][$trust->trust_type] ?? null;
+        $trustTypeConfig = $trustsConfig['types'][$trust->trust_type] ?? null;
 
         $valueInEstate = $trust->getIHTValue();
-        $valueOutsideEstate = $trust->current_value - $valueInEstate;
-        $efficiencyPercent = $trust->current_value > 0
-            ? ($valueOutsideEstate / $trust->current_value) * 100
+        $currentValue = (float) $trust->current_value;
+        $initialValue = (float) $trust->initial_value;
+        $valueOutsideEstate = $currentValue - $valueInEstate;
+        $efficiencyPercent = $currentValue > 0
+            ? ($valueOutsideEstate / $currentValue) * 100
             : 0;
 
-        $growth = $trust->current_value - $trust->initial_value;
-        $growthRate = $trust->initial_value > 0
-            ? (($trust->current_value - $trust->initial_value) / $trust->initial_value) * 100
+        $growth = $currentValue - $initialValue;
+        $growthRate = $initialValue > 0
+            ? (($currentValue - $initialValue) / $initialValue) * 100
             : 0;
 
         $yearsActive = Carbon::parse($trust->trust_creation_date)->diffInYears(Carbon::now());
+
+        // Get tax rates for this trust type
+        $taxRates = $this->getTrustTaxRates($trust->trust_type);
 
         return [
             'trust_id' => $trust->id,
             'trust_name' => $trust->trust_name,
             'trust_type' => $trust->trust_type,
-            'trust_type_name' => $trustConfig['name'] ?? $trust->trust_type,
-            'initial_value' => round($trust->initial_value, 2),
-            'current_value' => round($trust->current_value, 2),
+            'trust_type_name' => $trustTypeConfig['name'] ?? ucwords(str_replace('_', ' ', $trust->trust_type)),
+            'trust_type_description' => $trustTypeConfig['description'] ?? null,
+            'initial_value' => round($initialValue, 2),
+            'current_value' => round($currentValue, 2),
             'growth' => round($growth, 2),
             'growth_rate_percent' => round($growthRate, 2),
             'value_in_estate' => round($valueInEstate, 2),
@@ -132,9 +143,99 @@ class TrustService
             'iht_efficiency_percent' => round($efficiencyPercent, 2),
             'years_active' => $yearsActive,
             'is_relevant_property_trust' => $trust->isRelevantPropertyTrust(),
+            'tax_rates' => $taxRates,
+            'key_features' => $trustTypeConfig['key_features'] ?? [],
+            'suitable_for' => $trustTypeConfig['suitable_for'] ?? [],
             'periodic_charge_info' => $trust->isRelevantPropertyTrust()
                 ? $this->calculatePeriodicCharge($trust)
                 : null,
+        ];
+    }
+
+    /**
+     * Get income and CGT tax rates for a specific trust type
+     */
+    public function getTrustTaxRates(string $trustType): array
+    {
+        $trustsConfig = $this->taxConfig->getTrusts();
+        $trustTypeConfig = $trustsConfig['types'][$trustType] ?? null;
+
+        // Default rates for discretionary trusts
+        $incomeTaxRates = [
+            'standard_rate' => 0.45,
+            'dividend_rate' => 0.3935,
+        ];
+
+        // Determine income tax treatment based on trust type
+        $incomeTaxTreatment = $trustTypeConfig['income_tax_treatment'] ?? 'trust_discretionary';
+
+        if ($incomeTaxTreatment === 'trust_iip' || $trustType === 'interest_in_possession') {
+            // Interest in Possession trusts have lower rates
+            $incomeTaxRates = $trustsConfig['income_tax']['interest_in_possession'] ?? [
+                'standard_rate' => 0.20,
+                'dividend_rate' => 0.0875,
+            ];
+        } elseif ($incomeTaxTreatment === 'beneficiary' || $trustType === 'bare') {
+            // Bare trusts - taxed as beneficiary's income
+            $incomeTaxRates = [
+                'standard_rate' => null,
+                'dividend_rate' => null,
+                'note' => 'Taxed as beneficiary\'s income using their personal rates',
+            ];
+        } elseif ($incomeTaxTreatment === 'settlor' || $trustType === 'settlor_interested') {
+            // Settlor-interested trusts - taxed on settlor
+            $incomeTaxRates = [
+                'standard_rate' => null,
+                'dividend_rate' => null,
+                'note' => 'Taxed as settlor\'s income using their personal rates',
+            ];
+        } elseif ($incomeTaxTreatment === 'none' || $trustType === 'life_insurance') {
+            // Life insurance trusts - no regular income
+            $incomeTaxRates = [
+                'standard_rate' => null,
+                'dividend_rate' => null,
+                'note' => 'No regular income - policy proceeds on death',
+            ];
+        } else {
+            // Discretionary and accumulation trusts
+            $incomeTaxRates = $trustsConfig['income_tax']['discretionary'] ?? [
+                'standard_rate' => 0.45,
+                'dividend_rate' => 0.3935,
+            ];
+        }
+
+        // Get CGT rates
+        $cgtConfig = $trustsConfig['capital_gains_tax'] ?? [];
+        $cgtTreatment = $trustTypeConfig['cgt_treatment'] ?? 'trust';
+
+        $cgtRates = match ($cgtTreatment) {
+            'beneficiary' => [
+                'rate' => null,
+                'annual_exempt_amount' => null,
+                'note' => 'Uses beneficiary\'s CGT allowance and rates',
+            ],
+            'settlor' => [
+                'rate' => null,
+                'annual_exempt_amount' => null,
+                'note' => 'Uses settlor\'s CGT allowance and rates',
+            ],
+            'none' => [
+                'rate' => null,
+                'annual_exempt_amount' => null,
+                'note' => 'No CGT on life policy proceeds',
+            ],
+            default => [
+                'rate' => $cgtConfig['rate'] ?? 0.24,
+                'annual_exempt_amount' => $cgtConfig['annual_exempt_amount'] ?? 1500,
+                'vulnerable_beneficiary_exempt_amount' => $cgtConfig['vulnerable_beneficiary_exempt_amount'] ?? 3000,
+            ],
+        };
+
+        return [
+            'income_tax' => $incomeTaxRates,
+            'capital_gains_tax' => $cgtRates,
+            'tax_free_allowance' => $trustsConfig['income_tax']['tax_free_allowance'] ?? 500,
+            'iht_treatment' => $trustTypeConfig['iht_treatment'] ?? 'unknown',
         ];
     }
 

@@ -23,7 +23,7 @@ class TaxProductInfoService
     /**
      * Get tax information for an investment account type.
      *
-     * @param string $accountType Account type (isa, gia, onshore_bond, etc.)
+     * @param  string  $accountType  Account type (isa, gia, onshore_bond, etc.)
      * @return array Structured tax information with current rates
      */
     public function getInvestmentTaxInfo(string $accountType): array
@@ -39,8 +39,8 @@ class TaxProductInfoService
     /**
      * Get tax information for a savings account type.
      *
-     * @param string $accountType Account type (easy_access, notice, etc.)
-     * @param bool $isIsa Whether the account is an ISA
+     * @param  string  $accountType  Account type (easy_access, notice, etc.)
+     * @param  bool  $isIsa  Whether the account is an ISA
      * @return array Structured tax information with current rates
      */
     public function getSavingsTaxInfo(string $accountType, bool $isIsa = false): array
@@ -59,8 +59,8 @@ class TaxProductInfoService
     /**
      * Get tax info summary for quick display (e.g., badges, tooltips).
      *
-     * @param string $category Product category
-     * @param string $productType Product type
+     * @param  string  $category  Product category
+     * @param  string  $productType  Product type
      * @return array Summary with counts by status
      */
     public function getTaxSummary(string $category, string $productType): array
@@ -79,8 +79,8 @@ class TaxProductInfoService
     /**
      * Build the structured tax info response.
      *
-     * @param Collection $references Tax reference data
-     * @param string $productType Product type
+     * @param  Collection  $references  Tax reference data
+     * @param  string  $productType  Product type
      * @return array Structured response
      */
     private function buildTaxInfoResponse(Collection $references, string $productType): array
@@ -131,21 +131,21 @@ class TaxProductInfoService
     /**
      * Interpolate rate values into summary text.
      *
-     * @param string $summary Summary text with placeholders
-     * @param array $rates Current rates
+     * @param  string  $summary  Summary text with placeholders
+     * @param  array  $rates  Current rates
      * @return string Summary with interpolated values
      */
     private function interpolateRates(string $summary, array $rates): string
     {
         $replacements = [
-            '{isa_allowance}' => '£' . number_format($rates['isa_allowance']),
-            '{junior_isa_allowance}' => '£' . number_format($rates['junior_isa_allowance']),
-            '{lifetime_isa_limit}' => '£' . number_format($rates['lifetime_isa_limit']),
-            '{cgt_allowance}' => '£' . number_format($rates['cgt_allowance']),
-            '{dividend_allowance}' => '£' . number_format($rates['dividend_allowance']),
-            '{psa_basic}' => '£' . number_format($rates['psa_basic']),
-            '{psa_higher}' => '£' . number_format($rates['psa_higher']),
-            '{personal_allowance}' => '£' . number_format($rates['personal_allowance']),
+            '{isa_allowance}' => '£'.number_format($rates['isa_allowance']),
+            '{junior_isa_allowance}' => '£'.number_format($rates['junior_isa_allowance']),
+            '{lifetime_isa_limit}' => '£'.number_format($rates['lifetime_isa_limit']),
+            '{cgt_allowance}' => '£'.number_format($rates['cgt_allowance']),
+            '{dividend_allowance}' => '£'.number_format($rates['dividend_allowance']),
+            '{psa_basic}' => '£'.number_format($rates['psa_basic']),
+            '{psa_higher}' => '£'.number_format($rates['psa_higher']),
+            '{personal_allowance}' => '£'.number_format($rates['personal_allowance']),
         ];
 
         return str_replace(array_keys($replacements), array_values($replacements), $summary);
@@ -154,8 +154,8 @@ class TaxProductInfoService
     /**
      * Map savings account type to the appropriate tax product type.
      *
-     * @param string $accountType Account type from database
-     * @param bool $isIsa Whether it's an ISA
+     * @param  string  $accountType  Account type from database
+     * @param  bool  $isIsa  Whether it's an ISA
      * @return string Tax product type
      */
     private function mapSavingsProductType(string $accountType, bool $isIsa): string
@@ -182,7 +182,7 @@ class TaxProductInfoService
     /**
      * Get human-readable label for product type.
      *
-     * @param string $productType Product type
+     * @param  string  $productType  Product type
      * @return string Human-readable label
      */
     private function getProductTypeLabel(string $productType): string
@@ -209,7 +209,7 @@ class TaxProductInfoService
     /**
      * Determine the primary tax status for summary display.
      *
-     * @param array $statusCounts Count of items by status
+     * @param  array  $statusCounts  Count of items by status
      * @return string Primary status
      */
     private function determinePrimaryStatus(array $statusCounts): string

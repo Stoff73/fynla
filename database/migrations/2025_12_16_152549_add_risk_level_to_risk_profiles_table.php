@@ -16,8 +16,8 @@ return new class extends Migration
         Schema::table('risk_profiles', function (Blueprint $table) {
             // Add new 5-level risk preference column
             $table->enum('risk_level', ['low', 'lower_medium', 'medium', 'upper_medium', 'high'])
-                  ->nullable()
-                  ->after('risk_tolerance');
+                ->nullable()
+                ->after('risk_tolerance');
 
             // Add risk profile completion timestamp
             $table->timestamp('risk_assessed_at')->nullable()->after('esg_preference');

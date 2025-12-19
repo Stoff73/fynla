@@ -31,7 +31,6 @@ class ModelPortfolioController extends Controller
      *
      * GET /api/investment/model-portfolio/{riskLevel}
      *
-     * @param  Request  $request
      * @param  string|int  $riskLevel  Numeric (1-5) or string (conservative, moderate, etc.)
      */
     public function getModelPortfolio(Request $request, string $riskLevel): JsonResponse

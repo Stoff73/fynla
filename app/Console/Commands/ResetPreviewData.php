@@ -53,9 +53,10 @@ class ResetPreviewData extends Command
     {
         $persona = $this->argument('persona');
 
-        if ($persona && !in_array($persona, self::VALID_PERSONAS)) {
+        if ($persona && ! in_array($persona, self::VALID_PERSONAS)) {
             $this->error("Invalid persona ID: {$persona}");
-            $this->info('Valid personas: ' . implode(', ', self::VALID_PERSONAS));
+            $this->info('Valid personas: '.implode(', ', self::VALID_PERSONAS));
+
             return Command::FAILURE;
         }
 
@@ -84,8 +85,9 @@ class ResetPreviewData extends Command
             ->where('preview_persona_id', $personaId)
             ->first();
 
-        if (!$user) {
+        if (! $user) {
             $this->warn("  Preview user not found for {$personaId}. Run 'php artisan db:seed --class=PreviewUserSeeder' first.");
+
             return;
         }
 
@@ -94,7 +96,7 @@ class ResetPreviewData extends Command
             ->where('preview_persona_id', "{$personaId}_spouse")
             ->first();
 
-        DB::transaction(function () use ($user, $spouse, $personaId) {
+        DB::transaction(function () use ($user, $spouse) {
             // Delete all existing data for this user (and spouse if exists)
             $this->deleteUserData($user);
             if ($spouse) {
@@ -114,7 +116,7 @@ class ResetPreviewData extends Command
         });
 
         // Re-run the seeder for this persona
-        $seeder = new \Database\Seeders\PreviewUserSeeder();
+        $seeder = new \Database\Seeders\PreviewUserSeeder;
         $seeder->setCommand($this);
 
         // Create a temporary seeder that only seeds this persona

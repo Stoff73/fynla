@@ -18,6 +18,7 @@ use App\Services\Trust\IHTPeriodicChargeCalculator;
 use App\Services\Trust\TrustAssetAggregatorService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class TrustController extends Controller
 {
