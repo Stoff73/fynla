@@ -53,7 +53,7 @@
             </div>
             <div class="bg-gray-50 rounded-lg p-4">
               <p class="text-sm text-gray-600">Monthly Contribution</p>
-              <p class="text-2xl font-bold text-gray-900">{{ formatCurrency(pension.monthly_contribution_amount || 0) }}</p>
+              <p class="text-2xl font-bold text-gray-900">{{ formatCurrency(totalMonthlyContribution) }}</p>
             </div>
             <div class="bg-gray-50 rounded-lg p-4">
               <p class="text-sm text-gray-600">Retirement Age</p>
@@ -160,17 +160,25 @@
                 <div>
                   <h3 class="text-lg font-semibold text-gray-800 mb-3">Contributions</h3>
                   <dl class="space-y-2">
-                    <div class="flex justify-between">
-                      <dt class="text-sm text-gray-600">Monthly Contribution:</dt>
-                      <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(pension.monthly_contribution_amount || 0) }}</dd>
+                    <div v-if="pension.employee_contribution_percent" class="flex justify-between">
+                      <dt class="text-sm text-gray-600">Employee Rate:</dt>
+                      <dd class="text-sm font-medium text-gray-900">{{ pension.employee_contribution_percent }}% ({{ formatCurrency(monthlyEmployeeContribution) }}/mo)</dd>
+                    </div>
+                    <div v-if="pension.employer_contribution_percent" class="flex justify-between">
+                      <dt class="text-sm text-gray-600">Employer Rate:</dt>
+                      <dd class="text-sm font-medium text-gray-900">{{ pension.employer_contribution_percent }}% ({{ formatCurrency(monthlyEmployerContribution) }}/mo)</dd>
+                    </div>
+                    <div v-if="pension.employer_matching_limit" class="flex justify-between">
+                      <dt class="text-sm text-gray-600">Employer Matching:</dt>
+                      <dd class="text-sm font-medium text-gray-900">{{ pension.employer_matching_limit == 100 ? 'Full matching' : 'Up to ' + pension.employer_matching_limit + '%' }}</dd>
                     </div>
                     <div class="flex justify-between">
-                      <dt class="text-sm text-gray-600">Employer Contribution:</dt>
-                      <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(pension.employer_contribution_amount || 0) }}</dd>
+                      <dt class="text-sm text-gray-600">Total Monthly:</dt>
+                      <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(totalMonthlyContribution) }}</dd>
                     </div>
                     <div class="flex justify-between">
                       <dt class="text-sm text-gray-600">Annual Contribution:</dt>
-                      <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(((pension.monthly_contribution_amount || 0) + (pension.employer_contribution_amount || 0)) * 12) }}</dd>
+                      <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(annualContribution) }}</dd>
                     </div>
                   </dl>
                 </div>
@@ -426,6 +434,32 @@ export default {
         state: 'badge-state',
       };
       return classes[this.pensionType] || 'badge-dc';
+    },
+
+    // Calculate employee contribution from percentage or fixed amount
+    monthlyEmployeeContribution() {
+      if (this.pension.employee_contribution_percent && this.pension.annual_salary) {
+        return (this.pension.annual_salary * this.pension.employee_contribution_percent / 100) / 12;
+      }
+      return this.pension.monthly_contribution_amount || 0;
+    },
+
+    // Calculate employer contribution from percentage
+    monthlyEmployerContribution() {
+      if (this.pension.employer_contribution_percent && this.pension.annual_salary) {
+        return (this.pension.annual_salary * this.pension.employer_contribution_percent / 100) / 12;
+      }
+      return 0;
+    },
+
+    // Total monthly contribution (employee + employer)
+    totalMonthlyContribution() {
+      return this.monthlyEmployeeContribution + this.monthlyEmployerContribution;
+    },
+
+    // Annual contribution
+    annualContribution() {
+      return this.totalMonthlyContribution * 12;
     },
   },
 
