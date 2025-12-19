@@ -86,17 +86,20 @@
 
               <div class="flex justify-between items-center">
                 <div class="flex items-center">
-                  <span class="text-gray-600">2. Excess applied to income replacement</span>
+                  <span class="text-gray-600">2. Excess for {{ spouseName || 'beneficiary' }}'s income</span>
                   <div class="ml-2 group relative">
                     <svg class="w-4 h-4 text-gray-400 cursor-help" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
                     </svg>
                     <div class="hidden group-hover:block absolute z-10 w-64 p-2 mt-2 text-xs text-white bg-gray-900 rounded-lg shadow-lg -left-32">
-                      After covering debts, remaining life cover reduces income replacement need
+                      After covering debts, remaining life cover provides income for the surviving beneficiary at a 4.7% sustainable draw rate
                     </div>
                   </div>
                 </div>
-                <span class="font-medium text-gray-900">{{ formatCurrency(humanCapitalCovered) }}</span>
+                <div class="text-right">
+                  <span class="font-medium text-gray-900">{{ formatCurrency(humanCapitalCovered) }}</span>
+                  <span class="text-xs text-gray-500 block">{{ formatCurrency(humanCapitalCoveredAnnual) }} p.a.</span>
+                </div>
               </div>
 
               <div v-if="excessUnused > 0" class="flex justify-between items-center text-amber-700">
@@ -185,14 +188,6 @@
                 >
                   {{ incomeGapSeverity }}
                 </span>
-              </div>
-
-              <!-- Current Cover -->
-              <div class="mb-3 pb-3 border-b border-gray-200">
-                <div class="flex justify-between items-center text-sm">
-                  <span class="text-gray-600">Current Life Cover (excess after debt)</span>
-                  <span class="font-medium text-green-600">{{ formatCurrency(humanCapitalCovered) }}</span>
-                </div>
               </div>
 
               <!-- Need -->
@@ -426,6 +421,7 @@ export default {
       fetchedNetAnnualIncome: 0,
       fetchedEmploymentIncome: 0,
       fetchedSelfEmploymentIncome: 0,
+      spouseName: null,
     };
   },
 
@@ -476,9 +472,14 @@ export default {
       return Math.min(this.totalLifeCoverage, this.totalDebt);
     },
 
-    // Excess life cover after debt (for income replacement)
+    // Excess life cover after debt (lump sum for display)
     humanCapitalCovered() {
       return Math.max(0, this.totalLifeCoverage - this.totalDebt);
+    },
+
+    // Convert lump sum to sustainable annual income at 4.7% draw rate
+    humanCapitalCoveredAnnual() {
+      return this.humanCapitalCovered * 0.047;
     },
 
     // Debt protection gap
@@ -491,9 +492,9 @@ export default {
       return this.fetchedAnnualIncome * 0.75;
     },
 
-    // Income replacement gap
+    // Income replacement gap (compare annual income to sustainable annual income from lump sum)
     incomeReplacementGap() {
-      return Math.max(0, this.incomeReplacementNeed - this.humanCapitalCovered);
+      return Math.max(0, this.incomeReplacementNeed - this.humanCapitalCoveredAnnual);
     },
 
     // Severity calculations
@@ -542,7 +543,9 @@ export default {
     excessUnused() {
       const afterDebt = this.totalLifeCoverage - this.totalDebt;
       if (afterDebt <= 0) return 0;
-      return Math.max(0, afterDebt - this.incomeReplacementNeed);
+      // Convert annual income need to lump sum at 4.7% draw rate
+      const lumpSumNeededForIncome = this.incomeReplacementNeed / 0.047;
+      return Math.max(0, afterDebt - lumpSumNeededForIncome);
     },
 
     // Critical Illness Cover
@@ -661,6 +664,9 @@ export default {
 
         // Get net (after-tax) income for affordability assessment
         this.fetchedNetAnnualIncome = parseFloat(income.net_income || 0);
+
+        // Get spouse name for beneficiary display
+        this.spouseName = data.spouse?.name || null;
       } catch (error) {
         console.warn('Failed to fetch user data for gap analysis:', error);
       }
