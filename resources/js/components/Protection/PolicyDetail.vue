@@ -20,6 +20,14 @@
 
     <!-- Policy Content -->
     <div v-else-if="policy" class="space-y-6">
+      <!-- Back Button -->
+      <button @click="$router.push('/protection')" class="back-button mb-4">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+        </svg>
+        Back to Policies
+      </button>
+
       <!-- Header -->
       <div class="bg-white rounded-lg shadow-md p-6">
         <div class="flex justify-between items-start">
@@ -604,3 +612,25 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+.back-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  color: #4b5563;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.back-button:hover {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+}
+</style>

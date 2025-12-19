@@ -67,10 +67,7 @@
     <div v-else class="mb-6">
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
-          <h3 class="text-lg font-semibold text-gray-900">Policy Portfolio</h3>
-          <p class="text-sm text-gray-600 mt-1">
-            {{ totalPolicyCount }} {{ totalPolicyCount === 1 ? 'policy' : 'policies' }}
-          </p>
+          <h3 class="text-lg font-semibold text-gray-900">{{ totalPolicyCount === 1 ? 'Policy' : 'Policies' }}</h3>
         </div>
 
         <div class="flex gap-3">
@@ -106,36 +103,6 @@
         </div>
       </div>
 
-      <!-- Filter and Sort Controls -->
-      <div class="flex flex-col sm:flex-row gap-3 mb-6">
-        <select v-model="filterType" class="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-          <option value="all">All Policies</option>
-          <option value="life">Life Insurance</option>
-          <option value="criticalIllness">Critical Illness</option>
-          <option value="incomeProtection">Income Protection</option>
-          <option value="disability">Disability</option>
-          <option value="sicknessIllness">Sickness/Illness</option>
-        </select>
-        <select v-model="sortBy" class="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-          <option value="coverage_desc">Coverage (High to Low)</option>
-          <option value="coverage_asc">Coverage (Low to High)</option>
-          <option value="type">Policy Type</option>
-          <option value="provider">Provider</option>
-        </select>
-      </div>
-
-      <!-- Coverage Summary Tags -->
-      <div class="flex flex-wrap gap-3 mb-6">
-        <div
-          v-for="(coverage, key) in coverageSummary"
-          :key="key"
-          class="px-4 py-2 bg-gray-100 rounded-full flex items-center gap-2"
-        >
-          <span class="text-sm font-medium text-gray-700">{{ coverage.label }}:</span>
-          <span class="text-sm font-bold text-gray-900">{{ formatCurrency(coverage.total) }}</span>
-          <span class="text-xs text-gray-500">({{ coverage.policyCount }})</span>
-        </div>
-      </div>
     </div>
 
     <!-- Policy Cards Grid -->
@@ -149,62 +116,45 @@
       />
     </div>
 
-    <!-- Empty State for Filtered View -->
-    <div v-else-if="!hasNoPolicies && filteredPolicies.length === 0" class="text-center py-12 bg-white rounded-lg border border-gray-200 mb-8">
-      <p class="text-gray-500">No policies match the selected filter</p>
-      <button
-        @click="filterType = 'all'"
-        class="mt-4 px-4 py-2 text-blue-600 hover:text-blue-700 font-medium"
-      >
-        Clear Filter
-      </button>
-    </div>
 
-    <!-- Charts Row -->
-    <div v-if="!hasNoPolicies" class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-      <!-- Premium Breakdown Chart -->
-      <div class="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">Premium Breakdown</h3>
-        <PremiumBreakdownChart :premiums="premiumBreakdown" />
-      </div>
-
-      <!-- Coverage Timeline Chart -->
-      <div class="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">Coverage Timeline</h3>
-        <CoverageTimelineChart :policies="allPolicies" />
-      </div>
-    </div>
-
-    <!-- Risk Exposure Metrics -->
+    <!-- Coverage Summary -->
     <div v-if="!hasNoPolicies" class="bg-white rounded-lg border border-gray-200 p-6">
-      <h3 class="text-lg font-semibold text-gray-900 mb-4">Risk Exposure</h3>
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">Coverage Summary</h3>
+      <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
         <div class="text-center">
-          <div class="text-3xl font-bold text-blue-600 mb-1">
-            {{ formatCurrency(humanCapital) }}
+          <div class="text-3xl font-bold mb-1" :class="debtCoverageColour">
+            {{ debtCoveragePercent }}%
           </div>
-          <div class="text-sm text-gray-600">Human Capital</div>
+          <div class="text-sm text-gray-600">Debt Coverage</div>
+          <div class="text-xs text-gray-400">{{ formatCurrency(debtCoverage) }} / {{ formatCurrency(totalDebt) }}</div>
+        </div>
+        <div class="text-center">
+          <div class="text-3xl font-bold mb-1" :class="incomeProtectedColour">
+            {{ incomeProtectedPercent }}%
+          </div>
+          <div class="text-sm text-gray-600">Income Protected</div>
+          <div class="text-xs text-gray-400">{{ formatCurrency(incomeProtected) }} / {{ formatCurrency(annualIncome) }} p.a.</div>
+        </div>
+        <div class="text-center">
+          <div class="text-3xl font-bold text-pink-600 mb-1">
+            {{ formatCurrency(criticalIllnessCover) }}
+          </div>
+          <div class="text-sm text-gray-600">Critical Illness</div>
+          <div class="text-xs text-gray-400">lump sum</div>
         </div>
         <div class="text-center">
           <div class="text-3xl font-bold text-purple-600 mb-1">
-            {{ formatCurrency(totalDebt) }}
+            {{ formatCurrency(sicknessCover) }}
           </div>
-          <div class="text-sm text-gray-600">Total Debt</div>
+          <div class="text-sm text-gray-600">Sickness Cover</div>
+          <div class="text-xs text-gray-400">per year</div>
         </div>
         <div class="text-center">
-          <div class="text-3xl font-bold text-green-600 mb-1">
-            {{ formatCurrency(totalCoverage) }}
+          <div class="text-3xl font-bold text-amber-600 mb-1">
+            {{ formatCurrency(disabilityCover) }}
           </div>
-          <div class="text-sm text-gray-600">Total Coverage</div>
-        </div>
-        <div class="text-center">
-          <div
-            class="text-3xl font-bold mb-1"
-            :class="coverageRatioColour"
-          >
-            {{ coverageRatio }}%
-          </div>
-          <div class="text-sm text-gray-600">Coverage Ratio</div>
+          <div class="text-sm text-gray-600">Disability Cover</div>
+          <div class="text-xs text-gray-400">per year</div>
         </div>
       </div>
     </div>
@@ -222,18 +172,15 @@
 
 <script>
 import { mapState, mapGetters } from 'vuex';
-import PremiumBreakdownChart from './PremiumBreakdownChart.vue';
-import CoverageTimelineChart from './CoverageTimelineChart.vue';
 import PolicyCard from './PolicyCard.vue';
 import DocumentUploadModal from '@/components/Shared/DocumentUploadModal.vue';
 import protectionService from '@/services/protectionService';
+import userProfileService from '@/services/userProfileService';
 
 export default {
   name: 'CurrentSituation',
 
   components: {
-    PremiumBreakdownChart,
-    CoverageTimelineChart,
     PolicyCard,
     DocumentUploadModal,
   },
@@ -241,26 +188,29 @@ export default {
   data() {
     return {
       hasNoPoliciesChecked: false,
-      filterType: 'all',
-      sortBy: 'coverage_desc',
       showUploadModal: false,
+      fetchedTotalDebt: 0,
     };
   },
 
-  mounted() {
-    // Initialization is now handled by the watcher
+  async mounted() {
+    // Fetch liabilities for debt coverage calculation
+    await this.fetchLiabilities();
   },
 
   computed: {
     ...mapState('protection', ['policies', 'profile', 'analysis']),
     ...mapGetters('protection', [
-      'totalCoverage',
-      'premiumBreakdown',
       'allPolicies',
     ]),
 
     isPreviewMode() {
       return this.$store.getters['preview/isPreviewMode'];
+    },
+
+    // Get user from auth store for fallback income data
+    authUser() {
+      return this.$store.state.auth?.user || {};
     },
 
     hasNoPolicies() {
@@ -274,56 +224,91 @@ export default {
       return totalPolicies === 0;
     },
 
-    coverageSummary() {
-      return {
-        life: {
-          label: 'Life Insurance',
-          total: this.calculateCoverageByType('life'),
-          policyCount: this.policies.life?.length || 0,
-        },
-        criticalIllness: {
-          label: 'Critical Illness',
-          total: this.calculateCoverageByType('criticalIllness'),
-          policyCount: this.policies.criticalIllness?.length || 0,
-        },
-        incomeProtection: {
-          label: 'Income Protection',
-          total: this.calculateCoverageByType('incomeProtection'),
-          policyCount: this.policies.incomeProtection?.length || 0,
-        },
-        disability: {
-          label: 'Disability',
-          total: this.calculateCoverageByType('disability'),
-          policyCount: this.policies.disability?.length || 0,
-        },
-        sicknessIllness: {
-          label: 'Sickness/Illness',
-          total: this.calculateCoverageByType('sicknessIllness'),
-          policyCount: this.policies.sicknessIllness?.length || 0,
-        },
-      };
-    },
-
-    humanCapital() {
-      // Analysis returns needs.human_capital
-      return this.analysis?.needs?.human_capital || 0;
-    },
-
     totalDebt() {
-      // Analysis returns needs.debt_protection (mortgage + other debts)
-      return this.analysis?.needs?.debt_protection || 0;
+      // Use fetched liabilities from user profile (same as User Profile page shows)
+      return this.fetchedTotalDebt || 0;
     },
 
-    coverageRatio() {
-      const target = this.humanCapital + this.totalDebt;
-      if (target === 0) return 0;
-      return Math.round((this.totalCoverage / target) * 100);
+    annualIncome() {
+      // Gross annual income from coverage gap analysis, or fallback to auth user
+      return this.analysis?.data?.needs?.gross_income ||
+             this.analysis?.needs?.gross_income ||
+             parseFloat(this.profile?.annual_income || 0) ||
+             parseFloat(this.authUser?.annual_employment_income || 0) +
+             parseFloat(this.authUser?.annual_self_employment_income || 0) ||
+             0;
     },
 
-    coverageRatioColour() {
-      if (this.coverageRatio >= 100) return 'text-green-600';
-      if (this.coverageRatio >= 75) return 'text-amber-600';
+    debtCoverage() {
+      // Life insurance coverage for debt protection
+      return this.policies.life?.reduce((sum, policy) => {
+        return sum + parseFloat(policy.sum_assured || 0);
+      }, 0) || 0;
+    },
+
+    debtCoveragePercent() {
+      if (this.totalDebt === 0) return 0;
+      return Math.round((this.debtCoverage / this.totalDebt) * 100);
+    },
+
+    debtCoverageColour() {
+      if (this.totalDebt === 0) return 'text-green-600';
+      if (this.debtCoveragePercent >= 100) return 'text-green-600';
+      if (this.debtCoveragePercent >= 75) return 'text-amber-600';
       return 'text-red-600';
+    },
+
+    incomeProtected() {
+      // Annual benefit from income protection policies
+      return this.policies.incomeProtection?.reduce((sum, policy) => {
+        const benefit = parseFloat(policy.benefit_amount || 0);
+        const frequency = policy.benefit_frequency || 'monthly';
+        if (frequency === 'monthly') return sum + (benefit * 12);
+        if (frequency === 'weekly') return sum + (benefit * 52);
+        return sum + benefit;
+      }, 0) || 0;
+    },
+
+    incomeProtectedPercent() {
+      if (this.annualIncome === 0) return 0;
+      return Math.round((this.incomeProtected / this.annualIncome) * 100);
+    },
+
+    incomeProtectedColour() {
+      if (this.annualIncome === 0) return 'text-gray-600';
+      // Target is typically 50-70% of income
+      if (this.incomeProtectedPercent >= 50) return 'text-green-600';
+      if (this.incomeProtectedPercent >= 25) return 'text-amber-600';
+      return 'text-red-600';
+    },
+
+    criticalIllnessCover() {
+      // Lump sum from critical illness policies
+      return this.policies.criticalIllness?.reduce((sum, policy) => {
+        return sum + parseFloat(policy.sum_assured || 0);
+      }, 0) || 0;
+    },
+
+    sicknessCover() {
+      // Annual benefit from sickness/illness policies
+      return this.policies.sicknessIllness?.reduce((sum, policy) => {
+        const benefit = parseFloat(policy.benefit_amount || 0);
+        const frequency = policy.benefit_frequency || 'monthly';
+        if (frequency === 'monthly') return sum + (benefit * 12);
+        if (frequency === 'weekly') return sum + (benefit * 52);
+        return sum + benefit;
+      }, 0) || 0;
+    },
+
+    disabilityCover() {
+      // Annual benefit from disability policies
+      return this.policies.disability?.reduce((sum, policy) => {
+        const benefit = parseFloat(policy.benefit_amount || 0);
+        const frequency = policy.benefit_frequency || 'monthly';
+        if (frequency === 'monthly') return sum + (benefit * 12);
+        if (frequency === 'weekly') return sum + (benefit * 52);
+        return sum + benefit;
+      }, 0) || 0;
     },
 
     totalPolicyCount() {
@@ -331,33 +316,14 @@ export default {
     },
 
     filteredPolicies() {
-      let filtered = [...(this.allPolicies || [])];
-
-      // Apply filter
-      if (this.filterType !== 'all') {
-        filtered = filtered.filter(p => p.policy_type === this.filterType);
-      }
-
-      // Apply sort
-      if (this.sortBy === 'coverage_desc') {
-        filtered.sort((a, b) => {
-          const aValue = a.sum_assured || a.benefit_amount || 0;
-          const bValue = b.sum_assured || b.benefit_amount || 0;
-          return bValue - aValue;
-        });
-      } else if (this.sortBy === 'coverage_asc') {
-        filtered.sort((a, b) => {
-          const aValue = a.sum_assured || a.benefit_amount || 0;
-          const bValue = b.sum_assured || b.benefit_amount || 0;
-          return aValue - bValue;
-        });
-      } else if (this.sortBy === 'type') {
-        filtered.sort((a, b) => a.policy_type.localeCompare(b.policy_type));
-      } else if (this.sortBy === 'provider') {
-        filtered.sort((a, b) => (a.provider || '').localeCompare(b.provider || ''));
-      }
-
-      return filtered;
+      const policies = [...(this.allPolicies || [])];
+      // Sort by coverage (high to low)
+      policies.sort((a, b) => {
+        const aValue = a.sum_assured || a.benefit_amount || 0;
+        const bValue = b.sum_assured || b.benefit_amount || 0;
+        return bValue - aValue;
+      });
+      return policies;
     },
   },
 
@@ -374,25 +340,15 @@ export default {
   },
 
   methods: {
-    calculateCoverageByType(type) {
-      const policies = this.policies[type] || [];
-      return policies.reduce((sum, policy) => {
-        // For life and critical illness, use sum_assured
-        if (type === 'life' || type === 'criticalIllness') {
-          return sum + parseFloat(policy.sum_assured || 0);
-        }
-        // For income protection, disability, and sickness/illness, use benefit_amount (annualized)
-        const benefitAmount = parseFloat(policy.benefit_amount || 0);
-        const frequency = policy.benefit_frequency || 'monthly';
-
-        if (frequency === 'monthly') {
-          return sum + (benefitAmount * 12);
-        } else if (frequency === 'weekly') {
-          return sum + (benefitAmount * 52);
-        }
-        // For lump_sum, just add the benefit amount
-        return sum + benefitAmount;
-      }, 0);
+    async fetchLiabilities() {
+      try {
+        const response = await userProfileService.getProfile();
+        // API returns { success: true, data: { liabilities_summary: { total: ... } } }
+        this.fetchedTotalDebt = response.data?.liabilities_summary?.total || 0;
+      } catch (error) {
+        console.warn('Failed to fetch liabilities for coverage summary:', error);
+        this.fetchedTotalDebt = 0;
+      }
     },
 
     async updateHasNoPoliciesFlag() {

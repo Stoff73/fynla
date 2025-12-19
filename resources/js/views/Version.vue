@@ -18,7 +18,7 @@
               <p class="mt-1 text-body-sm text-gray-600">Latest release information</p>
             </div>
             <div class="text-right">
-              <div class="text-3xl font-bold text-primary-600">v0.2.18</div>
+              <div class="text-3xl font-bold text-primary-600">v0.4.1</div>
               <div class="text-body-sm text-gray-500 mt-1">Production Ready</div>
             </div>
           </div>
@@ -28,7 +28,7 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
               <h3 class="text-body-sm font-semibold text-gray-700 mb-2">Release Date</h3>
-              <p class="text-body-base text-gray-900">12 December 2025</p>
+              <p class="text-body-base text-gray-900">19 December 2025</p>
             </div>
             <div>
               <h3 class="text-body-sm font-semibold text-gray-700 mb-2">Status</h3>
@@ -40,31 +40,31 @@
 
           <!-- What's New -->
           <div class="mb-6">
-            <h3 class="text-body-lg font-semibold text-gray-900 mb-4">🚀 Preview Mode Refactoring in v0.2.18</h3>
+            <h3 class="text-body-lg font-semibold text-gray-900 mb-4">🛡️ Protection Module Enhancements in v0.4.1</h3>
             <ul class="space-y-2">
               <li class="flex items-start">
                 <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
-                <span class="text-body-base text-gray-700"><strong>Database-Backed Personas:</strong> Preview personas are now real database users with complete financial data, using the same code paths as registered users.</span>
+                <span class="text-body-base text-gray-700"><strong>Simplified Policy Overview:</strong> Removed clutter (filters, charts) and added clean Coverage Summary with 5 key metrics.</span>
               </li>
               <li class="flex items-start">
                 <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
-                <span class="text-body-base text-gray-700"><strong>Sanctum Token Authentication:</strong> Preview users authenticate via Sanctum tokens for consistent API access.</span>
+                <span class="text-body-base text-gray-700"><strong>5 Protection Shortfall Cards:</strong> Debt Protection, Income Replacement, Critical Illness, Sickness Cover, and Disability Cover in a 3-column grid.</span>
               </li>
               <li class="flex items-start">
                 <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
-                <span class="text-body-base text-gray-700"><strong>Write Interception Middleware:</strong> POST/PUT/DELETE requests return success without persisting, allowing forms to work while keeping data session-only.</span>
+                <span class="text-body-base text-gray-700"><strong>UK Statutory Sick Pay (SSP):</strong> Sickness Cover card now includes £118.75/week SSP for employees, with self-employed eligibility check.</span>
               </li>
               <li class="flex items-start">
                 <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
-                <span class="text-body-base text-gray-700"><strong>Code Reduction:</strong> Removed ~2,000+ lines of duplicate preview logic from 8 module stores and 6 components.</span>
+                <span class="text-body-base text-gray-700"><strong>Clear Financial Metrics:</strong> Per annum (p.a.) labels on yearly figures with monthly shortfall equivalents for income-based gaps.</span>
               </li>
             </ul>
           </div>
@@ -77,19 +77,19 @@
                 <svg class="w-5 h-5 text-blue-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
-                <span class="text-body-base text-gray-700"><strong>Backend:</strong> Added PreviewController, PreviewWriteInterceptor middleware, PreviewUserSeeder, and preview:reset command.</span>
+                <span class="text-body-base text-gray-700"><strong>CurrentSituation.vue:</strong> Simplified UI, removed unused components, added Coverage Summary with debt/income metrics from user profile API.</span>
               </li>
               <li class="flex items-start">
                 <svg class="w-5 h-5 text-blue-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
-                <span class="text-body-base text-gray-700"><strong>Frontend:</strong> Simplified preview.js store (~100 lines, down from ~454), removed setPreviewMode from all module stores.</span>
+                <span class="text-body-base text-gray-700"><strong>GapAnalysis.vue:</strong> Removed gauge/calculation cards, redesigned with 5 shortfall cards, added SSP computed properties.</span>
               </li>
               <li class="flex items-start">
                 <svg class="w-5 h-5 text-blue-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
-                <span class="text-body-base text-gray-700"><strong>Deleted:</strong> EditablePreviewField.vue, PersonalInfoWarningModal.vue, PreviewLoadingSkeleton.vue, previewFieldConfig.js, and persona JSON files.</span>
+                <span class="text-body-base text-gray-700"><strong>PolicyDetail.vue:</strong> Added back button matching app design pattern for consistent navigation.</span>
               </li>
             </ul>
           </div>
