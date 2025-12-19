@@ -36,6 +36,7 @@ const PensionDetail = () => import('@/views/Retirement/PensionDetail.vue');
 const EstateDashboard = () => import('@/views/Estate/EstateDashboard.vue');
 const ComprehensiveEstatePlan = () => import('@/views/Estate/ComprehensiveEstatePlan.vue');
 const TrustsDashboard = () => import('@/views/Trusts/TrustsDashboard.vue');
+const TrustDetailView = () => import('@/views/Trusts/TrustDetailView.vue');
 const HolisticPlan = () => import('@/views/HolisticPlan.vue');
 const UKTaxesDashboard = () => import('@/views/UKTaxes/UKTaxesDashboard.vue');
 const AdminPanel = () => import('@/views/Admin/AdminPanel.vue');
@@ -314,6 +315,19 @@ const routes = [
       breadcrumb: [
         { label: 'Home', path: '/dashboard' },
         { label: 'Trusts', path: '/trusts' },
+      ],
+    },
+  },
+  {
+    path: '/trusts/:id',
+    name: 'TrustDetail',
+    component: TrustDetailView,
+    meta: {
+      requiresAuth: true,
+      breadcrumb: [
+        { label: 'Home', path: '/dashboard' },
+        { label: 'Trusts', path: '/trusts' },
+        { label: 'Trust Details', path: '' },
       ],
     },
   },

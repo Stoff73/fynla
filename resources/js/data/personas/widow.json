@@ -378,7 +378,23 @@
     }
   ],
 
-  "trusts": [],
+  "trusts": [
+    {
+      "id": 1,
+      "trust_name": "Thompson Family Discretionary Trust",
+      "trust_type": "discretionary",
+      "trust_creation_date": "2015-06-01",
+      "initial_value": 200000,
+      "current_value": 245000,
+      "settlor": "Robert Thompson",
+      "beneficiaries": "Margaret Thompson, Andrew Thompson, Catherine Williams, Richard Thompson",
+      "trustees": "Smithson Solicitors LLP, Andrew Thompson",
+      "purpose": "Provide supplementary income for Margaret during her lifetime, with remainder to children",
+      "is_relevant_property_trust": true,
+      "is_active": true,
+      "notes": "Set up by Robert Thompson in 2015 as part of estate planning. Provides Margaret with flexible income when needed while keeping assets outside her estate for IHT purposes. Trust deed allows trustees discretion on distributions to beneficiaries."
+    }
+  ],
 
   "business_interests": [],
 

@@ -1,80 +1,58 @@
 <template>
-  <div class="card border border-gray-200 hover:shadow-lg hover:-translate-y-0.5 hover:border-purple-500 transition-all duration-200 cursor-pointer">
-    <!-- Header -->
-    <div class="flex items-start justify-between mb-4">
-      <div class="flex-1">
-        <h3 class="text-lg font-semibold text-gray-900">{{ trust.trust_name }}</h3>
-        <p class="text-sm text-gray-600 mt-1">{{ formatTrustType(trust.trust_type) }}</p>
-      </div>
-      <span
-        :class="[
-          'px-3 py-1 text-xs font-medium rounded-full',
-          trust.is_active
-            ? 'bg-green-100 text-green-800'
-            : 'bg-gray-100 text-gray-800'
-        ]"
-      >
-        {{ trust.is_active ? 'Active' : 'Inactive' }}
-      </span>
-    </div>
-
-    <!-- Key Info -->
-    <div class="grid grid-cols-2 gap-4 mb-4">
-      <div>
-        <p class="text-xs text-gray-600">Creation Date</p>
-        <p class="text-sm font-medium text-gray-900">{{ formatDate(trust.trust_creation_date) }}</p>
-      </div>
-      <div>
-        <p class="text-xs text-gray-600">Current Value</p>
-        <p class="text-sm font-medium text-gray-900">{{ formatCurrency(trust.total_asset_value || trust.current_value) }}</p>
-      </div>
-    </div>
-
-    <!-- RPT Badge -->
-    <div v-if="trust.is_relevant_property_trust" class="mb-4">
-      <span class="inline-flex items-center px-2 py-1 text-xs font-medium text-amber-800 bg-amber-100 rounded-full">
-        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+  <div class="trust-card" @click="$emit('view', trust)">
+    <!-- Card Header -->
+    <div class="card-header">
+      <div class="card-icon trusts">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
         </svg>
-        Relevant Property Trust (10-year charges apply)
-      </span>
+      </div>
+      <div class="card-title-section">
+        <h3 class="card-title">{{ trust.trust_name }}</h3>
+        <p class="card-total">{{ formatCurrency(trust.total_asset_value || trust.current_value) }}</p>
+      </div>
+      <div class="card-arrow">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+        </svg>
+      </div>
     </div>
 
-    <!-- Periodic Charge Info -->
-    <div v-if="trust.is_relevant_property_trust && trust.last_periodic_charge_date" class="bg-gray-50 rounded-lg p-3 mb-4">
-      <p class="text-xs text-gray-600 mb-1">Last Periodic Charge</p>
-      <p class="text-sm font-medium text-gray-900">
-        {{ formatDate(trust.last_periodic_charge_date) }} - {{ formatCurrency(trust.last_periodic_charge_amount) }}
-      </p>
-    </div>
+    <!-- Card Items -->
+    <div class="card-items">
+      <!-- Trust Type -->
+      <div class="item-row">
+        <span class="item-name">
+          {{ formatTrustType(trust.trust_type) }}
+          <span v-if="trust.is_relevant_property_trust" class="badge rpt">RPT</span>
+          <span :class="['badge', trust.is_active ? 'active' : 'inactive']">
+            {{ trust.is_active ? 'Active' : 'Inactive' }}
+          </span>
+        </span>
+      </div>
 
-    <!-- Actions -->
-    <div class="flex items-center justify-between pt-4 border-t border-gray-200">
-      <button
-        @click="$emit('view', trust)"
-        class="text-sm text-purple-600 hover:text-purple-700 font-medium"
-      >
-        View Details
-      </button>
-      <div class="flex items-center space-x-2">
-        <button
-          @click="$emit('calculate-iht', trust)"
-          class="p-2 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
-          title="Calculate inheritance tax impact"
-        >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-          </svg>
-        </button>
-        <button
-          @click="$emit('edit', trust)"
-          class="p-2 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
-          title="Edit Trust"
-        >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-          </svg>
-        </button>
+      <!-- Creation Date -->
+      <div class="item-row">
+        <span class="item-name">Created</span>
+        <span class="item-value">{{ formatDate(trust.trust_creation_date) }}</span>
+      </div>
+
+      <!-- Settlor -->
+      <div class="item-row">
+        <span class="item-name">Settlor</span>
+        <span class="item-value">{{ trust.settlor || '-' }}</span>
+      </div>
+
+      <!-- Trustees -->
+      <div class="item-row">
+        <span class="item-name">Trustees</span>
+        <span class="item-value">{{ trust.trustees || '-' }}</span>
+      </div>
+
+      <!-- Beneficiaries -->
+      <div class="item-row">
+        <span class="item-name">Beneficiaries</span>
+        <span class="item-value">{{ trust.beneficiaries || '-' }}</span>
       </div>
     </div>
   </div>
@@ -90,6 +68,8 @@ export default {
       required: true,
     },
   },
+
+  emits: ['view'],
 
   methods: {
     formatCurrency(value) {
@@ -128,3 +108,157 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+.trust-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.trust-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: #7c3aed;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.card-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.card-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.card-icon.trusts {
+  background: #ede9fe;
+  color: #7c3aed;
+}
+
+.card-title-section {
+  flex: 1;
+  min-width: 0;
+}
+
+.card-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 4px 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-total {
+  font-size: 24px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.card-arrow {
+  width: 24px;
+  height: 24px;
+  color: #9ca3af;
+  flex-shrink: 0;
+}
+
+.card-arrow svg {
+  width: 100%;
+  height: 100%;
+}
+
+.card-items {
+  min-height: 80px;
+}
+
+.item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 8px 0;
+  border-bottom: 1px solid #f3f4f6;
+  gap: 12px;
+}
+
+.item-row:last-child {
+  border-bottom: none;
+}
+
+.item-name {
+  font-size: 14px;
+  color: #4b5563;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.item-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+  text-align: right;
+  word-break: break-word;
+}
+
+.badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.badge.rpt {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.badge.active {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.badge.inactive {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+@media (max-width: 768px) {
+  .card-total {
+    font-size: 20px;
+  }
+
+  .card-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .card-icon svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+</style>

@@ -37,6 +37,7 @@ class Trust extends Model
         'total_asset_value',
         'beneficiaries',
         'trustees',
+        'settlor',
         'purpose',
         'notes',
         'is_active',
