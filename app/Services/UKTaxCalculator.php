@@ -35,6 +35,7 @@ class UKTaxCalculator
      * @param  float  $interestIncome  Interest income (savings)
      * @param  float  $dividendIncome  Dividend income
      * @param  string|null  $trustType  Type of trust: 'discretionary', 'interest_in_possession', 'bare', etc.
+     * @param  float  $pensionContributions  Employee pension contributions (deducted before tax)
      * @return array Detailed breakdown per income type with tax bands and NI
      */
     public function calculateDetailedNetIncome(
@@ -45,7 +46,8 @@ class UKTaxCalculator
         float $trustIncome = 0,
         float $interestIncome = 0,
         float $dividendIncome = 0,
-        ?string $trustType = null
+        ?string $trustType = null,
+        float $pensionContributions = 0
     ): array {
         $incomeTaxConfig = $this->taxConfig->getIncomeTax();
         $tracker = new TaxBandTracker($incomeTaxConfig);
@@ -55,104 +57,96 @@ class UKTaxCalculator
         $totalTax = 0;
         $totalNI = 0;
 
-        // Priority 1: Employment income (uses PA first, has NI)
-        if ($employmentIncome > 0) {
-            $taxAllocation = $tracker->allocateIncome($employmentIncome);
-            $niBreakdown = $this->calculateClass1NIDetailed($employmentIncome);
+        // Combined "Earned Income" card - employment, self-employment, rental, pension income
+        // These all use the same tax bands (20%/40%/45%)
+        $hasEarnedIncome = $employmentIncome > 0 || $selfEmploymentIncome > 0 || $rentalIncome > 0 || $pensionIncome > 0;
+
+        if ($hasEarnedIncome) {
+            // Calculate taxable employment income (after pension contributions)
+            $taxableEmploymentIncome = max(0, $employmentIncome - $pensionContributions);
+
+            // Total taxable earned income for tax calculation
+            $totalTaxableEarnedIncome = $taxableEmploymentIncome + $selfEmploymentIncome + $rentalIncome + $pensionIncome;
+
+            // Calculate tax on combined earned income
+            $taxAllocation = $tracker->allocateIncome($totalTaxableEarnedIncome);
+
+            // Calculate NI separately for employment and self-employment
+            $class1NI = $employmentIncome > 0 ? $this->calculateClass1NIDetailed($employmentIncome) : null;
+            $class4NI = $selfEmploymentIncome > 0 ? $this->calculateClass4NIDetailed($selfEmploymentIncome) : null;
+
+            $totalNIAmount = ($class1NI['total_ni'] ?? 0) + ($class4NI['total_ni'] ?? 0);
+
+            // Build income components for display
+            $incomeComponents = [];
+
+            if ($employmentIncome > 0) {
+                $incomeComponents[] = [
+                    'label' => 'Employment Income',
+                    'amount' => round($employmentIncome, 2),
+                ];
+
+                if ($pensionContributions > 0) {
+                    $incomeComponents[] = [
+                        'label' => 'Pension Contributions',
+                        'amount' => round(-$pensionContributions, 2),
+                        'is_deduction' => true,
+                    ];
+                }
+            }
+
+            if ($selfEmploymentIncome > 0) {
+                $incomeComponents[] = [
+                    'label' => 'Self-Employment Income',
+                    'amount' => round($selfEmploymentIncome, 2),
+                ];
+            }
+
+            if ($rentalIncome > 0) {
+                $incomeComponents[] = [
+                    'label' => 'Rental Income',
+                    'amount' => round($rentalIncome, 2),
+                ];
+            }
+
+            if ($pensionIncome > 0) {
+                $incomeComponents[] = [
+                    'label' => 'Pension Income',
+                    'amount' => round($pensionIncome, 2),
+                ];
+            }
+
+            // Build NI breakdown combining both classes
+            $niBreakdown = null;
+            if ($class1NI || $class4NI) {
+                $niBreakdown = [
+                    'class_1' => $class1NI,
+                    'class_4' => $class4NI,
+                    'total_ni' => round($totalNIAmount, 2),
+                ];
+            }
+
+            // Gross earned income (before pension deduction for display)
+            $grossEarnedIncome = $employmentIncome + $selfEmploymentIncome + $rentalIncome + $pensionIncome;
 
             $incomeBreakdowns[] = [
-                'income_type' => 'employment',
-                'income_type_label' => 'Employment Income',
-                'gross_amount' => round($employmentIncome, 2),
+                'income_type' => 'earned',
+                'income_type_label' => 'Earned Income',
+                'gross_amount' => round($grossEarnedIncome, 2),
+                'income_components' => $incomeComponents,
+                'taxable_income' => round($totalTaxableEarnedIncome, 2),
                 'tax_breakdown' => $taxAllocation,
                 'ni_breakdown' => $niBreakdown,
-                'total_deductions' => round($taxAllocation['total_income_tax'] + $niBreakdown['total_ni'], 2),
-                'net_income' => round($employmentIncome - $taxAllocation['total_income_tax'] - $niBreakdown['total_ni'], 2),
+                'total_deductions' => round($taxAllocation['total_income_tax'] + $totalNIAmount, 2),
+                'net_income' => round($grossEarnedIncome - $taxAllocation['total_income_tax'] - $totalNIAmount, 2),
             ];
 
-            $totalGross += $employmentIncome;
+            $totalGross += $grossEarnedIncome;
             $totalTax += $taxAllocation['total_income_tax'];
-            $totalNI += $niBreakdown['total_ni'];
+            $totalNI += $totalNIAmount;
         }
 
-        // Priority 2: Self-employment income (has Class 4 NI)
-        if ($selfEmploymentIncome > 0) {
-            $taxAllocation = $tracker->allocateIncome($selfEmploymentIncome);
-            $niBreakdown = $this->calculateClass4NIDetailed($selfEmploymentIncome);
-
-            $incomeBreakdowns[] = [
-                'income_type' => 'self_employment',
-                'income_type_label' => 'Self-Employment Income',
-                'gross_amount' => round($selfEmploymentIncome, 2),
-                'tax_breakdown' => $taxAllocation,
-                'ni_breakdown' => $niBreakdown,
-                'total_deductions' => round($taxAllocation['total_income_tax'] + $niBreakdown['total_ni'], 2),
-                'net_income' => round($selfEmploymentIncome - $taxAllocation['total_income_tax'] - $niBreakdown['total_ni'], 2),
-            ];
-
-            $totalGross += $selfEmploymentIncome;
-            $totalTax += $taxAllocation['total_income_tax'];
-            $totalNI += $niBreakdown['total_ni'];
-        }
-
-        // Priority 3: Rental income (no NI)
-        if ($rentalIncome > 0) {
-            $taxAllocation = $tracker->allocateIncome($rentalIncome);
-
-            $incomeBreakdowns[] = [
-                'income_type' => 'rental',
-                'income_type_label' => 'Rental Income',
-                'gross_amount' => round($rentalIncome, 2),
-                'tax_breakdown' => $taxAllocation,
-                'ni_breakdown' => null,
-                'total_deductions' => round($taxAllocation['total_income_tax'], 2),
-                'net_income' => round($rentalIncome - $taxAllocation['total_income_tax'], 2),
-            ];
-
-            $totalGross += $rentalIncome;
-            $totalTax += $taxAllocation['total_income_tax'];
-        }
-
-        // Priority 4: Pension income (no NI)
-        if ($pensionIncome > 0) {
-            $taxAllocation = $tracker->allocateIncome($pensionIncome);
-
-            $incomeBreakdowns[] = [
-                'income_type' => 'pension',
-                'income_type_label' => 'Pension Income',
-                'gross_amount' => round($pensionIncome, 2),
-                'tax_breakdown' => $taxAllocation,
-                'ni_breakdown' => null,
-                'total_deductions' => round($taxAllocation['total_income_tax'], 2),
-                'net_income' => round($pensionIncome - $taxAllocation['total_income_tax'], 2),
-            ];
-
-            $totalGross += $pensionIncome;
-            $totalTax += $taxAllocation['total_income_tax'];
-        }
-
-        // Priority 5: Trust income (no NI, special taxation based on trust type)
-        if ($trustIncome > 0) {
-            // Pass tracker to calculate personalized reclaim based on beneficiary's marginal rate
-            $trustTaxBreakdown = $this->calculateTrustIncomeTax($trustIncome, $trustType, $tracker);
-
-            $incomeBreakdowns[] = [
-                'income_type' => 'trust',
-                'income_type_label' => 'Trust Income',
-                'gross_amount' => round($trustIncome, 2),
-                'tax_breakdown' => $trustTaxBreakdown,
-                'ni_breakdown' => null,
-                'total_deductions' => round($trustTaxBreakdown['total_income_tax'], 2),
-                'net_income' => round($trustIncome - $trustTaxBreakdown['total_income_tax'], 2),
-            ];
-
-            // Trust income is taxed at source by the trust, so doesn't consume beneficiary's tax bands
-            // Only add to totals
-            $totalGross += $trustIncome;
-            $totalTax += $trustTaxBreakdown['total_income_tax'];
-        }
-
-        // Priority 6: Interest income (with PSA, no NI)
+        // Interest income (uses same bands but has PSA - keep separate for clarity)
         if ($interestIncome > 0) {
             $interestBreakdown = $this->calculateInterestTaxDetailed($interestIncome, $tracker);
 
@@ -170,7 +164,7 @@ class UKTaxCalculator
             $totalTax += $interestBreakdown['total_income_tax'];
         }
 
-        // Priority 7: Dividend income (with allowance, special rates, no NI)
+        // Dividend income (special rates: 8.75%/33.75%/39.35%)
         if ($dividendIncome > 0) {
             $dividendBreakdown = $this->calculateDividendTaxDetailed($dividendIncome, $tracker);
 
@@ -186,6 +180,24 @@ class UKTaxCalculator
 
             $totalGross += $dividendIncome;
             $totalTax += $dividendBreakdown['total_income_tax'];
+        }
+
+        // Trust income (special taxation based on trust type)
+        if ($trustIncome > 0) {
+            $trustTaxBreakdown = $this->calculateTrustIncomeTax($trustIncome, $trustType, $tracker);
+
+            $incomeBreakdowns[] = [
+                'income_type' => 'trust',
+                'income_type_label' => 'Trust Income',
+                'gross_amount' => round($trustIncome, 2),
+                'tax_breakdown' => $trustTaxBreakdown,
+                'ni_breakdown' => null,
+                'total_deductions' => round($trustTaxBreakdown['total_income_tax'], 2),
+                'net_income' => round($trustIncome - $trustTaxBreakdown['total_income_tax'], 2),
+            ];
+
+            $totalGross += $trustIncome;
+            $totalTax += $trustTaxBreakdown['total_income_tax'];
         }
 
         $totalDeductions = $totalTax + $totalNI;

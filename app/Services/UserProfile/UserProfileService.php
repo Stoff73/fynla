@@ -215,12 +215,36 @@ class UserProfileService
     }
 
     /**
+     * Calculate annual employee pension contributions from occupational pensions.
+     * These are contributions from salary (workplace pensions) that are deducted before tax.
+     */
+    private function calculateAnnualPensionContributions(User $user): float
+    {
+        $totalContributions = 0.0;
+
+        // Sum employee contributions from occupational/workplace pensions
+        foreach ($user->dcPensions as $pension) {
+            // Only include workplace/occupational pensions (not SIPPs which are personal contributions)
+            if (in_array($pension->scheme_type, ['workplace', 'occupational', 'auto_enrolment'])) {
+                // Calculate from percentage if available
+                if ($pension->employee_contribution_percent && $pension->annual_salary) {
+                    $monthlyContribution = ($pension->annual_salary * $pension->employee_contribution_percent / 100) / 12;
+                    $totalContributions += $monthlyContribution * 12;
+                }
+            }
+        }
+
+        return $totalContributions;
+    }
+
+    /**
      * Build income and occupation section with detailed tax breakdown
      */
     private function buildIncomeOccupation(User $user): array
     {
         $rentalIncome = $this->calculateAnnualRentalIncome($user);
         $pensionIncome = $this->calculateAnnualPensionIncome($user);
+        $pensionContributions = $this->calculateAnnualPensionContributions($user);
 
         $employmentIncome = (float) ($user->annual_employment_income ?? 0);
         $selfEmploymentIncome = (float) ($user->annual_self_employment_income ?? 0);
@@ -243,7 +267,8 @@ class UserProfileService
             $trustIncome,
             $interestIncome,
             $dividendIncome,
-            $trustType
+            $trustType,
+            $pensionContributions
         );
 
         // Get simple calculation for backwards compatibility
@@ -270,6 +295,7 @@ class UserProfileService
             'annual_interest_income' => $user->annual_interest_income,
             'annual_trust_income' => $user->annual_trust_income,
             'annual_pension_income' => $pensionIncome,
+            'annual_pension_contributions' => $pensionContributions,
             'total_annual_income' => $totalAnnualIncome,
             // Backwards compatible fields from simple calculation
             'gross_income' => $simpleTax['gross_income'],

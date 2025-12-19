@@ -6,22 +6,47 @@
         <h4 class="text-sm font-semibold text-gray-900">{{ breakdown.income_type_label }}</h4>
         <p class="text-lg font-bold text-gray-900">{{ formatCurrency(breakdown.gross_amount) }}</p>
       </div>
-      <span
-        v-if="breakdown.ni_breakdown"
-        class="px-2 py-1 text-xs font-medium rounded bg-blue-100 text-blue-800"
+      <div class="flex flex-col items-end gap-1">
+        <span
+          v-if="hasNI"
+          class="px-2 py-1 text-xs font-medium rounded bg-blue-100 text-blue-800"
+        >
+          NI Applies
+        </span>
+        <span
+          v-else
+          class="px-2 py-1 text-xs font-medium rounded bg-gray-100 text-gray-600"
+        >
+          No NI
+        </span>
+      </div>
+    </div>
+
+    <!-- Earned Income: Show income components breakdown -->
+    <div v-if="isEarnedIncome && breakdown.income_components?.length > 0" class="space-y-2 mb-3">
+      <!-- Income Components (employment, rental, pension, etc.) -->
+      <div
+        v-for="(component, index) in breakdown.income_components"
+        :key="index"
+        class="flex justify-between items-center text-sm"
       >
-        {{ breakdown.ni_breakdown.class }}
-      </span>
-      <span
-        v-else
-        class="px-2 py-1 text-xs font-medium rounded bg-gray-100 text-gray-600"
-      >
-        No NI
-      </span>
+        <span class="text-gray-600">{{ component.label }}</span>
+        <span
+          :class="component.is_deduction ? 'text-green-600 font-medium' : 'text-gray-900'"
+        >
+          {{ component.is_deduction ? '' : '' }}{{ formatCurrency(component.amount) }}
+        </span>
+      </div>
+
+      <!-- Taxable Income Total (after deductions) -->
+      <div class="flex justify-between items-center text-sm border-t border-gray-200 pt-2 mt-2">
+        <span class="text-gray-700 font-medium">Taxable Income</span>
+        <span class="text-gray-900 font-medium">{{ formatCurrency(breakdown.taxable_income) }}</span>
+      </div>
     </div>
 
     <!-- Trust Income Tax Breakdown (special handling) -->
-    <div v-if="isTrustIncome" class="space-y-2 mb-3">
+    <div v-else-if="isTrustIncome" class="space-y-2 mb-3">
       <!-- Trust Type Badge -->
       <div class="flex items-center gap-2 mb-2">
         <span class="px-2 py-1 text-xs font-medium rounded bg-purple-100 text-purple-800">
@@ -78,8 +103,31 @@
       </div>
     </div>
 
-    <!-- Standard Tax Band Breakdown (non-trust income) -->
+    <!-- Standard Tax Band Breakdown (for earned, interest, dividend income) -->
     <div v-else class="space-y-2 mb-3">
+      <!-- Personal Savings Allowance (for interest income) -->
+      <div
+        v-if="breakdown.tax_breakdown.personal_savings_allowance > 0"
+        class="flex justify-between items-center text-sm"
+      >
+        <span class="text-gray-600">Personal Savings Allowance</span>
+        <span class="text-green-600 font-medium">{{ formatCurrency(breakdown.tax_breakdown.personal_savings_allowance) }}</span>
+      </div>
+
+      <!-- Dividend Allowance (for dividend income) -->
+      <div
+        v-if="breakdown.tax_breakdown.dividend_allowance > 0"
+        class="flex justify-between items-center text-sm"
+      >
+        <span class="text-gray-600">Dividend Allowance</span>
+        <span class="text-green-600 font-medium">{{ formatCurrency(breakdown.tax_breakdown.dividend_allowance) }}</span>
+      </div>
+    </div>
+
+    <!-- Tax Bands Section -->
+    <div class="space-y-2 mb-3 pt-2 border-t border-gray-100">
+      <div class="text-xs font-medium text-gray-500 uppercase">Income Tax</div>
+
       <!-- Personal Allowance -->
       <div
         v-if="breakdown.tax_breakdown.personal_allowance_used > 0"
@@ -121,51 +169,79 @@
         </span>
         <span class="text-red-600 font-medium">-{{ formatCurrency(breakdown.tax_breakdown.additional_rate.tax) }}</span>
       </div>
-
-      <!-- Personal Savings Allowance (for interest income) -->
-      <div
-        v-if="breakdown.tax_breakdown.personal_savings_allowance > 0"
-        class="flex justify-between items-center text-sm"
-      >
-        <span class="text-gray-600">Personal Savings Allowance</span>
-        <span class="text-green-600 font-medium">{{ formatCurrency(breakdown.tax_breakdown.personal_savings_allowance) }}</span>
-      </div>
-
-      <!-- Dividend Allowance (for dividend income) -->
-      <div
-        v-if="breakdown.tax_breakdown.dividend_allowance > 0"
-        class="flex justify-between items-center text-sm"
-      >
-        <span class="text-gray-600">Dividend Allowance</span>
-        <span class="text-green-600 font-medium">{{ formatCurrency(breakdown.tax_breakdown.dividend_allowance) }}</span>
-      </div>
     </div>
 
     <!-- NI Breakdown (if applicable) -->
-    <div v-if="breakdown.ni_breakdown" class="space-y-2 mb-3 pt-2 border-t border-gray-100">
+    <div v-if="hasNI" class="space-y-2 mb-3 pt-2 border-t border-gray-100">
       <div class="text-xs font-medium text-gray-500 uppercase">National Insurance</div>
 
-      <!-- Main Rate NI -->
-      <div
-        v-if="breakdown.ni_breakdown.main_rate?.contribution > 0"
-        class="flex justify-between items-center text-sm"
-      >
-        <span class="text-gray-600">
-          {{ formatPercent(breakdown.ni_breakdown.main_rate.rate) }} on {{ formatCurrency(breakdown.ni_breakdown.main_rate.earnings) }}
-        </span>
-        <span class="text-red-600">-{{ formatCurrency(breakdown.ni_breakdown.main_rate.contribution) }}</span>
-      </div>
+      <!-- Class 1 NI (Employment) -->
+      <template v-if="breakdown.ni_breakdown?.class_1">
+        <div class="text-xs text-gray-500 mb-1">Class 1 (Employment)</div>
+        <div
+          v-if="breakdown.ni_breakdown.class_1.main_rate?.contribution > 0"
+          class="flex justify-between items-center text-sm"
+        >
+          <span class="text-gray-600">
+            {{ formatPercent(breakdown.ni_breakdown.class_1.main_rate.rate) }} on {{ formatCurrency(breakdown.ni_breakdown.class_1.main_rate.earnings) }}
+          </span>
+          <span class="text-red-600">-{{ formatCurrency(breakdown.ni_breakdown.class_1.main_rate.contribution) }}</span>
+        </div>
+        <div
+          v-if="breakdown.ni_breakdown.class_1.additional_rate?.contribution > 0"
+          class="flex justify-between items-center text-sm"
+        >
+          <span class="text-gray-600">
+            {{ formatPercent(breakdown.ni_breakdown.class_1.additional_rate.rate) }} on {{ formatCurrency(breakdown.ni_breakdown.class_1.additional_rate.earnings) }}
+          </span>
+          <span class="text-red-600">-{{ formatCurrency(breakdown.ni_breakdown.class_1.additional_rate.contribution) }}</span>
+        </div>
+      </template>
 
-      <!-- Additional Rate NI -->
-      <div
-        v-if="breakdown.ni_breakdown.additional_rate?.contribution > 0"
-        class="flex justify-between items-center text-sm"
-      >
-        <span class="text-gray-600">
-          {{ formatPercent(breakdown.ni_breakdown.additional_rate.rate) }} on {{ formatCurrency(breakdown.ni_breakdown.additional_rate.earnings) }}
-        </span>
-        <span class="text-red-600">-{{ formatCurrency(breakdown.ni_breakdown.additional_rate.contribution) }}</span>
-      </div>
+      <!-- Class 4 NI (Self-Employment) -->
+      <template v-if="breakdown.ni_breakdown?.class_4">
+        <div class="text-xs text-gray-500 mb-1 mt-2">Class 4 (Self-Employment)</div>
+        <div
+          v-if="breakdown.ni_breakdown.class_4.main_rate?.contribution > 0"
+          class="flex justify-between items-center text-sm"
+        >
+          <span class="text-gray-600">
+            {{ formatPercent(breakdown.ni_breakdown.class_4.main_rate.rate) }} on {{ formatCurrency(breakdown.ni_breakdown.class_4.main_rate.earnings) }}
+          </span>
+          <span class="text-red-600">-{{ formatCurrency(breakdown.ni_breakdown.class_4.main_rate.contribution) }}</span>
+        </div>
+        <div
+          v-if="breakdown.ni_breakdown.class_4.additional_rate?.contribution > 0"
+          class="flex justify-between items-center text-sm"
+        >
+          <span class="text-gray-600">
+            {{ formatPercent(breakdown.ni_breakdown.class_4.additional_rate.rate) }} on {{ formatCurrency(breakdown.ni_breakdown.class_4.additional_rate.earnings) }}
+          </span>
+          <span class="text-red-600">-{{ formatCurrency(breakdown.ni_breakdown.class_4.additional_rate.contribution) }}</span>
+        </div>
+      </template>
+
+      <!-- Legacy single-class NI display (for backwards compatibility) -->
+      <template v-if="breakdown.ni_breakdown?.class && !breakdown.ni_breakdown?.class_1 && !breakdown.ni_breakdown?.class_4">
+        <div
+          v-if="breakdown.ni_breakdown.main_rate?.contribution > 0"
+          class="flex justify-between items-center text-sm"
+        >
+          <span class="text-gray-600">
+            {{ formatPercent(breakdown.ni_breakdown.main_rate.rate) }} on {{ formatCurrency(breakdown.ni_breakdown.main_rate.earnings) }}
+          </span>
+          <span class="text-red-600">-{{ formatCurrency(breakdown.ni_breakdown.main_rate.contribution) }}</span>
+        </div>
+        <div
+          v-if="breakdown.ni_breakdown.additional_rate?.contribution > 0"
+          class="flex justify-between items-center text-sm"
+        >
+          <span class="text-gray-600">
+            {{ formatPercent(breakdown.ni_breakdown.additional_rate.rate) }} on {{ formatCurrency(breakdown.ni_breakdown.additional_rate.earnings) }}
+          </span>
+          <span class="text-red-600">-{{ formatCurrency(breakdown.ni_breakdown.additional_rate.contribution) }}</span>
+        </div>
+      </template>
     </div>
 
     <!-- Net Income -->
@@ -188,9 +264,23 @@ const props = defineProps({
   },
 });
 
+// Check if this is earned income (combined employment, self-employment, rental, pension)
+const isEarnedIncome = computed(() => {
+  return props.breakdown.income_type === 'earned';
+});
+
 // Check if this is trust income (has special tax treatment)
 const isTrustIncome = computed(() => {
   return props.breakdown.income_type === 'trust';
+});
+
+// Check if NI applies
+const hasNI = computed(() => {
+  if (!props.breakdown.ni_breakdown) return false;
+  // New format with class_1/class_4
+  if (props.breakdown.ni_breakdown.class_1 || props.breakdown.ni_breakdown.class_4) return true;
+  // Legacy format with total_ni
+  return props.breakdown.ni_breakdown.total_ni > 0;
 });
 
 const formatCurrency = (value) => {
