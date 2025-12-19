@@ -74,6 +74,7 @@ class User extends Authenticatable
         'annual_dividend_income' => 'float',
         'annual_interest_income' => 'float',
         'annual_other_income' => 'float',
+        'annual_trust_income' => 'float',
         'monthly_expenditure' => 'float',
         'annual_expenditure' => 'float',
         'food_groceries' => 'float',

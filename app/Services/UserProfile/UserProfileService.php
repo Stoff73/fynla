@@ -84,14 +84,16 @@ class UserProfileService
                     'annual_rental_income' => $this->calculateAnnualRentalIncome($user),
                     'annual_dividend_income' => $user->annual_dividend_income,
                     'annual_interest_income' => $user->annual_interest_income,
-                    'annual_other_income' => $user->annual_other_income,
+                    'annual_trust_income' => $user->annual_trust_income,
+                    'annual_pension_income' => $this->calculateAnnualPensionIncome($user),
                     'total_annual_income' => (
                         ($user->annual_employment_income ?? 0) +
                         ($user->annual_self_employment_income ?? 0) +
                         $this->calculateAnnualRentalIncome($user) +
                         ($user->annual_dividend_income ?? 0) +
                         ($user->annual_interest_income ?? 0) +
-                        ($user->annual_other_income ?? 0)
+                        ($user->annual_trust_income ?? 0) +
+                        $this->calculateAnnualPensionIncome($user)
                     ),
                 ],
                 $this->taxCalculator->calculateNetIncome(
@@ -100,7 +102,7 @@ class UserProfileService
                     (float) $this->calculateAnnualRentalIncome($user),
                     (float) ($user->annual_dividend_income ?? 0),
                     (float) ($user->annual_interest_income ?? 0),
-                    (float) ($user->annual_other_income ?? 0)
+                    (float) (($user->annual_trust_income ?? 0) + $this->calculateAnnualPensionIncome($user))
                 )
             ),
             'expenditure' => [
@@ -199,6 +201,31 @@ class UserProfileService
             // Values are already user's share - just annualize
             return $monthlyRental * 12;
         });
+    }
+
+    /**
+     * Calculate annual pension income for the user.
+     * Includes DB pensions (if in payment) and state pension (if receiving).
+     */
+    private function calculateAnnualPensionIncome(User $user): float
+    {
+        $pensionIncome = 0.0;
+
+        // Sum DB pensions that are in payment (user has reached retirement age or pension is marked as in payment)
+        foreach ($user->dbPensions as $dbPension) {
+            // Check if pension is in payment (accrued_annual_pension represents current annual amount)
+            if ($dbPension->accrued_annual_pension > 0) {
+                $pensionIncome += (float) $dbPension->accrued_annual_pension;
+            }
+        }
+
+        // Add state pension if receiving
+        $statePension = $user->statePension;
+        if ($statePension && $statePension->already_receiving) {
+            $pensionIncome += (float) ($statePension->state_pension_forecast_annual ?? 0);
+        }
+
+        return $pensionIncome;
     }
 
     /**

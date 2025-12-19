@@ -169,7 +169,7 @@
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <!-- Annual Employment Income -->
-          <div>
+          <div v-if="isEditing || form.annual_employment_income > 0">
             <label for="annual_employment_income" class="block text-body-sm font-medium text-gray-700 mb-1">
               Employment Income (Full-Time/Part-Time)
             </label>
@@ -178,20 +178,27 @@
                 <span class="text-gray-500 sm:text-sm">£</span>
               </div>
               <input
+                v-if="isEditing"
                 id="annual_employment_income"
                 v-model.number="form.annual_employment_income"
                 type="number"
                 step="0.01"
                 min="0"
                 class="input-field pl-7"
-                :disabled="!isEditing"
                 placeholder="0.00"
+              />
+              <input
+                v-else
+                :value="formatNumber(form.annual_employment_income)"
+                type="text"
+                class="input-field pl-7 bg-gray-50"
+                disabled
               />
             </div>
           </div>
 
           <!-- Annual Self-Employment Income -->
-          <div>
+          <div v-if="isEditing || form.annual_self_employment_income > 0">
             <label for="annual_self_employment_income" class="block text-body-sm font-medium text-gray-700 mb-1">
               Self-Employment Income
             </label>
@@ -200,20 +207,27 @@
                 <span class="text-gray-500 sm:text-sm">£</span>
               </div>
               <input
+                v-if="isEditing"
                 id="annual_self_employment_income"
                 v-model.number="form.annual_self_employment_income"
                 type="number"
                 step="0.01"
                 min="0"
                 class="input-field pl-7"
-                :disabled="!isEditing"
                 placeholder="0.00"
+              />
+              <input
+                v-else
+                :value="formatNumber(form.annual_self_employment_income)"
+                type="text"
+                class="input-field pl-7 bg-gray-50"
+                disabled
               />
             </div>
           </div>
 
           <!-- Annual Rental Income (Auto-calculated from Properties) -->
-          <div>
+          <div v-if="form.annual_rental_income > 0">
             <label for="annual_rental_income" class="block text-body-sm font-medium text-gray-700 mb-1">
               Rental Income
             </label>
@@ -222,21 +236,17 @@
                 <span class="text-gray-500 sm:text-sm">£</span>
               </div>
               <input
-                id="annual_rental_income"
-                v-model.number="form.annual_rental_income"
-                type="number"
-                step="0.01"
-                min="0"
+                :value="formatNumber(form.annual_rental_income)"
+                type="text"
                 class="input-field pl-7 bg-gray-50"
                 disabled
-                placeholder="0.00"
               />
             </div>
             <p class="mt-1 text-body-xs text-gray-500">Automatically calculated from your properties</p>
           </div>
 
           <!-- Annual Dividend Income -->
-          <div>
+          <div v-if="isEditing || form.annual_dividend_income > 0">
             <label for="annual_dividend_income" class="block text-body-sm font-medium text-gray-700 mb-1">
               Dividend Income
             </label>
@@ -245,20 +255,27 @@
                 <span class="text-gray-500 sm:text-sm">£</span>
               </div>
               <input
+                v-if="isEditing"
                 id="annual_dividend_income"
                 v-model.number="form.annual_dividend_income"
                 type="number"
                 step="0.01"
                 min="0"
                 class="input-field pl-7"
-                :disabled="!isEditing"
                 placeholder="0.00"
+              />
+              <input
+                v-else
+                :value="formatNumber(form.annual_dividend_income)"
+                type="text"
+                class="input-field pl-7 bg-gray-50"
+                disabled
               />
             </div>
           </div>
 
           <!-- Annual Interest Income -->
-          <div>
+          <div v-if="isEditing || form.annual_interest_income > 0">
             <label for="annual_interest_income" class="block text-body-sm font-medium text-gray-700 mb-1">
               Interest Income
             </label>
@@ -267,41 +284,75 @@
                 <span class="text-gray-500 sm:text-sm">£</span>
               </div>
               <input
+                v-if="isEditing"
                 id="annual_interest_income"
                 v-model.number="form.annual_interest_income"
                 type="number"
                 step="0.01"
                 min="0"
                 class="input-field pl-7"
-                :disabled="!isEditing"
                 placeholder="0.00"
+              />
+              <input
+                v-else
+                :value="formatNumber(form.annual_interest_income)"
+                type="text"
+                class="input-field pl-7 bg-gray-50"
+                disabled
               />
             </div>
           </div>
 
-          <!-- Annual Other Income -->
-          <div>
-            <label for="annual_other_income" class="block text-body-sm font-medium text-gray-700 mb-1">
-              Other Income
+          <!-- Annual Pension Income (Auto-calculated from Retirement module) -->
+          <div v-if="form.annual_pension_income > 0">
+            <label for="annual_pension_income" class="block text-body-sm font-medium text-gray-700 mb-1">
+              Pension Income
             </label>
             <div class="relative rounded-md shadow-sm">
               <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <span class="text-gray-500 sm:text-sm">£</span>
               </div>
               <input
-                id="annual_other_income"
-                v-model.number="form.annual_other_income"
+                :value="formatNumber(form.annual_pension_income)"
+                type="text"
+                class="input-field pl-7 bg-gray-50"
+                disabled
+              />
+            </div>
+            <p class="mt-1 text-body-xs text-gray-500">Calculated from DB pensions and state pension in payment</p>
+          </div>
+
+          <!-- Annual Trust Income -->
+          <div v-if="isEditing || form.annual_trust_income > 0">
+            <label for="annual_trust_income" class="block text-body-sm font-medium text-gray-700 mb-1">
+              Trust Income
+            </label>
+            <div class="relative rounded-md shadow-sm">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <span class="text-gray-500 sm:text-sm">£</span>
+              </div>
+              <input
+                v-if="isEditing"
+                id="annual_trust_income"
+                v-model.number="form.annual_trust_income"
                 type="number"
                 step="0.01"
                 min="0"
                 class="input-field pl-7"
-                :disabled="!isEditing"
                 placeholder="0.00"
               />
+              <input
+                v-else
+                :value="formatNumber(form.annual_trust_income)"
+                type="text"
+                class="input-field pl-7 bg-gray-50"
+                disabled
+              />
             </div>
+            <p v-if="isEditing" class="mt-1 text-body-xs text-gray-500">Income received from trusts (taxable)</p>
           </div>
 
-          <!-- Total Annual Income (Calculated) -->
+          <!-- Total Annual Income (Calculated) - Always show -->
           <div>
             <label class="block text-body-sm font-medium text-gray-700 mb-1">
               Total Annual Income
@@ -317,7 +368,6 @@
                 disabled
               />
             </div>
-            <p class="mt-1 text-body-xs text-gray-500">Automatically calculated from all income sources</p>
           </div>
         </div>
       </div>
@@ -434,7 +484,8 @@ export default {
       annual_rental_income: 0,
       annual_dividend_income: 0,
       annual_interest_income: 0,
-      annual_other_income: 0,
+      annual_pension_income: 0,
+      annual_trust_income: 0,
     });
 
     const today = computed(() => {
@@ -448,7 +499,8 @@ export default {
         (form.value.annual_rental_income || 0) +
         (form.value.annual_dividend_income || 0) +
         (form.value.annual_interest_income || 0) +
-        (form.value.annual_other_income || 0);
+        (form.value.annual_pension_income || 0) +
+        (form.value.annual_trust_income || 0);
 
       return new Intl.NumberFormat('en-GB', {
         minimumFractionDigits: 2,
@@ -496,7 +548,8 @@ export default {
           annual_rental_income: Number(incomeOccupation.value.annual_rental_income) || 0,
           annual_dividend_income: Number(incomeOccupation.value.annual_dividend_income) || 0,
           annual_interest_income: Number(incomeOccupation.value.annual_interest_income) || 0,
-          annual_other_income: Number(incomeOccupation.value.annual_other_income) || 0,
+          annual_pension_income: Number(incomeOccupation.value.annual_pension_income) || 0,
+          annual_trust_income: Number(incomeOccupation.value.annual_trust_income) || 0,
         };
       }
     };
@@ -568,6 +621,13 @@ export default {
       }).format(amount || 0);
     };
 
+    const formatNumber = (amount) => {
+      return new Intl.NumberFormat('en-GB', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      }).format(amount || 0);
+    };
+
     return {
       form,
       isEditing,
@@ -582,6 +642,7 @@ export default {
       handleSubmit,
       handleCancel,
       formatCurrency,
+      formatNumber,
     };
   },
 };

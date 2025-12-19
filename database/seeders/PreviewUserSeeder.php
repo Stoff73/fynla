@@ -20,6 +20,7 @@ use App\Models\LifeInsurancePolicy;
 use App\Models\Mortgage;
 use App\Models\Property;
 use App\Models\SavingsAccount;
+use App\Models\StatePension;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -108,6 +109,7 @@ class PreviewUserSeeder extends Seeder
         // Create pensions
         $this->createDCPensions($user, $spouse, $data['dc_pensions'] ?? []);
         $this->createDBPensions($user, $spouse, $data['db_pensions'] ?? []);
+        $this->createStatePension($user, $spouse, $data['state_pension'] ?? null);
 
         // Create insurance policies
         $this->createLifeInsurancePolicies($user, $spouse, $data['life_insurance_policies'] ?? []);
@@ -158,6 +160,7 @@ class PreviewUserSeeder extends Seeder
         $user->occupation = $userData['occupation'] ?? null;
         $user->employer = $userData['employer_name'] ?? null;
         $user->annual_employment_income = $userData['annual_income'] ?? null;
+        $user->annual_trust_income = $userData['annual_trust_income'] ?? null;
         $user->target_retirement_age = $userData['target_retirement_age'] ?? 65;
         $user->monthly_expenditure = $userData['monthly_expenditure'] ?? null;
         $user->health_status = $userData['health_status'] ?? null;
@@ -620,6 +623,25 @@ class PreviewUserSeeder extends Seeder
                 'inflation_protection' => $pension['inflation_protection'] ?? 'cpi',
             ]);
         }
+    }
+
+    /**
+     * Create state pension for the user.
+     */
+    private function createStatePension(User $user, ?User $spouse, ?array $statePension): void
+    {
+        if (! $statePension) {
+            return;
+        }
+
+        StatePension::create([
+            'user_id' => $user->id,
+            'ni_years_completed' => 35,
+            'ni_years_required' => 35,
+            'state_pension_forecast_annual' => $statePension['forecast_annual_amount'] ?? 0,
+            'state_pension_age' => $statePension['state_pension_age'] ?? 66,
+            'already_receiving' => $statePension['already_receiving'] ?? false,
+        ]);
     }
 
     /**

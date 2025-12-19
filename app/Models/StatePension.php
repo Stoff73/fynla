@@ -25,6 +25,7 @@ class StatePension extends Model
         'ni_years_required',
         'state_pension_forecast_annual',
         'state_pension_age',
+        'already_receiving',
         'ni_gaps',
         'gap_fill_cost',
     ];
@@ -34,6 +35,7 @@ class StatePension extends Model
         'ni_years_required' => 'integer',
         'state_pension_forecast_annual' => 'decimal:2',
         'state_pension_age' => 'integer',
+        'already_receiving' => 'boolean',
         'ni_gaps' => 'array',
         'gap_fill_cost' => 'decimal:2',
     ];
