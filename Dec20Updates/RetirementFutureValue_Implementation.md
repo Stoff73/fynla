@@ -176,7 +176,7 @@ Returns pension pot and income projections.
 #### GET `/api/retirement/strategies`
 Returns personalized strategy recommendations.
 
-#### POST `/api/retirement/strategies/impact`
+#### GET `/api/retirement/strategies/impact`
 Calculates impact of a strategy change (for slider interaction).
 
 ---
