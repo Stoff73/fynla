@@ -710,6 +710,10 @@ Route::middleware('auth:sanctum')->prefix('retirement')->group(function () {
     // Annual allowance checking
     Route::get('/annual-allowance/{taxYear}', [RetirementController::class, 'checkAnnualAllowance']);
 
+    // Retirement strategies
+    Route::get('/strategies', [RetirementController::class, 'getStrategies']);
+    Route::get('/strategies/impact', [RetirementController::class, 'calculateStrategyImpact']);
+
     // DC pensions
     Route::prefix('pensions/dc')->group(function () {
         Route::post('/', [RetirementController::class, 'storeDCPension']);

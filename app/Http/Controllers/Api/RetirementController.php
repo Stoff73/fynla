@@ -17,6 +17,7 @@ use App\Models\RetirementProfile;
 use App\Models\StatePension;
 use App\Services\Retirement\AnnualAllowanceChecker;
 use App\Services\Retirement\RetirementProjectionService;
+use App\Services\Retirement\RetirementStrategyService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -32,7 +33,8 @@ class RetirementController extends Controller
     public function __construct(
         private RetirementAgent $agent,
         private AnnualAllowanceChecker $allowanceChecker,
-        private RetirementProjectionService $projectionService
+        private RetirementProjectionService $projectionService,
+        private RetirementStrategyService $strategyService
     ) {}
 
     /**
@@ -414,6 +416,45 @@ class RetirementController extends Controller
             'success' => true,
             'message' => 'DC pension portfolio analysis completed',
             'data' => $analysis,
+        ]);
+    }
+
+    /**
+     * Get retirement strategies for the authenticated user.
+     */
+    public function getStrategies(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $strategies = $this->strategyService->getStrategies($user->id);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Retirement strategies retrieved successfully',
+            'data' => $strategies,
+        ]);
+    }
+
+    /**
+     * Calculate the impact of a strategy change.
+     */
+    public function calculateStrategyImpact(Request $request): JsonResponse
+    {
+        $request->validate([
+            'strategy_type' => 'required|in:employer_match,increase_contribution,retirement_age,income_target',
+            'new_value' => 'required|numeric',
+        ]);
+
+        $user = $request->user();
+        $impact = $this->strategyService->calculateStrategyImpact(
+            $user->id,
+            $request->query('strategy_type'),
+            (float) $request->query('new_value')
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Strategy impact calculated successfully',
+            'data' => $impact,
         ]);
     }
 

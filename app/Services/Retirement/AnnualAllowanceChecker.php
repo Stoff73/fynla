@@ -197,6 +197,7 @@ class AnnualAllowanceChecker
 
     /**
      * Calculate total annual pension contributions from all DC pensions.
+     * Includes both employee and employer contributions as both count towards annual allowance.
      *
      * @param  \Illuminate\Support\Collection  $dcPensions
      */
@@ -205,8 +206,21 @@ class AnnualAllowanceChecker
         $total = 0.0;
 
         foreach ($dcPensions as $pension) {
-            $monthlyContribution = (float) $pension->monthly_contribution_amount ?? 0.0;
-            $total += $monthlyContribution * 12;
+            // First try monthly_contribution_amount if set
+            if ($pension->monthly_contribution_amount > 0) {
+                $total += (float) $pension->monthly_contribution_amount * 12;
+            } else {
+                // Otherwise calculate from percentages
+                $annualSalary = (float) ($pension->annual_salary ?? 0);
+                $employeePercent = (float) ($pension->employee_contribution_percent ?? 0);
+                $employerPercent = (float) ($pension->employer_contribution_percent ?? 0);
+
+                // Both employee and employer contributions count towards annual allowance
+                $employeeContrib = $annualSalary * ($employeePercent / 100);
+                $employerContrib = $annualSalary * ($employerPercent / 100);
+
+                $total += $employeeContrib + $employerContrib;
+            }
         }
 
         return $total;

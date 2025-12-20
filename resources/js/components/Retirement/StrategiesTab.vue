@@ -1,206 +1,493 @@
 <template>
   <div class="strategies-tab">
-    <!-- Content (blurred/faded) -->
-    <div class="strategies-content">
-      <div class="intro-text">
-        <h3>Optimise Your Retirement Strategy</h3>
-        <p>Based on your Future Value projections, we can suggest strategies to help you reach your retirement goals.</p>
-      </div>
-
-      <div class="strategy-cards">
-        <div class="strategy-card">
-          <div class="strategy-icon blue">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
-            </svg>
-          </div>
-          <h4>Increase Contributions</h4>
-          <p>Optimise your monthly pension contributions to maximise growth</p>
-        </div>
-
-        <div class="strategy-card">
-          <div class="strategy-icon purple">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <h4>Adjust Retirement Age</h4>
-          <p>See the impact of retiring earlier or later on your income</p>
-        </div>
-
-        <div class="strategy-card">
-          <div class="strategy-icon green">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
-            </svg>
-          </div>
-          <h4>Risk Adjustment</h4>
-          <p>Explore different investment strategies and risk profiles</p>
-        </div>
-
-        <div class="strategy-card">
-          <div class="strategy-icon amber">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <h4>Lump Sum Investments</h4>
-          <p>Model the impact of additional one-off contributions</p>
-        </div>
-      </div>
+    <!-- Loading State -->
+    <div v-if="loading" class="loading-state">
+      <div class="spinner"></div>
+      <p>Analysing your retirement position...</p>
     </div>
 
-    <!-- Coming Soon Banner -->
-    <div class="coming-soon-overlay">
-      <div class="coming-soon-banner">
-        <p class="banner-text">Coming Soon</p>
-      </div>
+    <!-- Error State -->
+    <div v-else-if="error" class="error-state">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="error-icon">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+      </svg>
+      <p>{{ error }}</p>
+      <button class="retry-button" @click="fetchStrategies">Try Again</button>
     </div>
+
+    <!-- On Track Banner -->
+    <div v-else-if="isOnTrack" class="on-track-banner">
+      <div class="on-track-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </div>
+      <h3>You're On Track!</h3>
+      <p class="probability">{{ currentProbability }}% probability of achieving your retirement goals</p>
+      <p class="subtitle">Based on your current pension contributions and retirement timeline, you are well-positioned for a comfortable retirement.</p>
+    </div>
+
+    <!-- Strategies Content -->
+    <template v-else-if="strategies">
+      <!-- Summary Cards -->
+      <div class="summary-grid">
+        <!-- Current Status Card -->
+        <div :class="['summary-card', statusColorClass]">
+          <p class="summary-label">Retirement Readiness</p>
+          <p class="summary-value">{{ currentProbability }}%</p>
+          <p class="summary-subtitle">{{ strategies.current_status?.on_track_status }}</p>
+        </div>
+
+        <!-- Affordability Card -->
+        <div class="summary-card blue">
+          <p class="summary-label">Monthly Disposable Income</p>
+          <p class="summary-value">{{ formatCurrency(strategies.affordability?.monthly_disposable) }}</p>
+          <p class="summary-subtitle">Available for additional contributions</p>
+        </div>
+
+        <!-- Annual Allowance Card -->
+        <div class="summary-card amber">
+          <p class="summary-label">Annual Allowance Remaining</p>
+          <p class="summary-value">{{ formatCurrency(strategies.annual_allowance?.remaining_allowance) }}</p>
+          <p class="summary-subtitle">
+            <template v-if="strategies.annual_allowance?.carry_forward?.available">
+              + {{ formatCurrency(strategies.annual_allowance.carry_forward.amount) }} carry forward
+            </template>
+            <template v-else>
+              {{ strategies.annual_allowance?.carry_forward?.message }}
+            </template>
+          </p>
+        </div>
+      </div>
+
+      <!-- No Strategies Available -->
+      <div v-if="applicableStrategies.length === 0" class="no-strategies">
+        <p>No additional strategies are needed at this time.</p>
+      </div>
+
+      <!-- Strategy Cards -->
+      <div v-else class="strategies-list">
+        <h3 class="section-title">Recommended Strategies</h3>
+        <p class="section-subtitle">Follow these strategies in order to improve your retirement readiness</p>
+
+        <StrategyCard
+          v-for="strategy in applicableStrategies"
+          :key="strategy.type + (strategy.pension_id || '')"
+          :strategy="strategy"
+          :is-at-target="strategy.impact?.new_probability >= 95"
+          @slider-change="handleSliderChange"
+        />
+
+        <!-- Combined Impact Summary -->
+        <div v-if="applicableStrategies.length > 0" class="combined-impact">
+          <div class="impact-header">
+            <h4>Combined Strategy Impact</h4>
+            <p v-if="strategies.on_track_at_strategy">
+              Following strategies 1-{{ strategies.on_track_at_strategy }} will get you on track
+            </p>
+          </div>
+          <div class="probability-comparison">
+            <div class="prob-item">
+              <span class="prob-label">Current</span>
+              <span :class="['prob-value', getProbabilityClass(currentProbability)]">{{ currentProbability }}%</span>
+            </div>
+            <div class="prob-arrow">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 8.25L21 12m0 0l-3.75 3.75M21 12H3" />
+              </svg>
+            </div>
+            <div class="prob-item">
+              <span class="prob-label">Projected</span>
+              <span :class="['prob-value', getProbabilityClass(projectedProbability)]">{{ projectedProbability }}%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
   </div>
 </template>
 
 <script>
+import { mapState, mapActions } from 'vuex';
+import StrategyCard from './StrategyCard.vue';
+
 export default {
   name: 'StrategiesTab',
+
+  components: {
+    StrategyCard,
+  },
+
+  computed: {
+    ...mapState('retirement', ['strategies', 'strategiesLoading', 'strategyImpact', 'error']),
+
+    loading() {
+      return this.strategiesLoading;
+    },
+
+    currentProbability() {
+      return this.strategies?.current_status?.probability || 0;
+    },
+
+    isOnTrack() {
+      return this.currentProbability >= 95;
+    },
+
+    applicableStrategies() {
+      return this.strategies?.strategies?.filter(s => s.applicable) || [];
+    },
+
+    projectedProbability() {
+      if (this.applicableStrategies.length === 0) return this.currentProbability;
+      const lastStrategy = this.applicableStrategies[this.applicableStrategies.length - 1];
+      return lastStrategy?.impact?.new_probability || this.currentProbability;
+    },
+
+    statusColorClass() {
+      const prob = this.currentProbability;
+      if (prob >= 95) return 'green';
+      if (prob >= 80) return 'amber';
+      return 'red';
+    },
+  },
+
+  methods: {
+    ...mapActions('retirement', ['fetchStrategies', 'calculateStrategyImpact']),
+
+    async handleSliderChange({ strategyType, newValue }) {
+      try {
+        await this.calculateStrategyImpact({ strategyType, newValue });
+      } catch (error) {
+        console.error('Failed to calculate strategy impact:', error);
+      }
+    },
+
+    formatCurrency(value) {
+      if (value === null || value === undefined) return '£0';
+      return new Intl.NumberFormat('en-GB', {
+        style: 'currency',
+        currency: 'GBP',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      }).format(value);
+    },
+
+    getProbabilityClass(probability) {
+      if (probability >= 95) return 'green';
+      if (probability >= 80) return 'amber';
+      return 'red';
+    },
+  },
+
+  mounted() {
+    this.fetchStrategies();
+  },
 };
 </script>
 
 <style scoped>
 .strategies-tab {
-  position: relative;
-  min-height: 400px;
+  animation: fadeIn 0.3s ease-out;
 }
 
-.strategies-content {
-  opacity: 0.3;
-  pointer-events: none;
-  filter: blur(1px);
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.intro-text {
+/* Loading State */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
   text-align: center;
-  margin-bottom: 32px;
 }
 
-.intro-text h3 {
-  font-size: 24px;
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 3px solid #e5e7eb;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-state p {
+  color: #6b7280;
+  font-size: 16px;
+  margin: 0;
+}
+
+/* Error State */
+.error-state {
+  text-align: center;
+  padding: 60px 40px;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #fecaca;
+}
+
+.error-icon {
+  width: 48px;
+  height: 48px;
+  color: #ef4444;
+  margin: 0 auto 16px;
+}
+
+.error-state p {
+  color: #6b7280;
+  font-size: 16px;
+  margin: 0 0 16px 0;
+}
+
+.retry-button {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.retry-button:hover {
+  background: #2563eb;
+}
+
+/* On Track Banner */
+.on-track-banner {
+  text-align: center;
+  padding: 60px 40px;
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  border-radius: 16px;
+  border: 2px solid #a7f3d0;
+}
+
+.on-track-icon {
+  width: 72px;
+  height: 72px;
+  background: #10b981;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 24px;
+}
+
+.on-track-icon svg {
+  width: 40px;
+  height: 40px;
+  color: white;
+}
+
+.on-track-banner h3 {
+  font-size: 28px;
   font-weight: 700;
-  color: #111827;
+  color: #065f46;
   margin: 0 0 12px 0;
 }
 
-.intro-text p {
+.on-track-banner .probability {
+  font-size: 20px;
+  font-weight: 600;
+  color: #059669;
+  margin: 0 0 16px 0;
+}
+
+.on-track-banner .subtitle {
   font-size: 16px;
-  color: #6b7280;
+  color: #047857;
   margin: 0;
-  max-width: 600px;
+  max-width: 500px;
   margin-left: auto;
   margin-right: auto;
 }
 
-.strategy-cards {
+/* Summary Cards */
+.summary-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 20px;
+  margin-bottom: 32px;
 }
 
-.strategy-card {
+.summary-card {
   background: white;
   border-radius: 12px;
-  padding: 24px;
+  padding: 20px;
   border: 1px solid #e5e7eb;
+}
+
+.summary-card.blue {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-color: #bfdbfe;
+}
+
+.summary-card.green {
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  border-color: #a7f3d0;
+}
+
+.summary-card.amber {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border-color: #fde68a;
+}
+
+.summary-card.red {
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  border-color: #fecaca;
+}
+
+.summary-label {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0 0 8px 0;
+  font-weight: 500;
+}
+
+.summary-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.summary-subtitle {
+  font-size: 13px;
+  color: #6b7280;
+  margin: 8px 0 0 0;
+}
+
+/* No Strategies */
+.no-strategies {
   text-align: center;
-}
-
-.strategy-icon {
-  width: 48px;
-  height: 48px;
+  padding: 40px;
+  background: #f9fafb;
   border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto 16px;
+  border: 1px solid #e5e7eb;
 }
 
-.strategy-icon svg {
-  width: 24px;
-  height: 24px;
-}
-
-.strategy-icon.blue {
-  background: #dbeafe;
-  color: #2563eb;
-}
-
-.strategy-icon.purple {
-  background: #e9d5ff;
-  color: #7c3aed;
-}
-
-.strategy-icon.green {
-  background: #d1fae5;
-  color: #059669;
-}
-
-.strategy-icon.amber {
-  background: #fef3c7;
-  color: #d97706;
-}
-
-.strategy-card h4 {
+.no-strategies p {
+  color: #6b7280;
   font-size: 16px;
-  font-weight: 600;
+  margin: 0;
+}
+
+/* Strategies List */
+.strategies-list {
+  margin-top: 8px;
+}
+
+.section-title {
+  font-size: 20px;
+  font-weight: 700;
   color: #111827;
   margin: 0 0 8px 0;
 }
 
-.strategy-card p {
+.section-subtitle {
   font-size: 14px;
   color: #6b7280;
-  margin: 0;
-  line-height: 1.5;
+  margin: 0 0 24px 0;
 }
 
-/* Coming Soon Overlay */
-.coming-soon-overlay {
-  position: absolute;
-  inset: 0;
+/* Combined Impact */
+.combined-impact {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border: 1px solid #bfdbfe;
+  border-radius: 12px;
+  padding: 24px;
+  margin-top: 24px;
+}
+
+.impact-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.impact-header h4 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e40af;
+  margin: 0 0 4px 0;
+}
+
+.impact-header p {
+  font-size: 14px;
+  color: #3b82f6;
+  margin: 0;
+}
+
+.probability-comparison {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10;
-  pointer-events: none;
+  gap: 24px;
 }
 
-.coming-soon-banner {
-  background: #fef3c7;
-  border: 2px solid #f59e0b;
-  border-radius: 12px;
-  padding: 16px 48px;
-  transform: rotate(-12deg);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+.prob-item {
+  text-align: center;
 }
 
-.banner-text {
+.prob-label {
+  display: block;
+  font-size: 12px;
+  color: #6b7280;
+  margin-bottom: 4px;
+}
+
+.prob-value {
   font-size: 32px;
   font-weight: 700;
-  color: #b45309;
-  margin: 0;
-  text-transform: uppercase;
-  letter-spacing: 2px;
+}
+
+.prob-value.green {
+  color: #059669;
+}
+
+.prob-value.amber {
+  color: #d97706;
+}
+
+.prob-value.red {
+  color: #dc2626;
+}
+
+.prob-arrow svg {
+  width: 32px;
+  height: 32px;
+  color: #3b82f6;
 }
 
 @media (max-width: 768px) {
-  .strategy-cards {
+  .summary-grid {
     grid-template-columns: 1fr;
   }
 
-  .banner-text {
-    font-size: 24px;
+  .probability-comparison {
+    flex-direction: column;
+    gap: 16px;
   }
 
-  .coming-soon-banner {
-    padding: 12px 32px;
+  .prob-arrow svg {
+    transform: rotate(90deg);
   }
 }
 </style>

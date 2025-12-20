@@ -20,6 +20,9 @@ const state = {
     portfolioAnalysis: null, // Portfolio optimization data
     projections: null, // Monte Carlo projections for Future Value tab
     projectionsLoading: false,
+    strategies: null, // Retirement strategies for Strategies tab
+    strategiesLoading: false,
+    strategyImpact: null, // Impact calculation for slider interaction
     loading: false,
     error: null,
 };
@@ -90,6 +93,15 @@ const mutations = {
     },
     SET_PROJECTIONS_LOADING(state, loading) {
         state.projectionsLoading = loading;
+    },
+    SET_STRATEGIES(state, strategies) {
+        state.strategies = strategies;
+    },
+    SET_STRATEGIES_LOADING(state, loading) {
+        state.strategiesLoading = loading;
+    },
+    SET_STRATEGY_IMPACT(state, impact) {
+        state.strategyImpact = impact;
     },
 };
 
@@ -163,6 +175,32 @@ const actions = {
             throw error;
         } finally {
             commit('SET_PROJECTIONS_LOADING', false);
+        }
+    },
+
+    async fetchStrategies({ commit }) {
+        commit('SET_STRATEGIES_LOADING', true);
+        commit('SET_ERROR', null);
+        try {
+            const response = await retirementService.getStrategies();
+            commit('SET_STRATEGIES', response.data);
+            return response.data;
+        } catch (error) {
+            commit('SET_ERROR', error.response?.data?.message || 'Failed to fetch strategies');
+            throw error;
+        } finally {
+            commit('SET_STRATEGIES_LOADING', false);
+        }
+    },
+
+    async calculateStrategyImpact({ commit }, { strategyType, newValue }) {
+        try {
+            const response = await retirementService.calculateStrategyImpact(strategyType, newValue);
+            commit('SET_STRATEGY_IMPACT', response.data);
+            return response.data;
+        } catch (error) {
+            commit('SET_ERROR', error.response?.data?.message || 'Failed to calculate strategy impact');
+            throw error;
         }
     },
 

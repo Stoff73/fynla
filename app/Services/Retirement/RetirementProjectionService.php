@@ -188,8 +188,12 @@ class RetirementProjectionService
         }
 
         // Calculate on-track status and probability
-        $totalYears = self::END_AGE - $retirementAge + 1;
-        $probability = round(($yearsAboveTarget / $totalYears) * 100, 0);
+        // Probability is based on fund longevity and income coverage
+        $probability = $this->calculateRetirementProbability(
+            $yearsBeforeDepletion,
+            $yearsAboveTarget,
+            self::END_AGE - $retirementAge + 1
+        );
         $onTrackStatus = $this->determineOnTrackStatus($probability);
 
         return [
@@ -452,6 +456,52 @@ class RetirementProjectionService
         $profile = $this->userProfileService->getCompleteProfile($user);
 
         return (float) ($profile['income_occupation']['net_income'] ?? 0);
+    }
+
+    /**
+     * Calculate retirement probability based on fund longevity and income coverage.
+     *
+     * The probability is primarily based on how long the fund lasts, with a bonus
+     * for years where income meets the target. Since we use the 5th percentile
+     * of Monte Carlo projections, fund longevity at this level represents
+     * a 95% confidence level.
+     *
+     * Scoring:
+     * - Fund lasting 30+ years (to age 90+): base 85% probability
+     * - Fund lasting 35+ years (to age 95+): base 92% probability
+     * - Fund lasting 40+ years (to age 100+): base 95% probability
+     * - Income coverage bonus: up to 5% additional
+     */
+    private function calculateRetirementProbability(
+        int $yearsBeforeDepletion,
+        int $yearsAboveTarget,
+        int $totalYears
+    ): float {
+        // Base probability from fund longevity
+        // Using 5th percentile projections means 95% of scenarios are better
+        if ($yearsBeforeDepletion >= 40) {
+            $baseProbability = 95;
+        } elseif ($yearsBeforeDepletion >= 35) {
+            $baseProbability = 92;
+        } elseif ($yearsBeforeDepletion >= 30) {
+            $baseProbability = 85;
+        } elseif ($yearsBeforeDepletion >= 25) {
+            $baseProbability = 75;
+        } elseif ($yearsBeforeDepletion >= 20) {
+            $baseProbability = 60;
+        } elseif ($yearsBeforeDepletion >= 15) {
+            $baseProbability = 45;
+        } elseif ($yearsBeforeDepletion >= 10) {
+            $baseProbability = 30;
+        } else {
+            $baseProbability = max(5, $yearsBeforeDepletion * 3);
+        }
+
+        // Income coverage bonus (up to 5% additional)
+        $incomeCoverageRatio = $totalYears > 0 ? $yearsAboveTarget / $totalYears : 0;
+        $incomeBonus = $incomeCoverageRatio * 5;
+
+        return min(100, round($baseProbability + $incomeBonus, 0));
     }
 
     /**

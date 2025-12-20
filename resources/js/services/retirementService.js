@@ -51,6 +51,27 @@ export default {
         return response.data;
     },
 
+    /**
+     * Get retirement strategies analysis
+     */
+    async getStrategies() {
+        const response = await api.get(`${API_BASE}/strategies`);
+        return response.data;
+    },
+
+    /**
+     * Calculate impact of a strategy change
+     */
+    async calculateStrategyImpact(strategyType, newValue) {
+        const response = await api.get(`${API_BASE}/strategies/impact`, {
+            params: {
+                strategy_type: strategyType,
+                new_value: newValue,
+            },
+        });
+        return response.data;
+    },
+
     // DC Pension CRUD operations
     async createDCPension(pensionData) {
         const response = await api.post(`${API_BASE}/pensions/dc`, pensionData);
