@@ -176,22 +176,45 @@ class UserProfileService
      */
     private function calculateAnnualExpenditure(User $user): float
     {
-        // Manual living expenses from user profile
-        $monthlyManual = (float) ($user->monthly_expenditure ?? 0);
+        $breakdown = $this->getExpenditureBreakdown($user);
 
-        // Add financial commitments (retirement, properties, protection, liabilities)
-        $commitments = $this->getFinancialCommitments($user);
-        $monthlyCommitments = (float) ($commitments['totals']['total'] ?? 0);
-
-        return ($monthlyManual + $monthlyCommitments) * 12;
+        return $breakdown['annual'];
     }
 
     /**
      * Get expenditure breakdown including financial commitments.
+     * Uses categories sum when entry_mode is 'category', otherwise uses monthly_expenditure.
      */
     private function getExpenditureBreakdown(User $user): array
     {
-        $monthlyManual = (float) ($user->monthly_expenditure ?? 0);
+        // Calculate manual expenditure based on entry mode
+        if ($user->expenditure_entry_mode === 'category') {
+            // Sum all category fields (same as Expenditure tab's totalMonthlyExpenditure)
+            $monthlyManual = (float) ($user->food_groceries ?? 0)
+                + (float) ($user->transport_fuel ?? 0)
+                + (float) ($user->healthcare_medical ?? 0)
+                + (float) ($user->insurance ?? 0)
+                + (float) ($user->mobile_phones ?? 0)
+                + (float) ($user->internet_tv ?? 0)
+                + (float) ($user->subscriptions ?? 0)
+                + (float) ($user->clothing_personal_care ?? 0)
+                + (float) ($user->entertainment_dining ?? 0)
+                + (float) ($user->holidays_travel ?? 0)
+                + (float) ($user->pets ?? 0)
+                + (float) ($user->childcare ?? 0)
+                + (float) ($user->school_fees ?? 0)
+                + (float) ($user->school_lunches ?? 0)
+                + (float) ($user->school_extras ?? 0)
+                + (float) ($user->university_fees ?? 0)
+                + (float) ($user->children_activities ?? 0)
+                + (float) ($user->gifts_charity ?? 0)
+                + (float) ($user->regular_savings ?? 0)
+                + (float) ($user->other_expenditure ?? 0);
+        } else {
+            // Simple mode - use the monthly_expenditure field
+            $monthlyManual = (float) ($user->monthly_expenditure ?? 0);
+        }
+
         $commitments = $this->getFinancialCommitments($user);
         $monthlyCommitments = (float) ($commitments['totals']['total'] ?? 0);
         $monthlyTotal = $monthlyManual + $monthlyCommitments;
