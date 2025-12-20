@@ -596,11 +596,13 @@ class UserProfileService
             $totalMonthlyExpense = 0;
             $breakdown = [];
 
-            // Mortgage payment
+            // Mortgage payment (apply ownership percentage for joint properties)
             $mortgage = $property->mortgages()->first();
             if ($mortgage && $mortgage->monthly_payment > 0) {
-                $totalMonthlyExpense += $mortgage->monthly_payment;
-                $breakdown['mortgage'] = $mortgage->monthly_payment;
+                $ownershipPercent = ($property->ownership_percentage ?? 100) / 100;
+                $userShare = $mortgage->monthly_payment * $ownershipPercent;
+                $totalMonthlyExpense += $userShare;
+                $breakdown['mortgage'] = $userShare;
             }
 
             // Council tax
@@ -650,8 +652,8 @@ class UserProfileService
                     continue;
                 }
 
-                // Values stored in database ARE ALREADY the user's share
-                // No adjustment needed - just use the values directly
+                // Property costs are stored as user's share in reciprocal records
+                // Mortgage payments are adjusted above using ownership_percentage
                 $commitments['properties'][] = [
                     'id' => $property->id,
                     'name' => $property->property_name ?? $property->address_line_1,
