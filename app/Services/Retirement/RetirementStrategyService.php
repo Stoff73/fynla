@@ -173,6 +173,7 @@ class RetirementStrategyService
 
     /**
      * Calculate user's affordability (disposable income).
+     * Uses the same calculation as Income & Occupation tab in User Profile.
      */
     private function calculateAffordability(User $user): array
     {
@@ -182,22 +183,25 @@ class RetirementStrategyService
         $grossIncome = (float) ($incomeData['total_annual_income'] ?? 0);
         $netIncome = (float) ($incomeData['net_income'] ?? 0);
 
-        // Get annual expenditure
-        $annualExpenditure = (float) ($user->annual_expenditure ?? ($user->monthly_expenditure * 12) ?? 0);
+        // Use annual_expenditure from profile (includes categories + financial commitments)
+        $annualExpenditure = (float) ($incomeData['annual_expenditure'] ?? 0);
+        $monthlyExpenditure = (float) ($incomeData['monthly_expenditure'] ?? 0);
 
         // Get existing pension contributions
         $existingContributions = $this->calculateTotalContributions($user);
 
-        // Disposable income = Net income - Expenses
-        $disposableIncome = max(0, $netIncome - $annualExpenditure);
+        // Disposable income from profile (already calculated correctly)
+        $disposableIncome = (float) ($incomeData['disposable_income'] ?? 0);
+        $monthlyDisposable = (float) ($incomeData['monthly_disposable'] ?? 0);
 
         return [
             'gross_income' => round($grossIncome, 2),
             'net_income' => round($netIncome, 2),
             'annual_expenditure' => round($annualExpenditure, 2),
+            'monthly_expenditure' => round($monthlyExpenditure, 2),
             'existing_pension_contributions' => round($existingContributions, 2),
             'disposable_income' => round($disposableIncome, 2),
-            'monthly_disposable' => round($disposableIncome / 12, 2),
+            'monthly_disposable' => round($monthlyDisposable, 2),
         ];
     }
 
