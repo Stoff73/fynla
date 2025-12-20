@@ -25,7 +25,7 @@
             Risk Profile
           </router-link>
         </div>
-        <div class="header-buttons">
+        <div v-if="activeTab === 'current'" class="header-buttons">
           <button @click="showPensionForm = true" class="add-pension-button">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="button-icon">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -41,15 +41,31 @@
         </div>
       </div>
 
-      <div v-if="loading" class="loading-state">
-        <p>Loading pensions...</p>
+      <!-- Tab Navigation -->
+      <div class="tab-navigation">
+        <nav class="tabs-nav">
+          <button
+            v-for="tab in tabs"
+            :key="tab.id"
+            @click="activeTab = tab.id"
+            :class="['tab-button', activeTab === tab.id ? 'active' : '']"
+          >
+            {{ tab.label }}
+          </button>
+        </nav>
       </div>
 
-      <div v-else-if="error" class="error-state">
-        <p>{{ error }}</p>
-      </div>
+      <!-- Current Pensions Tab -->
+      <template v-if="activeTab === 'current'">
+        <div v-if="loading" class="loading-state">
+          <p>Loading pensions...</p>
+        </div>
 
-      <div v-else-if="allPensions.length === 0" class="empty-state">
+        <div v-else-if="error" class="error-state">
+          <p>{{ error }}</p>
+        </div>
+
+        <div v-else-if="allPensions.length === 0" class="empty-state">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="empty-icon">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
@@ -148,27 +164,38 @@
         </div>
       </div>
 
-      <!-- Pension Wealth Summary -->
-      <div v-if="allPensions.length > 0" class="wealth-summary">
-        <h3 class="summary-title">Pension Wealth Summary</h3>
-        <div class="summary-grid">
-          <div class="summary-item dc">
-            <p class="summary-label">Money Purchase Pensions</p>
-            <p class="summary-value">{{ formatCurrency(dcPensionValue) }}</p>
-            <p class="summary-count">{{ dcPensions.length }} pension{{ dcPensions.length !== 1 ? 's' : '' }}</p>
-          </div>
-          <div class="summary-item db">
-            <p class="summary-label">Final Salary Pensions</p>
-            <p class="summary-value">{{ formatCurrency(dbPensionIncome) }}<span class="text-sm text-gray-500">/year</span></p>
-            <p class="summary-count">{{ dbPensions.length }} scheme{{ dbPensions.length !== 1 ? 's' : '' }}</p>
-          </div>
-          <div class="summary-item state">
-            <p class="summary-label">State Pension</p>
-            <p class="summary-value">{{ formatCurrency(statePensionForecast) }}<span class="text-sm text-gray-500">/year</span></p>
-            <p class="summary-count">{{ statePension?.ni_years_completed || 0 }} NI years</p>
+        <!-- Pension Wealth Summary -->
+        <div v-if="allPensions.length > 0" class="wealth-summary">
+          <h3 class="summary-title">Pension Wealth Summary</h3>
+          <div class="summary-grid">
+            <div class="summary-item dc">
+              <p class="summary-label">Money Purchase Pensions</p>
+              <p class="summary-value">{{ formatCurrency(dcPensionValue) }}</p>
+              <p class="summary-count">{{ dcPensions.length }} pension{{ dcPensions.length !== 1 ? 's' : '' }}</p>
+            </div>
+            <div class="summary-item db">
+              <p class="summary-label">Final Salary Pensions</p>
+              <p class="summary-value">{{ formatCurrency(dbPensionIncome) }}<span class="text-sm text-gray-500">/year</span></p>
+              <p class="summary-count">{{ dbPensions.length }} scheme{{ dbPensions.length !== 1 ? 's' : '' }}</p>
+            </div>
+            <div class="summary-item state">
+              <p class="summary-label">State Pension</p>
+              <p class="summary-value">{{ formatCurrency(statePensionForecast) }}<span class="text-sm text-gray-500">/year</span></p>
+              <p class="summary-count">{{ statePension?.ni_years_completed || 0 }} NI years</p>
+            </div>
           </div>
         </div>
-      </div>
+      </template>
+
+      <!-- Future Value Tab -->
+      <FutureValueTab
+        v-else-if="activeTab === 'future'"
+        :projections="projections"
+        :loading="projectionsLoading"
+      />
+
+      <!-- Strategies Tab -->
+      <StrategiesTab v-else-if="activeTab === 'strategies'" />
     </template>
 
     <!-- Pension Form Modal -->
@@ -206,6 +233,8 @@ import PensionDetailInline from './PensionDetailInline.vue';
 import UnifiedPensionForm from '@/components/Retirement/UnifiedPensionForm.vue';
 import DocumentUploadModal from '@/components/Shared/DocumentUploadModal.vue';
 import RiskBadge from '@/components/Shared/RiskBadge.vue';
+import FutureValueTab from '@/components/Retirement/FutureValueTab.vue';
+import StrategiesTab from '@/components/Retirement/StrategiesTab.vue';
 
 export default {
   name: 'PensionList',
@@ -215,10 +244,18 @@ export default {
     UnifiedPensionForm,
     DocumentUploadModal,
     RiskBadge,
+    FutureValueTab,
+    StrategiesTab,
   },
 
   data() {
     return {
+      activeTab: 'current',
+      tabs: [
+        { id: 'current', label: 'Pensions' },
+        { id: 'future', label: 'Future Value' },
+        { id: 'strategies', label: 'Strategies' },
+      ],
       selectedPension: null,
       selectedPensionType: null,
       showPensionForm: false,
@@ -230,7 +267,7 @@ export default {
   },
 
   computed: {
-    ...mapState('retirement', ['dcPensions', 'dbPensions', 'statePension', 'loading', 'error']),
+    ...mapState('retirement', ['dcPensions', 'dbPensions', 'statePension', 'loading', 'error', 'projections', 'projectionsLoading']),
 
     allPensions() {
       const all = [...this.dcPensions, ...this.dbPensions];
@@ -253,9 +290,25 @@ export default {
     },
   },
 
+  watch: {
+    activeTab(newTab) {
+      if (newTab === 'future' && !this.projections) {
+        this.loadProjections();
+      }
+    },
+  },
+
   methods: {
-    ...mapActions('retirement', ['fetchRetirementData', 'createDCPension', 'createDBPension', 'updateStatePension']),
+    ...mapActions('retirement', ['fetchRetirementData', 'createDCPension', 'createDBPension', 'updateStatePension', 'fetchProjections']),
     ...mapActions('netWorth', ['setDetailView']),
+
+    async loadProjections() {
+      try {
+        await this.fetchProjections();
+      } catch (error) {
+        console.error('Failed to load projections:', error);
+      }
+    },
 
     selectPension(pension, type) {
       this.selectedPension = pension;
@@ -384,6 +437,40 @@ export default {
 <style scoped>
 .pension-list {
   padding: 24px;
+}
+
+/* Tab Navigation */
+.tab-navigation {
+  margin-bottom: 24px;
+}
+
+.tabs-nav {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 0;
+}
+
+.tab-button {
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #6b7280;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: -1px;
+}
+
+.tab-button:hover {
+  color: #3b82f6;
+}
+
+.tab-button.active {
+  color: #3b82f6;
+  border-bottom-color: #3b82f6;
 }
 
 .list-header {

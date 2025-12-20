@@ -1,0 +1,244 @@
+<template>
+  <div class="pension-pot-chart">
+    <apexchart
+      v-if="isReady && series.length > 0"
+      type="area"
+      :options="chartOptions"
+      :series="series"
+      height="400"
+    />
+    <div v-else class="chart-placeholder">
+      <p>No projection data available</p>
+    </div>
+  </div>
+</template>
+
+<script>
+import VueApexCharts from 'vue3-apexcharts';
+
+export default {
+  name: 'PensionPotProjectionChart',
+
+  components: {
+    apexchart: VueApexCharts,
+  },
+
+  props: {
+    data: {
+      type: Object,
+      required: true,
+    },
+  },
+
+  data() {
+    return {
+      isReady: false,
+    };
+  },
+
+  computed: {
+    years() {
+      if (!this.data?.year_by_year) return [];
+      return this.data.year_by_year.map(y => y.year);
+    },
+
+    series() {
+      if (!this.data?.year_by_year || this.data.year_by_year.length === 0) return [];
+
+      // Create stacked areas for probability bands
+      // Order from bottom to top: 95% (darkest) -> 80% (lightest)
+      return [
+        {
+          name: '95% Probability',
+          data: this.data.year_by_year.map(y => y.percentile_5),
+        },
+        {
+          name: '90% Probability',
+          data: this.data.year_by_year.map(y => y.percentile_10),
+        },
+        {
+          name: '85% Probability',
+          data: this.data.year_by_year.map(y => y.percentile_15),
+        },
+        {
+          name: '80% Probability',
+          data: this.data.year_by_year.map(y => y.percentile_20),
+        },
+      ];
+    },
+
+    chartOptions() {
+      return {
+        chart: {
+          type: 'area',
+          stacked: false,
+          fontFamily: 'Inter, system-ui, sans-serif',
+          toolbar: {
+            show: true,
+            tools: {
+              download: true,
+              selection: false,
+              zoom: false,
+              zoomin: false,
+              zoomout: false,
+              pan: false,
+              reset: false,
+            },
+          },
+          zoom: {
+            enabled: false,
+          },
+          animations: {
+            enabled: true,
+            easing: 'easeinout',
+            speed: 800,
+          },
+        },
+        // Color gradient from darkest (95%) to lightest (80%)
+        colors: ['#1e3a5f', '#2563eb', '#3b82f6', '#60a5fa'],
+        stroke: {
+          curve: 'smooth',
+          width: [1, 1, 1, 1],
+        },
+        fill: {
+          type: 'gradient',
+          gradient: {
+            opacityFrom: 0.5,
+            opacityTo: 0.1,
+            stops: [0, 90, 100],
+          },
+        },
+        xaxis: {
+          categories: this.years,
+          title: {
+            text: 'Year',
+            style: {
+              fontWeight: 600,
+              fontSize: '12px',
+            },
+          },
+          labels: {
+            style: {
+              fontSize: '11px',
+            },
+            rotate: -45,
+            rotateAlways: this.years.length > 15,
+          },
+          tickAmount: Math.min(this.years.length, 10),
+        },
+        yaxis: {
+          title: {
+            text: 'Pension Pot Value',
+            style: {
+              fontWeight: 600,
+              fontSize: '12px',
+            },
+          },
+          labels: {
+            formatter: (val) => this.formatCurrencyShort(val),
+            style: {
+              fontSize: '11px',
+            },
+          },
+        },
+        tooltip: {
+          shared: true,
+          intersect: false,
+          y: {
+            formatter: (val) => this.formatCurrency(val),
+          },
+        },
+        legend: {
+          position: 'top',
+          horizontalAlign: 'center',
+          fontSize: '12px',
+          markers: {
+            width: 12,
+            height: 12,
+            radius: 2,
+          },
+        },
+        grid: {
+          borderColor: '#e5e7eb',
+          strokeDashArray: 4,
+        },
+        dataLabels: {
+          enabled: false,
+        },
+        annotations: {
+          xaxis: [
+            {
+              x: this.years[this.years.length - 1],
+              borderColor: '#f59e0b',
+              strokeDashArray: 0,
+              label: {
+                borderColor: '#f59e0b',
+                style: {
+                  color: '#fff',
+                  background: '#f59e0b',
+                  fontSize: '11px',
+                },
+                text: 'Retirement',
+                position: 'top',
+              },
+            },
+          ],
+        },
+      };
+    },
+  },
+
+  mounted() {
+    this.$nextTick(() => {
+      setTimeout(() => {
+        this.isReady = true;
+      }, 100);
+    });
+  },
+
+  methods: {
+    formatCurrency(value) {
+      if (value === null || value === undefined) return '£0';
+      return new Intl.NumberFormat('en-GB', {
+        style: 'currency',
+        currency: 'GBP',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      }).format(value);
+    },
+
+    formatCurrencyShort(value) {
+      if (value === null || value === undefined) return '£0';
+      if (value >= 1000000) {
+        return '£' + (value / 1000000).toFixed(1) + 'M';
+      }
+      if (value >= 1000) {
+        return '£' + (value / 1000).toFixed(0) + 'K';
+      }
+      return this.formatCurrency(value);
+    },
+  },
+};
+</script>
+
+<style scoped>
+.pension-pot-chart {
+  width: 100%;
+}
+
+.chart-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 400px;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 1px dashed #d1d5db;
+}
+
+.chart-placeholder p {
+  color: #6b7280;
+  font-size: 14px;
+  margin: 0;
+}
+</style>

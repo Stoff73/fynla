@@ -18,6 +18,8 @@ const state = {
     annualAllowance: null,
     scenarios: null,
     portfolioAnalysis: null, // Portfolio optimization data
+    projections: null, // Monte Carlo projections for Future Value tab
+    projectionsLoading: false,
     loading: false,
     error: null,
 };
@@ -83,6 +85,12 @@ const mutations = {
     SET_PORTFOLIO_ANALYSIS(state, analysis) {
         state.portfolioAnalysis = analysis;
     },
+    SET_PROJECTIONS(state, projections) {
+        state.projections = projections;
+    },
+    SET_PROJECTIONS_LOADING(state, loading) {
+        state.projectionsLoading = loading;
+    },
 };
 
 const actions = {
@@ -141,6 +149,21 @@ const actions = {
             });
 
         return ongoingRequests.fetchRecommendations;
+    },
+
+    async fetchProjections({ commit }) {
+        commit('SET_PROJECTIONS_LOADING', true);
+        commit('SET_ERROR', null);
+        try {
+            const response = await retirementService.getProjections();
+            commit('SET_PROJECTIONS', response.data);
+            return response.data;
+        } catch (error) {
+            commit('SET_ERROR', error.response?.data?.message || 'Failed to fetch projections');
+            throw error;
+        } finally {
+            commit('SET_PROJECTIONS_LOADING', false);
+        }
     },
 
     async runScenario({ commit }, scenarioData) {

@@ -16,6 +16,7 @@ use App\Models\DCPension;
 use App\Models\RetirementProfile;
 use App\Models\StatePension;
 use App\Services\Retirement\AnnualAllowanceChecker;
+use App\Services\Retirement\RetirementProjectionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -30,7 +31,8 @@ class RetirementController extends Controller
 {
     public function __construct(
         private RetirementAgent $agent,
-        private AnnualAllowanceChecker $allowanceChecker
+        private AnnualAllowanceChecker $allowanceChecker,
+        private RetirementProjectionService $projectionService
     ) {}
 
     /**
@@ -51,6 +53,22 @@ class RetirementController extends Controller
             'success' => true,
             'message' => 'Retirement data retrieved successfully',
             'data' => $data,
+        ]);
+    }
+
+    /**
+     * Get retirement projections with Monte Carlo simulation.
+     */
+    public function getProjections(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $projections = $this->projectionService->getProjections($user->id);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Retirement projections generated successfully',
+            'data' => $projections,
         ]);
     }
 

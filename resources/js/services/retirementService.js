@@ -43,6 +43,14 @@ export default {
         return response.data;
     },
 
+    /**
+     * Get retirement projections (Monte Carlo + income drawdown)
+     */
+    async getProjections() {
+        const response = await api.get(`${API_BASE}/projections`);
+        return response.data;
+    },
+
     // DC Pension CRUD operations
     async createDCPension(pensionData) {
         const response = await api.post(`${API_BASE}/pensions/dc`, pensionData);
