@@ -419,11 +419,11 @@
             <p class="text-body-xs text-gray-500">per year</p>
           </div>
 
-          <!-- Annual Expenditure -->
+          <!-- Annual Expenditure (includes financial commitments) -->
           <div class="bg-gray-50 rounded-lg p-4">
             <p class="text-body-sm text-gray-600 mb-1">Annual Expenditure</p>
-            <p class="text-h4 font-semibold text-gray-900">{{ formatCurrency(incomeOccupation.annual_expenditure || 0) }}</p>
-            <p class="text-body-xs text-gray-500">{{ formatCurrency(incomeOccupation.monthly_expenditure || 0) }}/month</p>
+            <p class="text-h4 font-semibold text-gray-900">{{ formatCurrency(totalAnnualExpenditure) }}</p>
+            <p class="text-body-xs text-gray-500">{{ formatCurrency(totalMonthlyExpenditure) }}/month</p>
           </div>
 
           <!-- Disposable Income -->
@@ -554,11 +554,20 @@ export default {
              retirementAge.value < 55;
     });
 
+    // Use saved expenditure directly (Expenditure form saves total including commitments)
+    const totalMonthlyExpenditure = computed(() => {
+      return Number(incomeOccupation.value?.monthly_expenditure || 0);
+    });
+
+    const totalAnnualExpenditure = computed(() => {
+      return Number(incomeOccupation.value?.annual_expenditure || 0) ||
+             totalMonthlyExpenditure.value * 12;
+    });
+
     const disposableIncome = computed(() => {
       if (!incomeOccupation.value) return 0;
       const netIncome = incomeOccupation.value.net_income || 0;
-      const expenditure = incomeOccupation.value.annual_expenditure || 0;
-      return netIncome - expenditure;
+      return netIncome - totalAnnualExpenditure.value;
     });
 
     const monthlyDisposable = computed(() => {
@@ -676,6 +685,8 @@ export default {
       showEarlyRetirementWarning,
       incomeOccupation,
       detailedTaxBreakdown,
+      totalMonthlyExpenditure,
+      totalAnnualExpenditure,
       disposableIncome,
       monthlyDisposable,
       disposableIncomeClass,
