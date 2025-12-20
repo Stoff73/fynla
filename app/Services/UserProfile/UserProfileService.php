@@ -172,32 +172,39 @@ class UserProfileService
 
     /**
      * Calculate total annual expenditure from user profile.
-     * The monthly_expenditure field already includes all living costs (mortgages, liabilities, etc.)
+     * Combines manual monthly expenditure + automated financial commitments
+     * to match the Expenditure tab's "User Total" calculation.
      */
     private function calculateAnnualExpenditure(User $user): float
     {
-        // Use annual_expenditure if set, otherwise calculate from monthly
-        $annualExpenditure = (float) ($user->annual_expenditure ?? 0);
+        // Manual living expenses from user profile
+        $monthlyManualExpenditure = (float) ($user->monthly_expenditure ?? 0);
 
-        if ($annualExpenditure === 0.0 && $user->monthly_expenditure > 0) {
-            $annualExpenditure = (float) $user->monthly_expenditure * 12;
-        }
+        // Financial commitments (retirement, properties, protection, liabilities)
+        $commitments = $this->getFinancialCommitments($user);
+        $monthlyCommitments = (float) ($commitments['totals']['total'] ?? 0);
 
-        return $annualExpenditure;
+        // Combined monthly total (same as Expenditure tab's totalMonthlyWithCommitments)
+        $totalMonthlyExpenditure = $monthlyManualExpenditure + $monthlyCommitments;
+
+        return $totalMonthlyExpenditure * 12;
     }
 
     /**
-     * Get expenditure breakdown - just the total from user profile.
-     * The monthly_expenditure already includes all expenses.
+     * Get expenditure breakdown showing manual + commitments total.
      */
     private function getExpenditureBreakdown(User $user): array
     {
-        $annualExpenditure = $this->calculateAnnualExpenditure($user);
-        $monthlyExpenditure = (float) ($user->monthly_expenditure ?? 0);
+        $monthlyManual = (float) ($user->monthly_expenditure ?? 0);
+        $commitments = $this->getFinancialCommitments($user);
+        $monthlyCommitments = (float) ($commitments['totals']['total'] ?? 0);
+        $monthlyTotal = $monthlyManual + $monthlyCommitments;
 
         return [
-            'monthly' => round($monthlyExpenditure, 2),
-            'annual' => round($annualExpenditure, 2),
+            'monthly_manual' => round($monthlyManual, 2),
+            'monthly_commitments' => round($monthlyCommitments, 2),
+            'monthly' => round($monthlyTotal, 2),
+            'annual' => round($monthlyTotal * 12, 2),
         ];
     }
 
@@ -337,10 +344,10 @@ class UserProfileService
             'net_income' => $detailedTax['summary']['net_income'],
             'effective_tax_rate' => $simpleTax['effective_tax_rate'],
             'breakdown' => $simpleTax['breakdown'],
-            // Expenditure and disposable income
-            'monthly_expenditure' => (float) ($user->monthly_expenditure ?? 0),
+            // Expenditure and disposable income (includes financial commitments to match Expenditure tab)
             'expenditure_breakdown' => $this->getExpenditureBreakdown($user),
             'annual_expenditure' => $this->calculateAnnualExpenditure($user),
+            'monthly_expenditure' => $this->calculateAnnualExpenditure($user) / 12,
             'disposable_income' => $detailedTax['summary']['net_income'] - $this->calculateAnnualExpenditure($user),
             'monthly_disposable' => ($detailedTax['summary']['net_income'] - $this->calculateAnnualExpenditure($user)) / 12,
             // New detailed breakdown for UI display
