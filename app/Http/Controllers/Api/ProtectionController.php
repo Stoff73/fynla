@@ -7,10 +7,12 @@ namespace App\Http\Controllers\Api;
 use App\Agents\ProtectionAgent;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Protection\ScenarioRequest;
+use App\Http\Requests\Protection\StoreCriticalIllnessPolicyRequest;
 use App\Http\Requests\Protection\StoreDisabilityPolicyRequest;
 use App\Http\Requests\Protection\StoreLifePolicyRequest;
 use App\Http\Requests\Protection\StoreProtectionProfileRequest;
 use App\Http\Requests\Protection\StoreSicknessIllnessPolicyRequest;
+use App\Http\Requests\Protection\UpdateCriticalIllnessPolicyRequest;
 use App\Http\Requests\Protection\UpdateDisabilityPolicyRequest;
 use App\Http\Requests\Protection\UpdateLifePolicyRequest;
 use App\Http\Requests\Protection\UpdateSicknessIllnessPolicyRequest;
@@ -20,12 +22,14 @@ use App\Models\IncomeProtectionPolicy;
 use App\Models\LifeInsurancePolicy;
 use App\Models\ProtectionProfile;
 use App\Models\SicknessIllnessPolicy;
+use App\Traits\PolicyCRUDTrait;
 use App\Traits\SanitizedErrorResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ProtectionController extends Controller
 {
+    use PolicyCRUDTrait;
     use SanitizedErrorResponse;
 
     /**
@@ -216,27 +220,12 @@ class ProtectionController extends Controller
      */
     public function storeLifePolicy(StoreLifePolicyRequest $request): JsonResponse
     {
-        $user = $request->user();
-        $validated = $request->validated();
-        $validated['user_id'] = $user->id;
-
-        try {
-            $policy = LifeInsurancePolicy::create($validated);
-
-            // Invalidate cache
-            $this->protectionAgent->invalidateCache($user->id);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Life insurance policy created successfully.',
-                'data' => $policy,
-            ], 201);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create life insurance policy: '.$e->getMessage(),
-            ], 500);
-        }
+        return $this->storePolicy(
+            LifeInsurancePolicy::class,
+            $request->validated(),
+            $request->user()->id,
+            'Life insurance'
+        );
     }
 
     /**
@@ -244,33 +233,13 @@ class ProtectionController extends Controller
      */
     public function updateLifePolicy(UpdateLifePolicyRequest $request, int $id): JsonResponse
     {
-        $user = $request->user();
-
-        try {
-            $policy = LifeInsurancePolicy::where('user_id', $user->id)
-                ->findOrFail($id);
-
-            $policy->update($request->validated());
-
-            // Invalidate cache
-            $this->protectionAgent->invalidateCache($user->id);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Life insurance policy updated successfully.',
-                'data' => $policy,
-            ]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Policy not found or you do not have permission to update it.',
-            ], 404);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update life insurance policy: '.$e->getMessage(),
-            ], 500);
-        }
+        return $this->updatePolicy(
+            LifeInsurancePolicy::class,
+            $request->validated(),
+            $request->user()->id,
+            $id,
+            'Life insurance'
+        );
     }
 
     /**
@@ -278,120 +247,39 @@ class ProtectionController extends Controller
      */
     public function destroyLifePolicy(Request $request, int $id): JsonResponse
     {
-        $user = $request->user();
-
-        try {
-            $policy = LifeInsurancePolicy::where('user_id', $user->id)
-                ->findOrFail($id);
-
-            $policy->delete();
-
-            // Invalidate cache
-            $this->protectionAgent->invalidateCache($user->id);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Life insurance policy deleted successfully.',
-            ]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Policy not found or you do not have permission to delete it.',
-            ], 404);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to delete life insurance policy: '.$e->getMessage(),
-            ], 500);
-        }
+        return $this->destroyPolicy(
+            LifeInsurancePolicy::class,
+            $request->user()->id,
+            $id,
+            'Life insurance'
+        );
     }
 
     /**
      * Store a new critical illness policy.
      */
-    public function storeCriticalIllnessPolicy(Request $request): JsonResponse
+    public function storeCriticalIllnessPolicy(StoreCriticalIllnessPolicyRequest $request): JsonResponse
     {
-        $user = $request->user();
-
-        $validated = $request->validate([
-            'policy_type' => 'required|in:standalone,accelerated,additional',
-            'provider' => 'required|string|max:255',
-            'policy_number' => 'nullable|string|max:255',
-            'sum_assured' => 'required|numeric|min:1000',
-            'premium_amount' => 'required|numeric|min:0',
-            'premium_frequency' => 'required|in:monthly,quarterly,annually',
-            'policy_start_date' => 'nullable|date|before_or_equal:today',
-            'policy_end_date' => 'nullable|date|after:policy_start_date',
-            'policy_term_years' => 'nullable|integer|min:1|max:50',
-            'conditions_covered' => 'nullable|array',
-        ]);
-
-        $validated['user_id'] = $user->id;
-
-        try {
-            $policy = CriticalIllnessPolicy::create($validated);
-
-            // Invalidate cache
-            $this->protectionAgent->invalidateCache($user->id);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Critical illness policy created successfully.',
-                'data' => $policy,
-            ], 201);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create critical illness policy: '.$e->getMessage(),
-            ], 500);
-        }
+        return $this->storePolicy(
+            CriticalIllnessPolicy::class,
+            $request->validated(),
+            $request->user()->id,
+            'Critical illness'
+        );
     }
 
     /**
      * Update a critical illness policy.
      */
-    public function updateCriticalIllnessPolicy(Request $request, int $id): JsonResponse
+    public function updateCriticalIllnessPolicy(UpdateCriticalIllnessPolicyRequest $request, int $id): JsonResponse
     {
-        $user = $request->user();
-
-        $validated = $request->validate([
-            'policy_type' => 'sometimes|in:standalone,accelerated,additional',
-            'provider' => 'sometimes|string|max:255',
-            'policy_number' => 'sometimes|nullable|string|max:255',
-            'sum_assured' => 'sometimes|numeric|min:1000',
-            'premium_amount' => 'sometimes|numeric|min:0',
-            'premium_frequency' => 'sometimes|in:monthly,quarterly,annually',
-            'policy_start_date' => 'sometimes|date|before_or_equal:today',
-            'policy_end_date' => 'sometimes|nullable|date|after:policy_start_date',
-            'policy_term_years' => 'sometimes|integer|min:1|max:50',
-            'conditions_covered' => 'sometimes|nullable|array',
-        ]);
-
-        try {
-            $policy = CriticalIllnessPolicy::where('user_id', $user->id)
-                ->findOrFail($id);
-
-            $policy->update($validated);
-
-            // Invalidate cache
-            $this->protectionAgent->invalidateCache($user->id);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Critical illness policy updated successfully.',
-                'data' => $policy,
-            ]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Policy not found or you do not have permission to update it.',
-            ], 404);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update critical illness policy: '.$e->getMessage(),
-            ], 500);
-        }
+        return $this->updatePolicy(
+            CriticalIllnessPolicy::class,
+            $request->validated(),
+            $request->user()->id,
+            $id,
+            'Critical illness'
+        );
     }
 
     /**
@@ -399,32 +287,12 @@ class ProtectionController extends Controller
      */
     public function destroyCriticalIllnessPolicy(Request $request, int $id): JsonResponse
     {
-        $user = $request->user();
-
-        try {
-            $policy = CriticalIllnessPolicy::where('user_id', $user->id)
-                ->findOrFail($id);
-
-            $policy->delete();
-
-            // Invalidate cache
-            $this->protectionAgent->invalidateCache($user->id);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Critical illness policy deleted successfully.',
-            ]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Policy not found or you do not have permission to delete it.',
-            ], 404);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to delete critical illness policy: '.$e->getMessage(),
-            ], 500);
-        }
+        return $this->destroyPolicy(
+            CriticalIllnessPolicy::class,
+            $request->user()->id,
+            $id,
+            'Critical illness'
+        );
     }
 
     /**
@@ -432,8 +300,6 @@ class ProtectionController extends Controller
      */
     public function storeIncomeProtectionPolicy(Request $request): JsonResponse
     {
-        $user = $request->user();
-
         $validated = $request->validate([
             'provider' => 'required|string|max:255',
             'policy_number' => 'nullable|string|max:255',
@@ -449,25 +315,12 @@ class ProtectionController extends Controller
             'policy_term_years' => 'nullable|integer|min:1|max:50',
         ]);
 
-        $validated['user_id'] = $user->id;
-
-        try {
-            $policy = IncomeProtectionPolicy::create($validated);
-
-            // Invalidate cache
-            $this->protectionAgent->invalidateCache($user->id);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Income protection policy created successfully.',
-                'data' => $policy,
-            ], 201);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create income protection policy: '.$e->getMessage(),
-            ], 500);
-        }
+        return $this->storePolicy(
+            IncomeProtectionPolicy::class,
+            $validated,
+            $request->user()->id,
+            'Income protection'
+        );
     }
 
     /**
@@ -475,8 +328,6 @@ class ProtectionController extends Controller
      */
     public function updateIncomeProtectionPolicy(Request $request, int $id): JsonResponse
     {
-        $user = $request->user();
-
         $validated = $request->validate([
             'provider' => 'sometimes|string|max:255',
             'policy_number' => 'sometimes|nullable|string|max:255',
@@ -491,31 +342,13 @@ class ProtectionController extends Controller
             'policy_end_date' => 'sometimes|nullable|date|after:policy_start_date',
         ]);
 
-        try {
-            $policy = IncomeProtectionPolicy::where('user_id', $user->id)
-                ->findOrFail($id);
-
-            $policy->update($validated);
-
-            // Invalidate cache
-            $this->protectionAgent->invalidateCache($user->id);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Income protection policy updated successfully.',
-                'data' => $policy,
-            ]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Policy not found or you do not have permission to update it.',
-            ], 404);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update income protection policy: '.$e->getMessage(),
-            ], 500);
-        }
+        return $this->updatePolicy(
+            IncomeProtectionPolicy::class,
+            $validated,
+            $request->user()->id,
+            $id,
+            'Income protection'
+        );
     }
 
     /**
@@ -523,32 +356,12 @@ class ProtectionController extends Controller
      */
     public function destroyIncomeProtectionPolicy(Request $request, int $id): JsonResponse
     {
-        $user = $request->user();
-
-        try {
-            $policy = IncomeProtectionPolicy::where('user_id', $user->id)
-                ->findOrFail($id);
-
-            $policy->delete();
-
-            // Invalidate cache
-            $this->protectionAgent->invalidateCache($user->id);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Income protection policy deleted successfully.',
-            ]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Policy not found or you do not have permission to delete it.',
-            ], 404);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to delete income protection policy: '.$e->getMessage(),
-            ], 500);
-        }
+        return $this->destroyPolicy(
+            IncomeProtectionPolicy::class,
+            $request->user()->id,
+            $id,
+            'Income protection'
+        );
     }
 
     /**
@@ -556,27 +369,12 @@ class ProtectionController extends Controller
      */
     public function storeDisabilityPolicy(StoreDisabilityPolicyRequest $request): JsonResponse
     {
-        $user = $request->user();
-        $validated = $request->validated();
-        $validated['user_id'] = $user->id;
-
-        try {
-            $policy = DisabilityPolicy::create($validated);
-
-            // Invalidate cache
-            $this->protectionAgent->invalidateCache($user->id);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Disability policy created successfully.',
-                'data' => $policy,
-            ], 201);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create disability policy: '.$e->getMessage(),
-            ], 500);
-        }
+        return $this->storePolicy(
+            DisabilityPolicy::class,
+            $request->validated(),
+            $request->user()->id,
+            'Disability'
+        );
     }
 
     /**
@@ -584,33 +382,13 @@ class ProtectionController extends Controller
      */
     public function updateDisabilityPolicy(UpdateDisabilityPolicyRequest $request, int $id): JsonResponse
     {
-        $user = $request->user();
-
-        try {
-            $policy = DisabilityPolicy::where('user_id', $user->id)
-                ->findOrFail($id);
-
-            $policy->update($request->validated());
-
-            // Invalidate cache
-            $this->protectionAgent->invalidateCache($user->id);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Disability policy updated successfully.',
-                'data' => $policy,
-            ]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Policy not found or you do not have permission to update it.',
-            ], 404);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update disability policy: '.$e->getMessage(),
-            ], 500);
-        }
+        return $this->updatePolicy(
+            DisabilityPolicy::class,
+            $request->validated(),
+            $request->user()->id,
+            $id,
+            'Disability'
+        );
     }
 
     /**
@@ -618,32 +396,12 @@ class ProtectionController extends Controller
      */
     public function destroyDisabilityPolicy(Request $request, int $id): JsonResponse
     {
-        $user = $request->user();
-
-        try {
-            $policy = DisabilityPolicy::where('user_id', $user->id)
-                ->findOrFail($id);
-
-            $policy->delete();
-
-            // Invalidate cache
-            $this->protectionAgent->invalidateCache($user->id);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Disability policy deleted successfully.',
-            ]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Policy not found or you do not have permission to delete it.',
-            ], 404);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to delete disability policy: '.$e->getMessage(),
-            ], 500);
-        }
+        return $this->destroyPolicy(
+            DisabilityPolicy::class,
+            $request->user()->id,
+            $id,
+            'Disability'
+        );
     }
 
     /**
@@ -651,27 +409,12 @@ class ProtectionController extends Controller
      */
     public function storeSicknessIllnessPolicy(StoreSicknessIllnessPolicyRequest $request): JsonResponse
     {
-        $user = $request->user();
-        $validated = $request->validated();
-        $validated['user_id'] = $user->id;
-
-        try {
-            $policy = SicknessIllnessPolicy::create($validated);
-
-            // Invalidate cache
-            $this->protectionAgent->invalidateCache($user->id);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Sickness/Illness policy created successfully.',
-                'data' => $policy,
-            ], 201);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create sickness/illness policy: '.$e->getMessage(),
-            ], 500);
-        }
+        return $this->storePolicy(
+            SicknessIllnessPolicy::class,
+            $request->validated(),
+            $request->user()->id,
+            'Sickness/Illness'
+        );
     }
 
     /**
@@ -679,33 +422,13 @@ class ProtectionController extends Controller
      */
     public function updateSicknessIllnessPolicy(UpdateSicknessIllnessPolicyRequest $request, int $id): JsonResponse
     {
-        $user = $request->user();
-
-        try {
-            $policy = SicknessIllnessPolicy::where('user_id', $user->id)
-                ->findOrFail($id);
-
-            $policy->update($request->validated());
-
-            // Invalidate cache
-            $this->protectionAgent->invalidateCache($user->id);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Sickness/Illness policy updated successfully.',
-                'data' => $policy,
-            ]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Policy not found or you do not have permission to update it.',
-            ], 404);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update sickness/illness policy: '.$e->getMessage(),
-            ], 500);
-        }
+        return $this->updatePolicy(
+            SicknessIllnessPolicy::class,
+            $request->validated(),
+            $request->user()->id,
+            $id,
+            'Sickness/Illness'
+        );
     }
 
     /**
@@ -713,32 +436,12 @@ class ProtectionController extends Controller
      */
     public function destroySicknessIllnessPolicy(Request $request, int $id): JsonResponse
     {
-        $user = $request->user();
-
-        try {
-            $policy = SicknessIllnessPolicy::where('user_id', $user->id)
-                ->findOrFail($id);
-
-            $policy->delete();
-
-            // Invalidate cache
-            $this->protectionAgent->invalidateCache($user->id);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Sickness/Illness policy deleted successfully.',
-            ]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Policy not found or you do not have permission to delete it.',
-            ], 404);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to delete sickness/illness policy: '.$e->getMessage(),
-            ], 500);
-        }
+        return $this->destroyPolicy(
+            SicknessIllnessPolicy::class,
+            $request->user()->id,
+            $id,
+            'Sickness/Illness'
+        );
     }
 
     /**

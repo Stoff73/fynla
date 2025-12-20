@@ -73,14 +73,63 @@
         Guaranteed income floor: {{ formatCurrency(strategy.constraints.guaranteed_income) }}/year
       </p>
     </div>
+
+    <!-- Projection Chart (shown when strategy gets user on track) -->
+    <div v-if="strategy.projection" class="projection-section">
+      <h5 class="projection-title">Projected Outcome</h5>
+
+      <!-- Chart -->
+      <div class="chart-container">
+        <apexchart
+          type="area"
+          height="280"
+          :options="chartOptions"
+          :series="chartSeries"
+        />
+      </div>
+
+      <!-- Income Comparison -->
+      <div class="income-comparison">
+        <div class="comparison-item without">
+          <span class="comparison-label">Without Strategy</span>
+          <div class="comparison-values">
+            <span class="pot-value">Pot: {{ formatCurrency(strategy.projection.without_strategy.pot_at_retirement) }}</span>
+            <span class="income-value">Income: {{ formatCurrency(strategy.projection.without_strategy.sustainable_income) }}/yr</span>
+            <span :class="['coverage-badge', getCoverageBadgeClass(strategy.projection.without_strategy.income_coverage_percent)]">
+              {{ strategy.projection.without_strategy.income_coverage_percent }}% of target
+            </span>
+          </div>
+        </div>
+        <div class="comparison-arrow">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 8.25L21 12m0 0l-3.75 3.75M21 12H3" />
+          </svg>
+        </div>
+        <div class="comparison-item with">
+          <span class="comparison-label">With Strategy</span>
+          <div class="comparison-values">
+            <span class="pot-value">Pot: {{ formatCurrency(strategy.projection.with_strategy.pot_at_retirement) }}</span>
+            <span class="income-value">Income: {{ formatCurrency(strategy.projection.with_strategy.sustainable_income) }}/yr</span>
+            <span :class="['coverage-badge', getCoverageBadgeClass(strategy.projection.with_strategy.income_coverage_percent)]">
+              {{ strategy.projection.with_strategy.income_coverage_percent }}% of target
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script>
 import retirementService from '../../services/retirementService';
+import VueApexCharts from 'vue3-apexcharts';
 
 export default {
   name: 'StrategyCard',
+
+  components: {
+    apexchart: VueApexCharts,
+  },
 
   props: {
     strategy: {
@@ -121,6 +170,85 @@ export default {
 
     displayImpact() {
       return this.calculatedImpact || this.strategy.impact;
+    },
+
+    chartSeries() {
+      if (!this.strategy.projection?.pot_growth) return [];
+
+      const growth = this.strategy.projection.pot_growth;
+      return [
+        {
+          name: 'With Strategy',
+          data: growth.map(item => item.pot_with_strategy),
+        },
+        {
+          name: 'Current Path',
+          data: growth.map(item => item.pot_without_strategy),
+        },
+      ];
+    },
+
+    chartOptions() {
+      if (!this.strategy.projection?.pot_growth) return {};
+
+      const growth = this.strategy.projection.pot_growth;
+      const years = growth.map(item => item.year);
+
+      return {
+        chart: {
+          type: 'area',
+          toolbar: { show: false },
+          zoom: { enabled: false },
+          animations: { enabled: true, speed: 500 },
+        },
+        colors: ['#10b981', '#9ca3af'],
+        fill: {
+          type: 'gradient',
+          gradient: {
+            shadeIntensity: 1,
+            opacityFrom: 0.4,
+            opacityTo: 0.1,
+            stops: [0, 90, 100],
+          },
+        },
+        stroke: {
+          curve: 'smooth',
+          width: [3, 2],
+          dashArray: [0, 5],
+        },
+        xaxis: {
+          categories: years,
+          labels: {
+            style: { colors: '#6b7280', fontSize: '11px' },
+            rotate: 0,
+            formatter: (val) => val % 5 === 0 ? val : '',
+          },
+          axisBorder: { show: false },
+          axisTicks: { show: false },
+        },
+        yaxis: {
+          labels: {
+            style: { colors: '#6b7280', fontSize: '11px' },
+            formatter: (val) => '£' + (val / 1000).toFixed(0) + 'k',
+          },
+        },
+        grid: {
+          borderColor: '#e5e7eb',
+          strokeDashArray: 4,
+        },
+        legend: {
+          position: 'top',
+          horizontalAlign: 'right',
+          fontSize: '12px',
+          markers: { width: 8, height: 8, radius: 2 },
+        },
+        tooltip: {
+          y: {
+            formatter: (val) => '£' + val.toLocaleString(),
+          },
+        },
+        dataLabels: { enabled: false },
+      };
     },
   },
 
@@ -236,6 +364,13 @@ export default {
       if (probability >= 95) return 'green';
       if (probability >= 80) return 'amber';
       return 'red';
+    },
+
+    getCoverageBadgeClass(coverage) {
+      if (coverage >= 100) return 'coverage-excellent';
+      if (coverage >= 75) return 'coverage-good';
+      if (coverage >= 50) return 'coverage-fair';
+      return 'coverage-poor';
     },
   },
 };
@@ -498,6 +633,117 @@ export default {
   margin-top: 4px;
 }
 
+/* Projection Section */
+.projection-section {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.projection-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 16px 0;
+}
+
+.chart-container {
+  margin-bottom: 20px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.income-comparison {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: #f9fafb;
+  border-radius: 12px;
+}
+
+.comparison-item {
+  flex: 1;
+  padding: 12px 16px;
+  border-radius: 8px;
+}
+
+.comparison-item.without {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+}
+
+.comparison-item.with {
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+}
+
+.comparison-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.comparison-values {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pot-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.income-value {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.coverage-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.coverage-excellent {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.coverage-good {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.coverage-fair {
+  background: #fed7aa;
+  color: #9a3412;
+}
+
+.coverage-poor {
+  background: #fecaca;
+  color: #991b1b;
+}
+
+.comparison-arrow {
+  flex-shrink: 0;
+}
+
+.comparison-arrow svg {
+  width: 24px;
+  height: 24px;
+  color: #10b981;
+}
+
 @media (max-width: 640px) {
   .card-header {
     flex-wrap: wrap;
@@ -512,6 +758,18 @@ export default {
   .impact-section {
     flex-direction: column;
     gap: 12px;
+  }
+
+  .income-comparison {
+    flex-direction: column;
+  }
+
+  .comparison-arrow {
+    transform: rotate(90deg);
+  }
+
+  .comparison-item {
+    width: 100%;
   }
 }
 </style>

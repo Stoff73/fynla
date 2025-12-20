@@ -107,3 +107,34 @@ export function parseCurrency(currencyString) {
 
   return isNaN(parsed) ? 0 : parsed;
 }
+
+/**
+ * Format a number as a percentage string
+ *
+ * @param {number|null|undefined} value - The value to format
+ * @param {Object} options - Formatting options
+ * @param {boolean} options.isDecimal - Whether value is in decimal format (0.05 vs 5). Default: false
+ * @param {number} options.decimals - Number of decimal places (default: 2)
+ * @returns {string} Formatted percentage string (e.g., "5.00%")
+ *
+ * @example
+ * formatPercentage(5)                    // "5.00%"
+ * formatPercentage(0.05, { isDecimal: true })  // "5.00%"
+ * formatPercentage(5.5, { decimals: 1 })       // "5.5%"
+ */
+export function formatPercentage(value, options = {}) {
+  const { isDecimal = false, decimals = 2 } = options;
+
+  if (value === null || value === undefined || value === '') {
+    return '0%';
+  }
+
+  const numValue = typeof value === 'string' ? parseFloat(value) : value;
+
+  if (isNaN(numValue)) {
+    return '0%';
+  }
+
+  const percentValue = isDecimal ? numValue * 100 : numValue;
+  return `${percentValue.toFixed(decimals)}%`;
+}

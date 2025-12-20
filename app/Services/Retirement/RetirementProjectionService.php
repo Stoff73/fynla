@@ -17,10 +17,15 @@ use App\Services\UserProfile\UserProfileService;
 class RetirementProjectionService
 {
     private const DEFAULT_RETIREMENT_AGE = 65;
+
     private const SUSTAINABLE_WITHDRAWAL_RATE = 0.047; // 4.7%
+
     private const INFLATION_RATE = 0.02; // 2%
+
     private const TARGET_INCOME_PERCENT = 0.75; // 75% of current net income
+
     private const END_AGE = 100;
+
     private const MONTE_CARLO_ITERATIONS = 1000;
 
     public function __construct(
@@ -188,10 +193,12 @@ class RetirementProjectionService
         }
 
         // Calculate on-track status and probability
-        // Probability is based on fund longevity and income coverage
+        // Probability is based primarily on income coverage (can you meet your target?)
+        $firstYearIncome = $yearlyIncome[0]['total_income'] ?? 0;
         $probability = $this->calculateRetirementProbability(
+            $firstYearIncome,
+            $targetIncome,
             $yearsBeforeDepletion,
-            $yearsAboveTarget,
             self::END_AGE - $retirementAge + 1
         );
         $onTrackStatus = $this->determineOnTrackStatus($probability);
@@ -459,69 +466,80 @@ class RetirementProjectionService
     }
 
     /**
-     * Calculate retirement probability based on fund longevity and income coverage.
+     * Calculate retirement probability based on income coverage.
      *
-     * The probability is primarily based on how long the fund lasts, with a bonus
-     * for years where income meets the target. Since we use the 5th percentile
-     * of Monte Carlo projections, fund longevity at this level represents
-     * a 95% confidence level.
+     * The probability is primarily based on whether projected income meets
+     * the target income. A user who can only draw 30% of their target income
+     * is NOT on track, regardless of how long the fund lasts.
      *
-     * Scoring:
-     * - Fund lasting 30+ years (to age 90+): base 85% probability
-     * - Fund lasting 35+ years (to age 95+): base 92% probability
-     * - Fund lasting 40+ years (to age 100+): base 95% probability
-     * - Income coverage bonus: up to 5% additional
+     * Income Coverage Scoring:
+     * - 100%+ of target: 95% probability (Excellent)
+     * - 90-99% of target: 85% probability (On Track)
+     * - 75-89% of target: 65% probability (Needs Attention)
+     * - 50-74% of target: 40% probability (Off Track)
+     * - 25-49% of target: 20% probability (Significantly Off Track)
+     * - Below 25%: 10% probability (Critical)
+     *
+     * Fund longevity adjustment: +5% if fund lasts to age 90+
      */
     private function calculateRetirementProbability(
+        float $projectedIncome,
+        float $targetIncome,
         int $yearsBeforeDepletion,
-        int $yearsAboveTarget,
         int $totalYears
     ): float {
-        // Base probability from fund longevity
-        // Using 5th percentile projections means 95% of scenarios are better
-        if ($yearsBeforeDepletion >= 40) {
-            $baseProbability = 95;
-        } elseif ($yearsBeforeDepletion >= 35) {
-            $baseProbability = 92;
-        } elseif ($yearsBeforeDepletion >= 30) {
-            $baseProbability = 85;
-        } elseif ($yearsBeforeDepletion >= 25) {
-            $baseProbability = 75;
-        } elseif ($yearsBeforeDepletion >= 20) {
-            $baseProbability = 60;
-        } elseif ($yearsBeforeDepletion >= 15) {
-            $baseProbability = 45;
-        } elseif ($yearsBeforeDepletion >= 10) {
-            $baseProbability = 30;
+        // Primary metric: Income coverage ratio
+        $incomeRatio = $targetIncome > 0 ? $projectedIncome / $targetIncome : 0;
+
+        // Base probability from income coverage
+        if ($incomeRatio >= 1.0) {
+            $baseProbability = 95;  // Meeting or exceeding target
+        } elseif ($incomeRatio >= 0.90) {
+            $baseProbability = 85;  // Within 10% of target
+        } elseif ($incomeRatio >= 0.75) {
+            $baseProbability = 65;  // 75-90% of target
+        } elseif ($incomeRatio >= 0.50) {
+            $baseProbability = 40;  // 50-75% of target
+        } elseif ($incomeRatio >= 0.25) {
+            $baseProbability = 20;  // 25-50% of target
         } else {
-            $baseProbability = max(5, $yearsBeforeDepletion * 3);
+            $baseProbability = 10;  // Less than 25% of target
         }
 
-        // Income coverage bonus (up to 5% additional)
-        $incomeCoverageRatio = $totalYears > 0 ? $yearsAboveTarget / $totalYears : 0;
-        $incomeBonus = $incomeCoverageRatio * 5;
+        // Small bonus for fund longevity (max 5%)
+        // Fund lasting 25+ years adds confidence
+        $longevityBonus = 0;
+        if ($yearsBeforeDepletion >= 35) {
+            $longevityBonus = 5;
+        } elseif ($yearsBeforeDepletion >= 25) {
+            $longevityBonus = 3;
+        }
 
-        return min(100, round($baseProbability + $incomeBonus, 0));
+        return min(100, round($baseProbability + $longevityBonus, 0));
     }
 
     /**
      * Determine on-track status based on probability.
+     * Thresholds aligned with income coverage ratios.
      */
     private function determineOnTrackStatus(float $probability): string
     {
         if ($probability >= 90) {
-            return 'Excellent';
+            return 'Excellent';        // 100%+ of target income
         }
-        if ($probability >= 75) {
-            return 'On Track';
+        if ($probability >= 80) {
+            return 'On Track';         // 90%+ of target income
         }
-        if ($probability >= 50) {
-            return 'Needs Attention';
+        if ($probability >= 60) {
+            return 'Needs Attention';  // 75-90% of target income
         }
-        if ($probability >= 25) {
-            return 'Off Track';
+        if ($probability >= 35) {
+            return 'Off Track';        // 50-75% of target income
+        }
+        if ($probability >= 15) {
+            return 'Significantly Off Track';  // 25-50% of target income
         }
 
-        return 'Significantly Off Track';
+        return 'Critical';  // Less than 25% of target income
     }
 }

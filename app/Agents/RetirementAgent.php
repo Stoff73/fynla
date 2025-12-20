@@ -6,7 +6,6 @@ namespace App\Agents;
 
 use App\Models\DBPension;
 use App\Models\DCPension;
-use App\Models\Investment\RiskProfile;
 use App\Models\RetirementProfile;
 use App\Models\StatePension;
 use App\Services\Investment\AssetAllocationOptimizer;
@@ -17,6 +16,7 @@ use App\Services\Investment\TaxEfficiencyCalculator;
 use App\Services\Retirement\AnnualAllowanceChecker;
 use App\Services\Retirement\ContributionOptimizer;
 use App\Services\Retirement\DecumulationPlanner;
+use App\Services\Retirement\PensionPortfolioAnalyzer;
 use App\Services\Retirement\PensionProjector;
 use App\Services\Retirement\ReadinessScorer;
 
@@ -36,6 +36,7 @@ class RetirementAgent extends BaseAgent
         private AnnualAllowanceChecker $allowanceChecker,
         private ContributionOptimizer $optimizer,
         private DecumulationPlanner $planner,
+        private PensionPortfolioAnalyzer $pensionPortfolioAnalyzer,
         // Portfolio optimization services (shared with Investment module)
         private PortfolioAnalyzer $portfolioAnalyzer,
         private MonteCarloSimulator $monteCarloSimulator,
@@ -450,13 +451,11 @@ class RetirementAgent extends BaseAgent
     /**
      * Analyze DC pension portfolio holdings (portfolio optimization)
      *
-     * Provides same advanced analytics as Investment module:
+     * Delegates to PensionPortfolioAnalyzer service for:
      * - Risk metrics (Alpha, Beta, Sharpe Ratio, Volatility, Max Drawdown, VaR)
      * - Asset allocation analysis
      * - Diversification scoring
      * - Fee analysis
-     * - Monte Carlo simulations (if requested)
-     * - Efficient Frontier analysis (if requested)
      */
     public function analyzeDCPensionPortfolio(int $userId, ?int $dcPensionId = null): array
     {
@@ -465,137 +464,7 @@ class RetirementAgent extends BaseAgent
             : "dc_pensions_portfolio_{$userId}";
 
         return $this->remember($cacheKey, function () use ($userId, $dcPensionId) {
-            // Get DC pensions with holdings
-            $query = DCPension::where('user_id', $userId);
-            if ($dcPensionId) {
-                $query->where('id', $dcPensionId);
-            }
-
-            $dcPensions = $query->with('holdings')->get();
-
-            // Filter pensions that have holdings
-            $pensionsWithHoldings = $dcPensions->filter(function ($pension) {
-                return $pension->holdings->isNotEmpty();
-            });
-
-            if ($pensionsWithHoldings->isEmpty()) {
-                return [
-                    'message' => 'No DC pension holdings found for portfolio analysis',
-                    'pensions_with_holdings' => 0,
-                    'has_portfolio_data' => false,
-                ];
-            }
-
-            // Aggregate all holdings from all DC pensions
-            $allHoldings = $pensionsWithHoldings->flatMap->holdings;
-
-            // Get user's risk profile (shared with investment module)
-            $riskProfile = RiskProfile::where('user_id', $userId)->first();
-
-            // Portfolio analysis using Investment services
-            $totalValue = $allHoldings->sum('current_value');
-            $returns = $this->portfolioAnalyzer->calculateReturns($allHoldings);
-            $allocation = $this->portfolioAnalyzer->calculateAssetAllocation($allHoldings);
-            $diversificationScore = $this->portfolioAnalyzer->calculateDiversificationScore($allocation);
-            $riskMetrics = $this->portfolioAnalyzer->calculatePortfolioRisk($allHoldings, $riskProfile);
-
-            // Fee analysis for pension holdings
-            $feeAnalysis = $this->analyzePensionFees($dcPensions, $allHoldings);
-
-            // Asset allocation vs target
-            $allocationDeviation = null;
-            $targetAllocation = null;
-            if ($riskProfile) {
-                $targetAllocation = $this->allocationOptimizer->getTargetAllocation($riskProfile);
-                $allocationDeviation = $this->allocationOptimizer->calculateDeviation($allocation, $targetAllocation);
-            }
-
-            // Build portfolio summary
-            return [
-                'has_portfolio_data' => true,
-                'pensions_with_holdings' => $pensionsWithHoldings->count(),
-                'portfolio_summary' => [
-                    'total_value' => round($totalValue, 2),
-                    'pensions_count' => $pensionsWithHoldings->count(),
-                    'holdings_count' => $allHoldings->count(),
-                ],
-                'returns' => $returns,
-                'asset_allocation' => $allocation,
-                'target_allocation' => $targetAllocation,
-                'diversification_score' => $diversificationScore,
-                'risk_metrics' => $riskMetrics,
-                'fee_analysis' => $feeAnalysis,
-                'allocation_deviation' => $allocationDeviation,
-                'pensions_breakdown' => $this->buildPensionsBreakdown($pensionsWithHoldings),
-            ];
+            return $this->pensionPortfolioAnalyzer->analyze($userId, $dcPensionId);
         });
-    }
-
-    /**
-     * Analyze fees for DC pension holdings
-     */
-    private function analyzePensionFees($dcPensions, $allHoldings): array
-    {
-        $totalValue = $allHoldings->sum('current_value');
-
-        // Platform fees (from pension level)
-        $platformFees = $dcPensions->sum(function ($pension) {
-            return $pension->current_fund_value * ($pension->platform_fee_percent / 100);
-        });
-
-        // Fund OCF fees (from holdings level)
-        $fundFees = $allHoldings->sum(function ($holding) {
-            return $holding->current_value * ($holding->ocf_percent / 100);
-        });
-
-        $totalAnnualFees = $platformFees + $fundFees;
-        $feePercentage = $totalValue > 0 ? ($totalAnnualFees / $totalValue) * 100 : 0;
-
-        // Low-cost comparison (assume 0.20% for low-cost index funds)
-        $lowCostEquivalent = $totalValue * 0.002; // 0.20%
-        $potentialSaving = max(0, $totalAnnualFees - $lowCostEquivalent);
-
-        return [
-            'total_annual_fees' => round($totalAnnualFees, 2),
-            'fee_percentage' => round($feePercentage, 4),
-            'platform_fees' => round($platformFees, 2),
-            'fund_ocf_fees' => round($fundFees, 2),
-            'low_cost_comparison' => [
-                'low_cost_equivalent' => round($lowCostEquivalent, 2),
-                'potential_annual_saving' => round($potentialSaving, 2),
-            ],
-        ];
-    }
-
-    /**
-     * Build breakdown of holdings by pension
-     */
-    private function buildPensionsBreakdown($pensions): array
-    {
-        return $pensions->map(function ($pension) {
-            $holdings = $pension->holdings;
-            $totalValue = $holdings->sum('current_value');
-
-            return [
-                'id' => $pension->id,
-                'scheme_name' => $pension->scheme_name,
-                'scheme_type' => $pension->scheme_type,
-                'provider' => $pension->provider,
-                'total_value' => $totalValue,
-                'holdings_count' => $holdings->count(),
-                'platform_fee_percent' => $pension->platform_fee_percent,
-                'holdings' => $holdings->map(function ($holding) {
-                    return [
-                        'id' => $holding->id,
-                        'security_name' => $holding->security_name,
-                        'ticker' => $holding->ticker,
-                        'asset_type' => $holding->asset_type,
-                        'current_value' => $holding->current_value,
-                        'allocation_percent' => $holding->allocation_percent,
-                        'ocf_percent' => $holding->ocf_percent,
-                    ];
-                })->toArray(),
-            ];
-        })->values()->toArray();
     }
 }

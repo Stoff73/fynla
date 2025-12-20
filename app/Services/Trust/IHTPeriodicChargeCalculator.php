@@ -10,14 +10,15 @@ use Carbon\Carbon;
 
 class IHTPeriodicChargeCalculator
 {
-    // UK IHT rates and thresholds (loaded from config)
-    private const IHT_RATE = 0.40; // 40% IHT rate
+    // UK IHT trust charge rates (2025/26 tax year)
+    // These are statutory rates defined by HMRC for relevant property trusts
+    private const IHT_RATE = 0.40; // Standard IHT rate
 
-    private const PERIODIC_CHARGE_RATE = 0.06; // 6% charge every 10 years
+    private const PERIODIC_CHARGE_RATE = 0.06; // 10-year periodic charge (30% of lifetime rate)
 
-    private const ENTRY_CHARGE_MAX = 0.20; // 20% max entry charge
+    private const ENTRY_CHARGE_MAX = 0.20; // Lifetime transfer rate (half of death rate)
 
-    private const EXIT_CHARGE_MAX = 0.06; // 6% max exit charge
+    private const EXIT_CHARGE_MAX = 0.06; // Exit/proportionate charge rate
 
     /**
      * Tax configuration service

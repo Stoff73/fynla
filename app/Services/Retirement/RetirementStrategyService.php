@@ -59,10 +59,24 @@ class RetirementStrategyService
         $strategies = [];
         $cumulativeProbability = $currentStatus['probability'];
 
+        // Track cumulative additional income for chained strategies
+        $cumulativeAdditionalIncome = 0.0;
+        $cumulativeAdditionalMonthly = 0.0;
+
         // Priority 1: Employer match strategies
-        $employerMatchStrategies = $this->checkEmployerMatchStrategies($user, $cumulativeProbability);
+        $employerMatchStrategies = $this->checkEmployerMatchStrategies($user, $currentStatus, $cumulativeAdditionalIncome);
         foreach ($employerMatchStrategies as $strategy) {
+            // Add projection data if this strategy gets user on track
+            if ($strategy['impact']['new_probability'] >= self::ON_TRACK_PROBABILITY) {
+                $strategy['projection'] = $this->buildStrategyProjection(
+                    $currentStatus,
+                    $cumulativeAdditionalMonthly + $strategy['impact']['additional_monthly'],
+                    $strategy['impact']['additional_annual_income']
+                );
+            }
             $strategies[] = $strategy;
+            $cumulativeAdditionalIncome += $strategy['impact']['additional_annual_income'] ?? 0;
+            $cumulativeAdditionalMonthly += $strategy['impact']['additional_monthly'] ?? 0;
             $cumulativeProbability = $strategy['impact']['new_probability'];
             if ($cumulativeProbability >= self::ON_TRACK_PROBABILITY) {
                 break;
@@ -75,26 +89,44 @@ class RetirementStrategyService
                 $user,
                 $affordability,
                 $allowanceStatus,
-                $cumulativeProbability
+                $currentStatus,
+                $cumulativeAdditionalIncome
             );
             if ($contributionStrategy) {
+                if ($contributionStrategy['impact']['new_probability'] >= self::ON_TRACK_PROBABILITY) {
+                    $contributionStrategy['projection'] = $this->buildStrategyProjection(
+                        $currentStatus,
+                        $cumulativeAdditionalMonthly + $contributionStrategy['impact']['additional_monthly'],
+                        $cumulativeAdditionalIncome + $contributionStrategy['impact']['additional_annual_income']
+                    );
+                }
                 $strategies[] = $contributionStrategy;
+                $cumulativeAdditionalIncome += $contributionStrategy['impact']['additional_annual_income'] ?? 0;
+                $cumulativeAdditionalMonthly += $contributionStrategy['impact']['additional_monthly'] ?? 0;
                 $cumulativeProbability = $contributionStrategy['impact']['new_probability'];
             }
         }
 
         // Priority 3: Retirement age (if still not on track)
         if ($cumulativeProbability < self::ON_TRACK_PROBABILITY) {
-            $retirementAgeStrategy = $this->checkRetirementAgeStrategy($user, $cumulativeProbability);
+            $retirementAgeStrategy = $this->checkRetirementAgeStrategy($user, $currentStatus, $cumulativeAdditionalIncome);
             if ($retirementAgeStrategy) {
+                if ($retirementAgeStrategy['impact']['new_probability'] >= self::ON_TRACK_PROBABILITY) {
+                    $retirementAgeStrategy['projection'] = $this->buildStrategyProjection(
+                        $currentStatus,
+                        $cumulativeAdditionalMonthly,
+                        $cumulativeAdditionalIncome + $retirementAgeStrategy['impact']['additional_annual_income']
+                    );
+                }
                 $strategies[] = $retirementAgeStrategy;
+                $cumulativeAdditionalIncome += $retirementAgeStrategy['impact']['additional_annual_income'] ?? 0;
                 $cumulativeProbability = $retirementAgeStrategy['impact']['new_probability'];
             }
         }
 
         // Priority 4: Reduce income target (if still not on track)
         if ($cumulativeProbability < self::ON_TRACK_PROBABILITY) {
-            $incomeTargetStrategy = $this->checkIncomeTargetStrategy($user, $projections, $cumulativeProbability);
+            $incomeTargetStrategy = $this->checkIncomeTargetStrategy($user, $projections, $currentStatus, $cumulativeAdditionalIncome);
             if ($incomeTargetStrategy) {
                 $strategies[] = $incomeTargetStrategy;
                 $cumulativeProbability = $incomeTargetStrategy['impact']['new_probability'];
@@ -158,16 +190,28 @@ class RetirementStrategyService
     private function extractCurrentStatus(array $projections): array
     {
         $drawdown = $projections['income_drawdown'];
+        $potProjection = $projections['pension_pot_projection'];
+        $firstYearIncome = $drawdown['yearly_income'][0]['total_income'] ?? 0;
 
         return [
             'on_track_status' => $drawdown['on_track_status'],
             'probability' => $drawdown['probability'],
-            'projected_income' => $drawdown['target_income'], // At start of retirement
+            'projected_income' => $firstYearIncome,  // Actual first-year income
             'target_income' => $drawdown['target_income'],
             'current_net_income' => $drawdown['current_net_income'],
-            'income_gap' => max(0, $drawdown['target_income'] - ($drawdown['yearly_income'][0]['total_income'] ?? 0)),
-            'starting_pot' => $drawdown['starting_pot'],
+            'income_gap' => max(0, $drawdown['target_income'] - $firstYearIncome),
+            'income_coverage_percent' => $drawdown['target_income'] > 0
+                ? round(($firstYearIncome / $drawdown['target_income']) * 100, 1)
+                : 0,
+            'current_pot' => $potProjection['current_value'],  // Current pot value (today)
+            'pot_at_retirement' => $drawdown['starting_pot'],  // Projected pot at retirement (5th percentile)
+            'current_monthly_contribution' => $potProjection['monthly_contribution'],
             'retirement_age' => $drawdown['retirement_age'],
+            'years_to_retirement' => $potProjection['years_to_retirement'],
+            'expected_return' => $potProjection['expected_return'],
+            'guaranteed_income' => $drawdown['guaranteed_income']['total'] ?? 0,
+            // Include Monte Carlo year-by-year data for consistent projections
+            'monte_carlo_year_by_year' => $potProjection['year_by_year'] ?? [],
         ];
     }
 
@@ -235,7 +279,7 @@ class RetirementStrategyService
     /**
      * Check for employer match optimization opportunities.
      */
-    private function checkEmployerMatchStrategies(User $user, float $currentProbability): array
+    private function checkEmployerMatchStrategies(User $user, array $currentStatus, float $cumulativeAdditionalIncome): array
     {
         $strategies = [];
         $priority = 1;
@@ -253,10 +297,21 @@ class RetirementStrategyService
                 $additionalPercent = $matchLimit - $currentEmployee;
                 $additionalMonthly = ($annualSalary * $additionalPercent / 100) / 12;
                 $employerBonus = $additionalMonthly; // Employer matches
+                $totalAdditionalMonthly = $additionalMonthly + $employerBonus;
 
-                // Estimate probability improvement (roughly 2% per £100/month additional)
-                $probabilityImprovement = min(15, ($additionalMonthly * 2) / 100 * 2);
-                $newProbability = min(100, $currentProbability + $probabilityImprovement);
+                // Calculate realistic impact on retirement income
+                $additionalAnnualIncome = $this->calculateContributionImpactOnIncome(
+                    $totalAdditionalMonthly,
+                    $currentStatus['years_to_retirement'],
+                    $currentStatus['expected_return']
+                );
+
+                // Calculate new probability including cumulative prior strategies
+                $newProbability = $this->calculateNewProbability(
+                    $currentStatus['projected_income'] + $cumulativeAdditionalIncome,
+                    $currentStatus['target_income'],
+                    $additionalAnnualIncome
+                );
 
                 $strategies[] = [
                     'type' => 'employer_match',
@@ -280,8 +335,8 @@ class RetirementStrategyService
                         'format' => 'percentage',
                     ],
                     'impact' => [
-                        'additional_monthly' => round($additionalMonthly + $employerBonus, 2),
-                        'probability_improvement' => round($probabilityImprovement, 0),
+                        'additional_monthly' => round($totalAdditionalMonthly, 2),
+                        'additional_annual_income' => round($additionalAnnualIncome, 2),
                         'new_probability' => round($newProbability, 0),
                     ],
                 ];
@@ -300,7 +355,8 @@ class RetirementStrategyService
         User $user,
         array $affordability,
         array $allowanceStatus,
-        float $currentProbability
+        array $currentStatus,
+        float $cumulativeAdditionalIncome
     ): ?array {
         $disposableIncome = $affordability['disposable_income'];
         $remainingAllowance = $allowanceStatus['remaining_allowance'];
@@ -327,9 +383,19 @@ class RetirementStrategyService
         $recommendedMonthly = $currentMonthly + $recommendedAdditional;
         $maxMonthly = $currentMonthly + $maxAdditionalMonthly;
 
-        // Estimate probability improvement
-        $probabilityImprovement = min(20, ($recommendedAdditional / 100) * 2);
-        $newProbability = min(100, $currentProbability + $probabilityImprovement);
+        // Calculate realistic impact on retirement income
+        $additionalAnnualIncome = $this->calculateContributionImpactOnIncome(
+            $recommendedAdditional,
+            $currentStatus['years_to_retirement'],
+            $currentStatus['expected_return']
+        );
+
+        // Calculate new probability including cumulative prior strategies
+        $newProbability = $this->calculateNewProbability(
+            $currentStatus['projected_income'] + $cumulativeAdditionalIncome,
+            $currentStatus['target_income'],
+            $additionalAnnualIncome
+        );
 
         return [
             'type' => 'increase_contribution',
@@ -355,7 +421,7 @@ class RetirementStrategyService
             ],
             'impact' => [
                 'additional_monthly' => round($recommendedAdditional, 2),
-                'probability_improvement' => round($probabilityImprovement, 0),
+                'additional_annual_income' => round($additionalAnnualIncome, 2),
                 'new_probability' => round($newProbability, 0),
             ],
         ];
@@ -364,7 +430,7 @@ class RetirementStrategyService
     /**
      * Check for retirement age adjustment strategy.
      */
-    private function checkRetirementAgeStrategy(User $user, float $currentProbability): ?array
+    private function checkRetirementAgeStrategy(User $user, array $currentStatus, float $cumulativeAdditionalIncome): ?array
     {
         $currentAge = $user->date_of_birth?->age ?? 40;
         $currentRetirementAge = $user->target_retirement_age ?? 65;
@@ -380,11 +446,23 @@ class RetirementStrategyService
 
         // Recommend 2 years later
         $recommendedAge = min($currentRetirementAge + 2, $maxAge);
-
-        // Each year later adds roughly 5% probability
         $yearsDelay = $recommendedAge - $currentRetirementAge;
-        $probabilityImprovement = min(25, $yearsDelay * 5);
-        $newProbability = min(100, $currentProbability + $probabilityImprovement);
+
+        // Calculate additional income from delayed retirement
+        // More years means: more contributions + more growth + less retirement years
+        // Estimate: pot grows ~7% per extra year, so income increases proportionally
+        $currentPot = $currentStatus['starting_pot'];
+        $currentIncome = $currentStatus['projected_income'] + $cumulativeAdditionalIncome;
+
+        // Simple estimate: each extra year adds ~10% to pot (contributions + growth)
+        // which translates to ~10% more income
+        $additionalAnnualIncome = $currentIncome * ($yearsDelay * 0.10);
+
+        $newProbability = $this->calculateNewProbability(
+            $currentIncome,
+            $currentStatus['target_income'],
+            $additionalAnnualIncome
+        );
 
         return [
             'type' => 'retirement_age',
@@ -403,7 +481,7 @@ class RetirementStrategyService
             ],
             'impact' => [
                 'years_delay' => $yearsDelay,
-                'probability_improvement' => round($probabilityImprovement, 0),
+                'additional_annual_income' => round($additionalAnnualIncome, 2),
                 'new_probability' => round($newProbability, 0),
             ],
         ];
@@ -411,28 +489,36 @@ class RetirementStrategyService
 
     /**
      * Check for income target reduction strategy.
+     * This strategy is about accepting a LOWER retirement income target.
+     * It does NOT use cumulative income - it's an alternative to contribution-based strategies.
      */
-    private function checkIncomeTargetStrategy(User $user, array $projections, float $currentProbability): ?array
+    private function checkIncomeTargetStrategy(User $user, array $projections, array $currentStatus, float $cumulativeAdditionalIncome): ?array
     {
         $targetIncome = $projections['income_drawdown']['target_income'];
         $guaranteedIncome = $projections['income_drawdown']['guaranteed_income']['total'];
 
-        // Minimum is guaranteed income, max is current target
-        $minIncome = $guaranteedIncome;
+        // Use ORIGINAL projected income (not cumulative) - this is an alternative strategy
+        $originalProjectedIncome = $currentStatus['projected_income'];
+
+        // Minimum is guaranteed income (or original projected if higher), max is current target
+        $minIncome = max($guaranteedIncome, $originalProjectedIncome);
         $maxIncome = $targetIncome;
 
-        // Only offer if there's room to reduce
-        if ($minIncome >= $maxIncome * 0.9) {
+        // Only offer if there's room to reduce (target must be higher than what we can achieve)
+        if ($minIncome >= $maxIncome * 0.95) {
             return null;
         }
 
-        // Recommend 10% reduction
-        $recommendedIncome = $targetIncome * 0.9;
+        // Recommend reducing to match what's achievable (original projected income)
+        // This shows "if you accept what you'll actually get, you're on track"
+        $recommendedIncome = $originalProjectedIncome;
 
-        // Each 10% reduction adds roughly 10% probability
-        $percentReduction = ($targetIncome - $recommendedIncome) / $targetIncome * 100;
-        $probabilityImprovement = min(30, $percentReduction);
-        $newProbability = min(100, $currentProbability + $probabilityImprovement);
+        // Calculate new probability with reduced target
+        $newProbability = $this->calculateNewProbability(
+            $originalProjectedIncome,
+            $recommendedIncome,
+            0  // No additional income, just changing target
+        );
 
         return [
             'type' => 'income_target',
@@ -440,9 +526,9 @@ class RetirementStrategyService
             'priority' => 4,
             'title' => 'Adjust Retirement Income Target',
             'description' => sprintf(
-                'Reducing your target from %s to %s/year would improve your probability.',
-                $this->formatCurrency($targetIncome),
-                $this->formatCurrency($recommendedIncome)
+                'Accept a lower retirement income of %s/year (currently projecting %s).',
+                $this->formatCurrency($recommendedIncome),
+                $this->formatCurrency($originalProjectedIncome)
             ),
             'current_value' => round($targetIncome, 0),
             'recommended_value' => round($recommendedIncome, 0),
@@ -455,10 +541,11 @@ class RetirementStrategyService
             ],
             'constraints' => [
                 'guaranteed_income' => round($guaranteedIncome, 2),
+                'projected_income' => round($originalProjectedIncome, 2),
             ],
             'impact' => [
                 'income_reduction' => round($targetIncome - $recommendedIncome, 2),
-                'probability_improvement' => round($probabilityImprovement, 0),
+                'additional_annual_income' => 0,
                 'new_probability' => round($newProbability, 0),
             ],
         ];
@@ -566,11 +653,15 @@ class RetirementStrategyService
 
     /**
      * Check if user has 3-year contribution history for carry forward.
+     *
+     * Note: Currently returns false as contribution history tracking is not yet
+     * implemented. When enabled, this should check for 3 years of pension
+     * contribution records to calculate carry forward allowance.
      */
     private function hasThreeYearContributionHistory(int $userId): bool
     {
-        // TODO: Implement proper contribution history tracking
-        // For now, return false to show the "not available" message
+        // Contribution history tracking requires historical data storage
+        // For now, return false to show the "not available" message in UI
         return false;
     }
 
@@ -596,5 +687,176 @@ class RetirementStrategyService
     private function formatCurrency(float $value): string
     {
         return '£'.number_format($value, 0);
+    }
+
+    /**
+     * Build projection data for a strategy that gets user on track.
+     * Includes year-by-year pension pot growth and sustainable income.
+     * Shows both "with strategy" and "without strategy" projections for comparison.
+     *
+     * IMPORTANT: Uses Monte Carlo 5th percentile data for "without strategy" to match
+     * the Future Value tab's 95% probability projection. This ensures consistency.
+     */
+    private function buildStrategyProjection(
+        array $currentStatus,
+        float $additionalMonthlyContribution,
+        float $additionalAnnualIncome
+    ): array {
+        $yearsToRetirement = $currentStatus['years_to_retirement'];
+        $expectedReturn = $currentStatus['expected_return'] / 100;
+        $currentYear = (int) date('Y');
+        $currentPot = $currentStatus['current_pot'];
+
+        // Use Monte Carlo year-by-year data for "without strategy" baseline
+        // This ensures consistency with the Future Value tab's 95% probability projection
+        // Monte Carlo data array indices 0-29 correspond to projection years 1-30
+        $monteCarloData = $currentStatus['monte_carlo_year_by_year'] ?? [];
+        $monteCarloCount = count($monteCarloData);
+
+        // Build year-by-year pot growth
+        $yearByYear = [];
+
+        // Calculate the additional pot accumulated from extra contributions using compound growth
+        // This is added ON TOP of the Monte Carlo baseline for "with strategy"
+        $monthlyRate = $expectedReturn / 12;
+
+        // Year 0 = today (current pot), Years 1-30 = projections from Monte Carlo
+        for ($year = 0; $year <= $yearsToRetirement; $year++) {
+            if ($year === 0) {
+                // Today's value
+                $potWithoutStrategy = $currentPot;
+                $displayYear = $currentYear;
+            } else {
+                // Monte Carlo projection - array is 0-indexed, so year 1 is index 0
+                $mcIndex = $year - 1;
+                if ($mcIndex < $monteCarloCount) {
+                    $potWithoutStrategy = $monteCarloData[$mcIndex]['percentile_5'] ?? $currentPot;
+                    $displayYear = $monteCarloData[$mcIndex]['year'] ?? ($currentYear + $year);
+                } else {
+                    // Fall back to last available Monte Carlo value
+                    $lastMcIndex = $monteCarloCount - 1;
+                    $potWithoutStrategy = $monteCarloData[$lastMcIndex]['percentile_5'] ?? $currentPot;
+                    $displayYear = $currentYear + $year;
+                }
+            }
+
+            // Calculate additional pot from extra contributions at this point
+            // Using future value of annuity formula
+            $additionalPotAccumulated = 0.0;
+            if ($year > 0 && $monthlyRate > 0) {
+                $months = $year * 12;
+                $additionalPotAccumulated = $additionalMonthlyContribution *
+                    ((pow(1 + $monthlyRate, $months) - 1) / $monthlyRate);
+            }
+
+            // "With strategy" = Monte Carlo baseline + additional pot from extra contributions
+            $potWithStrategy = $potWithoutStrategy + $additionalPotAccumulated;
+
+            $yearByYear[] = [
+                'year' => $displayYear,
+                'years_from_now' => $year,
+                'pot_with_strategy' => round($potWithStrategy, 0),
+                'pot_without_strategy' => round($potWithoutStrategy, 0),
+            ];
+        }
+
+        // Get final values at retirement (last Monte Carlo year = percentile_5_at_retirement)
+        $lastYear = $yearByYear[count($yearByYear) - 1] ?? [];
+        $potAtRetirementWith = $lastYear['pot_with_strategy'] ?? 0;
+        $potAtRetirementWithout = $lastYear['pot_without_strategy'] ?? 0;
+
+        // Use 4.7% sustainable withdrawal rate (matches RetirementProjectionService constant)
+        $sustainableWithdrawalRate = 0.047;
+
+        $sustainableIncomeWith = $potAtRetirementWith * $sustainableWithdrawalRate;
+        $sustainableIncomeWithout = $potAtRetirementWithout * $sustainableWithdrawalRate;
+
+        // Add guaranteed income (DB pensions, state pension)
+        $guaranteedIncome = $currentStatus['guaranteed_income'] ?? 0;
+        $totalRetirementIncomeWith = $sustainableIncomeWith + $guaranteedIncome;
+        $totalRetirementIncomeWithout = $sustainableIncomeWithout + $guaranteedIncome;
+
+        return [
+            'pot_growth' => $yearByYear,
+            'with_strategy' => [
+                'pot_at_retirement' => round($potAtRetirementWith, 0),
+                'sustainable_income' => round($sustainableIncomeWith, 0),
+                'guaranteed_income' => round($guaranteedIncome, 0),
+                'total_retirement_income' => round($totalRetirementIncomeWith, 0),
+                'income_coverage_percent' => $currentStatus['target_income'] > 0
+                    ? round($totalRetirementIncomeWith / $currentStatus['target_income'] * 100, 1)
+                    : 0,
+            ],
+            'without_strategy' => [
+                'pot_at_retirement' => round($potAtRetirementWithout, 0),
+                'sustainable_income' => round($sustainableIncomeWithout, 0),
+                'guaranteed_income' => round($guaranteedIncome, 0),
+                'total_retirement_income' => round($totalRetirementIncomeWithout, 0),
+                'income_coverage_percent' => $currentStatus['target_income'] > 0
+                    ? round($totalRetirementIncomeWithout / $currentStatus['target_income'] * 100, 1)
+                    : 0,
+            ],
+            'target_income' => round($currentStatus['target_income'], 0),
+        ];
+    }
+
+    /**
+     * Calculate realistic impact of additional contributions on retirement income.
+     *
+     * Uses compound growth formula to project how additional contributions
+     * translate to additional retirement income.
+     */
+    private function calculateContributionImpactOnIncome(
+        float $additionalMonthlyContribution,
+        int $yearsToRetirement,
+        float $expectedReturnPercent
+    ): float {
+        if ($yearsToRetirement <= 0 || $additionalMonthlyContribution <= 0) {
+            return 0;
+        }
+
+        $monthlyRate = ($expectedReturnPercent / 100) / 12;
+        $months = $yearsToRetirement * 12;
+
+        // Future value of monthly contributions: PMT × (((1 + r)^n - 1) / r)
+        if ($monthlyRate > 0) {
+            $futureValue = $additionalMonthlyContribution *
+                ((pow(1 + $monthlyRate, $months) - 1) / $monthlyRate);
+        } else {
+            $futureValue = $additionalMonthlyContribution * $months;
+        }
+
+        // Convert to annual income using sustainable withdrawal rate (4.7%)
+        return $futureValue * 0.047;
+    }
+
+    /**
+     * Calculate new probability based on additional income.
+     *
+     * Maps the new income coverage ratio to probability using the same
+     * thresholds as RetirementProjectionService.
+     */
+    private function calculateNewProbability(
+        float $currentIncome,
+        float $targetIncome,
+        float $additionalIncome
+    ): float {
+        $newIncome = $currentIncome + $additionalIncome;
+        $incomeRatio = $targetIncome > 0 ? $newIncome / $targetIncome : 0;
+
+        // Same thresholds as RetirementProjectionService::calculateRetirementProbability
+        if ($incomeRatio >= 1.0) {
+            return 95;
+        } elseif ($incomeRatio >= 0.90) {
+            return 85;
+        } elseif ($incomeRatio >= 0.75) {
+            return 65;
+        } elseif ($incomeRatio >= 0.50) {
+            return 40;
+        } elseif ($incomeRatio >= 0.25) {
+            return 20;
+        }
+
+        return 10;
     }
 }

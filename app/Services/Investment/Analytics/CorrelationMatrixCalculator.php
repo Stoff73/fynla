@@ -182,10 +182,14 @@ class CorrelationMatrixCalculator
     }
 
     /**
-     * Generate mock returns for testing (TODO: Remove when real data available)
+     * Generate simulated returns as fallback when historical data is unavailable.
      *
-     * @param  int  $periods  Number of periods
-     * @return array Mock return data
+     * Used for demo/preview users and when market data integration is not configured.
+     * Returns are randomly distributed between -10% and +20% to approximate
+     * typical equity market volatility.
+     *
+     * @param  int  $periods  Number of periods to simulate
+     * @return array Simulated return data
      */
     private function generateMockReturns(int $periods = 36): array
     {

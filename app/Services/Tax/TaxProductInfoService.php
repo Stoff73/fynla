@@ -116,14 +116,15 @@ class TaxProductInfoService
         $dividendConfig = $this->taxConfig->getDividendTax();
         $incomeTaxConfig = $this->taxConfig->getIncomeTax();
 
+        // Fallback values are 2025/26 UK tax year defaults if TaxConfigService unavailable
         return [
             'isa_allowance' => $isaAllowances['annual_allowance'] ?? 20000,
             'junior_isa_allowance' => $isaAllowances['junior_isa']['annual_allowance'] ?? 9000,
             'lifetime_isa_limit' => $isaAllowances['lifetime_isa']['annual_allowance'] ?? 4000,
             'cgt_allowance' => $cgtConfig['annual_exempt_amount'] ?? 3000,
             'dividend_allowance' => $dividendConfig['allowance'] ?? 500,
-            'psa_basic' => 1000,
-            'psa_higher' => 500,
+            'psa_basic' => 1000,  // Personal Savings Allowance for basic rate taxpayers
+            'psa_higher' => 500,  // Personal Savings Allowance for higher rate taxpayers
             'personal_allowance' => $incomeTaxConfig['personal_allowance'] ?? 12570,
         ];
     }

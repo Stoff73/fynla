@@ -14,7 +14,7 @@ class StoreTaxConfigurationRequest extends FormRequest
     public function authorize(): bool
     {
         // Only admin users should be able to modify tax configurations
-        return $this->user() && $this->user()->email === 'admin@fps.com';
+        return $this->user() && $this->user()->is_admin;
     }
 
     /**
