@@ -1962,10 +1962,10 @@ export default {
       let dataToSave = {};
 
       if (useSimpleEntry.value) {
-        // Simple entry: save just the monthly total, clear detailed fields
+        // Simple entry: save monthly total + financial commitments, clear detailed fields
         dataToSave = {
-          monthly_expenditure: simpleMonthlyExpenditure.value,
-          annual_expenditure: simpleMonthlyExpenditure.value * 12,
+          monthly_expenditure: totalMonthlyWithCommitments.value,
+          annual_expenditure: totalAnnualWithCommitments.value,
           food_groceries: 0,
           transport_fuel: 0,
           healthcare_medical: 0,
@@ -1988,11 +1988,11 @@ export default {
           other_expenditure: 0,
         };
       } else {
-        // Detailed entry: save all fields and calculate total
+        // Detailed entry: save all fields and calculate total (including financial commitments)
         dataToSave = {
           ...formData.value,
-          monthly_expenditure: totalMonthlyExpenditure.value,
-          annual_expenditure: totalAnnualExpenditure.value,
+          monthly_expenditure: totalMonthlyWithCommitments.value,
+          annual_expenditure: totalAnnualWithCommitments.value,
         };
       }
 
@@ -2006,8 +2006,8 @@ export default {
 
         if (useSimpleEntry.value) {
           spouseDataToSave = {
-            monthly_expenditure: spouseSimpleMonthlyExpenditure.value,
-            annual_expenditure: spouseSimpleMonthlyExpenditure.value * 12,
+            monthly_expenditure: spouseTotalMonthlyWithCommitments.value,
+            annual_expenditure: spouseTotalAnnualWithCommitments.value,
             food_groceries: 0,
             transport_fuel: 0,
             healthcare_medical: 0,
@@ -2032,8 +2032,8 @@ export default {
         } else {
           spouseDataToSave = {
             ...spouseFormData.value,
-            monthly_expenditure: spouseTotalMonthlyExpenditure.value,
-            annual_expenditure: spouseTotalAnnualExpenditure.value,
+            monthly_expenditure: spouseTotalMonthlyWithCommitments.value,
+            annual_expenditure: spouseTotalAnnualWithCommitments.value,
           };
         }
 

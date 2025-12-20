@@ -171,40 +171,27 @@ class UserProfileService
     }
 
     /**
-     * Calculate total annual expenditure from user profile.
-     * Combines manual monthly expenditure + automated financial commitments
-     * to match the Expenditure tab's "User Total" calculation.
+     * Get annual expenditure from user profile.
+     * The monthly_expenditure field includes financial commitments (saved by Expenditure tab).
      */
     private function calculateAnnualExpenditure(User $user): float
     {
-        // Manual living expenses from user profile
-        $monthlyManualExpenditure = (float) ($user->monthly_expenditure ?? 0);
+        // Use saved monthly_expenditure which includes financial commitments
+        $monthlyExpenditure = (float) ($user->monthly_expenditure ?? 0);
 
-        // Financial commitments (retirement, properties, protection, liabilities)
-        $commitments = $this->getFinancialCommitments($user);
-        $monthlyCommitments = (float) ($commitments['totals']['total'] ?? 0);
-
-        // Combined monthly total (same as Expenditure tab's totalMonthlyWithCommitments)
-        $totalMonthlyExpenditure = $monthlyManualExpenditure + $monthlyCommitments;
-
-        return $totalMonthlyExpenditure * 12;
+        return $monthlyExpenditure * 12;
     }
 
     /**
-     * Get expenditure breakdown showing manual + commitments total.
+     * Get expenditure breakdown from saved user profile.
      */
     private function getExpenditureBreakdown(User $user): array
     {
-        $monthlyManual = (float) ($user->monthly_expenditure ?? 0);
-        $commitments = $this->getFinancialCommitments($user);
-        $monthlyCommitments = (float) ($commitments['totals']['total'] ?? 0);
-        $monthlyTotal = $monthlyManual + $monthlyCommitments;
+        $monthly = (float) ($user->monthly_expenditure ?? 0);
 
         return [
-            'monthly_manual' => round($monthlyManual, 2),
-            'monthly_commitments' => round($monthlyCommitments, 2),
-            'monthly' => round($monthlyTotal, 2),
-            'annual' => round($monthlyTotal * 12, 2),
+            'monthly' => round($monthly, 2),
+            'annual' => round($monthly * 12, 2),
         ];
     }
 
