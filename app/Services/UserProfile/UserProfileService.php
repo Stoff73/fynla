@@ -171,6 +171,37 @@ class UserProfileService
     }
 
     /**
+     * Calculate total annual expenditure from user profile.
+     * The monthly_expenditure field already includes all living costs (mortgages, liabilities, etc.)
+     */
+    private function calculateAnnualExpenditure(User $user): float
+    {
+        // Use annual_expenditure if set, otherwise calculate from monthly
+        $annualExpenditure = (float) ($user->annual_expenditure ?? 0);
+
+        if ($annualExpenditure === 0.0 && $user->monthly_expenditure > 0) {
+            $annualExpenditure = (float) $user->monthly_expenditure * 12;
+        }
+
+        return $annualExpenditure;
+    }
+
+    /**
+     * Get expenditure breakdown - just the total from user profile.
+     * The monthly_expenditure already includes all expenses.
+     */
+    private function getExpenditureBreakdown(User $user): array
+    {
+        $annualExpenditure = $this->calculateAnnualExpenditure($user);
+        $monthlyExpenditure = (float) ($user->monthly_expenditure ?? 0);
+
+        return [
+            'monthly' => round($monthlyExpenditure, 2),
+            'annual' => round($annualExpenditure, 2),
+        ];
+    }
+
+    /**
      * Calculate annual pension income for the user.
      * Includes DB pensions (if in payment) and state pension (if receiving).
      */
@@ -302,9 +333,16 @@ class UserProfileService
             'income_tax' => $simpleTax['income_tax'],
             'national_insurance' => $simpleTax['national_insurance'],
             'total_deductions' => $simpleTax['total_deductions'],
-            'net_income' => $simpleTax['net_income'],
+            // Use detailed net_income (includes pension contributions) for consistency with TaxSummaryCard
+            'net_income' => $detailedTax['summary']['net_income'],
             'effective_tax_rate' => $simpleTax['effective_tax_rate'],
             'breakdown' => $simpleTax['breakdown'],
+            // Expenditure and disposable income
+            'monthly_expenditure' => (float) ($user->monthly_expenditure ?? 0),
+            'expenditure_breakdown' => $this->getExpenditureBreakdown($user),
+            'annual_expenditure' => $this->calculateAnnualExpenditure($user),
+            'disposable_income' => $detailedTax['summary']['net_income'] - $this->calculateAnnualExpenditure($user),
+            'monthly_disposable' => ($detailedTax['summary']['net_income'] - $this->calculateAnnualExpenditure($user)) / 12,
             // New detailed breakdown for UI display
             'detailed_tax_breakdown' => $detailedTax,
         ];

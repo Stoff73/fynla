@@ -407,6 +407,45 @@
         </div>
       </div>
 
+      <!-- Disposable Income Section -->
+      <div v-if="incomeOccupation?.net_income" class="card p-6">
+        <h3 class="text-h5 font-semibold text-gray-900 mb-4">Disposable Income</h3>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <!-- Net Income -->
+          <div class="bg-gray-50 rounded-lg p-4">
+            <p class="text-body-sm text-gray-600 mb-1">Net Income (after tax)</p>
+            <p class="text-h4 font-semibold text-gray-900">{{ formatCurrency(incomeOccupation.net_income) }}</p>
+            <p class="text-body-xs text-gray-500">per year</p>
+          </div>
+
+          <!-- Annual Expenditure -->
+          <div class="bg-gray-50 rounded-lg p-4">
+            <p class="text-body-sm text-gray-600 mb-1">Annual Expenditure</p>
+            <p class="text-h4 font-semibold text-gray-900">{{ formatCurrency(incomeOccupation.annual_expenditure || 0) }}</p>
+            <p class="text-body-xs text-gray-500">{{ formatCurrency(incomeOccupation.monthly_expenditure || 0) }}/month</p>
+          </div>
+
+          <!-- Disposable Income -->
+          <div :class="['rounded-lg p-4', disposableIncomeClass]">
+            <p class="text-body-sm mb-1" :class="disposableIncome >= 0 ? 'text-green-700' : 'text-red-700'">Disposable Income</p>
+            <p class="text-h4 font-semibold" :class="disposableIncome >= 0 ? 'text-green-800' : 'text-red-800'">
+              {{ formatCurrency(disposableIncome) }}
+            </p>
+            <p class="text-body-xs" :class="disposableIncome >= 0 ? 'text-green-600' : 'text-red-600'">
+              {{ formatCurrency(monthlyDisposable) }}/month
+            </p>
+          </div>
+        </div>
+
+        <div v-if="!incomeOccupation.monthly_expenditure && !incomeOccupation.annual_expenditure" class="mt-4 p-3 bg-amber-50 rounded-lg border border-amber-200">
+          <p class="text-body-xs text-amber-800">
+            <strong>Note:</strong> To see your disposable income, please update your expenditure in the
+            <router-link to="/profile/expenditure" class="text-amber-900 underline hover:text-amber-700">Expenditure tab</router-link>.
+          </p>
+        </div>
+      </div>
+
       <!-- Action Buttons -->
       <div v-if="isEditing" class="flex justify-end space-x-4">
           <button
@@ -513,6 +552,21 @@ export default {
       return form.value.employment_status === 'retired' &&
              retirementAge.value !== null &&
              retirementAge.value < 55;
+    });
+
+    const disposableIncome = computed(() => {
+      if (!incomeOccupation.value) return 0;
+      const netIncome = incomeOccupation.value.net_income || 0;
+      const expenditure = incomeOccupation.value.annual_expenditure || 0;
+      return netIncome - expenditure;
+    });
+
+    const monthlyDisposable = computed(() => {
+      return disposableIncome.value / 12;
+    });
+
+    const disposableIncomeClass = computed(() => {
+      return disposableIncome.value >= 0 ? 'bg-green-50' : 'bg-red-50';
     });
 
     // Initialize form from incomeOccupation
@@ -622,6 +676,9 @@ export default {
       showEarlyRetirementWarning,
       incomeOccupation,
       detailedTaxBreakdown,
+      disposableIncome,
+      monthlyDisposable,
+      disposableIncomeClass,
       handleSubmit,
       handleCancel,
       formatCurrency,
