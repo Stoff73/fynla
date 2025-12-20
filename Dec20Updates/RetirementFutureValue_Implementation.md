@@ -1,218 +1,256 @@
-# Retirement Future Value & Strategies Tabs Implementation Plan
+# Retirement Future Value & Projections Implementation
 
-**Date**: December 20, 2025
+**Date**: December 20, 2024
 **Branch**: `retirementAccStrategies`
-**Status**: In Progress
+**Status**: Complete
 
 ---
 
 ## Overview
 
-Add two new tabs to the retirement section within `/net-worth/retirement`:
+Added two new tabs to the retirement section within `/net-worth/retirement`:
 1. **Future Value** - Monte Carlo projections for DC pensions with income drawdown analysis
-2. **Strategies** - Coming Soon placeholder (for optimization recommendations)
+2. **Strategies** - Interactive strategy recommendations with sliders
 
 ---
 
-## Key Requirements
+## What Was Built
 
-- **Pension Pot Projection**: Monte Carlo simulation for DC pensions only (DB/State are guaranteed)
-- **Probability Bands**: 95%, 90%, 85%, 80% (darkest = highest probability)
-- **Risk Returns**: 2% (low) to 8% (high) based on user's risk profile
-- **Income Drawdown**: 4.7% sustainable withdrawal rate, 2% annual inflation
-- **Target Income**: 75% of current after-tax income
-- **Period**: Retirement age to 100
-- **Bar Colors**: Green = above target, Red = below/depleted
+### Backend Services
 
----
+#### 1. RetirementProjectionService.php
+**File:** `app/Services/Retirement/RetirementProjectionService.php`
 
-## Files to Create
-
-### 1. Backend Service
-**`app/Services/Retirement/RetirementProjectionService.php`**
+Provides Monte Carlo projections for retirement planning:
 
 ```php
 class RetirementProjectionService
 {
-    public function __construct(
-        private MonteCarloSimulator $simulator,
-        private RiskPreferenceService $riskService
-    ) {}
+    public function getProjections(int $userId): array
+    // Returns pension pot projections and income drawdown analysis
 
     public function projectPensionPot(int $userId): array
-    // - Aggregate DC pensions (current value + monthly contributions)
-    // - Get risk level return/volatility from RiskPreferenceService
-    // - Run Monte Carlo with 1000 iterations
-    // - Return 5th/10th/15th/20th/50th percentiles year-by-year
+    // Monte Carlo simulation for DC pensions
+    // - Aggregates all DC pensions (current value + contributions)
+    // - Uses risk profile for return/volatility assumptions
+    // - Runs 1000 iterations
+    // - Returns percentile bands (5th, 10th, 15th, 20th, 50th)
 
     public function projectIncomeDrawdown(int $userId): array
-    // - Get median pot at retirement
-    // - Calculate 4.7% withdrawal + DB + State pension
-    // - Apply 2% inflation to target each year
-    // - Return yearly income vs target from retirement to age 100
-    // - Calculate on-track status and probability
+    // Income analysis from retirement to age 100
+    // - DC pension drawdown at 4.7% withdrawal rate
+    // - Adds DB pension income (if applicable)
+    // - Adds State pension income
+    // - Compares against target income (75% of current net)
+    // - Tracks fund depletion
 ```
 
-### 2. Frontend Components
+#### 2. RetirementStrategyService.php
+**File:** `app/Services/Retirement/RetirementStrategyService.php`
 
-**`resources/js/components/Retirement/FutureValueTab.vue`**
-- Summary cards (projected pot, on-track status, target income)
-- Contains PensionPotProjectionChart and IncomeDrawdownChart
+Generates personalized strategy recommendations:
 
-**`resources/js/components/Retirement/PensionPotProjectionChart.vue`**
-- ApexCharts stacked area chart
-- 5 series for probability bands (95%/90%/85%/80%/50%)
-- Colors: dark blue to light blue gradient
-- X-axis: years, Y-axis: pot value
-
-**`resources/js/components/Retirement/IncomeDrawdownChart.vue`**
-- ApexCharts bar chart
-- Green bars = above target, Red bars = below target
-- Horizontal target line annotation
-- X-axis: age 65-100, Y-axis: annual income
-
-**`resources/js/components/Retirement/StrategiesTab.vue`**
-- Coming Soon overlay with placeholder strategy cards
-
----
-
-## Files to Modify
-
-### 1. PensionList.vue
-**`resources/js/components/NetWorth/PensionList.vue`**
-
-Add tab navigation:
-```javascript
-data() {
-  return {
-    activeTab: 'current',
-    tabs: [
-      { id: 'current', label: 'Pensions' },
-      { id: 'future', label: 'Future Value' },
-      { id: 'strategies', label: 'Strategies' },
-    ],
-  };
-}
-```
-
-Template: Add tab buttons, conditionally render current content or new tab components.
-
-### 2. RetirementController.php
-**`app/Http/Controllers/Api/RetirementController.php`**
-
-Add method:
 ```php
-public function getProjections(Request $request): JsonResponse
+class RetirementStrategyService
+{
+    public function getStrategies(int $userId): array
+    // Returns prioritized strategies based on user's situation
+
+    public function calculateStrategyImpact(int $userId, string $type, float $value): array
+    // Recalculates projections with modified parameters for slider interaction
 ```
 
-### 3. API Routes
-**`routes/api.php`**
-
-Add: `Route::get('/retirement/projections', [RetirementController::class, 'getProjections']);`
-
-### 4. Vuex Store
-**`resources/js/store/modules/retirement.js`**
-
-Add state: `projections`, `projectionsLoading`
-Add action: `fetchProjections()`
-
-### 5. Retirement Service
-**`resources/js/services/retirementService.js`**
-
-Add: `getProjections()` method
+**Strategy Priority Order:**
+1. Maximise employer pension matching
+2. Increase contributions (within affordability & annual allowance)
+3. Adjust retirement age
+4. Reduce income target
 
 ---
 
-## API Response Structure
+### Frontend Components
 
+#### 1. FutureValueTab.vue
+**File:** `resources/js/components/Retirement/FutureValueTab.vue`
+
+Main container with:
+- Summary cards (projected pot, probability, target income)
+- Pension Pot Projection chart
+- Income Drawdown chart
+- On-track status indicator
+
+#### 2. PensionPotProjectionChart.vue
+**File:** `resources/js/components/Retirement/PensionPotProjectionChart.vue`
+
+ApexCharts stacked area chart showing:
+- 5 probability bands (5th/10th/15th/20th/50th percentiles)
+- Years on X-axis, pot value on Y-axis
+- Color gradient from dark to light blue
+
+#### 3. IncomeDrawdownChart.vue
+**File:** `resources/js/components/Retirement/IncomeDrawdownChart.vue`
+
+ApexCharts bar chart showing:
+- Yearly income from retirement to age 100
+- Green bars = above target income
+- Red bars = below target / fund depleted
+- Target income line annotation
+- Income breakdown (DC drawdown + DB + State)
+
+#### 4. TargetIncomeDrawdownChart.vue
+**File:** `resources/js/components/Retirement/TargetIncomeDrawdownChart.vue`
+
+Alternative drawdown visualization with target comparison.
+
+#### 5. StrategiesTab.vue
+**File:** `resources/js/components/Retirement/StrategiesTab.vue`
+
+Interactive strategies interface:
+- Summary cards (probability, monthly disposable, annual allowance)
+- Strategy cards with sliders
+- Combined impact summary
+- On-track banner when >= 95% probability
+
+#### 6. StrategyCard.vue
+**File:** `resources/js/components/Retirement/StrategyCard.vue`
+
+Individual strategy card with:
+- Priority badge
+- Description
+- Interactive slider
+- Real-time impact calculation
+- Constraints display (affordability, allowance limits)
+
+---
+
+### API Endpoints
+
+#### GET `/api/retirement/projections`
+Returns pension pot and income projections.
+
+**Response:**
 ```json
 {
-  "pension_pot_projection": {
-    "current_value": 125000,
-    "monthly_contribution": 500,
-    "risk_level": "medium",
-    "retirement_age": 65,
-    "median_at_retirement": 650000,
-    "year_by_year": [
-      {
-        "year": 2025,
-        "percentile_5": 130000,
-        "percentile_10": 132000,
-        "percentile_15": 134000,
-        "percentile_20": 136000,
-        "percentile_50": 145000
-      }
-    ]
-  },
-  "income_drawdown": {
-    "target_income": 35000,
-    "retirement_age": 65,
-    "on_track_status": "On Track",
-    "probability": 78,
-    "fund_depletion_age": 92,
-    "yearly_income": [
-      {
-        "age": 65,
-        "dc_drawdown": 30550,
-        "db_income": 8500,
-        "state_pension": 11500,
-        "total_income": 50550,
-        "target_income": 35000,
-        "remaining_fund": 620000,
-        "above_target": true
-      }
-    ]
+  "success": true,
+  "data": {
+    "pension_pot_projection": {
+      "current_value": 125000,
+      "monthly_contribution": 500,
+      "retirement_age": 65,
+      "median_at_retirement": 650000,
+      "year_by_year": [
+        {
+          "year": 2025,
+          "age": 35,
+          "percentile_5": 130000,
+          "percentile_10": 132000,
+          "percentile_15": 134000,
+          "percentile_20": 136000,
+          "percentile_50": 145000
+        }
+      ]
+    },
+    "income_drawdown": {
+      "target_income": 35000,
+      "retirement_age": 65,
+      "on_track_status": "On Track",
+      "probability": 78,
+      "fund_depletion_age": 92,
+      "yearly_income": [
+        {
+          "age": 65,
+          "dc_drawdown": 30550,
+          "db_income": 8500,
+          "state_pension": 11500,
+          "total_income": 50550,
+          "target_income": 35000,
+          "remaining_fund": 620000,
+          "above_target": true
+        }
+      ]
+    }
   }
 }
 ```
 
----
+#### GET `/api/retirement/strategies`
+Returns personalized strategy recommendations.
 
-## Key Dependencies (Already Exist)
-
-- `app/Services/Investment/MonteCarloSimulator.php` - Monte Carlo engine
-- `app/Services/Risk/RiskPreferenceService.php` - Risk level returns (2-8%)
-- `vue3-apexcharts` - Charting library
+#### POST `/api/retirement/strategies/impact`
+Calculates impact of a strategy change (for slider interaction).
 
 ---
 
-## Implementation Order
+### Files Modified
 
-| Step | Task | Status |
-|------|------|--------|
-| 1 | Create `RetirementProjectionService.php` | Pending |
-| 2 | Add `getProjections()` to `RetirementController.php` | Pending |
-| 3 | Add route to `routes/api.php` | Pending |
-| 4 | Update Vuex store `retirement.js` | Pending |
-| 5 | Update `retirementService.js` | Pending |
-| 6 | Add tabs to `PensionList.vue` | Pending |
-| 7 | Create `FutureValueTab.vue` | Pending |
-| 8 | Create `PensionPotProjectionChart.vue` | Pending |
-| 9 | Create `IncomeDrawdownChart.vue` | Pending |
-| 10 | Create `StrategiesTab.vue` | Pending |
-| 11 | Test with preview personas | Pending |
+| File | Changes |
+|------|---------|
+| `resources/js/components/NetWorth/PensionList.vue` | Added tabs (Pensions, Future Value, Strategies) |
+| `app/Http/Controllers/Api/RetirementController.php` | Added getProjections(), getStrategies(), calculateStrategyImpact() |
+| `routes/api.php` | Added retirement projection and strategy routes |
+| `resources/js/store/modules/retirement.js` | Added projections and strategies state/actions |
+| `resources/js/services/retirementService.js` | Added getProjections(), getStrategies(), calculateStrategyImpact() |
 
 ---
 
-## Styling Reference
+### Key Parameters
 
-Follow patterns from:
-- `resources/js/components/Retirement/IncomeProjectionChart.vue` - Area chart styling
-- `resources/js/components/Estate/CashFlowProjectionChart.vue` - Bar chart with colors
-- `resources/js/views/Savings/SavingsDashboard.vue` - Tab navigation pattern
-
-Colors:
-- Probability bands: `#1e3a5f`, `#2563eb`, `#3b82f6`, `#60a5fa`, `#93c5fd`
-- Above target: `#10b981` (green)
-- Below target: `#ef4444` (red)
-- Target line: `#f59e0b` (amber)
+| Parameter | Value | Source |
+|-----------|-------|--------|
+| Risk Returns | 2% (low) to 8% (high) | User's risk profile |
+| Withdrawal Rate | 4.7% | UK sustainable withdrawal research |
+| Inflation | 2% | Target inflation assumption |
+| Target Income | 75% of net income | UK retirement benchmark |
+| Projection End | Age 100 | Standard planning horizon |
+| Monte Carlo Iterations | 1000 | Statistical confidence |
 
 ---
 
-## Notes
+### Probability Bands
 
-- Uses existing Monte Carlo engine (no new simulation code needed)
-- Risk levels already configured with appropriate returns (2-8%)
-- DC pensions only for projections (DB/State are guaranteed income streams)
-- Target income = 75% of current after-tax income (standard UK retirement planning benchmark)
-- Sustainable withdrawal rate of 4.7% based on UK research (vs US 4% rule)
+| Percentile | Meaning | Color |
+|------------|---------|-------|
+| 5th | 95% chance of achieving this or better | `#1e3a5f` (darkest) |
+| 10th | 90% chance | `#2563eb` |
+| 15th | 85% chance | `#3b82f6` |
+| 20th | 80% chance | `#60a5fa` |
+| 50th | Median outcome | `#93c5fd` (lightest) |
+
+---
+
+### Income Chart Colors
+
+| Status | Color | Meaning |
+|--------|-------|---------|
+| Above Target | `#10b981` (green) | Total income >= target |
+| Below Target | `#ef4444` (red) | Total income < target or fund depleted |
+| Target Line | `#f59e0b` (amber) | Target income annotation |
+
+---
+
+## Testing
+
+```bash
+# Get projections for James Carter
+TOKEN=$(curl -s -X POST "http://localhost:8000/api/preview/login/young_family" | grep -o '"token":"[^"]*"' | cut -d'"' -f4)
+
+# Pension projections
+curl -H "Authorization: Bearer $TOKEN" "http://localhost:8000/api/retirement/projections"
+
+# Strategies
+curl -H "Authorization: Bearer $TOKEN" "http://localhost:8000/api/retirement/strategies"
+```
+
+---
+
+## Screenshots
+
+The Future Value tab displays:
+1. **Top row**: Summary cards with key metrics
+2. **Pension Pot Chart**: Monte Carlo projection bands
+3. **Income Drawdown Chart**: Year-by-year income vs target
+
+The Strategies tab displays:
+1. **Top row**: Probability, Disposable Income, Annual Allowance
+2. **Strategy Cards**: Prioritized recommendations with sliders
+3. **Combined Impact**: Projected improvement summary
