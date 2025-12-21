@@ -170,16 +170,11 @@
             :selected-account-id="null"
           />
 
-          <!-- Performance Tab (Coming Soon) -->
-          <div v-else-if="activePortfolioTab === 'performance'" class="coming-soon-wrapper">
-            <div class="coming-soon-banner">
-              <p class="text-2xl font-bold text-amber-700">Coming Soon</p>
-            </div>
-            <div class="opacity-50">
-              <Performance />
-              <div class="mt-8">
-                <PerformanceAttribution />
-              </div>
+          <!-- Performance Tab -->
+          <div v-else-if="activePortfolioTab === 'performance'">
+            <Performance />
+            <div class="mt-8">
+              <PerformanceAttribution />
             </div>
           </div>
 

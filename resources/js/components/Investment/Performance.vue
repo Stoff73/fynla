@@ -42,7 +42,7 @@
         <div class="bg-white rounded-lg shadow-md p-6">
           <p class="text-sm text-gray-600 mb-2">Total Portfolio Value</p>
           <p class="text-3xl font-bold text-gray-800">
-            £{{ formatNumber(totalPortfolioValue) }}
+            {{ formatCurrency(totalPortfolioValue) }}
           </p>
           <p class="text-xs text-gray-500 mt-1">Across {{ accountCount }} account{{ accountCount !== 1 ? 's' : '' }}</p>
         </div>
@@ -75,35 +75,135 @@
         </div>
       </div>
 
-      <!-- Performance Chart -->
+      <!-- Future Value Projections Section -->
       <div class="bg-white rounded-lg shadow-md p-6">
         <div class="flex items-center justify-between mb-6">
-          <h3 class="text-lg font-semibold text-gray-800">Portfolio Value Over Time</h3>
-          <select
-            v-model="selectedPeriod"
-            @change="loadPerformanceData"
-            class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-          >
-            <option value="1m">1 Month</option>
-            <option value="3m">3 Months</option>
-            <option value="6m">6 Months</option>
-            <option value="1y">1 Year</option>
-            <option value="3y">3 Years</option>
-            <option value="5y">5 Years</option>
-            <option value="all">All Time</option>
-          </select>
+          <h3 class="text-lg font-semibold text-gray-800">Future Value Projections</h3>
+          <div class="flex items-center gap-4">
+            <select
+              v-model="selectedProjectionYears"
+              @change="loadProjections"
+              class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            >
+              <option :value="5">5 Years</option>
+              <option :value="10">10 Years</option>
+              <option :value="20">20 Years</option>
+              <option :value="30">30 Years</option>
+            </select>
+          </div>
         </div>
 
-        <!-- Placeholder for future line chart -->
-        <div class="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+        <!-- Projections Loading State -->
+        <div v-if="projectionsLoading" class="flex justify-center items-center py-8">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <span class="ml-3 text-gray-600">Running Monte Carlo simulation...</span>
+        </div>
+
+        <!-- Projections Error State -->
+        <div v-else-if="projectionsError" class="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p class="text-sm text-red-800">{{ projectionsError }}</p>
+        </div>
+
+        <!-- Portfolio Projection Chart -->
+        <div v-else-if="portfolioProjection && selectedProjectionData">
+          <div class="flex items-center justify-between mb-4">
+            <h4 class="text-md font-medium text-gray-700">Total Portfolio</h4>
+            <div class="text-sm text-gray-500">
+              <span class="font-medium">Current: </span>
+              <span class="text-gray-900">{{ formatCurrency(portfolioProjection.current_value) }}</span>
+              <span class="mx-2">|</span>
+              <span class="font-medium">Est. Monthly Contribution: </span>
+              <span class="text-gray-900">{{ formatCurrency(portfolioProjection.estimated_monthly_contribution) }}</span>
+            </div>
+          </div>
+
+          <InvestmentProjectionChart
+            :data="selectedProjectionData"
+            title="Portfolio Value"
+          />
+
+          <!-- Projection Summary Cards -->
+          <div class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="bg-blue-50 rounded-lg p-4">
+              <p class="text-xs text-blue-600 font-medium">95% Probability</p>
+              <p class="text-lg font-bold text-blue-900">{{ formatCurrency(selectedProjectionData?.percentiles?.p5) }}</p>
+            </div>
+            <div class="bg-blue-50 rounded-lg p-4">
+              <p class="text-xs text-blue-600 font-medium">80% Probability</p>
+              <p class="text-lg font-bold text-blue-900">{{ formatCurrency(selectedProjectionData?.percentiles?.p20) }}</p>
+            </div>
+            <div class="bg-green-50 rounded-lg p-4">
+              <p class="text-xs text-green-600 font-medium">Median (50%)</p>
+              <p class="text-lg font-bold text-green-900">{{ formatCurrency(selectedProjectionData?.percentiles?.p50) }}</p>
+            </div>
+            <div class="bg-gray-50 rounded-lg p-4">
+              <p class="text-xs text-gray-600 font-medium">Upside (10%)</p>
+              <p class="text-lg font-bold text-gray-900">{{ formatCurrency(selectedProjectionData?.percentiles?.p90) }}</p>
+            </div>
+          </div>
+
+          <!-- Per-Account Projections -->
+          <div v-if="accountProjections && accountProjections.length > 1" class="mt-8">
+            <button
+              @click="showAccountProjections = !showAccountProjections"
+              class="flex items-center gap-2 text-md font-medium text-gray-700 hover:text-gray-900"
+            >
+              <svg
+                class="w-5 h-5 transition-transform"
+                :class="{ 'rotate-90': showAccountProjections }"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+              Per-Account Projections ({{ accountProjections.length }} accounts)
+            </button>
+
+            <div v-if="showAccountProjections" class="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div
+                v-for="account in accountProjections"
+                :key="account.account_id"
+                class="border border-gray-200 rounded-lg p-4"
+              >
+                <div class="flex items-center justify-between mb-3">
+                  <h5 class="font-medium text-gray-800">{{ account.account_name }}</h5>
+                  <span class="text-sm text-gray-500">{{ formatCurrency(account.current_value) }}</span>
+                </div>
+
+                <InvestmentProjectionChart
+                  v-if="account.projections[selectedProjectionYears]"
+                  :data="account.projections[selectedProjectionYears]"
+                  :title="account.account_name"
+                  :compact="true"
+                />
+
+                <div class="mt-3 flex justify-between text-sm">
+                  <div>
+                    <span class="text-gray-500">Median in {{ selectedProjectionYears }} years:</span>
+                    <span class="font-medium text-gray-900 ml-1">
+                      {{ formatCurrency(account.projections[selectedProjectionYears]?.median_value) }}
+                    </span>
+                  </div>
+                  <div>
+                    <span class="text-gray-500">Est. contribution:</span>
+                    <span class="font-medium text-gray-900 ml-1">
+                      {{ formatCurrency(account.estimated_monthly_contribution) }}/mo
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- No projection data yet -->
+        <div v-else class="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
           <svg class="mx-auto h-12 w-12 text-gray-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
           </svg>
           <p class="text-sm text-gray-600">
-            Performance tracking requires historical data
-          </p>
-          <p class="text-xs text-gray-500 mt-1">
-            Update your holdings regularly to build performance history
+            Loading projections...
           </p>
         </div>
       </div>
@@ -119,42 +219,39 @@
           </div>
         </div>
       </div>
-
-      <!-- Quick Actions -->
-      <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
-        <h3 class="text-lg font-semibold text-gray-800 mb-4">Advanced Performance Analysis</h3>
-        <p class="text-sm text-gray-600 mb-4">
-          View detailed performance metrics, benchmark comparisons, and attribution analysis below
-        </p>
-        <div class="flex flex-wrap gap-3">
-          <button class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
-            View Performance Attribution
-          </button>
-          <button class="px-4 py-2 bg-white border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors text-sm font-medium">
-            Compare to Benchmarks
-          </button>
-        </div>
-      </div>
     </div>
   </div>
 </template>
 
 <script>
-import { mapState, mapGetters } from 'vuex';
+import { mapState, mapGetters, mapActions } from 'vuex';
+import InvestmentProjectionChart from './InvestmentProjectionChart.vue';
 
 export default {
   name: 'Performance',
 
+  components: {
+    InvestmentProjectionChart,
+  },
+
   data() {
     return {
-      selectedPeriod: '1y',
-      localLoading: false,
-      localError: null,
+      selectedProjectionYears: 10,
+      showAccountProjections: false,
     };
   },
 
   computed: {
-    ...mapState('investment', ['accounts', 'holdings', 'analysis', 'loading', 'error']),
+    ...mapState('investment', [
+      'accounts',
+      'holdings',
+      'analysis',
+      'loading',
+      'error',
+      'portfolioProjections',
+      'projectionsLoading',
+      'projectionsError',
+    ]),
     ...mapGetters('investment', ['totalPortfolioValue']),
 
     hasAccounts() {
@@ -210,12 +307,56 @@ export default {
       if (score >= 50) return 'text-yellow-600';
       return 'text-red-600';
     },
+
+    portfolioProjection() {
+      return this.portfolioProjections?.portfolio;
+    },
+
+    accountProjections() {
+      return this.portfolioProjections?.accounts || [];
+    },
+
+    selectedProjectionData() {
+      if (!this.portfolioProjection?.projections) return null;
+      return this.portfolioProjection.projections[this.selectedProjectionYears];
+    },
+  },
+
+  async mounted() {
+    if (this.hasAccounts) {
+      await this.loadProjections();
+    }
+  },
+
+  watch: {
+    hasAccounts(newVal) {
+      if (newVal && !this.portfolioProjections) {
+        this.loadProjections();
+      }
+    },
   },
 
   methods: {
-    formatNumber(value) {
-      if (!value) return '0';
-      return new Intl.NumberFormat('en-GB').format(value);
+    ...mapActions('investment', ['fetchPortfolioProjections']),
+
+    async loadProjections() {
+      try {
+        await this.fetchPortfolioProjections({
+          selectedPeriod: this.selectedProjectionYears,
+        });
+      } catch (error) {
+        console.error('Failed to load projections:', error);
+      }
+    },
+
+    formatCurrency(value) {
+      if (value === null || value === undefined) return '£0';
+      return new Intl.NumberFormat('en-GB', {
+        style: 'currency',
+        currency: 'GBP',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      }).format(value);
     },
 
     formatAssetType(type) {
@@ -224,11 +365,6 @@ export default {
 
     navigateToTab(tabId) {
       this.$emit('navigate-to-tab', tabId);
-    },
-
-    loadPerformanceData() {
-      // This will be implemented when historical performance tracking is added
-      console.log(`Loading performance data for period: ${this.selectedPeriod}`);
     },
   },
 };

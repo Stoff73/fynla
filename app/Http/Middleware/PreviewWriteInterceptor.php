@@ -44,6 +44,7 @@ class PreviewWriteInterceptor
     private const EXCLUDED_PATTERNS = [
         '/calculate',           // All calculation endpoints (personal-accounts, IHT, SDLT, etc.)
         '/calculate-',          // Hyphenated calculation endpoints (calculate-sdlt, calculate-iht)
+        '/projections',         // Projection/simulation endpoints (investment, retirement)
     ];
 
     /**

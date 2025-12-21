@@ -27,6 +27,10 @@ const state = {
     benchmarkComparison: null,         // Phase 2.7: Benchmark comparison
     goalProjections: {},               // Phase 2.3: Goal projections by goal ID
     feeAnalysis: null,                 // Phase 2.5: Detailed fee analysis
+    portfolioProjections: null,        // Performance tab projections
+    projectionsLoading: false,
+    projectionsError: null,
+    selectedProjectionPeriod: 10,      // Default to 10 years
     loading: false,
     error: null,
 };
@@ -257,6 +261,18 @@ const getters = {
     },
 
     feeAnalysis: (state) => state.feeAnalysis,
+
+    // Portfolio projections getters
+    portfolioProjections: (state) => state.portfolioProjections,
+    projectionsLoading: (state) => state.projectionsLoading,
+    projectionsError: (state) => state.projectionsError,
+    selectedProjectionPeriod: (state) => state.selectedProjectionPeriod,
+
+    // Get portfolio projection for selected period
+    selectedPortfolioProjection: (state) => {
+        if (!state.portfolioProjections?.portfolio?.projections) return null;
+        return state.portfolioProjections.portfolio.projections[state.selectedProjectionPeriod];
+    },
 
     loading: (state) => state.loading,
     error: (state) => state.error,
@@ -1179,6 +1195,38 @@ const actions = {
             commit('setLoading', false);
         }
     },
+
+    // Portfolio Projections (Performance tab)
+    async fetchPortfolioProjections({ commit, state }, params = {}) {
+        commit('setProjectionsLoading', true);
+        commit('setProjectionsError', null);
+
+        try {
+            const response = await investmentService.getPortfolioProjections({
+                projection_periods: params.periods || [5, 10, 20, 30],
+                selected_period: params.selectedPeriod || state.selectedProjectionPeriod,
+                contribution_overrides: params.contributionOverrides || null,
+            });
+
+            if (response.success && response.data) {
+                commit('setPortfolioProjections', response.data);
+                if (params.selectedPeriod) {
+                    commit('setSelectedProjectionPeriod', params.selectedPeriod);
+                }
+            }
+            return response;
+        } catch (error) {
+            const errorMessage = error.message || 'Failed to fetch portfolio projections';
+            commit('setProjectionsError', errorMessage);
+            throw error;
+        } finally {
+            commit('setProjectionsLoading', false);
+        }
+    },
+
+    setSelectedProjectionPeriod({ commit }, period) {
+        commit('setSelectedProjectionPeriod', period);
+    },
 };
 
 const mutations = {
@@ -1429,6 +1477,23 @@ const mutations = {
 
     setFeeAnalysis(state, data) {
         state.feeAnalysis = data;
+    },
+
+    // Portfolio projections mutations
+    setPortfolioProjections(state, projections) {
+        state.portfolioProjections = projections;
+    },
+
+    setProjectionsLoading(state, loading) {
+        state.projectionsLoading = loading;
+    },
+
+    setProjectionsError(state, error) {
+        state.projectionsError = error;
+    },
+
+    setSelectedProjectionPeriod(state, period) {
+        state.selectedProjectionPeriod = period;
     },
 };
 

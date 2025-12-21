@@ -27,6 +27,7 @@ use App\Http\Controllers\Api\Investment\RebalancingStrategiesController;
 use App\Http\Controllers\Api\Investment\RiskProfileController;
 use App\Http\Controllers\Api\Investment\TaxOptimizationController;
 use App\Http\Controllers\Api\InvestmentController;
+use App\Http\Controllers\Api\InvestmentProjectionController;
 use App\Http\Controllers\Api\LetterToSpouseController;
 use App\Http\Controllers\Api\MortgageController;
 use App\Http\Controllers\Api\NetWorthController;
@@ -302,6 +303,9 @@ Route::middleware('auth:sanctum')->prefix('investment')->group(function () {
     // Monte Carlo simulation
     Route::post('/monte-carlo', [InvestmentController::class, 'startMonteCarlo']);
     Route::get('/monte-carlo/{jobId}', [InvestmentController::class, 'getMonteCarloResults']);
+
+    // Portfolio projections (Performance tab)
+    Route::post('/projections', [InvestmentProjectionController::class, 'getProjections']);
 
     // Investment accounts
     Route::prefix('accounts')->group(function () {

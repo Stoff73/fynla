@@ -1510,6 +1510,20 @@ const investmentService = {
         const response = await api.get('/investment/performance/benchmarks');
         return response.data;
     },
+
+    /**
+     * Get portfolio projections with Monte Carlo simulation
+     * POST /api/investment/projections
+     * @param {Object} params - Projection parameters
+     * @param {Array} params.projection_periods - Years to project (e.g., [5, 10, 20, 30])
+     * @param {Number} params.selected_period - Currently selected period for display
+     * @param {Object} params.contribution_overrides - Account ID -> monthly contribution overrides
+     * @returns {Promise} Projections for portfolio and individual accounts
+     */
+    async getPortfolioProjections(params = {}) {
+        const response = await api.post('/investment/projections', params);
+        return response.data;
+    },
 };
 
 export default investmentService;

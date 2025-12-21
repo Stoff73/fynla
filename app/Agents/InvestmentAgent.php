@@ -7,8 +7,10 @@ namespace App\Agents;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\Investment\InvestmentGoal;
 use App\Models\Investment\RiskProfile;
+use App\Models\User;
 use App\Services\Investment\AssetAllocationOptimizer;
 use App\Services\Investment\FeeAnalyzer;
+use App\Services\Investment\InvestmentProjectionService;
 use App\Services\Investment\MonteCarloSimulator;
 use App\Services\Investment\PortfolioAnalyzer;
 use App\Services\Investment\TaxEfficiencyCalculator;
@@ -251,5 +253,24 @@ class InvestmentAgent extends BaseAgent
     public function clearCache(int $userId): void
     {
         Cache::forget("investment_analysis_{$userId}");
+    }
+
+    /**
+     * Get portfolio projections with Monte Carlo simulation.
+     */
+    public function getPortfolioProjections(
+        int $userId,
+        array $projectionPeriods = [5, 10, 20, 30],
+        ?array $contributionOverrides = null,
+        ?int $selectedPeriod = null
+    ): array {
+        $user = User::findOrFail($userId);
+
+        return app(InvestmentProjectionService::class)->getPortfolioProjections(
+            $user,
+            $projectionPeriods,
+            $contributionOverrides,
+            $selectedPeriod
+        );
     }
 }
