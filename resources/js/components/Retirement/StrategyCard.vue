@@ -74,13 +74,14 @@
       </p>
     </div>
 
-    <!-- Projection Chart (shown when strategy gets user on track) -->
-    <div v-if="strategy.projection" class="projection-section">
+    <!-- Projection Chart -->
+    <div v-if="displayProjection" class="projection-section">
       <h5 class="projection-title">Projected Outcome</h5>
 
       <!-- Chart -->
       <div class="chart-container">
         <apexchart
+          :key="chartKey"
           type="area"
           height="280"
           :options="chartOptions"
@@ -93,10 +94,10 @@
         <div class="comparison-item without">
           <span class="comparison-label">Without Strategy</span>
           <div class="comparison-values">
-            <span class="pot-value">Pot: {{ formatCurrency(strategy.projection.without_strategy.pot_at_retirement) }}</span>
-            <span class="income-value">Income: {{ formatCurrency(strategy.projection.without_strategy.sustainable_income) }}/yr</span>
-            <span :class="['coverage-badge', getCoverageBadgeClass(strategy.projection.without_strategy.income_coverage_percent)]">
-              {{ strategy.projection.without_strategy.income_coverage_percent }}% of target
+            <span class="pot-value">Pot: {{ formatCurrency(displayProjection.without_strategy.pot_at_retirement) }}</span>
+            <span class="income-value">Income: {{ formatCurrency(displayProjection.without_strategy.sustainable_income) }}/yr</span>
+            <span :class="['coverage-badge', getCoverageBadgeClass(displayProjection.without_strategy.income_coverage_percent)]">
+              {{ displayProjection.without_strategy.income_coverage_percent }}% of target
             </span>
           </div>
         </div>
@@ -108,10 +109,10 @@
         <div class="comparison-item with">
           <span class="comparison-label">With Strategy</span>
           <div class="comparison-values">
-            <span class="pot-value">Pot: {{ formatCurrency(strategy.projection.with_strategy.pot_at_retirement) }}</span>
-            <span class="income-value">Income: {{ formatCurrency(strategy.projection.with_strategy.sustainable_income) }}/yr</span>
-            <span :class="['coverage-badge', getCoverageBadgeClass(strategy.projection.with_strategy.income_coverage_percent)]">
-              {{ strategy.projection.with_strategy.income_coverage_percent }}% of target
+            <span class="pot-value">Pot: {{ formatCurrency(displayProjection.with_strategy.pot_at_retirement) }}</span>
+            <span class="income-value">Income: {{ formatCurrency(displayProjection.with_strategy.sustainable_income) }}/yr</span>
+            <span :class="['coverage-badge', getCoverageBadgeClass(displayProjection.with_strategy.income_coverage_percent)]">
+              {{ displayProjection.with_strategy.income_coverage_percent }}% of target
             </span>
           </div>
         </div>
@@ -148,6 +149,7 @@ export default {
     return {
       localValue: this.strategy.recommended_value,
       calculatedImpact: null,
+      localProjection: null,  // Updated projection from slider interaction
       sliderTimeout: null,
       isCalculating: false,
     };
@@ -172,10 +174,15 @@ export default {
       return this.calculatedImpact || this.strategy.impact;
     },
 
-    chartSeries() {
-      if (!this.strategy.projection?.pot_growth) return [];
+    // Use localProjection if slider has been moved, otherwise use original
+    displayProjection() {
+      return this.localProjection || this.strategy.projection;
+    },
 
-      const growth = this.strategy.projection.pot_growth;
+    chartSeries() {
+      if (!this.displayProjection?.pot_growth) return [];
+
+      const growth = this.displayProjection.pot_growth;
       return [
         {
           name: 'With Strategy',
@@ -188,10 +195,17 @@ export default {
       ];
     },
 
-    chartOptions() {
-      if (!this.strategy.projection?.pot_growth) return {};
+    // Force chart re-render when projection data changes
+    chartKey() {
+      const pot = this.displayProjection?.with_strategy?.pot_at_retirement || 0;
+      const withStrategyFinal = this.displayProjection?.pot_growth?.slice(-1)[0]?.pot_with_strategy || 0;
+      return `chart-${pot}-${withStrategyFinal}`;
+    },
 
-      const growth = this.strategy.projection.pot_growth;
+    chartOptions() {
+      if (!this.displayProjection?.pot_growth) return {};
+
+      const growth = this.displayProjection.pot_growth;
       const years = growth.map(item => item.year);
 
       return {
@@ -287,17 +301,19 @@ export default {
         );
 
         if (response.data) {
-          // Calculate additional monthly for contribution strategies
-          let additionalMonthly = this.strategy.impact?.additional_monthly || 0;
-          if (this.strategy.type === 'employer_match' || this.strategy.type === 'increase_contribution') {
-            additionalMonthly = this.calculateAdditionalMonthly();
-          }
+          // Use additional_monthly from backend
+          const additionalMonthly = response.data.additional_monthly || 0;
 
           this.calculatedImpact = {
             probability_improvement: Math.round(response.data.probability_improvement || 0),
             new_probability: Math.round(response.data.new_probability || 0),
             additional_monthly: additionalMonthly,
           };
+
+          // Update local projection for chart/cards
+          if (response.data.projection) {
+            this.localProjection = response.data.projection;
+          }
         }
 
         // Emit event for parent component

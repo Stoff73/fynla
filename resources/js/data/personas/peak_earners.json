@@ -298,12 +298,12 @@
       "current_fund_value": 180000,
       "employee_contribution_percent": 8,
       "employer_contribution_percent": 8,
-      "employer_matching_limit": 100,
+      "employer_matching_limit": 8,
       "annual_salary": 145000,
       "retirement_age": 60,
       "ownership_type": "individual",
       "risk_preference": "upper_medium",
-      "notes": "Full employer matching - employer matches 100% of employee contribution"
+      "notes": "Employer matches employee contributions 1:1 up to 8% of salary"
     },
     {
       "id": 2,
