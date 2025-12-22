@@ -193,9 +193,17 @@ const actions = {
         }
     },
 
-    async calculateStrategyImpact({ commit }, { strategyType, newValue }) {
+    async calculateStrategyImpact({ commit }, { strategyType, newValue, priorAdditionalMonthly, priorAdditionalIncome, priorProbability }) {
         try {
-            const response = await retirementService.calculateStrategyImpact(strategyType, newValue);
+            const response = await retirementService.calculateStrategyImpact(
+                strategyType,
+                newValue,
+                {
+                    priorAdditionalMonthly: priorAdditionalMonthly || 0,
+                    priorAdditionalIncome: priorAdditionalIncome || 0,
+                    priorProbability: priorProbability,
+                }
+            );
             commit('SET_STRATEGY_IMPACT', response.data);
             return response.data;
         } catch (error) {

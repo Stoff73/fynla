@@ -295,9 +295,15 @@ export default {
 
       this.isCalculating = true;
       try {
+        // Pass cumulative context from prior strategies
         const response = await retirementService.calculateStrategyImpact(
           this.strategy.type,
-          this.localValue
+          this.localValue,
+          {
+            priorAdditionalMonthly: this.strategy.prior_cumulative_monthly || 0,
+            priorAdditionalIncome: this.strategy.prior_cumulative_income || 0,
+            priorProbability: this.strategy.prior_probability || null,
+          }
         );
 
         if (response.data) {
@@ -316,12 +322,15 @@ export default {
           }
         }
 
-        // Emit event for parent component
+        // Emit event for parent component (include cumulative context)
         this.$emit('slider-change', {
           strategyType: this.strategy.type,
           newValue: this.localValue,
           pensionId: this.strategy.pension_id,
           impact: this.calculatedImpact,
+          priorCumulativeMonthly: this.strategy.prior_cumulative_monthly || 0,
+          priorCumulativeIncome: this.strategy.prior_cumulative_income || 0,
+          priorProbability: this.strategy.prior_probability || null,
         });
       } catch (error) {
         console.error('Failed to calculate strategy impact:', error);

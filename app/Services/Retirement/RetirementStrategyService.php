@@ -72,6 +72,8 @@ class RetirementStrategyService
                 $cumulativeAdditionalMonthly + $strategy['impact']['additional_monthly'],
                 $strategy['impact']['additional_annual_income']
             );
+            // Add probability_improvement for display on initial load
+            $strategy['impact']['probability_improvement'] = round($strategy['impact']['new_probability'] - $cumulativeProbability, 0);
             $strategies[] = $strategy;
             $cumulativeAdditionalIncome += $strategy['impact']['additional_annual_income'] ?? 0;
             $cumulativeAdditionalMonthly += $strategy['impact']['additional_monthly'] ?? 0;
@@ -97,6 +99,8 @@ class RetirementStrategyService
                     $cumulativeAdditionalMonthly + $contributionStrategy['impact']['additional_monthly'],
                     $cumulativeAdditionalIncome + $contributionStrategy['impact']['additional_annual_income']
                 );
+                // Add probability_improvement for display on initial load
+                $contributionStrategy['impact']['probability_improvement'] = round($contributionStrategy['impact']['new_probability'] - $cumulativeProbability, 0);
                 $strategies[] = $contributionStrategy;
                 $cumulativeAdditionalIncome += $contributionStrategy['impact']['additional_annual_income'] ?? 0;
                 $cumulativeAdditionalMonthly += $contributionStrategy['impact']['additional_monthly'] ?? 0;
@@ -108,12 +112,15 @@ class RetirementStrategyService
         if ($cumulativeProbability < self::ON_TRACK_PROBABILITY) {
             $retirementAgeStrategy = $this->checkRetirementAgeStrategy($user, $currentStatus, $cumulativeAdditionalIncome);
             if ($retirementAgeStrategy) {
-                // Always add projection data
-                $retirementAgeStrategy['projection'] = $this->buildStrategyProjection(
+                // Build retirement-age-specific projection with cumulative context
+                $yearsDelay = $retirementAgeStrategy['impact']['years_delay'] ?? 0;
+                $retirementAgeStrategy['projection'] = $this->buildRetirementAgeProjection(
                     $currentStatus,
-                    $cumulativeAdditionalMonthly,
-                    $cumulativeAdditionalIncome + $retirementAgeStrategy['impact']['additional_annual_income']
+                    $yearsDelay,
+                    $cumulativeAdditionalMonthly  // Pass prior strategies' additional monthly
                 );
+                // Add probability_improvement for display on initial load
+                $retirementAgeStrategy['impact']['probability_improvement'] = round($retirementAgeStrategy['impact']['new_probability'] - $cumulativeProbability, 0);
                 $strategies[] = $retirementAgeStrategy;
                 $cumulativeAdditionalIncome += $retirementAgeStrategy['impact']['additional_annual_income'] ?? 0;
                 $cumulativeProbability = $retirementAgeStrategy['impact']['new_probability'];
@@ -129,6 +136,8 @@ class RetirementStrategyService
                     $currentStatus,
                     $incomeTargetStrategy['recommended_value']
                 );
+                // Add probability_improvement for display on initial load
+                $incomeTargetStrategy['impact']['probability_improvement'] = round($incomeTargetStrategy['impact']['new_probability'] - $cumulativeProbability, 0);
                 $strategies[] = $incomeTargetStrategy;
                 $cumulativeProbability = $incomeTargetStrategy['impact']['new_probability'];
             }
@@ -155,15 +164,27 @@ class RetirementStrategyService
     /**
      * Calculate the impact of a specific strategy change.
      * Returns both probability changes AND updated projection data for the chart.
+     *
+     * @param  float  $priorAdditionalMonthly  Cumulative monthly contributions from prior strategies
+     * @param  float  $priorAdditionalIncome  Cumulative annual income from prior strategies
+     * @param  float|null  $priorProbability  Probability after prior strategies (use this as baseline)
      */
-    public function calculateStrategyImpact(int $userId, string $strategyType, float $newValue): array
-    {
+    public function calculateStrategyImpact(
+        int $userId,
+        string $strategyType,
+        float $newValue,
+        float $priorAdditionalMonthly = 0,
+        float $priorAdditionalIncome = 0,
+        ?float $priorProbability = null
+    ): array {
         $user = User::with(['dcPensions', 'dbPensions', 'statePension'])
             ->findOrFail($userId);
 
         // Get base projections
         $projections = $this->projectionService->getProjections($userId);
-        $baseProbability = $projections['income_drawdown']['probability'];
+        $originalBaseProbability = $projections['income_drawdown']['probability'];
+        // Use prior probability as baseline if provided (for cumulative strategy calculations)
+        $baseProbability = $priorProbability ?? $originalBaseProbability;
         $currentStatus = $this->extractCurrentStatus($projections);
 
         // Calculate additional monthly contribution based on strategy type
@@ -199,14 +220,20 @@ class RetirementStrategyService
 
         $improvement = $newProbability - $baseProbability;
 
+        // Total cumulative values (prior strategies + this strategy)
+        $totalAdditionalMonthly = $priorAdditionalMonthly + $additionalMonthly;
+        $totalAdditionalIncome = $priorAdditionalIncome + $additionalAnnualIncome;
+
         // Build updated projection for the chart based on strategy type
+        // Use cumulative values so projection shows full impact of all prior strategies + this one
         $projection = match ($strategyType) {
             'income_target' => $this->buildIncomeTargetProjection($currentStatus, $newValue),
             'retirement_age' => $this->buildRetirementAgeProjection(
                 $currentStatus,
-                (int) $newValue - ($user->target_retirement_age ?? 65)
+                (int) $newValue - ($user->target_retirement_age ?? 65),
+                $priorAdditionalMonthly  // Pass prior strategies' additional monthly for cumulative projection
             ),
-            default => $this->buildStrategyProjection($currentStatus, $additionalMonthly, $additionalAnnualIncome),
+            default => $this->buildStrategyProjection($currentStatus, $totalAdditionalMonthly, $totalAdditionalIncome),
         };
 
         return [
@@ -216,6 +243,9 @@ class RetirementStrategyService
             'new_probability' => min(100, $newProbability),
             'probability_improvement' => max(0, $improvement),
             'additional_monthly' => round($additionalMonthly, 2),
+            'total_additional_monthly' => round($totalAdditionalMonthly, 2),
+            'additional_annual_income' => round($additionalAnnualIncome, 2),
+            'total_additional_income' => round($totalAdditionalIncome, 2),
             'on_track' => $newProbability >= self::ON_TRACK_PROBABILITY,
             'projection' => $projection,
         ];
@@ -574,36 +604,71 @@ class RetirementStrategyService
             return null;
         }
 
-        $currentIncome = $currentStatus['projected_income'] + $cumulativeAdditionalIncome;
         $targetIncome = $currentStatus['target_income'];
+        $guaranteedIncome = $currentStatus['guaranteed_income'] ?? 0;
 
-        // Calculate the age needed to reach 95% probability
-        // Each year delay adds ~10% to income (contributions + growth)
-        // We need: (currentIncome + additionalIncome) / targetIncome >= 0.95 for 95% probability
-        // Using linear interpolation: probability = 10 + (incomeRatio * 85)
-        // For 95%: 95 = 10 + (incomeRatio * 85) => incomeRatio = 1.0
-        $incomeGapPercent = ($targetIncome - $currentIncome) / $currentIncome;
-        $yearsNeededFor95 = ceil($incomeGapPercent / 0.10); // Each year adds ~10%
-        $ageFor95 = min($currentRetirementAge + $yearsNeededFor95, $maxSliderAge);
+        // Find the optimal retirement age by testing each year
+        // We want the MINIMUM delay that achieves ~95-100% income coverage
+        $recommendedAge = $currentRetirementAge;
+        $recommendedYearsDelay = 0;
+        $bestIncomeCoverage = 0;
 
-        // Cap recommendation at 68, but allow slider to go to 75
-        $recommendedAge = min((int) $ageFor95, $maxRecommendedAge);
-        $yearsDelay = $recommendedAge - $currentRetirementAge;
-
-        // Build description based on whether we hit the cap
-        $isCapped = $ageFor95 > $maxRecommendedAge;
-        if ($isCapped) {
-            $description = sprintf(
-                'We recommend retiring at %d (State Pension age). You can use the slider to explore later ages up to %d.',
-                $maxRecommendedAge,
-                $maxSliderAge
+        for ($testYears = 1; $testYears <= ($maxRecommendedAge - $currentRetirementAge); $testYears++) {
+            // Calculate projected pot at this delayed retirement
+            $projectedPot = $this->calculatePotAtDelayedRetirement(
+                $currentStatus,
+                $testYears,
+                $cumulativeAdditionalIncome
             );
-        } else {
-            $description = 'Working longer allows more time for contributions and investment growth.';
+
+            // Calculate sustainable income at this pot
+            $sustainableIncome = $projectedPot * 0.047; // 4.7% withdrawal rate
+            $totalIncome = $sustainableIncome + $guaranteedIncome;
+            $incomeCoverage = ($totalIncome / $targetIncome) * 100;
+
+            // Find the minimum delay that gets us to at least 95% coverage
+            if ($incomeCoverage >= 95 && $recommendedYearsDelay === 0) {
+                $recommendedAge = $currentRetirementAge + $testYears;
+                $recommendedYearsDelay = $testYears;
+                $bestIncomeCoverage = $incomeCoverage;
+                break; // Stop at first age that achieves target
+            }
         }
 
-        // Calculate impact at recommended age
-        $additionalAnnualIncome = $currentIncome * ($yearsDelay * 0.10);
+        // If we couldn't reach 95% within max recommended age, use max
+        if ($recommendedYearsDelay === 0) {
+            $recommendedAge = $maxRecommendedAge;
+            $recommendedYearsDelay = $maxRecommendedAge - $currentRetirementAge;
+
+            // Calculate coverage at max recommended age
+            $projectedPotAtMax = $this->calculatePotAtDelayedRetirement(
+                $currentStatus,
+                $recommendedYearsDelay,
+                $cumulativeAdditionalIncome
+            );
+            $sustainableIncomeAtMax = $projectedPotAtMax * 0.047;
+            $totalIncomeAtMax = $sustainableIncomeAtMax + $guaranteedIncome;
+            $bestIncomeCoverage = ($totalIncomeAtMax / $targetIncome) * 100;
+        }
+
+        $yearsDelay = $recommendedYearsDelay;
+
+        // Build description
+        $description = 'Working longer allows more time for contributions and investment growth.';
+
+        // Calculate impact using actual projection
+        $projectedPot = $this->calculatePotAtDelayedRetirement(
+            $currentStatus,
+            $yearsDelay,
+            $cumulativeAdditionalIncome
+        );
+        $sustainableIncome = $projectedPot * 0.047;
+        $totalIncome = $sustainableIncome + $guaranteedIncome;
+
+        // Current income with prior strategies
+        $currentIncome = $currentStatus['projected_income'] + $cumulativeAdditionalIncome;
+        $additionalAnnualIncome = $totalIncome - $currentIncome;
+
         $newProbability = $this->calculateNewProbability(
             $currentIncome,
             $targetIncome,
@@ -630,7 +695,7 @@ class RetirementStrategyService
             ],
             'constraints' => [
                 'max_recommended_age' => $maxRecommendedAge,
-                'age_for_95_percent' => (int) $ageFor95,
+                'age_for_95_percent' => $recommendedAge,
             ],
             'impact' => [
                 'years_delay' => $yearsDelay,
@@ -1064,10 +1129,12 @@ class RetirementStrategyService
      * Build projection data for retirement age adjustment strategy.
      *
      * For retirement age strategy, we show the pot continuing to grow for additional years.
-     * "Without strategy" = retire at current target age
+     * "Without strategy" = pot with prior strategies' contributions (cumulative baseline)
      * "With strategy" = retire at delayed age (more years of growth + contributions)
+     *
+     * @param  float  $priorAdditionalMonthly  Cumulative monthly contributions from prior strategies
      */
-    private function buildRetirementAgeProjection(array $currentStatus, int $yearsDelay): array
+    private function buildRetirementAgeProjection(array $currentStatus, int $yearsDelay, float $priorAdditionalMonthly = 0): array
     {
         $yearsToRetirement = $currentStatus['years_to_retirement'];
         $expectedReturn = $currentStatus['expected_return'] / 100;
@@ -1077,6 +1144,9 @@ class RetirementStrategyService
         // Get current monthly contributions to project growth during delay
         $currentMonthlyContribution = $currentStatus['current_monthly_contribution'] ?? 0;
 
+        // Total monthly with prior strategies' contributions
+        $totalMonthlyContribution = $currentMonthlyContribution + $priorAdditionalMonthly;
+
         // Use Monte Carlo data for baseline
         $monteCarloData = $currentStatus['monte_carlo_year_by_year'] ?? [];
         $monteCarloCount = count($monteCarloData);
@@ -1084,24 +1154,38 @@ class RetirementStrategyService
         $yearByYear = [];
         $monthlyRate = $expectedReturn / 12;
 
-        // Build projection up to original retirement age (without strategy baseline)
+        // Build projection up to original retirement age
+        // "Without strategy" = Monte Carlo baseline + prior strategies' additional pot
         for ($year = 0; $year <= $yearsToRetirement; $year++) {
             if ($year === 0) {
-                $potWithoutStrategy = $currentPot;
+                $mcBaseline = $currentPot;
                 $displayYear = $currentYear;
             } else {
                 $mcIndex = $year - 1;
                 if ($mcIndex < $monteCarloCount) {
-                    $potWithoutStrategy = $monteCarloData[$mcIndex]['percentile_5'] ?? $currentPot;
+                    $mcBaseline = $monteCarloData[$mcIndex]['percentile_5'] ?? $currentPot;
                     $displayYear = $monteCarloData[$mcIndex]['year'] ?? ($currentYear + $year);
                 } else {
                     $lastMcIndex = max(0, $monteCarloCount - 1);
-                    $potWithoutStrategy = $monteCarloData[$lastMcIndex]['percentile_5'] ?? $currentPot;
+                    $mcBaseline = $monteCarloData[$lastMcIndex]['percentile_5'] ?? $currentPot;
                     $displayYear = $currentYear + $year;
                 }
             }
 
-            // With strategy: same as without up to original retirement year
+            // Calculate additional pot from prior strategies' extra contributions
+            $additionalPotFromPriorStrategies = 0.0;
+            if ($year > 0 && $monthlyRate > 0 && $priorAdditionalMonthly > 0) {
+                $months = $year * 12;
+                $additionalPotFromPriorStrategies = $priorAdditionalMonthly *
+                    ((pow(1 + $monthlyRate, $months) - 1) / $monthlyRate);
+            }
+
+            // "Without strategy" = Monte Carlo baseline + prior strategies' pot
+            // This represents where we'd be if we took prior strategies but NOT this one
+            $potWithoutStrategy = $mcBaseline + $additionalPotFromPriorStrategies;
+
+            // Up to original retirement, "with strategy" is same as "without"
+            // (the retirement age delay hasn't kicked in yet)
             $yearByYear[] = [
                 'year' => $displayYear,
                 'years_from_now' => $year,
@@ -1110,7 +1194,7 @@ class RetirementStrategyService
             ];
         }
 
-        // Get pot at original retirement age
+        // Get pot at original retirement age (includes prior strategies)
         $potAtOriginalRetirement = $yearByYear[count($yearByYear) - 1]['pot_without_strategy'] ?? $currentPot;
 
         // Now extend projection for delay years (with strategy continues growing)
@@ -1121,25 +1205,38 @@ class RetirementStrategyService
             // Without strategy: pot stays at original retirement value (no more growth after original retirement)
             $potWithoutStrategy = $potAtOriginalRetirement;
 
-            // With strategy: continued growth with contributions
+            // With strategy: continued growth with total contributions (original + prior strategies)
             // Use Monte Carlo if available, otherwise project with expected return
             $mcIndex = $year - 1;
+
+            // Calculate additional pot from prior strategies for this year
+            $additionalPotFromPriorStrategies = 0.0;
+            if ($monthlyRate > 0 && $priorAdditionalMonthly > 0) {
+                $months = $year * 12;
+                $additionalPotFromPriorStrategies = $priorAdditionalMonthly *
+                    ((pow(1 + $monthlyRate, $months) - 1) / $monthlyRate);
+            }
+
             if ($mcIndex < $monteCarloCount) {
-                $potWithStrategy = $monteCarloData[$mcIndex]['percentile_5'] ?? $potAtOriginalRetirement;
+                $mcBaseline = $monteCarloData[$mcIndex]['percentile_5'] ?? $potAtOriginalRetirement;
+                $potWithStrategy = $mcBaseline + $additionalPotFromPriorStrategies;
             } else {
-                // Project forward from last Monte Carlo value
+                // Project forward from last Monte Carlo value + prior strategies' pot
                 $lastMcValue = $monteCarloCount > 0
-                    ? ($monteCarloData[$monteCarloCount - 1]['percentile_5'] ?? $potAtOriginalRetirement)
-                    : $potAtOriginalRetirement;
+                    ? ($monteCarloData[$monteCarloCount - 1]['percentile_5'] ?? ($potAtOriginalRetirement - $additionalPotFromPriorStrategies))
+                    : ($potAtOriginalRetirement - $additionalPotFromPriorStrategies);
 
-                // Simple projection: previous pot × (1 + return) + contributions
+                // Add prior strategies' pot at that point
+                $lastMcValueWithPrior = $lastMcValue + $additionalPotFromPriorStrategies;
+
+                // Simple projection: previous pot × (1 + return) + total contributions
                 $yearsSinceLastMc = $year - $monteCarloCount;
-                $potWithStrategy = $lastMcValue * pow(1 + $expectedReturn, $yearsSinceLastMc);
+                $potWithStrategy = $lastMcValueWithPrior * pow(1 + $expectedReturn, $yearsSinceLastMc);
 
-                // Add continued contributions
+                // Add continued contributions (total = original + prior strategies)
                 if ($monthlyRate > 0) {
                     $extraMonths = $yearsSinceLastMc * 12;
-                    $additionalFromContributions = $currentMonthlyContribution *
+                    $additionalFromContributions = $totalMonthlyContribution *
                         ((pow(1 + $monthlyRate, $extraMonths) - 1) / $monthlyRate);
                     $potWithStrategy += $additionalFromContributions;
                 }
@@ -1190,6 +1287,118 @@ class RetirementStrategyService
             ],
             'target_income' => round($targetIncome, 0),
         ];
+    }
+
+    /**
+     * Calculate projected pension pot at a delayed retirement age.
+     *
+     * Uses Monte Carlo data where available, otherwise projects forward with expected return.
+     * Accounts for cumulative contributions from prior strategies.
+     *
+     * @param  float  $cumulativeAdditionalIncome  Cumulative annual income from prior strategies
+     *                                              (used to derive additional monthly contributions)
+     */
+    private function calculatePotAtDelayedRetirement(
+        array $currentStatus,
+        int $yearsDelay,
+        float $cumulativeAdditionalIncome
+    ): float {
+        $yearsToRetirement = $currentStatus['years_to_retirement'];
+        $expectedReturn = $currentStatus['expected_return'] / 100;
+        $currentPot = $currentStatus['current_pot'];
+        $currentMonthlyContribution = $currentStatus['current_monthly_contribution'] ?? 0;
+        $guaranteedIncome = $currentStatus['guaranteed_income'] ?? 0;
+
+        // Use Monte Carlo data for baseline projections
+        $monteCarloData = $currentStatus['monte_carlo_year_by_year'] ?? [];
+        $monteCarloCount = count($monteCarloData);
+
+        // Calculate monthly contribution equivalent from prior strategies' income impact
+        // Reverse the income calculation to get approximate monthly contributions
+        $priorAdditionalMonthly = 0.0;
+        if ($cumulativeAdditionalIncome > 0 && $yearsToRetirement > 0) {
+            // Income = pot × 0.047, so pot = income / 0.047
+            // pot = monthly × ((1 + r)^n - 1) / r, so monthly = pot × r / ((1 + r)^n - 1)
+            $monthlyRate = $expectedReturn / 12;
+            $months = $yearsToRetirement * 12;
+            if ($monthlyRate > 0 && $months > 0) {
+                $potNeeded = $cumulativeAdditionalIncome / 0.047;
+                $priorAdditionalMonthly = $potNeeded * $monthlyRate / (pow(1 + $monthlyRate, $months) - 1);
+            }
+        }
+
+        $totalMonthlyContribution = $currentMonthlyContribution + $priorAdditionalMonthly;
+        $totalYears = $yearsToRetirement + $yearsDelay;
+
+        // Get pot at original retirement from Monte Carlo
+        $potAtOriginalRetirement = $currentPot;
+        if ($monteCarloCount >= $yearsToRetirement && $yearsToRetirement > 0) {
+            $mcIndex = $yearsToRetirement - 1;
+            $potAtOriginalRetirement = $monteCarloData[$mcIndex]['percentile_5'] ?? $currentPot;
+        }
+
+        // Add pot from prior strategies' additional contributions
+        $monthlyRate = $expectedReturn / 12;
+        $additionalPotFromPriorStrategies = 0.0;
+        if ($monthlyRate > 0 && $priorAdditionalMonthly > 0 && $yearsToRetirement > 0) {
+            $months = $yearsToRetirement * 12;
+            $additionalPotFromPriorStrategies = $priorAdditionalMonthly *
+                ((pow(1 + $monthlyRate, $months) - 1) / $monthlyRate);
+        }
+
+        $potWithPriorStrategies = $potAtOriginalRetirement + $additionalPotFromPriorStrategies;
+
+        // If no delay, return pot with prior strategies
+        if ($yearsDelay <= 0) {
+            return $potWithPriorStrategies;
+        }
+
+        // Calculate projected pot at delayed retirement
+        // Check if Monte Carlo data extends to the delayed age
+        $mcIndexDelayed = $totalYears - 1;
+
+        if ($mcIndexDelayed < $monteCarloCount) {
+            // Monte Carlo data available for delayed retirement
+            $mcBaseline = $monteCarloData[$mcIndexDelayed]['percentile_5'] ?? $potAtOriginalRetirement;
+
+            // Add prior strategies' pot accumulated to that point
+            if ($monthlyRate > 0 && $priorAdditionalMonthly > 0) {
+                $months = $totalYears * 12;
+                $additionalPotAtDelay = $priorAdditionalMonthly *
+                    ((pow(1 + $monthlyRate, $months) - 1) / $monthlyRate);
+                return $mcBaseline + $additionalPotAtDelay;
+            }
+
+            return $mcBaseline;
+        }
+
+        // Project forward from end of Monte Carlo data
+        $lastMcIndex = max(0, $monteCarloCount - 1);
+        $lastMcPot = $monteCarloData[$lastMcIndex]['percentile_5'] ?? $potWithPriorStrategies;
+
+        // Add prior strategies' pot at last MC point
+        if ($monthlyRate > 0 && $priorAdditionalMonthly > 0 && $monteCarloCount > 0) {
+            $months = $monteCarloCount * 12;
+            $additionalPotAtLastMc = $priorAdditionalMonthly *
+                ((pow(1 + $monthlyRate, $months) - 1) / $monthlyRate);
+            $lastMcPot += $additionalPotAtLastMc;
+        }
+
+        // Project forward from last MC to delayed retirement
+        $yearsToProject = $totalYears - $monteCarloCount;
+
+        // Growth on existing pot
+        $projectedPot = $lastMcPot * pow(1 + $expectedReturn, $yearsToProject);
+
+        // Add continued contributions during delay
+        if ($monthlyRate > 0 && $yearsToProject > 0) {
+            $extraMonths = $yearsToProject * 12;
+            $additionalFromContributions = $totalMonthlyContribution *
+                ((pow(1 + $monthlyRate, $extraMonths) - 1) / $monthlyRate);
+            $projectedPot += $additionalFromContributions;
+        }
+
+        return $projectedPot;
     }
 
     /**

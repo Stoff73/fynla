@@ -432,19 +432,28 @@ class RetirementController extends Controller
 
     /**
      * Calculate the impact of a strategy change.
+     *
+     * Accepts optional cumulative context from prior strategies to enable
+     * chained/stacked strategy impact calculations.
      */
     public function calculateStrategyImpact(Request $request): JsonResponse
     {
         $request->validate([
             'strategy_type' => 'required|in:employer_match,increase_contribution,retirement_age,income_target',
             'new_value' => 'required|numeric',
+            'prior_additional_monthly' => 'nullable|numeric',
+            'prior_additional_income' => 'nullable|numeric',
+            'prior_probability' => 'nullable|numeric',
         ]);
 
         $user = $request->user();
         $impact = $this->strategyService->calculateStrategyImpact(
             $user->id,
             $request->query('strategy_type'),
-            (float) $request->query('new_value')
+            (float) $request->query('new_value'),
+            (float) ($request->query('prior_additional_monthly') ?? 0),
+            (float) ($request->query('prior_additional_income') ?? 0),
+            $request->query('prior_probability') !== null ? (float) $request->query('prior_probability') : null
         );
 
         return response()->json([
