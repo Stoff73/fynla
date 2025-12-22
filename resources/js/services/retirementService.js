@@ -61,14 +61,32 @@ export default {
 
     /**
      * Calculate impact of a strategy change
+     *
+     * @param {string} strategyType - Type of strategy (employer_match, increase_contribution, etc.)
+     * @param {number} newValue - New value for the strategy slider
+     * @param {Object} cumulativeContext - Cumulative values from prior strategies
+     * @param {number} cumulativeContext.priorAdditionalMonthly - Monthly contributions from prior strategies
+     * @param {number} cumulativeContext.priorAdditionalIncome - Annual income from prior strategies
+     * @param {number|null} cumulativeContext.priorProbability - Probability after prior strategies
      */
-    async calculateStrategyImpact(strategyType, newValue) {
-        const response = await api.get(`${API_BASE}/strategies/impact`, {
-            params: {
-                strategy_type: strategyType,
-                new_value: newValue,
-            },
-        });
+    async calculateStrategyImpact(strategyType, newValue, cumulativeContext = {}) {
+        const params = {
+            strategy_type: strategyType,
+            new_value: newValue,
+        };
+
+        // Add cumulative context if provided
+        if (cumulativeContext.priorAdditionalMonthly) {
+            params.prior_additional_monthly = cumulativeContext.priorAdditionalMonthly;
+        }
+        if (cumulativeContext.priorAdditionalIncome) {
+            params.prior_additional_income = cumulativeContext.priorAdditionalIncome;
+        }
+        if (cumulativeContext.priorProbability !== null && cumulativeContext.priorProbability !== undefined) {
+            params.prior_probability = cumulativeContext.priorProbability;
+        }
+
+        const response = await api.get(`${API_BASE}/strategies/impact`, { params });
         return response.data;
     },
 

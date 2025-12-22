@@ -51,11 +51,11 @@ test('investment summary includes portfolio value', function () {
     expect($data['investment']['portfolio_value'])->toBeNumeric();
 });
 
-test('retirement summary includes readiness score', function () {
+test('retirement summary includes income gap', function () {
     $data = $this->aggregator->aggregateOverviewData($this->user->id);
 
-    expect($data['retirement'])->toHaveKey('readiness_score');
-    expect($data['retirement']['readiness_score'])->toBeNumeric();
+    expect($data['retirement'])->toHaveKey('income_gap');
+    expect($data['retirement']['income_gap'])->toBeNumeric();
 });
 
 test('estate summary includes net worth', function () {

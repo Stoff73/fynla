@@ -18,7 +18,6 @@ use App\Services\Retirement\ContributionOptimizer;
 use App\Services\Retirement\DecumulationPlanner;
 use App\Services\Retirement\PensionPortfolioAnalyzer;
 use App\Services\Retirement\PensionProjector;
-use App\Services\Retirement\ReadinessScorer;
 
 /**
  * Retirement Agent
@@ -32,7 +31,6 @@ class RetirementAgent extends BaseAgent
 
     public function __construct(
         private PensionProjector $projector,
-        private ReadinessScorer $scorer,
         private AnnualAllowanceChecker $allowanceChecker,
         private ContributionOptimizer $optimizer,
         private DecumulationPlanner $planner,
@@ -66,10 +64,9 @@ class RetirementAgent extends BaseAgent
             // Project total retirement income
             $incomeProjection = $this->projector->projectTotalRetirementIncome($userId);
 
-            // Calculate retirement readiness
             $targetIncome = (float) $profile->target_retirement_income;
             $projectedIncome = $incomeProjection['total_projected_income'];
-            $readiness = $this->scorer->analyzeReadiness($projectedIncome, $targetIncome);
+            $incomeGap = $targetIncome - $projectedIncome;
 
             // Check annual allowance
             $taxYear = $this->getCurrentTaxYear();
@@ -80,14 +77,11 @@ class RetirementAgent extends BaseAgent
 
             // Summary metrics
             $summary = [
-                'readiness_score' => $readiness['score'],
-                'readiness_category' => $readiness['category'],
-                'readiness_color' => $readiness['color'],
                 'years_to_retirement' => $yearsToRetirement,
                 'target_retirement_age' => $profile->target_retirement_age,
                 'projected_retirement_income' => $projectedIncome,
                 'target_retirement_income' => $targetIncome,
-                'income_gap' => $readiness['income_gap'],
+                'income_gap' => $incomeGap,
                 'total_dc_value' => $incomeProjection['dc_total_value'],
                 'total_pensions_count' => $dcPensions->count() + $dbPensions->count() + ($statePension ? 1 : 0),
             ];
@@ -102,7 +96,6 @@ class RetirementAgent extends BaseAgent
             return $this->response(true, 'Retirement analysis completed', [
                 'summary' => $summary,
                 'income_projection' => $incomeProjection,
-                'readiness' => $readiness,
                 'breakdown' => $breakdown,
                 'annual_allowance' => $allowance,
                 'profile' => $profile,
@@ -116,20 +109,20 @@ class RetirementAgent extends BaseAgent
     public function generateRecommendations(array $analysisData): array
     {
         $userId = $analysisData['profile']['user_id'];
-        $readiness = $analysisData['readiness'];
         $profile = RetirementProfile::find($analysisData['profile']['id']);
         $dcPensions = DCPension::where('user_id', $userId)->get();
 
         $recommendations = [];
         $priority = 1;
 
-        // Readiness-based recommendations
-        if ($readiness['score'] < 70) {
+        // Income gap based recommendations
+        $incomeGap = $analysisData['summary']['income_gap'] ?? 0;
+        if ($incomeGap > 0) {
             $recommendations[] = [
                 'priority' => $priority++,
                 'category' => 'Contribution',
                 'title' => 'Increase Pension Contributions',
-                'description' => $readiness['recommendation'],
+                'description' => sprintf('Your projected income is £%s below your target. Consider increasing contributions.', number_format($incomeGap, 0)),
                 'action' => 'Review your budget and increase monthly pension contributions.',
                 'impact' => 'High',
             ];
@@ -180,8 +173,8 @@ class RetirementAgent extends BaseAgent
             ];
         }
 
-        // Retirement age adjustment
-        if ($readiness['score'] < 50) {
+        // Retirement age adjustment - suggest if significant income gap
+        if ($incomeGap > 5000) {
             $recommendations[] = [
                 'priority' => $priority++,
                 'category' => 'Retirement Planning',
@@ -256,19 +249,16 @@ class RetirementAgent extends BaseAgent
     private function buildCurrentScenario(int $userId, RetirementProfile $profile): array
     {
         $incomeProjection = $this->projector->projectTotalRetirementIncome($userId);
-        $readiness = $this->scorer->analyzeReadiness(
-            $incomeProjection['total_projected_income'],
-            (float) $profile->target_retirement_income
-        );
+        $targetIncome = (float) $profile->target_retirement_income;
+        $projectedIncome = $incomeProjection['total_projected_income'];
 
         return [
             'name' => 'Current Trajectory',
             'description' => 'Based on your current contributions and retirement age',
             'retirement_age' => $profile->target_retirement_age,
-            'projected_income' => $incomeProjection['total_projected_income'],
-            'target_income' => (float) $profile->target_retirement_income,
-            'readiness_score' => $readiness['score'],
-            'income_gap' => $readiness['income_gap'],
+            'projected_income' => $projectedIncome,
+            'target_income' => $targetIncome,
+            'income_gap' => $targetIncome - $projectedIncome,
         ];
     }
 
@@ -296,7 +286,7 @@ class RetirementAgent extends BaseAgent
         $newDCIncome = $newDCValue * 0.04;
         $newTotalIncome = $newDCIncome + $currentProjection['db_annual_income'] + $currentProjection['state_pension_income'];
 
-        $readiness = $this->scorer->analyzeReadiness($newTotalIncome, (float) $profile->target_retirement_income);
+        $targetIncome = (float) $profile->target_retirement_income;
 
         return [
             'name' => 'Increased Contributions',
@@ -305,9 +295,8 @@ class RetirementAgent extends BaseAgent
             'additional_monthly_contribution' => $additionalMonthlyContribution,
             'additional_pot_value' => round($additionalValue, 2),
             'projected_income' => $newTotalIncome,
-            'target_income' => (float) $profile->target_retirement_income,
-            'readiness_score' => $readiness['score'],
-            'income_gap' => $readiness['income_gap'],
+            'target_income' => $targetIncome,
+            'income_gap' => $targetIncome - $newTotalIncome,
         ];
     }
 
@@ -334,7 +323,7 @@ class RetirementAgent extends BaseAgent
         $newDCIncome = $newDCValue * 0.04;
         $newTotalIncome = $newDCIncome + $currentProjection['db_annual_income'] + $currentProjection['state_pension_income'];
 
-        $readiness = $this->scorer->analyzeReadiness($newTotalIncome, (float) $profile->target_retirement_income);
+        $targetIncome = (float) $profile->target_retirement_income;
 
         return [
             'name' => 'Later Retirement',
@@ -342,9 +331,8 @@ class RetirementAgent extends BaseAgent
             'retirement_age' => $newRetirementAge,
             'additional_years' => $additionalYears,
             'projected_income' => $newTotalIncome,
-            'target_income' => (float) $profile->target_retirement_income,
-            'readiness_score' => $readiness['score'],
-            'income_gap' => $readiness['income_gap'],
+            'target_income' => $targetIncome,
+            'income_gap' => $targetIncome - $newTotalIncome,
         ];
     }
 
@@ -355,17 +343,16 @@ class RetirementAgent extends BaseAgent
     {
         $userId = $profile->user_id;
         $currentProjection = $this->projector->projectTotalRetirementIncome($userId);
-        $readiness = $this->scorer->analyzeReadiness($currentProjection['total_projected_income'], $newTargetIncome);
+        $projectedIncome = $currentProjection['total_projected_income'];
 
         return [
             'name' => 'Adjusted Lifestyle',
             'description' => sprintf('Reducing target retirement income to £%s', number_format($newTargetIncome, 2)),
             'retirement_age' => $profile->target_retirement_age,
-            'projected_income' => $currentProjection['total_projected_income'],
+            'projected_income' => $projectedIncome,
             'target_income' => $newTargetIncome,
             'savings_required' => (float) $profile->target_retirement_income - $newTargetIncome,
-            'readiness_score' => $readiness['score'],
-            'income_gap' => $readiness['income_gap'],
+            'income_gap' => $newTargetIncome - $projectedIncome,
         ];
     }
 
@@ -376,12 +363,13 @@ class RetirementAgent extends BaseAgent
     {
         $comparison = [
             'best_scenario' => null,
-            'best_score' => 0,
+            'smallest_gap' => PHP_FLOAT_MAX,
         ];
 
         foreach ($scenarios as $key => $scenario) {
-            if ($scenario['readiness_score'] > $comparison['best_score']) {
-                $comparison['best_score'] = $scenario['readiness_score'];
+            $gap = $scenario['income_gap'] ?? PHP_FLOAT_MAX;
+            if ($gap < $comparison['smallest_gap']) {
+                $comparison['smallest_gap'] = $gap;
                 $comparison['best_scenario'] = $key;
             }
         }

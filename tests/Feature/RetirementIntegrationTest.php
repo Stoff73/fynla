@@ -72,7 +72,6 @@ describe('Full Retirement Analysis Flow', function () {
             ->assertJsonStructure([
                 'success',
                 'data' => [
-                    'readiness_score',
                     'projected_income',
                     'target_income',
                     'income_gap',
@@ -86,8 +85,7 @@ describe('Full Retirement Analysis Flow', function () {
         // Verify projections are present
         $data = $response->json('data');
         expect($data['projected_income'])->toBeGreaterThan(0)
-            ->and($data['readiness_score'])->toBeGreaterThanOrEqual(0)
-            ->and($data['readiness_score'])->toBeLessThanOrEqual(100)
+            ->and($data['income_gap'])->toBeNumeric()
             ->and($data['recommendations'])->toBeArray();
     });
 
@@ -107,9 +105,9 @@ describe('Full Retirement Analysis Flow', function () {
                 'success' => true,
             ]);
 
-        // Should still return a score, even if it's low/critical
+        // Should still return income gap data
         $data = $response->json('data');
-        expect($data['readiness_score'])->toBeNumeric();
+        expect($data['income_gap'])->toBeNumeric();
     });
 
     test('full analysis includes all income sources', function () {
@@ -457,8 +455,8 @@ describe('Complex Integration Scenarios', function () {
         $response->assertStatus(200)
             ->assertJsonStructure([
                 'data' => [
-                    'readiness_score',
                     'projected_income',
+                    'income_gap',
                     'dc_projection',
                     'db_projection',
                     'state_pension_projection',
@@ -469,7 +467,7 @@ describe('Complex Integration Scenarios', function () {
         $data = $response->json('data');
         expect($data['projected_income'])->toBeGreaterThan(0)
             ->and($data['recommendations'])->toBeArray()
-            ->and($data['readiness_score'])->toBeNumeric();
+            ->and($data['income_gap'])->toBeNumeric();
     });
 
     test('end-to-end user journey from setup to analysis', function () {
@@ -535,7 +533,7 @@ describe('Complex Integration Scenarios', function () {
 
         // Verify complete journey
         expect($dcResponse->json('data.dc_pension'))->toHaveKey('id')
-            ->and($analysisResponse->json('data'))->toHaveKey('readiness_score')
+            ->and($analysisResponse->json('data'))->toHaveKey('income_gap')
             ->and($recResponse->json('data.recommendations'))->toBeArray()
             ->and($scenarioResponse->json('data'))->toHaveKeys(['baseline', 'scenario']);
     });

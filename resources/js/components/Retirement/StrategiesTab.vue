@@ -71,7 +71,7 @@
         <p class="section-subtitle">Follow these strategies in order to improve your retirement readiness</p>
 
         <StrategyCard
-          v-for="strategy in applicableStrategies"
+          v-for="strategy in strategiesWithContext"
           :key="strategy.type + (strategy.pension_id || '')"
           :strategy="strategy"
           :is-at-target="strategy.impact?.new_probability >= 95"
@@ -137,6 +137,35 @@ export default {
       return this.strategies?.strategies?.filter(s => s.applicable) || [];
     },
 
+    /**
+     * Augment strategies with cumulative context from prior strategies.
+     * This enables each strategy card to calculate its impact relative to
+     * all prior strategies, showing the true cumulative improvement.
+     */
+    strategiesWithContext() {
+      let cumulativeMonthly = 0;
+      let cumulativeIncome = 0;
+      let cumulativeProbability = this.currentProbability;
+
+      return this.applicableStrategies.map((strategy, index) => {
+        // Context for this strategy = cumulative values from ALL prior strategies
+        const augmented = {
+          ...strategy,
+          prior_cumulative_monthly: cumulativeMonthly,
+          prior_cumulative_income: cumulativeIncome,
+          prior_probability: cumulativeProbability,
+          strategy_index: index,
+        };
+
+        // Update cumulative values for next strategy
+        cumulativeMonthly += strategy.impact?.additional_monthly || 0;
+        cumulativeIncome += strategy.impact?.additional_annual_income || 0;
+        cumulativeProbability = strategy.impact?.new_probability || cumulativeProbability;
+
+        return augmented;
+      });
+    },
+
     projectedProbability() {
       if (this.applicableStrategies.length === 0) return this.currentProbability;
       const lastStrategy = this.applicableStrategies[this.applicableStrategies.length - 1];
@@ -154,9 +183,15 @@ export default {
   methods: {
     ...mapActions('retirement', ['fetchStrategies', 'calculateStrategyImpact']),
 
-    async handleSliderChange({ strategyType, newValue }) {
+    async handleSliderChange({ strategyType, newValue, priorCumulativeMonthly, priorCumulativeIncome, priorProbability }) {
       try {
-        await this.calculateStrategyImpact({ strategyType, newValue });
+        await this.calculateStrategyImpact({
+          strategyType,
+          newValue,
+          priorAdditionalMonthly: priorCumulativeMonthly || 0,
+          priorAdditionalIncome: priorCumulativeIncome || 0,
+          priorProbability: priorProbability || null,
+        });
       } catch (error) {
         console.error('Failed to calculate strategy impact:', error);
       }

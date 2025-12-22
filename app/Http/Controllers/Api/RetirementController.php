@@ -92,9 +92,6 @@ class RetirementController extends Controller
         $incomeProjection = $data['income_projection'] ?? [];
 
         $flattenedData = [
-            'readiness_score' => $data['summary']['readiness_score'] ?? 0,
-            'readiness_category' => $data['summary']['readiness_category'] ?? 'unknown',
-            'readiness_color' => $data['summary']['readiness_color'] ?? 'gray',
             'projected_income' => $data['summary']['projected_retirement_income'] ?? 0,
             'target_income' => $data['summary']['target_retirement_income'] ?? 0,
             'income_gap' => $data['summary']['income_gap'] ?? 0,
@@ -174,7 +171,6 @@ class RetirementController extends Controller
         if ($baseline && $scenario) {
             $difference = [
                 'income_difference' => ($scenario['projected_income'] ?? 0) - ($baseline['projected_income'] ?? 0),
-                'score_difference' => ($scenario['readiness_score'] ?? 0) - ($baseline['readiness_score'] ?? 0),
                 'gap_difference' => ($baseline['income_gap'] ?? 0) - ($scenario['income_gap'] ?? 0),
             ];
         }
@@ -436,19 +432,28 @@ class RetirementController extends Controller
 
     /**
      * Calculate the impact of a strategy change.
+     *
+     * Accepts optional cumulative context from prior strategies to enable
+     * chained/stacked strategy impact calculations.
      */
     public function calculateStrategyImpact(Request $request): JsonResponse
     {
         $request->validate([
             'strategy_type' => 'required|in:employer_match,increase_contribution,retirement_age,income_target',
             'new_value' => 'required|numeric',
+            'prior_additional_monthly' => 'nullable|numeric',
+            'prior_additional_income' => 'nullable|numeric',
+            'prior_probability' => 'nullable|numeric',
         ]);
 
         $user = $request->user();
         $impact = $this->strategyService->calculateStrategyImpact(
             $user->id,
             $request->query('strategy_type'),
-            (float) $request->query('new_value')
+            (float) $request->query('new_value'),
+            (float) ($request->query('prior_additional_monthly') ?? 0),
+            (float) ($request->query('prior_additional_income') ?? 0),
+            $request->query('prior_probability') !== null ? (float) $request->query('prior_probability') : null
         );
 
         return response()->json([

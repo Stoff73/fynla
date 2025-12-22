@@ -11,8 +11,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * Retirement Profile Model
  *
- * Represents a user's retirement planning profile including target retirement age,
- * income requirements, and risk tolerance.
+ * Represents a user's retirement planning profile including target retirement age
+ * and income requirements.
+ *
+ * @property string|null $risk_tolerance DEPRECATED. Use RiskPreferenceService::getRiskProfile() for user's main risk level.
+ *                                       This field is kept for backward compatibility only.
+ *                                       New code should use the Risk module (RiskProfile model via RiskPreferenceService).
  */
 class RetirementProfile extends Model
 {

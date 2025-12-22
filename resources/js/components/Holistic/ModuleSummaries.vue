@@ -114,12 +114,12 @@
 
         <div class="space-y-3">
           <div class="flex justify-between">
-            <span class="text-sm text-gray-600">Readiness Score</span>
-            <span class="text-sm font-semibold text-gray-900">{{ summaries.retirement?.readiness_score || 0 }}/100</span>
-          </div>
-          <div class="flex justify-between">
             <span class="text-sm text-gray-600">Projected Income</span>
             <span class="text-sm font-semibold text-gray-900">{{ formatCurrency(summaries.retirement?.projected_income || 0) }}/yr</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-sm text-gray-600">Income Gap</span>
+            <span class="text-sm font-semibold" :class="(summaries.retirement?.income_gap || 0) > 0 ? 'text-red-600' : 'text-green-600'">{{ formatCurrency(summaries.retirement?.income_gap || 0) }}/yr</span>
           </div>
           <p class="text-sm text-gray-700 mt-3 pt-3 border-t border-gray-200">
             {{ summaries.retirement?.key_message }}

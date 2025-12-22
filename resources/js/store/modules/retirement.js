@@ -193,9 +193,17 @@ const actions = {
         }
     },
 
-    async calculateStrategyImpact({ commit }, { strategyType, newValue }) {
+    async calculateStrategyImpact({ commit }, { strategyType, newValue, priorAdditionalMonthly, priorAdditionalIncome, priorProbability }) {
         try {
-            const response = await retirementService.calculateStrategyImpact(strategyType, newValue);
+            const response = await retirementService.calculateStrategyImpact(
+                strategyType,
+                newValue,
+                {
+                    priorAdditionalMonthly: priorAdditionalMonthly || 0,
+                    priorAdditionalIncome: priorAdditionalIncome || 0,
+                    priorProbability: priorProbability,
+                }
+            );
             commit('SET_STRATEGY_IMPACT', response.data);
             return response.data;
         } catch (error) {
@@ -439,8 +447,12 @@ const getters = {
         return dcTotal;
     },
 
-    retirementReadinessScore: (state) => {
-        return state.analysis?.readiness_score || 0;
+    // Calculate retirement score from income gap (for FinancialHealthScore compatibility)
+    retirementReadinessScore: (state, getters) => {
+        const gap = getters.incomeGap;
+        // Score: 100 if no gap, decreases as gap increases
+        // Every £500 gap reduces score by 1 point
+        return Math.max(0, Math.min(100, 100 - (gap / 500)));
     },
 
     projectedIncome: (state) => {

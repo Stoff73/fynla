@@ -174,9 +174,9 @@ class DashboardAggregator
     {
         // In real implementation, would call RetirementAgent
         return [
-            'readiness_score' => 68,
             'projected_income' => 35000,
             'target_income' => 40000,
+            'income_gap' => 5000,
             'years_to_retirement' => 15,
         ];
     }

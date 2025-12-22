@@ -85,7 +85,6 @@ describe('Retirement Analysis Endpoint (Authenticated)', function () {
             ->assertJsonStructure([
                 'success',
                 'data' => [
-                    'readiness_score',
                     'projected_income',
                     'income_gap',
                     'recommendations',
