@@ -7,6 +7,8 @@ namespace App\Services\Retirement;
 use App\Models\DBPension;
 use App\Models\DCPension;
 use App\Models\StatePension;
+use App\Models\User;
+use App\Services\Risk\RiskPreferenceService;
 
 /**
  * Pension Projector Service
@@ -15,6 +17,14 @@ use App\Models\StatePension;
  */
 class PensionProjector
 {
+    private const DEFAULT_GROWTH_RATE = 0.05; // 5% fallback if no risk profile
+
+    private const DEFAULT_RETIREMENT_AGE = 67;
+
+    public function __construct(
+        private RiskPreferenceService $riskService
+    ) {}
+
     /**
      * Project DC pension value at retirement.
      *
@@ -100,22 +110,22 @@ class PensionProjector
         $statePensionIncome = 0.0;
         $dcProjections = [];
 
-        // Default assumptions
-        $defaultGrowthRate = 0.05; // 5% growth
-        $defaultRetirementAge = 67;
+        $currentAge = $this->getUserAge($userId);
 
-        // Project DC pensions
+        // Project DC pensions (each may have its own risk preference)
         foreach ($dcPensions as $dcPension) {
-            $retirementAge = $dcPension->retirement_age ?? $defaultRetirementAge;
-            $currentAge = $this->getUserAge($userId);
+            $retirementAge = $dcPension->retirement_age ?? self::DEFAULT_RETIREMENT_AGE;
             $yearsToRetirement = max(0, $retirementAge - $currentAge);
 
-            $projectedValue = $this->projectDCPension($dcPension, $yearsToRetirement, $defaultGrowthRate);
+            // Get growth rate for this specific pension (may have custom risk)
+            $growthRate = $this->getGrowthRateForPension($dcPension, $userId);
+            $projectedValue = $this->projectDCPension($dcPension, $yearsToRetirement, $growthRate);
             $totalDCValue += $projectedValue;
 
             $dcProjections[] = [
                 'scheme_name' => $dcPension->scheme_name,
                 'projected_value' => round($projectedValue, 2),
+                'growth_rate_used' => round($growthRate * 100, 2),
             ];
         }
 
@@ -167,5 +177,65 @@ class PensionProjector
         $profile = \App\Models\RetirementProfile::where('user_id', $userId)->first();
 
         return $profile ? $profile->current_age : 67; // Default to state pension age if no profile
+    }
+
+    /**
+     * Get growth rate based on user's risk profile.
+     *
+     * Uses the expected return from the user's investment risk preference.
+     * Falls back to default 5% if no risk profile is set.
+     */
+    private function getGrowthRateForUser(int $userId): float
+    {
+        $riskLevel = $this->getUserMainRiskLevel($userId);
+
+        return $this->getGrowthRateForRiskLevel($riskLevel);
+    }
+
+    /**
+     * Get growth rate for a specific DC pension.
+     *
+     * Priority:
+     * 1. Pension's own risk_preference (if has_custom_risk is true)
+     * 2. User's main risk level from Risk module
+     * 3. Default 5%
+     */
+    private function getGrowthRateForPension(DCPension $pension, int $userId): float
+    {
+        // Check if pension has custom risk override
+        if ($pension->has_custom_risk && $pension->risk_preference) {
+            return $this->getGrowthRateForRiskLevel($pension->risk_preference);
+        }
+
+        // Fall back to user's main risk level
+        return $this->getGrowthRateForUser($userId);
+    }
+
+    /**
+     * Get the user's main risk level from the Risk module.
+     */
+    private function getUserMainRiskLevel(int $userId): string
+    {
+        $riskProfile = $this->riskService->getRiskProfile($userId);
+
+        if ($riskProfile && $riskProfile['risk_level']) {
+            return $riskProfile['risk_level'];
+        }
+
+        return 'medium'; // Default risk level
+    }
+
+    /**
+     * Convert a risk level to a growth rate.
+     */
+    private function getGrowthRateForRiskLevel(string $riskLevel): float
+    {
+        $riskParams = $this->riskService->getReturnParameters($riskLevel);
+
+        if ($riskParams && isset($riskParams['expected_return_typical'])) {
+            return $riskParams['expected_return_typical'] / 100;
+        }
+
+        return self::DEFAULT_GROWTH_RATE;
     }
 }

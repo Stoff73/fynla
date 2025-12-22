@@ -185,12 +185,13 @@ class PriorityRanker
                 break;
 
             case 'retirement':
-                // Retirement readiness score
-                if (isset($recommendation['readiness_score']) && $recommendation['readiness_score'] < 30) {
+                // Retirement urgency based on income gap
+                $incomeGap = $recommendation['income_gap'] ?? 0;
+                if ($incomeGap > 15000) {
                     $urgency = 80;
-                } elseif (isset($recommendation['readiness_score']) && $recommendation['readiness_score'] < 50) {
+                } elseif ($incomeGap > 10000) {
                     $urgency = 70;
-                } elseif (isset($recommendation['readiness_score']) && $recommendation['readiness_score'] < 70) {
+                } elseif ($incomeGap > 5000) {
                     $urgency = 55;
                 } else {
                     $urgency = 35;

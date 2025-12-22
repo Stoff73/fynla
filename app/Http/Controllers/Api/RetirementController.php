@@ -92,9 +92,6 @@ class RetirementController extends Controller
         $incomeProjection = $data['income_projection'] ?? [];
 
         $flattenedData = [
-            'readiness_score' => $data['summary']['readiness_score'] ?? 0,
-            'readiness_category' => $data['summary']['readiness_category'] ?? 'unknown',
-            'readiness_color' => $data['summary']['readiness_color'] ?? 'gray',
             'projected_income' => $data['summary']['projected_retirement_income'] ?? 0,
             'target_income' => $data['summary']['target_retirement_income'] ?? 0,
             'income_gap' => $data['summary']['income_gap'] ?? 0,
@@ -174,7 +171,6 @@ class RetirementController extends Controller
         if ($baseline && $scenario) {
             $difference = [
                 'income_difference' => ($scenario['projected_income'] ?? 0) - ($baseline['projected_income'] ?? 0),
-                'score_difference' => ($scenario['readiness_score'] ?? 0) - ($baseline['readiness_score'] ?? 0),
                 'gap_difference' => ($baseline['income_gap'] ?? 0) - ($scenario['income_gap'] ?? 0),
             ];
         }

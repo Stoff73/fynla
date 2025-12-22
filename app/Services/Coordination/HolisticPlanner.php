@@ -123,21 +123,21 @@ class HolisticPlanner
             ];
         }
 
-        // Retirement risk
-        $retirementReadiness = $allAnalysis['retirement']['readiness_score'] ?? 100;
-        if ($retirementReadiness < 50) {
+        // Retirement risk - based on income gap
+        $retirementIncomeGap = $allAnalysis['retirement']['income_gap'] ?? 0;
+        if ($retirementIncomeGap > 10000) {
             $riskAreas[] = [
                 'area' => 'Retirement',
                 'severity' => 'high',
                 'description' => 'On track to face significant retirement income shortfall.',
-                'score' => $retirementReadiness,
+                'income_gap' => $retirementIncomeGap,
             ];
-        } elseif ($retirementReadiness < 70) {
+        } elseif ($retirementIncomeGap > 5000) {
             $riskAreas[] = [
                 'area' => 'Retirement',
                 'severity' => 'medium',
                 'description' => 'Retirement planning needs improvement.',
-                'score' => $retirementReadiness,
+                'income_gap' => $retirementIncomeGap,
             ];
         }
 
@@ -217,9 +217,10 @@ class HolisticPlanner
                 'key_message' => $this->getInvestmentMessage($allAnalysis['investment'] ?? []),
             ],
             'retirement' => [
-                'status' => $this->getModuleStatus($allAnalysis['retirement']['readiness_score'] ?? 0),
-                'readiness_score' => $allAnalysis['retirement']['readiness_score'] ?? 0,
+                'status' => $this->getRetirementStatus($allAnalysis['retirement'] ?? []),
                 'projected_income' => $allAnalysis['retirement']['projected_annual_income'] ?? 0,
+                'target_income' => $allAnalysis['retirement']['target_income'] ?? 0,
+                'income_gap' => $allAnalysis['retirement']['income_gap'] ?? 0,
                 'key_message' => $this->getRetirementMessage($allAnalysis['retirement'] ?? []),
             ],
             'estate' => [
@@ -256,12 +257,13 @@ class HolisticPlanner
             ];
         }
 
-        // Retirement strength
-        if (($plan['retirement']['readiness_score'] ?? 0) >= 80) {
+        // Retirement strength - based on income gap
+        $retirementGap = $plan['retirement']['income_gap'] ?? 0;
+        if ($retirementGap <= 0) {
             $strengths[] = [
                 'area' => 'Retirement',
                 'description' => 'On track for comfortable retirement.',
-                'score' => $plan['retirement']['readiness_score'],
+                'income_surplus' => abs($retirementGap),
             ];
         }
 
@@ -313,13 +315,14 @@ class HolisticPlanner
             ];
         }
 
-        // Retirement shortfall
-        if (($plan['retirement']['readiness_score'] ?? 100) < 50) {
+        // Retirement shortfall - based on income gap
+        $retirementGap = $plan['retirement']['income_gap'] ?? 0;
+        if ($retirementGap > 10000) {
             $vulnerabilities[] = [
                 'area' => 'Retirement',
                 'severity' => 'high',
                 'description' => 'On track for retirement income shortfall.',
-                'score' => $plan['retirement']['readiness_score'],
+                'income_gap' => $retirementGap,
             ];
         }
 
@@ -373,7 +376,7 @@ class HolisticPlanner
             ];
         }
 
-        if (($plan['retirement']['readiness_score'] ?? 100) < 60) {
+        if (($plan['retirement']['income_gap'] ?? 0) > 5000) {
             $priorities[] = [
                 'priority' => 3,
                 'area' => 'Retirement',
@@ -409,11 +412,15 @@ class HolisticPlanner
      */
     private function calculateOverallScore(array $plan): float
     {
+        // Calculate retirement score from income gap (0 gap = 100, higher gap = lower score)
+        $incomeGap = $plan['retirement']['income_gap'] ?? 0;
+        $retirementScore = max(0, min(100, 100 - ($incomeGap / 500))); // Every £500 gap reduces score by 1
+
         $scores = [
             ($plan['protection']['adequacy_score'] ?? 0) * 0.25,
             (($plan['savings']['emergency_fund_months'] ?? 0) / 6 * 100) * 0.20,
             ($plan['investment']['portfolio_health_score'] ?? 70) * 0.20,
-            ($plan['retirement']['readiness_score'] ?? 0) * 0.25,
+            $retirementScore * 0.25,
             (100 - min(100, ($plan['estate']['iht_liability'] ?? 0) / 10000)) * 0.10,
         ];
 
@@ -486,10 +493,14 @@ class HolisticPlanner
      */
     private function calculateOverallRiskScore(array $allAnalysis): float
     {
+        // Calculate retirement risk from income gap
+        $incomeGap = $allAnalysis['retirement']['income_gap'] ?? 0;
+        $retirementRisk = min(100, max(0, $incomeGap / 500)); // Every £500 gap adds 1 to risk
+
         $riskFactors = [
             100 - ($allAnalysis['protection']['adequacy_score'] ?? 100),
             100 - (($allAnalysis['savings']['emergency_fund_months'] ?? 6) / 6 * 100),
-            100 - ($allAnalysis['retirement']['readiness_score'] ?? 100),
+            $retirementRisk,
             min(100, ($allAnalysis['estate']['iht_liability'] ?? 0) / 10000),
         ];
 
@@ -567,13 +578,30 @@ class HolisticPlanner
 
     private function getRetirementMessage(array $data): string
     {
-        $score = $data['readiness_score'] ?? 0;
-        if ($score >= 80) {
+        $incomeGap = $data['income_gap'] ?? 0;
+        if ($incomeGap <= 0) {
             return 'You are on track for a comfortable retirement.';
-        } elseif ($score >= 60) {
+        } elseif ($incomeGap < 5000) {
             return 'Your retirement planning is progressing but needs boosting.';
         } else {
             return 'Your retirement planning requires significant attention.';
+        }
+    }
+
+    /**
+     * Get retirement status based on income gap
+     */
+    private function getRetirementStatus(array $data): string
+    {
+        $incomeGap = $data['income_gap'] ?? 0;
+        if ($incomeGap <= 0) {
+            return 'excellent';
+        } elseif ($incomeGap < 5000) {
+            return 'good';
+        } elseif ($incomeGap < 10000) {
+            return 'needs_improvement';
+        } else {
+            return 'critical';
         }
     }
 

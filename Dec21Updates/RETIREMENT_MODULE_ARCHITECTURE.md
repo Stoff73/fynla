@@ -1,7 +1,7 @@
 # Retirement Module - Comprehensive Technical Report
 
-**Version**: v0.4.1
-**Last Updated**: December 21, 2025
+**Version**: v0.4.2
+**Last Updated**: December 22, 2025
 **Module Status**: Production Ready
 
 ---
@@ -27,15 +27,15 @@
 
 ## 1. Executive Summary
 
-The Retirement Module is a comprehensive UK-focused pension planning system that manages three types of pensions (DC, DB, State), provides retirement readiness analysis, Monte Carlo projections, annual allowance compliance, and intelligent strategy recommendations. It integrates deeply with the Investment module for portfolio analysis and Monte Carlo simulations.
+The Retirement Module is a comprehensive UK-focused pension planning system that manages three types of pensions (DC, DB, State), provides income gap analysis, Monte Carlo projections, annual allowance compliance, and intelligent strategy recommendations. It integrates deeply with the Investment module for portfolio analysis and Monte Carlo simulations.
 
 ### Key Statistics
 
 | Metric | Count |
 |--------|-------|
-| Backend Services | 8 |
+| Backend Services | 7 |
 | API Controllers | 2 |
-| Vue Components | 18 |
+| Vue Components | 17 |
 | Vue Views | 8 |
 | Database Tables | 4 |
 | API Endpoints | 20+ |
@@ -57,8 +57,11 @@ The RetirementAgent orchestrates all retirement business logic with 1-hour cachi
 ```php
 public function __construct(
     private PensionProjector $projector,
-    private ReadinessScorer $scorer,
     private AnnualAllowanceChecker $allowanceChecker,
+    private ContributionOptimizer $optimizer,
+    private DecumulationPlanner $planner,
+    private PensionPortfolioAnalyzer $pensionPortfolioAnalyzer,
+    // Portfolio optimization services (shared with Investment module)
     private MonteCarloSimulator $monteCarloSimulator,
     private PortfolioAnalyzer $portfolioAnalyzer,
     private AssetAllocationOptimizer $allocationOptimizer,
@@ -124,51 +127,41 @@ Manages individual holdings within DC pension pots.
 | `destroy()` | DELETE /{dcPensionId}/holdings/{holdingId} | Remove holding |
 | `bulkUpdate()` | POST /{dcPensionId}/holdings/bulk-update | Bulk update holdings |
 
-### 2.3 Services (8 Total)
+### 2.3 Services (7 Total)
 
 #### PensionProjector
 
 **File**: `app/Services/Retirement/PensionProjector.php`
 
-Pension value projections using Future Value formula.
+Pension value projections using Future Value formula. Supports per-pension risk overrides.
 
 ```php
 // FV Formula: FV = PV(1+r)^n + PMT * [((1+r)^n - 1) / r]
 
-public function projectDCPension(DCPension $pension, ?float $growthRate = null): float
+public function __construct(private RiskPreferenceService $riskService)
+
+public function projectDCPension(DCPension $pension, int $yearsToRetirement, float $growthRate): float
 public function projectDBPension(DBPension $pension): float
 public function projectStatePension(StatePension $pension): float
-public function projectTotalRetirementIncome(User $user): array
-public function calculateIncomeReplacementRatio(User $user): float
+public function projectTotalRetirementIncome(int $userId): array
+public function calculateIncomeReplacementRatio(float $projectedIncome, float $currentIncome): float
+private function getGrowthRateForUser(int $userId): float      // Gets rate from risk profile
+private function getGrowthRateForPension(DCPension $pension, int $userId): float  // Per-pension override
+private function getUserMainRiskLevel(int $userId): string     // Main risk from Risk module
+private function getGrowthRateForRiskLevel(string $riskLevel): float  // Risk level to growth rate
 ```
 
+**Risk Level Hierarchy (Priority Order)**:
+1. Per-pension `risk_preference` (if `has_custom_risk = true`)
+2. User's main risk level from Risk module (`RiskPreferenceService`)
+3. Default: 'medium' (5%)
+
 **Key Calculations**:
-- Default growth rate: 5% annually
+- Growth rate: From user's risk profile (expected_return_typical), with per-pension override support
 - Accounts for platform fees in growth rate
 - Income extraction at 4% withdrawal rate (default)
 - Full state pension (2024/25): £11,502
-
-#### ReadinessScorer
-
-**File**: `app/Services/Retirement/ReadinessScorer.php`
-
-Retirement readiness analysis and scoring.
-
-```php
-public function calculateReadinessScore(User $user): int      // 0-100
-public function categorizeReadiness(int $score): string       // Excellent/Good/Fair/Critical
-public function calculateIncomeGap(User $user): float         // Shortfall/surplus
-public function getReadinessColor(int $score): string         // green/amber/red
-public function analyzeReadiness(User $user): array           // Complete analysis
-```
-
-**Score Categories**:
-| Score | Category | Color |
-|-------|----------|-------|
-| 90+ | Excellent | Green |
-| 70-89 | Good | Green |
-| 50-69 | Fair | Amber |
-| 0-49 | Critical | Red |
+- Output includes `growth_rate_used` per DC pension projection
 
 #### AnnualAllowanceChecker
 
@@ -300,11 +293,13 @@ Schema:
 - lifestyle_expenditure: decimal(10,2)
 - life_expectancy: int
 - spouse_life_expectancy: int
-- risk_tolerance: enum('cautious', 'balanced', 'adventurous')
+- risk_tolerance: enum('cautious', 'balanced', 'adventurous') [DEPRECATED]
 
 Relationships:
 - BelongsTo User
 ```
+
+**Note**: `risk_tolerance` is DEPRECATED. Use `RiskPreferenceService::getRiskProfile()` for user's main risk level. This field is kept for backward compatibility only.
 
 #### DCPension
 
@@ -330,12 +325,14 @@ Schema:
 - expected_return_percent: decimal(5,2)
 - projected_value_at_retirement: decimal(15,2)
 - risk_preference: enum('low', 'lower_medium', 'medium', 'upper_medium', 'high')
-- has_custom_risk: boolean
+- has_custom_risk: boolean (default false)
 
 Relationships:
 - BelongsTo User
 - MorphMany Holdings (polymorphic)
 ```
+
+**Risk Override**: When `has_custom_risk = true`, this pension uses its own `risk_preference` instead of the user's main risk level from the Risk module.
 
 #### DBPension
 
@@ -555,7 +552,6 @@ users (1)
 
 | Component | Purpose |
 |-----------|---------|
-| `ReadinessGauge.vue` | Circular readiness score display |
 | `RetirementOverviewCard.vue` | Summary card component |
 | `AnnualAllowanceTracker.vue` | Allowance status visualization |
 
@@ -744,17 +740,19 @@ POST   /state-pension                       - Update state pension
 
 ## 6. Business Logic & Calculations
 
-### 6.1 Retirement Readiness Score
+### 6.1 Income Gap Analysis
 
-**Formula**: `(projected_income / target_income) * 100`
+**Formula**: `income_gap = target_income - projected_income`
 
-**Categories**:
-| Score | Category | Color | Description |
-|-------|----------|-------|-------------|
-| 90+ | Excellent | Green | On track for comfortable retirement |
-| 70-89 | Good | Green | Minor adjustments may help |
-| 50-69 | Fair | Amber | Action needed to meet goals |
-| 0-49 | Critical | Red | Significant gap requires attention |
+**Status Categories** (based on annual income gap):
+| Gap | Status | Description |
+|-----|--------|-------------|
+| <= £0 | Excellent | Surplus - on track for comfortable retirement |
+| < £5,000 | Good | Minor gap, small adjustments may help |
+| < £10,000 | Needs Improvement | Action needed to meet goals |
+| >= £10,000 | Critical | Significant gap requires attention |
+
+**Note**: The `retirementReadinessScore` Vuex getter derives a 0-100 score from income gap for backwards compatibility with FinancialHealthScore: `score = 100 - (income_gap / 500)`
 
 ### 6.2 DC Pension Projection
 
@@ -770,8 +768,8 @@ Where:
 ```
 
 **Default Parameters**:
-- Growth rate: 5% annually
-- Retirement age: 67
+- Growth rate: From user's risk profile (or 5% fallback)
+- Retirement age: 67 (if not specified)
 - Platform fee: Deducted from growth rate
 
 ### 6.3 Annual Allowance Calculation
@@ -868,7 +866,7 @@ forecast = (ni_years_completed / ni_years_required) * full_amount
 | `TaxConfigService` | Core | Tax allowances and rates |
 | `UKTaxCalculator` | Core | Tax calculations |
 | `UserProfileService` | Profile | User income and profile data |
-| `RiskPreferenceService` | Investment | Risk parameters for returns/volatility |
+| `RiskPreferenceService` | Risk | Risk parameters for returns/volatility (5-level system) |
 | `MonteCarloSimulator` | Investment | Probabilistic projections |
 | `PortfolioAnalyzer` | Investment | Risk metrics, asset allocation |
 | `AssetAllocationOptimizer` | Investment | Target allocation |
@@ -908,6 +906,50 @@ public function holdings()
 - holdable_type: 'App\Models\DCPension'
 ```
 
+### 7.4 Risk Level System Integration
+
+The Retirement module uses a consistent risk level hierarchy for growth rate assumptions:
+
+**Risk Level Hierarchy (Priority Order)**:
+1. **Per-Pension Override**: `DCPension.risk_preference` when `has_custom_risk = true`
+2. **User's Main Risk**: From Risk module via `RiskPreferenceService::getRiskProfile()`
+3. **Default**: 'medium' (5% expected return)
+
+**Risk Levels and Expected Returns**:
+
+| Level | Expected Return | Volatility | Use Case |
+|-------|-----------------|------------|----------|
+| low | 3% | 5% | Very conservative |
+| lower_medium | 4% | 8% | Conservative |
+| medium | 5% | 12% | Balanced (default) |
+| upper_medium | 6% | 15% | Growth |
+| high | 7% | 18% | Aggressive |
+
+**Service Methods**:
+
+```php
+// PensionProjector - gets growth rate per pension
+private function getGrowthRateForPension(DCPension $pension, int $userId): float
+{
+    if ($pension->has_custom_risk && $pension->risk_preference) {
+        return $this->getGrowthRateForRiskLevel($pension->risk_preference);
+    }
+    return $this->getGrowthRateForUser($userId);
+}
+
+// RetirementProjectionService - gets user's main risk level
+private function getUserRiskLevel(User $user): string
+{
+    $riskProfile = $this->riskService->getRiskProfile($user->id);
+    if ($riskProfile && isset($riskProfile['risk_level'])) {
+        return $riskProfile['risk_level'];
+    }
+    return 'medium';
+}
+```
+
+**Deprecation Note**: `RetirementProfile.risk_tolerance` (3-level: cautious/balanced/adventurous) is deprecated. Use `RiskPreferenceService` for the 5-level system.
+
 ---
 
 ## 8. Testing Infrastructure
@@ -921,7 +963,6 @@ public function holdings()
 | `AnnualAllowanceCheckerTest.php` | Allowance calculations, tapering |
 | `DecumulationPlannerTest.php` | Withdrawal rates, annuity comparison |
 | `PensionProjectorTest.php` | FV calculations, projections |
-| `ReadinessScorerTest.php` | Score calculations, categorization |
 
 ### 8.2 Feature Tests (Backend)
 
@@ -943,7 +984,6 @@ public function holdings()
 | `DrawdownSimulator.test.js` | Simulator interaction |
 | `IncomeProjectionChart.test.js` | Chart data handling |
 | `PensionCard.test.js` | Card display |
-| `ReadinessGauge.test.js` | Gauge rendering |
 | `RetirementOverviewCard.test.js` | Overview display |
 
 ---
@@ -1031,9 +1071,12 @@ ANNUITY_RATES = [
 ### From PensionProjector
 
 ```php
-DEFAULT_GROWTH_RATE = 0.05 (5%)
+DEFAULT_GROWTH_RATE = 0.05 (5% - only used if no risk profile)
+DEFAULT_RETIREMENT_AGE = 67
 FULL_STATE_PENSION_2024_25 = 11502 (£11,502)
 ```
+
+**Note**: PensionProjector now uses `RiskPreferenceService` to get growth rate from user's risk profile. The 5% default is only used as a fallback when no risk profile exists.
 
 ### From RetirementStrategyService
 
@@ -1070,11 +1113,10 @@ public function analyze(int $userId): array
 
 ### 11.2 Service Pattern
 
-8 specialized services each with single responsibility:
-- PensionProjector → Projection calculations
-- ReadinessScorer → Scoring and categorization
+7 specialized services each with single responsibility:
+- PensionProjector → Projection calculations (uses user's risk profile)
 - AnnualAllowanceChecker → Tax compliance
-- RetirementProjectionService → Monte Carlo
+- RetirementProjectionService → Monte Carlo simulations
 - RetirementStrategyService → Strategy recommendations
 - DecumulationPlanner → Income planning
 - ContributionOptimizer → Contribution strategy
@@ -1182,7 +1224,6 @@ app/Http/Controllers/Api/
 
 app/Services/Retirement/
 ├── PensionProjector.php
-├── ReadinessScorer.php
 ├── AnnualAllowanceChecker.php
 ├── RetirementProjectionService.php
 ├── RetirementStrategyService.php
@@ -1225,7 +1266,6 @@ resources/js/components/Retirement/
 ├── DCPensionForm.vue
 ├── DBPensionForm.vue
 ├── StatePensionForm.vue
-├── ReadinessGauge.vue
 ├── RetirementOverviewCard.vue
 ├── AccumulationChart.vue
 ├── IncomeProjectionChart.vue
@@ -1257,8 +1297,7 @@ routes/api.php (lines 702-744)
 tests/Unit/Services/Retirement/
 ├── AnnualAllowanceCheckerTest.php
 ├── DecumulationPlannerTest.php
-├── PensionProjectorTest.php
-└── ReadinessScorerTest.php
+└── PensionProjectorTest.php
 
 tests/Feature/
 ├── RetirementIntegrationTest.php
@@ -1270,7 +1309,6 @@ tests/frontend/components/Retirement/
 ├── DrawdownSimulator.test.js
 ├── IncomeProjectionChart.test.js
 ├── PensionCard.test.js
-├── ReadinessGauge.test.js
 └── RetirementOverviewCard.test.js
 ```
 
@@ -1281,10 +1319,20 @@ tests/frontend/components/Retirement/
 The Retirement Module provides comprehensive UK pension planning with:
 
 - **Multi-pension support**: DC, DB, and State pension types
-- **Advanced projections**: Monte Carlo simulations with probability bands
+- **Advanced projections**: Monte Carlo simulations with probability bands (using risk-based growth rates)
+- **Income gap analysis**: Target vs projected income comparison with clear status categories
 - **Tax compliance**: Annual allowance, tapering, carry forward, MPAA
 - **Intelligent strategies**: Priority-based recommendations with real-time impact
 - **Portfolio integration**: Shared holdings with Investment module
 - **Interactive tools**: Scenario builders, simulators, strategy sliders
 
 The module follows clean architecture principles with separation of concerns through the Agent/Service/Model layers, efficient caching strategies, and comprehensive test coverage.
+
+---
+
+## Change History
+
+| Version | Date | Changes |
+|---------|------|---------|
+| v0.4.2 | Dec 22, 2025 | Removed ReadinessScorer service and ReadinessGauge component; replaced with income_gap based analysis; updated PensionProjector to use user's risk profile for growth rates with per-pension override support; deprecated RetirementProfile.risk_tolerance in favor of RiskPreferenceService |
+| v0.4.1 | Dec 21, 2025 | Initial comprehensive documentation |

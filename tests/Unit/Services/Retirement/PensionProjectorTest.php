@@ -4,9 +4,11 @@ use App\Models\DBPension;
 use App\Models\DCPension;
 use App\Models\StatePension;
 use App\Services\Retirement\PensionProjector;
+use App\Services\Risk\RiskPreferenceService;
 
 beforeEach(function () {
-    $this->projector = new PensionProjector;
+    // Get PensionProjector from the service container (with RiskPreferenceService injected)
+    $this->projector = app(PensionProjector::class);
 });
 
 test('projects DC pension value correctly', function () {
