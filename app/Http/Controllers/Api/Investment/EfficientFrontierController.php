@@ -6,8 +6,8 @@ namespace App\Http\Controllers\Api\Investment;
 
 use App\Http\Controllers\Controller;
 use App\Models\Investment\InvestmentAccount;
-use App\Services\Investment\EfficientFrontier\EfficientFrontierCalculator;
-use App\Services\Investment\EfficientFrontier\PortfolioStatisticsCalculator;
+use App\Services\Investment\Analytics\EfficientFrontierCalculator;
+use App\Services\Investment\Analytics\PortfolioStatisticsCalculator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;

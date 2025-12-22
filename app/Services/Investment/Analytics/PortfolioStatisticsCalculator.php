@@ -2,11 +2,13 @@
 
 declare(strict_types=1);
 
-namespace App\Services\Investment\EfficientFrontier;
+namespace App\Services\Investment\Analytics;
 
 /**
  * Portfolio Statistics Calculator
  * Calculates comprehensive risk and return metrics for portfolios
+ *
+ * Moved from: App\Services\Investment\EfficientFrontier\PortfolioStatisticsCalculator
  *
  * Metrics:
  * - Expected Return: Weighted average of asset returns
@@ -73,10 +75,6 @@ class PortfolioStatisticsCalculator
 
     /**
      * Calculate expected return (weighted average)
-     *
-     * @param  array  $allocation  Portfolio weights
-     * @param  array  $assetClasses  Asset class data
-     * @return float Expected return (decimal)
      */
     private function calculateExpectedReturn(array $allocation, array $assetClasses): float
     {
@@ -93,10 +91,6 @@ class PortfolioStatisticsCalculator
 
     /**
      * Calculate portfolio volatility (standard deviation)
-     *
-     * @param  array  $allocation  Portfolio weights
-     * @param  array  $assetClasses  Asset class data
-     * @return float Volatility (decimal)
      */
     private function calculateVolatility(array $allocation, array $assetClasses): float
     {
@@ -121,11 +115,6 @@ class PortfolioStatisticsCalculator
 
     /**
      * Calculate Sharpe ratio
-     *
-     * @param  float  $expectedReturn  Expected return
-     * @param  float  $volatility  Volatility
-     * @param  float  $riskFreeRate  Risk-free rate
-     * @return float Sharpe ratio
      */
     private function calculateSharpeRatio(
         float $expectedReturn,
@@ -141,20 +130,12 @@ class PortfolioStatisticsCalculator
 
     /**
      * Calculate downside deviation (semi-deviation)
-     * Only considers returns below target (risk-free rate)
-     *
-     * @param  array  $allocation  Portfolio weights
-     * @param  array  $assetClasses  Asset class data
-     * @param  float  $targetReturn  Target return (usually risk-free rate)
-     * @return float Downside deviation
      */
     private function calculateDownsideDeviation(
         array $allocation,
         array $assetClasses,
         float $targetReturn
     ): float {
-        // Simplified calculation: downside deviation ≈ volatility * 0.7
-        // (Assumes normal distribution, downside is ~70% of total volatility)
         $volatility = $this->calculateVolatility($allocation, $assetClasses);
 
         return $volatility * 0.7;
@@ -162,12 +143,6 @@ class PortfolioStatisticsCalculator
 
     /**
      * Calculate Sortino ratio
-     * Like Sharpe but uses downside deviation instead of total volatility
-     *
-     * @param  float  $expectedReturn  Expected return
-     * @param  float  $downsideDeviation  Downside deviation
-     * @param  float  $riskFreeRate  Risk-free rate
-     * @return float Sortino ratio
      */
     private function calculateSortinoRatio(
         float $expectedReturn,
@@ -183,19 +158,12 @@ class PortfolioStatisticsCalculator
 
     /**
      * Calculate Value at Risk (VaR)
-     * Maximum expected loss at given confidence level
-     *
-     * @param  float  $expectedReturn  Expected return
-     * @param  float  $volatility  Volatility
-     * @param  float  $confidence  Confidence level (e.g., 0.95 for 95%)
-     * @return float VaR (positive number representing loss)
      */
     private function calculateVaR(
         float $expectedReturn,
         float $volatility,
         float $confidence
     ): float {
-        // Z-scores for common confidence levels
         $zScore = match ($confidence) {
             0.90 => 1.28,
             0.95 => 1.645,
@@ -203,26 +171,17 @@ class PortfolioStatisticsCalculator
             default => 1.645,
         };
 
-        // VaR = -(Expected Return - Z * Volatility)
-        // Returns positive number for loss
         return abs($expectedReturn - ($zScore * $volatility));
     }
 
     /**
      * Calculate Conditional Value at Risk (CVaR / Expected Shortfall)
-     * Average loss beyond VaR threshold
-     *
-     * @param  float  $expectedReturn  Expected return
-     * @param  float  $volatility  Volatility
-     * @param  float  $confidence  Confidence level
-     * @return float CVaR
      */
     private function calculateCVaR(
         float $expectedReturn,
         float $volatility,
         float $confidence
     ): float {
-        // CVaR is approximately VaR * 1.2 for normal distribution
         $var = $this->calculateVaR($expectedReturn, $volatility, $confidence);
 
         return $var * 1.2;
@@ -230,26 +189,14 @@ class PortfolioStatisticsCalculator
 
     /**
      * Estimate maximum drawdown
-     * Worst peak-to-trough decline
-     *
-     * @param  float  $volatility  Portfolio volatility
-     * @return float Estimated max drawdown
      */
     private function estimateMaxDrawdown(float $volatility): float
     {
-        // Empirical relationship: Max drawdown ≈ 2 * annual volatility
         return $volatility * 2.0;
     }
 
     /**
      * Calculate diversification ratio
-     * Weighted average volatility / Portfolio volatility
-     * Ratio > 1 indicates diversification benefit
-     *
-     * @param  array  $allocation  Portfolio weights
-     * @param  array  $assetClasses  Asset class data
-     * @param  float  $portfolioVolatility  Portfolio volatility
-     * @return float Diversification ratio
      */
     private function calculateDiversificationRatio(
         array $allocation,
@@ -260,7 +207,6 @@ class PortfolioStatisticsCalculator
             return 1.0;
         }
 
-        // Calculate weighted average of individual asset volatilities
         $weightedVolatility = 0.0;
 
         foreach ($allocation as $asset => $weight) {
@@ -274,11 +220,6 @@ class PortfolioStatisticsCalculator
 
     /**
      * Get correlation between assets
-     *
-     * @param  string  $asset1  First asset
-     * @param  string  $asset2  Second asset
-     * @param  array  $assetClasses  Asset class data
-     * @return float Correlation
      */
     private function getCorrelation(string $asset1, string $asset2, array $assetClasses): float
     {
@@ -290,16 +231,11 @@ class PortfolioStatisticsCalculator
             return $assetClasses[$asset1]['correlations'][$asset2];
         }
 
-        // Default correlations
         return $this->getDefaultCorrelation($asset1, $asset2);
     }
 
     /**
      * Get default correlation between asset classes
-     *
-     * @param  string  $asset1  First asset
-     * @param  string  $asset2  Second asset
-     * @return float Correlation
      */
     private function getDefaultCorrelation(string $asset1, string $asset2): float
     {
@@ -331,15 +267,13 @@ class PortfolioStatisticsCalculator
 
     /**
      * Get default asset class assumptions (UK market)
-     *
-     * @return array Default asset class data
      */
     public function getDefaultAssetClassAssumptions(): array
     {
         return [
             'equities' => [
-                'expected_return' => 0.08, // 8% annual
-                'volatility' => 0.18, // 18% volatility
+                'expected_return' => 0.08,
+                'volatility' => 0.18,
                 'correlations' => [
                     'bonds' => 0.20,
                     'cash' => 0.05,
@@ -347,8 +281,8 @@ class PortfolioStatisticsCalculator
                 ],
             ],
             'bonds' => [
-                'expected_return' => 0.04, // 4% annual
-                'volatility' => 0.06, // 6% volatility
+                'expected_return' => 0.04,
+                'volatility' => 0.06,
                 'correlations' => [
                     'equities' => 0.20,
                     'cash' => 0.30,
@@ -356,8 +290,8 @@ class PortfolioStatisticsCalculator
                 ],
             ],
             'cash' => [
-                'expected_return' => 0.025, // 2.5% annual
-                'volatility' => 0.01, // 1% volatility
+                'expected_return' => 0.025,
+                'volatility' => 0.01,
                 'correlations' => [
                     'equities' => 0.05,
                     'bonds' => 0.30,
@@ -365,8 +299,8 @@ class PortfolioStatisticsCalculator
                 ],
             ],
             'alternatives' => [
-                'expected_return' => 0.06, // 6% annual
-                'volatility' => 0.12, // 12% volatility
+                'expected_return' => 0.06,
+                'volatility' => 0.12,
                 'correlations' => [
                     'equities' => 0.40,
                     'bonds' => 0.15,
@@ -378,9 +312,6 @@ class PortfolioStatisticsCalculator
 
     /**
      * Interpret portfolio statistics
-     *
-     * @param  array  $statistics  Portfolio statistics
-     * @return array Interpretation and recommendations
      */
     public function interpretStatistics(array $statistics): array
     {
@@ -432,15 +363,11 @@ class PortfolioStatisticsCalculator
 
     /**
      * Generate overall portfolio assessment
-     *
-     * @param  array  $statistics  Portfolio statistics
-     * @return string Overall assessment
      */
     private function generateOverallAssessment(array $statistics): string
     {
         $score = 0;
 
-        // Scoring based on Sharpe ratio (most important)
         if ($statistics['sharpe_ratio'] >= 1.0) {
             $score += 40;
         } elseif ($statistics['sharpe_ratio'] >= 0.5) {
@@ -449,14 +376,12 @@ class PortfolioStatisticsCalculator
             $score += 15;
         }
 
-        // Diversification
         if ($statistics['diversification_ratio'] >= 1.3) {
             $score += 30;
         } elseif ($statistics['diversification_ratio'] >= 1.1) {
             $score += 20;
         }
 
-        // Return relative to risk
         $returnToRiskRatio = $statistics['expected_return'] / max(0.1, $statistics['volatility']);
         if ($returnToRiskRatio >= 0.5) {
             $score += 30;

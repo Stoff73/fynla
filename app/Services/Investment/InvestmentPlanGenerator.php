@@ -9,7 +9,6 @@ use App\Models\Investment\InvestmentGoal;
 use App\Models\Investment\InvestmentPlan;
 use App\Models\Investment\RiskProfile;
 use App\Services\Investment\AssetLocation\AssetLocationOptimizer;
-use App\Services\Investment\Fees\FeeAnalyzer;
 use App\Services\Investment\Goals\GoalProgressAnalyzer;
 use App\Services\Investment\Performance\PerformanceAttributionAnalyzer;
 use App\Services\Investment\Rebalancing\DriftAnalyzer;

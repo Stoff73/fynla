@@ -11,8 +11,16 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Calculate Efficient Frontier for Modern Portfolio Theory
- * Generates the set of optimal portfolios offering maximum return for given risk
+ * Efficient Frontier Calculator
+ * Implements Modern Portfolio Theory (MPT) calculations
+ *
+ * Consolidated from:
+ * - App\Services\Investment\Analytics\EfficientFrontierCalculator (user holdings-based)
+ * - App\Services\Investment\EfficientFrontier\EfficientFrontierCalculator (asset class-based)
+ *
+ * Supports two modes:
+ * 1. User Portfolio Mode: Analyzes actual user holdings with DI services
+ * 2. Asset Class Mode: Generic efficient frontier using asset class assumptions
  */
 class EfficientFrontierCalculator
 {
@@ -23,6 +31,10 @@ class EfficientFrontierCalculator
         private MatrixOperations $matrix,
         private StatisticalFunctions $stats
     ) {}
+
+    // =========================================================================
+    // USER PORTFOLIO MODE (for actual user holdings analysis)
+    // =========================================================================
 
     /**
      * Calculate efficient frontier for user's portfolio
@@ -152,11 +164,242 @@ class EfficientFrontierCalculator
         ];
     }
 
+    // =========================================================================
+    // ASSET CLASS MODE (for generic efficient frontier calculations)
+    // =========================================================================
+
+    /**
+     * Calculate efficient frontier for given asset classes
+     *
+     * @param  array  $assetClasses  Asset class data with returns, volatility, correlations
+     * @param  int  $numPortfolios  Number of portfolios to generate (default 100)
+     * @param  float  $riskFreeRate  Risk-free rate (default 0.04 = 4%)
+     * @return array Efficient frontier data
+     */
+    public function calculateEfficientFrontier(
+        array $assetClasses,
+        int $numPortfolios = 100,
+        float $riskFreeRate = 0.04
+    ): array {
+        // Validate inputs
+        if (count($assetClasses) < 2) {
+            return [
+                'success' => false,
+                'message' => 'At least 2 asset classes required',
+            ];
+        }
+
+        // Generate random portfolio allocations
+        $portfolios = $this->generateRandomPortfolios($assetClasses, $numPortfolios);
+
+        // Calculate risk/return for each portfolio
+        $portfolioStats = [];
+        foreach ($portfolios as $portfolio) {
+            $stats = $this->calculatePortfolioStatistics($portfolio, $assetClasses);
+            $stats['sharpe_ratio'] = $this->calculateSharpeRatio(
+                $stats['expected_return'],
+                $stats['volatility'],
+                $riskFreeRate
+            );
+            $stats['allocation'] = $portfolio['weights'];
+            $portfolioStats[] = $stats;
+        }
+
+        // Find key portfolios
+        $maxSharpePortfolio = $this->findMaxSharpePortfolio($portfolioStats);
+        $minVariancePortfolio = $this->findMinVariancePortfolio($portfolioStats);
+
+        // Calculate efficient frontier curve (pareto optimal portfolios)
+        $efficientPortfolios = $this->extractEfficientPortfolios($portfolioStats);
+
+        return [
+            'success' => true,
+            'efficient_frontier' => $efficientPortfolios,
+            'all_portfolios' => $portfolioStats,
+            'max_sharpe_portfolio' => $maxSharpePortfolio,
+            'min_variance_portfolio' => $minVariancePortfolio,
+            'risk_free_rate' => $riskFreeRate,
+            'num_portfolios' => count($portfolioStats),
+            'asset_classes' => array_keys($assetClasses),
+        ];
+    }
+
+    /**
+     * Calculate optimal portfolio for target return
+     *
+     * @param  array  $assetClasses  Asset class data
+     * @param  float  $targetReturn  Target annual return
+     * @param  float  $riskFreeRate  Risk-free rate
+     * @return array Optimal portfolio allocation
+     */
+    public function calculateOptimalPortfolio(
+        array $assetClasses,
+        float $targetReturn,
+        float $riskFreeRate = 0.04
+    ): array {
+        // Generate efficient frontier
+        $frontier = $this->calculateEfficientFrontier($assetClasses, 500, $riskFreeRate);
+
+        if (! $frontier['success']) {
+            return $frontier;
+        }
+
+        // Find portfolio closest to target return on efficient frontier
+        $optimalPortfolio = null;
+        $minDifference = PHP_FLOAT_MAX;
+
+        foreach ($frontier['efficient_frontier'] as $portfolio) {
+            $difference = abs($portfolio['expected_return'] - $targetReturn);
+            if ($difference < $minDifference) {
+                $minDifference = $difference;
+                $optimalPortfolio = $portfolio;
+            }
+        }
+
+        if (! $optimalPortfolio) {
+            return [
+                'success' => false,
+                'message' => 'Could not find optimal portfolio for target return',
+            ];
+        }
+
+        return [
+            'success' => true,
+            'optimal_portfolio' => $optimalPortfolio,
+            'target_return' => $targetReturn,
+            'achieved_return' => $optimalPortfolio['expected_return'],
+            'volatility' => $optimalPortfolio['volatility'],
+            'sharpe_ratio' => $optimalPortfolio['sharpe_ratio'],
+            'allocation' => $optimalPortfolio['allocation'],
+        ];
+    }
+
+    /**
+     * Calculate optimal portfolio for target risk level
+     *
+     * @param  array  $assetClasses  Asset class data
+     * @param  float  $targetVolatility  Target volatility (standard deviation)
+     * @param  float  $riskFreeRate  Risk-free rate
+     * @return array Optimal portfolio allocation
+     */
+    public function calculateOptimalPortfolioByRisk(
+        array $assetClasses,
+        float $targetVolatility,
+        float $riskFreeRate = 0.04
+    ): array {
+        // Generate efficient frontier
+        $frontier = $this->calculateEfficientFrontier($assetClasses, 500, $riskFreeRate);
+
+        if (! $frontier['success']) {
+            return $frontier;
+        }
+
+        // Find portfolio closest to target volatility on efficient frontier
+        $optimalPortfolio = null;
+        $minDifference = PHP_FLOAT_MAX;
+
+        foreach ($frontier['efficient_frontier'] as $portfolio) {
+            $difference = abs($portfolio['volatility'] - $targetVolatility);
+            if ($difference < $minDifference) {
+                $minDifference = $difference;
+                $optimalPortfolio = $portfolio;
+            }
+        }
+
+        if (! $optimalPortfolio) {
+            return [
+                'success' => false,
+                'message' => 'Could not find optimal portfolio for target risk',
+            ];
+        }
+
+        return [
+            'success' => true,
+            'optimal_portfolio' => $optimalPortfolio,
+            'target_volatility' => $targetVolatility,
+            'achieved_volatility' => $optimalPortfolio['volatility'],
+            'expected_return' => $optimalPortfolio['expected_return'],
+            'sharpe_ratio' => $optimalPortfolio['sharpe_ratio'],
+            'allocation' => $optimalPortfolio['allocation'],
+        ];
+    }
+
+    /**
+     * Compare current portfolio with efficient frontier
+     *
+     * @param  array  $currentAllocation  Current portfolio allocation
+     * @param  array  $assetClasses  Asset class data
+     * @param  float  $riskFreeRate  Risk-free rate
+     * @return array Comparison analysis
+     */
+    public function compareWithEfficientFrontier(
+        array $currentAllocation,
+        array $assetClasses,
+        float $riskFreeRate = 0.04
+    ): array {
+        // Calculate current portfolio statistics
+        $currentStats = $this->calculatePortfolioStatistics(
+            ['weights' => $currentAllocation],
+            $assetClasses
+        );
+        $currentStats['sharpe_ratio'] = $this->calculateSharpeRatio(
+            $currentStats['expected_return'],
+            $currentStats['volatility'],
+            $riskFreeRate
+        );
+
+        // Generate efficient frontier
+        $frontier = $this->calculateEfficientFrontier($assetClasses, 500, $riskFreeRate);
+
+        if (! $frontier['success']) {
+            return $frontier;
+        }
+
+        // Find nearest efficient portfolio with same risk
+        $nearestEfficientPortfolio = null;
+        $minDifference = PHP_FLOAT_MAX;
+
+        foreach ($frontier['efficient_frontier'] as $portfolio) {
+            $difference = abs($portfolio['volatility'] - $currentStats['volatility']);
+            if ($difference < $minDifference) {
+                $minDifference = $difference;
+                $nearestEfficientPortfolio = $portfolio;
+            }
+        }
+
+        // Calculate efficiency score (0-100)
+        $efficiencyScore = $this->calculateEfficiencyScore(
+            $currentStats,
+            $nearestEfficientPortfolio,
+            $frontier['max_sharpe_portfolio']
+        );
+
+        return [
+            'success' => true,
+            'current_portfolio' => [
+                'expected_return' => $currentStats['expected_return'],
+                'volatility' => $currentStats['volatility'],
+                'sharpe_ratio' => $currentStats['sharpe_ratio'],
+                'allocation' => $currentAllocation,
+            ],
+            'nearest_efficient_portfolio' => $nearestEfficientPortfolio,
+            'max_sharpe_portfolio' => $frontier['max_sharpe_portfolio'],
+            'efficiency_score' => $efficiencyScore,
+            'improvement_potential' => [
+                'return_increase' => $nearestEfficientPortfolio['expected_return'] - $currentStats['expected_return'],
+                'risk_reduction' => $currentStats['volatility'] - $nearestEfficientPortfolio['volatility'],
+                'sharpe_improvement' => $nearestEfficientPortfolio['sharpe_ratio'] - $currentStats['sharpe_ratio'],
+            ],
+            'recommendation' => $this->generateEfficiencyRecommendation($efficiencyScore),
+        ];
+    }
+
+    // =========================================================================
+    // USER PORTFOLIO HELPER METHODS
+    // =========================================================================
+
     /**
      * Extract expected returns and labels from holdings
-     *
-     * @param  Collection  $holdings  Holdings collection
-     * @return array ['expected_returns' => array, 'labels' => array]
      */
     private function extractHoldingsData(Collection $holdings): array
     {
@@ -164,8 +407,6 @@ class EfficientFrontierCalculator
         $labels = [];
 
         foreach ($holdings as $holding) {
-            // Use historical returns to estimate expected return (simple average)
-            // Falls back to simulated data when historical returns unavailable
             $historicalReturns = $holding->historical_returns ?? $this->generateMockReturns();
             $expectedReturns[] = $this->stats->mean($historicalReturns);
             $labels[] = $holding->asset_name ?? $holding->ticker_symbol ?? 'Unknown';
@@ -179,9 +420,6 @@ class EfficientFrontierCalculator
 
     /**
      * Calculate current portfolio weights
-     *
-     * @param  Collection  $holdings  Holdings collection
-     * @return array Current weights
      */
     private function calculateCurrentWeights(Collection $holdings): array
     {
@@ -190,7 +428,7 @@ class EfficientFrontierCalculator
         if ($totalValue == 0) {
             $n = $holdings->count();
 
-            return $n > 0 ? array_fill(0, $n, 1 / $n) : []; // Equal weight if no values
+            return $n > 0 ? array_fill(0, $n, 1 / $n) : [];
         }
 
         $weights = [];
@@ -203,13 +441,6 @@ class EfficientFrontierCalculator
 
     /**
      * Generate points along the efficient frontier
-     *
-     * @param  array  $expectedReturns  Expected returns
-     * @param  array  $covarianceMatrix  Covariance matrix
-     * @param  array  $minVariancePortfolio  Minimum variance portfolio
-     * @param  array  $tangencyPortfolio  Tangency portfolio
-     * @param  int  $numPoints  Number of points to generate
-     * @return array Frontier points
      */
     private function generateFrontierPoints(
         array $expectedReturns,
@@ -219,11 +450,10 @@ class EfficientFrontierCalculator
         int $numPoints
     ): array {
         $minReturn = $minVariancePortfolio['expected_return'];
-        $maxReturn = max($expectedReturns); // Maximum possible return
+        $maxReturn = max($expectedReturns);
 
         $points = [];
 
-        // Generate points from min variance to max return
         for ($i = 0; $i < $numPoints; $i++) {
             $targetReturn = $minReturn + ($maxReturn - $minReturn) * ($i / ($numPoints - 1));
 
@@ -254,24 +484,16 @@ class EfficientFrontierCalculator
 
     /**
      * Calculate Capital Allocation Line
-     * Line from risk-free asset to tangency portfolio
-     *
-     * @param  array  $tangencyPortfolio  Tangency portfolio
-     * @param  float  $riskFreeRate  Risk-free rate
-     * @return array CAL data
      */
     private function calculateCapitalAllocationLine(
         array $tangencyPortfolio,
         float $riskFreeRate
     ): array {
         $sharpe = $tangencyPortfolio['sharpe_ratio'];
-        $tangencyReturn = $tangencyPortfolio['expected_return'];
         $tangencyRisk = $tangencyPortfolio['expected_risk'];
 
-        // CAL equation: R_p = R_f + Sharpe * σ_p
-        // Generate points along CAL
         $calPoints = [];
-        $maxRisk = $tangencyRisk * 2; // Extend CAL beyond tangency point
+        $maxRisk = $tangencyRisk * 2;
 
         for ($i = 0; $i <= 10; $i++) {
             $risk = ($maxRisk / 10) * $i;
@@ -284,20 +506,15 @@ class EfficientFrontierCalculator
         }
 
         return [
-            'slope' => $sharpe, // Sharpe ratio is the slope of CAL
+            'slope' => $sharpe,
             'intercept' => $riskFreeRate,
-            'equation' => "R_p = {$riskFreeRate} + {$sharpe} × σ_p",
+            'equation' => "R_p = {$riskFreeRate} + {$sharpe} * sigma_p",
             'points' => $calPoints,
         ];
     }
 
     /**
      * Analyze improvement opportunities vs. current portfolio
-     *
-     * @param  array  $currentMetrics  Current portfolio metrics
-     * @param  array  $tangencyPortfolio  Optimal portfolio
-     * @param  array  $minVariancePortfolio  Min variance portfolio
-     * @return array Improvement analysis
      */
     private function analyzeImprovementOpportunities(
         array $currentMetrics,
@@ -337,13 +554,7 @@ class EfficientFrontierCalculator
     }
 
     /**
-     * Generate recommendation text
-     *
-     * @param  float  $currentSharpe  Current Sharpe ratio
-     * @param  float  $optimalSharpe  Optimal Sharpe ratio
-     * @param  float  $currentRisk  Current risk
-     * @param  float  $minRisk  Minimum possible risk
-     * @return string Recommendation
+     * Generate recommendation text for user portfolio
      */
     private function generateRecommendation(
         float $currentSharpe,
@@ -366,22 +577,231 @@ class EfficientFrontierCalculator
     }
 
     /**
-     * Generate simulated returns as fallback when historical data is unavailable.
-     *
-     * Used for demo/preview users and when market data integration is not configured.
-     * Returns are randomly distributed between -10% and +20% to approximate
-     * typical equity market volatility.
-     *
-     * @param  int  $periods  Number of periods to simulate
-     * @return array Simulated return data
+     * Generate simulated returns as fallback
      */
     private function generateMockReturns(int $periods = 36): array
     {
         $returns = [];
         for ($i = 0; $i < $periods; $i++) {
-            $returns[] = (rand(-100, 200) / 1000); // Random returns between -10% and +20%
+            $returns[] = (rand(-100, 200) / 1000);
         }
 
         return $returns;
+    }
+
+    // =========================================================================
+    // ASSET CLASS MODE HELPER METHODS
+    // =========================================================================
+
+    /**
+     * Generate random portfolio allocations
+     */
+    private function generateRandomPortfolios(array $assetClasses, int $numPortfolios): array
+    {
+        $portfolios = [];
+        $assetNames = array_keys($assetClasses);
+        $numAssets = count($assetNames);
+
+        for ($i = 0; $i < $numPortfolios; $i++) {
+            $weights = [];
+            $sum = 0;
+
+            for ($j = 0; $j < $numAssets; $j++) {
+                $weight = mt_rand(0, 100) / 100;
+                $weights[$assetNames[$j]] = $weight;
+                $sum += $weight;
+            }
+
+            foreach ($weights as $asset => $weight) {
+                $weights[$asset] = $weight / $sum;
+            }
+
+            $portfolios[] = ['weights' => $weights];
+        }
+
+        return $portfolios;
+    }
+
+    /**
+     * Calculate portfolio statistics (return, volatility)
+     */
+    private function calculatePortfolioStatistics(array $portfolio, array $assetClasses): array
+    {
+        $weights = $portfolio['weights'];
+
+        $expectedReturn = 0.0;
+        foreach ($weights as $asset => $weight) {
+            $expectedReturn += $weight * $assetClasses[$asset]['expected_return'];
+        }
+
+        $variance = 0.0;
+
+        foreach ($weights as $asset1 => $weight1) {
+            foreach ($weights as $asset2 => $weight2) {
+                $volatility1 = $assetClasses[$asset1]['volatility'];
+                $volatility2 = $assetClasses[$asset2]['volatility'];
+                $correlation = $this->getCorrelation($asset1, $asset2, $assetClasses);
+                $variance += $weight1 * $weight2 * $volatility1 * $volatility2 * $correlation;
+            }
+        }
+
+        $volatility = sqrt($variance);
+
+        return [
+            'expected_return' => $expectedReturn * 100,
+            'volatility' => $volatility * 100,
+        ];
+    }
+
+    /**
+     * Get correlation between two assets
+     */
+    private function getCorrelation(string $asset1, string $asset2, array $assetClasses): float
+    {
+        if ($asset1 === $asset2) {
+            return 1.0;
+        }
+
+        if (isset($assetClasses[$asset1]['correlations'][$asset2])) {
+            return $assetClasses[$asset1]['correlations'][$asset2];
+        }
+
+        return $this->getDefaultCorrelation($asset1, $asset2);
+    }
+
+    /**
+     * Get default correlation between asset classes
+     */
+    private function getDefaultCorrelation(string $asset1, string $asset2): float
+    {
+        $defaultCorrelations = [
+            'equities' => [
+                'bonds' => 0.20,
+                'cash' => 0.05,
+                'alternatives' => 0.40,
+            ],
+            'bonds' => [
+                'equities' => 0.20,
+                'cash' => 0.30,
+                'alternatives' => 0.15,
+            ],
+            'cash' => [
+                'equities' => 0.05,
+                'bonds' => 0.30,
+                'alternatives' => 0.10,
+            ],
+            'alternatives' => [
+                'equities' => 0.40,
+                'bonds' => 0.15,
+                'cash' => 0.10,
+            ],
+        ];
+
+        return $defaultCorrelations[$asset1][$asset2] ?? 0.30;
+    }
+
+    /**
+     * Calculate Sharpe ratio
+     */
+    private function calculateSharpeRatio(float $return, float $volatility, float $riskFreeRate): float
+    {
+        if ($volatility <= 0) {
+            return 0.0;
+        }
+
+        return ($return - ($riskFreeRate * 100)) / $volatility;
+    }
+
+    /**
+     * Find portfolio with maximum Sharpe ratio
+     */
+    private function findMaxSharpePortfolio(array $portfolios): array
+    {
+        $maxSharpe = -PHP_FLOAT_MAX;
+        $maxSharpePortfolio = null;
+
+        foreach ($portfolios as $portfolio) {
+            if ($portfolio['sharpe_ratio'] > $maxSharpe) {
+                $maxSharpe = $portfolio['sharpe_ratio'];
+                $maxSharpePortfolio = $portfolio;
+            }
+        }
+
+        return $maxSharpePortfolio;
+    }
+
+    /**
+     * Find portfolio with minimum variance
+     */
+    private function findMinVariancePortfolio(array $portfolios): array
+    {
+        $minVolatility = PHP_FLOAT_MAX;
+        $minVariancePortfolio = null;
+
+        foreach ($portfolios as $portfolio) {
+            if ($portfolio['volatility'] < $minVolatility) {
+                $minVolatility = $portfolio['volatility'];
+                $minVariancePortfolio = $portfolio;
+            }
+        }
+
+        return $minVariancePortfolio;
+    }
+
+    /**
+     * Extract efficient frontier (pareto optimal portfolios)
+     */
+    private function extractEfficientPortfolios(array $portfolios): array
+    {
+        usort($portfolios, fn ($a, $b) => $a['volatility'] <=> $b['volatility']);
+
+        $efficientPortfolios = [];
+        $maxReturnSoFar = -PHP_FLOAT_MAX;
+
+        foreach ($portfolios as $portfolio) {
+            if ($portfolio['expected_return'] > $maxReturnSoFar) {
+                $efficientPortfolios[] = $portfolio;
+                $maxReturnSoFar = $portfolio['expected_return'];
+            }
+        }
+
+        return $efficientPortfolios;
+    }
+
+    /**
+     * Calculate portfolio efficiency score
+     */
+    private function calculateEfficiencyScore(
+        array $currentStats,
+        array $efficientPortfolio,
+        array $maxSharpePortfolio
+    ): float {
+        if ($maxSharpePortfolio['sharpe_ratio'] <= 0) {
+            return 50.0;
+        }
+
+        $sharpeScore = ($currentStats['sharpe_ratio'] / $maxSharpePortfolio['sharpe_ratio']) * 100;
+
+        return min(100.0, max(0.0, $sharpeScore));
+    }
+
+    /**
+     * Generate efficiency recommendation
+     */
+    private function generateEfficiencyRecommendation(float $efficiencyScore): string
+    {
+        if ($efficiencyScore >= 90) {
+            return 'Your portfolio is highly efficient and near-optimal on the efficient frontier.';
+        }
+
+        if ($efficiencyScore >= 75) {
+            return 'Your portfolio is reasonably efficient but has room for improvement.';
+        }
+
+        if ($efficiencyScore >= 60) {
+            return 'Your portfolio could be significantly improved by moving towards the efficient frontier.';
+        }
+
+        return 'Your portfolio is sub-optimal. Consider rebalancing to improve risk-adjusted returns.';
     }
 }
