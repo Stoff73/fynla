@@ -11,6 +11,7 @@ import holistic from './modules/holistic';
 import userProfile from './modules/userProfile';
 import netWorth from './modules/netWorth';
 import trusts from './modules/trusts';
+import businessInterests from './modules/businessInterests';
 import recommendations from './modules/recommendations';
 import spousePermission from './modules/spousePermission';
 import onboarding from './modules/onboarding';
@@ -31,6 +32,7 @@ const store = createStore({
     userProfile,
     netWorth,
     trusts,
+    businessInterests,
     recommendations,
     spousePermission,
     onboarding,

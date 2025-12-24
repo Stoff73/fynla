@@ -1,86 +1,140 @@
 <template>
-  <div class="business-interests-list relative">
-    <!-- Coming Soon Watermark -->
-    <div class="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-      <div class="bg-amber-100 border-2 border-amber-400 rounded-lg px-8 py-4 transform -rotate-12 shadow-lg">
-        <p class="text-2xl font-bold text-amber-700">Coming Soon</p>
-      </div>
-    </div>
+  <div class="business-interests-list">
+    <!-- Detail View -->
+    <BusinessInterestDetailInline
+      v-if="selectedBusinessId"
+      :business-id="selectedBusinessId"
+      @back="closeDetail"
+      @edit="openEditModal"
+      @deleted="handleDeleted"
+    />
 
-    <div class="opacity-50">
+    <!-- List View -->
+    <div v-else>
       <div class="list-header">
         <h2 class="list-title">Business Interests</h2>
         <div class="list-controls">
-          <select v-model="filterType" class="filter-select" disabled>
+          <select v-model="filterType" class="filter-select">
             <option value="all">All Businesses</option>
             <option value="sole_trader">Sole Trader</option>
             <option value="partnership">Partnership</option>
             <option value="limited_company">Limited Company</option>
             <option value="llp">LLP</option>
           </select>
-          <select v-model="sortBy" class="sort-select" disabled>
+          <select v-model="sortBy" class="sort-select">
             <option value="value_desc">Value (High to Low)</option>
             <option value="value_asc">Value (Low to High)</option>
             <option value="name">Business Name</option>
           </select>
+          <button @click="openAddModal" class="add-button">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            Add Business
+          </button>
         </div>
       </div>
 
       <div v-if="loading" class="loading-state">
+        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
         <p>Loading business interests...</p>
       </div>
 
       <div v-else-if="error" class="error-state">
         <p>{{ error }}</p>
+        <button @click="fetchData" class="retry-button">Retry</button>
       </div>
 
-      <div v-else class="empty-state">
+      <div v-else-if="filteredBusinesses.length === 0" class="empty-state">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="empty-icon">
           <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />
         </svg>
-        <p class="empty-title">Business Interests</p>
+        <p class="empty-title">No Business Interests</p>
         <p class="empty-subtitle">Track and manage your business interests including sole trader businesses, partnerships, limited companies and LLPs.</p>
-        <p class="feature-description">This feature will allow you to:</p>
-        <ul class="feature-list">
-          <li>Record business ownership stakes and valuations</li>
-          <li>Track different business structures (Sole Trader, Partnership, Limited Company, LLP)</li>
-          <li>Include business assets in your net worth calculations</li>
-          <li>Plan for business succession and estate implications</li>
-        </ul>
+        <button @click="openAddModal" class="add-first-button">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
+          Add Your First Business
+        </button>
+      </div>
+
+      <div v-else class="businesses-grid">
+        <BusinessInterestCard
+          v-for="business in filteredBusinesses"
+          :key="business.id"
+          :business="business"
+          @click="openDetail(business.id)"
+          @edit="openEditModal(business)"
+          @delete="confirmDelete(business)"
+        />
+      </div>
+
+      <!-- Total Value Summary -->
+      <div v-if="filteredBusinesses.length > 0" class="summary-bar">
+        <div class="summary-item">
+          <span class="summary-label">Total Businesses</span>
+          <span class="summary-value">{{ filteredBusinesses.length }}</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Total Value (Your Share)</span>
+          <span class="summary-value text-purple-600">{{ formatCurrency(totalValue) }}</span>
+        </div>
       </div>
     </div>
 
-    <div v-if="filteredBusinesses.length > 0" class="businesses-grid">
-      <BusinessInterestCard
-        v-for="business in filteredBusinesses"
-        :key="business.id"
-        :business="business"
-      />
-    </div>
+    <!-- Add/Edit Modal -->
+    <BusinessInterestForm
+      v-if="showFormModal"
+      :business="editingBusiness"
+      @close="closeFormModal"
+      @save="handleSave"
+    />
+
+    <!-- Delete Confirmation -->
+    <ConfirmationModal
+      v-if="showDeleteConfirm"
+      title="Delete Business Interest"
+      message="Are you sure you want to delete this business interest? This action cannot be undone."
+      @confirm="handleDelete"
+      @cancel="showDeleteConfirm = false"
+    />
   </div>
 </template>
 
 <script>
+import { mapState, mapGetters, mapActions } from 'vuex';
 import BusinessInterestCard from './BusinessInterestCard.vue';
+import BusinessInterestForm from './BusinessInterestForm.vue';
+import BusinessInterestDetailInline from './BusinessInterestDetailInline.vue';
+import ConfirmationModal from '@/components/Common/ConfirmationModal.vue';
 
 export default {
   name: 'BusinessInterestsList',
 
   components: {
     BusinessInterestCard,
+    BusinessInterestForm,
+    BusinessInterestDetailInline,
+    ConfirmationModal,
   },
 
   data() {
     return {
-      businesses: [],
-      loading: false,
-      error: null,
       filterType: 'all',
       sortBy: 'value_desc',
+      showFormModal: false,
+      showDeleteConfirm: false,
+      editingBusiness: null,
+      deletingBusiness: null,
+      selectedBusinessId: null,
     };
   },
 
   computed: {
+    ...mapState('businessInterests', ['businesses', 'loading', 'error']),
+    ...mapGetters('businessInterests', ['totalBusinessValue']),
+
     filteredBusinesses() {
       let filtered = [...this.businesses];
 
@@ -91,21 +145,104 @@ export default {
 
       // Apply sort
       if (this.sortBy === 'value_desc') {
-        filtered.sort((a, b) => b.current_valuation - a.current_valuation);
+        filtered.sort((a, b) => (b.user_share || b.current_valuation || 0) - (a.user_share || a.current_valuation || 0));
       } else if (this.sortBy === 'value_asc') {
-        filtered.sort((a, b) => a.current_valuation - b.current_valuation);
+        filtered.sort((a, b) => (a.user_share || a.current_valuation || 0) - (b.user_share || b.current_valuation || 0));
       } else if (this.sortBy === 'name') {
-        filtered.sort((a, b) => a.business_name.localeCompare(b.business_name));
+        filtered.sort((a, b) => (a.business_name || '').localeCompare(b.business_name || ''));
       }
 
       return filtered;
     },
+
+    totalValue() {
+      return this.filteredBusinesses.reduce((sum, b) => sum + (b.user_share || b.current_valuation || 0), 0);
+    },
   },
 
-  async mounted() {
-    // In Phase 4, this will fetch from the API
-    // For now, show empty state
-    this.loading = false;
+  mounted() {
+    this.fetchData();
+  },
+
+  methods: {
+    ...mapActions('businessInterests', ['fetchBusinesses', 'createBusiness', 'updateBusiness', 'deleteBusiness']),
+
+    async fetchData() {
+      try {
+        await this.fetchBusinesses();
+      } catch (error) {
+        console.error('Failed to fetch business interests:', error);
+      }
+    },
+
+    openAddModal() {
+      this.editingBusiness = null;
+      this.showFormModal = true;
+    },
+
+    openEditModal(business) {
+      this.editingBusiness = business;
+      this.showFormModal = true;
+    },
+
+    closeFormModal() {
+      this.showFormModal = false;
+      this.editingBusiness = null;
+    },
+
+    openDetail(businessId) {
+      this.selectedBusinessId = businessId;
+    },
+
+    closeDetail() {
+      this.selectedBusinessId = null;
+      // Refresh list in case data changed
+      this.fetchData();
+    },
+
+    confirmDelete(business) {
+      this.deletingBusiness = business;
+      this.showDeleteConfirm = true;
+    },
+
+    async handleSave(formData) {
+      try {
+        if (this.editingBusiness) {
+          await this.updateBusiness({ id: this.editingBusiness.id, data: formData });
+        } else {
+          await this.createBusiness(formData);
+        }
+        this.closeFormModal();
+      } catch (error) {
+        console.error('Failed to save business:', error);
+      }
+    },
+
+    async handleDelete() {
+      if (!this.deletingBusiness) return;
+
+      try {
+        await this.deleteBusiness(this.deletingBusiness.id);
+        this.showDeleteConfirm = false;
+        this.deletingBusiness = null;
+      } catch (error) {
+        console.error('Failed to delete business:', error);
+      }
+    },
+
+    handleDeleted() {
+      this.fetchData();
+    },
+
+    formatCurrency(value) {
+      if (value === null || value === undefined) return '-';
+      return new Intl.NumberFormat('en-GB', {
+        style: 'currency',
+        currency: 'GBP',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      }).format(value);
+    },
   },
 };
 </script>
@@ -134,6 +271,7 @@ export default {
 .list-controls {
   display: flex;
   gap: 12px;
+  align-items: center;
 }
 
 .filter-select,
@@ -150,8 +288,27 @@ export default {
 .filter-select:focus,
 .sort-select:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: #a21caf;
+  box-shadow: 0 0 0 3px rgba(162, 28, 175, 0.1);
+}
+
+.add-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #a21caf;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.add-button:hover {
+  background: #86198f;
 }
 
 .businesses-grid {
@@ -160,22 +317,40 @@ export default {
   gap: 20px;
 }
 
-.loading-state,
-.error-state,
-.empty-state {
+.loading-state {
   text-align: center;
   padding: 60px 20px;
 }
 
-.loading-state p,
-.error-state p {
+.loading-state p {
   color: #6b7280;
   font-size: 16px;
-  margin: 0;
+  margin-top: 16px;
+}
+
+.error-state {
+  text-align: center;
+  padding: 60px 20px;
 }
 
 .error-state p {
   color: #ef4444;
+  font-size: 16px;
+  margin-bottom: 16px;
+}
+
+.retry-button {
+  padding: 8px 16px;
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.retry-button:hover {
+  background: #e5e7eb;
 }
 
 .empty-state {
@@ -183,6 +358,7 @@ export default {
   border-radius: 12px;
   padding: 80px 40px;
   border: 2px dashed #d1d5db;
+  text-align: center;
 }
 
 .empty-icon {
@@ -192,30 +368,6 @@ export default {
   margin: 0 auto 16px;
 }
 
-.empty-state p {
-  color: #6b7280;
-  font-size: 18px;
-  font-weight: 600;
-  margin: 0 0 8px 0;
-}
-
-.empty-subtitle {
-  color: #9ca3af;
-  font-size: 14px;
-  font-weight: 400;
-}
-
-.coming-soon-badge {
-  display: inline-block;
-  margin-top: 16px;
-  padding: 8px 16px;
-  background: #dbeafe;
-  color: #1e40af;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-}
-
 .empty-title {
   font-size: 20px;
   font-weight: 700;
@@ -223,38 +375,60 @@ export default {
   margin-bottom: 8px;
 }
 
-.feature-description {
-  color: #6b7280;
-  font-size: 14px;
-  font-weight: 500;
-  margin-top: 16px;
-  margin-bottom: 8px;
-}
-
-.feature-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  text-align: left;
-  max-width: 400px;
-  margin: 0 auto;
-}
-
-.feature-list li {
+.empty-subtitle {
   color: #6b7280;
   font-size: 14px;
   font-weight: 400;
-  padding: 6px 0;
-  padding-left: 24px;
-  position: relative;
+  max-width: 400px;
+  margin: 0 auto 24px;
 }
 
-.feature-list li::before {
-  content: "•";
-  color: #f59e0b;
-  font-weight: bold;
-  position: absolute;
-  left: 8px;
+.add-first-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: #a21caf;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.add-first-button:hover {
+  background: #86198f;
+}
+
+.summary-bar {
+  margin-top: 24px;
+  padding: 16px 24px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.summary-label {
+  font-size: 12px;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.summary-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #111827;
 }
 
 @media (max-width: 768px) {
@@ -273,12 +447,20 @@ export default {
   }
 
   .filter-select,
-  .sort-select {
+  .sort-select,
+  .add-button {
     width: 100%;
+    justify-content: center;
   }
 
   .businesses-grid {
     grid-template-columns: 1fr;
+  }
+
+  .summary-bar {
+    flex-direction: column;
+    gap: 16px;
+    text-align: center;
   }
 }
 </style>

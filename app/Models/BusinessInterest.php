@@ -14,6 +14,7 @@ class BusinessInterest extends Model
 
     protected $fillable = [
         'user_id',
+        'joint_owner_id',
         'household_id',
         'trust_id',
         'business_name',
@@ -30,6 +31,19 @@ class BusinessInterest extends Model
         'annual_dividend_income',
         'description',
         'notes',
+        // Tax & Compliance fields
+        'vat_registered',
+        'vat_number',
+        'utr_number',
+        'tax_year_end',
+        'employee_count',
+        'paye_reference',
+        'trading_status',
+        // Exit Planning / BADR fields
+        'acquisition_date',
+        'acquisition_cost',
+        'bpr_eligible',
+        'industry_sector',
     ];
 
     protected $casts = [
@@ -39,6 +53,13 @@ class BusinessInterest extends Model
         'annual_revenue' => 'decimal:2',
         'annual_profit' => 'decimal:2',
         'annual_dividend_income' => 'decimal:2',
+        // New tax/compliance casts
+        'vat_registered' => 'boolean',
+        'tax_year_end' => 'date',
+        'employee_count' => 'integer',
+        'acquisition_date' => 'date',
+        'acquisition_cost' => 'decimal:2',
+        'bpr_eligible' => 'boolean',
     ];
 
     /**
@@ -47,6 +68,14 @@ class BusinessInterest extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get the joint owner of this business interest.
+     */
+    public function jointOwner(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'joint_owner_id');
     }
 
     /**

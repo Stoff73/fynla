@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
+use App\Models\BusinessInterest;
 use App\Models\CriticalIllnessPolicy;
 use App\Models\DBPension;
 use App\Models\DCPension;
@@ -127,6 +128,9 @@ class PreviewUserSeeder extends Seeder
 
         // Create trusts
         $this->createTrusts($user, $data['trusts'] ?? []);
+
+        // Create business interests
+        $this->createBusinessInterests($user, $data['business_interests'] ?? []);
 
         $this->command->info("  Created user: {$user->name} ({$user->email})");
         if ($spouse) {
@@ -877,6 +881,42 @@ class PreviewUserSeeder extends Seeder
                 'notes' => $trust['notes'] ?? null,
                 'is_relevant_property_trust' => $trust['is_relevant_property_trust'] ?? false,
                 'is_active' => $trust['is_active'] ?? true,
+            ]);
+        }
+    }
+
+    /**
+     * Create business interests for users.
+     */
+    private function createBusinessInterests(User $user, array $businesses): void
+    {
+        foreach ($businesses as $business) {
+            BusinessInterest::create([
+                'user_id' => $user->id,
+                'business_name' => $business['business_name'] ?? '',
+                'business_type' => $business['business_type'] ?? 'limited_company',
+                'company_number' => $business['company_number'] ?? null,
+                'industry_sector' => $business['industry_sector'] ?? null,
+                'ownership_type' => $business['ownership_type'] ?? 'individual',
+                'ownership_percentage' => $business['ownership_percentage'] ?? 100,
+                'current_valuation' => $business['current_valuation'] ?? $business['current_value'] ?? 0,
+                'valuation_date' => $business['valuation_date'] ?? null,
+                'valuation_method' => $business['valuation_method'] ?? null,
+                'annual_revenue' => $business['annual_revenue'] ?? null,
+                'annual_profit' => $business['annual_profit'] ?? null,
+                'annual_dividend_income' => $business['annual_dividend_income'] ?? null,
+                'vat_registered' => $business['vat_registered'] ?? false,
+                'vat_number' => $business['vat_number'] ?? null,
+                'utr_number' => $business['utr_number'] ?? null,
+                'tax_year_end' => $business['tax_year_end'] ?? null,
+                'employee_count' => $business['employee_count'] ?? $business['employees'] ?? 0,
+                'paye_reference' => $business['paye_reference'] ?? null,
+                'trading_status' => $business['trading_status'] ?? 'trading',
+                'acquisition_date' => $business['acquisition_date'] ?? null,
+                'acquisition_cost' => $business['acquisition_cost'] ?? null,
+                'bpr_eligible' => $business['bpr_eligible'] ?? false,
+                'description' => $business['description'] ?? null,
+                'notes' => $business['notes'] ?? null,
             ]);
         }
     }

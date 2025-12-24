@@ -100,11 +100,25 @@ class EstateAssetAggregatorService
             ];
         });
 
-        // Business Interests - apply ownership percentage
+        // Business Interests - apply ownership percentage and BPR relief
         $businessInterests = BusinessInterest::where('user_id', $user->id)->get();
         $businessAssets = $businessInterests->map(function ($business) use ($user) {
             $ownershipPercentage = $business->ownership_percentage ?? 100;
             $userValue = $business->current_valuation * ($ownershipPercentage / 100);
+
+            // Business Property Relief (BPR): 100% relief for qualifying trading businesses
+            // Requires: bpr_eligible flag AND trading status AND 2+ years ownership
+            $ihtExempt = false;
+            if ($business->bpr_eligible && $business->trading_status === 'trading') {
+                // Check 2-year ownership rule if acquisition_date is set
+                if ($business->acquisition_date) {
+                    $yearsOwned = \Carbon\Carbon::parse($business->acquisition_date)->diffInYears(now());
+                    $ihtExempt = $yearsOwned >= 2;
+                } else {
+                    // If no acquisition date set but marked BPR eligible, assume eligible
+                    $ihtExempt = true;
+                }
+            }
 
             return (object) [
                 'user_id' => $user->id,
@@ -112,10 +126,12 @@ class EstateAssetAggregatorService
                 'asset_name' => $business->business_name,
                 'current_value' => $userValue,
                 'full_value' => (float) $business->current_valuation,
-                'ownership_type' => 'individual', // Business interests typically individual
+                'ownership_type' => $business->ownership_type ?? 'individual',
                 'ownership_percentage' => $ownershipPercentage,
                 'is_primary_owner' => true,
-                'is_iht_exempt' => false, // May qualify for Business Relief (BR) at 50% or 100%
+                'is_iht_exempt' => $ihtExempt, // BPR at 100% for qualifying trading businesses
+                'bpr_eligible' => $business->bpr_eligible ?? false,
+                'trading_status' => $business->trading_status,
             ];
         });
 

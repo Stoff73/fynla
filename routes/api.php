@@ -37,6 +37,7 @@ use App\Http\Controllers\Api\Plans\InvestmentSavingsPlanController;
 use App\Http\Controllers\Api\PortfolioOptimizationController;
 use App\Http\Controllers\Api\PreviewController;
 use App\Http\Controllers\Api\ProfileCompletenessController;
+use App\Http\Controllers\Api\BusinessInterestController;
 use App\Http\Controllers\Api\PropertyController;
 use App\Http\Controllers\Api\ProtectionController;
 use App\Http\Controllers\Api\RecommendationsController;
@@ -201,6 +202,17 @@ Route::middleware('auth:sanctum')->prefix('mortgages')->group(function () {
     Route::delete('/{id}', [MortgageController::class, 'destroy']);
     Route::get('/{id}/amortization-schedule', [MortgageController::class, 'amortizationSchedule']);
     Route::post('/calculate-payment', [MortgageController::class, 'calculatePayment']);
+});
+
+// Business Interest routes
+Route::middleware('auth:sanctum')->prefix('business-interests')->group(function () {
+    Route::get('/', [BusinessInterestController::class, 'index']);
+    Route::post('/', [BusinessInterestController::class, 'store']);
+    Route::get('/{id}', [BusinessInterestController::class, 'show']);
+    Route::put('/{id}', [BusinessInterestController::class, 'update']);
+    Route::delete('/{id}', [BusinessInterestController::class, 'destroy']);
+    Route::get('/{id}/tax-deadlines', [BusinessInterestController::class, 'taxDeadlines']);
+    Route::get('/{id}/exit-calculation', [BusinessInterestController::class, 'exitCalculation']);
 });
 
 // Dashboard routes (aggregated data from all modules)
