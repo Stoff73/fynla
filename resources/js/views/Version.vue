@@ -18,7 +18,7 @@
               <p class="mt-1 text-body-sm text-gray-600">Latest release information</p>
             </div>
             <div class="text-right">
-              <div class="text-3xl font-bold text-primary-600">v0.4.1</div>
+              <div class="text-3xl font-bold text-primary-600">v0.4.2</div>
               <div class="text-body-sm text-gray-500 mt-1">Production Ready</div>
             </div>
           </div>
@@ -28,7 +28,7 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
               <h3 class="text-body-sm font-semibold text-gray-700 mb-2">Release Date</h3>
-              <p class="text-body-base text-gray-900">19 December 2025</p>
+              <p class="text-body-base text-gray-900">29 December 2025</p>
             </div>
             <div>
               <h3 class="text-body-sm font-semibold text-gray-700 mb-2">Status</h3>
@@ -40,31 +40,31 @@
 
           <!-- What's New -->
           <div class="mb-6">
-            <h3 class="text-body-lg font-semibold text-gray-900 mb-4">🛡️ Protection Module Enhancements in v0.4.1</h3>
+            <h3 class="text-body-lg font-semibold text-gray-900 mb-4">🏢 Business Interests Module in v0.4.2</h3>
             <ul class="space-y-2">
               <li class="flex items-start">
                 <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
-                <span class="text-body-base text-gray-700"><strong>Simplified Policy Overview:</strong> Removed clutter (filters, charts) and added clean Coverage Summary with 5 key metrics.</span>
+                <span class="text-body-base text-gray-700"><strong>Full Business Interests Module:</strong> Track Sole Trader, Partnership, Limited Company, and LLP business structures with valuations and ownership.</span>
               </li>
               <li class="flex items-start">
                 <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
-                <span class="text-body-base text-gray-700"><strong>5 Protection Shortfall Cards:</strong> Debt Protection, Income Replacement, Critical Illness, Sickness Cover, and Disability Cover in a 3-column grid.</span>
+                <span class="text-body-base text-gray-700"><strong>Tax Deadlines:</strong> Automatic calculation of relevant tax deadlines based on business type (Self Assessment, Corporation Tax, VAT, PAYE).</span>
               </li>
               <li class="flex items-start">
                 <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
-                <span class="text-body-base text-gray-700"><strong>UK Statutory Sick Pay (SSP):</strong> Sickness Cover card now includes £118.75/week SSP for employees, with self-employed eligibility check.</span>
+                <span class="text-body-base text-gray-700"><strong>Exit Planning:</strong> Capital Gains Tax calculations with Business Asset Disposal Relief eligibility assessment and net proceeds projection.</span>
               </li>
               <li class="flex items-start">
                 <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
-                <span class="text-body-base text-gray-700"><strong>Clear Financial Metrics:</strong> Per annum (p.a.) labels on yearly figures with monthly shortfall equivalents for income-based gaps.</span>
+                <span class="text-body-base text-gray-700"><strong>Business Relief Tracking:</strong> Inheritance Tax relief eligibility indicators for qualifying business assets.</span>
               </li>
             </ul>
           </div>
@@ -77,19 +77,52 @@
                 <svg class="w-5 h-5 text-blue-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
-                <span class="text-body-base text-gray-700"><strong>CurrentSituation.vue:</strong> Simplified UI, removed unused components, added Coverage Summary with debt/income metrics from user profile API.</span>
+                <span class="text-body-base text-gray-700"><strong>BusinessInterestService.php:</strong> New service with tax deadline calculation and exit scenario modelling.</span>
               </li>
               <li class="flex items-start">
                 <svg class="w-5 h-5 text-blue-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
-                <span class="text-body-base text-gray-700"><strong>GapAnalysis.vue:</strong> Removed gauge/calculation cards, redesigned with 5 shortfall cards, added SSP computed properties.</span>
+                <span class="text-body-base text-gray-700"><strong>UI Improvements:</strong> Removed acronyms throughout (Business Relief, Capital Gains Tax, etc.) for clarity.</span>
               </li>
               <li class="flex items-start">
                 <svg class="w-5 h-5 text-blue-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
-                <span class="text-body-base text-gray-700"><strong>PolicyDetail.vue:</strong> Added back button matching app design pattern for consistent navigation.</span>
+                <span class="text-body-base text-gray-700"><strong>Vuex Store:</strong> Fixed API response extraction for tax deadlines and exit calculations.</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Version History Divider -->
+        <div class="border-t border-gray-200 my-8"></div>
+
+        <!-- Previous Version: v0.4.1 -->
+        <div class="mb-8 px-6">
+          <h2 class="text-h3 font-display text-gray-900 mb-4">Previous Release: v0.4.1</h2>
+          <p class="text-body-sm text-gray-600 mb-4">Released: 19 December 2025</p>
+
+          <div class="mb-6">
+            <h3 class="text-body-lg font-semibold text-gray-900 mb-4">🛡️ Protection Module Enhancements</h3>
+            <ul class="space-y-2">
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-gray-700"><strong>Simplified Policy Overview:</strong> Clean Coverage Summary with 5 key metrics.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-gray-700"><strong>5 Protection Shortfall Cards:</strong> Debt Protection, Income Replacement, Critical Illness, Sickness Cover, Disability Cover.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-gray-700"><strong>UK Statutory Sick Pay:</strong> SSP calculation for employees with self-employed eligibility check.</span>
               </li>
             </ul>
           </div>
