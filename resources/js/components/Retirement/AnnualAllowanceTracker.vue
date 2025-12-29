@@ -141,9 +141,11 @@
 
 <script>
 import { mapState } from 'vuex';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'AnnualAllowanceTracker',
+  mixins: [currencyMixin],
 
   data() {
     return {
@@ -266,16 +268,6 @@ export default {
     getHistoricalPercent(taxYear) {
       const used = this.getHistoricalContributions(taxYear);
       return Math.min(100, Math.round((used / 60000) * 100));
-    },
-
-    formatCurrency(value) {
-      if (value === null || value === undefined) return '£0';
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
     },
   },
 

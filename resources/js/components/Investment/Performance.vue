@@ -226,9 +226,12 @@
 <script>
 import { mapState, mapGetters, mapActions } from 'vuex';
 import InvestmentProjectionChart from './InvestmentProjectionChart.vue';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'Performance',
+
+  mixins: [currencyMixin],
 
   components: {
     InvestmentProjectionChart,
@@ -347,16 +350,6 @@ export default {
       } catch (error) {
         console.error('Failed to load projections:', error);
       }
-    },
-
-    formatCurrency(value) {
-      if (value === null || value === undefined) return '£0';
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
     },
 
     formatAssetType(type) {

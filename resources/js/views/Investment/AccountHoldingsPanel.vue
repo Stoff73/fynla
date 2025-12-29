@@ -142,8 +142,12 @@
 </template>
 
 <script>
+import { currencyMixin } from '@/mixins/currencyMixin';
+
 export default {
   name: 'AccountHoldingsPanel',
+
+  mixins: [currencyMixin],
 
   props: {
     account: {
@@ -199,15 +203,6 @@ export default {
   },
 
   methods: {
-    formatCurrency(value) {
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value || 0);
-    },
-
     formatNumber(value) {
       if (!value) return '0';
       return new Intl.NumberFormat('en-GB', {

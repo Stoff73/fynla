@@ -29,7 +29,6 @@ const actions = {
   async fetchTrusts({ commit, state }) {
     // Skip API call if in preview mode
     if (state.isPreviewMode) {
-      console.log('[trusts] Skipping fetchTrusts - preview mode active');
       return;
     }
     commit('setLoading', true);
@@ -51,7 +50,6 @@ const actions = {
   async fetchTrustById({ commit, state }, id) {
     // Skip API call if in preview mode
     if (state.isPreviewMode) {
-      console.log('[trusts] Skipping fetchTrustById - preview mode active');
       return;
     }
     commit('setLoading', true);
@@ -76,7 +74,6 @@ const actions = {
   async fetchTrustAssets({ commit, state }, trustId) {
     // Skip API call if in preview mode
     if (state.isPreviewMode) {
-      console.log('[trusts] Skipping fetchTrustAssets - preview mode active');
       return;
     }
     commit('setLoading', true);
@@ -149,7 +146,6 @@ const actions = {
   async calculateTrustIHTImpact({ commit, state }, trustId) {
     // Skip API call if in preview mode
     if (state.isPreviewMode) {
-      console.log('[trusts] Skipping calculateTrustIHTImpact - preview mode active');
       return;
     }
     commit('setLoading', true);
@@ -170,7 +166,6 @@ const actions = {
   async fetchUpcomingTaxReturns({ commit, state }, monthsAhead = 12) {
     // Skip API call if in preview mode
     if (state.isPreviewMode) {
-      console.log('[trusts] Skipping fetchUpcomingTaxReturns - preview mode active');
       return;
     }
     commit('setLoading', true);

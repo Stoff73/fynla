@@ -106,9 +106,11 @@
 
 <script>
 import VueApexCharts from 'vue3-apexcharts';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'AllocationComparison',
+  mixins: [currencyMixin],
 
   components: {
     apexchart: VueApexCharts,
@@ -255,13 +257,6 @@ export default {
   },
 
   methods: {
-    formatCurrency(value) {
-      return new Intl.NumberFormat('en-GB', {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
-    },
-
     formatPercent(value) {
       return `${(value * 100).toFixed(2)}%`;
     },

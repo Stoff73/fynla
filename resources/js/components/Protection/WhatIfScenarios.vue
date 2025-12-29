@@ -109,9 +109,11 @@
 
 <script>
 import ScenarioBuilder from './ScenarioBuilder.vue';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'WhatIfScenarios',
+  mixins: [currencyMixin],
 
   components: {
     ScenarioBuilder,
@@ -305,14 +307,6 @@ export default {
       };
     },
 
-    formatCurrency(value) {
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
-    },
   },
 };
 </script>

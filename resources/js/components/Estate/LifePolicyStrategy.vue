@@ -363,9 +363,12 @@
 
 <script>
 import estateService from '../../services/estateService';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'LifePolicyStrategy',
+
+  mixins: [currencyMixin],
 
   data() {
     return {
@@ -432,7 +435,6 @@ export default {
         this.noIHTLiability = true;
         this.noIHTMessage = `Your current estate of ${this.formatCurrency(netEstate)} is below the IHT threshold of ${this.formatCurrency(totalAllowance)}. No inheritance tax liability is projected.`;
         this.loading = false;
-        console.log('[LifePolicyStrategy] Preview mode - no IHT liability');
         return;
       }
 
@@ -499,11 +501,6 @@ export default {
       };
 
       this.loading = false;
-      console.log('[LifePolicyStrategy] Preview mode - strategy computed:', {
-        ihtLiability,
-        monthlyPremium,
-        yearsUntilDeath,
-      });
     },
 
     async loadStrategy() {
@@ -530,15 +527,6 @@ export default {
       } finally {
         this.loading = false;
       }
-    },
-
-    formatCurrency(value) {
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
     },
   },
 };

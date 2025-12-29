@@ -423,9 +423,12 @@ import PropertyForm from './PropertyForm.vue';
 import PropertyFinancials from './PropertyFinancials.vue';
 import PropertyTaxCalculator from './PropertyTaxCalculator.vue';
 import ConfirmationModal from '../../Common/ConfirmationModal.vue';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'PropertyDetailInline',
+
+  mixins: [currencyMixin],
 
   components: {
     PropertyForm,
@@ -535,20 +538,14 @@ export default {
     async handlePropertyUpdate(data) {
       const isPreview = this.$store.getters['preview/isPreviewMode'];
 
-      console.log('[PropertyDetailInline] handlePropertyUpdate called, isPreview:', isPreview);
-      console.log('[PropertyDetailInline] data.property:', data.property);
-      console.log('[PropertyDetailInline] current selectedProperty:', this.selectedProperty);
-
       // In preview mode, update local state directly for immediate UI feedback
       if (isPreview) {
         const updatedProperty = {
           ...this.selectedProperty,
           ...data.property,
         };
-        console.log('[PropertyDetailInline] Merged property:', updatedProperty);
         this.$store.commit('netWorth/SET_SELECTED_PROPERTY', updatedProperty);
         this.showEditModal = false;
-        console.log('[PropertyDetailInline] After commit, selectedProperty:', this.$store.state.netWorth.selectedProperty);
         return;
       }
 
@@ -712,16 +709,6 @@ export default {
       if (years === 0) return `${months} month${months !== 1 ? 's' : ''}`;
       if (months === 0) return `${years} year${years !== 1 ? 's' : ''}`;
       return `${years} year${years !== 1 ? 's' : ''}, ${months} month${months !== 1 ? 's' : ''}`;
-    },
-
-    formatCurrency(value) {
-      if (value === null || value === undefined) return '£0';
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
     },
 
     formatDate(date) {

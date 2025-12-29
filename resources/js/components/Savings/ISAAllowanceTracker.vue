@@ -61,9 +61,11 @@
 
 <script>
 import { mapState, mapGetters } from 'vuex';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'ISAAllowanceTracker',
+  mixins: [currencyMixin],
 
   computed: {
     ...mapState('savings', ['isaAllowance']),
@@ -108,16 +110,7 @@ export default {
     },
   },
 
-  methods: {
-    formatCurrency(value) {
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
-    },
-  },
+  // formatCurrency provided by currencyMixin
 };
 </script>
 

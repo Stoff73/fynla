@@ -20,6 +20,7 @@ use App\Models\Investment\RiskProfile;
 use App\Models\LifeInsurancePolicy;
 use App\Models\Mortgage;
 use App\Models\Property;
+use App\Models\RetirementProfile;
 use App\Models\SavingsAccount;
 use App\Models\StatePension;
 use App\Models\User;
@@ -122,6 +123,9 @@ class PreviewUserSeeder extends Seeder
 
         // Create risk profiles
         $this->createRiskProfiles($user, $spouse, $data['risk_profile'] ?? null);
+
+        // Create retirement profiles
+        $this->createRetirementProfiles($user, $spouse, $data['user'] ?? [], $data['spouse'] ?? []);
 
         // Create wills and bequests
         $this->createWills($user, $spouse, $data['will'] ?? null);
@@ -794,6 +798,34 @@ class PreviewUserSeeder extends Seeder
             'high' => 70,
             default => 35,
         };
+    }
+
+    /**
+     * Create retirement profiles for users.
+     */
+    private function createRetirementProfiles(User $user, ?User $spouse, array $userData, array $spouseData): void
+    {
+        // Create retirement profile for primary user if target_retirement_income is set
+        if (! empty($userData['target_retirement_income']) || ! empty($userData['target_retirement_age'])) {
+            RetirementProfile::create([
+                'user_id' => $user->id,
+                'current_age' => $user->date_of_birth ? $user->date_of_birth->age : null,
+                'target_retirement_age' => $userData['target_retirement_age'] ?? 65,
+                'current_annual_salary' => $userData['annual_income'] ?? null,
+                'target_retirement_income' => $userData['target_retirement_income'] ?? null,
+            ]);
+        }
+
+        // Create retirement profile for spouse if they have data
+        if ($spouse && (! empty($spouseData['target_retirement_income']) || ! empty($spouseData['target_retirement_age']))) {
+            RetirementProfile::create([
+                'user_id' => $spouse->id,
+                'current_age' => $spouse->date_of_birth ? $spouse->date_of_birth->age : null,
+                'target_retirement_age' => $spouseData['target_retirement_age'] ?? 65,
+                'current_annual_salary' => $spouseData['annual_income'] ?? null,
+                'target_retirement_income' => $spouseData['target_retirement_income'] ?? null,
+            ]);
+        }
     }
 
     /**

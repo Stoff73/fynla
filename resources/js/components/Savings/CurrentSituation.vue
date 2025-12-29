@@ -130,9 +130,12 @@ import { mapState, mapGetters, mapActions } from 'vuex';
 import ISAAllowanceTracker from './ISAAllowanceTracker.vue';
 import SaveAccountModal from './SaveAccountModal.vue';
 import DocumentUploadModal from '@/components/Shared/DocumentUploadModal.vue';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'CurrentSituation',
+
+  mixins: [currencyMixin],
 
   components: {
     ISAAllowanceTracker,
@@ -195,15 +198,6 @@ export default {
         return this.getFullBalance(account) * (account.ownership_percentage / 100);
       }
       return this.getFullBalance(account);
-    },
-
-    formatCurrency(value) {
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
     },
 
     formatAccountType(type) {
@@ -288,7 +282,6 @@ export default {
     },
 
     async handleDocumentSaved(savedData) {
-      console.log('Document saved:', savedData);
       this.showUploadModal = false;
       // Refresh savings data
       await this.fetchSavingsData();

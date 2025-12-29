@@ -93,9 +93,11 @@
 
 <script>
 import { mapState, mapGetters, mapActions } from 'vuex';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'NetWorthOverviewCard',
+  mixins: [currencyMixin],
 
   computed: {
     ...mapState('netWorth', ['loading', 'error', 'overview']),
@@ -128,15 +130,6 @@ export default {
 
     navigateToDetail() {
       this.$router.push('/net-worth/overview');
-    },
-
-    formatCurrency(value) {
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value || 0);
     },
 
     async retry() {

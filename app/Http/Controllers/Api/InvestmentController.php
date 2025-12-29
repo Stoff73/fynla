@@ -12,7 +12,7 @@ use App\Models\Investment\InvestmentAccount;
 use App\Models\Investment\InvestmentGoal;
 use App\Models\Investment\RiskProfile;
 use App\Traits\CalculatesOwnershipShare;
-use App\Traits\SanitizedErrorResponse;
+use App\Http\Traits\SanitizedErrorResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;

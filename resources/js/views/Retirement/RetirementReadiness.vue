@@ -228,9 +228,12 @@
 import { mapState, mapGetters } from 'vuex';
 import UnifiedPensionForm from '../../components/Retirement/UnifiedPensionForm.vue';
 import DocumentUploadModal from '@/components/Shared/DocumentUploadModal.vue';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'RetirementReadiness',
+
+  mixins: [currencyMixin],
 
   components: {
     UnifiedPensionForm,
@@ -290,16 +293,6 @@ export default {
   },
 
   methods: {
-    formatCurrency(value) {
-      if (value === null || value === undefined) return '£0';
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
-    },
-
     formatOwnershipType(type) {
       const types = {
         individual: 'Individual',
@@ -386,7 +379,6 @@ export default {
     },
 
     async handleDocumentSaved(savedData) {
-      console.log('Document saved:', savedData);
       this.showUploadModal = false;
       // Refresh retirement data
       await this.$store.dispatch('retirement/fetchRetirementData');

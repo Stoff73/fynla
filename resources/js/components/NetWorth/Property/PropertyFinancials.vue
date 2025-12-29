@@ -378,8 +378,11 @@
 </template>
 
 <script>
+import { currencyMixin } from '@/mixins/currencyMixin';
+
 export default {
   name: 'PropertyFinancials',
+  mixins: [currencyMixin],
 
   props: {
     property: {
@@ -519,18 +522,6 @@ export default {
       } finally {
         this.submitting = false;
       }
-    },
-
-    formatCurrency(value) {
-      if (value === null || value === undefined || isNaN(value)) return '£0';
-      const numValue = Number(value);
-      if (isNaN(numValue)) return '£0';
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(numValue);
     },
 
     formatDate(date) {

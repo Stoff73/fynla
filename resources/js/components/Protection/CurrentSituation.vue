@@ -176,9 +176,12 @@ import PolicyCard from './PolicyCard.vue';
 import DocumentUploadModal from '@/components/Shared/DocumentUploadModal.vue';
 import protectionService from '@/services/protectionService';
 import userProfileService from '@/services/userProfileService';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'CurrentSituation',
+
+  mixins: [currencyMixin],
 
   components: {
     PolicyCard,
@@ -353,7 +356,6 @@ export default {
 
     async updateHasNoPoliciesFlag() {
       if (this.isPreviewMode) {
-        console.log('[CurrentSituation] Preview mode - skipping API call');
         return;
       }
       try {
@@ -383,21 +385,11 @@ export default {
       this.$emit('delete-policy', policy);
     },
 
-    formatCurrency(value) {
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
-    },
-
     closeUploadModal() {
       this.showUploadModal = false;
     },
 
     handleDocumentSaved(savedData) {
-      console.log('Document saved:', savedData);
       this.showUploadModal = false;
       // Emit event to parent to refresh data
       this.$emit('refresh-data');

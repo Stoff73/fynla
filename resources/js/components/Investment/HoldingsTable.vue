@@ -312,8 +312,11 @@
 </template>
 
 <script>
+import { currencyMixin } from '@/mixins/currencyMixin';
+
 export default {
   name: 'HoldingsTable',
+  mixins: [currencyMixin],
 
   props: {
     holdings: {
@@ -520,15 +523,6 @@ export default {
         this.sortField = field;
         this.sortDirection = 'asc';
       }
-    },
-
-    formatCurrency(value) {
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      }).format(value || 0);
     },
 
     formatNumber(value) {

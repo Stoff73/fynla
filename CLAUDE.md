@@ -238,15 +238,26 @@ formatDateForInput(date) {
 
 ### Currency Formatting
 
+**Always use the centralized `currencyMixin`** - never define local `formatCurrency()` methods in Vue components.
+
 ```javascript
-formatCurrency(value) {
-  return new Intl.NumberFormat('en-GB', {
-    style: 'currency',
-    currency: 'GBP',
-    minimumFractionDigits: 0
-  }).format(value ?? 0);
+// In Vue component
+import { currencyMixin } from '@/mixins/currencyMixin';
+
+export default {
+  mixins: [currencyMixin],
+  // Now use this.formatCurrency(), this.formatCurrencyWithPence(), etc.
 }
 ```
+
+Available methods from the mixin:
+- `formatCurrency(value)` - £1,234 (no decimals)
+- `formatCurrencyWithPence(value)` - £1,234.56 (2 decimals)
+- `formatCurrencyCompact(value)` - £1.2M or £500K (compact notation)
+- `parseCurrency(string)` - Converts "£1,234" back to number
+- `formatPercentage(value, options)` - 12.5%
+
+**Never define local formatCurrency methods** - this causes code duplication. The mixin is already included in 111+ components.
 
 ### Sync Related Form Data
 

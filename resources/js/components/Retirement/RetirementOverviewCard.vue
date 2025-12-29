@@ -41,8 +41,11 @@
 </template>
 
 <script>
+import { currencyMixin } from '@/mixins/currencyMixin';
+
 export default {
   name: 'RetirementOverviewCard',
+  mixins: [currencyMixin],
   props: {
     totalPensionValue: {
       type: Number,
@@ -61,15 +64,7 @@ export default {
     navigateToDashboard() {
       this.$router.push('/net-worth/retirement');
     },
-    formatCurrency(value) {
-      if (value === null || value === undefined) return '£0';
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
-    },
+    // formatCurrency provided by currencyMixin
   },
 };
 </script>

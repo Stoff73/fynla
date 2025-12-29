@@ -92,9 +92,11 @@
 
 <script>
 import api from '@/services/api';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'TaxStatusPanel',
+  mixins: [currencyMixin],
 
   props: {
     /**
@@ -163,16 +165,6 @@ export default {
       } finally {
         this.loading = false;
       }
-    },
-
-    formatCurrency(value) {
-      if (value === null || value === undefined) return '£0';
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
     },
 
     getStatusBorderClass(status) {

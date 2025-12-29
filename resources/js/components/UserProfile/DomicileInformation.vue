@@ -295,7 +295,6 @@ export default {
 
     async handleSubmit() {
       if (this.isPreviewMode) {
-        console.log('[DomicileInformation] Preview mode - skipping handleSubmit');
         return;
       }
       // Validate required fields

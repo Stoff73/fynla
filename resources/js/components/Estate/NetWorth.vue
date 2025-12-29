@@ -72,9 +72,11 @@
 <script>
 import { mapState, mapGetters } from 'vuex';
 import NetWorthWaterfallChart from './NetWorthWaterfallChart.vue';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'NetWorth',
+  mixins: [currencyMixin],
 
   components: {
     NetWorthWaterfallChart,
@@ -104,15 +106,6 @@ export default {
   },
 
   methods: {
-    formatCurrency(value) {
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
-    },
-
     sumAssets(assets) {
       return assets.reduce((sum, asset) => sum + parseFloat(asset.current_value || 0), 0);
     },

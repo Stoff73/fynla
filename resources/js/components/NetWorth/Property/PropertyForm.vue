@@ -1276,9 +1276,12 @@
 
 <script>
 import CountrySelector from '@/components/Shared/CountrySelector.vue';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'PropertyForm',
+
+  mixins: [currencyMixin],
 
   components: {
     CountrySelector,
@@ -1778,14 +1781,11 @@ export default {
     },
 
     async handleSubmit() {
-      console.log('[PropertyForm] handleSubmit called');
       if (!this.validateForm()) {
-        console.log('[PropertyForm] Validation failed:', this.error);
         // Scroll to top to show error message
         this.$el.querySelector('.px-6.py-4').scrollIntoView({ behavior: 'smooth', block: 'start' });
         return;
       }
-      console.log('[PropertyForm] Validation passed, form data:', this.form);
 
       this.submitting = true;
       this.error = null;
@@ -1820,22 +1820,12 @@ export default {
       }
 
       // Emit 'save' event (NOT 'submit' - see CLAUDE.md)
-      console.log('[PropertyForm] Emitting save event with:', { property: this.form, mortgage: cleanedMortgage });
       this.$emit('save', {
         property: this.form,
         mortgage: cleanedMortgage,
       });
     },
 
-    formatCurrency(value) {
-      if (value === null || value === undefined) return '£0';
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
-    },
   },
 };
 </script>

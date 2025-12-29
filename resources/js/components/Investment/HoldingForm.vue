@@ -255,8 +255,11 @@
 </template>
 
 <script>
+import { currencyMixin } from '@/mixins/currencyMixin';
+
 export default {
   name: 'HoldingForm',
+  mixins: [currencyMixin],
 
   props: {
     show: {
@@ -437,15 +440,6 @@ export default {
         ocf_percent: 0,
       };
       this.errors = {};
-    },
-
-    formatCurrency(value) {
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      }).format(value || 0);
     },
 
     formatReturn(value) {

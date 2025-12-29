@@ -375,9 +375,12 @@
 <script>
 import { mapState, mapActions } from 'vuex';
 import ConfirmationModal from '@/components/Common/ConfirmationModal.vue';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'BusinessInterestDetailInline',
+
+  mixins: [currencyMixin],
 
   components: {
     ConfirmationModal,
@@ -478,16 +481,6 @@ export default {
       } catch (error) {
         console.error('Failed to delete business:', error);
       }
-    },
-
-    formatCurrency(value) {
-      if (value === null || value === undefined) return '-';
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
     },
 
     formatDate(date) {

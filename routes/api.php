@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BusinessInterestController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DocumentController;
 use App\Http\Controllers\Api\Estate\GiftingController;
@@ -37,7 +38,6 @@ use App\Http\Controllers\Api\Plans\InvestmentSavingsPlanController;
 use App\Http\Controllers\Api\PortfolioOptimizationController;
 use App\Http\Controllers\Api\PreviewController;
 use App\Http\Controllers\Api\ProfileCompletenessController;
-use App\Http\Controllers\Api\BusinessInterestController;
 use App\Http\Controllers\Api\PropertyController;
 use App\Http\Controllers\Api\ProtectionController;
 use App\Http\Controllers\Api\RecommendationsController;

@@ -588,7 +588,6 @@ router.beforeEach(async (to, from, next) => {
   // Allow access to authenticated routes when in preview mode
   if (to.meta.requiresAuth && !isAuthenticated && !isPreviewMode) {
     // Redirect to login if route requires authentication and not in preview mode
-    console.log('[Router Guard] Redirecting to login - not authenticated and not in preview mode');
     next({ name: 'Login' });
   } else if (to.meta.requiresGuest && isAuthenticated && !isPreviewMode) {
     // Redirect to dashboard if already authenticated (but allow preview users to register)

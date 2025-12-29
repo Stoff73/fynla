@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Retirement;
 
+use App\Models\RetirementProfile;
 use App\Models\User;
 use App\Services\Investment\MonteCarloSimulator;
 use App\Services\Risk\RiskPreferenceService;
@@ -135,9 +136,9 @@ class RetirementProjectionService
         $dbAnnualIncome = $this->getTotalDBIncome($user);
         $statePensionIncome = $this->getStatePensionIncome($user, $retirementAge);
 
-        // Get target income (75% of current after-tax income)
+        // Get target income from profile, or 75% of current after-tax income as fallback
         $currentNetIncome = $this->getCurrentNetIncome($user);
-        $targetIncome = $currentNetIncome * self::TARGET_INCOME_PERCENT;
+        $targetIncome = $this->getTargetRetirementIncome($user, $currentNetIncome);
 
         // Calculate year-by-year income from retirement to age 100
         $yearlyIncome = [];
@@ -241,9 +242,9 @@ class RetirementProjectionService
         $dbAnnualIncome = $this->getTotalDBIncome($user);
         $statePensionIncome = $this->getStatePensionIncome($user, $retirementAge);
 
-        // Get target income (75% of current after-tax income)
+        // Get target income from profile, or 75% of current after-tax income as fallback
         $currentNetIncome = $this->getCurrentNetIncome($user);
-        $targetIncome = $currentNetIncome * self::TARGET_INCOME_PERCENT;
+        $targetIncome = $this->getTargetRetirementIncome($user, $currentNetIncome);
 
         // Calculate year-by-year income drawing target amount
         $yearlyIncome = [];
@@ -391,6 +392,21 @@ class RetirementProjectionService
     }
 
     /**
+     * Get target retirement income from profile, or calculate from current income.
+     */
+    private function getTargetRetirementIncome(User $user, float $currentNetIncome): float
+    {
+        // Check for target_retirement_income in RetirementProfile
+        $profile = RetirementProfile::where('user_id', $user->id)->first();
+        if ($profile && $profile->target_retirement_income) {
+            return (float) $profile->target_retirement_income;
+        }
+
+        // Fallback to 75% of current after-tax income
+        return $currentNetIncome * self::TARGET_INCOME_PERCENT;
+    }
+
+    /**
      * Get user's risk level, defaulting to medium if not set.
      */
     private function getUserRiskLevel(User $user): string
@@ -489,7 +505,8 @@ class RetirementProjectionService
         int $totalYears
     ): float {
         // Primary metric: Income coverage ratio
-        $incomeRatio = $targetIncome > 0 ? $projectedIncome / $targetIncome : 0;
+        // If no target income set but projected income exists, consider fully covered
+        $incomeRatio = $targetIncome > 0 ? $projectedIncome / $targetIncome : ($projectedIncome > 0 ? 1.0 : 0);
 
         // Base probability from income coverage
         if ($incomeRatio >= 1.0) {

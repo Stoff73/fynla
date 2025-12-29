@@ -216,7 +216,6 @@ export default {
     async function loadPolicies() {
       try {
         const response = await protectionService.getProtectionData();
-        console.log('Protection data response:', response);
 
         // Combine all policy types into single array
         const allPolicies = [];
@@ -225,11 +224,8 @@ export default {
         const data = response.data || response;
         const policyData = data.policies || {};
 
-        console.log('Policy data:', policyData);
-
         // API returns snake_case keys: life_insurance, critical_illness, etc.
         if (policyData?.life_insurance && Array.isArray(policyData.life_insurance)) {
-          console.log('Adding life policies:', policyData.life_insurance.length);
           allPolicies.push(...policyData.life_insurance.map(p => ({
             ...p,
             policyType: 'life',
@@ -238,25 +234,19 @@ export default {
           })));
         }
         if (policyData?.critical_illness && Array.isArray(policyData.critical_illness)) {
-          console.log('Adding CI policies:', policyData.critical_illness.length);
           allPolicies.push(...policyData.critical_illness.map(p => ({ ...p, policyType: 'criticalIllness', policy_type: 'criticalIllness' })));
         }
         if (policyData?.income_protection && Array.isArray(policyData.income_protection)) {
-          console.log('Adding IP policies:', policyData.income_protection.length);
           allPolicies.push(...policyData.income_protection.map(p => ({ ...p, policyType: 'incomeProtection', policy_type: 'incomeProtection' })));
         }
         if (policyData?.disability && Array.isArray(policyData.disability)) {
-          console.log('Adding disability policies:', policyData.disability.length);
           allPolicies.push(...policyData.disability.map(p => ({ ...p, policyType: 'disability', policy_type: 'disability' })));
         }
         if (policyData?.sickness_illness && Array.isArray(policyData.sickness_illness)) {
-          console.log('Adding sickness policies:', policyData.sickness_illness.length);
           allPolicies.push(...policyData.sickness_illness.map(p => ({ ...p, policyType: 'sicknessIllness', policy_type: 'sicknessIllness' })));
         }
 
         policies.value = allPolicies;
-        console.log('Loaded policies:', policies.value);
-        console.log('Total policies loaded:', allPolicies.length);
 
         // Load has_no_policies flag from protection profile
         if (data?.profile) {
@@ -331,12 +321,9 @@ export default {
 
     async function handlePolicySaved(policyData) {
       try {
-        console.log('handlePolicySaved called with:', policyData);
         error.value = null;
 
         const { policyType, ...actualPolicyData } = policyData;
-        console.log('Policy type:', policyType);
-        console.log('Actual policy data:', actualPolicyData);
 
         // Call the appropriate API endpoint based on policy type
         switch (policyType) {
@@ -377,8 +364,6 @@ export default {
             break;
         }
 
-        console.log('Policy saved successfully, closing form and reloading...');
-
         // If user adds a policy, automatically uncheck "has_no_policies"
         if (!editingPolicy.value && hasNoPolicies.value) {
           hasNoPolicies.value = false;
@@ -387,13 +372,8 @@ export default {
 
         closeForm();
         await loadPolicies();
-        console.log('Policies reloaded, should now be visible');
       } catch (err) {
         error.value = 'Failed to save policy';
-        console.error('Failed to save policy:', err);
-        console.error('Validation errors:', err.response?.data?.errors);
-        console.error('Full error:', err.response?.data);
-        console.error('Sent data:', policyData);
       }
     }
 
@@ -410,7 +390,6 @@ export default {
     };
 
     const handleDocumentSaved = async (savedData) => {
-      console.log('Document saved:', savedData);
       showUploadModal.value = false;
 
       // If user uploads a policy doc, automatically uncheck "has_no_policies"

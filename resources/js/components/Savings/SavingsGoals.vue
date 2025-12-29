@@ -154,9 +154,11 @@
 <script>
 import { mapState, mapGetters, mapActions } from 'vuex';
 import SaveGoalModal from './SaveGoalModal.vue';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'SavingsGoals',
+  mixins: [currencyMixin],
 
   components: {
     SaveGoalModal,
@@ -220,15 +222,6 @@ export default {
       const monthsRemaining = Math.max((targetDate - now) / (1000 * 60 * 60 * 24 * 30), 1);
 
       return Math.max(0, remaining / monthsRemaining);
-    },
-
-    formatCurrency(value) {
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
     },
 
     formatDate(dateString) {

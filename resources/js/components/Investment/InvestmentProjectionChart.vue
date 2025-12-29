@@ -15,9 +15,11 @@
 
 <script>
 import VueApexCharts from 'vue3-apexcharts';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'InvestmentProjectionChart',
+  mixins: [currencyMixin],
 
   components: {
     apexchart: VueApexCharts,
@@ -168,16 +170,6 @@ export default {
   },
 
   methods: {
-    formatCurrency(value) {
-      if (value === null || value === undefined) return '£0';
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
-    },
-
     formatCurrencyShort(value) {
       if (value === null || value === undefined) return '£0';
       if (value >= 1000000) return '£' + (value / 1000000).toFixed(1) + 'M';

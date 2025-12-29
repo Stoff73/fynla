@@ -291,9 +291,12 @@
 <script>
 import api from '@/services/api';
 import IntestacyRules from './IntestacyRules.vue';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'WillPlanning',
+
+  mixins: [currencyMixin],
 
   components: {
     IntestacyRules,
@@ -423,7 +426,6 @@ export default {
 
     async saveWill() {
       if (this.isPreviewMode) {
-        console.log('[WillPlanning] Preview mode - skipping saveWill');
         return;
       }
       this.saving = true;
@@ -456,7 +458,6 @@ export default {
 
     async deleteBequest(id) {
       if (this.isPreviewMode) {
-        console.log('[WillPlanning] Preview mode - skipping deleteBequest');
         return;
       }
       if (!confirm('Are you sure you want to delete this bequest?')) return;
@@ -474,15 +475,6 @@ export default {
     },
 
     editBequest(bequest) {
-    },
-
-    formatCurrency(value) {
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value || 0);
     },
   },
 };

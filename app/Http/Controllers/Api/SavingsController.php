@@ -17,7 +17,7 @@ use App\Models\SavingsGoal;
 use App\Services\NetWorth\NetWorthService;
 use App\Services\Savings\ISATracker;
 use App\Traits\CalculatesOwnershipShare;
-use App\Traits\SanitizedErrorResponse;
+use App\Http\Traits\SanitizedErrorResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;

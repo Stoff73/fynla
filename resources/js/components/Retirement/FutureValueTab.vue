@@ -32,7 +32,7 @@
         <div class="summary-card amber">
           <p class="summary-label">Target Retirement Income</p>
           <p class="summary-value">{{ formatCurrency(projections.income_drawdown?.target_income) }}<span class="per-year">/year</span></p>
-          <p class="summary-subtitle">75% of current after-tax income</p>
+          <p class="summary-subtitle">From retirement profile</p>
         </div>
       </div>
 
@@ -100,9 +100,12 @@
 import PensionPotProjectionChart from './PensionPotProjectionChart.vue';
 import IncomeDrawdownChart from './IncomeDrawdownChart.vue';
 import TargetIncomeDrawdownChart from './TargetIncomeDrawdownChart.vue';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'FutureValueTab',
+
+  mixins: [currencyMixin],
 
   components: {
     PensionPotProjectionChart,
@@ -135,16 +138,6 @@ export default {
   },
 
   methods: {
-    formatCurrency(value) {
-      if (value === null || value === undefined) return '£0';
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
-    },
-
     formatRiskLevel(level) {
       const levels = {
         low: 'Low',

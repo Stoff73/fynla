@@ -293,7 +293,7 @@ export default {
 
     viewGoalDetails(goal) {
       // Navigate to detailed goal view or expand in place
-      console.log('View goal details:', goal);
+      this.selectedGoal = goal;
     },
 
     viewProjections(goal) {

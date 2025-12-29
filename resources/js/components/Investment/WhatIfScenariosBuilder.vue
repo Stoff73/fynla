@@ -483,7 +483,6 @@ export default {
 
     viewResults(scenario) {
       // This would open a results modal/view
-      console.log('View results for', scenario);
       this.activeMenuId = null;
     },
 
@@ -512,10 +511,9 @@ export default {
         const scenarioIds = this.selectedForComparison.map(s => s.id);
         await this.compareInvestmentScenarios(scenarioIds);
         // Show comparison results (would open a modal/view)
-        console.log('Comparison complete');
         this.selectedForComparison = [];
       } catch (error) {
-        console.error('Failed to compare scenarios:', error);
+        // Comparison failed silently
       }
     },
 

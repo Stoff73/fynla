@@ -1173,9 +1173,12 @@ import MissingDataAlert from './MissingDataAlert.vue';
 import DualGiftingTimeline from './DualGiftingTimeline.vue';
 import LifeCoverRecommendations from './LifeCoverRecommendations.vue';
 import estateService from '../../services/estateService';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'IHTPlanning',
+
+  mixins: [currencyMixin],
 
   components: {
     SpouseExemptionNotice,
@@ -1449,11 +1452,6 @@ export default {
     async loadIHTCalculation() {
       // Preview mode now uses real database users, so we use the API call
       // The old client-side computePreviewIHTData() is no longer needed
-      const isPreviewMode = this.$store.getters['preview/isPreviewMode'];
-      if (isPreviewMode) {
-        console.log('[IHTPlanning] Preview mode - using API with real database users');
-      }
-
       this.loading = true;
       this.error = null;
 
@@ -1464,14 +1462,6 @@ export default {
         if (response && response.success) {
           // Store the full response for detailed breakdown
           this.secondDeathData = response;
-
-          // DEBUG: Log what we received
-          console.log('IHT Response received:', {
-            data_sharing_enabled: response.data_sharing_enabled,
-            has_assets_breakdown: !!response.assets_breakdown,
-            has_spouse_assets: !!response.assets_breakdown?.spouse,
-            spouse_name: response.assets_breakdown?.spouse?.name,
-          });
 
           // Extract IHT summary for display
           if (response.iht_summary) {
@@ -1626,14 +1616,6 @@ export default {
         };
         this.showSpouseExemptionNotice = true;
       }
-
-      console.log('[IHTPlanning] Preview IHT calculated:', {
-        netEstate,
-        totalAllowance,
-        taxableEstate,
-        ihtLiability,
-        isMarried: this.isMarried,
-      });
     },
 
     getMissingDataMessage() {
@@ -1644,15 +1626,6 @@ export default {
         return 'Link your spouse account to enable full second death IHT planning.';
       }
       return 'Some information is required to complete the second death IHT calculation.';
-    },
-
-    formatCurrency(value) {
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
     },
 
     formatNumber(value) {

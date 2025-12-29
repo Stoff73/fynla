@@ -7,7 +7,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Documents\ConfirmExtractionRequest;
 use App\Http\Requests\Documents\UploadDocumentRequest;
-use App\Http\Traits\SafeErrorResponse;
+use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\Document;
 use App\Services\Documents\DocumentProcessor;
 use Illuminate\Http\JsonResponse;
@@ -15,7 +15,7 @@ use Illuminate\Http\Request;
 
 class DocumentController extends Controller
 {
-    use SafeErrorResponse;
+    use SanitizedErrorResponse;
 
     public function __construct(
         private DocumentProcessor $processor

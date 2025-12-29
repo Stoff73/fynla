@@ -159,8 +159,8 @@ class IHTCalculationService
         bool $isMarried,
         float $ihtRate = 0.40
     ): array {
-        // Get years to death from actuarial table
-        $yearsToGrowth = 4.7; // 4.7% annual growth rate
+        // Annual growth rate for estate projection (4.7%)
+        $annualGrowthRatePercent = 4.7;
 
         // For married couples, calculate BOTH life expectancies and use the longer one (second death)
         if ($isMarried && $spouse && $spouse->date_of_birth && $spouse->gender) {
@@ -189,7 +189,7 @@ class IHTCalculationService
         }
 
         // Calculate projected assets using compound growth: FV = PV × (1 + r)^n
-        $growthMultiplier = pow(1 + ($yearsToGrowth / 100), $yearsUntilDeath);
+        $growthMultiplier = pow(1 + ($annualGrowthRatePercent / 100), $yearsUntilDeath);
         $projectedGrossAssets = $currentGrossAssets * $growthMultiplier;
 
         // Liabilities assumed constant (conservative)

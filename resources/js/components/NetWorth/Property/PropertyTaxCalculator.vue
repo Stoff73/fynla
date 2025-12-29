@@ -308,9 +308,11 @@
 
 <script>
 import { mapActions } from 'vuex';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'PropertyTaxCalculator',
+  mixins: [currencyMixin],
 
   props: {
     property: {
@@ -409,15 +411,6 @@ export default {
       }
     },
 
-    formatCurrency(value) {
-      if (value === null || value === undefined) return '£0';
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
-    },
   },
 };
 </script>

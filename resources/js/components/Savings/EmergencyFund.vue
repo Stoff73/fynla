@@ -131,9 +131,11 @@
 <script>
 import { mapState, mapGetters } from 'vuex';
 import EmergencyFundGauge from './EmergencyFundGauge.vue';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'EmergencyFund',
+  mixins: [currencyMixin],
 
   components: {
     EmergencyFundGauge,
@@ -221,15 +223,6 @@ export default {
   },
 
   methods: {
-    formatCurrency(value) {
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
-    },
-
     navigateToAddExpenditure() {
       // Navigate to User Profile page with cashflow tab
       this.$router.push({ path: '/profile', query: { tab: 'cashflow' } });

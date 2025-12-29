@@ -94,8 +94,11 @@
 </template>
 
 <script>
+import { currencyMixin } from '@/mixins/currencyMixin';
+
 export default {
   name: 'CashFlowAllocationChart',
+  mixins: [currencyMixin],
 
   props: {
     cashflowData: {
@@ -177,15 +180,6 @@ export default {
   },
 
   methods: {
-    formatCurrency(amount) {
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(amount);
-    },
-
     formatCategoryName(category) {
       const names = {
         emergency_fund: 'Emergency Fund',

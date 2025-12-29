@@ -444,9 +444,11 @@
 import { mapState, mapGetters, mapActions } from 'vuex';
 import GiftForm from './GiftForm.vue';
 import estateService from '@/services/estateService';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'GiftingStrategy',
+  mixins: [currencyMixin],
 
   components: {
     GiftForm,
@@ -629,15 +631,6 @@ export default {
 
     toggleAssetDetails(index) {
       this.$set(this.expandedAssetDetails, index, !this.expandedAssetDetails[index]);
-    },
-
-    formatCurrency(value) {
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
     },
 
     formatNumber(value) {

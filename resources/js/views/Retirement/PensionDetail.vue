@@ -253,9 +253,11 @@
 import { mapState } from 'vuex';
 import AppLayout from '@/layouts/AppLayout.vue';
 import UnifiedPensionForm from '@/components/Retirement/UnifiedPensionForm.vue';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'PensionDetail',
+  mixins: [currencyMixin],
 
   components: {
     AppLayout,
@@ -355,16 +357,6 @@ export default {
           alert('Failed to delete pension. Please try again.');
         }
       }
-    },
-
-    formatCurrency(value) {
-      if (value === null || value === undefined) return '£0';
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
     },
 
     formatSchemeType(type) {

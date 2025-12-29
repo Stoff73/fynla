@@ -39,12 +39,12 @@
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div class="bg-blue-50 rounded-lg p-4">
           <p class="text-sm text-blue-700">Loan Amount</p>
-          <p class="text-xl font-bold text-blue-900">{{ formatCurrency(mortgage.original_loan_amount) }}</p>
+          <p class="text-xl font-bold text-blue-900">{{ formatCurrencyWithPence(mortgage.original_loan_amount) }}</p>
         </div>
 
         <div class="bg-green-50 rounded-lg p-4">
           <p class="text-sm text-green-700">Monthly Payment</p>
-          <p class="text-xl font-bold text-green-900">{{ formatCurrency(mortgage.monthly_payment) }}</p>
+          <p class="text-xl font-bold text-green-900">{{ formatCurrencyWithPence(mortgage.monthly_payment) }}</p>
         </div>
 
         <div class="bg-purple-50 rounded-lg p-4">
@@ -63,11 +63,11 @@
         <div class="flex justify-between items-center">
           <div>
             <p class="text-sm text-red-700">Total Interest to be Paid</p>
-            <p class="text-2xl font-bold text-red-900">{{ formatCurrency(totalInterest) }}</p>
+            <p class="text-2xl font-bold text-red-900">{{ formatCurrencyWithPence(totalInterest) }}</p>
           </div>
           <div class="text-right">
             <p class="text-sm text-red-700">Total Amount Payable</p>
-            <p class="text-2xl font-bold text-red-900">{{ formatCurrency(totalPayable) }}</p>
+            <p class="text-2xl font-bold text-red-900">{{ formatCurrencyWithPence(totalPayable) }}</p>
           </div>
         </div>
       </div>
@@ -118,11 +118,11 @@
               class="hover:bg-gray-50"
             >
               <td class="px-4 py-3 text-sm text-gray-900">{{ payment.month }}</td>
-              <td class="px-4 py-3 text-sm text-right text-gray-900">{{ formatCurrency(payment.opening_balance) }}</td>
-              <td class="px-4 py-3 text-sm text-right font-medium text-gray-900">{{ formatCurrency(payment.payment) }}</td>
-              <td class="px-4 py-3 text-sm text-right text-red-600">{{ formatCurrency(payment.interest) }}</td>
-              <td class="px-4 py-3 text-sm text-right text-green-600">{{ formatCurrency(payment.principal) }}</td>
-              <td class="px-4 py-3 text-sm text-right font-medium text-gray-900">{{ formatCurrency(payment.closing_balance) }}</td>
+              <td class="px-4 py-3 text-sm text-right text-gray-900">{{ formatCurrencyWithPence(payment.opening_balance) }}</td>
+              <td class="px-4 py-3 text-sm text-right font-medium text-gray-900">{{ formatCurrencyWithPence(payment.payment) }}</td>
+              <td class="px-4 py-3 text-sm text-right text-red-600">{{ formatCurrencyWithPence(payment.interest) }}</td>
+              <td class="px-4 py-3 text-sm text-right text-green-600">{{ formatCurrencyWithPence(payment.principal) }}</td>
+              <td class="px-4 py-3 text-sm text-right font-medium text-gray-900">{{ formatCurrencyWithPence(payment.closing_balance) }}</td>
             </tr>
           </tbody>
         </table>
@@ -160,9 +160,12 @@
 
 <script>
 import { mapActions } from 'vuex';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'AmortizationScheduleView',
+
+  mixins: [currencyMixin],
 
   props: {
     mortgage: {
@@ -274,16 +277,6 @@ export default {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-    },
-
-    formatCurrency(value) {
-      if (value === null || value === undefined) return '£0.00';
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      }).format(value);
     },
   },
 };

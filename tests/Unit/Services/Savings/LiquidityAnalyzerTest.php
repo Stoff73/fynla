@@ -8,7 +8,7 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
 
 beforeEach(function () {
-    $this->analyzer = new LiquidityAnalyzer();
+    $this->analyzer = new LiquidityAnalyzer;
     Carbon::setTestNow(Carbon::create(2025, 1, 1));
 });
 

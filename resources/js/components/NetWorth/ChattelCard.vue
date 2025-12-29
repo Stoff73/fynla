@@ -27,8 +27,11 @@
 </template>
 
 <script>
+import { currencyMixin } from '@/mixins/currencyMixin';
+
 export default {
   name: 'ChattelCard',
+  mixins: [currencyMixin],
 
   props: {
     chattel: {
@@ -73,15 +76,6 @@ export default {
   },
 
   methods: {
-    formatCurrency(value) {
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
-    },
-
     viewDetails() {
       // Navigate to chattel detail (Phase 4)
       // this.$router.push(`/net-worth/chattels/${this.chattel.id}`);

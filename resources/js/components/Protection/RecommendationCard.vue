@@ -79,7 +79,7 @@
       <div v-if="recommendation.estimated_cost" class="mb-4">
         <h5 class="text-sm font-semibold text-gray-700 mb-2">Estimated Cost</h5>
         <p class="text-lg font-bold text-gray-900">
-          {{ formatCurrency(recommendation.estimated_cost) }}
+          {{ formatCurrencyWithPence(recommendation.estimated_cost) }}
           <span class="text-sm font-normal text-gray-600">per month</span>
         </p>
       </div>
@@ -111,8 +111,12 @@
 </template>
 
 <script>
+import { currencyMixin } from '@/mixins/currencyMixin';
+
 export default {
   name: 'RecommendationCard',
+
+  mixins: [currencyMixin],
 
   props: {
     recommendation: {
@@ -153,15 +157,6 @@ export default {
   methods: {
     handleMarkDone() {
       this.$emit('mark-done');
-    },
-
-    formatCurrency(value) {
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      }).format(value);
     },
   },
 };

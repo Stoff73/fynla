@@ -190,9 +190,11 @@
 <script>
 import { mapState, mapGetters } from 'vuex';
 import DrawdownSimulator from '../../components/Retirement/DrawdownSimulator.vue';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'DecumulationPlanning',
+  mixins: [currencyMixin],
 
   components: {
     DrawdownSimulator,
@@ -211,17 +213,7 @@ export default {
     },
   },
 
-  methods: {
-    formatCurrency(value) {
-      if (value === null || value === undefined) return '£0';
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
-    },
-  },
+  // formatCurrency provided by currencyMixin
 };
 </script>
 

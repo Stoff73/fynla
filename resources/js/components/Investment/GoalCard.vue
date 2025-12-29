@@ -156,8 +156,11 @@
 </template>
 
 <script>
+import { currencyMixin } from '@/mixins/currencyMixin';
+
 export default {
   name: 'GoalCard',
+  mixins: [currencyMixin],
 
   props: {
     goal: {
@@ -277,15 +280,6 @@ export default {
   },
 
   methods: {
-    formatCurrency(value) {
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value || 0);
-    },
-
     formatDate(dateString) {
       if (!dateString) return 'N/A';
       const date = new Date(dateString);

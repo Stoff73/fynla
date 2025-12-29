@@ -6,7 +6,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreTaxConfigurationRequest;
-use App\Http\Traits\SafeErrorResponse;
+use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\TaxConfiguration;
 use App\Models\TaxConfigurationAudit;
 use Illuminate\Http\JsonResponse;
@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\Validator;
 
 class TaxSettingsController extends Controller
 {
-    use SafeErrorResponse;
+    use SanitizedErrorResponse;
 
     /**
      * Log an audit record for a tax configuration change

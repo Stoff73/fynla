@@ -223,8 +223,11 @@
 </template>
 
 <script>
+import { currencyMixin } from '@/mixins/currencyMixin';
+
 export default {
   name: 'LifeCoverRecommendations',
+  mixins: [currencyMixin],
 
   props: {
     recommendations: {
@@ -261,15 +264,6 @@ export default {
         self_insurance: 'Self-Insurance',
       };
       return labels[key] || key;
-    },
-
-    formatCurrency(value) {
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value || 0);
     },
   },
 };

@@ -143,8 +143,11 @@
 </template>
 
 <script>
+import { currencyMixin } from '@/mixins/currencyMixin';
+
 export default {
   name: 'EstateProjectionComparison',
+  mixins: [currencyMixin],
 
   props: {
     projection: {
@@ -158,15 +161,6 @@ export default {
   },
 
   methods: {
-    formatCurrency(value) {
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value || 0);
-    },
-
     formatPercent(value) {
       return `${(value * 100).toFixed(1)}%`;
     },

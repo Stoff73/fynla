@@ -148,9 +148,11 @@
 <script>
 import { mapState, mapActions } from 'vuex';
 import SaveAccountModal from './SaveAccountModal.vue';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'AccountDetails',
+  mixins: [currencyMixin],
 
   components: {
     SaveAccountModal,
@@ -170,15 +172,6 @@ export default {
 
   methods: {
     ...mapActions('savings', ['createAccount', 'updateAccount', 'deleteAccount', 'fetchSavingsData']),
-
-    formatCurrency(value) {
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      }).format(value);
-    },
 
     formatAccountType(type) {
       const types = {

@@ -262,9 +262,11 @@
 import { mapState, mapGetters, mapActions } from 'vuex';
 import AssetForm from './AssetForm.vue';
 import LiabilityForm from './LiabilityForm.vue';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'AssetsLiabilities',
+  mixins: [currencyMixin],
 
   components: {
     AssetForm,
@@ -311,15 +313,6 @@ export default {
 
   methods: {
     ...mapActions('estate', ['createAsset', 'updateAsset', 'deleteAsset', 'createLiability', 'updateLiability', 'deleteLiability']),
-
-    formatCurrency(value) {
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
-    },
 
     // Asset methods
     editAsset(asset) {

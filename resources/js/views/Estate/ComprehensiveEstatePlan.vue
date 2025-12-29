@@ -744,9 +744,11 @@ import PrintHeader from '@/components/Common/PrintHeader.vue';
 import estateService from '@/services/estateService';
 import html2pdf from 'html2pdf.js';
 import logoImage from '@/assets/logo.png';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'ComprehensiveEstatePlan',
+  mixins: [currencyMixin],
 
   components: {
     AppLayout,
@@ -807,15 +809,6 @@ export default {
         // Hide the PDF header after generating
         if (pdfHeader) pdfHeader.style.display = 'none';
       });
-    },
-
-    formatCurrency(value) {
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value || 0);
     },
 
     getPriorityBorderClass(priority) {

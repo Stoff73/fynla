@@ -272,8 +272,11 @@
 </template>
 
 <script>
+import { currencyMixin } from '@/mixins/currencyMixin';
+
 export default {
   name: 'RebalancingActions',
+  mixins: [currencyMixin],
 
   props: {
     actions: {
@@ -324,13 +327,6 @@ export default {
   },
 
   methods: {
-    formatCurrency(value) {
-      return new Intl.NumberFormat('en-GB', {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
-    },
-
     formatShares(value) {
       return new Intl.NumberFormat('en-GB', {
         minimumFractionDigits: 2,

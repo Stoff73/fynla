@@ -23,7 +23,7 @@ use App\Models\LifeInsurancePolicy;
 use App\Models\ProtectionProfile;
 use App\Models\SicknessIllnessPolicy;
 use App\Traits\PolicyCRUDTrait;
-use App\Traits\SanitizedErrorResponse;
+use App\Http\Traits\SanitizedErrorResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 

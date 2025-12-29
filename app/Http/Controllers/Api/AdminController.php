@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Traits\SafeErrorResponse;
+use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\User;
 use App\Services\Admin\DatabaseMetricsService;
 use Illuminate\Http\JsonResponse;
@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\Validator;
 
 class AdminController extends Controller
 {
-    use SafeErrorResponse;
+    use SanitizedErrorResponse;
 
     public function __construct(private DatabaseMetricsService $databaseMetrics) {}
 
@@ -70,6 +70,8 @@ class AdminController extends Controller
 
             if ($search) {
                 $search = substr($search, 0, 100); // Extra safety: truncate to max 100 chars
+                // Escape LIKE wildcards to prevent unintended matches
+                $search = str_replace(['%', '_'], ['\\%', '\\_'], $search);
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
                         ->orWhere('email', 'like', "%{$search}%");

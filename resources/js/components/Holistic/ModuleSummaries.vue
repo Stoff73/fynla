@@ -164,8 +164,11 @@
 </template>
 
 <script>
+import { currencyMixin } from '@/mixins/currencyMixin';
+
 export default {
   name: 'ModuleSummaries',
+  mixins: [currencyMixin],
 
   props: {
     summaries: {
@@ -175,15 +178,6 @@ export default {
   },
 
   methods: {
-    formatCurrency(amount) {
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(amount);
-    },
-
     getStatusBadgeClass(status) {
       if (status === 'excellent') return 'bg-green-100 text-green-800';
       if (status === 'good') return 'bg-blue-100 text-blue-800';

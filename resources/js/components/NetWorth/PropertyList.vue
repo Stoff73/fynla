@@ -142,7 +142,6 @@ export default {
 
     async handleSaveProperty(data) {
       if (this.isPreviewMode) {
-        console.log('[PropertyList] Preview mode - skipping save');
         return;
       }
       this.clearMessages();

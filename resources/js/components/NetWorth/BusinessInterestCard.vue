@@ -61,8 +61,12 @@
 </template>
 
 <script>
+import { currencyMixin } from '@/mixins/currencyMixin';
+
 export default {
   name: 'BusinessInterestCard',
+
+  mixins: [currencyMixin],
 
   props: {
     business: {
@@ -120,16 +124,6 @@ export default {
   },
 
   methods: {
-    formatCurrency(value) {
-      if (value === null || value === undefined) return '-';
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
-    },
-
     handleClick() {
       this.$emit('click', this.business.id);
     },

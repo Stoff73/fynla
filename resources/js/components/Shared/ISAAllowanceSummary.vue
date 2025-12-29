@@ -114,9 +114,11 @@
 
 <script>
 import { mapGetters } from 'vuex';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'ISAAllowanceSummary',
+  mixins: [currencyMixin],
 
   data() {
     return {
@@ -191,15 +193,6 @@ export default {
   },
 
   methods: {
-    formatCurrency(value) {
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
-    },
-
     navigateToSavings() {
       this.$router.push('/savings');
     },

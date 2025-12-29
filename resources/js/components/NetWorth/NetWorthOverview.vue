@@ -250,9 +250,11 @@
 
 <script>
 import { mapState, mapGetters, mapActions } from 'vuex';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'NetWorthOverview',
+  mixins: [currencyMixin],
 
   data() {
     return {
@@ -314,15 +316,6 @@ export default {
 
   methods: {
     ...mapActions('netWorth', ['fetchAssetsSummaryDetailed']),
-
-    formatCurrency(value) {
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value ?? 0);
-    },
 
     navigateTo(section) {
       const isPreview = this.$route.path.startsWith('/preview');

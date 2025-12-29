@@ -77,9 +77,11 @@
 
 <script>
 import { mapState, mapActions } from 'vuex';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'TrustsOverviewCard',
+  mixins: [currencyMixin],
 
   data() {
     return {
@@ -149,16 +151,6 @@ export default {
 
     navigateToTrusts() {
       this.$router.push('/trusts');
-    },
-
-    formatCurrency(value) {
-      if (value === null || value === undefined) return '£0';
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
     },
 
     formatTrustType(type) {

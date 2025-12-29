@@ -213,9 +213,11 @@ import { mapState, mapActions } from 'vuex';
 import TrustForm from './TrustForm.vue';
 import TrustPlanningStrategy from './TrustPlanningStrategy.vue';
 import estateService from '@/services/estateService';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'TrustPlanning',
+  mixins: [currencyMixin],
 
   components: {
     TrustForm,
@@ -379,15 +381,6 @@ export default {
         default:
           return 0;
       }
-    },
-
-    formatCurrency(value) {
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
     },
 
     formatDate(date) {

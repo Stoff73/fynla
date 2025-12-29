@@ -409,9 +409,11 @@
 <script>
 import { mapState, mapGetters } from 'vuex';
 import userProfileService from '@/services/userProfileService';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'GapAnalysis',
+  mixins: [currencyMixin],
 
   data() {
     return {
@@ -696,15 +698,6 @@ export default {
         high: 'bg-red-100 text-red-800',
       };
       return classes[severity] || 'bg-gray-100 text-gray-800';
-    },
-
-    formatCurrency(value) {
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
     },
   },
 };

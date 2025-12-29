@@ -326,9 +326,12 @@
 import { mapGetters } from 'vuex';
 import RiskLevelSelector from '@/components/Shared/RiskLevelSelector.vue';
 import riskService from '@/services/riskService';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'DCPensionForm',
+
+  mixins: [currencyMixin],
 
   components: {
     RiskLevelSelector,
@@ -461,7 +464,6 @@ export default {
         }
       } catch (error) {
         // Silently fail - risk profile is optional
-        console.log('Risk profile not loaded:', error.message);
       }
     },
 
@@ -564,16 +566,6 @@ export default {
       }
 
       this.$emit('save', this.formData);
-    },
-
-    formatCurrency(value) {
-      if (value === null || value === undefined) return '£0';
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
     },
   },
 };

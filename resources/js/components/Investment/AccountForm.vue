@@ -354,9 +354,12 @@
 import CountrySelector from '@/components/Shared/CountrySelector.vue';
 import RiskLevelSelector from '@/components/Shared/RiskLevelSelector.vue';
 import riskService from '@/services/riskService';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'AccountForm',
+
+  mixins: [currencyMixin],
 
   components: {
     CountrySelector,
@@ -543,7 +546,6 @@ export default {
         }
       } catch (error) {
         // Silently fail - risk profile is optional
-        console.log('Risk profile not loaded:', error.message);
       }
     },
 
@@ -658,15 +660,6 @@ export default {
         risk_preference: null,
       };
       this.errors = {};
-    },
-
-    formatCurrency(value) {
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value || 0);
     },
   },
 };

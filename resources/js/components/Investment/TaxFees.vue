@@ -136,9 +136,11 @@
 
 <script>
 import { mapGetters } from 'vuex';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'TaxFees',
+  mixins: [currencyMixin],
 
   computed: {
     ...mapGetters('investment', [
@@ -170,15 +172,6 @@ export default {
   },
 
   methods: {
-    formatCurrency(value) {
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value || 0);
-    },
-
     calculateCGT(unrealisedGain) {
       const cgtAllowance = 3000; // 2025/26 allowance
       const taxableGain = Math.max(0, unrealisedGain - cgtAllowance);

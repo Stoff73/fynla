@@ -151,9 +151,12 @@ import { mapState, mapGetters, mapActions } from 'vuex';
 import IncomeSourceSlider from './IncomeSourceSlider.vue';
 import TaxBreakdownCard from './TaxBreakdownCard.vue';
 import FundDepletionChart from './FundDepletionChart.vue';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'RetirementIncomeTab',
+
+  mixins: [currencyMixin],
 
   components: {
     IncomeSourceSlider,
@@ -318,16 +321,6 @@ export default {
         a => a.type === allocation.source_type.replace('_pcls', '').replace('_drawdown', '') &&
              a.id === allocation.source_id
       ) || null;
-    },
-
-    formatCurrency(value) {
-      if (value === null || value === undefined) return '£0';
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
     },
 
     formatPercent(value) {

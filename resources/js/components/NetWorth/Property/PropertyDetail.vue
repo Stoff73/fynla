@@ -415,9 +415,11 @@ import PropertyForm from './PropertyForm.vue';
 import PropertyFinancials from './PropertyFinancials.vue';
 import PropertyTaxCalculator from './PropertyTaxCalculator.vue';
 import ConfirmationModal from '../../Common/ConfirmationModal.vue';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'PropertyDetail',
+  mixins: [currencyMixin],
 
   components: {
     AppLayout,
@@ -691,16 +693,6 @@ export default {
       if (years === 0) return `${months} month${months !== 1 ? 's' : ''}`;
       if (months === 0) return `${years} year${years !== 1 ? 's' : ''}`;
       return `${years} year${years !== 1 ? 's' : ''}, ${months} month${months !== 1 ? 's' : ''}`;
-    },
-
-    formatCurrency(value) {
-      if (value === null || value === undefined) return '£0';
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
     },
 
     formatDate(date) {

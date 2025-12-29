@@ -122,8 +122,11 @@
 </template>
 
 <script>
+import { currencyMixin } from '@/mixins/currencyMixin';
+
 export default {
   name: 'DualGiftingTimeline',
+  mixins: [currencyMixin],
 
   props: {
     userTimeline: {
@@ -213,15 +216,6 @@ export default {
           ],
         })),
       }];
-    },
-
-    formatCurrency(value) {
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value || 0);
     },
 
     formatDate(dateString) {

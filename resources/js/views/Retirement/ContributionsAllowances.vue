@@ -198,9 +198,11 @@
 <script>
 import { mapState } from 'vuex';
 import AnnualAllowanceTracker from '../../components/Retirement/AnnualAllowanceTracker.vue';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'ContributionsAllowances',
+  mixins: [currencyMixin],
 
   components: {
     AnnualAllowanceTracker,
@@ -238,15 +240,7 @@ export default {
       return (salary * totalPercent) / 100;
     },
 
-    formatCurrency(value) {
-      if (value === null || value === undefined) return '£0';
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
-    },
+    // formatCurrency provided by currencyMixin
   },
 };
 </script>

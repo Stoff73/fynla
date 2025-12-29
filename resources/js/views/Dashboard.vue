@@ -323,7 +323,6 @@ export default {
       // Check if we're in preview mode - load persona data instead of making API calls
       const isPreviewMode = this.$store.getters['preview/isPreviewMode'];
       if (isPreviewMode) {
-        console.log('[Dashboard] Preview mode detected - loading persona data');
         await this.loadPreviewData();
         return;
       }
@@ -385,7 +384,6 @@ export default {
      * This just clears loading states since no API calls are needed
      */
     async loadPreviewData() {
-      console.log('[Dashboard] Preview mode - stores already populated, clearing loading states');
       // Preview store's loadPersona already set up all module stores with persona data
       // Just clear loading states
       Object.keys(this.loading).forEach(key => {
@@ -397,7 +395,6 @@ export default {
       // Skip in preview mode
       const isPreviewMode = this.$store.getters['preview/isPreviewMode'];
       if (isPreviewMode) {
-        console.log('[Dashboard] Preview mode - skipping retryLoadModule');
         return;
       }
 
@@ -432,7 +429,6 @@ export default {
       // Skip in preview mode
       const isPreviewMode = this.$store.getters['preview/isPreviewMode'];
       if (isPreviewMode) {
-        console.log('[Dashboard] Preview mode - skipping refreshDashboard');
         return;
       }
 

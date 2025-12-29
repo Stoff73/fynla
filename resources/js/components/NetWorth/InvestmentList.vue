@@ -296,9 +296,12 @@ import WrapperOptimizer from '@/components/Investment/WrapperOptimizer.vue';
 import FeeBreakdown from '@/components/Investment/FeeBreakdown.vue';
 import FeeSavingsCalculator from '@/components/Investment/FeeSavingsCalculator.vue';
 import Recommendations from '@/components/Investment/Recommendations.vue';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'InvestmentList',
+
+  mixins: [currencyMixin],
 
   components: {
     InvestmentDetailInline,
@@ -449,16 +452,6 @@ export default {
       } catch (error) {
         console.error('Failed to load investment data:', error);
       }
-    },
-
-    formatCurrency(value) {
-      if (value === null || value === undefined) return '£0';
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
     },
 
     formatReturn(value) {

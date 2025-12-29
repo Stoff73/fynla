@@ -404,9 +404,9 @@ export default {
       try {
         const response = await api.get(`/investment/fee-impact/holdings/${holdingId}/alternatives`);
         // Open modal or navigate to alternatives view
-        console.log('Alternatives:', response.data);
+        this.alternativesData = response.data;
       } catch (err) {
-        console.error('Error loading alternatives:', err);
+        // Failed to load alternatives silently
       }
     },
 

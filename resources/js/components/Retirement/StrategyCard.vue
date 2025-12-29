@@ -124,9 +124,12 @@
 <script>
 import retirementService from '../../services/retirementService';
 import VueApexCharts from 'vue3-apexcharts';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'StrategyCard',
+
+  mixins: [currencyMixin],
 
   components: {
     apexchart: VueApexCharts,
@@ -373,16 +376,6 @@ export default {
         return `${value}${unit}`;
       }
       return `${value}${unit}`;
-    },
-
-    formatCurrency(value) {
-      if (value === null || value === undefined) return '£0';
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
     },
 
     getProbabilityClass(probability) {

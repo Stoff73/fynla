@@ -309,9 +309,11 @@ import { mapState, mapActions } from 'vuex';
 import AppLayout from '@/layouts/AppLayout.vue';
 import PolicyFormModal from './PolicyFormModal.vue';
 import ConfirmationModal from '../Common/ConfirmationModal.vue';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'PolicyDetail',
+  mixins: [currencyMixin],
 
   components: {
     AppLayout,
@@ -589,16 +591,6 @@ export default {
         lump_sum: 'Lump Sum',
       };
       return map[frequency] || frequency;
-    },
-
-    formatCurrency(value) {
-      if (value === null || value === undefined) return '£0';
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
     },
 
     formatDate(date) {

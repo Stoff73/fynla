@@ -212,9 +212,12 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import TrustCard from '@/components/Trusts/TrustCard.vue';
 import TrustFormModal from '@/components/Trusts/TrustFormModal.vue';
 import DocumentUploadModal from '@/components/Shared/DocumentUploadModal.vue';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'TrustsDashboard',
+
+  mixins: [currencyMixin],
 
   components: {
     AppLayout,
@@ -388,7 +391,6 @@ export default {
 
     async calculateTrustIHT(trust) {
       if (this.isPreviewMode) {
-        console.log('[TrustsDashboard] Preview mode - skipping calculateTrustIHT');
         return;
       }
       try {
@@ -399,15 +401,6 @@ export default {
       } catch (error) {
         this.error = error.message || 'Failed to calculate IHT impact';
       }
-    },
-
-    formatCurrency(value) {
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
     },
 
     formatDate(dateString) {

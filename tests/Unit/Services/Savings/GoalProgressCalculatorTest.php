@@ -7,7 +7,7 @@ use App\Services\Savings\GoalProgressCalculator;
 use Carbon\Carbon;
 
 beforeEach(function () {
-    $this->calculator = new GoalProgressCalculator();
+    $this->calculator = new GoalProgressCalculator;
     Carbon::setTestNow(Carbon::create(2025, 1, 1));
 });
 

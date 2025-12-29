@@ -41,7 +41,6 @@ const actions = {
     async fetchDashboardData({ commit, state }) {
         // Skip API call if in preview mode
         if (state.isPreviewMode) {
-            console.log('[dashboard] Skipping fetchDashboardData - preview mode active');
             return;
         }
         commit('setLoading', true);
@@ -64,7 +63,6 @@ const actions = {
     async fetchFinancialHealthScore({ commit, state }) {
         // Skip API call if in preview mode
         if (state.isPreviewMode) {
-            console.log('[dashboard] Skipping fetchFinancialHealthScore - preview mode active');
             return;
         }
         commit('setLoading', true);
@@ -87,7 +85,6 @@ const actions = {
     async fetchAlerts({ commit, state }) {
         // Skip API call if in preview mode
         if (state.isPreviewMode) {
-            console.log('[dashboard] Skipping fetchAlerts - preview mode active');
             return;
         }
         commit('setLoading', true);
@@ -128,7 +125,6 @@ const actions = {
     async fetchAllDashboardData({ commit, state }) {
         // Skip API call if in preview mode
         if (state.isPreviewMode) {
-            console.log('[dashboard] Skipping fetchAllDashboardData - preview mode active');
             return;
         }
         commit('setLoading', true);

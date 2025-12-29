@@ -70,9 +70,12 @@ import AccountHoldingsPanel from '@/views/Investment/AccountHoldingsPanel.vue';
 import AccountPerformancePanel from '@/views/Investment/AccountPerformancePanel.vue';
 import AccountFeesPanel from '@/views/Investment/AccountFeesPanel.vue';
 import TaxStatusPanel from '@/components/Common/TaxStatusPanel.vue';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'AccountDetailView',
+
+  mixins: [currencyMixin],
 
   components: {
     AccountSummaryPanel,
@@ -103,15 +106,6 @@ export default {
   },
 
   methods: {
-    formatCurrency(value) {
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value || 0);
-    },
-
     formatAccountType(type) {
       const types = {
         'isa': 'ISA',

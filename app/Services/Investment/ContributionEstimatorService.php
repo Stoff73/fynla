@@ -10,7 +10,9 @@ use Illuminate\Support\Collection;
 class ContributionEstimatorService
 {
     private const ISA_ANNUAL_ALLOWANCE = 20000;
+
     private const GIA_ANNUAL_PERCENT = 0.05;
+
     private const MONTHS_IN_YEAR = 12;
 
     /**

@@ -59,8 +59,11 @@
 </template>
 
 <script>
+import { currencyMixin } from '@/mixins/currencyMixin';
+
 export default {
   name: 'TrustCard',
+  mixins: [currencyMixin],
 
   props: {
     trust: {
@@ -72,16 +75,6 @@ export default {
   emits: ['view'],
 
   methods: {
-    formatCurrency(value) {
-      if (!value) return '£0';
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
-    },
-
     formatDate(dateString) {
       if (!dateString) return '-';
       return new Date(dateString).toLocaleDateString('en-GB', {

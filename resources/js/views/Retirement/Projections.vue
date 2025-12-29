@@ -125,9 +125,11 @@
 import { mapState, mapGetters } from 'vuex';
 import IncomeProjectionChart from '../../components/Retirement/IncomeProjectionChart.vue';
 import AccumulationChart from '../../components/Retirement/AccumulationChart.vue';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'Projections',
+  mixins: [currencyMixin],
 
   components: {
     IncomeProjectionChart,
@@ -170,17 +172,7 @@ export default {
     },
   },
 
-  methods: {
-    formatCurrency(value) {
-      if (value === null || value === undefined) return '£0';
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
-    },
-  },
+  // formatCurrency provided by currencyMixin
 };
 </script>
 

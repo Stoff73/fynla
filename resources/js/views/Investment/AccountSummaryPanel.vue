@@ -124,9 +124,11 @@
 
 <script>
 import { TAX_CONFIG } from '@/constants/taxConfig';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'AccountSummaryPanel',
+  mixins: [currencyMixin],
 
   props: {
     account: {
@@ -246,15 +248,6 @@ export default {
   },
 
   methods: {
-    formatCurrency(value) {
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value || 0);
-    },
-
     formatPercentage(value) {
       if (value === null || value === undefined) return 'N/A';
       return `${parseFloat(value).toFixed(2)}%`;

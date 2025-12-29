@@ -117,8 +117,11 @@
 </template>
 
 <script>
+import { currencyMixin } from '@/mixins/currencyMixin';
+
 export default {
   name: 'WealthSummary',
+  mixins: [currencyMixin],
 
   props: {
     breakdown: {
@@ -247,15 +250,6 @@ export default {
   },
 
   methods: {
-    formatCurrency(value) {
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
-    },
-
     showAssetRow(key) {
       // Show row if either user or spouse has a value > 0
       const userValue = this.userBreakdown[key] || 0;

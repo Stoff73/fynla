@@ -259,9 +259,11 @@ import { mapActions } from 'vuex';
 import SaveAccountModal from '@/components/Savings/SaveAccountModal.vue';
 import ConfirmationModal from '@/components/Common/ConfirmationModal.vue';
 import TaxStatusPanel from '@/components/Common/TaxStatusPanel.vue';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'SavingsAccountDetailInline',
+  mixins: [currencyMixin],
 
   components: {
     SaveAccountModal,
@@ -448,16 +450,6 @@ export default {
         console.error('Failed to delete account:', error);
         this.error = 'Failed to delete account. Please try again.';
       }
-    },
-
-    formatCurrency(value) {
-      if (value === null || value === undefined) return '£0';
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
     },
 
     formatDate(date) {

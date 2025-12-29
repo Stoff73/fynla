@@ -174,8 +174,12 @@
 </template>
 
 <script>
+import { currencyMixin } from '@/mixins/currencyMixin';
+
 export default {
   name: 'TaxBreakdownCard',
+
+  mixins: [currencyMixin],
 
   props: {
     breakdown: {
@@ -227,16 +231,6 @@ export default {
       if (source.source_type === 'gia') return 'badge-gia';
       if (source.source_type === 'savings') return 'badge-savings';
       return 'badge-default';
-    },
-
-    formatCurrency(value) {
-      if (value === null || value === undefined) return '£0';
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
     },
 
     formatNumber(value) {

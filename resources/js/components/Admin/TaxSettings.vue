@@ -1282,9 +1282,11 @@
 
 <script>
 import taxSettingsService from '../../services/taxSettingsService';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'TaxSettings',
+  mixins: [currencyMixin],
 
   data() {
     return {
@@ -1683,12 +1685,6 @@ export default {
     formatNumber(value) {
       if (!value && value !== 0) return 'N/A';
       return value.toLocaleString('en-GB');
-    },
-
-    formatCurrency(value) {
-      if (!value && value !== 0) return 'N/A';
-      if (value === 'unlimited' || value === 'Unlimited') return 'Unlimited';
-      return '£' + value.toLocaleString('en-GB');
     },
 
     formatDate(dateString) {

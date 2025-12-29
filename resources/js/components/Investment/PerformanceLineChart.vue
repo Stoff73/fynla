@@ -50,9 +50,11 @@
 
 <script>
 import VueApexCharts from 'vue3-apexcharts';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'PerformanceLineChart',
+  mixins: [currencyMixin],
 
   components: {
     apexchart: VueApexCharts,
@@ -284,14 +286,6 @@ export default {
         }));
     },
 
-    formatCurrency(value) {
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value || 0);
-    },
   },
 };
 </script>

@@ -373,9 +373,11 @@
 
 <script>
 import estateService from '@/services/estateService';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'TrustPlanningStrategy',
+  mixins: [currencyMixin],
 
   data() {
     return {
@@ -484,14 +486,7 @@ export default {
       return types[type] || type;
     },
 
-    formatCurrency(value) {
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value || 0);
-    },
+    // formatCurrency provided by currencyMixin
   },
 };
 </script>

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Traits;
+namespace App\Http\Traits;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
@@ -57,6 +57,18 @@ trait SanitizedErrorResponse
                 'line' => $exception->getLine(),
             ] : null,
         ], $statusCode);
+    }
+
+    /**
+     * Alias for errorResponse() - backward compatibility with SafeErrorResponse trait
+     *
+     * @param  string  $context  Human-readable context for the error (e.g., "Failed to create user")
+     * @param  \Exception  $e  The exception that was caught
+     * @param  int  $statusCode  HTTP status code to return (default: 500)
+     */
+    protected function safeErrorResponse(string $context, \Exception $e, int $statusCode = 500): JsonResponse
+    {
+        return $this->errorResponse($e, $context, $statusCode);
     }
 
     /**

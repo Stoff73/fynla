@@ -194,9 +194,12 @@ import AssetAllocationChart from './AssetAllocationChart.vue';
 import GeographicAllocationMap from './GeographicAllocationMap.vue';
 import DocumentUploadModal from '@/components/Shared/DocumentUploadModal.vue';
 import { TAX_CONFIG } from '@/constants/taxConfig';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'PortfolioOverview',
+
+  mixins: [currencyMixin],
 
   emits: ['open-add-account-modal', 'select-account'],
 
@@ -280,15 +283,6 @@ export default {
   },
 
   methods: {
-    formatCurrency(value) {
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value || 0);
-    },
-
     formatReturn(value) {
       if (!value && value !== 0) return 'N/A';
       const sign = value >= 0 ? '+' : '';
@@ -450,7 +444,6 @@ export default {
     },
 
     async handleDocumentSaved(savedData) {
-      console.log('Document saved:', savedData);
       this.showUploadModal = false;
       // Refresh investment data
       await this.$store.dispatch('investment/fetchInvestmentData');

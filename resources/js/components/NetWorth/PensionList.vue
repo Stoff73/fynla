@@ -239,9 +239,12 @@ import RiskBadge from '@/components/Shared/RiskBadge.vue';
 import FutureValueTab from '@/components/Retirement/FutureValueTab.vue';
 import StrategiesTab from '@/components/Retirement/StrategiesTab.vue';
 import RetirementIncomeTab from '@/components/Retirement/RetirementIncomeTab.vue';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'PensionList',
+
+  mixins: [currencyMixin],
 
   components: {
     PensionDetailInline,
@@ -387,16 +390,6 @@ export default {
     async handleDocumentSaved() {
       this.showUploadModal = false;
       await this.fetchRetirementData();
-    },
-
-    formatCurrency(value) {
-      if (value === null || value === undefined) return '£0';
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
     },
 
     calculateMonthlyContribution(pension) {

@@ -16,8 +16,11 @@
 </template>
 
 <script>
+import { currencyMixin } from '@/mixins/currencyMixin';
+
 export default {
   name: 'AssetAllocationDonut',
+  mixins: [currencyMixin],
 
   props: {
     breakdown: {
@@ -140,16 +143,6 @@ export default {
     },
   },
 
-  methods: {
-    formatCurrency(value) {
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
-    },
-  },
 };
 </script>
 

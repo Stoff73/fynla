@@ -474,7 +474,6 @@ export default {
             return total + (monthlyRental * 12);
           }, 0);
           annualRentalIncome.value = totalRentalIncome;
-          console.log('Calculated rental income from properties:', totalRentalIncome, 'from', properties.length, 'properties');
         }
       } catch (err) {
         console.warn('Failed to fetch rental income from properties:', err.message || err);

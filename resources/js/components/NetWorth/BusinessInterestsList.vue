@@ -96,9 +96,12 @@ import BusinessInterestCard from './BusinessInterestCard.vue';
 import BusinessInterestForm from './BusinessInterestForm.vue';
 import BusinessInterestDetailInline from './BusinessInterestDetailInline.vue';
 import ConfirmationModal from '@/components/Common/ConfirmationModal.vue';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'BusinessInterestsList',
+
+  mixins: [currencyMixin],
 
   components: {
     BusinessInterestCard,
@@ -204,15 +207,6 @@ export default {
       this.fetchData();
     },
 
-    formatCurrency(value) {
-      if (value === null || value === undefined) return '-';
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
-    },
   },
 };
 </script>

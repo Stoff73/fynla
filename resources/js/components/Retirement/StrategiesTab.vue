@@ -110,9 +110,12 @@
 <script>
 import { mapState, mapActions } from 'vuex';
 import StrategyCard from './StrategyCard.vue';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'StrategiesTab',
+
+  mixins: [currencyMixin],
 
   components: {
     StrategyCard,
@@ -195,16 +198,6 @@ export default {
       } catch (error) {
         console.error('Failed to calculate strategy impact:', error);
       }
-    },
-
-    formatCurrency(value) {
-      if (value === null || value === undefined) return '£0';
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
     },
 
     getProbabilityClass(probability) {

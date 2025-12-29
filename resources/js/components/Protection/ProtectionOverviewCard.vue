@@ -220,8 +220,11 @@
 </template>
 
 <script>
+import { currencyMixin } from '@/mixins/currencyMixin';
+
 export default {
   name: 'ProtectionOverviewCard',
+  mixins: [currencyMixin],
 
   props: {
     adequacyScore: {
@@ -325,16 +328,6 @@ export default {
   methods: {
     navigateToProtection() {
       this.$router.push('/protection');
-    },
-
-    formatCurrency(value) {
-      if (value === null || value === undefined) return '£0';
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
     },
 
     formatPolicyType(type) {

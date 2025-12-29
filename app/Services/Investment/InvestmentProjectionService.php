@@ -12,6 +12,7 @@ use Illuminate\Support\Collection;
 class InvestmentProjectionService
 {
     private const DEFAULT_PROJECTION_PERIODS = [5, 10, 20, 30];
+
     private const MONTE_CARLO_ITERATIONS = 1000;
 
     public function __construct(

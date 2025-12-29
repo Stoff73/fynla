@@ -92,9 +92,11 @@
 
 <script>
 import VueApexCharts from 'vue3-apexcharts';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'CashFlowProjectionChart',
+  mixins: [currencyMixin],
 
   components: {
     apexchart: VueApexCharts,
@@ -326,20 +328,6 @@ export default {
 
     updateChart() {
       // Chart will automatically update due to computed properties
-    },
-
-    formatCurrency(value) {
-      if (value === null || value === undefined) return '£0';
-      const absValue = Math.abs(value);
-      return (
-        (value < 0 ? '-' : '') +
-        new Intl.NumberFormat('en-GB', {
-          style: 'currency',
-          currency: 'GBP',
-          minimumFractionDigits: 0,
-          maximumFractionDigits: 0,
-        }).format(absValue)
-      );
     },
 
     formatCurrencyShort(value) {

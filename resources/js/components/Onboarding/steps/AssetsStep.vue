@@ -566,7 +566,6 @@ export default {
 
     // Load existing data
     onMounted(async () => {
-      console.log('AssetsStep mounted - loading data...');
       try {
         await Promise.all([
           loadPensions(),
@@ -574,9 +573,8 @@ export default {
           loadInvestments(),
           loadSavingsAccounts(),
         ]);
-        console.log('All data loaded successfully');
-      } catch (error) {
-        console.error('Error loading data:', error);
+      } catch (err) {
+        // Data loading errors are handled in individual methods
       }
     });
 
@@ -645,7 +643,6 @@ export default {
         closePensionForm();
         await loadPensions();
       } catch (err) {
-        console.error('Failed to save pension:', err);
         error.value = 'Failed to save pension. Please try again.';
       }
     }
@@ -657,7 +654,7 @@ export default {
         // propertyService already returns response.data, so response is the properties array
         properties.value = Array.isArray(response) ? response : [];
       } catch (err) {
-        console.error('Failed to load properties', err);
+        // Properties loading failed silently - will show empty list
       }
     }
 
@@ -669,7 +666,6 @@ export default {
         editingProperty.value = response.data?.property || response.property || response;
         showPropertyForm.value = true;
       } catch (err) {
-        console.error('Failed to load property details:', err);
         // Fallback to cached data if API fails
         editingProperty.value = property;
         showPropertyForm.value = true;
@@ -704,8 +700,6 @@ export default {
 
         // If mortgage data provided and property was saved successfully, save/update mortgage
         if (data.mortgage && propertyId) {
-          console.log('Mortgage data being sent:', JSON.stringify(data.mortgage, null, 2));
-
           // Check if property already has a mortgage (when editing)
           const existingMortgage = editingProperty.value?.mortgages?.[0];
 
@@ -713,40 +707,23 @@ export default {
             // Try to update existing mortgage
             try {
               await propertyService.updatePropertyMortgage(propertyId, existingMortgage.id, data.mortgage);
-            } catch (error) {
+            } catch (updateError) {
               // If mortgage not found (404), create a new one instead
-              if (error.response?.status === 404) {
-                console.log('Mortgage not found, creating new one instead');
-                try {
-                  await propertyService.createPropertyMortgage(propertyId, data.mortgage);
-                } catch (createError) {
-                  console.error('CREATE Mortgage validation errors:', JSON.stringify(createError.response?.data?.errors, null, 2));
-                  console.error('Full error response:', JSON.stringify(createError.response?.data, null, 2));
-                  throw createError;
-                }
+              if (updateError.response?.status === 404) {
+                await propertyService.createPropertyMortgage(propertyId, data.mortgage);
               } else {
-                // Other error (like validation)
-                console.error('UPDATE Mortgage validation errors:', JSON.stringify(error.response?.data?.errors, null, 2));
-                console.error('Full error response:', JSON.stringify(error.response?.data, null, 2));
-                throw error;
+                throw updateError;
               }
             }
           } else {
             // Create new mortgage
-            try {
-              await propertyService.createPropertyMortgage(propertyId, data.mortgage);
-            } catch (error) {
-              console.error('CREATE Mortgage validation errors:', JSON.stringify(error.response?.data?.errors, null, 2));
-              console.error('Full error response:', JSON.stringify(error.response?.data, null, 2));
-              throw error;
-            }
+            await propertyService.createPropertyMortgage(propertyId, data.mortgage);
           }
         }
 
         closePropertyForm();
         await loadProperties();
       } catch (err) {
-        console.error('Failed to save property/mortgage:', err);
         error.value = 'Failed to save property. Please try again.';
       }
     }
@@ -757,7 +734,7 @@ export default {
         const response = await investmentService.getInvestmentData();
         investments.value = response.data?.accounts || [];
       } catch (err) {
-        console.error('Failed to load investments', err);
+        // Investments loading failed silently - will show empty list
       }
     }
 
@@ -794,7 +771,6 @@ export default {
         closeInvestmentForm();
         await loadInvestments();
       } catch (err) {
-        console.error('Failed to save investment account:', err);
         error.value = 'Failed to save investment account. Please try again.';
       }
     }
@@ -805,7 +781,7 @@ export default {
         const response = await savingsService.getSavingsData();
         savingsAccounts.value = response.data?.accounts || [];
       } catch (err) {
-        console.error('Failed to load savings accounts', err);
+        // Savings loading failed silently - will show empty list
       }
     }
 
@@ -842,7 +818,6 @@ export default {
         closeSavingsForm();
         await loadSavingsAccounts();
       } catch (err) {
-        console.error('Failed to save savings account:', err);
         error.value = 'Failed to save savings account. Please try again.';
       }
     }
@@ -859,7 +834,6 @@ export default {
     }
 
     async function handleDocumentSaved(savedData) {
-      console.log('Document saved:', savedData);
       closeUploadModal();
 
       // Reload the appropriate data based on document type

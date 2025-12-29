@@ -169,10 +169,10 @@ class BusinessInterestService
                 $cgtRate = $badrRate;
             } else {
                 $cgtRate = $badrRate;
-                $warnings[] = "Capital gain exceeds the £" . number_format($badrLimit) . " lifetime Business Asset Disposal Relief limit. Gains above this threshold may be taxed at higher rates.";
+                $warnings[] = 'Capital gain exceeds the £'.number_format($badrLimit).' lifetime Business Asset Disposal Relief limit. Gains above this threshold may be taxed at higher rates.';
             }
         } else {
-            $warnings[] = "Business Asset Disposal Relief may not apply. The 10% rate requires 2+ years ownership and trading business status.";
+            $warnings[] = 'Business Asset Disposal Relief may not apply. The 10% rate requires 2+ years ownership and trading business status.';
         }
 
         // Calculate CGT due
@@ -182,7 +182,7 @@ class BusinessInterestService
         // Business Relief consideration
         $bprNote = null;
         if ($business->bpr_eligible && $yearsHeld >= 2) {
-            $bprNote = "This business may qualify for 100% Business Relief for Inheritance Tax purposes.";
+            $bprNote = 'This business may qualify for 100% Business Relief for Inheritance Tax purposes.';
         }
 
         return [
@@ -223,7 +223,7 @@ class BusinessInterestService
         // Sole traders, partnerships, and LLPs are typically eligible
         // Limited companies need specific conditions
         $eligibleTypes = ['sole_trader', 'partnership', 'llp', 'limited_company'];
-        if (!in_array($business->business_type, $eligibleTypes, true)) {
+        if (! in_array($business->business_type, $eligibleTypes, true)) {
             return false;
         }
 
@@ -239,15 +239,15 @@ class BusinessInterestService
         $yearsHeld = $this->calculateYearsHeld($business);
 
         if ($yearsHeld >= 2) {
-            $reasons[] = "Held for " . number_format($yearsHeld, 1) . " years (2+ years required)";
+            $reasons[] = 'Held for '.number_format($yearsHeld, 1).' years (2+ years required)';
         } else {
-            $reasons[] = "Only held for " . number_format($yearsHeld, 1) . " years (2+ years required)";
+            $reasons[] = 'Only held for '.number_format($yearsHeld, 1).' years (2+ years required)';
         }
 
         if ($business->trading_status === 'trading') {
-            $reasons[] = "Business is actively trading";
+            $reasons[] = 'Business is actively trading';
         } else {
-            $reasons[] = "Business is not actively trading (status: " . ($business->trading_status ?? 'unknown') . ")";
+            $reasons[] = 'Business is not actively trading (status: '.($business->trading_status ?? 'unknown').')';
         }
 
         return $reasons;
@@ -258,7 +258,7 @@ class BusinessInterestService
      */
     private function calculateYearsHeld(BusinessInterest $business): float
     {
-        if (!$business->acquisition_date) {
+        if (! $business->acquisition_date) {
             return 0;
         }
 
@@ -274,10 +274,10 @@ class BusinessInterestService
         $now = Carbon::now();
 
         // Tax year end (5 April)
-        $taxYearEnd = Carbon::createFromFormat('Y-m-d', substr($currentTaxYear, 5, 4) . '-04-05');
+        $taxYearEnd = Carbon::createFromFormat('Y-m-d', substr($currentTaxYear, 5, 4).'-04-05');
 
         // Paper return deadline (31 October)
-        $paperDeadline = Carbon::createFromFormat('Y-m-d', substr($nextTaxYear, 0, 4) . '-10-31');
+        $paperDeadline = Carbon::createFromFormat('Y-m-d', substr($nextTaxYear, 0, 4).'-10-31');
         if ($paperDeadline->gt($now)) {
             $deadlines[] = [
                 'name' => 'Self Assessment Paper Return',
@@ -289,7 +289,7 @@ class BusinessInterestService
         }
 
         // Online return deadline (31 January)
-        $onlineDeadline = Carbon::createFromFormat('Y-m-d', substr($nextTaxYear, 0, 4) . '-01-31')->addYear();
+        $onlineDeadline = Carbon::createFromFormat('Y-m-d', substr($nextTaxYear, 0, 4).'-01-31')->addYear();
         if ($onlineDeadline->gt($now)) {
             $deadlines[] = [
                 'name' => 'Self Assessment Online Return & Payment',
@@ -301,7 +301,7 @@ class BusinessInterestService
         }
 
         // Payment on Account - 31 July
-        $poaJuly = Carbon::createFromFormat('Y-m-d', $now->year . '-07-31');
+        $poaJuly = Carbon::createFromFormat('Y-m-d', $now->year.'-07-31');
         if ($poaJuly->lt($now)) {
             $poaJuly->addYear();
         }
@@ -335,7 +335,7 @@ class BusinessInterestService
                 }
             }
         } else {
-            $yearEnd = Carbon::createFromFormat('Y-m-d', $now->year . '-03-31');
+            $yearEnd = Carbon::createFromFormat('Y-m-d', $now->year.'-03-31');
             if ($yearEnd->lt($now)) {
                 $yearEnd->addYear();
             }
@@ -395,10 +395,10 @@ class BusinessInterestService
 
         // VAT quarters end on last day of March, June, September, December
         $quarterEnds = [
-            Carbon::createFromFormat('Y-m-d', $now->year . '-03-31'),
-            Carbon::createFromFormat('Y-m-d', $now->year . '-06-30'),
-            Carbon::createFromFormat('Y-m-d', $now->year . '-09-30'),
-            Carbon::createFromFormat('Y-m-d', $now->year . '-12-31'),
+            Carbon::createFromFormat('Y-m-d', $now->year.'-03-31'),
+            Carbon::createFromFormat('Y-m-d', $now->year.'-06-30'),
+            Carbon::createFromFormat('Y-m-d', $now->year.'-09-30'),
+            Carbon::createFromFormat('Y-m-d', $now->year.'-12-31'),
         ];
 
         foreach ($quarterEnds as $quarterEnd) {
@@ -409,7 +409,7 @@ class BusinessInterestService
                 $deadlines[] = [
                     'name' => 'VAT Return & Payment',
                     'date' => $vatDeadline->format('Y-m-d'),
-                    'description' => "VAT return and payment for quarter ending " . $quarterEnd->format('d M Y'),
+                    'description' => 'VAT return and payment for quarter ending '.$quarterEnd->format('d M Y'),
                     'type' => 'vat',
                     'days_until' => $now->diffInDays($vatDeadline, false),
                 ];
@@ -428,7 +428,7 @@ class BusinessInterestService
         $now = Carbon::now();
 
         // PAYE due 22nd of following month
-        $payeDeadline = Carbon::createFromFormat('Y-m-d', $now->format('Y-m') . '-22');
+        $payeDeadline = Carbon::createFromFormat('Y-m-d', $now->format('Y-m').'-22');
         if ($payeDeadline->lt($now)) {
             $payeDeadline->addMonth();
         }
@@ -475,10 +475,10 @@ class BusinessInterestService
         $taxYearStart = Carbon::createFromFormat('m-d', '04-06');
 
         if ($now->lt($taxYearStart)) {
-            return ($now->year - 1) . '/' . substr((string) $now->year, 2);
+            return ($now->year - 1).'/'.substr((string) $now->year, 2);
         }
 
-        return $now->year . '/' . substr((string) ($now->year + 1), 2);
+        return $now->year.'/'.substr((string) ($now->year + 1), 2);
     }
 
     /**
@@ -490,9 +490,9 @@ class BusinessInterestService
         $taxYearStart = Carbon::createFromFormat('m-d', '04-06');
 
         if ($now->lt($taxYearStart)) {
-            return $now->year . '/' . substr((string) ($now->year + 1), 2);
+            return $now->year.'/'.substr((string) ($now->year + 1), 2);
         }
 
-        return ($now->year + 1) . '/' . substr((string) ($now->year + 2), 2);
+        return ($now->year + 1).'/'.substr((string) ($now->year + 2), 2);
     }
 }

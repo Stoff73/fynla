@@ -201,9 +201,11 @@ import AccountFeesPanel from '@/views/Investment/AccountFeesPanel.vue';
 import HoldingForm from '@/components/Investment/HoldingForm.vue';
 import TaxStatusPanel from '@/components/Common/TaxStatusPanel.vue';
 import { TAX_CONFIG } from '@/constants/taxConfig';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'InvestmentDetailInline',
+  mixins: [currencyMixin],
 
   components: {
     AccountForm,
@@ -269,16 +271,6 @@ export default {
 
   methods: {
     ...mapActions('investment', ['updateAccount', 'deleteAccount', 'fetchInvestmentData']),
-
-    formatCurrency(value) {
-      if (value === null || value === undefined) return '£0';
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
-    },
 
     formatReturn(value) {
       if (!value && value !== 0) return 'N/A';

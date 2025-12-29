@@ -16,12 +16,8 @@ app.use(VueApexCharts);
 
 // Initialize preview mode from sessionStorage if available
 // This allows preview mode to survive page reloads
-store.dispatch('preview/initFromStorage').then((restored) => {
-    if (restored) {
-        console.log('[App] Preview mode restored from sessionStorage');
-    }
-}).catch((error) => {
-    console.warn('[App] Failed to restore preview mode:', error);
+store.dispatch('preview/initFromStorage').catch(() => {
+    // Preview mode restoration failed silently
 });
 
 // Mount app
