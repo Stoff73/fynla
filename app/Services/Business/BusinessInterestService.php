@@ -169,20 +169,20 @@ class BusinessInterestService
                 $cgtRate = $badrRate;
             } else {
                 $cgtRate = $badrRate;
-                $warnings[] = "Capital gain exceeds the £" . number_format($badrLimit) . " lifetime BADR limit. Gains above this threshold may be taxed at higher rates.";
+                $warnings[] = "Capital gain exceeds the £" . number_format($badrLimit) . " lifetime Business Asset Disposal Relief limit. Gains above this threshold may be taxed at higher rates.";
             }
         } else {
-            $warnings[] = "Business Asset Disposal Relief (BADR) may not apply. The 10% rate requires 2+ years ownership and trading business status.";
+            $warnings[] = "Business Asset Disposal Relief may not apply. The 10% rate requires 2+ years ownership and trading business status.";
         }
 
         // Calculate CGT due
         $cgtDue = $capitalGain * ($cgtRate / 100);
         $postTaxProceeds = $userSaleProceeds - $cgtDue;
 
-        // BPR consideration
+        // Business Relief consideration
         $bprNote = null;
         if ($business->bpr_eligible && $yearsHeld >= 2) {
-            $bprNote = "This business may qualify for 100% Business Property Relief (BPR) for Inheritance Tax purposes.";
+            $bprNote = "This business may qualify for 100% Business Relief for Inheritance Tax purposes.";
         }
 
         return [

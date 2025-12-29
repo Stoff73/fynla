@@ -73,13 +73,13 @@
           </div>
         </div>
 
-        <!-- BPR Eligible Notice -->
+        <!-- Business Relief Eligible Notice -->
         <div v-if="business.bpr_eligible" class="mt-4 bg-green-50 rounded-lg p-4 border border-green-200">
           <div class="flex items-center">
             <svg class="w-5 h-5 text-green-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
             </svg>
-            <p class="text-sm font-medium text-green-800">Business Property Relief (BPR) Eligible - May qualify for 100% IHT relief</p>
+            <p class="text-sm font-medium text-green-800">Business Relief Eligible - May qualify for 100% Inheritance Tax relief</p>
           </div>
         </div>
       </div>
@@ -159,15 +159,15 @@
               <h3 class="text-lg font-semibold text-gray-800 mb-4">Tax Registration</h3>
               <dl class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div v-if="business.utr_number" class="flex justify-between">
-                  <dt class="text-sm text-gray-500">UTR Number</dt>
+                  <dt class="text-sm text-gray-500">Unique Taxpayer Reference</dt>
                   <dd class="text-sm font-medium text-gray-900">{{ business.utr_number }}</dd>
                 </div>
                 <div v-if="business.vat_registered" class="flex justify-between">
-                  <dt class="text-sm text-gray-500">VAT Number</dt>
+                  <dt class="text-sm text-gray-500">VAT Registration Number</dt>
                   <dd class="text-sm font-medium text-gray-900">{{ business.vat_number || 'Registered' }}</dd>
                 </div>
                 <div v-if="business.paye_reference" class="flex justify-between">
-                  <dt class="text-sm text-gray-500">PAYE Reference</dt>
+                  <dt class="text-sm text-gray-500">Employer PAYE Reference</dt>
                   <dd class="text-sm font-medium text-gray-900">{{ business.paye_reference }}</dd>
                 </div>
                 <div v-if="business.tax_year_end" class="flex justify-between">
@@ -234,8 +234,8 @@
                 <h3 class="text-lg font-semibold text-purple-800 mb-4">If You Sold Today</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div>
-                    <p class="text-sm text-gray-600">Sale Price (Your Share)</p>
-                    <p class="text-xl font-bold text-gray-900">{{ formatCurrency(exitCalculation.sale_value) }}</p>
+                    <p class="text-sm text-gray-600">Sale Proceeds (Your Share)</p>
+                    <p class="text-xl font-bold text-gray-900">{{ formatCurrency(exitCalculation.user_sale_proceeds) }}</p>
                   </div>
                   <div>
                     <p class="text-sm text-gray-600">Capital Gain</p>
@@ -244,7 +244,7 @@
                     </p>
                   </div>
                   <div>
-                    <p class="text-sm text-gray-600">CGT Due</p>
+                    <p class="text-sm text-gray-600">Capital Gains Tax Due</p>
                     <p class="text-xl font-bold text-red-600">{{ formatCurrency(exitCalculation.cgt_due) }}</p>
                   </div>
                   <div>
@@ -254,7 +254,7 @@
                 </div>
               </div>
 
-              <!-- BADR Status -->
+              <!-- Business Asset Disposal Relief Status -->
               <div class="p-4 rounded-lg border" :class="exitCalculation.badr_eligible ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'">
                 <div class="flex items-center">
                   <svg v-if="exitCalculation.badr_eligible" class="w-6 h-6 text-green-600 mr-3" fill="currentColor" viewBox="0 0 20 20">
@@ -265,40 +265,63 @@
                   </svg>
                   <div>
                     <p class="font-medium" :class="exitCalculation.badr_eligible ? 'text-green-800' : 'text-gray-700'">
-                      Business Asset Disposal Relief (BADR)
+                      Business Asset Disposal Relief
                     </p>
                     <p class="text-sm" :class="exitCalculation.badr_eligible ? 'text-green-600' : 'text-gray-500'">
-                      {{ exitCalculation.badr_eligible ? 'Eligible - 10% CGT rate applies' : 'Not currently eligible - standard CGT rates apply' }}
+                      {{ exitCalculation.badr_eligible ? 'Eligible - 10% Capital Gains Tax rate applies' : 'Not currently eligible - standard Capital Gains Tax rates apply' }}
                     </p>
                   </div>
                 </div>
               </div>
 
-              <!-- CGT Breakdown -->
+              <!-- Capital Gains Tax Breakdown -->
               <div>
-                <h3 class="text-lg font-semibold text-gray-800 mb-4">CGT Calculation Breakdown</h3>
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Capital Gains Tax Calculation</h3>
                 <dl class="space-y-3">
                   <div class="flex justify-between py-2 border-b border-gray-200">
-                    <dt class="text-gray-600">Sale Value (Your Share)</dt>
-                    <dd class="font-medium">{{ formatCurrency(exitCalculation.sale_value) }}</dd>
+                    <dt class="text-gray-600">Sale Proceeds (Your Share)</dt>
+                    <dd class="font-medium">{{ formatCurrency(exitCalculation.user_sale_proceeds) }}</dd>
                   </div>
                   <div class="flex justify-between py-2 border-b border-gray-200">
-                    <dt class="text-gray-600">Less: Acquisition Cost</dt>
-                    <dd class="font-medium text-gray-900">-{{ formatCurrency(exitCalculation.acquisition_cost) }}</dd>
+                    <dt class="text-gray-600">Less: Acquisition Cost (Your Share)</dt>
+                    <dd class="font-medium text-gray-900">-{{ formatCurrency(exitCalculation.user_cost_basis) }}</dd>
                   </div>
                   <div class="flex justify-between py-2 border-b border-gray-200">
                     <dt class="text-gray-600">Capital Gain</dt>
                     <dd class="font-medium text-green-600">{{ formatCurrency(exitCalculation.capital_gain) }}</dd>
                   </div>
                   <div class="flex justify-between py-2 border-b border-gray-200">
-                    <dt class="text-gray-600">CGT Rate Applied</dt>
+                    <dt class="text-gray-600">Tax Rate Applied</dt>
                     <dd class="font-medium">{{ exitCalculation.cgt_rate }}%</dd>
                   </div>
                   <div class="flex justify-between py-2 bg-red-50 -mx-4 px-4 rounded">
-                    <dt class="font-semibold text-red-800">CGT Due</dt>
+                    <dt class="font-semibold text-red-800">Capital Gains Tax Due</dt>
                     <dd class="font-bold text-red-600">{{ formatCurrency(exitCalculation.cgt_due) }}</dd>
                   </div>
                 </dl>
+              </div>
+
+              <!-- Eligibility Reasons -->
+              <div v-if="exitCalculation.badr_reasons && exitCalculation.badr_reasons.length > 0">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Business Asset Disposal Relief Assessment</h3>
+                <ul class="space-y-2">
+                  <li v-for="(reason, index) in exitCalculation.badr_reasons" :key="index" class="flex items-start">
+                    <svg class="w-5 h-5 text-blue-500 mr-2 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="text-sm text-gray-700">{{ reason }}</span>
+                  </li>
+                </ul>
+              </div>
+
+              <!-- Business Relief Note -->
+              <div v-if="exitCalculation.bpr_note" class="p-4 rounded-lg bg-blue-50 border border-blue-200">
+                <div class="flex items-start">
+                  <svg class="w-5 h-5 text-blue-600 mr-2 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                  </svg>
+                  <span class="text-sm text-blue-800">{{ exitCalculation.bpr_note }}</span>
+                </div>
               </div>
 
               <!-- Warnings -->

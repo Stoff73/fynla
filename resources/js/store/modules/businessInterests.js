@@ -125,8 +125,10 @@ const actions = {
 
     try {
       const response = await businessInterestService.getTaxDeadlines(businessId);
-      commit('setTaxDeadlines', response.data);
-      return response.data;
+      // Extract deadlines array from nested response
+      const deadlines = response.data?.deadlines || response.deadlines || [];
+      commit('setTaxDeadlines', deadlines);
+      return deadlines;
     } catch (error) {
       const errorMessage = error.response?.data?.message || 'Failed to fetch tax deadlines';
       commit('setError', errorMessage);
@@ -142,8 +144,10 @@ const actions = {
 
     try {
       const response = await businessInterestService.getExitCalculation(businessId);
-      commit('setExitCalculation', response.data);
-      return response.data;
+      // Extract exit_calculation object from nested response
+      const exitCalc = response.data?.exit_calculation || response.exit_calculation || null;
+      commit('setExitCalculation', exitCalc);
+      return exitCalc;
     } catch (error) {
       const errorMessage = error.response?.data?.message || 'Failed to fetch exit calculation';
       commit('setError', errorMessage);

@@ -53,7 +53,7 @@
         </div>
 
         <div v-if="business.bpr_eligible" class="detail-row">
-          <span class="bpr-badge">BPR Eligible</span>
+          <span class="bpr-badge" title="May qualify for 100% Inheritance Tax relief">Business Relief Eligible</span>
         </div>
       </div>
     </div>

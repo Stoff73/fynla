@@ -14,18 +14,6 @@
       <div class="list-header">
         <h2 class="list-title">Business Interests</h2>
         <div class="list-controls">
-          <select v-model="filterType" class="filter-select">
-            <option value="all">All Businesses</option>
-            <option value="sole_trader">Sole Trader</option>
-            <option value="partnership">Partnership</option>
-            <option value="limited_company">Limited Company</option>
-            <option value="llp">LLP</option>
-          </select>
-          <select v-model="sortBy" class="sort-select">
-            <option value="value_desc">Value (High to Low)</option>
-            <option value="value_asc">Value (Low to High)</option>
-            <option value="name">Business Name</option>
-          </select>
           <button @click="openAddModal" class="add-button">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -121,8 +109,6 @@ export default {
 
   data() {
     return {
-      filterType: 'all',
-      sortBy: 'value_desc',
       showFormModal: false,
       showDeleteConfirm: false,
       editingBusiness: null,
@@ -136,23 +122,7 @@ export default {
     ...mapGetters('businessInterests', ['totalBusinessValue']),
 
     filteredBusinesses() {
-      let filtered = [...this.businesses];
-
-      // Apply filter
-      if (this.filterType !== 'all') {
-        filtered = filtered.filter(b => b.business_type === this.filterType);
-      }
-
-      // Apply sort
-      if (this.sortBy === 'value_desc') {
-        filtered.sort((a, b) => (b.user_share || b.current_valuation || 0) - (a.user_share || a.current_valuation || 0));
-      } else if (this.sortBy === 'value_asc') {
-        filtered.sort((a, b) => (a.user_share || a.current_valuation || 0) - (b.user_share || b.current_valuation || 0));
-      } else if (this.sortBy === 'name') {
-        filtered.sort((a, b) => (a.business_name || '').localeCompare(b.business_name || ''));
-      }
-
-      return filtered;
+      return [...this.businesses];
     },
 
     totalValue() {
@@ -272,24 +242,6 @@ export default {
   display: flex;
   gap: 12px;
   align-items: center;
-}
-
-.filter-select,
-.sort-select {
-  padding: 8px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 14px;
-  color: #374151;
-  background: white;
-  cursor: pointer;
-}
-
-.filter-select:focus,
-.sort-select:focus {
-  outline: none;
-  border-color: #a21caf;
-  box-shadow: 0 0 0 3px rgba(162, 28, 175, 0.1);
 }
 
 .add-button {
@@ -446,8 +398,6 @@ export default {
     flex-direction: column;
   }
 
-  .filter-select,
-  .sort-select,
   .add-button {
     width: 100%;
     justify-content: center;
