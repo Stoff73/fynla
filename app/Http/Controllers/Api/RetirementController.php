@@ -16,6 +16,7 @@ use App\Models\DCPension;
 use App\Models\RetirementProfile;
 use App\Models\StatePension;
 use App\Services\Retirement\AnnualAllowanceChecker;
+use App\Services\Retirement\RetirementIncomeService;
 use App\Services\Retirement\RetirementProjectionService;
 use App\Services\Retirement\RetirementStrategyService;
 use Illuminate\Http\JsonResponse;
@@ -34,7 +35,8 @@ class RetirementController extends Controller
         private RetirementAgent $agent,
         private AnnualAllowanceChecker $allowanceChecker,
         private RetirementProjectionService $projectionService,
-        private RetirementStrategyService $strategyService
+        private RetirementStrategyService $strategyService,
+        private RetirementIncomeService $retirementIncomeService
     ) {}
 
     /**
@@ -460,6 +462,77 @@ class RetirementController extends Controller
             'success' => true,
             'message' => 'Strategy impact calculated successfully',
             'data' => $impact,
+        ]);
+    }
+
+    /**
+     * Get retirement income configuration with default tax-optimized allocations.
+     */
+    public function getRetirementIncome(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $includeSpouse = $request->boolean('include_spouse', false);
+
+        $data = $this->retirementIncomeService->getRetirementIncomeConfig($user->id, $includeSpouse);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Retirement income configuration retrieved successfully',
+            'data' => $data,
+        ]);
+    }
+
+    /**
+     * Calculate retirement income based on user-specified allocations.
+     */
+    public function calculateRetirementIncome(Request $request): JsonResponse
+    {
+        $request->validate([
+            'income_allocations' => 'required|array',
+            'income_allocations.*.source_type' => 'required|string',
+            'income_allocations.*.source_id' => 'required|integer',
+            'income_allocations.*.annual_amount' => 'required|numeric|min:0',
+            'income_allocations.*.tax_treatment' => 'nullable|string',
+            'income_allocations.*.name' => 'nullable|string',
+            'include_spouse' => 'boolean',
+            'custom_target_income' => 'nullable|numeric|min:0',
+        ]);
+
+        $user = $request->user();
+        $allocations = $request->input('income_allocations');
+        $customTargetIncome = $request->input('custom_target_income');
+        $includeSpouse = $request->boolean('include_spouse', false);
+
+        $data = $this->retirementIncomeService->calculateIncomeScenario(
+            $user->id,
+            $allocations,
+            $customTargetIncome,
+            $includeSpouse
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Retirement income calculated successfully',
+            'data' => $data,
+        ]);
+    }
+
+    /**
+     * Get available accounts for retirement income.
+     */
+    public function getIncomeAccounts(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $includeSpouse = $request->boolean('include_spouse', false);
+
+        $accounts = $this->retirementIncomeService->getAvailableAccounts($user->id, $includeSpouse);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Income accounts retrieved successfully',
+            'data' => [
+                'accounts' => $accounts,
+            ],
         ]);
     }
 

@@ -196,6 +196,9 @@
 
       <!-- Strategies Tab -->
       <StrategiesTab v-else-if="activeTab === 'strategies'" />
+
+      <!-- Retirement Income Tab -->
+      <RetirementIncomeTab v-else-if="activeTab === 'income'" />
     </template>
 
     <!-- Pension Form Modal -->
@@ -235,6 +238,7 @@ import DocumentUploadModal from '@/components/Shared/DocumentUploadModal.vue';
 import RiskBadge from '@/components/Shared/RiskBadge.vue';
 import FutureValueTab from '@/components/Retirement/FutureValueTab.vue';
 import StrategiesTab from '@/components/Retirement/StrategiesTab.vue';
+import RetirementIncomeTab from '@/components/Retirement/RetirementIncomeTab.vue';
 
 export default {
   name: 'PensionList',
@@ -246,6 +250,7 @@ export default {
     RiskBadge,
     FutureValueTab,
     StrategiesTab,
+    RetirementIncomeTab,
   },
 
   data() {
@@ -255,6 +260,7 @@ export default {
         { id: 'current', label: 'Pensions' },
         { id: 'future', label: 'Future Value' },
         { id: 'strategies', label: 'Strategies' },
+        { id: 'income', label: 'Retirement Income' },
       ],
       selectedPension: null,
       selectedPensionType: null,

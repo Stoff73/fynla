@@ -127,4 +127,43 @@ export default {
         const response = await api.post(`${API_BASE}/state-pension`, data);
         return response.data;
     },
+
+    // Retirement Income (Decumulation) endpoints
+
+    /**
+     * Get retirement income configuration with default allocations
+     * @param {boolean} includeSpouse - Include spouse's assets
+     */
+    async getRetirementIncome(includeSpouse = false) {
+        const response = await api.get(`${API_BASE}/income`, {
+            params: { include_spouse: includeSpouse },
+        });
+        return response.data;
+    },
+
+    /**
+     * Calculate retirement income based on user allocations
+     * @param {Array} allocations - Income allocations from sliders
+     * @param {boolean} includeSpouse - Include spouse's assets
+     * @param {number|null} customTargetIncome - Custom target income override
+     */
+    async calculateRetirementIncome(allocations, includeSpouse = false, customTargetIncome = null) {
+        const response = await api.post(`${API_BASE}/income/calculate`, {
+            income_allocations: allocations,
+            include_spouse: includeSpouse,
+            custom_target_income: customTargetIncome,
+        });
+        return response.data;
+    },
+
+    /**
+     * Get all accounts eligible for retirement income
+     * @param {boolean} includeSpouse - Include spouse's assets
+     */
+    async getIncomeAccounts(includeSpouse = false) {
+        const response = await api.get(`${API_BASE}/income/accounts`, {
+            params: { include_spouse: includeSpouse },
+        });
+        return response.data;
+    },
 };

@@ -23,6 +23,13 @@ const state = {
     strategies: null, // Retirement strategies for Strategies tab
     strategiesLoading: false,
     strategyImpact: null, // Impact calculation for slider interaction
+    // Retirement Income (Decumulation) state
+    retirementIncome: null, // Full income configuration from API
+    retirementIncomeLoading: false,
+    incomeAccounts: [], // Available accounts for income selection
+    incomeAllocations: [], // User's current allocations from sliders
+    includeSpouseAssets: false, // Toggle for spouse's assets
+    customTargetIncome: null, // Custom target income override
     loading: false,
     error: null,
 };
@@ -102,6 +109,33 @@ const mutations = {
     },
     SET_STRATEGY_IMPACT(state, impact) {
         state.strategyImpact = impact;
+    },
+    // Retirement Income (Decumulation) mutations
+    SET_RETIREMENT_INCOME(state, data) {
+        state.retirementIncome = data;
+    },
+    SET_RETIREMENT_INCOME_LOADING(state, loading) {
+        state.retirementIncomeLoading = loading;
+    },
+    SET_INCOME_ACCOUNTS(state, accounts) {
+        state.incomeAccounts = accounts;
+    },
+    SET_INCOME_ALLOCATIONS(state, allocations) {
+        state.incomeAllocations = allocations;
+    },
+    UPDATE_INCOME_ALLOCATION(state, { sourceType, sourceId, amount }) {
+        const index = state.incomeAllocations.findIndex(
+            a => a.source_type === sourceType && a.source_id === sourceId
+        );
+        if (index !== -1) {
+            state.incomeAllocations[index].annual_amount = amount;
+        }
+    },
+    SET_INCLUDE_SPOUSE_ASSETS(state, include) {
+        state.includeSpouseAssets = include;
+    },
+    SET_CUSTOM_TARGET_INCOME(state, amount) {
+        state.customTargetIncome = amount;
     },
 };
 
@@ -437,6 +471,75 @@ const actions = {
             throw error;
         }
     },
+
+    // Retirement Income (Decumulation) Actions
+    async fetchRetirementIncome({ commit, state }) {
+        commit('SET_RETIREMENT_INCOME_LOADING', true);
+        commit('SET_ERROR', null);
+        try {
+            const response = await retirementService.getRetirementIncome(state.includeSpouseAssets);
+            commit('SET_RETIREMENT_INCOME', response.data);
+            // Initialize allocations from API response
+            if (response.data?.allocations && response.data.allocations.length > 0) {
+                commit('SET_INCOME_ALLOCATIONS', response.data.allocations);
+            }
+            return response.data;
+        } catch (error) {
+            commit('SET_ERROR', error.response?.data?.message || 'Failed to fetch retirement income');
+            throw error;
+        } finally {
+            commit('SET_RETIREMENT_INCOME_LOADING', false);
+        }
+    },
+
+    async calculateRetirementIncome({ commit, state }) {
+        commit('SET_RETIREMENT_INCOME_LOADING', true);
+        commit('SET_ERROR', null);
+        try {
+            const response = await retirementService.calculateRetirementIncome(
+                state.incomeAllocations,
+                state.includeSpouseAssets,
+                state.customTargetIncome
+            );
+            commit('SET_RETIREMENT_INCOME', response.data);
+            return response.data;
+        } catch (error) {
+            commit('SET_ERROR', error.response?.data?.message || 'Failed to calculate retirement income');
+            throw error;
+        } finally {
+            commit('SET_RETIREMENT_INCOME_LOADING', false);
+        }
+    },
+
+    async fetchIncomeAccounts({ commit, state }) {
+        commit('SET_ERROR', null);
+        try {
+            const response = await retirementService.getIncomeAccounts(state.includeSpouseAssets);
+            commit('SET_INCOME_ACCOUNTS', response.data?.accounts || []);
+            return response.data;
+        } catch (error) {
+            commit('SET_ERROR', error.response?.data?.message || 'Failed to fetch income accounts');
+            throw error;
+        }
+    },
+
+    updateIncomeAllocation({ commit, dispatch }, { sourceType, sourceId, amount }) {
+        commit('UPDATE_INCOME_ALLOCATION', { sourceType, sourceId, amount });
+        // Debounced recalculation will be handled by the component
+    },
+
+    async toggleSpouseAssets({ commit, dispatch }, include) {
+        commit('SET_INCLUDE_SPOUSE_ASSETS', include);
+        // Reload accounts and income config with new setting
+        await Promise.all([
+            dispatch('fetchIncomeAccounts'),
+            dispatch('fetchRetirementIncome'),
+        ]);
+    },
+
+    setCustomTargetIncome({ commit }, amount) {
+        commit('SET_CUSTOM_TARGET_INCOME', amount);
+    },
 };
 
 const getters = {
@@ -516,6 +619,22 @@ const getters = {
     // Direct state accessors for risk profile page
     dcPensions: (state) => state.dcPensions,
     dbPensions: (state) => state.dbPensions,
+
+    // Retirement Income (Decumulation) Getters
+    retirementIncomeData: (state) => state.retirementIncome,
+    retirementIncomeLoading: (state) => state.retirementIncomeLoading,
+    incomeAccounts: (state) => state.incomeAccounts,
+    incomeAllocations: (state) => state.incomeAllocations,
+    includeSpouseAssets: (state) => state.includeSpouseAssets,
+    customTargetIncome: (state) => state.customTargetIncome,
+
+    // Computed income values from API response
+    retirementIncomeTargetIncome: (state) => state.retirementIncome?.target_income || 0,
+    retirementIncomeNetIncome: (state) => state.retirementIncome?.tax_breakdown?.net_income || 0,
+    retirementIncomeTaxBreakdown: (state) => state.retirementIncome?.tax_breakdown || null,
+    retirementIncomeFundProjections: (state) => state.retirementIncome?.fund_projections || [],
+    retirementIncomeDepletionAges: (state) => state.retirementIncome?.depletion_ages || {},
+    retirementIncomeAvailableAccounts: (state) => state.retirementIncome?.available_accounts || [],
 };
 
 export default {

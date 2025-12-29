@@ -730,6 +730,11 @@ Route::middleware('auth:sanctum')->prefix('retirement')->group(function () {
     Route::get('/strategies', [RetirementController::class, 'getStrategies']);
     Route::get('/strategies/impact', [RetirementController::class, 'calculateStrategyImpact']);
 
+    // Retirement income (tax-optimized drawdown)
+    Route::get('/income', [RetirementController::class, 'getRetirementIncome']);
+    Route::post('/income/calculate', [RetirementController::class, 'calculateRetirementIncome']);
+    Route::get('/income/accounts', [RetirementController::class, 'getIncomeAccounts']);
+
     // DC pensions
     Route::prefix('pensions/dc')->group(function () {
         Route::post('/', [RetirementController::class, 'storeDCPension']);
