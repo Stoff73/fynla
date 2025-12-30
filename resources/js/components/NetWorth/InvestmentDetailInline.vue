@@ -57,18 +57,18 @@
             </p>
           </div>
           <div class="bg-gray-50 rounded-lg p-4">
-            <p class="text-sm text-gray-600">Annualised Return</p>
+            <p class="text-sm text-gray-600">{{ canAnnualize ? 'Annualised Return' : 'Total Return' }}</p>
             <div class="flex items-baseline gap-2">
               <p class="text-2xl font-bold" :class="getReturnColorClass(grossReturnPercent)">
                 {{ formatReturnPercent(grossReturnPercent) }}
               </p>
-              <span class="text-xs text-gray-500">p.a. gross</span>
+              <span class="text-xs text-gray-500">{{ canAnnualize ? 'p.a. gross' : 'gross' }}</span>
             </div>
             <div v-if="grossReturnPercent !== null" class="mt-1 flex items-baseline gap-2">
               <p class="text-lg font-semibold" :class="getReturnColorClass(netReturnPercent)">
                 {{ formatReturnPercent(netReturnPercent) }}
               </p>
-              <span class="text-xs text-gray-500">p.a. net of {{ formatPercentage(totalFeePercent) }} fees</span>
+              <span class="text-xs text-gray-500">{{ canAnnualize ? 'p.a. ' : '' }}net of {{ formatPercentage(totalFeePercent) }} fees</span>
             </div>
           </div>
           <div class="bg-gray-50 rounded-lg p-4">
@@ -289,13 +289,13 @@ export default {
       return this.account.holdings.reduce((sum, h) => sum + (h.current_value || 0), 0);
     },
 
-    // Calculate weighted average holding period in years
+    // Calculate weighted average holding period in years (null if no dates available)
     weightedHoldingPeriodYears() {
-      if (!this.account.holdings?.length || this.totalHoldingsValue === 0) return 1;
+      if (!this.account.holdings?.length || this.totalHoldingsValue === 0) return null;
 
       const now = new Date();
       let weightedDays = 0;
-      let hasValidDates = false;
+      let valueWithDates = 0;
 
       this.account.holdings.forEach(h => {
         if (h.purchase_date && h.current_value) {
@@ -303,39 +303,52 @@ export default {
           const daysDiff = (now - purchaseDate) / (1000 * 60 * 60 * 24);
           if (daysDiff > 0) {
             weightedDays += daysDiff * h.current_value;
-            hasValidDates = true;
+            valueWithDates += h.current_value;
           }
         }
       });
 
-      if (!hasValidDates) return 1;
+      // Need at least 50% of portfolio value with dates to annualize
+      if (valueWithDates < this.totalHoldingsValue * 0.5) return null;
 
-      const avgDays = weightedDays / this.totalHoldingsValue;
+      const avgDays = weightedDays / valueWithDates;
       const years = avgDays / 365.25;
 
       // Minimum 30 days (about 1 month) for sensible annualization
       return Math.max(years, 30 / 365.25);
     },
 
-    // Annualized gross return percentage
-    grossReturnPercent() {
-      if (!this.totalCostBasis || this.totalCostBasis === 0) return null;
+    // Check if we can show annualized return
+    canAnnualize() {
+      return this.weightedHoldingPeriodYears !== null;
+    },
 
-      const totalReturn = (this.totalHoldingsValue - this.totalCostBasis) / this.totalCostBasis;
+    // Total return percentage (not annualized)
+    totalReturnPercent() {
+      if (!this.totalCostBasis || this.totalCostBasis === 0) return null;
+      return ((this.totalHoldingsValue - this.totalCostBasis) / this.totalCostBasis) * 100;
+    },
+
+    // Annualized gross return percentage (or total return if no dates)
+    grossReturnPercent() {
+      if (this.totalReturnPercent === null) return null;
+
       const years = this.weightedHoldingPeriodYears;
+
+      // If no valid dates, return total return (not annualized)
+      if (years === null) {
+        return this.totalReturnPercent;
+      }
+
+      const totalReturn = this.totalReturnPercent / 100;
 
       // For very short periods (< 3 months), use simple linear extrapolation
       // For longer periods, use compound annualization
-      let annualizedReturn;
       if (years < 0.25) {
-        // Simple linear: return / years
-        annualizedReturn = (totalReturn / years) * 100;
+        return (totalReturn / years) * 100;
       } else {
-        // Compound: ((1 + total_return)^(1/years) - 1) * 100
-        annualizedReturn = (Math.pow(1 + totalReturn, 1 / years) - 1) * 100;
+        return (Math.pow(1 + totalReturn, 1 / years) - 1) * 100;
       }
-
-      return annualizedReturn;
     },
 
     // Total fee percentage (matching Fees tab calculation)
