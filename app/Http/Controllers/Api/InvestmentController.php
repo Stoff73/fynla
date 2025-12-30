@@ -187,6 +187,9 @@ class InvestmentController extends Controller
                     'message' => 'Monte Carlo simulation started',
                 ],
             ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Re-throw validation exceptions to let Laravel handle them (422 response)
+            throw $e;
         } catch (\Exception $e) {
             \Log::error('Monte Carlo error: '.$e->getMessage(), [
                 'trace' => $e->getTraceAsString(),
@@ -473,6 +476,11 @@ class InvestmentController extends Controller
         $account = InvestmentAccount::where('id', $validated['investment_account_id'])
             ->where('user_id', $user->id)
             ->firstOrFail();
+
+        // Set polymorphic relationship fields
+        $validated['holdable_type'] = InvestmentAccount::class;
+        $validated['holdable_id'] = $validated['investment_account_id'];
+        unset($validated['investment_account_id']);
 
         // Calculate cost_basis if purchase price is provided
         if (isset($validated['purchase_price']) && isset($validated['current_price'])) {

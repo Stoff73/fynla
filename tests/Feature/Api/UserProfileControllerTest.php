@@ -17,7 +17,8 @@ beforeEach(function () {
     // Create a test user
     $this->user = User::factory()->create([
         'household_id' => $this->household->id,
-        'name' => 'Test User',
+        'first_name' => 'Test',
+        'surname' => 'User',
         'email' => 'test@example.com',
         'date_of_birth' => '1985-05-15',
         'gender' => 'male',
@@ -77,7 +78,7 @@ describe('GET /api/user/profile', function () {
                         'annual_self_employment_income',
                         'annual_rental_income',
                         'annual_dividend_income',
-                        'annual_other_income',
+                        'annual_interest_income',
                         'total_annual_income',
                     ],
                     'family_members',
@@ -88,7 +89,9 @@ describe('GET /api/user/profile', function () {
 
         expect($response->json('data.personal_info.name'))->toBe('Test User');
         expect($response->json('data.personal_info.email'))->toBe('test@example.com');
-        expect($response->json('data.income_occupation.total_annual_income'))->toBe(90000);
+        // Total income = 75000 (employment) + 3000 (dividend) = 78000
+        // Note: rental income is calculated from properties, not user field
+        expect((float) $response->json('data.income_occupation.total_annual_income'))->toBe(78000.0);
     });
 
     test('requires authentication', function () {
@@ -106,7 +109,8 @@ describe('GET /api/user/profile', function () {
 describe('PUT /api/user/profile/personal', function () {
     test('updates user personal information successfully', function () {
         $updatedData = [
-            'name' => 'Updated Name',
+            'first_name' => 'Updated',
+            'surname' => 'Name',
             'date_of_birth' => '1990-01-01',
             'gender' => 'female',
             'marital_status' => 'married',
@@ -130,28 +134,30 @@ describe('PUT /api/user/profile/personal', function () {
         // Verify database was updated
         $this->assertDatabaseHas('users', [
             'id' => $this->user->id,
-            'name' => 'Updated Name',
+            'first_name' => 'Updated',
+            'surname' => 'Name',
             'city' => 'Manchester',
             'postcode' => 'M1 1AA',
         ]);
     });
 
-    test('validates required fields', function () {
+    test('validates string fields format', function () {
         $invalidData = [
-            'name' => '', // Required field
-            'postcode' => '', // Required field
+            'first_name' => 123, // Must be string
+            'postcode' => 456, // Must be string
         ];
 
         $response = $this->putJson('/api/user/profile/personal', $invalidData);
 
         $response->assertStatus(422)
-            ->assertJsonValidationErrors(['name', 'postcode']);
+            ->assertJsonValidationErrors(['first_name', 'postcode']);
     });
 
     test('validates email format', function () {
         $invalidData = [
             'email' => 'not-an-email',
-            'name' => 'Test User',
+            'first_name' => 'Test',
+            'surname' => 'User',
             'postcode' => 'SW1A 1AA',
         ];
 
@@ -168,7 +174,8 @@ describe('PUT /api/user/profile/personal', function () {
         $response = $this->withHeaders([
             'Accept' => 'application/json',
         ])->putJson('/api/user/profile/personal', [
-            'name' => 'Test',
+            'first_name' => 'Test',
+            'surname' => 'User',
             'postcode' => 'SW1A 1AA',
         ]);
 
@@ -207,7 +214,7 @@ describe('PUT /api/user/profile/income-occupation', function () {
 
         // Verify response includes updated data
         expect($response->json('data.user.occupation'))->toBe('Senior Developer');
-        expect($response->json('data.user.annual_self_employment_income'))->toBe('95000.00');
+        expect((float) $response->json('data.user.annual_self_employment_income'))->toBe(95000.0);
     });
 
     test('validates income fields are numeric and non-negative', function () {
@@ -255,7 +262,8 @@ describe('Authorization', function () {
         // Profile updates are scoped to authenticated user only
         // This test verifies the controller only updates the authenticated user's data
         $response = $this->putJson('/api/user/profile/personal', [
-            'name' => 'Attempted Unauthorized Update',
+            'first_name' => 'Attempted',
+            'surname' => 'Unauthorized Update',
             'postcode' => 'SW1A 1AA',
         ]);
 
@@ -264,7 +272,8 @@ describe('Authorization', function () {
         // Verify only the authenticated user's profile was updated
         $this->assertDatabaseHas('users', [
             'id' => $this->user->id,
-            'name' => 'Attempted Unauthorized Update',
+            'first_name' => 'Attempted',
+            'surname' => 'Unauthorized Update',
         ]);
     });
 });

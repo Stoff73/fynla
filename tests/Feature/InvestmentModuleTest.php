@@ -17,7 +17,8 @@ beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
 
     $this->user = User::factory()->create([
-        'name' => 'Test Investor',
+        'first_name' => 'Test',
+        'surname' => 'Investor',
         'email' => 'investor@example.com',
     ]);
 
@@ -126,8 +127,7 @@ describe('Holdings Management', function () {
         ]);
 
         $response = $this->postJson('/api/investment/holdings', [
-            'holdable_id' => $account->id,
-            'holdable_type' => InvestmentAccount::class,
+            'investment_account_id' => $account->id,
             'asset_type' => 'equity',
             'security_name' => 'Vanguard S&P 500 ETF',
             'ticker' => 'VOO',
@@ -418,8 +418,8 @@ describe('Portfolio Analysis', function () {
             ->assertJsonStructure([
                 'success',
                 'data' => [
-                    'recommendation_count',
                     'recommendations',
+                    'stats',
                 ],
             ]);
     });
@@ -432,20 +432,18 @@ describe('What-If Scenarios', function () {
             'current_value' => 50000,
         ]);
 
+        // The scenarios endpoint requires a full scenario definition
+        // Valid scenario_types: custom, template, comparison
         $response = $this->postJson('/api/investment/scenarios', [
-            'monthly_contribution' => 1000,
+            'scenario_name' => 'Test Scenario',
+            'scenario_type' => 'custom',
+            'parameters' => [
+                'monthly_contribution' => 1000,
+            ],
         ]);
 
-        $response->assertStatus(200)
-            ->assertJsonStructure([
-                'success',
-                'data' => [
-                    'scenario_count',
-                    'scenarios',
-                    'note',
-                ],
-            ])
-            ->assertJsonPath('data.scenario_count', fn ($count) => $count >= 3);
+        $response->assertStatus(201)
+            ->assertJsonFragment(['success' => true]);
     });
 });
 

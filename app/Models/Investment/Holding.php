@@ -54,12 +54,20 @@ class Holding extends Model
     /**
      * Investment account relationship (for backward compatibility)
      *
-     * @deprecated Use holdable() instead
+     * This works with whereHas queries properly by not constraining with where clause.
+     * The holdable_type check is done via scope instead.
      */
     public function investmentAccount(): BelongsTo
     {
-        return $this->belongsTo(InvestmentAccount::class, 'holdable_id')
-            ->where('holdable_type', InvestmentAccount::class);
+        return $this->belongsTo(InvestmentAccount::class, 'holdable_id');
+    }
+
+    /**
+     * Scope for holdings belonging to investment accounts
+     */
+    public function scopeForInvestmentAccounts($query)
+    {
+        return $query->where('holdable_type', InvestmentAccount::class);
     }
 
     /**

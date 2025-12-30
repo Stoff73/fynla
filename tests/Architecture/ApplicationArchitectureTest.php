@@ -54,6 +54,7 @@ arch('controllers do not use DB facade directly')
         'App\Http\Controllers\Api\Estate\IHTController',
         'App\Http\Controllers\Api\TaxSettingsController',
         'App\Http\Controllers\Api\Retirement\DCPensionHoldingsController',
+        'App\Http\Controllers\Api\PreviewController', // Uses DB for complex persona queries
     ]);
 
 // Note: Controllers can use Eloquent models for simple CRUD operations

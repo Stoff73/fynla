@@ -53,6 +53,8 @@ beforeEach(function () {
             'higher_rate' => 33.75,
             'additional_rate' => 39.35,
         ]);
+    $mockTaxConfig->shouldReceive('getTaxYear')
+        ->andReturn('2025/26');
 
     $taxCalculator = new UKTaxCalculator($mockTaxConfig);
     $this->service = new UserProfileService($aggregator, $taxCalculator);
@@ -63,7 +65,9 @@ beforeEach(function () {
     // Create a test user
     $this->user = User::factory()->create([
         'household_id' => $this->household->id,
-        'name' => 'Test User',
+        'first_name' => 'Test',
+        'middle_name' => null,
+        'surname' => 'User',
         'email' => 'test@example.com',
         'date_of_birth' => '1985-05-15',
         'gender' => 'male',
@@ -203,7 +207,8 @@ describe('getCompleteProfile', function () {
 describe('updatePersonalInfo', function () {
     test('updates personal information successfully', function () {
         $updateData = [
-            'name' => 'Updated Name',
+            'first_name' => 'Updated',
+            'surname' => 'Person',
             'date_of_birth' => '1990-01-01',
             'gender' => 'female',
             'marital_status' => 'married',
@@ -212,14 +217,16 @@ describe('updatePersonalInfo', function () {
 
         $updatedUser = $this->service->updatePersonalInfo($this->user, $updateData);
 
-        expect($updatedUser->name)->toBe('Updated Name');
+        expect($updatedUser->first_name)->toBe('Updated');
+        expect($updatedUser->surname)->toBe('Person');
         expect($updatedUser->date_of_birth->format('Y-m-d'))->toBe('1990-01-01');
         expect($updatedUser->city)->toBe('Manchester');
     });
 
     test('persists updated information to database', function () {
         $updateData = [
-            'name' => 'Database Test User',
+            'first_name' => 'Database',
+            'surname' => 'TestUser',
             'city' => 'Birmingham',
         ];
 
@@ -228,12 +235,13 @@ describe('updatePersonalInfo', function () {
         // Refresh user from database
         $this->user->refresh();
 
-        expect($this->user->name)->toBe('Database Test User');
+        expect($this->user->first_name)->toBe('Database');
+        expect($this->user->surname)->toBe('TestUser');
         expect($this->user->city)->toBe('Birmingham');
     });
 
     test('returns updated User model', function () {
-        $updateData = ['name' => 'Test'];
+        $updateData = ['first_name' => 'Changed'];
 
         $result = $this->service->updatePersonalInfo($this->user, $updateData);
 
