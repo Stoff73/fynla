@@ -117,29 +117,23 @@
             @open-holding-modal="openHoldingModal"
           />
 
-          <!-- Performance Tab (Coming Soon) -->
-          <div v-else-if="activeTab === 'performance'" class="relative">
-            <div class="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-              <div class="bg-amber-100 border-2 border-amber-400 rounded-lg px-8 py-4 transform -rotate-12 shadow-lg">
-                <p class="text-2xl font-bold text-amber-700">Coming Soon</p>
-              </div>
-            </div>
-            <div class="opacity-50">
-              <AccountPerformancePanel :account="account" />
-            </div>
-          </div>
+          <!-- Performance Tab -->
+          <AccountPerformancePanel
+            v-else-if="activeTab === 'performance'"
+            :account="account"
+          />
 
-          <!-- Fees Tab (Coming Soon) -->
-          <div v-else-if="activeTab === 'fees'" class="relative">
-            <div class="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-              <div class="bg-amber-100 border-2 border-amber-400 rounded-lg px-8 py-4 transform -rotate-12 shadow-lg">
-                <p class="text-2xl font-bold text-amber-700">Coming Soon</p>
-              </div>
-            </div>
-            <div class="opacity-50">
-              <AccountFeesPanel :account="account" />
-            </div>
-          </div>
+          <!-- Rebalancing Tab -->
+          <AccountRebalancingPanel
+            v-else-if="activeTab === 'rebalancing'"
+            :account="account"
+          />
+
+          <!-- Fees Tab -->
+          <AccountFeesPanel
+            v-else-if="activeTab === 'fees'"
+            :account="account"
+          />
 
           <!-- Tax Status Tab -->
           <TaxStatusPanel
@@ -198,6 +192,7 @@ import AccountSummaryPanel from '@/views/Investment/AccountSummaryPanel.vue';
 import AccountHoldingsPanel from '@/views/Investment/AccountHoldingsPanel.vue';
 import AccountPerformancePanel from '@/views/Investment/AccountPerformancePanel.vue';
 import AccountFeesPanel from '@/views/Investment/AccountFeesPanel.vue';
+import AccountRebalancingPanel from '@/views/Investment/AccountRebalancingPanel.vue';
 import HoldingForm from '@/components/Investment/HoldingForm.vue';
 import TaxStatusPanel from '@/components/Common/TaxStatusPanel.vue';
 import { TAX_CONFIG } from '@/constants/taxConfig';
@@ -214,6 +209,7 @@ export default {
     AccountHoldingsPanel,
     AccountPerformancePanel,
     AccountFeesPanel,
+    AccountRebalancingPanel,
     HoldingForm,
     TaxStatusPanel,
   },
@@ -244,6 +240,7 @@ export default {
         { id: 'overview', label: 'Overview' },
         { id: 'holdings', label: 'Holdings' },
         { id: 'performance', label: 'Performance' },
+        { id: 'rebalancing', label: 'Rebalancing' },
         { id: 'fees', label: 'Fees' },
         { id: 'tax-status', label: 'Tax Status' },
         { id: 'documents', label: 'Documents' },

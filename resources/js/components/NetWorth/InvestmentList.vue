@@ -171,12 +171,7 @@
           />
 
           <!-- Performance Tab -->
-          <div v-else-if="activePortfolioTab === 'performance'">
-            <Performance />
-            <div class="mt-8">
-              <PerformanceAttribution />
-            </div>
-          </div>
+          <Performance v-else-if="activePortfolioTab === 'performance'" />
 
           <!-- Optimisation Tab (Coming Soon) -->
           <div v-else-if="activePortfolioTab === 'optimization'" class="coming-soon-wrapper">
@@ -185,16 +180,6 @@
             </div>
             <div class="opacity-50">
               <PortfolioOptimization />
-            </div>
-          </div>
-
-          <!-- Rebalancing Tab (Coming Soon) -->
-          <div v-else-if="activePortfolioTab === 'rebalancing'" class="coming-soon-wrapper">
-            <div class="coming-soon-banner">
-              <p class="text-2xl font-bold text-amber-700">Coming Soon</p>
-            </div>
-            <div class="opacity-50">
-              <RebalancingCalculator />
             </div>
           </div>
 
@@ -211,41 +196,17 @@
             </div>
           </div>
 
-          <!-- Tax Efficiency Tab (Coming Soon) -->
-          <div v-else-if="activePortfolioTab === 'taxefficiency'" class="coming-soon-wrapper">
-            <div class="coming-soon-banner">
-              <p class="text-2xl font-bold text-amber-700">Coming Soon</p>
-            </div>
-            <div class="opacity-50">
-              <AssetLocationOptimizer />
-              <div class="mt-8">
-                <WrapperOptimizer />
-              </div>
-            </div>
-          </div>
+          <!-- Tax Efficiency Tab -->
+          <TaxEfficiencyPanel v-else-if="activePortfolioTab === 'taxefficiency'" />
 
-          <!-- Fees Tab (Coming Soon) -->
-          <div v-else-if="activePortfolioTab === 'fees'" class="coming-soon-wrapper">
-            <div class="coming-soon-banner">
-              <p class="text-2xl font-bold text-amber-700">Coming Soon</p>
-            </div>
-            <div class="opacity-50">
-              <FeeBreakdown />
-              <div class="mt-8">
-                <FeeSavingsCalculator />
-              </div>
-            </div>
-          </div>
+          <!-- Fees Tab -->
+          <FeeBreakdown v-else-if="activePortfolioTab === 'fees'" />
 
-          <!-- Strategy Tab (Coming Soon) -->
-          <div v-else-if="activePortfolioTab === 'recommendations'" class="coming-soon-wrapper">
-            <div class="coming-soon-banner">
-              <p class="text-2xl font-bold text-amber-700">Coming Soon</p>
-            </div>
-            <div class="opacity-50">
-              <Recommendations />
-            </div>
-          </div>
+          <!-- Strategy Tab -->
+          <PortfolioStrategyPanel
+            v-else-if="activePortfolioTab === 'recommendations'"
+            @navigate="handleStrategyNavigate"
+          />
         </div>
       </div>
     </template>
@@ -286,16 +247,14 @@ import DocumentUploadModal from '@/components/Shared/DocumentUploadModal.vue';
 import RiskBadge from '@/components/Shared/RiskBadge.vue';
 import Holdings from '@/components/Investment/Holdings.vue';
 import Performance from '@/components/Investment/Performance.vue';
-import PerformanceAttribution from '@/components/Investment/PerformanceAttribution.vue';
 import PortfolioOptimization from '@/components/Investment/PortfolioOptimization.vue';
-import RebalancingCalculator from '@/components/Investment/RebalancingCalculator.vue';
 import Goals from '@/components/Investment/Goals.vue';
 import GoalProjection from '@/components/Investment/GoalProjection.vue';
 import AssetLocationOptimizer from '@/components/Investment/AssetLocationOptimizer.vue';
 import WrapperOptimizer from '@/components/Investment/WrapperOptimizer.vue';
 import FeeBreakdown from '@/components/Investment/FeeBreakdown.vue';
-import FeeSavingsCalculator from '@/components/Investment/FeeSavingsCalculator.vue';
-import Recommendations from '@/components/Investment/Recommendations.vue';
+import TaxEfficiencyPanel from '@/components/Investment/TaxEfficiencyPanel.vue';
+import PortfolioStrategyPanel from '@/views/Investment/PortfolioStrategyPanel.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
@@ -310,16 +269,14 @@ export default {
     RiskBadge,
     Holdings,
     Performance,
-    PerformanceAttribution,
     PortfolioOptimization,
-    RebalancingCalculator,
     Goals,
     GoalProjection,
     AssetLocationOptimizer,
     WrapperOptimizer,
     FeeBreakdown,
-    FeeSavingsCalculator,
-    Recommendations,
+    TaxEfficiencyPanel,
+    PortfolioStrategyPanel,
   },
 
   data() {
@@ -335,7 +292,6 @@ export default {
         { id: 'holdings', label: 'Holdings' },
         { id: 'performance', label: 'Performance' },
         { id: 'optimization', label: 'Optimisation' },
-        { id: 'rebalancing', label: 'Rebalancing' },
         { id: 'goals', label: 'Goals' },
         { id: 'taxefficiency', label: 'Tax Efficiency' },
         { id: 'fees', label: 'Fees' },
@@ -369,6 +325,18 @@ export default {
     selectAccount(account) {
       this.selectedAccount = account;
       this.setDetailView(true);
+    },
+
+    handleStrategyNavigate(tab) {
+      // Navigate to another tab from strategy panel
+      const tabMap = {
+        fees: 'fees',
+        rebalancing: 'holdings', // Rebalancing is shown in holdings/account detail
+        taxefficiency: 'taxefficiency',
+      };
+      if (tabMap[tab]) {
+        this.activePortfolioTab = tabMap[tab];
+      }
     },
 
     clearSelection() {

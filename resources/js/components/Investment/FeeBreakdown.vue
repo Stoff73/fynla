@@ -1,266 +1,137 @@
 <template>
   <div class="fee-breakdown">
-    <!-- Loading State -->
-    <div v-if="loading" class="flex justify-center items-center py-12">
-      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+    <!-- No Accounts State -->
+    <div v-if="accounts.length === 0" class="text-center py-12 text-gray-500">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-12 h-12 mx-auto mb-4 text-gray-400">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
+      </svg>
+      <p class="text-lg font-medium">No Investment Accounts</p>
+      <p class="text-sm">Add investment accounts to see fee analysis.</p>
     </div>
 
-    <!-- Error State -->
-    <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-      <div class="flex items-center">
-        <svg class="h-5 w-5 text-red-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
-          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
-        </svg>
-        <span class="text-sm font-medium text-red-800">{{ error }}</span>
-      </div>
-    </div>
-
-    <!-- Main Content -->
+    <!-- Fee Analysis Content -->
     <div v-else class="space-y-6">
-      <!-- Fee Summary Header -->
-      <div class="bg-gradient-to-br from-orange-50 to-red-50 rounded-lg shadow-md p-6">
-        <h2 class="text-xl font-semibold text-gray-800 mb-6">Portfolio Fee Analysis</h2>
-
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <!-- Total Annual Fees -->
-          <div class="bg-white rounded-lg p-4">
-            <p class="text-sm text-gray-600 mb-2">Total Annual Fees</p>
-            <p class="text-3xl font-bold text-red-600">
-              £{{ formatNumber(feeData?.total_annual_fees || 0) }}
-            </p>
-            <p class="text-xs text-gray-500">{{ formatPercent((feeData?.total_annual_fees || 0) / (feeData?.portfolio_value || 1)) }} of portfolio</p>
-          </div>
-
-          <!-- Average Fee Rate -->
-          <div class="bg-white rounded-lg p-4">
-            <p class="text-sm text-gray-600 mb-2">Weighted Average Fee</p>
-            <p class="text-3xl font-bold text-orange-600">
-              {{ formatPercent(feeData?.weighted_average_fee || 0) }}
-            </p>
-            <p class="text-xs text-gray-500">across all holdings</p>
-          </div>
-
-          <!-- Potential Savings -->
-          <div class="bg-white rounded-lg p-4">
-            <p class="text-sm text-gray-600 mb-2">Annual Saving Potential</p>
-            <p class="text-3xl font-bold text-green-600">
-              £{{ formatNumber(feeData?.potential_savings?.annual || 0) }}
-            </p>
-            <p class="text-xs text-gray-500">by switching to low-cost options</p>
-          </div>
-
-          <!-- 30-Year Impact -->
-          <div class="bg-white rounded-lg p-4">
-            <p class="text-sm text-gray-600 mb-2">30-Year Fee Impact</p>
-            <p class="text-3xl font-bold text-red-700">
-              £{{ formatNumber(feeData?.long_term_impact?.thirty_years || 0) }}
-            </p>
-            <p class="text-xs text-gray-500">compound cost</p>
-          </div>
+      <!-- Summary Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="bg-orange-50 rounded-lg p-4 border border-orange-200">
+          <p class="text-sm text-gray-600 mb-1">Platform Fees</p>
+          <p class="text-2xl font-bold text-orange-600">{{ formatPercent(weightedPlatformFee) }}</p>
+          <p class="text-sm text-gray-500">{{ formatCurrency(annualPlatformFees) }}/year</p>
+        </div>
+        <div class="bg-red-50 rounded-lg p-4 border border-red-200">
+          <p class="text-sm text-gray-600 mb-1">Fund Fees (OCF)</p>
+          <p class="text-2xl font-bold text-red-600">{{ formatPercent(weightedOCF) }}</p>
+          <p class="text-sm text-gray-500">{{ formatCurrency(annualFundFees) }}/year</p>
+        </div>
+        <div class="bg-purple-50 rounded-lg p-4 border border-purple-200">
+          <p class="text-sm text-gray-600 mb-1">Advisor Fees</p>
+          <p class="text-2xl font-bold text-purple-600">{{ formatPercent(weightedAdvisorFee) }}</p>
+          <p class="text-sm text-gray-500">{{ formatCurrency(annualAdvisorFees) }}/year</p>
+        </div>
+        <div class="bg-gray-100 rounded-lg p-4 border border-gray-300">
+          <p class="text-sm text-gray-600 mb-1">Total Annual Cost</p>
+          <p class="text-2xl font-bold text-gray-800">{{ formatPercent(totalFeePercent) }}</p>
+          <p class="text-sm text-gray-500">{{ formatCurrency(totalAnnualFees) }}/year</p>
         </div>
       </div>
 
-      <!-- Fee Breakdown by Type -->
-      <div v-if="feeData" class="bg-white rounded-lg shadow-md p-6">
-        <h3 class="text-lg font-semibold text-gray-800 mb-6">Fee Breakdown by Type</h3>
-
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <!-- Pie Chart -->
-          <div>
-            <apexchart
-              type="donut"
-              :options="feeTypeChartOptions"
-              :series="feeTypeChartSeries"
-              height="300"
-            />
-          </div>
-
-          <!-- Fee Type Details -->
-          <div class="space-y-3">
-            <div class="border border-gray-200 rounded-lg p-4">
-              <div class="flex justify-between items-center mb-2">
-                <span class="text-sm font-medium text-gray-700">Fund Ongoing Charges (OCF)</span>
-                <span class="text-xl font-bold text-gray-800">
-                  £{{ formatNumber(feeData.breakdown.fund_ocf || 0) }}
-                </span>
-              </div>
-              <div class="w-full bg-gray-200 rounded-full h-2">
-                <div
-                  class="h-2 bg-red-600 rounded-full"
-                  :style="{ width: ((feeData.breakdown.fund_ocf / feeData.total_annual_fees) * 100) + '%' }"
-                ></div>
-              </div>
-              <p class="text-xs text-gray-500 mt-1">
-                {{ formatPercent(feeData.breakdown.fund_ocf / feeData.total_annual_fees) }} of total fees
-              </p>
-            </div>
-
-            <div class="border border-gray-200 rounded-lg p-4">
-              <div class="flex justify-between items-center mb-2">
-                <span class="text-sm font-medium text-gray-700">Platform Fees</span>
-                <span class="text-xl font-bold text-gray-800">
-                  £{{ formatNumber(feeData.breakdown.platform_fees || 0) }}
-                </span>
-              </div>
-              <div class="w-full bg-gray-200 rounded-full h-2">
-                <div
-                  class="h-2 bg-orange-600 rounded-full"
-                  :style="{ width: ((feeData.breakdown.platform_fees / feeData.total_annual_fees) * 100) + '%' }"
-                ></div>
-              </div>
-              <p class="text-xs text-gray-500 mt-1">
-                {{ formatPercent(feeData.breakdown.platform_fees / feeData.total_annual_fees) }} of total fees
-              </p>
-            </div>
-
-            <div class="border border-gray-200 rounded-lg p-4">
-              <div class="flex justify-between items-center mb-2">
-                <span class="text-sm font-medium text-gray-700">Trading Costs</span>
-                <span class="text-xl font-bold text-gray-800">
-                  £{{ formatNumber(feeData.breakdown.trading_costs || 0) }}
-                </span>
-              </div>
-              <div class="w-full bg-gray-200 rounded-full h-2">
-                <div
-                  class="h-2 bg-yellow-600 rounded-full"
-                  :style="{ width: ((feeData.breakdown.trading_costs / feeData.total_annual_fees) * 100) + '%' }"
-                ></div>
-              </div>
-              <p class="text-xs text-gray-500 mt-1">
-                {{ formatPercent(feeData.breakdown.trading_costs / feeData.total_annual_fees) }} of total fees
-              </p>
-            </div>
-
-            <div class="border border-gray-200 rounded-lg p-4">
-              <div class="flex justify-between items-center mb-2">
-                <span class="text-sm font-medium text-gray-700">Other Fees</span>
-                <span class="text-xl font-bold text-gray-800">
-                  £{{ formatNumber(feeData.breakdown.other_fees || 0) }}
-                </span>
-              </div>
-              <div class="w-full bg-gray-200 rounded-full h-2">
-                <div
-                  class="h-2 bg-gray-600 rounded-full"
-                  :style="{ width: ((feeData.breakdown.other_fees / feeData.total_annual_fees) * 100) + '%' }"
-                ></div>
-              </div>
-              <p class="text-xs text-gray-500 mt-1">
-                {{ formatPercent(feeData.breakdown.other_fees / feeData.total_annual_fees) }} of total fees
-              </p>
-            </div>
-          </div>
+      <!-- Fee Breakdown by Account -->
+      <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+        <div class="px-4 py-3 bg-gray-50 border-b border-gray-200">
+          <h3 class="text-lg font-semibold text-gray-800">Fee Breakdown by Account</h3>
         </div>
-      </div>
-
-      <!-- Holdings Fee Analysis -->
-      <div v-if="feeData && feeData.holdings" class="bg-white rounded-lg shadow-md p-6">
-        <h3 class="text-lg font-semibold text-gray-800 mb-6">Fee Analysis by Holding</h3>
-
         <div class="overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
-              <tr class="border-b border-gray-200">
-                <th class="text-left py-3 px-4 font-semibold text-gray-700">Holding</th>
+              <tr class="border-b border-gray-200 bg-gray-50">
+                <th class="text-left py-3 px-4 font-semibold text-gray-700">Account</th>
                 <th class="text-right py-3 px-4 font-semibold text-gray-700">Value</th>
-                <th class="text-right py-3 px-4 font-semibold text-gray-700">Ongoing Charges</th>
-                <th class="text-right py-3 px-4 font-semibold text-gray-700">Annual Fee</th>
-                <th class="text-right py-3 px-4 font-semibold text-gray-700">Fee Category</th>
-                <th class="text-right py-3 px-4 font-semibold text-gray-700">Action</th>
+                <th class="text-right py-3 px-4 font-semibold text-gray-700">Platform</th>
+                <th class="text-right py-3 px-4 font-semibold text-gray-700">Avg OCF</th>
+                <th class="text-right py-3 px-4 font-semibold text-gray-700">Advisor</th>
+                <th class="text-right py-3 px-4 font-semibold text-gray-700">Total %</th>
+                <th class="text-right py-3 px-4 font-semibold text-gray-700">Annual Cost</th>
               </tr>
             </thead>
             <tbody>
               <tr
-                v-for="holding in feeData.holdings"
-                :key="holding.id"
+                v-for="account in accountFeeData"
+                :key="account.id"
                 class="border-b border-gray-100 hover:bg-gray-50"
               >
-                <td class="py-3 px-4 font-medium">{{ holding.name }}</td>
-                <td class="text-right py-3 px-4">£{{ formatNumber(holding.value) }}</td>
-                <td class="text-right py-3 px-4">{{ formatPercent(holding.ocf) }}</td>
-                <td class="text-right py-3 px-4 font-semibold">£{{ formatNumber(holding.annual_fee) }}</td>
-                <td class="text-right py-3 px-4">
-                  <span class="px-2 py-1 rounded text-xs font-semibold" :class="getFeeCategoryClass(holding.fee_category)">
-                    {{ holding.fee_category }}
-                  </span>
+                <td class="py-3 px-4">
+                  <div class="font-medium text-gray-900">{{ account.provider }}</div>
+                  <div class="text-xs text-gray-500">{{ account.name }}</div>
                 </td>
-                <td class="text-right py-3 px-4">
-                  <button
-                    v-if="holding.has_alternative"
-                    @click="viewAlternatives(holding.id)"
-                    class="text-xs text-blue-600 hover:text-blue-800 font-medium"
-                  >
-                    View Alternatives
-                  </button>
+                <td class="text-right py-3 px-4 font-medium">{{ formatCurrency(account.value) }}</td>
+                <td class="text-right py-3 px-4">{{ formatPercent(account.platformFee) }}</td>
+                <td class="text-right py-3 px-4">{{ formatPercent(account.avgOCF) }}</td>
+                <td class="text-right py-3 px-4">{{ formatPercent(account.advisorFee) }}</td>
+                <td class="text-right py-3 px-4 font-semibold" :class="getFeeClass(account.totalPercent)">
+                  {{ formatPercent(account.totalPercent) }}
+                </td>
+                <td class="text-right py-3 px-4 font-semibold text-red-600">
+                  {{ formatCurrency(account.annualCost) }}
                 </td>
               </tr>
             </tbody>
+            <tfoot>
+              <tr class="bg-gray-100 font-semibold">
+                <td class="py-3 px-4">Total Portfolio</td>
+                <td class="text-right py-3 px-4">{{ formatCurrency(totalPortfolioValue) }}</td>
+                <td class="text-right py-3 px-4">{{ formatPercent(weightedPlatformFee) }}</td>
+                <td class="text-right py-3 px-4">{{ formatPercent(weightedOCF) }}</td>
+                <td class="text-right py-3 px-4">{{ formatPercent(weightedAdvisorFee) }}</td>
+                <td class="text-right py-3 px-4" :class="getFeeClass(totalFeePercent)">
+                  {{ formatPercent(totalFeePercent) }}
+                </td>
+                <td class="text-right py-3 px-4 text-red-600">{{ formatCurrency(totalAnnualFees) }}</td>
+              </tr>
+            </tfoot>
           </table>
         </div>
       </div>
 
-      <!-- Compound Impact Visualization -->
-      <div v-if="feeData" class="bg-white rounded-lg shadow-md p-6">
-        <h3 class="text-lg font-semibold text-gray-800 mb-6">Compound Impact of Fees Over Time</h3>
-
-        <apexchart
-          type="area"
-          :options="compoundImpactChartOptions"
-          :series="compoundImpactChartSeries"
-          height="350"
-        />
-
-        <div class="mt-6 grid grid-cols-3 gap-4">
+      <!-- 10-Year Fee Impact -->
+      <div class="bg-white rounded-lg border border-gray-200 p-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">10-Year Fee Impact</h3>
+        <p class="text-sm text-gray-600 mb-4">
+          Projected cumulative fees over 10 years, assuming 5% annual portfolio growth.
+        </p>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div class="text-center p-4 bg-red-50 rounded-lg border border-red-200">
-            <p class="text-xs text-gray-600 mb-1">10-Year Fee Impact</p>
-            <p class="text-2xl font-bold text-red-600">
-              £{{ formatNumber(feeData.long_term_impact?.ten_years || 0) }}
-            </p>
+            <p class="text-sm text-gray-600 mb-1">Cumulative Fees Paid</p>
+            <p class="text-3xl font-bold text-red-600">{{ formatCurrency(tenYearTotalFees) }}</p>
           </div>
-          <div class="text-center p-4 bg-orange-50 rounded-lg border border-orange-200">
-            <p class="text-xs text-gray-600 mb-1">20-Year Fee Impact</p>
-            <p class="text-2xl font-bold text-orange-600">
-              £{{ formatNumber(feeData.long_term_impact?.twenty_years || 0) }}
-            </p>
+          <div class="text-center p-4 bg-amber-50 rounded-lg border border-amber-200">
+            <p class="text-sm text-gray-600 mb-1">Fee Drag (Lost Growth)</p>
+            <p class="text-3xl font-bold text-amber-600">{{ formatCurrency(tenYearFeeDrag) }}</p>
           </div>
-          <div class="text-center p-4 bg-red-50 rounded-lg border border-red-300">
-            <p class="text-xs text-gray-600 mb-1">30-Year Fee Impact</p>
-            <p class="text-2xl font-bold text-red-700">
-              £{{ formatNumber(feeData.long_term_impact?.thirty_years || 0) }}
-            </p>
+          <div class="text-center p-4 bg-gray-100 rounded-lg border border-gray-300">
+            <p class="text-sm text-gray-600 mb-1">Total Impact</p>
+            <p class="text-3xl font-bold text-gray-800">{{ formatCurrency(tenYearTotalImpact) }}</p>
           </div>
         </div>
-
-        <div class="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <p class="text-sm text-gray-700">
-            <strong>Example:</strong> A 1% annual fee on a £100,000 portfolio growing at 7% costs you
-            <strong class="text-red-600">£{{ formatNumber(feeData.example_impact || 0) }}</strong> over 30 years
-            compared to a 0.2% fee.
-          </p>
-        </div>
+        <p class="text-xs text-gray-500 mt-4 text-center">
+          Fee drag represents the additional growth you would have earned if fees were reinvested.
+        </p>
       </div>
 
-      <!-- Fee Recommendations -->
-      <div v-if="feeData && feeData.recommendations" class="bg-white rounded-lg shadow-md p-6">
-        <h3 class="text-lg font-semibold text-gray-800 mb-4">Fee Reduction Recommendations</h3>
-
-        <div class="space-y-3">
-          <div
-            v-for="(rec, index) in feeData.recommendations"
-            :key="index"
-            class="border-l-4 p-4 rounded-r-lg"
-            :class="getPriorityClass(rec.priority)"
-          >
-            <div class="flex items-start justify-between mb-2">
-              <h4 class="font-semibold text-gray-800">{{ rec.title }}</h4>
-              <span class="px-2 py-1 text-xs font-semibold rounded bg-green-100 text-green-800">
-                Save £{{ formatNumber(rec.annual_saving) }}/yr
-              </span>
-            </div>
-            <p class="text-sm text-gray-600 mb-2">{{ rec.description }}</p>
-            <div class="bg-gray-50 rounded p-3 text-sm">
-              <p class="font-medium text-gray-700 mb-1">Action:</p>
-              <p class="text-gray-600">{{ rec.action }}</p>
-            </div>
+      <!-- Fee Comparison Guide -->
+      <div class="bg-blue-50 rounded-lg border border-blue-200 p-4">
+        <h4 class="font-semibold text-blue-800 mb-2">Fee Benchmarks</h4>
+        <div class="grid grid-cols-3 gap-4 text-sm">
+          <div>
+            <span class="inline-block w-3 h-3 rounded-full bg-green-500 mr-2"></span>
+            <span class="text-gray-700">Low: &lt; 0.5%</span>
+          </div>
+          <div>
+            <span class="inline-block w-3 h-3 rounded-full bg-amber-500 mr-2"></span>
+            <span class="text-gray-700">Medium: 0.5% - 1.5%</span>
+          </div>
+          <div>
+            <span class="inline-block w-3 h-3 rounded-full bg-red-500 mr-2"></span>
+            <span class="text-gray-700">High: &gt; 1.5%</span>
           </div>
         </div>
       </div>
@@ -269,173 +140,144 @@
 </template>
 
 <script>
-import api from '@/services/api';
+import { mapGetters } from 'vuex';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'FeeBreakdown',
 
-  data() {
-    return {
-      loading: true,
-      error: null,
-      feeData: null,
-    };
-  },
+  mixins: [currencyMixin],
 
   computed: {
-    isPreviewMode() {
-      return this.$store.getters['preview/isPreviewMode'];
+    ...mapGetters('investment', ['accounts', 'totalPortfolioValue']),
+
+    // Calculate fee data for each account
+    accountFeeData() {
+      return this.accounts.map(account => {
+        const value = parseFloat(account.current_value) || 0;
+        const platformFee = parseFloat(account.platform_fee_percent) || 0;
+        const advisorFee = parseFloat(account.advisor_fee_percent) || 0;
+
+        // Calculate weighted average OCF for this account's holdings
+        const holdings = account.holdings || [];
+        let avgOCF = 0;
+        if (holdings.length > 0) {
+          const totalHoldingValue = holdings.reduce((sum, h) => sum + (parseFloat(h.current_value) || 0), 0);
+          if (totalHoldingValue > 0) {
+            avgOCF = holdings.reduce((sum, h) => {
+              const hValue = parseFloat(h.current_value) || 0;
+              const hOCF = parseFloat(h.ocf_percent) || 0;
+              return sum + (hValue * hOCF);
+            }, 0) / totalHoldingValue;
+          }
+        }
+
+        const totalPercent = platformFee + avgOCF + advisorFee;
+        const annualCost = value * (totalPercent / 100);
+
+        return {
+          id: account.id,
+          provider: account.provider,
+          name: account.account_name,
+          value,
+          platformFee,
+          avgOCF,
+          advisorFee,
+          totalPercent,
+          annualCost,
+        };
+      });
     },
 
-    feeTypeChartOptions() {
-      return {
-        chart: {
-          type: 'donut',
-        },
-        labels: ['Fund Ongoing Charges', 'Platform Fees', 'Trading Costs', 'Other Fees'],
-        colours: ['#EF4444', '#F97316', '#FBBF24', '#9CA3AF'],
-        legend: {
-          position: 'bottom',
-        },
-        dataLabels: {
-          enabled: true,
-          formatter: (val) => val.toFixed(1) + '%',
-        },
-        tooltip: {
-          y: {
-            formatter: (val) => '£' + this.formatNumber(val),
-          },
-        },
-      };
+    // Weighted average platform fee across all accounts
+    weightedPlatformFee() {
+      if (this.totalPortfolioValue === 0) return 0;
+      return this.accountFeeData.reduce((sum, a) => sum + (a.value * a.platformFee), 0) / this.totalPortfolioValue;
     },
 
-    feeTypeChartSeries() {
-      if (!this.feeData) return [];
-
-      return [
-        this.feeData.breakdown.fund_ocf || 0,
-        this.feeData.breakdown.platform_fees || 0,
-        this.feeData.breakdown.trading_costs || 0,
-        this.feeData.breakdown.other_fees || 0,
-      ];
+    // Weighted average OCF across all accounts
+    weightedOCF() {
+      if (this.totalPortfolioValue === 0) return 0;
+      return this.accountFeeData.reduce((sum, a) => sum + (a.value * a.avgOCF), 0) / this.totalPortfolioValue;
     },
 
-    compoundImpactChartOptions() {
-      return {
-        chart: {
-          type: 'area',
-          stacked: false,
-          toolbar: {
-            show: false,
-          },
-        },
-        stroke: {
-          curve: 'smooth',
-          width: 3,
-        },
-        xaxis: {
-          title: {
-            text: 'Years',
-          },
-        },
-        yaxis: {
-          title: {
-            text: 'Portfolio Value (£)',
-          },
-          labels: {
-            formatter: (val) => '£' + this.formatNumber(val),
-          },
-        },
-        colours: ['#10B981', '#EF4444'],
-        fill: {
-          type: 'gradient',
-          gradient: {
-            shadeIntensity: 1,
-            opacityFrom: 0.4,
-            opacityTo: 0.1,
-          },
-        },
-        legend: {
-          position: 'top',
-        },
-      };
+    // Weighted average advisor fee across all accounts
+    weightedAdvisorFee() {
+      if (this.totalPortfolioValue === 0) return 0;
+      return this.accountFeeData.reduce((sum, a) => sum + (a.value * a.advisorFee), 0) / this.totalPortfolioValue;
     },
 
-    compoundImpactChartSeries() {
-      if (!this.feeData?.compound_impact) return [];
-
-      return [
-        {
-          name: 'With Low Fees (0.2%)',
-          data: this.feeData.compound_impact.low_fee_path || [],
-        },
-        {
-          name: 'With Current Fees',
-          data: this.feeData.compound_impact.current_fee_path || [],
-        },
-      ];
+    // Total fee percentage
+    totalFeePercent() {
+      return this.weightedPlatformFee + this.weightedOCF + this.weightedAdvisorFee;
     },
-  },
 
-  mounted() {
-    // Preview users are real DB users - use normal API to fetch their data
-    this.loadFeeData();
+    // Annual fee amounts
+    annualPlatformFees() {
+      return this.totalPortfolioValue * (this.weightedPlatformFee / 100);
+    },
+
+    annualFundFees() {
+      return this.totalPortfolioValue * (this.weightedOCF / 100);
+    },
+
+    annualAdvisorFees() {
+      return this.totalPortfolioValue * (this.weightedAdvisorFee / 100);
+    },
+
+    totalAnnualFees() {
+      return this.annualPlatformFees + this.annualFundFees + this.annualAdvisorFees;
+    },
+
+    // 10-year projections
+    tenYearTotalFees() {
+      const growthRate = 0.05;
+      const feeRate = this.totalFeePercent / 100;
+      let totalFees = 0;
+      let portfolioValue = this.totalPortfolioValue;
+
+      for (let year = 1; year <= 10; year++) {
+        const feesThisYear = portfolioValue * feeRate;
+        totalFees += feesThisYear;
+        portfolioValue = (portfolioValue - feesThisYear) * (1 + growthRate);
+      }
+
+      return totalFees;
+    },
+
+    tenYearFeeDrag() {
+      const growthRate = 0.05;
+      const feeRate = this.totalFeePercent / 100;
+
+      // Value with fees
+      let valueWithFees = this.totalPortfolioValue;
+      for (let year = 1; year <= 10; year++) {
+        const feesThisYear = valueWithFees * feeRate;
+        valueWithFees = (valueWithFees - feesThisYear) * (1 + growthRate);
+      }
+
+      // Value without fees
+      const valueWithoutFees = this.totalPortfolioValue * Math.pow(1 + growthRate, 10);
+
+      // Fee drag is the difference minus fees paid
+      return (valueWithoutFees - valueWithFees) - this.tenYearTotalFees;
+    },
+
+    tenYearTotalImpact() {
+      return this.tenYearTotalFees + this.tenYearFeeDrag;
+    },
   },
 
   methods: {
-    async loadFeeData() {
-      // Preview users are real DB users - use normal API to fetch their data
-      this.loading = true;
-      this.error = null;
-
-      try {
-        const response = await api.get('/investment/fee-impact/analyze');
-        this.feeData = response.data.data;
-      } catch (err) {
-        console.error('Error loading fee data:', err);
-        this.error = err.response?.data?.message || 'Failed to load fee breakdown. Please try again.';
-      } finally {
-        this.loading = false;
-      }
-    },
-
-    async viewAlternatives(holdingId) {
-      // Preview users are real DB users - use normal API
-      try {
-        const response = await api.get(`/investment/fee-impact/holdings/${holdingId}/alternatives`);
-        // Open modal or navigate to alternatives view
-        this.alternativesData = response.data;
-      } catch (err) {
-        // Failed to load alternatives silently
-      }
-    },
-
-    formatNumber(value) {
-      if (!value && value !== 0) return '0';
-      return Math.round(value).toLocaleString('en-GB');
-    },
-
     formatPercent(value) {
-      if (value === null || value === undefined) return 'N/A';
-      return (value * 100).toFixed(2) + '%';
+      if (value === null || value === undefined || isNaN(value)) return '0.00%';
+      return value.toFixed(2) + '%';
     },
 
-    getFeeCategoryClass(category) {
-      const classes = {
-        'Low': 'bg-green-100 text-green-800',
-        'Medium': 'bg-yellow-100 text-yellow-800',
-        'High': 'bg-red-100 text-red-800',
-      };
-      return classes[category] || 'bg-gray-100 text-gray-800';
-    },
-
-    getPriorityClass(priority) {
-      const classes = {
-        high: 'border-red-500 bg-red-50',
-        medium: 'border-yellow-500 bg-yellow-50',
-        low: 'border-blue-500 bg-blue-50',
-      };
-      return classes[priority] || classes.low;
+    getFeeClass(percent) {
+      if (percent < 0.5) return 'text-green-600';
+      if (percent < 1.5) return 'text-amber-600';
+      return 'text-red-600';
     },
   },
 };

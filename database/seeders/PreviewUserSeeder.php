@@ -488,18 +488,30 @@ class PreviewUserSeeder extends Seeder
                 'ownership_type' => $account['ownership_type'] ?? 'individual',
                 'ownership_percentage' => $isJoint ? 50 : 100,
                 'joint_owner_id' => $jointOwnerId,
+                'platform_fee_percent' => $account['platform_fee_percent'] ?? 0,
+                'advisor_fee_percent' => $account['advisor_fee_percent'] ?? 0,
                 'risk_preference' => $account['risk_preference'] ?? null,
                 'has_custom_risk' => ! empty($account['has_custom_risk']),
             ]);
 
             // Create holdings for the account (FULL values)
             foreach ($account['holdings'] ?? [] as $holding) {
+                $units = $holding['units'] ?? null;
+                $purchasePrice = $holding['initial_unit_cost'] ?? null;
+                $costBasis = ($units && $purchasePrice) ? $units * $purchasePrice : null;
+
                 Holding::create([
                     'holdable_type' => InvestmentAccount::class,
                     'holdable_id' => $investmentAccount->id,
                     'security_name' => $holding['holding_name'] ?? '',
+                    'ticker' => $holding['ticker'] ?? null,
+                    'isin' => $holding['isin'] ?? null,
                     'asset_type' => $holding['asset_type'] ?? 'fund',
-                    'current_value' => $holding['current_value'] ?? 0, // FULL value
+                    'quantity' => $units,
+                    'purchase_price' => $purchasePrice,
+                    'current_price' => $holding['current_unit_price'] ?? null,
+                    'current_value' => $holding['current_value'] ?? 0,
+                    'cost_basis' => $costBasis,
                     'allocation_percent' => $holding['allocation_percentage'] ?? null,
                     'ocf_percent' => $holding['annual_fee'] ?? null,
                 ]);
@@ -521,7 +533,7 @@ class PreviewUserSeeder extends Seeder
             // Determine if this pension belongs to spouse
             $owner = $this->determinePensionOwner($pension, $user, $spouse);
 
-            DCPension::create([
+            $dcPension = DCPension::create([
                 'user_id' => $owner->id,
                 'scheme_name' => $pension['scheme_name'] ?? '',
                 'provider' => $pension['provider_name'] ?? '',
@@ -537,6 +549,29 @@ class PreviewUserSeeder extends Seeder
                 'risk_preference' => $pension['risk_preference'] ?? null,
                 'has_custom_risk' => ! empty($pension['has_custom_risk']),
             ]);
+
+            // Create holdings for the pension (e.g., SIPP holdings)
+            foreach ($pension['holdings'] ?? [] as $holding) {
+                $units = $holding['units'] ?? null;
+                $purchasePrice = $holding['initial_unit_cost'] ?? null;
+                $costBasis = ($units && $purchasePrice) ? $units * $purchasePrice : null;
+
+                Holding::create([
+                    'holdable_type' => DCPension::class,
+                    'holdable_id' => $dcPension->id,
+                    'security_name' => $holding['holding_name'] ?? '',
+                    'ticker' => $holding['ticker'] ?? null,
+                    'isin' => $holding['isin'] ?? null,
+                    'asset_type' => $holding['asset_type'] ?? 'fund',
+                    'quantity' => $units,
+                    'purchase_price' => $purchasePrice,
+                    'current_price' => $holding['current_unit_price'] ?? null,
+                    'current_value' => $holding['current_value'] ?? 0,
+                    'cost_basis' => $costBasis,
+                    'allocation_percent' => $holding['allocation_percentage'] ?? null,
+                    'ocf_percent' => $holding['annual_fee'] ?? null,
+                ]);
+            }
         }
     }
 

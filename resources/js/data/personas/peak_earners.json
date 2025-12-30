@@ -185,6 +185,8 @@
       "current_value": 95000,
       "annual_contribution": 10000,
       "ownership_type": "individual",
+      "platform_fee_percent": 0.45,
+      "advisor_fee_percent": 0.75,
       "risk_profile": "adventurous",
       "risk_preference": "high",
       "has_custom_risk": true,
@@ -192,15 +194,25 @@
         {
           "id": 1,
           "holding_name": "Fundsmith Equity",
+          "ticker": "FUND",
+          "isin": "GB00B41YBW71",
           "asset_type": "fund",
-          "current_value": 35000,
+          "units": 351,
+          "initial_unit_cost": 85.50,
+          "current_unit_price": 99.86,
+          "current_value": 35051,
           "allocation_percentage": 36.8,
           "annual_fee": 0.95
         },
         {
           "id": 2,
           "holding_name": "Scottish Mortgage IT",
+          "ticker": "SMT",
+          "isin": "GB00BLDYK618",
           "asset_type": "uk_equity",
+          "units": 2500,
+          "initial_unit_cost": 8.40,
+          "current_unit_price": 10.00,
           "current_value": 25000,
           "allocation_percentage": 26.3,
           "annual_fee": 0.34
@@ -208,8 +220,13 @@
         {
           "id": 3,
           "holding_name": "Vanguard FTSE All-World",
+          "ticker": "VWRL",
+          "isin": "IE00B3RBWM25",
           "asset_type": "etf",
-          "current_value": 35000,
+          "units": 318,
+          "initial_unit_cost": 93.00,
+          "current_unit_price": 109.99,
+          "current_value": 34977,
           "allocation_percentage": 36.9,
           "annual_fee": 0.22
         }
@@ -223,6 +240,8 @@
       "current_value": 85000,
       "annual_contribution": 10000,
       "ownership_type": "individual",
+      "platform_fee_percent": 0.45,
+      "advisor_fee_percent": 0.75,
       "risk_profile": "balanced",
       "risk_preference": "medium",
       "owner": "spouse",
@@ -230,8 +249,13 @@
         {
           "id": 4,
           "holding_name": "Vanguard LifeStrategy 80",
+          "ticker": "VGLS80",
+          "isin": "GB00B4PQW151",
           "asset_type": "fund",
-          "current_value": 85000,
+          "units": 333,
+          "initial_unit_cost": 225.00,
+          "current_unit_price": 255.00,
+          "current_value": 84915,
           "allocation_percentage": 100,
           "annual_fee": 0.22
         }
@@ -245,13 +269,20 @@
       "current_value": 95000,
       "annual_contribution": 12000,
       "ownership_type": "joint",
+      "platform_fee_percent": 0.25,
+      "advisor_fee_percent": 0.75,
       "risk_profile": "balanced",
       "risk_preference": "upper_medium",
       "holdings": [
         {
           "id": 5,
           "holding_name": "iShares Core MSCI World",
+          "ticker": "SWDA",
+          "isin": "IE00B4L5Y983",
           "asset_type": "etf",
+          "units": 625,
+          "initial_unit_cost": 68.00,
+          "current_unit_price": 80.00,
           "current_value": 50000,
           "allocation_percentage": 52.6,
           "annual_fee": 0.2
@@ -259,16 +290,26 @@
         {
           "id": 6,
           "holding_name": "Vanguard UK Govt Bond",
+          "ticker": "VGOV",
+          "isin": "IE00B42WWV65",
           "asset_type": "bond",
-          "current_value": 25000,
+          "units": 1316,
+          "initial_unit_cost": 19.50,
+          "current_unit_price": 19.00,
+          "current_value": 25004,
           "allocation_percentage": 26.3,
           "annual_fee": 0.12
         },
         {
           "id": 7,
           "holding_name": "iShares Physical Gold",
+          "ticker": "SGLN",
+          "isin": "IE00B4ND3602",
           "asset_type": "alternative",
-          "current_value": 20000,
+          "units": 84,
+          "initial_unit_cost": 195.00,
+          "current_unit_price": 238.00,
+          "current_value": 19992,
           "allocation_percentage": 21.1,
           "annual_fee": 0.12
         }
@@ -282,6 +323,8 @@
       "current_value": 30000,
       "annual_contribution": 0,
       "ownership_type": "individual",
+      "platform_fee_percent": 0,
+      "advisor_fee_percent": 0.75,
       "risk_preference": "high",
       "has_custom_risk": true,
       "notes": "Tax-efficient VCT investments"
@@ -321,15 +364,25 @@
         {
           "id": 1,
           "holding_name": "Vanguard Global Equity",
+          "ticker": "VHVG",
+          "isin": "IE00BKX55S42",
           "asset_type": "fund",
-          "current_value": 160000,
+          "units": 4211,
+          "initial_unit_cost": 32.50,
+          "current_unit_price": 38.00,
+          "current_value": 160018,
           "allocation_percentage": 50,
           "annual_fee": 0.23
         },
         {
           "id": 2,
           "holding_name": "BlackRock Corporate Bond",
+          "ticker": "SLXX",
+          "isin": "IE0032895942",
           "asset_type": "bond",
+          "units": 800,
+          "initial_unit_cost": 125.00,
+          "current_unit_price": 120.00,
           "current_value": 96000,
           "allocation_percentage": 30,
           "annual_fee": 0.18
@@ -337,7 +390,12 @@
         {
           "id": 3,
           "holding_name": "L&G UK Property",
+          "ticker": "LGUKP",
+          "isin": "GB00BK35DT11",
           "asset_type": "property",
+          "units": 50000,
+          "initial_unit_cost": 1.35,
+          "current_unit_price": 1.28,
           "current_value": 64000,
           "allocation_percentage": 20,
           "annual_fee": 0.68

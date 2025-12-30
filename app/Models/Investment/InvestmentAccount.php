@@ -33,26 +33,32 @@ class InvestmentAccount extends Model
         'contributions_ytd',
         'tax_year',
         'platform_fee_percent',
+        'advisor_fee_percent',
         'isa_type',
         'isa_subscription_current_year',
         'risk_preference',
         'has_custom_risk',
+        'rebalance_threshold_percent',
     ];
 
     protected $casts = [
         'current_value' => 'float',
         'contributions_ytd' => 'float',
         'platform_fee_percent' => 'float',
+        'advisor_fee_percent' => 'float',
         'isa_subscription_current_year' => 'float',
         'ownership_percentage' => 'decimal:2',
         'has_custom_risk' => 'boolean',
+        'rebalance_threshold_percent' => 'float',
     ];
 
     protected $attributes = [
         'contributions_ytd' => 0,
         'platform_fee_percent' => 0,
+        'advisor_fee_percent' => 0,
         'isa_subscription_current_year' => 0,
         'has_custom_risk' => false,
+        'rebalance_threshold_percent' => 10.00,
     ];
 
     /**

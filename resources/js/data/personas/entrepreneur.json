@@ -131,13 +131,20 @@
       "current_value": 95000,
       "annual_contribution": 20000,
       "ownership_type": "individual",
+      "platform_fee_percent": 0,
+      "advisor_fee_percent": 0.5,
       "risk_profile": "adventurous",
       "risk_preference": "high",
       "holdings": [
         {
           "id": 1,
           "holding_name": "Baillie Gifford American",
+          "ticker": "USA",
+          "isin": "GB00BYPJS636",
           "asset_type": "fund",
+          "units": 2500,
+          "initial_unit_cost": 10.20,
+          "current_unit_price": 12.00,
           "current_value": 30000,
           "allocation_percentage": 31.6,
           "annual_fee": 0.51
@@ -145,7 +152,12 @@
         {
           "id": 2,
           "holding_name": "Scottish Mortgage IT",
+          "ticker": "SMT",
+          "isin": "GB00BLDYK618",
           "asset_type": "uk_equity",
+          "units": 2500,
+          "initial_unit_cost": 8.40,
+          "current_unit_price": 10.00,
           "current_value": 25000,
           "allocation_percentage": 26.3,
           "annual_fee": 0.34
@@ -153,15 +165,25 @@
         {
           "id": 3,
           "holding_name": "Polar Capital Tech",
+          "ticker": "PCT",
+          "isin": "IE00B3QXJP52",
           "asset_type": "fund",
-          "current_value": 20000,
+          "units": 667,
+          "initial_unit_cost": 25.50,
+          "current_unit_price": 30.00,
+          "current_value": 20010,
           "allocation_percentage": 21.1,
           "annual_fee": 0.79
         },
         {
           "id": 4,
           "holding_name": "iShares MSCI World Tech",
+          "ticker": "WTCH",
+          "isin": "IE00BGV5VR99",
           "asset_type": "etf",
+          "units": 400,
+          "initial_unit_cost": 42.50,
+          "current_unit_price": 50.00,
           "current_value": 20000,
           "allocation_percentage": 21.1,
           "annual_fee": 0.4
@@ -182,15 +204,25 @@
         {
           "id": 5,
           "holding_name": "Nvidia",
+          "ticker": "NVDA",
+          "isin": "US67066G1040",
           "asset_type": "us_equity",
-          "current_value": 15000,
+          "units": 13,
+          "initial_unit_cost": 800.00,
+          "current_unit_price": 1200.00,
+          "current_value": 15600,
           "allocation_percentage": 33.3,
           "annual_fee": 0
         },
         {
           "id": 6,
           "holding_name": "Microsoft",
+          "ticker": "MSFT",
+          "isin": "US5949181045",
           "asset_type": "us_equity",
+          "units": 40,
+          "initial_unit_cost": 310.00,
+          "current_unit_price": 375.00,
           "current_value": 15000,
           "allocation_percentage": 33.3,
           "annual_fee": 0
@@ -198,7 +230,12 @@
         {
           "id": 7,
           "holding_name": "Amazon",
+          "ticker": "AMZN",
+          "isin": "US0231351067",
           "asset_type": "us_equity",
+          "units": 85,
+          "initial_unit_cost": 145.00,
+          "current_unit_price": 176.47,
           "current_value": 15000,
           "allocation_percentage": 33.3,
           "annual_fee": 0
@@ -240,15 +277,25 @@
         {
           "id": 1,
           "holding_name": "Vanguard Global All Cap",
+          "ticker": "VAFTGAG",
+          "isin": "IE00BD3QJN10",
           "asset_type": "fund",
-          "current_value": 92500,
+          "units": 2313,
+          "initial_unit_cost": 35.00,
+          "current_unit_price": 40.00,
+          "current_value": 92520,
           "allocation_percentage": 50,
           "annual_fee": 0.23
         },
         {
           "id": 2,
           "holding_name": "HSBC FTSE All-World",
+          "ticker": "HMWO",
+          "isin": "IE00B4X9L533",
           "asset_type": "etf",
+          "units": 1850,
+          "initial_unit_cost": 26.00,
+          "current_unit_price": 30.00,
           "current_value": 55500,
           "allocation_percentage": 30,
           "annual_fee": 0.13
@@ -256,8 +303,13 @@
         {
           "id": 3,
           "holding_name": "Fundsmith Equity",
+          "ticker": "FUND",
+          "isin": "GB00B41YBW71",
           "asset_type": "fund",
-          "current_value": 37000,
+          "units": 370,
+          "initial_unit_cost": 85.50,
+          "current_unit_price": 99.86,
+          "current_value": 36948,
           "allocation_percentage": 20,
           "annual_fee": 0.95
         }

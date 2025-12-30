@@ -1524,6 +1524,43 @@ const investmentService = {
         const response = await api.post('/investment/projections', params);
         return response.data;
     },
+
+    /**
+     * Get Monte Carlo projections for a specific investment account
+     * GET /api/investment/accounts/{id}/projections
+     * @param {Number} accountId - Investment account ID
+     * @returns {Promise} Account projections with year-by-year probability bands
+     */
+    async getAccountProjections(accountId) {
+        const response = await api.get(`/investment/accounts/${accountId}/projections`);
+        return response.data;
+    },
+
+    // =========================================================================
+    // Portfolio Strategy Methods
+    // =========================================================================
+
+    /**
+     * Get comprehensive portfolio strategy recommendations
+     * Aggregates recommendations from tax, fee, and rebalancing services
+     * GET /api/investment/portfolio-strategy
+     * @returns {Promise} Strategy recommendations with summary and per-account breakdown
+     */
+    async getPortfolioStrategy() {
+        const response = await api.get('/investment/portfolio-strategy');
+        return response.data;
+    },
+
+    /**
+     * Get strategy recommendations for a specific account
+     * GET /api/investment/portfolio-strategy/account/{accountId}
+     * @param {Number} accountId - Investment account ID
+     * @returns {Promise} Account-specific strategy recommendations
+     */
+    async getAccountStrategy(accountId) {
+        const response = await api.get(`/investment/portfolio-strategy/account/${accountId}`);
+        return response.data;
+    },
 };
 
 export default investmentService;

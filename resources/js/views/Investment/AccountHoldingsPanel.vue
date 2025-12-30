@@ -19,16 +19,19 @@
             <th class="th-name">Name</th>
             <th class="th-type">Type</th>
             <th class="th-units">Units</th>
-            <th class="th-cost">Unit Cost</th>
-            <th class="th-value">Value</th>
-            <th class="th-allocation">Allocation</th>
+            <th class="th-cost">Initial Unit Cost</th>
+            <th class="th-price">Current Unit Price</th>
+            <th class="th-initial-value">Initial Value</th>
+            <th class="th-value">Current Value</th>
+            <th class="th-initial-allocation">Initial Alloc</th>
+            <th class="th-allocation">Current Alloc</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="holding in sortedHoldings" :key="holding.id" class="holding-row">
             <td class="td-name">
               <div class="holding-info">
-                <span class="holding-name">{{ holding.name }}</span>
+                <span class="holding-name">{{ holding.security_name }}</span>
                 <span v-if="holding.ticker" class="holding-ticker">{{ holding.ticker }}</span>
                 <span v-if="holding.isin" class="holding-isin">{{ holding.isin }}</span>
               </div>
@@ -41,26 +44,25 @@
                 {{ formatAssetType(holding.asset_type) }}
               </span>
             </td>
-            <td class="td-units">{{ formatNumber(holding.units) }}</td>
-            <td class="td-cost">{{ formatCurrency(holding.unit_cost) }}</td>
+            <td class="td-units">{{ formatNumber(holding.quantity) }}</td>
+            <td class="td-cost">{{ formatCurrencyWithPence(holding.purchase_price) }}</td>
+            <td class="td-price">{{ formatCurrencyWithPence(holding.current_price) }}</td>
+            <td class="td-initial-value">{{ formatCurrency(getInitialValue(holding)) }}</td>
             <td class="td-value">{{ formatCurrency(holding.current_value) }}</td>
+            <td class="td-initial-allocation">
+              <span class="allocation-text">{{ initialAllocations.get(holding.id) }}%</span>
+            </td>
             <td class="td-allocation">
-              <div class="allocation-cell">
-                <div class="allocation-bar-bg">
-                  <div
-                    class="allocation-bar"
-                    :style="{ width: getAllocationPercentage(holding) + '%' }"
-                  ></div>
-                </div>
-                <span class="allocation-text">{{ getAllocationPercentage(holding).toFixed(1) }}%</span>
-              </div>
+              <span class="allocation-text">{{ currentAllocations.get(holding.id) }}%</span>
             </td>
           </tr>
         </tbody>
         <tfoot>
           <tr class="totals-row">
-            <td colspan="4" class="totals-label">Total</td>
+            <td colspan="5" class="totals-label">Total</td>
+            <td class="totals-initial-value">{{ formatCurrency(totalInitialValue) }}</td>
             <td class="totals-value">{{ formatCurrency(totalValue) }}</td>
+            <td class="totals-initial-allocation">100%</td>
             <td class="totals-allocation">100%</td>
           </tr>
         </tfoot>
@@ -72,7 +74,7 @@
       <div v-for="holding in sortedHoldings" :key="holding.id" class="holding-card">
         <div class="card-header">
           <div class="holding-info">
-            <span class="holding-name">{{ holding.name }}</span>
+            <span class="holding-name">{{ holding.security_name }}</span>
             <span v-if="holding.ticker" class="holding-ticker">{{ holding.ticker }}</span>
           </div>
           <span
@@ -85,19 +87,31 @@
         <div class="card-details">
           <div class="detail-row">
             <span class="detail-label">Units</span>
-            <span class="detail-value">{{ formatNumber(holding.units) }}</span>
+            <span class="detail-value">{{ formatNumber(holding.quantity) }}</span>
           </div>
           <div class="detail-row">
-            <span class="detail-label">Unit Cost</span>
-            <span class="detail-value">{{ formatCurrency(holding.unit_cost) }}</span>
+            <span class="detail-label">Initial Unit Cost</span>
+            <span class="detail-value">{{ formatCurrencyWithPence(holding.purchase_price) }}</span>
           </div>
           <div class="detail-row">
-            <span class="detail-label">Value</span>
+            <span class="detail-label">Current Unit Price</span>
+            <span class="detail-value">{{ formatCurrencyWithPence(holding.current_price) }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Initial Value</span>
+            <span class="detail-value">{{ formatCurrency(getInitialValue(holding)) }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Current Value</span>
             <span class="detail-value font-bold">{{ formatCurrency(holding.current_value) }}</span>
           </div>
           <div class="detail-row">
-            <span class="detail-label">Allocation</span>
-            <span class="detail-value">{{ getAllocationPercentage(holding).toFixed(1) }}%</span>
+            <span class="detail-label">Initial Allocation</span>
+            <span class="detail-value">{{ initialAllocations.get(holding.id) }}%</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Current Allocation</span>
+            <span class="detail-value">{{ currentAllocations.get(holding.id) }}%</span>
           </div>
         </div>
       </div>
@@ -179,6 +193,12 @@ export default {
       }, 0);
     },
 
+    totalInitialValue() {
+      return this.holdings.reduce((sum, holding) => {
+        return sum + this.getInitialValue(holding);
+      }, 0);
+    },
+
     assetAllocationSummary() {
       const allocation = {};
 
@@ -200,15 +220,56 @@ export default {
         }))
         .sort((a, b) => b.percentage - a.percentage);
     },
+
+    // Adjusted allocations to ensure they sum to exactly 100%
+    currentAllocations() {
+      return this.calculateAdjustedAllocations(
+        this.sortedHoldings,
+        (h) => parseFloat(h.current_value) || 0,
+        this.totalValue
+      );
+    },
+
+    initialAllocations() {
+      return this.calculateAdjustedAllocations(
+        this.sortedHoldings,
+        (h) => this.getInitialValue(h),
+        this.totalInitialValue
+      );
+    },
   },
 
   methods: {
+    calculateAdjustedAllocations(holdings, getValueFn, total) {
+      if (total === 0 || holdings.length === 0) {
+        return new Map(holdings.map(h => [h.id, 0]));
+      }
+
+      // Calculate raw percentages and round to 1 decimal
+      const allocations = holdings.map(h => ({
+        id: h.id,
+        raw: (getValueFn(h) / total) * 100,
+        rounded: Math.round((getValueFn(h) / total) * 1000) / 10
+      }));
+
+      // Calculate sum of rounded values
+      const roundedSum = allocations.reduce((sum, a) => sum + a.rounded, 0);
+      const difference = Math.round((100 - roundedSum) * 10) / 10;
+
+      // Adjust the first (largest) item to make total exactly 100%
+      if (allocations.length > 0 && difference !== 0) {
+        allocations[0].rounded = Math.round((allocations[0].rounded + difference) * 10) / 10;
+      }
+
+      return new Map(allocations.map(a => [a.id, a.rounded]));
+    },
+
     formatNumber(value) {
       if (!value) return '0';
       return new Intl.NumberFormat('en-GB', {
         minimumFractionDigits: 0,
-        maximumFractionDigits: 4,
-      }).format(value);
+        maximumFractionDigits: 0,
+      }).format(Math.round(value));
     },
 
     formatAssetType(type) {
@@ -250,9 +311,10 @@ export default {
       return colors[type] || '#94a3b8';
     },
 
-    getAllocationPercentage(holding) {
-      if (this.totalValue === 0) return 0;
-      return ((parseFloat(holding.current_value) || 0) / this.totalValue) * 100;
+    getInitialValue(holding) {
+      const quantity = parseFloat(holding.quantity) || 0;
+      const purchasePrice = parseFloat(holding.purchase_price) || 0;
+      return quantity * purchasePrice;
     },
   },
 };
@@ -376,8 +438,14 @@ export default {
 
 .td-units,
 .td-cost,
+.td-price,
+.td-initial-value,
 .td-value {
   font-variant-numeric: tabular-nums;
+}
+
+.td-initial-value {
+  color: #6b7280;
 }
 
 .td-value {
@@ -385,30 +453,21 @@ export default {
   color: #111827;
 }
 
-.allocation-cell {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.td-initial-allocation {
+  color: #6b7280;
 }
 
-.allocation-bar-bg {
-  width: 60px;
-  height: 6px;
-  background: #e5e7eb;
-  border-radius: 3px;
-  overflow: hidden;
+.totals-initial-value {
+  color: #6b7280;
 }
 
-.allocation-bar {
-  height: 100%;
-  background: #3b82f6;
-  border-radius: 3px;
+.totals-initial-allocation {
+  color: #6b7280;
 }
 
 .allocation-text {
   font-size: 13px;
   color: #6b7280;
-  min-width: 45px;
 }
 
 .totals-row {

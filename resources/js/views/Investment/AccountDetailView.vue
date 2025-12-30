@@ -39,7 +39,7 @@
         @open-holding-modal="$emit('open-holding-modal', account)"
       />
 
-      <!-- Performance Panel (Coming Soon) -->
+      <!-- Performance Panel -->
       <AccountPerformancePanel
         v-else-if="activeTab === 'account-performance'"
         :account="account"

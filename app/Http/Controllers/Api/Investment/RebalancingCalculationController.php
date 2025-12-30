@@ -370,6 +370,320 @@ class RebalancingCalculationController extends Controller
     }
 
     /**
+     * Get rebalancing analysis for a specific account
+     *
+     * GET /api/investment/accounts/{id}/rebalancing
+     */
+    public function getAccountRebalancing(Request $request, int $accountId): JsonResponse
+    {
+        $user = $request->user();
+
+        try {
+            $account = InvestmentAccount::where('id', $accountId)
+                ->where('user_id', $user->id)
+                ->with('holdings')
+                ->first();
+
+            if (! $account) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Investment account not found',
+                ], 404);
+            }
+
+            $holdings = $account->holdings;
+
+            // Determine if account is tax-free
+            $accountType = strtolower($account->account_type ?? '');
+            $isTaxFree = in_array($accountType, ['isa', 'sipp', 'pension', 'lisa']);
+
+            // Get user's main risk profile from risk_profiles table
+            $userRiskProfile = \DB::table('risk_profiles')
+                ->where('user_id', $user->id)
+                ->first();
+
+            $userRiskLevel = $userRiskProfile
+                ? $this->mapRiskStringToLevel($userRiskProfile->risk_level)
+                : 3; // Default to Moderate
+            $userRiskLabel = $this->getRiskLabel($userRiskLevel);
+
+            // Check if account has custom risk preference
+            $hasCustomRisk = (bool) $account->has_custom_risk;
+            $accountRiskPreference = $account->risk_preference;
+
+            // Determine effective risk level for this account
+            if ($hasCustomRisk && $accountRiskPreference) {
+                $effectiveRiskLevel = $this->mapRiskStringToLevel($accountRiskPreference);
+                $effectiveRiskLabel = $this->getRiskLabel($effectiveRiskLevel);
+            } else {
+                $effectiveRiskLevel = $userRiskLevel;
+                $effectiveRiskLabel = $userRiskLabel;
+            }
+
+            // Get target allocation for the effective risk level
+            $targetAllocation = $this->getTargetAllocationForRiskLevel($effectiveRiskLevel);
+
+            // Get threshold (default 10%)
+            $thresholdPercent = (float) ($account->rebalance_threshold_percent ?? 10.0);
+
+            // Build risk profile info
+            $riskProfileInfo = [
+                'user_risk_level' => $userRiskLevel,
+                'user_risk_label' => $userRiskLabel,
+                'has_custom_risk' => $hasCustomRisk,
+                'account_risk_preference' => $accountRiskPreference,
+                'effective_risk_level' => $effectiveRiskLevel,
+                'effective_risk_label' => $effectiveRiskLabel,
+            ];
+
+            // If no holdings, return basic info
+            if ($holdings->isEmpty()) {
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'account_id' => $account->id,
+                        'account_type' => $accountType,
+                        'is_tax_free' => $isTaxFree,
+                        'risk_profile' => $riskProfileInfo,
+                        'threshold_percent' => $thresholdPercent,
+                        'current_allocation' => ['equities' => 0, 'bonds' => 0, 'cash' => 0, 'alternatives' => 0],
+                        'target_allocation' => $targetAllocation,
+                        'drift_analysis' => [
+                            'drift_score' => 0,
+                            'max_drift' => 0,
+                            'needs_rebalancing' => false,
+                        ],
+                        'rebalancing_actions' => [],
+                        'cgt_analysis' => null,
+                    ],
+                ]);
+            }
+
+            // Analyze drift using existing service
+            $driftResult = $this->driftAnalyzer->analyzeDrift($holdings, $targetAllocation);
+
+            $driftScore = $driftResult['drift_score'] ?? 0;
+            $maxDrift = $driftResult['drift_metrics']['max_drift'] ?? 0;
+            $needsRebalancing = $driftScore >= $thresholdPercent;
+
+            $response = [
+                'account_id' => $account->id,
+                'account_type' => $accountType,
+                'is_tax_free' => $isTaxFree,
+                'risk_profile' => $riskProfileInfo,
+                'threshold_percent' => $thresholdPercent,
+                'current_allocation' => $driftResult['current_allocation'] ?? [],
+                'target_allocation' => $targetAllocation,
+                'drift_analysis' => [
+                    'drift_score' => round($driftScore, 2),
+                    'max_drift' => round($maxDrift, 2),
+                    'needs_rebalancing' => $needsRebalancing,
+                    'urgency' => $driftResult['urgency'] ?? 'low',
+                    'recommendation' => $driftResult['recommendation'] ?? '',
+                ],
+                'rebalancing_actions' => [],
+                'cgt_analysis' => null,
+            ];
+
+            // If needs rebalancing, calculate trade actions
+            if ($needsRebalancing && $holdings->count() > 0) {
+                // Convert target allocation to weights array matching holdings
+                $targetWeights = $this->convertAllocationToHoldingWeights($holdings, $targetAllocation);
+
+                $rebalanceResult = $this->rebalancingCalculator->calculateRebalancing(
+                    $holdings,
+                    $targetWeights,
+                    ['min_trade_size' => 50]
+                );
+
+                if ($rebalanceResult['success'] ?? false) {
+                    $response['rebalancing_actions'] = $rebalanceResult['actions'] ?? [];
+
+                    // For taxable accounts, calculate CGT impact
+                    if (! $isTaxFree && ! empty($rebalanceResult['actions'])) {
+                        $cgtResult = $this->taxAwareRebalancer->optimizeForCGT(
+                            $rebalanceResult['actions'],
+                            $holdings,
+                            [
+                                'cgt_allowance' => 3000, // 2024/25 allowance
+                                'tax_rate' => 0.20,
+                                'loss_carryforward' => 0,
+                            ]
+                        );
+
+                        $response['rebalancing_actions'] = $cgtResult['optimized_actions'] ?? $rebalanceResult['actions'];
+                        $response['cgt_analysis'] = [
+                            'total_gains' => $cgtResult['cgt_analysis']['total_gains'] ?? 0,
+                            'allowance_used' => min($cgtResult['cgt_analysis']['total_gains'] ?? 0, 3000),
+                            'cgt_liability' => $cgtResult['cgt_analysis']['cgt_liability'] ?? 0,
+                        ];
+                    }
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => $response,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Account rebalancing analysis failed', [
+                'user_id' => $user->id,
+                'account_id' => $accountId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to analyze account rebalancing',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Update rebalancing threshold for an account
+     *
+     * PATCH /api/investment/accounts/{id}/rebalancing-threshold
+     */
+    public function updateRebalancingThreshold(Request $request, int $accountId): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'threshold_percent' => 'required|numeric|min:1|max:50',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $user = $request->user();
+
+        try {
+            $account = InvestmentAccount::where('id', $accountId)
+                ->where('user_id', $user->id)
+                ->first();
+
+            if (! $account) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Investment account not found',
+                ], 404);
+            }
+
+            $account->rebalance_threshold_percent = $request->threshold_percent;
+            $account->save();
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'account_id' => $account->id,
+                    'threshold_percent' => (float) $account->rebalance_threshold_percent,
+                ],
+                'message' => 'Rebalancing threshold updated successfully',
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to update rebalancing threshold', [
+                'user_id' => $user->id,
+                'account_id' => $accountId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update threshold',
+            ], 500);
+        }
+    }
+
+    /**
+     * Get target asset allocation for a risk level
+     */
+    private function getTargetAllocationForRiskLevel(int $riskLevel): array
+    {
+        return match ($riskLevel) {
+            1 => ['equities' => 10, 'bonds' => 70, 'cash' => 20, 'alternatives' => 0],
+            2 => ['equities' => 30, 'bonds' => 55, 'cash' => 10, 'alternatives' => 5],
+            3 => ['equities' => 50, 'bonds' => 40, 'cash' => 5, 'alternatives' => 5],
+            4 => ['equities' => 75, 'bonds' => 20, 'cash' => 0, 'alternatives' => 5],
+            5 => ['equities' => 90, 'bonds' => 5, 'cash' => 0, 'alternatives' => 5],
+            default => ['equities' => 50, 'bonds' => 40, 'cash' => 5, 'alternatives' => 5],
+        };
+    }
+
+    /**
+     * Get risk label for a risk level
+     */
+    private function getRiskLabel(int $riskLevel): string
+    {
+        return match ($riskLevel) {
+            1 => 'Low',
+            2 => 'Lower-Medium',
+            3 => 'Medium',
+            4 => 'Upper-Medium',
+            5 => 'High',
+            default => 'Medium',
+        };
+    }
+
+    /**
+     * Map risk string (from database) to numeric level (1-5)
+     */
+    private function mapRiskStringToLevel(?string $riskString): int
+    {
+        if (! $riskString) {
+            return 3; // Default to Moderate
+        }
+
+        return match (strtolower($riskString)) {
+            'low', 'cautious', 'very_conservative' => 1,
+            'lower_medium', 'conservative' => 2,
+            'medium', 'balanced', 'moderate' => 3,
+            'upper_medium', 'growth' => 4,
+            'high', 'adventurous', 'aggressive' => 5,
+            default => 3,
+        };
+    }
+
+    /**
+     * Convert asset allocation percentages to holding-level weights
+     */
+    private function convertAllocationToHoldingWeights($holdings, array $targetAllocation): array
+    {
+        $weights = [];
+        $totalValue = $holdings->sum('current_value');
+
+        if ($totalValue <= 0) {
+            // Equal weights if no value
+            $count = $holdings->count();
+
+            return array_fill(0, $count, $count > 0 ? 1 / $count : 0);
+        }
+
+        foreach ($holdings as $holding) {
+            $assetClass = strtolower($holding->asset_class ?? 'equities');
+            $targetPercent = $targetAllocation[$assetClass] ?? $targetAllocation['equities'] ?? 50;
+
+            // Calculate this holding's share of its asset class
+            $classTotal = $holdings->where('asset_class', $holding->asset_class)->sum('current_value');
+            $holdingShareOfClass = $classTotal > 0 ? ($holding->current_value / $classTotal) : 1;
+
+            // Weight = (target class allocation) * (holding's share of that class)
+            $weights[] = ($targetPercent / 100) * $holdingShareOfClass;
+        }
+
+        // Normalize weights to sum to 1
+        $sum = array_sum($weights);
+        if ($sum > 0) {
+            $weights = array_map(fn ($w) => $w / $sum, $weights);
+        }
+
+        return $weights;
+    }
+
+    /**
      * Analyze portfolio drift from target allocation
      *
      * POST /api/investment/rebalancing/analyze-drift

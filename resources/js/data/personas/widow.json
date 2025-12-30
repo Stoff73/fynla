@@ -196,13 +196,20 @@
       "current_value": 220000,
       "annual_contribution": 10000,
       "ownership_type": "individual",
+      "platform_fee_percent": 0.45,
+      "advisor_fee_percent": 1.0,
       "risk_profile": "cautious",
       "risk_preference": "lower_medium",
       "holdings": [
         {
           "id": 1,
           "holding_name": "Vanguard LifeStrategy 40",
+          "ticker": "VGLS40",
+          "isin": "GB00B3TYHH97",
           "asset_type": "fund",
+          "units": 550,
+          "initial_unit_cost": 175.00,
+          "current_unit_price": 200.00,
           "current_value": 110000,
           "allocation_percentage": 50,
           "annual_fee": 0.22
@@ -210,7 +217,12 @@
         {
           "id": 2,
           "holding_name": "iShares Corporate Bond",
+          "ticker": "SLXX",
+          "isin": "IE0032895942",
           "asset_type": "bond",
+          "units": 550,
+          "initial_unit_cost": 125.00,
+          "current_unit_price": 120.00,
           "current_value": 66000,
           "allocation_percentage": 30,
           "annual_fee": 0.2
@@ -218,8 +230,13 @@
         {
           "id": 3,
           "holding_name": "Vanguard UK Equity Income",
+          "ticker": "VUKE",
+          "isin": "IE00B3X1LR22",
           "asset_type": "fund",
-          "current_value": 44000,
+          "units": 1467,
+          "initial_unit_cost": 26.50,
+          "current_unit_price": 30.00,
+          "current_value": 44010,
           "allocation_percentage": 20,
           "annual_fee": 0.22
         }
@@ -233,6 +250,8 @@
       "current_value": 150000,
       "annual_contribution": 0,
       "ownership_type": "individual",
+      "platform_fee_percent": 0.50,
+      "advisor_fee_percent": 1.0,
       "risk_preference": "lower_medium",
       "notes": "For tax-efficient withdrawals in retirement"
     },
@@ -244,6 +263,8 @@
       "current_value": 180000,
       "annual_contribution": 0,
       "ownership_type": "individual",
+      "platform_fee_percent": 0.45,
+      "advisor_fee_percent": 1.0,
       "risk_profile": "balanced",
       "risk_preference": "medium",
       "has_custom_risk": true,
@@ -251,23 +272,38 @@
         {
           "id": 4,
           "holding_name": "City of London IT",
+          "ticker": "CTY",
+          "isin": "GB0001990497",
           "asset_type": "uk_equity",
-          "current_value": 60000,
+          "units": 13636,
+          "initial_unit_cost": 3.85,
+          "current_unit_price": 4.40,
+          "current_value": 59998,
           "allocation_percentage": 33.3,
           "annual_fee": 0.38
         },
         {
           "id": 5,
           "holding_name": "Finsbury Growth & Income",
+          "ticker": "FGT",
+          "isin": "GB0003434919",
           "asset_type": "fund",
-          "current_value": 60000,
+          "units": 6667,
+          "initial_unit_cost": 7.80,
+          "current_unit_price": 9.00,
+          "current_value": 60003,
           "allocation_percentage": 33.3,
           "annual_fee": 0.65
         },
         {
           "id": 6,
           "holding_name": "Bankers IT",
+          "ticker": "BNKR",
+          "isin": "GB00BYYJD365",
           "asset_type": "uk_equity",
+          "units": 54545,
+          "initial_unit_cost": 0.95,
+          "current_unit_price": 1.10,
           "current_value": 60000,
           "allocation_percentage": 33.3,
           "annual_fee": 0.48

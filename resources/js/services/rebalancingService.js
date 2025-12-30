@@ -122,6 +122,31 @@ const rebalancingService = {
     const response = await api.delete(`/investment/rebalancing/actions/${id}`);
     return response.data;
   },
+
+  /**
+   * Get rebalancing analysis for a specific account
+   *
+   * @param {number} accountId - Investment account ID
+   * @returns {Promise<Object>} Rebalancing analysis with drift, actions, and CGT
+   */
+  async getAccountRebalancing(accountId) {
+    const response = await api.get(`/investment/accounts/${accountId}/rebalancing`);
+    return response.data;
+  },
+
+  /**
+   * Update rebalancing threshold for an account
+   *
+   * @param {number} accountId - Investment account ID
+   * @param {number} thresholdPercent - New threshold percentage (1-50)
+   * @returns {Promise<Object>} Updated threshold data
+   */
+  async updateRebalancingThreshold(accountId, thresholdPercent) {
+    const response = await api.patch(`/investment/accounts/${accountId}/rebalancing-threshold`, {
+      threshold_percent: thresholdPercent,
+    });
+    return response.data;
+  },
 };
 
 export default rebalancingService;

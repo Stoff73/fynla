@@ -183,27 +183,24 @@ class TaxOptimizationAnalyzer
         $taxYearStart = "{$startYear}-04-06";
         $taxYearEnd = ((int) $startYear + 1).'-04-05';
 
-        // Investment ISAs
+        // Investment ISAs - use actual subscription amount for current tax year
         foreach ($investmentAccounts as $account) {
             if (in_array($account->account_type, ['isa', 'stocks_shares_isa'])) {
-                // Sum contributions within tax year
-                // For now, use current value as proxy (would need contribution tracking)
-                $usage += $account->current_value ?? 0;
+                $usage += $account->isa_subscription_current_year ?? 0;
             }
         }
 
-        // Cash ISAs from Savings module
+        // Cash ISAs from Savings module - use actual subscription for current tax year
         foreach ($savingsAccounts as $account) {
             if ($account->account_type === 'isa' || $account->account_type === 'cash_isa') {
-                $usage += $account->current_balance ?? 0;
+                // Check if subscription is for current tax year
+                if ($account->isa_subscription_year === $taxYear) {
+                    $usage += $account->isa_subscription_amount ?? 0;
+                }
             }
         }
 
-        // Note: This is simplified - proper tracking would need contribution history
-        // Cap at allowance to avoid showing impossible usage
-        $isaConfig = $this->taxConfig->getISAAllowances();
-
-        return min($usage, $isaConfig['annual_allowance']);
+        return $usage;
     }
 
     /**

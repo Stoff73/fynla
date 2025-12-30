@@ -22,6 +22,7 @@ use App\Http\Controllers\Api\Investment\InvestmentRecommendationController;
 use App\Http\Controllers\Api\Investment\InvestmentScenarioController;
 use App\Http\Controllers\Api\Investment\ModelPortfolioController;
 use App\Http\Controllers\Api\Investment\PerformanceAttributionController;
+use App\Http\Controllers\Api\Investment\PortfolioStrategyController;
 use App\Http\Controllers\Api\Investment\RebalancingActionsController;
 use App\Http\Controllers\Api\Investment\RebalancingCalculationController;
 use App\Http\Controllers\Api\Investment\RebalancingStrategiesController;
@@ -312,6 +313,10 @@ Route::middleware('auth:sanctum')->prefix('investment')->group(function () {
     Route::get('/recommendations', [InvestmentController::class, 'recommendations']);
     Route::post('/scenarios', [InvestmentController::class, 'scenarios']);
 
+    // Portfolio Strategy (aggregated recommendations)
+    Route::get('/portfolio-strategy', [PortfolioStrategyController::class, 'index']);
+    Route::get('/portfolio-strategy/account/{accountId}', [PortfolioStrategyController::class, 'forAccount']);
+
     // Monte Carlo simulation
     Route::post('/monte-carlo', [InvestmentController::class, 'startMonteCarlo']);
     Route::get('/monte-carlo/{jobId}', [InvestmentController::class, 'getMonteCarloResults']);
@@ -324,6 +329,9 @@ Route::middleware('auth:sanctum')->prefix('investment')->group(function () {
         Route::post('/', [InvestmentController::class, 'storeAccount']);
         Route::put('/{id}', [InvestmentController::class, 'updateAccount']);
         Route::delete('/{id}', [InvestmentController::class, 'destroyAccount']);
+        Route::get('/{id}/projections', [InvestmentController::class, 'getAccountProjections']);
+        Route::get('/{id}/rebalancing', [RebalancingCalculationController::class, 'getAccountRebalancing']);
+        Route::patch('/{id}/rebalancing-threshold', [RebalancingCalculationController::class, 'updateRebalancingThreshold']);
     });
 
     // Holdings

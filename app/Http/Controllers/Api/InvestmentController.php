@@ -11,6 +11,7 @@ use App\Models\Investment\Holding;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\Investment\InvestmentGoal;
 use App\Models\Investment\RiskProfile;
+use App\Services\Investment\InvestmentProjectionService;
 use App\Traits\CalculatesOwnershipShare;
 use App\Http\Traits\SanitizedErrorResponse;
 use Illuminate\Http\JsonResponse;
@@ -34,7 +35,8 @@ class InvestmentController extends Controller
     use SanitizedErrorResponse;
 
     public function __construct(
-        private InvestmentAgent $investmentAgent
+        private InvestmentAgent $investmentAgent,
+        private InvestmentProjectionService $projectionService
     ) {}
 
     /**
@@ -761,5 +763,74 @@ class InvestmentController extends Controller
             ],
             'update'
         );
+    }
+
+    /**
+     * Get Monte Carlo projections for an investment account.
+     *
+     * GET /api/investment/accounts/{id}/projections
+     */
+    public function getAccountProjections(Request $request, int $id): JsonResponse
+    {
+        $user = $request->user();
+
+        // Validate user has access to this account
+        $account = InvestmentAccount::where(function ($query) use ($user) {
+            $query->where('user_id', $user->id)
+                  ->orWhere('joint_owner_id', $user->id);
+        })->find($id);
+
+        if (! $account) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Investment account not found',
+            ], 404);
+        }
+
+        try {
+            $projections = $this->projectionService->getPortfolioProjections(
+                $user,
+                [5, 10, 20, 30],
+                null,
+                20
+            );
+
+            // Find this specific account's projections
+            $accountProjection = collect($projections['accounts'])
+                ->firstWhere('account_id', $id);
+
+            if (! $accountProjection) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Could not generate projections for this account',
+                ], 500);
+            }
+
+            // Get the 20-year projection data for the chart
+            $yearByYear = $accountProjection['projections'][20]['year_by_year'] ?? [];
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Investment account projections generated successfully',
+                'data' => [
+                    'account_id' => $accountProjection['account_id'],
+                    'account_name' => $accountProjection['account_name'],
+                    'account_type' => $accountProjection['account_type'],
+                    'current_value' => $accountProjection['current_value'],
+                    'monthly_contribution' => $accountProjection['estimated_monthly_contribution'],
+                    'risk_level' => $accountProjection['risk_level'],
+                    'expected_return' => $accountProjection['expected_return'],
+                    'volatility' => $accountProjection['volatility'],
+                    'projection_years' => 20,
+                    'percentiles_at_end' => $accountProjection['projections'][20]['percentiles'] ?? [],
+                    'year_by_year' => $yearByYear,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to generate projections: '.$e->getMessage(),
+            ], 500);
+        }
     }
 }

@@ -148,14 +148,21 @@
       "current_value": 15000,
       "annual_contribution": 4800,
       "ownership_type": "individual",
+      "platform_fee_percent": 0.15,
+      "advisor_fee_percent": 0,
       "risk_profile": "balanced",
       "risk_preference": "medium",
       "holdings": [
         {
           "id": 1,
           "holding_name": "Vanguard LifeStrategy 80%",
+          "ticker": "VGLS80",
+          "isin": "GB00B4PQW151",
           "asset_type": "fund",
-          "current_value": 15000,
+          "units": 59,
+          "initial_unit_cost": 235.00,
+          "current_unit_price": 255.00,
+          "current_value": 15045,
           "allocation_percentage": 100,
           "annual_fee": 0.22
         }
