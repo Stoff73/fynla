@@ -6,7 +6,8 @@ use App\Models\User;
 
 test('authenticated user can retrieve their profile', function () {
     $user = User::factory()->create([
-        'name' => 'Test User',
+        'first_name' => 'Test',
+        'surname' => 'User',
         'email' => 'testuser@example.com',
         'date_of_birth' => '1990-05-15',
         'gender' => 'male',

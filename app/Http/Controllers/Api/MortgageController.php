@@ -132,6 +132,11 @@ class MortgageController extends Controller
             $validated['joint_owner_name'] = $jointOwner ? $jointOwner->name : null;
         }
 
+        // Default country to United Kingdom if not provided
+        if (! isset($validated['country']) || $validated['country'] === null) {
+            $validated['country'] = 'United Kingdom';
+        }
+
         $mortgage = Mortgage::create([
             'property_id' => $propertyId,
             'user_id' => $user->id,

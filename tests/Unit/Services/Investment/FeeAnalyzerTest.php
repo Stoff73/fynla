@@ -200,22 +200,22 @@ describe('identifyHighFeeHoldings', function () {
     });
 });
 
-describe('calculateFeeDrag', function () {
+describe('calculateSimpleFeeDrag', function () {
     it('calculates fee drag as percentage of portfolio', function () {
-        $drag = $this->feeAnalyzer->calculateFeeDrag(1000, 100000);
+        $drag = $this->feeAnalyzer->calculateSimpleFeeDrag(1000, 100000);
 
         // 1000 / 100000 = 1%
         expect($drag)->toBe(1.0);
     });
 
     it('returns zero for zero portfolio value', function () {
-        $drag = $this->feeAnalyzer->calculateFeeDrag(500, 0);
+        $drag = $this->feeAnalyzer->calculateSimpleFeeDrag(500, 0);
 
         expect($drag)->toBe(0.0);
     });
 
     it('handles small fee amounts correctly', function () {
-        $drag = $this->feeAnalyzer->calculateFeeDrag(250, 100000);
+        $drag = $this->feeAnalyzer->calculateSimpleFeeDrag(250, 100000);
 
         // 250 / 100000 = 0.25%
         expect($drag)->toBe(0.25);

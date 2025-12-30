@@ -19,7 +19,8 @@ beforeEach(function () {
 
     $this->user = new User([
         'id' => 1,
-        'name' => 'Test User',
+        'first_name' => 'Test',
+        'surname' => 'User',
         'email' => 'test@example.com',
         'date_of_birth' => '1970-01-01',
         'gender' => 'male',

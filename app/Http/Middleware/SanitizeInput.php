@@ -68,7 +68,7 @@ class SanitizeInput
             if (is_array($value)) {
                 $sanitized[$key] = $this->sanitizeArray($value, $fullKey);
             } elseif (is_string($value)) {
-                $sanitized[$key] = $this->sanitizeString($value, $key);
+                $sanitized[$key] = $this->sanitizeString($value, (string) $key);
             } else {
                 $sanitized[$key] = $value;
             }

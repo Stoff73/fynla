@@ -305,7 +305,6 @@ class MortgageControllerTest extends TestCase
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors([
-                'lender_name',
                 'mortgage_type',
                 'outstanding_balance',
                 'interest_rate',

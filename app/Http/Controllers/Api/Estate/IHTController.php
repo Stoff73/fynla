@@ -419,6 +419,37 @@ class IHTController extends Controller
     }
 
     /**
+     * Store or update IHT profile for the authenticated user
+     */
+    public function storeOrUpdateIHTProfile(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'marital_status' => ['nullable', 'string', 'in:single,married,widowed,divorced'],
+            'has_spouse' => ['nullable', 'boolean'],
+            'own_home' => ['nullable', 'boolean'],
+            'home_value' => ['nullable', 'numeric', 'min:0'],
+            'nrb_transferred_from_spouse' => ['nullable', 'numeric', 'min:0'],
+            'charitable_giving_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
+        ]);
+
+        $profile = \App\Models\Estate\IHTProfile::updateOrCreate(
+            ['user_id' => $user->id],
+            $validated
+        );
+
+        // Invalidate cache as profile has changed
+        $this->ihtCalculationService->invalidateCache($user);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'IHT profile updated successfully',
+            'data' => $profile,
+        ]);
+    }
+
+    /**
      * Invalidate IHT calculation cache
      */
     public function invalidateCache(Request $request): JsonResponse

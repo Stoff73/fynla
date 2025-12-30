@@ -8,6 +8,7 @@ test('user can login with valid credentials', function () {
     $user = User::factory()->create([
         'email' => 'test@example.com',
         'password' => bcrypt('password123'),
+        'is_preview_user' => true, // Skip email verification in tests
     ]);
 
     $response = $this->postJson('/api/auth/login', [
@@ -42,6 +43,7 @@ test('user login creates new access token', function () {
     User::factory()->create([
         'email' => 'token@example.com',
         'password' => bcrypt('password123'),
+        'is_preview_user' => true,
     ]);
 
     $response = $this->postJson('/api/auth/login', [
@@ -113,6 +115,7 @@ test('multiple successful logins create multiple tokens', function () {
     $user = User::factory()->create([
         'email' => 'multi@example.com',
         'password' => bcrypt('password123'),
+        'is_preview_user' => true,
     ]);
 
     // First login

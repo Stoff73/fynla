@@ -96,14 +96,15 @@ class AssetAllocationOptimizer
     }
 
     /**
-     * Map legacy 3-level tolerance to new 5-level system
+     * Map legacy 3-level tolerance - keeps original values since getAllocationForLevel
+     * handles them directly with their own allocations.
      */
     private function mapLegacyTolerance(?string $tolerance): string
     {
+        // Return the original value if it's a valid legacy value,
+        // since getAllocationForLevel handles 'cautious', 'balanced', 'adventurous' directly
         return match ($tolerance) {
-            'cautious' => 'lower_medium',
-            'balanced' => 'medium',
-            'adventurous' => 'upper_medium',
+            'cautious', 'balanced', 'adventurous' => $tolerance,
             default => 'medium',
         };
     }

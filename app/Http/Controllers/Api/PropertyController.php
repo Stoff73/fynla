@@ -117,6 +117,11 @@ class PropertyController extends Controller
             $validated['ownership_percentage'] = 50.00;
         }
 
+        // Default country to United Kingdom if not provided
+        if (! isset($validated['country']) || $validated['country'] === null) {
+            $validated['country'] = 'United Kingdom';
+        }
+
         // Single-record pattern: Store FULL value directly (no splitting)
         // current_value already contains the full property value from the form
 

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-use App\Models\CashAccount;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\Property;
+use App\Models\SavingsAccount;
 use App\Models\User;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -114,10 +114,9 @@ test('get assets summary endpoint returns counts and totals', function () {
         'ownership_percentage' => 100,
     ]);
 
-    CashAccount::factory()->create([
+    SavingsAccount::factory()->create([
         'user_id' => $this->user->id,
         'current_balance' => 25000,
-        'ownership_percentage' => 100,
     ]);
 
     $response = $this->getJson('/api/net-worth/assets-summary');

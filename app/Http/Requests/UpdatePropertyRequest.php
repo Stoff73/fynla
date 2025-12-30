@@ -44,7 +44,7 @@ class UpdatePropertyRequest extends FormRequest
             'address_line_2' => ['sometimes', 'nullable', 'string', 'max:255'],
             'city' => ['sometimes', 'string', 'max:255'],
             'county' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'postcode' => ['sometimes', 'string', 'regex:/^[A-Z]{1,2}[0-9]{1,2}[A-Z]?\s?[0-9][A-Z]{2}$/i'],
+            'postcode' => ['sometimes', 'string', 'max:20'],
 
             // Financial
             'purchase_date' => ['sometimes', 'nullable', 'date'],
@@ -103,8 +103,18 @@ class UpdatePropertyRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'postcode.regex' => 'The postcode must be a valid UK postcode.',
             'lease_end_date.after_or_equal' => 'The lease end date must be after or equal to the lease start date.',
         ];
+    }
+
+    /**
+     * Add conditional validation based on country.
+     */
+    public function withValidator($validator): void
+    {
+        $validator->sometimes('postcode', 'regex:/^[A-Z]{1,2}[0-9]{1,2}[A-Z]?\s?[0-9][A-Z]{2}$/i', function ($input) {
+            // Only validate UK postcode format when country is UK or not specified
+            return $input->country === 'United Kingdom' || $input->country === null;
+        });
     }
 }

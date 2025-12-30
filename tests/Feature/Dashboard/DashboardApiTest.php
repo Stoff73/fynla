@@ -5,7 +5,8 @@ use Illuminate\Support\Facades\Cache;
 
 beforeEach(function () {
     $this->user = User::factory()->create([
-        'name' => 'Test User',
+        'first_name' => 'Test',
+        'surname' => 'User',
         'email' => 'test@example.com',
     ]);
 });
@@ -244,7 +245,8 @@ test('invalidate cache clears all dashboard caches', function () {
 
 test('different users get separate cached data', function () {
     $user2 = User::factory()->create([
-        'name' => 'Test User 2',
+        'first_name' => 'Test',
+        'surname' => 'User 2',
         'email' => 'test2@example.com',
     ]);
 

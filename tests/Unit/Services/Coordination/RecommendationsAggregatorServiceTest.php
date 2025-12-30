@@ -1,29 +1,29 @@
 <?php
 
 use App\Agents\ProtectionAgent;
+use App\Agents\RetirementAgent;
+use App\Agents\SavingsAgent;
 use App\Models\User;
 use App\Services\Coordination\RecommendationsAggregatorService;
-use App\Services\Estate\NetWorthAnalyzer;
+use App\Services\Estate\ComprehensiveEstatePlanService;
 use App\Services\Investment\PortfolioAnalyzer;
-use App\Services\Retirement\PensionProjector;
-use App\Services\Savings\EmergencyFundCalculator;
 
 beforeEach(function () {
     $this->user = User::factory()->create();
 
-    // Mock all the services with correct types
+    // Mock all the services with correct types matching the constructor
     $this->protectionEngine = Mockery::mock(ProtectionAgent::class);
-    $this->savingsCalculator = Mockery::mock(EmergencyFundCalculator::class);
+    $this->savingsCalculator = Mockery::mock(SavingsAgent::class);
     $this->investmentAnalyzer = Mockery::mock(PortfolioAnalyzer::class);
-    $this->retirementProjector = Mockery::mock(PensionProjector::class);
-    $this->estateAnalyzer = Mockery::mock(NetWorthAnalyzer::class);
+    $this->retirementAgent = Mockery::mock(RetirementAgent::class);
+    $this->estatePlanService = Mockery::mock(ComprehensiveEstatePlanService::class);
 
     $this->service = new RecommendationsAggregatorService(
         $this->protectionEngine,
         $this->savingsCalculator,
         $this->investmentAnalyzer,
-        $this->retirementProjector,
-        $this->estateAnalyzer
+        $this->retirementAgent,
+        $this->estatePlanService
     );
 });
 
@@ -52,11 +52,11 @@ test('aggregateRecommendations returns recommendations from all modules', functi
     // Mock user's investmentAccounts relationship
     $this->user->setRelation('investmentAccounts', collect([]));
 
-    $this->retirementProjector->shouldReceive('analyze')->andReturn([
+    $this->retirementAgent->shouldReceive('analyze')->andReturn([
         'recommendations' => [],
     ]);
 
-    $this->estateAnalyzer->shouldReceive('analyze')->andReturn([
+    $this->estatePlanService->shouldReceive('generateComprehensiveEstatePlan')->andReturn([
         'recommendations' => [],
     ]);
 
@@ -81,13 +81,13 @@ test('aggregateRecommendations sorts by priority score descending', function () 
 
     // Mock user's investmentAccounts relationship
     $this->user->setRelation('investmentAccounts', collect([]));
-    $this->retirementProjector->shouldReceive('analyze')->andReturn([
+    $this->retirementAgent->shouldReceive('analyze')->andReturn([
         'recommendations' => [
             ['recommendation_id' => 'ret_1', 'recommendation' => 'Test 3', 'priority' => 70.0],
         ],
     ]);
 
-    $this->estateAnalyzer->shouldReceive('analyze')->andReturn([
+    $this->estatePlanService->shouldReceive('generateComprehensiveEstatePlan')->andReturn([
         'recommendations' => [],
     ]);
 
@@ -121,8 +121,8 @@ test('formatRecommendations normalizes different recommendation formats', functi
 
     // Mock user's investmentAccounts relationship
     $this->user->setRelation('investmentAccounts', collect([]));
-    $this->retirementProjector->shouldReceive('analyze')->andReturn(['recommendations' => []]);
-    $this->estateAnalyzer->shouldReceive('analyze')->andReturn(['recommendations' => []]);
+    $this->retirementAgent->shouldReceive('analyze')->andReturn(['recommendations' => []]);
+    $this->estatePlanService->shouldReceive('generateComprehensiveEstatePlan')->andReturn(['recommendations' => []]);
 
     $recommendations = $this->service->aggregateRecommendations($this->user->id);
 
@@ -147,8 +147,8 @@ test('determineTimeline assigns correct timeline based on priority score', funct
     $this->savingsCalculator->shouldReceive('analyze')->andReturn(['recommendations' => []]);
     // Mock user's investmentAccounts relationship
     $this->user->setRelation('investmentAccounts', collect([]));
-    $this->retirementProjector->shouldReceive('analyze')->andReturn(['recommendations' => []]);
-    $this->estateAnalyzer->shouldReceive('analyze')->andReturn(['recommendations' => []]);
+    $this->retirementAgent->shouldReceive('analyze')->andReturn(['recommendations' => []]);
+    $this->estatePlanService->shouldReceive('generateComprehensiveEstatePlan')->andReturn(['recommendations' => []]);
 
     $recommendations = $this->service->aggregateRecommendations($this->user->id);
 
@@ -169,8 +169,8 @@ test('determineImpact assigns correct impact based on priority score', function 
     $this->savingsCalculator->shouldReceive('analyze')->andReturn(['recommendations' => []]);
     // Mock user's investmentAccounts relationship
     $this->user->setRelation('investmentAccounts', collect([]));
-    $this->retirementProjector->shouldReceive('analyze')->andReturn(['recommendations' => []]);
-    $this->estateAnalyzer->shouldReceive('analyze')->andReturn(['recommendations' => []]);
+    $this->retirementAgent->shouldReceive('analyze')->andReturn(['recommendations' => []]);
+    $this->estatePlanService->shouldReceive('generateComprehensiveEstatePlan')->andReturn(['recommendations' => []]);
 
     $recommendations = $this->service->aggregateRecommendations($this->user->id);
 
@@ -193,8 +193,8 @@ test('getRecommendationsByModule filters correctly', function () {
 
     // Mock user's investmentAccounts relationship
     $this->user->setRelation('investmentAccounts', collect([]));
-    $this->retirementProjector->shouldReceive('analyze')->andReturn(['recommendations' => []]);
-    $this->estateAnalyzer->shouldReceive('analyze')->andReturn(['recommendations' => []]);
+    $this->retirementAgent->shouldReceive('analyze')->andReturn(['recommendations' => []]);
+    $this->estatePlanService->shouldReceive('generateComprehensiveEstatePlan')->andReturn(['recommendations' => []]);
 
     $protectionRecs = $this->service->getRecommendationsByModule($this->user->id, 'protection');
     $savingsRecs = $this->service->getRecommendationsByModule($this->user->id, 'savings');
@@ -215,8 +215,8 @@ test('getRecommendationsByPriority filters correctly', function () {
     $this->savingsCalculator->shouldReceive('analyze')->andReturn(['recommendations' => []]);
     // Mock user's investmentAccounts relationship
     $this->user->setRelation('investmentAccounts', collect([]));
-    $this->retirementProjector->shouldReceive('analyze')->andReturn(['recommendations' => []]);
-    $this->estateAnalyzer->shouldReceive('analyze')->andReturn(['recommendations' => []]);
+    $this->retirementAgent->shouldReceive('analyze')->andReturn(['recommendations' => []]);
+    $this->estatePlanService->shouldReceive('generateComprehensiveEstatePlan')->andReturn(['recommendations' => []]);
 
     $highPriorityRecs = $this->service->getRecommendationsByPriority($this->user->id, 'high');
     $lowPriorityRecs = $this->service->getRecommendationsByPriority($this->user->id, 'low');
@@ -238,8 +238,8 @@ test('getTopRecommendations returns limited results', function () {
     $this->savingsCalculator->shouldReceive('analyze')->andReturn(['recommendations' => []]);
     // Mock user's investmentAccounts relationship
     $this->user->setRelation('investmentAccounts', collect([]));
-    $this->retirementProjector->shouldReceive('analyze')->andReturn(['recommendations' => []]);
-    $this->estateAnalyzer->shouldReceive('analyze')->andReturn(['recommendations' => []]);
+    $this->retirementAgent->shouldReceive('analyze')->andReturn(['recommendations' => []]);
+    $this->estatePlanService->shouldReceive('generateComprehensiveEstatePlan')->andReturn(['recommendations' => []]);
 
     $topRecs = $this->service->getTopRecommendations($this->user->id, 3);
 
@@ -274,8 +274,8 @@ test('getSummary calculates correct statistics', function () {
 
     // Mock user's investmentAccounts relationship
     $this->user->setRelation('investmentAccounts', collect([]));
-    $this->retirementProjector->shouldReceive('analyze')->andReturn(['recommendations' => []]);
-    $this->estateAnalyzer->shouldReceive('analyze')->andReturn(['recommendations' => []]);
+    $this->retirementAgent->shouldReceive('analyze')->andReturn(['recommendations' => []]);
+    $this->estatePlanService->shouldReceive('generateComprehensiveEstatePlan')->andReturn(['recommendations' => []]);
 
     $summary = $this->service->getSummary($this->user->id);
 
@@ -299,8 +299,8 @@ test('aggregateRecommendations handles service exceptions gracefully', function 
 
     // Mock user's investmentAccounts relationship
     $this->user->setRelation('investmentAccounts', collect([]));
-    $this->retirementProjector->shouldReceive('analyze')->andReturn(['recommendations' => []]);
-    $this->estateAnalyzer->shouldReceive('analyze')->andReturn(['recommendations' => []]);
+    $this->retirementAgent->shouldReceive('analyze')->andReturn(['recommendations' => []]);
+    $this->estatePlanService->shouldReceive('generateComprehensiveEstatePlan')->andReturn(['recommendations' => []]);
 
     $recommendations = $this->service->aggregateRecommendations($this->user->id);
 
@@ -323,13 +323,13 @@ test('determineCategory assigns correct category based on module', function () {
 
     // Mock user's investmentAccounts relationship
     $this->user->setRelation('investmentAccounts', collect([]));
-    $this->retirementProjector->shouldReceive('analyze')->andReturn([
+    $this->retirementAgent->shouldReceive('analyze')->andReturn([
         'recommendations' => [
             ['recommendation_id' => 'r1', 'recommendation' => 'Retirement', 'priority' => 75.0],
         ],
     ]);
 
-    $this->estateAnalyzer->shouldReceive('analyze')->andReturn([
+    $this->estatePlanService->shouldReceive('generateComprehensiveEstatePlan')->andReturn([
         'recommendations' => [
             ['recommendation_id' => 'e1', 'recommendation' => 'Estate', 'priority' => 75.0],
         ],

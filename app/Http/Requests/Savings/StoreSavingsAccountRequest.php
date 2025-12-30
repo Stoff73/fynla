@@ -17,16 +17,16 @@ class StoreSavingsAccountRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'account_type' => 'nullable|string|max:255',
-            'institution' => 'nullable|string|max:255',
+            'account_type' => 'required|string|max:255',
+            'institution' => 'required|string|max:255',
             'account_number' => 'nullable|string|max:255',
-            'current_balance' => 'nullable|numeric|min:0',
-            'interest_rate' => 'nullable|numeric|min:0|max:20',
-            'access_type' => 'nullable|in:immediate,notice,fixed',
+            'current_balance' => 'required|numeric|min:0',
+            'interest_rate' => 'required|numeric|min:0|max:20',
+            'access_type' => 'required|in:immediate,notice,fixed',
             'notice_period_days' => 'nullable|integer|min:0',
             'maturity_date' => 'nullable|date|after:today',
             'is_emergency_fund' => 'nullable|boolean',
-            'is_isa' => 'nullable|boolean',
+            'is_isa' => 'required|boolean',
             'country' => 'nullable|string|max:255',
             'isa_type' => 'nullable|in:cash,stocks_shares,LISA',
             'isa_subscription_year' => 'nullable|string',

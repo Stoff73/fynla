@@ -14,7 +14,8 @@ describe('Protection Workflow Integration', function () {
     it('completes full protection planning journey', function () {
         // Step 1: Create a new user
         $user = User::factory()->create([
-            'name' => 'Integration Test User',
+            'first_name' => 'Integration',
+            'surname' => 'Test User',
             'email' => 'integration@test.com',
             'date_of_birth' => now()->subYears(35),
         ]);

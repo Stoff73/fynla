@@ -184,6 +184,7 @@ class PropertyService
             'city' => $property->city,
             'county' => $property->county,
             'postcode' => $property->postcode,
+            'country' => $property->country ?? 'United Kingdom',
 
             // Cost fields (flat for form compatibility) - MONTHLY
             'monthly_council_tax' => (float) ($property->monthly_council_tax ?? 0),

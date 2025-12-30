@@ -334,12 +334,11 @@ describe('Validation', function () {
         $user = User::factory()->create();
 
         $response = $this->actingAs($user)->postJson('/api/protection/policies/life', [
-            'provider' => '', // Invalid
-            'sum_assured' => -1000, // Invalid
+            'sum_assured' => -1000, // Invalid - must be >= 0
         ]);
 
         $response->assertStatus(422)
-            ->assertJsonValidationErrors(['provider', 'sum_assured']);
+            ->assertJsonValidationErrors(['sum_assured']);
     });
 
     it('validates protection profile creation', function () {

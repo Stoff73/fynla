@@ -23,6 +23,7 @@ class AdminUserSeeder extends Seeder
                 'role' => 'admin',
                 'is_admin' => true,  // Required for admin access checks
                 'is_primary_account' => true,
+                'is_preview_user' => true,  // Skip email verification
                 'date_of_birth' => '1975-01-01',
                 'gender' => 'male',
                 'marital_status' => 'single',

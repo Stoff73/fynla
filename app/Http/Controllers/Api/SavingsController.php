@@ -212,6 +212,14 @@ class SavingsController extends Controller
                 $data['ownership_percentage'] = 50.00;
             }
 
+            // ISA accounts must always be United Kingdom
+            // Non-ISA accounts default to United Kingdom if not provided
+            if (isset($data['is_isa']) && $data['is_isa']) {
+                $data['country'] = 'United Kingdom';
+            } elseif (! isset($data['country']) || $data['country'] === null) {
+                $data['country'] = 'United Kingdom';
+            }
+
             // Single-record pattern: Store FULL balance directly (no splitting)
             // current_balance already contains the full account balance from the form
 
@@ -298,8 +306,14 @@ class SavingsController extends Controller
                 ->where('user_id', $user->id)
                 ->firstOrFail();
 
+            // Get validated data and enforce ISA country rule
+            $data = $request->validated();
+            if (isset($data['is_isa']) && $data['is_isa']) {
+                $data['country'] = 'United Kingdom';
+            }
+
             // Single-record pattern: Update directly (no reciprocal)
-            $account->update($request->validated());
+            $account->update($data);
 
             // Invalidate cache
             Cache::forget("savings_analysis_{$user->id}");

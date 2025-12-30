@@ -6,7 +6,8 @@ use Illuminate\Support\Facades\Cache;
 
 beforeEach(function () {
     $this->user = User::factory()->create([
-        'name' => 'Integration Test User',
+        'first_name' => 'Integration',
+        'surname' => 'Test User',
         'email' => 'integration@example.com',
     ]);
 

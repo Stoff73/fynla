@@ -8,17 +8,22 @@ use Laravel\Sanctum\Sanctum;
 
 beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
-    // Create admin and regular users
+    // Create admin and regular users (set is_preview_user to skip email verification)
     $this->adminUser = User::factory()->create([
-        'name' => 'Admin User',
+        'first_name' => 'Admin',
+        'surname' => 'User',
         'email' => 'admin@test.com',
         'role' => 'admin',
+        'is_admin' => true,
+        'is_preview_user' => true,
     ]);
 
     $this->regularUser = User::factory()->create([
-        'name' => 'Regular User',
+        'first_name' => 'Regular',
+        'surname' => 'User',
         'email' => 'user@test.com',
         'role' => 'user',
+        'is_preview_user' => true,
     ]);
 });
 
@@ -95,7 +100,7 @@ describe('Admin-Only Routes Protection', function () {
         $response->assertStatus(403)
             ->assertJson([
                 'success' => false,
-                'message' => 'Forbidden. Admin access required.',
+                'message' => 'Unauthorized. Admin access required.',
             ]);
     });
 
