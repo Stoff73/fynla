@@ -57,19 +57,22 @@
             </p>
           </div>
           <div class="bg-gray-50 rounded-lg p-4">
-            <p class="text-sm text-gray-600">{{ canAnnualize ? 'Annualised Return' : 'Total Return' }}</p>
+            <p class="text-sm text-gray-600">Annualised Return</p>
             <div class="flex items-baseline gap-2">
               <p class="text-2xl font-bold" :class="getReturnColorClass(grossReturnPercent)">
                 {{ formatReturnPercent(grossReturnPercent) }}
               </p>
-              <span class="text-xs text-gray-500">{{ canAnnualize ? 'p.a. gross' : 'gross' }}</span>
+              <span class="text-xs text-gray-500">p.a. gross</span>
             </div>
             <div v-if="grossReturnPercent !== null" class="mt-1 flex items-baseline gap-2">
               <p class="text-lg font-semibold" :class="getReturnColorClass(netReturnPercent)">
                 {{ formatReturnPercent(netReturnPercent) }}
               </p>
-              <span class="text-xs text-gray-500">{{ canAnnualize ? 'p.a. ' : '' }}net of {{ formatPercentage(totalFeePercent) }} fees</span>
+              <span class="text-xs text-gray-500">p.a. net of {{ formatPercentage(totalFeePercent) }} fees</span>
             </div>
+            <p v-if="usingDefaultHoldingPeriod" class="text-xs text-amber-600 mt-2">
+              *Based on 3-year default holding period
+            </p>
           </div>
           <div class="bg-gray-50 rounded-lg p-4">
             <p class="text-sm text-gray-600">Holdings</p>
@@ -289,9 +292,9 @@ export default {
       return this.account.holdings.reduce((sum, h) => sum + (h.current_value || 0), 0);
     },
 
-    // Calculate weighted average holding period in years (null if no dates available)
+    // Calculate weighted average holding period in years (defaults to 3 years if no dates)
     weightedHoldingPeriodYears() {
-      if (!this.account.holdings?.length || this.totalHoldingsValue === 0) return null;
+      if (!this.account.holdings?.length || this.totalHoldingsValue === 0) return 3;
 
       const now = new Date();
       let weightedDays = 0;
@@ -308,19 +311,28 @@ export default {
         }
       });
 
-      // Need at least 50% of portfolio value with dates to annualize
-      if (valueWithDates < this.totalHoldingsValue * 0.5) return null;
+      // If less than 50% have dates, default to 3 years
+      if (valueWithDates < this.totalHoldingsValue * 0.5) return 3;
 
       const avgDays = weightedDays / valueWithDates;
       const years = avgDays / 365.25;
 
-      // Minimum 30 days (about 1 month) for sensible annualization
+      // Minimum 30 days for sensible annualization
       return Math.max(years, 30 / 365.25);
     },
 
-    // Check if we can show annualized return
-    canAnnualize() {
-      return this.weightedHoldingPeriodYears !== null;
+    // Check if using default holding period (no actual dates)
+    usingDefaultHoldingPeriod() {
+      if (!this.account.holdings?.length) return true;
+
+      let valueWithDates = 0;
+      this.account.holdings.forEach(h => {
+        if (h.purchase_date && h.current_value) {
+          valueWithDates += h.current_value;
+        }
+      });
+
+      return valueWithDates < this.totalHoldingsValue * 0.5;
     },
 
     // Total return percentage (not annualized)
@@ -329,17 +341,11 @@ export default {
       return ((this.totalHoldingsValue - this.totalCostBasis) / this.totalCostBasis) * 100;
     },
 
-    // Annualized gross return percentage (or total return if no dates)
+    // Annualized gross return percentage
     grossReturnPercent() {
       if (this.totalReturnPercent === null) return null;
 
       const years = this.weightedHoldingPeriodYears;
-
-      // If no valid dates, return total return (not annualized)
-      if (years === null) {
-        return this.totalReturnPercent;
-      }
-
       const totalReturn = this.totalReturnPercent / 100;
 
       // For very short periods (< 3 months), use simple linear extrapolation

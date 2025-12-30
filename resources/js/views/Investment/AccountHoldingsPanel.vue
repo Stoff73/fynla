@@ -11,6 +11,17 @@
       </button>
     </div>
 
+    <!-- Info Banner for Default Holding Period -->
+    <div v-if="hasHoldings && holdingsWithoutDates > 0" class="default-period-banner">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="banner-icon">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+      </svg>
+      <div class="banner-content">
+        <p class="banner-title">{{ holdingsWithoutDates }} holding{{ holdingsWithoutDates > 1 ? 's' : '' }} without purchase date</p>
+        <p class="banner-text">Annualised returns use a <strong>3-year default</strong> holding period. Add purchase dates for more accurate return calculations.</p>
+      </div>
+    </div>
+
     <!-- Holdings Table -->
     <div v-if="hasHoldings" class="holdings-table-container">
       <table class="holdings-table">
@@ -19,6 +30,7 @@
             <th class="th-name">Name</th>
             <th class="th-type">Type</th>
             <th class="th-units">Units</th>
+            <th class="th-date">Purchase Date</th>
             <th class="th-cost">Initial Unit Cost</th>
             <th class="th-price">Current Unit Price</th>
             <th class="th-initial-value">Initial Value</th>
@@ -45,6 +57,10 @@
               </span>
             </td>
             <td class="td-units">{{ formatNumber(holding.quantity) }}</td>
+            <td class="td-date">
+              <span v-if="holding.purchase_date" class="date-text">{{ formatDate(holding.purchase_date) }}</span>
+              <span v-else class="date-default" title="Default: 3 years assumed">3yr default</span>
+            </td>
             <td class="td-cost">{{ formatCurrencyWithPence(holding.purchase_price) }}</td>
             <td class="td-price">{{ formatCurrencyWithPence(holding.current_price) }}</td>
             <td class="td-initial-value">{{ formatCurrency(getInitialValue(holding)) }}</td>
@@ -59,7 +75,7 @@
         </tbody>
         <tfoot>
           <tr class="totals-row">
-            <td colspan="5" class="totals-label">Total</td>
+            <td colspan="6" class="totals-label">Total</td>
             <td class="totals-initial-value">{{ formatCurrency(totalInitialValue) }}</td>
             <td class="totals-value">{{ formatCurrency(totalValue) }}</td>
             <td class="totals-initial-allocation">100%</td>
@@ -179,6 +195,10 @@ export default {
 
     hasHoldings() {
       return this.holdings.length > 0;
+    },
+
+    holdingsWithoutDates() {
+      return this.holdings.filter(h => !h.purchase_date).length;
     },
 
     sortedHoldings() {
@@ -316,6 +336,16 @@ export default {
       const purchasePrice = parseFloat(holding.purchase_price) || 0;
       return quantity * purchasePrice;
     },
+
+    formatDate(dateString) {
+      if (!dateString) return '';
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-GB', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      });
+    },
   },
 };
 </script>
@@ -364,6 +394,42 @@ export default {
 .btn-icon {
   width: 20px;
   height: 20px;
+}
+
+/* Default Period Banner */
+.default-period-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+  border-radius: 8px;
+}
+
+.banner-icon {
+  width: 20px;
+  height: 20px;
+  color: #b45309;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.banner-content {
+  flex: 1;
+}
+
+.banner-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #92400e;
+  margin: 0 0 4px 0;
+}
+
+.banner-text {
+  font-size: 13px;
+  color: #a16207;
+  margin: 0;
 }
 
 /* Holdings Table */
@@ -442,6 +508,24 @@ export default {
 .td-initial-value,
 .td-value {
   font-variant-numeric: tabular-nums;
+}
+
+.td-date {
+  white-space: nowrap;
+}
+
+.date-text {
+  font-size: 13px;
+  color: #374151;
+}
+
+.date-default {
+  font-size: 12px;
+  color: #b45309;
+  background: #fef3c7;
+  padding: 2px 6px;
+  border-radius: 4px;
+  cursor: help;
 }
 
 .td-initial-value {
