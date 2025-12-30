@@ -1,13 +1,15 @@
-# YTD Return Calculation - Gross and Net of Fees
+# Annualised Return Calculation - Gross and Net of Fees
 
 ## Overview
-Fix the YTD Return display in InvestmentDetailInline.vue which currently shows "N/A". Calculate the return from holdings data (cost_basis vs current_value) and display both gross return and net-of-fees return.
+Fix the YTD Return display in InvestmentDetailInline.vue which currently shows "N/A". Calculate the annualised return from holdings data (cost_basis vs current_value) and display both gross return and net-of-fees return.
 
 ## Requirements
-1. Calculate return from actual holdings data (current_value vs cost_basis)
-2. Show both **gross return** and **net-of-fees return**
+1. Calculate **annualised** return from actual holdings data (current_value vs cost_basis)
+2. Show both **gross return** and **net-of-fees return** (both annualised)
 3. Fees must match what's shown in the Fees tab (platform + weighted OCF + advisor)
 4. Return calculation must match the holdings data displayed in Holdings tab
+5. **Default to 3-year holding period** when purchase dates are not available
+6. Show warning when using default period
 
 ---
 
