@@ -17,6 +17,7 @@ import spousePermission from './modules/spousePermission';
 import onboarding from './modules/onboarding';
 import preview from './modules/preview';
 import guidance from './modules/guidance';
+import infoGuide from './modules/infoGuide';
 
 const store = createStore({
   modules: {
@@ -38,6 +39,7 @@ const store = createStore({
     onboarding,
     preview,
     guidance,
+    infoGuide,
   },
   strict: process.env.NODE_ENV !== 'production',
 });

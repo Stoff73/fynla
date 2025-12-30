@@ -12,14 +12,20 @@
     </main>
 
     <Footer />
+
+    <!-- Information Guide (floating help button + panel) -->
+    <InfoGuideButton />
+    <InfoGuidePanel />
   </div>
 </template>
 
 <script>
-import { mapGetters } from 'vuex';
+import { mapGetters, mapActions } from 'vuex';
 import Navbar from '@/components/Navbar.vue';
 import Footer from '@/components/Footer.vue';
 import PreviewBanner from '@/components/Preview/PreviewBanner.vue';
+import InfoGuideButton from '@/components/Shared/InfoGuideButton.vue';
+import InfoGuidePanel from '@/components/Shared/InfoGuidePanel.vue';
 
 export default {
   name: 'AppLayout',
@@ -28,10 +34,24 @@ export default {
     Navbar,
     Footer,
     PreviewBanner,
+    InfoGuideButton,
+    InfoGuidePanel,
   },
 
   computed: {
     ...mapGetters('preview', ['isPreviewMode']),
+    ...mapGetters('auth', ['isAuthenticated']),
+  },
+
+  mounted() {
+    // Fetch info guide preference when layout mounts
+    if (this.isAuthenticated || this.isPreviewMode) {
+      this.fetchInfoGuidePreference();
+    }
+  },
+
+  methods: {
+    ...mapActions('infoGuide', { fetchInfoGuidePreference: 'fetchPreference' }),
   },
 };
 </script>

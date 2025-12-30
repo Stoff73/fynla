@@ -600,4 +600,50 @@ router.beforeEach(async (to, from, next) => {
   }
 });
 
+// After each navigation, update info guide module context
+router.afterEach((to) => {
+  // Only fetch for authenticated users or preview mode
+  const isAuthenticated = store.getters['auth/isAuthenticated'];
+  const isPreviewMode = store.getters['preview/isPreviewMode'];
+
+  if (!isAuthenticated && !isPreviewMode) {
+    return;
+  }
+
+  // Skip for public/auth pages
+  const publicRoutes = ['/login', '/register', '/', '/calculators', '/learning-centre'];
+  if (publicRoutes.some(route => to.path === route || to.path.startsWith('/forgot') || to.path.startsWith('/reset'))) {
+    return;
+  }
+
+  // Map route to module
+  const moduleMap = {
+    '/protection': 'protection',
+    '/savings': 'savings',
+    '/investment': 'investment',
+    '/net-worth/investments': 'investment',
+    '/net-worth/retirement': 'retirement',
+    '/retirement': 'retirement',
+    '/pension': 'retirement',
+    '/estate': 'estate',
+    '/trusts': 'estate',
+    '/net-worth': 'net_worth',
+    '/dashboard': 'dashboard',
+    '/preview': 'dashboard',
+    '/profile': 'dashboard',
+  };
+
+  // Find matching module
+  let module = 'dashboard';
+  for (const [prefix, mod] of Object.entries(moduleMap)) {
+    if (to.path.startsWith(prefix)) {
+      module = mod;
+      break;
+    }
+  }
+
+  // Fetch requirements for this module
+  store.dispatch('infoGuide/fetchRequirements', module);
+});
+
 export default router;

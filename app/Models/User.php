@@ -109,6 +109,7 @@ class User extends Authenticatable
         'guidance_active' => 'boolean',
         'guidance_completed' => 'boolean',
         'guidance_current_step' => 'integer',
+        'info_guide_enabled' => 'boolean',
     ];
 
     /**

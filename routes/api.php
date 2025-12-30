@@ -49,6 +49,7 @@ use App\Http\Controllers\Api\SavingsController;
 use App\Http\Controllers\Api\SpousePermissionController;
 use App\Http\Controllers\Api\UKTaxesController;
 use App\Http\Controllers\Api\UserProfileController;
+use App\Http\Controllers\Api\InfoGuideController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -140,6 +141,13 @@ Route::middleware('auth:sanctum')->prefix('user')->group(function () {
     Route::post('/seed-persona-data', [PreviewController::class, 'seedPersonaData']);
     Route::get('/guidance-status', [PreviewController::class, 'getGuidanceStatus']);
     Route::post('/guidance-status', [PreviewController::class, 'updateGuidanceStatus']);
+});
+
+// Information Guide routes
+Route::middleware('auth:sanctum')->prefix('info-guide')->group(function () {
+    Route::get('/requirements', [InfoGuideController::class, 'getRequirements']);
+    Route::get('/preference', [InfoGuideController::class, 'getPreference']);
+    Route::put('/preference', [InfoGuideController::class, 'updatePreference']);
 });
 
 // Spouse Permission routes
