@@ -52,6 +52,14 @@ export default {
     },
 
     /**
+     * Get Monte Carlo projections for a specific DC pension
+     */
+    async getDCPensionProjection(pensionId) {
+        const response = await api.get(`${API_BASE}/dc-pensions/${pensionId}/projections`);
+        return response.data;
+    },
+
+    /**
      * Get retirement strategies analysis
      */
     async getStrategies() {

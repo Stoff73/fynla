@@ -77,6 +77,29 @@ class RetirementController extends Controller
     }
 
     /**
+     * Get Monte Carlo projections for a specific DC pension.
+     */
+    public function getDCPensionProjection(Request $request, int $id): JsonResponse
+    {
+        $user = $request->user();
+
+        try {
+            $projections = $this->projectionService->projectIndividualDCPension($id, $user->id);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'DC pension projections generated successfully',
+                'data' => $projections,
+            ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Pension not found',
+            ], 404);
+        }
+    }
+
+    /**
      * Analyze user's retirement position.
      */
     public function analyze(RetirementAnalysisRequest $request): JsonResponse

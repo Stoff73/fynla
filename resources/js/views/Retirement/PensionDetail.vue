@@ -235,6 +235,47 @@
             </div>
           </div>
         </div>
+
+        <!-- Projections Panel (DC pensions only) -->
+        <div v-if="pensionType === 'dc'" class="bg-white rounded-lg shadow-md p-6">
+          <h2 class="text-xl font-bold text-gray-900 mb-4">Pension Pot Projections</h2>
+
+          <div v-if="projectionLoading" class="text-center py-12">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <p class="mt-4 text-gray-600">Loading projections...</p>
+          </div>
+
+          <div v-else-if="projectionData">
+            <!-- Summary Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                <p class="text-sm text-gray-600">Current Value</p>
+                <p class="text-xl font-bold text-blue-600">{{ formatCurrency(projectionData.current_value) }}</p>
+              </div>
+              <div class="bg-green-50 rounded-lg p-4 border border-green-200">
+                <p class="text-sm text-gray-600">95% Probability at Retirement</p>
+                <p class="text-xl font-bold text-green-600">{{ formatCurrency(projectionData.percentile_5_at_retirement) }}</p>
+              </div>
+            </div>
+
+            <!-- Monte Carlo Chart -->
+            <div class="bg-white rounded-lg border border-gray-200 p-4">
+              <h3 class="text-lg font-semibold text-gray-800 mb-4">Projected Pension Pot Growth</h3>
+              <PensionPotProjectionChart :data="projectionData" />
+            </div>
+
+            <!-- Assumptions -->
+            <div class="mt-4 text-sm text-gray-500">
+              <p>Based on {{ projectionData.years_to_retirement }} years to retirement age {{ projectionData.retirement_age }},
+              {{ projectionData.risk_level }} risk profile ({{ projectionData.expected_return }}% expected return),
+              and {{ formatCurrency(projectionData.monthly_contribution) }}/month contributions.</p>
+            </div>
+          </div>
+
+          <div v-else class="text-center py-12 text-gray-500">
+            <p>Unable to load projection data</p>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -253,7 +294,9 @@
 import { mapState } from 'vuex';
 import AppLayout from '@/layouts/AppLayout.vue';
 import UnifiedPensionForm from '@/components/Retirement/UnifiedPensionForm.vue';
+import PensionPotProjectionChart from '@/components/Retirement/PensionPotProjectionChart.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import retirementService from '@/services/retirementService';
 
 export default {
   name: 'PensionDetail',
@@ -262,6 +305,7 @@ export default {
   components: {
     AppLayout,
     UnifiedPensionForm,
+    PensionPotProjectionChart,
   },
 
   data() {
@@ -270,6 +314,8 @@ export default {
       error: null,
       pension: null,
       showEditModal: false,
+      projectionData: null,
+      projectionLoading: false,
     };
   },
 
@@ -379,10 +425,35 @@ export default {
       const yearsToRetirement = this.pension.state_pension_age - currentAge;
       return yearsToRetirement > 0 ? `${yearsToRetirement} years` : 'Reached';
     },
+
+    async loadProjections() {
+      if (this.projectionLoading || this.projectionData || this.pensionType !== 'dc') return;
+
+      this.projectionLoading = true;
+      try {
+        const response = await retirementService.getDCPensionProjection(this.pension.id);
+        if (response.success) {
+          this.projectionData = response.data;
+        }
+      } catch (error) {
+        console.error('Failed to load projections:', error);
+      } finally {
+        this.projectionLoading = false;
+      }
+    },
   },
 
   mounted() {
     this.loadPension();
+  },
+
+  watch: {
+    pension(newVal) {
+      // Load projections when pension data is available and it's a DC pension
+      if (newVal && this.pensionType === 'dc') {
+        this.loadProjections();
+      }
+    },
   },
 };
 </script>

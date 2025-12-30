@@ -312,13 +312,41 @@
             </div>
           </div>
 
-          <!-- Projections Tab (placeholder) -->
-          <div v-show="activeTab === 'projections'" class="text-center py-12 text-gray-500">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-12 h-12 mx-auto mb-4 text-gray-400">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
-            </svg>
-            <p class="text-lg font-medium">Projections Coming Soon</p>
-            <p class="text-sm">Detailed pension projections will be available in a future update.</p>
+          <!-- Projections Tab (DC pensions only) -->
+          <div v-show="activeTab === 'projections'" class="projections-tab">
+            <div v-if="projectionLoading" class="text-center py-12">
+              <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <p class="mt-4 text-gray-600">Loading projections...</p>
+            </div>
+            <div v-else-if="projectionData">
+              <!-- Summary Cards -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                  <p class="text-sm text-gray-600">Current Value</p>
+                  <p class="text-xl font-bold text-blue-600">{{ formatCurrency(projectionData.current_value) }}</p>
+                </div>
+                <div class="bg-green-50 rounded-lg p-4 border border-green-200">
+                  <p class="text-sm text-gray-600">95% Probability at Retirement</p>
+                  <p class="text-xl font-bold text-green-600">{{ formatCurrency(projectionData.percentile_5_at_retirement) }}</p>
+                </div>
+              </div>
+
+              <!-- Monte Carlo Chart -->
+              <div class="bg-white rounded-lg border border-gray-200 p-4">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Projected Pension Pot Growth</h3>
+                <PensionPotProjectionChart :data="projectionData" />
+              </div>
+
+              <!-- Assumptions -->
+              <div class="mt-4 text-sm text-gray-500">
+                <p>Based on {{ projectionData.years_to_retirement }} years to retirement age {{ projectionData.retirement_age }},
+                {{ projectionData.risk_level }} risk profile ({{ projectionData.expected_return }}% expected return),
+                and {{ formatCurrency(projectionData.monthly_contribution) }}/month contributions.</p>
+              </div>
+            </div>
+            <div v-else class="text-center py-12 text-gray-500">
+              <p>Unable to load projection data</p>
+            </div>
           </div>
 
           <!-- Documents Tab (placeholder) -->
@@ -359,7 +387,9 @@
 import { mapActions } from 'vuex';
 import UnifiedPensionForm from '@/components/Retirement/UnifiedPensionForm.vue';
 import ConfirmationModal from '@/components/Common/ConfirmationModal.vue';
+import PensionPotProjectionChart from '@/components/Retirement/PensionPotProjectionChart.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import retirementService from '@/services/retirementService';
 
 export default {
   name: 'PensionDetailInline',
@@ -368,6 +398,7 @@ export default {
   components: {
     UnifiedPensionForm,
     ConfirmationModal,
+    PensionPotProjectionChart,
   },
 
   props: {
@@ -390,16 +421,22 @@ export default {
       loading: false,
       showEditModal: false,
       showDeleteConfirm: false,
+      projectionData: null,
+      projectionLoading: false,
     };
   },
 
   computed: {
     tabs() {
-      return [
+      const baseTabs = [
         { id: 'overview', label: 'Overview' },
-        { id: 'projections', label: 'Projections' },
         { id: 'documents', label: 'Documents' },
       ];
+      // Only DC pensions get Projections tab
+      if (this.pensionType === 'dc') {
+        baseTabs.splice(1, 0, { id: 'projections', label: 'Projections' });
+      }
+      return baseTabs;
     },
 
     pensionName() {
@@ -462,6 +499,14 @@ export default {
     // Annual contribution
     annualContribution() {
       return this.totalMonthlyContribution * 12;
+    },
+  },
+
+  watch: {
+    activeTab(newTab) {
+      if (newTab === 'projections' && !this.projectionData && this.pensionType === 'dc') {
+        this.loadProjections();
+      }
     },
   },
 
@@ -551,6 +596,22 @@ export default {
         this.$emit('deleted');
       } catch (error) {
         console.error('Failed to delete pension:', error);
+      }
+    },
+
+    async loadProjections() {
+      if (this.projectionLoading || this.projectionData) return;
+
+      this.projectionLoading = true;
+      try {
+        const response = await retirementService.getDCPensionProjection(this.pension.id);
+        if (response.success) {
+          this.projectionData = response.data;
+        }
+      } catch (error) {
+        console.error('Failed to load projections:', error);
+      } finally {
+        this.projectionLoading = false;
       }
     },
   },

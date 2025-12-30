@@ -715,6 +715,7 @@ Route::middleware('auth:sanctum')->prefix('retirement')->group(function () {
     // Main retirement data and analysis
     Route::get('/', [RetirementController::class, 'index']);
     Route::get('/projections', [RetirementController::class, 'getProjections']);
+    Route::get('/dc-pensions/{id}/projections', [RetirementController::class, 'getDCPensionProjection']);
     Route::post('/analyze', [RetirementController::class, 'analyze']);
     Route::get('/recommendations', [RetirementController::class, 'recommendations']);
     Route::post('/scenarios', [RetirementController::class, 'scenarios']);

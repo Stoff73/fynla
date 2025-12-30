@@ -119,6 +119,58 @@ class RetirementProjectionService
     }
 
     /**
+     * Project individual DC pension pot growth using Monte Carlo simulation.
+     */
+    public function projectIndividualDCPension(int $pensionId, int $userId): array
+    {
+        $user = User::findOrFail($userId);
+        $pension = $user->dcPensions()->findOrFail($pensionId);
+
+        $currentAge = $user->date_of_birth?->age ?? 40;
+        $retirementAge = $pension->retirement_age ?? $this->getRetirementAge($user);
+        $yearsToRetirement = max(1, $retirementAge - $currentAge);
+
+        $currentValue = (float) ($pension->current_fund_value ?? 0);
+        $monthlyContribution = $this->calculateMonthlyContribution($pension);
+
+        // Get risk parameters - use pension's risk preference if set, otherwise user's
+        $riskLevel = $pension->risk_preference ?? $this->getUserRiskLevel($user);
+        $riskParams = $this->riskService->getReturnParameters($riskLevel);
+
+        $expectedReturn = $riskParams['expected_return_typical'] / 100;
+        $volatility = $riskParams['volatility'] / 100;
+
+        // Run Monte Carlo simulation
+        $simulation = $this->simulator->simulate(
+            $currentValue,
+            $monthlyContribution,
+            $expectedReturn,
+            $volatility,
+            $yearsToRetirement,
+            self::MONTE_CARLO_ITERATIONS
+        );
+
+        $yearByYear = $this->extractProbabilityBands($simulation, $yearsToRetirement);
+        $lastYear = $yearByYear[count($yearByYear) - 1] ?? [];
+
+        return [
+            'pension_id' => $pensionId,
+            'scheme_name' => $pension->scheme_name,
+            'current_value' => round($currentValue, 2),
+            'monthly_contribution' => round($monthlyContribution, 2),
+            'risk_level' => $riskLevel,
+            'expected_return' => $riskParams['expected_return_typical'],
+            'volatility' => $riskParams['volatility'],
+            'years_to_retirement' => $yearsToRetirement,
+            'retirement_age' => $retirementAge,
+            'current_age' => $currentAge,
+            'percentile_5_at_retirement' => round($lastYear['percentile_5'] ?? $currentValue, 2),
+            'median_at_retirement' => round($lastYear['percentile_50'] ?? $currentValue, 2),
+            'year_by_year' => $yearByYear,
+        ];
+    }
+
+    /**
      * Project income drawdown from retirement to age 100 using sustainable withdrawal rate.
      */
     public function projectIncomeDrawdown(User $user, array $potProjection): array
