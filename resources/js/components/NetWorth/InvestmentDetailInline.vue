@@ -57,10 +57,19 @@
             </p>
           </div>
           <div class="bg-gray-50 rounded-lg p-4">
-            <p class="text-sm text-gray-600">YTD Return</p>
-            <p class="text-2xl font-bold" :class="getReturnColorClass(account.ytd_return)">
-              {{ formatReturn(account.ytd_return) }}
-            </p>
+            <p class="text-sm text-gray-600">Annualised Return</p>
+            <div class="flex items-baseline gap-2">
+              <p class="text-2xl font-bold" :class="getReturnColorClass(grossReturnPercent)">
+                {{ formatReturnPercent(grossReturnPercent) }}
+              </p>
+              <span class="text-xs text-gray-500">p.a. gross</span>
+            </div>
+            <div v-if="grossReturnPercent !== null" class="mt-1 flex items-baseline gap-2">
+              <p class="text-lg font-semibold" :class="getReturnColorClass(netReturnPercent)">
+                {{ formatReturnPercent(netReturnPercent) }}
+              </p>
+              <span class="text-xs text-gray-500">p.a. net of {{ formatPercentage(totalFeePercent) }} fees</span>
+            </div>
           </div>
           <div class="bg-gray-50 rounded-lg p-4">
             <p class="text-sm text-gray-600">Holdings</p>
@@ -264,15 +273,102 @@ export default {
       const contributions = this.account.isa_subscription_current_year || 0;
       return Math.max(0, TAX_CONFIG.ISA_ANNUAL_ALLOWANCE - contributions);
     },
+
+    // Calculate total cost basis from holdings
+    totalCostBasis() {
+      if (!this.account.holdings?.length) return 0;
+      return this.account.holdings.reduce((sum, h) => {
+        const costBasis = h.cost_basis || ((h.quantity || 0) * (h.purchase_price || 0)) || 0;
+        return sum + costBasis;
+      }, 0);
+    },
+
+    // Calculate total current value from holdings
+    totalHoldingsValue() {
+      if (!this.account.holdings?.length) return 0;
+      return this.account.holdings.reduce((sum, h) => sum + (h.current_value || 0), 0);
+    },
+
+    // Calculate weighted average holding period in years
+    weightedHoldingPeriodYears() {
+      if (!this.account.holdings?.length || this.totalHoldingsValue === 0) return 1;
+
+      const now = new Date();
+      let weightedDays = 0;
+      let hasValidDates = false;
+
+      this.account.holdings.forEach(h => {
+        if (h.purchase_date && h.current_value) {
+          const purchaseDate = new Date(h.purchase_date);
+          const daysDiff = (now - purchaseDate) / (1000 * 60 * 60 * 24);
+          if (daysDiff > 0) {
+            weightedDays += daysDiff * h.current_value;
+            hasValidDates = true;
+          }
+        }
+      });
+
+      if (!hasValidDates) return 1;
+
+      const avgDays = weightedDays / this.totalHoldingsValue;
+      const years = avgDays / 365.25;
+
+      // Minimum 30 days (about 1 month) for sensible annualization
+      return Math.max(years, 30 / 365.25);
+    },
+
+    // Annualized gross return percentage
+    grossReturnPercent() {
+      if (!this.totalCostBasis || this.totalCostBasis === 0) return null;
+
+      const totalReturn = (this.totalHoldingsValue - this.totalCostBasis) / this.totalCostBasis;
+      const years = this.weightedHoldingPeriodYears;
+
+      // For very short periods (< 3 months), use simple linear extrapolation
+      // For longer periods, use compound annualization
+      let annualizedReturn;
+      if (years < 0.25) {
+        // Simple linear: return / years
+        annualizedReturn = (totalReturn / years) * 100;
+      } else {
+        // Compound: ((1 + total_return)^(1/years) - 1) * 100
+        annualizedReturn = (Math.pow(1 + totalReturn, 1 / years) - 1) * 100;
+      }
+
+      return annualizedReturn;
+    },
+
+    // Total fee percentage (matching Fees tab calculation)
+    totalFeePercent() {
+      const platformFee = parseFloat(this.account.platform_fee_percent) || 0;
+      const advisorFee = parseFloat(this.account.advisor_fee_percent) || 0;
+
+      // Weighted average OCF
+      let weightedOCF = 0;
+      if (this.totalHoldingsValue > 0 && this.account.holdings?.length) {
+        const totalWeightedOCF = this.account.holdings.reduce((sum, h) => {
+          return sum + ((h.current_value || 0) * (parseFloat(h.ocf_percent) || 0));
+        }, 0);
+        weightedOCF = totalWeightedOCF / this.totalHoldingsValue;
+      }
+
+      return platformFee + advisorFee + weightedOCF;
+    },
+
+    // Net return (gross minus fees)
+    netReturnPercent() {
+      if (this.grossReturnPercent === null) return null;
+      return this.grossReturnPercent - this.totalFeePercent;
+    },
   },
 
   methods: {
     ...mapActions('investment', ['updateAccount', 'deleteAccount', 'fetchInvestmentData']),
 
-    formatReturn(value) {
-      if (!value && value !== 0) return 'N/A';
+    formatReturnPercent(value) {
+      if (value === null || value === undefined) return 'N/A';
       const sign = value >= 0 ? '+' : '';
-      return `${sign}${value.toFixed(2)}%`;
+      return `${sign}${this.formatPercentage(value)}`;
     },
 
     formatAccountType(type) {
