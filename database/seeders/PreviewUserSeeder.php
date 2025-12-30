@@ -480,6 +480,7 @@ class PreviewUserSeeder extends Seeder
             // Single-record pattern: Store FULL value directly (no splitting)
             $investmentAccount = InvestmentAccount::create([
                 'user_id' => $owner->id,
+                'account_name' => $account['account_name'] ?? null,
                 'provider' => $account['provider_name'] ?? '',
                 'account_type' => $account['account_type'] ?? 'gia',
                 'current_value' => $totalValue, // FULL value

@@ -74,23 +74,23 @@
               *Based on 3-year default holding period
             </p>
           </div>
-          <div class="bg-gray-50 rounded-lg p-4">
+          <!-- ISA Contributions Card (for ISA accounts) -->
+          <div v-if="account.account_type === 'isa'" class="bg-green-50 rounded-lg p-4 border border-green-200">
+            <div class="flex justify-between items-start">
+              <div>
+                <p class="text-sm text-gray-600">ISA Contributions (This Year)</p>
+                <p class="text-2xl font-bold text-green-600">{{ formatCurrency(account.isa_subscription_current_year || 0) }}</p>
+              </div>
+              <div class="text-right">
+                <p class="text-sm text-gray-600">Allowance Remaining</p>
+                <p class="text-xl font-bold" :class="getIsaRemainingClass()">{{ formatCurrency(isaRemaining) }}</p>
+              </div>
+            </div>
+          </div>
+          <!-- Holdings Card (for non-ISA accounts) -->
+          <div v-else class="bg-gray-50 rounded-lg p-4">
             <p class="text-sm text-gray-600">Holdings</p>
             <p class="text-2xl font-bold text-gray-900">{{ holdingsCount }}</p>
-          </div>
-        </div>
-
-        <!-- ISA Allowance Info -->
-        <div v-if="account.account_type === 'isa'" class="mt-4 bg-green-50 rounded-lg p-4 border border-green-200">
-          <div class="flex justify-between items-center">
-            <div>
-              <p class="text-sm text-gray-600">ISA Contributions (This Year)</p>
-              <p class="text-xl font-bold text-green-600">{{ formatCurrency(account.isa_subscription_current_year || 0) }}</p>
-            </div>
-            <div class="text-right">
-              <p class="text-sm text-gray-600">Allowance Remaining</p>
-              <p class="text-xl font-bold" :class="getIsaRemainingClass()">{{ formatCurrency(isaRemaining) }}</p>
-            </div>
           </div>
         </div>
       </div>
