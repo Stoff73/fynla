@@ -349,6 +349,13 @@
             </div>
           </div>
 
+          <!-- Diversification Tab (DC pensions only) -->
+          <DiversificationTab
+            v-if="activeTab === 'diversification' && pensionType === 'dc'"
+            :account-id="pension.id"
+            account-type="pension"
+          />
+
           <!-- Documents Tab (placeholder) -->
           <div v-show="activeTab === 'documents'" class="text-center py-12 text-gray-500">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-12 h-12 mx-auto mb-4 text-gray-400">
@@ -390,6 +397,7 @@ import ConfirmationModal from '@/components/Common/ConfirmationModal.vue';
 import PensionPotProjectionChart from '@/components/Retirement/PensionPotProjectionChart.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import retirementService from '@/services/retirementService';
+import DiversificationTab from '@/components/Investment/DiversificationTab.vue';
 
 export default {
   name: 'PensionDetailInline',
@@ -399,6 +407,7 @@ export default {
     UnifiedPensionForm,
     ConfirmationModal,
     PensionPotProjectionChart,
+    DiversificationTab,
   },
 
   props: {
@@ -432,9 +441,10 @@ export default {
         { id: 'overview', label: 'Overview' },
         { id: 'documents', label: 'Documents' },
       ];
-      // Only DC pensions get Projections tab
+      // Only DC pensions get Projections and Diversification tabs
       if (this.pensionType === 'dc') {
         baseTabs.splice(1, 0, { id: 'projections', label: 'Projections' });
+        baseTabs.splice(2, 0, { id: 'diversification', label: 'Diversification' });
       }
       return baseTabs;
     },

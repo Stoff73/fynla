@@ -13,8 +13,10 @@ use App\Http\Requests\Retirement\StoreDCPensionRequest;
 use App\Http\Requests\Retirement\UpdateStatePensionRequest;
 use App\Models\DBPension;
 use App\Models\DCPension;
+use App\Models\Investment\RiskProfile;
 use App\Models\RetirementProfile;
 use App\Models\StatePension;
+use App\Services\Investment\DiversificationAnalyzer;
 use App\Services\Retirement\AnnualAllowanceChecker;
 use App\Services\Retirement\RetirementIncomeService;
 use App\Services\Retirement\RetirementProjectionService;
@@ -36,7 +38,8 @@ class RetirementController extends Controller
         private AnnualAllowanceChecker $allowanceChecker,
         private RetirementProjectionService $projectionService,
         private RetirementStrategyService $strategyService,
-        private RetirementIncomeService $retirementIncomeService
+        private RetirementIncomeService $retirementIncomeService,
+        private DiversificationAnalyzer $diversificationAnalyzer
     ) {}
 
     /**
@@ -556,6 +559,65 @@ class RetirementController extends Controller
             'data' => [
                 'accounts' => $accounts,
             ],
+        ]);
+    }
+
+    /**
+     * Get diversification analysis for a DC pension.
+     *
+     * GET /api/retirement/pensions/dc/{id}/diversification
+     */
+    public function getDCPensionDiversification(Request $request, int $id): JsonResponse
+    {
+        $user = $request->user();
+
+        $pension = DCPension::with('holdings')
+            ->where('user_id', $user->id)
+            ->find($id);
+
+        if (! $pension) {
+            return response()->json([
+                'success' => false,
+                'message' => 'DC pension not found',
+            ], 404);
+        }
+
+        $holdings = $pension->holdings;
+
+        // Handle empty holdings
+        if ($holdings->isEmpty()) {
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'message' => 'No holdings recorded for this pension',
+                    'has_holdings' => false,
+                    'pension_id' => $id,
+                    'pension_name' => $pension->scheme_name ?? 'DC Pension',
+                ],
+            ]);
+        }
+
+        // Get user's risk level (default to 3/medium if not set)
+        $riskProfile = RiskProfile::where('user_id', $user->id)->first();
+        $userRiskLevel = $riskProfile ? $this->diversificationAnalyzer->normalizeRiskLevel($riskProfile->risk_level ?? $riskProfile->risk_tolerance) : 3;
+
+        // Get pension-level risk override if set
+        $pensionRiskLevel = null;
+        if ($pension->has_custom_risk && $pension->risk_preference) {
+            $pensionRiskLevel = $this->diversificationAnalyzer->normalizeRiskLevel($pension->risk_preference);
+        }
+
+        // Run full analysis
+        $analysis = $this->diversificationAnalyzer->analyze($holdings, $userRiskLevel, $pensionRiskLevel);
+
+        return response()->json([
+            'success' => true,
+            'data' => array_merge($analysis, [
+                'has_holdings' => true,
+                'pension_id' => $id,
+                'pension_name' => $pension->scheme_name ?? 'DC Pension',
+                'pension_type' => $pension->scheme_type,
+            ]),
         ]);
     }
 

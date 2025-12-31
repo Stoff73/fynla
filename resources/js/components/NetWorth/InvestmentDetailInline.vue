@@ -129,6 +129,14 @@
             @open-holding-modal="openHoldingModal"
           />
 
+          <!-- Diversification Tab -->
+          <DiversificationTab
+            v-else-if="activeTab === 'diversification'"
+            :account-id="account.id"
+            account-type="investment"
+            @add-holdings="openHoldingModal(null)"
+          />
+
           <!-- Performance Tab -->
           <AccountPerformancePanel
             v-else-if="activeTab === 'performance'"
@@ -207,6 +215,7 @@ import AccountFeesPanel from '@/views/Investment/AccountFeesPanel.vue';
 import AccountRebalancingPanel from '@/views/Investment/AccountRebalancingPanel.vue';
 import HoldingForm from '@/components/Investment/HoldingForm.vue';
 import TaxStatusPanel from '@/components/Common/TaxStatusPanel.vue';
+import DiversificationTab from '@/components/Investment/DiversificationTab.vue';
 import { TAX_CONFIG } from '@/constants/taxConfig';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
@@ -224,6 +233,7 @@ export default {
     AccountRebalancingPanel,
     HoldingForm,
     TaxStatusPanel,
+    DiversificationTab,
   },
 
   props: {
@@ -251,6 +261,7 @@ export default {
       return [
         { id: 'overview', label: 'Overview' },
         { id: 'holdings', label: 'Holdings' },
+        { id: 'diversification', label: 'Diversification' },
         { id: 'performance', label: 'Performance' },
         { id: 'rebalancing', label: 'Rebalancing' },
         { id: 'fees', label: 'Fees' },

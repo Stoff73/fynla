@@ -6,14 +6,15 @@ namespace App\Http\Controllers\Api;
 
 use App\Agents\InvestmentAgent;
 use App\Http\Controllers\Controller;
+use App\Http\Traits\SanitizedErrorResponse;
 use App\Jobs\RunMonteCarloSimulation;
 use App\Models\Investment\Holding;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\Investment\InvestmentGoal;
 use App\Models\Investment\RiskProfile;
+use App\Services\Investment\DiversificationAnalyzer;
 use App\Services\Investment\InvestmentProjectionService;
 use App\Traits\CalculatesOwnershipShare;
-use App\Http\Traits\SanitizedErrorResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -36,7 +37,8 @@ class InvestmentController extends Controller
 
     public function __construct(
         private InvestmentAgent $investmentAgent,
-        private InvestmentProjectionService $projectionService
+        private InvestmentProjectionService $projectionService,
+        private DiversificationAnalyzer $diversificationAnalyzer
     ) {}
 
     /**
@@ -777,7 +779,7 @@ class InvestmentController extends Controller
         // Validate user has access to this account
         $account = InvestmentAccount::where(function ($query) use ($user) {
             $query->where('user_id', $user->id)
-                  ->orWhere('joint_owner_id', $user->id);
+                ->orWhere('joint_owner_id', $user->id);
         })->find($id);
 
         if (! $account) {
@@ -832,5 +834,68 @@ class InvestmentController extends Controller
                 'message' => 'Failed to generate projections: '.$e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * Get diversification analysis for an investment account.
+     *
+     * GET /api/investment/accounts/{id}/diversification
+     */
+    public function getAccountDiversification(Request $request, int $id): JsonResponse
+    {
+        $user = $request->user();
+
+        // Get account where user is owner or joint owner
+        $account = InvestmentAccount::where(function ($query) use ($user) {
+            $query->where('user_id', $user->id)
+                ->orWhere('joint_owner_id', $user->id);
+        })
+            ->with('holdings')
+            ->find($id);
+
+        if (! $account) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Investment account not found',
+            ], 404);
+        }
+
+        $holdings = $account->holdings;
+
+        // Handle empty holdings
+        if ($holdings->isEmpty()) {
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'message' => 'No holdings recorded for this account',
+                    'has_holdings' => false,
+                    'account_id' => $id,
+                    'account_name' => $account->provider ?? 'Investment Account',
+                ],
+            ]);
+        }
+
+        // Get user's risk level (default to 3/medium if not set)
+        $riskProfile = RiskProfile::where('user_id', $user->id)->first();
+        $userRiskLevel = $riskProfile ? $this->diversificationAnalyzer->normalizeRiskLevel($riskProfile->risk_level ?? $riskProfile->risk_tolerance) : 3;
+
+        // Get account-level risk override if set
+        $accountRiskLevel = null;
+        if ($account->has_custom_risk && $account->risk_preference) {
+            $accountRiskLevel = $this->diversificationAnalyzer->normalizeRiskLevel($account->risk_preference);
+        }
+
+        // Run full analysis
+        $analysis = $this->diversificationAnalyzer->analyze($holdings, $userRiskLevel, $accountRiskLevel);
+
+        return response()->json([
+            'success' => true,
+            'data' => array_merge($analysis, [
+                'has_holdings' => true,
+                'account_id' => $id,
+                'account_name' => $account->provider ?? 'Investment Account',
+                'account_type' => $account->account_type,
+            ]),
+        ]);
     }
 }

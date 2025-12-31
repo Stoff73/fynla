@@ -340,6 +340,7 @@ Route::middleware('auth:sanctum')->prefix('investment')->group(function () {
         Route::get('/{id}/projections', [InvestmentController::class, 'getAccountProjections']);
         Route::get('/{id}/rebalancing', [RebalancingCalculationController::class, 'getAccountRebalancing']);
         Route::patch('/{id}/rebalancing-threshold', [RebalancingCalculationController::class, 'updateRebalancingThreshold']);
+        Route::get('/{id}/diversification', [InvestmentController::class, 'getAccountDiversification']);
     });
 
     // Holdings
@@ -764,6 +765,7 @@ Route::middleware('auth:sanctum')->prefix('retirement')->group(function () {
         Route::put('/{dcPensionId}/holdings/{holdingId}', [DCPensionHoldingsController::class, 'update']);
         Route::delete('/{dcPensionId}/holdings/{holdingId}', [DCPensionHoldingsController::class, 'destroy']);
         Route::post('/{dcPensionId}/holdings/bulk-update', [DCPensionHoldingsController::class, 'bulkUpdate']);
+        Route::get('/{id}/diversification', [RetirementController::class, 'getDCPensionDiversification']);
     });
 
     // DB pensions
