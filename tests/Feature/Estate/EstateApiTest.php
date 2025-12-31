@@ -64,22 +64,28 @@ describe('GET /api/estate', function () {
     });
 });
 
-describe('POST /api/estate/analyze', function () {
-    it('performs comprehensive estate analysis', function () {
-        // This endpoint was replaced by /api/estate/comprehensive-plan
-    })->skip('Route /api/estate/analyze no longer exists - use /api/estate/comprehensive-plan');
-});
 
-describe('GET /api/estate/recommendations', function () {
-    it('returns personalized recommendations', function () {
-        // This endpoint was replaced by /api/estate/trust-recommendations
-    })->skip('Route /api/estate/recommendations no longer exists - use /api/estate/trust-recommendations');
-});
+describe('GET /api/estate/trust-recommendations', function () {
+    it('returns personalized trust recommendations', function () {
+        Asset::create([
+            'user_id' => $this->user->id,
+            'asset_type' => 'property',
+            'asset_name' => 'Home',
+            'current_value' => 600000,
+            'ownership_type' => 'individual',
+            'valuation_date' => Carbon::now(),
+        ]);
 
-describe('POST /api/estate/scenarios', function () {
-    it('builds what-if scenarios', function () {
-        // This endpoint no longer exists as a standalone route
-    })->skip('Route /api/estate/scenarios no longer exists');
+        $this->user->update(['date_of_birth' => Carbon::now()->subYears(50)]);
+
+        $response = $this->getJson('/api/estate/trust-recommendations');
+
+        $response->assertOk()
+            ->assertJsonStructure([
+                'success',
+                'data',
+            ]);
+    });
 });
 
 describe('POST /api/estate/calculate-iht', function () {

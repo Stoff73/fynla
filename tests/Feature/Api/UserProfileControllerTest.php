@@ -18,6 +18,7 @@ beforeEach(function () {
     $this->user = User::factory()->create([
         'household_id' => $this->household->id,
         'first_name' => 'Test',
+        'middle_name' => null,
         'surname' => 'User',
         'email' => 'test@example.com',
         'date_of_birth' => '1985-05-15',

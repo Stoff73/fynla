@@ -39,15 +39,15 @@ test('get overview endpoint returns net worth data', function () {
 });
 
 test('get overview requires authentication', function () {
-    // Create a new test instance without Sanctum authentication
-    $unauthenticatedUser = User::factory()->create();
+    // Reset app to clear Sanctum auth from beforeEach
+    $this->app = $this->createApplication();
 
     $response = $this->withHeaders([
         'Accept' => 'application/json',
     ])->getJson('/api/net-worth/overview');
 
     $response->assertStatus(401);
-})->skip('Auth test skipped - Sanctum configured in beforeEach');
+});
 
 test('get breakdown endpoint returns asset percentages', function () {
     Property::factory()->create([

@@ -43,15 +43,33 @@ class CrossModuleIntegrationTest extends TestCase
     }
 
     /**
-     * Test ISA allowance updates across Savings and Investment modules
-     *
-     * Note: This test is skipped because the ISA tracker endpoints
-     * (/api/savings/isa-tracker and /api/investment/isa-tracker) don't exist.
-     * ISA allowance is tracked per tax year via /api/savings/isa-allowance/{taxYear}
+     * Test ISA allowance tracking via the savings endpoint
      */
-    public function test_isa_allowance_is_tracked_across_savings_and_investment_modules(): void
+    public function test_isa_allowance_is_tracked_via_savings_endpoint(): void
     {
-        $this->markTestSkipped('ISA tracker endpoints do not exist - use /api/savings/isa-allowance/{taxYear} instead');
+        // Add ISA savings account
+        SavingsAccount::create([
+            'user_id' => $this->user->id,
+            'account_name' => 'Cash ISA',
+            'account_type' => 'cash_isa',
+            'current_balance' => 5000.00,
+        ]);
+
+        // Check ISA allowance endpoint for current tax year
+        $response = $this->getJson('/api/savings/isa-allowance/2025-26');
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'success',
+                'data' => [
+                    'total_allowance',
+                    'total_used',
+                    'remaining',
+                ],
+            ]);
+
+        // Verify some allowance tracking is present
+        expect($response->json('success'))->toBe(true);
     }
 
     /**
