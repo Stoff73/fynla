@@ -111,12 +111,6 @@
       <slot />
     </main>
 
-    <!-- Version Banner -->
-    <div class="bg-gray-50 py-6 text-center">
-      <router-link to="/version" class="text-sm text-gray-400 hover:text-primary-600 transition-colors">
-        v0.3.4
-      </router-link>
-    </div>
 
     <!-- Footer -->
     <footer class="bg-gray-900 text-white">
@@ -159,7 +153,10 @@
 
         <div class="border-t border-gray-800 mt-8 pt-8 text-center">
           <p class="text-sm text-gray-400">
-            &copy; 2025 Financial Planning System. Built with Claude Code.
+            &copy; 2025 Fynla - Financial Planning System.
+            <router-link to="/version" class="ml-2 text-primary-400 hover:text-primary-300">v0.4.3</router-link>
+            <span class="mx-2">|</span>
+            <a href="https://fynla.org" target="_blank" rel="noopener noreferrer" class="text-primary-400 hover:text-primary-300">fynla.org</a>
           </p>
         </div>
       </div>
