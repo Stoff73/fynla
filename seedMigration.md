@@ -18,11 +18,13 @@ php artisan db:seed
 # Run any new migrations
 php artisan migrate
 
-# Re-seed reference data (safe to run multiple times)
+# Re-seed required data (safe to run multiple times)
 php artisan db:seed --class=TaxConfigurationSeeder --force
 php artisan db:seed --class=TaxProductReferenceSeeder --force
 php artisan db:seed --class=UKLifeExpectancySeeder --force
 php artisan db:seed --class=ActuarialLifeTablesSeeder --force
+php artisan db:seed --class=AdminUserSeeder --force
+php artisan db:seed --class=PreviewUserSeeder --force
 ```
 
 ### Refresh Preview Personas Only
@@ -35,9 +37,9 @@ php artisan db:seed --class=PreviewUserSeeder --force
 
 ## Seeder Categories
 
-### Phase 1: Reference Data (REQUIRED)
+### Phase 1: Required Seeders (MUST RUN)
 
-These seeders populate lookup tables that the application requires to function. **They must always be run after migrations.**
+These seeders are **required for the application to function**. They must always be run after migrations.
 
 | Seeder | Table(s) | Purpose |
 |--------|----------|---------|
@@ -45,6 +47,8 @@ These seeders populate lookup tables that the application requires to function. 
 | `TaxProductReferenceSeeder` | `tax_product_references` | Tax treatment info for ISAs, GIAs, bonds, etc. |
 | `UKLifeExpectancySeeder` | `uk_life_expectancy_tables` | ONS life expectancy by age/gender |
 | `ActuarialLifeTablesSeeder` | `actuarial_life_tables` | Detailed mortality tables for calculations |
+| `AdminUserSeeder` | `users` | Creates admin account (admin@fps.com) and demo user |
+| `PreviewUserSeeder` | `users`, `properties`, `savings_accounts`, etc. | Creates preview personas with full financial data |
 
 **Run individually:**
 ```bash
@@ -52,23 +56,24 @@ php artisan db:seed --class=TaxConfigurationSeeder --force
 php artisan db:seed --class=TaxProductReferenceSeeder --force
 php artisan db:seed --class=UKLifeExpectancySeeder --force
 php artisan db:seed --class=ActuarialLifeTablesSeeder --force
+php artisan db:seed --class=AdminUserSeeder --force
+php artisan db:seed --class=PreviewUserSeeder --force
 ```
 
-### Phase 2: User Data (Development Only)
+### Phase 2: Optional Seeders (Development/Testing)
 
-These seeders create test accounts and demo data. **Only run in development/staging environments.**
+These seeders create additional test data. They are optional and typically only used in development/staging environments.
 
 | Seeder | Purpose |
 |--------|---------|
 | `HouseholdSeeder` | Creates household records for multi-user testing |
 | `TestUsersSeeder` | Creates basic test user accounts |
-| `AdminUserSeeder` | Creates admin account (admin@fps.com) |
-| `PreviewUserSeeder` | Creates preview personas with full financial data |
+| `ComprehensiveDemoDataSeeder` | Creates comprehensive demo data for testing |
 
 **Run individually:**
 ```bash
-php artisan db:seed --class=PreviewUserSeeder --force
-php artisan db:seed --class=AdminUserSeeder --force
+php artisan db:seed --class=HouseholdSeeder --force
+php artisan db:seed --class=TestUsersSeeder --force
 ```
 
 ---
@@ -81,7 +86,7 @@ php artisan db:seed --class=AdminUserSeeder --force
 # Drop all tables and re-migrate
 php artisan migrate:fresh
 
-# Seed everything (reference data + user data in dev)
+# Seed everything
 php artisan db:seed
 ```
 
@@ -143,6 +148,21 @@ php artisan tinker --execute="echo App\Models\User::where('is_preview_user', tru
 ```bash
 php artisan db:seed --class=UKLifeExpectancySeeder --force
 php artisan db:seed --class=ActuarialLifeTablesSeeder --force
+```
+
+### Scenario 6: Admin/Demo Login Not Working
+
+**Symptom:** Cannot log in with admin@fps.com or demo@fps.com.
+
+**Fix:**
+```bash
+php artisan db:seed --class=AdminUserSeeder --force
+```
+
+**Verify:**
+```bash
+php artisan tinker --execute="echo App\Models\User::where('email', 'admin@fps.com')->exists() ? 'exists' : 'missing';"
+# Should output: exists
 ```
 
 ---
@@ -232,11 +252,13 @@ Each persona JSON file contains:
 # Run migrations
 php artisan migrate --force
 
-# Seed reference data only (no test users)
+# Seed all required data
 php artisan db:seed --class=TaxConfigurationSeeder --force
 php artisan db:seed --class=TaxProductReferenceSeeder --force
 php artisan db:seed --class=UKLifeExpectancySeeder --force
 php artisan db:seed --class=ActuarialLifeTablesSeeder --force
+php artisan db:seed --class=AdminUserSeeder --force
+php artisan db:seed --class=PreviewUserSeeder --force
 ```
 
 ### Updating Tax Year
@@ -291,15 +313,30 @@ php artisan db:seed --class=PreviewUserSeeder --force
 When working on database changes, always verify:
 
 - [ ] Migrations run without errors: `php artisan migrate`
-- [ ] Reference data is seeded (check counts):
+- [ ] All required seeders have been run:
   - [ ] `TaxConfiguration::count() >= 1`
   - [ ] `TaxProductReference::count() >= 50`
   - [ ] Life expectancy tables populated
-- [ ] Preview personas work (if in development):
+  - [ ] Admin user exists (admin@fps.com)
+  - [ ] Preview users exist (7 users total)
+- [ ] Preview personas work:
   - [ ] Login via `/api/preview/login/young_family`
   - [ ] Check all four personas have data
 - [ ] Tax Status tab shows data in Investment/Savings views
 - [ ] Server restarted after seeding: `pkill -f "php artisan serve" && php artisan serve`
+
+---
+
+## Symptoms of Missing Seeders
+
+| Missing Seeder | Symptom |
+|----------------|---------|
+| TaxConfigurationSeeder | "No active tax configuration found" error, tax calculations fail |
+| TaxProductReferenceSeeder | Tax Status tab empty in Investment/Savings views |
+| UKLifeExpectancySeeder | Estate/retirement projections fail |
+| ActuarialLifeTablesSeeder | Mortality calculations fail |
+| AdminUserSeeder | Cannot log in with admin@fps.com or demo@fps.com |
+| PreviewUserSeeder | Preview login fails, personas have no data |
 
 ---
 
@@ -310,3 +347,4 @@ When working on database changes, always verify:
 | 2025-12-16 | Initial documentation created |
 | 2025-12-16 | Added TaxProductReferenceSeeder to DatabaseSeeder |
 | 2025-12-16 | Added risk profile data to preview personas |
+| 2025-12-31 | Moved AdminUserSeeder and PreviewUserSeeder to required seeders |

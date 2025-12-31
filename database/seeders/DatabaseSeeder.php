@@ -11,8 +11,8 @@ use Illuminate\Database\Seeder;
  * See /seedMigration.md for full documentation on seeding procedures.
  *
  * Seeder Categories:
- * 1. Reference Data (REQUIRED) - Tax config, life tables, product info
- * 2. User Data (OPTIONAL) - Demo users, admin, preview personas
+ * 1. Required Data (MUST RUN) - Tax config, life tables, product info, admin, preview users
+ * 2. Optional Data - Additional test users for development
  */
 class DatabaseSeeder extends Seeder
 {
@@ -22,8 +22,9 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // ============================================================
-        // PHASE 1: Reference Data (REQUIRED for app to function)
-        // These seeders populate lookup tables and configuration data
+        // PHASE 1: Required Data (MUST RUN for app to function)
+        // These seeders populate lookup tables, configuration data,
+        // and essential user accounts
         // ============================================================
         $this->call([
             // Tax configuration - rates, allowances, thresholds
@@ -37,40 +38,42 @@ class DatabaseSeeder extends Seeder
 
             // Actuarial tables - detailed mortality data for calculations
             ActuarialLifeTablesSeeder::class,
+
+            // Admin account (demo@fps.com, admin@fps.com)
+            AdminUserSeeder::class,
+
+            // Preview personas (young_family, peak_earners, etc.)
+            PreviewUserSeeder::class,
         ]);
 
         // ============================================================
-        // PHASE 2: User Data (for development/demo environments)
-        // Skip these in production - they create test accounts
+        // PHASE 2: Optional Data (for development/testing only)
+        // These create additional test accounts beyond the required ones
         // ============================================================
         if (app()->environment(['local', 'development', 'staging'])) {
             $this->call([
                 // Households for multi-user testing
                 HouseholdSeeder::class,
 
-                // Demo/test user accounts
+                // Additional test user accounts
                 TestUsersSeeder::class,
-
-                // Admin account (demo@fps.com, admin@fps.com)
-                AdminUserSeeder::class,
-
-                // Preview personas (young_family, peak_earners, etc.)
-                PreviewUserSeeder::class,
             ]);
         }
     }
 
     /**
-     * Seed only reference data (for production use).
+     * Seed only required data (for production use).
      * Call with: php artisan db:seed --class=DatabaseSeeder -- --reference-only
      */
-    public function seedReferenceDataOnly(): void
+    public function seedRequiredDataOnly(): void
     {
         $this->call([
             TaxConfigurationSeeder::class,
             TaxProductReferenceSeeder::class,
             UKLifeExpectancySeeder::class,
             ActuarialLifeTablesSeeder::class,
+            AdminUserSeeder::class,
+            PreviewUserSeeder::class,
         ]);
     }
 }

@@ -31,10 +31,13 @@ php artisan queue:work database      # Queue worker (optional, for Monte Carlo)
 ./vendor/bin/pest tests/Unit/Services/Protection/AdequacyScorerTest.php  # Single file
 ```
 
-**IMPORTANT:** Pest tests may truncate the database. After running tests, reseed reference data:
+**IMPORTANT:** Pest tests may truncate the database. After running tests, reseed required data:
 ```bash
 php artisan db:seed --class=TaxConfigurationSeeder --force
 php artisan db:seed --class=TaxProductReferenceSeeder --force
+php artisan db:seed --class=UKLifeExpectancySeeder --force
+php artisan db:seed --class=ActuarialLifeTablesSeeder --force
+php artisan db:seed --class=AdminUserSeeder --force
 php artisan db:seed --class=PreviewUserSeeder --force
 ```
 
@@ -52,19 +55,27 @@ php artisan migrate                  # Run migrations
 php artisan db:seed                  # Seed all data (reference + users in dev)
 ```
 
-**IMPORTANT:** After migrations, always ensure reference data is seeded. See **`/seedMigration.md`** for full documentation.
+**IMPORTANT:** After migrations, always ensure required data is seeded. See **`/seedMigration.md`** for full documentation.
 
-Quick reference for common issues:
+**Required seeders (MUST run for app to function):**
 ```bash
-# Tax Status tab empty? Run:
-php artisan db:seed --class=TaxProductReferenceSeeder --force
-
-# Tax calculations failing? Run:
 php artisan db:seed --class=TaxConfigurationSeeder --force
-
-# Preview personas broken? Run:
+php artisan db:seed --class=TaxProductReferenceSeeder --force
+php artisan db:seed --class=UKLifeExpectancySeeder --force
+php artisan db:seed --class=ActuarialLifeTablesSeeder --force
+php artisan db:seed --class=AdminUserSeeder --force
 php artisan db:seed --class=PreviewUserSeeder --force
 ```
+
+Quick reference for common issues:
+
+| Issue | Solution |
+|-------|----------|
+| Tax Status tab empty | `php artisan db:seed --class=TaxProductReferenceSeeder --force` |
+| Tax calculations failing | `php artisan db:seed --class=TaxConfigurationSeeder --force` |
+| Preview personas broken | `php artisan db:seed --class=PreviewUserSeeder --force` |
+| Admin login not working | `php artisan db:seed --class=AdminUserSeeder --force` |
+| Life expectancy errors | `php artisan db:seed --class=UKLifeExpectancySeeder --force` |
 
 ## Architecture
 
@@ -440,10 +451,13 @@ DELETE /api/savings/accounts/{id}   # Delete
 
 ### After Running Pest Tests
 
-Pest tests may clear reference data. Always reseed after running tests:
+Pest tests may clear required data. Always reseed after running tests:
 ```bash
 php artisan db:seed --class=TaxConfigurationSeeder --force
 php artisan db:seed --class=TaxProductReferenceSeeder --force
+php artisan db:seed --class=UKLifeExpectancySeeder --force
+php artisan db:seed --class=ActuarialLifeTablesSeeder --force
+php artisan db:seed --class=AdminUserSeeder --force
 php artisan db:seed --class=PreviewUserSeeder --force
 ```
 
