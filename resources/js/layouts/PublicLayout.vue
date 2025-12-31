@@ -111,21 +111,67 @@
       <slot />
     </main>
 
+    <!-- Version Banner -->
+    <div class="bg-gray-50 py-6 text-center">
+      <router-link to="/version" class="text-sm text-gray-400 hover:text-primary-600 transition-colors">
+        v0.3.4
+      </router-link>
+    </div>
+
     <!-- Footer -->
-    <Footer />
+    <footer class="bg-gray-900 text-white">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <!-- Company Info -->
+          <div class="col-span-1 md:col-span-2">
+            <div class="flex items-center mb-4">
+              <img :src="logoUrl" alt="Fynla" class="h-80 w-auto" />
+            </div>
+            <p class="text-gray-400 text-sm mb-4">
+              Financial Planning System - Your comprehensive solution for UK financial planning.
+              Educational tool for demonstration purposes only.
+            </p>
+            <p class="text-xs text-gray-500">
+              Not regulated financial advice. Always consult a qualified financial adviser.
+            </p>
+          </div>
+
+          <!-- Quick Links -->
+          <div>
+            <h3 class="text-sm font-semibold uppercase tracking-wider mb-4">Resources</h3>
+            <ul class="space-y-2">
+              <li><router-link to="/calculators" class="text-gray-400 hover:text-white text-sm">Calculators</router-link></li>
+              <li><router-link to="/learning-centre" class="text-gray-400 hover:text-white text-sm">Learning Centre</router-link></li>
+              <li><a href="https://www.fca.org.uk" target="_blank" class="text-gray-400 hover:text-white text-sm">FCA Website</a></li>
+            </ul>
+          </div>
+
+          <!-- Legal -->
+          <div>
+            <h3 class="text-sm font-semibold uppercase tracking-wider mb-4">Legal</h3>
+            <ul class="space-y-2">
+              <li><a href="#" class="text-gray-400 hover:text-white text-sm">Privacy Policy</a></li>
+              <li><a href="#" class="text-gray-400 hover:text-white text-sm">Terms of Service</a></li>
+              <li><a href="#" class="text-gray-400 hover:text-white text-sm">Cookie Policy</a></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="border-t border-gray-800 mt-8 pt-8 text-center">
+          <p class="text-sm text-gray-400">
+            &copy; 2025 Financial Planning System. Built with Claude Code.
+          </p>
+        </div>
+      </div>
+    </footer>
   </div>
 </template>
 
 <script>
 import logoImage from '@/assets/logo.png';
-import Footer from '@/components/Footer.vue';
 
 export default {
   name: 'PublicLayout',
-
-  components: {
-    Footer,
-  },
 
   data() {
     return {
