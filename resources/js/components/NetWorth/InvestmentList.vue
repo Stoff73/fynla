@@ -136,9 +136,22 @@
             <p class="summary-value">{{ formatCurrency(totalPortfolioValue) }}</p>
             <p class="summary-count">{{ accounts.length }} account{{ accounts.length !== 1 ? 's' : '' }}</p>
           </div>
-          <div class="summary-item returns" :class="ytdReturn >= 0 ? 'positive' : 'negative'">
-            <p class="summary-label">YTD Return</p>
-            <p class="summary-value" :class="ytdReturn >= 0 ? 'text-green-600' : 'text-red-600'">{{ formatReturn(ytdReturn) }}</p>
+          <div class="summary-item returns" :class="(portfolioGrossReturn || 0) >= 0 ? 'positive' : 'negative'">
+            <p class="summary-label">Annualised Return</p>
+            <div class="return-values">
+              <div class="return-row">
+                <span class="return-label">Gross</span>
+                <span class="return-value" :class="(portfolioGrossReturn || 0) >= 0 ? 'text-green-600' : 'text-red-600'">
+                  {{ portfolioGrossReturn !== null ? formatReturn(portfolioGrossReturn) : 'N/A' }}
+                </span>
+              </div>
+              <div class="return-row">
+                <span class="return-label">Net of fees</span>
+                <span class="return-value" :class="(portfolioNetReturn || 0) >= 0 ? 'text-green-600' : 'text-red-600'">
+                  {{ portfolioNetReturn !== null ? formatReturn(portfolioNetReturn) : 'N/A' }}
+                </span>
+              </div>
+            </div>
             <p class="summary-count">{{ holdingsCount }} holding{{ holdingsCount !== 1 ? 's' : '' }}</p>
           </div>
           <div class="summary-item diversification">
@@ -305,7 +318,6 @@ export default {
     ...mapGetters('investment', [
       'accounts',
       'totalPortfolioValue',
-      'ytdReturn',
       'diversificationScore',
       'holdingsCount',
     ]),
@@ -315,6 +327,51 @@ export default {
       if (this.diversificationScore >= 60) return 'Good';
       if (this.diversificationScore >= 40) return 'Fair';
       return 'Poor';
+    },
+
+    // Calculate weighted portfolio gross return
+    portfolioGrossReturn() {
+      if (!this.accounts.length) return null;
+
+      let totalWeightedReturn = 0;
+      let totalValue = 0;
+
+      for (const account of this.accounts) {
+        const accountValue = parseFloat(account.current_value) || 0;
+        if (accountValue <= 0) continue;
+
+        const accountReturn = this.calculateAccountGrossReturn(account);
+        if (accountReturn !== null) {
+          totalWeightedReturn += accountReturn * accountValue;
+          totalValue += accountValue;
+        }
+      }
+
+      return totalValue > 0 ? totalWeightedReturn / totalValue : null;
+    },
+
+    // Calculate weighted portfolio net return (after fees)
+    portfolioNetReturn() {
+      if (!this.accounts.length) return null;
+
+      let totalWeightedReturn = 0;
+      let totalValue = 0;
+
+      for (const account of this.accounts) {
+        const accountValue = parseFloat(account.current_value) || 0;
+        if (accountValue <= 0) continue;
+
+        const grossReturn = this.calculateAccountGrossReturn(account);
+        const fees = this.calculateAccountFees(account);
+
+        if (grossReturn !== null) {
+          const netReturn = grossReturn - fees;
+          totalWeightedReturn += netReturn * accountValue;
+          totalValue += accountValue;
+        }
+      }
+
+      return totalValue > 0 ? totalWeightedReturn / totalValue : null;
     },
   },
 
@@ -532,6 +589,70 @@ export default {
         label: label,
         percentage: `(${percentage}%)`,
       };
+    },
+
+    calculateAccountGrossReturn(account) {
+      const holdings = account.holdings || [];
+      if (!holdings.length) return null;
+
+      let totalCostBasis = 0;
+      let totalCurrentValue = 0;
+      let weightedYears = 0;
+      let totalValueForWeighting = 0;
+
+      for (const holding of holdings) {
+        const costBasis = parseFloat(holding.cost_basis) || 0;
+        const currentValue = parseFloat(holding.current_value) || 0;
+
+        if (costBasis > 0) {
+          totalCostBasis += costBasis;
+          totalCurrentValue += currentValue;
+
+          // Calculate holding period (default 3 years if no purchase date)
+          let years = 3;
+          if (holding.purchase_date) {
+            const purchaseDate = new Date(holding.purchase_date);
+            const now = new Date();
+            years = (now - purchaseDate) / (365.25 * 24 * 60 * 60 * 1000);
+            if (years < 0.01) years = 0.01;
+          }
+
+          weightedYears += years * currentValue;
+          totalValueForWeighting += currentValue;
+        }
+      }
+
+      if (totalCostBasis <= 0) return null;
+
+      const avgYears = totalValueForWeighting > 0 ? weightedYears / totalValueForWeighting : 3;
+      const totalReturn = (totalCurrentValue - totalCostBasis) / totalCostBasis;
+
+      // Annualize: linear for <3 months, compound for longer
+      if (avgYears < 0.25) {
+        return (totalReturn / avgYears) * 100;
+      } else {
+        return (Math.pow(1 + totalReturn, 1 / avgYears) - 1) * 100;
+      }
+    },
+
+    calculateAccountFees(account) {
+      const platformFee = parseFloat(account.platform_fee_percent) || 0;
+      const advisorFee = parseFloat(account.advisor_fee_percent) || 0;
+
+      // Weighted average OCF from holdings
+      let weightedOCF = 0;
+      const holdings = account.holdings || [];
+      const totalValue = holdings.reduce((sum, h) => sum + (parseFloat(h.current_value) || 0), 0);
+
+      if (totalValue > 0) {
+        for (const holding of holdings) {
+          const value = parseFloat(holding.current_value) || 0;
+          const ocf = parseFloat(holding.ocf_percent) || 0;
+          weightedOCF += (value / totalValue) * ocf;
+        }
+      }
+
+      return platformFee + advisorFee + weightedOCF;
     },
   },
 
@@ -888,6 +1009,28 @@ export default {
   font-size: 13px;
   color: #9ca3af;
   margin: 4px 0 0 0;
+}
+
+.return-values {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.return-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.return-label {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.return-value {
+  font-size: 18px;
+  font-weight: 700;
 }
 
 /* Portfolio Features Section */
