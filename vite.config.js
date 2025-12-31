@@ -4,9 +4,11 @@ import vue from '@vitejs/plugin-vue';
 import path from 'path';
 
 export default defineConfig({
-    // Development: use root path
-    // Production: use '/fynla/build/' for subfolder deployment at csjones.co/fynla
-    base: process.env.NODE_ENV === 'production' ? '/fynla/build/' : '/',
+    // Base path is configurable via VITE_BASE_PATH environment variable
+    // Development: '/' (default)
+    // Production fynla.org (root): '/build/'
+    // Production csjones.co/fynla (subdirectory): '/fynla/build/'
+    base: process.env.VITE_BASE_PATH || '/',
     server: {
         host: '127.0.0.1',
         port: 5173,

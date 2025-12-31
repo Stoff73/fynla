@@ -177,7 +177,35 @@ Use exact values from database enums:
 
 **Never use** `sole` (use `individual`), `second_home`, `part_and_part`.
 
-### 6. Environment Variables
+### 6. Environment Separation
+
+The project supports multiple deployment targets with clear separation:
+
+```
+deploy/
+├── fynla-org/          # ROOT deployment at https://fynla.org
+│   ├── .env.production
+│   ├── .htaccess
+│   └── build.sh
+└── csjones-fynla/      # SUBDIRECTORY deployment at https://csjones.co/fynla
+    ├── .env.production
+    ├── .htaccess
+    └── build.sh
+```
+
+**Build for specific target:**
+```bash
+./deploy/fynla-org/build.sh        # For fynla.org
+./deploy/csjones-fynla/build.sh    # For csjones.co/fynla
+```
+
+**Key differences between environments:**
+
+| Setting | fynla.org (ROOT) | csjones.co/fynla (SUBDIRECTORY) |
+|---------|------------------|----------------------------------|
+| `VITE_BASE_PATH` | `/build/` | `/fynla/build/` |
+| `APP_URL` | `https://fynla.org` | `https://csjones.co/fynla` |
+| `.htaccess RewriteBase` | `/` | `/fynla/` |
 
 **Never export production env vars in development:**
 ```bash
@@ -190,9 +218,11 @@ export $(cat .env.production | xargs)
 
 ### 7. Deployment
 
-**Never include `public/build/` in deployment packages without permission.**
+**Full deployment guides:**
+- `DEPLOYMENT_FYNLA_ORG.md` - Step-by-step guide for fynla.org
+- `deploy/README.md` - Environment configuration overview
 
-Build locally: `NODE_ENV=production npm run build`
+**Never include `public/build/` in deployment packages without permission.**
 
 ## Key Patterns
 
