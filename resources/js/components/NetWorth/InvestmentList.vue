@@ -117,11 +117,6 @@
                   {{ formatReturn(account.ytd_return) }}
                 </span>
               </div>
-
-              <div class="detail-row">
-                <span class="detail-label">{{ getPrimaryAssetClass(account).label }}</span>
-                <span class="detail-value">{{ getPrimaryAssetClass(account).percentage }}</span>
-              </div>
             </div>
           </div>
         </div>
@@ -560,57 +555,6 @@ export default {
     getReturnColorClass(value) {
       if (!value && value !== 0) return 'text-gray-600';
       return value >= 0 ? 'text-green-600' : 'text-red-600';
-    },
-
-    getPrimaryAssetClass(account) {
-      if (!account.holdings || account.holdings.length === 0) {
-        return { label: 'Cash', percentage: '(100%)' };
-      }
-
-      const assetAllocation = {};
-      let totalValue = 0;
-
-      account.holdings.forEach(holding => {
-        const value = parseFloat(holding.current_value || 0);
-        const assetType = holding.asset_type || 'other';
-
-        if (!assetAllocation[assetType]) {
-          assetAllocation[assetType] = 0;
-        }
-        assetAllocation[assetType] += value;
-        totalValue += value;
-      });
-
-      let primaryAsset = 'Cash';
-      let primaryValue = 0;
-
-      Object.entries(assetAllocation).forEach(([assetType, value]) => {
-        if (value > primaryValue) {
-          primaryValue = value;
-          primaryAsset = assetType;
-        }
-      });
-
-      const percentage = totalValue > 0
-        ? ((primaryValue / totalValue) * 100).toFixed(0)
-        : 100;
-
-      const assetClassNames = {
-        equity: 'Equity',
-        fixed_income: 'Fixed Income',
-        property: 'Property',
-        commodities: 'Commodities',
-        cash: 'Cash',
-        alternatives: 'Alternatives',
-        other: 'Other',
-      };
-
-      const label = assetClassNames[primaryAsset] || primaryAsset.charAt(0).toUpperCase() + primaryAsset.slice(1);
-
-      return {
-        label: label,
-        percentage: `(${percentage}%)`,
-      };
     },
 
     calculateAccountGrossReturn(account) {
