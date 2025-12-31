@@ -65,6 +65,25 @@
 </template>
 
 <script>
+/**
+ * @fileoverview Investment Account Detail View Component
+ *
+ * Displays detailed information for a single investment account including:
+ * - Account overview with value and ownership details
+ * - Holdings breakdown with individual positions
+ * - Performance metrics and returns
+ * - Fee analysis and platform costs
+ * - Tax status information
+ *
+ * Uses tabbed navigation to switch between different detail panels.
+ *
+ * @component AccountDetailView
+ * @requires AccountSummaryPanel - Overview panel with account summary
+ * @requires AccountHoldingsPanel - Holdings list with position details
+ * @requires AccountPerformancePanel - Performance metrics and charts
+ * @requires AccountFeesPanel - Fee breakdown and analysis
+ * @requires TaxStatusPanel - Tax wrapper information
+ */
 import AccountSummaryPanel from '@/views/Investment/AccountSummaryPanel.vue';
 import AccountHoldingsPanel from '@/views/Investment/AccountHoldingsPanel.vue';
 import AccountPerformancePanel from '@/views/Investment/AccountPerformancePanel.vue';

@@ -5,15 +5,38 @@ declare(strict_types=1);
 namespace App\Services\Investment;
 
 use App\Models\Investment\InvestmentAccount;
+use App\Services\TaxConfigService;
 use Illuminate\Support\Collection;
 
 class ContributionEstimatorService
 {
-    private const ISA_ANNUAL_ALLOWANCE = 20000;
-
     private const GIA_ANNUAL_PERCENT = 0.05;
 
     private const MONTHS_IN_YEAR = 12;
+
+    // Fallback ISA allowance if TaxConfigService unavailable
+    private const ISA_ALLOWANCE_FALLBACK = 20000;
+
+    private TaxConfigService $taxConfig;
+
+    public function __construct(TaxConfigService $taxConfig)
+    {
+        $this->taxConfig = $taxConfig;
+    }
+
+    /**
+     * Get ISA annual allowance from TaxConfigService
+     */
+    private function getISAAllowance(): float
+    {
+        try {
+            $isaConfig = $this->taxConfig->getISAAllowances();
+
+            return (float) ($isaConfig['annual_allowance'] ?? self::ISA_ALLOWANCE_FALLBACK);
+        } catch (\Exception $e) {
+            return self::ISA_ALLOWANCE_FALLBACK;
+        }
+    }
 
     /**
      * Estimate monthly contribution for an account.
@@ -44,15 +67,16 @@ class ContributionEstimatorService
     private function estimateFromISASubscription(InvestmentAccount $account): float
     {
         $subscription = $account->isa_subscription_current_year ?? 0;
+        $isaAllowance = $this->getISAAllowance();
 
         if ($subscription > 0) {
             $monthsElapsed = $this->getMonthsElapsedInTaxYear();
 
-            return $monthsElapsed > 0 ? $subscription / $monthsElapsed : self::ISA_ANNUAL_ALLOWANCE / self::MONTHS_IN_YEAR;
+            return $monthsElapsed > 0 ? $subscription / $monthsElapsed : $isaAllowance / self::MONTHS_IN_YEAR;
         }
 
         // Default to equal monthly contributions to max ISA
-        return self::ISA_ANNUAL_ALLOWANCE / self::MONTHS_IN_YEAR;
+        return $isaAllowance / self::MONTHS_IN_YEAR;
     }
 
     private function estimateFromAccountValue(InvestmentAccount $account, float $annualPercent): float

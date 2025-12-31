@@ -1,0 +1,134 @@
+/**
+ * Shared Badge Styles
+ *
+ * Common badge styles for account types, status indicators, etc.
+ * Import this file in your component or global stylesheet.
+ */
+
+/* Account Type Badges */
+.badge-isa {
+  @apply bg-blue-100 text-blue-800 border border-blue-200;
+}
+
+.badge-sipp {
+  @apply bg-purple-100 text-purple-800 border border-purple-200;
+}
+
+.badge-gia {
+  @apply bg-gray-100 text-gray-800 border border-gray-200;
+}
+
+.badge-pension {
+  @apply bg-indigo-100 text-indigo-800 border border-indigo-200;
+}
+
+.badge-workplace-pension {
+  @apply bg-indigo-100 text-indigo-800 border border-indigo-200;
+}
+
+.badge-nsi {
+  @apply bg-green-100 text-green-800 border border-green-200;
+}
+
+.badge-premium-bonds {
+  @apply bg-yellow-100 text-yellow-800 border border-yellow-200;
+}
+
+.badge-bond {
+  @apply bg-amber-100 text-amber-800 border border-amber-200;
+}
+
+.badge-vct,
+.badge-eis {
+  @apply bg-teal-100 text-teal-800 border border-teal-200;
+}
+
+/* Ownership Type Badges */
+.badge-individual {
+  @apply bg-blue-100 text-blue-800;
+}
+
+.badge-joint {
+  @apply bg-purple-100 text-purple-800;
+}
+
+.badge-trust {
+  @apply bg-amber-100 text-amber-800;
+}
+
+/* Status Badges */
+.badge-active {
+  @apply bg-green-100 text-green-800;
+}
+
+.badge-pending {
+  @apply bg-yellow-100 text-yellow-800;
+}
+
+.badge-completed {
+  @apply bg-blue-100 text-blue-800;
+}
+
+.badge-expired {
+  @apply bg-red-100 text-red-800;
+}
+
+.badge-draft {
+  @apply bg-gray-100 text-gray-800;
+}
+
+/* Priority Badges */
+.badge-high-priority {
+  @apply bg-red-100 text-red-800;
+}
+
+.badge-medium-priority {
+  @apply bg-yellow-100 text-yellow-800;
+}
+
+.badge-low-priority {
+  @apply bg-green-100 text-green-800;
+}
+
+/* Risk Level Badges */
+.badge-risk-low {
+  @apply bg-green-100 text-green-800;
+}
+
+.badge-risk-medium {
+  @apply bg-yellow-100 text-yellow-800;
+}
+
+.badge-risk-high {
+  @apply bg-red-100 text-red-800;
+}
+
+/* Base Badge Styles */
+.badge {
+  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+}
+
+.badge-sm {
+  @apply px-2 py-0.5 text-xs;
+}
+
+.badge-md {
+  @apply px-3 py-1 text-sm;
+}
+
+.badge-lg {
+  @apply px-4 py-1.5 text-base;
+}
+
+/* Tax Efficiency Badges */
+.badge-tax-free {
+  @apply bg-green-100 text-green-800 border border-green-200;
+}
+
+.badge-taxable {
+  @apply bg-red-100 text-red-800 border border-red-200;
+}
+
+.badge-tax-deferred {
+  @apply bg-blue-100 text-blue-800 border border-blue-200;
+}

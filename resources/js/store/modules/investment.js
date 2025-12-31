@@ -149,8 +149,10 @@ const getters = {
     },
 
     // Get ISA allowance percentage used (based on contributions, not value)
-    isaAllowancePercentage: (state, getters) => {
-        const isaAllowance = 20000; // 2024/25 allowance
+    // Uses ISA allowance from savings store (fetched from TaxConfigService API)
+    isaAllowancePercentage: (state, getters, rootState) => {
+        // Get ISA allowance from savings store (API-backed) or use default
+        const isaAllowance = rootState.savings?.isaAllowance?.total_allowance || 20000;
         const contributions = getters.totalISAContributions;
         return (contributions / isaAllowance) * 100;
     },
