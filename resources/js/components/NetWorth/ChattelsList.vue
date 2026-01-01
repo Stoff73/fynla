@@ -64,22 +64,6 @@
           @click="openDetail(chattel.id)"
         />
       </div>
-
-      <!-- Total Value Summary -->
-      <div v-if="filteredChattels.length > 0" class="summary-bar">
-        <div class="summary-item">
-          <span class="summary-label">Total Items</span>
-          <span class="summary-value">{{ filteredChattels.length }}</span>
-        </div>
-        <div class="summary-item">
-          <span class="summary-label">Total Value (Your Share)</span>
-          <span class="summary-value text-pink-600">{{ formatCurrency(totalValue) }}</span>
-        </div>
-        <div v-if="wastingAssetCount > 0" class="summary-item">
-          <span class="summary-label">CGT Exempt (Wasting)</span>
-          <span class="summary-value text-green-600">{{ wastingAssetCount }}</span>
-        </div>
-      </div>
     </div>
 
     <!-- Add/Edit Modal -->
@@ -103,17 +87,14 @@
 </template>
 
 <script>
-import { mapState, mapGetters, mapActions } from 'vuex';
+import { mapState, mapActions } from 'vuex';
 import ChattelCard from './ChattelCard.vue';
 import ChattelFormModal from './ChattelFormModal.vue';
 import ChattelDetailInline from './ChattelDetailInline.vue';
 import ConfirmationModal from '@/components/Common/ConfirmationModal.vue';
-import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'ChattelsList',
-
-  mixins: [currencyMixin],
 
   components: {
     ChattelCard,
@@ -135,7 +116,6 @@ export default {
 
   computed: {
     ...mapState('chattels', ['chattels', 'loading', 'error']),
-    ...mapGetters('chattels', ['totalChattelValue', 'wastingAssets']),
 
     filteredChattels() {
       let filtered = [...this.chattels];
@@ -148,14 +128,6 @@ export default {
       filtered.sort((a, b) => (b.current_value || 0) - (a.current_value || 0));
 
       return filtered;
-    },
-
-    totalValue() {
-      return this.filteredChattels.reduce((sum, c) => sum + (c.user_share || c.current_value || 0), 0);
-    },
-
-    wastingAssetCount() {
-      return this.filteredChattels.filter(c => c.is_wasting_asset).length;
     },
   },
 
@@ -391,35 +363,6 @@ export default {
   background: #db2777;
 }
 
-.summary-bar {
-  display: flex;
-  justify-content: flex-end;
-  gap: 32px;
-  margin-top: 24px;
-  padding: 16px 24px;
-  background: #f9fafb;
-  border-radius: 8px;
-}
-
-.summary-item {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-}
-
-.summary-label {
-  font-size: 12px;
-  color: #6b7280;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.summary-value {
-  font-size: 18px;
-  font-weight: 700;
-  color: #111827;
-}
-
 @media (max-width: 768px) {
   .chattels-list {
     padding: 16px;
@@ -443,15 +386,6 @@ export default {
 
   .chattels-grid {
     grid-template-columns: 1fr;
-  }
-
-  .summary-bar {
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  .summary-item {
-    align-items: flex-start;
   }
 }
 </style>
