@@ -87,9 +87,29 @@ Mitchell persona (peak_earners) updated with 6 test chattels:
 
 ---
 
+### 4. Info Guide Navigation Fix
+
+**Bug:** The floating help button was not updating when navigating between modules - it always showed dashboard requirements.
+
+**Root Cause:** The router `afterEach` hook wasn't reliably triggering module detection.
+
+**Fix:**
+- Added `$route.path` watcher directly in `InfoGuidePanel.vue` with `immediate: true`
+- Sort module prefixes by length before matching (longer paths checked first)
+- Fixed race condition by setting `currentModule` before making API call
+- Added validation to only set requirements if module hasn't changed during fetch
+
+**Files Modified:**
+- `resources/js/components/Shared/InfoGuidePanel.vue` - Added route watcher
+- `resources/js/store/modules/infoGuide.js` - Fixed fetchRequirements action
+
+---
+
 ## Git History
 
 ```
+c6a14ab fix: Info Guide now updates when navigating between modules
+3e60283 docs: Add Jan1Updates README summarizing v0.4.5 changes
 a96d328 chore: Bump version to v0.4.5
 f458663 fix: Remove summary bar from chattels list
 bbe9f7d docs: Update Dec31Updates with deployment steps for next session
