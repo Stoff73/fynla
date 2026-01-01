@@ -1025,7 +1025,7 @@ class PreviewUserSeeder extends Seeder
                 'current_value' => $chattel['current_value'] ?? 0,
                 'purchase_price' => $chattel['purchase_price'] ?? null,
                 'purchase_date' => $chattel['purchase_date'] ?? null,
-                'valuation_date' => $chattel['valuation_date'] ?? null,
+                'valuation_date' => $chattel['valuation_date'] ?? now()->toDateString(),
                 'ownership_type' => $chattel['ownership_type'] ?? 'individual',
                 'ownership_percentage' => $chattel['ownership_percentage'] ?? 100,
                 'make' => $chattel['make'] ?? null,
