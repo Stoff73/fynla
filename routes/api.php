@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BusinessInterestController;
+use App\Http\Controllers\Api\ChattelController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DocumentController;
 use App\Http\Controllers\Api\Estate\GiftingController;
@@ -222,6 +223,16 @@ Route::middleware('auth:sanctum')->prefix('business-interests')->group(function 
     Route::delete('/{id}', [BusinessInterestController::class, 'destroy']);
     Route::get('/{id}/tax-deadlines', [BusinessInterestController::class, 'taxDeadlines']);
     Route::get('/{id}/exit-calculation', [BusinessInterestController::class, 'exitCalculation']);
+});
+
+// Chattel routes (personal property / chattels & valuables)
+Route::middleware('auth:sanctum')->prefix('chattels')->group(function () {
+    Route::get('/', [ChattelController::class, 'index']);
+    Route::post('/', [ChattelController::class, 'store']);
+    Route::get('/{id}', [ChattelController::class, 'show']);
+    Route::put('/{id}', [ChattelController::class, 'update']);
+    Route::delete('/{id}', [ChattelController::class, 'destroy']);
+    Route::post('/{id}/calculate-cgt', [ChattelController::class, 'calculateCGT']);
 });
 
 // Dashboard routes (aggregated data from all modules)

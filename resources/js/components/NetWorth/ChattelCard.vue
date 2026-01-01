@@ -1,25 +1,34 @@
 <template>
-  <div class="chattel-card" @click="viewDetails">
+  <div class="chattel-card" @click="$emit('click')">
     <div class="card-header">
-      <span class="chattel-type-badge" :class="typeClass">
-        {{ chattelTypeLabel }}
-      </span>
+      <div class="header-left">
+        <span class="chattel-type-badge" :class="typeClass">
+          {{ chattelTypeLabel }}
+        </span>
+        <span v-if="chattel.is_wasting_asset" class="wasting-badge" title="CGT exempt - wasting asset">
+          CGT Exempt
+        </span>
+      </div>
       <span v-if="isJoint" class="ownership-badge">
         {{ chattel.ownership_percentage }}%
       </span>
     </div>
 
     <div class="card-content">
-      <h3 class="chattel-name">{{ chattel.chattel_name }}</h3>
+      <h3 class="chattel-name">{{ chattel.name }}</h3>
 
-      <div v-if="isVehicle" class="vehicle-details">
+      <div v-if="isVehicle && vehicleDescription" class="vehicle-details">
         <p class="vehicle-info">{{ vehicleDescription }}</p>
       </div>
 
       <div class="chattel-details">
         <div class="detail-row">
-          <span class="detail-label">Current Value</span>
-          <span class="detail-value">{{ formatCurrency(chattel.current_value) }}</span>
+          <span class="detail-label">{{ isJoint ? 'Your Share' : 'Current Value' }}</span>
+          <span class="detail-value">{{ formatCurrency(displayValue) }}</span>
+        </div>
+        <div v-if="isJoint" class="detail-row">
+          <span class="detail-label">Full Value</span>
+          <span class="detail-value text-gray-500">{{ formatCurrency(chattel.current_value) }}</span>
         </div>
       </div>
     </div>
@@ -40,6 +49,8 @@ export default {
     },
   },
 
+  emits: ['click'],
+
   computed: {
     chattelTypeLabel() {
       const labels = {
@@ -58,27 +69,24 @@ export default {
     },
 
     isJoint() {
-      return this.chattel.ownership_percentage < 100;
+      return this.chattel.ownership_percentage && this.chattel.ownership_percentage < 100;
     },
 
     isVehicle() {
       return this.chattel.chattel_type === 'vehicle';
     },
 
+    displayValue() {
+      return this.chattel.user_share || this.chattel.current_value || 0;
+    },
+
     vehicleDescription() {
       const parts = [];
-      if (this.chattel.vehicle_year) parts.push(this.chattel.vehicle_year);
-      if (this.chattel.vehicle_make) parts.push(this.chattel.vehicle_make);
-      if (this.chattel.vehicle_model) parts.push(this.chattel.vehicle_model);
-      if (this.chattel.vehicle_registration) parts.push(`(${this.chattel.vehicle_registration})`);
+      if (this.chattel.year) parts.push(this.chattel.year);
+      if (this.chattel.make) parts.push(this.chattel.make);
+      if (this.chattel.model) parts.push(this.chattel.model);
+      if (this.chattel.registration_number) parts.push(`(${this.chattel.registration_number})`);
       return parts.join(' ');
-    },
-  },
-
-  methods: {
-    viewDetails() {
-      // Navigate to chattel detail (Phase 4)
-      // this.$router.push(`/net-worth/chattels/${this.chattel.id}`);
     },
   },
 };
@@ -110,11 +118,26 @@ export default {
   gap: 8px;
 }
 
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .chattel-type-badge {
   padding: 4px 12px;
   border-radius: 6px;
   font-size: 12px;
   font-weight: 600;
+}
+
+.wasting-badge {
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  background: #d1fae5;
+  color: #065f46;
 }
 
 .type-vehicle {
@@ -202,6 +225,11 @@ export default {
 .detail-value {
   color: #111827;
   font-weight: 600;
+}
+
+.text-gray-500 {
+  color: #6b7280;
+  font-weight: 400;
 }
 
 @media (max-width: 768px) {

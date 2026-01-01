@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Database\Seeders;
 
 use App\Models\BusinessInterest;
+use App\Models\Chattel;
 use App\Models\CriticalIllnessPolicy;
 use App\Models\DBPension;
 use App\Models\DCPension;
@@ -135,6 +136,9 @@ class PreviewUserSeeder extends Seeder
 
         // Create business interests
         $this->createBusinessInterests($user, $data['business_interests'] ?? []);
+
+        // Create chattels
+        $this->createChattels($user, $spouse, $data['chattels'] ?? []);
 
         $this->command->info("  Created user: {$user->name} ({$user->email})");
         if ($spouse) {
@@ -985,6 +989,50 @@ class PreviewUserSeeder extends Seeder
                 'bpr_eligible' => $business['bpr_eligible'] ?? false,
                 'description' => $business['description'] ?? null,
                 'notes' => $business['notes'] ?? null,
+            ]);
+        }
+    }
+
+    /**
+     * Create chattels for the user.
+     */
+    private function createChattels(User $user, ?User $spouse, array $chattels): void
+    {
+        foreach ($chattels as $chattel) {
+            // Determine owner - check for 'owner' => 'spouse' flag or name matching
+            $owner = $user;
+            if ($spouse && ($chattel['owner'] ?? null) === 'spouse') {
+                $owner = $spouse;
+            } elseif ($spouse && ! empty($chattel['name'])) {
+                // Check if chattel name contains spouse's first name
+                if (stripos($chattel['name'], $spouse->first_name) !== false) {
+                    $owner = $spouse;
+                }
+            }
+
+            // Determine joint owner for joint ownership
+            $jointOwnerId = null;
+            if (($chattel['ownership_type'] ?? 'individual') === 'joint' && $spouse) {
+                $jointOwnerId = ($owner->id === $user->id) ? $spouse->id : $user->id;
+            }
+
+            Chattel::create([
+                'user_id' => $owner->id,
+                'joint_owner_id' => $jointOwnerId,
+                'chattel_type' => $chattel['chattel_type'] ?? 'other',
+                'name' => $chattel['name'] ?? $chattel['item_name'] ?? 'Unnamed Item',
+                'description' => $chattel['description'] ?? null,
+                'current_value' => $chattel['current_value'] ?? 0,
+                'purchase_price' => $chattel['purchase_price'] ?? null,
+                'purchase_date' => $chattel['purchase_date'] ?? null,
+                'valuation_date' => $chattel['valuation_date'] ?? null,
+                'ownership_type' => $chattel['ownership_type'] ?? 'individual',
+                'ownership_percentage' => $chattel['ownership_percentage'] ?? 100,
+                'make' => $chattel['make'] ?? null,
+                'model' => $chattel['model'] ?? null,
+                'year' => $chattel['year'] ?? null,
+                'registration_number' => $chattel['registration_number'] ?? null,
+                'notes' => $chattel['notes'] ?? null,
             ]);
         }
     }

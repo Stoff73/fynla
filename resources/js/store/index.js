@@ -12,6 +12,7 @@ import userProfile from './modules/userProfile';
 import netWorth from './modules/netWorth';
 import trusts from './modules/trusts';
 import businessInterests from './modules/businessInterests';
+import chattels from './modules/chattels';
 import recommendations from './modules/recommendations';
 import spousePermission from './modules/spousePermission';
 import onboarding from './modules/onboarding';
@@ -34,6 +35,7 @@ const store = createStore({
     netWorth,
     trusts,
     businessInterests,
+    chattels,
     recommendations,
     spousePermission,
     onboarding,

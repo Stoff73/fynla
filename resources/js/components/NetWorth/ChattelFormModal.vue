@@ -1,0 +1,420 @@
+<template>
+  <div class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center" @click.self="$emit('close')">
+    <div class="relative bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-hidden" @click.stop>
+      <div class="overflow-y-auto max-h-[90vh]">
+        <!-- Header -->
+        <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 rounded-t-lg z-10">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xl font-semibold text-gray-900">
+              {{ isEditing ? 'Edit Chattel' : 'Add Chattel' }}
+            </h3>
+            <button
+              @click="$emit('close')"
+              class="text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Form -->
+        <form @submit.prevent="handleSave" class="px-6 py-4 space-y-6">
+          <!-- Error Message -->
+          <div v-if="error" class="p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p class="text-sm text-red-700">{{ error }}</p>
+          </div>
+
+          <!-- Type Selection -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Type *</label>
+            <div class="grid grid-cols-3 gap-2">
+              <button
+                v-for="type in chattelTypes"
+                :key="type.value"
+                type="button"
+                @click="form.chattel_type = type.value"
+                class="px-4 py-3 border rounded-lg text-sm font-medium transition-all"
+                :class="form.chattel_type === type.value
+                  ? 'border-pink-500 bg-pink-50 text-pink-700'
+                  : 'border-gray-200 hover:border-gray-300 text-gray-700'"
+              >
+                {{ type.label }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Basic Information -->
+          <div class="space-y-4">
+            <div>
+              <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+              <input
+                id="name"
+                v-model="form.name"
+                type="text"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+                placeholder="e.g., Vintage Rolex Submariner"
+                required
+              />
+            </div>
+
+            <div>
+              <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+              <textarea
+                id="description"
+                v-model="form.description"
+                rows="2"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+                placeholder="Brief description of the item"
+              ></textarea>
+            </div>
+          </div>
+
+          <!-- Vehicle Details (conditional) -->
+          <div v-if="form.chattel_type === 'vehicle'" class="space-y-4 p-4 bg-blue-50 rounded-lg">
+            <h4 class="font-medium text-blue-900">Vehicle Details</h4>
+            <p class="text-xs text-blue-700 mb-3">Vehicles are classified as wasting assets and are CGT exempt.</p>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Make</label>
+                <input
+                  v-model="form.make"
+                  type="text"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  placeholder="e.g., BMW"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Model</label>
+                <input
+                  v-model="form.model"
+                  type="text"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  placeholder="e.g., M5"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Year</label>
+                <input
+                  v-model.number="form.year"
+                  type="number"
+                  min="1900"
+                  :max="currentYear + 1"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  placeholder="2024"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Registration</label>
+                <input
+                  v-model="form.registration_number"
+                  type="text"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  placeholder="AB12 CDE"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Valuation -->
+          <div class="space-y-4">
+            <h4 class="font-medium text-gray-900">Valuation</h4>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label for="current_value" class="block text-sm font-medium text-gray-700 mb-1">Current Value *</label>
+                <div class="relative">
+                  <span class="absolute left-3 top-2 text-gray-500">£</span>
+                  <input
+                    id="current_value"
+                    v-model.number="form.current_value"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    class="w-full pl-7 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+                    placeholder="0.00"
+                    required
+                  />
+                </div>
+              </div>
+              <div>
+                <label for="valuation_date" class="block text-sm font-medium text-gray-700 mb-1">Valuation Date</label>
+                <input
+                  id="valuation_date"
+                  v-model="form.valuation_date"
+                  type="date"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+                />
+              </div>
+              <div>
+                <label for="purchase_price" class="block text-sm font-medium text-gray-700 mb-1">Purchase Price</label>
+                <div class="relative">
+                  <span class="absolute left-3 top-2 text-gray-500">£</span>
+                  <input
+                    id="purchase_price"
+                    v-model.number="form.purchase_price"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    class="w-full pl-7 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
+              <div>
+                <label for="purchase_date" class="block text-sm font-medium text-gray-700 mb-1">Purchase Date</label>
+                <input
+                  id="purchase_date"
+                  v-model="form.purchase_date"
+                  type="date"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Ownership -->
+          <div class="space-y-4">
+            <h4 class="font-medium text-gray-900">Ownership</h4>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Ownership Type</label>
+              <div class="flex gap-4">
+                <label class="flex items-center">
+                  <input
+                    type="radio"
+                    v-model="form.ownership_type"
+                    value="individual"
+                    class="mr-2"
+                  />
+                  <span>Individual (100%)</span>
+                </label>
+                <label class="flex items-center">
+                  <input
+                    type="radio"
+                    v-model="form.ownership_type"
+                    value="joint"
+                    class="mr-2"
+                  />
+                  <span>Joint</span>
+                </label>
+              </div>
+            </div>
+
+            <div v-if="form.ownership_type === 'joint'" class="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Joint Owner</label>
+                <select
+                  v-model="form.joint_owner_id"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+                >
+                  <option :value="null">Select joint owner</option>
+                  <option v-if="spouse" :value="spouse.id">{{ spouse.first_name }} {{ spouse.surname }}</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Your Share (%)</label>
+                <input
+                  v-model.number="form.ownership_percentage"
+                  type="number"
+                  min="1"
+                  max="99"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  placeholder="50"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Notes -->
+          <div>
+            <label for="notes" class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+            <textarea
+              id="notes"
+              v-model="form.notes"
+              rows="2"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+              placeholder="Any additional notes about this item"
+            ></textarea>
+          </div>
+        </form>
+
+        <!-- Footer -->
+        <div class="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-6 py-4 flex justify-end gap-3 rounded-b-lg">
+          <button
+            type="button"
+            @click="$emit('close')"
+            class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            @click="handleSave"
+            :disabled="saving"
+            class="px-4 py-2 bg-pink-600 text-white rounded-md hover:bg-pink-700 transition-colors disabled:opacity-50"
+          >
+            {{ saving ? 'Saving...' : (isEditing ? 'Save Changes' : 'Add Chattel') }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import { mapState } from 'vuex';
+
+export default {
+  name: 'ChattelFormModal',
+
+  props: {
+    chattel: {
+      type: Object,
+      default: null,
+    },
+    isEditing: {
+      type: Boolean,
+      default: false,
+    },
+  },
+
+  emits: ['close', 'save'],
+
+  data() {
+    return {
+      form: {
+        chattel_type: 'other',
+        name: '',
+        description: '',
+        ownership_type: 'individual',
+        ownership_percentage: 100,
+        joint_owner_id: null,
+        current_value: null,
+        valuation_date: this.formatDateForInput(new Date()),
+        purchase_price: null,
+        purchase_date: null,
+        make: '',
+        model: '',
+        year: null,
+        registration_number: '',
+        notes: '',
+      },
+      saving: false,
+      error: null,
+      chattelTypes: [
+        { value: 'vehicle', label: 'Vehicle' },
+        { value: 'art', label: 'Art' },
+        { value: 'antique', label: 'Antique' },
+        { value: 'jewelry', label: 'Jewelry' },
+        { value: 'collectible', label: 'Collectible' },
+        { value: 'other', label: 'Other' },
+      ],
+    };
+  },
+
+  computed: {
+    ...mapState('userProfile', ['spouse']),
+
+    currentYear() {
+      return new Date().getFullYear();
+    },
+  },
+
+  watch: {
+    'form.ownership_type'(newVal) {
+      if (newVal === 'individual') {
+        this.form.ownership_percentage = 100;
+        this.form.joint_owner_id = null;
+      } else if (newVal === 'joint' && this.form.ownership_percentage === 100) {
+        this.form.ownership_percentage = 50;
+      }
+    },
+  },
+
+  created() {
+    if (this.chattel) {
+      this.populateForm();
+    }
+  },
+
+  methods: {
+    populateForm() {
+      this.form = {
+        chattel_type: this.chattel.chattel_type || 'other',
+        name: this.chattel.name || '',
+        description: this.chattel.description || '',
+        ownership_type: this.chattel.ownership_type || 'individual',
+        ownership_percentage: this.chattel.ownership_percentage || 100,
+        joint_owner_id: this.chattel.joint_owner_id || null,
+        current_value: this.chattel.current_value || null,
+        valuation_date: this.formatDateForInput(this.chattel.valuation_date),
+        purchase_price: this.chattel.purchase_price || null,
+        purchase_date: this.formatDateForInput(this.chattel.purchase_date),
+        make: this.chattel.make || '',
+        model: this.chattel.model || '',
+        year: this.chattel.year || null,
+        registration_number: this.chattel.registration_number || '',
+        notes: this.chattel.notes || '',
+      };
+    },
+
+    formatDateForInput(date) {
+      if (!date) return '';
+      const d = new Date(date);
+      if (isNaN(d.getTime())) return '';
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    },
+
+    validate() {
+      if (!this.form.chattel_type) {
+        this.error = 'Please select a chattel type';
+        return false;
+      }
+      if (!this.form.name || !this.form.name.trim()) {
+        this.error = 'Please enter a name for this item';
+        return false;
+      }
+      if (!this.form.current_value || this.form.current_value <= 0) {
+        this.error = 'Please enter a valid current value';
+        return false;
+      }
+      return true;
+    },
+
+    async handleSave() {
+      this.error = null;
+
+      if (!this.validate()) {
+        return;
+      }
+
+      this.saving = true;
+
+      try {
+        // Clean up form data
+        const formData = { ...this.form };
+
+        // Remove empty vehicle fields if not a vehicle
+        if (formData.chattel_type !== 'vehicle') {
+          delete formData.make;
+          delete formData.model;
+          delete formData.year;
+          delete formData.registration_number;
+        }
+
+        // Clean up empty values
+        if (!formData.purchase_price) delete formData.purchase_price;
+        if (!formData.purchase_date) delete formData.purchase_date;
+        if (!formData.valuation_date) delete formData.valuation_date;
+        if (!formData.description) delete formData.description;
+        if (!formData.notes) delete formData.notes;
+
+        this.$emit('save', formData);
+      } catch (err) {
+        this.error = err.message || 'Failed to save chattel';
+      } finally {
+        this.saving = false;
+      }
+    },
+  },
+};
+</script>

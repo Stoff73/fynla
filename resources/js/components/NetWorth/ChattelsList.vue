@@ -1,18 +1,21 @@
 <template>
-  <div class="chattels-list relative">
-    <!-- Coming Soon Watermark -->
-    <div class="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-      <div class="bg-amber-100 border-2 border-amber-400 rounded-lg px-8 py-4 transform -rotate-12 shadow-lg">
-        <p class="text-2xl font-bold text-amber-700">Coming Soon</p>
-      </div>
-    </div>
+  <div class="chattels-list">
+    <!-- Detail View -->
+    <ChattelDetailInline
+      v-if="selectedChattelId"
+      :chattel-id="selectedChattelId"
+      @back="closeDetail"
+      @edit="openEditModal"
+      @deleted="handleDeleted"
+    />
 
-    <div class="opacity-50">
+    <!-- List View -->
+    <div v-else>
       <div class="list-header">
         <h2 class="list-title">Chattels & Valuables</h2>
         <div class="list-controls">
-          <select v-model="filterType" class="filter-select" disabled>
-            <option value="all">All Chattels</option>
+          <select v-model="filterType" class="filter-select">
+            <option value="all">All Types</option>
             <option value="vehicle">Vehicles</option>
             <option value="art">Art</option>
             <option value="antique">Antiques</option>
@@ -20,94 +23,214 @@
             <option value="collectible">Collectibles</option>
             <option value="other">Other</option>
           </select>
-          <select v-model="sortBy" class="sort-select" disabled>
-            <option value="value_desc">Value (High to Low)</option>
-            <option value="value_asc">Value (Low to High)</option>
-            <option value="name">Name</option>
-          </select>
+          <button @click="openAddModal" class="add-button">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            Add Chattel
+          </button>
         </div>
       </div>
 
       <div v-if="loading" class="loading-state">
+        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-pink-600"></div>
         <p>Loading chattels...</p>
       </div>
 
       <div v-else-if="error" class="error-state">
         <p>{{ error }}</p>
+        <button @click="fetchData" class="retry-button">Retry</button>
       </div>
 
-      <div v-else class="empty-state">
+      <div v-else-if="filteredChattels.length === 0" class="empty-state">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="empty-icon">
           <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
         </svg>
-        <p class="empty-title">Chattels & Valuables</p>
+        <p class="empty-title">No Chattels Recorded</p>
         <p class="empty-subtitle">Track and value your personal assets including vehicles, art, antiques, jewelry, and collectibles.</p>
-        <p class="feature-description">This feature will allow you to:</p>
-        <ul class="feature-list">
-          <li>Record vehicles, art, antiques, jewelry, and collectibles</li>
-          <li>Track current valuations and purchase history</li>
-          <li>Include chattels in your net worth calculations</li>
-          <li>Plan for inheritance and estate tax implications</li>
-        </ul>
+        <button @click="openAddModal" class="add-first-button">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
+          Add Your First Chattel
+        </button>
+      </div>
+
+      <div v-else class="chattels-grid">
+        <ChattelCard
+          v-for="chattel in filteredChattels"
+          :key="chattel.id"
+          :chattel="chattel"
+          @click="openDetail(chattel.id)"
+        />
+      </div>
+
+      <!-- Total Value Summary -->
+      <div v-if="filteredChattels.length > 0" class="summary-bar">
+        <div class="summary-item">
+          <span class="summary-label">Total Items</span>
+          <span class="summary-value">{{ filteredChattels.length }}</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Total Value (Your Share)</span>
+          <span class="summary-value text-pink-600">{{ formatCurrency(totalValue) }}</span>
+        </div>
+        <div v-if="wastingAssetCount > 0" class="summary-item">
+          <span class="summary-label">CGT Exempt (Wasting)</span>
+          <span class="summary-value text-green-600">{{ wastingAssetCount }}</span>
+        </div>
       </div>
     </div>
 
-    <div v-if="filteredChattels.length > 0" class="chattels-grid">
-      <ChattelCard
-        v-for="chattel in filteredChattels"
-        :key="chattel.id"
-        :chattel="chattel"
-      />
-    </div>
+    <!-- Add/Edit Modal -->
+    <ChattelFormModal
+      v-if="showFormModal"
+      :chattel="editingChattel"
+      :is-editing="!!editingChattel"
+      @close="closeFormModal"
+      @save="handleSave"
+    />
+
+    <!-- Delete Confirmation -->
+    <ConfirmationModal
+      v-if="showDeleteConfirm"
+      title="Delete Chattel"
+      message="Are you sure you want to delete this item? This action cannot be undone."
+      @confirm="handleDelete"
+      @cancel="showDeleteConfirm = false"
+    />
   </div>
 </template>
 
 <script>
+import { mapState, mapGetters, mapActions } from 'vuex';
 import ChattelCard from './ChattelCard.vue';
+import ChattelFormModal from './ChattelFormModal.vue';
+import ChattelDetailInline from './ChattelDetailInline.vue';
+import ConfirmationModal from '@/components/Common/ConfirmationModal.vue';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'ChattelsList',
 
+  mixins: [currencyMixin],
+
   components: {
     ChattelCard,
+    ChattelFormModal,
+    ChattelDetailInline,
+    ConfirmationModal,
   },
 
   data() {
     return {
-      chattels: [],
-      loading: false,
-      error: null,
       filterType: 'all',
-      sortBy: 'value_desc',
+      showFormModal: false,
+      showDeleteConfirm: false,
+      editingChattel: null,
+      deletingChattel: null,
+      selectedChattelId: null,
     };
   },
 
   computed: {
+    ...mapState('chattels', ['chattels', 'loading', 'error']),
+    ...mapGetters('chattels', ['totalChattelValue', 'wastingAssets']),
+
     filteredChattels() {
       let filtered = [...this.chattels];
 
-      // Apply filter
       if (this.filterType !== 'all') {
         filtered = filtered.filter(c => c.chattel_type === this.filterType);
       }
 
-      // Apply sort
-      if (this.sortBy === 'value_desc') {
-        filtered.sort((a, b) => b.current_value - a.current_value);
-      } else if (this.sortBy === 'value_asc') {
-        filtered.sort((a, b) => a.current_value - b.current_value);
-      } else if (this.sortBy === 'name') {
-        filtered.sort((a, b) => a.chattel_name.localeCompare(b.chattel_name));
-      }
+      // Sort by value descending
+      filtered.sort((a, b) => (b.current_value || 0) - (a.current_value || 0));
 
       return filtered;
     },
+
+    totalValue() {
+      return this.filteredChattels.reduce((sum, c) => sum + (c.user_share || c.current_value || 0), 0);
+    },
+
+    wastingAssetCount() {
+      return this.filteredChattels.filter(c => c.is_wasting_asset).length;
+    },
   },
 
-  async mounted() {
-    // In Phase 4, this will fetch from the API
-    // For now, show empty state
-    this.loading = false;
+  mounted() {
+    this.fetchData();
+  },
+
+  methods: {
+    ...mapActions('chattels', ['fetchChattels', 'createChattel', 'updateChattel', 'deleteChattel']),
+
+    async fetchData() {
+      try {
+        await this.fetchChattels();
+      } catch (error) {
+        console.error('Failed to fetch chattels:', error);
+      }
+    },
+
+    openAddModal() {
+      this.editingChattel = null;
+      this.showFormModal = true;
+    },
+
+    openEditModal(chattel) {
+      this.editingChattel = chattel;
+      this.showFormModal = true;
+    },
+
+    closeFormModal() {
+      this.showFormModal = false;
+      this.editingChattel = null;
+    },
+
+    async handleSave(formData) {
+      try {
+        if (this.editingChattel) {
+          await this.updateChattel({ id: this.editingChattel.id, data: formData });
+        } else {
+          await this.createChattel(formData);
+        }
+        this.closeFormModal();
+      } catch (error) {
+        console.error('Failed to save chattel:', error);
+      }
+    },
+
+    confirmDelete(chattel) {
+      this.deletingChattel = chattel;
+      this.showDeleteConfirm = true;
+    },
+
+    async handleDelete() {
+      if (this.deletingChattel) {
+        try {
+          await this.deleteChattel(this.deletingChattel.id);
+          this.showDeleteConfirm = false;
+          this.deletingChattel = null;
+        } catch (error) {
+          console.error('Failed to delete chattel:', error);
+        }
+      }
+    },
+
+    openDetail(id) {
+      this.selectedChattelId = id;
+    },
+
+    closeDetail() {
+      this.selectedChattelId = null;
+    },
+
+    handleDeleted() {
+      this.selectedChattelId = null;
+      this.fetchData();
+    },
   },
 };
 </script>
@@ -136,10 +259,10 @@ export default {
 .list-controls {
   display: flex;
   gap: 12px;
+  align-items: center;
 }
 
-.filter-select,
-.sort-select {
+.filter-select {
   padding: 8px 12px;
   border: 1px solid #d1d5db;
   border-radius: 8px;
@@ -149,11 +272,29 @@ export default {
   cursor: pointer;
 }
 
-.filter-select:focus,
-.sort-select:focus {
+.filter-select:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: #ec4899;
+  box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.1);
+}
+
+.add-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #ec4899;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.add-button:hover {
+  background: #db2777;
 }
 
 .chattels-grid {
@@ -169,6 +310,13 @@ export default {
   padding: 60px 20px;
 }
 
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
 .loading-state p,
 .error-state p {
   color: #6b7280;
@@ -178,6 +326,20 @@ export default {
 
 .error-state p {
   color: #ef4444;
+}
+
+.retry-button {
+  margin-top: 16px;
+  padding: 8px 16px;
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.retry-button:hover {
+  background: #e5e7eb;
 }
 
 .empty-state {
@@ -194,30 +356,6 @@ export default {
   margin: 0 auto 16px;
 }
 
-.empty-state p {
-  color: #6b7280;
-  font-size: 18px;
-  font-weight: 600;
-  margin: 0 0 8px 0;
-}
-
-.empty-subtitle {
-  color: #9ca3af;
-  font-size: 14px;
-  font-weight: 400;
-}
-
-.coming-soon-badge {
-  display: inline-block;
-  margin-top: 16px;
-  padding: 8px 16px;
-  background: #dbeafe;
-  color: #1e40af;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-}
-
 .empty-title {
   font-size: 20px;
   font-weight: 700;
@@ -225,38 +363,61 @@ export default {
   margin-bottom: 8px;
 }
 
-.feature-description {
-  color: #6b7280;
+.empty-subtitle {
+  color: #9ca3af;
   font-size: 14px;
-  font-weight: 500;
-  margin-top: 16px;
-  margin-bottom: 8px;
-}
-
-.feature-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  text-align: left;
+  font-weight: 400;
   max-width: 400px;
   margin: 0 auto;
 }
 
-.feature-list li {
-  color: #6b7280;
+.add-first-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 24px;
+  padding: 12px 24px;
+  background: #ec4899;
+  color: white;
+  border: none;
+  border-radius: 8px;
   font-size: 14px;
-  font-weight: 400;
-  padding: 6px 0;
-  padding-left: 24px;
-  position: relative;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
 }
 
-.feature-list li::before {
-  content: "•";
-  color: #f59e0b;
-  font-weight: bold;
-  position: absolute;
-  left: 8px;
+.add-first-button:hover {
+  background: #db2777;
+}
+
+.summary-bar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 32px;
+  margin-top: 24px;
+  padding: 16px 24px;
+  background: #f9fafb;
+  border-radius: 8px;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.summary-label {
+  font-size: 12px;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.summary-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
 }
 
 @media (max-width: 768px) {
@@ -275,12 +436,22 @@ export default {
   }
 
   .filter-select,
-  .sort-select {
+  .add-button {
     width: 100%;
+    justify-content: center;
   }
 
   .chattels-grid {
     grid-template-columns: 1fr;
+  }
+
+  .summary-bar {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .summary-item {
+    align-items: flex-start;
   }
 }
 </style>

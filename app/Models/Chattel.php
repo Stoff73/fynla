@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Models\Estate\Trust;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,6 +15,7 @@ class Chattel extends Model
 
     protected $fillable = [
         'user_id',
+        'joint_owner_id',
         'household_id',
         'trust_id',
         'chattel_type',
@@ -48,6 +50,14 @@ class Chattel extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get the joint owner for this chattel.
+     */
+    public function jointOwner(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'joint_owner_id');
     }
 
     /**
