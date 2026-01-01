@@ -196,16 +196,103 @@ ANTHROPIC_API_KEY=YOUR_ANTHROPIC_API_KEY
 
 ---
 
-### Step 6: Upload Files via File Manager
+### Step 6: Upload and Extract Files
+
+#### Option A: File Manager (Small Archives < 50MB)
 
 1. In Site Tools, go to **Site** > **File Manager**
 2. Navigate to the root directory (usually `public_html` or the website root)
 3. **DELETE** all existing files (if any) - but keep backups if needed
-4. Click **Upload** > Select `fynla-deploy.zip`
+4. Click **Upload** > Select `fynla-org-deploy.zip`
 5. Wait for upload to complete
 6. Right-click the ZIP file > **Extract**
-7. Move all files from `fynla-deploy/` to the root (select all, cut, go up one level, paste)
-8. Delete the empty `fynla-deploy/` folder and the ZIP file
+7. Move all files from `fynla-org-deploy/` to the root (select all, cut, go up one level, paste)
+8. Delete the empty `fynla-org-deploy/` folder and the ZIP file
+
+#### Option B: SSH Extraction (Recommended for Large Archives)
+
+> **Use this method if File Manager fails to extract the archive.**
+> The deployment package is typically 100-150MB, which may exceed File Manager's limits.
+
+**Step 1: Upload via File Manager**
+1. In Site Tools, go to **Site** > **File Manager**
+2. Navigate to `public_html`
+3. Click **Upload** > Select `fynla-org-deploy.zip`
+4. Wait for upload to complete (do NOT try to extract in File Manager)
+
+**Step 2: Extract via SSH**
+
+1. **Generate SSH key on SiteGround**:
+   - In Site Tools, go to **Devs** > **SSH Keys Manager**
+   - Click **Generate** to create a new key pair
+   - Give it a name (e.g., "MacBook")
+   - Click **Create**
+
+2. **Copy the private key**:
+   - Click on your key to view it
+   - Copy the **Private Key** to your clipboard
+
+3. **Save the private key on your local machine (Mac)**:
+
+   The private key looks like this:
+   ```
+   -----BEGIN RSA PRIVATE KEY-----
+   MIIEpAIBAAKCAQEA3Z7...
+   (many lines of random characters)
+   ...Xk2mQ==
+   -----END RSA PRIVATE KEY-----
+   ```
+
+   **Save it (run these 3 commands in Terminal):**
+
+   ```bash
+   mkdir -p ~/.ssh
+   pbpaste > ~/.ssh/siteground_key
+   chmod 600 ~/.ssh/siteground_key
+   ```
+
+   That's it. `pbpaste` takes whatever is in your clipboard and writes it to the file.
+
+4. **Get connection details** from **Devs** > **SSH Access**:
+   - SSH Username (e.g., `u123-abc12def34gh`)
+   - Hostname (e.g., `ssh.fynla.org` or server IP)
+   - Port: `18765`
+
+5. **Connect via Terminal**:
+   ```bash
+   ssh -p 18765 -i ~/.ssh/siteground_key your_ssh_username@your_hostname
+   # Example:
+   # ssh -p 18765 -i ~/.ssh/siteground_key u123-abc12def34gh@ssh.fynla.org
+   ```
+
+6. **Extract and move files**:
+```bash
+# Navigate to public_html
+cd ~/public_html
+
+# Extract the ZIP archive
+unzip fynla-org-deploy.zip
+
+# Move all files from the extracted folder to public_html
+mv fynla-org-deploy/* .
+mv fynla-org-deploy/.* . 2>/dev/null  # Move hidden files (ignore errors)
+
+# Clean up
+rmdir fynla-org-deploy
+rm fynla-org-deploy.zip
+```
+
+**Alternative: Using tar.gz (if available)**
+
+If you created a `.tar.gz` instead of `.zip`:
+```bash
+cd ~/public_html
+tar -xzf fynla-org-deploy.tar.gz
+mv fynla-org-deploy/* .
+mv fynla-org-deploy/.* . 2>/dev/null
+rmdir fynla-org-deploy
+rm fynla-org-deploy.tar.gz
+```
 
 **Directory Structure Should Be:**
 ```
@@ -453,7 +540,9 @@ If deployment fails:
 
 **SSH Connection:**
 ```bash
-ssh your_username@fynla.org
+# Get credentials from Site Tools > Devs > SSH Access
+# Download private key from Site Tools > Devs > SSH Keys Manager
+ssh -p 18765 -i ~/.ssh/siteground_key your_ssh_username@your_hostname
 ```
 
 **All Post-Upload Commands (run in order):**
