@@ -279,6 +279,141 @@ class ModuleDataRequirementsService
                 ],
             ],
         ],
+
+        'trusts' => [
+            'description' => 'Trusts help you manage and protect assets for beneficiaries while potentially reducing inheritance tax.',
+            'fields' => [
+                'marital_status' => [
+                    'label' => 'Your marital status',
+                    'why' => 'Married couples often use trusts together for estate planning',
+                    'link' => '/profile',
+                ],
+            ],
+            'relationships' => [
+                'trusts' => [
+                    'label' => 'Your trusts',
+                    'why' => 'Track trust details including type, trustees, beneficiaries, and assets held',
+                    'link' => '/trusts',
+                ],
+                'family_members' => [
+                    'label' => 'Your beneficiaries',
+                    'why' => 'Family members are often trust beneficiaries - add them to track distributions',
+                    'link' => '/profile',
+                ],
+            ],
+        ],
+
+        'properties' => [
+            'description' => 'Track your property portfolio including main residence, buy-to-lets, and holiday homes.',
+            'fields' => [],
+            'relationships' => [
+                'properties' => [
+                    'label' => 'Your properties',
+                    'why' => 'Add property details including value, ownership type, and rental income',
+                    'link' => '/net-worth',
+                ],
+                'mortgages' => [
+                    'label' => 'Your mortgages',
+                    'why' => 'Link mortgages to properties to calculate equity and monthly costs',
+                    'link' => '/net-worth',
+                ],
+            ],
+        ],
+
+        'liabilities' => [
+            'description' => 'Track all your debts and loans to understand your total financial obligations.',
+            'fields' => [],
+            'relationships' => [
+                'mortgages' => [
+                    'label' => 'Your mortgages',
+                    'why' => 'Mortgages are typically your largest debt - track balances and repayments',
+                    'link' => '/net-worth',
+                ],
+                'liabilities' => [
+                    'label' => 'Your other debts',
+                    'why' => 'Include credit cards, loans, overdrafts, and hire purchase agreements',
+                    'link' => '/net-worth',
+                ],
+            ],
+        ],
+
+        'business_interests' => [
+            'description' => 'Track your business ownership including shares, partnerships, and sole trader businesses.',
+            'fields' => [
+                'occupation' => [
+                    'label' => 'Your occupation',
+                    'why' => 'Your role in the business affects tax treatment and exit planning',
+                    'link' => '/profile',
+                ],
+            ],
+            'relationships' => [
+                'business_interests' => [
+                    'label' => 'Your business interests',
+                    'why' => 'Add business details including type, ownership percentage, valuation, and exit plans',
+                    'link' => '/net-worth/business-interests',
+                ],
+            ],
+        ],
+
+        'chattels' => [
+            'description' => 'Track valuable personal possessions including vehicles, art, antiques, and collectibles.',
+            'fields' => [],
+            'relationships' => [
+                'chattels' => [
+                    'label' => 'Your valuable items',
+                    'why' => 'Add chattels to track values, calculate Capital Gains Tax on disposal, and include in estate planning',
+                    'link' => '/net-worth/chattels',
+                ],
+            ],
+        ],
+
+        'profile' => [
+            'description' => 'Your personal and financial profile provides the foundation for all planning calculations.',
+            'fields' => [
+                'date_of_birth' => [
+                    'label' => 'Your date of birth',
+                    'why' => 'Essential for retirement planning, life expectancy, and insurance calculations',
+                    'link' => '/profile',
+                ],
+                'annual_employment_income' => [
+                    'label' => 'Your annual income',
+                    'why' => 'Used for tax calculations, protection needs, and savings targets',
+                    'link' => '/profile',
+                ],
+                'monthly_expenditure' => [
+                    'label' => 'Your monthly spending',
+                    'why' => 'Helps calculate emergency fund needs and retirement income requirements',
+                    'link' => '/profile',
+                ],
+                'marital_status' => [
+                    'label' => 'Your marital status',
+                    'why' => 'Affects tax allowances, estate planning, and protection needs',
+                    'link' => '/profile',
+                ],
+                'occupation' => [
+                    'label' => 'Your occupation',
+                    'why' => 'Affects insurance premiums and income protection eligibility',
+                    'link' => '/profile',
+                ],
+                'target_retirement_age' => [
+                    'label' => 'Your target retirement age',
+                    'why' => 'Determines your investment timeline and pension access strategy',
+                    'link' => '/profile',
+                ],
+                'domicile_status' => [
+                    'label' => 'Your domicile status',
+                    'why' => 'Determines which tax rules apply to your worldwide assets',
+                    'link' => '/profile',
+                ],
+            ],
+            'relationships' => [
+                'family_members' => [
+                    'label' => 'Your family members',
+                    'why' => 'Add spouse, children, and dependants for protection and estate planning',
+                    'link' => '/profile',
+                ],
+            ],
+        ],
     ];
 
     /**
@@ -409,6 +544,9 @@ class ModuleDataRequirementsService
             'state_pension' => $user->statePension()->exists(),
             'family_members' => $user->familyMembers()->exists(),
             'spouse' => $user->spouse_id !== null,
+            'trusts' => $user->trusts()->exists(),
+            'business_interests' => $user->businessInterests()->exists(),
+            'chattels' => $user->chattels()->exists(),
             default => false,
         };
     }

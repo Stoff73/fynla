@@ -219,21 +219,28 @@ export default {
           return;
         }
 
-        // Map route to module
+        // Map route to module - more specific routes first
         const moduleMap = {
+          // Net Worth sub-sections
+          '/net-worth/properties': 'properties',
+          '/net-worth/investments': 'investment',
+          '/net-worth/retirement': 'retirement',
+          '/net-worth/savings': 'savings',
+          '/net-worth/liabilities': 'liabilities',
+          '/net-worth/business-interests': 'business_interests',
+          '/net-worth/chattels': 'chattels',
+          // Main modules
           '/protection': 'protection',
           '/savings': 'savings',
           '/investment': 'investment',
-          '/net-worth/investments': 'investment',
-          '/net-worth/retirement': 'retirement',
           '/retirement': 'retirement',
           '/pension': 'retirement',
           '/estate': 'estate',
-          '/trusts': 'estate',
+          '/trusts': 'trusts',
           '/net-worth': 'net_worth',
+          '/profile': 'profile',
           '/dashboard': 'dashboard',
           '/preview': 'dashboard',
-          '/profile': 'dashboard',
         };
 
         // Find matching module - check longer paths first
