@@ -24,26 +24,6 @@
       </span>
     </div>
 
-    <!-- Adequacy Score (Primary Value with border) -->
-    <div class="primary-value-section">
-      <span class="value-label">Coverage Adequacy Score</span>
-      <div class="flex items-center gap-3">
-        <span
-          class="value-amount"
-          :class="adequacyScoreColour"
-        >
-          {{ adequacyScore }}%
-        </span>
-      </div>
-      <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
-        <div
-          class="h-2 rounded-full transition-all duration-300"
-          :class="adequacyScoreBarColour"
-          :style="{ width: adequacyScore + '%' }"
-        ></div>
-      </div>
-    </div>
-
     <!-- Policy Sections -->
     <div class="policy-sections">
       <!-- Life Insurance Policies -->
@@ -227,11 +207,6 @@ export default {
   mixins: [currencyMixin],
 
   props: {
-    adequacyScore: {
-      type: Number,
-      required: true,
-      validator: (value) => value >= 0 && value <= 100,
-    },
     totalCoverage: {
       type: Number,
       required: true,
@@ -286,26 +261,6 @@ export default {
   },
 
   computed: {
-    adequacyScoreColour() {
-      if (this.adequacyScore >= 80) {
-        return 'text-green-600';
-      } else if (this.adequacyScore >= 60) {
-        return 'text-amber-600';
-      } else {
-        return 'text-red-600';
-      }
-    },
-
-    adequacyScoreBarColour() {
-      if (this.adequacyScore >= 80) {
-        return 'bg-green-600';
-      } else if (this.adequacyScore >= 60) {
-        return 'bg-amber-600';
-      } else {
-        return 'bg-red-600';
-      }
-    },
-
     formattedTotalCoverage() {
       return new Intl.NumberFormat('en-GB', {
         style: 'currency',
@@ -382,27 +337,6 @@ export default {
   color: #9ca3af;
 }
 
-/* Primary Value Section (with border) */
-.primary-value-section {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.value-label {
-  font-size: 14px;
-  color: #6b7280;
-  font-weight: 500;
-}
-
-.value-amount {
-  font-size: 32px;
-  font-weight: 700;
-  color: #111827;
-}
-
 /* Policy Sections Container */
 .policy-sections {
   display: flex;
@@ -417,9 +351,9 @@ export default {
   gap: 8px;
 }
 
-/* First section after primary value - only margin, no border (border already on primary section) */
+/* First section - no margin needed */
 .section-breakdown:first-of-type {
-  margin-top: 16px;
+  margin-top: 0;
 }
 
 /* Subsequent sections - margin, padding, AND border */
@@ -594,31 +528,6 @@ export default {
   font-size: 14px;
   font-weight: 500;
   color: white;
-}
-
-/* Adequacy Score Color Classes */
-.text-green-600 {
-  color: #10b981;
-}
-
-.text-amber-600 {
-  color: #f59e0b;
-}
-
-.text-red-600 {
-  color: #dc2626;
-}
-
-.bg-green-600 {
-  background-color: #10b981;
-}
-
-.bg-amber-600 {
-  background-color: #f59e0b;
-}
-
-.bg-red-600 {
-  background-color: #dc2626;
 }
 
 @media (min-width: 640px) {
