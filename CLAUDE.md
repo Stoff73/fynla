@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Fynla** is a UK-focused comprehensive financial planning application (Laravel 10 + Vue.js 3 + MySQL 8). It covers five integrated modules: Protection, Savings, Investment, Retirement, and Estate Planning.
 
 **Production URL**: https://csjones.co/fynla
-**Version**: v0.4.4
+**Version**: v0.4.5
 
 ## Essential Commands
 

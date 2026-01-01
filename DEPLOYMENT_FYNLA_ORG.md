@@ -54,7 +54,7 @@ Create a new file `public/.htaccess.fynla-org` with the following content (for R
 
 ```apache
 # =============================================================================
-# Fynla v0.4.4 - Production .htaccess for ROOT Deployment
+# Fynla v0.4.5 - Production .htaccess for ROOT Deployment
 # =============================================================================
 # Configured for: https://fynla.org (root, not subdirectory)
 # =============================================================================

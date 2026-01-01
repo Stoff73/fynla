@@ -36,9 +36,9 @@ A comprehensive financial planning web application designed for UK individuals a
 
 ### Current Status
 
-**Version**: v0.4.4 (Production)
+**Version**: v0.4.5 (Production)
 **Production URL**: https://csjones.co/fynla
-**Last Deployment**: December 19, 2025
+**Last Deployment**: January 1, 2026
 
 **Completion Status**:
 - ✅ **Foundation**: 100% (Authentication, routing, testing framework)
@@ -1330,7 +1330,7 @@ Upload financial documents and automatically extract data using Claude AI:
 
 ---
 
-**Current Version**: v0.4.4 (Production)
+**Current Version**: v0.4.5 (Production)
 
 **Production URL**: https://csjones.co/fynla
 
