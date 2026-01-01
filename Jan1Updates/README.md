@@ -128,13 +128,14 @@ Mitchell persona (peak_earners) updated with 6 test chattels:
 ## Git History
 
 ```
+0368c98 docs: Update Jan1Updates with granular Info Guide modules
 0bdac3b feat: Add granular Info Guide modules for each screen
 1ce3970 docs: Update Jan1Updates with Info Guide navigation fix
 c6a14ab fix: Info Guide now updates when navigating between modules
 3e60283 docs: Add Jan1Updates README summarizing v0.4.5 changes
 a96d328 chore: Bump version to v0.4.5
 f458663 fix: Remove summary bar from chattels list
-bbe9f7d docs: Update Dec31Updates with deployment steps for next session
+9a26976 feat: Implement chattels module with CGT calculator
 ```
 
 ---
