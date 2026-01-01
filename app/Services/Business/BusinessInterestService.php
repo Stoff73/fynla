@@ -152,11 +152,11 @@ class BusinessInterestService
         $badrEligible = $this->isBADREligible($business);
         $yearsHeld = $this->calculateYearsHeld($business);
 
-        // Determine CGT rate
+        // Determine CGT rate (rates stored as decimals: 0.10 = 10%)
         $cgtConfig = $this->taxConfig->getCapitalGainsTax();
-        $badrRate = $cgtConfig['business_asset_disposal_relief_rate'] ?? 10;
-        $higherRate = $cgtConfig['higher_rate'] ?? 20;
-        $basicRate = $cgtConfig['basic_rate'] ?? 10;
+        $badrRate = $cgtConfig['business_asset_disposal_relief_rate'] ?? 0.10;
+        $higherRate = $cgtConfig['higher_rate'] ?? 0.20;
+        $basicRate = $cgtConfig['basic_rate'] ?? 0.10;
 
         // BADR lifetime limit
         $badrLimit = $cgtConfig['business_asset_disposal_relief_lifetime_limit'] ?? 1000000;
@@ -175,8 +175,8 @@ class BusinessInterestService
             $warnings[] = 'Business Asset Disposal Relief may not apply. The 10% rate requires 2+ years ownership and trading business status.';
         }
 
-        // Calculate CGT due
-        $cgtDue = $capitalGain * ($cgtRate / 100);
+        // Calculate CGT due (cgtRate is already a decimal, e.g., 0.10 for 10%)
+        $cgtDue = $capitalGain * $cgtRate;
         $postTaxProceeds = $userSaleProceeds - $cgtDue;
 
         // Business Relief consideration
@@ -195,7 +195,7 @@ class BusinessInterestService
             'years_held' => $yearsHeld,
             'badr_eligible' => $badrEligible,
             'badr_reasons' => $this->getBADRReasons($business),
-            'cgt_rate' => $cgtRate,
+            'cgt_rate' => $cgtRate * 100,  // Convert decimal to percentage for display
             'cgt_due' => round($cgtDue, 2),
             'post_tax_proceeds' => round($postTaxProceeds, 2),
             'bpr_eligible' => $business->bpr_eligible,

@@ -127,10 +127,14 @@ class TaxConfigurationSeeder extends Seeder
             ],
 
             'capital_gains_tax' => [
-                // Individual rates
+                // Individual rates - Annual exempt amount
                 'annual_exempt_amount' => 3000,
-                'basic_rate' => 0.18,                            // Decimal format (18%)
-                'higher_rate' => 0.24,                           // Decimal format (24%)
+
+                // Non-residential rates (shares, chattels, business assets, other assets)
+                'basic_rate' => 0.10,                            // Decimal format (10%)
+                'higher_rate' => 0.20,                           // Decimal format (20%)
+
+                // Residential property rates (higher rates for property)
                 'residential_property_basic_rate' => 0.18,       // Decimal format (18%)
                 'residential_property_higher_rate' => 0.24,      // Decimal format (24%)
 
@@ -138,6 +142,16 @@ class TaxConfigurationSeeder extends Seeder
                 'trust_rate' => 0.24,                            // Decimal format (24%)
                 'trust_annual_exempt_amount' => 1500,            // Standard trusts
                 'trust_vulnerable_beneficiary_exempt_amount' => 3000,  // Vulnerable beneficiary trusts
+
+                // Chattels (personal property) special rules
+                'chattel_exemption_threshold' => 6000,           // Exempt if proceeds <= £6,000
+                'chattel_marginal_relief_limit' => 15000,        // Marginal relief applies up to £15,000
+                'chattel_marginal_relief_multiplier' => 1.6667,  // 5/3 rule for marginal relief
+
+                // Business Asset Disposal Relief (formerly Entrepreneurs' Relief)
+                'business_asset_disposal_relief_rate' => 0.10,   // Decimal format (10%)
+                'business_asset_disposal_relief_lifetime_limit' => 1000000, // £1m lifetime limit
+                'business_asset_disposal_relief_min_ownership_years' => 2,  // 2 years minimum ownership
             ],
 
             'dividend_tax' => [
@@ -224,6 +238,35 @@ class TaxConfigurationSeeder extends Seeder
                 'trust_exit_charge_max' => 0.06,                 // Max 6% when assets leave trust (pro-rated)
                 'trust_no_exit_charge_period' => 3,              // No exit charge if distribution within 3 months of setup
                 'trust_will_no_exit_charge_period' => 24,        // Discretionary will trust: no exit charge if distributed within 2 years of death
+
+                // Business Relief (formerly Business Property Relief) for IHT
+                'business_relief' => [
+                    'min_ownership_years' => 2,                  // Must own for 2 years to qualify
+                    'rates' => [
+                        // 100% relief
+                        'trading_business' => 1.0,               // Sole trader/partnership trading business
+                        'unquoted_shares' => 1.0,                // Shares in unquoted trading company
+                        'aim_shares' => 1.0,                     // AIM-listed shares (treated as unquoted)
+                        'controlling_holding_quoted' => 1.0,     // Controlling holding in quoted company
+
+                        // 50% relief
+                        'land_used_by_partnership' => 0.5,       // Land/buildings used by partnership you control
+                        'land_used_by_company' => 0.5,           // Land/buildings used by company you control
+                        'assets_used_by_partnership' => 0.5,     // Assets used by partnership you're a partner in
+                        'assets_used_by_company' => 0.5,         // Assets used by company you control
+
+                        // 0% relief (not qualifying)
+                        'investment_company' => 0.0,             // Investment holding companies
+                        'excepted_assets' => 0.0,                // Assets not used for business
+                    ],
+                    'excluded_businesses' => [
+                        'dealing_in_securities',
+                        'dealing_in_stocks_shares',
+                        'dealing_in_land_or_buildings',
+                        'making_or_holding_investments',
+                    ],
+                    'notes' => 'Business Relief reduces IHT on qualifying business assets. Trading status and ownership period are key requirements.',
+                ],
             ],
 
             'gifting_exemptions' => [

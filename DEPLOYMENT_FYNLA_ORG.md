@@ -7,38 +7,30 @@
 **Upload Method:** SiteGround File Manager
 **Prerequisites:** Database created, Domain & SSL configured
 
+> **IMPORTANT: LOCAL BUILD REQUIRED**
+>
+> The server does not have enough memory to run `npm install` or `npm run build`.
+> You MUST build the frontend assets locally and include `public/build/` in the deployment package.
+
 ---
 
 ## Pre-Deployment: Local Preparation
 
-### Step 1: Update vite.config.js for Root Deployment
+### Step 1: Build Frontend Assets Locally
 
-**File:** `vite.config.js`
+**This step is MANDATORY. Do NOT attempt to build on the server.**
 
-Change line 9 from:
-```javascript
-base: process.env.NODE_ENV === 'production' ? '/fynla/build/' : '/',
-```
-
-To:
-```javascript
-base: process.env.NODE_ENV === 'production' ? '/build/' : '/',
-```
-
-**Why:** Root deployment doesn't need the `/fynla/` prefix.
-
----
-
-### Step 2: Build Frontend Assets
+Run the build script from your local machine:
 
 ```bash
 cd /Users/Chris/Desktop/fpsApp/fynla
-NODE_ENV=production npm run build
+./deploy/fynla-org/build.sh
 ```
 
-This creates `public/build/` directory with:
-- `manifest.json`
-- Hashed CSS/JS files (e.g., `app-DqF7XY2z.js`)
+This script:
+1. Sets the correct environment variables for root deployment
+2. Builds frontend assets into `public/build/`
+3. Creates a deployment-ready ZIP package
 
 **Verify build success:**
 ```bash
@@ -46,144 +38,78 @@ ls -la public/build/
 cat public/build/manifest.json
 ```
 
+You should see:
+- `manifest.json`
+- Hashed CSS/JS files (e.g., `app-DqF7XY2z.js`, `app-ABC123.css`)
+- Various asset files
+
 ---
 
-### Step 3: Create Production .htaccess
+### Step 2: Create Deployment Package
 
-Create a new file `public/.htaccess.fynla-org` with the following content (for ROOT deployment):
+The build script automatically creates the deployment package. If you need to create it manually:
 
-```apache
-# =============================================================================
-# Fynla v0.4.5 - Production .htaccess for ROOT Deployment
-# =============================================================================
-# Configured for: https://fynla.org (root, not subdirectory)
-# =============================================================================
+```bash
+cd /Users/Chris/Desktop/fpsApp/fynla
 
-<IfModule mod_rewrite.c>
-    <IfModule mod_negotiation.c>
-        Options -MultiViews -Indexes
-    </IfModule>
+# Create deployment directory
+rm -rf ../fynla-deploy
+mkdir -p ../fynla-deploy
 
-    RewriteEngine On
+# Copy all files INCLUDING public/build/ but EXCLUDING unnecessary files
+rsync -av --progress . ../fynla-deploy/ \
+  --exclude '.git' \
+  --exclude 'node_modules' \
+  --exclude 'tests' \
+  --exclude '.env' \
+  --exclude 'storage/logs/*.log' \
+  --exclude 'storage/framework/cache/data/*' \
+  --exclude 'storage/framework/sessions/*' \
+  --exclude 'storage/framework/views/*' \
+  --exclude 'deploy' \
+  --exclude '*.md' \
+  --exclude 'CLAUDE.md'
 
-    # =============================================================================
-    # ROOT Deployment - No subdirectory prefix needed
-    # =============================================================================
-    RewriteBase /
+# Copy the production .htaccess to public/
+cp deploy/fynla-org/.htaccess ../fynla-deploy/public/.htaccess
 
-    # =============================================================================
-    # Handle Authorization Header
-    # =============================================================================
-    RewriteCond %{HTTP:Authorization} .
-    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
-
-    # =============================================================================
-    # Force HTTPS
-    # =============================================================================
-    RewriteCond %{HTTPS} !=on
-    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
-
-    # =============================================================================
-    # Redirect Trailing Slashes If Not A Folder
-    # =============================================================================
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteCond %{REQUEST_URI} (.+)/$
-    RewriteRule ^ %1 [L,R=301]
-
-    # =============================================================================
-    # Send Requests To Front Controller
-    # =============================================================================
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteRule ^ index.php [L]
-</IfModule>
-
-# =============================================================================
-# Security Headers
-# =============================================================================
-<IfModule mod_headers.c>
-    Header set X-Content-Type-Options "nosniff"
-    Header set X-Frame-Options "SAMEORIGIN"
-    Header set X-XSS-Protection "1; mode=block"
-    Header set Referrer-Policy "strict-origin-when-cross-origin"
-    Header unset X-Powered-By
-</IfModule>
-
-# =============================================================================
-# Prevent Access to Sensitive Files
-# =============================================================================
-<Files .env>
-    Order allow,deny
-    Deny from all
-</Files>
-
-<DirectoryMatch "\.git">
-    Order allow,deny
-    Deny from all
-</DirectoryMatch>
-
-<FilesMatch "^(composer\.(json|lock)|package(-lock)?\.json)$">
-    Order allow,deny
-    Deny from all
-</FilesMatch>
-
-# =============================================================================
-# Block Direct Access to Storage Directory
-# =============================================================================
-RedirectMatch 403 ^/storage/
-
-# =============================================================================
-# Disable Directory Listing
-# =============================================================================
-Options -Indexes
-
-# =============================================================================
-# Compression
-# =============================================================================
-<IfModule mod_deflate.c>
-    AddOutputFilterByType DEFLATE application/javascript
-    AddOutputFilterByType DEFLATE application/json
-    AddOutputFilterByType DEFLATE application/xml
-    AddOutputFilterByType DEFLATE text/css
-    AddOutputFilterByType DEFLATE text/html
-    AddOutputFilterByType DEFLATE text/javascript
-    AddOutputFilterByType DEFLATE text/plain
-    AddOutputFilterByType DEFLATE text/xml
-    AddOutputFilterByType DEFLATE font/ttf
-    AddOutputFilterByType DEFLATE font/woff
-    AddOutputFilterByType DEFLATE font/woff2
-    AddOutputFilterByType DEFLATE image/svg+xml
-</IfModule>
-
-# =============================================================================
-# Browser Caching
-# =============================================================================
-<IfModule mod_expires.c>
-    ExpiresActive On
-    ExpiresByType image/jpeg "access plus 1 year"
-    ExpiresByType image/png "access plus 1 year"
-    ExpiresByType image/gif "access plus 1 year"
-    ExpiresByType image/svg+xml "access plus 1 year"
-    ExpiresByType image/webp "access plus 1 year"
-    ExpiresByType text/css "access plus 1 year"
-    ExpiresByType application/javascript "access plus 1 year"
-    ExpiresByType font/woff2 "access plus 1 year"
-    ExpiresByType font/woff "access plus 1 year"
-    ExpiresByType application/json "access plus 0 seconds"
-    ExpiresByType text/html "access plus 0 seconds"
-</IfModule>
-
-# =============================================================================
-# Character Encoding
-# =============================================================================
-AddDefaultCharset UTF-8
+# Create ZIP
+cd ../
+rm -f fynla-deploy.zip
+zip -r fynla-deploy.zip fynla-deploy/
 ```
 
+**CRITICAL:** The deployment package MUST include:
+- `public/build/` directory (built assets)
+- `vendor/` directory (PHP dependencies)
+- All application code
+
+**The deployment package must NOT include:**
+- `node_modules/` (not needed on server)
+- `.git/` (not needed on server)
+- `tests/` (not needed on server)
+
 ---
 
-### Step 4: Create Production .env File
+### Step 3: Production .htaccess
 
-Create `.env.fynla-org` in your local project root:
+The build script copies the correct `.htaccess` to the deployment package. For reference, the production `.htaccess` for root deployment is located at:
+
+```
+deploy/fynla-org/.htaccess
+```
+
+Key configuration for ROOT deployment:
+- `RewriteBase /` (not `/fynla/`)
+- HTTPS enforcement
+- Security headers
+- Compression and caching
+
+---
+
+### Step 4: Production .env Template
+
+Create `.env` on the server using this template (also available at `deploy/fynla-org/.env.production`):
 
 ```bash
 # =============================================================================
@@ -261,49 +187,16 @@ ANTHROPIC_API_KEY=YOUR_ANTHROPIC_API_KEY
 
 ---
 
-### Step 5: Create Deployment Package
-
-Create a ZIP archive containing ALL application files EXCEPT:
-- `.git/` directory
-- `node_modules/` directory
-- `.env` (will be created on server)
-- `tests/` directory (optional, not needed in production)
-
-**Using terminal:**
-```bash
-cd /Users/Chris/Desktop/fpsApp/fynla
-
-# Create deployment directory
-mkdir -p ../fynla-deploy
-
-# Copy all files except excluded directories
-rsync -av --progress . ../fynla-deploy/ \
-  --exclude '.git' \
-  --exclude 'node_modules' \
-  --exclude 'tests' \
-  --exclude '.env' \
-  --exclude 'storage/logs/*.log' \
-  --exclude 'storage/framework/cache/data/*' \
-  --exclude 'storage/framework/sessions/*' \
-  --exclude 'storage/framework/views/*'
-
-# Create ZIP
-cd ../
-zip -r fynla-deploy.zip fynla-deploy/
-```
-
----
-
 ## Server Deployment: SiteGround
 
-### Step 6: Access SiteGround Site Tools
+### Step 5: Access SiteGround Site Tools
 
 1. Log in to SiteGround (https://my.siteground.com)
 2. Go to **Websites** > Select fynla.org > **Site Tools**
 
 ---
 
-### Step 7: Upload Files via File Manager
+### Step 6: Upload Files via File Manager
 
 1. In Site Tools, go to **Site** > **File Manager**
 2. Navigate to the root directory (usually `public_html` or the website root)
@@ -322,13 +215,15 @@ public_html/
 ├── config/
 ├── database/
 ├── public/
-│   ├── build/
+│   ├── build/          <-- CRITICAL: Must contain built assets
+│   │   ├── manifest.json
+│   │   └── assets/
 │   ├── .htaccess
 │   └── index.php
 ├── resources/
 ├── routes/
 ├── storage/
-├── vendor/
+├── vendor/             <-- CRITICAL: Must contain PHP dependencies
 ├── .env (create this)
 ├── artisan
 └── composer.json
@@ -336,7 +231,7 @@ public_html/
 
 ---
 
-### Step 8: Configure Document Root
+### Step 7: Configure Document Root
 
 **CRITICAL:** Laravel requires the document root to point to the `public/` directory.
 
@@ -356,7 +251,7 @@ Create an `.htaccess` in the root `public_html/` that redirects to `public/`:
 
 ---
 
-### Step 9: Create .env File on Server
+### Step 8: Create .env File on Server
 
 1. In File Manager, navigate to the application root (where `artisan` is)
 2. Click **New File** > Name it `.env`
@@ -370,15 +265,7 @@ Create an `.htaccess` in the root `public_html/` that redirects to `public/`:
 
 ---
 
-### Step 10: Replace .htaccess in public/
-
-1. Navigate to `public_html/public/` (or wherever your public folder is)
-2. Delete the existing `.htaccess`
-3. Upload or create a new `.htaccess` with the ROOT deployment content from Step 3
-
----
-
-### Step 11: Set File Permissions via SSH
+### Step 9: Set File Permissions via SSH
 
 1. In Site Tools, go to **Devs** > **SSH Keys Manager**
 2. Create an SSH key if you don't have one
@@ -407,7 +294,7 @@ mkdir -p storage/logs
 
 ---
 
-### Step 12: Generate Application Key
+### Step 10: Generate Application Key
 
 Still in SSH:
 
@@ -420,7 +307,7 @@ This will update your `.env` file with a proper `APP_KEY`.
 
 ---
 
-### Step 13: Run Database Migrations
+### Step 11: Run Database Migrations
 
 ```bash
 php artisan migrate --force
@@ -430,7 +317,7 @@ Type `yes` when prompted.
 
 ---
 
-### Step 14: Seed Required Data
+### Step 12: Seed Required Data
 
 **CRITICAL:** These seeders MUST be run for the application to function:
 
@@ -445,7 +332,7 @@ php artisan db:seed --class=PreviewUserSeeder --force
 
 ---
 
-### Step 15: Create Storage Symlink
+### Step 13: Create Storage Symlink
 
 ```bash
 php artisan storage:link
@@ -455,7 +342,7 @@ This creates: `public/storage` -> `../storage/app/public`
 
 ---
 
-### Step 16: Clear and Cache Configuration
+### Step 14: Clear and Cache Configuration
 
 ```bash
 php artisan config:clear
@@ -469,7 +356,7 @@ php artisan optimize
 
 ## Post-Deployment Verification
 
-### Step 17: Test the Application
+### Step 15: Test the Application
 
 1. **Homepage:** Visit https://fynla.org - should see the landing page
 2. **API Health:** Visit https://fynla.org/api/health (if endpoint exists) or check Network tab
@@ -480,7 +367,7 @@ php artisan optimize
 
 ---
 
-### Step 18: Check for Errors
+### Step 16: Check for Errors
 
 If something isn't working:
 
@@ -498,19 +385,43 @@ cat ~/public_html/storage/logs/laravel.log
 |-------|----------|
 | 500 Internal Server Error | Check `.htaccess` syntax, check `storage/logs/laravel.log` |
 | 404 on all routes | Verify `RewriteBase /` in `.htaccess`, check document root is `public/` |
-| Assets not loading | Verify `public/build/manifest.json` exists, check VITE_API_BASE_URL |
+| Assets not loading | Verify `public/build/manifest.json` exists, check build was included |
 | Database connection error | Verify DB credentials in `.env`, check MySQL is accessible |
 | Session/login issues | Run `php artisan config:clear` and `php artisan cache:clear` |
+| Missing CSS/JS files | You forgot to include `public/build/` - rebuild locally and re-upload |
 
 ---
 
-## Files to Modify (Summary)
+## Important Notes
 
-| File | Change Required |
-|------|-----------------|
-| `vite.config.js` | Change base to `/build/` (from `/fynla/build/`) |
-| `public/.htaccess` | Change RewriteBase to `/` and remove subdirectory references |
-| `.env` | Create new with fynla.org configuration |
+### DO NOT Run These Commands on Server
+
+The following commands require too much memory and will fail on shared hosting:
+
+```bash
+# DO NOT RUN ON SERVER - will fail due to memory limits
+npm install        # Requires 1-2GB RAM
+npm run build      # Requires 1-2GB RAM
+composer install   # May work, but vendor/ should be included in package
+```
+
+### What MUST Be Built Locally
+
+| Component | Build Locally? | Include in Package? |
+|-----------|----------------|---------------------|
+| `public/build/` | YES | YES |
+| `vendor/` | YES (if updated) | YES |
+| `node_modules/` | YES | NO (not needed on server) |
+
+---
+
+## Files Summary
+
+| File | Location | Purpose |
+|------|----------|---------|
+| Build script | `deploy/fynla-org/build.sh` | Builds assets + creates ZIP |
+| .htaccess | `deploy/fynla-org/.htaccess` | Production Apache config |
+| .env template | `deploy/fynla-org/.env.production` | Environment template |
 
 ---
 
