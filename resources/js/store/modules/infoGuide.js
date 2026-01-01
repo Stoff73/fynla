@@ -117,11 +117,13 @@ const actions = {
      * Fetch requirements for a specific module
      */
     async fetchRequirements({ commit, state }, module) {
-        // Skip if same module and already loaded
-        if (state.currentModule === module && state.requirements) {
+        // Skip if same module and already loaded (with valid requirements)
+        if (state.currentModule === module && state.requirements && state.requirements.module === module) {
             return;
         }
 
+        // Update module immediately to prevent race conditions
+        commit('SET_CURRENT_MODULE', module);
         commit('SET_LOADING', true);
         commit('SET_ERROR', null);
 
@@ -130,8 +132,10 @@ const actions = {
                 params: { module },
             });
 
-            commit('SET_REQUIREMENTS', response.data.data);
-            commit('SET_CURRENT_MODULE', module);
+            // Only set requirements if module hasn't changed during fetch
+            if (state.currentModule === module) {
+                commit('SET_REQUIREMENTS', response.data.data);
+            }
         } catch (error) {
             console.error('Failed to fetch info guide requirements:', error);
             commit('SET_ERROR', 'Failed to load requirements');

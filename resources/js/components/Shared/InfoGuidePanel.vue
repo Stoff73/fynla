@@ -208,13 +208,60 @@ export default {
         this.guideEnabled = newVal;
       },
     },
+
+    // Watch route changes and update module context
+    '$route.path': {
+      immediate: true,
+      handler(newPath) {
+        // Skip public routes
+        const publicRoutes = ['/login', '/register', '/', '/calculators', '/learning-centre'];
+        if (publicRoutes.some(route => newPath === route || newPath.startsWith('/forgot') || newPath.startsWith('/reset'))) {
+          return;
+        }
+
+        // Map route to module
+        const moduleMap = {
+          '/protection': 'protection',
+          '/savings': 'savings',
+          '/investment': 'investment',
+          '/net-worth/investments': 'investment',
+          '/net-worth/retirement': 'retirement',
+          '/retirement': 'retirement',
+          '/pension': 'retirement',
+          '/estate': 'estate',
+          '/trusts': 'estate',
+          '/net-worth': 'net_worth',
+          '/dashboard': 'dashboard',
+          '/preview': 'dashboard',
+          '/profile': 'dashboard',
+        };
+
+        // Find matching module - check longer paths first
+        let module = 'dashboard';
+        const sortedPrefixes = Object.keys(moduleMap).sort((a, b) => b.length - a.length);
+        for (const prefix of sortedPrefixes) {
+          if (newPath.startsWith(prefix)) {
+            module = moduleMap[prefix];
+            break;
+          }
+        }
+
+        // Fetch requirements for this module
+        this.fetchRequirementsForModule(module);
+      },
+    },
   },
 
   methods: {
-    ...mapActions('infoGuide', ['close', 'updatePreference']),
+    ...mapActions('infoGuide', ['close', 'updatePreference', 'fetchRequirements']),
 
     onToggleChange() {
       this.updatePreference(this.guideEnabled);
+    },
+
+    fetchRequirementsForModule(module) {
+      // Force fetch by clearing current module first if different
+      this.fetchRequirements(module);
     },
   },
 };
