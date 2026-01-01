@@ -320,13 +320,6 @@ export default {
 
   methods: {
     async loadAllData() {
-      // Check if we're in preview mode - load persona data instead of making API calls
-      const isPreviewMode = this.$store.getters['preview/isPreviewMode'];
-      if (isPreviewMode) {
-        await this.loadPreviewData();
-        return;
-      }
-
       // Determine which estate calculation to use based on marital status
       const user = this.$store.state.auth.user;
       const isMarried = user && user.marital_status === 'married';
@@ -379,25 +372,7 @@ export default {
       });
     },
 
-    /**
-     * Handle preview mode - stores are already populated by preview/loadPersona
-     * This just clears loading states since no API calls are needed
-     */
-    async loadPreviewData() {
-      // Preview store's loadPersona already set up all module stores with persona data
-      // Just clear loading states
-      Object.keys(this.loading).forEach(key => {
-        this.loading[key] = false;
-      });
-    },
-
     async retryLoadModule(moduleName) {
-      // Skip in preview mode
-      const isPreviewMode = this.$store.getters['preview/isPreviewMode'];
-      if (isPreviewMode) {
-        return;
-      }
-
       this.loading[moduleName] = true;
       this.errors[moduleName] = null;
 
@@ -426,12 +401,6 @@ export default {
     },
 
     async refreshDashboard() {
-      // Skip in preview mode
-      const isPreviewMode = this.$store.getters['preview/isPreviewMode'];
-      if (isPreviewMode) {
-        return;
-      }
-
       this.refreshing = true;
       // Use refreshNetWorth to bypass cache, then load other modules
       try {
