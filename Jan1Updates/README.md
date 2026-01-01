@@ -105,9 +105,31 @@ Mitchell persona (peak_earners) updated with 6 test chattels:
 
 ---
 
+### 5. Granular Info Guide Modules
+
+**Enhancement:** Each screen now shows its own specific data requirements, not just generic module info.
+
+**New Modules Added:**
+| Module | Route | Description |
+|--------|-------|-------------|
+| `trusts` | `/trusts` | Trust-specific requirements (beneficiaries, trust details) |
+| `properties` | `/net-worth/properties` | Property portfolio tracking |
+| `liabilities` | `/net-worth/liabilities` | Debt and loan management |
+| `business_interests` | `/net-worth/business-interests` | Business ownership tracking |
+| `chattels` | `/net-worth/chattels` | Valuable items and CGT |
+| `profile` | `/profile` | Comprehensive personal profile |
+
+**Files Modified:**
+- `app/Services/UserProfile/ModuleDataRequirementsService.php` - Added 6 new module definitions
+- `resources/js/components/Shared/InfoGuidePanel.vue` - Updated route mappings
+
+---
+
 ## Git History
 
 ```
+0bdac3b feat: Add granular Info Guide modules for each screen
+1ce3970 docs: Update Jan1Updates with Info Guide navigation fix
 c6a14ab fix: Info Guide now updates when navigating between modules
 3e60283 docs: Add Jan1Updates README summarizing v0.4.5 changes
 a96d328 chore: Bump version to v0.4.5
