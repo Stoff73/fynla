@@ -125,9 +125,65 @@ Mitchell persona (peak_earners) updated with 6 test chattels:
 
 ---
 
+### 6. Dashboard Cards Data Loading Fix
+
+**Bug:** Estate Planning and Protection cards showed £0 on initial dashboard load. Values only appeared after navigating away and back.
+
+**Root Causes:**
+1. Dashboard loaded data before user was available in Vuex store
+   - `loadAllData()` ran in `mounted()` before auth state was populated
+   - `user` was undefined, so `isMarried` was null
+   - Wrong IHT calculation action was called
+
+2. Single users (widow, entrepreneur) showed £0 because of state mismatch
+   - `calculateIHT` action set `analysis` state
+   - Getters expected data in `secondDeathPlanning.iht_summary`
+   - Data existed but wasn't being read
+
+**Fix:**
+- Added watcher on `$store.state.auth.user` to wait for user before loading data
+- Made `calculateIHT` set `secondDeathPlanning` state (same as married users)
+- Initial loading states set to `true` (show skeleton immediately)
+- Estate module waits for both actions before showing card
+
+**Files Modified:**
+| File | Changes |
+|------|---------|
+| `resources/js/views/Dashboard.vue` | Added user watcher, removed mounted() call, fixed loading states |
+| `resources/js/store/modules/estate.js` | `calculateIHT` now sets `secondDeathPlanning` for consistency |
+
+---
+
+### 7. Remove Coverage Adequacy Score from Protection Card
+
+**Change:** Removed the adequacy score percentage and progress bar from the Protection overview card on the dashboard.
+
+**Files Modified:**
+- `resources/js/components/Protection/ProtectionOverviewCard.vue`
+  - Removed template section (score + progress bar)
+  - Removed `adequacyScore` prop
+  - Removed `adequacyScoreColour` and `adequacyScoreBarColour` computed properties
+  - Removed related CSS styles (93 lines deleted)
+
+---
+
+### 8. Chattel Seeder Fix
+
+**Bug:** PreviewUserSeeder failed for entrepreneur persona with "Column 'valuation_date' cannot be null".
+
+**Fix:** Default `valuation_date` to `now()->toDateString()` when not provided in persona JSON.
+
+**File Modified:**
+- `database/seeders/PreviewUserSeeder.php` - Line 1028
+
+---
+
 ## Git History
 
 ```
+daf62e1 fix: Default valuation_date in chattel seeder to today
+06a0a28 fix: Remove coverage adequacy score from Protection dashboard card
+63b4653 fix: Dashboard estate/protection cards show correct values on load
 0368c98 docs: Update Jan1Updates with granular Info Guide modules
 0bdac3b feat: Add granular Info Guide modules for each screen
 1ce3970 docs: Update Jan1Updates with Info Guide navigation fix
