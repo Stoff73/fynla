@@ -243,6 +243,7 @@ export default {
         estate: null,
       },
       refreshing: false,
+      dataLoaded: false,
     };
   },
 
@@ -441,9 +442,17 @@ export default {
     },
   },
 
-  mounted() {
-    // Load all data when dashboard mounts
-    this.loadAllData();
+  watch: {
+    // Load data when user becomes available
+    '$store.state.auth.user': {
+      immediate: true,
+      handler(user) {
+        if (user && !this.dataLoaded) {
+          this.dataLoaded = true;
+          this.loadAllData();
+        }
+      }
+    }
   },
 };
 </script>

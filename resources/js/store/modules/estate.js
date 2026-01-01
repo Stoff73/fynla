@@ -274,8 +274,8 @@ const actions = {
 
         try {
             const response = await estateService.calculateIHT(data);
-            // Extract the actual analysis data from the response
-            commit('setAnalysis', response.data?.data || response.data);
+            // Response has iht_summary structure - use same state as married users
+            commit('setSecondDeathPlanning', response);
             return response;
         } catch (error) {
             const errorMessage = error.message || 'IHT calculation failed';
