@@ -235,8 +235,8 @@ export default {
   data() {
     return {
       loading: {
-        protection: false,
-        estate: false,
+        protection: true,
+        estate: true,
       },
       errors: {
         protection: null,
@@ -341,6 +341,15 @@ export default {
         this.errors[key] = null;
       });
 
+      // Count how many actions per module (estate has 2)
+      const moduleActionCounts = {};
+      moduleLoaders.forEach(loader => {
+        moduleActionCounts[loader.name] = (moduleActionCounts[loader.name] || 0) + 1;
+      });
+
+      // Track completed actions per module
+      const moduleCompletedCounts = {};
+
       // Create promises for all module loads
       const promises = moduleLoaders.map(loader =>
         this.$store.dispatch(loader.action, loader.payload)
@@ -355,18 +364,22 @@ export default {
       // Wait for all promises to settle
       const results = await Promise.allSettled(promises);
 
-      // Process results
+      // Process results - only set loading=false when ALL actions for a module complete
       results.forEach(result => {
         if (result.status === 'fulfilled') {
           const { module, success, error } = result.value;
+          moduleCompletedCounts[module] = (moduleCompletedCounts[module] || 0) + 1;
+
           if (!success && this.loading.hasOwnProperty(module)) {
             this.errors[module] = error;
           }
-          if (this.loading.hasOwnProperty(module)) {
+
+          // Only set loading=false when all actions for this module have completed
+          if (this.loading.hasOwnProperty(module) &&
+              moduleCompletedCounts[module] >= moduleActionCounts[module]) {
             this.loading[module] = false;
           }
         } else {
-          // Promise was rejected
           console.error('Failed to load module:', result.reason);
         }
       });
