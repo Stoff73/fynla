@@ -83,11 +83,26 @@ CREATE TABLE pending_registrations (
 
 ## Deployment Steps
 
+### Files to Upload (via SiteGround File Manager)
+
+**Backend Files:**
+- `app/Http/Controllers/Api/AuthController.php`
+- `app/Models/PendingRegistration.php` (NEW)
+- `app/Mail/VerificationCode.php`
+- `database/migrations/2026_01_02_171718_create_pending_registrations_table.php` (NEW)
+- `resources/views/emails/verification-code.blade.php`
+
+**Frontend Files:**
+- `resources/js/components/Auth/VerificationCodeModal.vue`
+- `resources/js/views/Register.vue`
+- `public/build/` (entire folder - contains compiled JS/CSS)
+
+### After Upload
+
+Run migration via SSH or SiteGround's Terminal:
 ```bash
-# On production server:
-git pull origin main
+cd ~/public_html
 php artisan migrate
-# Frontend already built in repo
 ```
 
 ## Email Debugging
