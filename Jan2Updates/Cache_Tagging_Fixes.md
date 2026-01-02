@@ -158,14 +158,16 @@ public function invalidateCache(int $userId): void
 
 After applying fixes, verify:
 
-- [ ] Young Family - Protection Plan loads
-- [ ] Young Family - Estate Plan loads
-- [ ] Peak Earners - Protection Plan loads
-- [ ] Peak Earners - Estate Plan loads
-- [ ] Widow - Protection Plan loads
-- [ ] Widow - Estate Plan loads
-- [ ] Entrepreneur - Protection Plan loads
-- [ ] Entrepreneur - Estate Plan loads
+- [x] Young Family - Protection Plan loads ✅
+- [x] Young Family - Estate Plan loads ✅
+- [x] Peak Earners - Protection Plan loads ✅
+- [x] Peak Earners - Estate Plan loads ✅
+- [x] Widow - Protection Plan loads ✅
+- [x] Widow - Estate Plan loads ✅
+- [x] Entrepreneur - Protection Plan loads ✅
+- [x] Entrepreneur - Estate Plan loads ✅
+
+**All tests passed on 02 January 2026 at 15:19**
 
 ## Technical Notes
 
@@ -312,3 +314,33 @@ git pull origin main
 php artisan cache:clear
 php artisan config:clear
 ```
+
+---
+
+## Summary of All Changes
+
+### Commits
+| Commit | Description |
+|--------|-------------|
+| `2e411f3` | fix: Add 'chattel' case to AssetLiquidityAnalyzer match statement |
+| `cc5a785` | fix: Use correct array keys in main residence strategy |
+
+### Files Modified
+| File | Change |
+|------|--------|
+| `app/Agents/BaseAgent.php` | Added `cacheStoreSupportsTagging()` method |
+| `app/Agents/ProtectionAgent.php` | Fixed `invalidateCache()` for file cache |
+| `app/Agents/EstateAgent.php` | Fixed `invalidateCache()` for file cache |
+| `app/Services/Estate/AssetLiquidityAnalyzer.php` | Added 'chattel' case to match statement |
+| `app/Services/Estate/PersonalizedGiftingStrategyService.php` | Fixed array key names (`asset_name`, `current_value`) |
+
+### Bugs Fixed
+| # | Error | Persona | Root Cause |
+|---|-------|---------|------------|
+| 1 | `This cache store does not support tagging` | ALL | File cache doesn't support `Cache::tags()` |
+| 2 | `Undefined array key "type"` | Widow | Missing null check in asset filtering |
+| 3 | `Unhandled match case 'chattel'` | Widow | Missing chattel case in match statement |
+| 4 | `Undefined array key "name"` | Entrepreneur | Wrong array keys (`name` vs `asset_name`) |
+
+### Final Status
+All four demo personas (Young Family, Peak Earners, Widow, Entrepreneur) now have fully working Protection Plans and Estate Plans on https://fynla.org.
