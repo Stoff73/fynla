@@ -259,6 +259,43 @@ scp -P 18765 -i ~/.ssh/production app/Services/Estate/AssetLiquidityAnalyzer.php
 
 ---
 
+## Additional Fix: Undefined array key "name" (Entrepreneur Persona)
+
+### Issue
+The Entrepreneur persona (Alex Chen) Estate Plan showed "Internal server error" with message:
+```
+Undefined array key "name"
+```
+
+### Root Cause
+In `PersonalizedGiftingStrategyService.php`, the `buildMainResidenceStrategy` method was using wrong array keys:
+- Line 315: `$mainResidence['name']` - but actual key is `asset_name`
+- Lines 316, 323, 324: `$mainResidence['value']` - but actual key is `current_value`
+
+The asset data comes from `AssetLiquidityAnalyzer` which uses `asset_name` and `current_value`, not `name` and `value`.
+
+### Fix Applied
+```php
+// BEFORE (wrong keys):
+'main_residence' => $mainResidence['name'],
+'current_value' => round($mainResidence['value'], 2),
+...
+'Example: Sell £'.number_format($mainResidence['value'], 0)...
+
+// AFTER (correct keys):
+'main_residence' => $mainResidence['asset_name'],
+'current_value' => round($mainResidence['current_value'], 2),
+...
+'Example: Sell £'.number_format($mainResidence['current_value'], 0)...
+```
+
+### File to Deploy
+```bash
+scp -P 18765 -i ~/.ssh/production app/Services/Estate/PersonalizedGiftingStrategyService.php u2783-hrf1k8bpfg02@ssh.fynla.org:~/www/fynla.org/public_html/app/Services/Estate/
+```
+
+---
+
 ## Deployment
 
 Changes have been committed and pushed to GitHub. To deploy:

@@ -312,16 +312,16 @@ class PersonalizedGiftingStrategyService
             'priority' => 4,
             'category' => 'main_residence',
             'description' => 'Your main residence cannot be gifted while you live in it - consider downsizing',
-            'main_residence' => $mainResidence['name'],
-            'current_value' => round($mainResidence['value'], 2),
+            'main_residence' => $mainResidence['asset_name'],
+            'current_value' => round($mainResidence['current_value'], 2),
             'total_gifted' => 0, // Not directly gifted
             'iht_saved' => 0, // Variable depending on downsizing
             'risk_level' => 'Low',
             'implementation_steps' => [
                 'Cannot gift main residence while living in it (gift with reservation of benefit)',
                 'Strategy: Downsize once dependants leave home',
-                'Example: Sell £'.number_format($mainResidence['value'], 0).' home, buy £'.number_format($mainResidence['value'] * 0.6, 0).' property',
-                'Released equity (£'.number_format($mainResidence['value'] * 0.4, 0).') can then be gifted',
+                'Example: Sell £'.number_format($mainResidence['current_value'], 0).' home, buy £'.number_format($mainResidence['current_value'] * 0.6, 0).' property',
+                'Released equity (£'.number_format($mainResidence['current_value'] * 0.4, 0).') can then be gifted',
                 'Downsizing benefits: Lower running costs, easier maintenance, equity for gifting',
                 'Timing: Consider when children leave home or retirement',
             ],
