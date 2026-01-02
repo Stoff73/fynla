@@ -15,7 +15,7 @@
       </span>
     </div>
 
-    <div v-if="loading" class="loading-skeleton">
+    <div v-if="showSkeleton" class="loading-skeleton">
       <div class="skeleton-text skeleton-large"></div>
       <div class="skeleton-text skeleton-small"></div>
       <div class="skeleton-text skeleton-small"></div>
@@ -107,6 +107,12 @@ export default {
       return this.$store.getters['preview/isPreviewMode'];
     },
 
+    // Show skeleton when loading OR when data hasn't been fetched yet
+    // (asOfDate is null until first successful API call)
+    showSkeleton() {
+      return this.loading || (!this.error && !this.overview.asOfDate);
+    },
+
     breakdown() {
       return this.overview.breakdown || {};
     },
@@ -138,13 +144,8 @@ export default {
     },
   },
 
-  async mounted() {
-    try {
-      await this.fetchOverview();
-    } catch (error) {
-      console.error('Failed to load net worth overview:', error);
-    }
-  },
+  // Note: No mounted() hook - Dashboard.vue coordinates data loading
+  // via its user watcher to prevent race conditions
 };
 </script>
 

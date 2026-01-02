@@ -63,12 +63,25 @@ Following the cache tagging fixes, comprehensive testing was performed across AL
 
 ## Issues Found
 
-### 1. Transient Net Worth Error (Widow) - LOW PRIORITY
+### 1. Transient Net Worth Error (Widow) - FIXED
 **Symptoms**: Net Worth card on dashboard showed "Internal server error" on initial load
-**Resolution**: Clicking Retry button resolved the issue
-**Root Cause**: Likely a race condition or timing issue during initial data load
-**Impact**: Minor UX issue - user can retry and data loads correctly
-**Recommendation**: Investigate potential race condition in dashboard data loading
+**Resolution**: Fixed in commit - removed race condition
+
+**Root Cause**:
+- `NetWorthOverviewCard.vue` had its own `mounted()` hook that called `fetchOverview()` immediately
+- This fired BEFORE `Dashboard.vue`'s user watcher could coordinate data loading
+- The API call was made before the backend session was fully ready, causing intermittent 500 errors
+
+**Fix Applied** (`resources/js/components/Dashboard/NetWorthOverviewCard.vue`):
+1. Removed the `mounted()` hook - Dashboard.vue now coordinates all data loading
+2. Added `showSkeleton` computed property to show skeleton until data is loaded
+   - Shows skeleton when `loading=true` OR when data hasn't been fetched yet (`asOfDate` is null)
+   - This prevents flashing empty content before the skeleton
+
+**Technical Details**:
+- Dashboard.vue already has a watcher on `$store.state.auth.user` that waits for user before loading
+- Dashboard.vue's `loadAllData()` includes `netWorth/fetchOverview` action
+- Removing the duplicate mounted() call prevents race conditions and duplicate API calls
 
 ### 2. Business Interest Detail Data Inconsistency - FIXED
 **Location**: Business Interest detail view (Overview tab)
