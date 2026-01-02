@@ -120,7 +120,7 @@
             </div>
 
             <div class="expiry-warning">
-                <p><strong>Important:</strong> This code expires in 60 seconds. If it expires, a new code will be sent automatically (up to 2 times).</p>
+                <p><strong>Important:</strong> Enter this code in the verification form to {{ $typeLabel }}. If you need a new code, click "Resend Code" in the form.</p>
             </div>
 
             <div class="security-note">

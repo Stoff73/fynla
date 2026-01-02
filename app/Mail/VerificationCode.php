@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Mail;
 
-use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
@@ -17,9 +16,11 @@ class VerificationCode extends Mailable
 
     /**
      * Create a new message instance.
+     *
+     * @param  object  $user  User or stdClass with first_name and email properties
      */
     public function __construct(
-        public User $user,
+        public object $user,
         public string $code,
         public string $type
     ) {}
