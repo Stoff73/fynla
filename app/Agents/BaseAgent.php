@@ -40,12 +40,24 @@ abstract class BaseAgent
     {
         $ttl = $ttl ?? $this->cacheTtl;
 
-        // Use tagged caching if tags provided
-        if (! empty($tags)) {
+        // Use tagged caching if tags provided AND cache store supports tagging
+        if (! empty($tags) && $this->cacheStoreSupportsTagging()) {
             return Cache::tags($tags)->remember($key, $ttl, $callback);
         }
 
         return Cache::remember($key, $ttl, $callback);
+    }
+
+    /**
+     * Check if the current cache store supports tagging.
+     * File and database cache stores do not support tagging.
+     */
+    protected function cacheStoreSupportsTagging(): bool
+    {
+        $store = Cache::getStore();
+
+        // Redis and Memcached support tagging, file and database do not
+        return $store instanceof \Illuminate\Cache\TaggableStore;
     }
 
     /**

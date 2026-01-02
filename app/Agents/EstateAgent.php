@@ -401,6 +401,11 @@ class EstateAgent extends BaseAgent
      */
     public function invalidateCache(int $userId): void
     {
-        Cache::tags(['estate', 'user_'.$userId])->flush();
+        // Use tagged cache flush if supported, otherwise forget the specific key
+        if ($this->cacheStoreSupportsTagging()) {
+            Cache::tags(['estate', 'user_'.$userId])->flush();
+        } else {
+            Cache::forget("estate_analysis_{$userId}");
+        }
     }
 }

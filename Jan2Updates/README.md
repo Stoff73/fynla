@@ -2,7 +2,14 @@
 
 ## Changes Made
 
-1. **Deployment_Fixes.md** - Documentation of all deployment-related fixes:
+1. **Cache_Tagging_Fixes.md** - Cache tagging compatibility fix for SiteGround:
+   - Protection Plan error affecting ALL demo personas
+   - Estate Plan error affecting Widow persona
+   - BaseAgent.php modified to detect cache driver capabilities
+   - ProtectionAgent.php and EstateAgent.php invalidateCache methods fixed
+   - Graceful fallback for file-based cache drivers
+
+2. **Deployment_Fixes.md** - Documentation of all deployment-related fixes:
    - SSH connection details updated
    - Server path structure corrected (`~/www/fynla.org/public_html/`)
    - Dual .htaccess setup documented

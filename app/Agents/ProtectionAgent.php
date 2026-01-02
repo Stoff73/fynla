@@ -264,7 +264,11 @@ class ProtectionAgent extends BaseAgent
      */
     public function invalidateCache(int $userId): void
     {
-        // Use tagged cache flush to match how cache is stored
-        Cache::tags(['protection', 'user_'.$userId])->flush();
+        // Use tagged cache flush if supported, otherwise forget the specific key
+        if ($this->cacheStoreSupportsTagging()) {
+            Cache::tags(['protection', 'user_'.$userId])->flush();
+        } else {
+            Cache::forget("protection_analysis_{$userId}");
+        }
     }
 }
