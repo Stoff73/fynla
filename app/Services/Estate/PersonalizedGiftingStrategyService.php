@@ -252,7 +252,7 @@ class PersonalizedGiftingStrategyService
             return null;
         }
 
-        $propertyAssets = array_filter($semiLiquidAssets['assets'], fn ($a) => $a['type'] === 'property');
+        $propertyAssets = array_filter($semiLiquidAssets['assets'], fn ($a) => ($a['type'] ?? null) === 'property');
 
         if (empty($propertyAssets)) {
             return null;
