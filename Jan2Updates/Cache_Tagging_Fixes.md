@@ -182,3 +182,20 @@ If SiteGround account is upgraded or moved to a VPS with Redis support, the cach
 1. `app/Agents/BaseAgent.php` - Added cache tag support detection
 2. `app/Agents/ProtectionAgent.php` - Fix invalidateCache method
 3. `app/Agents/EstateAgent.php` - Fix invalidateCache method
+
+## Deployment
+
+Changes have been committed and pushed to GitHub (commit 2459380). To deploy:
+
+```bash
+# SSH to production
+ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
+
+# Pull the fix
+cd ~/www/fynla.org/public_html
+git pull origin main
+
+# Clear Laravel cache
+php artisan cache:clear
+php artisan config:clear
+```
