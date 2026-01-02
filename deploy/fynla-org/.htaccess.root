@@ -1,0 +1,13 @@
+# =============================================================================
+# Fynla - Root .htaccess for public_html/
+# =============================================================================
+# This file goes in: public_html/.htaccess
+# Purpose: Redirects all requests to the public/ subdirectory
+# =============================================================================
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Redirect all requests to the public/ subdirectory
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>

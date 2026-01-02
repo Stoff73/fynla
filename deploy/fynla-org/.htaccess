@@ -62,10 +62,8 @@
     Deny from all
 </Files>
 
-<DirectoryMatch "\.git">
-    Order allow,deny
-    Deny from all
-</DirectoryMatch>
+# Block access to .git directories (using RewriteRule for shared hosting compatibility)
+RewriteRule ^\.git - [F,L]
 
 <FilesMatch "^(composer\.(json|lock)|package(-lock)?\.json)$">
     Order allow,deny

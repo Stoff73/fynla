@@ -3,7 +3,7 @@
 # Fynla Build Script - fynla.org (ROOT deployment)
 # =============================================================================
 # Usage: ./deploy/fynla-org/build.sh
-# Output: Creates fynla-deploy.zip ready to upload to server
+# Output: Creates fynla-org-deploy.zip ready to upload to server
 # =============================================================================
 # IMPORTANT: The server does not have enough memory to run npm build.
 # This script builds everything locally and creates a deployment package.
@@ -75,8 +75,11 @@ rsync -a --progress "$PROJECT_ROOT/" "$DEPLOY_DIR/" \
   --exclude '.DS_Store' \
   --exclude '*.zip'
 
-# Copy production .htaccess
-echo "Copying production .htaccess..."
+# Copy production .htaccess files
+echo "Copying production .htaccess files..."
+# Root .htaccess (public_html/) - redirects to public/
+cp "$SCRIPT_DIR/.htaccess.root" "$DEPLOY_DIR/.htaccess"
+# Public .htaccess (public_html/public/) - Laravel routing
 cp "$SCRIPT_DIR/.htaccess" "$DEPLOY_DIR/public/.htaccess"
 
 # Create the ZIP file
@@ -98,7 +101,8 @@ echo ""
 echo "Package includes:"
 echo "  - public/build/ (compiled frontend assets)"
 echo "  - vendor/ (PHP dependencies)"
-echo "  - Production .htaccess"
+echo "  - .htaccess (root redirect to public/)"
+echo "  - public/.htaccess (Laravel routing, security, caching)"
 echo ""
 echo "Package excludes:"
 echo "  - node_modules/ (not needed on server)"

@@ -53,11 +53,11 @@ The build script automatically creates the deployment package. If you need to cr
 cd /Users/Chris/Desktop/fpsApp/fynla
 
 # Create deployment directory
-rm -rf ../fynla-deploy
-mkdir -p ../fynla-deploy
+rm -rf ../fynla-org-deploy
+mkdir -p ../fynla-org-deploy
 
 # Copy all files INCLUDING public/build/ but EXCLUDING unnecessary files
-rsync -av --progress . ../fynla-deploy/ \
+rsync -av --progress . ../fynla-org-deploy/ \
   --exclude '.git' \
   --exclude 'node_modules' \
   --exclude 'tests' \
@@ -70,13 +70,14 @@ rsync -av --progress . ../fynla-deploy/ \
   --exclude '*.md' \
   --exclude 'CLAUDE.md'
 
-# Copy the production .htaccess to public/
-cp deploy/fynla-org/.htaccess ../fynla-deploy/public/.htaccess
+# Copy the production .htaccess files
+cp deploy/fynla-org/.htaccess.root ../fynla-org-deploy/.htaccess
+cp deploy/fynla-org/.htaccess ../fynla-org-deploy/public/.htaccess
 
 # Create ZIP
 cd ../
-rm -f fynla-deploy.zip
-zip -r fynla-deploy.zip fynla-deploy/
+rm -f fynla-org-deploy.zip
+zip -r fynla-org-deploy.zip fynla-org-deploy/
 ```
 
 **CRITICAL:** The deployment package MUST include:
@@ -247,8 +248,8 @@ ANTHROPIC_API_KEY=YOUR_ANTHROPIC_API_KEY
 
    ```bash
    mkdir -p ~/.ssh
-   pbpaste > ~/.ssh/siteground_key
-   chmod 600 ~/.ssh/siteground_key
+   pbpaste > ~/.ssh/production
+   chmod 600 ~/.ssh/production
    ```
 
    That's it. `pbpaste` takes whatever is in your clipboard and writes it to the file.
@@ -260,15 +261,13 @@ ANTHROPIC_API_KEY=YOUR_ANTHROPIC_API_KEY
 
 5. **Connect via Terminal**:
    ```bash
-   ssh -p 18765 -i ~/.ssh/siteground_key your_ssh_username@your_hostname
-   # Example:
-   # ssh -p 18765 -i ~/.ssh/siteground_key u123-abc12def34gh@ssh.fynla.org
+   ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
    ```
 
 6. **Extract and move files**:
 ```bash
 # Navigate to public_html
-cd ~/public_html
+cd ~/www/fynla.org/public_html
 
 # Extract the ZIP archive
 unzip fynla-org-deploy.zip
@@ -286,7 +285,7 @@ rm fynla-org-deploy.zip
 
 If you created a `.tar.gz` instead of `.zip`:
 ```bash
-cd ~/public_html
+cd ~/www/fynla.org/public_html
 tar -xzf fynla-org-deploy.tar.gz
 mv fynla-org-deploy/* .
 mv fynla-org-deploy/.* . 2>/dev/null
@@ -294,47 +293,59 @@ rmdir fynla-org-deploy
 rm fynla-org-deploy.tar.gz
 ```
 
-**Directory Structure Should Be:**
+**Server Directory Structure:**
 ```
-public_html/
-├── app/
-├── bootstrap/
-├── config/
-├── database/
-├── public/
-│   ├── build/          <-- CRITICAL: Must contain built assets
-│   │   ├── manifest.json
-│   │   └── assets/
-│   ├── .htaccess
-│   └── index.php
-├── resources/
-├── routes/
-├── storage/
-├── vendor/             <-- CRITICAL: Must contain PHP dependencies
-├── .env (create this)
-├── artisan
-└── composer.json
+~/www/fynla.org/
+├── logs/
+├── public_html/        <-- Web root, Laravel app goes here
+│   ├── .htaccess       <-- Root htaccess (redirects to public/)
+│   ├── app/
+│   ├── bootstrap/
+│   ├── config/
+│   ├── database/
+│   ├── public/
+│   │   ├── build/      <-- CRITICAL: Must contain built assets
+│   │   │   ├── manifest.json
+│   │   │   └── assets/
+│   │   ├── .htaccess   <-- Laravel htaccess (routing, security, caching)
+│   │   └── index.php
+│   ├── resources/
+│   ├── routes/
+│   ├── storage/
+│   ├── vendor/         <-- CRITICAL: Must contain PHP dependencies
+│   ├── .env            <-- Create this on server
+│   ├── artisan
+│   └── composer.json
+└── webstats/
 ```
 
 ---
 
-### Step 7: Configure Document Root
+### Step 7: Verify .htaccess Files
 
-**CRITICAL:** Laravel requires the document root to point to the `public/` directory.
+The build script includes two `.htaccess` files that are automatically placed in the deployment package:
 
-1. In Site Tools, go to **Site** > **Site Settings**
-2. Find **Document Root** setting
-3. Change it to: `public_html/public` (or your equivalent path + `/public`)
+**1. Root htaccess: `public_html/.htaccess`**
 
-**Alternative if you cannot change document root:**
-Create an `.htaccess` in the root `public_html/` that redirects to `public/`:
-
+Redirects all requests to the `public/` subdirectory:
 ```apache
 <IfModule mod_rewrite.c>
     RewriteEngine On
     RewriteRule ^(.*)$ public/$1 [L]
 </IfModule>
 ```
+
+**2. Laravel htaccess: `public_html/public/.htaccess`**
+
+Handles Laravel routing, HTTPS enforcement, security headers, and caching. This file is automatically included from `deploy/fynla-org/.htaccess`.
+
+**Verify both files exist after extraction:**
+```bash
+ls -la ~/www/fynla.org/public_html/.htaccess
+ls -la ~/www/fynla.org/public_html/public/.htaccess
+```
+
+If missing, create them manually or re-extract from the deployment package.
 
 ---
 
@@ -362,7 +373,7 @@ Create an `.htaccess` in the root `public_html/` that redirects to `public/`:
 ssh your_username@fynla.org
 
 # Navigate to your application
-cd ~/public_html
+cd ~/www/fynla.org/public_html
 
 # Set storage permissions
 chmod -R 775 storage
@@ -386,7 +397,7 @@ mkdir -p storage/logs
 Still in SSH:
 
 ```bash
-cd ~/public_html
+cd ~/www/fynla.org/public_html
 php artisan key:generate --force
 ```
 
@@ -460,7 +471,7 @@ If something isn't working:
 
 **Check Laravel Logs:**
 ```bash
-cat ~/public_html/storage/logs/laravel.log
+cat ~/www/fynla.org/public_html/storage/logs/laravel.log
 ```
 
 **Check SiteGround Error Logs:**
@@ -471,11 +482,18 @@ cat ~/public_html/storage/logs/laravel.log
 | Issue | Solution |
 |-------|----------|
 | 500 Internal Server Error | Check `.htaccess` syntax, check `storage/logs/laravel.log` |
+| 500 + "DirectoryMatch not allowed" | Remove `<DirectoryMatch>` from `public/.htaccess` - not allowed on shared hosting. See fix below. |
 | 404 on all routes | Verify `RewriteBase /` in `.htaccess`, check document root is `public/` |
 | Assets not loading | Verify `public/build/manifest.json` exists, check build was included |
 | Database connection error | Verify DB credentials in `.env`, check MySQL is accessible |
 | Session/login issues | Run `php artisan config:clear` and `php artisan cache:clear` |
 | Missing CSS/JS files | You forgot to include `public/build/` - rebuild locally and re-upload |
+| PHP version mismatch | Change PHP version in Site Tools > Devs > PHP Manager to 8.3+ |
+
+**Fix for DirectoryMatch error:**
+```bash
+sed -i '/<DirectoryMatch/,/<\/DirectoryMatch>/d' ~/www/fynla.org/public_html/public/.htaccess
+```
 
 ---
 
@@ -504,11 +522,12 @@ composer install   # May work, but vendor/ should be included in package
 
 ## Files Summary
 
-| File | Location | Purpose |
-|------|----------|---------|
-| Build script | `deploy/fynla-org/build.sh` | Builds assets + creates ZIP |
-| .htaccess | `deploy/fynla-org/.htaccess` | Production Apache config |
-| .env template | `deploy/fynla-org/.env.production` | Environment template |
+| File | Location | Deployed To | Purpose |
+|------|----------|-------------|---------|
+| Build script | `deploy/fynla-org/build.sh` | N/A | Builds assets + creates ZIP |
+| Root .htaccess | `deploy/fynla-org/.htaccess.root` | `public_html/.htaccess` | Redirects to public/ |
+| Laravel .htaccess | `deploy/fynla-org/.htaccess` | `public_html/public/.htaccess` | Routing, security, caching |
+| .env template | `deploy/fynla-org/.env.production` | `public_html/.env` | Environment template |
 
 ---
 
@@ -540,14 +559,12 @@ If deployment fails:
 
 **SSH Connection:**
 ```bash
-# Get credentials from Site Tools > Devs > SSH Access
-# Download private key from Site Tools > Devs > SSH Keys Manager
-ssh -p 18765 -i ~/.ssh/siteground_key your_ssh_username@your_hostname
+ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
 ```
 
 **All Post-Upload Commands (run in order):**
 ```bash
-cd ~/public_html
+cd ~/www/fynla.org/public_html
 chmod -R 775 storage bootstrap/cache
 php artisan key:generate --force
 php artisan migrate --force
