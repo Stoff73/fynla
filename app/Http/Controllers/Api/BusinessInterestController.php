@@ -136,6 +136,24 @@ class BusinessInterestController extends Controller
         $summary['is_primary_owner'] = $this->isPrimaryOwner($business, $user->id);
         $summary['is_shared'] = $this->isSharedOwnership($business);
 
+        // Add flat fields for Vue component compatibility (matches index response)
+        $summary['current_valuation'] = (float) $business->current_valuation;
+        $summary['annual_revenue'] = (float) ($business->annual_revenue ?? 0);
+        $summary['annual_profit'] = (float) ($business->annual_profit ?? 0);
+        $summary['annual_dividend_income'] = (float) ($business->annual_dividend_income ?? 0);
+        $summary['employee_count'] = $business->employee_count ?? 0;
+        $summary['ownership_type'] = $business->ownership_type;
+        $summary['ownership_percentage'] = (float) ($business->ownership_percentage ?? 100);
+        $summary['trading_status'] = $business->trading_status ?? 'trading';
+        $summary['vat_registered'] = $business->vat_registered ?? false;
+        $summary['vat_number'] = $business->vat_number;
+        $summary['utr_number'] = $business->utr_number;
+        $summary['paye_reference'] = $business->paye_reference;
+        $summary['tax_year_end'] = $business->tax_year_end?->format('Y-m-d');
+        $summary['valuation_method'] = $business->valuation_method;
+        $summary['bpr_eligible'] = $business->bpr_eligible ?? false;
+        $summary['business_type_label'] = $this->getBusinessTypeLabel($business->business_type);
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -174,6 +192,24 @@ class BusinessInterestController extends Controller
         $summary['full_value'] = (float) $business->current_valuation;
         $summary['is_primary_owner'] = true;
         $summary['is_shared'] = $this->isSharedOwnership($business);
+
+        // Add flat fields for Vue component compatibility (matches index response)
+        $summary['current_valuation'] = (float) $business->current_valuation;
+        $summary['annual_revenue'] = (float) ($business->annual_revenue ?? 0);
+        $summary['annual_profit'] = (float) ($business->annual_profit ?? 0);
+        $summary['annual_dividend_income'] = (float) ($business->annual_dividend_income ?? 0);
+        $summary['employee_count'] = $business->employee_count ?? 0;
+        $summary['ownership_type'] = $business->ownership_type;
+        $summary['ownership_percentage'] = (float) ($business->ownership_percentage ?? 100);
+        $summary['trading_status'] = $business->trading_status ?? 'trading';
+        $summary['vat_registered'] = $business->vat_registered ?? false;
+        $summary['vat_number'] = $business->vat_number;
+        $summary['utr_number'] = $business->utr_number;
+        $summary['paye_reference'] = $business->paye_reference;
+        $summary['tax_year_end'] = $business->tax_year_end?->format('Y-m-d');
+        $summary['valuation_method'] = $business->valuation_method;
+        $summary['bpr_eligible'] = $business->bpr_eligible ?? false;
+        $summary['business_type_label'] = $this->getBusinessTypeLabel($business->business_type);
 
         return response()->json([
             'success' => true,
