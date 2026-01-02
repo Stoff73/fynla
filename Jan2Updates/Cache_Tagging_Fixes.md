@@ -183,9 +183,36 @@ If SiteGround account is upgraded or moved to a VPS with Redis support, the cach
 2. `app/Agents/ProtectionAgent.php` - Fix invalidateCache method
 3. `app/Agents/EstateAgent.php` - Fix invalidateCache method
 
+---
+
+## Additional Fix: Estate Plan "Undefined array key" Error
+
+### Issue
+The Widow persona's Estate Plan showed "Internal server error" with message:
+```
+Undefined array key "type"
+```
+
+### Root Cause
+In `PersonalizedGiftingStrategyService.php`, line 255 was filtering assets by type:
+```php
+$propertyAssets = array_filter($semiLiquidAssets['assets'], fn ($a) => $a['type'] === 'property');
+```
+Some assets (e.g., DB pensions in liquidity analysis) don't have a 'type' key set.
+
+### Fix Applied
+Added null coalescing operator:
+```php
+$propertyAssets = array_filter($semiLiquidAssets['assets'], fn ($a) => ($a['type'] ?? null) === 'property');
+```
+
+**Commit**: `0ae66eb`
+
+---
+
 ## Deployment
 
-Changes have been committed and pushed to GitHub (commit 2459380). To deploy:
+Changes have been committed and pushed to GitHub. To deploy:
 
 ```bash
 # SSH to production
