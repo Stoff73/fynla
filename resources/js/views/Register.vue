@@ -4,7 +4,7 @@
     <VerificationCodeModal
       :is-open="showVerificationModal"
       :user-email="pendingEmail"
-      :user-id="pendingUserId"
+      :pending-id="pendingId"
       type="registration"
       @verified="handleVerified"
       @close="handleVerificationClose"
@@ -220,7 +220,7 @@ export default {
     const showKeepDataModal = ref(false);
     const previewPersonaId = ref(null);
     const showVerificationModal = ref(false);
-    const pendingUserId = ref(null);
+    const pendingId = ref(null);
     const pendingEmail = ref('');
     const isSubmitting = ref(false);
 
@@ -274,7 +274,7 @@ export default {
 
         // Check if verification is required
         if (response.data.requires_verification) {
-          pendingUserId.value = response.data.data.user_id;
+          pendingId.value = response.data.data.pending_id;
           pendingEmail.value = response.data.data.email;
           showVerificationModal.value = true;
           return;
@@ -324,7 +324,7 @@ export default {
 
     const handleVerificationClose = () => {
       showVerificationModal.value = false;
-      pendingUserId.value = null;
+      pendingId.value = null;
       pendingEmail.value = '';
     };
 
@@ -364,7 +364,7 @@ export default {
       loading,
       showKeepDataModal,
       showVerificationModal,
-      pendingUserId,
+      pendingId,
       pendingEmail,
       wasInPreview,
       currentPersona,

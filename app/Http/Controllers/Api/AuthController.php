@@ -9,6 +9,7 @@ use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
 use App\Mail\VerificationCode;
 use App\Models\EmailVerificationCode;
+use App\Models\PendingRegistration;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,40 +21,62 @@ class AuthController extends Controller
 {
     /**
      * Register a new user.
+     *
+     * Creates a pending registration (not a user) until email is verified.
+     * If email already has a pending registration, it gets overwritten.
+     * This allows users to cancel and start fresh.
      */
     public function register(RegisterRequest $request): JsonResponse
     {
-        $user = User::create([
+        // Check if email is already registered as a verified user
+        $existingUser = User::where('email', $request->email)->first();
+        if ($existingUser) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This email is already registered.',
+                'errors' => ['email' => ['This email is already registered.']],
+            ], 422);
+        }
+
+        // Create or update pending registration (allows re-registration)
+        $pending = PendingRegistration::createOrUpdate([
+            'email' => $request->email,
             'first_name' => $request->first_name,
             'middle_name' => $request->middle_name,
             'surname' => $request->surname,
-            'email' => $request->email,
             'password' => Hash::make($request->password),
+            'registration_source' => $request->registration_source ?? null,
+            'preview_persona_id' => $request->preview_persona_id ?? null,
         ]);
 
-        \Log::info('User registered', [
-            'user_id' => $user->id,
+        \Log::info('Pending registration created', [
+            'pending_id' => $pending->id,
+            'email' => $pending->email,
         ]);
 
-        // Generate verification code and send email
-        $verificationCode = EmailVerificationCode::generate($user->id, 'registration');
-
+        // Send verification email
         try {
-            Mail::to($user->email)->send(new VerificationCode($user, $verificationCode->code, 'registration'));
+            Mail::to($pending->email)->send(new VerificationCode(
+                (object) ['first_name' => $pending->first_name, 'email' => $pending->email],
+                $pending->verification_code,
+                'registration'
+            ));
+            \Log::info('Verification email sent', ['email' => $pending->email]);
         } catch (\Exception $e) {
             \Log::error('Failed to send verification email', [
-                'user_id' => $user->id,
+                'email' => $pending->email,
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'Registration successful. Please check your email for verification code.',
+            'message' => 'Please check your email for verification code.',
             'requires_verification' => true,
             'data' => [
-                'user_id' => $user->id,
-                'email' => $this->maskEmail($user->email),
+                'pending_id' => $pending->id,
+                'email' => $this->maskEmail($pending->email),
             ],
         ], 201);
     }
@@ -197,15 +220,64 @@ class AuthController extends Controller
 
     /**
      * Verify email code and return auth token.
+     *
+     * For registration: Creates user from pending registration, then deletes pending record.
+     * For login: Uses existing EmailVerificationCode system.
      */
     public function verifyCode(Request $request): JsonResponse
     {
         $request->validate([
-            'user_id' => 'required|integer|exists:users,id',
             'code' => 'required|string|size:6',
             'type' => 'required|string|in:login,registration',
+            // For login, user_id is required. For registration, pending_id or email is required.
+            'user_id' => 'required_if:type,login|integer',
+            'pending_id' => 'required_if:type,registration|integer',
         ]);
 
+        // Handle registration verification (new flow)
+        if ($request->type === 'registration') {
+            $pending = PendingRegistration::find($request->pending_id);
+
+            if (! $pending || $pending->verification_code !== $request->code) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid verification code',
+                ], 422);
+            }
+
+            // Create the user from pending registration
+            $user = User::create([
+                'first_name' => $pending->first_name,
+                'middle_name' => $pending->middle_name,
+                'surname' => $pending->surname,
+                'email' => $pending->email,
+                'password' => $pending->password, // Already hashed
+            ]);
+
+            \Log::info('User created from pending registration', [
+                'user_id' => $user->id,
+                'pending_id' => $pending->id,
+            ]);
+
+            // Delete the pending registration
+            $pending->delete();
+
+            // Create auth token
+            $token = $user->createToken('auth_token')->plainTextToken;
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Registration complete',
+                'data' => [
+                    'user' => $user,
+                    'access_token' => $token,
+                    'token_type' => 'Bearer',
+                    'must_change_password' => false,
+                ],
+            ]);
+        }
+
+        // Handle login verification (existing flow)
         $verification = EmailVerificationCode::findValidCode(
             $request->user_id,
             $request->code,
@@ -246,14 +318,62 @@ class AuthController extends Controller
 
     /**
      * Resend verification code.
+     *
+     * For registration: Uses pending registration (no user exists yet).
+     * For login: Uses existing EmailVerificationCode system.
      */
     public function resendCode(Request $request): JsonResponse
     {
         $request->validate([
-            'user_id' => 'required|integer|exists:users,id',
             'type' => 'required|string|in:login,registration',
+            'user_id' => 'required_if:type,login|integer',
+            'pending_id' => 'required_if:type,registration|integer',
         ]);
 
+        // Handle registration resend (new flow)
+        if ($request->type === 'registration') {
+            $pending = PendingRegistration::find($request->pending_id);
+
+            if (! $pending) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Registration not found. Please start over.',
+                ], 404);
+            }
+
+            // Regenerate the code
+            $newCode = $pending->regenerateCode();
+
+            // Send email
+            try {
+                Mail::to($pending->email)->send(new VerificationCode(
+                    (object) ['first_name' => $pending->first_name, 'email' => $pending->email],
+                    $newCode,
+                    'registration'
+                ));
+                \Log::info('Resent verification email', ['email' => $pending->email]);
+            } catch (\Exception $e) {
+                \Log::error('Failed to resend verification email', [
+                    'email' => $pending->email,
+                    'error' => $e->getMessage(),
+                ]);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to send verification email. Please try again.',
+                ], 500);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Verification code sent',
+                'data' => [
+                    'can_resend' => true,
+                ],
+            ]);
+        }
+
+        // Handle login resend (existing flow)
         $user = User::findOrFail($request->user_id);
 
         // Get the latest code for this user and type

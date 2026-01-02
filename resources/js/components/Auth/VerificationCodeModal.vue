@@ -1,9 +1,8 @@
 <template>
     <div v-if="isOpen" class="fixed inset-0 z-50 overflow-y-auto">
-        <!-- Backdrop -->
+        <!-- Backdrop (no click handler - modal stays open) -->
         <div
             class="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
-            @click="handleClose"
         ></div>
 
         <!-- Modal -->
@@ -16,6 +15,7 @@
                 <button
                     @click="handleClose"
                     class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+                    title="Cancel verification"
                 >
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -63,37 +63,16 @@
                     <p class="text-sm text-red-600 text-center">{{ error }}</p>
                 </div>
 
-                <!-- Timer -->
-                <div class="text-center mb-4">
-                    <div v-if="timeRemaining > 0" class="flex items-center justify-center gap-2 text-sm text-gray-600">
-                        <svg class="w-4 h-4 animate-pulse text-amber-500" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
-                        </svg>
-                        <span>Code expires in <span class="font-semibold text-amber-600">{{ formattedTime }}</span></span>
-                    </div>
-                    <div v-else class="text-sm text-red-600">
-                        Code expired
-                    </div>
-                </div>
-
                 <!-- Resend Section -->
                 <div class="text-center mb-6">
                     <button
-                        v-if="canResend"
                         @click="handleResend"
-                        :disabled="resending || timeRemaining > 0"
+                        :disabled="resending"
                         class="text-sm text-indigo-600 hover:text-indigo-800 font-medium disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
                     >
                         <span v-if="resending">Sending...</span>
-                        <span v-else-if="timeRemaining > 0">Resend available after timer</span>
                         <span v-else>Resend Code</span>
                     </button>
-                    <p v-if="remainingResends !== null" class="mt-1 text-xs text-gray-500">
-                        {{ remainingResends }} resend{{ remainingResends !== 1 ? 's' : '' }} remaining
-                    </p>
-                    <p v-if="!canResend && remainingResends === 0" class="mt-2 text-sm text-red-600">
-                        Maximum resends reached. Please refresh and try again.
-                    </p>
                 </div>
 
                 <!-- Help Text -->
@@ -114,7 +93,7 @@
 </template>
 
 <script>
-import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, computed, watch, onMounted, nextTick } from 'vue';
 import api from '../../services/api';
 
 export default {
@@ -128,9 +107,15 @@ export default {
             type: String,
             required: true
         },
+        // For login verification
         userId: {
             type: Number,
-            required: true
+            default: null
+        },
+        // For registration verification
+        pendingId: {
+            type: Number,
+            default: null
         },
         type: {
             type: String,
@@ -145,34 +130,8 @@ export default {
         const error = ref(null);
         const verifying = ref(false);
         const resending = ref(false);
-        const timeRemaining = ref(60);
-        const remainingResends = ref(2);
-        const canResend = ref(true);
-        let timerInterval = null;
-
-        const formattedTime = computed(() => {
-            const minutes = Math.floor(timeRemaining.value / 60);
-            const seconds = timeRemaining.value % 60;
-            return `${minutes}:${String(seconds).padStart(2, '0')}`;
-        });
 
         const fullCode = computed(() => codeDigits.value.join(''));
-
-        const startTimer = () => {
-            timeRemaining.value = 60;
-            if (timerInterval) clearInterval(timerInterval);
-            timerInterval = setInterval(() => {
-                if (timeRemaining.value > 0) {
-                    timeRemaining.value--;
-                } else {
-                    clearInterval(timerInterval);
-                    // Auto-resend if allowed
-                    if (canResend.value && remainingResends.value > 0) {
-                        handleResend();
-                    }
-                }
-            }, 1000);
-        };
 
         const handleInput = (event, index) => {
             const value = event.target.value.replace(/[^0-9]/g, '');
@@ -235,11 +194,19 @@ export default {
             error.value = null;
 
             try {
-                const response = await api.post('/auth/verify-code', {
-                    user_id: props.userId,
+                // Build request based on type
+                const requestData = {
                     code: fullCode.value,
                     type: props.type
-                });
+                };
+
+                if (props.type === 'registration') {
+                    requestData.pending_id = props.pendingId;
+                } else {
+                    requestData.user_id = props.userId;
+                }
+
+                const response = await api.post('/auth/verify-code', requestData);
 
                 if (response.data.success) {
                     emit('verified', response.data.data);
@@ -248,7 +215,7 @@ export default {
                     clearCode();
                 }
             } catch (err) {
-                error.value = err.response?.data?.message || 'Invalid or expired verification code';
+                error.value = err.response?.data?.message || 'Invalid verification code';
                 clearCode();
             } finally {
                 verifying.value = false;
@@ -256,33 +223,29 @@ export default {
         };
 
         const handleResend = async () => {
-            if (!canResend.value || remainingResends.value <= 0) return;
-
             resending.value = true;
             error.value = null;
 
             try {
-                const response = await api.post('/auth/resend-code', {
-                    user_id: props.userId,
-                    type: props.type
-                });
+                // Build request based on type
+                const requestData = { type: props.type };
+
+                if (props.type === 'registration') {
+                    requestData.pending_id = props.pendingId;
+                } else {
+                    requestData.user_id = props.userId;
+                }
+
+                const response = await api.post('/auth/resend-code', requestData);
 
                 if (response.data.success) {
-                    remainingResends.value = response.data.data.remaining_resends;
-                    canResend.value = response.data.data.can_resend;
-                    startTimer();
                     clearCode();
+                    error.value = null;
                 } else {
                     error.value = response.data.message || 'Failed to resend code';
                 }
             } catch (err) {
-                if (err.response?.status === 429) {
-                    canResend.value = false;
-                    remainingResends.value = 0;
-                    error.value = 'Maximum resend limit reached. Please refresh and try again.';
-                } else {
-                    error.value = err.response?.data?.message || 'Failed to resend code';
-                }
+                error.value = err.response?.data?.message || 'Failed to resend code';
             } finally {
                 resending.value = false;
             }
@@ -299,41 +262,22 @@ export default {
             emit('close');
         };
 
-        // Handle escape key
-        const handleEscape = (event) => {
-            if (event.key === 'Escape' && props.isOpen) {
-                handleClose();
-            }
-        };
-
         watch(() => props.isOpen, (newVal) => {
             if (newVal) {
-                startTimer();
                 clearCode();
                 error.value = null;
-                remainingResends.value = 2;
-                canResend.value = true;
                 nextTick(() => {
                     inputRefs.value[0]?.focus();
                 });
-            } else {
-                if (timerInterval) clearInterval(timerInterval);
             }
         });
 
         onMounted(() => {
-            document.addEventListener('keydown', handleEscape);
             if (props.isOpen) {
-                startTimer();
                 nextTick(() => {
                     inputRefs.value[0]?.focus();
                 });
             }
-        });
-
-        onUnmounted(() => {
-            document.removeEventListener('keydown', handleEscape);
-            if (timerInterval) clearInterval(timerInterval);
         });
 
         return {
@@ -342,10 +286,6 @@ export default {
             error,
             verifying,
             resending,
-            timeRemaining,
-            formattedTime,
-            remainingResends,
-            canResend,
             handleInput,
             handleKeydown,
             handlePaste,
