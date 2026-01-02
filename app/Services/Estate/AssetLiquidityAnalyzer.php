@@ -179,6 +179,19 @@ class AssetLiquidityAnalyzer
                     'Hold until 2-year BPR qualifying period if recently acquired',
                 ],
             ],
+            'chattel' => [
+                'liquidity' => 'semi_liquid',
+                'is_giftable' => true,
+                'not_giftable_reason' => null,
+                'gifting_considerations' => [
+                    'Chattels (personal possessions) can be gifted',
+                    'Items worth over £6,000 may trigger Capital Gains Tax on gift',
+                    'Wasting assets (lifespan under 50 years) are CGT exempt',
+                    'Sets of items are valued together for CGT purposes',
+                    'Professional valuation recommended for valuable items',
+                    'Large gifts are PETs - exempt after 7 years',
+                ],
+            ],
             'other' => [
                 'liquidity' => 'liquid', // Default to liquid for cash and other
                 'is_giftable' => true,

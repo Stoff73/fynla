@@ -210,6 +210,55 @@ $propertyAssets = array_filter($semiLiquidAssets['assets'], fn ($a) => ($a['type
 
 ---
 
+## Additional Fix: Unhandled Match Case 'chattel'
+
+### Issue
+The Widow persona's Estate Plan showed "Internal server error" with message:
+```
+Unhandled match case 'chattel' at AssetLiquidityAnalyzer.php:116
+```
+
+### Root Cause
+In `AssetLiquidityAnalyzer.php`, line 116 has a `match` statement for asset types that didn't include 'chattel':
+```php
+return match ($asset->asset_type) {
+    'cash' => [...],
+    'investment' => [...],
+    'pension', 'dc_pension', 'db_pension' => [...],
+    'property' => [...],
+    'business' => [...],
+    'other' => [...],
+    // Missing: 'chattel'
+};
+```
+
+The Widow persona (Margaret Thompson) has chattels in her estate, causing the match to fail.
+
+### Fix Applied
+Added 'chattel' case to the match statement:
+```php
+'chattel' => [
+    'liquidity' => 'semi_liquid',
+    'is_giftable' => true,
+    'not_giftable_reason' => null,
+    'gifting_considerations' => [
+        'Chattels (personal possessions) can be gifted',
+        'Items worth over £6,000 may trigger Capital Gains Tax on gift',
+        'Wasting assets (lifespan under 50 years) are CGT exempt',
+        'Sets of items are valued together for CGT purposes',
+        'Professional valuation recommended for valuable items',
+        'Large gifts are PETs - exempt after 7 years',
+    ],
+],
+```
+
+### File to Deploy
+```bash
+scp -P 18765 -i ~/.ssh/production app/Services/Estate/AssetLiquidityAnalyzer.php u2783-hrf1k8bpfg02@ssh.fynla.org:~/www/fynla.org/public_html/app/Services/Estate/
+```
+
+---
+
 ## Deployment
 
 Changes have been committed and pushed to GitHub. To deploy:
