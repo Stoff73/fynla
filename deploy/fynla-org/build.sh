@@ -28,12 +28,14 @@ cd "$PROJECT_ROOT"
 # Set environment variables for root deployment
 export NODE_ENV=production
 export VITE_BASE_PATH=/build/
+export VITE_ROUTER_BASE=/
 export VITE_APP_NAME="Fynla"
 export VITE_API_BASE_URL=https://fynla.org
 
 echo "Environment:"
 echo "  NODE_ENV: $NODE_ENV"
 echo "  VITE_BASE_PATH: $VITE_BASE_PATH"
+echo "  VITE_ROUTER_BASE: $VITE_ROUTER_BASE"
 echo "  VITE_API_BASE_URL: $VITE_API_BASE_URL"
 echo ""
 
@@ -73,7 +75,8 @@ rsync -a --progress "$PROJECT_ROOT/" "$DEPLOY_DIR/" \
   --exclude '*.md' \
   --exclude 'CLAUDE.md' \
   --exclude '.DS_Store' \
-  --exclude '*.zip'
+  --exclude '*.zip' \
+  --exclude 'public/hot'
 
 # Copy production .htaccess files
 echo "Copying production .htaccess files..."

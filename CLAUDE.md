@@ -6,7 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Fynla** is a UK-focused comprehensive financial planning application (Laravel 10 + Vue.js 3 + MySQL 8). It covers five integrated modules: Protection, Savings, Investment, Retirement, and Estate Planning.
 
-**Production URL**: https://csjones.co/fynla
+**Production URLs**:
+- https://fynla.org (primary)
+- https://csjones.co/fynla (legacy)
+
 **Version**: v0.4.5
 
 ## Essential Commands
@@ -478,6 +481,25 @@ DELETE /api/savings/accounts/{id}   # Delete
 | `403 Admin access required` | Endpoint requires admin role | Use admin credentials or different endpoint |
 | `405 Method Not Allowed` | Wrong HTTP method | Check route with `php artisan route:list --path=endpoint` |
 | Tax Status tab empty | TaxProductReferenceSeeder not run | `php artisan db:seed --class=TaxProductReferenceSeeder --force` |
+
+### Production Site Blank Page (public/hot Issue)
+
+**Symptom:** Production site shows blank white page, browser Network tab shows requests to `http://127.0.0.1:5173/`.
+
+**Cause:** The `public/hot` file was accidentally deployed to the server. This file is created by `npm run dev` and tells Laravel to use Vite dev server instead of built assets.
+
+**Fix on server:**
+```bash
+ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
+cd ~/www/fynla.org/public_html
+rm public/hot
+php artisan config:clear
+php artisan view:clear
+```
+
+**Prevention:** The build scripts (`deploy/fynla-org/build.sh` and `deploy/csjones-fynla/build.sh`) now exclude `public/hot` from deployment packages. The file is also in `.gitignore`.
+
+**NEVER deploy `public/hot` to production.** If running `npm run dev` locally before building, delete `public/hot` before running the build script, or the build script will automatically exclude it.
 
 ### After Running Pest Tests
 
