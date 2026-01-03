@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api\Estate;
 
 use App\Http\Controllers\Controller;
 use App\Models\Estate\Liability;
+use App\Models\Estate\Will;
 use App\Models\LifeInsurancePolicy;
 use App\Models\Mortgage;
 use App\Models\User;
@@ -116,6 +117,14 @@ class IHTController extends Controller
                 ],
                 'is_married' => $calculation['is_married'],
                 'data_sharing_enabled' => $calculation['data_sharing_enabled'],
+            ];
+
+            // Add will information for estate planning status display
+            $will = Will::where('user_id', $user->id)->first();
+            $response['will_info'] = [
+                'has_will' => $will?->has_will ?? false,
+                'last_updated' => $will?->will_last_updated?->toIso8601String(),
+                'executor_name' => $will?->executor_name,
             ];
 
             return response()->json($response);
