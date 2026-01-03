@@ -311,9 +311,8 @@ class OnboardingService
                     'spouse_id' => $spouseAccount->id,
                 ],
                 [
-                    'can_view_data' => true,
-                    'can_edit_data' => false,
-                    'permission_granted_at' => now(),
+                    'status' => 'accepted',
+                    'responded_at' => now(),
                 ]
             );
 
@@ -323,9 +322,8 @@ class OnboardingService
                     'spouse_id' => $user->id,
                 ],
                 [
-                    'can_view_data' => true,
-                    'can_edit_data' => false,
-                    'permission_granted_at' => now(),
+                    'status' => 'accepted',
+                    'responded_at' => now(),
                 ]
             );
 

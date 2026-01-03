@@ -270,7 +270,8 @@ export default {
         }
       } catch (err) {
         console.error('Failed to save family member:', err);
-        error.value = 'Failed to save family member. Please try again.';
+        const errorMsg = err.response?.data?.message || err.message || 'Unknown error';
+        error.value = `Failed to save family member: ${errorMsg}`;
       }
     };
 

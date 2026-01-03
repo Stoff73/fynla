@@ -538,8 +538,14 @@ const routes = [
   },
 ];
 
+// Router base path is configurable via environment variable
+// Development: '/' (default)
+// Production fynla.org (root): '/'
+// Production csjones.co/fynla (subdirectory): '/fynla/'
+const routerBase = import.meta.env.VITE_ROUTER_BASE || '/';
+
 const router = createRouter({
-  history: createWebHistory(import.meta.env.PROD ? '/fynla/' : '/'),
+  history: createWebHistory(routerBase),
   routes,
 });
 

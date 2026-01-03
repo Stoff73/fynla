@@ -287,9 +287,8 @@ class FamilyMembersController extends Controller
                     'spouse_id' => $spouseUser->id,
                 ],
                 [
-                    'can_view_data' => true,
-                    'can_edit_data' => false,
-                    'permission_granted_at' => now(),
+                    'status' => 'accepted',
+                    'responded_at' => now(),
                 ]
             );
 
@@ -299,9 +298,8 @@ class FamilyMembersController extends Controller
                     'spouse_id' => $currentUser->id,
                 ],
                 [
-                    'can_view_data' => true,
-                    'can_edit_data' => false,
-                    'permission_granted_at' => now(),
+                    'status' => 'accepted',
+                    'responded_at' => now(),
                 ]
             );
 
@@ -369,6 +367,8 @@ class FamilyMembersController extends Controller
             ($data['last_name'] ?? ''));
 
         $spouseUser = \App\Models\User::create([
+            'first_name' => $data['first_name'] ?? '',
+            'surname' => $data['last_name'] ?? '',
             'name' => $fullName,
             'email' => $spouseEmail,
             'password' => \Illuminate\Support\Facades\Hash::make($temporaryPassword),
