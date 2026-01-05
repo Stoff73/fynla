@@ -30,6 +30,9 @@ This document lists ALL files that need to be uploaded to production from the Ja
 | 10 | `app/Http/Middleware/PreviewWriteInterceptor.php` | `app/Http/Middleware/PreviewWriteInterceptor.php` |
 | 11 | `app/Http/Controllers/Api/PreviewController.php` | `app/Http/Controllers/Api/PreviewController.php` |
 
+**Note:** The following Vue/JS files are included in the frontend build (no separate upload needed):
+- `resources/js/store/modules/preview.js` - Added effectivePersonaData getter
+
 ---
 
 ## Frontend Build Assets

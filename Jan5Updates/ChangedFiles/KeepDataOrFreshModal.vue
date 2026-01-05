@@ -198,10 +198,11 @@ export default {
     },
 
     computed: {
-        ...mapGetters('preview', ['currentPersona']),
+        ...mapGetters('preview', ['currentPersona', 'effectivePersonaData']),
 
         activePersona() {
-            return this.persona || this.currentPersona;
+            // Use prop first, then full persona data from store, then basic metadata
+            return this.persona || this.effectivePersonaData || this.currentPersona;
         },
 
         personaName() {
