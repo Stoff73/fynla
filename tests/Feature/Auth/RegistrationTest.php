@@ -33,12 +33,13 @@ test('user can register with valid data', function () {
             'message',
             'requires_verification',
             'data' => [
-                'user_id',
+                'pending_id',
                 'email',
             ],
         ]);
 
-    $this->assertDatabaseHas('users', [
+    // Registration creates a pending registration, not a user directly
+    $this->assertDatabaseHas('pending_registrations', [
         'email' => 'john@example.com',
         'first_name' => 'John',
         'surname' => 'Doe',
@@ -61,14 +62,19 @@ test('user registration creates verification code', function () {
 
     $response->assertStatus(201);
     expect($response->json('requires_verification'))->toBeTrue();
-    expect($response->json('data.user_id'))->not()->toBeNull();
+    expect($response->json('data.pending_id'))->not()->toBeNull();
 
-    // Verification code should be created
-    $this->assertDatabaseHas('email_verification_codes', [
-        'user_id' => $response->json('data.user_id'),
-        'type' => 'registration',
-        'verified_at' => null,
+    // Verification code is stored on the pending registration record
+    $pendingId = $response->json('data.pending_id');
+    $this->assertDatabaseHas('pending_registrations', [
+        'id' => $pendingId,
+        'email' => 'jane@example.com',
     ]);
+
+    // Verify the pending registration has a verification code
+    $pending = \App\Models\PendingRegistration::find($pendingId);
+    expect($pending->verification_code)->not()->toBeNull();
+    expect(strlen($pending->verification_code))->toBe(6);
 });
 
 test('user cannot register with existing email', function () {
