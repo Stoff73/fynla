@@ -76,7 +76,6 @@
             v-if="activeTab === 'current'"
             @add-policy="handleAddPolicy"
             @edit-policy="handleEditPolicy"
-            @delete-policy="handleDeletePolicy"
           />
 
           <!-- Gap Analysis Tab -->
@@ -188,10 +187,6 @@ export default {
     handleEditPolicy(policy) {
       this.editingPolicy = policy;
       this.showForm = true;
-    },
-
-    handleDeletePolicy(policy) {
-      // CurrentSituation component handles this internally (navigates to PolicyDetail)
     },
 
     closeForm() {

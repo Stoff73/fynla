@@ -1,5 +1,83 @@
 import protectionService from '@/services/protectionService';
 
+// Helper: Convert premium to monthly amount
+const convertPremiumToMonthly = (premium, frequency) => {
+    const amount = parseFloat(premium || 0);
+    if (frequency === 'annual') {
+        return amount / 12;
+    }
+    return amount;
+};
+
+// Helper: Calculate total monthly premium for a list of policies
+const calculateMonthlyPremium = (policies) => {
+    return policies.reduce((sum, policy) => {
+        return sum + convertPremiumToMonthly(policy.premium_amount, policy.premium_frequency || 'monthly');
+    }, 0);
+};
+
+// Action factory for creating policies
+const createPolicyActionFactory = (policyType, serviceMethod, errorMessage) => {
+    return async ({ commit, dispatch }, policyData) => {
+        commit('setLoading', true);
+        commit('setError', null);
+
+        try {
+            const response = await protectionService[serviceMethod](policyData);
+            const policy = response.data || response;
+            commit('addPolicy', { type: policyType, policy });
+            await dispatch('analyseProtection', {});
+            return response;
+        } catch (error) {
+            commit('setError', error.message || errorMessage);
+            throw error;
+        } finally {
+            commit('setLoading', false);
+        }
+    };
+};
+
+// Action factory for updating policies
+const updatePolicyActionFactory = (policyType, serviceMethod, errorMessage) => {
+    return async ({ commit, dispatch }, { id, policyData }) => {
+        commit('setLoading', true);
+        commit('setError', null);
+
+        try {
+            const response = await protectionService[serviceMethod](id, policyData);
+            const policy = response.data || response;
+            commit('updatePolicy', { type: policyType, policy });
+            await dispatch('analyseProtection', {});
+            return response;
+        } catch (error) {
+            commit('setError', error.message || errorMessage);
+            throw error;
+        } finally {
+            commit('setLoading', false);
+        }
+    };
+};
+
+// Action factory for deleting policies
+const deletePolicyActionFactory = (policyType, serviceMethod, errorMessage) => {
+    return async ({ commit, dispatch }, id) => {
+        commit('setLoading', true);
+        commit('setError', null);
+
+        try {
+            const response = await protectionService[serviceMethod](id);
+            commit('removePolicy', { type: policyType, id });
+            await dispatch('analyseProtection', {});
+            return response;
+        } catch (error) {
+            commit('setError', error.message || errorMessage);
+            throw error;
+        } finally {
+            commit('setLoading', false);
+        }
+    };
+};
+
 const state = {
     profile: null,
     policies: {
@@ -28,26 +106,11 @@ const getters = {
         return lifeCoverage + criticalIllnessCoverage;
     },
 
-    // Get total premium across all policy types
+    // Get total premium across all policy types (monthly)
     totalPremium: (state) => {
-        let total = 0;
-
-        Object.values(state.policies).forEach(policyType => {
-            total += policyType.reduce((sum, policy) => {
-                const premium = parseFloat(policy.premium_amount || 0);
-                const frequency = policy.premium_frequency || 'monthly';
-
-                // Convert all premiums to monthly for consistency
-                if (frequency === 'monthly') {
-                    return sum + premium;
-                } else if (frequency === 'annual') {
-                    return sum + (premium / 12);
-                }
-                return sum + premium;
-            }, 0);
-        });
-
-        return total;
+        return Object.values(state.policies).reduce((total, policies) => {
+            return total + calculateMonthlyPremium(policies);
+        }, 0);
     },
 
     // Get coverage gaps from analysis
@@ -76,8 +139,8 @@ const getters = {
                 if (type === 'life') {
                     allPolicies.push({
                         ...policy,
-                        policy_subtype: policy.policy_type, // Preserve life policy type (e.g., decreasing_term, level_term)
-                        policy_type: type, // Set general type to 'life'
+                        policy_subtype: policy.policy_type,
+                        policy_type: type,
                     });
                 } else {
                     allPolicies.push({
@@ -91,31 +154,12 @@ const getters = {
         return allPolicies;
     },
 
-    // Premium breakdown by policy type
+    // Premium breakdown by policy type (monthly)
     premiumBreakdown: (state) => {
-        const breakdown = {
-            life: 0,
-            criticalIllness: 0,
-            incomeProtection: 0,
-            disability: 0,
-            sicknessIllness: 0,
-        };
-
+        const breakdown = {};
         Object.entries(state.policies).forEach(([type, policies]) => {
-            breakdown[type] = policies.reduce((sum, policy) => {
-                const premium = parseFloat(policy.premium_amount || 0);
-                const frequency = policy.premium_frequency || 'monthly';
-
-                // Convert to monthly
-                if (frequency === 'monthly') {
-                    return sum + premium;
-                } else if (frequency === 'annual') {
-                    return sum + (premium / 12);
-                }
-                return sum + premium;
-            }, 0);
+            breakdown[type] = calculateMonthlyPremium(policies);
         });
-
         return breakdown;
     },
 
@@ -162,7 +206,6 @@ const actions = {
         } catch (error) {
             const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch protection profile';
             commit('setError', errorMessage);
-            console.error('Protection profile fetch error:', error);
             throw error;
         } finally {
             commit('setLoading', false);
@@ -182,7 +225,6 @@ const actions = {
         } catch (error) {
             const errorMessage = error.response?.data?.message || error.message || 'Failed to update protection profile';
             commit('setError', errorMessage);
-            console.error('Protection profile update error:', error);
             throw error;
         } finally {
             commit('setLoading', false);
@@ -195,7 +237,6 @@ const actions = {
         commit('setError', null);
 
         try {
-            // Fetch protection profile and policies
             const response = await protectionService.getProtectionData();
             const data = response.data || response;
             commit('setProfile', data.profile || null);
@@ -204,12 +245,9 @@ const actions = {
             // Also fetch analysis data to get human capital and total debt
             try {
                 const analysisResponse = await protectionService.analyzeProtection({});
-                // Backend returns: {success: true, message: '...', data: {...}}
-                // We want the 'data' object which contains profile, needs, gaps, etc.
                 const analysisData = analysisResponse.data || analysisResponse;
                 commit('setAnalysis', analysisData);
             } catch (analysisError) {
-                console.warn('Failed to fetch protection analysis:', analysisError);
                 // Don't fail the whole request if analysis fails
                 commit('setAnalysis', null);
             }
@@ -218,7 +256,6 @@ const actions = {
         } catch (error) {
             const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch protection data';
             commit('setError', errorMessage);
-            console.error('Protection data fetch error:', error);
             throw error;
         } finally {
             commit('setLoading', false);
@@ -232,14 +269,11 @@ const actions = {
 
         try {
             const response = await protectionService.analyzeProtection(data);
-            // Backend returns: {success: true, message: '...', data: {...}}
-            // analysisData should be the full response so components can access response.data.needs
             const analysisData = response.data || response;
             commit('setAnalysis', analysisData);
             return response;
         } catch (error) {
-            const errorMessage = error.message || 'Analysis failed';
-            commit('setError', errorMessage);
+            commit('setError', error.message || 'Analysis failed');
             throw error;
         } finally {
             commit('setLoading', false);
@@ -256,15 +290,14 @@ const actions = {
             commit('setRecommendations', response.data.recommendations);
             return response;
         } catch (error) {
-            const errorMessage = error.message || 'Failed to fetch recommendations';
-            commit('setError', errorMessage);
+            commit('setError', error.message || 'Failed to fetch recommendations');
             throw error;
         } finally {
             commit('setLoading', false);
         }
     },
 
-    // Create policy (dispatches to specific policy type action)
+    // Generic create/update/delete dispatchers
     async createPolicy({ dispatch }, { policyType, policyData }) {
         const actionMap = {
             life: 'createLifePolicy',
@@ -278,11 +311,9 @@ const actions = {
         if (!action) {
             throw new Error(`Unknown policy type: ${policyType}`);
         }
-
         return dispatch(action, policyData);
     },
 
-    // Update policy (dispatches to specific policy type action)
     async updatePolicy({ dispatch }, { policyType, id, policyData }) {
         const actionMap = {
             life: 'updateLifePolicy',
@@ -296,11 +327,9 @@ const actions = {
         if (!action) {
             throw new Error(`Unknown policy type: ${policyType}`);
         }
-
         return dispatch(action, { id, policyData });
     },
 
-    // Delete policy (dispatches to specific policy type action)
     async deletePolicy({ dispatch }, { policyType, id }) {
         const actionMap = {
             life: 'deleteLifePolicy',
@@ -314,342 +343,33 @@ const actions = {
         if (!action) {
             throw new Error(`Unknown policy type: ${policyType}`);
         }
-
         return dispatch(action, id);
     },
 
     // Life Insurance Policy Actions
-    async createLifePolicy({ commit, dispatch }, policyData) {
-        commit('setLoading', true);
-        commit('setError', null);
-
-        try {
-            const response = await protectionService.createLifePolicy(policyData);
-            // Backend returns: { success: true, message: "...", data: { policy object } }
-            // Service returns response.data, so response = { success, message, data }
-            // The actual policy is in response.data.data
-            const policy = response.data || response;
-            commit('addPolicy', { type: 'life', policy });
-
-            // Re-analyse protection to update gaps
-            await dispatch('analyseProtection', {});
-
-            return response;
-        } catch (error) {
-            const errorMessage = error.message || 'Failed to create life insurance policy';
-            commit('setError', errorMessage);
-            throw error;
-        } finally {
-            commit('setLoading', false);
-        }
-    },
-
-    async updateLifePolicy({ commit, dispatch }, { id, policyData }) {
-        commit('setLoading', true);
-        commit('setError', null);
-
-        try {
-            const response = await protectionService.updateLifePolicy(id, policyData);
-            const policy = response.data || response;
-            commit('updatePolicy', { type: 'life', policy });
-
-            // Re-analyse protection to update gaps
-            await dispatch('analyseProtection', {});
-
-            return response;
-        } catch (error) {
-            const errorMessage = error.message || 'Failed to update life insurance policy';
-            commit('setError', errorMessage);
-            throw error;
-        } finally {
-            commit('setLoading', false);
-        }
-    },
-
-    async deleteLifePolicy({ commit, dispatch }, id) {
-        commit('setLoading', true);
-        commit('setError', null);
-
-        try {
-            const response = await protectionService.deleteLifePolicy(id);
-            commit('removePolicy', { type: 'life', id });
-
-            // Re-analyse protection to update gaps
-            await dispatch('analyseProtection', {});
-
-            return response;
-        } catch (error) {
-            const errorMessage = error.message || 'Failed to delete life insurance policy';
-            commit('setError', errorMessage);
-            throw error;
-        } finally {
-            commit('setLoading', false);
-        }
-    },
+    createLifePolicy: createPolicyActionFactory('life', 'createLifePolicy', 'Failed to create life insurance policy'),
+    updateLifePolicy: updatePolicyActionFactory('life', 'updateLifePolicy', 'Failed to update life insurance policy'),
+    deleteLifePolicy: deletePolicyActionFactory('life', 'deleteLifePolicy', 'Failed to delete life insurance policy'),
 
     // Critical Illness Policy Actions
-    async createCriticalIllnessPolicy({ commit, dispatch }, policyData) {
-        commit('setLoading', true);
-        commit('setError', null);
-
-        try {
-            const response = await protectionService.createCriticalIllnessPolicy(policyData);
-            const policy = response.data || response;
-            commit('addPolicy', { type: 'criticalIllness', policy });
-
-            // Re-analyse protection to update gaps
-            await dispatch('analyseProtection', {});
-
-            return response;
-        } catch (error) {
-            const errorMessage = error.message || 'Failed to create critical illness policy';
-            commit('setError', errorMessage);
-            throw error;
-        } finally {
-            commit('setLoading', false);
-        }
-    },
-
-    async updateCriticalIllnessPolicy({ commit, dispatch }, { id, policyData }) {
-        commit('setLoading', true);
-        commit('setError', null);
-
-        try {
-            const response = await protectionService.updateCriticalIllnessPolicy(id, policyData);
-            const policy = response.data || response;
-            commit('updatePolicy', { type: 'criticalIllness', policy });
-
-            // Re-analyse protection to update gaps
-            await dispatch('analyseProtection', {});
-
-            return response;
-        } catch (error) {
-            const errorMessage = error.message || 'Failed to update critical illness policy';
-            commit('setError', errorMessage);
-            throw error;
-        } finally {
-            commit('setLoading', false);
-        }
-    },
-
-    async deleteCriticalIllnessPolicy({ commit, dispatch }, id) {
-        commit('setLoading', true);
-        commit('setError', null);
-
-        try {
-            const response = await protectionService.deleteCriticalIllnessPolicy(id);
-            commit('removePolicy', { type: 'criticalIllness', id });
-
-            // Re-analyse protection to update gaps
-            await dispatch('analyseProtection', {});
-
-            return response;
-        } catch (error) {
-            const errorMessage = error.message || 'Failed to delete critical illness policy';
-            commit('setError', errorMessage);
-            throw error;
-        } finally {
-            commit('setLoading', false);
-        }
-    },
+    createCriticalIllnessPolicy: createPolicyActionFactory('criticalIllness', 'createCriticalIllnessPolicy', 'Failed to create critical illness policy'),
+    updateCriticalIllnessPolicy: updatePolicyActionFactory('criticalIllness', 'updateCriticalIllnessPolicy', 'Failed to update critical illness policy'),
+    deleteCriticalIllnessPolicy: deletePolicyActionFactory('criticalIllness', 'deleteCriticalIllnessPolicy', 'Failed to delete critical illness policy'),
 
     // Income Protection Policy Actions
-    async createIncomeProtectionPolicy({ commit, dispatch }, policyData) {
-        commit('setLoading', true);
-        commit('setError', null);
-
-        try {
-            const response = await protectionService.createIncomeProtectionPolicy(policyData);
-            const policy = response.data || response;
-            commit('addPolicy', { type: 'incomeProtection', policy });
-
-            // Re-analyse protection to update gaps
-            await dispatch('analyseProtection', {});
-
-            return response;
-        } catch (error) {
-            const errorMessage = error.message || 'Failed to create income protection policy';
-            commit('setError', errorMessage);
-            throw error;
-        } finally {
-            commit('setLoading', false);
-        }
-    },
-
-    async updateIncomeProtectionPolicy({ commit, dispatch }, { id, policyData }) {
-        commit('setLoading', true);
-        commit('setError', null);
-
-        try {
-            const response = await protectionService.updateIncomeProtectionPolicy(id, policyData);
-            const policy = response.data || response;
-            commit('updatePolicy', { type: 'incomeProtection', policy });
-
-            // Re-analyse protection to update gaps
-            await dispatch('analyseProtection', {});
-
-            return response;
-        } catch (error) {
-            const errorMessage = error.message || 'Failed to update income protection policy';
-            commit('setError', errorMessage);
-            throw error;
-        } finally {
-            commit('setLoading', false);
-        }
-    },
-
-    async deleteIncomeProtectionPolicy({ commit, dispatch }, id) {
-        commit('setLoading', true);
-        commit('setError', null);
-
-        try {
-            const response = await protectionService.deleteIncomeProtectionPolicy(id);
-            commit('removePolicy', { type: 'incomeProtection', id });
-
-            // Re-analyse protection to update gaps
-            await dispatch('analyseProtection', {});
-
-            return response;
-        } catch (error) {
-            const errorMessage = error.message || 'Failed to delete income protection policy';
-            commit('setError', errorMessage);
-            throw error;
-        } finally {
-            commit('setLoading', false);
-        }
-    },
+    createIncomeProtectionPolicy: createPolicyActionFactory('incomeProtection', 'createIncomeProtectionPolicy', 'Failed to create income protection policy'),
+    updateIncomeProtectionPolicy: updatePolicyActionFactory('incomeProtection', 'updateIncomeProtectionPolicy', 'Failed to update income protection policy'),
+    deleteIncomeProtectionPolicy: deletePolicyActionFactory('incomeProtection', 'deleteIncomeProtectionPolicy', 'Failed to delete income protection policy'),
 
     // Disability Policy Actions
-    async createDisabilityPolicy({ commit, dispatch }, policyData) {
-        commit('setLoading', true);
-        commit('setError', null);
-
-        try {
-            const response = await protectionService.createDisabilityPolicy(policyData);
-            const policy = response.data || response;
-            commit('addPolicy', { type: 'disability', policy });
-
-            // Re-analyse protection to update gaps
-            await dispatch('analyseProtection', {});
-
-            return response;
-        } catch (error) {
-            const errorMessage = error.message || 'Failed to create disability policy';
-            commit('setError', errorMessage);
-            throw error;
-        } finally {
-            commit('setLoading', false);
-        }
-    },
-
-    async updateDisabilityPolicy({ commit, dispatch }, { id, policyData }) {
-        commit('setLoading', true);
-        commit('setError', null);
-
-        try {
-            const response = await protectionService.updateDisabilityPolicy(id, policyData);
-            const policy = response.data || response;
-            commit('updatePolicy', { type: 'disability', policy });
-
-            // Re-analyse protection to update gaps
-            await dispatch('analyseProtection', {});
-
-            return response;
-        } catch (error) {
-            const errorMessage = error.message || 'Failed to update disability policy';
-            commit('setError', errorMessage);
-            throw error;
-        } finally {
-            commit('setLoading', false);
-        }
-    },
-
-    async deleteDisabilityPolicy({ commit, dispatch }, id) {
-        commit('setLoading', true);
-        commit('setError', null);
-
-        try {
-            const response = await protectionService.deleteDisabilityPolicy(id);
-            commit('removePolicy', { type: 'disability', id });
-
-            // Re-analyse protection to update gaps
-            await dispatch('analyseProtection', {});
-
-            return response;
-        } catch (error) {
-            const errorMessage = error.message || 'Failed to delete disability policy';
-            commit('setError', errorMessage);
-            throw error;
-        } finally {
-            commit('setLoading', false);
-        }
-    },
+    createDisabilityPolicy: createPolicyActionFactory('disability', 'createDisabilityPolicy', 'Failed to create disability policy'),
+    updateDisabilityPolicy: updatePolicyActionFactory('disability', 'updateDisabilityPolicy', 'Failed to update disability policy'),
+    deleteDisabilityPolicy: deletePolicyActionFactory('disability', 'deleteDisabilityPolicy', 'Failed to delete disability policy'),
 
     // Sickness/Illness Policy Actions
-    async createSicknessIllnessPolicy({ commit, dispatch }, policyData) {
-        commit('setLoading', true);
-        commit('setError', null);
-
-        try {
-            const response = await protectionService.createSicknessIllnessPolicy(policyData);
-            const policy = response.data || response;
-            commit('addPolicy', { type: 'sicknessIllness', policy });
-
-            // Re-analyse protection to update gaps
-            await dispatch('analyseProtection', {});
-
-            return response;
-        } catch (error) {
-            const errorMessage = error.message || 'Failed to create sickness/illness policy';
-            commit('setError', errorMessage);
-            throw error;
-        } finally {
-            commit('setLoading', false);
-        }
-    },
-
-    async updateSicknessIllnessPolicy({ commit, dispatch }, { id, policyData }) {
-        commit('setLoading', true);
-        commit('setError', null);
-
-        try {
-            const response = await protectionService.updateSicknessIllnessPolicy(id, policyData);
-            const policy = response.data || response;
-            commit('updatePolicy', { type: 'sicknessIllness', policy });
-
-            // Re-analyse protection to update gaps
-            await dispatch('analyseProtection', {});
-
-            return response;
-        } catch (error) {
-            const errorMessage = error.message || 'Failed to update sickness/illness policy';
-            commit('setError', errorMessage);
-            throw error;
-        } finally {
-            commit('setLoading', false);
-        }
-    },
-
-    async deleteSicknessIllnessPolicy({ commit, dispatch }, id) {
-        commit('setLoading', true);
-        commit('setError', null);
-
-        try {
-            const response = await protectionService.deleteSicknessIllnessPolicy(id);
-            commit('removePolicy', { type: 'sicknessIllness', id });
-
-            // Re-analyse protection to update gaps
-            await dispatch('analyseProtection', {});
-
-            return response;
-        } catch (error) {
-            const errorMessage = error.message || 'Failed to delete sickness/illness policy';
-            commit('setError', errorMessage);
-            throw error;
-        } finally {
-            commit('setLoading', false);
-        }
-    },
+    createSicknessIllnessPolicy: createPolicyActionFactory('sicknessIllness', 'createSicknessIllnessPolicy', 'Failed to create sickness/illness policy'),
+    updateSicknessIllnessPolicy: updatePolicyActionFactory('sicknessIllness', 'updateSicknessIllnessPolicy', 'Failed to update sickness/illness policy'),
+    deleteSicknessIllnessPolicy: deletePolicyActionFactory('sicknessIllness', 'deleteSicknessIllnessPolicy', 'Failed to delete sickness/illness policy'),
 };
 
 const mutations = {

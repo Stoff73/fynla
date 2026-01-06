@@ -238,8 +238,6 @@ export default {
 
     // Pre-fill name from persona if in preview mode
     onMounted(() => {
-      console.log('[Register] onMounted - wasInPreview:', wasInPreview.value);
-      console.log('[Register] onMounted - currentPersona:', currentPersona.value);
       if (wasInPreview.value && currentPersona.value) {
         // Extract first person's name from persona (e.g., "James & Emily Wilson" -> "James Wilson")
         const personaName = currentPersona.value.name || '';
@@ -264,8 +262,6 @@ export default {
       // Cache preview state before it gets cleared
       cachedWasInPreview = wasInPreview.value;
       cachedCurrentPersona = currentPersona.value;
-      console.log('[Register] handleRegister - cachedWasInPreview:', cachedWasInPreview);
-      console.log('[Register] handleRegister - cachedCurrentPersona:', cachedCurrentPersona);
 
       try {
         // Include registration source if from preview
@@ -316,16 +312,12 @@ export default {
       store.commit('auth/setUser', data.user);
 
       // Check if coming from preview mode (use cached values)
-      console.log('[Register] completeRegistration - cachedWasInPreview:', cachedWasInPreview);
-      console.log('[Register] completeRegistration - cachedCurrentPersona:', cachedCurrentPersona);
       if (cachedWasInPreview && cachedCurrentPersona) {
         // Show keep/fresh modal with cached persona (currentPersona is now null after auth change)
-        console.log('[Register] Showing KeepDataOrFreshModal');
         previewPersonaId.value = cachedCurrentPersona.id;
         personaForModal.value = cachedCurrentPersona;
         showKeepDataModal.value = true;
       } else {
-        console.log('[Register] Skipping modal - going directly to dashboard');
         // Direct registration - go to dashboard with guidance
         try {
           await store.dispatch('guidance/showWelcomeModal');

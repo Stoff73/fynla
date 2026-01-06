@@ -8,6 +8,7 @@ use App\Models\Estate\IHTCalculation;
 use App\Models\User;
 use App\Services\TaxConfigService;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Simplified IHT Calculation Service

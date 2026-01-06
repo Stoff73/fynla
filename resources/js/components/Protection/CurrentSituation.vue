@@ -112,7 +112,6 @@
         :key="`${policy.policy_type}-${policy.id}`"
         :policy="policy"
         @edit="handleEditPolicy"
-        @delete="handleDeletePolicy"
       />
     </div>
 
@@ -379,10 +378,6 @@ export default {
 
     handleEditPolicy(policy) {
       this.$emit('edit-policy', policy);
-    },
-
-    handleDeletePolicy(policy) {
-      this.$emit('delete-policy', policy);
     },
 
     closeUploadModal() {
