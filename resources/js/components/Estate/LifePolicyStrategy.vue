@@ -23,25 +23,25 @@
     <!-- Strategy Comparison -->
     <div v-else-if="strategy" class="space-y-6">
       <!-- Header with Key Info -->
-      <div class="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-6 border border-indigo-200">
-        <h2 class="text-2xl font-bold text-gray-900 mb-4">Life Insurance vs. Self-Insurance Strategy</h2>
+      <div class="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-4 sm:p-6 border border-indigo-200">
+        <h2 class="text-xl sm:text-2xl font-bold text-gray-900 mb-4">Life Insurance vs. Self-Insurance Strategy</h2>
 
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div class="bg-white rounded-lg p-4 border border-indigo-100">
-            <p class="text-sm text-gray-600 mb-1">IHT to Cover</p>
-            <p class="text-2xl font-bold text-red-600">{{ formatCurrency(strategy.cover_amount) }}</p>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+          <div class="bg-white rounded-lg p-3 sm:p-4 border border-indigo-100">
+            <p class="text-xs sm:text-sm text-gray-600 mb-1">IHT to Cover</p>
+            <p class="text-lg sm:text-xl lg:text-2xl font-bold text-red-600">{{ formatCurrency(strategy.cover_amount) }}</p>
           </div>
-          <div class="bg-white rounded-lg p-4 border border-indigo-100">
-            <p class="text-sm text-gray-600 mb-1">Your Current Age</p>
-            <p class="text-2xl font-bold text-gray-900">{{ strategy.current_age }}</p>
+          <div class="bg-white rounded-lg p-3 sm:p-4 border border-indigo-100">
+            <p class="text-xs sm:text-sm text-gray-600 mb-1">Your Current Age</p>
+            <p class="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">{{ strategy.current_age }}</p>
           </div>
-          <div class="bg-white rounded-lg p-4 border border-indigo-100">
-            <p class="text-sm text-gray-600 mb-1">Years Until Death</p>
-            <p class="text-2xl font-bold text-gray-900">{{ strategy.years_until_death }}</p>
+          <div class="bg-white rounded-lg p-3 sm:p-4 border border-indigo-100">
+            <p class="text-xs sm:text-sm text-gray-600 mb-1">Years Until Death</p>
+            <p class="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">{{ strategy.years_until_death }}</p>
           </div>
-          <div class="bg-white rounded-lg p-4 border border-indigo-100">
-            <p class="text-sm text-gray-600 mb-1">Policy Type</p>
-            <p class="text-lg font-bold text-indigo-600">{{ strategy.is_joint_policy ? 'Joint Life' : 'Single Life' }}</p>
+          <div class="bg-white rounded-lg p-3 sm:p-4 border border-indigo-100">
+            <p class="text-xs sm:text-sm text-gray-600 mb-1">Policy Type</p>
+            <p class="text-base sm:text-lg font-bold text-indigo-600">{{ strategy.is_joint_policy ? 'Joint Life' : 'Single Life' }}</p>
             <p v-if="strategy.is_joint_policy" class="text-xs text-indigo-500 mt-1">Second Death</p>
           </div>
         </div>
@@ -70,33 +70,33 @@
             </div>
             <div class="text-right">
               <p class="text-sm text-indigo-600">Cost-Benefit Ratio</p>
-              <p class="text-3xl font-bold text-indigo-900">{{ policy.cost_benefit_ratio }}:1</p>
+              <p class="text-xl sm:text-2xl lg:text-3xl font-bold text-indigo-900">{{ policy.cost_benefit_ratio }}:1</p>
               <p class="text-xs text-indigo-600">£{{ policy.cost_benefit_ratio }} cover per £1 premium</p>
             </div>
           </div>
         </div>
 
-        <div class="p-6">
+        <div class="p-4 sm:p-6">
           <!-- Key Metrics -->
-          <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div class="bg-indigo-50 rounded-lg p-4">
-              <p class="text-sm text-indigo-700 font-medium mb-1">Cover Amount</p>
-              <p class="text-2xl font-bold text-indigo-900">{{ formatCurrency(policy.cover_amount) }}</p>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
+            <div class="bg-indigo-50 rounded-lg p-3 sm:p-4">
+              <p class="text-xs sm:text-sm text-indigo-700 font-medium mb-1">Cover Amount</p>
+              <p class="text-lg sm:text-xl lg:text-2xl font-bold text-indigo-900">{{ formatCurrency(policy.cover_amount) }}</p>
               <p class="text-xs text-indigo-600 mt-1">Guaranteed payout</p>
             </div>
-            <div class="bg-green-50 rounded-lg p-4">
-              <p class="text-sm text-green-700 font-medium mb-1">Monthly Premium</p>
-              <p class="text-2xl font-bold text-green-900">{{ formatCurrency(policy.monthly_premium) }}</p>
+            <div class="bg-green-50 rounded-lg p-3 sm:p-4">
+              <p class="text-xs sm:text-sm text-green-700 font-medium mb-1">Monthly Premium</p>
+              <p class="text-lg sm:text-xl lg:text-2xl font-bold text-green-900">{{ formatCurrency(policy.monthly_premium) }}</p>
               <p class="text-xs text-green-600 mt-1">Fixed for life</p>
             </div>
-            <div class="bg-blue-50 rounded-lg p-4">
-              <p class="text-sm text-blue-700 font-medium mb-1">Annual Premium</p>
-              <p class="text-2xl font-bold text-blue-900">{{ formatCurrency(policy.annual_premium) }}</p>
+            <div class="bg-blue-50 rounded-lg p-3 sm:p-4">
+              <p class="text-xs sm:text-sm text-blue-700 font-medium mb-1">Annual Premium</p>
+              <p class="text-lg sm:text-xl lg:text-2xl font-bold text-blue-900">{{ formatCurrency(policy.annual_premium) }}</p>
               <p class="text-xs text-blue-600 mt-1">Per year</p>
             </div>
-            <div class="bg-purple-50 rounded-lg p-4">
-              <p class="text-sm text-purple-700 font-medium mb-1">Total Premiums</p>
-              <p class="text-2xl font-bold text-purple-900">{{ formatCurrency(policy.total_premiums_paid) }}</p>
+            <div class="bg-purple-50 rounded-lg p-3 sm:p-4">
+              <p class="text-xs sm:text-sm text-purple-700 font-medium mb-1">Total Premiums</p>
+              <p class="text-lg sm:text-xl lg:text-2xl font-bold text-purple-900">{{ formatCurrency(policy.total_premiums_paid) }}</p>
               <p class="text-xs text-purple-600 mt-1">Over {{ policy.term_years }} years</p>
             </div>
           </div>
@@ -149,29 +149,29 @@
           </div>
         </div>
 
-        <div class="p-6">
+        <div class="p-4 sm:p-6">
           <!-- Key Metrics -->
-          <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div class="bg-amber-50 rounded-lg p-4">
-              <p class="text-sm text-amber-700 font-medium mb-1">Monthly Investment</p>
-              <p class="text-2xl font-bold text-amber-900">{{ formatCurrency(selfInsurance.monthly_investment) }}</p>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
+            <div class="bg-amber-50 rounded-lg p-3 sm:p-4">
+              <p class="text-xs sm:text-sm text-amber-700 font-medium mb-1">Monthly Investment</p>
+              <p class="text-lg sm:text-xl lg:text-2xl font-bold text-amber-900">{{ formatCurrency(selfInsurance.monthly_investment) }}</p>
               <p class="text-xs text-amber-600 mt-1">Same as premium</p>
             </div>
-            <div class="bg-blue-50 rounded-lg p-4">
-              <p class="text-sm text-blue-700 font-medium mb-1">Total Invested</p>
-              <p class="text-2xl font-bold text-blue-900">{{ formatCurrency(selfInsurance.total_invested) }}</p>
+            <div class="bg-blue-50 rounded-lg p-3 sm:p-4">
+              <p class="text-xs sm:text-sm text-blue-700 font-medium mb-1">Total Invested</p>
+              <p class="text-lg sm:text-xl lg:text-2xl font-bold text-blue-900">{{ formatCurrency(selfInsurance.total_invested) }}</p>
               <p class="text-xs text-blue-600 mt-1">Over {{ selfInsurance.investment_term_years }} years</p>
             </div>
-            <div class="bg-green-50 rounded-lg p-4">
-              <p class="text-sm text-green-700 font-medium mb-1">Investment Growth</p>
-              <p class="text-2xl font-bold text-green-900">{{ formatCurrency(selfInsurance.investment_growth) }}</p>
+            <div class="bg-green-50 rounded-lg p-3 sm:p-4">
+              <p class="text-xs sm:text-sm text-green-700 font-medium mb-1">Investment Growth</p>
+              <p class="text-lg sm:text-xl lg:text-2xl font-bold text-green-900">{{ formatCurrency(selfInsurance.investment_growth) }}</p>
               <p class="text-xs text-green-600 mt-1">At {{ selfInsurance.assumed_return_percentage }}% p.a.</p>
             </div>
-            <div class="rounded-lg p-4" :class="selfInsurance.is_sufficient ? 'bg-green-50' : 'bg-red-50'">
-              <p class="text-sm font-medium mb-1" :class="selfInsurance.is_sufficient ? 'text-green-700' : 'text-red-700'">
+            <div class="rounded-lg p-3 sm:p-4" :class="selfInsurance.is_sufficient ? 'bg-green-50' : 'bg-red-50'">
+              <p class="text-xs sm:text-sm font-medium mb-1" :class="selfInsurance.is_sufficient ? 'text-green-700' : 'text-red-700'">
                 Projected Value
               </p>
-              <p class="text-2xl font-bold" :class="selfInsurance.is_sufficient ? 'text-green-900' : 'text-red-900'">
+              <p class="text-lg sm:text-xl lg:text-2xl font-bold" :class="selfInsurance.is_sufficient ? 'text-green-900' : 'text-red-900'">
                 {{ formatCurrency(selfInsurance.projected_fund_value) }}
               </p>
               <p class="text-xs mt-1" :class="selfInsurance.is_sufficient ? 'text-green-600' : 'text-red-600'">
@@ -182,7 +182,7 @@
           </div>
 
           <!-- Pros and Cons -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-6">
             <div>
               <h4 class="text-md font-semibold text-green-900 mb-3 flex items-center">
                 <svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
@@ -216,7 +216,7 @@
           <!-- Recommended Investment Approach -->
           <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
             <h4 class="text-md font-semibold text-amber-900 mb-3">Recommended Investment Approach</h4>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div v-for="(value, key) in selfInsurance.recommended_investment_approach" :key="key">
                 <p class="text-sm font-medium text-amber-800">{{ key }}</p>
                 <p class="text-sm text-gray-700 mt-1">{{ value }}</p>

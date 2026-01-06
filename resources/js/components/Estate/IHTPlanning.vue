@@ -57,76 +57,76 @@
     </div>
 
     <!-- IHT Summary - Second Death (Married Users) -->
-    <div v-if="isMarried && secondDeathData?.second_death_analysis" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div v-if="isMarried && secondDeathData?.second_death_analysis" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
       <!-- Joint Death NOW -->
-      <div class="bg-blue-50 rounded-lg p-6">
+      <div class="bg-blue-50 rounded-lg p-4 sm:p-6">
         <p class="text-sm text-blue-600 font-medium mb-2">Joint Death (Now)</p>
         <p class="text-xs text-blue-500 mb-1">Current net estate</p>
-        <p class="text-3xl font-bold text-gray-900">{{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.net_estate_value || 0) }}</p>
+        <p class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">{{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.net_estate_value || 0) }}</p>
         <p class="text-xs text-blue-600 mt-2">If both die today</p>
       </div>
 
       <!-- Joint Death PROJECTED -->
-      <div class="bg-purple-50 rounded-lg p-6">
+      <div class="bg-purple-50 rounded-lg p-4 sm:p-6">
         <p class="text-sm text-purple-600 font-medium mb-2">Joint Death (Projected)</p>
         <p class="text-xs text-purple-500 mb-1">At age {{ secondDeathData.second_death_analysis.second_death.estimated_age_at_death }}</p>
-        <p class="text-3xl font-bold text-gray-900">{{ formatCurrency(secondDeathData.second_death_analysis.iht_calculation?.net_estate_value || 0) }}</p>
+        <p class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">{{ formatCurrency(secondDeathData.second_death_analysis.iht_calculation?.net_estate_value || 0) }}</p>
         <p class="text-xs text-purple-600 mt-2">Projected net estate</p>
       </div>
 
       <!-- Total IHT Payable -->
-      <div class="bg-red-50 rounded-lg p-6">
+      <div class="bg-red-50 rounded-lg p-4 sm:p-6 sm:col-span-2 lg:col-span-1">
         <p class="text-sm text-red-600 font-medium mb-2">Total Inheritance Tax Payable</p>
         <div class="space-y-3">
           <div>
             <p class="text-xs text-red-500 mb-1">If both die now:</p>
-            <p class="text-2xl font-bold text-gray-900">{{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.iht_liability || 0) }}</p>
+            <p class="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">{{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.iht_liability || 0) }}</p>
           </div>
           <div class="border-t border-red-200 pt-2">
             <p class="text-xs text-red-500 mb-1">At age {{ secondDeathData.second_death_analysis.second_death.estimated_age_at_death }}:</p>
-            <p class="text-2xl font-bold text-gray-900">{{ formatCurrency(secondDeathData.second_death_analysis.iht_calculation?.iht_liability || 0) }}</p>
+            <p class="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">{{ formatCurrency(secondDeathData.second_death_analysis.iht_calculation?.iht_liability || 0) }}</p>
           </div>
         </div>
       </div>
     </div>
 
     <!-- IHT Summary - Standard (Non-Married Users) with Projected Values -->
-    <div v-else-if="ihtData && projection" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div v-else-if="ihtData && projection" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
       <!-- Taxable Estate - Now vs Projected -->
-      <div class="bg-purple-50 rounded-lg p-6">
+      <div class="bg-purple-50 rounded-lg p-4 sm:p-6">
         <p class="text-sm text-purple-600 font-medium mb-2">Taxable Estate</p>
         <div class="space-y-3">
           <div>
             <p class="text-xs text-purple-500 mb-1">Now:</p>
-            <p class="text-2xl font-bold text-gray-900">{{ formatCurrency(ihtData?.taxable_estate || 0) }}</p>
+            <p class="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">{{ formatCurrency(ihtData?.taxable_estate || 0) }}</p>
           </div>
           <div class="border-t border-purple-200 pt-2">
             <p class="text-xs text-purple-500 mb-1">At age {{ ihtData.estimated_age_at_death }}:</p>
-            <p class="text-2xl font-bold text-gray-900">{{ formatCurrency(projection.at_death.taxable_estate) }}</p>
+            <p class="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">{{ formatCurrency(projection.at_death.taxable_estate) }}</p>
           </div>
         </div>
       </div>
 
       <!-- Total Allowances -->
-      <div class="bg-green-50 rounded-lg p-6">
+      <div class="bg-green-50 rounded-lg p-4 sm:p-6">
         <p class="text-sm text-green-600 font-medium mb-2">Total Allowances</p>
         <p class="text-xs text-green-500 mb-1">
           {{ (ihtData?.rnrb_available > 0 ? 'Tax-Free Band + Home Allowance' : 'Tax-Free Band only') }}
         </p>
-        <p class="text-3xl font-bold text-gray-900">{{ formatCurrency(ihtData?.total_allowance || 0) }}</p>
+        <p class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">{{ formatCurrency(ihtData?.total_allowance || 0) }}</p>
       </div>
 
       <!-- IHT Liability - Now vs Projected -->
-      <div class="bg-red-50 rounded-lg p-6">
+      <div class="bg-red-50 rounded-lg p-4 sm:p-6 sm:col-span-2 lg:col-span-1">
         <p class="text-sm text-red-600 font-medium mb-2">Total Inheritance Tax Liability</p>
         <div class="space-y-3">
           <div>
             <p class="text-xs text-red-500 mb-1">If death now:</p>
-            <p class="text-2xl font-bold text-gray-900">{{ formatCurrency(projection.now.iht_liability) }}</p>
+            <p class="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">{{ formatCurrency(projection.now.iht_liability) }}</p>
           </div>
           <div class="border-t border-red-200 pt-2">
             <p class="text-xs text-red-500 mb-1">At age {{ ihtData.estimated_age_at_death }}:</p>
-            <p class="text-2xl font-bold text-gray-900">{{ formatCurrency(projection.at_death.iht_liability) }}</p>
+            <p class="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">{{ formatCurrency(projection.at_death.iht_liability) }}</p>
           </div>
         </div>
       </div>
@@ -136,7 +136,7 @@
     <div v-if="!loading && ihtData" class="mb-8">
       <h3 class="text-lg font-semibold text-gray-900 mb-4">Inheritance Tax Mitigation Strategies</h3>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <!-- Will Card -->
         <div class="bg-white rounded-lg border border-gray-200 p-5 hover:shadow-md transition-shadow cursor-pointer" @click="navigateToWillTab">
           <div class="flex items-center justify-between mb-3">

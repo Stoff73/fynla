@@ -22,12 +22,12 @@
     <div v-else-if="property" class="space-y-6">
       <!-- Header -->
       <div class="bg-white rounded-lg shadow-md p-6">
-        <div class="flex justify-between items-start">
+        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
           <div>
-            <h1 class="text-3xl font-bold text-gray-900">{{ propertyAddress }}</h1>
-            <p class="text-lg text-gray-600 mt-1">{{ propertyTypeLabel }}</p>
+            <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">{{ propertyAddress }}</h1>
+            <p class="text-base sm:text-lg text-gray-600 mt-1">{{ propertyTypeLabel }}</p>
           </div>
-          <div class="flex space-x-2">
+          <div class="flex space-x-2 w-full sm:w-auto">
             <button
               @click="showEditModal = true"
               class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"

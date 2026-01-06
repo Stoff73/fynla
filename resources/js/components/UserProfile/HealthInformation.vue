@@ -18,7 +18,7 @@
         </button>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
         <div>
           <dt class="text-body-sm font-medium text-gray-500">Health Status</dt>
           <dd class="mt-1 text-body-base text-gray-900">
@@ -52,7 +52,7 @@
           <p class="text-body-sm text-red-800">{{ error }}</p>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
           <!-- Health Status -->
           <div>
             <label for="health_status" class="label">

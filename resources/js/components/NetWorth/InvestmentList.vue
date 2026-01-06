@@ -1,5 +1,5 @@
 <template>
-  <div class="investment-list">
+  <div class="investment-list overflow-hidden">
     <!-- Investment Detail View (when an account is selected) -->
     <InvestmentDetailInline
       v-if="selectedAccount"
@@ -691,6 +691,9 @@ export default {
 <style scoped>
 .investment-list {
   padding: 24px;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
 }
 
 .list-header {

@@ -26,7 +26,7 @@ class PortfolioStrategyController extends Controller
         $userId = $request->user()->id;
         $result = $this->strategyService->getPortfolioStrategy($userId);
 
-        if (!$result['success']) {
+        if (! $result['success']) {
             return response()->json($result, 404);
         }
 
@@ -41,7 +41,7 @@ class PortfolioStrategyController extends Controller
         $userId = $request->user()->id;
         $result = $this->strategyService->getAccountStrategy($userId, $accountId);
 
-        if (!$result['success']) {
+        if (! $result['success']) {
             return response()->json($result, 404);
         }
 

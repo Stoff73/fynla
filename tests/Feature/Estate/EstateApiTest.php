@@ -64,7 +64,6 @@ describe('GET /api/estate', function () {
     });
 });
 
-
 describe('GET /api/estate/trust-recommendations', function () {
     it('returns personalized trust recommendations', function () {
         Asset::create([

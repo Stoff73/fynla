@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\Estate\WillController;
 use App\Http\Controllers\Api\EstateController;
 use App\Http\Controllers\Api\FamilyMembersController;
 use App\Http\Controllers\Api\HolisticPlanningController;
+use App\Http\Controllers\Api\InfoGuideController;
 use App\Http\Controllers\Api\Investment\AssetLocationController;
 use App\Http\Controllers\Api\Investment\ContributionOptimizerController;
 use App\Http\Controllers\Api\Investment\EfficientFrontierController;
@@ -50,7 +51,6 @@ use App\Http\Controllers\Api\SavingsController;
 use App\Http\Controllers\Api\SpousePermissionController;
 use App\Http\Controllers\Api\UKTaxesController;
 use App\Http\Controllers\Api\UserProfileController;
-use App\Http\Controllers\Api\InfoGuideController;
 use Illuminate\Support\Facades\Route;
 
 /*

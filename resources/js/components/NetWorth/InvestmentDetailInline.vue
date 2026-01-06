@@ -1,5 +1,5 @@
 <template>
-  <div class="investment-detail-inline">
+  <div class="investment-detail-inline w-full max-w-full overflow-hidden">
     <!-- Back Button -->
     <button @click="$emit('back')" class="back-button mb-4">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
@@ -17,10 +17,10 @@
     <!-- Account Content -->
     <div v-else class="space-y-6">
       <!-- Header -->
-      <div class="bg-white rounded-lg shadow-md p-6">
-        <div class="flex justify-between items-start">
+      <div class="bg-white rounded-lg shadow-md p-4 sm:p-6 overflow-hidden">
+        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 max-w-full">
           <div>
-            <div class="flex items-center gap-3 mb-2">
+            <div class="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
               <span :class="['badge', getOwnershipBadgeClass(account.ownership_type)]">
                 {{ formatOwnershipType(account.ownership_type) }}
               </span>
@@ -28,19 +28,19 @@
                 {{ formatAccountType(account.account_type) }}
               </span>
             </div>
-            <h1 class="text-3xl font-bold text-gray-900">{{ account.provider }}</h1>
-            <p class="text-lg text-gray-600 mt-1">{{ account.account_name }}</p>
+            <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">{{ account.provider }}</h1>
+            <p class="text-base sm:text-lg text-gray-600 mt-1">{{ account.account_name }}</p>
           </div>
-          <div class="flex space-x-2">
+          <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto shrink-0">
             <button
               @click="showEditModal = true"
-              class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              class="btn-primary whitespace-nowrap"
             >
               Edit
             </button>
             <button
               @click="confirmDelete"
-              class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+              class="btn-danger whitespace-nowrap"
             >
               Delete
             </button>
@@ -48,7 +48,7 @@
         </div>
 
         <!-- Key Metrics -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mt-6">
           <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
             <p class="text-sm text-gray-600">Current Value</p>
             <p class="text-2xl font-bold text-blue-600">{{ formatCurrency(account.current_value) }}</p>

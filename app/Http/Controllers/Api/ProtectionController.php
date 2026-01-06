@@ -16,6 +16,7 @@ use App\Http\Requests\Protection\UpdateCriticalIllnessPolicyRequest;
 use App\Http\Requests\Protection\UpdateDisabilityPolicyRequest;
 use App\Http\Requests\Protection\UpdateLifePolicyRequest;
 use App\Http\Requests\Protection\UpdateSicknessIllnessPolicyRequest;
+use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\CriticalIllnessPolicy;
 use App\Models\DisabilityPolicy;
 use App\Models\IncomeProtectionPolicy;
@@ -23,7 +24,6 @@ use App\Models\LifeInsurancePolicy;
 use App\Models\ProtectionProfile;
 use App\Models\SicknessIllnessPolicy;
 use App\Traits\PolicyCRUDTrait;
-use App\Http\Traits\SanitizedErrorResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 

@@ -294,8 +294,6 @@ class EstateController extends Controller
     {
         $user = $request->user();
 
-        \Log::info('Creating liability', ['data' => $request->all()]);
-
         $validated = $request->validate([
             'liability_type' => 'required|in:mortgage,secured_loan,personal_loan,credit_card,overdraft,hire_purchase,student_loan,business_loan,other',
             'liability_name' => 'required|string|max:255',

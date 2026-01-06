@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Services\TaxConfigService;
 use App\Services\UKTaxCalculator;
 use App\Services\UserProfile\UserProfileService;
+use App\Traits\FormatsCurrency;
 
 /**
  * Retirement Strategy Service
@@ -17,6 +18,8 @@ use App\Services\UserProfile\UserProfileService;
  */
 class RetirementStrategyService
 {
+    use FormatsCurrency;
+
     private const ON_TRACK_PROBABILITY = 95;
 
     public function __construct(
@@ -961,14 +964,6 @@ class RetirementStrategyService
         }
 
         return sprintf('%d/%d', $year, ($year + 1) % 100);
-    }
-
-    /**
-     * Format currency value.
-     */
-    private function formatCurrency(float $value): string
-    {
-        return '£'.number_format($value, 0);
     }
 
     /**

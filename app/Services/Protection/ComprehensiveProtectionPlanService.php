@@ -7,6 +7,7 @@ namespace App\Services\Protection;
 use App\Agents\ProtectionAgent;
 use App\Models\ProtectionProfile;
 use App\Models\User;
+use App\Traits\FormatsCurrency;
 
 /**
  * Generates a comprehensive protection plan combining:
@@ -19,6 +20,8 @@ use App\Models\User;
  */
 class ComprehensiveProtectionPlanService
 {
+    use FormatsCurrency;
+
     public function __construct(
         private ProtectionAgent $protectionAgent,
         private CoverageGapAnalyzer $gapAnalyzer,
@@ -754,10 +757,5 @@ class ComprehensiveProtectionPlanService
         $rate = 0.02 + (($age - 30) * 0.001);
 
         return $monthlyBenefit * $rate;
-    }
-
-    private function formatCurrency(float $amount): string
-    {
-        return '£'.number_format($amount, 0);
     }
 }

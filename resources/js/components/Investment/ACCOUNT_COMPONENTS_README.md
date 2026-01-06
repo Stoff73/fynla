@@ -82,7 +82,7 @@ A modal form component for creating and editing investment accounts.
 ```
 
 **Events:**
-- `@submit` - Emitted when form is submitted, passes form data object
+- `@save` - Emitted when form is submitted, passes form data object (Note: Use @save not @submit to avoid double submission)
 - `@close` - Emitted when form is closed/cancelled
 
 **Form Fields:**

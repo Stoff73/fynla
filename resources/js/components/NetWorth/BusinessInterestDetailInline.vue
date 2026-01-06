@@ -18,9 +18,9 @@
     <div v-else-if="business" class="space-y-6">
       <!-- Header -->
       <div class="bg-white rounded-lg shadow-md p-6">
-        <div class="flex justify-between items-start">
+        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
           <div>
-            <div class="flex items-center gap-3 mb-2">
+            <div class="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
               <span :class="['badge', getOwnershipBadgeClass(business.ownership_type)]">
                 {{ formatOwnershipType(business.ownership_type) }}
               </span>
@@ -31,21 +31,21 @@
                 {{ formatTradingStatus(business.trading_status) }}
               </span>
             </div>
-            <h1 class="text-3xl font-bold text-gray-900">{{ business.business_name }}</h1>
-            <p v-if="business.industry_sector" class="text-lg text-gray-600 mt-1">{{ business.industry_sector }}</p>
+            <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">{{ business.business_name }}</h1>
+            <p v-if="business.industry_sector" class="text-base sm:text-lg text-gray-600 mt-1">{{ business.industry_sector }}</p>
           </div>
-          <div class="flex space-x-2">
+          <div class="flex flex-col sm:flex-row gap-2 sm:space-x-2 w-full sm:w-auto">
             <button
               v-if="business.is_primary_owner !== false"
               @click="$emit('edit', business)"
-              class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors"
+              class="w-full sm:w-auto px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors"
             >
               Edit
             </button>
             <button
               v-if="business.is_primary_owner !== false"
               @click="confirmDelete"
-              class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+              class="w-full sm:w-auto px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
             >
               Delete
             </button>

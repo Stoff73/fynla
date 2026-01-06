@@ -159,7 +159,7 @@ class ProfileCompletenessChecker
     private function hasDependants(User $user): bool
     {
         // Check if spouse is marked as dependent
-        $spouseDependant = $user->spouse_id && $user->spouse && $user->spouse->is_dependent ?? false;
+        $spouseDependant = $user->spouse_id && $user->spouse && ($user->spouse->is_dependent ?? false);
 
         // Check if user has dependent children
         $hasChildren = $user->familyMembers()

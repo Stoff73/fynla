@@ -149,8 +149,6 @@ class InvestmentController extends Controller
      */
     public function startMonteCarlo(Request $request): JsonResponse
     {
-        \Log::info('Monte Carlo request data:', $request->all());
-
         try {
             $validated = $request->validate([
                 'start_value' => 'required|numeric|min:0',
@@ -162,12 +160,8 @@ class InvestmentController extends Controller
                 'goal_amount' => 'nullable|numeric|min:0',
             ]);
 
-            \Log::info('Monte Carlo validation passed', $validated);
-
             // Generate unique job ID
             $jobId = Str::uuid()->toString();
-
-            \Log::info('Generated job ID:', ['job_id' => $jobId]);
 
             // Dispatch job
             RunMonteCarloSimulation::dispatch(
@@ -180,8 +174,6 @@ class InvestmentController extends Controller
                 $validated['iterations'] ?? 1000,
                 $validated['goal_amount'] ?? null
             );
-
-            \Log::info('Monte Carlo job dispatched successfully', ['job_id' => $jobId]);
 
             return response()->json([
                 'success' => true,
@@ -459,8 +451,6 @@ class InvestmentController extends Controller
     {
         $user = $request->user();
 
-        \Log::info('Holding creation request data:', $request->all());
-
         $validated = $request->validate([
             'investment_account_id' => 'required|exists:investment_accounts,id',
             'asset_type' => ['required', Rule::in(['equity', 'bond', 'fund', 'etf', 'alternative', 'uk_equity', 'us_equity', 'international_equity', 'cash', 'property'])],
@@ -637,8 +627,6 @@ class InvestmentController extends Controller
      */
     public function storeGoal(Request $request): JsonResponse
     {
-        \Log::info('Goal creation request data:', $request->all());
-
         $validated = $request->validate([
             'goal_name' => 'required|string|max:255',
             'goal_type' => ['required', Rule::in(['retirement', 'education', 'wealth', 'home'])],

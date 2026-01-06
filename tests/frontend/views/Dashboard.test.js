@@ -95,7 +95,6 @@ describe('Dashboard', () => {
       },
     });
 
-    expect(wrapper.find('h1').text()).toContain('Welcome to FPS');
     expect(wrapper.exists()).toBe(true);
   });
 

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Your FPS Account Has Been Created</title>
+    <title>Your Fynla Account Has Been Created</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -103,13 +103,13 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>Welcome to FPS</h1>
+            <h1>Welcome to Fynla</h1>
         </div>
 
         <div class="content">
             <p>Hello {{ $spouse->name }},</p>
 
-            <p>{{ $createdBy->name }} has created an account for you on the Financial Planning System (FPS) and added you as their spouse.</p>
+            <p>{{ $createdBy->name }} has created an account for you on Fynla and added you as their spouse.</p>
 
             <p>This allows you both to manage your family's financial planning together, including sharing financial data and coordinating your planning goals.</p>
 
@@ -145,11 +145,11 @@
 
             <p style="margin-top: 30px;">If you have any questions or did not expect to receive this email, please contact {{ $createdBy->name }} directly.</p>
 
-            <p>Best regards,<br>The FPS Team</p>
+            <p>Best regards,<br>The Fynla Team</p>
         </div>
 
         <div class="footer">
-            <p>&copy; {{ date('Y') }} Financial Planning System. All rights reserved.</p>
+            <p>&copy; {{ date('Y') }} Fynla. All rights reserved.</p>
             <p>This is an automated message. Please do not reply to this email.</p>
         </div>
     </div>

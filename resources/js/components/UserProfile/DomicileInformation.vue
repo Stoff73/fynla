@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div class="mb-6 flex justify-between items-start">
+    <div class="mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
       <div>
         <h2 class="text-h4 font-semibold text-gray-900">Domicile Information</h2>
         <p class="mt-1 text-body-sm text-gray-600">
@@ -11,7 +11,7 @@
         v-if="!isEditing"
         type="button"
         @click="enableEdit"
-        class="btn-primary"
+        class="btn-primary w-full sm:w-auto"
       >
         Edit
       </button>

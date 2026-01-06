@@ -152,7 +152,7 @@
     <!-- Pension Wealth Summary -->
     <div class="bg-white rounded-lg shadow p-6">
       <h3 class="text-lg font-semibold text-gray-900 mb-6">Pension Wealth Summary</h3>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         <!-- DC Pensions -->
         <div class="border-l-4 border-blue-500 pl-4">
           <p class="text-sm text-gray-600 mb-1">Money Purchase Pensions</p>
@@ -177,7 +177,7 @@
     </div>
 
     <!-- Overview Cards (moved to bottom) -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mt-6">
       <!-- Years to Retirement -->
       <div class="bg-white rounded-lg shadow p-6">
         <div class="flex items-center justify-between mb-2">
@@ -470,8 +470,8 @@ export default {
 
 .pensions-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
 }
 
 .pension-card {
@@ -561,8 +561,17 @@ export default {
 
 .detail-row {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 2px;
+}
+
+@media (min-width: 640px) {
+  .detail-row {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0;
+  }
 }
 
 .detail-label {

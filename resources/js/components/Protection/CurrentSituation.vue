@@ -118,43 +118,43 @@
 
 
     <!-- Coverage Summary -->
-    <div v-if="!hasNoPolicies" class="bg-white rounded-lg border border-gray-200 p-6">
+    <div v-if="!hasNoPolicies" class="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
       <h3 class="text-lg font-semibold text-gray-900 mb-4">Coverage Summary</h3>
-      <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6">
         <div class="text-center">
-          <div class="text-3xl font-bold mb-1" :class="debtCoverageColour">
+          <div class="text-xl sm:text-2xl lg:text-3xl font-bold mb-1" :class="debtCoverageColour">
             {{ debtCoveragePercent }}%
           </div>
-          <div class="text-sm text-gray-600">Debt Coverage</div>
-          <div class="text-xs text-gray-400">{{ formatCurrency(debtCoverage) }} / {{ formatCurrency(totalDebt) }}</div>
+          <div class="text-xs sm:text-sm text-gray-600">Debt Coverage</div>
+          <div class="text-xs text-gray-400 hidden sm:block">{{ formatCurrency(debtCoverage) }} / {{ formatCurrency(totalDebt) }}</div>
         </div>
         <div class="text-center">
-          <div class="text-3xl font-bold mb-1" :class="incomeProtectedColour">
+          <div class="text-xl sm:text-2xl lg:text-3xl font-bold mb-1" :class="incomeProtectedColour">
             {{ incomeProtectedPercent }}%
           </div>
-          <div class="text-sm text-gray-600">Income Protected</div>
-          <div class="text-xs text-gray-400">{{ formatCurrency(incomeProtected) }} / {{ formatCurrency(annualIncome) }} p.a.</div>
+          <div class="text-xs sm:text-sm text-gray-600">Income Protected</div>
+          <div class="text-xs text-gray-400 hidden sm:block">{{ formatCurrency(incomeProtected) }} / {{ formatCurrency(annualIncome) }} p.a.</div>
         </div>
         <div class="text-center">
-          <div class="text-3xl font-bold text-pink-600 mb-1">
+          <div class="text-xl sm:text-2xl lg:text-3xl font-bold text-pink-600 mb-1">
             {{ formatCurrency(criticalIllnessCover) }}
           </div>
-          <div class="text-sm text-gray-600">Critical Illness</div>
-          <div class="text-xs text-gray-400">lump sum</div>
+          <div class="text-xs sm:text-sm text-gray-600">Critical Illness</div>
+          <div class="text-xs text-gray-400 hidden sm:block">lump sum</div>
         </div>
         <div class="text-center">
-          <div class="text-3xl font-bold text-purple-600 mb-1">
+          <div class="text-xl sm:text-2xl lg:text-3xl font-bold text-purple-600 mb-1">
             {{ formatCurrency(sicknessCover) }}
           </div>
-          <div class="text-sm text-gray-600">Sickness Cover</div>
-          <div class="text-xs text-gray-400">per year</div>
+          <div class="text-xs sm:text-sm text-gray-600">Sickness Cover</div>
+          <div class="text-xs text-gray-400 hidden sm:block">per year</div>
         </div>
         <div class="text-center">
-          <div class="text-3xl font-bold text-amber-600 mb-1">
+          <div class="text-xl sm:text-2xl lg:text-3xl font-bold text-amber-600 mb-1">
             {{ formatCurrency(disabilityCover) }}
           </div>
-          <div class="text-sm text-gray-600">Disability Cover</div>
-          <div class="text-xs text-gray-400">per year</div>
+          <div class="text-xs sm:text-sm text-gray-600">Disability Cover</div>
+          <div class="text-xs text-gray-400 hidden sm:block">per year</div>
         </div>
       </div>
     </div>

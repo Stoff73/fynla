@@ -27,8 +27,9 @@ class RouteServiceProvider extends ServiceProvider
     public function boot(): void
     {
         RateLimiter::for('api', function (Request $request) {
-            // Higher limit for local development, lower for production
-            $limit = app()->environment('local') ? 1000 : 60;
+            // Higher limit for local development
+            // Production needs higher limit too - dashboard makes ~15 API calls per page load
+            $limit = app()->environment('local') ? 1000 : 300;
 
             return Limit::perMinute($limit)->by($request->user()?->id ?: $request->ip());
         });

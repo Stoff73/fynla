@@ -157,6 +157,7 @@ export default {
   display: grid;
   grid-template-columns: 240px 1fr;
   gap: 24px;
+  overflow: hidden;
 }
 
 /* Sidebar Styles */
@@ -218,6 +219,8 @@ export default {
 /* Main Content */
 .main-content {
   min-height: 500px;
+  min-width: 0; /* Prevents grid item from overflowing container */
+  overflow: hidden;
 }
 
 /* Mobile responsive */

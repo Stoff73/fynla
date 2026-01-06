@@ -14,7 +14,7 @@
       <template v-else>
         <!-- Header (only show when not embedded) -->
         <div v-if="!isEmbedded" class="mb-8">
-          <h1 class="text-3xl font-bold text-gray-900 mb-2">Savings & Emergency Fund</h1>
+          <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2">Savings & Emergency Fund</h1>
           <p class="text-gray-600">
             Manage your savings accounts, track emergency fund, and monitor progress towards your goals
           </p>

@@ -512,9 +512,8 @@ class UserProfileService
             $memberArray['owner'] = 'self';
 
             // If this is a spouse and user has a spouse_id, get the spouse's email
-            if ($member->relationship === 'spouse' && $user->spouse_id) {
-                $spouse = User::find($user->spouse_id);
-                $memberArray['email'] = $spouse ? $spouse->email : null;
+            if ($member->relationship === 'spouse' && $user->spouse_id && $user->spouse) {
+                $memberArray['email'] = $user->spouse->email;
             }
 
             return $memberArray;
@@ -525,8 +524,8 @@ class UserProfileService
             return $fm['relationship'] === 'spouse';
         });
 
-        if ($user->spouse_id && ! $hasOwnSpouseRecord) {
-            $spouseUser = User::find($user->spouse_id);
+        if ($user->spouse_id && ! $hasOwnSpouseRecord && $user->spouse) {
+            $spouseUser = $user->spouse;
             if ($spouseUser) {
                 // Create a virtual spouse family member from the User record
                 $familyMembers->push([

@@ -32,21 +32,21 @@
     <div v-else-if="property" class="space-y-6">
       <!-- Header -->
       <div class="bg-white rounded-lg shadow-md p-6">
-        <div class="flex justify-between items-start">
+        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
           <div>
-            <h1 class="text-3xl font-bold text-gray-900">{{ propertyAddress }}</h1>
-            <p class="text-lg text-gray-600 mt-1">{{ propertyTypeLabel }}</p>
+            <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">{{ propertyAddress }}</h1>
+            <p class="text-base sm:text-lg text-gray-600 mt-1">{{ propertyTypeLabel }}</p>
           </div>
-          <div class="flex space-x-2">
+          <div class="flex flex-col sm:flex-row gap-2 sm:space-x-2 w-full sm:w-auto">
             <button
               @click="openEditModal"
-              class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              class="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
             >
               Edit
             </button>
             <button
               @click="confirmDelete"
-              class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+              class="w-full sm:w-auto px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
             >
               Delete
             </button>
@@ -105,23 +105,23 @@
               <div>
                 <h3 class="text-lg font-semibold text-gray-800 mb-3">Property Details</h3>
                 <dl class="space-y-2">
-                  <div class="flex justify-between">
+                  <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-gray-600">Address:</dt>
-                    <dd class="text-sm font-medium text-gray-900 text-right">{{ propertyAddress }}</dd>
+                    <dd class="text-sm font-medium text-gray-900 sm:text-right">{{ propertyAddress }}</dd>
                   </div>
-                  <div class="flex justify-between">
+                  <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-gray-600">Postcode:</dt>
                     <dd class="text-sm font-medium text-gray-900">{{ property.postcode }}</dd>
                   </div>
-                  <div class="flex justify-between">
+                  <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-gray-600">Property Type:</dt>
                     <dd class="text-sm font-medium text-gray-900">{{ propertyTypeLabel }}</dd>
                   </div>
-                  <div class="flex justify-between">
+                  <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-gray-600">Purchase Date:</dt>
                     <dd class="text-sm font-medium text-gray-900">{{ formatDate(property.purchase_date) }}</dd>
                   </div>
-                  <div class="flex justify-between">
+                  <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-gray-600">Purchase Price:</dt>
                     <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(property.purchase_price) }}</dd>
                   </div>
@@ -131,11 +131,11 @@
               <div>
                 <h3 class="text-lg font-semibold text-gray-800 mb-3">Ownership</h3>
                 <dl class="space-y-2">
-                  <div class="flex justify-between">
+                  <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-gray-600">Ownership Type:</dt>
                     <dd class="text-sm font-medium text-gray-900 capitalize">{{ property.ownership_type }}</dd>
                   </div>
-                  <div class="flex justify-between">
+                  <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-gray-600">Ownership Percentage:</dt>
                     <dd class="text-sm font-medium text-gray-900">{{ property.ownership_percentage }}%</dd>
                   </div>
@@ -145,19 +145,19 @@
               <div>
                 <h3 class="text-lg font-semibold text-gray-800 mb-3">Valuation</h3>
                 <dl class="space-y-2">
-                  <div class="flex justify-between">
+                  <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-gray-600">Full Property Value:</dt>
                     <dd class="text-sm font-medium text-blue-600 font-semibold">{{ formatCurrency(calculateFullPropertyValue()) }}</dd>
                   </div>
-                  <div class="flex justify-between">
+                  <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-gray-600">Your Share ({{ property.ownership_percentage }}%):</dt>
                     <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(calculateUserPropertyShare()) }}</dd>
                   </div>
-                  <div class="flex justify-between">
+                  <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-gray-600">Valuation Date:</dt>
                     <dd class="text-sm font-medium text-gray-900">{{ formatDate(property.valuation_date) || 'Not set' }}</dd>
                   </div>
-                  <div class="flex justify-between">
+                  <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-gray-600">Value Change:</dt>
                     <dd class="text-sm font-medium" :class="valueChange >= 0 ? 'text-green-600' : 'text-red-600'">
                       {{ formatCurrency(valueChange) }} ({{ valueChangePercent }}%)
@@ -169,23 +169,23 @@
               <div v-if="property.property_type === 'buy_to_let'">
                 <h3 class="text-lg font-semibold text-gray-800 mb-3">Rental Income</h3>
                 <dl class="space-y-2">
-                  <div class="flex justify-between">
+                  <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-gray-600">Full Monthly Rental Income:</dt>
                     <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(property.monthly_rental_income) }}</dd>
                   </div>
-                  <div v-if="isSharedOwnership" class="flex justify-between">
+                  <div v-if="isSharedOwnership" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-gray-600">Your Share ({{ property.ownership_percentage }}%):</dt>
                     <dd class="text-sm font-medium text-blue-600">{{ formatCurrency(calculateUserRentalIncome()) }}</dd>
                   </div>
-                  <div class="flex justify-between">
+                  <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-gray-600">Full Annual Rental Income:</dt>
                     <dd class="text-sm font-medium text-gray-900">{{ formatCurrency((property.monthly_rental_income || 0) * 12) }}</dd>
                   </div>
-                  <div v-if="isSharedOwnership" class="flex justify-between">
+                  <div v-if="isSharedOwnership" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-gray-600">Your Annual Share:</dt>
                     <dd class="text-sm font-medium text-blue-600">{{ formatCurrency(calculateUserRentalIncome() * 12) }}</dd>
                   </div>
-                  <div class="flex justify-between" v-if="property.tenant_name">
+                  <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0" v-if="property.tenant_name">
                     <dt class="text-sm text-gray-600">Tenant:</dt>
                     <dd class="text-sm font-medium text-gray-900">{{ property.tenant_name }}</dd>
                   </div>
@@ -236,27 +236,27 @@
                   <div>
                     <h5 class="text-sm font-semibold text-gray-800 mb-3">Mortgage Details</h5>
                     <dl class="space-y-2">
-                      <div class="flex justify-between">
+                      <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                         <dt class="text-sm text-gray-600">Lender:</dt>
-                        <dd class="text-sm font-medium text-gray-900 text-right">{{ mortgage.lender_name }}</dd>
+                        <dd class="text-sm font-medium text-gray-900 sm:text-right">{{ mortgage.lender_name }}</dd>
                       </div>
-                      <div v-if="mortgage.mortgage_account_number" class="flex justify-between">
+                      <div v-if="mortgage.mortgage_account_number" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                         <dt class="text-sm text-gray-600">Account Number:</dt>
                         <dd class="text-sm font-medium text-gray-900">{{ mortgage.mortgage_account_number }}</dd>
                       </div>
-                      <div class="flex justify-between">
+                      <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                         <dt class="text-sm text-gray-600">Mortgage Type:</dt>
                         <dd class="text-sm font-medium text-gray-900">{{ formatMortgageType(mortgage.mortgage_type) }}</dd>
                       </div>
-                      <div v-if="mortgage.mortgage_type === 'mixed' && mortgage.repayment_percentage" class="flex justify-between">
+                      <div v-if="mortgage.mortgage_type === 'mixed' && mortgage.repayment_percentage" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                         <dt class="text-sm text-gray-600 pl-4">└ Repayment:</dt>
                         <dd class="text-sm font-medium text-gray-900">{{ mortgage.repayment_percentage }}%</dd>
                       </div>
-                      <div v-if="mortgage.mortgage_type === 'mixed' && mortgage.interest_only_percentage" class="flex justify-between">
+                      <div v-if="mortgage.mortgage_type === 'mixed' && mortgage.interest_only_percentage" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                         <dt class="text-sm text-gray-600 pl-4">└ Interest Only:</dt>
                         <dd class="text-sm font-medium text-gray-900">{{ mortgage.interest_only_percentage }}%</dd>
                       </div>
-                      <div v-if="mortgage.country" class="flex justify-between">
+                      <div v-if="mortgage.country" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                         <dt class="text-sm text-gray-600">Property Country:</dt>
                         <dd class="text-sm font-medium text-gray-900">{{ mortgage.country }}</dd>
                       </div>
@@ -267,23 +267,23 @@
                   <div>
                     <h5 class="text-sm font-semibold text-gray-800 mb-3">Loan Information</h5>
                     <dl class="space-y-2">
-                      <div class="flex justify-between">
+                      <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                         <dt class="text-sm text-gray-600">Original Loan Amount:</dt>
                         <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(mortgage.original_loan_amount) }}</dd>
                       </div>
-                      <div class="flex justify-between">
+                      <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                         <dt class="text-sm text-gray-600">Full Outstanding Balance:</dt>
                         <dd class="text-sm font-medium text-blue-600 font-semibold">{{ formatCurrency(calculateFullOutstandingBalance(mortgage)) }}</dd>
                       </div>
-                      <div v-if="property.ownership_type === 'joint' || property.ownership_type === 'tenants_in_common'" class="flex justify-between">
+                      <div v-if="property.ownership_type === 'joint' || property.ownership_type === 'tenants_in_common'" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                         <dt class="text-sm text-gray-600">Your Share ({{ property.ownership_percentage }}%):</dt>
                         <dd class="text-sm font-medium text-blue-600">{{ formatCurrency(calculateUserMortgageShare(mortgage)) }}</dd>
                       </div>
-                      <div v-if="mortgage.original_loan_amount" class="flex justify-between">
+                      <div v-if="mortgage.original_loan_amount" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                         <dt class="text-sm text-gray-600">Amount Paid Off:</dt>
                         <dd class="text-sm font-medium text-green-600">{{ formatCurrency(mortgage.original_loan_amount - mortgage.outstanding_balance) }}</dd>
                       </div>
-                      <div v-if="property.current_value && mortgage.outstanding_balance" class="flex justify-between">
+                      <div v-if="property.current_value && mortgage.outstanding_balance" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                         <dt class="text-sm text-gray-600">Loan-to-Value (LTV):</dt>
                         <dd class="text-sm font-medium text-gray-900">{{ calculateLTV(mortgage) }}%</dd>
                       </div>
@@ -294,23 +294,23 @@
                   <div>
                     <h5 class="text-sm font-semibold text-gray-800 mb-3">Interest Rate</h5>
                     <dl class="space-y-2">
-                      <div v-if="mortgage.rate_type !== 'mixed'" class="flex justify-between">
+                      <div v-if="mortgage.rate_type !== 'mixed'" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                         <dt class="text-sm text-gray-600">Interest Rate:</dt>
                         <dd class="text-sm font-medium text-gray-900">{{ parseFloat(mortgage.interest_rate).toFixed(2) }}%</dd>
                       </div>
-                      <div class="flex justify-between">
+                      <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                         <dt class="text-sm text-gray-600">Rate Type:</dt>
                         <dd class="text-sm font-medium text-gray-900 capitalize">{{ mortgage.rate_type }}</dd>
                       </div>
-                      <div v-if="mortgage.rate_type === 'mixed' && mortgage.fixed_rate_percentage" class="flex justify-between">
+                      <div v-if="mortgage.rate_type === 'mixed' && mortgage.fixed_rate_percentage" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                         <dt class="text-sm text-gray-600 pl-4">└ Fixed ({{ parseFloat(mortgage.fixed_rate_percentage).toFixed(2) }}%):</dt>
                         <dd class="text-sm font-medium text-gray-900">{{ parseFloat(mortgage.fixed_interest_rate).toFixed(2) }}%</dd>
                       </div>
-                      <div v-if="mortgage.rate_type === 'mixed' && mortgage.variable_rate_percentage" class="flex justify-between">
+                      <div v-if="mortgage.rate_type === 'mixed' && mortgage.variable_rate_percentage" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                         <dt class="text-sm text-gray-600 pl-4">└ Variable ({{ parseFloat(mortgage.variable_rate_percentage).toFixed(2) }}%):</dt>
                         <dd class="text-sm font-medium text-gray-900">{{ parseFloat(mortgage.variable_interest_rate).toFixed(2) }}%</dd>
                       </div>
-                      <div v-if="mortgage.rate_type === 'fixed' && mortgage.rate_fix_end_date" class="flex justify-between">
+                      <div v-if="mortgage.rate_type === 'fixed' && mortgage.rate_fix_end_date" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                         <dt class="text-sm text-gray-600">Rate Fix Ends:</dt>
                         <dd class="text-sm font-medium text-orange-600">{{ formatDate(mortgage.rate_fix_end_date) }}</dd>
                       </div>
@@ -321,19 +321,19 @@
                   <div>
                     <h5 class="text-sm font-semibold text-gray-800 mb-3">Payment Information</h5>
                     <dl class="space-y-2">
-                      <div class="flex justify-between">
+                      <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                         <dt class="text-sm text-gray-600">Full Monthly Payment:</dt>
                         <dd class="text-sm font-medium text-blue-600 font-semibold">{{ formatCurrency(calculateFullMonthlyPayment(mortgage)) }}</dd>
                       </div>
-                      <div v-if="property.ownership_type === 'joint' || property.ownership_type === 'tenants_in_common'" class="flex justify-between">
+                      <div v-if="property.ownership_type === 'joint' || property.ownership_type === 'tenants_in_common'" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                         <dt class="text-sm text-gray-600">Your Share ({{ property.ownership_percentage }}%):</dt>
                         <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(calculateFullMonthlyPayment(mortgage) * (property.ownership_percentage / 100)) }}</dd>
                       </div>
-                      <div class="flex justify-between">
+                      <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                         <dt class="text-sm text-gray-600">Full Annual Payment:</dt>
                         <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(calculateFullMonthlyPayment(mortgage) * 12) }}</dd>
                       </div>
-                      <div v-if="mortgage.start_date && mortgage.maturity_date" class="flex justify-between">
+                      <div v-if="mortgage.start_date && mortgage.maturity_date" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                         <dt class="text-sm text-gray-600">Remaining Term:</dt>
                         <dd class="text-sm font-medium text-gray-900">{{ calculateRemainingTerm(mortgage.maturity_date) }}</dd>
                       </div>
@@ -344,11 +344,11 @@
                   <div>
                     <h5 class="text-sm font-semibold text-gray-800 mb-3">Important Dates</h5>
                     <dl class="space-y-2">
-                      <div v-if="mortgage.start_date" class="flex justify-between">
+                      <div v-if="mortgage.start_date" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                         <dt class="text-sm text-gray-600">Start Date:</dt>
                         <dd class="text-sm font-medium text-gray-900">{{ formatDate(mortgage.start_date) }}</dd>
                       </div>
-                      <div v-if="mortgage.maturity_date" class="flex justify-between">
+                      <div v-if="mortgage.maturity_date" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                         <dt class="text-sm text-gray-600">Maturity Date:</dt>
                         <dd class="text-sm font-medium text-gray-900">{{ formatDate(mortgage.maturity_date) }}</dd>
                       </div>
@@ -359,11 +359,11 @@
                   <div>
                     <h5 class="text-sm font-semibold text-gray-800 mb-3">Ownership</h5>
                     <dl class="space-y-2">
-                      <div class="flex justify-between">
+                      <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                         <dt class="text-sm text-gray-600">Ownership Type:</dt>
                         <dd class="text-sm font-medium text-gray-900 capitalize">{{ mortgage.ownership_type === 'individual' ? 'Individual Owner' : 'Joint Owner' }}</dd>
                       </div>
-                      <div v-if="mortgage.ownership_type === 'joint' && mortgage.joint_owner_name" class="flex justify-between">
+                      <div v-if="mortgage.ownership_type === 'joint' && mortgage.joint_owner_name" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                         <dt class="text-sm text-gray-600">Joint Owner:</dt>
                         <dd class="text-sm font-medium text-gray-900">{{ mortgage.joint_owner_name }}</dd>
                       </div>

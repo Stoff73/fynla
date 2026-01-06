@@ -436,22 +436,25 @@ class FamilyMembersController extends Controller
         ]);
 
         // Send email to spouse with temporary password
+        $emailSent = false;
         try {
             Mail::to($spouseEmail)->send(new SpouseAccountCreated($spouseUser, $currentUser, $temporaryPassword));
+            $emailSent = true;
         } catch (\Exception $e) {
             \Log::error('Failed to send spouse account created email: '.$e->getMessage());
-            // Also log the temporary password so it can be retrieved if email fails
-            \Log::info("Temporary password for {$spouseEmail}: {$temporaryPassword}");
+            // Note: Password is NOT logged for security - user must request password reset if email fails
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'Spouse account created successfully. They will receive an email to set their password.',
+            'message' => $emailSent
+                ? 'Spouse account created successfully. They will receive an email with login instructions.'
+                : 'Spouse account created but email delivery failed. They can use the "Forgot Password" feature to set their password.',
             'data' => [
                 'family_member' => $familyMember,
                 'spouse_user' => $spouseUser,
                 'created' => true,
-                'temporary_password' => $temporaryPassword, // Show to user so they can share with spouse
+                'email_sent' => $emailSent,
                 'spouse_email' => $spouseEmail,
             ],
         ], 201);

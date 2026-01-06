@@ -21,7 +21,7 @@
             {{ policy.provider || 'Unknown Provider' }}
           </h4>
 
-          <div class="grid grid-cols-2 gap-4 text-sm">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 text-sm">
             <div>
               <span class="text-gray-600">{{ coverageLabel }}:</span>
               <span class="font-semibold text-gray-900 ml-1">

@@ -2,9 +2,8 @@
 
 declare(strict_types=1);
 
-use App\Models\DCPension;
 use App\Models\DBPension;
-use App\Models\RetirementProfile;
+use App\Models\DCPension;
 use App\Models\StatePension;
 use App\Models\User;
 use App\Services\Investment\MonteCarloSimulator;

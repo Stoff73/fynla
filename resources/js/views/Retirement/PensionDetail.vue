@@ -22,22 +22,22 @@
       <div v-else-if="pension" class="space-y-6">
         <!-- Header -->
         <div class="bg-white rounded-lg shadow-md p-6">
-          <div class="flex justify-between items-start">
+          <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
             <div>
-              <h1 class="text-3xl font-bold text-gray-900">{{ pensionTitle }}</h1>
-              <p class="text-lg text-gray-600 mt-1">{{ pensionTypeLabel }}</p>
+              <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">{{ pensionTitle }}</h1>
+              <p class="text-base sm:text-lg text-gray-600 mt-1">{{ pensionTypeLabel }}</p>
             </div>
-            <div class="flex space-x-2">
+            <div class="flex flex-col sm:flex-row gap-2 sm:space-x-2 w-full sm:w-auto">
               <button
                 @click="editPension"
-                class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                class="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
               >
                 Edit
               </button>
               <button
                 v-if="pensionType !== 'state'"
                 @click="confirmDelete"
-                class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+                class="w-full sm:w-auto px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
               >
                 Delete
               </button>
@@ -45,7 +45,7 @@
           </div>
 
           <!-- Key Metrics - DC Pension -->
-          <div v-if="pensionType === 'dc'" class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
+          <div v-if="pensionType === 'dc'" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mt-6">
             <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
               <p class="text-sm text-gray-600">Current Fund Value</p>
               <p class="text-2xl font-bold text-blue-600">{{ formatCurrency(pension.current_fund_value) }}</p>
@@ -65,7 +65,7 @@
           </div>
 
           <!-- Key Metrics - DB Pension -->
-          <div v-if="pensionType === 'db'" class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
+          <div v-if="pensionType === 'db'" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mt-6">
             <div class="bg-purple-50 rounded-lg p-4 border border-purple-200">
               <p class="text-sm text-gray-600">Annual Income</p>
               <p class="text-2xl font-bold text-purple-600">{{ formatCurrency(pension.annual_income) }}</p>
@@ -85,7 +85,7 @@
           </div>
 
           <!-- Key Metrics - State Pension -->
-          <div v-if="pensionType === 'state'" class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+          <div v-if="pensionType === 'state'" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mt-6">
             <div class="bg-green-50 rounded-lg p-4 border border-green-200">
               <p class="text-sm text-gray-600">Weekly Amount</p>
               <p class="text-2xl font-bold text-green-600">£{{ parseFloat(pension.forecast_weekly_amount || 0).toFixed(2) }}</p>
@@ -107,23 +107,23 @@
           <h2 class="text-xl font-bold text-gray-900 mb-4">Pension Details</h2>
 
           <!-- DC Pension Details -->
-          <div v-if="pensionType === 'dc'" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div v-if="pensionType === 'dc'" class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
             <div>
               <h3 class="text-sm font-semibold text-gray-700 mb-3">Scheme Information</h3>
               <dl class="space-y-2">
-                <div class="flex justify-between">
+                <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                   <dt class="text-sm text-gray-600">Scheme Name:</dt>
                   <dd class="text-sm font-medium text-gray-900">{{ pension.scheme_name || 'N/A' }}</dd>
                 </div>
-                <div class="flex justify-between">
+                <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                   <dt class="text-sm text-gray-600">Scheme Type:</dt>
                   <dd class="text-sm font-medium text-gray-900">{{ formatSchemeType(pension.scheme_type) }}</dd>
                 </div>
-                <div class="flex justify-between">
+                <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                   <dt class="text-sm text-gray-600">Provider:</dt>
                   <dd class="text-sm font-medium text-gray-900">{{ pension.provider || 'N/A' }}</dd>
                 </div>
-                <div class="flex justify-between">
+                <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                   <dt class="text-sm text-gray-600">Policy Number:</dt>
                   <dd class="text-sm font-medium text-gray-900">{{ pension.policy_number || 'N/A' }}</dd>
                 </div>
@@ -133,19 +133,19 @@
             <div>
               <h3 class="text-sm font-semibold text-gray-700 mb-3">Contribution Details</h3>
               <dl class="space-y-2">
-                <div v-if="pension.scheme_type === 'workplace'" class="flex justify-between">
+                <div v-if="pension.scheme_type === 'workplace'" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                   <dt class="text-sm text-gray-600">Employee Contribution:</dt>
                   <dd class="text-sm font-medium text-gray-900">{{ pension.employee_contribution_percent || 0 }}%</dd>
                 </div>
-                <div v-if="pension.scheme_type === 'workplace'" class="flex justify-between">
+                <div v-if="pension.scheme_type === 'workplace'" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                   <dt class="text-sm text-gray-600">Employer Contribution:</dt>
                   <dd class="text-sm font-medium text-gray-900">{{ pension.employer_contribution_percent || 0 }}%</dd>
                 </div>
-                <div v-if="pension.scheme_type !== 'workplace'" class="flex justify-between">
+                <div v-if="pension.scheme_type !== 'workplace'" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                   <dt class="text-sm text-gray-600">Monthly Contribution:</dt>
                   <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(pension.monthly_contribution_amount || 0) }}</dd>
                 </div>
-                <div class="flex justify-between">
+                <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                   <dt class="text-sm text-gray-600">Current Salary:</dt>
                   <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(pension.current_salary || 0) }}</dd>
                 </div>
@@ -154,23 +154,23 @@
           </div>
 
           <!-- DB Pension Details -->
-          <div v-if="pensionType === 'db'" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div v-if="pensionType === 'db'" class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
             <div>
               <h3 class="text-sm font-semibold text-gray-700 mb-3">Scheme Information</h3>
               <dl class="space-y-2">
-                <div class="flex justify-between">
+                <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                   <dt class="text-sm text-gray-600">Scheme Name:</dt>
                   <dd class="text-sm font-medium text-gray-900">{{ pension.scheme_name || 'N/A' }}</dd>
                 </div>
-                <div class="flex justify-between">
+                <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                   <dt class="text-sm text-gray-600">Employer:</dt>
                   <dd class="text-sm font-medium text-gray-900">{{ pension.employer_name || 'N/A' }}</dd>
                 </div>
-                <div class="flex justify-between">
+                <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                   <dt class="text-sm text-gray-600">Scheme Status:</dt>
                   <dd class="text-sm font-medium text-gray-900">{{ pension.scheme_status || 'Active' }}</dd>
                 </div>
-                <div class="flex justify-between">
+                <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                   <dt class="text-sm text-gray-600">Accrual Rate:</dt>
                   <dd class="text-sm font-medium text-gray-900">{{ pension.accrual_rate ? `1/${pension.accrual_rate}` : 'N/A' }}</dd>
                 </div>
@@ -180,19 +180,19 @@
             <div>
               <h3 class="text-sm font-semibold text-gray-700 mb-3">Benefit Details</h3>
               <dl class="space-y-2">
-                <div class="flex justify-between">
+                <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                   <dt class="text-sm text-gray-600">Final/Pensionable Salary:</dt>
                   <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(pension.final_salary || 0) }}</dd>
                 </div>
-                <div class="flex justify-between">
+                <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                   <dt class="text-sm text-gray-600">Revaluation Rate:</dt>
                   <dd class="text-sm font-medium text-gray-900">{{ pension.revaluation_rate || 0 }}%</dd>
                 </div>
-                <div class="flex justify-between">
+                <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                   <dt class="text-sm text-gray-600">Lump Sum Entitlement:</dt>
                   <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(pension.lump_sum_entitlement || 0) }}</dd>
                 </div>
-                <div class="flex justify-between">
+                <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                   <dt class="text-sm text-gray-600">Spouse Benefit:</dt>
                   <dd class="text-sm font-medium text-gray-900">{{ pension.spouse_benefit_percent || 0 }}%</dd>
                 </div>
@@ -201,19 +201,19 @@
           </div>
 
           <!-- State Pension Details -->
-          <div v-if="pensionType === 'state'" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div v-if="pensionType === 'state'" class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
             <div>
               <h3 class="text-sm font-semibold text-gray-700 mb-3">Entitlement</h3>
               <dl class="space-y-2">
-                <div class="flex justify-between">
+                <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                   <dt class="text-sm text-gray-600">Forecast Weekly Amount:</dt>
                   <dd class="text-sm font-medium text-gray-900">£{{ parseFloat(pension.forecast_weekly_amount || 0).toFixed(2) }}</dd>
                 </div>
-                <div class="flex justify-between">
+                <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                   <dt class="text-sm text-gray-600">Annual Equivalent:</dt>
                   <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(parseFloat(pension.forecast_weekly_amount || 0) * 52) }}</dd>
                 </div>
-                <div class="flex justify-between">
+                <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                   <dt class="text-sm text-gray-600">Qualifying Years:</dt>
                   <dd class="text-sm font-medium text-gray-900">{{ pension.qualifying_years || 0 }} of 35</dd>
                 </div>
@@ -223,11 +223,11 @@
             <div>
               <h3 class="text-sm font-semibold text-gray-700 mb-3">Eligibility</h3>
               <dl class="space-y-2">
-                <div class="flex justify-between">
+                <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                   <dt class="text-sm text-gray-600">State Pension Age:</dt>
                   <dd class="text-sm font-medium text-gray-900">{{ pension.state_pension_age || 67 }} years</dd>
                 </div>
-                <div class="flex justify-between">
+                <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                   <dt class="text-sm text-gray-600">Years to Retirement:</dt>
                   <dd class="text-sm font-medium text-gray-900">{{ calculateYearsToRetirement() }}</dd>
                 </div>

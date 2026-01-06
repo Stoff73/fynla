@@ -486,8 +486,8 @@ class OnboardingService
             ]);
 
             // Update spouse with spouseData
-            if ($user->spouse_id) {
-                $spouse = User::find($user->spouse_id);
+            if ($user->spouse_id && $user->spouse) {
+                $spouse = $user->spouse;
                 if ($spouse) {
                     $spouseData = $data['spouseData'];
                     $spouse->update([
@@ -550,11 +550,8 @@ class OnboardingService
 
             // For joint/50/50 mode, also update spouse with the same halved expenses
             // Each account now stores their 50% share of the household total
-            if ($isJointMode) {
-                $spouse = User::find($user->spouse_id);
-                if ($spouse) {
-                    $spouse->update($expenditureData);
-                }
+            if ($isJointMode && $user->spouse) {
+                $user->spouse->update($expenditureData);
             }
         }
     }
@@ -1172,8 +1169,8 @@ class OnboardingService
                 ];
 
                 // If user is married and has spouse, check if spouse also has expenditure data
-                if ($user->spouse_id) {
-                    $spouse = User::find($user->spouse_id);
+                if ($user->spouse_id && $user->spouse) {
+                    $spouse = $user->spouse;
                     if ($spouse !== null) {
                         $hasSpouseExpenditureData = ($spouse->monthly_expenditure ?? 0) > 0 ||
                                                    ($spouse->annual_expenditure ?? 0) > 0 ||

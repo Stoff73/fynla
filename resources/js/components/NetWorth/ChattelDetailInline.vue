@@ -18,9 +18,9 @@
     <div v-else-if="chattel" class="space-y-6">
       <!-- Header -->
       <div class="bg-white rounded-lg shadow-md p-6">
-        <div class="flex justify-between items-start">
+        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
           <div>
-            <div class="flex items-center gap-3 mb-2">
+            <div class="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
               <span :class="['badge', getTypeBadgeClass(chattel.chattel_type)]">
                 {{ formatChattelType(chattel.chattel_type) }}
               </span>
@@ -31,10 +31,10 @@
                 {{ chattel.ownership_percentage }}% Ownership
               </span>
             </div>
-            <h1 class="text-3xl font-bold text-gray-900">{{ chattel.name }}</h1>
-            <p v-if="vehicleDescription" class="text-lg text-gray-600 mt-1">{{ vehicleDescription }}</p>
+            <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">{{ chattel.name }}</h1>
+            <p v-if="vehicleDescription" class="text-base sm:text-lg text-gray-600 mt-1">{{ vehicleDescription }}</p>
           </div>
-          <div class="flex space-x-2">
+          <div class="flex space-x-2 w-full sm:w-auto">
             <button
               v-if="chattel.is_primary_owner !== false"
               @click="$emit('edit', chattel)"

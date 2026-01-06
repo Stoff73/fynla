@@ -6,10 +6,10 @@ namespace App\Services\Investment;
 
 use App\Models\Investment\InvestmentAccount;
 use App\Models\User;
-use App\Services\Investment\FeeAnalyzer;
 use App\Services\Investment\Rebalancing\DriftAnalyzer;
 use App\Services\Investment\Tax\TaxOptimizationAnalyzer;
 use App\Services\TaxConfigService;
+use App\Traits\FormatsCurrency;
 
 /**
  * Portfolio Strategy Service
@@ -18,19 +18,28 @@ use App\Services\TaxConfigService;
  */
 class PortfolioStrategyService
 {
+    use FormatsCurrency;
+
     private TaxOptimizationAnalyzer $taxAnalyzer;
+
     private FeeAnalyzer $feeAnalyzer;
+
     private DriftAnalyzer $driftAnalyzer;
+
     private TaxConfigService $taxConfig;
 
     // Priority categories (lower = higher priority)
     private const PRIORITY_TAX = 1;
+
     private const PRIORITY_WRAPPER = 2;
+
     private const PRIORITY_FEES = 3;
+
     private const PRIORITY_REBALANCING = 4;
 
     // Bond wrapper thresholds
     private const BOND_WRAPPER_MIN_BALANCE = 50000;
+
     private const OFFSHORE_BOND_MIN_BALANCE = 100000;
 
     public function __construct(
@@ -52,7 +61,7 @@ class PortfolioStrategyService
     {
         $user = User::find($userId);
 
-        if (!$user) {
+        if (! $user) {
             return [
                 'success' => false,
                 'message' => 'User not found',
@@ -84,7 +93,7 @@ class PortfolioStrategyService
 
         // 2. Bond wrapper recommendations (Priority 2)
         $bondOpportunities = $this->analyzeBondWrapperOpportunities($user, $accounts);
-        if (!empty($bondOpportunities)) {
+        if (! empty($bondOpportunities)) {
             $allRecommendations = array_merge($allRecommendations, $bondOpportunities);
         }
 
@@ -99,7 +108,7 @@ class PortfolioStrategyService
 
         // 4. Rebalancing recommendations (Priority 4)
         $rebalancingRecs = $this->getRebalancingRecommendations($accounts);
-        if (!empty($rebalancingRecs)) {
+        if (! empty($rebalancingRecs)) {
             $allRecommendations = array_merge($allRecommendations, $rebalancingRecs);
         }
 
@@ -108,6 +117,7 @@ class PortfolioStrategyService
             if ($a['priority'] === $b['priority']) {
                 return ($b['potential_saving'] ?? 0) <=> ($a['potential_saving'] ?? 0);
             }
+
             return $a['priority'] <=> $b['priority'];
         });
 
@@ -139,7 +149,7 @@ class PortfolioStrategyService
             ->with('holdings')
             ->first();
 
-        if (!$account) {
+        if (! $account) {
             return [
                 'success' => false,
                 'message' => 'Account not found',
@@ -148,14 +158,14 @@ class PortfolioStrategyService
 
         $portfolioStrategy = $this->getPortfolioStrategy($userId);
 
-        if (!$portfolioStrategy['success']) {
+        if (! $portfolioStrategy['success']) {
             return $portfolioStrategy;
         }
 
         // Filter recommendations for this account
         $accountRecommendations = array_filter(
             $portfolioStrategy['recommendations'],
-            fn($rec) => ($rec['account_id'] ?? null) === $accountId || ($rec['account_id'] ?? null) === null
+            fn ($rec) => ($rec['account_id'] ?? null) === $accountId || ($rec['account_id'] ?? null) === null
         );
 
         return [
@@ -182,7 +192,7 @@ class PortfolioStrategyService
         $taxBand = $this->calculateTaxBand($user);
 
         // Only recommend for higher/additional rate taxpayers
-        if (!in_array($taxBand, ['higher', 'additional'])) {
+        if (! in_array($taxBand, ['higher', 'additional'])) {
             return [];
         }
 
@@ -211,14 +221,14 @@ class PortfolioStrategyService
                 ? 'offshore_bond'
                 : 'onshore_bond';
 
-            $accountDisplayName = $account->account_name ?: ($account->provider . ' ' . strtoupper($account->account_type));
+            $accountDisplayName = $account->account_name ?: ($account->provider.' '.strtoupper($account->account_type));
 
             $recommendations[] = [
-                'id' => 'bond_wrapper_' . $account->id,
+                'id' => 'bond_wrapper_'.$account->id,
                 'category' => 'wrapper',
                 'type' => 'bond_wrapper',
                 'priority' => self::PRIORITY_WRAPPER,
-                'title' => 'Consider Bond Wrapper for ' . $accountDisplayName,
+                'title' => 'Consider Bond Wrapper for '.$accountDisplayName,
                 'description' => sprintf(
                     'Your %s balance of %s qualifies for an %s wrapper. As a %s rate taxpayer, you could defer tax on investment growth.',
                     $accountDisplayName,
@@ -272,7 +282,7 @@ class PortfolioStrategyService
             $daysRemaining = $this->getDaysRemainingInTaxYear();
 
             $recommendations[] = [
-                'id' => $opportunity['type'] . '_' . time(),
+                'id' => $opportunity['type'].'_'.time(),
                 'category' => 'tax',
                 'type' => $opportunity['type'],
                 'priority' => self::PRIORITY_TAX,
@@ -345,11 +355,11 @@ class PortfolioStrategyService
                 }
 
                 $recommendations[] = [
-                    'id' => 'high_fee_holding_' . ($holding['holding_id'] ?? uniqid()),
+                    'id' => 'high_fee_holding_'.($holding['holding_id'] ?? uniqid()),
                     'category' => 'fees',
                     'type' => 'high_fee_holding',
                     'priority' => self::PRIORITY_FEES,
-                    'title' => 'High-Fee Fund: ' . ($holding['security_name'] ?? 'Unknown'),
+                    'title' => 'High-Fee Fund: '.($holding['security_name'] ?? 'Unknown'),
                     'description' => sprintf(
                         'This fund has an OCF of %.2f%%, costing %s/year. Consider a low-cost index alternative.',
                         $holding['ocf_percent'],
@@ -398,7 +408,7 @@ class PortfolioStrategyService
                 $targetAllocation
             );
 
-            if (!($driftAnalysis['success'] ?? false)) {
+            if (! ($driftAnalysis['success'] ?? false)) {
                 continue;
             }
 
@@ -406,19 +416,19 @@ class PortfolioStrategyService
             $driftScore = $driftAnalysis['drift_score'] ?? 0;
 
             // Only recommend if action is needed
-            if (!($urgency['action_required'] ?? false)) {
+            if (! ($urgency['action_required'] ?? false)) {
                 continue;
             }
 
             $threshold = $account->rebalance_threshold ?? 10;
-            $accountDisplayName = $account->account_name ?: ($account->provider . ' ' . strtoupper($account->account_type));
+            $accountDisplayName = $account->account_name ?: ($account->provider.' '.strtoupper($account->account_type));
 
             $recommendations[] = [
-                'id' => 'rebalancing_' . $account->id,
+                'id' => 'rebalancing_'.$account->id,
                 'category' => 'rebalancing',
                 'type' => 'drift_threshold_exceeded',
                 'priority' => self::PRIORITY_REBALANCING,
-                'title' => 'Rebalancing Recommended: ' . $accountDisplayName,
+                'title' => 'Rebalancing Recommended: '.$accountDisplayName,
                 'description' => sprintf(
                     'Portfolio drift of %.1f%% exceeds your %.0f%% threshold. %s',
                     $driftScore,
@@ -476,7 +486,7 @@ class PortfolioStrategyService
 
         // Initialize with all accounts
         foreach ($accounts as $account) {
-            $accountDisplayName = $account->account_name ?: ($account->provider . ' ' . strtoupper($account->account_type));
+            $accountDisplayName = $account->account_name ?: ($account->provider.' '.strtoupper($account->account_type));
             $byAccount[$account->id] = [
                 'account_id' => $account->id,
                 'account_name' => $accountDisplayName,
@@ -507,7 +517,7 @@ class PortfolioStrategyService
 
         // Remove empty accounts (except portfolio)
         $byAccount = array_filter($byAccount, function ($data) {
-            return !empty($data['recommendations']) || $data['account_id'] === null;
+            return ! empty($data['recommendations']) || $data['account_id'] === null;
         });
 
         return array_values($byAccount);
@@ -518,7 +528,7 @@ class PortfolioStrategyService
      */
     private function getDaysRemainingInTaxYear(): int
     {
-        $now = new \DateTime();
+        $now = new \DateTime;
         $currentYear = (int) $now->format('Y');
         $currentMonth = (int) $now->format('m');
         $currentDay = (int) $now->format('d');
@@ -527,7 +537,7 @@ class PortfolioStrategyService
         if ($currentMonth < 4 || ($currentMonth === 4 && $currentDay <= 5)) {
             $endDate = new \DateTime("{$currentYear}-04-05");
         } else {
-            $endDate = new \DateTime(($currentYear + 1) . "-04-05");
+            $endDate = new \DateTime(($currentYear + 1).'-04-05');
         }
 
         return $now->diff($endDate)->days;
@@ -561,13 +571,5 @@ class PortfolioStrategyService
         }
 
         return 'basic';
-    }
-
-    /**
-     * Format currency for display
-     */
-    private function formatCurrency(float $amount): string
-    {
-        return '£' . number_format($amount, 0);
     }
 }

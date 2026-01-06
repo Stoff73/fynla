@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div class="mb-6 flex justify-between items-start">
+    <div class="mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
       <div>
         <h2 class="text-h4 font-semibold text-gray-900">Personal Information</h2>
         <p class="mt-1 text-body-sm text-gray-600">
@@ -11,7 +11,7 @@
         v-if="!isEditing"
         type="button"
         @click="isEditing = true"
-        class="btn-primary"
+        class="btn-primary w-full sm:w-auto"
       >
         Edit Information
       </button>
@@ -41,7 +41,7 @@
     </div>
 
     <form @submit.prevent="handleSubmit" class="space-y-6">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
         <!-- Name -->
         <div>
           <label for="name" class="block text-body-sm font-medium text-gray-700 mb-1">
@@ -158,9 +158,9 @@
       <!-- Address Section -->
       <div class="border-t border-gray-200 pt-6">
         <h3 class="text-h5 font-semibold text-gray-900 mb-4">Address</h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
           <!-- Address Line 1 -->
-          <div class="md:col-span-2">
+          <div class="sm:col-span-2">
             <label for="address_line_1" class="block text-body-sm font-medium text-gray-700 mb-1">
               Address Line 1
             </label>
@@ -174,7 +174,7 @@
           </div>
 
           <!-- Address Line 2 -->
-          <div class="md:col-span-2">
+          <div class="sm:col-span-2">
             <label for="address_line_2" class="block text-body-sm font-medium text-gray-700 mb-1">
               Address Line 2
             </label>

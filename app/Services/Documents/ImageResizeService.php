@@ -66,8 +66,6 @@ class ImageResizeService
                 throw new RuntimeException('Failed to decode base64 image data');
             }
 
-            Log::debug('Decoded image data', ['size_bytes' => strlen($imageData)]);
-
             // Create image resource from data
             $image = @imagecreatefromstring($imageData);
             if ($image === false) {
@@ -78,12 +76,8 @@ class ImageResizeService
             $width = imagesx($image);
             $height = imagesy($image);
 
-            Log::debug('Original image dimensions', ['width' => $width, 'height' => $height]);
-
             // Calculate new dimensions to fit within MAX_DIMENSION
             [$newWidth, $newHeight] = $this->calculateNewDimensions($width, $height);
-
-            Log::debug('Target dimensions', ['new_width' => $newWidth, 'new_height' => $newHeight]);
 
             // Resize if dimensions changed
             if ($newWidth !== $width || $newHeight !== $height) {
@@ -94,13 +88,6 @@ class ImageResizeService
 
             // Compress and encode as JPEG (best compression ratio)
             $result = $this->compressToJpeg($image);
-
-            Log::info('Image resized successfully', [
-                'original_size_mb' => round($originalSize / 1024 / 1024, 2),
-                'new_size_mb' => round(strlen($result) * 3 / 4 / 1024 / 1024, 2),
-                'original_dimensions' => "{$width}x{$height}",
-                'new_dimensions' => "{$newWidth}x{$newHeight}",
-            ]);
 
             imagedestroy($image);
 

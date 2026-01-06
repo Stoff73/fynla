@@ -4,8 +4,8 @@
     <div class="mb-8">
       <div class="flex items-center justify-between mb-4">
         <div>
-          <h2 class="text-2xl font-bold text-gray-900">Planned Trust Strategy</h2>
-          <p class="text-gray-600 mt-1">Explore trust planning options with CLT taxation rules</p>
+          <h2 class="text-xl sm:text-2xl font-bold text-gray-900">Planned Trust Strategy</h2>
+          <p class="text-sm sm:text-base text-gray-600 mt-1">Explore trust planning options with CLT taxation rules</p>
         </div>
       </div>
 
@@ -18,17 +18,17 @@
 
     <!-- Actual Trusts Section Header -->
     <div class="mb-6">
-      <h2 class="text-2xl font-bold text-gray-900 mb-2">Trusts Created (Actual)</h2>
-      <p class="text-gray-600">Track trusts you've actually established and monitor their IHT impact</p>
+      <h2 class="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Trusts Created (Actual)</h2>
+      <p class="text-sm sm:text-base text-gray-600">Track trusts you've actually established and monitor their IHT impact</p>
     </div>
 
     <!-- Trust List -->
-    <div class="bg-white shadow rounded-lg p-6">
-      <div class="flex justify-between items-center mb-4">
+    <div class="bg-white shadow rounded-lg p-4 sm:p-6">
+      <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-0 mb-4">
         <h3 class="text-lg font-medium text-gray-900">Your Trusts</h3>
         <button
           @click="showTrustForm = true"
-          class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+          class="w-full sm:w-auto px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
         >
           + Add Trust
         </button>
@@ -81,7 +81,7 @@
             </div>
           </div>
 
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mt-4">
             <div>
               <p class="text-xs text-gray-500">Initial Value</p>
               <p class="text-sm font-medium text-gray-900">{{ formatCurrency(trust.initial_value) }}</p>
@@ -184,7 +184,7 @@
 
     <!-- Delete Confirmation -->
     <div v-if="trustToDelete" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" @click.self="trustToDelete = null">
-      <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+      <div class="relative top-20 mx-4 sm:mx-auto p-5 border max-w-sm sm:w-96 shadow-lg rounded-md bg-white">
         <h3 class="text-lg font-medium text-gray-900 mb-4">Confirm Delete</h3>
         <p class="text-sm text-gray-600 mb-4">
           Are you sure you want to delete "{{ trustToDelete.trust_name }}"? This action cannot be undone.

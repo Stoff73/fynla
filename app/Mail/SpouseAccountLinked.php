@@ -29,7 +29,7 @@ class SpouseAccountLinked extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Your FPS Account Has Been Linked',
+            subject: 'Your Fynla Account Has Been Linked',
         );
     }
 

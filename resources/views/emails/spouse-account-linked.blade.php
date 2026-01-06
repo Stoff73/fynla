@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Your FPS Account Has Been Linked</title>
+    <title>Your Fynla Account Has Been Linked</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -79,7 +79,7 @@
         <div class="content">
             <p>Hello {{ $spouse->name }},</p>
 
-            <p>{{ $linkedBy->name }} has linked their FPS account to yours as your spouse.</p>
+            <p>{{ $linkedBy->name }} has linked their Fynla account to yours as your spouse.</p>
 
             <p>This connection allows you both to:</p>
             <ul>
@@ -107,11 +107,11 @@
 
             <p style="margin-top: 30px;">If you did not expect this account linkage or have any questions, please contact {{ $linkedBy->name }} directly or reach out to our support team.</p>
 
-            <p>Best regards,<br>The FPS Team</p>
+            <p>Best regards,<br>The Fynla Team</p>
         </div>
 
         <div class="footer">
-            <p>&copy; {{ date('Y') }} Financial Planning System. All rights reserved.</p>
+            <p>&copy; {{ date('Y') }} Fynla. All rights reserved.</p>
             <p>This is an automated message. Please do not reply to this email.</p>
         </div>
     </div>

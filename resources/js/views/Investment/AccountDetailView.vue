@@ -2,19 +2,19 @@
   <div class="account-detail-view">
     <!-- Account Header -->
     <div class="account-header bg-white rounded-lg shadow p-6 mb-6">
-      <div class="flex items-center justify-between">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div class="flex items-center">
           <div :class="['account-type-badge', accountTypeBadgeClass(account.account_type)]">
             {{ formatAccountType(account.account_type) }}
           </div>
           <div class="ml-4">
-            <h2 class="text-2xl font-bold text-gray-900">{{ account.provider }}</h2>
+            <h2 class="text-xl sm:text-2xl font-bold text-gray-900">{{ account.provider }}</h2>
             <p class="text-gray-600">{{ account.account_name }}</p>
           </div>
         </div>
-        <div class="text-right">
+        <div class="text-left sm:text-right">
           <p class="text-sm text-gray-600">Current Value</p>
-          <p class="text-2xl font-bold text-gray-900">{{ formatCurrency(account.current_value) }}</p>
+          <p class="text-xl sm:text-2xl font-bold text-gray-900">{{ formatCurrency(account.current_value) }}</p>
           <p v-if="account.ownership_type === 'joint'" class="text-sm text-purple-600">
             Your {{ account.ownership_percentage || 50 }}% share: {{ formatCurrency(account.current_value * ((account.ownership_percentage || 50) / 100)) }}
           </p>

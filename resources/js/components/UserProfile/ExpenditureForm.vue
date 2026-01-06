@@ -108,7 +108,7 @@
         <h4 class="text-body font-medium text-gray-900 mb-4">
           Summary
         </h4>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <p class="text-body-sm text-gray-600">Total Monthly Expenditure</p>
             <p class="text-h3 font-display text-gray-900">
@@ -179,7 +179,7 @@
             Essential Living Expenses (Monthly)
           </h4>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <!-- Food & Groceries -->
             <div>
               <label for="food_groceries" class="label">
@@ -273,7 +273,7 @@
             Communication & Technology (Monthly)
           </h4>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <!-- Mobile Phones -->
             <div>
               <label for="mobile_phones" class="label">
@@ -345,7 +345,7 @@
             Personal & Lifestyle (Monthly)
           </h4>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <!-- Clothing & Personal Care -->
             <div>
               <label for="clothing_personal_care" class="label">
@@ -442,7 +442,7 @@
             Children & Dependents (Monthly)
           </h4>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <!-- Childcare -->
             <div>
               <label for="childcare" class="label">
@@ -583,7 +583,7 @@
             Other Expenses (Monthly)
           </h4>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <!-- Gifts & Charity -->
             <div>
               <label for="gifts_charity" class="label">
@@ -833,7 +833,7 @@
             Essential Living Expenses (Monthly)
           </h4>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <!-- Food & Groceries -->
             <div>
               <label for="spouse_food_groceries" class="label">
@@ -927,7 +927,7 @@
             Communication & Technology (Monthly)
           </h4>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <!-- Mobile Phones -->
             <div>
               <label for="spouse_mobile_phones" class="label">
@@ -999,7 +999,7 @@
             Personal & Lifestyle (Monthly)
           </h4>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <!-- Clothing & Personal Care -->
             <div>
               <label for="spouse_clothing_personal_care" class="label">
@@ -1096,7 +1096,7 @@
             Children & Dependents (Monthly)
           </h4>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <!-- Childcare -->
             <div>
               <label for="spouse_childcare" class="label">
@@ -1237,7 +1237,7 @@
             Other Expenses (Monthly)
           </h4>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <!-- Gifts & Charity -->
             <div>
               <label for="spouse_gifts_charity" class="label">
@@ -1474,7 +1474,7 @@
           </div>
 
           <!-- Breakdown by Person -->
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
             <div class="bg-gray-50 rounded-lg p-4">
               <p class="text-body-sm text-gray-600 mb-2">Your Monthly Expenditure</p>
               <p class="text-h4 font-display text-gray-900">
@@ -1496,7 +1496,7 @@
           </div>
 
           <!-- Annual Totals -->
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div class="bg-gray-50 rounded-lg p-4">
               <p class="text-body-sm text-gray-600 mb-2">Your Annual Expenditure</p>
               <p class="text-h4 font-display text-gray-900">
@@ -1524,7 +1524,7 @@
         <h4 class="text-h5 font-semibold text-gray-900 mb-4">
           Expenditure Summary
         </h4>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <p class="text-body-sm text-gray-600">Total Monthly Expenditure</p>
             <p class="text-h3 font-display text-gray-900">

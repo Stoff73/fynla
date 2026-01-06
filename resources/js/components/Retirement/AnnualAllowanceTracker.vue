@@ -15,10 +15,10 @@
 
     <!-- Current Year Progress -->
     <div v-if="selectedTaxYear === '2025/26'" class="mb-8">
-      <div class="flex items-center justify-between mb-3">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 mb-3">
         <span class="text-sm font-medium text-gray-700">Contributions Used</span>
-        <div class="text-right">
-          <span class="text-2xl font-bold text-gray-900">
+        <div class="text-left sm:text-right">
+          <span class="text-xl sm:text-2xl font-bold text-gray-900">
             {{ formatCurrency(contributionsUsed) }}
           </span>
           <span class="text-sm text-gray-500"> / {{ formatCurrency(currentAllowance) }}</span>
@@ -34,7 +34,7 @@
         ></div>
       </div>
 
-      <div class="flex items-center justify-between text-sm">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-0 text-sm">
         <span :class="statusTextColour" class="font-medium">
           {{ statusText }}
         </span>
@@ -45,7 +45,7 @@
 
       <!-- Remaining Allowance -->
       <div class="mt-4 p-4 bg-gray-50 rounded-lg">
-        <div class="flex items-center justify-between">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-0">
           <span class="text-sm text-gray-600">Remaining Allowance</span>
           <span class="text-lg font-bold" :class="remainingAllowance > 0 ? 'text-green-600' : 'text-red-600'">
             {{ formatCurrency(Math.max(0, remainingAllowance)) }}
@@ -56,7 +56,7 @@
 
     <!-- Historical View for Past Years -->
     <div v-else class="mb-8">
-      <div class="flex items-center justify-between mb-3">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 mb-3">
         <span class="text-sm font-medium text-gray-700">Contributions Used ({{ selectedTaxYear }})</span>
         <span class="text-lg font-bold text-gray-900">
           {{ formatCurrency(getHistoricalContributions(selectedTaxYear)) }}
@@ -101,7 +101,7 @@
       </div>
 
       <div class="mt-4 p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
-        <div class="flex items-center justify-between">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
           <span class="text-sm font-medium text-indigo-900">Total Available (with carry forward)</span>
           <span class="text-xl font-bold text-indigo-600">
             {{ formatCurrency(totalAvailableWithCarryForward) }}

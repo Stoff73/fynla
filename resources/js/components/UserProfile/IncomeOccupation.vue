@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div class="mb-6 flex justify-between items-start">
+    <div class="mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
       <div>
         <h2 class="text-h4 font-semibold text-gray-900">Income & Occupation</h2>
         <p class="mt-1 text-body-sm text-gray-600">
@@ -11,7 +11,7 @@
         v-if="!isEditing"
         type="button"
         @click="isEditing = true"
-        class="btn-primary"
+        class="btn-primary w-full sm:w-auto"
       >
         Edit Information
       </button>
@@ -45,7 +45,7 @@
       <div class="card p-6">
         <h3 class="text-h5 font-semibold text-gray-900 mb-4">Employment Information</h3>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
           <!-- Occupation -->
           <div>
             <label for="occupation" class="block text-body-sm font-medium text-gray-700 mb-1">
@@ -167,7 +167,7 @@
       <div class="card p-6">
         <h3 class="text-h5 font-semibold text-gray-900 mb-4">Annual Income</h3>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
           <!-- Annual Employment Income -->
           <div v-if="isEditing || form.annual_employment_income > 0">
             <label for="annual_employment_income" class="block text-body-sm font-medium text-gray-700 mb-1">
@@ -388,7 +388,7 @@
         <!-- Income Type Cards -->
         <div
           v-if="detailedTaxBreakdown.income_breakdowns?.length > 0"
-          class="grid grid-cols-1 md:grid-cols-2 gap-4"
+          class="grid grid-cols-1 sm:grid-cols-2 gap-4"
         >
           <TaxIncomeCard
             v-for="(breakdown, index) in detailedTaxBreakdown.income_breakdowns"
@@ -411,7 +411,7 @@
       <div v-if="incomeOccupation?.net_income" class="card p-6">
         <h3 class="text-h5 font-semibold text-gray-900 mb-4">Disposable Income</h3>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           <!-- Net Income -->
           <div class="bg-gray-50 rounded-lg p-4">
             <p class="text-body-sm text-gray-600 mb-1">Net Income (after tax)</p>

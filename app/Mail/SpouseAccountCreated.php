@@ -30,7 +30,7 @@ class SpouseAccountCreated extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Your FPS Account Has Been Created',
+            subject: 'Your Fynla Account Has Been Created',
         );
     }
 

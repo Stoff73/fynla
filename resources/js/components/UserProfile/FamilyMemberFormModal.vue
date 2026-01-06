@@ -58,7 +58,7 @@
             </div>
 
             <!-- Name Fields -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <!-- First Name -->
               <div>
                 <label for="first_name" class="block text-body-sm font-medium text-gray-700 mb-1">
@@ -101,7 +101,7 @@
               </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <!-- Date of Birth -->
               <div>
                 <label for="date_of_birth" class="block text-body-sm font-medium text-gray-700 mb-1">
@@ -135,7 +135,7 @@
               </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <!-- National Insurance Number -->
               <div>
                 <label for="national_insurance_number" class="block text-body-sm font-medium text-gray-700 mb-1">

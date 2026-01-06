@@ -30,9 +30,9 @@
 
       <!-- Header -->
       <div class="bg-white rounded-lg shadow-md p-6">
-        <div class="flex justify-between items-start">
+        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
           <div>
-            <div class="flex items-center gap-3 mb-2">
+            <div class="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
               <span
                 class="px-3 py-1 text-xs font-semibold rounded-full"
                 :class="policyTypeBadgeClass"
@@ -59,19 +59,19 @@
                 Inactive
               </span>
             </div>
-            <h1 class="text-3xl font-bold text-gray-900">{{ policy.provider || 'Unknown Provider' }}</h1>
-            <p class="text-lg text-gray-600 mt-1">{{ policyTypeLabel }}</p>
+            <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">{{ policy.provider || 'Unknown Provider' }}</h1>
+            <p class="text-base sm:text-lg text-gray-600 mt-1">{{ policyTypeLabel }}</p>
           </div>
-          <div class="flex space-x-2">
+          <div class="flex flex-col sm:flex-row gap-2 sm:space-x-2 w-full sm:w-auto">
             <button
               @click="showEditModal = true"
-              class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              class="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
             >
               Edit
             </button>
             <button
               @click="confirmDelete"
-              class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+              class="w-full sm:w-auto px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
             >
               Delete
             </button>
@@ -79,7 +79,7 @@
         </div>
 
         <!-- Key Metrics -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mt-6">
           <div class="bg-gray-50 rounded-lg p-4">
             <p class="text-sm text-gray-600">{{ coverageLabel }}</p>
             <p class="text-2xl font-bold text-gray-900">{{ formatCurrency(coverageAmount) }}</p>

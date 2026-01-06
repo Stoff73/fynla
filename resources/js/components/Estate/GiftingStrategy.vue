@@ -2,8 +2,8 @@
   <div class="gifting-strategy-tab">
     <!-- Personalized Asset-Based Gifting Strategy Section -->
     <div v-if="personalizedStrategy" class="mb-8 bg-gradient-to-r from-emerald-50 to-green-50 rounded-lg p-6 border border-emerald-200">
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="text-2xl font-bold text-gray-900">Your Personalized Gifting Strategy</h2>
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 mb-4">
+        <h2 class="text-xl sm:text-2xl font-bold text-gray-900">Your Personalized Gifting Strategy</h2>
         <button
           @click="refreshPersonalizedStrategy"
           class="text-sm text-emerald-600 hover:text-emerald-800 flex items-center"
@@ -22,24 +22,24 @@
       </p>
 
       <!-- Liquidity Summary -->
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div class="bg-white rounded-lg p-4 border border-emerald-100">
           <p class="text-sm text-gray-600 mb-1">Total Estate Value</p>
-          <p class="text-2xl font-bold text-gray-900">{{ formatCurrency(personalizedStrategy.liquidity_analysis.summary.total_value) }}</p>
+          <p class="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">{{ formatCurrency(personalizedStrategy.liquidity_analysis.summary.total_value) }}</p>
         </div>
         <div class="bg-green-50 rounded-lg p-4 border border-green-200">
           <p class="text-sm text-green-700 mb-1 font-medium">Immediately Giftable</p>
-          <p class="text-2xl font-bold text-green-900">{{ formatCurrency(personalizedStrategy.giftable_amounts.immediately_giftable) }}</p>
+          <p class="text-lg sm:text-xl lg:text-2xl font-bold text-green-900">{{ formatCurrency(personalizedStrategy.giftable_amounts.immediately_giftable) }}</p>
           <p class="text-xs text-green-600">{{ personalizedStrategy.giftable_amounts.liquid_asset_count }} liquid assets</p>
         </div>
         <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
           <p class="text-sm text-blue-700 mb-1 font-medium">Giftable with Planning</p>
-          <p class="text-2xl font-bold text-blue-900">{{ formatCurrency(personalizedStrategy.giftable_amounts.giftable_with_planning) }}</p>
+          <p class="text-lg sm:text-xl lg:text-2xl font-bold text-blue-900">{{ formatCurrency(personalizedStrategy.giftable_amounts.giftable_with_planning) }}</p>
           <p class="text-xs text-blue-600">{{ personalizedStrategy.giftable_amounts.semi_liquid_asset_count }} semi-liquid assets</p>
         </div>
         <div class="bg-amber-50 rounded-lg p-4 border border-amber-200">
           <p class="text-sm text-amber-700 mb-1 font-medium">Not Giftable</p>
-          <p class="text-2xl font-bold text-amber-900">{{ formatCurrency(personalizedStrategy.giftable_amounts.not_giftable) }}</p>
+          <p class="text-lg sm:text-xl lg:text-2xl font-bold text-amber-900">{{ formatCurrency(personalizedStrategy.giftable_amounts.not_giftable) }}</p>
           <p class="text-xs text-amber-600">{{ personalizedStrategy.giftable_amounts.illiquid_asset_count }} illiquid assets</p>
         </div>
       </div>
@@ -78,12 +78,12 @@
             </div>
             <div v-if="strategy.iht_saved > 0" class="text-right ml-4">
               <p class="text-sm text-gray-600">IHT Saved</p>
-              <p class="text-2xl font-bold text-green-600">{{ formatCurrency(strategy.iht_saved) }}</p>
+              <p class="text-lg sm:text-xl lg:text-2xl font-bold text-green-600">{{ formatCurrency(strategy.iht_saved) }}</p>
             </div>
           </div>
 
           <!-- Strategy Details -->
-          <div v-if="strategy.total_gifted > 0" class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4 bg-gray-50 rounded p-3">
+          <div v-if="strategy.total_gifted > 0" class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4 bg-gray-50 rounded p-3">
             <div v-if="strategy.annual_amount">
               <p class="text-xs text-gray-600">Annual Amount</p>
               <p class="text-lg font-bold text-gray-900">{{ formatCurrency(strategy.annual_amount) }}</p>
@@ -115,7 +115,7 @@
           <!-- Gift Schedule (for PET strategies) -->
           <div v-if="strategy.gift_schedule && strategy.gift_schedule.length > 0" class="mb-3">
             <p class="text-sm font-medium text-gray-900 mb-2">Gift Schedule:</p>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
               <div
                 v-for="(gift, idx) in strategy.gift_schedule"
                 :key="idx"
@@ -224,22 +224,22 @@
       <!-- Overall Summary -->
       <div class="mt-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-4 border border-green-200">
         <h3 class="text-lg font-semibold text-gray-900 mb-3">Overall Strategy Impact</h3>
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div>
-            <p class="text-sm text-gray-600">Original IHT Liability</p>
-            <p class="text-lg font-bold text-red-600">{{ formatCurrency(personalizedStrategy.summary.original_iht_liability) }}</p>
+            <p class="text-xs sm:text-sm text-gray-600">Original IHT Liability</p>
+            <p class="text-base sm:text-lg font-bold text-red-600">{{ formatCurrency(personalizedStrategy.summary.original_iht_liability) }}</p>
           </div>
           <div>
-            <p class="text-sm text-gray-600">Total to Gift</p>
-            <p class="text-lg font-bold text-blue-600">{{ formatCurrency(personalizedStrategy.summary.total_gifted) }}</p>
+            <p class="text-xs sm:text-sm text-gray-600">Total to Gift</p>
+            <p class="text-base sm:text-lg font-bold text-blue-600">{{ formatCurrency(personalizedStrategy.summary.total_gifted) }}</p>
           </div>
           <div>
-            <p class="text-sm text-gray-600">Total IHT Saved</p>
-            <p class="text-lg font-bold text-green-600">{{ formatCurrency(personalizedStrategy.summary.total_iht_saved) }}</p>
+            <p class="text-xs sm:text-sm text-gray-600">Total IHT Saved</p>
+            <p class="text-base sm:text-lg font-bold text-green-600">{{ formatCurrency(personalizedStrategy.summary.total_iht_saved) }}</p>
           </div>
           <div>
-            <p class="text-sm text-gray-600">IHT Reduction</p>
-            <p class="text-lg font-bold text-emerald-600">{{ personalizedStrategy.summary.reduction_percentage }}%</p>
+            <p class="text-xs sm:text-sm text-gray-600">IHT Reduction</p>
+            <p class="text-base sm:text-lg font-bold text-emerald-600">{{ personalizedStrategy.summary.reduction_percentage }}%</p>
           </div>
         </div>
       </div>
