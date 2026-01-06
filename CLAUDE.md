@@ -481,6 +481,9 @@ DELETE /api/savings/accounts/{id}   # Delete
 | `403 Admin access required` | Endpoint requires admin role | Use admin credentials or different endpoint |
 | `405 Method Not Allowed` | Wrong HTTP method | Check route with `php artisan route:list --path=endpoint` |
 | Tax Status tab empty | TaxProductReferenceSeeder not run | `php artisan db:seed --class=TaxProductReferenceSeeder --force` |
+| `429 Too Many Requests` | Rate limit exceeded | `php artisan cache:clear` on server |
+| MIME type errors on production | Wrong VITE_BASE_PATH | Rebuild using `./deploy/fynla-org/build.sh` |
+| Blank page with 127.0.0.1:5173 | `public/hot` file deployed | `rm public/hot` on server |
 
 ### Production Site Blank Page (public/hot Issue)
 
@@ -500,6 +503,48 @@ php artisan view:clear
 **Prevention:** The build scripts (`deploy/fynla-org/build.sh` and `deploy/csjones-fynla/build.sh`) now exclude `public/hot` from deployment packages. The file is also in `.gitignore`.
 
 **NEVER deploy `public/hot` to production.** If running `npm run dev` locally before building, delete `public/hot` before running the build script, or the build script will automatically exclude it.
+
+### Production MIME Type Errors (Wrong Asset Paths)
+
+**Symptom:** Production site loads but console shows errors like:
+```
+Failed to load module script: Expected a JavaScript module script but the server responded with a MIME type of "text/html"
+```
+Network tab shows assets at `/assets/` returning 503 or HTML instead of JS/CSS.
+
+**Cause:** Frontend was built without `VITE_BASE_PATH` set correctly. Vite generates asset paths based on this variable:
+- Without it: `/assets/app-xxxxx.js` (WRONG for fynla.org)
+- With `/build/`: `/build/assets/app-xxxxx.js` (CORRECT for fynla.org)
+
+**Fix:** Rebuild using the correct deployment script:
+```bash
+# ALWAYS use the deployment scripts - never run npm run build directly
+./deploy/fynla-org/build.sh        # For fynla.org (sets VITE_BASE_PATH=/build/)
+./deploy/csjones-fynla/build.sh    # For csjones.co/fynla (sets VITE_BASE_PATH=/fynla/build/)
+```
+
+**Prevention:** Never run `npm run build` directly for production. The build scripts export the required environment variables before building.
+
+### 429 Too Many Requests (Rate Limiting)
+
+**Symptom:** Console shows `429 Too Many Requests` errors, API calls fail intermittently.
+
+**Cause:** API rate limit too low for dashboard usage. The dashboard makes ~15 API calls per page load. Default Laravel rate limit of 60/minute is easily exceeded with normal usage.
+
+**Fix:** Rate limit is configured in `app/Providers/RouteServiceProvider.php`:
+```php
+$limit = app()->environment('local') ? 1000 : 300;  // 300/min in production
+```
+
+After changing, clear caches on server:
+```bash
+php artisan config:clear
+php artisan cache:clear
+```
+
+**Current limits:**
+- Local development: 1000 requests/minute
+- Production: 300 requests/minute
 
 ### After Running Pest Tests
 
