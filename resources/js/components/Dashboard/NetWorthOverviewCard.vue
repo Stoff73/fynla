@@ -151,19 +151,13 @@ export default {
 
 <style scoped>
 .net-worth-overview-card {
-  background: white;
-  border-radius: 12px;
   padding: 24px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   cursor: pointer;
   transition: all 0.2s ease;
-  border: 1px solid #e5e7eb;
 }
 
 .net-worth-overview-card:hover {
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  transform: translateY(-2px);
-  border-color: #3b82f6;
+  background: rgba(59, 130, 246, 0.04);
 }
 
 .card-header {

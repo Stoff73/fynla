@@ -6,7 +6,7 @@
     <!-- Card Header -->
     <div class="flex items-start justify-between mb-4">
       <div>
-        <h3 class="text-h3 text-gray-900">Tax Allowances</h3>
+        <h3 class="text-lg font-semibold text-gray-900">Tax Allowances</h3>
         <p class="text-sm text-gray-500 mt-1">2025/26 Tax Year</p>
       </div>
       <span class="text-gray-400">

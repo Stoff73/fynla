@@ -107,6 +107,39 @@ Fixed protection shortfalls to match exactly what the GapAnalysis.vue component 
 
 ---
 
+## Feature #4: Estate Card IHT Liability Display Fix
+
+### Problem
+
+The Estate Planning card on the Dashboard showed IHT liability as £0 for "Joint Death at Age 86" despite showing the correct taxable estate value. The /estate page displayed the correct IHT liability values.
+
+### Root Cause
+
+Investigation revealed that the API returns correct values, and the Vuex store initially receives and stores the data correctly. However, the state was being reset to null intermittently (possibly due to HMR or store re-initialization), causing the getters to return null values.
+
+### Solution
+
+Added a fallback calculation in `EstateOverviewCard.vue` - when `futureIHTLiability` is null/0 but `futureTaxableEstate` has a valid value, the component calculates IHT as 40% of the taxable estate (which is the UK IHT rate on taxable amounts).
+
+### Changes Made
+
+1. **Fallback IHT Calculation**
+   - If `futureIHTLiability` is null/0 but `futureTaxableEstate` exists, calculate IHT as 40% of taxable estate
+   - Applied to both `formattedFutureIHTLiability` and `futureIHTLiabilityColour` computed properties
+
+### Files Modified
+
+**Frontend:**
+- `resources/js/components/Estate/EstateOverviewCard.vue`
+  - Updated `formattedFutureIHTLiability` computed property with fallback calculation
+  - Updated `futureIHTLiabilityColour` computed property with matching fallback logic
+
+### Result
+
+Estate Planning card now correctly displays IHT Liability (e.g., £3,968,274 for Mitchell persona) instead of showing £0.
+
+---
+
 ## All Commits (Chronological)
 
 ```
@@ -133,6 +166,7 @@ be1ff62 feat: Show protection shortfalls with amounts on dashboard
 | `resources/js/components/Dashboard/InvestmentsOverviewCard.vue` | Modified | Account list, annualised returns display |
 | `resources/js/components/Dashboard/TaxOptimisationCard.vue` | Modified | Conditional display logic |
 | `resources/js/components/Protection/ProtectionOverviewCard.vue` | Modified | Local gap calculations |
+| `resources/js/components/Estate/EstateOverviewCard.vue` | Modified | Fallback IHT calculation from taxable estate |
 | `resources/js/store/modules/protection.js` | Modified | Added getters, fixed data paths |
 | `resources/js/views/Dashboard.vue` | Modified | Added analyseInvestment action, sicknessIllnessPolicies prop |
 
@@ -154,3 +188,9 @@ be1ff62 feat: Show protection shortfalls with amounts on dashboard
 3. **Protection Card:**
    - Compare shortfall values with GapAnalysis.vue
    - Verify all 5 categories calculate correctly
+
+4. **Estate Card:**
+   - Login as Mitchell (peak_earners) persona
+   - Verify IHT Liability shows ~£3,968,274 (not £0)
+   - Verify Taxable Estate shows ~£9,920,685
+   - Compare values with /estate page to confirm they match

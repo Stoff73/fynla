@@ -1,44 +1,55 @@
 <template>
   <AppLayout>
     <div class="py-4 sm:py-6">
-      <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      <!-- Masonry layout for dashboard cards -->
+      <div class="dashboard-masonry columns-1 sm:columns-2 lg:columns-3 gap-6">
         <!-- Card 1: Net Worth (Always shown) -->
-        <NetWorthOverviewCard />
+        <div class="break-inside-avoid mb-6">
+          <NetWorthOverviewCard />
+        </div>
 
         <!-- Card 2: Affordability (needs both userProfile AND savings data) -->
-        <div v-if="loading.affordability || loading.taxAllowances" class="card animate-pulse">
-          <div class="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
-          <div class="h-8 bg-gray-200 rounded w-1/2 mb-2"></div>
-          <div class="h-3 bg-gray-200 rounded w-full"></div>
+        <div class="break-inside-avoid mb-6">
+          <div v-if="loading.affordability || loading.taxAllowances" class="card animate-pulse">
+            <div class="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
+            <div class="h-8 bg-gray-200 rounded w-1/2 mb-2"></div>
+            <div class="h-3 bg-gray-200 rounded w-full"></div>
+          </div>
+          <AffordabilityOverviewCard v-else />
         </div>
-        <AffordabilityOverviewCard v-else />
 
         <!-- Card 3: Retirement -->
-        <div v-if="loading.retirement" class="card animate-pulse">
-          <div class="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
-          <div class="h-8 bg-gray-200 rounded w-1/2 mb-2"></div>
-          <div class="h-3 bg-gray-200 rounded w-full"></div>
+        <div class="break-inside-avoid mb-6">
+          <div v-if="loading.retirement" class="card animate-pulse">
+            <div class="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
+            <div class="h-8 bg-gray-200 rounded w-1/2 mb-2"></div>
+            <div class="h-3 bg-gray-200 rounded w-full"></div>
+          </div>
+          <RetirementOverviewCard v-else />
         </div>
-        <RetirementOverviewCard v-else />
 
         <!-- Card 4: Investments -->
-        <div v-if="loading.investment" class="card animate-pulse">
-          <div class="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
-          <div class="h-8 bg-gray-200 rounded w-1/2 mb-2"></div>
-          <div class="h-3 bg-gray-200 rounded w-full"></div>
+        <div class="break-inside-avoid mb-6">
+          <div v-if="loading.investment" class="card animate-pulse">
+            <div class="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
+            <div class="h-8 bg-gray-200 rounded w-1/2 mb-2"></div>
+            <div class="h-3 bg-gray-200 rounded w-full"></div>
+          </div>
+          <InvestmentsOverviewCard v-else />
         </div>
-        <InvestmentsOverviewCard v-else />
 
         <!-- Card 5: Tax Optimisation -->
-        <div v-if="loading.taxAllowances" class="card animate-pulse">
-          <div class="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
-          <div class="h-8 bg-gray-200 rounded w-1/2 mb-2"></div>
-          <div class="h-3 bg-gray-200 rounded w-full"></div>
+        <div class="break-inside-avoid mb-6">
+          <div v-if="loading.taxAllowances" class="card animate-pulse">
+            <div class="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
+            <div class="h-8 bg-gray-200 rounded w-1/2 mb-2"></div>
+            <div class="h-3 bg-gray-200 rounded w-full"></div>
+          </div>
+          <TaxOptimisationCard v-else />
         </div>
-        <TaxOptimisationCard v-else />
 
         <!-- Card 6: Estate Planning (Only if IHT liability > 0) -->
-        <template v-if="shouldShowEstateCard">
+        <div v-if="shouldShowEstateCard" class="break-inside-avoid mb-6">
           <div v-if="loading.estate" class="card animate-pulse">
             <div class="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
             <div class="h-8 bg-gray-200 rounded w-1/2 mb-2"></div>
@@ -66,10 +77,10 @@
             :future-iht-liability="estateData.futureIHTLiability"
             :is-married="estateData.isMarried"
           />
-        </template>
+        </div>
 
         <!-- Card 7: Protection (Only if user has policies) -->
-        <template v-if="shouldShowProtectionCard">
+        <div v-if="shouldShowProtectionCard" class="break-inside-avoid mb-6">
           <div v-if="loading.protection" class="card animate-pulse">
             <div class="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
             <div class="h-8 bg-gray-200 rounded w-1/2 mb-2"></div>
@@ -99,20 +110,26 @@
             :disability-policies="protectionData.disabilityPolicies"
             :sickness-illness-policies="protectionData.sicknessIllnessPolicies"
           />
-        </template>
+        </div>
 
         <!-- Card 8: Trusts (Only if user has trusts) -->
-        <template v-if="shouldShowTrustsCard">
+        <div v-if="shouldShowTrustsCard" class="break-inside-avoid mb-6">
           <div v-if="loading.trusts" class="card animate-pulse">
             <div class="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
             <div class="h-8 bg-gray-200 rounded w-1/2 mb-2"></div>
             <div class="h-3 bg-gray-200 rounded w-full"></div>
           </div>
           <TrustsOverviewCard v-else />
-        </template>
+        </div>
 
-        <!-- Card 6: Plans (spans 2 columns) -->
-        <div class="sm:col-span-2">
+        <!-- UK Taxes & Allowances (Admin Only) - in masonry -->
+        <div v-if="isAdmin" class="break-inside-avoid mb-6">
+          <UKTaxesOverviewCard />
+        </div>
+      </div>
+
+      <!-- Plans Card (full width, below masonry) -->
+      <div class="mt-6">
           <div class="card hover:shadow-lg transition-shadow h-full">
             <div class="flex items-start justify-between mb-4">
               <div>
@@ -247,11 +264,7 @@
             </div>
           </div>
         </div>
-
-        <!-- Card 7: UK Taxes & Allowances (Admin Only) -->
-        <UKTaxesOverviewCard v-if="isAdmin" />
       </div>
-    </div>
   </AppLayout>
 </template>
 
@@ -548,3 +561,36 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+/* Remove card backgrounds/borders for seamless dashboard look */
+.dashboard-masonry :deep(.card),
+.dashboard-masonry :deep([class*="overview-card"]) {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+
+/* Subtle hover effect for clickable cards */
+.dashboard-masonry :deep(.card):hover,
+.dashboard-masonry :deep([class*="overview-card"]):hover {
+  background: rgba(59, 130, 246, 0.04) !important;
+}
+
+/* Keep loading skeletons visible */
+.dashboard-masonry :deep(.animate-pulse) {
+  background: #f3f4f6 !important;
+  border-radius: 8px !important;
+}
+
+/* Add subtle dividers between cards */
+.dashboard-masonry > .break-inside-avoid {
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 1.5rem;
+}
+
+.dashboard-masonry > .break-inside-avoid:last-child {
+  border-bottom: none;
+}
+</style>

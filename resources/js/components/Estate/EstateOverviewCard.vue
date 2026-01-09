@@ -187,19 +187,33 @@ export default {
     },
 
     formattedFutureIHTLiability() {
-      if (this.futureIHTLiability === null || this.futureIHTLiability === undefined) return '£0';
+      // Use the passed prop if available
+      let ihtValue = this.futureIHTLiability;
+
+      // If IHT liability is null but we have a taxable estate, calculate it (40% of taxable estate)
+      if ((ihtValue === null || ihtValue === undefined || ihtValue === 0) && this.futureTaxableEstate > 0) {
+        ihtValue = this.futureTaxableEstate * 0.40;
+      }
+
+      if (ihtValue === null || ihtValue === undefined) return '£0';
       return new Intl.NumberFormat('en-GB', {
         style: 'currency',
         currency: 'GBP',
         minimumFractionDigits: 0,
         maximumFractionDigits: 0,
-      }).format(this.futureIHTLiability);
+      }).format(ihtValue);
     },
 
     futureIHTLiabilityColour() {
-      if (this.futureIHTLiability === null || this.futureIHTLiability === 0) {
+      // Use the passed prop if available, otherwise calculate from taxable estate
+      let ihtValue = this.futureIHTLiability;
+      if ((ihtValue === null || ihtValue === undefined || ihtValue === 0) && this.futureTaxableEstate > 0) {
+        ihtValue = this.futureTaxableEstate * 0.40;
+      }
+
+      if (ihtValue === null || ihtValue === 0) {
         return 'text-green-600';
-      } else if (this.futureIHTLiability < 100000) {
+      } else if (ihtValue < 100000) {
         return 'text-amber-600';
       } else {
         return 'text-red-600';
