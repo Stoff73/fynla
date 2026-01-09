@@ -27,18 +27,13 @@
       <div class="flex items-center gap-2 mt-2">
         <span class="text-sm text-gray-500">YTD:</span>
         <span
+          v-if="portfolioYtdReturn !== null"
           class="text-sm font-semibold"
-          :class="portfolioYtdNet >= 0 ? 'text-green-600' : 'text-red-600'"
+          :class="portfolioYtdReturn >= 0 ? 'text-green-600' : 'text-red-600'"
         >
-          {{ portfolioYtdNet >= 0 ? '+' : '' }}{{ formatCurrency(portfolioYtdNet) }}
+          {{ portfolioYtdReturn >= 0 ? '+' : '' }}{{ portfolioYtdReturn.toFixed(2) }}%
         </span>
-        <span
-          v-if="ytdReturn !== 0"
-          class="text-xs px-1.5 py-0.5 rounded"
-          :class="ytdReturn >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'"
-        >
-          {{ ytdReturn >= 0 ? '+' : '' }}{{ ytdReturn.toFixed(1) }}%
-        </span>
+        <span v-else class="text-sm text-gray-400">N/A</span>
       </div>
     </div>
 
@@ -61,11 +56,11 @@
         <div class="text-right">
           <div class="text-sm font-semibold text-gray-900">{{ formatCurrency(account.current_value) }}</div>
           <div
-            v-if="account.ytd_gain !== null && account.ytd_gain !== undefined"
+            v-if="account.ytd_return !== null && account.ytd_return !== undefined"
             class="text-xs"
-            :class="account.ytd_gain >= 0 ? 'text-green-600' : 'text-red-600'"
+            :class="account.ytd_return >= 0 ? 'text-green-600' : 'text-red-600'"
           >
-            {{ account.ytd_gain >= 0 ? '+' : '' }}{{ formatCurrency(account.ytd_gain) }}
+            {{ account.ytd_return >= 0 ? '+' : '' }}{{ account.ytd_return.toFixed(2) }}%
           </div>
         </div>
       </div>
@@ -144,21 +139,26 @@ export default {
       return this.analysis?.diversification_score || 0;
     },
 
-    // Calculate portfolio YTD net value from account returns
-    portfolioYtdNet() {
-      if (!this.accounts || this.accounts.length === 0) return 0;
+    // Calculate weighted average portfolio YTD return percentage
+    portfolioYtdReturn() {
+      if (!this.accounts || this.accounts.length === 0) return null;
 
-      // Sum actual gains from each account
-      return this.accounts.reduce((total, account) => {
+      let totalValue = 0;
+      let weightedReturn = 0;
+
+      this.accounts.forEach(account => {
         const ytdReturn = account.ytd_return;
-        if (ytdReturn !== null && ytdReturn !== undefined) {
-          const currentValue = parseFloat(account.current_value || 0);
-          // Calculate gain: current_value * (return / (100 + return))
-          const gain = currentValue * (ytdReturn / (100 + ytdReturn));
-          return total + gain;
+        const currentValue = parseFloat(account.current_value || 0);
+
+        if (ytdReturn !== null && ytdReturn !== undefined && currentValue > 0) {
+          totalValue += currentValue;
+          weightedReturn += currentValue * ytdReturn;
         }
-        return total;
-      }, 0);
+      });
+
+      if (totalValue === 0) return null;
+
+      return weightedReturn / totalValue;
     },
 
     // List of accounts with their YTD returns
