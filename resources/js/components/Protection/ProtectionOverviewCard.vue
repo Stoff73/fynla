@@ -164,7 +164,9 @@
           <div class="shortfall-content">
             <span class="shortfall-label">{{ shortfall.label }}</span>
             <span v-if="shortfall.noPolicy" class="shortfall-text">No cover</span>
-            <span v-else class="shortfall-amount">{{ formatCurrency(shortfall.amount) }} shortfall</span>
+            <span v-else class="shortfall-amount">
+              {{ formatCurrency(shortfall.amount) }}{{ shortfall.isAnnual ? '/yr' : '' }} shortfall
+            </span>
           </div>
         </div>
       </div>
@@ -196,6 +198,7 @@
 
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
+import userProfileService from '@/services/userProfileService';
 
 export default {
   name: 'ProtectionOverviewCard',
@@ -217,10 +220,6 @@ export default {
       required: true,
       default: 0,
     },
-    coverageGaps: {
-      type: Object,
-      default: () => ({}),
-    },
     lifePolicies: {
       type: Array,
       default: () => [],
@@ -237,6 +236,18 @@ export default {
       type: Array,
       default: () => [],
     },
+  },
+
+  data() {
+    return {
+      fetchedMortgageDebt: 0,
+      fetchedOtherDebt: 0,
+      fetchedAnnualIncome: 0,
+    };
+  },
+
+  async mounted() {
+    await this.fetchUserData();
   },
 
   computed: {
@@ -258,36 +269,88 @@ export default {
       }).format(this.premiumTotal);
     },
 
-    // Coverage gap amounts from adequacy analysis
-    lifeInsuranceGap() {
-      // Life cover gap = human capital + debt protection + final expenses + education
-      const humanCapital = this.coverageGaps?.human_capital_gap || 0;
-      const debt = this.coverageGaps?.debt_protection_gap || 0;
-      const finalExpenses = this.coverageGaps?.final_expenses_gap || 0;
-      const education = this.coverageGaps?.education_funding_gap || 0;
-      return humanCapital + debt + finalExpenses + education;
+    // Calculate total debt
+    totalDebt() {
+      return this.fetchedMortgageDebt + this.fetchedOtherDebt;
     },
 
+    // Life insurance coverage
+    totalLifeCoverage() {
+      return this.lifePolicies.reduce((sum, policy) => {
+        return sum + parseFloat(policy.sum_assured || 0);
+      }, 0);
+    },
+
+    // Debt protection gap
+    debtProtectionGap() {
+      return Math.max(0, this.totalDebt - this.totalLifeCoverage);
+    },
+
+    // Excess life cover after debt (lump sum)
+    excessLifeCoverAfterDebt() {
+      return Math.max(0, this.totalLifeCoverage - this.totalDebt);
+    },
+
+    // Convert lump sum to sustainable annual income at 4.7% draw rate
+    incomeFromLifeCover() {
+      return this.excessLifeCoverAfterDebt * 0.047;
+    },
+
+    // Income replacement need (75% of annual income)
+    incomeReplacementNeed() {
+      return this.fetchedAnnualIncome * 0.75;
+    },
+
+    // Income replacement gap
+    incomeReplacementGap() {
+      return Math.max(0, this.incomeReplacementNeed - this.incomeFromLifeCover);
+    },
+
+    // Critical illness coverage
+    criticalIllnessCoverage() {
+      return this.criticalIllnessPolicies.reduce((sum, policy) => {
+        return sum + parseFloat(policy.sum_assured || 0);
+      }, 0);
+    },
+
+    // Critical illness need (2x annual income)
+    criticalIllnessNeed() {
+      return this.fetchedAnnualIncome * 2;
+    },
+
+    // Critical illness gap
     criticalIllnessGap() {
-      return this.coverageGaps?.sickness_illness_gap || 0;
+      return Math.max(0, this.criticalIllnessNeed - this.criticalIllnessCoverage);
     },
 
+    // Income protection coverage (annual)
+    incomeProtectionCoverage() {
+      return this.incomeProtectionPolicies.reduce((sum, policy) => {
+        const benefit = parseFloat(policy.benefit_amount || 0);
+        // Assume monthly benefit, convert to annual
+        return sum + (benefit * 12);
+      }, 0);
+    },
+
+    // Income protection need (50% of annual income)
+    incomeProtectionNeed() {
+      return this.fetchedAnnualIncome * 0.5;
+    },
+
+    // Income protection gap
     incomeProtectionGap() {
-      return this.coverageGaps?.income_protection_gap || 0;
-    },
-
-    disabilityCoverGap() {
-      return this.coverageGaps?.disability_coverage_gap || 0;
+      return Math.max(0, this.incomeProtectionNeed - this.incomeProtectionCoverage);
     },
 
     // List of shortfalls with amounts for display
     shortfallsList() {
       const shortfalls = [];
 
-      if (this.lifeInsuranceGap > 0) {
+      // Life insurance / Debt protection shortfall
+      if (this.debtProtectionGap > 0 || this.incomeReplacementGap > 0) {
         shortfalls.push({
           label: 'Life Insurance',
-          amount: this.lifeInsuranceGap,
+          amount: this.debtProtectionGap + this.incomeReplacementGap,
         });
       } else if (this.lifePolicies.length === 0) {
         shortfalls.push({
@@ -297,6 +360,7 @@ export default {
         });
       }
 
+      // Critical illness shortfall
       if (this.criticalIllnessGap > 0) {
         shortfalls.push({
           label: 'Critical Illness',
@@ -310,23 +374,18 @@ export default {
         });
       }
 
+      // Income protection shortfall
       if (this.incomeProtectionGap > 0) {
         shortfalls.push({
           label: 'Income Protection',
           amount: this.incomeProtectionGap,
+          isAnnual: true,
         });
       } else if (this.incomeProtectionPolicies.length === 0) {
         shortfalls.push({
           label: 'Income Protection',
           amount: 0,
           noPolicy: true,
-        });
-      }
-
-      if (this.disabilityCoverGap > 0) {
-        shortfalls.push({
-          label: 'Disability Cover',
-          amount: this.disabilityCoverGap,
         });
       }
 
@@ -339,6 +398,26 @@ export default {
   },
 
   methods: {
+    async fetchUserData() {
+      try {
+        const response = await userProfileService.getProfile();
+        const data = response.data || response;
+
+        // Get liabilities breakdown
+        const liabilities = data.liabilities_summary || {};
+        this.fetchedMortgageDebt = liabilities.mortgages?.total || 0;
+        this.fetchedOtherDebt = liabilities.other?.total || 0;
+
+        // Get annual income from income_occupation
+        const income = data.income_occupation || {};
+        const employmentIncome = parseFloat(income.annual_employment_income || 0);
+        const selfEmploymentIncome = parseFloat(income.annual_self_employment_income || 0);
+        this.fetchedAnnualIncome = employmentIncome + selfEmploymentIncome;
+      } catch (error) {
+        console.warn('Failed to fetch user data for protection card:', error);
+      }
+    },
+
     navigateToProtection() {
       this.$router.push('/protection');
     },
