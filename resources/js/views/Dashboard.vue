@@ -422,6 +422,7 @@ export default {
         { name: 'affordability', action: 'userProfile/fetchProfile' },
         { name: 'retirement', action: 'retirement/fetchRetirementData' },
         { name: 'investment', action: 'investment/fetchInvestmentData' },
+        { name: 'investment', action: 'investment/analyseInvestment' },
         { name: 'taxAllowances', action: 'savings/fetchSavingsData' },
       ];
 
