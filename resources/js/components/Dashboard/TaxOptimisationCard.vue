@@ -50,8 +50,8 @@
         <div class="text-xs text-gray-500 mt-1">{{ formatCurrency(pensionRemaining) }} remaining</div>
       </div>
 
-      <!-- CGT Allowance -->
-      <div class="allowance-item">
+      <!-- CGT Allowance (only if user has non-ISA investments) -->
+      <div v-if="hasNonIsaInvestments" class="allowance-item">
         <div class="flex justify-between items-center mb-1">
           <span class="text-sm font-medium text-gray-700">CGT</span>
           <span class="text-xs text-gray-500">{{ formatCurrency(cgtUsed) }} / {{ formatCurrency(cgtLimit) }}</span>
@@ -66,8 +66,8 @@
         <div class="text-xs text-gray-500 mt-1">{{ formatCurrency(cgtRemaining) }} remaining</div>
       </div>
 
-      <!-- Dividend Allowance -->
-      <div class="allowance-item">
+      <!-- Dividend Allowance (only if user receives dividend income) -->
+      <div v-if="hasDividendIncome" class="allowance-item">
         <div class="flex justify-between items-center mb-1">
           <span class="text-sm font-medium text-gray-700">Dividend</span>
           <span class="text-xs text-gray-500">{{ formatCurrency(dividendUsed) }} / {{ formatCurrency(dividendLimit) }}</span>
@@ -124,6 +124,24 @@ export default {
     ...mapState('retirement', ['annualAllowance', 'dcPensions']),
     ...mapGetters('investment', ['totalISAContributions']),
     ...mapGetters('userProfile', ['totalAnnualIncome']),
+
+    // Check if user has dividend income
+    hasDividendIncome() {
+      const annualDividends = this.$store.state.userProfile?.incomeOccupation?.annual_dividend_income || 0;
+      return annualDividends > 0;
+    },
+
+    // Check if user has non-ISA investment accounts (GIA where CGT applies)
+    hasNonIsaInvestments() {
+      if (!this.investmentAccounts || this.investmentAccounts.length === 0) {
+        return false;
+      }
+      // Check for any account that is NOT an ISA (GIA, SIPP pension wrapper gains are tax-free)
+      return this.investmentAccounts.some(account => {
+        const type = (account.account_type || '').toLowerCase();
+        return type === 'gia' || type === 'general_investment_account' || type === 'trading';
+      });
+    },
 
     // ISA usage from savings and investment ISA accounts
     isaUsed() {
@@ -197,31 +215,53 @@ export default {
       return (this.dividendUsed / this.dividendLimit) * 100;
     },
 
-    // Check if any allowances are about to expire (within 3 months of tax year end)
-    hasExpiringAllowances() {
+    // Check if within 3 months of tax year end
+    isNearTaxYearEnd() {
       const now = new Date();
       const taxYearEnd = new Date(now.getFullYear(), 3, 5); // April 5th
       if (now > taxYearEnd) {
         taxYearEnd.setFullYear(taxYearEnd.getFullYear() + 1);
       }
       const monthsUntilEnd = (taxYearEnd - now) / (1000 * 60 * 60 * 24 * 30);
+      return monthsUntilEnd <= 3;
+    },
 
-      // Warn if within 3 months and significant allowance unused
-      return monthsUntilEnd <= 3 && (
-        this.isaRemaining > 5000 ||
-        this.pensionRemaining > 10000
-      );
+    // Check if any use-it-or-lose-it allowances are expiring
+    // Note: Pension allowance can carry forward, so NOT included
+    hasExpiringAllowances() {
+      if (!this.isNearTaxYearEnd) return false;
+
+      // ISA allowance is always use-it-or-lose-it
+      if (this.isaRemaining > 5000) return true;
+
+      // CGT allowance expires (if user can use it)
+      if (this.hasNonIsaInvestments && this.cgtRemaining > 1000) return true;
+
+      // Dividend allowance expires (if user has dividend income)
+      if (this.hasDividendIncome && this.dividendRemaining > 100) return true;
+
+      return false;
     },
 
     expiringMessage() {
       const messages = [];
+
+      // ISA (always use-it-or-lose-it)
       if (this.isaRemaining > 5000) {
         messages.push(`${this.formatCurrency(this.isaRemaining)} ISA`);
       }
-      if (this.pensionRemaining > 10000) {
-        messages.push(`${this.formatCurrency(this.pensionRemaining)} Pension`);
+
+      // CGT (if applicable)
+      if (this.hasNonIsaInvestments && this.cgtRemaining > 1000) {
+        messages.push(`${this.formatCurrency(this.cgtRemaining)} CGT`);
       }
-      return `${messages.join(' and ')} allowance expires 5 April`;
+
+      // Dividend (if applicable)
+      if (this.hasDividendIncome && this.dividendRemaining > 100) {
+        messages.push(`${this.formatCurrency(this.dividendRemaining)} Dividend`);
+      }
+
+      return `${messages.join(', ')} allowance expires 5 April`;
     },
   },
 
