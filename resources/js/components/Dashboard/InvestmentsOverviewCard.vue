@@ -16,76 +16,79 @@
       </span>
     </div>
 
-    <!-- Primary Value Section -->
+    <!-- Primary Value Section with YTD Net -->
     <div class="border-b border-gray-200 pb-4 mb-4">
       <span class="text-sm text-gray-500">Total Portfolio Value</span>
       <div class="flex items-baseline gap-3 mt-1">
         <span class="text-3xl font-bold text-primary-600">
           {{ formatCurrency(totalValue) }}
         </span>
+      </div>
+      <div class="flex items-center gap-2 mt-2">
+        <span class="text-sm text-gray-500">YTD:</span>
+        <span
+          class="text-sm font-semibold"
+          :class="portfolioYtdNet >= 0 ? 'text-green-600' : 'text-red-600'"
+        >
+          {{ portfolioYtdNet >= 0 ? '+' : '' }}{{ formatCurrency(portfolioYtdNet) }}
+        </span>
         <span
           v-if="ytdReturn !== 0"
-          class="text-sm font-semibold px-2 py-0.5 rounded"
-          :class="ytdReturn >= 0 ? 'bg-green-600 text-white' : 'bg-red-600 text-white'"
+          class="text-xs px-1.5 py-0.5 rounded"
+          :class="ytdReturn >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'"
         >
-          {{ ytdReturn >= 0 ? '+' : '' }}{{ ytdReturn.toFixed(1) }}% YTD
+          {{ ytdReturn >= 0 ? '+' : '' }}{{ ytdReturn.toFixed(1) }}%
         </span>
       </div>
     </div>
 
-    <!-- Metrics Grid -->
-    <div class="grid grid-cols-2 gap-4 mb-4">
-      <div>
-        <span class="text-sm text-gray-500">Risk Level</span>
-        <div class="mt-1">
+    <!-- Account List -->
+    <div class="space-y-3 mb-4">
+      <div
+        v-for="account in accountsList"
+        :key="account.id"
+        class="flex justify-between items-start"
+      >
+        <div>
+          <span class="text-sm font-medium text-gray-900">{{ account.name }}</span>
           <span
-            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border-2"
+            class="ml-2 text-xs px-1.5 py-0.5 rounded border"
+            :class="getAccountTypeBadgeClass(account.account_type)"
+          >
+            {{ formatAccountType(account.account_type) }}
+          </span>
+        </div>
+        <div class="text-right">
+          <div class="text-sm font-semibold text-gray-900">{{ formatCurrency(account.current_value) }}</div>
+          <div
+            v-if="account.ytd_gain !== undefined"
+            class="text-xs"
+            :class="account.ytd_gain >= 0 ? 'text-green-600' : 'text-red-600'"
+          >
+            {{ account.ytd_gain >= 0 ? '+' : '' }}{{ formatCurrency(account.ytd_gain) }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Risk & Diversification (if available) -->
+    <div v-if="riskLevel !== 'Not Set' || diversificationScore > 0" class="grid grid-cols-2 gap-4 pt-3 border-t border-gray-200">
+      <div v-if="riskLevel !== 'Not Set'">
+        <span class="text-xs text-gray-500">Risk Level</span>
+        <div class="mt-0.5">
+          <span
+            class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border"
             :class="riskBadgeClass"
           >
             {{ riskLevel }}
           </span>
         </div>
       </div>
-      <div>
-        <span class="text-sm text-gray-500">Diversification</span>
-        <div class="mt-1">
-          <span class="text-lg font-semibold text-gray-900">{{ diversificationScore }}/100</span>
+      <div v-if="diversificationScore > 0">
+        <span class="text-xs text-gray-500">Diversification</span>
+        <div class="mt-0.5">
+          <span class="text-sm font-semibold text-gray-900">{{ diversificationScore }}/100</span>
         </div>
-      </div>
-    </div>
-
-    <!-- Asset Allocation Mini Bar -->
-    <div v-if="assetAllocation.length > 0" class="mb-4">
-      <span class="text-sm text-gray-500 mb-2 block">Asset Allocation</span>
-      <div class="h-3 rounded-full overflow-hidden flex bg-gray-200">
-        <div
-          v-for="(asset, index) in assetAllocation"
-          :key="asset.name"
-          class="h-full"
-          :style="{ width: asset.percentage + '%', backgroundColor: allocationColors[index % allocationColors.length] }"
-          :title="`${asset.name}: ${asset.percentage}%`"
-        ></div>
-      </div>
-      <div class="flex flex-wrap gap-2 mt-2">
-        <div
-          v-for="(asset, index) in assetAllocation.slice(0, 4)"
-          :key="asset.name"
-          class="flex items-center gap-1 text-xs text-gray-600"
-        >
-          <span
-            class="w-2 h-2 rounded-full"
-            :style="{ backgroundColor: allocationColors[index % allocationColors.length] }"
-          ></span>
-          {{ asset.name }} {{ asset.percentage }}%
-        </div>
-      </div>
-    </div>
-
-    <!-- Account Count -->
-    <div class="pt-3 border-t border-gray-200">
-      <div class="flex justify-between items-center text-sm">
-        <span class="text-gray-600">{{ accountsCount }} {{ accountsCount === 1 ? 'account' : 'accounts' }}</span>
-        <span class="text-primary-600 font-medium">View details &rarr;</span>
       </div>
     </div>
   </div>
@@ -140,6 +143,39 @@ export default {
     diversificationScore() {
       return this.analysis?.diversification_score || 0;
     },
+
+    // Calculate portfolio YTD net value from percentage return
+    portfolioYtdNet() {
+      if (!this.ytdReturn || !this.totalValue) return 0;
+      // Approximate: YTD gain ≈ current_value * (return_percent / (100 + return_percent))
+      return this.totalValue * (this.ytdReturn / (100 + this.ytdReturn));
+    },
+
+    // List of accounts with calculated YTD gain
+    accountsList() {
+      if (!this.accounts || this.accounts.length === 0) return [];
+
+      return this.accounts.map(account => {
+        const currentValue = parseFloat(account.current_value || 0);
+        const contributions = parseFloat(account.contributions_ytd || 0);
+
+        // Estimate YTD gain proportionally based on portfolio return
+        // Account's share of portfolio * portfolio YTD net
+        let ytdGain = 0;
+        if (this.totalValue > 0 && this.portfolioYtdNet) {
+          const accountShare = currentValue / this.totalValue;
+          ytdGain = accountShare * this.portfolioYtdNet;
+        }
+
+        return {
+          id: account.id,
+          name: account.account_name || account.name || 'Unnamed Account',
+          account_type: account.account_type,
+          current_value: currentValue,
+          ytd_gain: ytdGain,
+        };
+      });
+    },
   },
 
   methods: {
@@ -150,6 +186,35 @@ export default {
     formatRiskLevel(level) {
       if (!level) return 'Not Set';
       return level.charAt(0).toUpperCase() + level.slice(1).replace(/_/g, ' ');
+    },
+
+    getAccountTypeBadgeClass(accountType) {
+      const type = (accountType || '').toLowerCase();
+      if (type.includes('isa') || type === 'stocks_and_shares_isa') {
+        return 'bg-white text-blue-700 border-blue-500';
+      }
+      if (type === 'sipp' || type.includes('pension')) {
+        return 'bg-white text-purple-700 border-purple-500';
+      }
+      if (type === 'gia' || type === 'general_investment_account' || type === 'trading') {
+        return 'bg-white text-gray-700 border-gray-400';
+      }
+      return 'bg-white text-gray-700 border-gray-400';
+    },
+
+    formatAccountType(accountType) {
+      const typeMap = {
+        stocks_and_shares_isa: 'ISA',
+        cash_isa: 'Cash ISA',
+        isa: 'ISA',
+        sipp: 'SIPP',
+        gia: 'GIA',
+        general_investment_account: 'GIA',
+        trading: 'Trading',
+        pension: 'Pension',
+      };
+      const type = (accountType || '').toLowerCase();
+      return typeMap[type] || accountType?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'Account';
     },
   },
 };
