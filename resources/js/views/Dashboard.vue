@@ -2,70 +2,113 @@
   <AppLayout>
     <div class="py-4 sm:py-6">
       <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        <!-- Card 1: Net Worth -->
+        <!-- Card 1: Net Worth (Always shown) -->
         <NetWorthOverviewCard />
 
-        <!-- Card 2: Estate Planning -->
-        <div v-if="loading.estate" class="card animate-pulse">
+        <!-- Card 2: Affordability (needs both userProfile AND savings data) -->
+        <div v-if="loading.affordability || loading.taxAllowances" class="card animate-pulse">
           <div class="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
           <div class="h-8 bg-gray-200 rounded w-1/2 mb-2"></div>
           <div class="h-3 bg-gray-200 rounded w-full"></div>
         </div>
-        <div v-else-if="errors.estate" class="card border border-error-200 bg-error-50">
-          <h3 class="text-h4 text-error-700 mb-2">Estate Module</h3>
-          <p class="text-body text-error-600 mb-4">
-            Failed to load estate data. {{ errors.estate }}
-          </p>
-          <button
-            @click="retryLoadModule('estate')"
-            class="px-4 py-2 bg-error-600 text-white rounded-lg hover:bg-error-700 transition-colors"
-          >
-            Retry
-          </button>
-        </div>
-        <EstateOverviewCard
-          v-else
-          :taxable-estate="estateData.taxableEstate"
-          :iht-liability="estateData.ihtLiability"
-          :probate-readiness="estateData.probateReadiness"
-          :future-death-age="estateData.futureDeathAge"
-          :future-taxable-estate="estateData.futureTaxableEstate"
-          :future-iht-liability="estateData.futureIHTLiability"
-          :is-married="estateData.isMarried"
-        />
+        <AffordabilityOverviewCard v-else />
 
-        <!-- Card 4: Protection -->
-        <div v-if="loading.protection" class="card animate-pulse">
+        <!-- Card 3: Retirement -->
+        <div v-if="loading.retirement" class="card animate-pulse">
           <div class="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
           <div class="h-8 bg-gray-200 rounded w-1/2 mb-2"></div>
           <div class="h-3 bg-gray-200 rounded w-full"></div>
         </div>
-        <div v-else-if="errors.protection" class="card border border-error-200 bg-error-50">
-          <h3 class="text-h4 text-error-700 mb-2">Protection Module</h3>
-          <p class="text-body text-error-600 mb-4">
-            Failed to load protection data. {{ errors.protection }}
-          </p>
-          <button
-            @click="retryLoadModule('protection')"
-            class="px-4 py-2 bg-error-600 text-white rounded-lg hover:bg-error-700 transition-colors"
-          >
-            Retry
-          </button>
-        </div>
-        <ProtectionOverviewCard
-          v-else
-          :adequacy-score="protectionData.adequacyScore"
-          :total-coverage="protectionData.totalCoverage"
-          :premium-total="protectionData.premiumTotal"
-          :critical-gaps="protectionData.criticalGaps"
-          :life-policies="protectionData.lifePolicies"
-          :critical-illness-policies="protectionData.criticalIllnessPolicies"
-          :income-protection-policies="protectionData.incomeProtectionPolicies"
-          :disability-policies="protectionData.disabilityPolicies"
-        />
+        <RetirementOverviewCard v-else />
 
-        <!-- Card 5: Trusts -->
-        <TrustsOverviewCard />
+        <!-- Card 4: Investments -->
+        <div v-if="loading.investment" class="card animate-pulse">
+          <div class="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
+          <div class="h-8 bg-gray-200 rounded w-1/2 mb-2"></div>
+          <div class="h-3 bg-gray-200 rounded w-full"></div>
+        </div>
+        <InvestmentsOverviewCard v-else />
+
+        <!-- Card 5: Tax Optimisation -->
+        <div v-if="loading.taxAllowances" class="card animate-pulse">
+          <div class="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
+          <div class="h-8 bg-gray-200 rounded w-1/2 mb-2"></div>
+          <div class="h-3 bg-gray-200 rounded w-full"></div>
+        </div>
+        <TaxOptimisationCard v-else />
+
+        <!-- Card 6: Estate Planning (Only if IHT liability > 0) -->
+        <template v-if="shouldShowEstateCard">
+          <div v-if="loading.estate" class="card animate-pulse">
+            <div class="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
+            <div class="h-8 bg-gray-200 rounded w-1/2 mb-2"></div>
+            <div class="h-3 bg-gray-200 rounded w-full"></div>
+          </div>
+          <div v-else-if="errors.estate" class="card border-2 border-red-600 bg-white">
+            <h3 class="text-h4 text-red-700 mb-2">Estate Module</h3>
+            <p class="text-body text-red-600 mb-4">
+              Failed to load estate data. {{ errors.estate }}
+            </p>
+            <button
+              @click="retryLoadModule('estate')"
+              class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            >
+              Retry
+            </button>
+          </div>
+          <EstateOverviewCard
+            v-else
+            :taxable-estate="estateData.taxableEstate"
+            :iht-liability="estateData.ihtLiability"
+            :probate-readiness="estateData.probateReadiness"
+            :future-death-age="estateData.futureDeathAge"
+            :future-taxable-estate="estateData.futureTaxableEstate"
+            :future-iht-liability="estateData.futureIHTLiability"
+            :is-married="estateData.isMarried"
+          />
+        </template>
+
+        <!-- Card 7: Protection (Only if user has policies) -->
+        <template v-if="shouldShowProtectionCard">
+          <div v-if="loading.protection" class="card animate-pulse">
+            <div class="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
+            <div class="h-8 bg-gray-200 rounded w-1/2 mb-2"></div>
+            <div class="h-3 bg-gray-200 rounded w-full"></div>
+          </div>
+          <div v-else-if="errors.protection" class="card border-2 border-red-600 bg-white">
+            <h3 class="text-h4 text-red-700 mb-2">Protection Module</h3>
+            <p class="text-body text-red-600 mb-4">
+              Failed to load protection data. {{ errors.protection }}
+            </p>
+            <button
+              @click="retryLoadModule('protection')"
+              class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            >
+              Retry
+            </button>
+          </div>
+          <ProtectionOverviewCard
+            v-else
+            :adequacy-score="protectionData.adequacyScore"
+            :total-coverage="protectionData.totalCoverage"
+            :premium-total="protectionData.premiumTotal"
+            :critical-gaps="protectionData.criticalGaps"
+            :life-policies="protectionData.lifePolicies"
+            :critical-illness-policies="protectionData.criticalIllnessPolicies"
+            :income-protection-policies="protectionData.incomeProtectionPolicies"
+            :disability-policies="protectionData.disabilityPolicies"
+          />
+        </template>
+
+        <!-- Card 8: Trusts (Only if user has trusts) -->
+        <template v-if="shouldShowTrustsCard">
+          <div v-if="loading.trusts" class="card animate-pulse">
+            <div class="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
+            <div class="h-8 bg-gray-200 rounded w-1/2 mb-2"></div>
+            <div class="h-3 bg-gray-200 rounded w-full"></div>
+          </div>
+          <TrustsOverviewCard v-else />
+        </template>
 
         <!-- Card 6: Plans (spans 2 columns) -->
         <div class="sm:col-span-2">
@@ -75,8 +118,8 @@
                 <h3 class="text-h3 text-gray-900">Plans</h3>
                 <p class="text-sm text-gray-600 mt-1">Your financial planning modules</p>
               </div>
-              <div class="p-3 bg-primary-100 rounded-lg">
-                <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div class="p-3 bg-primary-600 rounded-lg">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               </div>
@@ -90,8 +133,8 @@
                 class="w-full flex items-center justify-between p-3 bg-white border border-secondary-200 hover:border-primary-500 hover:shadow-sm rounded-lg transition-all group"
               >
                 <div class="flex items-center space-x-3">
-                  <div class="flex-shrink-0 w-10 h-10 bg-primary-50 rounded-lg flex items-center justify-center group-hover:bg-primary-100 transition-colors">
-                    <svg class="h-5 w-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div class="flex-shrink-0 w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center group-hover:bg-primary-700 transition-colors">
+                    <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                     </svg>
                   </div>
@@ -111,8 +154,8 @@
                 class="w-full flex items-center justify-between p-3 bg-white border border-secondary-200 hover:border-primary-500 hover:shadow-sm rounded-lg transition-all group"
               >
                 <div class="flex items-center space-x-3">
-                  <div class="flex-shrink-0 w-10 h-10 bg-secondary-100 rounded-lg flex items-center justify-center group-hover:bg-secondary-200 transition-colors">
-                    <svg class="h-5 w-5 text-secondary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div class="flex-shrink-0 w-10 h-10 bg-secondary-600 rounded-lg flex items-center justify-center group-hover:bg-secondary-700 transition-colors">
+                    <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                     </svg>
                   </div>
@@ -132,8 +175,8 @@
                 class="w-full flex items-center justify-between p-3 bg-white border border-secondary-200 hover:border-primary-500 hover:shadow-sm rounded-lg transition-all group"
               >
                 <div class="flex items-center space-x-3">
-                  <div class="flex-shrink-0 w-10 h-10 bg-primary-50 rounded-lg flex items-center justify-center group-hover:bg-primary-100 transition-colors">
-                    <svg class="h-5 w-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div class="flex-shrink-0 w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center group-hover:bg-primary-700 transition-colors">
+                    <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                     </svg>
                   </div>
@@ -212,9 +255,13 @@
 </template>
 
 <script>
-import { mapGetters } from 'vuex';
+import { mapGetters, mapState } from 'vuex';
 import AppLayout from '@/layouts/AppLayout.vue';
 import NetWorthOverviewCard from '@/components/Dashboard/NetWorthOverviewCard.vue';
+import AffordabilityOverviewCard from '@/components/Dashboard/AffordabilityOverviewCard.vue';
+import RetirementOverviewCard from '@/components/Dashboard/RetirementOverviewCard.vue';
+import InvestmentsOverviewCard from '@/components/Dashboard/InvestmentsOverviewCard.vue';
+import TaxOptimisationCard from '@/components/Dashboard/TaxOptimisationCard.vue';
 import ProtectionOverviewCard from '@/components/Protection/ProtectionOverviewCard.vue';
 import EstateOverviewCard from '@/components/Estate/EstateOverviewCard.vue';
 import TrustsOverviewCard from '@/components/Trusts/TrustsOverviewCard.vue';
@@ -226,6 +273,10 @@ export default {
   components: {
     AppLayout,
     NetWorthOverviewCard,
+    AffordabilityOverviewCard,
+    RetirementOverviewCard,
+    InvestmentsOverviewCard,
+    TaxOptimisationCard,
     ProtectionOverviewCard,
     EstateOverviewCard,
     TrustsOverviewCard,
@@ -237,10 +288,16 @@ export default {
       loading: {
         protection: true,
         estate: true,
+        trusts: true,
+        affordability: true,
+        retirement: true,
+        investment: true,
+        taxAllowances: true,
       },
       errors: {
         protection: null,
         estate: null,
+        trusts: null,
       },
       refreshing: false,
       dataLoaded: false,
@@ -249,6 +306,7 @@ export default {
 
   computed: {
     ...mapGetters('auth', ['isAdmin']),
+    ...mapState('trusts', { trustsList: 'trusts' }),
     ...mapGetters('netWorth', {
       netWorthValue: 'netWorth',
       netWorthAssets: 'totalAssets',
@@ -272,6 +330,28 @@ export default {
       estateFutureTaxableEstate: 'futureTaxableEstate',
       estateFutureIHTLiability: 'futureIHTLiability',
     }),
+
+    // Conditional display computed properties
+    shouldShowEstateCard() {
+      // Show estate card only if there's an IHT liability
+      return this.estateData.ihtLiability > 0;
+    },
+
+    shouldShowProtectionCard() {
+      // Show protection card only if user has any policies
+      return (
+        this.protectionData.lifePolicies.length > 0 ||
+        this.protectionData.criticalIllnessPolicies.length > 0 ||
+        this.protectionData.incomeProtectionPolicies.length > 0 ||
+        this.protectionData.disabilityPolicies.length > 0
+      );
+    },
+
+    shouldShowTrustsCard() {
+      // Show trusts card only if user has trusts
+      const trusts = this.trustsList || [];
+      return trusts.length > 0;
+    },
 
     netWorthData() {
       return {
@@ -334,11 +414,18 @@ export default {
         { name: 'protection', action: 'protection/fetchProtectionData' },
         { name: 'estate', action: 'estate/fetchEstateData' },
         { name: 'estate', action: estateCalculationAction, payload: {} },
+        { name: 'trusts', action: 'trusts/fetchTrusts' },
+        { name: 'affordability', action: 'userProfile/fetchProfile' },
+        { name: 'retirement', action: 'retirement/fetchRetirementData' },
+        { name: 'investment', action: 'investment/fetchInvestmentData' },
+        { name: 'taxAllowances', action: 'savings/fetchSavingsData' },
       ];
 
       // Set all modules to loading
       Object.keys(this.loading).forEach(key => {
         this.loading[key] = true;
+      });
+      Object.keys(this.errors).forEach(key => {
         this.errors[key] = null;
       });
 

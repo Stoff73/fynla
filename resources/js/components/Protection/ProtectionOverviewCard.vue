@@ -387,23 +387,27 @@ export default {
 }
 
 .policy-count-badge-blue {
-  background-color: #dbeafe;
+  background-color: #ffffff;
   color: #1e40af;
+  border: 2px solid #2563eb;
 }
 
 .policy-count-badge-purple {
-  background-color: #e9d5ff;
+  background-color: #ffffff;
   color: #6b21a8;
+  border: 2px solid #7c3aed;
 }
 
 .policy-count-badge-teal {
-  background-color: #ccfbf1;
+  background-color: #ffffff;
   color: #115e59;
+  border: 2px solid #14b8a6;
 }
 
 .policy-count-badge-amber {
-  background-color: #fef3c7;
+  background-color: #ffffff;
   color: #92400e;
+  border: 2px solid #f59e0b;
 }
 
 /* Policy List */

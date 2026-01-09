@@ -267,8 +267,9 @@ export default {
   border-radius: 9999px;
   font-size: 10px;
   font-weight: 600;
-  background-color: #fef3c7;
+  background-color: #ffffff;
   color: #92400e;
+  border: 2px solid #f59e0b;
 }
 
 .trust-details {
@@ -296,7 +297,8 @@ export default {
   margin-top: 16px;
   padding: 12px;
   border-radius: 8px;
-  background-color: #fef3c7;
+  background-color: #ffffff;
+  border: 2px solid #f59e0b;
   display: flex;
   align-items: center;
   gap: 8px;

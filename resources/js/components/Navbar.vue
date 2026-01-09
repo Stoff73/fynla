@@ -19,13 +19,64 @@
           </div>
         </div>
 
-        <!-- Center - Feedback Button -->
-        <div class="hidden sm:flex sm:items-center">
+        <!-- Center - Feedback Button and Add Data Dropdown -->
+        <div class="hidden sm:flex sm:items-center space-x-3">
+          <!-- Add Data Dropdown -->
+          <div class="relative">
+            <button
+              type="button"
+              @click="addDataDropdownOpen = !addDataDropdownOpen"
+              class="inline-flex items-center px-4 py-2 border-2 border-primary-600 text-body-sm font-medium rounded-button text-primary-600 bg-white hover:bg-primary-50 transition-colors"
+            >
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              Add Data
+              <svg class="w-4 h-4 ml-2" :class="{'rotate-180': addDataDropdownOpen}" style="transition: transform 0.2s" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            <!-- Add Data Dropdown Menu -->
+            <transition
+              enter-active-class="transition ease-out duration-100"
+              enter-from-class="transform opacity-0 scale-95"
+              enter-to-class="transform opacity-100 scale-100"
+              leave-active-class="transition ease-in duration-75"
+              leave-from-class="transform opacity-100 scale-100"
+              leave-to-class="transform opacity-0 scale-95"
+            >
+              <div
+                v-if="addDataDropdownOpen"
+                class="absolute right-0 mt-2 w-64 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50 max-h-96 overflow-y-auto"
+              >
+                <div v-for="section in addDataOptions" :key="section.section" class="py-1">
+                  <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide bg-gray-50 border-b border-gray-100">
+                    {{ section.section }}
+                  </div>
+                  <router-link
+                    v-for="item in section.items"
+                    :key="item.route"
+                    :to="{ path: item.route, query: item.query }"
+                    @click="addDataDropdownOpen = false"
+                    class="flex items-center px-4 py-2 text-body-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    <svg class="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    {{ item.label }}
+                  </router-link>
+                </div>
+              </div>
+            </transition>
+          </div>
+
+          <!-- Feedback Button -->
           <a
             href="https://docs.google.com/forms/d/e/1FAIpQLSeEotaP8CrnnhPYcuLdhl9fwIDT2V8GoduC0ytNtPcyD4FdSw/viewform?usp=publish-editor"
             target="_blank"
             rel="noopener noreferrer"
-            class="inline-flex items-center px-4 py-2 border-2 border-amber-500 text-body-sm font-medium rounded-button text-amber-700 bg-amber-50 hover:bg-amber-100 transition-colors"
+            class="inline-flex items-center px-4 py-2 border-2 border-amber-500 text-body-sm font-medium rounded-button text-amber-700 bg-white hover:bg-amber-50 transition-colors"
           >
             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
@@ -235,6 +286,39 @@ export default {
     const logoUrl = logoImage;
     const mobileMenuOpen = ref(false);
     const userDropdownOpen = ref(false);
+    const addDataDropdownOpen = ref(false);
+
+    const addDataOptions = [
+      {
+        section: 'Protection',
+        items: [
+          { label: 'Life Insurance', route: '/protection', query: { add: 'life' } },
+          { label: 'Critical Illness', route: '/protection', query: { add: 'critical-illness' } },
+          { label: 'Income Protection', route: '/protection', query: { add: 'income-protection' } },
+        ]
+      },
+      {
+        section: 'Pensions',
+        items: [
+          { label: 'DC Pension', route: '/net-worth/retirement', query: { add: 'dc' } },
+          { label: 'DB Pension', route: '/net-worth/retirement', query: { add: 'db' } },
+        ]
+      },
+      {
+        section: 'Assets',
+        items: [
+          { label: 'Property', route: '/net-worth/property', query: { add: 'new' } },
+          { label: 'Investment Account', route: '/net-worth/investments', query: { add: 'new' } },
+          { label: 'Savings Account', route: '/net-worth/cash', query: { add: 'new' } },
+        ]
+      },
+      {
+        section: 'Estate',
+        items: [
+          { label: 'Trust', route: '/trusts', query: { add: 'new' } },
+        ]
+      },
+    ];
 
     const userName = computed(() => {
       const user = store.getters['auth/currentUser'];
@@ -263,11 +347,12 @@ export default {
       }
     };
 
-    // Close dropdown when clicking outside
+    // Close dropdowns when clicking outside
     const handleClickOutside = (event) => {
       const dropdown = event.target.closest('.relative');
-      if (!dropdown && userDropdownOpen.value) {
+      if (!dropdown) {
         userDropdownOpen.value = false;
+        addDataDropdownOpen.value = false;
       }
     };
 
@@ -283,6 +368,8 @@ export default {
       logoUrl,
       mobileMenuOpen,
       userDropdownOpen,
+      addDataDropdownOpen,
+      addDataOptions,
       userName,
       isAdmin,
       onboardingCompleted,
