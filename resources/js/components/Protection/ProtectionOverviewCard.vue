@@ -24,20 +24,17 @@
       </span>
     </div>
 
-    <!-- Policy Sections -->
+    <!-- Policy Sections - only show sections with policies -->
     <div class="policy-sections">
       <!-- Life Insurance Policies -->
-      <div class="section-breakdown">
+      <div v-if="lifePolicies.length > 0" class="section-breakdown">
         <div class="section-header-with-badge">
           <span class="section-header">Life Insurance</span>
-          <span
-            v-if="lifePolicies.length > 0"
-            class="policy-count-badge policy-count-badge-blue"
-          >
+          <span class="policy-count-badge policy-count-badge-blue">
             {{ lifePolicies.length }} {{ lifePolicies.length === 1 ? 'policy' : 'policies' }}
           </span>
         </div>
-        <div v-if="lifePolicies.length > 0" class="policy-list">
+        <div class="policy-list">
           <div
             v-for="policy in lifePolicies"
             :key="policy.id"
@@ -58,23 +55,17 @@
             <span class="policy-premium policy-premium-blue">{{ formatCurrency(policy.premium_amount) }}/mo</span>
           </div>
         </div>
-        <div v-else>
-          <p class="no-policies-text">No policies</p>
-        </div>
       </div>
 
       <!-- Critical Illness Policies -->
-      <div class="section-breakdown">
+      <div v-if="criticalIllnessPolicies.length > 0" class="section-breakdown">
         <div class="section-header-with-badge">
           <span class="section-header">Critical Illness</span>
-          <span
-            v-if="criticalIllnessPolicies.length > 0"
-            class="policy-count-badge policy-count-badge-purple"
-          >
+          <span class="policy-count-badge policy-count-badge-purple">
             {{ criticalIllnessPolicies.length }} {{ criticalIllnessPolicies.length === 1 ? 'policy' : 'policies' }}
           </span>
         </div>
-        <div v-if="criticalIllnessPolicies.length > 0" class="policy-list">
+        <div class="policy-list">
           <div
             v-for="policy in criticalIllnessPolicies"
             :key="policy.id"
@@ -95,23 +86,17 @@
             <span class="policy-premium policy-premium-purple">{{ formatCurrency(policy.premium_amount) }}/mo</span>
           </div>
         </div>
-        <div v-else>
-          <p class="no-policies-text">No policies</p>
-        </div>
       </div>
 
       <!-- Income Protection Policies -->
-      <div class="section-breakdown">
+      <div v-if="incomeProtectionPolicies.length > 0" class="section-breakdown">
         <div class="section-header-with-badge">
           <span class="section-header">Income Protection</span>
-          <span
-            v-if="incomeProtectionPolicies.length > 0"
-            class="policy-count-badge policy-count-badge-teal"
-          >
+          <span class="policy-count-badge policy-count-badge-teal">
             {{ incomeProtectionPolicies.length }} {{ incomeProtectionPolicies.length === 1 ? 'policy' : 'policies' }}
           </span>
         </div>
-        <div v-if="incomeProtectionPolicies.length > 0" class="policy-list">
+        <div class="policy-list">
           <div
             v-for="policy in incomeProtectionPolicies"
             :key="policy.id"
@@ -132,23 +117,17 @@
             <span class="policy-premium policy-premium-teal">{{ formatCurrency(policy.premium_amount) }}/mo</span>
           </div>
         </div>
-        <div v-else>
-          <p class="no-policies-text">No policies</p>
-        </div>
       </div>
 
       <!-- Disability Policies -->
-      <div class="section-breakdown">
+      <div v-if="disabilityPolicies.length > 0" class="section-breakdown">
         <div class="section-header-with-badge">
           <span class="section-header">Disability Insurance</span>
-          <span
-            v-if="disabilityPolicies.length > 0"
-            class="policy-count-badge policy-count-badge-amber"
-          >
+          <span class="policy-count-badge policy-count-badge-amber">
             {{ disabilityPolicies.length }} {{ disabilityPolicies.length === 1 ? 'policy' : 'policies' }}
           </span>
         </div>
-        <div v-if="disabilityPolicies.length > 0" class="policy-list">
+        <div class="policy-list">
           <div
             v-for="policy in disabilityPolicies"
             :key="policy.id"
@@ -169,8 +148,24 @@
             <span class="policy-premium policy-premium-amber">{{ formatCurrency(policy.premium_amount) }}/mo</span>
           </div>
         </div>
-        <div v-else>
-          <p class="no-policies-text">No policies</p>
+      </div>
+    </div>
+
+    <!-- Shortfalls Section -->
+    <div v-if="hasShortfalls" class="shortfalls-section">
+      <div class="section-header shortfalls-header">Shortfalls Identified</div>
+      <div class="shortfalls-list">
+        <div
+          v-for="shortfall in shortfallsList"
+          :key="shortfall.label"
+          class="shortfall-item"
+        >
+          <span class="shortfall-icon">!</span>
+          <div class="shortfall-content">
+            <span class="shortfall-label">{{ shortfall.label }}</span>
+            <span v-if="shortfall.noPolicy" class="shortfall-text">No cover</span>
+            <span v-else class="shortfall-amount">{{ formatCurrency(shortfall.amount) }} shortfall</span>
+          </div>
         </div>
       </div>
     </div>
@@ -222,25 +217,9 @@ export default {
       required: true,
       default: 0,
     },
-    hasLifePoliciesInTrust: {
-      type: Boolean,
-      default: false,
-    },
-    hasLifePoliciesNotInTrust: {
-      type: Boolean,
-      default: false,
-    },
-    hasIncomeProtection: {
-      type: Boolean,
-      default: false,
-    },
-    hasCriticalIllness: {
-      type: Boolean,
-      default: false,
-    },
-    hasDisabilityInsurance: {
-      type: Boolean,
-      default: false,
+    coverageGaps: {
+      type: Object,
+      default: () => ({}),
     },
     lifePolicies: {
       type: Array,
@@ -277,6 +256,85 @@ export default {
         minimumFractionDigits: 0,
         maximumFractionDigits: 0,
       }).format(this.premiumTotal);
+    },
+
+    // Coverage gap amounts from adequacy analysis
+    lifeInsuranceGap() {
+      // Life cover gap = human capital + debt protection + final expenses + education
+      const humanCapital = this.coverageGaps?.human_capital_gap || 0;
+      const debt = this.coverageGaps?.debt_protection_gap || 0;
+      const finalExpenses = this.coverageGaps?.final_expenses_gap || 0;
+      const education = this.coverageGaps?.education_funding_gap || 0;
+      return humanCapital + debt + finalExpenses + education;
+    },
+
+    criticalIllnessGap() {
+      return this.coverageGaps?.sickness_illness_gap || 0;
+    },
+
+    incomeProtectionGap() {
+      return this.coverageGaps?.income_protection_gap || 0;
+    },
+
+    disabilityCoverGap() {
+      return this.coverageGaps?.disability_coverage_gap || 0;
+    },
+
+    // List of shortfalls with amounts for display
+    shortfallsList() {
+      const shortfalls = [];
+
+      if (this.lifeInsuranceGap > 0) {
+        shortfalls.push({
+          label: 'Life Insurance',
+          amount: this.lifeInsuranceGap,
+        });
+      } else if (this.lifePolicies.length === 0) {
+        shortfalls.push({
+          label: 'Life Insurance',
+          amount: 0,
+          noPolicy: true,
+        });
+      }
+
+      if (this.criticalIllnessGap > 0) {
+        shortfalls.push({
+          label: 'Critical Illness',
+          amount: this.criticalIllnessGap,
+        });
+      } else if (this.criticalIllnessPolicies.length === 0) {
+        shortfalls.push({
+          label: 'Critical Illness',
+          amount: 0,
+          noPolicy: true,
+        });
+      }
+
+      if (this.incomeProtectionGap > 0) {
+        shortfalls.push({
+          label: 'Income Protection',
+          amount: this.incomeProtectionGap,
+        });
+      } else if (this.incomeProtectionPolicies.length === 0) {
+        shortfalls.push({
+          label: 'Income Protection',
+          amount: 0,
+          noPolicy: true,
+        });
+      }
+
+      if (this.disabilityCoverGap > 0) {
+        shortfalls.push({
+          label: 'Disability Cover',
+          amount: this.disabilityCoverGap,
+        });
+      }
+
+      return shortfalls;
+    },
+
+    hasShortfalls() {
+      return this.shortfallsList.length > 0;
     },
   },
 
@@ -495,10 +553,67 @@ export default {
   color: #92400e;
 }
 
-.no-policies-text {
-  font-size: 14px;
-  font-weight: 500;
+/* Shortfalls Section */
+.shortfalls-section {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.shortfalls-header {
   color: #dc2626;
+  margin-bottom: 8px;
+}
+
+.shortfalls-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.shortfall-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.shortfall-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 50%;
+  color: #dc2626;
+  font-size: 11px;
+  font-weight: 700;
+  margin-top: 2px;
+}
+
+.shortfall-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.shortfall-label {
+  font-weight: 600;
+  color: #374151;
+}
+
+.shortfall-text {
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.shortfall-amount {
+  color: #dc2626;
+  font-size: 12px;
+  font-weight: 500;
 }
 
 /* Status Banner */

@@ -93,6 +93,7 @@
             :total-coverage="protectionData.totalCoverage"
             :premium-total="protectionData.premiumTotal"
             :critical-gaps="protectionData.criticalGaps"
+            :coverage-gaps="protectionData.coverageGaps"
             :life-policies="protectionData.lifePolicies"
             :critical-illness-policies="protectionData.criticalIllnessPolicies"
             :income-protection-policies="protectionData.incomeProtectionPolicies"
@@ -376,6 +377,7 @@ export default {
         totalCoverage: this.protectionTotalCoverage || 0,
         premiumTotal: this.protectionTotalPremium || 0,
         criticalGaps: criticalGaps,
+        coverageGaps: gaps,
         lifePolicies: this.protectionLifePolicies || [],
         criticalIllnessPolicies: this.protectionCriticalIllnessPolicies || [],
         incomeProtectionPolicies: this.protectionIncomeProtectionPolicies || [],
