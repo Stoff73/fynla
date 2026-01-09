@@ -67,6 +67,9 @@ class InvestmentController extends Controller
             $accountData['is_primary_owner'] = $this->isPrimaryOwner($account, $user->id);
             $accountData['is_shared'] = $this->isSharedOwnership($account);
 
+            // Calculate YTD return from holdings
+            $accountData['ytd_return'] = $this->calculateAccountYtdReturn($account);
+
             return $accountData;
         });
 
@@ -885,5 +888,31 @@ class InvestmentController extends Controller
                 'account_type' => $account->account_type,
             ]),
         ]);
+    }
+
+    /**
+     * Calculate YTD return for an account based on holdings.
+     *
+     * @param  InvestmentAccount  $account  Account with holdings loaded
+     * @return float|null Return percentage or null if cannot calculate
+     */
+    private function calculateAccountYtdReturn(InvestmentAccount $account): ?float
+    {
+        $holdings = $account->holdings;
+
+        if ($holdings->isEmpty()) {
+            return null;
+        }
+
+        $totalCostBasis = $holdings->sum('cost_basis');
+        $totalCurrentValue = $holdings->sum('current_value');
+
+        if ($totalCostBasis <= 0) {
+            return null;
+        }
+
+        $returnPercent = (($totalCurrentValue - $totalCostBasis) / $totalCostBasis) * 100;
+
+        return round($returnPercent, 2);
     }
 }

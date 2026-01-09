@@ -61,7 +61,7 @@
         <div class="text-right">
           <div class="text-sm font-semibold text-gray-900">{{ formatCurrency(account.current_value) }}</div>
           <div
-            v-if="account.ytd_gain !== undefined"
+            v-if="account.ytd_gain !== null && account.ytd_gain !== undefined"
             class="text-xs"
             :class="account.ytd_gain >= 0 ? 'text-green-600' : 'text-red-600'"
           >
@@ -144,27 +144,35 @@ export default {
       return this.analysis?.diversification_score || 0;
     },
 
-    // Calculate portfolio YTD net value from percentage return
+    // Calculate portfolio YTD net value from account returns
     portfolioYtdNet() {
-      if (!this.ytdReturn || !this.totalValue) return 0;
-      // Approximate: YTD gain ≈ current_value * (return_percent / (100 + return_percent))
-      return this.totalValue * (this.ytdReturn / (100 + this.ytdReturn));
+      if (!this.accounts || this.accounts.length === 0) return 0;
+
+      // Sum actual gains from each account
+      return this.accounts.reduce((total, account) => {
+        const ytdReturn = account.ytd_return;
+        if (ytdReturn !== null && ytdReturn !== undefined) {
+          const currentValue = parseFloat(account.current_value || 0);
+          // Calculate gain: current_value * (return / (100 + return))
+          const gain = currentValue * (ytdReturn / (100 + ytdReturn));
+          return total + gain;
+        }
+        return total;
+      }, 0);
     },
 
-    // List of accounts with calculated YTD gain
+    // List of accounts with their YTD returns
     accountsList() {
       if (!this.accounts || this.accounts.length === 0) return [];
 
       return this.accounts.map(account => {
         const currentValue = parseFloat(account.current_value || 0);
-        const contributions = parseFloat(account.contributions_ytd || 0);
+        const ytdReturn = account.ytd_return;
 
-        // Estimate YTD gain proportionally based on portfolio return
-        // Account's share of portfolio * portfolio YTD net
-        let ytdGain = 0;
-        if (this.totalValue > 0 && this.portfolioYtdNet) {
-          const accountShare = currentValue / this.totalValue;
-          ytdGain = accountShare * this.portfolioYtdNet;
+        // Calculate YTD gain from the return percentage
+        let ytdGain = null;
+        if (ytdReturn !== null && ytdReturn !== undefined) {
+          ytdGain = currentValue * (ytdReturn / (100 + ytdReturn));
         }
 
         return {
@@ -172,6 +180,7 @@ export default {
           name: account.account_name || account.name || 'Unnamed Account',
           account_type: account.account_type,
           current_value: currentValue,
+          ytd_return: ytdReturn,
           ytd_gain: ytdGain,
         };
       });
