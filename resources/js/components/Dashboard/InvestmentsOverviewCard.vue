@@ -25,13 +25,13 @@
         </span>
       </div>
       <div class="flex items-center gap-2 mt-2">
-        <span class="text-sm text-gray-500">YTD:</span>
+        <span class="text-sm text-gray-500">Annualised Return:</span>
         <span
-          v-if="portfolioYtdReturn !== null"
+          v-if="portfolioAnnualisedReturn !== null"
           class="text-sm font-semibold"
-          :class="portfolioYtdReturn >= 0 ? 'text-green-600' : 'text-red-600'"
+          :class="portfolioAnnualisedReturn >= 0 ? 'text-green-600' : 'text-red-600'"
         >
-          {{ portfolioYtdReturn >= 0 ? '+' : '' }}{{ portfolioYtdReturn.toFixed(2) }}%
+          {{ portfolioAnnualisedReturn >= 0 ? '+' : '' }}{{ portfolioAnnualisedReturn.toFixed(2) }}%
         </span>
         <span v-else class="text-sm text-gray-400">N/A</span>
       </div>
@@ -56,11 +56,11 @@
         <div class="text-right">
           <div class="text-sm font-semibold text-gray-900">{{ formatCurrency(account.current_value) }}</div>
           <div
-            v-if="account.ytd_return !== null && account.ytd_return !== undefined"
+            v-if="account.annualised_return !== null && account.annualised_return !== undefined"
             class="text-xs"
-            :class="account.ytd_return >= 0 ? 'text-green-600' : 'text-red-600'"
+            :class="account.annualised_return >= 0 ? 'text-green-600' : 'text-red-600'"
           >
-            {{ account.ytd_return >= 0 ? '+' : '' }}{{ account.ytd_return.toFixed(2) }}%
+            {{ account.annualised_return >= 0 ? '+' : '' }}{{ account.annualised_return.toFixed(2) }}%
           </div>
         </div>
       </div>
@@ -139,20 +139,20 @@ export default {
       return this.analysis?.diversification_score || 0;
     },
 
-    // Calculate weighted average portfolio YTD return percentage
-    portfolioYtdReturn() {
+    // Calculate weighted average portfolio annualised return percentage
+    portfolioAnnualisedReturn() {
       if (!this.accounts || this.accounts.length === 0) return null;
 
       let totalValue = 0;
       let weightedReturn = 0;
 
       this.accounts.forEach(account => {
-        const ytdReturn = account.ytd_return;
+        const annualisedReturn = account.annualised_return;
         const currentValue = parseFloat(account.current_value || 0);
 
-        if (ytdReturn !== null && ytdReturn !== undefined && currentValue > 0) {
+        if (annualisedReturn !== null && annualisedReturn !== undefined && currentValue > 0) {
           totalValue += currentValue;
-          weightedReturn += currentValue * ytdReturn;
+          weightedReturn += currentValue * annualisedReturn;
         }
       });
 
@@ -161,27 +161,20 @@ export default {
       return weightedReturn / totalValue;
     },
 
-    // List of accounts with their YTD returns
+    // List of accounts with their annualised returns
     accountsList() {
       if (!this.accounts || this.accounts.length === 0) return [];
 
       return this.accounts.map(account => {
         const currentValue = parseFloat(account.current_value || 0);
-        const ytdReturn = account.ytd_return;
-
-        // Calculate YTD gain from the return percentage
-        let ytdGain = null;
-        if (ytdReturn !== null && ytdReturn !== undefined) {
-          ytdGain = currentValue * (ytdReturn / (100 + ytdReturn));
-        }
+        const annualisedReturn = account.annualised_return;
 
         return {
           id: account.id,
           name: account.account_name || account.name || 'Unnamed Account',
           account_type: account.account_type,
           current_value: currentValue,
-          ytd_return: ytdReturn,
-          ytd_gain: ytdGain,
+          annualised_return: annualisedReturn,
         };
       });
     },
