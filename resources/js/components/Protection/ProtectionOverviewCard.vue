@@ -210,17 +210,14 @@ export default {
   props: {
     totalCoverage: {
       type: Number,
-      required: true,
       default: 0,
     },
     premiumTotal: {
       type: Number,
-      required: true,
       default: 0,
     },
     criticalGaps: {
       type: Number,
-      required: true,
       default: 0,
     },
     lifePolicies: {
@@ -239,6 +236,10 @@ export default {
       type: Array,
       default: () => [],
     },
+    sicknessIllnessPolicies: {
+      type: Array,
+      default: () => [],
+    },
   },
 
   data() {
@@ -246,6 +247,7 @@ export default {
       fetchedMortgageDebt: 0,
       fetchedOtherDebt: 0,
       fetchedAnnualIncome: 0,
+      fetchedEmploymentIncome: 0,
     };
   },
 
@@ -254,96 +256,132 @@ export default {
   },
 
   computed: {
-    formattedTotalCoverage() {
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(this.totalCoverage);
-    },
-
-    formattedPremiumTotal() {
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(this.premiumTotal);
-    },
-
-    // Calculate total debt
+    // ===== DEBT PROTECTION (same as GapAnalysis) =====
     totalDebt() {
       return this.fetchedMortgageDebt + this.fetchedOtherDebt;
     },
 
-    // Life insurance coverage (lump sum)
     totalLifeCoverage() {
       return this.lifePolicies.reduce((sum, policy) => {
         return sum + parseFloat(policy.sum_assured || 0);
       }, 0);
     },
 
-    // Life insurance gap - does life cover pay off all debts?
-    lifeInsuranceGap() {
+    debtProtectionGap() {
       return Math.max(0, this.totalDebt - this.totalLifeCoverage);
     },
 
-    // Critical illness coverage (lump sum)
+    // ===== INCOME REPLACEMENT (same as GapAnalysis) =====
+    // Excess life cover after debt
+    excessLifeCoverAfterDebt() {
+      return Math.max(0, this.totalLifeCoverage - this.totalDebt);
+    },
+
+    // Sustainable annual income from lump sum at 4.7% draw rate
+    humanCapitalCoveredAnnual() {
+      return this.excessLifeCoverAfterDebt * 0.047;
+    },
+
+    incomeReplacementNeed() {
+      return this.fetchedAnnualIncome * 0.75;
+    },
+
+    incomeReplacementGap() {
+      return Math.max(0, this.incomeReplacementNeed - this.humanCapitalCoveredAnnual);
+    },
+
+    // ===== CRITICAL ILLNESS (same as GapAnalysis) =====
     criticalIllnessCoverage() {
       return this.criticalIllnessPolicies.reduce((sum, policy) => {
         return sum + parseFloat(policy.sum_assured || 0);
       }, 0);
     },
 
-    // Critical illness need (2x annual income)
     criticalIllnessNeed() {
       return this.fetchedAnnualIncome * 2;
     },
 
-    // Critical illness gap
     criticalIllnessGap() {
       return Math.max(0, this.criticalIllnessNeed - this.criticalIllnessCoverage);
     },
 
-    // Income protection coverage (annual benefit from IP policies)
-    incomeProtectionCoverage() {
-      return this.incomeProtectionPolicies.reduce((sum, policy) => {
+    // ===== SICKNESS COVER (same as GapAnalysis) =====
+    isEmployee() {
+      return this.fetchedEmploymentIncome > 0;
+    },
+
+    sspWeeklyRate() {
+      return 118.75; // UK SSP 2024/25
+    },
+
+    sspAnnualEquivalent() {
+      if (!this.isEmployee) return 0;
+      return this.sspWeeklyRate * 52;
+    },
+
+    privateSicknessCover() {
+      return this.sicknessIllnessPolicies.reduce((sum, policy) => {
         const benefit = parseFloat(policy.benefit_amount || 0);
-        // Assume monthly benefit, convert to annual
-        return sum + (benefit * 12);
+        const frequency = policy.benefit_frequency || 'monthly';
+        if (frequency === 'monthly') return sum + (benefit * 12);
+        if (frequency === 'weekly') return sum + (benefit * 52);
+        return sum + benefit;
       }, 0);
     },
 
-    // Income protection need (50% of annual income - standard target)
-    incomeProtectionNeed() {
+    totalSicknessCover() {
+      return this.sspAnnualEquivalent + this.privateSicknessCover;
+    },
+
+    sicknessNeed() {
       return this.fetchedAnnualIncome * 0.5;
     },
 
-    // Income protection gap - ongoing income if unable to work
-    incomeProtectionGap() {
-      return Math.max(0, this.incomeProtectionNeed - this.incomeProtectionCoverage);
+    sicknessGap() {
+      return Math.max(0, this.sicknessNeed - this.totalSicknessCover);
     },
 
-    // List of shortfalls with amounts for display
+    // ===== DISABILITY COVER (same as GapAnalysis) =====
+    disabilityCover() {
+      return this.disabilityPolicies.reduce((sum, policy) => {
+        const benefit = parseFloat(policy.benefit_amount || 0);
+        const frequency = policy.benefit_frequency || 'monthly';
+        if (frequency === 'monthly') return sum + (benefit * 12);
+        if (frequency === 'weekly') return sum + (benefit * 52);
+        return sum + benefit;
+      }, 0);
+    },
+
+    disabilityNeed() {
+      return this.fetchedAnnualIncome * 0.5;
+    },
+
+    disabilityGap() {
+      return Math.max(0, this.disabilityNeed - this.disabilityCover);
+    },
+
+    // ===== SHORTFALLS LIST =====
     shortfallsList() {
       const shortfalls = [];
 
-      // Life insurance shortfall - covers debts on death
-      if (this.lifeInsuranceGap > 0) {
+      // Debt Protection shortfall
+      if (this.debtProtectionGap > 0) {
         shortfalls.push({
-          label: 'Life Insurance',
-          amount: this.lifeInsuranceGap,
-        });
-      } else if (this.lifePolicies.length === 0 && this.totalDebt > 0) {
-        shortfalls.push({
-          label: 'Life Insurance',
-          amount: this.totalDebt,
-          description: 'No cover for debts',
+          label: 'Debt Protection',
+          amount: this.debtProtectionGap,
         });
       }
 
-      // Critical illness shortfall - lump sum for serious illness
+      // Income Replacement shortfall (from life cover)
+      if (this.incomeReplacementGap > 0) {
+        shortfalls.push({
+          label: 'Income Replacement',
+          amount: this.incomeReplacementGap,
+          isAnnual: true,
+        });
+      }
+
+      // Critical Illness shortfall
       if (this.criticalIllnessGap > 0) {
         shortfalls.push({
           label: 'Critical Illness',
@@ -352,23 +390,25 @@ export default {
       } else if (this.criticalIllnessPolicies.length === 0) {
         shortfalls.push({
           label: 'Critical Illness',
-          amount: 0,
           noPolicy: true,
         });
       }
 
-      // Income protection shortfall - ongoing income if unable to work
-      if (this.incomeProtectionGap > 0) {
+      // Sickness Cover shortfall
+      if (this.sicknessGap > 0) {
         shortfalls.push({
-          label: 'Income Protection',
-          amount: this.incomeProtectionGap,
+          label: 'Sickness Cover',
+          amount: this.sicknessGap,
           isAnnual: true,
         });
-      } else if (this.incomeProtectionPolicies.length === 0) {
+      }
+
+      // Disability Cover shortfall
+      if (this.disabilityGap > 0) {
         shortfalls.push({
-          label: 'Income Protection',
-          amount: 0,
-          noPolicy: true,
+          label: 'Disability Cover',
+          amount: this.disabilityGap,
+          isAnnual: true,
         });
       }
 
@@ -393,9 +433,9 @@ export default {
 
         // Get annual income from income_occupation
         const income = data.income_occupation || {};
-        const employmentIncome = parseFloat(income.annual_employment_income || 0);
+        this.fetchedEmploymentIncome = parseFloat(income.annual_employment_income || 0);
         const selfEmploymentIncome = parseFloat(income.annual_self_employment_income || 0);
-        this.fetchedAnnualIncome = employmentIncome + selfEmploymentIncome;
+        this.fetchedAnnualIncome = this.fetchedEmploymentIncome + selfEmploymentIncome;
       } catch (error) {
         console.warn('Failed to fetch user data for protection card:', error);
       }

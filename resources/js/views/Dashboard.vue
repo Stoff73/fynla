@@ -93,11 +93,11 @@
             :total-coverage="protectionData.totalCoverage"
             :premium-total="protectionData.premiumTotal"
             :critical-gaps="protectionData.criticalGaps"
-            :coverage-gaps="protectionData.coverageGaps"
             :life-policies="protectionData.lifePolicies"
             :critical-illness-policies="protectionData.criticalIllnessPolicies"
             :income-protection-policies="protectionData.incomeProtectionPolicies"
             :disability-policies="protectionData.disabilityPolicies"
+            :sickness-illness-policies="protectionData.sicknessIllnessPolicies"
           />
         </template>
 
@@ -322,6 +322,7 @@ export default {
       protectionCriticalIllnessPolicies: 'criticalIllnessPolicies',
       protectionIncomeProtectionPolicies: 'incomeProtectionPolicies',
       protectionDisabilityPolicies: 'disabilityPolicies',
+      protectionSicknessIllnessPolicies: 'sicknessIllnessPolicies',
     }),
     ...mapGetters('estate', {
       estateIHTLiability: 'ihtLiability',
@@ -382,6 +383,7 @@ export default {
         criticalIllnessPolicies: this.protectionCriticalIllnessPolicies || [],
         incomeProtectionPolicies: this.protectionIncomeProtectionPolicies || [],
         disabilityPolicies: this.protectionDisabilityPolicies || [],
+        sicknessIllnessPolicies: this.protectionSicknessIllnessPolicies || [],
       };
     },
 

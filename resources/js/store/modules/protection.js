@@ -123,6 +123,7 @@ const getters = {
     criticalIllnessPolicies: (state) => state.policies.criticalIllness || [],
     incomeProtectionPolicies: (state) => state.policies.incomeProtection || [],
     disabilityPolicies: (state) => state.policies.disability || [],
+    sicknessIllnessPolicies: (state) => state.policies.sicknessIllness || [],
 
     // Get high priority recommendations
     priorityRecommendations: (state) => {
