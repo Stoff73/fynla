@@ -164,6 +164,9 @@
           <div class="shortfall-content">
             <span class="shortfall-label">{{ shortfall.label }}</span>
             <span v-if="shortfall.noPolicy" class="shortfall-text">No cover</span>
+            <span v-else-if="shortfall.description" class="shortfall-amount">
+              {{ formatCurrency(shortfall.amount) }} - {{ shortfall.description }}
+            </span>
             <span v-else class="shortfall-amount">
               {{ formatCurrency(shortfall.amount) }}{{ shortfall.isAnnual ? '/yr' : '' }} shortfall
             </span>
@@ -274,39 +277,19 @@ export default {
       return this.fetchedMortgageDebt + this.fetchedOtherDebt;
     },
 
-    // Life insurance coverage
+    // Life insurance coverage (lump sum)
     totalLifeCoverage() {
       return this.lifePolicies.reduce((sum, policy) => {
         return sum + parseFloat(policy.sum_assured || 0);
       }, 0);
     },
 
-    // Debt protection gap
-    debtProtectionGap() {
+    // Life insurance gap - does life cover pay off all debts?
+    lifeInsuranceGap() {
       return Math.max(0, this.totalDebt - this.totalLifeCoverage);
     },
 
-    // Excess life cover after debt (lump sum)
-    excessLifeCoverAfterDebt() {
-      return Math.max(0, this.totalLifeCoverage - this.totalDebt);
-    },
-
-    // Convert lump sum to sustainable annual income at 4.7% draw rate
-    incomeFromLifeCover() {
-      return this.excessLifeCoverAfterDebt * 0.047;
-    },
-
-    // Income replacement need (75% of annual income)
-    incomeReplacementNeed() {
-      return this.fetchedAnnualIncome * 0.75;
-    },
-
-    // Income replacement gap
-    incomeReplacementGap() {
-      return Math.max(0, this.incomeReplacementNeed - this.incomeFromLifeCover);
-    },
-
-    // Critical illness coverage
+    // Critical illness coverage (lump sum)
     criticalIllnessCoverage() {
       return this.criticalIllnessPolicies.reduce((sum, policy) => {
         return sum + parseFloat(policy.sum_assured || 0);
@@ -323,7 +306,7 @@ export default {
       return Math.max(0, this.criticalIllnessNeed - this.criticalIllnessCoverage);
     },
 
-    // Income protection coverage (annual)
+    // Income protection coverage (annual benefit from IP policies)
     incomeProtectionCoverage() {
       return this.incomeProtectionPolicies.reduce((sum, policy) => {
         const benefit = parseFloat(policy.benefit_amount || 0);
@@ -332,12 +315,12 @@ export default {
       }, 0);
     },
 
-    // Income protection need (50% of annual income)
+    // Income protection need (50% of annual income - standard target)
     incomeProtectionNeed() {
       return this.fetchedAnnualIncome * 0.5;
     },
 
-    // Income protection gap
+    // Income protection gap - ongoing income if unable to work
     incomeProtectionGap() {
       return Math.max(0, this.incomeProtectionNeed - this.incomeProtectionCoverage);
     },
@@ -346,21 +329,21 @@ export default {
     shortfallsList() {
       const shortfalls = [];
 
-      // Life insurance / Debt protection shortfall
-      if (this.debtProtectionGap > 0 || this.incomeReplacementGap > 0) {
+      // Life insurance shortfall - covers debts on death
+      if (this.lifeInsuranceGap > 0) {
         shortfalls.push({
           label: 'Life Insurance',
-          amount: this.debtProtectionGap + this.incomeReplacementGap,
+          amount: this.lifeInsuranceGap,
         });
-      } else if (this.lifePolicies.length === 0) {
+      } else if (this.lifePolicies.length === 0 && this.totalDebt > 0) {
         shortfalls.push({
           label: 'Life Insurance',
-          amount: 0,
-          noPolicy: true,
+          amount: this.totalDebt,
+          description: 'No cover for debts',
         });
       }
 
-      // Critical illness shortfall
+      // Critical illness shortfall - lump sum for serious illness
       if (this.criticalIllnessGap > 0) {
         shortfalls.push({
           label: 'Critical Illness',
@@ -374,7 +357,7 @@ export default {
         });
       }
 
-      // Income protection shortfall
+      // Income protection shortfall - ongoing income if unable to work
       if (this.incomeProtectionGap > 0) {
         shortfalls.push({
           label: 'Income Protection',
