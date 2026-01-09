@@ -96,7 +96,7 @@ const state = {
 const getters = {
     // Get adequacy score from analysis
     adequacyScore: (state) => {
-        return state.analysis?.adequacy_score || 0;
+        return state.analysis?.data?.adequacy_score || 0;
     },
 
     // Get total coverage across all policy types
@@ -115,7 +115,7 @@ const getters = {
 
     // Get coverage gaps from analysis
     coverageGaps: (state) => {
-        return state.analysis?.gaps || [];
+        return state.analysis?.data?.gaps || {};
     },
 
     // Individual policy type getters for dashboard
