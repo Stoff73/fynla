@@ -21,7 +21,7 @@
         <!-- Content -->
         <div class="px-6 py-4">
           <!-- ISA Allowance Info -->
-          <div class="bg-green-50 rounded-lg p-4 mb-6 border border-green-200">
+          <div class="bg-gray-50 rounded-lg p-4 mb-6">
             <div class="flex items-center justify-between">
               <span class="text-gray-700">Remaining ISA Allowance</span>
               <span class="text-2xl font-bold text-green-600">{{ formatCurrency(isaRemaining) }}</span>
@@ -52,7 +52,7 @@
           </div>
 
           <!-- Execution Steps -->
-          <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
+          <div class="bg-gray-50 rounded-lg p-4">
             <h4 class="font-semibold text-blue-800 mb-3">How to Execute</h4>
             <ol class="text-sm text-blue-700 space-y-2 list-decimal list-inside">
               <li>Log in to your investment platform</li>
@@ -64,7 +64,7 @@
           </div>
 
           <!-- Important Notes -->
-          <div class="mt-4 p-4 bg-amber-50 rounded-lg border border-amber-200">
+          <div class="mt-4 p-4 bg-gray-50 rounded-lg">
             <h4 class="font-semibold text-amber-800 mb-2">Important Notes</h4>
             <ul class="text-sm text-amber-700 space-y-1 list-disc list-inside">
               <li>The 30-day rule does not apply to Bed & ISA (only to Bed & Breakfast)</li>

@@ -10,7 +10,7 @@
     <!-- ISA Allowance Summary -->
     <div v-else>
       <!-- Allowance Status Card -->
-      <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-6 mb-6 border border-blue-200">
+      <div class="bg-white rounded-lg p-6 mb-6 border-l-4 border-blue-500">
         <div class="flex justify-between items-center mb-4">
           <h4 class="text-md font-semibold text-gray-800">ISA Allowance ({{ taxYear }})</h4>
           <span
@@ -48,7 +48,7 @@
         <!-- Warning if over allowance -->
         <div
           v-if="strategy.allowance.utilization_percent > 100"
-          class="mt-4 flex items-center p-3 bg-red-50 rounded-md border border-red-200"
+          class="mt-4 flex items-center p-3 bg-white rounded-md border-l-4 border-red-500"
         >
           <svg class="h-5 w-5 text-red-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
             <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
@@ -94,7 +94,7 @@
             </tbody>
           </table>
         </div>
-        <div class="mt-3 p-3 bg-blue-50 rounded-md border border-blue-200">
+        <div class="mt-3 p-3 bg-white rounded-md border-l-4 border-blue-500">
           <p class="text-sm text-gray-700">
             <strong>Total annual tax saving from transfers:</strong>
             <span class="text-green-600 font-semibold ml-2">
@@ -234,10 +234,10 @@ export default {
     },
 
     getAllowanceStatusClass(utilization) {
-      if (utilization > 100) return 'bg-red-100 text-red-800';
-      if (utilization > 80) return 'bg-amber-100 text-amber-800';
-      if (utilization > 50) return 'bg-blue-100 text-blue-800';
-      return 'bg-gray-100 text-gray-800';
+      if (utilization > 100) return 'bg-red-500 text-white';
+      if (utilization > 80) return 'bg-amber-500 text-white';
+      if (utilization > 50) return 'bg-blue-500 text-white';
+      return 'bg-gray-500 text-white';
     },
 
     getAllowanceBarClass(utilization) {
@@ -248,11 +248,11 @@ export default {
 
     getPriorityClass(priority) {
       const classes = {
-        high: 'bg-red-100 text-red-800',
-        medium: 'bg-amber-100 text-amber-800',
-        low: 'bg-blue-100 text-blue-800',
+        high: 'bg-red-500 text-white',
+        medium: 'bg-amber-500 text-white',
+        low: 'bg-blue-500 text-white',
       };
-      return classes[priority] || 'bg-gray-100 text-gray-800';
+      return classes[priority] || 'bg-gray-500 text-white';
     },
   },
 };

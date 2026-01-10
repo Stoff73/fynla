@@ -317,23 +317,23 @@ export default {
     getOwnershipBadgeClass(type) {
       const classes = {
         individual: 'bg-gray-100 text-gray-800',
-        joint: 'bg-purple-100 text-purple-800',
-        trust: 'bg-amber-100 text-amber-800',
+        joint: 'bg-purple-500 text-white',
+        trust: 'bg-amber-500 text-white',
       };
       return classes[type] || 'bg-gray-100 text-gray-800';
     },
 
     accountTypeBadgeClass(type) {
       const classes = {
-        isa: 'bg-green-100 text-green-800',
-        gia: 'bg-blue-100 text-blue-800',
-        sipp: 'bg-purple-100 text-purple-800',
-        pension: 'bg-purple-100 text-purple-800',
-        nsi: 'bg-indigo-100 text-indigo-800',
-        onshore_bond: 'bg-orange-100 text-orange-800',
-        offshore_bond: 'bg-orange-100 text-orange-800',
-        vct: 'bg-pink-100 text-pink-800',
-        eis: 'bg-pink-100 text-pink-800',
+        isa: 'bg-green-500 text-white',
+        gia: 'bg-blue-500 text-white',
+        sipp: 'bg-purple-500 text-white',
+        pension: 'bg-purple-500 text-white',
+        nsi: 'bg-indigo-500 text-white',
+        onshore_bond: 'bg-orange-500 text-white',
+        offshore_bond: 'bg-orange-500 text-white',
+        vct: 'bg-pink-500 text-white',
+        eis: 'bg-pink-500 text-white',
         other: 'bg-gray-100 text-gray-800',
       };
       return classes[type] || 'bg-gray-100 text-gray-800';

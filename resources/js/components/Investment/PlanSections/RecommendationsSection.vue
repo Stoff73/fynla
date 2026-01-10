@@ -13,15 +13,15 @@
           <p class="text-sm text-gray-600 mb-1">Total Recommendations</p>
           <p class="text-3xl font-bold text-gray-800">{{ data.total_count || 0 }}</p>
         </div>
-        <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div class="bg-gray-50 rounded-lg p-4">
           <p class="text-sm text-gray-600 mb-1">High Priority</p>
           <p class="text-3xl font-bold text-red-600">{{ data.high_priority_count || 0 }}</p>
         </div>
-        <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+        <div class="bg-gray-50 rounded-lg p-4">
           <p class="text-sm text-gray-600 mb-1">Potential Annual Savings</p>
           <p class="text-2xl font-bold text-green-600">£{{ formatNumber(data.total_potential_saving || 0) }}</p>
         </div>
-        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div class="bg-gray-50 rounded-lg p-4">
           <p class="text-sm text-gray-600 mb-1">10-Year Impact</p>
           <p class="text-2xl font-bold text-blue-600">£{{ formatNumber(data.ten_year_impact || 0) }}</p>
         </div>
@@ -72,7 +72,7 @@
           <div
             v-for="(rec, index) in filteredHighPriorityRecs"
             :key="'high-' + index"
-            class="bg-red-50 border-l-4 border-red-600 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow duration-200"
+            class="bg-gray-50 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow duration-200"
           >
             <div class="flex justify-between items-start mb-2">
               <div class="flex-1">
@@ -116,7 +116,7 @@
           <div
             v-for="(rec, index) in filteredMediumPriorityRecs"
             :key="'medium-' + index"
-            class="bg-amber-50 border-l-4 border-amber-600 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow duration-200"
+            class="bg-gray-50 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow duration-200"
           >
             <div class="flex justify-between items-start mb-2">
               <div class="flex-1">
@@ -160,7 +160,7 @@
           <div
             v-for="(rec, index) in filteredLowPriorityRecs"
             :key="'low-' + index"
-            class="bg-blue-50 border-l-4 border-blue-600 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow duration-200"
+            class="bg-gray-50 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow duration-200"
           >
             <div class="flex justify-between items-start mb-2">
               <div class="flex-1">

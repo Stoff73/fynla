@@ -52,7 +52,7 @@
     <!-- Rebalancing Alert / All Good -->
     <div
       v-if="needsRebalancing"
-      class="flex items-center p-3 bg-amber-50 rounded-md"
+      class="flex items-center p-3 bg-gray-50 rounded-md"
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -73,7 +73,7 @@
 
     <div
       v-else
-      class="flex items-center p-3 bg-green-50 rounded-md"
+      class="flex items-center p-3 bg-gray-50 rounded-md"
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"

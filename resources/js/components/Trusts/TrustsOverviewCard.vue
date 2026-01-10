@@ -3,16 +3,6 @@
     class="trusts-overview-card bg-white rounded-lg shadow-md p-6 cursor-pointer hover:shadow-lg hover:-translate-y-0.5 hover:border-purple-500 transition-all duration-200 border border-gray-200"
     @click="navigateToTrusts"
   >
-    <!-- Card Header -->
-    <div class="card-header">
-      <h3 class="card-title">Trusts</h3>
-      <span class="card-icon">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-        </svg>
-      </span>
-    </div>
-
     <!-- Loading State -->
     <div v-if="loading" class="flex justify-center items-center py-8">
       <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
@@ -20,15 +10,6 @@
 
     <!-- Content -->
     <div v-else>
-      <!-- Primary Value Section -->
-      <div class="primary-value-section">
-        <span class="value-label">Total Trust Value</span>
-        <div class="flex items-center gap-3">
-          <span class="value-amount text-purple-600">{{ formatCurrency(totalTrustValue) }}</span>
-        </div>
-        <p class="text-sm text-gray-500 mt-1">{{ activeTrustsCount }} active {{ activeTrustsCount === 1 ? 'trust' : 'trusts' }}</p>
-      </div>
-
       <!-- Trust List -->
       <div class="trust-sections" v-if="trusts.length > 0">
         <div
@@ -39,12 +20,6 @@
           <div class="trust-info">
             <div class="trust-name-row">
               <span class="trust-name">{{ trust.trust_name }}</span>
-              <span
-                v-if="trust.is_relevant_property_trust"
-                class="rpt-badge"
-              >
-                RPT
-              </span>
             </div>
             <p class="trust-details">{{ formatTrustType(trust.trust_type) }}</p>
           </div>
@@ -68,7 +43,7 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
         <span class="info-text">
-          {{ relevantPropertyTrustsCount }} RPT{{ relevantPropertyTrustsCount > 1 ? 's' : '' }} - 10-year charges apply
+          6% charge on asset value on {{ nextChargeDate }}
         </span>
       </div>
     </div>
@@ -128,6 +103,37 @@ export default {
 
     relevantPropertyTrustsCount() {
       return this.safeTrusts.filter(t => t.is_relevant_property_trust).length;
+    },
+
+    nextChargeDate() {
+      // Find the earliest next 10-year charge date from relevant property trusts
+      const rptTrusts = this.safeTrusts.filter(t => t.is_relevant_property_trust);
+      if (rptTrusts.length === 0) return '';
+
+      // Get next charge dates, calculating from trust creation if not set
+      const chargeDates = rptTrusts.map(trust => {
+        if (trust.next_10_year_charge_date) {
+          return new Date(trust.next_10_year_charge_date);
+        }
+        // Calculate from trust creation date if available
+        if (trust.trust_creation_date || trust.created_at) {
+          const creationDate = new Date(trust.trust_creation_date || trust.created_at);
+          const nextCharge = new Date(creationDate);
+          // Find next 10-year anniversary
+          const now = new Date();
+          while (nextCharge <= now) {
+            nextCharge.setFullYear(nextCharge.getFullYear() + 10);
+          }
+          return nextCharge;
+        }
+        return null;
+      }).filter(d => d !== null);
+
+      if (chargeDates.length === 0) return 'next anniversary';
+
+      // Return earliest date
+      const earliest = chargeDates.reduce((a, b) => a < b ? a : b);
+      return earliest.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
     },
   },
 

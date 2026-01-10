@@ -25,7 +25,7 @@
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+    <div v-else-if="error" class="bg-gray-50 rounded-lg p-6 text-center">
       <svg class="mx-auto h-12 w-12 text-red-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
@@ -62,15 +62,15 @@
 
       <!-- Information Cards -->
       <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto">
-        <div class="bg-blue-50 rounded-lg p-4 text-left">
+        <div class="bg-gray-50 rounded-lg p-4 text-left">
           <h4 class="font-semibold text-blue-900 mb-2">Portfolio Optimisation</h4>
           <p class="text-sm text-blue-700">Rebalancing suggestions to align with your target allocation</p>
         </div>
-        <div class="bg-green-50 rounded-lg p-4 text-left">
+        <div class="bg-gray-50 rounded-lg p-4 text-left">
           <h4 class="font-semibold text-green-900 mb-2">Tax Efficiency</h4>
           <p class="text-sm text-green-700">Strategies to minimize tax impact on your investments</p>
         </div>
-        <div class="bg-purple-50 rounded-lg p-4 text-left">
+        <div class="bg-gray-50 rounded-lg p-4 text-left">
           <h4 class="font-semibold text-purple-900 mb-2">Fee Reduction</h4>
           <p class="text-sm text-purple-700">Identify opportunities to lower investment costs</p>
         </div>

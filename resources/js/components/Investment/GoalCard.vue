@@ -119,7 +119,7 @@
       <!-- View Chart Button -->
       <button
         @click="$emit('view-chart', goal)"
-        class="w-full mt-4 bg-blue-50 text-blue-700 px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-100 transition-colors"
+        class="w-full mt-4 bg-blue-500 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-600 transition-colors"
       >
         View Detailed Chart
       </button>
@@ -253,16 +253,16 @@ export default {
     },
 
     statusBadgeClass() {
-      if (this.progressPercent >= 100) return 'bg-green-100 text-green-800';
+      if (this.progressPercent >= 100) return 'bg-green-500 text-white';
       if (this.monteCarloResult) {
-        if (this.successProbability >= 80) return 'bg-green-100 text-green-800';
-        if (this.successProbability >= 60) return 'bg-blue-100 text-blue-800';
-        if (this.successProbability >= 40) return 'bg-yellow-100 text-yellow-800';
-        return 'bg-red-100 text-red-800';
+        if (this.successProbability >= 80) return 'bg-green-500 text-white';
+        if (this.successProbability >= 60) return 'bg-blue-500 text-white';
+        if (this.successProbability >= 40) return 'bg-yellow-500 text-white';
+        return 'bg-red-500 text-white';
       }
-      if (this.progressPercent >= 75) return 'bg-green-100 text-green-800';
-      if (this.progressPercent >= 50) return 'bg-yellow-100 text-yellow-800';
-      return 'bg-orange-100 text-orange-800';
+      if (this.progressPercent >= 75) return 'bg-green-500 text-white';
+      if (this.progressPercent >= 50) return 'bg-yellow-500 text-white';
+      return 'bg-orange-500 text-white';
     },
 
     statusDotClass() {

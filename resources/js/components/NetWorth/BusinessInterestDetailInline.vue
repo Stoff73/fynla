@@ -54,7 +54,7 @@
 
         <!-- Key Metrics -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-          <div class="bg-purple-50 rounded-lg p-4 border border-purple-200">
+          <div class="bg-gray-50 rounded-lg p-4">
             <p class="text-sm text-gray-600">Current Valuation</p>
             <p class="text-2xl font-bold text-purple-600">{{ formatCurrency(business.full_value || business.current_valuation) }}</p>
             <p v-if="business.is_shared" class="text-sm text-purple-600 mt-1">
@@ -74,7 +74,7 @@
         </div>
 
         <!-- Business Relief Eligible Notice -->
-        <div v-if="business.bpr_eligible" class="mt-4 bg-green-50 rounded-lg p-4 border border-green-200">
+        <div v-if="business.bpr_eligible" class="mt-4 bg-gray-50 rounded-lg p-4">
           <div class="flex items-center">
             <svg class="w-5 h-5 text-green-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
@@ -230,7 +230,7 @@
 
             <div v-else-if="exitCalculation">
               <!-- Exit Scenario Summary -->
-              <div class="bg-purple-50 rounded-lg p-6 border border-purple-200">
+              <div class="bg-gray-50 rounded-lg p-6">
                 <h3 class="text-lg font-semibold text-purple-800 mb-4">If You Sold Today</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div>
@@ -255,7 +255,7 @@
               </div>
 
               <!-- Business Asset Disposal Relief Status -->
-              <div class="p-4 rounded-lg border" :class="exitCalculation.badr_eligible ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'">
+              <div class="p-4 rounded-lg" :class="exitCalculation.badr_eligible ? 'bg-gray-50' : 'bg-gray-50 border border-gray-200'">
                 <div class="flex items-center">
                   <svg v-if="exitCalculation.badr_eligible" class="w-6 h-6 text-green-600 mr-3" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
@@ -294,7 +294,7 @@
                     <dt class="text-gray-600">Tax Rate Applied</dt>
                     <dd class="font-medium">{{ exitCalculation.cgt_rate }}%</dd>
                   </div>
-                  <div class="flex justify-between py-2 bg-red-50 -mx-4 px-4 rounded">
+                  <div class="flex justify-between py-2 bg-gray-50 -mx-4 px-4 rounded">
                     <dt class="font-semibold text-red-800">Capital Gains Tax Due</dt>
                     <dd class="font-bold text-red-600">{{ formatCurrency(exitCalculation.cgt_due) }}</dd>
                   </div>
@@ -315,7 +315,7 @@
               </div>
 
               <!-- Business Relief Note -->
-              <div v-if="exitCalculation.bpr_note" class="p-4 rounded-lg bg-blue-50 border border-blue-200">
+              <div v-if="exitCalculation.bpr_note" class="p-4 rounded-lg bg-gray-50">
                 <div class="flex items-start">
                   <svg class="w-5 h-5 text-blue-600 mr-2 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
@@ -527,27 +527,27 @@ export default {
     },
 
     getOwnershipBadgeClass(type) {
-      return type === 'joint' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800';
+      return type === 'joint' ? 'bg-purple-500 text-white' : 'bg-gray-500 text-white';
     },
 
     getBusinessTypeBadgeClass(type) {
       const classes = {
-        sole_trader: 'bg-blue-100 text-blue-800',
-        partnership: 'bg-teal-100 text-teal-800',
-        limited_company: 'bg-purple-100 text-purple-800',
-        llp: 'bg-indigo-100 text-indigo-800',
-        other: 'bg-gray-100 text-gray-800',
+        sole_trader: 'bg-blue-500 text-white',
+        partnership: 'bg-teal-500 text-white',
+        limited_company: 'bg-purple-500 text-white',
+        llp: 'bg-indigo-500 text-white',
+        other: 'bg-gray-500 text-white',
       };
-      return classes[type] || 'bg-gray-100 text-gray-800';
+      return classes[type] || 'bg-gray-500 text-white';
     },
 
     getTradingStatusBadgeClass(status) {
       const classes = {
-        trading: 'bg-green-100 text-green-800',
-        dormant: 'bg-gray-100 text-gray-800',
-        pre_trading: 'bg-amber-100 text-amber-800',
+        trading: 'bg-green-500 text-white',
+        dormant: 'bg-gray-500 text-white',
+        pre_trading: 'bg-amber-500 text-white',
       };
-      return classes[status] || 'bg-gray-100 text-gray-800';
+      return classes[status] || 'bg-gray-500 text-white';
     },
 
     getProfitColorClass(profit) {
@@ -557,9 +557,9 @@ export default {
 
     getDeadlineUrgencyClass(date) {
       const days = this.getDaysUntilNumber(date);
-      if (days < 0) return 'bg-red-50 border-red-200';
-      if (days <= 30) return 'bg-amber-50 border-amber-200';
-      return 'bg-gray-50 border-gray-200';
+      if (days < 0) return 'bg-gray-50';
+      if (days <= 30) return 'bg-gray-50';
+      return 'bg-gray-50 border border-gray-200';
     },
 
     getDeadlineDateClass(date) {

@@ -29,7 +29,7 @@
         <!-- Content -->
         <div class="px-6 py-6 space-y-6">
           <!-- Summary Card -->
-          <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
+          <div class="bg-gray-50 rounded-lg p-4">
             <div class="flex items-start">
               <div class="flex-shrink-0">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 text-blue-600">
@@ -61,7 +61,7 @@
               <div class="bg-gray-50 rounded-lg p-4 border" :class="data.recommended_wrapper === 'onshore_bond' ? 'border-blue-400' : 'border-gray-200'">
                 <div class="flex items-center mb-2">
                   <h5 class="font-medium text-gray-800">Onshore Bond</h5>
-                  <span v-if="data.recommended_wrapper === 'onshore_bond'" class="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">Recommended</span>
+                  <span v-if="data.recommended_wrapper === 'onshore_bond'" class="ml-2 text-xs bg-blue-500 text-white px-2 py-0.5 rounded">Recommended</span>
                 </div>
                 <ul class="text-sm text-gray-600 space-y-1">
                   <li class="flex items-start">
@@ -95,7 +95,7 @@
               <div class="bg-gray-50 rounded-lg p-4 border" :class="data.recommended_wrapper === 'offshore_bond' ? 'border-blue-400' : 'border-gray-200'">
                 <div class="flex items-center mb-2">
                   <h5 class="font-medium text-gray-800">Offshore Bond</h5>
-                  <span v-if="data.recommended_wrapper === 'offshore_bond'" class="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">Recommended</span>
+                  <span v-if="data.recommended_wrapper === 'offshore_bond'" class="ml-2 text-xs bg-blue-500 text-white px-2 py-0.5 rounded">Recommended</span>
                 </div>
                 <ul class="text-sm text-gray-600 space-y-1">
                   <li class="flex items-start">
@@ -128,7 +128,7 @@
           </div>
 
           <!-- Top-Slicing Explanation -->
-          <div class="bg-amber-50 rounded-lg p-4 border border-amber-200">
+          <div class="bg-gray-50 rounded-lg p-4">
             <div class="flex items-start">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-amber-600 mt-0.5 mr-2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />

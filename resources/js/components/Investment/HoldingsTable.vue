@@ -199,7 +199,7 @@
               <div class="text-xs text-gray-500">{{ holding.ticker || holding.isin || 'N/A' }}</div>
             </td>
             <td class="px-4 py-3 text-sm text-gray-700">
-              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-500 text-white">
                 {{ formatAssetType(holding.asset_type) }}
               </span>
             </td>

@@ -25,7 +25,7 @@
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-lg p-4">
+    <div v-else-if="error" class="bg-gray-50 rounded-lg p-4">
       <div class="flex">
         <svg class="h-5 w-5 text-red-600 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -115,7 +115,7 @@
             </svg>
             <h5 class="text-sm font-medium text-gray-900">Highly Correlated Pairs (>0.90)</h5>
           </div>
-          <div class="bg-red-50 border border-red-200 rounded-lg p-3">
+          <div class="bg-gray-50 rounded-lg p-3">
             <p class="text-xs text-red-800 mb-2">
               These assets move very similarly, reducing diversification benefits.
             </p>
@@ -137,7 +137,7 @@
             </svg>
             <h5 class="text-sm font-medium text-gray-900">Well Diversified Pairs (<0.30)</h5>
           </div>
-          <div class="bg-green-50 border border-green-200 rounded-lg p-3">
+          <div class="bg-gray-50 rounded-lg p-3">
             <p class="text-xs text-green-800 mb-2">
               These assets move independently, providing good diversification.
             </p>
@@ -433,11 +433,11 @@ export default {
         return 'bg-gray-100 text-gray-500';
       }
 
-      if (value >= 0.90) return 'bg-red-100 text-red-900';
-      if (value >= 0.70) return 'bg-orange-100 text-orange-900';
-      if (value >= 0.30) return 'bg-yellow-100 text-yellow-900';
-      if (value >= 0) return 'bg-green-100 text-green-900';
-      return 'bg-blue-100 text-blue-900';
+      if (value >= 0.90) return 'bg-red-500 text-white';
+      if (value >= 0.70) return 'bg-orange-500 text-white';
+      if (value >= 0.30) return 'bg-yellow-500 text-white';
+      if (value >= 0) return 'bg-green-500 text-white';
+      return 'bg-blue-500 text-white';
     },
 
     truncateLabel(label, maxLength) {

@@ -1,7 +1,7 @@
 <template>
   <div class="gifting-strategy-tab">
     <!-- Personalized Asset-Based Gifting Strategy Section -->
-    <div v-if="personalizedStrategy" class="mb-8 bg-gradient-to-r from-emerald-50 to-green-50 rounded-lg p-6 border border-emerald-200">
+    <div v-if="personalizedStrategy" class="mb-8 bg-white rounded-lg p-6 border-2 border-emerald-500">
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 mb-4">
         <h2 class="text-xl sm:text-2xl font-bold text-gray-900">Your Personalized Gifting Strategy</h2>
         <button
@@ -27,17 +27,17 @@
           <p class="text-sm text-gray-600 mb-1">Total Estate Value</p>
           <p class="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">{{ formatCurrency(personalizedStrategy.liquidity_analysis.summary.total_value) }}</p>
         </div>
-        <div class="bg-green-50 rounded-lg p-4 border border-green-200">
+        <div class="bg-white rounded-lg p-4 border-2 border-green-500">
           <p class="text-sm text-green-700 mb-1 font-medium">Immediately Giftable</p>
           <p class="text-lg sm:text-xl lg:text-2xl font-bold text-green-900">{{ formatCurrency(personalizedStrategy.giftable_amounts.immediately_giftable) }}</p>
           <p class="text-xs text-green-600">{{ personalizedStrategy.giftable_amounts.liquid_asset_count }} liquid assets</p>
         </div>
-        <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
+        <div class="bg-white rounded-lg p-4 border-2 border-blue-500">
           <p class="text-sm text-blue-700 mb-1 font-medium">Giftable with Planning</p>
           <p class="text-lg sm:text-xl lg:text-2xl font-bold text-blue-900">{{ formatCurrency(personalizedStrategy.giftable_amounts.giftable_with_planning) }}</p>
           <p class="text-xs text-blue-600">{{ personalizedStrategy.giftable_amounts.semi_liquid_asset_count }} semi-liquid assets</p>
         </div>
-        <div class="bg-amber-50 rounded-lg p-4 border border-amber-200">
+        <div class="bg-white rounded-lg p-4 border-2 border-amber-500">
           <p class="text-sm text-amber-700 mb-1 font-medium">Not Giftable</p>
           <p class="text-lg sm:text-xl lg:text-2xl font-bold text-amber-900">{{ formatCurrency(personalizedStrategy.giftable_amounts.not_giftable) }}</p>
           <p class="text-xs text-amber-600">{{ personalizedStrategy.giftable_amounts.illiquid_asset_count }} illiquid assets</p>
@@ -68,7 +68,7 @@
                 </span>
                 <span
                   v-if="strategy.category"
-                  class="px-2 py-1 rounded text-xs font-medium bg-indigo-100 text-indigo-700"
+                  class="px-2 py-1 rounded text-xs font-medium bg-indigo-500 text-white"
                 >
                   {{ formatCategory(strategy.category) }}
                 </span>
@@ -99,17 +99,17 @@
           </div>
 
           <!-- Available Assets -->
-          <div v-if="strategy.available_assets" class="mb-3 p-3 bg-blue-50 rounded border border-blue-100">
-            <p class="text-xs font-medium text-blue-800 mb-1">Available Assets:</p>
-            <p class="text-sm text-blue-900">{{ strategy.available_assets }}</p>
+          <div v-if="strategy.available_assets" class="mb-3 p-3 bg-white rounded border-2 border-blue-500">
+            <p class="text-xs font-medium text-blue-600 mb-1">Available Assets:</p>
+            <p class="text-sm text-gray-900">{{ strategy.available_assets }}</p>
           </div>
 
           <!-- Main Residence Info -->
-          <div v-if="strategy.main_residence" class="mb-3 p-3 bg-amber-50 rounded border border-amber-200">
-            <p class="text-xs font-medium text-amber-800 mb-1">Main Residence:</p>
-            <p class="text-sm text-amber-900 font-medium">{{ strategy.main_residence }}</p>
-            <p class="text-sm text-amber-800 mt-1">Value: {{ formatCurrency(strategy.current_value) }}</p>
-            <p class="text-xs text-amber-700 mt-2 italic">{{ strategy.not_giftable_reason }}</p>
+          <div v-if="strategy.main_residence" class="mb-3 p-3 bg-white rounded border-2 border-amber-500">
+            <p class="text-xs font-medium text-amber-600 mb-1">Main Residence:</p>
+            <p class="text-sm text-gray-900 font-medium">{{ strategy.main_residence }}</p>
+            <p class="text-sm text-gray-700 mt-1">Value: {{ formatCurrency(strategy.current_value) }}</p>
+            <p class="text-xs text-amber-600 mt-2 italic">{{ strategy.not_giftable_reason }}</p>
           </div>
 
           <!-- Gift Schedule (for PET strategies) -->
@@ -119,19 +119,19 @@
               <div
                 v-for="(gift, idx) in strategy.gift_schedule"
                 :key="idx"
-                class="p-2 bg-indigo-50 rounded border border-indigo-100"
+                class="p-2 bg-white rounded border-2 border-indigo-500"
               >
-                <p class="text-xs text-indigo-700">Year {{ gift.year }}</p>
-                <p class="text-sm font-bold text-indigo-900">{{ formatCurrency(gift.amount) }}</p>
+                <p class="text-xs text-indigo-600">Year {{ gift.year }}</p>
+                <p class="text-sm font-bold text-gray-900">{{ formatCurrency(gift.amount) }}</p>
                 <p class="text-xs text-indigo-600">Exempt: Year {{ gift.becomes_exempt }}</p>
               </div>
             </div>
           </div>
 
           <!-- Tax Considerations -->
-          <div v-if="strategy.tax_considerations" class="mb-3 p-3 bg-purple-50 rounded border border-purple-100">
-            <p class="text-xs font-medium text-purple-800 mb-2">Tax Considerations:</p>
-            <div class="text-xs text-purple-900 space-y-1">
+          <div v-if="strategy.tax_considerations" class="mb-3 p-3 bg-white rounded border-2 border-purple-500">
+            <p class="text-xs font-medium text-purple-600 mb-2">Tax Considerations:</p>
+            <div class="text-xs text-gray-700 space-y-1">
               <p v-if="strategy.tax_considerations.cgt_rate">
                 <span class="font-medium">CGT:</span> {{ strategy.tax_considerations.cgt_rate }}
               </p>
@@ -222,7 +222,7 @@
       </div>
 
       <!-- Overall Summary -->
-      <div class="mt-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-4 border border-green-200">
+      <div class="mt-6 bg-white rounded-lg p-4 border-2 border-green-500">
         <h3 class="text-lg font-semibold text-gray-900 mb-3">Overall Strategy Impact</h3>
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div>
@@ -272,15 +272,15 @@
 
     <!-- Gifting Summary -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-      <div class="bg-blue-50 rounded-lg p-6">
+      <div class="bg-white rounded-lg p-6 border-2 border-blue-500">
         <p class="text-sm text-blue-600 font-medium mb-2">Gifts Within 7 Years</p>
         <p class="text-3xl font-bold text-gray-900">{{ giftsWithin7YearsCount }}</p>
       </div>
-      <div class="bg-purple-50 rounded-lg p-6">
+      <div class="bg-white rounded-lg p-6 border-2 border-purple-500">
         <p class="text-sm text-purple-600 font-medium mb-2">Total Value</p>
         <p class="text-3xl font-bold text-gray-900">{{ formattedGiftsValue }}</p>
       </div>
-      <div class="bg-green-50 rounded-lg p-6">
+      <div class="bg-white rounded-lg p-6 border-2 border-green-500">
         <p class="text-sm text-green-600 font-medium mb-2">Annual Exemption Available</p>
         <p class="text-3xl font-bold text-gray-900">{{ formattedAnnualExemption }}</p>
       </div>
@@ -295,7 +295,7 @@
     </div>
 
     <!-- HMRC 7-Year Rule & Taper Relief Info -->
-    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+    <div class="bg-white border-2 border-blue-500 rounded-lg p-4 mb-6">
       <div class="flex items-start">
         <div class="flex-shrink-0">
           <svg class="h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
@@ -601,10 +601,10 @@ export default {
 
     getRiskLevelClass(riskLevel) {
       const riskLower = (riskLevel || '').toLowerCase();
-      if (riskLower === 'low') return 'bg-green-100 text-green-800';
-      if (riskLower === 'medium') return 'bg-amber-100 text-amber-800';
-      if (riskLower === 'high') return 'bg-red-100 text-red-800';
-      return 'bg-gray-100 text-gray-800';
+      if (riskLower === 'low') return 'bg-green-500 text-white';
+      if (riskLower === 'medium') return 'bg-amber-500 text-white';
+      if (riskLower === 'high') return 'bg-red-500 text-white';
+      return 'bg-gray-500 text-white';
     },
 
     formatCategory(category) {
@@ -680,9 +680,9 @@ export default {
       const now = new Date();
 
       if (now >= sevenYearsLater) {
-        return 'bg-green-100 text-green-800';
+        return 'bg-green-500 text-white';
       } else {
-        return 'bg-amber-100 text-amber-800';
+        return 'bg-amber-500 text-white';
       }
     },
 

@@ -43,7 +43,7 @@
               <h4 class="text-lg font-semibold text-gray-900">{{ account.institution }}</h4>
               <span
                 v-if="account.is_isa"
-                class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded font-semibold"
+                class="px-2 py-1 text-xs bg-blue-500 text-white rounded font-semibold"
               >
                 ISA
               </span>

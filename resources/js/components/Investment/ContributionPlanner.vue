@@ -6,7 +6,7 @@
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+    <div v-else-if="error" class="bg-gray-50 rounded-lg p-4 mb-6">
       <div class="flex items-center">
         <svg class="h-5 w-5 text-red-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
           <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
@@ -178,7 +178,7 @@
           </div>
 
           <!-- Rationale -->
-          <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div class="bg-gray-50 rounded-lg p-4">
             <h4 class="text-sm font-semibold text-gray-800 mb-2">Rationale:</h4>
             <ul class="space-y-1">
               <li v-for="(reason, index) in optimizationResult.wrapper_allocation.rationale" :key="index" class="text-sm text-gray-700 flex items-start">
@@ -222,7 +222,7 @@
             </div>
           </div>
 
-          <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+          <div class="bg-gray-50 rounded-lg p-4">
             <p class="text-sm text-gray-700">
               <strong>Effective Annual Cost:</strong> £{{ formatNumber(optimizationResult.tax_relief.effective_cost) }}
               (after tax relief)
@@ -237,7 +237,7 @@
           <div class="mb-6">
             <div class="flex items-center justify-between mb-2">
               <span class="text-sm font-medium text-gray-700">Recommendation:</span>
-              <span class="px-3 py-1 rounded-full text-sm font-semibold" :class="optimizationResult.lump_sum_analysis.recommendation === 'lump_sum' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'">
+              <span class="px-3 py-1 rounded-full text-sm font-semibold" :class="optimizationResult.lump_sum_analysis.recommendation === 'lump_sum' ? 'bg-blue-500 text-white' : 'bg-green-500 text-white'">
                 {{ optimizationResult.lump_sum_analysis.recommendation === 'lump_sum' ? 'Lump Sum' : 'Dollar-Cost Averaging' }}
               </span>
             </div>
@@ -299,7 +299,7 @@
             </div>
           </div>
 
-          <div class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <div class="mt-4 p-3 bg-gray-50 rounded-lg">
             <p class="text-sm text-gray-700">
               <strong>Timing Risk:</strong> {{ optimizationResult.lump_sum_analysis.timing_risk }}
               ({{ optimizationResult.lump_sum_analysis.percentage_of_portfolio }}% of current portfolio)
@@ -312,19 +312,19 @@
           <h3 class="text-lg font-semibold text-gray-800 mb-4">Projected Outcomes ({{ optimizationResult.projections.years }} years)</h3>
 
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div class="text-center p-4 bg-red-50 rounded-lg border border-red-200">
+            <div class="text-center p-4 bg-gray-50 rounded-lg">
               <p class="text-sm text-gray-600 mb-1">Conservative Scenario (5th percentile)</p>
               <p class="text-2xl font-bold text-red-600">
                 £{{ formatNumber(optimizationResult.projections.conservative_value) }}
               </p>
             </div>
-            <div class="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <div class="text-center p-4 bg-gray-50 rounded-lg">
               <p class="text-sm text-gray-600 mb-1">Expected Value (Median)</p>
               <p class="text-3xl font-bold text-blue-600">
                 £{{ formatNumber(optimizationResult.projections.expected_value) }}
               </p>
             </div>
-            <div class="text-center p-4 bg-green-50 rounded-lg border border-green-200">
+            <div class="text-center p-4 bg-gray-50 rounded-lg">
               <p class="text-sm text-gray-600 mb-1">Optimistic Scenario (95th percentile)</p>
               <p class="text-2xl font-bold text-green-600">
                 £{{ formatNumber(optimizationResult.projections.optimistic_value) }}
@@ -389,7 +389,7 @@
             </p>
           </div>
 
-          <div v-if="optimizationResult.isa_status.warning" class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+          <div v-if="optimizationResult.isa_status.warning" class="bg-gray-50 rounded-lg p-3">
             <p class="text-sm text-yellow-800">
               <strong>Warning:</strong> You are approaching your ISA allowance limit for this tax year.
             </p>
@@ -510,18 +510,18 @@ export default {
 
     getPriorityClass(priority) {
       const classes = {
-        high: 'border-red-500 bg-red-50',
-        medium: 'border-yellow-500 bg-yellow-50',
-        low: 'border-blue-500 bg-blue-50',
+        high: 'bg-gray-50',
+        medium: 'bg-gray-50',
+        low: 'bg-gray-50',
       };
       return classes[priority] || classes.low;
     },
 
     getPriorityBadgeClass(priority) {
       const classes = {
-        high: 'bg-red-100 text-red-800',
-        medium: 'bg-yellow-100 text-yellow-800',
-        low: 'bg-blue-100 text-blue-800',
+        high: 'bg-red-500 text-white',
+        medium: 'bg-yellow-500 text-white',
+        low: 'bg-blue-500 text-white',
       };
       return classes[priority] || classes.low;
     },

@@ -22,7 +22,7 @@
         <!-- Form -->
         <form @submit.prevent="handleSave" class="px-6 py-4 space-y-6">
           <!-- Error Message -->
-          <div v-if="error" class="p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div v-if="error" class="p-4 bg-gray-50 rounded-lg">
             <p class="text-sm text-red-700">{{ error }}</p>
           </div>
 
@@ -37,7 +37,7 @@
                 @click="form.chattel_type = type.value"
                 class="px-4 py-3 border rounded-lg text-sm font-medium transition-all"
                 :class="form.chattel_type === type.value
-                  ? 'border-pink-500 bg-pink-50 text-pink-700'
+                  ? 'border-pink-500 bg-pink-500 text-white'
                   : 'border-gray-200 hover:border-gray-300 text-gray-700'"
               >
                 {{ type.label }}
@@ -72,7 +72,7 @@
           </div>
 
           <!-- Vehicle Details (conditional) -->
-          <div v-if="form.chattel_type === 'vehicle'" class="space-y-4 p-4 bg-blue-50 rounded-lg">
+          <div v-if="form.chattel_type === 'vehicle'" class="space-y-4 p-4 bg-gray-50 rounded-lg">
             <h4 class="font-medium text-blue-900">Vehicle Details</h4>
             <p class="text-xs text-blue-700 mb-3">Vehicles are classified as wasting assets and are CGT exempt.</p>
             <div class="grid grid-cols-2 gap-4">

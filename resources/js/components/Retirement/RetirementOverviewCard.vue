@@ -8,7 +8,7 @@
     </div>
 
     <!-- Total Pension Value (Primary Metric) -->
-    <div class="text-center mb-6 py-4 bg-indigo-50 rounded-lg">
+    <div class="text-center mb-6 py-4 bg-gray-50 rounded-lg">
       <div class="text-sm text-gray-600 mb-1">Total Pension Value</div>
       <div class="text-3xl font-bold text-indigo-600">{{ formatCurrency(totalPensionValue) }}</div>
     </div>

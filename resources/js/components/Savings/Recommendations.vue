@@ -64,11 +64,11 @@ export default {
   methods: {
     getPriorityClass(priority) {
       const classes = {
-        high: 'bg-red-100 text-red-800',
-        medium: 'bg-amber-100 text-amber-800',
-        low: 'bg-green-100 text-green-800',
+        high: 'bg-red-500 text-white',
+        medium: 'bg-amber-500 text-white',
+        low: 'bg-green-500 text-white',
       };
-      return classes[priority] || 'bg-gray-100 text-gray-800';
+      return classes[priority] || 'bg-gray-500 text-white';
     },
   },
 };

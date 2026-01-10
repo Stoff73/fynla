@@ -3,7 +3,7 @@
     <h3 class="text-lg font-semibold text-gray-800 mb-4">Bed and ISA Transfer Opportunities</h3>
 
     <!-- Explanation Banner -->
-    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+    <div class="bg-gray-50 rounded-lg p-4 mb-6">
       <div class="flex items-start">
         <svg class="h-5 w-5 text-blue-600 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
           <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
@@ -31,15 +31,15 @@
     <div v-else>
       <!-- Summary Cards -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
+        <div class="bg-gray-50 rounded-lg p-4">
           <p class="text-sm text-gray-600 mb-1">ISA Allowance Remaining</p>
           <p class="text-2xl font-bold text-blue-600">£{{ formatNumber(opportunities.isa_allowance_remaining) }}</p>
         </div>
-        <div class="bg-amber-50 rounded-lg p-4 border border-amber-200">
+        <div class="bg-gray-50 rounded-lg p-4">
           <p class="text-sm text-gray-600 mb-1">CGT Allowance</p>
           <p class="text-2xl font-bold text-gray-800">£{{ formatNumber(opportunities.cgt_allowance) }}</p>
         </div>
-        <div class="bg-green-50 rounded-lg p-4 border border-green-200">
+        <div class="bg-gray-50 rounded-lg p-4">
           <p class="text-sm text-gray-600 mb-1">Potential Annual Saving</p>
           <p class="text-2xl font-bold text-green-600">
             £{{ formatNumber(opportunities.transfer_strategy?.total_annual_saving || 0) }}
@@ -84,7 +84,7 @@
           <div
             v-for="(transfer, index) in opportunities.transfer_strategy.recommended_transfers"
             :key="index"
-            class="p-4 bg-green-50 rounded-lg border border-green-200"
+            class="p-4 bg-gray-50 rounded-lg"
           >
             <div class="flex justify-between items-start mb-2">
               <div>
@@ -148,7 +148,7 @@
             </div>
           </div>
         </div>
-        <div class="mt-4 p-3 bg-blue-50 rounded-md border border-blue-200">
+        <div class="mt-4 p-3 bg-gray-50 rounded-md">
           <p class="text-sm text-gray-700">
             <strong>Timeline:</strong> {{ opportunities.execution_plan.timeline }}
           </p>
@@ -195,7 +195,7 @@
       </div>
 
       <!-- Important Notes -->
-      <div class="mt-6 p-4 bg-amber-50 rounded-lg border border-amber-200">
+      <div class="mt-6 p-4 bg-gray-50 rounded-lg">
         <h5 class="text-sm font-semibold text-gray-800 mb-2">Important Considerations:</h5>
         <ul class="text-sm text-gray-700 space-y-1">
           <li>• Execute sales and purchases on same day to minimize market risk</li>
@@ -238,15 +238,15 @@ export default {
 
     getPriorityClass(priority) {
       const classes = {
-        high: 'bg-red-100 text-red-800',
-        medium: 'bg-amber-100 text-amber-800',
-        low: 'bg-blue-100 text-blue-800',
+        high: 'bg-red-500 text-white',
+        medium: 'bg-amber-500 text-white',
+        low: 'bg-blue-500 text-white',
       };
-      return classes[priority] || 'bg-gray-100 text-gray-800';
+      return classes[priority] || 'bg-gray-500 text-white';
     },
 
     getSuitabilityClass(suitable) {
-      return suitable ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800';
+      return suitable ? 'bg-green-500 text-white' : 'bg-gray-500 text-white';
     },
   },
 };

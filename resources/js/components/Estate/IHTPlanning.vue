@@ -1,7 +1,7 @@
 <template>
   <div class="iht-planning-tab">
     <!-- Error State - No Profile -->
-    <div v-if="error && !ihtData" class="bg-amber-50 border border-amber-200 rounded-lg p-6 mb-6">
+    <div v-if="error && !ihtData" class="bg-white border-2 border-amber-500 rounded-lg p-6 mb-6">
       <div class="flex items-start">
         <div class="flex-shrink-0">
           <svg class="h-6 w-6 text-amber-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -40,7 +40,7 @@
     />
 
     <!-- Old Spouse Exemption Notice (keep for backward compatibility with non-married) -->
-    <div v-if="ihtData?.spouse_exemption_applies && ihtData?.spouse_exemption > 0 && !isMarried" class="bg-green-50 border-l-4 border-green-500 p-4 mb-6">
+    <div v-if="ihtData?.spouse_exemption_applies && ihtData?.spouse_exemption > 0 && !isMarried" class="bg-gray-50 rounded-lg p-4 mb-6">
       <div class="flex">
         <div class="flex-shrink-0">
           <svg class="h-5 w-5 text-green-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
@@ -59,7 +59,7 @@
     <!-- IHT Summary - Second Death (Married Users) -->
     <div v-if="isMarried && secondDeathData?.second_death_analysis" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
       <!-- Joint Death NOW -->
-      <div class="bg-blue-50 rounded-lg p-4 sm:p-6">
+      <div class="bg-white rounded-lg p-4 sm:p-6 border-2 border-blue-500">
         <p class="text-sm text-blue-600 font-medium mb-2">Joint Death (Now)</p>
         <p class="text-xs text-blue-500 mb-1">Current net estate</p>
         <p class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">{{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.net_estate_value || 0) }}</p>
@@ -67,7 +67,7 @@
       </div>
 
       <!-- Joint Death PROJECTED -->
-      <div class="bg-purple-50 rounded-lg p-4 sm:p-6">
+      <div class="bg-white rounded-lg p-4 sm:p-6 border-2 border-purple-500">
         <p class="text-sm text-purple-600 font-medium mb-2">Joint Death (Projected)</p>
         <p class="text-xs text-purple-500 mb-1">At age {{ secondDeathData.second_death_analysis.second_death.estimated_age_at_death }}</p>
         <p class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">{{ formatCurrency(secondDeathData.second_death_analysis.iht_calculation?.net_estate_value || 0) }}</p>
@@ -75,7 +75,7 @@
       </div>
 
       <!-- Total IHT Payable -->
-      <div class="bg-red-50 rounded-lg p-4 sm:p-6 sm:col-span-2 lg:col-span-1">
+      <div class="bg-white rounded-lg p-4 sm:p-6 sm:col-span-2 lg:col-span-1 border-2 border-red-500">
         <p class="text-sm text-red-600 font-medium mb-2">Total Inheritance Tax Payable</p>
         <div class="space-y-3">
           <div>
@@ -93,7 +93,7 @@
     <!-- IHT Summary - Standard (Non-Married Users) with Projected Values -->
     <div v-else-if="ihtData && projection" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
       <!-- Taxable Estate - Now vs Projected -->
-      <div class="bg-purple-50 rounded-lg p-4 sm:p-6">
+      <div class="bg-white rounded-lg p-4 sm:p-6 border-2 border-purple-500">
         <p class="text-sm text-purple-600 font-medium mb-2">Taxable Estate</p>
         <div class="space-y-3">
           <div>
@@ -108,7 +108,7 @@
       </div>
 
       <!-- Total Allowances -->
-      <div class="bg-green-50 rounded-lg p-4 sm:p-6">
+      <div class="bg-white rounded-lg p-4 sm:p-6 border-2 border-green-500">
         <p class="text-sm text-green-600 font-medium mb-2">Total Allowances</p>
         <p class="text-xs text-green-500 mb-1">
           {{ (ihtData?.rnrb_available > 0 ? 'Tax-Free Band + Home Allowance' : 'Tax-Free Band only') }}
@@ -117,7 +117,7 @@
       </div>
 
       <!-- IHT Liability - Now vs Projected -->
-      <div class="bg-red-50 rounded-lg p-4 sm:p-6 sm:col-span-2 lg:col-span-1">
+      <div class="bg-white rounded-lg p-4 sm:p-6 sm:col-span-2 lg:col-span-1 border-2 border-red-500">
         <p class="text-sm text-red-600 font-medium mb-2">Total Inheritance Tax Liability</p>
         <div class="space-y-3">
           <div>
@@ -153,7 +153,7 @@
           <div class="space-y-2">
             <div class="flex items-center text-xs">
               <span class="text-gray-600">Status:</span>
-              <span v-if="hasWill" class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+              <span v-if="hasWill" class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-white border-l-4 border-green-500 text-green-800">
                 <svg class="mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 8 8">
                   <circle cx="4" cy="4" r="3" />
                 </svg>
@@ -271,7 +271,7 @@
             <!-- User Assets Section -->
             <template v-if="secondDeathData.assets_breakdown && secondDeathData.assets_breakdown.user">
               <!-- User Assets Header -->
-              <tr class="bg-blue-50">
+              <tr class="bg-white border-l-4 border-blue-500">
                 <td class="px-4 py-3 text-sm font-semibold text-blue-900">{{ secondDeathData.assets_breakdown.user.name }}'s Assets</td>
                 <td class="px-4 py-3 text-sm text-right font-semibold text-blue-900" colspan="2"></td>
               </tr>
@@ -327,7 +327,7 @@
               </tr>
 
               <!-- User Assets Subtotal -->
-              <tr class="bg-blue-100">
+              <tr class="bg-white border-l-4 border-blue-500">
                 <td class="px-4 py-2 text-sm font-semibold text-blue-900 pl-8">Subtotal</td>
                 <td class="px-4 py-2 text-sm text-right font-semibold text-blue-900">{{ formatCurrency(secondDeathData.assets_breakdown.user.total) }}</td>
                 <td class="px-4 py-2 text-sm text-right font-semibold text-blue-900">{{ formatCurrency(secondDeathData.assets_breakdown.user.projected_total) }}</td>
@@ -337,7 +337,7 @@
             <!-- Spouse Assets Section -->
             <template v-if="secondDeathData.data_sharing_enabled && secondDeathData.assets_breakdown.spouse">
               <!-- Spouse Assets Header -->
-              <tr class="bg-purple-50">
+              <tr class="bg-white border-l-4 border-purple-500">
                 <td class="px-4 py-3 text-sm font-semibold text-purple-900">{{ secondDeathData.assets_breakdown.spouse.name }}'s Assets</td>
                 <td class="px-4 py-3 text-sm text-right font-semibold text-purple-900" colspan="2"></td>
               </tr>
@@ -393,7 +393,7 @@
               </tr>
 
               <!-- Spouse Assets Subtotal -->
-              <tr class="bg-purple-100">
+              <tr class="bg-white border-l-4 border-purple-500">
                 <td class="px-4 py-2 text-sm font-semibold text-purple-900 pl-8">Subtotal</td>
                 <td class="px-4 py-2 text-sm text-right font-semibold text-purple-900">{{ formatCurrency(secondDeathData.assets_breakdown.spouse.total) }}</td>
                 <td class="px-4 py-2 text-sm text-right font-semibold text-purple-900">{{ formatCurrency(secondDeathData.assets_breakdown.spouse.projected_total) }}</td>
@@ -401,7 +401,7 @@
             </template>
 
             <!-- Total Gross Assets -->
-            <tr class="bg-blue-50">
+            <tr class="bg-white border-l-4 border-blue-500">
               <td class="px-4 py-3 text-sm font-semibold text-blue-900">Total Gross Assets</td>
               <td class="px-4 py-3 text-sm text-right font-semibold text-blue-900">{{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.gross_estate_value || 0) }}</td>
               <td class="px-4 py-3 text-sm text-right font-semibold text-blue-900">{{ formatCurrency(totalGrossAssetsProjected) }}</td>
@@ -410,7 +410,7 @@
             <!-- User Liabilities Section -->
             <template v-if="secondDeathData.liabilities_breakdown && secondDeathData.liabilities_breakdown.user">
               <!-- User Liabilities Header -->
-              <tr class="bg-red-50">
+              <tr class="bg-white border-l-4 border-red-500">
                 <td class="px-4 py-3 text-sm font-semibold text-red-900">{{ secondDeathData.liabilities_breakdown.user.name }}'s Liabilities</td>
                 <td class="px-4 py-3 text-sm text-right font-semibold text-red-900" colspan="2"></td>
               </tr>
@@ -437,7 +437,7 @@
               </tr>
 
               <!-- User Liabilities Subtotal (only if > 0) -->
-              <tr v-if="secondDeathData.liabilities_breakdown.user.total > 0" class="bg-red-100">
+              <tr v-if="secondDeathData.liabilities_breakdown.user.total > 0" class="bg-white border-l-4 border-red-500">
                 <td class="px-4 py-2 text-sm font-semibold text-red-900 pl-8">Subtotal</td>
                 <td class="px-4 py-2 text-sm text-right font-semibold text-red-900">-{{ formatCurrency(secondDeathData.liabilities_breakdown.user.total) }}</td>
                 <td class="px-4 py-2 text-sm text-right font-semibold text-red-900">-{{ formatCurrency(userLiabilitiesProjectedTotal) }}</td>
@@ -447,7 +447,7 @@
             <!-- Spouse Liabilities Section -->
             <template v-if="secondDeathData.liabilities_breakdown && secondDeathData.liabilities_breakdown.spouse">
               <!-- Spouse Liabilities Header -->
-              <tr class="bg-orange-50">
+              <tr class="bg-white border-l-4 border-orange-500">
                 <td class="px-4 py-3 text-sm font-semibold text-orange-900">{{ secondDeathData.liabilities_breakdown.spouse.name }}'s Liabilities</td>
                 <td class="px-4 py-3 text-sm text-right font-semibold text-orange-900" colspan="2"></td>
               </tr>
@@ -474,7 +474,7 @@
               </tr>
 
               <!-- Spouse Liabilities Subtotal (only if > 0) -->
-              <tr v-if="secondDeathData.liabilities_breakdown.spouse.total > 0" class="bg-orange-100">
+              <tr v-if="secondDeathData.liabilities_breakdown.spouse.total > 0" class="bg-white border-l-4 border-orange-500">
                 <td class="px-4 py-2 text-sm font-semibold text-orange-900 pl-8">Subtotal</td>
                 <td class="px-4 py-2 text-sm text-right font-semibold text-orange-900">-{{ formatCurrency(secondDeathData.liabilities_breakdown.spouse.total) }}</td>
                 <td class="px-4 py-2 text-sm text-right font-semibold text-orange-900">-{{ formatCurrency(spouseLiabilitiesProjectedTotal) }}</td>
@@ -482,14 +482,14 @@
             </template>
 
             <!-- Total Liabilities -->
-            <tr class="bg-red-50">
+            <tr class="bg-white border-l-4 border-red-500">
               <td class="px-4 py-3 text-sm font-semibold text-red-900">Less: Total Liabilities</td>
               <td class="px-4 py-3 text-sm text-right font-semibold text-red-900">-{{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.liabilities || 0) }}</td>
               <td class="px-4 py-3 text-sm text-right font-semibold text-red-900">-{{ formatCurrency(totalLiabilitiesProjected) }}</td>
             </tr>
 
             <!-- Net Estate -->
-            <tr class="bg-purple-50">
+            <tr class="bg-white border-l-4 border-purple-500">
               <td class="px-4 py-3 text-sm font-semibold text-purple-800">Net Estate</td>
               <td class="px-4 py-3 text-sm text-right font-bold text-purple-800">{{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.net_estate_value || 0) }}</td>
               <td class="px-4 py-3 text-sm text-right font-bold text-purple-800">{{ formatCurrency(netEstateProjected) }}</td>
@@ -531,7 +531,7 @@
 
             <!-- RNRB Taper Warning (Current) -->
             <tr v-if="secondDeathData.second_death_analysis.iht_calculation?.rnrb_eligible && secondDeathData.second_death_analysis.current_iht_calculation?.rnrb_tapered">
-              <td colspan="3" class="px-4 py-2 text-xs bg-orange-50">
+              <td colspan="3" class="px-4 py-2 text-xs bg-white border-l-4 border-orange-500">
                 <span class="text-orange-700">
                   <strong>Home Allowance Reduced:</strong> Estate value {{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.net_estate_value || 0) }} exceeds {{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.rnrb_taper_threshold || 2000000) }} threshold.
                   <span v-if="(secondDeathData.second_death_analysis.current_iht_calculation?.rnrb || 0) === 0">Home allowance completely removed (reduced by {{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.rnrb_taper_amount || 0) }}).</span>
@@ -542,7 +542,7 @@
 
             <!-- RNRB Not Available Message -->
             <tr v-if="!secondDeathData.second_death_analysis.iht_calculation?.rnrb_eligible">
-              <td colspan="3" class="px-4 py-2 text-xs text-amber-700 bg-amber-50">
+              <td colspan="3" class="px-4 py-2 text-xs text-amber-700 bg-white border-l-4 border-amber-500">
                 <strong>Note:</strong> Home allowance (residence nil rate band) not available - no main residence identified or property not left to direct descendants
               </td>
             </tr>
@@ -555,7 +555,7 @@
             </tr>
 
             <!-- IHT Liability -->
-            <tr class="bg-red-50">
+            <tr class="bg-white border-l-4 border-red-500">
               <td class="px-4 py-3 text-sm font-semibold text-red-800">Inheritance Tax Liability (40%)</td>
               <td class="px-4 py-3 text-sm text-right font-bold text-red-800">{{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.iht_liability || 0) }}</td>
               <td class="px-4 py-3 text-sm text-right font-bold text-red-800">{{ formatCurrency(ihtLiabilityProjected) }}</td>
@@ -587,7 +587,7 @@
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
             <!-- User Assets Header -->
-            <tr class="bg-blue-50">
+            <tr class="bg-white border-l-4 border-blue-500">
               <td class="px-4 py-3 text-sm font-semibold text-blue-900">{{ secondDeathData.assets_breakdown.user.name }}'s Assets</td>
               <td class="px-4 py-3 text-sm text-right font-semibold text-blue-900" colspan="2"></td>
             </tr>
@@ -643,7 +643,7 @@
             </tr>
 
             <!-- User Assets Subtotal -->
-            <tr class="bg-blue-100">
+            <tr class="bg-white border-l-4 border-blue-500">
               <td class="px-4 py-2 text-sm font-semibold text-blue-900 pl-8">Assets Subtotal</td>
               <td class="px-4 py-2 text-sm text-right font-semibold text-blue-900">{{ formatCurrency(secondDeathData.assets_breakdown.user.total) }}</td>
               <td class="px-4 py-2 text-sm text-right font-semibold text-blue-900">{{ formatCurrency(secondDeathData.assets_breakdown.user.projected_total) }}</td>
@@ -652,7 +652,7 @@
             <!-- Spouse Assets Section (if married with data sharing) -->
             <template v-if="secondDeathData.assets_breakdown.spouse">
               <!-- Spouse Assets Header -->
-              <tr class="bg-green-50">
+              <tr class="bg-white border-l-4 border-green-500">
                 <td class="px-4 py-3 text-sm font-semibold text-green-900">{{ secondDeathData.assets_breakdown.spouse.name }}'s Assets</td>
                 <td class="px-4 py-3 text-sm text-right font-semibold text-green-900" colspan="2"></td>
               </tr>
@@ -708,7 +708,7 @@
               </tr>
 
               <!-- Spouse Assets Subtotal -->
-              <tr class="bg-green-100">
+              <tr class="bg-white border-l-4 border-green-500">
                 <td class="px-4 py-2 text-sm font-semibold text-green-900 pl-8">Assets Subtotal</td>
                 <td class="px-4 py-2 text-sm text-right font-semibold text-green-900">{{ formatCurrency(secondDeathData.assets_breakdown.spouse.total) }}</td>
                 <td class="px-4 py-2 text-sm text-right font-semibold text-green-900">{{ formatCurrency(secondDeathData.assets_breakdown.spouse.projected_total) }}</td>
@@ -716,7 +716,7 @@
             </template>
 
             <!-- Total Gross Assets -->
-            <tr class="bg-indigo-50 border-t-2 border-indigo-300">
+            <tr class="bg-white border-l-4 border-indigo-500 border-t-2 border-indigo-300">
               <td class="px-4 py-3 text-sm font-bold text-indigo-900">Total Gross Assets</td>
               <td class="px-4 py-3 text-sm text-right font-bold text-indigo-900">{{ formatCurrency(secondDeathData.calculation?.total_gross_assets || 0) }}</td>
               <td class="px-4 py-3 text-sm text-right font-bold text-indigo-900">{{ formatCurrency(secondDeathData.calculation?.projected_gross_assets || 0) }}</td>
@@ -725,7 +725,7 @@
             <!-- User Liabilities Section -->
             <template v-if="secondDeathData.liabilities_breakdown && secondDeathData.liabilities_breakdown.user">
               <!-- User Liabilities Header -->
-              <tr class="bg-red-50">
+              <tr class="bg-white border-l-4 border-red-500">
                 <td class="px-4 py-3 text-sm font-semibold text-red-900">{{ secondDeathData.liabilities_breakdown.user.name }}'s Liabilities</td>
                 <td class="px-4 py-3 text-sm text-right font-semibold text-red-900" colspan="2"></td>
               </tr>
@@ -749,7 +749,7 @@
               </tr>
 
               <!-- User Liabilities Subtotal -->
-              <tr v-if="secondDeathData.liabilities_breakdown.user.total > 0" class="bg-red-100">
+              <tr v-if="secondDeathData.liabilities_breakdown.user.total > 0" class="bg-white border-l-4 border-red-500">
                 <td class="px-4 py-2 text-sm font-semibold text-red-900 pl-8">Liabilities Subtotal</td>
                 <td class="px-4 py-2 text-sm text-right font-semibold text-red-900">-{{ formatCurrency(secondDeathData.liabilities_breakdown.user.total) }}</td>
                 <td class="px-4 py-2 text-sm text-right font-semibold text-red-900">-{{ formatCurrency(secondDeathData.liabilities_breakdown.user.projected_total) }}</td>
@@ -759,7 +759,7 @@
             <!-- Spouse Liabilities Section -->
             <template v-if="secondDeathData.assets_breakdown.spouse && secondDeathData.liabilities_breakdown && secondDeathData.liabilities_breakdown.spouse">
               <!-- Spouse Liabilities Header -->
-              <tr class="bg-orange-50">
+              <tr class="bg-white border-l-4 border-orange-500">
                 <td class="px-4 py-3 text-sm font-semibold text-orange-900">{{ secondDeathData.liabilities_breakdown.spouse.name }}'s Liabilities</td>
                 <td class="px-4 py-3 text-sm text-right font-semibold text-orange-900" colspan="2"></td>
               </tr>
@@ -783,7 +783,7 @@
               </tr>
 
               <!-- Spouse Liabilities Subtotal -->
-              <tr v-if="secondDeathData.liabilities_breakdown.spouse.total > 0" class="bg-orange-100">
+              <tr v-if="secondDeathData.liabilities_breakdown.spouse.total > 0" class="bg-white border-l-4 border-orange-500">
                 <td class="px-4 py-2 text-sm font-semibold text-orange-900 pl-8">Liabilities Subtotal</td>
                 <td class="px-4 py-2 text-sm text-right font-semibold text-orange-900">-{{ formatCurrency(secondDeathData.liabilities_breakdown.spouse.total) }}</td>
                 <td class="px-4 py-2 text-sm text-right font-semibold text-orange-900">-{{ formatCurrency(secondDeathData.liabilities_breakdown.spouse.projected_total) }}</td>
@@ -791,14 +791,14 @@
             </template>
 
             <!-- Total Liabilities -->
-            <tr class="bg-red-50 border-t-2 border-red-300">
+            <tr class="bg-white border-l-4 border-red-500 border-t-2 border-red-300">
               <td class="px-4 py-3 text-sm font-bold text-red-900">Total Liabilities</td>
               <td class="px-4 py-3 text-sm text-right font-bold text-red-900">-{{ formatCurrency(secondDeathData.calculation?.total_liabilities || 0) }}</td>
               <td class="px-4 py-3 text-sm text-right font-bold text-red-900">-{{ formatCurrency(secondDeathData.calculation?.projected_liabilities || 0) }}</td>
             </tr>
 
             <!-- Net Estate Total -->
-            <tr class="bg-purple-50">
+            <tr class="bg-white border-l-4 border-purple-500">
               <td class="px-4 py-3 text-sm font-semibold text-purple-900">Net Estate</td>
               <td class="px-4 py-3 text-sm text-right font-bold text-purple-900">{{ formatCurrency(ihtData?.net_estate_value || 0) }}</td>
               <td class="px-4 py-3 text-sm text-right font-bold text-purple-900">{{ formatCurrency(projection?.at_death?.net_estate || 0) }}</td>
@@ -850,7 +850,7 @@
             </tr>
 
             <!-- IHT Liability -->
-            <tr class="bg-red-50">
+            <tr class="bg-white border-l-4 border-red-500">
               <td class="px-4 py-3 text-sm font-semibold text-red-800">Inheritance Tax Liability (40%)</td>
               <td class="px-4 py-3 text-sm text-right font-bold text-red-800">{{ formatCurrency(ihtData?.estate_iht_liability || 0) }}</td>
               <td class="px-4 py-3 text-sm text-right font-bold text-red-800">{{ formatCurrency(projection?.at_death?.iht_liability || 0) }}</td>
@@ -873,7 +873,7 @@
           <span class="text-sm font-medium text-gray-900">-{{ formatCurrency(ihtData?.liabilities || 0) }}</span>
         </div>
 
-        <div class="flex justify-between items-center py-2 border-b border-gray-200 bg-purple-50">
+        <div class="flex justify-between items-center py-2 border-b border-gray-200 bg-gray-50 rounded-lg">
           <span class="text-sm font-semibold text-purple-800">Gross Estate</span>
           <span class="text-sm font-bold text-purple-800">{{ formatCurrency(ihtData?.net_estate_value || 0) }}</span>
         </div>
@@ -909,7 +909,7 @@
           <span class="text-base font-bold text-gray-900">{{ formatCurrency(ihtData?.taxable_estate || 0) }}</span>
         </div>
 
-        <div class="flex justify-between items-center py-3 bg-red-50 rounded">
+        <div class="flex justify-between items-center py-3 bg-gray-50 rounded-lg">
           <span class="text-base font-semibold text-red-800">IHT Liability ({{ formatPercent(ihtData?.iht_rate || 0.4) }})</span>
           <span class="text-base font-bold text-red-800">{{ formatCurrency(ihtData?.estate_iht_liability || 0) }}</span>
         </div>
@@ -922,7 +922,7 @@
         <!-- PET Gifts -->
         <div v-if="hasPETGifts" class="mb-4">
           <p class="text-xs font-medium text-gray-600 mb-2">Potentially Exempt Transfers (PETs)</p>
-          <div v-for="gift in petGifts" :key="gift.gift_id" class="mb-3 pl-4 py-2 border-l-2 border-amber-400 bg-amber-50">
+          <div v-for="gift in petGifts" :key="gift.gift_id" class="mb-3 pl-4 py-2 bg-gray-50 rounded-lg">
             <div class="flex justify-between items-center mb-1">
               <div class="flex-1">
                 <span class="text-sm font-medium text-gray-800">{{ gift.recipient }}</span>
@@ -963,7 +963,7 @@
           </div>
         </div>
 
-        <div class="flex justify-between items-center py-3 bg-amber-50 rounded">
+        <div class="flex justify-between items-center py-3 bg-gray-50 rounded-lg">
           <span class="text-base font-semibold text-amber-800">Total Gift IHT Liability</span>
           <span class="text-base font-bold text-amber-800">{{ formatCurrency(ihtData?.gift_iht_liability || 0) }}</span>
         </div>
@@ -973,7 +973,7 @@
     <!-- Tax Allowances Information (NRB & RNRB Messages) -->
     <div v-if="!loading && ihtData" class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
       <!-- NRB Message -->
-      <div v-if="ihtData.nrb_message" class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+      <div v-if="ihtData.nrb_message" class="bg-gray-50 rounded-lg p-4">
         <div class="flex">
           <div class="flex-shrink-0">
             <svg class="h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
@@ -990,12 +990,7 @@
       </div>
 
       <!-- RNRB Message -->
-      <div v-if="ihtData.rnrb_message" :class="[
-        'border-l-4 p-4 rounded',
-        ihtData.rnrb_status === 'full' ? 'bg-green-50 border-green-500' :
-        ihtData.rnrb_status === 'tapered' ? 'bg-amber-50 border-amber-500' :
-        'bg-gray-50 border-gray-500'
-      ]">
+      <div v-if="ihtData.rnrb_message" class="bg-gray-50 rounded-lg p-4">
         <div class="flex">
           <div class="flex-shrink-0">
             <svg v-if="ihtData.rnrb_status === 'full'" class="h-5 w-5 text-green-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
@@ -1044,7 +1039,7 @@
     />
 
     <!-- Standard Recommendations (Non-Married Users OR Married without full second death data) -->
-    <div v-if="!secondDeathData?.mitigation_strategies && ihtData?.iht_liability > 0" class="bg-red-50 border-l-4 border-red-500 p-4">
+    <div v-if="!secondDeathData?.mitigation_strategies && ihtData?.iht_liability > 0" class="bg-gray-50 rounded-lg p-4">
       <div class="flex">
         <div class="flex-shrink-0">
           <svg
@@ -1078,7 +1073,7 @@
       </div>
     </div>
 
-    <div v-else-if="ihtData && ihtData.iht_liability === 0" class="bg-green-50 border-l-4 border-green-500 p-4">
+    <div v-else-if="ihtData && ihtData.iht_liability === 0" class="bg-gray-50 rounded-lg p-4">
       <div class="flex">
         <div class="flex-shrink-0">
           <svg
@@ -1113,15 +1108,15 @@
       <h3 class="text-lg font-medium text-gray-900 mb-4">Trust Planning Summary</h3>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-        <div class="bg-purple-50 rounded-lg p-4">
+        <div class="bg-gray-50 rounded-lg p-4">
           <p class="text-xs text-purple-600 font-medium">Total Trust Value</p>
           <p class="text-2xl font-bold text-purple-900 mt-1">{{ formatCurrency(totalTrustValue) }}</p>
         </div>
-        <div class="bg-green-50 rounded-lg p-4">
+        <div class="bg-gray-50 rounded-lg p-4">
           <p class="text-xs text-green-600 font-medium">Value Outside Estate</p>
           <p class="text-2xl font-bold text-green-900 mt-1">{{ formatCurrency(trustValueOutsideEstate) }}</p>
         </div>
-        <div class="bg-blue-50 rounded-lg p-4">
+        <div class="bg-gray-50 rounded-lg p-4">
           <p class="text-xs text-blue-600 font-medium">IHT Efficiency</p>
           <p class="text-2xl font-bold text-blue-900 mt-1">{{ trustEfficiencyPercent }}%</p>
         </div>

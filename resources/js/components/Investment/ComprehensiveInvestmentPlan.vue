@@ -6,7 +6,7 @@
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+    <div v-else-if="error" class="bg-gray-50 rounded-lg p-4 mb-6">
       <div class="flex items-center">
         <svg class="h-5 w-5 text-red-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
           <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
@@ -20,7 +20,7 @@
       <!-- Header Section with Portfolio Health Score -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         <!-- Portfolio Health Score Card -->
-        <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg shadow-md p-6 lg:col-span-1">
+        <div class="bg-gray-50 rounded-lg shadow-md p-6 lg:col-span-1">
           <h3 class="text-lg font-semibold text-gray-800 mb-4">Portfolio Health Score</h3>
           <div class="flex items-center justify-center mb-4">
             <div class="relative">
@@ -67,7 +67,7 @@
             </div>
 
             <!-- Key Metrics -->
-            <div class="mt-4 p-4 bg-blue-50 rounded-md border border-blue-200">
+            <div class="mt-4 p-4 bg-gray-50 rounded-md">
               <div class="grid grid-cols-2 gap-4">
                 <div>
                   <p class="text-xs text-gray-600 mb-1">Diversification</p>

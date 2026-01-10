@@ -17,7 +17,7 @@
 
       <!-- Statistics Cards -->
       <div v-if="scenarioStats" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-        <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
+        <div class="bg-gray-50 rounded-lg p-4">
           <div class="text-sm font-medium text-blue-600 mb-1">Total</div>
           <div class="text-2xl font-bold text-blue-900">{{ scenarioStats.total }}</div>
         </div>
@@ -25,15 +25,15 @@
           <div class="text-sm font-medium text-gray-600 mb-1">Draft</div>
           <div class="text-2xl font-bold text-gray-900">{{ scenarioStats.draft }}</div>
         </div>
-        <div class="bg-purple-50 rounded-lg p-4 border border-purple-200">
+        <div class="bg-gray-50 rounded-lg p-4">
           <div class="text-sm font-medium text-purple-600 mb-1">Running</div>
           <div class="text-2xl font-bold text-purple-900">{{ scenarioStats.running }}</div>
         </div>
-        <div class="bg-green-50 rounded-lg p-4 border border-green-200">
+        <div class="bg-gray-50 rounded-lg p-4">
           <div class="text-sm font-medium text-green-600 mb-1">Completed</div>
           <div class="text-2xl font-bold text-green-900">{{ scenarioStats.completed }}</div>
         </div>
-        <div class="bg-amber-50 rounded-lg p-4 border border-amber-200">
+        <div class="bg-gray-50 rounded-lg p-4">
           <div class="text-sm font-medium text-amber-600 mb-1">Saved</div>
           <div class="text-2xl font-bold text-amber-900">{{ scenarioStats.saved }}</div>
         </div>
@@ -313,7 +313,7 @@
             </div>
 
             <!-- Parameter Inputs (simplified for this example) -->
-            <div v-if="selectedTemplate" class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div v-if="selectedTemplate" class="bg-gray-50 rounded-lg p-4">
               <p class="text-sm text-blue-800">
                 This scenario will use the pre-configured parameters from the "{{ selectedTemplate.name }}" template.
               </p>
@@ -547,27 +547,27 @@ export default {
     },
 
     getScenarioBorderClass(scenario) {
-      if (scenario.status === 'completed') return 'border-green-200 bg-green-50';
-      if (scenario.status === 'running') return 'border-purple-200 bg-purple-50';
-      if (scenario.status === 'failed') return 'border-red-200 bg-red-50';
+      if (scenario.status === 'completed') return 'border-l-4 border-green-500 bg-white';
+      if (scenario.status === 'running') return 'border-l-4 border-purple-500 bg-white';
+      if (scenario.status === 'failed') return 'border-l-4 border-red-500 bg-white';
       return 'border-gray-200 bg-white';
     },
 
     getStatusClass(status) {
       const classes = {
         draft: 'bg-gray-100 text-gray-800',
-        running: 'bg-purple-100 text-purple-800',
-        completed: 'bg-green-100 text-green-800',
-        failed: 'bg-red-100 text-red-800',
+        running: 'bg-purple-500 text-white',
+        completed: 'bg-green-500 text-white',
+        failed: 'bg-red-500 text-white',
       };
       return classes[status] || 'bg-gray-100 text-gray-800';
     },
 
     getTypeClass(type) {
       const classes = {
-        custom: 'bg-blue-100 text-blue-800',
-        template: 'bg-indigo-100 text-indigo-800',
-        comparison: 'bg-purple-100 text-purple-800',
+        custom: 'bg-blue-500 text-white',
+        template: 'bg-indigo-500 text-white',
+        comparison: 'bg-purple-500 text-white',
       };
       return classes[type] || 'bg-gray-100 text-gray-800';
     },

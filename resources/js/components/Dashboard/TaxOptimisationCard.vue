@@ -3,19 +3,6 @@
     class="card cursor-pointer hover:shadow-lg hover:-translate-y-0.5 hover:border-primary-500 transition-all duration-200"
     @click="navigateToTaxInfo"
   >
-    <!-- Card Header -->
-    <div class="flex items-start justify-between mb-4">
-      <div>
-        <h3 class="text-lg font-semibold text-gray-900">Tax Allowances</h3>
-        <p class="text-sm text-gray-500 mt-1">2025/26 Tax Year</p>
-      </div>
-      <span class="text-gray-400">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-        </svg>
-      </span>
-    </div>
-
     <!-- Allowance List -->
     <div class="space-y-4">
       <!-- ISA Allowance -->

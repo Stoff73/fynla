@@ -82,7 +82,7 @@
         </div>
 
         <!-- Required Monthly Savings -->
-        <div class="p-3 bg-blue-50 rounded-lg mb-4">
+        <div class="p-3 bg-gray-50 rounded-lg mb-4">
           <p class="text-sm text-gray-700">
             <span class="font-medium">Required monthly savings:</span>
             {{ formatCurrency(getRequiredMonthlySavings(goal)) }}
@@ -201,11 +201,11 @@ export default {
 
     getStatusBadge(goal) {
       const status = this.getStatusLabel(goal);
-      if (status === 'Completed') return 'bg-green-100 text-green-800';
-      if (status === 'On Track') return 'bg-blue-100 text-blue-800';
-      if (status === 'Off Track') return 'bg-red-100 text-red-800';
-      if (status === 'Overdue') return 'bg-red-100 text-red-800';
-      return 'bg-gray-100 text-gray-800';
+      if (status === 'Completed') return 'bg-green-500 text-white';
+      if (status === 'On Track') return 'bg-blue-500 text-white';
+      if (status === 'Off Track') return 'bg-red-500 text-white';
+      if (status === 'Overdue') return 'bg-red-500 text-white';
+      return 'bg-gray-500 text-white';
     },
 
     getProgressBarColour(goal) {

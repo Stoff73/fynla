@@ -3,19 +3,6 @@
     class="card cursor-pointer hover:shadow-lg hover:-translate-y-0.5 hover:border-primary-500 transition-all duration-200"
     @click="navigateToRetirement"
   >
-    <!-- Card Header -->
-    <div class="flex items-start justify-between mb-4">
-      <div>
-        <h3 class="text-lg font-semibold text-gray-900">Retirement</h3>
-        <p class="text-sm text-gray-500 mt-1">Projected at age {{ retirementAge }}</p>
-      </div>
-      <span class="text-gray-400">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      </span>
-    </div>
-
     <!-- Primary Value Section -->
     <div class="border-b border-gray-200 pb-4 mb-4">
       <span class="text-sm text-gray-500">Projected Annual Income</span>

@@ -3,19 +3,6 @@
     class="card cursor-pointer hover:shadow-lg hover:-translate-y-0.5 hover:border-primary-500 transition-all duration-200"
     @click="navigateToInvestments"
   >
-    <!-- Card Header -->
-    <div class="flex items-start justify-between mb-4">
-      <div>
-        <h3 class="text-lg font-semibold text-gray-900">Investments</h3>
-        <p class="text-sm text-gray-500 mt-1">Portfolio Overview</p>
-      </div>
-      <span class="text-gray-400">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-        </svg>
-      </span>
-    </div>
-
     <!-- Primary Value Section with YTD Net -->
     <div class="border-b border-gray-200 pb-4 mb-4">
       <span class="text-sm text-gray-500">Total Portfolio Value</span>

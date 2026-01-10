@@ -138,7 +138,7 @@
     <!-- Error Message -->
     <div
       v-if="error"
-      class="mb-6 bg-red-50 border-l-4 border-red-500 p-4"
+      class="mb-6 bg-white border-l-4 border-red-500 p-4"
     >
       <div class="flex">
         <div class="flex-shrink-0">

@@ -73,7 +73,7 @@
               </div>
             </div>
 
-            <div class="mt-4 p-4 bg-green-50 rounded-lg border border-green-200">
+            <div class="mt-4 p-4 bg-gray-50 rounded-lg">
               <div class="flex justify-between items-center">
                 <span class="font-medium text-green-800">Total Transferable</span>
                 <span class="text-xl font-bold text-green-600">{{ formatCurrency(opportunity?.transferable_amount) }}</span>
@@ -85,7 +85,7 @@
           <div v-if="currentStep === 1">
             <h4 class="font-semibold text-gray-800 mb-4">Confirm ISA Destination</h4>
 
-            <div class="bg-blue-50 rounded-lg p-4 border border-blue-200 mb-4">
+            <div class="bg-gray-50 rounded-lg p-4 mb-4">
               <div class="flex justify-between items-center mb-2">
                 <span class="text-gray-700">Your ISA Allowance Remaining</span>
                 <span class="text-xl font-bold text-blue-600">{{ formatCurrency(isaRemaining) }}</span>
@@ -96,7 +96,7 @@
               </div>
             </div>
 
-            <div v-if="opportunity?.transferable_amount <= isaRemaining" class="p-4 bg-green-50 rounded-lg border border-green-200">
+            <div v-if="opportunity?.transferable_amount <= isaRemaining" class="p-4 bg-gray-50 rounded-lg">
               <div class="flex items-start">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-600 mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -108,7 +108,7 @@
               </div>
             </div>
 
-            <div v-else class="p-4 bg-amber-50 rounded-lg border border-amber-200">
+            <div v-else class="p-4 bg-gray-50 rounded-lg">
               <div class="flex items-start">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-amber-600 mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -133,13 +133,13 @@
                 <p class="text-sm text-gray-500">Total Gains on Sale</p>
                 <p class="text-xl font-bold text-gray-800">{{ formatCurrency(totalGains) }}</p>
               </div>
-              <div class="p-4 bg-green-50 rounded-lg border border-green-200">
+              <div class="p-4 bg-gray-50 rounded-lg">
                 <p class="text-sm text-gray-500">CGT Liability</p>
                 <p class="text-xl font-bold text-green-600">{{ formatCurrency(opportunity?.cgt_on_transfer || 0) }}</p>
               </div>
             </div>
 
-            <div class="p-4 bg-green-50 rounded-lg border border-green-200">
+            <div class="p-4 bg-gray-50 rounded-lg">
               <div class="flex items-start">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-600 mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -153,7 +153,7 @@
               </div>
             </div>
 
-            <div class="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <div class="mt-4 p-4 bg-gray-50 rounded-lg">
               <h5 class="font-semibold text-blue-800 mb-2">Annual Tax Savings (Once in ISA)</h5>
               <p class="text-sm text-blue-700">
                 By holding these investments in your ISA instead of your GIA, you will save approximately
@@ -172,7 +172,7 @@
                 :key="index"
                 class="flex items-start p-4 bg-gray-50 rounded-lg border border-gray-200"
               >
-                <div class="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center font-semibold mr-4 flex-shrink-0">
+                <div class="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center font-semibold mr-4 flex-shrink-0">
                   {{ index + 1 }}
                 </div>
                 <div>
@@ -182,7 +182,7 @@
               </div>
             </div>
 
-            <div class="mt-6 p-4 bg-amber-50 rounded-lg border border-amber-200">
+            <div class="mt-6 p-4 bg-gray-50 rounded-lg">
               <h5 class="font-semibold text-amber-800 mb-2">Important Reminders</h5>
               <ul class="text-sm text-amber-700 space-y-1 list-disc list-inside">
                 <li>Unlike Bed & Breakfast, the 30-day rule does NOT apply to Bed & ISA</li>

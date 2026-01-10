@@ -16,31 +16,31 @@
       <!-- Statistics Cards -->
       <div v-if="recommendationStats" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
         <!-- Total Recommendations -->
-        <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
+        <div class="bg-gray-50 rounded-lg p-4">
           <div class="text-sm font-medium text-blue-600 mb-1">Total</div>
           <div class="text-2xl font-bold text-blue-900">{{ recommendationStats.total }}</div>
         </div>
 
         <!-- Pending -->
-        <div class="bg-amber-50 rounded-lg p-4 border border-amber-200">
+        <div class="bg-gray-50 rounded-lg p-4">
           <div class="text-sm font-medium text-amber-600 mb-1">Pending</div>
           <div class="text-2xl font-bold text-amber-900">{{ recommendationStats.pending }}</div>
         </div>
 
         <!-- In Progress -->
-        <div class="bg-purple-50 rounded-lg p-4 border border-purple-200">
+        <div class="bg-gray-50 rounded-lg p-4">
           <div class="text-sm font-medium text-purple-600 mb-1">In Progress</div>
           <div class="text-2xl font-bold text-purple-900">{{ recommendationStats.in_progress }}</div>
         </div>
 
         <!-- Completed -->
-        <div class="bg-green-50 rounded-lg p-4 border border-green-200">
+        <div class="bg-gray-50 rounded-lg p-4">
           <div class="text-sm font-medium text-green-600 mb-1">Completed</div>
           <div class="text-2xl font-bold text-green-900">{{ recommendationStats.completed }}</div>
         </div>
 
         <!-- Potential Savings -->
-        <div class="bg-indigo-50 rounded-lg p-4 border border-indigo-200">
+        <div class="bg-gray-50 rounded-lg p-4">
           <div class="text-sm font-medium text-indigo-600 mb-1">Potential Savings</div>
           <div class="text-2xl font-bold text-indigo-900">£{{ formatNumber(recommendationStats.total_potential_saving) }}</div>
         </div>
@@ -220,7 +220,7 @@
           <p class="text-gray-700 mb-3">{{ recommendation.description }}</p>
 
           <!-- Action Required -->
-          <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
+          <div class="bg-gray-50 rounded-lg p-3 mb-3">
             <div class="text-sm font-medium text-blue-900 mb-1">Action Required:</div>
             <div class="text-sm text-blue-800">{{ recommendation.action_required }}</div>
           </div>
@@ -413,39 +413,39 @@ export default {
     },
 
     getRecommendationBorderClass(recommendation) {
-      if (recommendation.status === 'completed') return 'border-green-200 bg-green-50';
+      if (recommendation.status === 'completed') return 'border-l-4 border-green-500 bg-white';
       if (recommendation.status === 'dismissed') return 'border-gray-200 bg-gray-50';
-      if (recommendation.priority <= 3) return 'border-red-200 bg-red-50';
-      if (recommendation.priority <= 7) return 'border-amber-200 bg-amber-50';
-      return 'border-blue-200 bg-blue-50';
+      if (recommendation.priority <= 3) return 'border-l-4 border-red-500 bg-white';
+      if (recommendation.priority <= 7) return 'border-l-4 border-amber-500 bg-white';
+      return 'border-l-4 border-blue-500 bg-white';
     },
 
     getPriorityClass(priority) {
-      if (priority <= 3) return 'bg-red-100 text-red-800';
-      if (priority <= 7) return 'bg-amber-100 text-amber-800';
-      return 'bg-blue-100 text-blue-800';
+      if (priority <= 3) return 'bg-red-500 text-white';
+      if (priority <= 7) return 'bg-amber-500 text-white';
+      return 'bg-blue-500 text-white';
     },
 
     getCategoryClass(category) {
       const classes = {
-        rebalancing: 'bg-purple-100 text-purple-800',
-        tax: 'bg-green-100 text-green-800',
-        fees: 'bg-orange-100 text-orange-800',
-        risk: 'bg-red-100 text-red-800',
-        goal: 'bg-indigo-100 text-indigo-800',
-        contribution: 'bg-teal-100 text-teal-800',
+        rebalancing: 'bg-purple-500 text-white',
+        tax: 'bg-green-500 text-white',
+        fees: 'bg-orange-500 text-white',
+        risk: 'bg-red-500 text-white',
+        goal: 'bg-indigo-500 text-white',
+        contribution: 'bg-teal-500 text-white',
       };
-      return classes[category] || 'bg-gray-100 text-gray-800';
+      return classes[category] || 'bg-gray-500 text-white';
     },
 
     getStatusClass(status) {
       const classes = {
-        pending: 'bg-amber-100 text-amber-800',
-        in_progress: 'bg-purple-100 text-purple-800',
-        completed: 'bg-green-100 text-green-800',
-        dismissed: 'bg-gray-100 text-gray-800',
+        pending: 'bg-amber-500 text-white',
+        in_progress: 'bg-purple-500 text-white',
+        completed: 'bg-green-500 text-white',
+        dismissed: 'bg-gray-500 text-white',
       };
-      return classes[status] || 'bg-gray-100 text-gray-800';
+      return classes[status] || 'bg-gray-500 text-white';
     },
 
     getImpactClass(impact) {

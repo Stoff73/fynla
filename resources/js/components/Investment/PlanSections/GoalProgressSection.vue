@@ -64,12 +64,12 @@
         </div>
 
         <!-- On-Track/Off-Track Message -->
-        <div v-if="goal.on_track === false" class="mt-3 p-3 bg-amber-50 rounded-md border border-amber-200">
+        <div v-if="goal.on_track === false" class="mt-3 p-3 bg-gray-50 rounded-md">
           <p class="text-sm text-amber-800">
             <strong>Action needed:</strong> {{ goal.recommendation }}
           </p>
         </div>
-        <div v-else-if="goal.on_track === true" class="mt-3 p-3 bg-green-50 rounded-md border border-green-200">
+        <div v-else-if="goal.on_track === true" class="mt-3 p-3 bg-gray-50 rounded-md">
           <p class="text-sm text-green-800">
             <strong>On track:</strong> Goal is progressing well towards target.
           </p>
@@ -77,7 +77,7 @@
       </div>
 
       <!-- Summary -->
-      <div v-if="data.summary" class="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
+      <div v-if="data.summary" class="bg-gray-50 rounded-lg p-4 mt-6">
         <h5 class="text-sm font-semibold text-gray-700 mb-3">Goal Summary</h5>
         <div class="grid grid-cols-3 gap-4">
           <div>
@@ -128,10 +128,10 @@ export default {
 
     getGoalStatusClass(status) {
       const classes = {
-        'on-track': 'bg-green-100 text-green-800',
-        'at-risk': 'bg-amber-100 text-amber-800',
-        'off-track': 'bg-red-100 text-red-800',
-        'achieved': 'bg-blue-100 text-blue-800',
+        'on-track': 'bg-green-500 text-white',
+        'at-risk': 'bg-amber-500 text-white',
+        'off-track': 'bg-red-500 text-white',
+        'achieved': 'bg-blue-500 text-white',
       };
       return classes[status] || 'bg-gray-100 text-gray-800';
     },
