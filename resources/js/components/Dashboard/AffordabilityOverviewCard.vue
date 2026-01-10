@@ -1,11 +1,11 @@
 <template>
   <div
     class="card cursor-pointer hover:shadow-lg hover:-translate-y-0.5 hover:border-primary-500 transition-all duration-200"
-    @click="navigateToProfile"
+    @click="navigateToCash"
   >
     <!-- Primary Value Section -->
     <div class="border-b border-gray-200 pb-4 mb-4">
-      <span class="text-sm text-gray-500">Monthly Surplus/Deficit</span>
+      <span class="text-sm text-gray-500">{{ currentMonth }} Cash Flow</span>
       <div class="flex items-baseline gap-2 mt-1">
         <span
           class="text-3xl font-bold"
@@ -25,12 +25,12 @@
     <!-- Breakdown -->
     <div class="space-y-3">
       <div class="flex justify-between items-center">
-        <span class="text-sm text-gray-600">Monthly Income</span>
-        <span class="text-sm font-semibold text-gray-900">{{ formatCurrency(monthlyIncome) }}</span>
+        <span class="text-sm text-gray-600">Money In</span>
+        <span class="text-sm font-semibold text-green-600">{{ formatCurrency(monthlyIncome) }}</span>
       </div>
       <div class="flex justify-between items-center">
-        <span class="text-sm text-gray-600">Monthly Expenditure</span>
-        <span class="text-sm font-semibold text-gray-900">{{ formatCurrency(monthlyExpenditure) }}</span>
+        <span class="text-sm text-gray-600">Money Out</span>
+        <span class="text-sm font-semibold text-red-600">{{ formatCurrency(monthlyExpenditure) }}</span>
       </div>
     </div>
 
@@ -64,12 +64,19 @@
 </template>
 
 <script>
-import { mapState, mapGetters } from 'vuex';
+import { mapState, mapGetters, mapActions } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import userProfileService from '@/services/userProfileService';
 
 export default {
   name: 'AffordabilityOverviewCard',
   mixins: [currencyMixin],
+
+  data() {
+    return {
+      financialCommitmentsData: null,
+    };
+  },
 
   computed: {
     ...mapState('userProfile', ['incomeOccupation', 'spouseAccounts']),
@@ -80,14 +87,25 @@ export default {
       return !!this.spouse;
     },
 
+    currentMonth() {
+      return new Date().toLocaleString('en-GB', { month: 'long' });
+    },
+
     monthlyIncome() {
       const annual = this.totalAnnualIncome || 0;
       return annual / 12;
     },
 
+    // Total financial commitments from user profile API
+    financialCommitmentsTotal() {
+      return this.financialCommitmentsData?.totals?.total || 0;
+    },
+
     monthlyExpenditure() {
-      // Get expenditure from savings module's expenditureProfile
-      return this.expenditureProfile?.total_monthly_expenditure || 0;
+      // Get discretionary expenditure from savings module's expenditureProfile
+      const discretionary = this.expenditureProfile?.total_monthly_expenditure || 0;
+      // Add financial commitments
+      return discretionary + this.financialCommitmentsTotal;
     },
 
     monthlySurplus() {
@@ -118,9 +136,37 @@ export default {
     },
   },
 
+  async mounted() {
+    // Load all data in parallel
+    await Promise.all([
+      this.loadProfileData(),
+      this.loadFinancialCommitments(),
+    ]);
+  },
+
   methods: {
-    navigateToProfile() {
-      this.$router.push('/profile');
+    ...mapActions('userProfile', ['fetchProfile']),
+
+    async loadProfileData() {
+      if (!this.incomeOccupation) {
+        await this.fetchProfile();
+      }
+    },
+
+    async loadFinancialCommitments() {
+      try {
+        const response = await userProfileService.getFinancialCommitments();
+        if (response.success) {
+          this.financialCommitmentsData = response.data;
+        }
+      } catch (error) {
+        console.error('Failed to load financial commitments:', error);
+        this.financialCommitmentsData = null;
+      }
+    },
+
+    navigateToCash() {
+      this.$router.push('/net-worth/cash');
     },
   },
 };

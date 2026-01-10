@@ -162,6 +162,18 @@
   "savings_accounts": [
     {
       "id": 1,
+      "account_name": "Current Account",
+      "provider_name": "Barclays",
+      "account_type": "current_account",
+      "current_balance": 5200,
+      "interest_rate": 0,
+      "is_isa": false,
+      "access_type": "immediate",
+      "ownership_type": "individual",
+      "monthly_contribution": 0
+    },
+    {
+      "id": 2,
       "account_name": "Cash ISA",
       "provider_name": "Nationwide",
       "account_type": "cash_isa",
@@ -174,7 +186,7 @@
       "monthly_contribution": 500
     },
     {
-      "id": 2,
+      "id": 3,
       "account_name": "NS&I Direct Saver",
       "provider_name": "NS&I",
       "account_type": "nsi",
@@ -454,16 +466,17 @@
   "expenditure": {
     "total_monthly": 3200,
     "categories": {
-      "housing": 400,
-      "utilities": 300,
-      "food": 400,
-      "transport": 200,
+      "food_groceries": 400,
+      "transport_fuel": 200,
       "insurance": 250,
-      "entertainment": 300,
-      "holidays": 500,
+      "entertainment_dining": 300,
+      "holidays_travel": 500,
       "gifts_charity": 400,
-      "health": 200,
-      "other": 250
+      "healthcare_medical": 200,
+      "mobile_phones": 100,
+      "internet_tv": 100,
+      "subscriptions": 100,
+      "other_expenditure": 650
     }
   },
 

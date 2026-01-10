@@ -13,6 +13,7 @@
     "gender": "male",
     "marital_status": "married",
     "annual_income": 62000,
+    "payday_day_of_month": 28,
     "employment_status": "employed",
     "employer_name": "TechCorp Ltd",
     "occupation": "Software Developer",
@@ -103,6 +104,44 @@
   "savings_accounts": [
     {
       "id": 1,
+      "account_name": "Joint Current Account",
+      "provider_name": "Nationwide",
+      "account_type": "current_account",
+      "current_balance": 2450,
+      "interest_rate": 0,
+      "is_isa": false,
+      "access_type": "immediate",
+      "ownership_type": "joint",
+      "monthly_contribution": 0,
+      "notes": "Main household account"
+    },
+    {
+      "id": 2,
+      "account_name": "James's Current Account",
+      "provider_name": "Monzo",
+      "account_type": "current_account",
+      "current_balance": 850,
+      "interest_rate": 0,
+      "is_isa": false,
+      "access_type": "immediate",
+      "ownership_type": "individual",
+      "monthly_contribution": 0
+    },
+    {
+      "id": 3,
+      "account_name": "Emily's Current Account",
+      "provider_name": "Starling",
+      "account_type": "current_account",
+      "current_balance": 620,
+      "interest_rate": 0,
+      "is_isa": false,
+      "access_type": "immediate",
+      "ownership_type": "individual",
+      "monthly_contribution": 0,
+      "owner": "spouse"
+    },
+    {
+      "id": 4,
       "account_name": "Emergency Fund",
       "provider_name": "Marcus",
       "account_type": "instant_access",
@@ -114,7 +153,7 @@
       "monthly_contribution": 200
     },
     {
-      "id": 2,
+      "id": 5,
       "account_name": "Oliver's Junior ISA",
       "provider_name": "Vanguard",
       "account_type": "junior_isa",
@@ -126,7 +165,7 @@
       "notes": "For Oliver's future education"
     },
     {
-      "id": 3,
+      "id": 6,
       "account_name": "Sophie's Junior ISA",
       "provider_name": "Vanguard",
       "account_type": "junior_isa",
@@ -258,17 +297,18 @@
   "chattels": [],
 
   "expenditure": {
-    "total_monthly": 4200,
+    "total_monthly": 2715,
     "categories": {
-      "housing": 1485,
-      "utilities": 250,
-      "food": 600,
-      "transport": 450,
+      "food_groceries": 600,
+      "transport_fuel": 450,
       "childcare": 800,
       "insurance": 150,
-      "entertainment": 200,
-      "clothing": 100,
-      "other": 165
+      "entertainment_dining": 200,
+      "clothing_personal_care": 100,
+      "internet_tv": 100,
+      "mobile_phones": 80,
+      "subscriptions": 70,
+      "other_expenditure": 165
     }
   },
 

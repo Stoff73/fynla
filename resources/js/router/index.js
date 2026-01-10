@@ -31,6 +31,7 @@ const PolicyDetail = () => import('@/components/Protection/PolicyDetail.vue');
 const ComprehensiveProtectionPlan = () => import('@/views/Protection/ComprehensiveProtectionPlan.vue');
 const SavingsDashboard = () => import('@/views/Savings/SavingsDashboard.vue');
 const SavingsAccountDetail = () => import('@/views/Savings/SavingsAccountDetail.vue');
+const CashOverview = () => import('@/views/NetWorth/CashOverview.vue');
 const RiskProfilePage = () => import('@/views/Risk/RiskProfilePage.vue');
 const PensionDetail = () => import('@/views/Retirement/PensionDetail.vue');
 const EstateDashboard = () => import('@/views/Estate/EstateDashboard.vue');
@@ -158,7 +159,7 @@ const routes = [
       {
         path: 'cash',
         name: 'NetWorthCash',
-        component: SavingsDashboard,
+        component: CashOverview,
       },
       {
         path: 'business',
@@ -495,7 +496,7 @@ const routes = [
       {
         path: 'cash',
         name: 'PreviewNetWorthCash',
-        component: SavingsDashboard,
+        component: CashOverview,
       },
       {
         path: 'investments',
