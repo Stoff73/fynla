@@ -162,6 +162,19 @@
   "savings_accounts": [
     {
       "id": 1,
+      "account_name": "Margaret's Current Account",
+      "provider_name": "Lloyds Bank",
+      "account_type": "current_account",
+      "current_balance": 4850,
+      "interest_rate": 0,
+      "is_isa": false,
+      "access_type": "immediate",
+      "ownership_type": "individual",
+      "monthly_contribution": 0,
+      "notes": "Main pension income account"
+    },
+    {
+      "id": 2,
       "account_name": "Cash ISA",
       "provider_name": "Nationwide",
       "account_type": "cash_isa",
@@ -174,7 +187,7 @@
       "monthly_contribution": 500
     },
     {
-      "id": 2,
+      "id": 3,
       "account_name": "NS&I Direct Saver",
       "provider_name": "NS&I",
       "account_type": "nsi",

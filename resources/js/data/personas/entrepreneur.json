@@ -96,19 +96,45 @@
   "savings_accounts": [
     {
       "id": 1,
-      "account_name": "Business Emergency Fund",
+      "account_name": "Alex's Current Account",
+      "provider_name": "Starling Bank",
+      "account_type": "current_account",
+      "current_balance": 5680,
+      "interest_rate": 0,
+      "is_isa": false,
+      "access_type": "immediate",
+      "ownership_type": "individual",
+      "monthly_contribution": 0,
+      "notes": "Personal current account"
+    },
+    {
+      "id": 2,
+      "account_name": "Chen Tech Consulting - Business Current",
       "provider_name": "Tide",
-      "account_type": "easy_access",
-      "current_balance": 25000,
+      "account_type": "business_current",
+      "current_balance": 48500,
+      "interest_rate": 0,
+      "is_isa": false,
+      "access_type": "immediate",
+      "ownership_type": "individual",
+      "monthly_contribution": 0,
+      "notes": "Main business operating account"
+    },
+    {
+      "id": 3,
+      "account_name": "Chen Tech Consulting - Business Reserve",
+      "provider_name": "Tide",
+      "account_type": "business_savings",
+      "current_balance": 75000,
       "interest_rate": 3.75,
       "is_isa": false,
       "access_type": "immediate",
       "ownership_type": "individual",
       "monthly_contribution": 0,
-      "notes": "Business contingency fund"
+      "notes": "Business reserves and tax provisions"
     },
     {
-      "id": 2,
+      "id": 4,
       "account_name": "Personal Notice Account",
       "provider_name": "Aldermore",
       "account_type": "notice",

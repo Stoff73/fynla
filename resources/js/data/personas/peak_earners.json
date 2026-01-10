@@ -138,6 +138,46 @@
   "savings_accounts": [
     {
       "id": 1,
+      "account_name": "David's Current Account",
+      "provider_name": "HSBC",
+      "account_type": "current_account",
+      "current_balance": 8450,
+      "interest_rate": 0,
+      "is_isa": false,
+      "access_type": "immediate",
+      "ownership_type": "individual",
+      "monthly_contribution": 0,
+      "notes": "Main salary account"
+    },
+    {
+      "id": 2,
+      "account_name": "Sarah's Current Account",
+      "provider_name": "Barclays",
+      "account_type": "current_account",
+      "current_balance": 6280,
+      "interest_rate": 0,
+      "is_isa": false,
+      "access_type": "immediate",
+      "ownership_type": "individual",
+      "owner": "spouse",
+      "monthly_contribution": 0,
+      "notes": "Sarah's NHS salary account"
+    },
+    {
+      "id": 3,
+      "account_name": "Joint Current Account",
+      "provider_name": "Nationwide",
+      "account_type": "current_account",
+      "current_balance": 4500,
+      "interest_rate": 0,
+      "is_isa": false,
+      "access_type": "immediate",
+      "ownership_type": "joint",
+      "monthly_contribution": 0,
+      "notes": "Household bills and shared expenses"
+    },
+    {
+      "id": 4,
       "account_name": "David's Cash ISA",
       "provider_name": "Nationwide",
       "account_type": "cash_isa",
@@ -150,7 +190,7 @@
       "monthly_contribution": 0
     },
     {
-      "id": 2,
+      "id": 5,
       "account_name": "Sarah's Cash ISA",
       "provider_name": "Nationwide",
       "account_type": "cash_isa",
@@ -160,10 +200,11 @@
       "isa_subscription_current_year": 10000,
       "access_type": "immediate",
       "ownership_type": "individual",
+      "owner": "spouse",
       "monthly_contribution": 0
     },
     {
-      "id": 3,
+      "id": 6,
       "account_name": "Premium Bonds",
       "provider_name": "NS&I",
       "account_type": "premium_bonds",
