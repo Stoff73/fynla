@@ -111,6 +111,8 @@ class User extends Authenticatable
         'guidance_completed' => 'boolean',
         'guidance_current_step' => 'integer',
         'info_guide_enabled' => 'boolean',
+        // Dashboard preferences
+        'dashboard_widget_order' => 'array',
     ];
 
     /**

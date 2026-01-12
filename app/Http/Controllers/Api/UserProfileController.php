@@ -259,6 +259,28 @@ class UserProfileController extends Controller
     }
 
     /**
+     * Update dashboard widget order
+     *
+     * PUT /api/user/dashboard-widget-order
+     */
+    public function updateDashboardWidgetOrder(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'widget_order' => 'required|array',
+            'widget_order.*' => 'string|in:net_worth,affordability,retirement,investment,tax,estate,protection,trusts,admin_taxes',
+        ]);
+
+        $request->user()->update([
+            'dashboard_widget_order' => $validated['widget_order'],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Dashboard widget order updated successfully',
+        ]);
+    }
+
+    /**
      * Update spouse expenditure information
      *
      * PUT /api/users/{userId}/expenditure

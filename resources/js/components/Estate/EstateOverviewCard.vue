@@ -40,40 +40,30 @@
     <!-- Status Banner -->
     <div
       v-if="ihtLiability > 0"
-      class="status-banner status-banner-warning"
+      class="mt-4 pt-4 border-t border-gray-200"
     >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        class="status-icon"
-        viewBox="0 0 20 20"
-        fill="currentColor"
-      >
-        <path
-          fill-rule="evenodd"
-          d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-          clip-rule="evenodd"
-        />
-      </svg>
-      <span class="status-text">IHT planning recommended</span>
+      <div class="p-3 bg-white border-2 border-amber-500 rounded-lg">
+        <div class="flex items-center gap-2">
+          <svg class="w-5 h-5 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <span class="text-sm font-medium text-amber-700">IHT planning recommended</span>
+        </div>
+      </div>
     </div>
 
     <div
       v-else
-      class="status-banner status-banner-success"
+      class="mt-4 pt-4 border-t border-gray-200"
     >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        class="status-icon"
-        viewBox="0 0 20 20"
-        fill="currentColor"
-      >
-        <path
-          fill-rule="evenodd"
-          d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-          clip-rule="evenodd"
-        />
-      </svg>
-      <span class="status-text">No IHT liability forecast</span>
+      <div class="p-3 bg-white border-2 border-green-500 rounded-lg">
+        <div class="flex items-center gap-2">
+          <svg class="w-5 h-5 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span class="text-sm font-medium text-green-700">No IHT liability forecast</span>
+        </div>
+      </div>
     </div>
   </div>
 </template>
