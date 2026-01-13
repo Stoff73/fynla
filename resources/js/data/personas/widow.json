@@ -162,15 +162,16 @@
   "savings_accounts": [
     {
       "id": 1,
-      "account_name": "Current Account",
-      "provider_name": "Barclays",
+      "account_name": "Margaret's Current Account",
+      "provider_name": "Lloyds Bank",
       "account_type": "current_account",
-      "current_balance": 5200,
+      "current_balance": 4850,
       "interest_rate": 0,
       "is_isa": false,
       "access_type": "immediate",
       "ownership_type": "individual",
-      "monthly_contribution": 0
+      "monthly_contribution": 0,
+      "notes": "Main pension income account"
     },
     {
       "id": 2,
@@ -466,17 +467,16 @@
   "expenditure": {
     "total_monthly": 3200,
     "categories": {
-      "food_groceries": 400,
-      "transport_fuel": 200,
+      "housing": 400,
+      "utilities": 300,
+      "food": 400,
+      "transport": 200,
       "insurance": 250,
-      "entertainment_dining": 300,
-      "holidays_travel": 500,
+      "entertainment": 300,
+      "holidays": 500,
       "gifts_charity": 400,
-      "healthcare_medical": 200,
-      "mobile_phones": 100,
-      "internet_tv": 100,
-      "subscriptions": 100,
-      "other_expenditure": 650
+      "health": 200,
+      "other": 250
     }
   },
 

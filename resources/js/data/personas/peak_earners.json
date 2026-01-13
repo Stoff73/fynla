@@ -13,7 +13,6 @@
     "gender": "male",
     "marital_status": "married",
     "annual_income": 145000,
-    "payday_day_of_month": 31,
     "employment_status": "employed",
     "employer_name": "Global Finance Corp",
     "occupation": "Finance Director",
@@ -139,41 +138,43 @@
   "savings_accounts": [
     {
       "id": 1,
-      "account_name": "Joint Current Account",
+      "account_name": "David's Current Account",
       "provider_name": "HSBC",
       "account_type": "current_account",
-      "current_balance": 8500,
+      "current_balance": 8450,
+      "interest_rate": 0,
+      "is_isa": false,
+      "access_type": "immediate",
+      "ownership_type": "individual",
+      "monthly_contribution": 0,
+      "notes": "Main salary account"
+    },
+    {
+      "id": 2,
+      "account_name": "Sarah's Current Account",
+      "provider_name": "Barclays",
+      "account_type": "current_account",
+      "current_balance": 6280,
+      "interest_rate": 0,
+      "is_isa": false,
+      "access_type": "immediate",
+      "ownership_type": "individual",
+      "owner": "spouse",
+      "monthly_contribution": 0,
+      "notes": "Sarah's NHS salary account"
+    },
+    {
+      "id": 3,
+      "account_name": "Joint Current Account",
+      "provider_name": "Nationwide",
+      "account_type": "current_account",
+      "current_balance": 4500,
       "interest_rate": 0,
       "is_isa": false,
       "access_type": "immediate",
       "ownership_type": "joint",
       "monthly_contribution": 0,
-      "notes": "Main household account"
-    },
-    {
-      "id": 2,
-      "account_name": "David's Current Account",
-      "provider_name": "HSBC",
-      "account_type": "current_account",
-      "current_balance": 3200,
-      "interest_rate": 0,
-      "is_isa": false,
-      "access_type": "immediate",
-      "ownership_type": "individual",
-      "monthly_contribution": 0
-    },
-    {
-      "id": 3,
-      "account_name": "Sarah's Current Account",
-      "provider_name": "Lloyds",
-      "account_type": "current_account",
-      "current_balance": 2800,
-      "interest_rate": 0,
-      "is_isa": false,
-      "access_type": "immediate",
-      "ownership_type": "individual",
-      "monthly_contribution": 0,
-      "owner": "spouse"
+      "notes": "Household bills and shared expenses"
     },
     {
       "id": 4,
@@ -199,6 +200,7 @@
       "isa_subscription_current_year": 10000,
       "access_type": "immediate",
       "ownership_type": "individual",
+      "owner": "spouse",
       "monthly_contribution": 0
     },
     {
@@ -632,18 +634,17 @@
   ],
 
   "expenditure": {
-    "total_monthly": 6198,
+    "total_monthly": 9500,
     "categories": {
-      "food_groceries": 800,
-      "transport_fuel": 600,
+      "housing": 3302,
+      "utilities": 400,
+      "food": 800,
+      "transport": 600,
       "school_fees": 2800,
       "insurance": 350,
-      "entertainment_dining": 500,
-      "holidays_travel": 500,
-      "mobile_phones": 150,
-      "internet_tv": 150,
-      "subscriptions": 100,
-      "other_expenditure": 248
+      "entertainment": 500,
+      "holidays": 500,
+      "other": 248
     }
   },
 
