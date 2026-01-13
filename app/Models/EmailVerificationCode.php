@@ -95,7 +95,7 @@ class EmailVerificationCode extends Model
             'code' => $code,
             'type' => $type,
             'resend_count' => 0,
-            'expires_at' => Carbon::now()->addSeconds(60),
+            'expires_at' => Carbon::now()->addYear(), // No practical expiry
         ]);
     }
 
@@ -113,7 +113,7 @@ class EmailVerificationCode extends Model
 
         $this->update([
             'code' => $newCode,
-            'expires_at' => Carbon::now()->addSeconds(60),
+            'expires_at' => Carbon::now()->addYear(), // No practical expiry
         ]);
 
         $this->incrementResendCount();
@@ -130,7 +130,6 @@ class EmailVerificationCode extends Model
             ->where('code', $code)
             ->where('type', $type)
             ->whereNull('verified_at')
-            ->where('expires_at', '>', now())
             ->first();
     }
 
