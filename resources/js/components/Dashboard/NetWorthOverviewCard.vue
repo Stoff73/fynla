@@ -126,7 +126,7 @@ export default {
     ...mapActions('netWorth', ['fetchOverview']),
 
     navigateToDetail() {
-      this.$router.push('/net-worth/overview');
+      this.$router.push('/net-worth/wealth-summary');
     },
 
     async retry() {

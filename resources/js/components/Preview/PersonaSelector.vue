@@ -177,7 +177,14 @@ export default {
         buttonClasses() {
             let base = '';
             if (this.variant === 'dark') {
-                base = 'bg-amber-600 hover:bg-amber-700 text-white';
+                // Use persona-specific darker shade for the selector button
+                const darkColors = {
+                    young_family: 'bg-blue-600 hover:bg-blue-700 text-white',
+                    peak_earners: 'bg-green-600 hover:bg-green-700 text-white',
+                    widow: 'bg-purple-600 hover:bg-purple-700 text-white',
+                    entrepreneur: 'bg-orange-600 hover:bg-orange-700 text-white',
+                };
+                base = darkColors[this.currentPersonaId] || 'bg-amber-600 hover:bg-amber-700 text-white';
             } else {
                 base = 'bg-white hover:bg-gray-50 text-gray-700 border border-gray-200';
             }

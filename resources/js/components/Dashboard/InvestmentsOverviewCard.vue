@@ -1,75 +1,96 @@
 <template>
-  <div
-    class="card cursor-pointer hover:shadow-lg hover:-translate-y-0.5 hover:border-primary-500 transition-all duration-200"
-    @click="navigateToInvestments"
-  >
-    <!-- Primary Value Section with YTD Net -->
-    <div class="border-b border-gray-200 pb-4 mb-4">
-      <span class="text-sm text-gray-500">Total Portfolio Value</span>
-      <div class="flex items-baseline gap-3 mt-1">
-        <span class="text-3xl font-bold text-primary-600">
-          {{ formatCurrency(totalValue) }}
-        </span>
-      </div>
-      <div class="flex items-center gap-2 mt-2">
-        <span class="text-sm text-gray-500">Annualised Return:</span>
-        <span
-          v-if="portfolioAnnualisedReturn !== null"
-          class="text-sm font-semibold"
-          :class="portfolioAnnualisedReturn >= 0 ? 'text-green-600' : 'text-red-600'"
-        >
-          {{ portfolioAnnualisedReturn >= 0 ? '+' : '' }}{{ portfolioAnnualisedReturn.toFixed(2) }}%
-        </span>
-        <span v-else class="text-sm text-gray-400">N/A</span>
-      </div>
-    </div>
-
-    <!-- Account List -->
-    <div class="space-y-3 mb-4">
-      <div
-        v-for="account in accountsList"
-        :key="account.id"
-        class="flex justify-between items-start"
-      >
-        <div>
-          <span class="text-sm font-medium text-gray-900">{{ account.name }}</span>
-          <span
-            class="ml-2 text-xs px-1.5 py-0.5 rounded border"
-            :class="getAccountTypeBadgeClass(account.account_type)"
-          >
-            {{ formatAccountType(account.account_type) }}
+  <div class="card">
+    <!-- Portfolio Section (clickable) -->
+    <div
+      class="cursor-pointer hover:bg-gray-50 -m-6 p-6 pb-4 rounded-t-lg transition-colors"
+      @click="navigateToInvestments"
+    >
+      <!-- Primary Value Section with YTD Net -->
+      <div class="border-b border-gray-200 pb-4 mb-4">
+        <span class="text-sm text-gray-500">Total Portfolio Value</span>
+        <div class="flex items-baseline gap-3 mt-1">
+          <span class="text-3xl font-bold text-primary-600">
+            {{ formatCurrency(totalValue) }}
           </span>
         </div>
-        <div class="text-right">
-          <div class="text-sm font-semibold text-gray-900">{{ formatCurrency(account.current_value) }}</div>
-          <div
-            v-if="account.annualised_return !== null && account.annualised_return !== undefined"
-            class="text-xs"
-            :class="account.annualised_return >= 0 ? 'text-green-600' : 'text-red-600'"
+        <div class="flex items-center gap-2 mt-2">
+          <span class="text-sm text-gray-500">Annualised Return:</span>
+          <span
+            v-if="portfolioAnnualisedReturn !== null"
+            class="text-sm font-semibold"
+            :class="portfolioAnnualisedReturn >= 0 ? 'text-green-600' : 'text-red-600'"
           >
-            {{ account.annualised_return >= 0 ? '+' : '' }}{{ account.annualised_return.toFixed(2) }}%
+            {{ portfolioAnnualisedReturn >= 0 ? '+' : '' }}{{ portfolioAnnualisedReturn.toFixed(2) }}%
+          </span>
+          <span v-else class="text-sm text-gray-400">N/A</span>
+        </div>
+      </div>
+
+      <!-- Account List -->
+      <div class="space-y-3">
+        <div
+          v-for="account in accountsList"
+          :key="account.id"
+          class="flex justify-between items-start"
+        >
+          <div>
+            <span class="text-sm font-medium text-gray-900">{{ account.name }}</span>
+            <span
+              class="ml-2 text-xs px-1.5 py-0.5 rounded border"
+              :class="getAccountTypeBadgeClass(account.account_type)"
+            >
+              {{ formatAccountType(account.account_type) }}
+            </span>
+          </div>
+          <div class="text-right">
+            <div class="text-sm font-semibold text-gray-900">{{ formatCurrency(account.current_value) }}</div>
+            <div
+              v-if="account.annualised_return !== null && account.annualised_return !== undefined"
+              class="text-xs"
+              :class="account.annualised_return >= 0 ? 'text-green-600' : 'text-red-600'"
+            >
+              {{ account.annualised_return >= 0 ? '+' : '' }}{{ account.annualised_return.toFixed(2) }}%
+            </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Risk & Diversification (if available) -->
-    <div v-if="riskLevel !== 'Not Set' || diversificationScore > 0" class="grid grid-cols-2 gap-4 pt-3 border-t border-gray-200">
-      <div v-if="riskLevel !== 'Not Set'">
-        <span class="text-xs text-gray-500">Risk Level</span>
-        <div class="mt-0.5">
+    <!-- Divider -->
+    <div class="border-t border-gray-200 my-4"></div>
+
+    <!-- Cash Flow Section (clickable) -->
+    <div
+      class="cursor-pointer hover:bg-gray-50 -mx-6 -mb-6 p-6 pt-0 rounded-b-lg transition-colors"
+      @click="navigateToCash"
+    >
+      <div class="border-b border-gray-200 pb-4 mb-4">
+        <span class="text-sm text-gray-500">{{ currentMonth }} Cash Flow</span>
+        <div class="flex items-baseline gap-2 mt-1">
           <span
-            class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border"
-            :class="riskBadgeClass"
+            class="text-3xl font-bold"
+            :class="monthlySurplus >= 0 ? 'text-green-600' : 'text-red-600'"
           >
-            {{ riskLevel }}
+            {{ formatCurrency(Math.abs(monthlySurplus)) }}
+          </span>
+          <span
+            class="text-sm font-medium"
+            :class="monthlySurplus >= 0 ? 'text-green-600' : 'text-red-600'"
+          >
+            {{ monthlySurplus >= 0 ? 'surplus' : 'deficit' }}
           </span>
         </div>
       </div>
-      <div v-if="diversificationScore > 0">
-        <span class="text-xs text-gray-500">Diversification</span>
-        <div class="mt-0.5">
-          <span class="text-sm font-semibold text-gray-900">{{ diversificationScore }}/100</span>
+
+      <!-- Breakdown -->
+      <div class="space-y-3">
+        <div class="flex justify-between items-center">
+          <span class="text-sm text-gray-600">Money In</span>
+          <span class="text-sm font-semibold text-green-600">{{ formatCurrency(monthlyIncome) }}</span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-sm text-gray-600">Money Out</span>
+          <span class="text-sm font-semibold text-red-600">{{ formatCurrency(monthlyExpenditure) }}</span>
         </div>
       </div>
     </div>
@@ -77,8 +98,9 @@
 </template>
 
 <script>
-import { mapState, mapGetters } from 'vuex';
+import { mapState, mapGetters, mapActions } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import userProfileService from '@/services/userProfileService';
 
 export default {
   name: 'InvestmentsOverviewCard',
@@ -86,44 +108,19 @@ export default {
 
   data() {
     return {
-      allocationColors: ['#1257A0', '#15803D', '#D97706', '#7C3AED', '#B91C1C', '#475569'],
+      financialCommitmentsData: null,
     };
   },
 
   computed: {
     ...mapState('investment', ['accounts', 'analysis', 'riskProfile']),
     ...mapGetters('investment', ['totalPortfolioValue', 'ytdReturn', 'assetAllocation', 'accountsCount']),
+    ...mapState('userProfile', ['incomeOccupation']),
+    ...mapState('savings', ['expenditureProfile']),
+    ...mapGetters('userProfile', ['totalAnnualIncome']),
 
     totalValue() {
       return this.totalPortfolioValue || 0;
-    },
-
-    riskLevel() {
-      if (this.riskProfile?.risk_category) {
-        return this.formatRiskLevel(this.riskProfile.risk_category);
-      }
-      if (this.analysis?.risk_metrics?.overall_risk) {
-        return this.formatRiskLevel(this.analysis.risk_metrics.overall_risk);
-      }
-      return 'Not Set';
-    },
-
-    riskBadgeClass() {
-      const level = this.riskLevel.toLowerCase();
-      if (level.includes('low') || level.includes('cautious')) {
-        return 'bg-white text-green-700 border-green-500';
-      }
-      if (level.includes('medium') || level.includes('balanced')) {
-        return 'bg-white text-amber-700 border-amber-500';
-      }
-      if (level.includes('high') || level.includes('aggressive')) {
-        return 'bg-white text-red-700 border-red-500';
-      }
-      return 'bg-white text-gray-700 border-gray-400';
-    },
-
-    diversificationScore() {
-      return this.analysis?.diversification_score || 0;
     },
 
     // Calculate weighted average portfolio annualised return percentage
@@ -165,16 +162,56 @@ export default {
         };
       });
     },
+
+    // Cash Flow computed properties
+    currentMonth() {
+      return new Date().toLocaleString('en-GB', { month: 'long' });
+    },
+
+    monthlyIncome() {
+      const annual = this.totalAnnualIncome || 0;
+      return annual / 12;
+    },
+
+    financialCommitmentsTotal() {
+      return this.financialCommitmentsData?.totals?.total || 0;
+    },
+
+    monthlyExpenditure() {
+      const discretionary = this.expenditureProfile?.total_monthly_expenditure || 0;
+      return discretionary + this.financialCommitmentsTotal;
+    },
+
+    monthlySurplus() {
+      return this.monthlyIncome - this.monthlyExpenditure;
+    },
+  },
+
+  async mounted() {
+    await this.loadFinancialCommitments();
   },
 
   methods: {
+    ...mapActions('userProfile', ['fetchProfile']),
+
+    async loadFinancialCommitments() {
+      try {
+        const response = await userProfileService.getFinancialCommitments();
+        if (response.success) {
+          this.financialCommitmentsData = response.data;
+        }
+      } catch (error) {
+        console.error('Failed to load financial commitments:', error);
+        this.financialCommitmentsData = null;
+      }
+    },
+
     navigateToInvestments() {
       this.$router.push('/net-worth/investments');
     },
 
-    formatRiskLevel(level) {
-      if (!level) return 'Not Set';
-      return level.charAt(0).toUpperCase() + level.slice(1).replace(/_/g, ' ');
+    navigateToCash() {
+      this.$router.push('/net-worth/cash');
     },
 
     getAccountTypeBadgeClass(accountType) {

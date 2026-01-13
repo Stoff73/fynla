@@ -3,15 +3,15 @@
     <div class="net-worth-dashboard" :class="{ 'with-sidebar': showSidebar, 'sidebar-collapsed': sidebarCollapsed }">
       <!-- Sidebar Navigation (hidden on overview) -->
       <aside v-if="showSidebar" class="sidebar" :class="{ 'sidebar-offset': sidebarNeedsOffset, 'collapsed': sidebarCollapsed }">
-        <!-- Collapse/Expand Toggle -->
+        <!-- Expand Toggle (only shown when collapsed) -->
         <button
+          v-if="sidebarCollapsed"
           @click="toggleSidebar"
           class="sidebar-toggle"
-          :title="sidebarCollapsed ? 'Expand menu' : 'Collapse menu'"
+          title="Expand menu"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path v-if="sidebarCollapsed" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7" />
-            <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7" />
           </svg>
         </button>
         <nav class="sidebar-nav">
@@ -56,11 +56,6 @@ export default {
       sidebarCollapsed: false,
       sidebarItems: [
         {
-          path: 'overview',
-          label: 'Overview',
-          iconPath: 'M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z'
-        },
-        {
           path: 'wealth-summary',
           label: 'Wealth Summary',
           iconPath: 'M10.5 6a7.5 7.5 0 107.5 7.5h-7.5V6z',
@@ -96,11 +91,6 @@ export default {
           label: 'Chattels',
           iconPath: 'M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9'
         },
-        {
-          path: 'joint-history',
-          label: 'Joint History',
-          iconPath: 'M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z'
-        },
       ],
     };
   },
@@ -119,12 +109,12 @@ export default {
     currentSection() {
       const path = this.$route.path;
       const match = path.match(/\/net-worth\/([^/]+)/);
-      return match ? match[1] : 'overview';
+      return match ? match[1] : 'wealth-summary';
     },
 
     showSidebar() {
-      // Hide sidebar only on the overview page
-      return this.currentSection !== 'overview';
+      // Always show sidebar
+      return true;
     },
 
     sidebarNeedsOffset() {
@@ -164,12 +154,12 @@ export default {
   },
 
   mounted() {
-    // Redirect to overview if at root
+    // Redirect to wealth-summary if at root
     if (this.$route.path === '/net-worth' || this.$route.path === '/net-worth/') {
-      this.$router.replace('/net-worth/overview');
+      this.$router.replace('/net-worth/wealth-summary');
     }
     if (this.$route.path === '/preview/net-worth' || this.$route.path === '/preview/net-worth/') {
-      this.$router.replace('/preview/net-worth/overview');
+      this.$router.replace('/preview/net-worth/wealth-summary');
     }
   },
 };

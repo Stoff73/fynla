@@ -5,7 +5,7 @@
   >
     <!-- Taxable Estate Now (Primary Value with border) -->
     <div class="primary-value-section">
-      <span class="value-label">Taxable Estate on {{ isMarried ? 'Joint' : 'Single' }} Death Now</span>
+      <span class="value-label">Taxable Estate on {{ isUserMarried ? 'Joint' : 'Single' }} Death Now</span>
       <span class="value-amount value-amount-primary">{{ formattedTaxableEstate }}</span>
     </div>
 
@@ -22,7 +22,7 @@
 
     <!-- Future Values Section -->
     <div class="section-breakdown">
-      <div class="section-header">{{ isMarried ? 'Joint' : 'Single' }} Death at Age {{ futureDeathAge || 'TBC' }}</div>
+      <div class="section-header">{{ isUserMarried ? 'Joint' : 'Single' }} Death at Age {{ futureDeathAge || 'TBC' }}</div>
       <div class="breakdown-item">
         <span class="breakdown-label">Taxable Estate</span>
         <span class="breakdown-value breakdown-value-asset">
@@ -107,6 +107,12 @@ export default {
   },
 
   computed: {
+    isUserMarried() {
+      // Get marital status directly from store as fallback
+      const user = this.$store?.state?.auth?.user;
+      return this.isMarried || (user && user.marital_status === 'married');
+    },
+
     formattedTaxableEstate() {
       return new Intl.NumberFormat('en-GB', {
         style: 'currency',

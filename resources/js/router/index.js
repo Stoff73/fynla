@@ -17,7 +17,6 @@ const Dashboard = () => import('@/views/Dashboard.vue');
 const Settings = () => import('@/views/Settings.vue');
 const UserProfile = () => import('@/views/UserProfile.vue');
 const NetWorthDashboard = () => import('@/views/NetWorth/NetWorthDashboard.vue');
-const NetWorthOverview = () => import('@/components/NetWorth/NetWorthOverview.vue');
 const NetWorthWealthSummary = () => import('@/components/NetWorth/NetWorthWealthSummary.vue');
 const PropertyList = () => import('@/components/NetWorth/PropertyList.vue');
 const PensionList = () => import('@/components/NetWorth/PensionList.vue');
@@ -129,12 +128,11 @@ const routes = [
     children: [
       {
         path: '',
-        redirect: 'overview',
+        redirect: 'wealth-summary',
       },
       {
         path: 'overview',
-        name: 'NetWorthOverview',
-        component: NetWorthOverview,
+        redirect: 'wealth-summary',
       },
       {
         path: 'wealth-summary',
@@ -471,12 +469,11 @@ const routes = [
       {
         path: '',
         name: 'PreviewNetWorth',
-        redirect: 'overview',
+        redirect: 'wealth-summary',
       },
       {
         path: 'overview',
-        name: 'PreviewNetWorthOverview',
-        component: NetWorthOverview,
+        redirect: 'wealth-summary',
       },
       {
         path: 'wealth-summary',
