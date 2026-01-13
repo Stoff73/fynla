@@ -1,8 +1,19 @@
 <template>
   <AppLayout>
-    <div class="net-worth-dashboard" :class="{ 'with-sidebar': showSidebar }">
+    <div class="net-worth-dashboard" :class="{ 'with-sidebar': showSidebar, 'sidebar-collapsed': sidebarCollapsed }">
       <!-- Sidebar Navigation (hidden on overview) -->
-      <aside v-if="showSidebar" class="sidebar" :class="{ 'sidebar-offset': sidebarNeedsOffset }">
+      <aside v-if="showSidebar" class="sidebar" :class="{ 'sidebar-offset': sidebarNeedsOffset, 'collapsed': sidebarCollapsed }">
+        <!-- Collapse/Expand Toggle -->
+        <button
+          @click="toggleSidebar"
+          class="sidebar-toggle"
+          :title="sidebarCollapsed ? 'Expand menu' : 'Collapse menu'"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path v-if="sidebarCollapsed" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7" />
+            <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7" />
+          </svg>
+        </button>
         <nav class="sidebar-nav">
           <router-link
             v-for="item in sidebarItems"
@@ -10,12 +21,13 @@
             :to="getRoutePath(item.path)"
             class="sidebar-link"
             :class="{ active: isActive(item.path) }"
+            :title="sidebarCollapsed ? item.label : ''"
           >
             <svg class="sidebar-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" :d="item.iconPath" />
               <path v-if="item.iconPath2" stroke-linecap="round" stroke-linejoin="round" :d="item.iconPath2" />
             </svg>
-            <span>{{ item.label }}</span>
+            <span v-if="!sidebarCollapsed">{{ item.label }}</span>
           </router-link>
         </nav>
       </aside>
@@ -41,6 +53,7 @@ export default {
 
   data() {
     return {
+      sidebarCollapsed: false,
       sidebarItems: [
         {
           path: 'overview',
@@ -132,6 +145,22 @@ export default {
     isActive(path) {
       return this.currentSection === path;
     },
+
+    toggleSidebar() {
+      this.sidebarCollapsed = !this.sidebarCollapsed;
+    },
+  },
+
+  watch: {
+    currentSection: {
+      immediate: true,
+      handler(section) {
+        // Auto-collapse sidebar on cash tab for more screen space
+        if (section === 'cash') {
+          this.sidebarCollapsed = true;
+        }
+      },
+    },
   },
 
   mounted() {
@@ -158,6 +187,11 @@ export default {
   grid-template-columns: 240px 1fr;
   gap: 24px;
   overflow: hidden;
+  transition: grid-template-columns 0.2s ease;
+}
+
+.net-worth-dashboard.with-sidebar.sidebar-collapsed {
+  grid-template-columns: 60px 1fr;
 }
 
 /* Sidebar Styles */
@@ -172,11 +206,36 @@ export default {
   height: fit-content;
   max-height: calc(100vh - 140px);
   overflow-y: auto;
+  transition: all 0.2s ease;
+}
+
+.sidebar.collapsed {
+  padding: 8px 0;
 }
 
 /* Offset sidebar to align with first card on list views */
 .sidebar.sidebar-offset {
   margin-top: 56px;
+}
+
+/* Toggle button */
+.sidebar-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 8px;
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.sidebar-toggle:hover {
+  color: #2563eb;
+  background: #f3f4f6;
 }
 
 .sidebar-nav {
@@ -196,6 +255,16 @@ export default {
   font-weight: 500;
   transition: all 0.15s;
   border-left: 3px solid transparent;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* Collapsed sidebar link styles */
+.sidebar.collapsed .sidebar-link {
+  justify-content: center;
+  padding: 12px 8px;
+  border-left: none;
+  border-radius: 0;
 }
 
 .sidebar-link:hover {
@@ -210,10 +279,21 @@ export default {
   font-weight: 600;
 }
 
+.sidebar.collapsed .sidebar-link.active {
+  border-left: none;
+  border-radius: 8px;
+  margin: 0 4px;
+}
+
 .sidebar-icon {
   width: 20px;
   height: 20px;
   flex-shrink: 0;
+}
+
+.sidebar.collapsed .sidebar-icon {
+  width: 24px;
+  height: 24px;
 }
 
 /* Main Content */
