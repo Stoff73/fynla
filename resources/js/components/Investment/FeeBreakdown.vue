@@ -13,17 +13,17 @@
     <div v-else class="space-y-6">
       <!-- Summary Cards -->
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div class="bg-orange-50 rounded-lg p-4 border border-orange-200">
+        <div class="bg-gray-50 rounded-lg p-4">
           <p class="text-sm text-gray-600 mb-1">Platform Fees</p>
           <p class="text-2xl font-bold text-orange-600">{{ formatPercent(weightedPlatformFee) }}</p>
           <p class="text-sm text-gray-500">{{ formatCurrency(annualPlatformFees) }}/year</p>
         </div>
-        <div class="bg-red-50 rounded-lg p-4 border border-red-200">
+        <div class="bg-gray-50 rounded-lg p-4">
           <p class="text-sm text-gray-600 mb-1">Fund Fees (OCF)</p>
           <p class="text-2xl font-bold text-red-600">{{ formatPercent(weightedOCF) }}</p>
           <p class="text-sm text-gray-500">{{ formatCurrency(annualFundFees) }}/year</p>
         </div>
-        <div class="bg-purple-50 rounded-lg p-4 border border-purple-200">
+        <div class="bg-gray-50 rounded-lg p-4">
           <p class="text-sm text-gray-600 mb-1">Advisor Fees</p>
           <p class="text-2xl font-bold text-purple-600">{{ formatPercent(weightedAdvisorFee) }}</p>
           <p class="text-sm text-gray-500">{{ formatCurrency(annualAdvisorFees) }}/year</p>
@@ -99,11 +99,11 @@
           Projected cumulative fees over 10 years, assuming 5% annual portfolio growth.
         </p>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div class="text-center p-4 bg-red-50 rounded-lg border border-red-200">
+          <div class="text-center p-4 bg-gray-50 rounded-lg">
             <p class="text-sm text-gray-600 mb-1">Cumulative Fees Paid</p>
             <p class="text-3xl font-bold text-red-600">{{ formatCurrency(tenYearTotalFees) }}</p>
           </div>
-          <div class="text-center p-4 bg-amber-50 rounded-lg border border-amber-200">
+          <div class="text-center p-4 bg-gray-50 rounded-lg">
             <p class="text-sm text-gray-600 mb-1">Fee Drag (Lost Growth)</p>
             <p class="text-3xl font-bold text-amber-600">{{ formatCurrency(tenYearFeeDrag) }}</p>
           </div>
@@ -118,7 +118,7 @@
       </div>
 
       <!-- Fee Comparison Guide -->
-      <div class="bg-blue-50 rounded-lg border border-blue-200 p-4">
+      <div class="bg-gray-50 rounded-lg p-4">
         <h4 class="font-semibold text-blue-800 mb-2">Fee Benchmarks</h4>
         <div class="grid grid-cols-3 gap-4 text-sm">
           <div>

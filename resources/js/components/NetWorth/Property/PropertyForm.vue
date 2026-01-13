@@ -58,7 +58,7 @@
       <form @submit.prevent="handleSubmit" novalidate>
         <div class="px-6 py-4">
           <!-- Error Message -->
-          <div v-if="error" class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div v-if="error" class="mb-4 p-4 bg-gray-50 rounded-lg">
             <div class="flex items-start">
               <svg class="w-5 h-5 text-red-600 mt-0.5 mr-2" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
@@ -156,7 +156,7 @@
               <p class="text-sm text-gray-500 mt-1">Country where the property is located</p>
 
               <!-- Non-UK Property Message -->
-              <div v-if="form.country !== 'United Kingdom'" class="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+              <div v-if="form.country !== 'United Kingdom'" class="mt-2 p-3 bg-gray-50 rounded-md">
                 <p class="text-sm text-blue-800">
                   <svg class="inline w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
@@ -222,7 +222,7 @@
             </div>
 
             <!-- Mortgage Checkbox -->
-            <div class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
+            <div class="mt-4 p-4 bg-gray-50 rounded-md">
               <label class="flex items-center cursor-pointer">
                 <input
                   type="checkbox"
@@ -268,7 +268,7 @@
             </div>
 
             <!-- Leasehold Details (conditional) -->
-            <div v-if="form.tenure_type === 'leasehold'" class="p-4 bg-amber-50 border border-amber-200 rounded-md space-y-4">
+            <div v-if="form.tenure_type === 'leasehold'" class="p-4 bg-gray-50 rounded-md space-y-4">
               <p class="text-sm text-amber-800 font-medium">Leasehold Property Details</p>
 
               <div>
@@ -360,7 +360,7 @@
             </div>
 
             <!-- Joint Tenancy Details -->
-            <div v-if="form.ownership_type === 'joint'" class="space-y-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
+            <div v-if="form.ownership_type === 'joint'" class="space-y-4 p-4 bg-gray-50 rounded-md">
               <p class="text-sm text-blue-800 font-medium">Joint Tenancy Details</p>
 
               <!-- Ownership Split Display -->
@@ -423,7 +423,7 @@
             </div>
 
             <!-- Tenants in Common Details -->
-            <div v-if="form.ownership_type === 'tenants_in_common'" class="space-y-4 p-4 bg-green-50 border border-green-200 rounded-md">
+            <div v-if="form.ownership_type === 'tenants_in_common'" class="space-y-4 p-4 bg-gray-50 rounded-md">
               <p class="text-sm text-green-800 font-medium">Tenants in Common Details</p>
 
               <!-- Ownership Percentage Input -->
@@ -504,11 +504,11 @@
             </div>
 
             <!-- Trust Details -->
-            <div v-if="form.ownership_type === 'trust'" class="space-y-4 p-4 bg-purple-50 border border-purple-200 rounded-md">
+            <div v-if="form.ownership_type === 'trust'" class="space-y-4 p-4 bg-gray-50 rounded-md">
               <p class="text-sm text-purple-800 font-medium">Trust Ownership Details</p>
 
               <!-- Trust Feature Notice -->
-              <div class="p-3 bg-blue-50 border border-blue-200 rounded-md">
+              <div class="p-3 bg-gray-50 rounded-md">
                 <p class="text-sm text-blue-800">
                   <svg class="inline w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
@@ -614,7 +614,7 @@
             </div>
 
             <!-- Mixed Mortgage Type Fields -->
-            <div v-if="mortgageForm.mortgage_type === 'mixed'" class="bg-blue-50 border border-blue-200 rounded-md p-4 space-y-4">
+            <div v-if="mortgageForm.mortgage_type === 'mixed'" class="bg-gray-50 rounded-md p-4 space-y-4">
               <div class="flex items-start gap-2 mb-3">
                 <svg class="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -664,7 +664,7 @@
               </div>
 
               <div v-if="mortgageTypePercentageTotal !== 100 && (mortgageForm.repayment_percentage || mortgageForm.interest_only_percentage)"
-                   class="bg-red-50 border border-red-200 rounded-md p-3">
+                   class="bg-gray-50 rounded-md p-3">
                 <p class="text-sm text-red-800">
                   ⚠️ Percentages must total 100%. Current total: {{ mortgageTypePercentageTotal }}%
                 </p>
@@ -745,7 +745,7 @@
             </div>
 
             <!-- Mixed Rate Type Fields -->
-            <div v-if="mortgageForm.rate_type === 'mixed'" class="bg-green-50 border border-green-200 rounded-md p-4 space-y-4">
+            <div v-if="mortgageForm.rate_type === 'mixed'" class="bg-gray-50 rounded-md p-4 space-y-4">
               <div class="flex items-start gap-2 mb-3">
                 <svg class="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -831,7 +831,7 @@
               </div>
 
               <div v-if="rateTypePercentageTotal !== 100 && (mortgageForm.fixed_rate_percentage || mortgageForm.variable_rate_percentage)"
-                   class="bg-red-50 border border-red-200 rounded-md p-3">
+                   class="bg-gray-50 rounded-md p-3">
                 <p class="text-sm text-red-800">
                   ⚠️ Percentages must total 100%. Current total: {{ rateTypePercentageTotal }}%
                 </p>
@@ -933,7 +933,7 @@
               <!-- Mortgage Payment (pulled from mortgage data) -->
               <div v-if="hasMortgage && mortgageForm.monthly_payment">
                 <label class="block text-sm font-medium text-gray-700 mb-1">Mortgage Payment (£/month)</label>
-                <div class="w-full px-3 py-2 bg-blue-50 border border-blue-200 rounded-md text-gray-700 font-medium">
+                <div class="w-full px-3 py-2 bg-gray-50 rounded-md text-gray-700 font-medium">
                   {{ formatCurrency(mortgageForm.monthly_payment) }}
                 </div>
               </div>
@@ -1215,7 +1215,7 @@
           </div>
 
           <!-- Error Message -->
-          <div v-if="error" class="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+          <div v-if="error" class="mt-4 p-3 bg-gray-50 rounded-md">
             <p class="text-sm text-red-600">{{ error }}</p>
           </div>
         </div>

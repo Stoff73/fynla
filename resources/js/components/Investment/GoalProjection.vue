@@ -6,7 +6,7 @@
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+    <div v-else-if="error" class="bg-gray-50 rounded-lg p-4 mb-6">
       <div class="flex items-center">
         <svg class="h-5 w-5 text-red-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
           <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
@@ -107,7 +107,7 @@
               </div>
             </div>
 
-            <div class="border border-green-200 bg-green-50 rounded-lg p-4">
+            <div class="bg-gray-50 rounded-lg p-4">
               <div class="flex justify-between items-center mb-2">
                 <span class="text-sm font-medium text-gray-700">Best Case (95th percentile)</span>
                 <span class="text-xl font-bold text-green-600">
@@ -117,7 +117,7 @@
               <p class="text-xs text-gray-600">Only 5% chance of exceeding this</p>
             </div>
 
-            <div class="border border-red-200 bg-red-50 rounded-lg p-4">
+            <div class="bg-gray-50 rounded-lg p-4">
               <div class="flex justify-between items-center mb-2">
                 <span class="text-sm font-medium text-gray-700">Worst Case (5th percentile)</span>
                 <span class="text-xl font-bold text-red-600">
@@ -127,7 +127,7 @@
               <p class="text-xs text-gray-600">95% chance of beating this</p>
             </div>
 
-            <div class="border-l-4 border-blue-500 bg-blue-50 p-4 rounded-r-lg">
+            <div class="bg-gray-50 p-4 rounded-lg">
               <p class="text-sm font-semibold text-gray-800 mb-1">Success Rate</p>
               <p class="text-sm text-gray-700">
                 {{ Math.round(projectionData.probability_percent) }}% probability of reaching £{{ formatNumber(projectionData.goal.target_value) }}
@@ -150,19 +150,19 @@
         />
 
         <div class="mt-4 grid grid-cols-3 gap-4">
-          <div class="text-center p-3 bg-red-50 rounded-lg">
+          <div class="text-center p-3 bg-gray-50 rounded-lg">
             <p class="text-xs text-gray-600 mb-1">Conservative (5th %ile)</p>
             <p class="text-lg font-semibold text-red-600">
               £{{ formatNumber(projectionData.trajectory?.conservative_final || 0) }}
             </p>
           </div>
-          <div class="text-center p-3 bg-blue-50 rounded-lg">
+          <div class="text-center p-3 bg-gray-50 rounded-lg">
             <p class="text-xs text-gray-600 mb-1">Expected (Median)</p>
             <p class="text-lg font-semibold text-blue-600">
               £{{ formatNumber(projectionData.trajectory?.expected_final || 0) }}
             </p>
           </div>
-          <div class="text-center p-3 bg-green-50 rounded-lg">
+          <div class="text-center p-3 bg-gray-50 rounded-lg">
             <p class="text-xs text-gray-600 mb-1">Optimistic (95th %ile)</p>
             <p class="text-lg font-semibold text-green-600">
               £{{ formatNumber(projectionData.trajectory?.optimistic_final || 0) }}
@@ -175,7 +175,7 @@
       <div v-if="shortfallData && shortfallData.is_shortfall" class="bg-white rounded-lg shadow-md p-6">
         <h3 class="text-lg font-semibold text-gray-800 mb-6">Shortfall Analysis</h3>
 
-        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-6">
+        <div class="bg-gray-50 rounded-lg p-6 mb-6">
           <div class="flex items-start">
             <svg class="h-6 w-6 text-yellow-600 mr-3 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
@@ -275,7 +275,7 @@
           </div>
         </div>
 
-        <div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <div class="mt-6 p-4 bg-gray-50 rounded-lg">
           <p class="text-sm text-gray-700">
             <strong>Recommendation:</strong> {{ glidePath.recommendation }}
           </p>
@@ -619,9 +619,9 @@ export default {
     },
 
     getStatusClass(status) {
-      if (status === 'On Track') return 'bg-green-100 text-green-800';
-      if (status === 'Needs Attention') return 'bg-yellow-100 text-yellow-800';
-      return 'bg-red-100 text-red-800';
+      if (status === 'On Track') return 'bg-green-500 text-white';
+      if (status === 'Needs Attention') return 'bg-yellow-500 text-white';
+      return 'bg-red-500 text-white';
     },
   },
 };

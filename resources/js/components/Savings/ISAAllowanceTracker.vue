@@ -33,24 +33,24 @@
 
     <!-- Breakdown -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-      <div class="text-center p-3 bg-blue-50 rounded-lg">
+      <div class="text-center p-3 bg-gray-50 rounded-lg">
         <p class="text-sm text-gray-600 mb-1">Cash ISA</p>
         <p class="text-lg font-bold text-blue-700">{{ formatCurrency(cashISAUsed) }}</p>
       </div>
 
-      <div class="text-center p-3 bg-purple-50 rounded-lg">
+      <div class="text-center p-3 bg-gray-50 rounded-lg">
         <p class="text-sm text-gray-600 mb-1">Stocks & Shares ISA</p>
         <p class="text-lg font-bold text-purple-700">{{ formatCurrency(stocksISAUsed) }}</p>
       </div>
 
-      <div class="text-center p-3 bg-green-50 rounded-lg">
+      <div class="text-center p-3 bg-gray-50 rounded-lg">
         <p class="text-sm text-gray-600 mb-1">Remaining</p>
         <p class="text-lg font-bold text-green-700">{{ formatCurrency(remaining) }}</p>
       </div>
     </div>
 
     <!-- Info Message -->
-    <div class="p-3 bg-blue-50 rounded-lg">
+    <div class="p-3 bg-gray-50 rounded-lg">
       <p class="text-sm text-gray-700">
         <span class="font-medium">Tax year {{ currentTaxYear }}:</span> You can save up to £20,000 across all tax-free savings accounts (ISAs).
         Any unused allowance cannot be carried forward to the next year.

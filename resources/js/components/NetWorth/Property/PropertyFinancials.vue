@@ -11,7 +11,7 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div v-if="monthlyMortgagePayments > 0">
           <label class="block text-sm font-medium text-gray-700 mb-1">Mortgage Payment (£/month)</label>
-          <div class="w-full px-3 py-2 bg-blue-50 border border-blue-200 rounded-md text-gray-700 font-medium">
+          <div class="w-full px-3 py-2 bg-gray-50 rounded-md text-gray-700 font-medium">
             {{ formatCurrency(monthlyMortgagePayments) }}
           </div>
         </div>
@@ -93,18 +93,18 @@
       <h4 class="text-md font-semibold text-gray-700 mb-4">Rental Income Analysis</h4>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div class="bg-green-50 rounded-lg p-4">
+        <div class="bg-gray-50 rounded-lg p-4">
           <p class="text-sm text-green-700">Monthly Rental Income</p>
           <p class="text-2xl font-bold text-green-900">{{ formatCurrency(property.monthly_rental_income || 0) }}</p>
         </div>
 
-        <div class="bg-blue-50 rounded-lg p-4">
+        <div class="bg-gray-50 rounded-lg p-4">
           <p class="text-sm text-blue-700">Net Monthly Income</p>
           <p class="text-2xl font-bold text-blue-900">{{ formatCurrency(netMonthlyIncome) }}</p>
           <p class="text-xs text-blue-600 mt-1">After all costs</p>
         </div>
 
-        <div class="bg-purple-50 rounded-lg p-4">
+        <div class="bg-gray-50 rounded-lg p-4">
           <p class="text-sm text-purple-700">Net Rental Yield</p>
           <p class="text-2xl font-bold text-purple-900">{{ netRentalYield }}%</p>
           <p class="text-xs text-purple-600 mt-1">Annual</p>
@@ -349,7 +349,7 @@
             </div>
 
             <!-- Error Message -->
-            <div v-if="error" class="p-3 bg-red-50 border border-red-200 rounded-md">
+            <div v-if="error" class="p-3 bg-gray-50 rounded-md">
               <p class="text-sm text-red-600">{{ error }}</p>
             </div>
           </div>

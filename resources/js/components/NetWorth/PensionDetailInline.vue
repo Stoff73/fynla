@@ -47,7 +47,7 @@
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
           <!-- DC Pension Metrics -->
           <template v-if="pensionType === 'dc'">
-            <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
+            <div class="bg-gray-50 rounded-lg p-4">
               <p class="text-sm text-gray-600">Current Fund Value</p>
               <p class="text-2xl font-bold text-blue-600">{{ formatCurrency(pension.current_fund_value) }}</p>
             </div>
@@ -63,7 +63,7 @@
 
           <!-- DB Pension Metrics -->
           <template v-else-if="pensionType === 'db'">
-            <div class="bg-purple-50 rounded-lg p-4 border border-purple-200">
+            <div class="bg-gray-50 rounded-lg p-4">
               <p class="text-sm text-gray-600">Annual Pension</p>
               <p class="text-2xl font-bold text-purple-600">{{ formatCurrency(pension.accrued_annual_pension) }}<span class="text-sm">/yr</span></p>
             </div>
@@ -79,7 +79,7 @@
 
           <!-- State Pension Metrics -->
           <template v-else-if="pensionType === 'state'">
-            <div class="bg-green-50 rounded-lg p-4 border border-green-200">
+            <div class="bg-gray-50 rounded-lg p-4">
               <p class="text-sm text-gray-600">Forecast Annual Amount</p>
               <p class="text-2xl font-bold text-green-600">{{ formatCurrency(pension.state_pension_forecast_annual || 0) }}<span class="text-sm">/yr</span></p>
             </div>
@@ -321,11 +321,11 @@
             <div v-else-if="projectionData">
               <!-- Summary Cards -->
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                <div class="bg-gray-50 rounded-lg p-4">
                   <p class="text-sm text-gray-600">Current Value</p>
                   <p class="text-xl font-bold text-blue-600">{{ formatCurrency(projectionData.current_value) }}</p>
                 </div>
-                <div class="bg-green-50 rounded-lg p-4 border border-green-200">
+                <div class="bg-gray-50 rounded-lg p-4">
                   <p class="text-sm text-gray-600">95% Probability at Retirement</p>
                   <p class="text-xl font-bold text-green-600">{{ formatCurrency(projectionData.percentile_5_at_retirement) }}</p>
                 </div>
@@ -671,17 +671,17 @@ export default {
 }
 
 .badge-dc {
-  background: #dbeafe;
-  color: #1e40af;
+  background: #3b82f6;
+  color: white;
 }
 
 .badge-db {
-  background: #e9d5ff;
-  color: #6b21a8;
+  background: #a855f7;
+  color: white;
 }
 
 .badge-state {
-  background: #d1fae5;
-  color: #065f46;
+  background: #22c55e;
+  color: white;
 }
 </style>

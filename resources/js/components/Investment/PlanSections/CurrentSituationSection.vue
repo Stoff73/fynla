@@ -52,19 +52,19 @@
 
       <!-- Performance Metrics -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div class="bg-gray-50 rounded-lg p-4">
           <p class="text-xs text-gray-600 mb-1">1 Year Return</p>
           <p class="text-2xl font-bold" :class="data.performance?.one_year >= 0 ? 'text-green-600' : 'text-red-600'">
             {{ formatPercentage(data.performance?.one_year || 0) }}%
           </p>
         </div>
-        <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+        <div class="bg-gray-50 rounded-lg p-4">
           <p class="text-xs text-gray-600 mb-1">3 Year Return (Ann.)</p>
           <p class="text-2xl font-bold" :class="data.performance?.three_year >= 0 ? 'text-green-600' : 'text-red-600'">
             {{ formatPercentage(data.performance?.three_year || 0) }}%
           </p>
         </div>
-        <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
+        <div class="bg-gray-50 rounded-lg p-4">
           <p class="text-xs text-gray-600 mb-1">5 Year Return (Ann.)</p>
           <p class="text-2xl font-bold" :class="data.performance?.five_year >= 0 ? 'text-green-600' : 'text-red-600'">
             {{ formatPercentage(data.performance?.five_year || 0) }}%

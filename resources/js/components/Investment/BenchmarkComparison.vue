@@ -6,7 +6,7 @@
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+    <div v-else-if="error" class="bg-gray-50 rounded-lg p-4 mb-6">
       <div class="flex items-center">
         <svg class="h-5 w-5 text-red-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
           <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
@@ -171,7 +171,7 @@
               </tr>
 
               <!-- Alpha -->
-              <tr class="border-b border-gray-100 bg-blue-50">
+              <tr class="border-b border-gray-100 bg-gray-50">
                 <td class="py-3 px-4 font-medium">Alpha (vs FTSE All-Share)</td>
                 <td class="text-right py-3 px-4 font-semibold" :class="comparisonData.portfolio.alpha >= 0 ? 'text-green-600' : 'text-red-600'">
                   {{ formatPercent(comparisonData.portfolio.alpha) }}
@@ -201,7 +201,7 @@
           height="400"
         />
 
-        <div class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <div class="mt-4 p-4 bg-gray-50 rounded-lg">
           <p class="text-sm text-gray-700">
             <strong>Interpretation:</strong> Points further to the left and higher up represent better risk-adjusted performance.
             Your portfolio is shown in blue.
@@ -467,9 +467,9 @@ export default {
     },
 
     getInsightClass(type) {
-      if (type === 'positive') return 'border-green-500 bg-green-50';
-      if (type === 'warning') return 'border-yellow-500 bg-yellow-50';
-      return 'border-blue-500 bg-blue-50';
+      if (type === 'positive') return 'border-green-500 bg-white';
+      if (type === 'warning') return 'border-yellow-500 bg-white';
+      return 'border-blue-500 bg-white';
     },
   },
 };

@@ -8,7 +8,7 @@
 
     <div v-else class="space-y-6">
       <!-- Total Fee Summary -->
-      <div class="bg-gradient-to-br from-amber-50 to-orange-50 rounded-lg p-6 border border-amber-200">
+      <div class="bg-gray-50 rounded-lg p-6">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <h5 class="text-sm font-semibold text-gray-700 mb-2">Total Annual Fees</h5>
@@ -84,7 +84,7 @@
           <div
             v-for="(opp, index) in data.opportunities"
             :key="index"
-            class="p-4 bg-green-50 border border-green-200 rounded-md"
+            class="p-4 bg-gray-50 rounded-md"
           >
             <div class="flex justify-between items-start mb-2">
               <h6 class="text-sm font-semibold text-gray-800">{{ opp.title }}</h6>
@@ -143,7 +143,7 @@
             </tbody>
           </table>
         </div>
-        <div class="mt-3 p-3 bg-amber-50 rounded-md border border-amber-200">
+        <div class="mt-3 p-3 bg-gray-50 rounded-md">
           <p class="text-sm text-amber-800">
             <strong>Note:</strong> Consider reviewing alternatives for holdings with fees above 1.0%
           </p>
@@ -151,7 +151,7 @@
       </div>
 
       <!-- Fee Comparison -->
-      <div class="bg-blue-50 border border-blue-200 rounded-lg p-5">
+      <div class="bg-gray-50 rounded-lg p-5">
         <h5 class="text-sm font-semibold text-gray-700 mb-4">Fee Comparison</h5>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
@@ -207,10 +207,10 @@ export default {
     },
 
     getFeeStatusClass(percentage) {
-      if (percentage <= 0.5) return 'bg-green-100 text-green-800';
-      if (percentage <= 1.0) return 'bg-blue-100 text-blue-800';
-      if (percentage <= 1.5) return 'bg-amber-100 text-amber-800';
-      return 'bg-red-100 text-red-800';
+      if (percentage <= 0.5) return 'bg-green-500 text-white';
+      if (percentage <= 1.0) return 'bg-blue-500 text-white';
+      if (percentage <= 1.5) return 'bg-amber-500 text-white';
+      return 'bg-red-500 text-white';
     },
 
     getFeeStatusLabel(percentage) {

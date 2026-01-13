@@ -1,7 +1,7 @@
 <template>
   <div class="gap-analysis">
     <!-- No Policies Alert Banner -->
-    <div v-if="hasNoPolicies" class="mb-6 bg-amber-50 border-l-4 border-amber-400 p-4">
+    <div v-if="hasNoPolicies" class="mb-6 bg-gray-50 rounded-lg p-4">
       <div class="flex items-start">
         <div class="flex-shrink-0">
           <svg class="h-5 w-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
@@ -29,7 +29,7 @@
     </div>
 
     <!-- Spouse Income Not Included Warning -->
-    <div v-if="spousePermissionDenied" class="mb-6 bg-blue-50 border-l-4 border-blue-400 p-4">
+    <div v-if="spousePermissionDenied" class="mb-6 bg-gray-50 rounded-lg p-4">
       <div class="flex items-start">
         <div class="flex-shrink-0">
           <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
@@ -60,7 +60,7 @@
 
           <div class="space-y-4">
             <!-- Total Life Cover -->
-            <div class="p-4 bg-green-50 border border-green-200 rounded-lg">
+            <div class="p-4 bg-gray-50 rounded-lg">
               <div class="flex justify-between items-center">
                 <span class="font-semibold text-gray-900">Total Life Insurance</span>
                 <span class="text-2xl font-bold text-green-600">{{ formatCurrency(existingLifeCoverage) }}</span>
@@ -109,7 +109,7 @@
             </div>
 
             <!-- Income Replacement Policies -->
-            <div v-if="incomeReplacementCoverage > 0" class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div v-if="incomeReplacementCoverage > 0" class="mt-4 p-4 bg-gray-50 rounded-lg">
               <div class="flex justify-between items-center">
                 <div>
                   <span class="font-semibold text-gray-900">Income Replacement Policies</span>
@@ -682,22 +682,22 @@ export default {
 
     getGapCardClass(severity) {
       const classes = {
-        none: 'bg-green-50 border border-green-200',
-        low: 'bg-blue-50 border border-blue-200',
-        medium: 'bg-amber-50 border border-amber-200',
-        high: 'bg-red-50 border border-red-200',
+        none: 'bg-gray-50',
+        low: 'bg-gray-50',
+        medium: 'bg-gray-50',
+        high: 'bg-gray-50',
       };
-      return classes[severity] || 'bg-gray-50 border border-gray-200';
+      return classes[severity] || 'bg-gray-50';
     },
 
     getSeverityBadgeClass(severity) {
       const classes = {
-        none: 'bg-green-100 text-green-800',
-        low: 'bg-blue-100 text-blue-800',
-        medium: 'bg-amber-100 text-amber-800',
-        high: 'bg-red-100 text-red-800',
+        none: 'bg-green-500 text-white',
+        low: 'bg-blue-500 text-white',
+        medium: 'bg-amber-500 text-white',
+        high: 'bg-red-500 text-white',
       };
-      return classes[severity] || 'bg-gray-100 text-gray-800';
+      return classes[severity] || 'bg-gray-500 text-white';
     },
   },
 };

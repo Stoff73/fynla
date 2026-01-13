@@ -67,8 +67,8 @@
                   :class="[
                     'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
                     action.action_type === 'buy'
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-red-100 text-red-800'
+                      ? 'bg-green-500 text-white'
+                      : 'bg-red-500 text-white'
                   ]"
                 >
                   {{ action.action_type === 'buy' ? 'BUY' : 'SELL' }}
@@ -185,7 +185,7 @@
       <!-- CGT Summary (if available) -->
       <div
         v-if="showCGT && cgtAnalysis"
-        class="px-6 py-4 bg-blue-50 border-t border-blue-100"
+        class="px-6 py-4 bg-white border-l-4 border-blue-500"
       >
         <h4 class="text-sm font-semibold text-blue-900 mb-3">
           Capital Gains Tax Analysis
@@ -255,7 +255,7 @@
       <!-- Tax Loss Harvesting Opportunities -->
       <div
         v-if="showTaxLossOpportunities && taxLossOpportunities && taxLossOpportunities.opportunities.length > 0"
-        class="px-6 py-4 bg-yellow-50 border-t border-yellow-100"
+        class="px-6 py-4 bg-white border-l-4 border-yellow-500"
       >
         <h4 class="text-sm font-semibold text-yellow-900 mb-2">
           Tax-Loss Harvesting Opportunities
@@ -336,10 +336,10 @@ export default {
 
     getPriorityClass(priority) {
       const classes = {
-        1: 'bg-red-100 text-red-800',
-        2: 'bg-orange-100 text-orange-800',
-        3: 'bg-yellow-100 text-yellow-800',
-        4: 'bg-blue-100 text-blue-800',
+        1: 'bg-red-500 text-white',
+        2: 'bg-orange-500 text-white',
+        3: 'bg-yellow-500 text-white',
+        4: 'bg-blue-500 text-white',
         5: 'bg-gray-100 text-gray-800',
       };
       return classes[priority] || classes[5];

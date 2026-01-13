@@ -30,7 +30,7 @@
     <!-- Main Content -->
     <div v-else class="space-y-6">
       <!-- Tax Year Banner -->
-      <div class="flex items-center justify-between bg-purple-50 rounded-lg px-4 py-3 border border-purple-200">
+      <div class="flex items-center justify-between bg-gray-50 rounded-lg px-4 py-3">
         <div class="flex items-center">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-purple-600 mr-2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
@@ -45,7 +45,7 @@
       <!-- Section A: Overview Cards -->
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <!-- Tax Efficiency Score -->
-        <div class="bg-purple-50 rounded-lg p-4 border border-purple-200">
+        <div class="bg-gray-50 rounded-lg p-4">
           <p class="text-sm text-gray-600 mb-1">Tax Efficiency Score</p>
           <div class="flex items-baseline">
             <p class="text-3xl font-bold" :class="getScoreClass(efficiencyScore.score)">{{ efficiencyScore.score }}</p>
@@ -57,7 +57,7 @@
         </div>
 
         <!-- ISA Allowance -->
-        <div class="bg-green-50 rounded-lg p-4 border border-green-200">
+        <div class="bg-gray-50 rounded-lg p-4">
           <p class="text-sm text-gray-600 mb-1">ISA Allowance Used</p>
           <p class="text-2xl font-bold text-green-600">{{ formatCurrency(currentPosition.isa_used) }}</p>
           <div class="mt-2">
@@ -69,7 +69,7 @@
         </div>
 
         <!-- CGT Position -->
-        <div class="bg-orange-50 rounded-lg p-4 border border-orange-200">
+        <div class="bg-gray-50 rounded-lg p-4">
           <p class="text-sm text-gray-600 mb-1">Capital Gains Tax Position</p>
           <p class="text-2xl font-bold" :class="cgtPositionClass">
             {{ formatCurrency(currentPosition.net_unrealized_gains) }}
@@ -80,7 +80,7 @@
         </div>
 
         <!-- Potential Savings -->
-        <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
+        <div class="bg-gray-50 rounded-lg p-4">
           <p class="text-sm text-gray-600 mb-1">Potential Annual Savings</p>
           <p class="text-2xl font-bold text-blue-600">{{ formatCurrency(potentialSavings.total_potential_savings) }}</p>
           <p class="text-xs text-gray-500 mt-1">{{ opportunityCount }} opportunities identified</p>
@@ -104,7 +104,7 @@
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div class="text-center p-4 bg-green-50 rounded-lg">
+          <div class="text-center p-4 bg-gray-50 rounded-lg">
             <p class="text-sm text-gray-600 mb-1">Used This Year</p>
             <p class="text-2xl font-bold text-green-600">{{ formatCurrency(currentPosition.isa_used) }}</p>
           </div>
@@ -137,11 +137,11 @@
         <h3 class="text-lg font-semibold text-gray-800 mb-4">Capital Gains Tax Position</h3>
 
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div class="text-center p-4 bg-red-50 rounded-lg border border-red-200">
+          <div class="text-center p-4 bg-gray-50 rounded-lg">
             <p class="text-sm text-gray-600 mb-1">Unrealised Gains</p>
             <p class="text-xl font-bold text-red-600">{{ formatCurrency(currentPosition.unrealized_gains) }}</p>
           </div>
-          <div class="text-center p-4 bg-green-50 rounded-lg border border-green-200">
+          <div class="text-center p-4 bg-gray-50 rounded-lg">
             <p class="text-sm text-gray-600 mb-1">Unrealised Losses</p>
             <p class="text-xl font-bold text-green-600">-{{ formatCurrency(currentPosition.unrealized_losses) }}</p>
           </div>
@@ -149,14 +149,14 @@
             <p class="text-sm text-gray-600 mb-1">Net Position</p>
             <p class="text-xl font-bold" :class="netPositionClass">{{ formatCurrency(currentPosition.net_unrealized_gains) }}</p>
           </div>
-          <div class="text-center p-4 bg-orange-50 rounded-lg border border-orange-200">
+          <div class="text-center p-4 bg-gray-50 rounded-lg">
             <p class="text-sm text-gray-600 mb-1">CGT Allowance</p>
             <p class="text-xl font-bold text-orange-600">{{ formatCurrency(currentPosition.cgt_allowance) }}</p>
           </div>
         </div>
 
         <!-- CGT Allowance Status -->
-        <div v-if="cgtExcess > 0" class="p-4 bg-red-50 rounded-lg border border-red-200">
+        <div v-if="cgtExcess > 0" class="p-4 bg-gray-50 rounded-lg">
           <div class="flex items-start">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 text-red-600 mr-3 flex-shrink-0">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
@@ -171,7 +171,7 @@
           </div>
         </div>
 
-        <div v-else class="p-4 bg-green-50 rounded-lg border border-green-200">
+        <div v-else class="p-4 bg-gray-50 rounded-lg">
           <div class="flex items-start">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 text-green-600 mr-3 flex-shrink-0">
               <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -190,7 +190,7 @@
       <div v-if="taxLossOpportunities.length > 0" class="bg-white rounded-lg border border-gray-200 overflow-hidden">
         <div class="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
           <h3 class="text-lg font-semibold text-gray-800">Tax-Loss Harvesting Opportunities</h3>
-          <span class="px-2 py-1 bg-amber-100 text-amber-800 text-xs font-medium rounded">
+          <span class="px-2 py-1 bg-amber-500 text-white text-xs font-medium rounded">
             {{ taxLossOpportunities.length }} opportunities
           </span>
         </div>
@@ -233,7 +233,7 @@
             </tbody>
           </table>
         </div>
-        <div class="px-4 py-3 bg-amber-50 border-t border-amber-200">
+        <div class="px-4 py-3 bg-gray-50 rounded-b-lg">
           <p class="text-xs text-amber-700">
             <strong>Note:</strong> The 30-day bed-and-breakfasting rule applies. You cannot repurchase substantially the same securities within 30 days.
           </p>
@@ -244,7 +244,7 @@
       <div v-if="bedAndISAOpportunity" class="bg-white rounded-lg border border-gray-200 p-6">
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg font-semibold text-gray-800">Bed & ISA Opportunity</h3>
-          <span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded">
+          <span class="px-2 py-1 bg-green-500 text-white text-xs font-medium rounded">
             Save {{ formatCurrency(bedAndISAOpportunity.potential_annual_saving) }}/year
           </span>
         </div>
@@ -255,11 +255,11 @@
         </p>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-          <div class="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
+          <div class="text-center p-4 bg-gray-50 rounded-lg">
             <p class="text-sm text-gray-600 mb-1">Transferable Amount</p>
             <p class="text-xl font-bold text-blue-600">{{ formatCurrency(bedAndISAOpportunity.transferable_amount) }}</p>
           </div>
-          <div class="text-center p-4 bg-green-50 rounded-lg border border-green-200">
+          <div class="text-center p-4 bg-gray-50 rounded-lg">
             <p class="text-sm text-gray-600 mb-1">Annual Tax Saving</p>
             <p class="text-xl font-bold text-green-600">{{ formatCurrency(bedAndISAOpportunity.potential_annual_saving) }}</p>
           </div>
@@ -329,7 +329,7 @@
       </div>
 
       <!-- Dividend Tax Info -->
-      <div v-if="currentPosition.dividend_excess > 0" class="bg-amber-50 rounded-lg border border-amber-200 p-4">
+      <div v-if="currentPosition.dividend_excess > 0" class="bg-gray-50 rounded-lg p-4">
         <div class="flex items-start">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 text-amber-600 mr-3 flex-shrink-0">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
@@ -457,9 +457,9 @@ export default {
 
     isaUrgencyClass() {
       const utilization = this.currentPosition.isa_utilization || 0;
-      if (utilization >= 80) return 'bg-green-100 rounded-lg';
-      if (utilization >= 50) return 'bg-amber-100 rounded-lg';
-      return 'bg-red-100 rounded-lg';
+      if (utilization >= 80) return 'bg-green-500 text-white rounded-lg';
+      if (utilization >= 50) return 'bg-amber-500 text-white rounded-lg';
+      return 'bg-red-500 text-white rounded-lg';
     },
 
     daysRemaining() {
@@ -535,13 +535,13 @@ export default {
     getPriorityClass(priority) {
       switch (priority?.toLowerCase()) {
         case 'high':
-          return 'bg-red-100 text-red-800';
+          return 'bg-red-500 text-white';
         case 'medium':
-          return 'bg-amber-100 text-amber-800';
+          return 'bg-amber-500 text-white';
         case 'low':
-          return 'bg-green-100 text-green-800';
+          return 'bg-green-500 text-white';
         default:
-          return 'bg-gray-100 text-gray-800';
+          return 'bg-gray-500 text-white';
       }
     },
 

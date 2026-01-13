@@ -11,17 +11,17 @@
       <div class="bg-white border border-gray-200 rounded-lg p-5">
         <h5 class="text-sm font-semibold text-gray-700 mb-4">Action Timeline</h5>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div class="text-center p-4 bg-red-50 rounded-lg border border-red-200">
+          <div class="text-center p-4 bg-gray-50 rounded-lg">
             <p class="text-sm text-gray-600 mb-1">Immediate</p>
             <p class="text-3xl font-bold text-red-600">{{ data.immediate?.length || 0 }}</p>
             <p class="text-xs text-gray-500 mt-1">Next 30 days</p>
           </div>
-          <div class="text-center p-4 bg-amber-50 rounded-lg border border-amber-200">
+          <div class="text-center p-4 bg-gray-50 rounded-lg">
             <p class="text-sm text-gray-600 mb-1">Short-term</p>
             <p class="text-3xl font-bold text-amber-600">{{ data.short_term?.length || 0 }}</p>
             <p class="text-xs text-gray-500 mt-1">3-6 months</p>
           </div>
-          <div class="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
+          <div class="text-center p-4 bg-gray-50 rounded-lg">
             <p class="text-sm text-gray-600 mb-1">Long-term</p>
             <p class="text-3xl font-bold text-blue-600">{{ data.long_term?.length || 0 }}</p>
             <p class="text-xs text-gray-500 mt-1">12+ months</p>
@@ -41,7 +41,7 @@
           <div
             v-for="(action, index) in data.immediate"
             :key="'immediate-' + index"
-            class="p-4 bg-red-50 border-l-4 border-red-600 rounded-lg"
+            class="p-4 bg-gray-50 rounded-lg"
           >
             <div class="flex items-start">
               <span class="flex-shrink-0 inline-flex items-center justify-center h-7 w-7 rounded-full bg-red-600 text-white text-sm font-bold mr-3">
@@ -82,7 +82,7 @@
           <div
             v-for="(action, index) in data.short_term"
             :key="'short-' + index"
-            class="p-4 bg-amber-50 border-l-4 border-amber-600 rounded-lg"
+            class="p-4 bg-gray-50 rounded-lg"
           >
             <div class="flex items-start">
               <span class="flex-shrink-0 inline-flex items-center justify-center h-7 w-7 rounded-full bg-amber-600 text-white text-sm font-bold mr-3">
@@ -123,7 +123,7 @@
           <div
             v-for="(action, index) in data.long_term"
             :key="'long-' + index"
-            class="p-4 bg-blue-50 border-l-4 border-blue-600 rounded-lg"
+            class="p-4 bg-gray-50 rounded-lg"
           >
             <div class="flex items-start">
               <span class="flex-shrink-0 inline-flex items-center justify-center h-7 w-7 rounded-full bg-blue-600 text-white text-sm font-bold mr-3">
@@ -153,7 +153,7 @@
       </div>
 
       <!-- Review Schedule -->
-      <div v-if="data.review_schedule" class="bg-blue-50 border border-blue-200 rounded-lg p-5">
+      <div v-if="data.review_schedule" class="bg-gray-50 rounded-lg p-5">
         <h5 class="text-sm font-semibold text-gray-700 mb-3">Plan Review Schedule</h5>
         <div class="space-y-2">
           <div class="flex items-center text-sm text-gray-700">
@@ -178,7 +178,7 @@
       </div>
 
       <!-- Getting Started Tip -->
-      <div class="bg-green-50 border border-green-200 rounded-lg p-5">
+      <div class="bg-gray-50 rounded-lg p-5">
         <div class="flex items-start">
           <svg class="w-6 h-6 text-green-600 mr-3 flex-shrink-0 mt-1" fill="currentColor" viewBox="0 0 20 20">
             <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />

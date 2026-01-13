@@ -18,7 +18,7 @@
           <button
             type="button"
             @click="mainPensionType = 'dc'"
-            class="p-6 border-2 border-gray-300 rounded-lg text-center hover:border-blue-500 hover:bg-blue-50 transition-all"
+            class="p-6 border-2 border-gray-300 rounded-lg text-center hover:border-blue-500 hover:bg-blue-500 hover:text-white transition-all"
           >
             <div class="text-blue-600 mb-2">
               <svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -31,7 +31,7 @@
           <button
             type="button"
             @click="mainPensionType = 'db'"
-            class="p-6 border-2 border-gray-300 rounded-lg text-center hover:border-purple-500 hover:bg-purple-50 transition-all"
+            class="p-6 border-2 border-gray-300 rounded-lg text-center hover:border-purple-500 hover:bg-purple-500 hover:text-white transition-all"
           >
             <div class="text-purple-600 mb-2">
               <svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -44,7 +44,7 @@
           <button
             type="button"
             @click="mainPensionType = 'state'"
-            class="p-6 border-2 border-gray-300 rounded-lg text-center hover:border-green-500 hover:bg-green-50 transition-all"
+            class="p-6 border-2 border-gray-300 rounded-lg text-center hover:border-green-500 hover:bg-green-500 hover:text-white transition-all"
           >
             <div class="text-green-600 mb-2">
               <svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">

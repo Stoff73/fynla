@@ -87,13 +87,13 @@
             £{{ formatCurrency(metrics.total_turnover) }}
           </p>
         </div>
-        <div class="bg-blue-50 rounded-lg p-4">
+        <div class="bg-gray-50 rounded-lg p-4">
           <p class="text-xs text-blue-600 uppercase tracking-wide">Buys</p>
           <p class="text-lg font-semibold text-blue-700 mt-1">
             £{{ formatCurrency(metrics.total_buys) }}
           </p>
         </div>
-        <div class="bg-red-50 rounded-lg p-4">
+        <div class="bg-gray-50 rounded-lg p-4">
           <p class="text-xs text-red-600 uppercase tracking-wide">Sells</p>
           <p class="text-lg font-semibold text-red-700 mt-1">
             £{{ formatCurrency(metrics.total_sells) }}

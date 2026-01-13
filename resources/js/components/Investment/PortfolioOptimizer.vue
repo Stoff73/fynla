@@ -31,7 +31,7 @@
             :class="[
               'text-left p-4 rounded-lg border-2 transition-all',
               selectedStrategy === strategy.value
-                ? 'border-blue-600 bg-blue-50'
+                ? 'border-blue-600 bg-blue-500 text-white'
                 : 'border-gray-200 bg-white hover:border-gray-300'
             ]"
           >
@@ -47,8 +47,8 @@
                 </div>
               </div>
               <div class="ml-3 flex-1">
-                <p class="text-sm font-medium text-gray-900">{{ strategy.name }}</p>
-                <p class="text-xs text-gray-600 mt-1">{{ strategy.description }}</p>
+                <p :class="['text-sm font-medium', selectedStrategy === strategy.value ? 'text-white' : 'text-gray-900']">{{ strategy.name }}</p>
+                <p :class="['text-xs mt-1', selectedStrategy === strategy.value ? 'text-blue-100' : 'text-gray-600']">{{ strategy.description }}</p>
               </div>
             </div>
           </button>
@@ -144,7 +144,7 @@
       </div>
 
       <!-- Error Display -->
-      <div v-if="error" class="bg-red-50 border border-red-200 rounded-lg p-4">
+      <div v-if="error" class="bg-gray-50 rounded-lg p-4">
         <div class="flex">
           <svg class="h-5 w-5 text-red-600 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />

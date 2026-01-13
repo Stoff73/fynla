@@ -7,18 +7,18 @@
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+    <div v-else-if="error" class="bg-gray-50 rounded-lg p-6 text-center">
       <svg class="w-12 h-12 text-red-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
       </svg>
       <p class="text-red-600 font-medium">{{ error }}</p>
-      <button @click="loadData" class="mt-4 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition">
+      <button @click="loadData" class="mt-4 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition">
         Try Again
       </button>
     </div>
 
     <!-- Empty State (No Holdings) -->
-    <div v-else-if="data && !data.has_holdings" class="bg-amber-50 border border-amber-200 rounded-lg p-8 text-center">
+    <div v-else-if="data && !data.has_holdings" class="bg-gray-50 rounded-lg p-8 text-center">
       <svg class="w-16 h-16 text-amber-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
       </svg>
@@ -198,7 +198,7 @@
             v-for="(warning, index) in data.concentration_warnings"
             :key="index"
             class="flex items-start space-x-2 p-3 rounded-lg"
-            :class="warning.type === 'warning' ? 'bg-amber-50' : 'bg-blue-50'"
+            :class="warning.type === 'warning' ? 'bg-gray-50' : 'bg-gray-50'"
           >
             <svg v-if="warning.type === 'warning'" class="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -322,12 +322,12 @@ export default {
 
     getScoreBadge(label) {
       const classes = {
-        'Excellent': 'bg-green-100 text-green-700',
-        'Good': 'bg-blue-100 text-blue-700',
-        'Fair': 'bg-amber-100 text-amber-700',
-        'Poor': 'bg-red-100 text-red-700',
+        'Excellent': 'bg-green-500 text-white',
+        'Good': 'bg-blue-500 text-white',
+        'Fair': 'bg-amber-500 text-white',
+        'Poor': 'bg-red-500 text-white',
       };
-      return classes[label] || 'bg-gray-100 text-gray-700';
+      return classes[label] || 'bg-gray-500 text-white';
     },
 
     getScoreBarColor(score) {
@@ -345,11 +345,11 @@ export default {
 
     getHHIBadge(label) {
       const classes = {
-        'Well Diversified': 'bg-green-100 text-green-700',
-        'Moderate Concentration': 'bg-amber-100 text-amber-700',
-        'High Concentration': 'bg-red-100 text-red-700',
+        'Well Diversified': 'bg-green-500 text-white',
+        'Moderate Concentration': 'bg-amber-500 text-white',
+        'High Concentration': 'bg-red-500 text-white',
       };
-      return classes[label] || 'bg-gray-100 text-gray-700';
+      return classes[label] || 'bg-gray-500 text-white';
     },
 
     getHHIBarColor(hhi) {
@@ -376,16 +376,16 @@ export default {
     },
 
     getSeverityBadge(severity) {
-      if (severity === 'minor') return 'bg-amber-100 text-amber-700';
-      if (severity === 'significant') return 'bg-red-100 text-red-700';
-      return 'bg-green-100 text-green-700';
+      if (severity === 'minor') return 'bg-amber-500 text-white';
+      if (severity === 'significant') return 'bg-red-500 text-white';
+      return 'bg-green-500 text-white';
     },
 
     getRecBg(type) {
       const bgs = {
-        success: 'bg-green-50',
-        warning: 'bg-amber-50',
-        info: 'bg-blue-50',
+        success: 'bg-gray-50',
+        warning: 'bg-gray-50',
+        info: 'bg-gray-50',
       };
       return bgs[type] || 'bg-gray-50';
     },

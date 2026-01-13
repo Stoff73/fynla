@@ -91,7 +91,7 @@
       </div>
 
       <!-- Risk Tolerance Assessment -->
-      <div v-if="data.risk_tolerance" class="bg-blue-50 border border-blue-200 rounded-lg p-5">
+      <div v-if="data.risk_tolerance" class="bg-gray-50 rounded-lg p-5">
         <h5 class="text-sm font-semibold text-gray-700 mb-3">Risk Tolerance Profile</h5>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
@@ -163,9 +163,9 @@ export default {
 
     getRecommendationClass(priority) {
       const classes = {
-        high: 'bg-red-50 border-red-200',
-        medium: 'bg-amber-50 border-amber-200',
-        low: 'bg-blue-50 border-blue-200',
+        high: 'bg-gray-50',
+        medium: 'bg-gray-50',
+        low: 'bg-gray-50',
       };
       return classes[priority] || 'bg-gray-50 border-gray-200';
     },

@@ -6,7 +6,7 @@
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+    <div v-else-if="error" class="bg-gray-50 rounded-lg p-4 mb-6">
       <div class="flex items-center">
         <svg class="h-5 w-5 text-red-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
           <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
@@ -77,7 +77,7 @@
           <div class="border border-gray-200 rounded-lg p-4">
             <div class="flex items-center justify-between mb-3">
               <h4 class="text-md font-semibold text-gray-800">ISA (Tax-Free)</h4>
-              <span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded">OPTIMAL</span>
+              <span class="px-2 py-1 bg-green-500 text-white text-xs font-semibold rounded">OPTIMAL</span>
             </div>
             <p class="text-2xl font-bold text-gray-800 mb-2">
               £{{ formatNumber(analysis?.current_allocation?.isa_value || 0) }}
@@ -102,8 +102,8 @@
           <div class="border border-gray-200 rounded-lg p-4">
             <div class="flex items-center justify-between mb-3">
               <h4 class="text-md font-semibold text-gray-800">General Investment Account (Taxable)</h4>
-              <span v-if="analysis?.current_allocation?.gia_tax_drag > 1" class="px-2 py-1 bg-red-100 text-red-800 text-xs font-semibold rounded">HIGH TAX</span>
-              <span v-else class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-semibold rounded">MODERATE</span>
+              <span v-if="analysis?.current_allocation?.gia_tax_drag > 1" class="px-2 py-1 bg-red-500 text-white text-xs font-semibold rounded">HIGH TAX</span>
+              <span v-else class="px-2 py-1 bg-yellow-500 text-white text-xs font-semibold rounded">MODERATE</span>
             </div>
             <p class="text-2xl font-bold text-gray-800 mb-2">
               £{{ formatNumber(analysis?.current_allocation?.gia_value || 0) }}
@@ -128,7 +128,7 @@
           <div class="border border-gray-200 rounded-lg p-4">
             <div class="flex items-center justify-between mb-3">
               <h4 class="text-md font-semibold text-gray-800">Pension (Tax-Deferred)</h4>
-              <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded">LONG-TERM</span>
+              <span class="px-2 py-1 bg-blue-500 text-white text-xs font-semibold rounded">LONG-TERM</span>
             </div>
             <p class="text-2xl font-bold text-gray-800 mb-2">
               £{{ formatNumber(analysis?.current_allocation?.pension_value || 0) }}
@@ -159,7 +159,7 @@
                 <span class="px-2 py-1 text-xs font-semibold rounded uppercase" :class="getPriorityBadgeClass(rec.priority)">
                   {{ rec.priority }}
                 </span>
-                <span v-if="rec.tax_saving" class="px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded">
+                <span v-if="rec.tax_saving" class="px-2 py-1 bg-green-500 text-white text-xs font-semibold rounded">
                   Save £{{ formatNumber(rec.tax_saving) }}/yr
                 </span>
               </div>
@@ -199,68 +199,68 @@
               <tr class="border-b border-gray-100">
                 <td class="py-3 px-4 font-medium">Dividend-Paying Stocks</td>
                 <td class="text-center py-3 px-4">
-                  <span class="inline-block w-full px-2 py-1 bg-green-100 text-green-800 rounded font-semibold">BEST</span>
+                  <span class="inline-block w-full px-2 py-1 bg-green-500 text-white rounded font-semibold">BEST</span>
                 </td>
                 <td class="text-center py-3 px-4">
-                  <span class="inline-block w-full px-2 py-1 bg-red-100 text-red-800 rounded font-semibold">POOR</span>
+                  <span class="inline-block w-full px-2 py-1 bg-red-500 text-white rounded font-semibold">POOR</span>
                 </td>
                 <td class="text-center py-3 px-4">
-                  <span class="inline-block w-full px-2 py-1 bg-green-100 text-green-800 rounded font-semibold">GOOD</span>
+                  <span class="inline-block w-full px-2 py-1 bg-green-500 text-white rounded font-semibold">GOOD</span>
                 </td>
               </tr>
               <tr class="border-b border-gray-100">
                 <td class="py-3 px-4 font-medium">Growth Stocks</td>
                 <td class="text-center py-3 px-4">
-                  <span class="inline-block w-full px-2 py-1 bg-green-100 text-green-800 rounded font-semibold">GOOD</span>
+                  <span class="inline-block w-full px-2 py-1 bg-green-500 text-white rounded font-semibold">GOOD</span>
                 </td>
                 <td class="text-center py-3 px-4">
-                  <span class="inline-block w-full px-2 py-1 bg-yellow-100 text-yellow-800 rounded font-semibold">OK</span>
+                  <span class="inline-block w-full px-2 py-1 bg-yellow-500 text-white rounded font-semibold">OK</span>
                 </td>
                 <td class="text-center py-3 px-4">
-                  <span class="inline-block w-full px-2 py-1 bg-green-100 text-green-800 rounded font-semibold">BEST</span>
+                  <span class="inline-block w-full px-2 py-1 bg-green-500 text-white rounded font-semibold">BEST</span>
                 </td>
               </tr>
               <tr class="border-b border-gray-100">
                 <td class="py-3 px-4 font-medium">Corporate Bonds</td>
                 <td class="text-center py-3 px-4">
-                  <span class="inline-block w-full px-2 py-1 bg-green-100 text-green-800 rounded font-semibold">BEST</span>
+                  <span class="inline-block w-full px-2 py-1 bg-green-500 text-white rounded font-semibold">BEST</span>
                 </td>
                 <td class="text-center py-3 px-4">
-                  <span class="inline-block w-full px-2 py-1 bg-red-100 text-red-800 rounded font-semibold">POOR</span>
+                  <span class="inline-block w-full px-2 py-1 bg-red-500 text-white rounded font-semibold">POOR</span>
                 </td>
                 <td class="text-center py-3 px-4">
-                  <span class="inline-block w-full px-2 py-1 bg-green-100 text-green-800 rounded font-semibold">GOOD</span>
+                  <span class="inline-block w-full px-2 py-1 bg-green-500 text-white rounded font-semibold">GOOD</span>
                 </td>
               </tr>
               <tr class="border-b border-gray-100">
                 <td class="py-3 px-4 font-medium">Index Funds (Low Turnover)</td>
                 <td class="text-center py-3 px-4">
-                  <span class="inline-block w-full px-2 py-1 bg-green-100 text-green-800 rounded font-semibold">GOOD</span>
+                  <span class="inline-block w-full px-2 py-1 bg-green-500 text-white rounded font-semibold">GOOD</span>
                 </td>
                 <td class="text-center py-3 px-4">
-                  <span class="inline-block w-full px-2 py-1 bg-green-100 text-green-800 rounded font-semibold">GOOD</span>
+                  <span class="inline-block w-full px-2 py-1 bg-green-500 text-white rounded font-semibold">GOOD</span>
                 </td>
                 <td class="text-center py-3 px-4">
-                  <span class="inline-block w-full px-2 py-1 bg-green-100 text-green-800 rounded font-semibold">GOOD</span>
+                  <span class="inline-block w-full px-2 py-1 bg-green-500 text-white rounded font-semibold">GOOD</span>
                 </td>
               </tr>
               <tr>
                 <td class="py-3 px-4 font-medium">Property Investment Trusts (REITs)</td>
                 <td class="text-center py-3 px-4">
-                  <span class="inline-block w-full px-2 py-1 bg-green-100 text-green-800 rounded font-semibold">BEST</span>
+                  <span class="inline-block w-full px-2 py-1 bg-green-500 text-white rounded font-semibold">BEST</span>
                 </td>
                 <td class="text-center py-3 px-4">
-                  <span class="inline-block w-full px-2 py-1 bg-red-100 text-red-800 rounded font-semibold">POOR</span>
+                  <span class="inline-block w-full px-2 py-1 bg-red-500 text-white rounded font-semibold">POOR</span>
                 </td>
                 <td class="text-center py-3 px-4">
-                  <span class="inline-block w-full px-2 py-1 bg-yellow-100 text-yellow-800 rounded font-semibold">OK</span>
+                  <span class="inline-block w-full px-2 py-1 bg-yellow-500 text-white rounded font-semibold">OK</span>
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
 
-        <div class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <div class="mt-4 p-4 bg-gray-50 rounded-lg">
           <h4 class="text-sm font-semibold text-gray-800 mb-2">Key Principles:</h4>
           <ul class="space-y-1 text-sm text-gray-700">
             <li class="flex items-start">
@@ -421,18 +421,18 @@ export default {
 
     getRecommendationClass(priority) {
       const classes = {
-        high: 'border-red-500 bg-red-50',
-        medium: 'border-yellow-500 bg-yellow-50',
-        low: 'border-blue-500 bg-blue-50',
+        high: 'border-red-500 bg-white',
+        medium: 'border-yellow-500 bg-white',
+        low: 'border-blue-500 bg-white',
       };
       return classes[priority] || classes.low;
     },
 
     getPriorityBadgeClass(priority) {
       const classes = {
-        high: 'bg-red-100 text-red-800',
-        medium: 'bg-yellow-100 text-yellow-800',
-        low: 'bg-blue-100 text-blue-800',
+        high: 'bg-red-500 text-white',
+        medium: 'bg-yellow-500 text-white',
+        low: 'bg-blue-500 text-white',
       };
       return classes[priority] || classes.low;
     },

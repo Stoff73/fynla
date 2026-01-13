@@ -1,6 +1,6 @@
 <template>
   <div class="space-y-6">
-    <div class="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+    <div class="bg-gray-50 rounded-md p-4">
       <p class="text-sm text-yellow-800">
         <strong>Disclaimer:</strong> These calculators are for informational purposes only and should not be considered financial or tax advice.
         Please consult with a qualified tax advisor for your specific situation.
@@ -89,7 +89,7 @@
 
       <!-- SDLT Results -->
       <div v-if="sdltResult" class="mt-6 space-y-4">
-        <div class="bg-green-50 border border-green-200 rounded-lg p-6">
+        <div class="bg-gray-50 rounded-lg p-6">
           <h4 class="text-xl font-semibold text-green-800 mb-2">SDLT Calculation Result</h4>
           <div class="grid grid-cols-2 gap-4">
             <div>
@@ -128,7 +128,7 @@
     <div v-show="activeCalculator === 'cgt'" class="space-y-4">
       <h3 class="text-lg font-semibold text-gray-800">Capital Gains Tax (CGT) Calculator</h3>
 
-      <div v-if="property.property_type === 'main_residence'" class="bg-blue-50 border border-blue-200 rounded-md p-4">
+      <div v-if="property.property_type === 'main_residence'" class="bg-gray-50 rounded-md p-4">
         <p class="text-sm text-blue-800">
           <strong>Note:</strong> As a main residence, this property may qualify for Private Residence Relief,
           which could reduce or eliminate CGT liability.
@@ -194,7 +194,7 @@
 
       <!-- CGT Results -->
       <div v-if="cgtResult" class="mt-6 space-y-4">
-        <div class="bg-green-50 border border-green-200 rounded-lg p-6">
+        <div class="bg-gray-50 rounded-lg p-6">
           <h4 class="text-xl font-semibold text-green-800 mb-4">CGT Calculation Result</h4>
           <dl class="space-y-2">
             <div class="flex justify-between">
@@ -240,7 +240,7 @@
     <div v-show="activeCalculator === 'rental'" class="space-y-4">
       <h3 class="text-lg font-semibold text-gray-800">Rental Income Tax Calculator</h3>
 
-      <div v-if="property.property_type !== 'buy_to_let'" class="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+      <div v-if="property.property_type !== 'buy_to_let'" class="bg-gray-50 rounded-md p-4">
         <p class="text-sm text-yellow-800">
           This calculator is primarily for Buy to Let properties. Results may not be accurate for other property types.
         </p>
@@ -256,7 +256,7 @@
 
       <!-- Rental Tax Results -->
       <div v-if="rentalResult" class="mt-6 space-y-4">
-        <div class="bg-green-50 border border-green-200 rounded-lg p-6">
+        <div class="bg-gray-50 rounded-lg p-6">
           <h4 class="text-xl font-semibold text-green-800 mb-4">Rental Income Tax Result</h4>
           <dl class="space-y-2">
             <div class="flex justify-between">
@@ -290,7 +290,7 @@
           </dl>
         </div>
 
-        <div class="bg-blue-50 border border-blue-200 rounded-md p-4">
+        <div class="bg-gray-50 rounded-md p-4">
           <p class="text-sm text-blue-800">
             <strong>Note:</strong> Mortgage interest is no longer fully deductible. You receive a 20% tax credit instead.
             Higher rate taxpayers may face increased tax liability on rental income.
@@ -300,7 +300,7 @@
     </div>
 
     <!-- Error Message -->
-    <div v-if="error" class="p-3 bg-red-50 border border-red-200 rounded-md">
+    <div v-if="error" class="p-3 bg-gray-50 rounded-md">
       <p class="text-sm text-red-600">{{ error }}</p>
     </div>
   </div>

@@ -351,6 +351,7 @@ class UserProfileService
             'employment_status' => $user->employment_status,
             'target_retirement_age' => $user->target_retirement_age,
             'retirement_date' => $user->retirement_date,
+            'payday_day_of_month' => $user->payday_day_of_month,
             'annual_employment_income' => $user->annual_employment_income,
             'annual_self_employment_income' => $user->annual_self_employment_income,
             'annual_rental_income' => $rentalIncome,

@@ -52,13 +52,13 @@
           <p class="text-sm text-gray-600 mb-1">Total Recommendations</p>
           <p class="text-3xl font-bold text-gray-800">{{ recommendations.count }}</p>
         </div>
-        <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+        <div class="bg-gray-50 rounded-lg p-4">
           <p class="text-sm text-gray-600 mb-1">Potential Annual Savings</p>
           <p class="text-3xl font-bold text-green-600">
             £{{ formatNumber(recommendations.potential_savings?.annual || 0) }}
           </p>
         </div>
-        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div class="bg-gray-50 rounded-lg p-4">
           <p class="text-sm text-gray-600 mb-1">10-Year Projection</p>
           <p class="text-3xl font-bold text-blue-600">
             £{{ formatNumber(recommendations.potential_savings?.ten_year || 0) }}
@@ -78,7 +78,7 @@
           <div
             v-for="(rec, index) in highPriorityRecs"
             :key="'high-' + index"
-            class="bg-red-50 border-l-4 border-red-600 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow duration-200"
+            class="bg-gray-50 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow duration-200"
           >
             <div class="flex justify-between items-start mb-2">
               <div class="flex-1">
@@ -114,7 +114,7 @@
           <div
             v-for="(rec, index) in mediumPriorityRecs"
             :key="'medium-' + index"
-            class="bg-amber-50 border-l-4 border-amber-600 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow duration-200"
+            class="bg-gray-50 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow duration-200"
           >
             <div class="flex justify-between items-start mb-2">
               <div class="flex-1">
@@ -150,7 +150,7 @@
           <div
             v-for="(rec, index) in lowPriorityRecs"
             :key="'low-' + index"
-            class="bg-blue-50 border-l-4 border-blue-600 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow duration-200"
+            class="bg-gray-50 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow duration-200"
           >
             <div class="flex justify-between items-start mb-2">
               <div class="flex-1">

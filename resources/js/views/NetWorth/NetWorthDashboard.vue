@@ -1,8 +1,19 @@
 <template>
   <AppLayout>
-    <div class="net-worth-dashboard" :class="{ 'with-sidebar': showSidebar }">
+    <div class="net-worth-dashboard" :class="{ 'with-sidebar': showSidebar, 'sidebar-collapsed': sidebarCollapsed }">
       <!-- Sidebar Navigation (hidden on overview) -->
-      <aside v-if="showSidebar" class="sidebar" :class="{ 'sidebar-offset': sidebarNeedsOffset }">
+      <aside v-if="showSidebar" class="sidebar" :class="{ 'sidebar-offset': sidebarNeedsOffset, 'collapsed': sidebarCollapsed }">
+        <!-- Expand Toggle (only shown when collapsed) -->
+        <button
+          v-if="sidebarCollapsed"
+          @click="toggleSidebar"
+          class="sidebar-toggle"
+          title="Expand menu"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7" />
+          </svg>
+        </button>
         <nav class="sidebar-nav">
           <router-link
             v-for="item in sidebarItems"
@@ -10,12 +21,13 @@
             :to="getRoutePath(item.path)"
             class="sidebar-link"
             :class="{ active: isActive(item.path) }"
+            :title="sidebarCollapsed ? item.label : ''"
           >
             <svg class="sidebar-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" :d="item.iconPath" />
               <path v-if="item.iconPath2" stroke-linecap="round" stroke-linejoin="round" :d="item.iconPath2" />
             </svg>
-            <span>{{ item.label }}</span>
+            <span v-if="!sidebarCollapsed">{{ item.label }}</span>
           </router-link>
         </nav>
       </aside>
@@ -41,12 +53,8 @@ export default {
 
   data() {
     return {
+      sidebarCollapsed: false,
       sidebarItems: [
-        {
-          path: 'overview',
-          label: 'Overview',
-          iconPath: 'M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z'
-        },
         {
           path: 'wealth-summary',
           label: 'Wealth Summary',
@@ -83,11 +91,6 @@ export default {
           label: 'Chattels',
           iconPath: 'M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9'
         },
-        {
-          path: 'joint-history',
-          label: 'Joint History',
-          iconPath: 'M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z'
-        },
       ],
     };
   },
@@ -106,12 +109,12 @@ export default {
     currentSection() {
       const path = this.$route.path;
       const match = path.match(/\/net-worth\/([^/]+)/);
-      return match ? match[1] : 'overview';
+      return match ? match[1] : 'wealth-summary';
     },
 
     showSidebar() {
-      // Hide sidebar only on the overview page
-      return this.currentSection !== 'overview';
+      // Always show sidebar
+      return true;
     },
 
     sidebarNeedsOffset() {
@@ -132,15 +135,31 @@ export default {
     isActive(path) {
       return this.currentSection === path;
     },
+
+    toggleSidebar() {
+      this.sidebarCollapsed = !this.sidebarCollapsed;
+    },
+  },
+
+  watch: {
+    currentSection: {
+      immediate: true,
+      handler(section) {
+        // Auto-collapse sidebar on cash tab for more screen space
+        if (section === 'cash') {
+          this.sidebarCollapsed = true;
+        }
+      },
+    },
   },
 
   mounted() {
-    // Redirect to overview if at root
+    // Redirect to wealth-summary if at root
     if (this.$route.path === '/net-worth' || this.$route.path === '/net-worth/') {
-      this.$router.replace('/net-worth/overview');
+      this.$router.replace('/net-worth/wealth-summary');
     }
     if (this.$route.path === '/preview/net-worth' || this.$route.path === '/preview/net-worth/') {
-      this.$router.replace('/preview/net-worth/overview');
+      this.$router.replace('/preview/net-worth/wealth-summary');
     }
   },
 };
@@ -158,6 +177,11 @@ export default {
   grid-template-columns: 240px 1fr;
   gap: 24px;
   overflow: hidden;
+  transition: grid-template-columns 0.2s ease;
+}
+
+.net-worth-dashboard.with-sidebar.sidebar-collapsed {
+  grid-template-columns: 60px 1fr;
 }
 
 /* Sidebar Styles */
@@ -172,11 +196,36 @@ export default {
   height: fit-content;
   max-height: calc(100vh - 140px);
   overflow-y: auto;
+  transition: all 0.2s ease;
+}
+
+.sidebar.collapsed {
+  padding: 8px 0;
 }
 
 /* Offset sidebar to align with first card on list views */
 .sidebar.sidebar-offset {
   margin-top: 56px;
+}
+
+/* Toggle button */
+.sidebar-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 8px;
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.sidebar-toggle:hover {
+  color: #2563eb;
+  background: #f3f4f6;
 }
 
 .sidebar-nav {
@@ -196,6 +245,16 @@ export default {
   font-weight: 500;
   transition: all 0.15s;
   border-left: 3px solid transparent;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* Collapsed sidebar link styles */
+.sidebar.collapsed .sidebar-link {
+  justify-content: center;
+  padding: 12px 8px;
+  border-left: none;
+  border-radius: 0;
 }
 
 .sidebar-link:hover {
@@ -210,10 +269,21 @@ export default {
   font-weight: 600;
 }
 
+.sidebar.collapsed .sidebar-link.active {
+  border-left: none;
+  border-radius: 8px;
+  margin: 0 4px;
+}
+
 .sidebar-icon {
   width: 20px;
   height: 20px;
   flex-shrink: 0;
+}
+
+.sidebar.collapsed .sidebar-icon {
+  width: 24px;
+  height: 24px;
 }
 
 /* Main Content */

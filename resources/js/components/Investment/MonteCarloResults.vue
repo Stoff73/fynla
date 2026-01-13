@@ -37,7 +37,7 @@
           <div v-else-if="results">
             <!-- Key Metrics Summary -->
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-              <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div class="bg-gray-50 rounded-lg p-4">
                 <h4 class="text-xs font-medium text-blue-900 mb-1">Success Probability</h4>
                 <p class="text-2xl font-bold" :class="getProbabilityColour(results.success_probability)">
                   {{ results.success_probability }}%
@@ -47,11 +47,11 @@
                 <h4 class="text-xs font-medium text-gray-700 mb-1">Median Outcome</h4>
                 <p class="text-2xl font-bold text-gray-900">{{ formatCurrency(results.median_outcome) }}</p>
               </div>
-              <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+              <div class="bg-gray-50 rounded-lg p-4">
                 <h4 class="text-xs font-medium text-green-900 mb-1">90th Percentile</h4>
                 <p class="text-2xl font-bold text-green-600">{{ formatCurrency(results.percentile_90) }}</p>
               </div>
-              <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+              <div class="bg-gray-50 rounded-lg p-4">
                 <h4 class="text-xs font-medium text-red-900 mb-1">10th Percentile</h4>
                 <p class="text-2xl font-bold text-red-600">{{ formatCurrency(results.percentile_10) }}</p>
               </div>
@@ -139,7 +139,7 @@
             </div>
 
             <!-- Interpretation -->
-            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div class="bg-gray-50 rounded-lg p-4">
               <h4 class="text-sm font-semibold text-blue-900 mb-2">Interpretation</h4>
               <p class="text-sm text-blue-800">{{ interpretation }}</p>
             </div>

@@ -1,5 +1,5 @@
 <template>
-    <div class="bg-gradient-to-r from-amber-500 to-amber-600 text-white px-3 sm:px-4 py-2 shadow-md">
+    <div class="text-white px-3 sm:px-4 py-2 shadow-md" :class="bannerColorClass">
         <div class="max-w-7xl mx-auto">
             <!-- Mobile layout -->
             <div class="flex flex-col sm:hidden space-y-2">
@@ -17,16 +17,16 @@
 
                 <!-- Bottom row: Actions -->
                 <div class="flex items-center justify-between">
-                    <button @click="exitPreviewMode" class="text-amber-100 hover:text-white text-xs font-medium">
+                    <button @click="exitPreviewMode" :class="[buttonColorClass, 'text-xs font-medium transition-colors']">
                         Exit
                     </button>
-                    <router-link to="/register" class="bg-white text-amber-600 px-3 py-1 rounded-md font-medium text-xs hover:bg-amber-50 transition-colors shadow-sm">
+                    <router-link to="/register" :class="[registerButtonClass, 'px-3 py-1 rounded-md font-medium text-xs transition-colors shadow-sm']">
                         Register
                     </router-link>
                 </div>
 
                 <!-- Loading indicator -->
-                <div v-if="switching" class="text-amber-100 text-xs flex items-center justify-center gap-2">
+                <div v-if="switching" :class="[loadingTextClass, 'text-xs flex items-center justify-center gap-2']">
                     <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -68,7 +68,7 @@
                         @persona-selected="handlePersonaSelected"
                     />
 
-                    <span v-if="switching" class="text-amber-100 text-sm flex items-center gap-2">
+                    <span v-if="switching" :class="[loadingTextClass, 'text-sm flex items-center gap-2']">
                         <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -82,7 +82,7 @@
                     <!-- Exit Preview -->
                     <button
                         @click="exitPreviewMode"
-                        class="text-amber-100 hover:text-white text-sm font-medium transition-colors"
+                        :class="[buttonColorClass, 'text-sm font-medium transition-colors']"
                     >
                         Exit Demo
                     </button>
@@ -90,7 +90,7 @@
                     <!-- Register CTA -->
                     <router-link
                         to="/register"
-                        class="bg-white text-amber-600 px-4 py-1.5 rounded-md font-medium text-sm hover:bg-amber-50 transition-colors shadow-sm"
+                        :class="[registerButtonClass, 'px-4 py-1.5 rounded-md font-medium text-sm transition-colors shadow-sm']"
                     >
                         Register to Save Your Data
                     </router-link>
@@ -137,6 +137,46 @@ export default {
 
         currentPersonaName() {
             return this.currentPersona?.name || 'Demo User';
+        },
+
+        bannerColorClass() {
+            const colors = {
+                young_family: 'bg-gradient-to-r from-blue-500 to-blue-600',
+                peak_earners: 'bg-gradient-to-r from-green-500 to-green-600',
+                widow: 'bg-gradient-to-r from-purple-500 to-purple-600',
+                entrepreneur: 'bg-gradient-to-r from-orange-500 to-orange-600',
+            };
+            return colors[this.currentPersonaId] || 'bg-gradient-to-r from-amber-500 to-amber-600';
+        },
+
+        buttonColorClass() {
+            const colors = {
+                young_family: 'text-blue-100 hover:text-white',
+                peak_earners: 'text-green-100 hover:text-white',
+                widow: 'text-purple-100 hover:text-white',
+                entrepreneur: 'text-orange-100 hover:text-white',
+            };
+            return colors[this.currentPersonaId] || 'text-amber-100 hover:text-white';
+        },
+
+        registerButtonClass() {
+            const colors = {
+                young_family: 'bg-white text-blue-600 hover:bg-blue-50',
+                peak_earners: 'bg-white text-green-600 hover:bg-green-50',
+                widow: 'bg-white text-purple-600 hover:bg-purple-50',
+                entrepreneur: 'bg-white text-orange-600 hover:bg-orange-50',
+            };
+            return colors[this.currentPersonaId] || 'bg-white text-amber-600 hover:bg-amber-50';
+        },
+
+        loadingTextClass() {
+            const colors = {
+                young_family: 'text-blue-100',
+                peak_earners: 'text-green-100',
+                widow: 'text-purple-100',
+                entrepreneur: 'text-orange-100',
+            };
+            return colors[this.currentPersonaId] || 'text-amber-100';
         },
     },
 

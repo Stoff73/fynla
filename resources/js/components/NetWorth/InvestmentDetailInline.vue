@@ -49,7 +49,7 @@
 
         <!-- Key Metrics -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mt-6">
-          <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
+          <div class="bg-gray-50 rounded-lg p-4">
             <p class="text-sm text-gray-600">Current Value</p>
             <p class="text-2xl font-bold text-blue-600">{{ formatCurrency(account.current_value) }}</p>
             <p v-if="account.ownership_type === 'joint'" class="text-sm text-purple-600 mt-1">
@@ -75,7 +75,7 @@
             </p>
           </div>
           <!-- ISA Contributions Card (for ISA accounts) -->
-          <div v-if="account.account_type === 'isa'" class="bg-green-50 rounded-lg p-4 border border-green-200">
+          <div v-if="account.account_type === 'isa'" class="bg-gray-50 rounded-lg p-4">
             <div class="flex justify-between items-start">
               <div>
                 <p class="text-sm text-gray-600">ISA Contributions (This Year)</p>

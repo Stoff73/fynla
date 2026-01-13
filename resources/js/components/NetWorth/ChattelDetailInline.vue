@@ -54,7 +54,7 @@
 
         <!-- Key Metrics -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-          <div class="bg-pink-50 rounded-lg p-4 border border-pink-200">
+          <div class="bg-gray-50 rounded-lg p-4">
             <p class="text-sm text-gray-600">Current Value</p>
             <p class="text-2xl font-bold text-pink-600">{{ formatCurrency(chattel.full_value || chattel.current_value) }}</p>
             <p v-if="chattel.is_shared" class="text-sm text-pink-600 mt-1">
@@ -76,7 +76,7 @@
         </div>
 
         <!-- CGT Status Notice -->
-        <div v-if="chattel.is_wasting_asset" class="mt-4 bg-green-50 rounded-lg p-4 border border-green-200">
+        <div v-if="chattel.is_wasting_asset" class="mt-4 bg-gray-50 rounded-lg p-4">
           <div class="flex items-center">
             <svg class="w-5 h-5 text-green-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
@@ -84,7 +84,7 @@
             <p class="text-sm font-medium text-green-800">Wasting Asset - This item is exempt from Capital Gains Tax regardless of sale price</p>
           </div>
         </div>
-        <div v-else-if="chattel.current_value && chattel.current_value <= 6000" class="mt-4 bg-blue-50 rounded-lg p-4 border border-blue-200">
+        <div v-else-if="chattel.current_value && chattel.current_value <= 6000" class="mt-4 bg-gray-50 rounded-lg p-4">
           <div class="flex items-center">
             <svg class="w-5 h-5 text-blue-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
@@ -187,7 +187,7 @@
 
           <!-- CGT Calculator Tab -->
           <div v-if="activeTab === 'cgt'" class="space-y-6">
-            <div v-if="chattel.is_wasting_asset" class="bg-green-50 rounded-lg p-6 border border-green-200">
+            <div v-if="chattel.is_wasting_asset" class="bg-gray-50 rounded-lg p-6">
               <div class="flex items-start">
                 <svg class="w-6 h-6 text-green-600 mr-3 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
@@ -251,13 +251,13 @@
 
               <!-- CGT Result -->
               <div v-if="cgtResult" class="mt-6">
-                <div v-if="cgtResult.is_exempt" class="bg-green-50 rounded-lg p-6 border border-green-200">
+                <div v-if="cgtResult.is_exempt" class="bg-gray-50 rounded-lg p-6">
                   <h4 class="text-lg font-semibold text-green-800">CGT Exempt</h4>
                   <p class="text-sm text-green-700 mt-2">{{ cgtResult.exemption_reason }}</p>
                   <p class="text-2xl font-bold text-green-600 mt-3">CGT Liability: £0</p>
                 </div>
 
-                <div v-else-if="cgtResult.is_loss" class="bg-amber-50 rounded-lg p-6 border border-amber-200">
+                <div v-else-if="cgtResult.is_loss" class="bg-gray-50 rounded-lg p-6">
                   <h4 class="text-lg font-semibold text-amber-800">Capital Loss</h4>
                   <dl class="mt-4 space-y-2">
                     <div class="flex justify-between">
@@ -293,7 +293,7 @@
                       <dt class="text-sm text-gray-600">Raw Gain</dt>
                       <dd class="text-sm font-bold text-gray-900">{{ formatCurrency(cgtResult.raw_gain) }}</dd>
                     </div>
-                    <div v-if="cgtResult.marginal_relief_applied" class="flex justify-between bg-blue-50 p-2 rounded">
+                    <div v-if="cgtResult.marginal_relief_applied" class="flex justify-between bg-gray-50 p-2 rounded">
                       <dt class="text-sm text-blue-700">Marginal Relief Applied</dt>
                       <dd class="text-sm font-medium text-blue-700">Max gain: {{ formatCurrency(cgtResult.marginal_relief_max_gain) }}</dd>
                     </div>

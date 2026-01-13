@@ -58,7 +58,7 @@
         <form @submit.prevent="handleSubmit" novalidate>
           <div class="px-6 py-4">
             <!-- Error Message -->
-            <div v-if="error" class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div v-if="error" class="mb-4 p-4 bg-gray-50 rounded-lg">
               <div class="flex items-start">
                 <svg class="w-5 h-5 text-red-600 mt-0.5 mr-2" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
@@ -197,7 +197,7 @@
               </div>
 
               <!-- Joint Ownership Details -->
-              <div v-if="form.ownership_type === 'joint'" class="space-y-4 p-4 bg-purple-50 border border-purple-200 rounded-md">
+              <div v-if="form.ownership_type === 'joint'" class="space-y-4 p-4 bg-gray-50 rounded-md">
                 <p class="text-sm text-purple-800 font-medium">Joint Ownership Details</p>
 
                 <div>
@@ -299,7 +299,7 @@
                 </select>
               </div>
 
-              <div class="p-4 bg-blue-50 border border-blue-200 rounded-md">
+              <div class="p-4 bg-gray-50 rounded-md">
                 <p class="text-sm text-blue-800">
                   <svg class="inline w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
@@ -447,7 +447,7 @@
             <div v-show="currentStep === 6" class="space-y-4">
               <h4 class="text-lg font-semibold text-gray-800 mb-4">Exit Planning</h4>
 
-              <div class="p-4 bg-purple-50 border border-purple-200 rounded-md">
+              <div class="p-4 bg-gray-50 rounded-md">
                 <p class="text-sm text-purple-800">
                   <svg class="inline w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
@@ -488,7 +488,7 @@
               </div>
 
               <!-- BPR Eligibility -->
-              <div class="p-4 bg-green-50 border border-green-200 rounded-md space-y-4">
+              <div class="p-4 bg-gray-50 rounded-md space-y-4">
                 <label class="flex items-center cursor-pointer">
                   <input
                     type="checkbox"

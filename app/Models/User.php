@@ -75,6 +75,7 @@ class User extends Authenticatable
         'annual_interest_income' => 'float',
         'annual_other_income' => 'float',
         'annual_trust_income' => 'float',
+        'payday_day_of_month' => 'integer',
         'monthly_expenditure' => 'float',
         'annual_expenditure' => 'float',
         'food_groceries' => 'float',
@@ -110,6 +111,8 @@ class User extends Authenticatable
         'guidance_completed' => 'boolean',
         'guidance_current_step' => 'integer',
         'info_guide_enabled' => 'boolean',
+        // Dashboard preferences
+        'dashboard_widget_order' => 'array',
     ];
 
     /**

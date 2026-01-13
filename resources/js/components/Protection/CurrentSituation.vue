@@ -1,7 +1,7 @@
 <template>
   <div class="current-situation">
     <!-- No Protection Notice -->
-    <div v-if="hasNoPolicies" class="bg-amber-50 border border-amber-200 rounded-lg p-6 mb-8">
+    <div v-if="hasNoPolicies" class="bg-gray-50 rounded-lg p-6 mb-8">
       <div class="flex">
         <div class="flex-shrink-0">
           <svg class="h-6 w-6 text-amber-600" fill="currentColor" viewBox="0 0 20 20">

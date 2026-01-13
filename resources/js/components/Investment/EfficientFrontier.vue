@@ -33,7 +33,7 @@
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-lg p-6">
+    <div v-else-if="error" class="bg-gray-50 rounded-lg p-6">
       <div class="flex">
         <svg class="h-6 w-6 text-red-600 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -84,7 +84,7 @@
         </div>
 
         <!-- Tangency Portfolio Card -->
-        <div class="bg-blue-50 rounded-lg border border-blue-200 p-4">
+        <div class="bg-gray-50 rounded-lg p-4">
           <div class="flex items-center justify-between mb-3">
             <h4 class="text-sm font-semibold text-blue-900">Optimal Portfolio</h4>
             <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-600 text-white">
@@ -108,7 +108,7 @@
         </div>
 
         <!-- Minimum Variance Portfolio Card -->
-        <div class="bg-green-50 rounded-lg border border-green-200 p-4">
+        <div class="bg-gray-50 rounded-lg p-4">
           <div class="flex items-center justify-between mb-3">
             <h4 class="text-sm font-semibold text-green-900">Min Risk Portfolio</h4>
             <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-600 text-white">
@@ -133,7 +133,7 @@
       </div>
 
       <!-- Improvement Opportunities -->
-      <div v-if="frontierData.improvement_opportunities" class="bg-amber-50 border border-amber-200 rounded-lg p-6">
+      <div v-if="frontierData.improvement_opportunities" class="bg-gray-50 rounded-lg p-6">
         <h4 class="text-sm font-semibold text-amber-900 mb-3">Improvement Opportunities</h4>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>

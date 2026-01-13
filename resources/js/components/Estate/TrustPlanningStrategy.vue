@@ -9,7 +9,7 @@
     </div>
 
     <!-- Error State -->
-    <div v-else-if="trustStrategyError" class="bg-amber-50 border border-amber-200 rounded-lg p-6">
+    <div v-else-if="trustStrategyError" class="bg-white border-2 border-amber-500 rounded-lg p-6">
       <div class="flex items-start">
         <svg class="h-6 w-6 text-amber-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -31,7 +31,7 @@
     <!-- Trust Strategy Content -->
     <div v-else-if="trustStrategy">
       <!-- Introduction -->
-      <div class="mb-8 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg p-6 border border-purple-200">
+      <div class="mb-8 bg-white rounded-lg p-6 border-2 border-purple-500">
         <h2 class="text-2xl font-bold text-gray-900 mb-2">Personalized Trust Planning Strategy</h2>
         <p class="text-gray-700 mb-4">
           Trust planning allows you to transfer assets outside your estate while retaining some control. UK tax rules for trusts differ from direct gifts:
@@ -64,17 +64,17 @@
           <p class="text-sm text-gray-600 mb-1">Total Estate Value</p>
           <p class="text-2xl font-bold text-gray-900">{{ formatCurrency(trustStrategy.liquidity_analysis.summary.total_value) }}</p>
         </div>
-        <div class="bg-green-50 rounded-lg p-4 border border-green-200">
+        <div class="bg-white rounded-lg p-4 border-2 border-green-500">
           <p class="text-sm text-green-700 mb-1 font-medium">Immediately Transferable</p>
           <p class="text-2xl font-bold text-green-900">{{ formatCurrency(trustStrategy.giftable_amounts.immediately_giftable) }}</p>
           <p class="text-xs text-green-600">{{ trustStrategy.giftable_amounts.liquid_asset_count }} liquid assets</p>
         </div>
-        <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
+        <div class="bg-white rounded-lg p-4 border-2 border-blue-500">
           <p class="text-sm text-blue-700 mb-1 font-medium">Transferable with Planning</p>
           <p class="text-2xl font-bold text-blue-900">{{ formatCurrency(trustStrategy.giftable_amounts.giftable_with_planning) }}</p>
           <p class="text-xs text-blue-600">{{ trustStrategy.giftable_amounts.semi_liquid_asset_count }} semi-liquid assets</p>
         </div>
-        <div class="bg-amber-50 rounded-lg p-4 border border-amber-200">
+        <div class="bg-white rounded-lg p-4 border-2 border-amber-500">
           <p class="text-sm text-amber-700 mb-1 font-medium">Not Transferable</p>
           <p class="text-2xl font-bold text-amber-900">{{ formatCurrency(trustStrategy.giftable_amounts.not_giftable) }}</p>
           <p class="text-xs text-amber-600">{{ trustStrategy.giftable_amounts.illiquid_asset_count }} illiquid assets</p>
@@ -293,7 +293,7 @@
       </div>
 
       <!-- Overall Strategy Impact -->
-      <div class="bg-gradient-to-r from-emerald-50 to-green-50 rounded-lg p-6 border border-emerald-200">
+      <div class="bg-white rounded-lg p-6 border-2 border-emerald-500">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">Overall Strategy Impact</h3>
 
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
@@ -316,7 +316,7 @@
         </div>
 
         <!-- Worst Case Scenario -->
-        <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
+        <div class="bg-gray-50 border border-amber-200 rounded-lg p-4">
           <h4 class="font-semibold text-amber-900 mb-2">Worst Case Scenario (Death Before 7 Years)</h4>
           <div class="grid grid-cols-2 gap-4">
             <div>
@@ -352,7 +352,7 @@
       </div>
 
       <!-- Important Disclaimer -->
-      <div class="mt-8 bg-blue-50 border-l-4 border-blue-500 p-4">
+      <div class="mt-8 bg-gray-50 rounded-lg p-4">
         <div class="flex">
           <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
             <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
@@ -441,18 +441,18 @@ export default {
     },
 
     getPriorityBadgeClass(priority) {
-      if (priority === 1) return 'bg-emerald-100 text-emerald-800';
-      if (priority === 2) return 'bg-blue-100 text-blue-800';
-      if (priority === 3) return 'bg-purple-100 text-purple-800';
-      return 'bg-gray-100 text-gray-800';
+      if (priority === 1) return 'bg-emerald-500 text-white';
+      if (priority === 2) return 'bg-blue-500 text-white';
+      if (priority === 3) return 'bg-purple-500 text-white';
+      return 'bg-gray-500 text-white';
     },
 
     getRiskLevelClass(riskLevel) {
       const riskLower = (riskLevel || '').toLowerCase();
-      if (riskLower === 'low') return 'bg-green-100 text-green-800';
-      if (riskLower === 'medium') return 'bg-amber-100 text-amber-800';
-      if (riskLower === 'high') return 'bg-red-100 text-red-800';
-      return 'bg-gray-100 text-gray-800';
+      if (riskLower === 'low') return 'bg-green-500 text-white';
+      if (riskLower === 'medium') return 'bg-amber-500 text-white';
+      if (riskLower === 'high') return 'bg-red-500 text-white';
+      return 'bg-gray-500 text-white';
     },
 
     /**

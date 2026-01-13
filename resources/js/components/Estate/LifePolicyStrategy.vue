@@ -7,7 +7,7 @@
     </div>
 
     <!-- No IHT Liability State -->
-    <div v-else-if="noIHTLiability" class="bg-green-50 border border-green-200 rounded-lg p-6">
+    <div v-else-if="noIHTLiability" class="bg-white border-2 border-green-500 rounded-lg p-6">
       <div class="flex items-start">
         <svg class="h-6 w-6 text-green-600 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -23,7 +23,7 @@
     <!-- Strategy Comparison -->
     <div v-else-if="strategy" class="space-y-6">
       <!-- Header with Key Info -->
-      <div class="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-4 sm:p-6 border border-indigo-200">
+      <div class="bg-white rounded-lg p-4 sm:p-6 border-2 border-indigo-500">
         <h2 class="text-xl sm:text-2xl font-bold text-gray-900 mb-4">Life Insurance vs. Self-Insurance Strategy</h2>
 
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
@@ -48,7 +48,7 @@
       </div>
 
       <!-- Recommended Approach -->
-      <div class="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-r-lg">
+      <div class="bg-gray-50 p-6 rounded-lg">
         <div class="flex items-start">
           <svg class="h-6 w-6 text-blue-600 mt-1 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -62,7 +62,7 @@
 
       <!-- Option 1: Whole of Life Insurance -->
       <div class="bg-white rounded-lg border-2 border-indigo-300 shadow-lg">
-        <div class="bg-indigo-100 px-6 py-4 border-b border-indigo-200">
+        <div class="bg-white border-b-2 border-indigo-500 px-6 py-4 border-b border-indigo-200">
           <div class="flex items-center justify-between">
             <div>
               <h3 class="text-xl font-bold text-indigo-900">Option 1: {{ policy.policy_type }}</h3>
@@ -79,22 +79,22 @@
         <div class="p-4 sm:p-6">
           <!-- Key Metrics -->
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
-            <div class="bg-indigo-50 rounded-lg p-3 sm:p-4">
+            <div class="bg-white rounded-lg p-3 sm:p-4 border-2 border-indigo-500">
               <p class="text-xs sm:text-sm text-indigo-700 font-medium mb-1">Cover Amount</p>
               <p class="text-lg sm:text-xl lg:text-2xl font-bold text-indigo-900">{{ formatCurrency(policy.cover_amount) }}</p>
               <p class="text-xs text-indigo-600 mt-1">Guaranteed payout</p>
             </div>
-            <div class="bg-green-50 rounded-lg p-3 sm:p-4">
+            <div class="bg-white rounded-lg p-3 sm:p-4 border-2 border-green-500">
               <p class="text-xs sm:text-sm text-green-700 font-medium mb-1">Monthly Premium</p>
               <p class="text-lg sm:text-xl lg:text-2xl font-bold text-green-900">{{ formatCurrency(policy.monthly_premium) }}</p>
               <p class="text-xs text-green-600 mt-1">Fixed for life</p>
             </div>
-            <div class="bg-blue-50 rounded-lg p-3 sm:p-4">
+            <div class="bg-white rounded-lg p-3 sm:p-4 border-2 border-blue-500">
               <p class="text-xs sm:text-sm text-blue-700 font-medium mb-1">Annual Premium</p>
               <p class="text-lg sm:text-xl lg:text-2xl font-bold text-blue-900">{{ formatCurrency(policy.annual_premium) }}</p>
               <p class="text-xs text-blue-600 mt-1">Per year</p>
             </div>
-            <div class="bg-purple-50 rounded-lg p-3 sm:p-4">
+            <div class="bg-white rounded-lg p-3 sm:p-4 border-2 border-purple-500">
               <p class="text-xs sm:text-sm text-purple-700 font-medium mb-1">Total Premiums</p>
               <p class="text-lg sm:text-xl lg:text-2xl font-bold text-purple-900">{{ formatCurrency(policy.total_premiums_paid) }}</p>
               <p class="text-xs text-purple-600 mt-1">Over {{ policy.term_years }} years</p>
@@ -119,7 +119,7 @@
             <h4 class="text-md font-semibold text-gray-900 mb-3">Implementation Steps</h4>
             <ol class="space-y-2">
               <li v-for="(step, index) in policy.implementation_steps" :key="index" class="flex items-start">
-                <span class="flex-shrink-0 w-6 h-6 bg-indigo-100 text-indigo-700 rounded-full flex items-center justify-center text-sm font-semibold mr-3">
+                <span class="flex-shrink-0 w-6 h-6 bg-white border-b-2 border-indigo-500 text-indigo-700 rounded-full flex items-center justify-center text-sm font-semibold mr-3">
                   {{ index + 1 }}
                 </span>
                 <span class="text-gray-700 pt-0.5">{{ step }}</span>
@@ -131,7 +131,7 @@
 
       <!-- Option 2: Self-Insurance -->
       <div class="bg-white rounded-lg border-2 border-amber-300 shadow-lg">
-        <div class="bg-amber-100 px-6 py-4 border-b border-amber-200">
+        <div class="bg-white border-b-2 border-amber-500 px-6 py-4 border-b border-amber-200">
           <div class="flex items-center justify-between">
             <div>
               <h3 class="text-xl font-bold text-amber-900">Option 2: {{ selfInsurance.strategy_name }}</h3>
@@ -152,22 +152,22 @@
         <div class="p-4 sm:p-6">
           <!-- Key Metrics -->
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
-            <div class="bg-amber-50 rounded-lg p-3 sm:p-4">
+            <div class="bg-white rounded-lg p-3 sm:p-4 border-2 border-amber-500">
               <p class="text-xs sm:text-sm text-amber-700 font-medium mb-1">Monthly Investment</p>
               <p class="text-lg sm:text-xl lg:text-2xl font-bold text-amber-900">{{ formatCurrency(selfInsurance.monthly_investment) }}</p>
               <p class="text-xs text-amber-600 mt-1">Same as premium</p>
             </div>
-            <div class="bg-blue-50 rounded-lg p-3 sm:p-4">
+            <div class="bg-white rounded-lg p-3 sm:p-4 border-2 border-blue-500">
               <p class="text-xs sm:text-sm text-blue-700 font-medium mb-1">Total Invested</p>
               <p class="text-lg sm:text-xl lg:text-2xl font-bold text-blue-900">{{ formatCurrency(selfInsurance.total_invested) }}</p>
               <p class="text-xs text-blue-600 mt-1">Over {{ selfInsurance.investment_term_years }} years</p>
             </div>
-            <div class="bg-green-50 rounded-lg p-3 sm:p-4">
+            <div class="bg-white rounded-lg p-3 sm:p-4 border-2 border-green-500">
               <p class="text-xs sm:text-sm text-green-700 font-medium mb-1">Investment Growth</p>
               <p class="text-lg sm:text-xl lg:text-2xl font-bold text-green-900">{{ formatCurrency(selfInsurance.investment_growth) }}</p>
               <p class="text-xs text-green-600 mt-1">At {{ selfInsurance.assumed_return_percentage }}% p.a.</p>
             </div>
-            <div class="rounded-lg p-3 sm:p-4" :class="selfInsurance.is_sufficient ? 'bg-green-50' : 'bg-red-50'">
+            <div class="rounded-lg p-3 sm:p-4 bg-white" :class="selfInsurance.is_sufficient ? 'border-2 border-green-500' : 'border-2 border-red-500'">
               <p class="text-xs sm:text-sm font-medium mb-1" :class="selfInsurance.is_sufficient ? 'text-green-700' : 'text-red-700'">
                 Projected Value
               </p>
@@ -214,7 +214,7 @@
           </div>
 
           <!-- Recommended Investment Approach -->
-          <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+          <div class="bg-white border-2 border-amber-500 rounded-lg p-4 mb-6">
             <h4 class="text-md font-semibold text-amber-900 mb-3">Recommended Investment Approach</h4>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div v-for="(value, key) in selfInsurance.recommended_investment_approach" :key="key">
@@ -229,7 +229,7 @@
             <h4 class="text-md font-semibold text-gray-900 mb-3">Implementation Steps</h4>
             <ol class="space-y-2">
               <li v-for="(step, index) in selfInsurance.implementation_steps" :key="index" class="flex items-start">
-                <span class="flex-shrink-0 w-6 h-6 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center text-sm font-semibold mr-3">
+                <span class="flex-shrink-0 w-6 h-6 bg-white border-b-2 border-amber-500 text-amber-700 rounded-full flex items-center justify-center text-sm font-semibold mr-3">
                   {{ index + 1 }}
                 </span>
                 <span class="text-gray-700 pt-0.5">{{ step }}</span>
@@ -301,12 +301,7 @@
         <div class="p-6">
           <div class="space-y-4">
             <div v-for="rec in strategy.comparison.all_recommendations" :key="rec.priority"
-                 class="border-l-4 p-4 rounded-r-lg"
-                 :class="{
-                   'bg-blue-50 border-blue-500': rec.priority === 1,
-                   'bg-green-50 border-green-500': rec.priority === 2,
-                   'bg-purple-50 border-purple-500': rec.priority === 3
-                 }">
+                 class="p-4 rounded-lg bg-gray-50">
               <div class="flex items-start justify-between">
                 <div class="flex-1">
                   <div class="flex items-center">
@@ -347,7 +342,7 @@
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-lg p-6">
+    <div v-else-if="error" class="bg-white border-2 border-red-500 rounded-lg p-6">
       <div class="flex items-start">
         <svg class="h-6 w-6 text-red-600 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />

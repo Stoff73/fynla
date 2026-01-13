@@ -8,7 +8,7 @@
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+    <div v-else-if="error" class="bg-gray-50 rounded-lg p-6 text-center">
       <p class="text-red-600">{{ error }}</p>
       <button
         @click="loadProperty"
@@ -45,7 +45,7 @@
 
         <!-- Key Metrics -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
-          <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
+          <div class="bg-gray-50 rounded-lg p-4">
             <p class="text-sm text-gray-600">Full Property Value</p>
             <p class="text-2xl font-bold text-blue-600">{{ formatCurrency(calculateFullPropertyValue()) }}</p>
           </div>

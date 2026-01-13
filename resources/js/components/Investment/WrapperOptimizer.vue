@@ -6,7 +6,7 @@
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+    <div v-else-if="error" class="bg-gray-50 rounded-lg p-4 mb-6">
       <div class="flex items-center">
         <svg class="h-5 w-5 text-red-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
           <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
@@ -23,10 +23,10 @@
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
           <!-- ISA Wrapper -->
-          <div class="border-2 border-green-300 bg-green-50 rounded-lg p-6">
+          <div class="bg-gray-50 rounded-lg p-6 shadow-sm">
             <div class="flex items-center justify-between mb-4">
               <h3 class="text-lg font-semibold text-gray-800">ISA</h3>
-              <span class="px-3 py-1 bg-green-600 text-white text-xs font-semibold rounded-full">TAX-FREE</span>
+              <span class="px-3 py-1 bg-green-500 text-white text-xs font-semibold rounded-full">TAX-FREE</span>
             </div>
 
             <div class="space-y-3 mb-4">
@@ -48,7 +48,7 @@
               </div>
             </div>
 
-            <div class="border-t border-green-200 pt-3">
+            <div class="border-t border-gray-200 pt-3">
               <p class="text-xs text-gray-700 mb-2 font-medium">Best For:</p>
               <ul class="text-xs text-gray-600 space-y-1">
                 <li class="flex items-start">
@@ -72,10 +72,10 @@
           </div>
 
           <!-- GIA Wrapper -->
-          <div class="border-2 border-yellow-300 bg-yellow-50 rounded-lg p-6">
+          <div class="bg-gray-50 rounded-lg p-6 shadow-sm">
             <div class="flex items-center justify-between mb-4">
               <h3 class="text-lg font-semibold text-gray-800">GIA</h3>
-              <span class="px-3 py-1 bg-yellow-600 text-white text-xs font-semibold rounded-full">TAXABLE</span>
+              <span class="px-3 py-1 bg-yellow-500 text-white text-xs font-semibold rounded-full">TAXABLE</span>
             </div>
 
             <div class="space-y-3 mb-4">
@@ -97,7 +97,7 @@
               </div>
             </div>
 
-            <div class="border-t border-yellow-200 pt-3">
+            <div class="border-t border-gray-200 pt-3">
               <p class="text-xs text-gray-700 mb-2 font-medium">Best For:</p>
               <ul class="text-xs text-gray-600 space-y-1">
                 <li class="flex items-start">
@@ -121,10 +121,10 @@
           </div>
 
           <!-- Pension Wrapper -->
-          <div class="border-2 border-blue-300 bg-blue-50 rounded-lg p-6">
+          <div class="bg-gray-50 rounded-lg p-6 shadow-sm">
             <div class="flex items-center justify-between mb-4">
               <h3 class="text-lg font-semibold text-gray-800">Pension</h3>
-              <span class="px-3 py-1 bg-blue-600 text-white text-xs font-semibold rounded-full">TAX RELIEF</span>
+              <span class="px-3 py-1 bg-blue-500 text-white text-xs font-semibold rounded-full">TAX RELIEF</span>
             </div>
 
             <div class="space-y-3 mb-4">
@@ -146,7 +146,7 @@
               </div>
             </div>
 
-            <div class="border-t border-blue-200 pt-3">
+            <div class="border-t border-gray-200 pt-3">
               <p class="text-xs text-gray-700 mb-2 font-medium">Best For:</p>
               <ul class="text-xs text-gray-600 space-y-1">
                 <li class="flex items-start">
@@ -263,7 +263,7 @@
         <!-- Detailed Results -->
         <div v-if="comparisonResults" class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <!-- ISA Result -->
-          <div class="border border-green-200 bg-green-50 rounded-lg p-4">
+          <div class="bg-gray-50 rounded-lg p-4">
             <h4 class="text-sm font-semibold text-gray-800 mb-3">ISA (Tax-Free)</h4>
             <p class="text-2xl font-bold text-green-600 mb-2">
               £{{ formatNumber(comparisonResults.isa.finalValue) }}
@@ -285,7 +285,7 @@
           </div>
 
           <!-- GIA Result -->
-          <div class="border border-yellow-200 bg-yellow-50 rounded-lg p-4">
+          <div class="bg-gray-50 rounded-lg p-4">
             <h4 class="text-sm font-semibold text-gray-800 mb-3">GIA (Taxable)</h4>
             <p class="text-2xl font-bold text-orange-600 mb-2">
               £{{ formatNumber(comparisonResults.gia.finalValue) }}
@@ -307,7 +307,7 @@
           </div>
 
           <!-- Pension Result -->
-          <div class="border border-blue-200 bg-blue-50 rounded-lg p-4">
+          <div class="bg-gray-50 rounded-lg p-4">
             <h4 class="text-sm font-semibold text-gray-800 mb-3">Pension (With Relief)</h4>
             <p class="text-2xl font-bold text-blue-600 mb-2">
               £{{ formatNumber(comparisonResults.pension.finalValue) }}
@@ -405,7 +405,7 @@
         <h3 class="text-lg font-semibold text-gray-800 mb-4">Wrapper Selection Decision Framework</h3>
 
         <div class="space-y-4">
-          <div class="border-l-4 border-green-500 bg-green-50 p-4 rounded-r-lg">
+          <div class="bg-gray-50 p-4 rounded-lg">
             <h4 class="font-semibold text-gray-800 mb-2">Step 1: Maximize ISA (Priority 1)</h4>
             <p class="text-sm text-gray-700 mb-2">
               Use ISA allowance first (£20,000/year) for tax-free growth and withdrawals.
@@ -415,7 +415,7 @@
             </p>
           </div>
 
-          <div class="border-l-4 border-blue-500 bg-blue-50 p-4 rounded-r-lg">
+          <div class="bg-gray-50 p-4 rounded-lg">
             <h4 class="font-semibold text-gray-800 mb-2">Step 2: Consider Pension (Priority 2)</h4>
             <p class="text-sm text-gray-700 mb-2">
               If higher/additional rate taxpayer AND saving for retirement, pension offers 40-45% tax relief.
@@ -425,7 +425,7 @@
             </p>
           </div>
 
-          <div class="border-l-4 border-yellow-500 bg-yellow-50 p-4 rounded-r-lg">
+          <div class="bg-gray-50 p-4 rounded-lg">
             <h4 class="font-semibold text-gray-800 mb-2">Step 3: Use GIA (Priority 3)</h4>
             <p class="text-sm text-gray-700 mb-2">
               After ISA limit exhausted, use GIA. Optimise with growth stocks (CGT-efficient) and index funds.
@@ -592,9 +592,9 @@ export default {
 
     getWinnerClass() {
       const winner = this.getWinner();
-      if (winner === 'ISA') return 'bg-green-50 border border-green-200';
-      if (winner === 'Pension') return 'bg-blue-50 border border-blue-200';
-      return 'bg-yellow-50 border border-yellow-200';
+      if (winner === 'ISA') return 'bg-white border-l-4 border-green-500';
+      if (winner === 'Pension') return 'bg-white border-l-4 border-blue-500';
+      return 'bg-white border-l-4 border-yellow-500';
     },
 
     getWinnerTextClass() {

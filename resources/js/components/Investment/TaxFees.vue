@@ -115,7 +115,7 @@
         <div
           v-for="(opportunity, index) in taxOptimizations"
           :key="index"
-          class="flex items-start p-4 bg-blue-50 border border-blue-200 rounded-lg"
+          class="flex items-start p-4 bg-gray-50 rounded-lg"
         >
           <svg class="h-5 w-5 text-blue-600 mr-3 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />

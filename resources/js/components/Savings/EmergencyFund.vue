@@ -83,7 +83,7 @@
             </div>
           </div>
 
-          <div class="mt-6 p-4 bg-blue-50 rounded-lg">
+          <div class="mt-6 p-4 bg-gray-50 rounded-lg">
             <p class="text-sm font-medium text-blue-900">
               <span v-if="shortfall > 0">
                 Top up needed: {{ formatCurrency(shortfall) }}

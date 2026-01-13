@@ -6,7 +6,7 @@
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+    <div v-else-if="error" class="bg-gray-50 rounded-lg p-4 mb-6">
       <div class="flex items-center">
         <svg class="h-5 w-5 text-red-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
           <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
@@ -154,7 +154,7 @@
                 </p>
               </div>
 
-              <div class="pt-2 bg-blue-50 p-3 rounded">
+              <div class="pt-2 bg-gray-50 p-3 rounded">
                 <div class="flex justify-between items-center">
                   <span class="font-semibold text-gray-800">Total Attribution</span>
                   <span class="text-lg font-bold" :class="performanceData.alpha >= 0 ? 'text-green-600' : 'text-red-600'">
@@ -443,9 +443,9 @@ export default {
     },
 
     getInsightClass(type) {
-      if (type === 'positive') return 'border-green-500 bg-green-50';
-      if (type === 'warning') return 'border-yellow-500 bg-yellow-50';
-      return 'border-blue-500 bg-blue-50';
+      if (type === 'positive') return 'border-green-500 bg-white';
+      if (type === 'warning') return 'border-yellow-500 bg-white';
+      return 'border-blue-500 bg-white';
     },
   },
 };

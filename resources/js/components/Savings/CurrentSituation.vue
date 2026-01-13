@@ -227,11 +227,11 @@ export default {
 
     getOwnershipBadgeClass(type) {
       const classes = {
-        individual: 'bg-gray-100 text-gray-800',
-        joint: 'bg-purple-100 text-purple-800',
-        trust: 'bg-amber-100 text-amber-800',
+        individual: 'bg-gray-500 text-white',
+        joint: 'bg-purple-500 text-white',
+        trust: 'bg-amber-500 text-white',
       };
-      return classes[type] || 'bg-gray-100 text-gray-800';
+      return classes[type] || 'bg-gray-500 text-white';
     },
 
     formatInterestRate(rate) {
@@ -407,13 +407,13 @@ export default {
 }
 
 .badge-emergency {
-  background: #d1fae5;
-  color: #065f46;
+  background: #10b981;
+  color: white;
 }
 
 .badge-isa {
-  background: #dbeafe;
-  color: #1e40af;
+  background: #3b82f6;
+  color: white;
 }
 
 .card-content {

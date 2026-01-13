@@ -15,19 +15,19 @@
     <div v-else>
       <!-- Summary Cards -->
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div class="bg-amber-50 rounded-lg p-4 border border-amber-200">
+        <div class="bg-white rounded-lg p-4 border-l-4 border-amber-500">
           <p class="text-sm text-gray-600 mb-1">CGT Allowance</p>
           <p class="text-2xl font-bold text-gray-800">£{{ formatNumber(opportunities.cgt_allowance) }}</p>
         </div>
-        <div class="bg-red-50 rounded-lg p-4 border border-red-200">
+        <div class="bg-white rounded-lg p-4 border-l-4 border-red-500">
           <p class="text-sm text-gray-600 mb-1">Harvestable Losses</p>
           <p class="text-2xl font-bold text-red-600">£{{ formatNumber(opportunities.total_harvestable_losses) }}</p>
         </div>
-        <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
+        <div class="bg-white rounded-lg p-4 border-l-4 border-blue-500">
           <p class="text-sm text-gray-600 mb-1">Expected Gains</p>
           <p class="text-2xl font-bold text-gray-800">£{{ formatNumber(opportunities.expected_gains) }}</p>
         </div>
-        <div class="bg-green-50 rounded-lg p-4 border border-green-200">
+        <div class="bg-white rounded-lg p-4 border-l-4 border-green-500">
           <p class="text-sm text-gray-600 mb-1">Potential Saving</p>
           <p class="text-2xl font-bold text-green-600">£{{ formatNumber(opportunities.potential_tax_saving) }}</p>
         </div>
@@ -47,7 +47,7 @@
             <div
               v-for="(item, index) in opportunities.harvesting_strategy.harvest_now"
               :key="index"
-              class="flex items-center justify-between p-3 bg-red-50 rounded-md border border-red-200"
+              class="flex items-center justify-between p-3 bg-white rounded-md border-l-4 border-red-500"
             >
               <div>
                 <p class="text-sm font-medium text-gray-800">{{ item.security_name }}</p>
@@ -59,7 +59,7 @@
               </div>
             </div>
           </div>
-          <div class="mt-3 p-3 bg-green-50 rounded-md border border-green-200">
+          <div class="mt-3 p-3 bg-white rounded-md border-l-4 border-green-500">
             <p class="text-sm">
               <strong>Total tax saving:</strong>
               <span class="text-green-600 font-semibold ml-2">
@@ -94,7 +94,7 @@
         </div>
 
         <!-- Explanation -->
-        <div v-if="opportunities.harvesting_strategy.explanation" class="mt-4 p-4 bg-blue-50 rounded-md border border-blue-200">
+        <div v-if="opportunities.harvesting_strategy.explanation" class="mt-4 p-4 bg-white rounded-md border-l-4 border-blue-500">
           <p class="text-sm font-medium text-gray-700 mb-2">Strategy Explanation:</p>
           <ul class="text-sm text-gray-600 space-y-1">
             <li v-for="(exp, index) in opportunities.harvesting_strategy.explanation" :key="index">
@@ -145,7 +145,7 @@
       </div>
 
       <!-- Important Notes -->
-      <div class="mt-6 p-4 bg-amber-50 rounded-lg border border-amber-200">
+      <div class="mt-6 p-4 bg-white rounded-lg border-l-4 border-amber-500">
         <h5 class="text-sm font-semibold text-gray-800 mb-2">Important Considerations:</h5>
         <ul class="text-sm text-gray-700 space-y-1">
           <li>• <strong>30-Day Rule:</strong> You cannot repurchase the same security within 30 days</li>
@@ -187,11 +187,11 @@ export default {
 
     getPriorityClass(priority) {
       const classes = {
-        high: 'bg-red-100 text-red-800',
-        medium: 'bg-amber-100 text-amber-800',
-        low: 'bg-blue-100 text-blue-800',
+        high: 'bg-red-500 text-white',
+        medium: 'bg-amber-500 text-white',
+        low: 'bg-blue-500 text-white',
       };
-      return classes[priority] || 'bg-gray-100 text-gray-800';
+      return classes[priority] || 'bg-gray-500 text-white';
     },
   },
 };

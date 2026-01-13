@@ -17,7 +17,6 @@ const Dashboard = () => import('@/views/Dashboard.vue');
 const Settings = () => import('@/views/Settings.vue');
 const UserProfile = () => import('@/views/UserProfile.vue');
 const NetWorthDashboard = () => import('@/views/NetWorth/NetWorthDashboard.vue');
-const NetWorthOverview = () => import('@/components/NetWorth/NetWorthOverview.vue');
 const NetWorthWealthSummary = () => import('@/components/NetWorth/NetWorthWealthSummary.vue');
 const PropertyList = () => import('@/components/NetWorth/PropertyList.vue');
 const PensionList = () => import('@/components/NetWorth/PensionList.vue');
@@ -31,6 +30,7 @@ const PolicyDetail = () => import('@/components/Protection/PolicyDetail.vue');
 const ComprehensiveProtectionPlan = () => import('@/views/Protection/ComprehensiveProtectionPlan.vue');
 const SavingsDashboard = () => import('@/views/Savings/SavingsDashboard.vue');
 const SavingsAccountDetail = () => import('@/views/Savings/SavingsAccountDetail.vue');
+const CashOverview = () => import('@/views/NetWorth/CashOverview.vue');
 const RiskProfilePage = () => import('@/views/Risk/RiskProfilePage.vue');
 const PensionDetail = () => import('@/views/Retirement/PensionDetail.vue');
 const EstateDashboard = () => import('@/views/Estate/EstateDashboard.vue');
@@ -128,12 +128,11 @@ const routes = [
     children: [
       {
         path: '',
-        redirect: 'overview',
+        redirect: 'wealth-summary',
       },
       {
         path: 'overview',
-        name: 'NetWorthOverview',
-        component: NetWorthOverview,
+        redirect: 'wealth-summary',
       },
       {
         path: 'wealth-summary',
@@ -158,7 +157,7 @@ const routes = [
       {
         path: 'cash',
         name: 'NetWorthCash',
-        component: SavingsDashboard,
+        component: CashOverview,
       },
       {
         path: 'business',
@@ -470,12 +469,11 @@ const routes = [
       {
         path: '',
         name: 'PreviewNetWorth',
-        redirect: 'overview',
+        redirect: 'wealth-summary',
       },
       {
         path: 'overview',
-        name: 'PreviewNetWorthOverview',
-        component: NetWorthOverview,
+        redirect: 'wealth-summary',
       },
       {
         path: 'wealth-summary',
@@ -495,7 +493,7 @@ const routes = [
       {
         path: 'cash',
         name: 'PreviewNetWorthCash',
-        component: SavingsDashboard,
+        component: CashOverview,
       },
       {
         path: 'investments',

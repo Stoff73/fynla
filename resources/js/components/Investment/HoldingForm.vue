@@ -44,7 +44,7 @@
                 </option>
               </select>
               <p v-if="errors.investment_account_id" class="mt-1 text-sm text-red-600">{{ errors.investment_account_id }}</p>
-              <p v-if="accounts.length === 0" class="mt-2 text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-md p-2">
+              <p v-if="accounts.length === 0" class="mt-2 text-sm text-amber-600 bg-gray-50 rounded-md p-2">
                 ⚠️ You need to create an investment account first before adding holdings. Please go to the Accounts tab to add an account.
               </p>
             </div>
@@ -212,7 +212,7 @@
             </div>
 
             <!-- Calculated Fields Display -->
-            <div v-if="selectedAccount && formData.allocation_percent" class="bg-blue-50 border border-blue-200 rounded-md p-4">
+            <div v-if="selectedAccount && formData.allocation_percent" class="bg-gray-50 rounded-md p-4">
               <h4 class="text-sm font-semibold text-blue-900 mb-2">Calculated Values</h4>
               <div class="grid grid-cols-2 gap-2 text-sm">
                 <div>

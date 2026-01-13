@@ -23,7 +23,7 @@
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+    <div v-else-if="error" class="bg-gray-50 rounded-lg p-6 text-center">
       <p class="text-red-600">{{ error }}</p>
       <button
         @click="loadSchedule"
@@ -37,29 +37,29 @@
     <div v-else-if="schedule.length > 0" class="space-y-6">
       <!-- Summary Cards -->
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div class="bg-blue-50 rounded-lg p-4">
+        <div class="bg-gray-50 rounded-lg p-4">
           <p class="text-sm text-blue-700">Loan Amount</p>
           <p class="text-xl font-bold text-blue-900">{{ formatCurrencyWithPence(mortgage.original_loan_amount) }}</p>
         </div>
 
-        <div class="bg-green-50 rounded-lg p-4">
+        <div class="bg-gray-50 rounded-lg p-4">
           <p class="text-sm text-green-700">Monthly Payment</p>
           <p class="text-xl font-bold text-green-900">{{ formatCurrencyWithPence(mortgage.monthly_payment) }}</p>
         </div>
 
-        <div class="bg-purple-50 rounded-lg p-4">
+        <div class="bg-gray-50 rounded-lg p-4">
           <p class="text-sm text-purple-700">Interest Rate</p>
           <p class="text-xl font-bold text-purple-900">{{ parseFloat(mortgage.interest_rate).toFixed(2) }}%</p>
         </div>
 
-        <div class="bg-orange-50 rounded-lg p-4">
+        <div class="bg-gray-50 rounded-lg p-4">
           <p class="text-sm text-orange-700">Remaining Term</p>
           <p class="text-xl font-bold text-orange-900">{{ remainingYears }} years</p>
         </div>
       </div>
 
       <!-- Total Interest Summary -->
-      <div class="bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-lg p-4">
+      <div class="bg-gray-50 rounded-lg p-4">
         <div class="flex justify-between items-center">
           <div>
             <p class="text-sm text-red-700">Total Interest to be Paid</p>

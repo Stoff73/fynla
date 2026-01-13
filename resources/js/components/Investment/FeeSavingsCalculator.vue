@@ -136,7 +136,7 @@
       <!-- Results Summary Cards -->
       <div v-if="results" class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <!-- Annual Savings -->
-        <div class="bg-green-50 border border-green-200 rounded-lg shadow-md p-6">
+        <div class="bg-gray-50 rounded-lg shadow-md p-6">
           <p class="text-sm text-gray-600 mb-2">Annual Fee Savings</p>
           <p class="text-4xl font-bold text-green-600 mb-2">
             £{{ formatNumber(results.annual_saving) }}
@@ -147,7 +147,7 @@
         </div>
 
         <!-- Total Savings Over Period -->
-        <div class="bg-blue-50 border border-blue-200 rounded-lg shadow-md p-6">
+        <div class="bg-gray-50 rounded-lg shadow-md p-6">
           <p class="text-sm text-gray-600 mb-2">Total Savings ({{ calculator.years }} years)</p>
           <p class="text-4xl font-bold text-blue-600 mb-2">
             £{{ formatNumber(results.total_saving) }}
@@ -158,7 +158,7 @@
         </div>
 
         <!-- Percentage Gain -->
-        <div class="bg-purple-50 border border-purple-200 rounded-lg shadow-md p-6">
+        <div class="bg-gray-50 rounded-lg shadow-md p-6">
           <p class="text-sm text-gray-600 mb-2">Portfolio Value Increase</p>
           <p class="text-4xl font-bold text-purple-600 mb-2">
             {{ formatPercent(results.percentage_gain / 100) }}
@@ -182,7 +182,7 @@
 
         <div class="mt-6 grid grid-cols-2 gap-6">
           <!-- Current Fees -->
-          <div class="border border-red-200 bg-red-50 rounded-lg p-4">
+          <div class="bg-gray-50 rounded-lg p-4">
             <p class="text-sm font-medium text-gray-700 mb-2">With Current Fees ({{ formatPercent(calculator.currentFee / 100) }})</p>
             <p class="text-3xl font-bold text-red-600 mb-1">
               £{{ formatNumber(results.current_fee_final) }}
@@ -204,7 +204,7 @@
           </div>
 
           <!-- Alternative Fees -->
-          <div class="border border-green-200 bg-green-50 rounded-lg p-4">
+          <div class="bg-gray-50 rounded-lg p-4">
             <p class="text-sm font-medium text-gray-700 mb-2">With Alternative Fees ({{ formatPercent(calculator.alternativeFee / 100) }})</p>
             <p class="text-3xl font-bold text-green-600 mb-1">
               £{{ formatNumber(results.alternative_fee_final) }}
@@ -262,7 +262,7 @@
       </div>
 
       <!-- Key Insights -->
-      <div class="bg-gradient-to-br from-yellow-50 to-orange-50 border border-yellow-200 rounded-lg shadow-md p-6">
+      <div class="bg-gray-50 rounded-lg shadow-md p-6">
         <h3 class="text-lg font-semibold text-gray-800 mb-4">Why Fees Matter</h3>
 
         <div class="space-y-3">

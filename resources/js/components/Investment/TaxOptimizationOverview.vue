@@ -11,7 +11,7 @@
     <div v-else>
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <!-- ISA Opportunity -->
-        <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
+        <div class="bg-white rounded-lg p-4 border-l-4 border-blue-500">
           <div class="flex items-center justify-between mb-2">
             <h4 class="text-sm font-medium text-gray-700">ISA Allowance</h4>
             <svg class="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
@@ -25,7 +25,7 @@
         </div>
 
         <!-- CGT Harvesting -->
-        <div class="bg-amber-50 rounded-lg p-4 border border-amber-200">
+        <div class="bg-white rounded-lg p-4 border-l-4 border-amber-500">
           <div class="flex items-center justify-between mb-2">
             <h4 class="text-sm font-medium text-gray-700">CGT Harvesting</h4>
             <svg class="w-5 h-5 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
@@ -39,7 +39,7 @@
         </div>
 
         <!-- Bed & ISA -->
-        <div class="bg-green-50 rounded-lg p-4 border border-green-200">
+        <div class="bg-white rounded-lg p-4 border-l-4 border-green-500">
           <div class="flex items-center justify-between mb-2">
             <h4 class="text-sm font-medium text-gray-700">Bed & ISA</h4>
             <svg class="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
@@ -53,7 +53,7 @@
         </div>
 
         <!-- Dividend Optimization -->
-        <div class="bg-purple-50 rounded-lg p-4 border border-purple-200">
+        <div class="bg-white rounded-lg p-4 border-l-4 border-purple-500">
           <div class="flex items-center justify-between mb-2">
             <h4 class="text-sm font-medium text-gray-700">Dividend Tax</h4>
             <svg class="w-5 h-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
@@ -249,11 +249,11 @@ export default {
 
     getPriorityBgClass(priority) {
       const classes = {
-        high: 'bg-red-50 border border-red-200',
-        medium: 'bg-amber-50 border border-amber-200',
-        low: 'bg-blue-50 border border-blue-200',
+        high: 'bg-white border-l-4 border-red-500',
+        medium: 'bg-white border-l-4 border-amber-500',
+        low: 'bg-white border-l-4 border-blue-500',
       };
-      return classes[priority] || 'bg-gray-50 border border-gray-200';
+      return classes[priority] || 'bg-white border-l-4 border-gray-500';
     },
 
     getComponentScore(component) {
