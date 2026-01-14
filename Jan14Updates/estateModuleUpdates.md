@@ -463,18 +463,88 @@ const shouldShowSpouse = !excludedStatuses.includes(user.marital_status);
 
 ---
 
+## Net Worth Wealth Summary - Clickable Row Navigation
+
+### Requirement
+
+Make each line item in the Wealth Summary table a clickable link that navigates to the relevant section of the application.
+
+### Implementation
+
+**File:** `resources/js/components/NetWorth/WealthSummary.vue`
+
+#### Asset Row Links
+
+| Line Item | Destination |
+|-----------|-------------|
+| Property | `/net-worth/property` |
+| Investments | `/net-worth/investments` |
+| Cash & Savings | `/net-worth/cash` |
+| Pensions | `/net-worth/retirement` |
+| Business | `/net-worth/business` |
+| Chattels | `/net-worth/chattels` |
+
+#### Liability Row Links
+
+| Line Item | Destination |
+|-----------|-------------|
+| Mortgages | `/net-worth/property` (mortgages tied to properties) |
+| Loans | `/profile?section=liabilities` |
+| Credit Cards | `/profile?section=liabilities` |
+| Other | `/profile?section=liabilities` |
+
+#### Added Methods
+
+```javascript
+getAssetLink(type) {
+  const isPreview = this.$route.path.startsWith('/preview');
+  const basePath = isPreview ? '/preview/net-worth' : '/net-worth';
+  const routes = {
+    property: `${basePath}/property`,
+    investments: `${basePath}/investments`,
+    cash: `${basePath}/cash`,
+    pensions: `${basePath}/retirement`,
+    business: `${basePath}/business`,
+    chattels: `${basePath}/chattels`,
+  };
+  return routes[type] || basePath;
+},
+
+getLiabilityLink(type) {
+  if (type === 'mortgages') {
+    const basePath = isPreview ? '/preview/net-worth' : '/net-worth';
+    return `${basePath}/property`;
+  }
+  return '/profile?section=liabilities';
+},
+```
+
+#### UI/UX Features
+
+- **Full row clickable**: Entire row is wrapped in `<router-link>`, not just the label
+- **Hover effects**:
+  - Background: Light gray (`#f3f4f6`) covers entire row
+  - Label: Text turns blue (`#3b82f6`)
+  - Value cells: Background darkens to `#e5e7eb`
+- **Smooth transitions**: All hover effects animate over 0.15s
+- **Cursor**: Pointer cursor indicates clickability
+- **Preview mode support**: Automatically uses `/preview/net-worth/...` paths when in preview mode
+
+---
+
 ## Summary of Changes
 
 | Category | Changes |
 |----------|---------|
-| Files Modified | 30 |
+| Files Modified | 31 |
 | Files Deleted | 4 |
 | Files Created | 1 |
-| Vue Components Updated | 22 |
+| Vue Components Updated | 23 |
 | Store Modules Updated | 1 (spousePermission.js) |
 | Terminology Updates | "IHT" → "Inheritance Tax" throughout |
 | Data Sources Consolidated | 3 → 1 (actuarial_life_tables) |
 | Tax Calculation Columns | 3 → 5 (added -5 and +5 year projections) |
 | New Computed Properties | 11 (projection calculations + spouse visibility) |
-| New Methods | 4 (getCurrentAge, getProjectedValueMinus5, getProjectedValuePlus5, isSpouseRequirementFilled) |
+| New Methods | 6 (getCurrentAge, getProjectedValueMinus5, getProjectedValuePlus5, isSpouseRequirementFilled, getAssetLink, getLiabilityLink) |
 | Bug Fixes | 3 (Director's Loan terminology, Spouse requirement warning, Spouse data visibility for widowed/divorced) |
+| UX Enhancements | 1 (Wealth Summary clickable row navigation) |

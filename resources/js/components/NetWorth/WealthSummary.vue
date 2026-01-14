@@ -23,36 +23,36 @@
       </div>
 
       <!-- Asset Breakdown Rows -->
-      <div v-if="showAssetRow('property')" class="summary-row breakdown-row">
+      <router-link v-if="showAssetRow('property')" :to="getAssetLink('property')" class="summary-row breakdown-row clickable-row">
         <div class="row-label">Property</div>
         <div class="column-value">{{ formatCurrency(userBreakdown.property) }}</div>
         <div v-if="hasSpouse" class="column-value">{{ formatCurrency(spouseBreakdown.property) }}</div>
-      </div>
-      <div v-if="showAssetRow('investments')" class="summary-row breakdown-row">
+      </router-link>
+      <router-link v-if="showAssetRow('investments')" :to="getAssetLink('investments')" class="summary-row breakdown-row clickable-row">
         <div class="row-label">Investments</div>
         <div class="column-value">{{ formatCurrency(userBreakdown.investments) }}</div>
         <div v-if="hasSpouse" class="column-value">{{ formatCurrency(spouseBreakdown.investments) }}</div>
-      </div>
-      <div v-if="showAssetRow('cash')" class="summary-row breakdown-row">
+      </router-link>
+      <router-link v-if="showAssetRow('cash')" :to="getAssetLink('cash')" class="summary-row breakdown-row clickable-row">
         <div class="row-label">Cash & Savings</div>
         <div class="column-value">{{ formatCurrency(userBreakdown.cash) }}</div>
         <div v-if="hasSpouse" class="column-value">{{ formatCurrency(spouseBreakdown.cash) }}</div>
-      </div>
-      <div v-if="showAssetRow('pensions')" class="summary-row breakdown-row">
+      </router-link>
+      <router-link v-if="showAssetRow('pensions')" :to="getAssetLink('pensions')" class="summary-row breakdown-row clickable-row">
         <div class="row-label">Pensions</div>
         <div class="column-value">{{ formatCurrency(userBreakdown.pensions) }}</div>
         <div v-if="hasSpouse" class="column-value">{{ formatCurrency(spouseBreakdown.pensions) }}</div>
-      </div>
-      <div v-if="showAssetRow('business')" class="summary-row breakdown-row">
+      </router-link>
+      <router-link v-if="showAssetRow('business')" :to="getAssetLink('business')" class="summary-row breakdown-row clickable-row">
         <div class="row-label">Business</div>
         <div class="column-value">{{ formatCurrency(userBreakdown.business) }}</div>
         <div v-if="hasSpouse" class="column-value">{{ formatCurrency(spouseBreakdown.business) }}</div>
-      </div>
-      <div v-if="showAssetRow('chattels')" class="summary-row breakdown-row">
+      </router-link>
+      <router-link v-if="showAssetRow('chattels')" :to="getAssetLink('chattels')" class="summary-row breakdown-row clickable-row">
         <div class="row-label">Chattels</div>
         <div class="column-value">{{ formatCurrency(userBreakdown.chattels) }}</div>
         <div v-if="hasSpouse" class="column-value">{{ formatCurrency(spouseBreakdown.chattels) }}</div>
-      </div>
+      </router-link>
 
       <!-- Total Assets Row -->
       <div class="summary-row total-row assets-total-row">
@@ -74,26 +74,26 @@
       </div>
 
       <!-- Liability Breakdown Rows -->
-      <div v-if="showLiabilityRow('mortgages')" class="summary-row breakdown-row">
+      <router-link v-if="showLiabilityRow('mortgages')" :to="getLiabilityLink('mortgages')" class="summary-row breakdown-row clickable-row">
         <div class="row-label">Mortgages</div>
         <div class="column-value">{{ formatCurrency(userLiabilitiesBreakdown.mortgages) }}</div>
         <div v-if="hasSpouse" class="column-value">{{ formatCurrency(spouseLiabilitiesBreakdown.mortgages) }}</div>
-      </div>
-      <div v-if="showLiabilityRow('loans')" class="summary-row breakdown-row">
+      </router-link>
+      <router-link v-if="showLiabilityRow('loans')" :to="getLiabilityLink('loans')" class="summary-row breakdown-row clickable-row">
         <div class="row-label">Loans</div>
         <div class="column-value">{{ formatCurrency(userLiabilitiesBreakdown.loans) }}</div>
         <div v-if="hasSpouse" class="column-value">{{ formatCurrency(spouseLiabilitiesBreakdown.loans) }}</div>
-      </div>
-      <div v-if="showLiabilityRow('credit_cards')" class="summary-row breakdown-row">
+      </router-link>
+      <router-link v-if="showLiabilityRow('credit_cards')" :to="getLiabilityLink('credit_cards')" class="summary-row breakdown-row clickable-row">
         <div class="row-label">Credit Cards</div>
         <div class="column-value">{{ formatCurrency(userLiabilitiesBreakdown.credit_cards) }}</div>
         <div v-if="hasSpouse" class="column-value">{{ formatCurrency(spouseLiabilitiesBreakdown.credit_cards) }}</div>
-      </div>
-      <div v-if="showLiabilityRow('other')" class="summary-row breakdown-row">
+      </router-link>
+      <router-link v-if="showLiabilityRow('other')" :to="getLiabilityLink('other')" class="summary-row breakdown-row clickable-row">
         <div class="row-label">Other</div>
         <div class="column-value">{{ formatCurrency(userLiabilitiesBreakdown.other) }}</div>
         <div v-if="hasSpouse" class="column-value">{{ formatCurrency(spouseLiabilitiesBreakdown.other) }}</div>
-      </div>
+      </router-link>
 
       <!-- Total Liabilities Row -->
       <div class="summary-row total-row liabilities-total-row">
@@ -263,6 +263,35 @@ export default {
       const spouseValue = this.hasSpouse ? (this.spouseLiabilitiesBreakdown[key] || 0) : 0;
       return userValue > 0 || spouseValue > 0;
     },
+
+    getAssetLink(type) {
+      const isPreview = this.$route.path.startsWith('/preview');
+      const basePath = isPreview ? '/preview/net-worth' : '/net-worth';
+
+      const routes = {
+        property: `${basePath}/property`,
+        investments: `${basePath}/investments`,
+        cash: `${basePath}/cash`,
+        pensions: `${basePath}/retirement`,
+        business: `${basePath}/business`,
+        chattels: `${basePath}/chattels`,
+      };
+
+      return routes[type] || basePath;
+    },
+
+    getLiabilityLink(type) {
+      // Mortgages link to property tab, other liabilities go to profile
+      const isPreview = this.$route.path.startsWith('/preview');
+
+      if (type === 'mortgages') {
+        const basePath = isPreview ? '/preview/net-worth' : '/net-worth';
+        return `${basePath}/property`;
+      }
+
+      // Other liabilities go to profile liabilities section
+      return '/profile?section=liabilities';
+    },
   },
 };
 </script>
@@ -323,6 +352,28 @@ export default {
   font-weight: 500;
 }
 
+/* Clickable row styling */
+.clickable-row {
+  text-decoration: none;
+  cursor: pointer;
+  border-radius: 8px;
+  margin: 0 -8px;
+  padding: 8px;
+  transition: background-color 0.15s ease;
+}
+
+.clickable-row:hover {
+  background-color: #f3f4f6;
+}
+
+.clickable-row:hover .row-label {
+  color: #3b82f6;
+}
+
+.clickable-row:hover .column-value {
+  background-color: #e5e7eb;
+}
+
 /* Section header rows */
 .section-header-row {
   margin-top: 20px;
@@ -352,7 +403,11 @@ export default {
 
 /* Breakdown rows */
 .breakdown-row {
-  padding: 8px 0;
+  padding: 0;
+}
+
+.breakdown-row.clickable-row {
+  padding: 8px;
 }
 
 .breakdown-row .column-value {
@@ -363,6 +418,7 @@ export default {
   font-size: 14px;
   color: #111827;
   font-weight: 600;
+  transition: background-color 0.15s ease;
 }
 
 /* Total rows - consistent sizing */
