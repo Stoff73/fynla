@@ -30,14 +30,7 @@
     <!-- Strategies Content -->
     <template v-else-if="strategies">
       <!-- Summary Cards -->
-      <div class="summary-grid">
-        <!-- Current Status Card -->
-        <div :class="['summary-card', statusColorClass]">
-          <p class="summary-label">Retirement Readiness</p>
-          <p class="summary-value">{{ currentProbability }}%</p>
-          <p class="summary-subtitle">{{ strategies.current_status?.on_track_status }}</p>
-        </div>
-
+      <div class="summary-grid-2">
         <!-- Affordability Card -->
         <div class="summary-card blue">
           <p class="summary-label">Monthly Disposable Income</p>
@@ -173,13 +166,6 @@ export default {
       if (this.applicableStrategies.length === 0) return this.currentProbability;
       const lastStrategy = this.applicableStrategies[this.applicableStrategies.length - 1];
       return lastStrategy?.impact?.new_probability || this.currentProbability;
-    },
-
-    statusColorClass() {
-      const prob = this.currentProbability;
-      if (prob >= 95) return 'green';
-      if (prob >= 80) return 'amber';
-      return 'red';
     },
   },
 
@@ -356,6 +342,13 @@ export default {
   margin-bottom: 32px;
 }
 
+.summary-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin-bottom: 32px;
+}
+
 .summary-card {
   background: white;
   border-radius: 12px;
@@ -505,7 +498,8 @@ export default {
 }
 
 @media (max-width: 768px) {
-  .summary-grid {
+  .summary-grid,
+  .summary-grid-2 {
     grid-template-columns: 1fr;
   }
 

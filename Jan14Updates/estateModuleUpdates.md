@@ -532,19 +532,153 @@ getLiabilityLink(type) {
 
 ---
 
+## Retirement Dashboard Redesign
+
+### Requirement
+
+Redesign the Retirement dashboard to show key information at a glance:
+- Monte Carlo simulation of combined pension pots as main content
+- Pension cards in a compact sidebar on the left
+- Strategies summary below Monte Carlo (if there is a shortfall)
+- Retirement income summary on the right side
+- Auto-collapsed sidebar (icons only, like Cash tab)
+- **Preserve tab navigation** for detailed views (Future Value, Strategies, Retirement Income)
+
+### Implementation
+
+**Files Updated:**
+- `resources/js/components/NetWorth/PensionList.vue` - Complete redesign with tabs preserved
+- `resources/js/views/NetWorth/NetWorthDashboard.vue` - Auto-collapse sidebar on retirement tab
+
+### Tab Navigation (Preserved)
+
+The existing tabs remain for access to detailed views:
+
+| Tab | Content |
+|-----|---------|
+| Pensions | New 3-column overview layout (see below) |
+| Future Value | FutureValueTab component (detailed Monte Carlo analysis) |
+| Strategies | StrategiesTab component (full strategy recommendations) |
+| Retirement Income | RetirementIncomeTab component (detailed income breakdown) |
+
+### New 3-Column Layout (Pensions Tab Only)
+
+The "Pensions" tab now displays a 3-column overview:
+
+| Column | Width | Content |
+|--------|-------|---------|
+| Left | 3 cols | Pension sidebar (compact cards, totals, actions) |
+| Center | 6 cols | Monte Carlo projection + Strategies summary (if shortfall) |
+| Right | 3 cols | Retirement income summary |
+
+### Left Panel - Pension Summary
+
+- **Header**: "Pensions" title with Add button
+- **Risk Profile Link**: Quick access to risk profile page
+- **Total DC Value**: Summary card showing total DC pension value
+- **Compact Pension Cards**: Clickable cards for each pension:
+  - DC Pensions: Type badge, scheme name, current value
+  - DB Pensions: Type badge, scheme name, annual income
+  - State Pension: Forecast amount
+- **Upload Statement**: Button to upload pension statements
+
+### Center Panel - Projections & Strategies
+
+- **Summary Cards**: 2-column grid showing:
+  - Projected Pot at Retirement (median value)
+  - Retirement Readiness status (colour-coded)
+- **Monte Carlo Chart Card** (clickable → Future Value tab):
+  - PensionPotProjectionChart component
+  - Subtitle showing DC pension count, retirement age, risk level
+  - "View details →" link in header
+- **Strategies Section** (only shown if not on track, clickable → Strategies tab):
+  - Top 3 applicable strategies with numbered steps
+  - Each strategy shows title, description, and probability impact
+  - "View all X strategies →" link
+
+### Right Panel - Retirement Income
+
+Clickable card that navigates to Retirement Income tab:
+
+- **Target Annual Income**: Blue section showing target from retirement profile
+- **Guaranteed Income**: Green section showing DB pension + State Pension breakdown
+- **Income Gap/Surplus**: Red (shortfall) or green (surplus) section showing difference
+- **Fund Depletion Warning**: Amber warning if DC fund depletes before end of life expectancy
+- **Chevron icon**: Indicates card is clickable for more detail
+
+### Clickable Summary Cards
+
+Summary cards in the Pensions tab link to their respective detailed tabs:
+
+| Card | Destination Tab | Interaction |
+|------|-----------------|-------------|
+| Monte Carlo Chart | Future Value | Click anywhere on card or "View details" link |
+| Strategies Summary | Strategies | Click anywhere on card or "View all" link |
+| Retirement Income | Retirement Income | Click anywhere on card |
+
+### Sidebar Auto-Collapse
+
+**File:** `resources/js/views/NetWorth/NetWorthDashboard.vue`
+
+Updated the `currentSection` watcher to collapse sidebar on both cash and retirement tabs:
+
+```javascript
+watch: {
+  currentSection: {
+    immediate: true,
+    handler(section) {
+      // Auto-collapse sidebar on cash and retirement tabs for more screen space
+      if (section === 'cash' || section === 'retirement') {
+        this.sidebarCollapsed = true;
+      }
+    },
+  },
+},
+```
+
+### Data Flow
+
+```
+mounted() {
+  fetchRetirementData()     // Load DC/DB/State pensions
+  loadProjectionsAndStrategies() {
+    fetchProjections()       // Run Monte Carlo simulation
+    if (showStrategies) {
+      fetchStrategies()      // Only load strategies if not on track
+    }
+  }
+}
+```
+
+### Testing Notes
+
+1. Retirement tab should auto-collapse the sidebar to icons
+2. **Tab navigation still visible** at top (Pensions, Future Value, Strategies, Retirement Income)
+3. Left panel shows compact pension cards (click to view details)
+4. Center panel shows Monte Carlo chart with projections
+5. **Clicking Monte Carlo chart card navigates to Future Value tab**
+6. Strategies section only appears if retirement readiness is "Needs Attention" or "At Risk"
+7. **Clicking strategies card navigates to Strategies tab**
+8. Right panel shows income summary with gap/surplus calculation
+9. **Clicking income summary navigates to Retirement Income tab**
+10. Fund depletion warning appears if applicable
+11. Add Pension and Upload Statement buttons remain functional
+
+---
+
 ## Summary of Changes
 
 | Category | Changes |
 |----------|---------|
-| Files Modified | 31 |
+| Files Modified | 33 |
 | Files Deleted | 4 |
 | Files Created | 1 |
-| Vue Components Updated | 23 |
+| Vue Components Updated | 25 |
 | Store Modules Updated | 1 (spousePermission.js) |
 | Terminology Updates | "IHT" → "Inheritance Tax" throughout |
 | Data Sources Consolidated | 3 → 1 (actuarial_life_tables) |
 | Tax Calculation Columns | 3 → 5 (added -5 and +5 year projections) |
-| New Computed Properties | 11 (projection calculations + spouse visibility) |
-| New Methods | 6 (getCurrentAge, getProjectedValueMinus5, getProjectedValuePlus5, isSpouseRequirementFilled, getAssetLink, getLiabilityLink) |
+| New Computed Properties | 21 (projection calculations + spouse visibility + retirement income) |
+| New Methods | 9 (projection, navigation, formatting methods) |
 | Bug Fixes | 3 (Director's Loan terminology, Spouse requirement warning, Spouse data visibility for widowed/divorced) |
-| UX Enhancements | 1 (Wealth Summary clickable row navigation) |
+| UX Enhancements | 2 (Wealth Summary clickable rows, Retirement dashboard redesign) |

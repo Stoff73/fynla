@@ -145,8 +145,8 @@ export default {
     currentSection: {
       immediate: true,
       handler(section) {
-        // Auto-collapse sidebar on cash tab for more screen space
-        if (section === 'cash') {
+        // Auto-collapse sidebar on cash and retirement tabs for more screen space
+        if (section === 'cash' || section === 'retirement') {
           this.sidebarCollapsed = true;
         }
       },

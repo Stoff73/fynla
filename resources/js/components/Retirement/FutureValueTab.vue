@@ -24,10 +24,10 @@
           <p class="summary-value">{{ formatCurrency(projections.pension_pot_projection?.percentile_5_at_retirement) }}</p>
           <p class="summary-subtitle">Age {{ projections.pension_pot_projection?.retirement_age }} (95% probability)</p>
         </div>
-        <div :class="['summary-card', onTrackClass]">
-          <p class="summary-label">Retirement Readiness</p>
-          <p class="summary-value">{{ projections.income_drawdown?.on_track_status }}</p>
-          <p class="summary-subtitle">Based on {{ formatCurrency(projections.income_drawdown?.starting_pot) }} starting pot</p>
+        <div class="summary-card purple">
+          <p class="summary-label">Required Capital</p>
+          <p class="summary-value">{{ formatCurrency(requiredCapital) }}</p>
+          <p class="summary-subtitle">Based on 4.7% withdrawal rate</p>
         </div>
         <div class="summary-card amber">
           <p class="summary-label">Target Retirement Income</p>
@@ -125,15 +125,14 @@ export default {
   },
 
   computed: {
-    onTrackClass() {
-      const status = this.projections?.income_drawdown?.on_track_status;
-      if (status === 'Excellent' || status === 'On Track') {
-        return 'green';
-      }
-      if (status === 'Needs Attention') {
-        return 'amber';
-      }
-      return 'red';
+    targetIncome() {
+      return this.projections?.income_drawdown?.target_income || 0;
+    },
+
+    requiredCapital() {
+      // Calculate required capital based on 4.7% withdrawal rate
+      const withdrawalRate = 0.047;
+      return this.targetIncome / withdrawalRate;
     },
   },
 
@@ -247,6 +246,11 @@ export default {
 .summary-card.blue {
   background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
   border-color: #bfdbfe;
+}
+
+.summary-card.purple {
+  background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+  border-color: #c4b5fd;
 }
 
 .summary-card.green {

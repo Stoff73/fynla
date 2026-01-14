@@ -10,8 +10,9 @@
       @pension-updated="handlePensionUpdated"
     />
 
-    <!-- Pension List View (default) -->
+    <!-- Main Dashboard View -->
     <template v-else>
+      <!-- Header -->
       <div class="list-header">
         <div class="title-row">
           <h2 class="list-title">Pensions</h2>
@@ -41,147 +42,207 @@
         </div>
       </div>
 
-      <!-- Tab Navigation -->
-      <div class="tab-navigation">
-        <nav class="tabs-nav">
-          <button
-            v-for="tab in tabs"
-            :key="tab.id"
-            @click="activeTab = tab.id"
-            :class="['tab-button', activeTab === tab.id ? 'active' : '']"
-          >
-            {{ tab.label }}
-          </button>
-        </nav>
+      <!-- Loading State -->
+      <div v-if="loading" class="flex justify-center items-center py-12">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
 
-      <!-- Current Pensions Tab -->
-      <template v-if="activeTab === 'current'">
-        <div v-if="loading" class="loading-state">
-          <p>Loading pensions...</p>
-        </div>
-
-        <div v-else-if="error" class="error-state">
-          <p>{{ error }}</p>
-        </div>
-
-        <div v-else-if="allPensions.length === 0" class="empty-state">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="empty-icon">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        <p>No pensions found</p>
-        <p class="empty-subtitle">Add your first pension to track your retirement savings</p>
-      </div>
-
-      <div v-else class="pensions-grid">
-        <!-- DC Pensions -->
-        <div
-          v-for="pension in dcPensions"
-          :key="'dc-' + pension.id"
-          @click="selectPension(pension, 'dc')"
-          class="pension-card"
-        >
-          <div class="card-header">
-            <span class="badge badge-dc">
-              {{ formatDCPensionType(pension.pension_type) }}
-            </span>
-            <RiskBadge
-              v-if="pension.risk_preference"
-              :level="pension.risk_preference"
-              size="sm"
-              :abbreviated="true"
-              :has-custom-risk="pension.has_custom_risk"
-              class="risk-badge-right"
-            />
+      <!-- Error State -->
+      <div
+        v-else-if="error"
+        class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6"
+      >
+        <div class="flex">
+          <div class="flex-shrink-0">
+            <svg class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+            </svg>
           </div>
-          <div class="card-content">
-            <h4 class="pension-scheme">{{ pension.scheme_name || 'Defined Contribution' }}</h4>
-            <p class="pension-provider-text">{{ pension.provider || '' }}</p>
-            <div class="pension-details">
-              <div class="detail-row">
-                <span class="detail-label">Current Value</span>
-                <span class="detail-value">{{ formatCurrency(pension.current_fund_value) }}</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label">Monthly Contribution</span>
-                <span class="detail-value">{{ formatCurrency(calculateMonthlyContribution(pension)) }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- DB Pensions -->
-        <div
-          v-for="pension in dbPensions"
-          :key="'db-' + pension.id"
-          @click="selectPension(pension, 'db')"
-          class="pension-card"
-        >
-          <div class="card-header">
-            <span class="badge badge-db">
-              {{ formatDBPensionType(pension.scheme_type) }}
-            </span>
-          </div>
-          <div class="card-content">
-            <h4 class="pension-scheme">{{ pension.scheme_name || 'Defined Benefit' }}</h4>
-            <p class="pension-provider-text">{{ pension.employer || '' }}</p>
-            <div class="pension-details">
-              <div class="detail-row">
-                <span class="detail-label">Annual Income</span>
-                <span class="detail-value">{{ formatCurrency(pension.accrued_annual_pension) }}<span class="text-xs text-gray-500">/yr</span></span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label">Lump Sum</span>
-                <span class="detail-value">{{ formatCurrency(pension.lump_sum_entitlement || 0) }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- State Pension -->
-        <div
-          v-if="statePension"
-          @click="selectPension(statePension, 'state')"
-          class="pension-card"
-        >
-          <div class="card-header">
-            <span class="badge badge-state">State Pension</span>
-          </div>
-          <div class="card-content">
-            <h4 class="pension-scheme">UK State Pension</h4>
-            <p class="pension-provider-text">State Retirement Pension</p>
-            <div class="pension-details">
-              <div class="detail-row">
-                <span class="detail-label">Forecast</span>
-                <span class="detail-value">{{ formatCurrency(statePension.state_pension_forecast_annual || 0) }}<span class="text-xs text-gray-500">/yr</span></span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label">NI Years</span>
-                <span class="detail-value">{{ statePension.ni_years_completed || 0 }} / 35</span>
-              </div>
-            </div>
+          <div class="ml-3">
+            <p class="text-sm text-red-700">{{ error }}</p>
           </div>
         </div>
       </div>
 
-        <!-- Pension Wealth Summary -->
-        <div v-if="allPensions.length > 0" class="wealth-summary">
-          <h3 class="summary-title">Pension Wealth Summary</h3>
-          <div class="summary-grid">
-            <div class="summary-item dc">
-              <p class="summary-label">Money Purchase Pensions</p>
-              <p class="summary-value">{{ formatCurrency(dcPensionValue) }}</p>
-              <p class="summary-count">{{ dcPensions.length }} pension{{ dcPensions.length !== 1 ? 's' : '' }}</p>
+      <!-- Current Pensions Tab - New 3-Column Layout -->
+      <template v-else-if="activeTab === 'current'">
+        <!-- Main 3-Column Layout -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <!-- Left Panel - Pension Cards (3 cols) -->
+          <div class="lg:col-span-3 pension-cards-column">
+            <!-- DC Pensions -->
+            <div
+              v-for="pension in dcPensions"
+              :key="'dc-' + pension.id"
+              @click="selectPension(pension, 'dc')"
+              class="pension-card-standalone"
+            >
+              <div class="card-compact-header">
+                <span class="badge badge-dc">{{ formatDCPensionType(pension.pension_type) }}</span>
+                <RiskBadge
+                  v-if="pension.risk_preference"
+                  :level="pension.risk_preference"
+                  size="xs"
+                  :abbreviated="true"
+                />
+              </div>
+              <div class="card-compact-name">{{ pension.scheme_name || 'DC Pension' }}</div>
+              <div class="card-compact-value">{{ formatCurrency(pension.current_fund_value) }}</div>
             </div>
-            <div class="summary-item db">
-              <p class="summary-label">Final Salary Pensions</p>
-              <p class="summary-value">{{ formatCurrency(dbPensionIncome) }}<span class="text-sm text-gray-500">/year</span></p>
-              <p class="summary-count">{{ dbPensions.length }} scheme{{ dbPensions.length !== 1 ? 's' : '' }}</p>
+
+            <!-- DB Pensions -->
+            <div
+              v-for="pension in dbPensions"
+              :key="'db-' + pension.id"
+              @click="selectPension(pension, 'db')"
+              class="pension-card-standalone"
+            >
+              <div class="card-compact-header">
+                <span class="badge badge-db">{{ formatDBPensionType(pension.scheme_type) }}</span>
+              </div>
+              <div class="card-compact-name">{{ pension.scheme_name || 'DB Pension' }}</div>
+              <div class="card-compact-value">{{ formatCurrency(pension.accrued_annual_pension) }}<span class="per-year">/yr</span></div>
             </div>
-            <div class="summary-item state">
-              <p class="summary-label">State Pension</p>
-              <p class="summary-value">{{ formatCurrency(statePensionForecast) }}<span class="text-sm text-gray-500">/year</span></p>
-              <p class="summary-count">{{ statePension?.ni_years_completed || 0 }} NI years</p>
+
+            <!-- State Pension -->
+            <div
+              v-if="statePension"
+              @click="selectPension(statePension, 'state')"
+              class="pension-card-standalone"
+            >
+              <div class="card-compact-header">
+                <span class="badge badge-state">State Pension</span>
+              </div>
+              <div class="card-compact-name">UK State Pension</div>
+              <div class="card-compact-value">{{ formatCurrency(statePension.state_pension_forecast_annual || 0) }}<span class="per-year">/yr</span></div>
+            </div>
+
+            <!-- Empty State -->
+            <div v-if="allPensions.length === 0" class="empty-standalone">
+              <p>No pensions added</p>
+              <button @click="showPensionForm = true" class="add-first-btn">Add your first pension</button>
+            </div>
+
+            <!-- Retirement Income Card -->
+            <div class="income-card-standalone target clickable" @click="activeTab = 'income'">
+              <div class="income-card-label">Target Annual Income</div>
+              <div class="income-card-value">{{ formatCurrency(targetIncome) }}</div>
+              <div class="income-card-divider"></div>
+              <div class="income-card-label">Required Capital</div>
+              <div class="income-card-value-secondary">{{ formatCurrency(requiredCapital) }}</div>
+              <div class="income-card-sublabel">Based on 4.7% withdrawal rate</div>
+            </div>
+
+            <!-- Fund Depletion Warning -->
+            <div v-if="fundDepletionAge" class="depletion-warning-standalone">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+              </svg>
+              <span>DC fund depletes at age {{ fundDepletionAge }}</span>
+            </div>
+          </div>
+
+          <!-- Center/Right Panel - Projections & Strategies (9 cols) -->
+          <div class="lg:col-span-9 space-y-6">
+            <!-- Projections Loading -->
+            <div v-if="projectionsLoading" class="projection-loading">
+              <div class="spinner"></div>
+              <p>Running Monte Carlo simulation...</p>
+            </div>
+
+            <!-- No DC Pensions for Projections -->
+            <div v-else-if="!projections || !projections.pension_pot_projection?.dc_pension_count" class="empty-projections">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="empty-icon">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+              </svg>
+              <p>Add DC pensions to see projections</p>
+              <p class="empty-subtitle">Monte Carlo simulations show how your pension pot may grow over time</p>
+            </div>
+
+            <!-- Projections Content -->
+            <template v-else>
+              <!-- Monte Carlo Chart - Clickable to Future Value Tab -->
+              <div class="chart-card clickable" @click="activeTab = 'future'">
+                <div class="chart-header">
+                  <h3 class="chart-title">Pension Pot Projection</h3>
+                  <span class="risk-badge-corner">{{ formatRiskLevel(projections.pension_pot_projection?.risk_level) }} Risk</span>
+                </div>
+                <div class="summary-row">
+                  <div class="summary-item blue">
+                    <span class="summary-item-label">Pension Pot Value</span>
+                    <span class="summary-item-value">{{ formatCurrency(dcPensionValue) }}</span>
+                  </div>
+                  <div class="summary-item purple">
+                    <span class="summary-item-label">Projected Value (95%)</span>
+                    <span class="summary-item-value">{{ formatCurrency(projections.pension_pot_projection?.percentile_5_at_retirement) }}</span>
+                  </div>
+                </div>
+                <PensionPotProjectionChart :data="projections.pension_pot_projection" />
+                <p class="chart-footer">
+                  Monte Carlo simulation for {{ projections.pension_pot_projection?.dc_pension_count }} DC pension(s) to age {{ projections.pension_pot_projection?.retirement_age }}
+                </p>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- Strategies Section - Full Width -->
+        <div v-if="showStrategies && !projectionsLoading" class="strategies-section clickable" @click="activeTab = 'strategies'">
+          <div class="strategies-header">
+            <div class="strategies-header-left">
+              <h3 class="strategies-title">Recommended Strategies</h3>
+              <p class="strategies-subtitle">Actions to improve your retirement readiness</p>
+            </div>
+            <div class="view-more">
+              <span>View all</span>
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+              </svg>
+            </div>
+          </div>
+
+          <!-- Strategy Loading -->
+          <div v-if="strategiesLoading" class="strategies-loading">
+            <div class="spinner-small"></div>
+            <span>Analysing strategies...</span>
+          </div>
+
+          <!-- On Track Banner -->
+          <div v-else-if="strategiesOnTrack" class="on-track-banner">
+            <div class="on-track-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div class="on-track-text">
+              <h4>You're On Track!</h4>
+              <p>{{ strategiesProbability }}% probability of achieving your retirement goals</p>
+            </div>
+          </div>
+
+          <!-- Strategy Summary -->
+          <div v-else-if="applicableStrategies.length > 0" class="strategy-summary">
+            <div class="strategy-summary-content">
+              <div class="strategy-summary-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18" />
+                </svg>
+              </div>
+              <div class="strategy-summary-text">
+                <h4>{{ primaryStrategyMessage }}</h4>
+                <p class="strategy-probability">
+                  This would increase your success probability from
+                  <span class="prob-current">{{ strategiesProbability }}%</span>
+                  to
+                  <span class="prob-projected">{{ primaryStrategyProbability }}%</span>
+                </p>
+              </div>
+            </div>
+            <div class="strategy-cta">
+              <span>View strategies</span>
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+              </svg>
             </div>
           </div>
         </div>
@@ -236,6 +297,7 @@ import PensionDetailInline from './PensionDetailInline.vue';
 import UnifiedPensionForm from '@/components/Retirement/UnifiedPensionForm.vue';
 import DocumentUploadModal from '@/components/Shared/DocumentUploadModal.vue';
 import RiskBadge from '@/components/Shared/RiskBadge.vue';
+import PensionPotProjectionChart from '@/components/Retirement/PensionPotProjectionChart.vue';
 import FutureValueTab from '@/components/Retirement/FutureValueTab.vue';
 import StrategiesTab from '@/components/Retirement/StrategiesTab.vue';
 import RetirementIncomeTab from '@/components/Retirement/RetirementIncomeTab.vue';
@@ -251,6 +313,7 @@ export default {
     UnifiedPensionForm,
     DocumentUploadModal,
     RiskBadge,
+    PensionPotProjectionChart,
     FutureValueTab,
     StrategiesTab,
     RetirementIncomeTab,
@@ -259,12 +322,6 @@ export default {
   data() {
     return {
       activeTab: 'current',
-      tabs: [
-        { id: 'current', label: 'Pensions' },
-        { id: 'future', label: 'Future Value' },
-        { id: 'strategies', label: 'Strategies' },
-        { id: 'income', label: 'Retirement Income' },
-      ],
       selectedPension: null,
       selectedPensionType: null,
       showPensionForm: false,
@@ -276,7 +333,18 @@ export default {
   },
 
   computed: {
-    ...mapState('retirement', ['dcPensions', 'dbPensions', 'statePension', 'loading', 'error', 'projections', 'projectionsLoading']),
+    ...mapState('retirement', [
+      'dcPensions',
+      'dbPensions',
+      'statePension',
+      'loading',
+      'error',
+      'projections',
+      'projectionsLoading',
+      'strategies',
+      'strategiesLoading',
+      'profile',
+    ]),
 
     allPensions() {
       const all = [...this.dcPensions, ...this.dbPensions];
@@ -297,6 +365,108 @@ export default {
     statePensionForecast() {
       return parseFloat(this.statePension?.state_pension_forecast_annual || 0);
     },
+
+    guaranteedIncome() {
+      return this.dbPensionIncome + this.statePensionForecast;
+    },
+
+    targetIncome() {
+      return this.projections?.income_drawdown?.target_income || this.profile?.target_retirement_income || 35000;
+    },
+
+    requiredCapital() {
+      // Calculate required capital based on 4.7% withdrawal rate
+      const withdrawalRate = 0.047;
+      return this.targetIncome / withdrawalRate;
+    },
+
+    incomeGap() {
+      const sustainable = this.projections?.income_drawdown?.sustainable_income || 0;
+      const total = this.guaranteedIncome + sustainable;
+      return total - this.targetIncome;
+    },
+
+    incomeGapClass() {
+      if (this.incomeGap >= 0) return 'surplus';
+      return 'shortfall';
+    },
+
+    incomeGapLabel() {
+      return this.incomeGap >= 0 ? 'Income Surplus' : 'Income Shortfall';
+    },
+
+    incomeGapDescription() {
+      if (this.incomeGap >= 0) {
+        return 'Above target income';
+      }
+      return 'Below target income';
+    },
+
+    fundDepletionAge() {
+      return this.projections?.income_drawdown?.fund_depletion_age || null;
+    },
+
+    onTrackClass() {
+      const status = this.projections?.income_drawdown?.on_track_status;
+      if (status === 'Excellent' || status === 'On Track') return 'green';
+      if (status === 'Needs Attention') return 'amber';
+      return 'red';
+    },
+
+    showStrategies() {
+      const status = this.projections?.income_drawdown?.on_track_status;
+      return status !== 'Excellent' && status !== 'On Track';
+    },
+
+    strategiesOnTrack() {
+      return (this.strategies?.current_status?.probability || 0) >= 95;
+    },
+
+    strategiesProbability() {
+      return this.strategies?.current_status?.probability || 0;
+    },
+
+    applicableStrategies() {
+      return this.strategies?.strategies?.filter(s => s.applicable) || [];
+    },
+
+    primaryStrategy() {
+      return this.applicableStrategies[0] || null;
+    },
+
+    primaryStrategyMessage() {
+      const strategy = this.primaryStrategy;
+      if (!strategy) return 'No strategies available';
+
+      // Generate human-readable message based on strategy type
+      if (strategy.type === 'retirement_age') {
+        const currentAge = strategy.current_value;
+        const recommendedAge = strategy.recommended_value;
+        const yearsDiff = recommendedAge - currentAge;
+        if (yearsDiff > 0) {
+          return `Retire ${yearsDiff} year${yearsDiff > 1 ? 's' : ''} later (at age ${recommendedAge}) to achieve your target`;
+        }
+        return strategy.description;
+      }
+
+      if (strategy.type === 'increase_contributions') {
+        const additionalMonthly = strategy.impact?.additional_monthly || 0;
+        return `Increase pension contributions by ${this.formatCurrency(additionalMonthly)}/month`;
+      }
+
+      if (strategy.type === 'income_target') {
+        const recommendedIncome = strategy.recommended_value;
+        return `Adjust your target retirement income to ${this.formatCurrency(recommendedIncome)}/year`;
+      }
+
+      // Fallback to the description from backend
+      return strategy.description || strategy.title;
+    },
+
+    primaryStrategyProbability() {
+      const strategy = this.primaryStrategy;
+      return strategy?.impact?.new_probability || this.strategiesProbability;
+    },
   },
 
   watch: {
@@ -308,7 +478,14 @@ export default {
   },
 
   methods: {
-    ...mapActions('retirement', ['fetchRetirementData', 'createDCPension', 'createDBPension', 'updateStatePension', 'fetchProjections']),
+    ...mapActions('retirement', [
+      'fetchRetirementData',
+      'fetchProjections',
+      'fetchStrategies',
+      'createDCPension',
+      'createDBPension',
+      'updateStatePension',
+    ]),
     ...mapActions('netWorth', ['setDetailView']),
 
     async loadProjections() {
@@ -330,7 +507,6 @@ export default {
       this.selectedPensionType = null;
       this.setDetailView(false);
 
-      // In preview mode, don't reload from API (changes are session-only)
       const isPreview = this.$store.getters['preview/isPreviewMode'];
       if (!isPreview) {
         this.fetchRetirementData();
@@ -349,8 +525,6 @@ export default {
     },
 
     handlePensionUpdated(updatedPension) {
-      // In preview mode, update the selected pension locally
-      // This keeps the changes visible in the UI until page refresh
       this.selectedPension = updatedPension;
     },
 
@@ -372,6 +546,7 @@ export default {
           await this.createDBPension(data);
         }
         await this.fetchRetirementData();
+        await this.loadProjectionsAndStrategies();
         this.successMessage = 'Pension saved successfully';
         setTimeout(() => {
           this.successMessage = null;
@@ -390,19 +565,18 @@ export default {
     async handleDocumentSaved() {
       this.showUploadModal = false;
       await this.fetchRetirementData();
+      await this.loadProjectionsAndStrategies();
     },
 
-    calculateMonthlyContribution(pension) {
-      // For occupational pensions, calculate from percentages
-      if (pension.employee_contribution_percent && pension.annual_salary) {
-        const employeeMonthly = (pension.annual_salary * pension.employee_contribution_percent / 100) / 12;
-        const employerMonthly = pension.employer_contribution_percent
-          ? (pension.annual_salary * pension.employer_contribution_percent / 100) / 12
-          : 0;
-        return employeeMonthly + employerMonthly;
+    async loadProjectionsAndStrategies() {
+      try {
+        await this.fetchProjections();
+        if (this.showStrategies) {
+          await this.fetchStrategies();
+        }
+      } catch (error) {
+        console.error('Failed to load projections/strategies:', error);
       }
-      // For SIPPs and personal pensions, use the fixed monthly amount
-      return pension.monthly_contribution_amount || 0;
     },
 
     formatDCPensionType(type) {
@@ -413,7 +587,7 @@ export default {
         stakeholder: 'Stakeholder',
         workplace: 'Workplace',
       };
-      return types[type] || 'DC Pension';
+      return types[type] || 'DC';
     },
 
     formatDBPensionType(type) {
@@ -422,13 +596,25 @@ export default {
         career_average: 'Career Average',
         public_sector: 'Public Sector',
       };
-      return types[type] || 'DB Pension';
+      return types[type] || 'DB';
+    },
+
+    formatRiskLevel(level) {
+      const levels = {
+        low: 'Low',
+        lower_medium: 'Lower-Medium',
+        medium: 'Medium',
+        upper_medium: 'Upper-Medium',
+        high: 'High',
+      };
+      return levels[level] || 'Medium';
     },
   },
 
   async mounted() {
     this.setDetailView(false);
     await this.fetchRetirementData();
+    await this.loadProjectionsAndStrategies();
   },
 };
 </script>
@@ -436,40 +622,6 @@ export default {
 <style scoped>
 .pension-list {
   padding: 24px;
-}
-
-/* Tab Navigation */
-.tab-navigation {
-  margin-bottom: 24px;
-}
-
-.tabs-nav {
-  display: flex;
-  gap: 8px;
-  border-bottom: 1px solid #e5e7eb;
-  padding-bottom: 0;
-}
-
-.tab-button {
-  padding: 12px 24px;
-  font-size: 14px;
-  font-weight: 600;
-  color: #6b7280;
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid transparent;
-  cursor: pointer;
-  transition: all 0.2s;
-  margin-bottom: -1px;
-}
-
-.tab-button:hover {
-  color: #3b82f6;
-}
-
-.tab-button.active {
-  color: #3b82f6;
-  border-bottom-color: #3b82f6;
 }
 
 .list-header {
@@ -565,46 +717,124 @@ export default {
   height: 20px;
 }
 
-.pensions-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 20px;
-  margin-bottom: 24px;
+/* Left Column - Pension Cards */
+.pension-cards-column {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.pension-card {
+/* Standalone Pension Cards */
+.pension-card-standalone {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.15s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.pension-card-standalone:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+  transform: translateY(-1px);
+}
+
+/* Empty Standalone State */
+.empty-standalone {
+  background: white;
+  border: 2px dashed #d1d5db;
+  border-radius: 12px;
+  padding: 32px 20px;
+  text-align: center;
+}
+
+.empty-standalone p {
+  color: #6b7280;
+  font-size: 14px;
+  margin: 0 0 12px 0;
+}
+
+/* Standalone Income Cards */
+.income-card-standalone {
   background: white;
   border-radius: 12px;
-  border: 1px solid #e5e7eb;
-  padding: 20px;
+  padding: 16px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-.pension-card:hover {
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  transform: translateY(-2px);
-  border-color: #3b82f6;
+.income-card-standalone:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
 }
 
-.card-header {
+.income-card-standalone.target {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border: 1px solid #bfdbfe;
+}
+
+.income-card-standalone.surplus {
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  border: 1px solid #a7f3d0;
+}
+
+.income-card-standalone.shortfall {
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  border: 1px solid #fecaca;
+}
+
+.income-card-divider {
+  height: 1px;
+  background: rgba(0, 0, 0, 0.1);
+  margin: 12px 0;
+}
+
+.income-card-value-secondary {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1e40af;
+}
+
+.depletion-warning-standalone {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 12px;
-  gap: 8px;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-.risk-badge-right {
-  margin-left: auto;
+.depletion-warning-standalone svg {
+  width: 20px;
+  height: 20px;
+  color: #b45309;
+  flex-shrink: 0;
+}
+
+.depletion-warning-standalone span {
+  font-size: 13px;
+  color: #92400e;
+  font-weight: 500;
+}
+
+.card-compact-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
 }
 
 .badge {
   display: inline-block;
-  padding: 4px 10px;
-  font-size: 11px;
+  padding: 2px 8px;
+  font-size: 10px;
   font-weight: 600;
-  border-radius: 6px;
+  border-radius: 4px;
 }
 
 .badge-dc {
@@ -622,74 +852,95 @@ export default {
   color: #065f46;
 }
 
-.card-content {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.pension-scheme {
-  font-size: 18px;
-  font-weight: 700;
+.card-compact-name {
+  font-size: 14px;
+  font-weight: 600;
   color: #111827;
-  margin: 0;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.pension-provider-text {
-  font-size: 14px;
-  color: #6b7280;
-  margin: 0;
-  min-height: 20px;
-}
-
-.pension-details {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 8px;
-  padding-top: 12px;
-  border-top: 1px solid #e5e7eb;
-}
-
-.detail-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.detail-label {
-  font-size: 14px;
-  color: #6b7280;
-}
-
-.detail-value {
+.card-compact-value {
   font-size: 16px;
-  color: #111827;
   font-weight: 700;
+  color: #3b82f6;
 }
 
-.loading-state,
-.error-state,
-.empty-state {
+.per-year {
+  font-size: 11px;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+/* Empty Compact State */
+.empty-compact {
   text-align: center;
-  padding: 60px 20px;
+  padding: 24px 16px;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 2px dashed #d1d5db;
 }
 
-.loading-state p,
-.error-state p {
+.empty-compact p {
   color: #6b7280;
-  font-size: 16px;
-  margin: 0;
+  font-size: 14px;
+  margin: 0 0 12px 0;
 }
 
-.error-state p {
-  color: #ef4444;
+.add-first-btn {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
 }
 
-.empty-state {
+.add-first-btn:hover {
+  background: #2563eb;
+}
+
+/* Center Panel - Projections */
+.projection-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
   background: white;
   border-radius: 12px;
+  border: 1px solid #e5e7eb;
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 3px solid #e5e7eb;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.projection-loading p {
+  color: #6b7280;
+  font-size: 16px;
+  margin: 0;
+}
+
+.empty-projections {
+  text-align: center;
   padding: 80px 40px;
+  background: white;
+  border-radius: 12px;
   border: 2px dashed #d1d5db;
 }
 
@@ -700,7 +951,7 @@ export default {
   margin: 0 auto 16px;
 }
 
-.empty-state p {
+.empty-projections p {
   color: #6b7280;
   font-size: 18px;
   font-weight: 600;
@@ -713,64 +964,419 @@ export default {
   font-weight: 400;
 }
 
-/* Wealth Summary */
-.wealth-summary {
+/* Clickable Cards */
+.clickable {
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.clickable:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+/* Chart Card */
+.chart-card {
   background: white;
   border-radius: 12px;
   padding: 24px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   border: 1px solid #e5e7eb;
 }
 
-.summary-title {
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.chart-title {
   font-size: 18px;
   font-weight: 600;
-  color: #111827;
-  margin: 0 0 20px 0;
-}
-
-.summary-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 24px;
-}
-
-.summary-item {
-  padding-left: 16px;
-  border-left: 4px solid;
-}
-
-.summary-item.dc {
-  border-left-color: #3b82f6;
-}
-
-.summary-item.db {
-  border-left-color: #8b5cf6;
-}
-
-.summary-item.state {
-  border-left-color: #10b981;
-}
-
-.summary-label {
-  font-size: 14px;
-  color: #6b7280;
-  margin: 0 0 4px 0;
-}
-
-.summary-value {
-  font-size: 24px;
-  font-weight: 700;
   color: #111827;
   margin: 0;
 }
 
-.summary-count {
-  font-size: 13px;
-  color: #9ca3af;
-  margin: 4px 0 0 0;
+.risk-badge-corner {
+  display: inline-block;
+  padding: 4px 10px;
+  background: #eff6ff;
+  color: #2563eb;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
 }
 
+.chart-footer {
+  font-size: 13px;
+  color: #6b7280;
+  text-align: center;
+  margin: 16px 0 0 0;
+}
+
+.view-more {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #3b82f6;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.view-more svg {
+  width: 16px;
+  height: 16px;
+}
+
+.view-more-small {
+  color: #9ca3af;
+}
+
+.view-more-small svg {
+  width: 20px;
+  height: 20px;
+}
+
+.clickable:hover .view-more-small {
+  color: #3b82f6;
+}
+
+/* Summary Row */
+.summary-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.summary-item {
+  padding: 12px 16px;
+  border-radius: 8px;
+}
+
+.summary-item.blue {
+  background: #eff6ff;
+}
+
+.summary-item.purple {
+  background: #f5f3ff;
+}
+
+.summary-item.green {
+  background: #ecfdf5;
+}
+
+.summary-item.amber {
+  background: #fffbeb;
+}
+
+.summary-item.red {
+  background: #fef2f2;
+}
+
+.summary-item-label {
+  display: block;
+  font-size: 12px;
+  color: #6b7280;
+  margin-bottom: 4px;
+}
+
+.summary-item-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+}
+
+/* Strategies Section - Full Width */
+.strategies-section {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  border: 1px solid #e5e7eb;
+  margin-top: 24px;
+}
+
+.strategies-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+.strategies-header-left {
+  flex: 1;
+}
+
+.strategies-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 4px 0;
+}
+
+.strategies-subtitle {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.strategies-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #6b7280;
+  font-size: 14px;
+  padding: 20px;
+}
+
+.spinner-small {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #e5e7eb;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.on-track-banner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  border: 1px solid #a7f3d0;
+  border-radius: 10px;
+}
+
+.on-track-icon {
+  width: 48px;
+  height: 48px;
+  background: #10b981;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.on-track-icon svg {
+  width: 28px;
+  height: 28px;
+  color: white;
+}
+
+.on-track-text h4 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #065f46;
+  margin: 0 0 4px 0;
+}
+
+.on-track-text p {
+  font-size: 14px;
+  color: #047857;
+  margin: 0;
+}
+
+/* Strategy Summary */
+.strategy-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 20px;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+}
+
+.strategy-summary-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+}
+
+.strategy-summary-icon {
+  width: 48px;
+  height: 48px;
+  background: #3b82f6;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.strategy-summary-icon svg {
+  width: 26px;
+  height: 26px;
+  color: white;
+}
+
+.strategy-summary-text h4 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e40af;
+  margin: 0 0 6px 0;
+}
+
+.strategy-probability {
+  font-size: 14px;
+  color: #3b82f6;
+  margin: 0;
+}
+
+.prob-current {
+  font-weight: 600;
+  color: #dc2626;
+}
+
+.prob-projected {
+  font-weight: 600;
+  color: #059669;
+}
+
+.strategy-cta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #2563eb;
+  font-size: 14px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.strategy-cta svg {
+  width: 16px;
+  height: 16px;
+}
+
+@media (max-width: 768px) {
+  .strategy-summary {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .strategy-cta {
+    align-self: flex-end;
+  }
+}
+
+/* Right Panel - Income Sidebar */
+.income-sidebar {
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  padding: 20px;
+  position: sticky;
+  top: 100px;
+}
+
+.income-link {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  color: #3b82f6;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 12px;
+}
+
+.income-link svg {
+  width: 16px;
+  height: 16px;
+}
+
+.income-card {
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.income-card.target {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border: 1px solid #bfdbfe;
+}
+
+.income-card.guaranteed {
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  border: 1px solid #a7f3d0;
+}
+
+.income-card.surplus {
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  border: 1px solid #a7f3d0;
+}
+
+.income-card.shortfall {
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  border: 1px solid #fecaca;
+}
+
+.income-card-label {
+  font-size: 13px;
+  color: #6b7280;
+  margin-bottom: 4px;
+}
+
+.income-card-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.income-card-sublabel {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+.income-breakdown {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.breakdown-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: #374151;
+  margin-bottom: 4px;
+}
+
+.breakdown-row:last-child {
+  margin-bottom: 0;
+}
+
+/* Depletion Warning */
+.depletion-warning {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+}
+
+.depletion-warning svg {
+  width: 20px;
+  height: 20px;
+  color: #b45309;
+  flex-shrink: 0;
+}
+
+.depletion-warning span {
+  font-size: 13px;
+  color: #92400e;
+  font-weight: 500;
+}
+
+/* Notifications */
 .notification {
   position: fixed;
   top: 20px;
@@ -805,6 +1411,14 @@ export default {
   }
 }
 
+/* Mobile responsive */
+@media (max-width: 1024px) {
+  .pension-sidebar,
+  .income-sidebar {
+    position: static;
+  }
+}
+
 @media (max-width: 768px) {
   .pension-list {
     padding: 16px;
@@ -826,7 +1440,7 @@ export default {
     justify-content: center;
   }
 
-  .pensions-grid {
+  .summary-row {
     grid-template-columns: 1fr;
   }
 }
