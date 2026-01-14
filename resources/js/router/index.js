@@ -43,6 +43,7 @@ const AdminPanel = () => import('@/views/Admin/AdminPanel.vue');
 const Version = () => import('@/views/Version.vue');
 const Help = () => import('@/views/Help.vue');
 const DebugEnv = () => import('@/views/DebugEnv.vue');
+const ValuableInfo = () => import('@/views/ValuableInfo.vue');
 
 const routes = [
   // Public routes
@@ -102,6 +103,18 @@ const routes = [
     name: 'Settings',
     component: Settings,
     meta: { requiresAuth: true },
+  },
+  {
+    path: '/valuable-info',
+    name: 'ValuableInfo',
+    component: ValuableInfo,
+    meta: {
+      requiresAuth: true,
+      breadcrumb: [
+        { label: 'Home', path: '/dashboard' },
+        { label: 'Valuable Info', path: '/valuable-info' },
+      ],
+    },
   },
   {
     path: '/profile',

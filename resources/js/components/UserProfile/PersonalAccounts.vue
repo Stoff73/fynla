@@ -7,9 +7,9 @@
       </p>
     </div>
 
-    <!-- Period Selector and Calculate Button -->
+    <!-- Period Selector -->
     <div class="card p-4 mb-6">
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label for="start_date" class="block text-body-sm font-medium text-gray-700 mb-1">
             Start Date
@@ -19,6 +19,8 @@
             v-model="period.start_date"
             type="date"
             class="input-field"
+            :max="today"
+            @change="calculateAccounts"
           />
         </div>
         <div>
@@ -30,6 +32,8 @@
             v-model="period.end_date"
             type="date"
             class="input-field"
+            :max="today"
+            @change="calculateAccounts"
           />
         </div>
         <div>
@@ -41,17 +45,9 @@
             v-model="period.as_of_date"
             type="date"
             class="input-field"
+            :max="today"
+            @change="calculateAccounts"
           />
-        </div>
-        <div class="flex items-end">
-          <button
-            @click="calculateAccounts"
-            :disabled="loading"
-            class="btn-primary w-full"
-          >
-            <span v-if="!loading">Calculate</span>
-            <span v-else>Calculating...</span>
-          </button>
         </div>
       </div>
     </div>
@@ -153,6 +149,9 @@ export default {
     const activeTab = ref('balance_sheet');
     const loading = computed(() => store.getters['userProfile/loading']);
 
+    // Today's date for max date validation (prevents future dates)
+    const today = computed(() => new Date().toISOString().split('T')[0]);
+
     const personalAccounts = computed(() => store.getters['userProfile/personalAccounts']);
     const spouseAccounts = computed(() => store.getters['userProfile/spouseAccounts']);
 
@@ -191,7 +190,7 @@ export default {
       }
     };
 
-    onMounted(() => {
+    onMounted(async () => {
       // Restore saved period from localStorage if available
       const savedPeriod = localStorage.getItem('personalAccounts_period');
       if (savedPeriod) {
@@ -201,14 +200,15 @@ export default {
           console.error('Failed to restore saved period:', error);
         }
       }
-      // Don't auto-calculate on mount to avoid rate limiting issues
-      // User must click "Calculate" button to load data
+      // Auto-calculate on mount
+      await calculateAccounts();
     });
 
     return {
       activeTab,
       period,
       loading,
+      today,
       personalAccounts,
       spouseAccounts,
       calculateAccounts,
