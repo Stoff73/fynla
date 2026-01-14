@@ -50,42 +50,11 @@
 
       <!-- Main Content -->
       <div v-else class="bg-white rounded-lg shadow">
-        <!-- Tab Navigation -->
-        <div class="border-b border-gray-200">
-          <nav class="-mb-px flex overflow-x-auto" aria-label="Tabs">
-            <button
-              v-for="tab in tabs"
-              :key="tab.id"
-              @click="activeTab = tab.id"
-              :class="[
-                activeTab === tab.id
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
-                'whitespace-nowrap py-3 sm:py-4 px-3 sm:px-6 border-b-2 font-medium text-xs sm:text-sm transition-colors duration-200 flex-shrink-0',
-              ]"
-            >
-              {{ tab.label }}
-            </button>
-          </nav>
-        </div>
-
-        <!-- Tab Content -->
         <div class="p-6">
-          <!-- Current Situation Tab -->
           <CurrentSituation
-            v-if="activeTab === 'current'"
             @add-policy="handleAddPolicy"
             @edit-policy="handleEditPolicy"
           />
-
-          <!-- Gap Analysis Tab -->
-          <GapAnalysis
-            v-else-if="activeTab === 'gaps'"
-            @add-policy="handleAddPolicy"
-          />
-
-          <!-- Strategy Tab -->
-          <Recommendations v-else-if="activeTab === 'recommendations'" />
         </div>
       </div>
       </div>
@@ -106,8 +75,6 @@
 import { mapState, mapActions } from 'vuex';
 import AppLayout from '@/layouts/AppLayout.vue';
 import CurrentSituation from '@/components/Protection/CurrentSituation.vue';
-import GapAnalysis from '@/components/Protection/GapAnalysis.vue';
-import Recommendations from '@/components/Protection/Recommendations.vue';
 import ProfileCompletenessAlert from '@/components/Shared/ProfileCompletenessAlert.vue';
 import PolicyFormModal from '@/components/Protection/PolicyFormModal.vue';
 import protectionService from '@/services/protectionService';
@@ -119,20 +86,12 @@ export default {
   components: {
     AppLayout,
     CurrentSituation,
-    GapAnalysis,
-    Recommendations,
     ProfileCompletenessAlert,
     PolicyFormModal,
   },
 
   data() {
     return {
-      activeTab: 'current',
-      tabs: [
-        { id: 'current', label: 'Policy Overview' },
-        { id: 'gaps', label: 'Gap Analysis' },
-        { id: 'recommendations', label: 'Strategy' },
-      ],
       profileCompleteness: null,
       loadingCompleteness: false,
       showForm: false,
@@ -250,22 +209,5 @@ export default {
 </script>
 
 <style scoped>
-/* Mobile optimization for tab navigation */
-@media (max-width: 640px) {
-  .protection-dashboard nav[aria-label="Tabs"] button {
-    font-size: 0.875rem;
-    padding-left: 1rem;
-    padding-right: 1rem;
-  }
-}
-
-/* Smooth scroll for tab navigation on mobile */
-nav[aria-label="Tabs"] {
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-}
-
-nav[aria-label="Tabs"]::-webkit-scrollbar {
-  display: none;
-}
+/* Protection dashboard styles */
 </style>
