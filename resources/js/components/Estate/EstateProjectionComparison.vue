@@ -97,10 +97,10 @@
             </td>
           </tr>
 
-          <!-- IHT Liability Row (highlighted) -->
+          <!-- Inheritance Tax Liability Row (highlighted) -->
           <tr class="bg-red-50 font-semibold">
             <td class="px-6 py-4 whitespace-nowrap text-sm text-red-900">
-              IHT Liability (40%)
+              Inheritance Tax Liability (40%)
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-red-900">
               {{ formatCurrency(projection.current.iht_liability) }}

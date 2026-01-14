@@ -1,7 +1,7 @@
 <template>
   <div class="iht-liability-gauge">
     <div class="gauge-header">
-      <h3>IHT Liability Indicator</h3>
+      <h3>Inheritance Tax Liability Indicator</h3>
       <p class="subtitle">{{ gaugeDescription }}</p>
     </div>
 
@@ -21,13 +21,13 @@
         <span class="value">{{ formatCurrency(estateValue) }}</span>
       </div>
       <div class="detail-row">
-        <span class="label">IHT Liability:</span>
+        <span class="label">Inheritance Tax Liability:</span>
         <span class="value liability-value" :class="liabilityColourClass">
           {{ formatCurrency(ihtLiability) }}
         </span>
       </div>
       <div class="detail-row">
-        <span class="label">Effective IHT Rate:</span>
+        <span class="label">Effective Inheritance Tax Rate:</span>
         <span class="value">{{ ihtPercentage.toFixed(1) }}% of estate</span>
       </div>
     </div>
@@ -116,22 +116,22 @@ export default {
 
     statusMessage() {
       if (this.ihtPercentage >= 20) {
-        return 'High IHT exposure - consider mitigation strategies';
+        return 'High Inheritance Tax exposure - consider mitigation strategies';
       }
       if (this.ihtPercentage >= 10) {
-        return 'Moderate IHT liability - review planning options';
+        return 'Moderate Inheritance Tax liability - review planning options';
       }
-      return 'Low IHT exposure - estate planning on track';
+      return 'Low Inheritance Tax exposure - estate planning on track';
     },
 
     gaugeDescription() {
       if (this.ihtPercentage >= 20) {
-        return 'Your estate has significant IHT liability';
+        return 'Your estate has significant Inheritance Tax liability';
       }
       if (this.ihtPercentage >= 10) {
-        return 'Your estate has moderate IHT exposure';
+        return 'Your estate has moderate Inheritance Tax exposure';
       }
-      return 'Your estate has minimal IHT exposure';
+      return 'Your estate has minimal Inheritance Tax exposure';
     },
 
     chartOptions() {
@@ -194,7 +194,7 @@ export default {
         stroke: {
           lineCap: 'round',
         },
-        labels: ['IHT Liability'],
+        labels: ['Inheritance Tax Liability'],
       };
     },
   },

@@ -1,5 +1,15 @@
 <template>
   <div class="space-y-6">
+    <!-- Back to Dashboard Link -->
+    <button
+      @click="$emit('switch-tab', 'iht')"
+      class="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 mb-4"
+    >
+      <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+      </svg>
+      Back to Estate Dashboard
+    </button>
     <!-- Planned Trust Strategy Section -->
     <div class="mb-8">
       <div class="flex items-center justify-between mb-4">
@@ -19,7 +29,7 @@
     <!-- Actual Trusts Section Header -->
     <div class="mb-6">
       <h2 class="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Trusts Created (Actual)</h2>
-      <p class="text-sm sm:text-base text-gray-600">Track trusts you've actually established and monitor their IHT impact</p>
+      <p class="text-sm sm:text-base text-gray-600">Track trusts you've actually established and monitor their Inheritance Tax impact</p>
     </div>
 
     <!-- Trust List -->
@@ -97,7 +107,7 @@
               </p>
             </div>
             <div>
-              <p class="text-xs text-gray-500">IHT Value in Estate</p>
+              <p class="text-xs text-gray-500">Inheritance Tax Value in Estate</p>
               <p class="text-sm font-medium text-gray-900">{{ formatCurrency(getTrustIHTValue(trust)) }}</p>
             </div>
           </div>
@@ -136,7 +146,7 @@
     <div v-if="recommendations.length > 0" class="bg-white shadow rounded-lg p-6">
       <h3 class="text-lg font-medium text-gray-900 mb-4">Trust Recommendations</h3>
       <p class="text-sm text-gray-600 mb-4">
-        Based on your estate value of {{ formatCurrency(estateValue) }} and IHT liability of {{ formatCurrency(ihtLiability) }}, consider these trust strategies:
+        Based on your estate value of {{ formatCurrency(estateValue) }} and Inheritance Tax liability of {{ formatCurrency(ihtLiability) }}, consider these trust strategies:
       </p>
 
       <div class="space-y-4">

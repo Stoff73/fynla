@@ -38,7 +38,6 @@ php artisan queue:work database      # Queue worker (optional, for Monte Carlo)
 ```bash
 php artisan db:seed --class=TaxConfigurationSeeder --force
 php artisan db:seed --class=TaxProductReferenceSeeder --force
-php artisan db:seed --class=UKLifeExpectancySeeder --force
 php artisan db:seed --class=ActuarialLifeTablesSeeder --force
 php artisan db:seed --class=AdminUserSeeder --force
 php artisan db:seed --class=PreviewUserSeeder --force
@@ -64,7 +63,6 @@ php artisan db:seed                  # Seed all data (reference + users in dev)
 ```bash
 php artisan db:seed --class=TaxConfigurationSeeder --force
 php artisan db:seed --class=TaxProductReferenceSeeder --force
-php artisan db:seed --class=UKLifeExpectancySeeder --force
 php artisan db:seed --class=ActuarialLifeTablesSeeder --force
 php artisan db:seed --class=AdminUserSeeder --force
 php artisan db:seed --class=PreviewUserSeeder --force
@@ -78,7 +76,7 @@ Quick reference for common issues:
 | Tax calculations failing | `php artisan db:seed --class=TaxConfigurationSeeder --force` |
 | Preview personas broken | `php artisan db:seed --class=PreviewUserSeeder --force` |
 | Admin login not working | `php artisan db:seed --class=AdminUserSeeder --force` |
-| Life expectancy errors | `php artisan db:seed --class=UKLifeExpectancySeeder --force` |
+| Life expectancy errors | `php artisan db:seed --class=ActuarialLifeTablesSeeder --force` |
 
 ## Architecture
 
@@ -552,7 +550,6 @@ Pest tests may clear required data. Always reseed after running tests:
 ```bash
 php artisan db:seed --class=TaxConfigurationSeeder --force
 php artisan db:seed --class=TaxProductReferenceSeeder --force
-php artisan db:seed --class=UKLifeExpectancySeeder --force
 php artisan db:seed --class=ActuarialLifeTablesSeeder --force
 php artisan db:seed --class=AdminUserSeeder --force
 php artisan db:seed --class=PreviewUserSeeder --force

@@ -6,16 +6,9 @@
       <div class="mb-8">
         <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2">Estate Planning</h1>
         <p class="text-gray-600">
-          Plan your estate with IHT calculations, gifting strategies, and trust planning
+          Plan your estate with Inheritance Tax calculations, gifting strategies, and trust planning
         </p>
       </div>
-
-      <!-- Profile Completeness Alert -->
-      <ProfileCompletenessAlert
-        v-if="profileCompleteness && !loadingCompleteness"
-        :completenessData="profileCompleteness"
-        :dismissible="true"
-      />
 
       <!-- Loading State -->
       <div v-if="initialLoading" class="flex justify-center items-center py-12">
@@ -49,39 +42,20 @@
       </div>
 
       <!-- Main Content -->
-      <div v-else class="bg-white rounded-lg shadow">
-        <!-- Tab Navigation -->
-        <div class="border-b border-gray-200">
-          <nav class="-mb-px flex overflow-x-auto" aria-label="Tabs">
-            <button
-              v-for="tab in tabs"
-              :key="tab.id"
-              @click="activeTab = tab.id"
-              :class="[
-                activeTab === tab.id
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
-                'whitespace-nowrap py-3 sm:py-4 px-3 sm:px-6 border-b-2 font-medium text-xs sm:text-sm transition-colors duration-200 flex-shrink-0',
-              ]"
-            >
-              {{ tab.label }}
-            </button>
-          </nav>
-        </div>
-
+      <div v-else>
         <!-- Tab Content -->
-        <div class="p-6">
-          <!-- IHT Planning Tab -->
+        <div>
+          <!-- Inheritance Tax Planning Tab -->
           <IHTPlanning v-if="activeTab === 'iht'" @will-updated="reloadIHTCalculation" @switch-tab="switchTab" />
 
           <!-- Gifting Strategy Tab -->
-          <GiftingStrategy v-else-if="activeTab === 'gifting'" />
+          <GiftingStrategy v-else-if="activeTab === 'gifting'" @switch-tab="switchTab" />
 
           <!-- Life Policy Strategy Tab -->
-          <LifePolicyStrategy v-else-if="activeTab === 'life-policy'" />
+          <LifePolicyStrategy v-else-if="activeTab === 'life-policy'" @switch-tab="switchTab" />
 
           <!-- Trust Planning Tab -->
-          <TrustPlanning v-else-if="activeTab === 'trusts'" />
+          <TrustPlanning v-else-if="activeTab === 'trusts'" @switch-tab="switchTab" />
         </div>
       </div>
       </div>
@@ -96,8 +70,6 @@ import IHTPlanning from '@/components/Estate/IHTPlanning.vue';
 import GiftingStrategy from '@/components/Estate/GiftingStrategy.vue';
 import LifePolicyStrategy from '@/components/Estate/LifePolicyStrategy.vue';
 import TrustPlanning from '@/components/Estate/TrustPlanning.vue';
-import ProfileCompletenessAlert from '@/components/Shared/ProfileCompletenessAlert.vue';
-import api from '@/services/api';
 
 export default {
   name: 'EstateDashboard',
@@ -108,7 +80,6 @@ export default {
     GiftingStrategy,
     LifePolicyStrategy,
     TrustPlanning,
-    ProfileCompletenessAlert,
   },
 
   data() {
@@ -116,13 +87,11 @@ export default {
       activeTab: 'iht',
       initialLoading: true,
       tabs: [
-        { id: 'iht', label: 'IHT Planning' },
+        { id: 'iht', label: 'Inheritance Tax Planning' },
         { id: 'gifting', label: 'Gifting Strategy' },
         { id: 'life-policy', label: 'Life Policy Strategy' },
         { id: 'trusts', label: 'Trust Strategy' },
       ],
-      profileCompleteness: null,
-      loadingCompleteness: false,
     };
   },
 
@@ -136,10 +105,6 @@ export default {
 
   mounted() {
     this.loadEstateData();
-    // Skip profile completeness in preview mode
-    if (!this.isPreviewMode) {
-      this.loadProfileCompleteness();
-    }
   },
 
   methods: {
@@ -155,43 +120,8 @@ export default {
       }
     },
 
-    async loadProfileCompleteness() {
-      this.loadingCompleteness = true;
-      try {
-        const response = await api.get('/user/profile/completeness');
-        const completenessData = response.data.data;
-
-        // Filter out protection and dependants fields for Estate module
-        const filteredMissingFields = {};
-        Object.keys(completenessData.missing_fields || {}).forEach(key => {
-          const field = completenessData.missing_fields[key];
-          // Exclude protection policies and dependants
-          if (!field.message.toLowerCase().includes('protection') &&
-              !field.message.toLowerCase().includes('dependant')) {
-            filteredMissingFields[key] = field;
-          }
-        });
-
-        // Recalculate completeness score based on remaining fields
-        const totalFields = Object.keys(completenessData.missing_fields || {}).length;
-        const remainingFields = Object.keys(filteredMissingFields).length;
-        const fieldsCompleted = totalFields - remainingFields;
-
-        this.profileCompleteness = {
-          ...completenessData,
-          missing_fields: filteredMissingFields,
-          completeness_score: remainingFields === 0 ? 100 : Math.round((fieldsCompleted / totalFields) * 100),
-          is_complete: remainingFields === 0,
-        };
-      } catch (error) {
-        console.error('Failed to load profile completeness:', error);
-      } finally {
-        this.loadingCompleteness = false;
-      }
-    },
-
     reloadIHTCalculation() {
-      // Force reload IHT calculation when will is updated
+      // Force reload Inheritance Tax calculation when will is updated
       if (this.activeTab === 'iht') {
         // IHTPlanning component will reload automatically
         this.$forceUpdate();
@@ -199,30 +129,10 @@ export default {
     },
 
     switchTab(tabId) {
-      // Switch to a specific tab (e.g., from IHT Planning to Gifting)
+      // Switch to a specific tab (e.g., from Inheritance Tax Planning to Gifting)
       this.activeTab = tabId;
     },
   },
 };
 </script>
 
-<style scoped>
-/* Mobile optimization for tab navigation */
-@media (max-width: 640px) {
-  .estate-dashboard nav[aria-label="Tabs"] button {
-    font-size: 0.875rem;
-    padding-left: 1rem;
-    padding-right: 1rem;
-  }
-}
-
-/* Smooth scroll for tab navigation on mobile */
-nav[aria-label="Tabs"] {
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-}
-
-nav[aria-label="Tabs"]::-webkit-scrollbar {
-  display: none;
-}
-</style>

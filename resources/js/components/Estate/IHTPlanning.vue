@@ -56,7 +56,7 @@
       </div>
     </div>
 
-    <!-- IHT Summary - Second Death (Married Users) -->
+    <!-- Inheritance Tax Summary - Second Death (Married Users) -->
     <div v-if="isMarried && secondDeathData?.second_death_analysis" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
       <!-- Joint Death NOW -->
       <div class="bg-white rounded-lg p-4 sm:p-6 border-2 border-blue-500">
@@ -74,7 +74,7 @@
         <p class="text-xs text-purple-600 mt-2">Projected net estate</p>
       </div>
 
-      <!-- Total IHT Payable -->
+      <!-- Total Inheritance Tax Payable -->
       <div class="bg-white rounded-lg p-4 sm:p-6 sm:col-span-2 lg:col-span-1 border-2 border-red-500">
         <p class="text-sm text-red-600 font-medium mb-2">Total Inheritance Tax Payable</p>
         <div class="space-y-3">
@@ -90,7 +90,7 @@
       </div>
     </div>
 
-    <!-- IHT Summary - Standard (Non-Married Users) with Projected Values -->
+    <!-- Inheritance Tax Summary - Standard (Non-Married Users) with Projected Values -->
     <div v-else-if="ihtData && projection" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
       <!-- Taxable Estate - Now vs Projected -->
       <div class="bg-white rounded-lg p-4 sm:p-6 border-2 border-purple-500">
@@ -116,7 +116,7 @@
         <p class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">{{ formatCurrency(ihtData?.total_allowance || 0) }}</p>
       </div>
 
-      <!-- IHT Liability - Now vs Projected -->
+      <!-- Inheritance Tax Liability - Now vs Projected -->
       <div class="bg-white rounded-lg p-4 sm:p-6 sm:col-span-2 lg:col-span-1 border-2 border-red-500">
         <p class="text-sm text-red-600 font-medium mb-2">Total Inheritance Tax Liability</p>
         <div class="space-y-3">
@@ -227,35 +227,49 @@
           </div>
         </div>
 
-        <!-- Trust Card (Coming Soon) -->
-        <div class="bg-gray-50 rounded-lg border border-gray-300 p-5 opacity-60 cursor-not-allowed">
+        <!-- Trust Card (only show if taxable estate > £2m) -->
+        <div v-if="(ihtData?.taxable_estate || 0) > 2000000" class="bg-white rounded-lg border border-gray-200 p-5 hover:shadow-md transition-shadow cursor-pointer" @click="navigateToTrustsTab">
           <div class="flex items-center justify-between mb-3">
             <div class="flex items-center">
-              <svg class="h-6 w-6 text-gray-400 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <svg class="h-6 w-6 text-indigo-600 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />
               </svg>
-              <h4 class="text-sm font-semibold text-gray-500">Trust</h4>
+              <h4 class="text-sm font-semibold text-gray-900">Trust</h4>
             </div>
+            <svg class="h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+            </svg>
           </div>
           <div class="space-y-2">
-            <div class="flex items-center justify-center py-6">
-              <div class="text-center">
-                <svg class="mx-auto h-8 w-8 text-gray-400 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <p class="text-xs font-medium text-gray-500">Coming Soon</p>
-                <p class="text-xs text-gray-400 mt-1">Trust planning tools</p>
-              </div>
+            <div class="text-xs">
+              <p class="text-gray-600">Total Trust Value:</p>
+              <p class="text-lg font-bold text-indigo-700">{{ formatCurrency(totalTrustValue) }}</p>
+            </div>
+            <div class="text-xs">
+              <p class="text-gray-600">Outside Estate:</p>
+              <p class="text-sm font-semibold text-gray-900">{{ formatCurrency(trustValueOutsideEstate) }}</p>
+              <p class="text-xs text-gray-500 mt-1">{{ trustEfficiencyPercent }}% efficient</p>
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- IHT Breakdown - Second Death (Married Users) -->
+    <!-- Inheritance Tax Breakdown - Second Death (Married Users) -->
     <div v-if="!loading && isMarried && secondDeathData?.second_death_analysis" class="bg-white rounded-lg border border-gray-200 p-6 mb-8">
-      <h3 class="text-lg font-semibold text-gray-900 mb-4">Inheritance Tax Calculation (Second Death Scenario)</h3>
-      <p class="text-sm text-gray-600 mb-6">Comparison of inheritance tax liability if death occurs now vs. at projected life expectancy (Age {{ secondDeathData.second_death_analysis.second_death.estimated_age_at_death }})</p>
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">Inheritance Tax Calculation (Joint Death Scenario)</h3>
+      <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <p class="text-sm text-blue-800 mb-2">
+          <strong>What this calculation shows:</strong> This scenario assumes both you and your spouse pass away at the same time,
+          with the combined estate then passing to your beneficiaries. The projected age ({{ secondDeathData.second_death_analysis.second_death.estimated_age_at_death }})
+          is based on your life expectancy and may differ from your spouse's.
+        </p>
+        <p class="text-sm text-blue-700">
+          <strong>If one spouse dies first:</strong> Under most wills, the entire estate passes to the surviving spouse tax-free
+          (spouse exemption). Inheritance Tax would then be calculated on the surviving spouse's estate at their death,
+          potentially with different allowances and values.
+        </p>
+      </div>
 
       <!-- Estate Calculation Table -->
       <div class="overflow-x-auto">
@@ -554,7 +568,7 @@
               <td class="px-4 py-3 text-sm text-right font-bold text-gray-900">{{ formatCurrency(taxableEstateProjected) }}</td>
             </tr>
 
-            <!-- IHT Liability -->
+            <!-- Inheritance Tax Liability -->
             <tr class="bg-white border-l-4 border-red-500">
               <td class="px-4 py-3 text-sm font-semibold text-red-800">Inheritance Tax Liability (40%)</td>
               <td class="px-4 py-3 text-sm text-right font-bold text-red-800">{{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.iht_liability || 0) }}</td>
@@ -565,12 +579,28 @@
       </div>
     </div>
 
-    <!-- IHT Breakdown - Standard (Non-Married Users OR Married without spouse link) -->
+    <!-- Inheritance Tax Breakdown - Standard (Non-Married Users OR Married without spouse link) -->
     <div v-else-if="!loading && ihtData" class="bg-white rounded-lg border border-gray-200 p-6 mb-8">
       <h3 class="text-lg font-semibold text-gray-900 mb-4">
-        {{ isMarried ? 'IHT Calculation Breakdown (Spouse Exemption Applies)' : 'IHT Calculation Breakdown' }}
+        {{ isMarried ? 'Inheritance Tax Calculation (Joint Death Scenario)' : 'Inheritance Tax Calculation Breakdown' }}
       </h3>
-      <p v-if="projection" class="text-sm text-gray-600 mb-6">Comparison of IHT liability if death occurs now vs. at projected life expectancy (Age {{ projection.at_death.estimated_age_at_death }})</p>
+
+      <!-- Explanation box for married users -->
+      <div v-if="isMarried && projection" class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <p class="text-sm text-blue-800 mb-2">
+          <strong>What this calculation shows:</strong> This scenario assumes both you and your spouse pass away at the same time,
+          with the combined estate then passing to your beneficiaries. The projected age ({{ projection.at_death.estimated_age_at_death }})
+          is based on your life expectancy and may differ from your spouse's.
+        </p>
+        <p class="text-sm text-blue-700">
+          <strong>If one spouse dies first:</strong> Under most wills, the entire estate passes to the surviving spouse tax-free
+          (spouse exemption). Inheritance Tax would then be calculated on the surviving spouse's estate at their death,
+          potentially with different allowances and values.
+        </p>
+      </div>
+
+      <!-- Simple description for non-married users -->
+      <p v-else-if="projection" class="text-sm text-gray-600 mb-6">Comparison of Inheritance Tax liability if death occurs now vs. at projected life expectancy (Age {{ projection.at_death.estimated_age_at_death }})</p>
 
       <!-- Detailed Asset & Liability Breakdown Table -->
       <div v-if="secondDeathData?.assets_breakdown" class="overflow-x-auto mb-6">
@@ -849,7 +879,7 @@
               <td class="px-4 py-3 text-sm text-right font-bold text-gray-900">{{ formatCurrency(projection?.at_death?.taxable_estate || 0) }}</td>
             </tr>
 
-            <!-- IHT Liability -->
+            <!-- Inheritance Tax Liability -->
             <tr class="bg-white border-l-4 border-red-500">
               <td class="px-4 py-3 text-sm font-semibold text-red-800">Inheritance Tax Liability (40%)</td>
               <td class="px-4 py-3 text-sm text-right font-bold text-red-800">{{ formatCurrency(ihtData?.estate_iht_liability || 0) }}</td>
@@ -910,7 +940,7 @@
         </div>
 
         <div class="flex justify-between items-center py-3 bg-gray-50 rounded-lg">
-          <span class="text-base font-semibold text-red-800">IHT Liability ({{ formatPercent(ihtData?.iht_rate || 0.4) }})</span>
+          <span class="text-base font-semibold text-red-800">Inheritance Tax Liability ({{ formatPercent(ihtData?.iht_rate || 0.4) }})</span>
           <span class="text-base font-bold text-red-800">{{ formatCurrency(ihtData?.estate_iht_liability || 0) }}</span>
         </div>
       </div>
@@ -964,7 +994,7 @@
         </div>
 
         <div class="flex justify-between items-center py-3 bg-gray-50 rounded-lg">
-          <span class="text-base font-semibold text-amber-800">Total Gift IHT Liability</span>
+          <span class="text-base font-semibold text-amber-800">Total Gift Inheritance Tax Liability</span>
           <span class="text-base font-bold text-amber-800">{{ formatCurrency(ihtData?.gift_iht_liability || 0) }}</span>
         </div>
       </div>
@@ -1056,16 +1086,16 @@
           </svg>
         </div>
         <div class="ml-3">
-          <h3 class="text-sm font-medium text-red-800">IHT Mitigation Strategies</h3>
+          <h3 class="text-sm font-medium text-red-800">Inheritance Tax Mitigation Strategies</h3>
           <div class="mt-2 text-sm text-red-700">
             <p class="font-semibold mb-2">
-              Your estate has a potential IHT liability of {{ formatCurrency(ihtData?.iht_liability || 0) }}. Consider these strategies:
+              Your estate has a potential Inheritance Tax liability of {{ formatCurrency(ihtData?.iht_liability || 0) }}. Consider these strategies:
             </p>
             <ul class="list-disc list-inside space-y-1">
               <li>Regular gifting using PET and annual exemptions (£3,000/year)</li>
-              <li>Charitable giving (can reduce IHT rate from 40% to 36% if ≥10% to charity)</li>
+              <li>Charitable giving (can reduce Inheritance Tax rate from 40% to 36% if ≥10% to charity)</li>
               <li>Trust planning to remove assets from your estate</li>
-              <li>Life insurance policies written in trust to cover IHT liability</li>
+              <li>Life insurance policies written in trust to cover Inheritance Tax liability</li>
               <li v-if="!ihtData?.rnrb || ihtData.rnrb === 0">Consider leaving your main residence to direct descendants to claim RNRB (up to £175,000)</li>
             </ul>
           </div>
@@ -1090,13 +1120,13 @@
           </svg>
         </div>
         <div class="ml-3">
-          <h3 class="text-sm font-medium text-green-800">No IHT Liability</h3>
+          <h3 class="text-sm font-medium text-green-800">No Inheritance Tax Liability</h3>
           <div class="mt-2 text-sm text-green-700">
             <p class="mb-2">
-              Good news! Your estate is currently below the IHT threshold with {{ formatCurrency(ihtData?.total_allowance || 500000) }} in allowances available.
+              Good news! Your estate is currently below the Inheritance Tax threshold with {{ formatCurrency(ihtData?.total_allowance || 500000) }} in allowances available.
             </p>
             <p>
-              Continue to monitor your estate value as asset prices change. Review your IHT position annually or after significant life events.
+              Continue to monitor your estate value as asset prices change. Review your Inheritance Tax position annually or after significant life events.
             </p>
           </div>
         </div>
@@ -1117,7 +1147,7 @@
           <p class="text-2xl font-bold text-green-900 mt-1">{{ formatCurrency(trustValueOutsideEstate) }}</p>
         </div>
         <div class="bg-gray-50 rounded-lg p-4">
-          <p class="text-xs text-blue-600 font-medium">IHT Efficiency</p>
+          <p class="text-xs text-blue-600 font-medium">Inheritance Tax Efficiency</p>
           <p class="text-2xl font-bold text-blue-900 mt-1">{{ trustEfficiencyPercent }}%</p>
         </div>
       </div>
@@ -1152,7 +1182,7 @@
           </div>
           <div v-else class="mt-2 pt-2 border-t border-gray-200">
             <p class="text-xs text-green-700">
-              ✓ This trust's value is completely outside your estate for IHT purposes
+              ✓ This trust's value is completely outside your estate for Inheritance Tax purposes
             </p>
           </div>
         </div>
@@ -1444,6 +1474,11 @@ export default {
       this.$emit('switch-tab', 'life-policy');
     },
 
+    navigateToTrustsTab() {
+      // Emit event to parent EstateDashboard to switch to Trusts tab
+      this.$emit('switch-tab', 'trusts');
+    },
+
     async loadIHTCalculation() {
       // Preview mode now uses real database users, so we use the API call
       // The old client-side computePreviewIHTData() is no longer needed
@@ -1513,7 +1548,7 @@ export default {
         }
       } catch (error) {
         console.error('❌ Failed to load IHT calculation:', error);
-        this.error = error.message || 'Failed to calculate IHT liability';
+        this.error = error.message || 'Failed to calculate Inheritance Tax liability';
       } finally {
         this.loading = false;
       }
@@ -1603,7 +1638,7 @@ export default {
       if (this.isMarried) {
         this.secondDeathData = {
           success: true,
-          spouse_exemption_message: 'In preview mode, assets passing to spouse are exempt from IHT. IHT would only apply on second death.',
+          spouse_exemption_message: 'In preview mode, assets passing to spouse are exempt from Inheritance Tax. Inheritance Tax would only apply on second death.',
           data_sharing_enabled: true,
           will_info: {
             has_will: previewData?.user?.has_will || false,
@@ -1618,9 +1653,9 @@ export default {
 
       const missingItems = this.secondDeathData.missing_data;
       if (missingItems.includes('spouse_account')) {
-        return 'Link your spouse account to enable full second death IHT planning.';
+        return 'Link your spouse account to enable full second death Inheritance Tax planning.';
       }
-      return 'Some information is required to complete the second death IHT calculation.';
+      return 'Some information is required to complete the second death Inheritance Tax calculation.';
     },
 
     formatNumber(value) {
@@ -1673,7 +1708,7 @@ export default {
         interest_in_possession: 'For an Interest in Possession Trust, the full value counts in the life tenant\'s estate.',
         settlor_interested: 'For a Settlor-Interested Trust, the full value remains in your estate (reservation of benefit).',
       };
-      return explanations[type] || 'This trust type has specific IHT treatment rules.';
+      return explanations[type] || 'This trust type has specific Inheritance Tax treatment rules.';
     },
   },
 };

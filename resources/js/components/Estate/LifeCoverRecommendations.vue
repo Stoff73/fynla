@@ -123,7 +123,7 @@
           <!-- Coverage assessment -->
           <div class="mt-3 pt-3 border-t border-blue-200">
             <div class="flex justify-between items-center">
-              <span class="text-sm text-blue-700">Coverage of IHT liability:</span>
+              <span class="text-sm text-blue-700">Coverage of Inheritance Tax liability:</span>
               <span
                 class="font-bold text-lg"
                 :class="currentScenario.coverage_percentage >= 100 ? 'text-green-600' : 'text-amber-600'"

@@ -32,7 +32,7 @@
         <!-- Data sharing status -->
         <div v-else-if="!dataSharingEnabled" class="mt-3">
           <p class="text-xs text-green-600">
-            Enable data sharing to unlock comprehensive joint IHT planning features.
+            Enable data sharing to unlock comprehensive joint Inheritance Tax planning features.
           </p>
           <router-link
             to="/settings"

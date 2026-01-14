@@ -1,7 +1,7 @@
 <template>
   <div class="nrb-rnrb-tracker">
     <div class="tracker-header">
-      <h3>IHT Allowance Tracker</h3>
+      <h3>Inheritance Tax Allowance Tracker</h3>
       <p class="subtitle">2025/26 Tax Year</p>
     </div>
 
@@ -10,7 +10,7 @@
       <div class="allowance-header">
         <div class="allowance-title">
           <h4>Nil Rate Band (NRB)</h4>
-          <span class="info-icon" title="Standard IHT allowance for all estates">
+          <span class="info-icon" title="Standard Inheritance Tax allowance for all estates">
             <i class="fas fa-info-circle"></i>
           </span>
         </div>

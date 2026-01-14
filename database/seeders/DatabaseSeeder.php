@@ -33,10 +33,7 @@ class DatabaseSeeder extends Seeder
             // Tax product reference - ISA/GIA/Bond tax treatment info
             TaxProductReferenceSeeder::class,
 
-            // Life expectancy tables - used for retirement/estate projections
-            UKLifeExpectancySeeder::class,
-
-            // Actuarial tables - detailed mortality data for calculations
+            // Actuarial life tables - life expectancy data for estate/retirement projections
             ActuarialLifeTablesSeeder::class,
 
             // Admin account (demo@fps.com, admin@fps.com)
@@ -70,7 +67,6 @@ class DatabaseSeeder extends Seeder
         $this->call([
             TaxConfigurationSeeder::class,
             TaxProductReferenceSeeder::class,
-            UKLifeExpectancySeeder::class,
             ActuarialLifeTablesSeeder::class,
             AdminUserSeeder::class,
             PreviewUserSeeder::class,

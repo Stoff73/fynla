@@ -1,14 +1,14 @@
 <template>
   <div class="bg-white rounded-lg border border-gray-200 p-6">
     <h3 class="text-lg font-semibold text-gray-900 mb-4">
-      IHT Mitigation Strategies
+      Inheritance Tax Mitigation Strategies
       <span class="text-sm font-normal text-gray-500">(Prioritized by Effectiveness)</span>
     </h3>
 
-    <!-- No IHT liability message -->
+    <!-- No Inheritance Tax liability message -->
     <div v-if="ihtLiability === 0" class="bg-green-50 border-l-4 border-green-500 p-4">
       <p class="text-sm text-green-700">
-        ✓ No IHT liability projected - no mitigation strategies needed
+        ✓ No Inheritance Tax liability projected - no mitigation strategies needed
       </p>
     </div>
 
@@ -55,7 +55,7 @@
 
               <div class="mt-2 flex items-center space-x-4 text-sm">
                 <div v-if="strategy.iht_saved" class="text-green-600 font-medium">
-                  IHT Saved: {{ formatCurrency(strategy.iht_saved) }}
+                  Inheritance Tax Saved: {{ formatCurrency(strategy.iht_saved) }}
                 </div>
                 <div v-if="strategy.total_gifted" class="text-blue-600 font-medium">
                   Total Gifted: {{ formatCurrency(strategy.total_gifted) }}
@@ -94,7 +94,7 @@
               <div class="flex justify-between items-start mb-3">
                 <div>
                   <h5 class="text-sm font-semibold text-blue-900 mb-1">Gifting Strategy Summary</h5>
-                  <p class="text-xs text-blue-700">Strategic lifetime gifts to reduce IHT liability</p>
+                  <p class="text-xs text-blue-700">Strategic lifetime gifts to reduce Inheritance Tax liability</p>
                 </div>
                 <button
                   @click="$emit('navigate-to-gifting')"
@@ -164,7 +164,7 @@
               <strong>Required charitable bequest:</strong> {{ formatCurrency(strategy.charitable_amount_required) }} (10% of estate)
             </p>
             <p class="text-xs text-purple-600 mt-1">
-              This reduces IHT rate from 40% to 36%, saving {{ formatCurrency(strategy.iht_saved) }}
+              This reduces Inheritance Tax rate from 40% to 36%, saving {{ formatCurrency(strategy.iht_saved) }}
             </p>
           </div>
         </div>
@@ -176,7 +176,7 @@
       <div class="bg-green-50 rounded-lg p-4">
         <div class="flex justify-between items-center">
           <div>
-            <p class="text-sm text-green-600 font-medium">Total Potential IHT Savings</p>
+            <p class="text-sm text-green-600 font-medium">Total Potential Inheritance Tax Savings</p>
             <p class="text-xs text-green-500 mt-1">By implementing all recommended strategies</p>
           </div>
           <p class="text-2xl font-bold text-green-900">
@@ -276,7 +276,7 @@ export default {
 
       // Add IHT saved
       if (petStrategy.iht_saved) {
-        actions.push(`IHT saved: ${this.formatCurrency(petStrategy.iht_saved)}`);
+        actions.push(`Inheritance Tax saved: ${this.formatCurrency(petStrategy.iht_saved)}`);
       }
 
       return actions;
