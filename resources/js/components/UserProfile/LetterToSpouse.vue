@@ -2,9 +2,9 @@
   <div>
     <div class="mb-6 flex justify-between items-start">
       <div>
-        <h2 class="text-h4 font-semibold text-gray-900">Letter to Spouse</h2>
+        <h2 class="text-h4 font-semibold text-gray-900">{{ pageTitle }}</h2>
         <p class="mt-1 text-body-sm text-gray-600">
-          Important information for your spouse in the event of your death
+          {{ pageDescription }}
         </p>
       </div>
       <button
@@ -20,7 +20,7 @@
     <!-- Info Banner -->
     <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
       <p class="text-body-sm text-blue-800">
-        <strong>Why this matters:</strong> This letter provides crucial information for your spouse to manage financial affairs after your death. Auto-populated sections show your current profile data.
+        <strong>Why this matters:</strong> {{ infoBannerText }}
       </p>
     </div>
 
@@ -515,6 +515,7 @@ export default {
       viewMode: 'my',
       hasSpouse: false,
       spouseName: '',
+      isExpressionOfWishes: false,
       formData: {
         immediate_actions: '',
         executor_name: '',
@@ -563,6 +564,22 @@ export default {
 
     isReadOnly() {
       return this.viewMode === 'spouse';
+    },
+
+    pageTitle() {
+      return this.isExpressionOfWishes ? 'Expression of Wishes' : 'Letter to Spouse';
+    },
+
+    pageDescription() {
+      return this.isExpressionOfWishes
+        ? 'Important information for your loved ones in the event of your death'
+        : 'Important information for your spouse in the event of your death';
+    },
+
+    infoBannerText() {
+      return this.isExpressionOfWishes
+        ? 'This document provides crucial information for your loved ones to manage your affairs after your death. Auto-populated sections show your current profile data.'
+        : 'This letter provides crucial information for your spouse to manage financial affairs after your death. Auto-populated sections show your current profile data.';
     },
   },
 
@@ -633,19 +650,14 @@ export default {
         const userResponse = await api.get('/auth/user');
         const user = userResponse.data.data?.user || userResponse.data;
 
-        // Widowed and divorced users should not see spouse options
-        const excludedStatuses = ['widowed', 'divorced'];
-        const isExcludedStatus = excludedStatuses.includes(user.marital_status);
+        // Single, widowed and divorced users see "Expression of Wishes" instead
+        const expressionOfWishesStatuses = ['single', 'widowed', 'divorced'];
+        this.isExpressionOfWishes = expressionOfWishesStatuses.includes(user.marital_status);
 
-        this.hasSpouse = !!user.spouse_id && !isExcludedStatus;
-
-        if (this.hasSpouse) {
-          const familyResponse = await api.get('/user/family-members');
-          const members = familyResponse.data.data || familyResponse.data;
-          const spouse = Array.isArray(members) ? members.find(m => m.relationship === 'spouse') : null;
-          if (spouse) {
-            this.spouseName = spouse.name;
-          }
+        // Only show spouse toggle for users with a spouse
+        if (!this.isExpressionOfWishes && user.spouse_id && user.spouse) {
+          this.spouseName = user.spouse.name;
+          this.hasSpouse = true;
         }
       } catch (error) {
         console.error('Error checking spouse:', error);

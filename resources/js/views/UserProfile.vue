@@ -70,13 +70,8 @@
             />
             <HealthInformation v-show="activeTab === 'health'" />
             <FamilyMembers v-show="activeTab === 'family'" />
-            <LetterToSpouse v-if="activeTab === 'letter'" />
-            <WillPlanning v-if="activeTab === 'will'" />
             <IncomeOccupation v-show="activeTab === 'income'" />
             <ExpenditureOverview v-show="activeTab === 'expenditure'" />
-            <AssetsOverview v-show="activeTab === 'assets'" />
-            <LiabilitiesOverview v-show="activeTab === 'liabilities'" />
-            <PersonalAccounts v-show="activeTab === 'accounts'" />
           </div>
         </div>
       </div>
@@ -92,13 +87,8 @@ import PersonalInformation from '@/components/UserProfile/PersonalInformation.vu
 import DomicileInformation from '@/components/UserProfile/DomicileInformation.vue';
 import HealthInformation from '@/components/UserProfile/HealthInformation.vue';
 import FamilyMembers from '@/components/UserProfile/FamilyMembers.vue';
-import LetterToSpouse from '@/components/UserProfile/LetterToSpouse.vue';
-import WillPlanning from '@/components/Estate/WillPlanning.vue';
 import IncomeOccupation from '@/components/UserProfile/IncomeOccupation.vue';
 import ExpenditureOverview from '@/components/UserProfile/ExpenditureOverview.vue';
-import AssetsOverview from '@/components/UserProfile/AssetsOverview.vue';
-import LiabilitiesOverview from '@/components/UserProfile/LiabilitiesOverview.vue';
-import PersonalAccounts from '@/components/UserProfile/PersonalAccounts.vue';
 
 export default {
   name: 'UserProfile',
@@ -109,13 +99,8 @@ export default {
     DomicileInformation,
     HealthInformation,
     FamilyMembers,
-    LetterToSpouse,
-    WillPlanning,
     IncomeOccupation,
     ExpenditureOverview,
-    AssetsOverview,
-    LiabilitiesOverview,
-    PersonalAccounts,
   },
 
   setup() {
@@ -133,24 +118,11 @@ export default {
       { id: 'domicile', label: 'Domicile Status' },
       { id: 'health', label: 'Health' },
       { id: 'family', label: 'Family' },
-      { id: 'letter', label: 'Letter to Spouse' },
-      { id: 'will', label: 'Will' },
       { id: 'income', label: 'Income & Occupation' },
       { id: 'expenditure', label: 'Expenditure' },
-      { id: 'assets', label: 'Assets' },
-      { id: 'liabilities', label: 'Liabilities' },
-      { id: 'accounts', label: 'Financial Statements' },
     ];
 
-    // Filter tabs based on user's marital status
-    // Hide Letter to Spouse for widowed users
-    const tabs = computed(() => {
-      const maritalStatus = user.value?.marital_status;
-      if (maritalStatus === 'widowed') {
-        return allTabs.filter(tab => tab.id !== 'letter');
-      }
-      return allTabs;
-    });
+    const tabs = computed(() => allTabs);
 
     const loadProfile = async () => {
       try {
