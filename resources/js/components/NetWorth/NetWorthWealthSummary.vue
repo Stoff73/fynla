@@ -44,9 +44,9 @@
         :liabilities-breakdown="overview.liabilitiesBreakdown"
         :total-assets="overview.totalAssets"
         :total-liabilities="overview.totalLiabilities"
-        :spouse-data="spouseOverview"
+        :spouse-data="filteredSpouseOverview"
         :user-name="currentUserName"
-        :spouse-name="spouseUserName"
+        :spouse-name="filteredSpouseName"
       />
     </div>
 
@@ -91,6 +91,31 @@ export default {
 
     asOfDate() {
       return this.overview.asOfDate;
+    },
+
+    /**
+     * Check if user should see spouse data.
+     * Widowed and divorced users should not see spouse columns.
+     */
+    shouldShowSpouseData() {
+      const user = this.$store.getters['auth/currentUser'];
+      const maritalStatus = user?.marital_status;
+      const excludedStatuses = ['widowed', 'divorced'];
+      return !excludedStatuses.includes(maritalStatus);
+    },
+
+    /**
+     * Returns spouse overview data only for married users.
+     */
+    filteredSpouseOverview() {
+      return this.shouldShowSpouseData ? this.spouseOverview : null;
+    },
+
+    /**
+     * Returns spouse name only for married users.
+     */
+    filteredSpouseName() {
+      return this.shouldShowSpouseData ? this.spouseUserName : null;
     },
 
     netWorthClass() {

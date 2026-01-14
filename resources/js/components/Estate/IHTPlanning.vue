@@ -278,7 +278,18 @@
             <tr>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Line Item</th>
               <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Now</th>
-              <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Death at Age {{ secondDeathData.second_death_analysis.second_death.estimated_age_at_death }}</th>
+              <th class="px-4 py-3 text-right text-xs font-medium text-amber-600 uppercase tracking-wider">
+                <div>Age {{ projectionMinus5?.estimated_age_at_death || '...' }}</div>
+                <div class="text-[10px] font-normal text-amber-400 normal-case mt-0.5">-5 years</div>
+              </th>
+              <th class="px-4 py-3 text-right text-xs font-medium text-purple-600 uppercase tracking-wider">
+                <div>Age {{ secondDeathData.second_death_analysis.second_death.estimated_age_at_death }}</div>
+                <div class="text-[10px] font-normal text-purple-400 normal-case mt-0.5">Life expectancy</div>
+              </th>
+              <th class="px-4 py-3 text-right text-xs font-medium text-blue-600 uppercase tracking-wider">
+                <div>Age {{ projectionPlus5?.estimated_age_at_death || '...' }}</div>
+                <div class="text-[10px] font-normal text-blue-400 normal-case mt-0.5">+5 years</div>
+              </th>
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
@@ -287,7 +298,7 @@
               <!-- User Assets Header -->
               <tr class="bg-white border-l-4 border-blue-500">
                 <td class="px-4 py-3 text-sm font-semibold text-blue-900">{{ secondDeathData.assets_breakdown.user.name }}'s Assets</td>
-                <td class="px-4 py-3 text-sm text-right font-semibold text-blue-900" colspan="2"></td>
+                <td class="px-4 py-3 text-sm text-right font-semibold text-blue-900" colspan="4"></td>
               </tr>
 
               <!-- User Property Assets -->
@@ -297,7 +308,9 @@
                   <span v-if="asset.is_joint" class="ml-2 text-xs text-amber-600 font-medium">(Joint - 50%)</span>
                 </td>
                 <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.projected_value) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-amber-700">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-purple-700">{{ formatCurrency(asset.projected_value) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-blue-700">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
               </tr>
 
               <!-- User Investment Assets -->
@@ -307,7 +320,9 @@
                   <span v-if="asset.is_joint" class="ml-2 text-xs text-amber-600 font-medium">(Joint - 50%)</span>
                 </td>
                 <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.projected_value) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-amber-700">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-purple-700">{{ formatCurrency(asset.projected_value) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-blue-700">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
               </tr>
 
               <!-- User Cash/Savings Assets -->
@@ -317,7 +332,9 @@
                   <span v-if="asset.is_joint" class="ml-2 text-xs text-amber-600 font-medium">(Joint - 50%)</span>
                 </td>
                 <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.projected_value) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-amber-700">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-purple-700">{{ formatCurrency(asset.projected_value) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-blue-700">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
               </tr>
 
               <!-- User Business Assets -->
@@ -327,7 +344,9 @@
                   <span v-if="asset.is_joint" class="ml-2 text-xs text-amber-600 font-medium">(Joint - 50%)</span>
                 </td>
                 <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.projected_value) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-amber-700">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-purple-700">{{ formatCurrency(asset.projected_value) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-blue-700">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
               </tr>
 
               <!-- User Chattel Assets -->
@@ -337,14 +356,18 @@
                   <span v-if="asset.is_joint" class="ml-2 text-xs text-amber-600 font-medium">(Joint - 50%)</span>
                 </td>
                 <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.projected_value) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-amber-700">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-purple-700">{{ formatCurrency(asset.projected_value) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-blue-700">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
               </tr>
 
               <!-- User Assets Subtotal -->
               <tr class="bg-white border-l-4 border-blue-500">
                 <td class="px-4 py-2 text-sm font-semibold text-blue-900 pl-8">Subtotal</td>
                 <td class="px-4 py-2 text-sm text-right font-semibold text-blue-900">{{ formatCurrency(secondDeathData.assets_breakdown.user.total) }}</td>
-                <td class="px-4 py-2 text-sm text-right font-semibold text-blue-900">{{ formatCurrency(secondDeathData.assets_breakdown.user.projected_total) }}</td>
+                <td class="px-4 py-2 text-sm text-right font-semibold text-amber-700">{{ formatCurrency(getProjectedValueMinus5(secondDeathData.assets_breakdown.user.total)) }}</td>
+                <td class="px-4 py-2 text-sm text-right font-semibold text-purple-700">{{ formatCurrency(secondDeathData.assets_breakdown.user.projected_total) }}</td>
+                <td class="px-4 py-2 text-sm text-right font-semibold text-blue-700">{{ formatCurrency(getProjectedValuePlus5(secondDeathData.assets_breakdown.user.total)) }}</td>
               </tr>
             </template>
 
@@ -353,7 +376,7 @@
               <!-- Spouse Assets Header -->
               <tr class="bg-white border-l-4 border-purple-500">
                 <td class="px-4 py-3 text-sm font-semibold text-purple-900">{{ secondDeathData.assets_breakdown.spouse.name }}'s Assets</td>
-                <td class="px-4 py-3 text-sm text-right font-semibold text-purple-900" colspan="2"></td>
+                <td class="px-4 py-3 text-sm text-right font-semibold text-purple-900" colspan="4"></td>
               </tr>
 
               <!-- Spouse Property Assets -->
@@ -363,7 +386,9 @@
                   <span v-if="asset.is_joint" class="ml-2 text-xs text-amber-600 font-medium">(Joint - 50%)</span>
                 </td>
                 <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.projected_value) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-amber-700">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-purple-700">{{ formatCurrency(asset.projected_value) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-blue-700">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
               </tr>
 
               <!-- Spouse Investment Assets -->
@@ -373,7 +398,9 @@
                   <span v-if="asset.is_joint" class="ml-2 text-xs text-amber-600 font-medium">(Joint - 50%)</span>
                 </td>
                 <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.projected_value) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-amber-700">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-purple-700">{{ formatCurrency(asset.projected_value) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-blue-700">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
               </tr>
 
               <!-- Spouse Cash/Savings Assets -->
@@ -383,7 +410,9 @@
                   <span v-if="asset.is_joint" class="ml-2 text-xs text-amber-600 font-medium">(Joint - 50%)</span>
                 </td>
                 <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.projected_value) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-amber-700">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-purple-700">{{ formatCurrency(asset.projected_value) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-blue-700">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
               </tr>
 
               <!-- Spouse Business Assets -->
@@ -393,7 +422,9 @@
                   <span v-if="asset.is_joint" class="ml-2 text-xs text-amber-600 font-medium">(Joint - 50%)</span>
                 </td>
                 <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.projected_value) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-amber-700">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-purple-700">{{ formatCurrency(asset.projected_value) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-blue-700">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
               </tr>
 
               <!-- Spouse Chattel Assets -->
@@ -403,14 +434,18 @@
                   <span v-if="asset.is_joint" class="ml-2 text-xs text-amber-600 font-medium">(Joint - 50%)</span>
                 </td>
                 <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.projected_value) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-amber-700">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-purple-700">{{ formatCurrency(asset.projected_value) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-blue-700">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
               </tr>
 
               <!-- Spouse Assets Subtotal -->
               <tr class="bg-white border-l-4 border-purple-500">
                 <td class="px-4 py-2 text-sm font-semibold text-purple-900 pl-8">Subtotal</td>
                 <td class="px-4 py-2 text-sm text-right font-semibold text-purple-900">{{ formatCurrency(secondDeathData.assets_breakdown.spouse.total) }}</td>
-                <td class="px-4 py-2 text-sm text-right font-semibold text-purple-900">{{ formatCurrency(secondDeathData.assets_breakdown.spouse.projected_total) }}</td>
+                <td class="px-4 py-2 text-sm text-right font-semibold text-amber-700">{{ formatCurrency(getProjectedValueMinus5(secondDeathData.assets_breakdown.spouse.total)) }}</td>
+                <td class="px-4 py-2 text-sm text-right font-semibold text-purple-700">{{ formatCurrency(secondDeathData.assets_breakdown.spouse.projected_total) }}</td>
+                <td class="px-4 py-2 text-sm text-right font-semibold text-blue-700">{{ formatCurrency(getProjectedValuePlus5(secondDeathData.assets_breakdown.spouse.total)) }}</td>
               </tr>
             </template>
 
@@ -418,7 +453,9 @@
             <tr class="bg-white border-l-4 border-blue-500">
               <td class="px-4 py-3 text-sm font-semibold text-blue-900">Total Gross Assets</td>
               <td class="px-4 py-3 text-sm text-right font-semibold text-blue-900">{{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.gross_estate_value || 0) }}</td>
-              <td class="px-4 py-3 text-sm text-right font-semibold text-blue-900">{{ formatCurrency(totalGrossAssetsProjected) }}</td>
+              <td class="px-4 py-3 text-sm text-right font-semibold text-amber-700">{{ formatCurrency(getProjectedValueMinus5(secondDeathData.second_death_analysis.current_iht_calculation?.gross_estate_value || 0)) }}</td>
+              <td class="px-4 py-3 text-sm text-right font-semibold text-purple-700">{{ formatCurrency(totalGrossAssetsProjected) }}</td>
+              <td class="px-4 py-3 text-sm text-right font-semibold text-blue-700">{{ formatCurrency(getProjectedValuePlus5(secondDeathData.second_death_analysis.current_iht_calculation?.gross_estate_value || 0)) }}</td>
             </tr>
 
             <!-- User Liabilities Section -->
@@ -426,7 +463,7 @@
               <!-- User Liabilities Header -->
               <tr class="bg-white border-l-4 border-red-500">
                 <td class="px-4 py-3 text-sm font-semibold text-red-900">{{ secondDeathData.liabilities_breakdown.user.name }}'s Liabilities</td>
-                <td class="px-4 py-3 text-sm text-right font-semibold text-red-900" colspan="2"></td>
+                <td class="px-4 py-3 text-sm text-right font-semibold text-red-900" colspan="4"></td>
               </tr>
 
               <!-- User Mortgages -->
@@ -437,7 +474,9 @@
                   <span v-if="mortgage.is_joint" class="ml-2 text-xs text-amber-600 font-medium">(Joint - 50%)</span>
                 </td>
                 <td class="px-4 py-2 text-sm text-right text-red-600">-{{ formatCurrency(mortgage.outstanding_balance) }}</td>
-                <td class="px-4 py-2 text-sm text-right text-red-600">-{{ formatCurrency(mortgage.projected_balance !== undefined && mortgage.projected_balance !== null ? mortgage.projected_balance : mortgage.outstanding_balance) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-amber-600">-{{ formatCurrency(mortgage.outstanding_balance) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-purple-600">-{{ formatCurrency(mortgage.projected_balance !== undefined && mortgage.projected_balance !== null ? mortgage.projected_balance : mortgage.outstanding_balance) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-blue-600">-{{ formatCurrency(mortgage.projected_balance !== undefined && mortgage.projected_balance !== null ? mortgage.projected_balance : mortgage.outstanding_balance) }}</td>
               </tr>
 
               <!-- User Other Liabilities -->
@@ -447,14 +486,18 @@
                   <span v-if="liability.is_joint" class="ml-2 text-xs text-amber-600 font-medium">(Joint - 50%)</span>
                 </td>
                 <td class="px-4 py-2 text-sm text-right text-red-600">-{{ formatCurrency(liability.current_balance) }}</td>
-                <td class="px-4 py-2 text-sm text-right text-red-600">-{{ formatCurrency(liability.projected_balance !== undefined && liability.projected_balance !== null ? liability.projected_balance : liability.current_balance) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-amber-600">-{{ formatCurrency(liability.current_balance) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-purple-600">-{{ formatCurrency(liability.projected_balance !== undefined && liability.projected_balance !== null ? liability.projected_balance : liability.current_balance) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-blue-600">-{{ formatCurrency(liability.projected_balance !== undefined && liability.projected_balance !== null ? liability.projected_balance : liability.current_balance) }}</td>
               </tr>
 
               <!-- User Liabilities Subtotal (only if > 0) -->
               <tr v-if="secondDeathData.liabilities_breakdown.user.total > 0" class="bg-white border-l-4 border-red-500">
                 <td class="px-4 py-2 text-sm font-semibold text-red-900 pl-8">Subtotal</td>
                 <td class="px-4 py-2 text-sm text-right font-semibold text-red-900">-{{ formatCurrency(secondDeathData.liabilities_breakdown.user.total) }}</td>
-                <td class="px-4 py-2 text-sm text-right font-semibold text-red-900">-{{ formatCurrency(userLiabilitiesProjectedTotal) }}</td>
+                <td class="px-4 py-2 text-sm text-right font-semibold text-amber-700">-{{ formatCurrency(secondDeathData.liabilities_breakdown.user.total) }}</td>
+                <td class="px-4 py-2 text-sm text-right font-semibold text-purple-700">-{{ formatCurrency(userLiabilitiesProjectedTotal) }}</td>
+                <td class="px-4 py-2 text-sm text-right font-semibold text-blue-700">-{{ formatCurrency(userLiabilitiesProjectedTotal) }}</td>
               </tr>
             </template>
 
@@ -463,7 +506,7 @@
               <!-- Spouse Liabilities Header -->
               <tr class="bg-white border-l-4 border-orange-500">
                 <td class="px-4 py-3 text-sm font-semibold text-orange-900">{{ secondDeathData.liabilities_breakdown.spouse.name }}'s Liabilities</td>
-                <td class="px-4 py-3 text-sm text-right font-semibold text-orange-900" colspan="2"></td>
+                <td class="px-4 py-3 text-sm text-right font-semibold text-orange-900" colspan="4"></td>
               </tr>
 
               <!-- Spouse Mortgages -->
@@ -474,7 +517,9 @@
                   <span v-if="mortgage.is_joint" class="ml-2 text-xs text-amber-600 font-medium">(Joint - 50%)</span>
                 </td>
                 <td class="px-4 py-2 text-sm text-right text-red-600">-{{ formatCurrency(mortgage.outstanding_balance) }}</td>
-                <td class="px-4 py-2 text-sm text-right text-red-600">-{{ formatCurrency(mortgage.projected_balance !== undefined && mortgage.projected_balance !== null ? mortgage.projected_balance : mortgage.outstanding_balance) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-amber-600">-{{ formatCurrency(mortgage.outstanding_balance) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-purple-600">-{{ formatCurrency(mortgage.projected_balance !== undefined && mortgage.projected_balance !== null ? mortgage.projected_balance : mortgage.outstanding_balance) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-blue-600">-{{ formatCurrency(mortgage.projected_balance !== undefined && mortgage.projected_balance !== null ? mortgage.projected_balance : mortgage.outstanding_balance) }}</td>
               </tr>
 
               <!-- Spouse Other Liabilities -->
@@ -484,14 +529,18 @@
                   <span v-if="liability.is_joint" class="ml-2 text-xs text-amber-600 font-medium">(Joint - 50%)</span>
                 </td>
                 <td class="px-4 py-2 text-sm text-right text-red-600">-{{ formatCurrency(liability.current_balance) }}</td>
-                <td class="px-4 py-2 text-sm text-right text-red-600">-{{ formatCurrency(liability.projected_balance !== undefined && liability.projected_balance !== null ? liability.projected_balance : liability.current_balance) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-amber-600">-{{ formatCurrency(liability.current_balance) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-purple-600">-{{ formatCurrency(liability.projected_balance !== undefined && liability.projected_balance !== null ? liability.projected_balance : liability.current_balance) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-blue-600">-{{ formatCurrency(liability.projected_balance !== undefined && liability.projected_balance !== null ? liability.projected_balance : liability.current_balance) }}</td>
               </tr>
 
               <!-- Spouse Liabilities Subtotal (only if > 0) -->
               <tr v-if="secondDeathData.liabilities_breakdown.spouse.total > 0" class="bg-white border-l-4 border-orange-500">
                 <td class="px-4 py-2 text-sm font-semibold text-orange-900 pl-8">Subtotal</td>
                 <td class="px-4 py-2 text-sm text-right font-semibold text-orange-900">-{{ formatCurrency(secondDeathData.liabilities_breakdown.spouse.total) }}</td>
-                <td class="px-4 py-2 text-sm text-right font-semibold text-orange-900">-{{ formatCurrency(spouseLiabilitiesProjectedTotal) }}</td>
+                <td class="px-4 py-2 text-sm text-right font-semibold text-amber-700">-{{ formatCurrency(secondDeathData.liabilities_breakdown.spouse.total) }}</td>
+                <td class="px-4 py-2 text-sm text-right font-semibold text-purple-700">-{{ formatCurrency(spouseLiabilitiesProjectedTotal) }}</td>
+                <td class="px-4 py-2 text-sm text-right font-semibold text-blue-700">-{{ formatCurrency(spouseLiabilitiesProjectedTotal) }}</td>
               </tr>
             </template>
 
@@ -499,21 +548,27 @@
             <tr class="bg-white border-l-4 border-red-500">
               <td class="px-4 py-3 text-sm font-semibold text-red-900">Less: Total Liabilities</td>
               <td class="px-4 py-3 text-sm text-right font-semibold text-red-900">-{{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.liabilities || 0) }}</td>
-              <td class="px-4 py-3 text-sm text-right font-semibold text-red-900">-{{ formatCurrency(totalLiabilitiesProjected) }}</td>
+              <td class="px-4 py-3 text-sm text-right font-semibold text-amber-700">-{{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.liabilities || 0) }}</td>
+              <td class="px-4 py-3 text-sm text-right font-semibold text-purple-700">-{{ formatCurrency(totalLiabilitiesProjected) }}</td>
+              <td class="px-4 py-3 text-sm text-right font-semibold text-blue-700">-{{ formatCurrency(totalLiabilitiesProjected) }}</td>
             </tr>
 
             <!-- Net Estate -->
             <tr class="bg-white border-l-4 border-purple-500">
               <td class="px-4 py-3 text-sm font-semibold text-purple-800">Net Estate</td>
               <td class="px-4 py-3 text-sm text-right font-bold text-purple-800">{{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.net_estate_value || 0) }}</td>
+              <td class="px-4 py-3 text-sm text-right font-bold text-amber-800">{{ formatCurrency(secondDeathProjectionMinus5.net_estate) }}</td>
               <td class="px-4 py-3 text-sm text-right font-bold text-purple-800">{{ formatCurrency(netEstateProjected) }}</td>
+              <td class="px-4 py-3 text-sm text-right font-bold text-blue-800">{{ formatCurrency(secondDeathProjectionPlus5.net_estate) }}</td>
             </tr>
 
             <!-- NRB (Individual) -->
             <tr>
               <td class="px-4 py-3 text-sm text-gray-600">Less: Tax-Free Allowance (Individual)</td>
               <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.nrb || 325000) }}</td>
-              <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(secondDeathData.second_death_analysis.iht_calculation?.nrb || 325000) }}</td>
+              <td class="px-4 py-3 text-sm text-right text-amber-700">-{{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.nrb || 325000) }}</td>
+              <td class="px-4 py-3 text-sm text-right text-purple-700">-{{ formatCurrency(secondDeathData.second_death_analysis.iht_calculation?.nrb || 325000) }}</td>
+              <td class="px-4 py-3 text-sm text-right text-blue-700">-{{ formatCurrency(secondDeathData.second_death_analysis.iht_calculation?.nrb || 325000) }}</td>
             </tr>
 
             <!-- NRB from Spouse -->
@@ -523,14 +578,18 @@
                 <span v-if="!hasSpouseLinked" class="ml-2 text-xs text-amber-600">(Default - verify by linking spouse)</span>
               </td>
               <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.nrb_from_spouse || 325000) }}</td>
-              <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(secondDeathData.second_death_analysis.iht_calculation?.nrb_from_spouse || 325000) }}</td>
+              <td class="px-4 py-3 text-sm text-right text-amber-700">-{{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.nrb_from_spouse || 325000) }}</td>
+              <td class="px-4 py-3 text-sm text-right text-purple-700">-{{ formatCurrency(secondDeathData.second_death_analysis.iht_calculation?.nrb_from_spouse || 325000) }}</td>
+              <td class="px-4 py-3 text-sm text-right text-blue-700">-{{ formatCurrency(secondDeathData.second_death_analysis.iht_calculation?.nrb_from_spouse || 325000) }}</td>
             </tr>
 
             <!-- RNRB (Individual) -->
             <tr v-if="secondDeathData.second_death_analysis.iht_calculation?.rnrb_eligible && ((secondDeathData.second_death_analysis.current_iht_calculation?.rnrb_individual || 0) > 0 || (secondDeathData.second_death_analysis.iht_calculation?.rnrb_individual || 0) > 0)">
               <td class="px-4 py-3 text-sm text-gray-600">Less: Home Allowance (Individual)</td>
               <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.rnrb_individual || 0) }}</td>
-              <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(secondDeathData.second_death_analysis.iht_calculation?.rnrb_individual || 0) }}</td>
+              <td class="px-4 py-3 text-sm text-right text-amber-700">-{{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.rnrb_individual || 0) }}</td>
+              <td class="px-4 py-3 text-sm text-right text-purple-700">-{{ formatCurrency(secondDeathData.second_death_analysis.iht_calculation?.rnrb_individual || 0) }}</td>
+              <td class="px-4 py-3 text-sm text-right text-blue-700">-{{ formatCurrency(secondDeathData.second_death_analysis.iht_calculation?.rnrb_individual || 0) }}</td>
             </tr>
 
             <!-- RNRB from Spouse -->
@@ -540,12 +599,14 @@
                 <span v-if="!hasSpouseLinked" class="ml-2 text-xs text-amber-600">(Default - verify by linking spouse)</span>
               </td>
               <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.rnrb_from_spouse || 0) }}</td>
-              <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(secondDeathData.second_death_analysis.iht_calculation?.rnrb_from_spouse || 0) }}</td>
+              <td class="px-4 py-3 text-sm text-right text-amber-700">-{{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.rnrb_from_spouse || 0) }}</td>
+              <td class="px-4 py-3 text-sm text-right text-purple-700">-{{ formatCurrency(secondDeathData.second_death_analysis.iht_calculation?.rnrb_from_spouse || 0) }}</td>
+              <td class="px-4 py-3 text-sm text-right text-blue-700">-{{ formatCurrency(secondDeathData.second_death_analysis.iht_calculation?.rnrb_from_spouse || 0) }}</td>
             </tr>
 
             <!-- RNRB Taper Warning (Current) -->
             <tr v-if="secondDeathData.second_death_analysis.iht_calculation?.rnrb_eligible && secondDeathData.second_death_analysis.current_iht_calculation?.rnrb_tapered">
-              <td colspan="3" class="px-4 py-2 text-xs bg-white border-l-4 border-orange-500">
+              <td colspan="5" class="px-4 py-2 text-xs bg-white border-l-4 border-orange-500">
                 <span class="text-orange-700">
                   <strong>Home Allowance Reduced:</strong> Estate value {{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.net_estate_value || 0) }} exceeds {{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.rnrb_taper_threshold || 2000000) }} threshold.
                   <span v-if="(secondDeathData.second_death_analysis.current_iht_calculation?.rnrb || 0) === 0">Home allowance completely removed (reduced by {{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.rnrb_taper_amount || 0) }}).</span>
@@ -556,7 +617,7 @@
 
             <!-- RNRB Not Available Message -->
             <tr v-if="!secondDeathData.second_death_analysis.iht_calculation?.rnrb_eligible">
-              <td colspan="3" class="px-4 py-2 text-xs text-amber-700 bg-white border-l-4 border-amber-500">
+              <td colspan="5" class="px-4 py-2 text-xs text-amber-700 bg-white border-l-4 border-amber-500">
                 <strong>Note:</strong> Home allowance (residence nil rate band) not available - no main residence identified or property not left to direct descendants
               </td>
             </tr>
@@ -565,14 +626,18 @@
             <tr class="bg-gray-50">
               <td class="px-4 py-3 text-sm font-semibold text-gray-900">Taxable Estate</td>
               <td class="px-4 py-3 text-sm text-right font-bold text-gray-900">{{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.taxable_estate || 0) }}</td>
-              <td class="px-4 py-3 text-sm text-right font-bold text-gray-900">{{ formatCurrency(taxableEstateProjected) }}</td>
+              <td class="px-4 py-3 text-sm text-right font-bold text-amber-700">{{ formatCurrency(secondDeathProjectionMinus5.taxable_estate) }}</td>
+              <td class="px-4 py-3 text-sm text-right font-bold text-purple-700">{{ formatCurrency(taxableEstateProjected) }}</td>
+              <td class="px-4 py-3 text-sm text-right font-bold text-blue-700">{{ formatCurrency(secondDeathProjectionPlus5.taxable_estate) }}</td>
             </tr>
 
             <!-- Inheritance Tax Liability -->
             <tr class="bg-white border-l-4 border-red-500">
               <td class="px-4 py-3 text-sm font-semibold text-red-800">Inheritance Tax Liability (40%)</td>
               <td class="px-4 py-3 text-sm text-right font-bold text-red-800">{{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.iht_liability || 0) }}</td>
-              <td class="px-4 py-3 text-sm text-right font-bold text-red-800">{{ formatCurrency(ihtLiabilityProjected) }}</td>
+              <td class="px-4 py-3 text-sm text-right font-bold text-amber-800">{{ formatCurrency(secondDeathProjectionMinus5.iht_liability) }}</td>
+              <td class="px-4 py-3 text-sm text-right font-bold text-purple-800">{{ formatCurrency(ihtLiabilityProjected) }}</td>
+              <td class="px-4 py-3 text-sm text-right font-bold text-blue-800">{{ formatCurrency(secondDeathProjectionPlus5.iht_liability) }}</td>
             </tr>
           </tbody>
         </table>
@@ -609,9 +674,17 @@
             <tr>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Asset / Liability</th>
               <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Current Value</th>
-              <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                <div>Projected (Age {{ projection?.at_death?.estimated_age_at_death || '...' }})</div>
-                <div class="text-[10px] font-normal text-gray-400 normal-case mt-0.5">This is a static future value calculation using 4.7%</div>
+              <th class="px-4 py-3 text-right text-xs font-medium text-amber-600 uppercase tracking-wider">
+                <div>Age {{ projectionMinus5?.estimated_age_at_death || '...' }}</div>
+                <div class="text-[10px] font-normal text-amber-400 normal-case mt-0.5">-5 years</div>
+              </th>
+              <th class="px-4 py-3 text-right text-xs font-medium text-purple-600 uppercase tracking-wider">
+                <div>Age {{ projection?.at_death?.estimated_age_at_death || '...' }}</div>
+                <div class="text-[10px] font-normal text-purple-400 normal-case mt-0.5">Life expectancy</div>
+              </th>
+              <th class="px-4 py-3 text-right text-xs font-medium text-blue-600 uppercase tracking-wider">
+                <div>Age {{ projectionPlus5?.estimated_age_at_death || '...' }}</div>
+                <div class="text-[10px] font-normal text-blue-400 normal-case mt-0.5">+5 years</div>
               </th>
             </tr>
           </thead>
@@ -619,7 +692,7 @@
             <!-- User Assets Header -->
             <tr class="bg-white border-l-4 border-blue-500">
               <td class="px-4 py-3 text-sm font-semibold text-blue-900">{{ secondDeathData.assets_breakdown.user.name }}'s Assets</td>
-              <td class="px-4 py-3 text-sm text-right font-semibold text-blue-900" colspan="2"></td>
+              <td class="px-4 py-3 text-sm text-right font-semibold text-blue-900" colspan="4"></td>
             </tr>
 
             <!-- User Property Assets -->
@@ -629,7 +702,9 @@
                 <span v-if="asset.is_joint" class="ml-2 text-xs text-amber-600 font-medium">(Joint)</span>
               </td>
               <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-              <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.projected_value) }}</td>
+              <td class="px-4 py-2 text-sm text-right text-amber-700">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
+              <td class="px-4 py-2 text-sm text-right text-purple-700">{{ formatCurrency(asset.projected_value) }}</td>
+              <td class="px-4 py-2 text-sm text-right text-blue-700">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
             </tr>
 
             <!-- User Investment Assets -->
@@ -639,7 +714,9 @@
                 <span v-if="asset.is_joint" class="ml-2 text-xs text-amber-600 font-medium">(Joint)</span>
               </td>
               <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-              <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.projected_value) }}</td>
+              <td class="px-4 py-2 text-sm text-right text-amber-700">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
+              <td class="px-4 py-2 text-sm text-right text-purple-700">{{ formatCurrency(asset.projected_value) }}</td>
+              <td class="px-4 py-2 text-sm text-right text-blue-700">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
             </tr>
 
             <!-- User Cash/Savings Assets -->
@@ -649,7 +726,9 @@
                 <span v-if="asset.is_joint" class="ml-2 text-xs text-amber-600 font-medium">(Joint)</span>
               </td>
               <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-              <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.projected_value) }}</td>
+              <td class="px-4 py-2 text-sm text-right text-amber-700">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
+              <td class="px-4 py-2 text-sm text-right text-purple-700">{{ formatCurrency(asset.projected_value) }}</td>
+              <td class="px-4 py-2 text-sm text-right text-blue-700">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
             </tr>
 
             <!-- User Business Assets -->
@@ -659,7 +738,9 @@
                 <span v-if="asset.is_joint" class="ml-2 text-xs text-amber-600 font-medium">(Joint)</span>
               </td>
               <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-              <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.projected_value) }}</td>
+              <td class="px-4 py-2 text-sm text-right text-amber-700">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
+              <td class="px-4 py-2 text-sm text-right text-purple-700">{{ formatCurrency(asset.projected_value) }}</td>
+              <td class="px-4 py-2 text-sm text-right text-blue-700">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
             </tr>
 
             <!-- User Chattel Assets -->
@@ -669,14 +750,18 @@
                 <span v-if="asset.is_joint" class="ml-2 text-xs text-amber-600 font-medium">(Joint)</span>
               </td>
               <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-              <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.projected_value) }}</td>
+              <td class="px-4 py-2 text-sm text-right text-amber-700">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
+              <td class="px-4 py-2 text-sm text-right text-purple-700">{{ formatCurrency(asset.projected_value) }}</td>
+              <td class="px-4 py-2 text-sm text-right text-blue-700">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
             </tr>
 
             <!-- User Assets Subtotal -->
             <tr class="bg-white border-l-4 border-blue-500">
               <td class="px-4 py-2 text-sm font-semibold text-blue-900 pl-8">Assets Subtotal</td>
               <td class="px-4 py-2 text-sm text-right font-semibold text-blue-900">{{ formatCurrency(secondDeathData.assets_breakdown.user.total) }}</td>
-              <td class="px-4 py-2 text-sm text-right font-semibold text-blue-900">{{ formatCurrency(secondDeathData.assets_breakdown.user.projected_total) }}</td>
+              <td class="px-4 py-2 text-sm text-right font-semibold text-amber-700">{{ formatCurrency(getProjectedValueMinus5(secondDeathData.assets_breakdown.user.total)) }}</td>
+              <td class="px-4 py-2 text-sm text-right font-semibold text-purple-700">{{ formatCurrency(secondDeathData.assets_breakdown.user.projected_total) }}</td>
+              <td class="px-4 py-2 text-sm text-right font-semibold text-blue-700">{{ formatCurrency(getProjectedValuePlus5(secondDeathData.assets_breakdown.user.total)) }}</td>
             </tr>
 
             <!-- Spouse Assets Section (if married with data sharing) -->
@@ -684,7 +769,7 @@
               <!-- Spouse Assets Header -->
               <tr class="bg-white border-l-4 border-green-500">
                 <td class="px-4 py-3 text-sm font-semibold text-green-900">{{ secondDeathData.assets_breakdown.spouse.name }}'s Assets</td>
-                <td class="px-4 py-3 text-sm text-right font-semibold text-green-900" colspan="2"></td>
+                <td class="px-4 py-3 text-sm text-right font-semibold text-green-900" colspan="4"></td>
               </tr>
 
               <!-- Spouse Property Assets -->
@@ -694,7 +779,9 @@
                   <span v-if="asset.is_joint" class="ml-2 text-xs text-amber-600 font-medium">(Joint)</span>
                 </td>
                 <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.projected_value) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-amber-700">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-purple-700">{{ formatCurrency(asset.projected_value) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-blue-700">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
               </tr>
 
               <!-- Spouse Investment Assets -->
@@ -704,7 +791,9 @@
                   <span v-if="asset.is_joint" class="ml-2 text-xs text-amber-600 font-medium">(Joint)</span>
                 </td>
                 <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.projected_value) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-amber-700">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-purple-700">{{ formatCurrency(asset.projected_value) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-blue-700">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
               </tr>
 
               <!-- Spouse Cash/Savings Assets -->
@@ -714,7 +803,9 @@
                   <span v-if="asset.is_joint" class="ml-2 text-xs text-amber-600 font-medium">(Joint)</span>
                 </td>
                 <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.projected_value) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-amber-700">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-purple-700">{{ formatCurrency(asset.projected_value) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-blue-700">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
               </tr>
 
               <!-- Spouse Business Assets -->
@@ -724,7 +815,9 @@
                   <span v-if="asset.is_joint" class="ml-2 text-xs text-amber-600 font-medium">(Joint)</span>
                 </td>
                 <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.projected_value) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-amber-700">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-purple-700">{{ formatCurrency(asset.projected_value) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-blue-700">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
               </tr>
 
               <!-- Spouse Chattel Assets -->
@@ -734,14 +827,18 @@
                   <span v-if="asset.is_joint" class="ml-2 text-xs text-amber-600 font-medium">(Joint)</span>
                 </td>
                 <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.projected_value) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-amber-700">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-purple-700">{{ formatCurrency(asset.projected_value) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-blue-700">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
               </tr>
 
               <!-- Spouse Assets Subtotal -->
               <tr class="bg-white border-l-4 border-green-500">
                 <td class="px-4 py-2 text-sm font-semibold text-green-900 pl-8">Assets Subtotal</td>
                 <td class="px-4 py-2 text-sm text-right font-semibold text-green-900">{{ formatCurrency(secondDeathData.assets_breakdown.spouse.total) }}</td>
-                <td class="px-4 py-2 text-sm text-right font-semibold text-green-900">{{ formatCurrency(secondDeathData.assets_breakdown.spouse.projected_total) }}</td>
+                <td class="px-4 py-2 text-sm text-right font-semibold text-amber-700">{{ formatCurrency(getProjectedValueMinus5(secondDeathData.assets_breakdown.spouse.total)) }}</td>
+                <td class="px-4 py-2 text-sm text-right font-semibold text-purple-700">{{ formatCurrency(secondDeathData.assets_breakdown.spouse.projected_total) }}</td>
+                <td class="px-4 py-2 text-sm text-right font-semibold text-blue-700">{{ formatCurrency(getProjectedValuePlus5(secondDeathData.assets_breakdown.spouse.total)) }}</td>
               </tr>
             </template>
 
@@ -749,7 +846,9 @@
             <tr class="bg-white border-l-4 border-indigo-500 border-t-2 border-indigo-300">
               <td class="px-4 py-3 text-sm font-bold text-indigo-900">Total Gross Assets</td>
               <td class="px-4 py-3 text-sm text-right font-bold text-indigo-900">{{ formatCurrency(secondDeathData.calculation?.total_gross_assets || 0) }}</td>
-              <td class="px-4 py-3 text-sm text-right font-bold text-indigo-900">{{ formatCurrency(secondDeathData.calculation?.projected_gross_assets || 0) }}</td>
+              <td class="px-4 py-3 text-sm text-right font-bold text-amber-700">{{ formatCurrency(getProjectedValueMinus5(secondDeathData.calculation?.total_gross_assets || 0)) }}</td>
+              <td class="px-4 py-3 text-sm text-right font-bold text-purple-700">{{ formatCurrency(secondDeathData.calculation?.projected_gross_assets || 0) }}</td>
+              <td class="px-4 py-3 text-sm text-right font-bold text-blue-700">{{ formatCurrency(getProjectedValuePlus5(secondDeathData.calculation?.total_gross_assets || 0)) }}</td>
             </tr>
 
             <!-- User Liabilities Section -->
@@ -757,7 +856,7 @@
               <!-- User Liabilities Header -->
               <tr class="bg-white border-l-4 border-red-500">
                 <td class="px-4 py-3 text-sm font-semibold text-red-900">{{ secondDeathData.liabilities_breakdown.user.name }}'s Liabilities</td>
-                <td class="px-4 py-3 text-sm text-right font-semibold text-red-900" colspan="2"></td>
+                <td class="px-4 py-3 text-sm text-right font-semibold text-red-900" colspan="4"></td>
               </tr>
 
               <!-- User Mortgages -->
@@ -766,6 +865,8 @@
                   <span class="text-xs text-red-500">Mortgage:</span> {{ mortgage.property_address }}
                 </td>
                 <td class="px-4 py-2 text-sm text-right text-red-600">-{{ formatCurrency(mortgage.outstanding_balance) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-red-600">-{{ formatCurrency(mortgage.outstanding_balance) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-red-600">-{{ formatCurrency(mortgage.projected_balance) }}</td>
                 <td class="px-4 py-2 text-sm text-right text-red-600">-{{ formatCurrency(mortgage.projected_balance) }}</td>
               </tr>
 
@@ -775,6 +876,8 @@
                   <span class="text-xs text-red-500">{{ liability.type }}:</span> {{ liability.institution }}
                 </td>
                 <td class="px-4 py-2 text-sm text-right text-red-600">-{{ formatCurrency(liability.current_balance) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-red-600">-{{ formatCurrency(liability.current_balance) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-red-600">-{{ formatCurrency(liability.projected_balance) }}</td>
                 <td class="px-4 py-2 text-sm text-right text-red-600">-{{ formatCurrency(liability.projected_balance) }}</td>
               </tr>
 
@@ -782,6 +885,8 @@
               <tr v-if="secondDeathData.liabilities_breakdown.user.total > 0" class="bg-white border-l-4 border-red-500">
                 <td class="px-4 py-2 text-sm font-semibold text-red-900 pl-8">Liabilities Subtotal</td>
                 <td class="px-4 py-2 text-sm text-right font-semibold text-red-900">-{{ formatCurrency(secondDeathData.liabilities_breakdown.user.total) }}</td>
+                <td class="px-4 py-2 text-sm text-right font-semibold text-red-900">-{{ formatCurrency(secondDeathData.liabilities_breakdown.user.total) }}</td>
+                <td class="px-4 py-2 text-sm text-right font-semibold text-red-900">-{{ formatCurrency(secondDeathData.liabilities_breakdown.user.projected_total) }}</td>
                 <td class="px-4 py-2 text-sm text-right font-semibold text-red-900">-{{ formatCurrency(secondDeathData.liabilities_breakdown.user.projected_total) }}</td>
               </tr>
             </template>
@@ -791,7 +896,7 @@
               <!-- Spouse Liabilities Header -->
               <tr class="bg-white border-l-4 border-orange-500">
                 <td class="px-4 py-3 text-sm font-semibold text-orange-900">{{ secondDeathData.liabilities_breakdown.spouse.name }}'s Liabilities</td>
-                <td class="px-4 py-3 text-sm text-right font-semibold text-orange-900" colspan="2"></td>
+                <td class="px-4 py-3 text-sm text-right font-semibold text-orange-900" colspan="4"></td>
               </tr>
 
               <!-- Spouse Mortgages -->
@@ -800,6 +905,8 @@
                   <span class="text-xs text-orange-500">Mortgage:</span> {{ mortgage.property_address }}
                 </td>
                 <td class="px-4 py-2 text-sm text-right text-orange-600">-{{ formatCurrency(mortgage.outstanding_balance) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-orange-600">-{{ formatCurrency(mortgage.outstanding_balance) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-orange-600">-{{ formatCurrency(mortgage.projected_balance) }}</td>
                 <td class="px-4 py-2 text-sm text-right text-orange-600">-{{ formatCurrency(mortgage.projected_balance) }}</td>
               </tr>
 
@@ -809,6 +916,8 @@
                   <span class="text-xs text-orange-500">{{ liability.type }}:</span> {{ liability.institution }}
                 </td>
                 <td class="px-4 py-2 text-sm text-right text-orange-600">-{{ formatCurrency(liability.current_balance) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-orange-600">-{{ formatCurrency(liability.current_balance) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-orange-600">-{{ formatCurrency(liability.projected_balance) }}</td>
                 <td class="px-4 py-2 text-sm text-right text-orange-600">-{{ formatCurrency(liability.projected_balance) }}</td>
               </tr>
 
@@ -816,6 +925,8 @@
               <tr v-if="secondDeathData.liabilities_breakdown.spouse.total > 0" class="bg-white border-l-4 border-orange-500">
                 <td class="px-4 py-2 text-sm font-semibold text-orange-900 pl-8">Liabilities Subtotal</td>
                 <td class="px-4 py-2 text-sm text-right font-semibold text-orange-900">-{{ formatCurrency(secondDeathData.liabilities_breakdown.spouse.total) }}</td>
+                <td class="px-4 py-2 text-sm text-right font-semibold text-orange-900">-{{ formatCurrency(secondDeathData.liabilities_breakdown.spouse.total) }}</td>
+                <td class="px-4 py-2 text-sm text-right font-semibold text-orange-900">-{{ formatCurrency(secondDeathData.liabilities_breakdown.spouse.projected_total) }}</td>
                 <td class="px-4 py-2 text-sm text-right font-semibold text-orange-900">-{{ formatCurrency(secondDeathData.liabilities_breakdown.spouse.projected_total) }}</td>
               </tr>
             </template>
@@ -824,6 +935,8 @@
             <tr class="bg-white border-l-4 border-red-500 border-t-2 border-red-300">
               <td class="px-4 py-3 text-sm font-bold text-red-900">Total Liabilities</td>
               <td class="px-4 py-3 text-sm text-right font-bold text-red-900">-{{ formatCurrency(secondDeathData.calculation?.total_liabilities || 0) }}</td>
+              <td class="px-4 py-3 text-sm text-right font-bold text-red-900">-{{ formatCurrency(secondDeathData.calculation?.total_liabilities || 0) }}</td>
+              <td class="px-4 py-3 text-sm text-right font-bold text-red-900">-{{ formatCurrency(secondDeathData.calculation?.projected_liabilities || 0) }}</td>
               <td class="px-4 py-3 text-sm text-right font-bold text-red-900">-{{ formatCurrency(secondDeathData.calculation?.projected_liabilities || 0) }}</td>
             </tr>
 
@@ -831,7 +944,9 @@
             <tr class="bg-white border-l-4 border-purple-500">
               <td class="px-4 py-3 text-sm font-semibold text-purple-900">Net Estate</td>
               <td class="px-4 py-3 text-sm text-right font-bold text-purple-900">{{ formatCurrency(ihtData?.net_estate_value || 0) }}</td>
-              <td class="px-4 py-3 text-sm text-right font-bold text-purple-900">{{ formatCurrency(projection?.at_death?.net_estate || 0) }}</td>
+              <td class="px-4 py-3 text-sm text-right font-bold text-amber-700">{{ formatCurrency(projectionMinus5?.net_estate || 0) }}</td>
+              <td class="px-4 py-3 text-sm text-right font-bold text-purple-700">{{ formatCurrency(projection?.at_death?.net_estate || 0) }}</td>
+              <td class="px-4 py-3 text-sm text-right font-bold text-blue-700">{{ formatCurrency(projectionPlus5?.net_estate || 0) }}</td>
             </tr>
 
             <!-- Allowances Section -->
@@ -841,9 +956,13 @@
                 <td class="px-4 py-3 text-sm text-gray-600 pl-8">Less: {{ secondDeathData.assets_breakdown.user.name }}'s NRB</td>
                 <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
                 <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
+                <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
+                <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
               </tr>
               <tr class="bg-gray-50">
                 <td class="px-4 py-3 text-sm text-gray-600 pl-8">Less: {{ secondDeathData.assets_breakdown.spouse.name }}'s NRB</td>
+                <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
+                <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
                 <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
                 <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
               </tr>
@@ -851,9 +970,13 @@
                 <td class="px-4 py-3 text-sm text-gray-600 pl-8">Less: {{ secondDeathData.assets_breakdown.user.name }}'s RNRB</td>
                 <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency((ihtData?.rnrb_available || 0) / 2) }}</td>
                 <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency((ihtData?.rnrb_available || 0) / 2) }}</td>
+                <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency((ihtData?.rnrb_available || 0) / 2) }}</td>
+                <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency((ihtData?.rnrb_available || 0) / 2) }}</td>
               </tr>
               <tr class="bg-gray-50" v-if="ihtData?.rnrb_available > 0">
                 <td class="px-4 py-3 text-sm text-gray-600 pl-8">Less: {{ secondDeathData.assets_breakdown.spouse.name }}'s RNRB</td>
+                <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency((ihtData?.rnrb_available || 0) / 2) }}</td>
+                <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency((ihtData?.rnrb_available || 0) / 2) }}</td>
                 <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency((ihtData?.rnrb_available || 0) / 2) }}</td>
                 <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency((ihtData?.rnrb_available || 0) / 2) }}</td>
               </tr>
@@ -864,9 +987,13 @@
                 <td class="px-4 py-3 text-sm text-gray-600">Less: Nil Rate Band (NRB)</td>
                 <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(ihtData?.nrb_available || 0) }}</td>
                 <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(ihtData?.nrb_available || 0) }}</td>
+                <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(ihtData?.nrb_available || 0) }}</td>
+                <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(ihtData?.nrb_available || 0) }}</td>
               </tr>
               <tr class="bg-gray-50" v-if="ihtData?.rnrb_available > 0">
                 <td class="px-4 py-3 text-sm text-gray-600">Less: Residence Nil Rate Band (RNRB)</td>
+                <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(ihtData?.rnrb_available || 0) }}</td>
+                <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(ihtData?.rnrb_available || 0) }}</td>
                 <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(ihtData?.rnrb_available || 0) }}</td>
                 <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(ihtData?.rnrb_available || 0) }}</td>
               </tr>
@@ -876,14 +1003,18 @@
             <tr class="bg-gray-50">
               <td class="px-4 py-3 text-sm font-semibold text-gray-900">Taxable Estate</td>
               <td class="px-4 py-3 text-sm text-right font-bold text-gray-900">{{ formatCurrency(ihtData?.taxable_estate || 0) }}</td>
-              <td class="px-4 py-3 text-sm text-right font-bold text-gray-900">{{ formatCurrency(projection?.at_death?.taxable_estate || 0) }}</td>
+              <td class="px-4 py-3 text-sm text-right font-bold text-amber-700">{{ formatCurrency(projectionMinus5?.taxable_estate || 0) }}</td>
+              <td class="px-4 py-3 text-sm text-right font-bold text-purple-700">{{ formatCurrency(projection?.at_death?.taxable_estate || 0) }}</td>
+              <td class="px-4 py-3 text-sm text-right font-bold text-blue-700">{{ formatCurrency(projectionPlus5?.taxable_estate || 0) }}</td>
             </tr>
 
             <!-- Inheritance Tax Liability -->
             <tr class="bg-white border-l-4 border-red-500">
               <td class="px-4 py-3 text-sm font-semibold text-red-800">Inheritance Tax Liability (40%)</td>
               <td class="px-4 py-3 text-sm text-right font-bold text-red-800">{{ formatCurrency(ihtData?.estate_iht_liability || 0) }}</td>
-              <td class="px-4 py-3 text-sm text-right font-bold text-red-800">{{ formatCurrency(projection?.at_death?.iht_liability || 0) }}</td>
+              <td class="px-4 py-3 text-sm text-right font-bold text-amber-800">{{ formatCurrency(projectionMinus5?.iht_liability || 0) }}</td>
+              <td class="px-4 py-3 text-sm text-right font-bold text-purple-800">{{ formatCurrency(projection?.at_death?.iht_liability || 0) }}</td>
+              <td class="px-4 py-3 text-sm text-right font-bold text-blue-800">{{ formatCurrency(projectionPlus5?.iht_liability || 0) }}</td>
             </tr>
           </tbody>
         </table>
@@ -1433,6 +1564,165 @@ export default {
     ihtLiabilityProjected() {
       return this.taxableEstateProjected * 0.40;
     },
+
+    // Growth rate for projections (4.7% annual)
+    growthRate() {
+      return 0.047;
+    },
+
+    // Base years to death from projection data
+    baseYearsToDeath() {
+      return this.projection?.at_death?.years_to_death || 0;
+    },
+
+    // Ages for each projection column
+    projectedAgeMinus5() {
+      const baseAge = this.projection?.at_death?.estimated_age_at_death || 0;
+      return Math.max(baseAge - 5, this.getCurrentAge());
+    },
+
+    projectedAgePlus5() {
+      const baseAge = this.projection?.at_death?.estimated_age_at_death || 0;
+      return baseAge + 5;
+    },
+
+    // Years to each projection point
+    yearsToDeath() {
+      return this.baseYearsToDeath;
+    },
+
+    yearsToDeathMinus5() {
+      return Math.max(0, this.baseYearsToDeath - 5);
+    },
+
+    yearsToDeathPlus5() {
+      return this.baseYearsToDeath + 5;
+    },
+
+    // Projection for -5 years from estimated death
+    projectionMinus5() {
+      if (!this.projection?.now) return null;
+
+      const years = this.yearsToDeathMinus5;
+      const currentNetEstate = this.projection.now.net_estate || 0;
+      const currentAssets = this.projection.now.assets || 0;
+      const currentLiabilities = this.projection.now.liabilities || 0;
+      const totalAllowance = (this.ihtData?.nrb_available || 325000) + (this.ihtData?.rnrb_available || 0);
+
+      // Calculate projected values using compound growth
+      const projectedAssets = currentAssets * Math.pow(1 + this.growthRate, years);
+      const projectedLiabilities = currentLiabilities; // Liabilities stay constant (conservative)
+      const projectedNetEstate = projectedAssets - projectedLiabilities;
+      const projectedTaxableEstate = Math.max(0, projectedNetEstate - totalAllowance);
+      const projectedIHTLiability = projectedTaxableEstate * 0.40;
+
+      return {
+        estimated_age_at_death: this.projectedAgeMinus5,
+        years_to_death: years,
+        net_estate: projectedNetEstate,
+        assets: projectedAssets,
+        liabilities: projectedLiabilities,
+        taxable_estate: projectedTaxableEstate,
+        iht_liability: projectedIHTLiability,
+      };
+    },
+
+    // Projection for +5 years from estimated death
+    projectionPlus5() {
+      if (!this.projection?.now) return null;
+
+      const years = this.yearsToDeathPlus5;
+      const currentNetEstate = this.projection.now.net_estate || 0;
+      const currentAssets = this.projection.now.assets || 0;
+      const currentLiabilities = this.projection.now.liabilities || 0;
+      const totalAllowance = (this.ihtData?.nrb_available || 325000) + (this.ihtData?.rnrb_available || 0);
+
+      // Calculate projected values using compound growth
+      const projectedAssets = currentAssets * Math.pow(1 + this.growthRate, years);
+      const projectedLiabilities = currentLiabilities; // Liabilities stay constant (conservative)
+      const projectedNetEstate = projectedAssets - projectedLiabilities;
+      const projectedTaxableEstate = Math.max(0, projectedNetEstate - totalAllowance);
+      const projectedIHTLiability = projectedTaxableEstate * 0.40;
+
+      return {
+        estimated_age_at_death: this.projectedAgePlus5,
+        years_to_death: years,
+        net_estate: projectedNetEstate,
+        assets: projectedAssets,
+        liabilities: projectedLiabilities,
+        taxable_estate: projectedTaxableEstate,
+        iht_liability: projectedIHTLiability,
+      };
+    },
+
+    // Second Death Projection for -5 years from estimated death (married users)
+    secondDeathProjectionMinus5() {
+      if (!this.secondDeathData?.second_death_analysis?.current_iht_calculation) {
+        return { net_estate: 0, taxable_estate: 0, iht_liability: 0 };
+      }
+
+      const years = this.yearsToDeathMinus5;
+      const currentGrossAssets = this.secondDeathData.second_death_analysis.current_iht_calculation.gross_estate_value || 0;
+      const currentLiabilities = this.secondDeathData.second_death_analysis.current_iht_calculation.liabilities || 0;
+
+      // Get total allowance for second death (includes spouse's transferred allowances)
+      const nrb = this.secondDeathData.second_death_analysis.iht_calculation?.nrb || 325000;
+      const nrbFromSpouse = this.secondDeathData.second_death_analysis.iht_calculation?.nrb_from_spouse || 325000;
+      const rnrb = this.secondDeathData.second_death_analysis.iht_calculation?.rnrb_individual || 0;
+      const rnrbFromSpouse = this.secondDeathData.second_death_analysis.iht_calculation?.rnrb_from_spouse || 0;
+      const totalAllowance = nrb + nrbFromSpouse + rnrb + rnrbFromSpouse;
+
+      // Calculate projected values using compound growth
+      const projectedAssets = currentGrossAssets * Math.pow(1 + this.growthRate, years);
+      const projectedLiabilities = currentLiabilities; // Liabilities stay constant (conservative)
+      const projectedNetEstate = projectedAssets - projectedLiabilities;
+      const projectedTaxableEstate = Math.max(0, projectedNetEstate - totalAllowance);
+      const projectedIHTLiability = projectedTaxableEstate * 0.40;
+
+      return {
+        net_estate: projectedNetEstate,
+        taxable_estate: projectedTaxableEstate,
+        iht_liability: projectedIHTLiability,
+      };
+    },
+
+    // Second Death Projection for +5 years from estimated death (married users)
+    secondDeathProjectionPlus5() {
+      if (!this.secondDeathData?.second_death_analysis?.current_iht_calculation) {
+        return { net_estate: 0, taxable_estate: 0, iht_liability: 0 };
+      }
+
+      const years = this.yearsToDeathPlus5;
+      const currentGrossAssets = this.secondDeathData.second_death_analysis.current_iht_calculation.gross_estate_value || 0;
+      const currentLiabilities = this.secondDeathData.second_death_analysis.current_iht_calculation.liabilities || 0;
+
+      // Get total allowance for second death (includes spouse's transferred allowances)
+      const nrb = this.secondDeathData.second_death_analysis.iht_calculation?.nrb || 325000;
+      const nrbFromSpouse = this.secondDeathData.second_death_analysis.iht_calculation?.nrb_from_spouse || 325000;
+      const rnrb = this.secondDeathData.second_death_analysis.iht_calculation?.rnrb_individual || 0;
+      const rnrbFromSpouse = this.secondDeathData.second_death_analysis.iht_calculation?.rnrb_from_spouse || 0;
+      const totalAllowance = nrb + nrbFromSpouse + rnrb + rnrbFromSpouse;
+
+      // Calculate projected values using compound growth
+      const projectedAssets = currentGrossAssets * Math.pow(1 + this.growthRate, years);
+      const projectedLiabilities = currentLiabilities; // Liabilities stay constant (conservative)
+      const projectedNetEstate = projectedAssets - projectedLiabilities;
+      const projectedTaxableEstate = Math.max(0, projectedNetEstate - totalAllowance);
+      const projectedIHTLiability = projectedTaxableEstate * 0.40;
+
+      return {
+        net_estate: projectedNetEstate,
+        taxable_estate: projectedTaxableEstate,
+        iht_liability: projectedIHTLiability,
+      };
+    },
+
+    // Helper to calculate projected asset value for a specific number of years
+    calculateProjectedValue() {
+      return (currentValue, years) => {
+        return currentValue * Math.pow(1 + this.growthRate, years);
+      };
+    },
   },
 
   mounted() {
@@ -1454,9 +1744,26 @@ export default {
       const user = this.$store.state.auth?.user;
       if (user) {
         this.isMarried = user.marital_status === 'married';
-        this.hasSpouse = user.spouse_id !== null;
+        // Widowed and divorced users should not see spouse options
+        const excludedStatuses = ['widowed', 'divorced'];
+        this.hasSpouse = user.spouse_id !== null && !excludedStatuses.includes(user.marital_status);
         this.userGender = user.gender || 'male';
       }
+    },
+
+    getCurrentAge() {
+      const user = this.$store.state.auth?.user;
+      if (user?.date_of_birth) {
+        const dob = new Date(user.date_of_birth);
+        const today = new Date();
+        let age = today.getFullYear() - dob.getFullYear();
+        const monthDiff = today.getMonth() - dob.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+          age--;
+        }
+        return age;
+      }
+      return 40; // Default age if not available
     },
 
     navigateToGiftingTab() {
@@ -1632,7 +1939,10 @@ export default {
 
       // Set isMarried based on preview data
       this.isMarried = previewData?.user?.marital_status === 'married';
-      this.hasSpouse = !!previewData?.spouse;
+      // Widowed and divorced users should not see spouse options
+      const excludedStatuses = ['widowed', 'divorced'];
+      const maritalStatus = previewData?.user?.marital_status;
+      this.hasSpouse = !!previewData?.spouse && !excludedStatuses.includes(maritalStatus);
 
       // For married users in preview, set secondDeathData with basic structure
       if (this.isMarried) {
@@ -1709,6 +2019,18 @@ export default {
         settlor_interested: 'For a Settlor-Interested Trust, the full value remains in your estate (reservation of benefit).',
       };
       return explanations[type] || 'This trust type has specific Inheritance Tax treatment rules.';
+    },
+
+    // Calculate projected asset value at -5 years from life expectancy
+    getProjectedValueMinus5(currentValue) {
+      const years = this.yearsToDeathMinus5;
+      return currentValue * Math.pow(1 + 0.047, years);
+    },
+
+    // Calculate projected asset value at +5 years from life expectancy
+    getProjectedValuePlus5(currentValue) {
+      const years = this.yearsToDeathPlus5;
+      return currentValue * Math.pow(1 + 0.047, years);
     },
   },
 };

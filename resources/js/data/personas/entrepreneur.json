@@ -397,7 +397,7 @@
     {
       "id": 1,
       "liability_type": "business_loan",
-      "liability_name": "Director's Loan to Company",
+      "liability_name": "Director's Loan from Company",
       "current_balance": 35000,
       "interest_rate": 0,
       "lender_name": "Chen Tech Consulting Ltd",

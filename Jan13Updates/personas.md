@@ -625,7 +625,7 @@ None - Single
 ### Liabilities
 | Type | Name | Balance | Rate | Notes |
 |------|------|---------|------|-------|
-| Business Loan | Director's Loan to Company | £35,000 | 0% | Loan from company - repayable |
+| Business Loan | Director's Loan from Company | £35,000 | 0% | Loan from company - repayable |
 
 ### Business Interests
 | Business | Type | Co. Number | Ownership | Valuation | Revenue | Profit | Dividend Income | BPR Eligible |

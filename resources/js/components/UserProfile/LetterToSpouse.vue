@@ -632,7 +632,12 @@ export default {
       try {
         const userResponse = await api.get('/auth/user');
         const user = userResponse.data.data?.user || userResponse.data;
-        this.hasSpouse = !!user.spouse_id;
+
+        // Widowed and divorced users should not see spouse options
+        const excludedStatuses = ['widowed', 'divorced'];
+        const isExcludedStatus = excludedStatuses.includes(user.marital_status);
+
+        this.hasSpouse = !!user.spouse_id && !isExcludedStatus;
 
         if (this.hasSpouse) {
           const familyResponse = await api.get('/user/family-members');
