@@ -2,7 +2,7 @@
   <div class="gift-form">
     <div class="form-header">
       <h3>{{ isEditMode ? 'Edit Gift' : 'Record New Gift' }}</h3>
-      <p class="subtitle">Track gifts for IHT planning (7-year rule)</p>
+      <p class="subtitle">Track gifts for Inheritance Tax planning (7-year rule)</p>
     </div>
 
     <form @submit.prevent="handleSubmit">
@@ -174,7 +174,7 @@ export default {
 
     giftTypeDescription() {
       const descriptions = {
-        pet: 'Most common type - becomes IHT-free if you survive 7 years',
+        pet: 'Most common type - becomes Inheritance Tax-free if you survive 7 years',
         clt: 'Gift to a trust or company - immediately taxable at 20%',
         exempt: 'Gifts to spouses, charities, or political parties',
         small_gift: 'Up to £250 per person per year (exempt immediately)',

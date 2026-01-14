@@ -173,13 +173,13 @@
                 <strong>{{ formatCurrency(spouseAmount) }}</strong> will pass to your spouse tax-free (unlimited spouse exemption)
               </p>
               <p v-if="form.spouse_bequest_percentage < 100" class="text-xs text-amber-600 mt-1">
-                <strong>{{ formatCurrency(nonSpouseAmount) }}</strong> will be subject to IHT calculation (distributed to other beneficiaries)
+                <strong>{{ formatCurrency(nonSpouseAmount) }}</strong> will be subject to Inheritance Tax calculation (distributed to other beneficiaries)
               </p>
             </div>
 
             <div v-else class="mt-4 bg-amber-50 border border-amber-200 rounded-lg p-3">
               <p class="text-sm text-amber-800">
-                Your spouse is not set as the primary beneficiary. The entire estate will be subject to IHT calculation.
+                Your spouse is not set as the primary beneficiary. The entire estate will be subject to Inheritance Tax calculation.
               </p>
             </div>
           </div>

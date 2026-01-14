@@ -1,12 +1,22 @@
 <template>
   <div class="life-policy-strategy-tab">
+    <!-- Back to Dashboard Link -->
+    <button
+      @click="$emit('switch-tab', 'iht')"
+      class="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 mb-4"
+    >
+      <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+      </svg>
+      Back to Estate Dashboard
+    </button>
     <!-- Loading State -->
     <div v-if="loading" class="text-center py-12">
       <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       <p class="mt-4 text-gray-600">Calculating life policy strategy...</p>
     </div>
 
-    <!-- No IHT Liability State -->
+    <!-- No Inheritance Tax Liability State -->
     <div v-else-if="noIHTLiability" class="bg-white border-2 border-green-500 rounded-lg p-6">
       <div class="flex items-start">
         <svg class="h-6 w-6 text-green-600 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -15,7 +25,7 @@
         <div class="ml-3">
           <h3 class="text-lg font-semibold text-green-900">No Life Insurance Required</h3>
           <p class="mt-2 text-green-700">{{ noIHTMessage }}</p>
-          <p class="mt-2 text-sm text-green-600">You have no projected IHT liability at expected death. Life insurance for IHT planning is not necessary.</p>
+          <p class="mt-2 text-sm text-green-600">You have no projected Inheritance Tax liability at expected death. Life insurance for Inheritance Tax planning is not necessary.</p>
         </div>
       </div>
     </div>
@@ -28,7 +38,7 @@
 
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
           <div class="bg-white rounded-lg p-3 sm:p-4 border border-indigo-100">
-            <p class="text-xs sm:text-sm text-gray-600 mb-1">IHT to Cover</p>
+            <p class="text-xs sm:text-sm text-gray-600 mb-1">Inheritance Tax to Cover</p>
             <p class="text-lg sm:text-xl lg:text-2xl font-bold text-red-600">{{ formatCurrency(strategy.cover_amount) }}</p>
           </div>
           <div class="bg-white rounded-lg p-3 sm:p-4 border border-indigo-100">
@@ -415,7 +425,7 @@ export default {
       const rnrb = hasMainResidence ? 175000 : 0;
       const totalAllowance = nrb + rnrb;
 
-      // Calculate taxable estate and IHT liability
+      // Calculate taxable estate and Inheritance Tax liability
       const taxableEstate = Math.max(0, netEstate - totalAllowance);
       const ihtLiability = taxableEstate * 0.40;
 
@@ -426,14 +436,14 @@ export default {
       const yearsUntilDeath = estimatedDeathAge - currentAge;
 
       if (ihtLiability === 0) {
-        // No IHT liability - show "No Life Insurance Required" message
+        // No Inheritance Tax liability - show "No Life Insurance Required" message
         this.noIHTLiability = true;
-        this.noIHTMessage = `Your current estate of ${this.formatCurrency(netEstate)} is below the IHT threshold of ${this.formatCurrency(totalAllowance)}. No inheritance tax liability is projected.`;
+        this.noIHTMessage = `Your current estate of ${this.formatCurrency(netEstate)} is below the Inheritance Tax threshold of ${this.formatCurrency(totalAllowance)}. No inheritance tax liability is projected.`;
         this.loading = false;
         return;
       }
 
-      // Has IHT liability - compute strategy
+      // Has Inheritance Tax liability - compute strategy
       const monthlyPremium = Math.round((ihtLiability * 0.03) / 12); // Approx 3% annual premium for whole of life
       const annualPremium = monthlyPremium * 12;
       const totalPremiums = annualPremium * yearsUntilDeath;
@@ -445,7 +455,7 @@ export default {
         is_joint_policy: previewData?.user?.marital_status === 'married',
         whole_of_life_policy: {
           policy_type: 'Whole of Life Insurance',
-          description: 'Guaranteed payout on death to cover IHT liability',
+          description: 'Guaranteed payout on death to cover Inheritance Tax liability',
           cover_amount: ihtLiability,
           monthly_premium: monthlyPremium,
           annual_premium: annualPremium,
@@ -455,7 +465,7 @@ export default {
           key_features: [
             'Guaranteed payout regardless of when you die',
             'Fixed premiums for life',
-            'Can be placed in trust to avoid IHT on payout',
+            'Can be placed in trust to avoid Inheritance Tax on payout',
             'No medical underwriting concerns once in force',
           ],
           implementation_steps: [
@@ -467,7 +477,7 @@ export default {
         },
         self_insurance: {
           strategy_name: 'Self-Insurance Fund',
-          description: 'Build a dedicated fund to cover IHT liability',
+          description: 'Build a dedicated fund to cover Inheritance Tax liability',
           required_fund: ihtLiability,
           monthly_contribution: Math.round(ihtLiability / (yearsUntilDeath * 12)),
           current_fund_value: 0,
@@ -490,8 +500,8 @@ export default {
         comparison: {
           recommended_approach: ihtLiability > 100000 ? 'Whole of Life Insurance' : 'Self-Insurance',
           summary: ihtLiability > 100000
-            ? 'Given the significant IHT liability, whole of life insurance provides certainty of coverage regardless of when death occurs.'
-            : 'With a moderate IHT liability, self-insurance may be more cost-effective if you have the discipline to build and maintain the fund.',
+            ? 'Given the significant Inheritance Tax liability, whole of life insurance provides certainty of coverage regardless of when death occurs.'
+            : 'With a moderate Inheritance Tax liability, self-insurance may be more cost-effective if you have the discipline to build and maintain the fund.',
         },
       };
 

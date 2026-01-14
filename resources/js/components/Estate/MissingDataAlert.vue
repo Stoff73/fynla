@@ -51,7 +51,7 @@ export default {
     },
     message: {
       type: String,
-      default: 'Some information is missing to complete the second death IHT calculation:',
+      default: 'Some information is missing to complete the second death Inheritance Tax calculation:',
     },
   },
 

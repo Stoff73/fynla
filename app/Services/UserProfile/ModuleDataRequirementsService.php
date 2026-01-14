@@ -543,11 +543,30 @@ class ModuleDataRequirementsService
             'db_pensions' => $user->dbPensions()->exists(),
             'state_pension' => $user->statePension()->exists(),
             'family_members' => $user->familyMembers()->exists(),
-            'spouse' => $user->spouse_id !== null,
+            'spouse' => $this->isSpouseRequirementFilled($user),
             'trusts' => $user->trusts()->exists(),
             'business_interests' => $user->businessInterests()->exists(),
             'chattels' => $user->chattels()->exists(),
             default => false,
         };
+    }
+
+    /**
+     * Check if spouse requirement is filled.
+     *
+     * For single, divorced, or widowed users, this is always "filled"
+     * since they don't have a spouse to add.
+     */
+    private function isSpouseRequirementFilled(User $user): bool
+    {
+        // Single, divorced, or widowed users don't need spouse info
+        $nonMarriedStatuses = ['single', 'divorced', 'widowed'];
+
+        if (in_array($user->marital_status, $nonMarriedStatuses, true)) {
+            return true;
+        }
+
+        // Married users need spouse_id to be set
+        return $user->spouse_id !== null;
     }
 }

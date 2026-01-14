@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Services\TaxConfigService;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class FutureValueCalculator
 {
@@ -54,7 +55,7 @@ class FutureValueCalculator
     }
 
     /**
-     * Lookup life expectancy from UK ONS tables (2021-2023 data)
+     * Lookup life expectancy from actuarial_life_tables database (UK ONS 2020-2022 data)
      *
      * @param  int  $age  Current age
      * @param  string  $gender  'male' or 'female'
@@ -62,57 +63,57 @@ class FutureValueCalculator
      */
     private function lookupLifeExpectancy(int $age, string $gender): float
     {
-        $tables = config('uk_life_expectancy');
-
         // Normalize gender
         $gender = in_array($gender, ['male', 'female']) ? $gender : 'male';
 
-        // Get the lookup table
-        $table = $tables[$gender] ?? $tables['male'];
+        // Try exact match first
+        $exactMatch = DB::table('actuarial_life_tables')
+            ->where('age', $age)
+            ->where('gender', $gender)
+            ->where('table_year', '2020-2022')
+            ->value('life_expectancy_years');
 
-        // If exact age exists, return it
-        if (isset($table[$age])) {
-            return $table[$age];
+        if ($exactMatch !== null) {
+            return (float) $exactMatch;
         }
 
-        // Linear interpolation for ages not in table
-        $ages = array_keys($table);
-        $minAge = min($ages);
-        $maxAge = max($ages);
+        // Find surrounding ages for interpolation
+        $lowerRecord = DB::table('actuarial_life_tables')
+            ->where('age', '<', $age)
+            ->where('gender', $gender)
+            ->where('table_year', '2020-2022')
+            ->orderBy('age', 'desc')
+            ->first();
 
-        if ($age < $minAge) {
-            // Younger than table, use minimum age + difference
-            return $table[$minAge] + ($minAge - $age);
+        $upperRecord = DB::table('actuarial_life_tables')
+            ->where('age', '>', $age)
+            ->where('gender', $gender)
+            ->where('table_year', '2020-2022')
+            ->orderBy('age', 'asc')
+            ->first();
+
+        // Handle edge cases
+        if (! $lowerRecord && $upperRecord) {
+            // Younger than table minimum - add years for age difference
+            return (float) $upperRecord->life_expectancy_years + ($upperRecord->age - $age);
         }
 
-        if ($age > $maxAge) {
-            // Older than table, extrapolate (reduce by ~1 year per age)
-            return max(1, $table[$maxAge] - ($age - $maxAge));
+        if ($lowerRecord && ! $upperRecord) {
+            // Older than table maximum - reduce by age difference (minimum 1 year)
+            return max(1.0, (float) $lowerRecord->life_expectancy_years - ($age - $lowerRecord->age));
         }
 
-        // Find surrounding ages and interpolate
-        $lowerAge = null;
-        $upperAge = null;
+        if ($lowerRecord && $upperRecord) {
+            // Linear interpolation between surrounding ages
+            $lowerLE = (float) $lowerRecord->life_expectancy_years;
+            $upperLE = (float) $upperRecord->life_expectancy_years;
+            $fraction = ($age - $lowerRecord->age) / ($upperRecord->age - $lowerRecord->age);
 
-        foreach ($ages as $tableAge) {
-            if ($tableAge < $age) {
-                $lowerAge = $tableAge;
-            } elseif ($tableAge > $age && $upperAge === null) {
-                $upperAge = $tableAge;
-                break;
-            }
+            return $lowerLE + ($upperLE - $lowerLE) * $fraction;
         }
 
-        if ($lowerAge !== null && $upperAge !== null) {
-            $lowerValue = $table[$lowerAge];
-            $upperValue = $table[$upperAge];
-            $fraction = ($age - $lowerAge) / ($upperAge - $lowerAge);
-
-            return $lowerValue + ($upperValue - $lowerValue) * $fraction;
-        }
-
-        // Fallback
-        return 20.0;
+        // Fallback if no data found
+        return max(1.0, 85.0 - $age);
     }
 
     /**

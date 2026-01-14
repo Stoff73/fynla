@@ -9,9 +9,9 @@
       <span class="value-amount value-amount-primary">{{ formattedTaxableEstate }}</span>
     </div>
 
-    <!-- IHT Liability Now Section -->
+    <!-- Inheritance Tax Liability Now Section -->
     <div class="section-breakdown">
-      <div class="section-header">Current IHT Liability</div>
+      <div class="section-header">Current Inheritance Tax Liability</div>
       <div class="breakdown-item">
         <span class="breakdown-label">Amount Due</span>
         <span class="breakdown-value" :class="ihtLiabilityColour">
@@ -30,7 +30,7 @@
         </span>
       </div>
       <div class="breakdown-item">
-        <span class="breakdown-label">IHT Liability</span>
+        <span class="breakdown-label">Inheritance Tax Liability</span>
         <span class="breakdown-value" :class="futureIHTLiabilityColour">
           {{ formattedFutureIHTLiability }}
         </span>
@@ -47,7 +47,7 @@
           <svg class="w-5 h-5 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
-          <span class="text-sm font-medium text-amber-700">IHT planning recommended</span>
+          <span class="text-sm font-medium text-amber-700">Inheritance Tax planning recommended</span>
         </div>
       </div>
     </div>
@@ -61,7 +61,7 @@
           <svg class="w-5 h-5 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <span class="text-sm font-medium text-green-700">No IHT liability forecast</span>
+          <span class="text-sm font-medium text-green-700">No Inheritance Tax liability forecast</span>
         </div>
       </div>
     </div>
@@ -333,7 +333,7 @@ export default {
   color: white;
 }
 
-/* IHT Liability Color Classes */
+/* Inheritance Tax Liability Color Classes */
 .text-green-600 {
   color: #10b981;
 }

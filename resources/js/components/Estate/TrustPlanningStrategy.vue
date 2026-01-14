@@ -121,7 +121,7 @@
                     <p class="text-lg font-bold text-purple-600">{{ formatCurrency(strategy.amount) }}</p>
                   </div>
                   <div>
-                    <p class="text-xs text-gray-500">IHT Saving Potential</p>
+                    <p class="text-xs text-gray-500">Inheritance Tax Saving Potential</p>
                     <p class="text-lg font-bold text-green-600">{{ formatCurrency(strategy.iht_saving_potential) }}</p>
                   </div>
                   <div>
@@ -302,7 +302,7 @@
             <p class="text-xl font-bold text-purple-600">{{ formatCurrency(trustStrategy.strategy_impact.total_amount_transferred) }}</p>
           </div>
           <div class="bg-white rounded-lg p-4">
-            <p class="text-xs text-gray-600 mb-1">Total IHT Saving</p>
+            <p class="text-xs text-gray-600 mb-1">Total Inheritance Tax Saving</p>
             <p class="text-xl font-bold text-green-600">{{ formatCurrency(trustStrategy.strategy_impact.total_iht_saving) }}</p>
           </div>
           <div class="bg-white rounded-lg p-4">

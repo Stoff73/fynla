@@ -1,5 +1,15 @@
 <template>
   <div class="gifting-strategy-tab">
+    <!-- Back to Dashboard Link -->
+    <button
+      @click="$emit('switch-tab', 'iht')"
+      class="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 mb-4"
+    >
+      <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+      </svg>
+      Back to Estate Dashboard
+    </button>
     <!-- Personalized Asset-Based Gifting Strategy Section -->
     <div v-if="personalizedStrategy" class="mb-8 bg-white rounded-lg p-6 border-2 border-emerald-500">
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 mb-4">
@@ -18,7 +28,7 @@
       </div>
 
       <p class="text-gray-700 mb-6">
-        Based on your specific assets and their liquidity, here's a tailored gifting strategy to reduce your IHT liability.
+        Based on your specific assets and their liquidity, here's a tailored gifting strategy to reduce your Inheritance Tax liability.
       </p>
 
       <!-- Liquidity Summary -->
@@ -77,7 +87,7 @@
               <p class="text-sm text-gray-600 mt-1">{{ strategy.description }}</p>
             </div>
             <div v-if="strategy.iht_saved > 0" class="text-right ml-4">
-              <p class="text-sm text-gray-600">IHT Saved</p>
+              <p class="text-sm text-gray-600">Inheritance Tax Saved</p>
               <p class="text-lg sm:text-xl lg:text-2xl font-bold text-green-600">{{ formatCurrency(strategy.iht_saved) }}</p>
             </div>
           </div>
@@ -139,7 +149,7 @@
                 <span class="font-medium">SDLT:</span> {{ strategy.tax_considerations.sdlt }}
               </p>
               <p v-if="strategy.tax_considerations.iht_treatment">
-                <span class="font-medium">IHT:</span> {{ strategy.tax_considerations.iht_treatment }}
+                <span class="font-medium">Inheritance Tax:</span> {{ strategy.tax_considerations.iht_treatment }}
               </p>
             </div>
           </div>
@@ -226,7 +236,7 @@
         <h3 class="text-lg font-semibold text-gray-900 mb-3">Overall Strategy Impact</h3>
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div>
-            <p class="text-xs sm:text-sm text-gray-600">Original IHT Liability</p>
+            <p class="text-xs sm:text-sm text-gray-600">Original Inheritance Tax Liability</p>
             <p class="text-base sm:text-lg font-bold text-red-600">{{ formatCurrency(personalizedStrategy.summary.original_iht_liability) }}</p>
           </div>
           <div>
@@ -234,11 +244,11 @@
             <p class="text-base sm:text-lg font-bold text-blue-600">{{ formatCurrency(personalizedStrategy.summary.total_gifted) }}</p>
           </div>
           <div>
-            <p class="text-xs sm:text-sm text-gray-600">Total IHT Saved</p>
+            <p class="text-xs sm:text-sm text-gray-600">Total Inheritance Tax Saved</p>
             <p class="text-base sm:text-lg font-bold text-green-600">{{ formatCurrency(personalizedStrategy.summary.total_iht_saved) }}</p>
           </div>
           <div>
-            <p class="text-xs sm:text-sm text-gray-600">IHT Reduction</p>
+            <p class="text-xs sm:text-sm text-gray-600">Inheritance Tax Reduction</p>
             <p class="text-base sm:text-lg font-bold text-emerald-600">{{ personalizedStrategy.summary.reduction_percentage }}%</p>
           </div>
         </div>
@@ -310,12 +320,12 @@
             </p>
             <p class="font-medium mb-1">If death occurs within 7 years, taper relief applies:</p>
             <ul class="list-disc list-inside space-y-1 ml-2">
-              <li><span class="font-semibold">Years 0-3:</span> 40% IHT rate (no relief)</li>
-              <li><span class="font-semibold">Years 3-4:</span> 32% IHT rate (20% taper relief)</li>
-              <li><span class="font-semibold">Years 4-5:</span> 24% IHT rate (40% taper relief)</li>
-              <li><span class="font-semibold">Years 5-6:</span> 16% IHT rate (60% taper relief)</li>
-              <li><span class="font-semibold">Years 6-7:</span> 8% IHT rate (80% taper relief)</li>
-              <li><span class="font-semibold">After 7 years:</span> 0% IHT rate (100% relief - fully exempt)</li>
+              <li><span class="font-semibold">Years 0-3:</span> 40% Inheritance Tax rate (no relief)</li>
+              <li><span class="font-semibold">Years 3-4:</span> 32% Inheritance Tax rate (20% taper relief)</li>
+              <li><span class="font-semibold">Years 4-5:</span> 24% Inheritance Tax rate (40% taper relief)</li>
+              <li><span class="font-semibold">Years 5-6:</span> 16% Inheritance Tax rate (60% taper relief)</li>
+              <li><span class="font-semibold">Years 6-7:</span> 8% Inheritance Tax rate (80% taper relief)</li>
+              <li><span class="font-semibold">After 7 years:</span> 0% Inheritance Tax rate (100% relief - fully exempt)</li>
             </ul>
           </div>
         </div>
@@ -383,7 +393,7 @@
               <div v-if="shouldShowTaperRelief(gift)" class="mt-3">
                 <div class="flex items-center justify-between text-xs text-gray-600 mb-1">
                   <span>Taper Relief Timeline</span>
-                  <span class="font-medium">{{ getTaperReliefPercentage(gift) }}% IHT if death occurs now</span>
+                  <span class="font-medium">{{ getTaperReliefPercentage(gift) }}% Inheritance Tax if death occurs now</span>
                 </div>
                 <div class="relative h-8 bg-gray-100 rounded-lg overflow-hidden">
                   <!-- Progress bar showing years elapsed -->
@@ -403,7 +413,7 @@
                 </div>
                 <div class="flex justify-between text-xs text-gray-500 mt-1">
                   <span>Gift date: {{ formatDate(gift.gift_date) }}</span>
-                  <span>IHT-free: {{ formatDate(getSevenYearDate(gift)) }}</span>
+                  <span>Inheritance Tax-free: {{ formatDate(getSevenYearDate(gift)) }}</span>
                 </div>
               </div>
             </div>
@@ -666,7 +676,7 @@ export default {
       const now = new Date();
 
       if (now >= sevenYearsLater) {
-        return 'Survived 7 years - IHT-free';
+        return 'Survived 7 years - Inheritance Tax-free';
       }
 
       const yearsRemaining = Math.ceil((sevenYearsLater - now) / (365 * 24 * 60 * 60 * 1000));
@@ -704,12 +714,12 @@ export default {
 
     getTaperReliefAtYear(year) {
       // HMRC taper relief schedule:
-      // Years 0-3: 40% IHT rate (no relief)
+      // Years 0-3: 40% Inheritance Tax rate (no relief)
       // Year 3-4: 32% (20% relief)
       // Year 4-5: 24% (40% relief)
       // Year 5-6: 16% (60% relief)
       // Year 6-7: 8% (80% relief)
-      // Year 7+: 0% (100% relief - IHT-free)
+      // Year 7+: 0% (100% relief - Inheritance Tax-free)
 
       if (year <= 3) return 40;
       if (year === 4) return 32;
@@ -727,12 +737,12 @@ export default {
       const yearsElapsed = (now - giftDate) / (365.25 * 24 * 60 * 60 * 1000);
 
       // HMRC taper relief rules
-      if (yearsElapsed < 3) return 40; // Full 40% IHT rate
+      if (yearsElapsed < 3) return 40; // Full 40% Inheritance Tax rate
       if (yearsElapsed < 4) return 32; // 20% taper relief
       if (yearsElapsed < 5) return 24; // 40% taper relief
       if (yearsElapsed < 6) return 16; // 60% taper relief
       if (yearsElapsed < 7) return 8;  // 80% taper relief
-      return 0; // 100% relief - IHT-free
+      return 0; // 100% relief - Inheritance Tax-free
     },
 
     getTimelineProgress(gift) {
@@ -750,9 +760,9 @@ export default {
     getTimelineColour(gift) {
       const percentage = this.getTaperReliefPercentage(gift);
 
-      if (percentage >= 32) return '#f59e0b'; // Amber (high IHT rate)
-      if (percentage >= 16) return '#3b82f6'; // Blue (moderate IHT rate)
-      return '#10b981'; // Green (low IHT rate)
+      if (percentage >= 32) return '#f59e0b'; // Amber (high Inheritance Tax rate)
+      if (percentage >= 16) return '#3b82f6'; // Blue (moderate Inheritance Tax rate)
+      return '#10b981'; // Green (low Inheritance Tax rate)
     },
 
     getYearLabelClass(gift, year) {

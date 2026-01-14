@@ -21,7 +21,6 @@ php artisan migrate
 # Re-seed required data (safe to run multiple times)
 php artisan db:seed --class=TaxConfigurationSeeder --force
 php artisan db:seed --class=TaxProductReferenceSeeder --force
-php artisan db:seed --class=UKLifeExpectancySeeder --force
 php artisan db:seed --class=ActuarialLifeTablesSeeder --force
 php artisan db:seed --class=AdminUserSeeder --force
 php artisan db:seed --class=PreviewUserSeeder --force
@@ -45,8 +44,7 @@ These seeders are **required for the application to function**. They must always
 |--------|----------|---------|
 | `TaxConfigurationSeeder` | `tax_configurations` | UK tax rates, allowances, thresholds (2025/26) |
 | `TaxProductReferenceSeeder` | `tax_product_references` | Tax treatment info for ISAs, GIAs, bonds, etc. |
-| `UKLifeExpectancySeeder` | `uk_life_expectancy_tables` | ONS life expectancy by age/gender |
-| `ActuarialLifeTablesSeeder` | `actuarial_life_tables` | Detailed mortality tables for calculations |
+| `ActuarialLifeTablesSeeder` | `actuarial_life_tables` | ONS life expectancy tables for estate/retirement projections |
 | `AdminUserSeeder` | `users` | Creates admin account (admin@fps.com) and demo user |
 | `PreviewUserSeeder` | `users`, `properties`, `savings_accounts`, etc. | Creates preview personas with full financial data |
 
@@ -54,7 +52,6 @@ These seeders are **required for the application to function**. They must always
 ```bash
 php artisan db:seed --class=TaxConfigurationSeeder --force
 php artisan db:seed --class=TaxProductReferenceSeeder --force
-php artisan db:seed --class=UKLifeExpectancySeeder --force
 php artisan db:seed --class=ActuarialLifeTablesSeeder --force
 php artisan db:seed --class=AdminUserSeeder --force
 php artisan db:seed --class=PreviewUserSeeder --force
@@ -146,7 +143,6 @@ php artisan tinker --execute="echo App\Models\User::where('is_preview_user', tru
 
 **Fix:**
 ```bash
-php artisan db:seed --class=UKLifeExpectancySeeder --force
 php artisan db:seed --class=ActuarialLifeTablesSeeder --force
 ```
 
@@ -217,8 +213,7 @@ Each persona JSON file contains:
 |-------|--------|---------|
 | `tax_configurations` | TaxConfigurationSeeder | 1 (active year) |
 | `tax_product_references` | TaxProductReferenceSeeder | ~50 |
-| `uk_life_expectancy_tables` | UKLifeExpectancySeeder | ~36 |
-| `actuarial_life_tables` | ActuarialLifeTablesSeeder | ~200 |
+| `actuarial_life_tables` | ActuarialLifeTablesSeeder | ~44 |
 
 ### User Data Tables
 
@@ -255,7 +250,6 @@ php artisan migrate --force
 # Seed all required data
 php artisan db:seed --class=TaxConfigurationSeeder --force
 php artisan db:seed --class=TaxProductReferenceSeeder --force
-php artisan db:seed --class=UKLifeExpectancySeeder --force
 php artisan db:seed --class=ActuarialLifeTablesSeeder --force
 php artisan db:seed --class=AdminUserSeeder --force
 php artisan db:seed --class=PreviewUserSeeder --force
@@ -333,8 +327,7 @@ When working on database changes, always verify:
 |----------------|---------|
 | TaxConfigurationSeeder | "No active tax configuration found" error, tax calculations fail |
 | TaxProductReferenceSeeder | Tax Status tab empty in Investment/Savings views |
-| UKLifeExpectancySeeder | Estate/retirement projections fail |
-| ActuarialLifeTablesSeeder | Mortality calculations fail |
+| ActuarialLifeTablesSeeder | Estate/retirement projections fail, life expectancy errors |
 | AdminUserSeeder | Cannot log in with admin@fps.com or demo@fps.com |
 | PreviewUserSeeder | Preview login fails, personas have no data |
 

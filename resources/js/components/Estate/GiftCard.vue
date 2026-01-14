@@ -55,7 +55,7 @@
           <span>{{ taperReliefPercentage }}% Taper Relief</span>
         </div>
         <p class="relief-description">
-          Effective IHT rate: {{ effectiveIhtRate }}% (instead of 40%)
+          Effective Inheritance Tax rate: {{ effectiveIhtRate }}% (instead of 40%)
         </p>
       </div>
 
@@ -194,7 +194,7 @@ export default {
 
     statusText() {
       if (this.yearsElapsed >= 7) {
-        return 'IHT-Exempt (Survived 7 Years)';
+        return 'Inheritance Tax-Exempt (Survived 7 Years)';
       } else if (this.yearsElapsed >= 3) {
         return `Taper Relief Applies (${this.taperReliefPercentage}%)`;
       } else {

@@ -12,7 +12,22 @@ const state = {
 };
 
 const getters = {
-  hasSpouse: (state) => state.hasSpouse,
+  /**
+   * Check if user has an active spouse relationship.
+   * Returns false for widowed and divorced users even if spouse_id exists.
+   */
+  hasSpouse: (state, getters, rootState, rootGetters) => {
+    if (!state.hasSpouse) return false;
+
+    // Widowed and divorced users should not see spouse options
+    const user = rootGetters['auth/currentUser'];
+    const excludedStatuses = ['widowed', 'divorced'];
+    if (user && excludedStatuses.includes(user.marital_status)) {
+      return false;
+    }
+
+    return state.hasSpouse;
+  },
   spouse: (state) => state.spouse,
   permission: (state) => state.permission,
   canViewSpouseData: (state) => state.canViewSpouseData,

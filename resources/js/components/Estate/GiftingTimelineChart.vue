@@ -2,7 +2,7 @@
   <div class="gifting-timeline-chart">
     <div class="chart-header">
       <h3>7-Year Gifting Timeline</h3>
-      <p class="subtitle">Gifts become IHT-exempt after surviving 7 years</p>
+      <p class="subtitle">Gifts become Inheritance Tax-exempt after surviving 7 years</p>
     </div>
 
     <div v-if="gifts && gifts.length > 0" class="chart-container">
@@ -25,7 +25,7 @@
     <div class="legend">
       <div class="legend-item">
         <span class="legend-colour" style="background-color: #10b981;"></span>
-        <span>Exempt gifts (spouse/charity) - immediately IHT-free</span>
+        <span>Exempt gifts (spouse/charity) - immediately Inheritance Tax-free</span>
       </div>
       <div class="legend-item">
         <span class="legend-colour" style="background-color: #ef4444;"></span>
@@ -37,7 +37,7 @@
       </div>
       <div class="legend-item">
         <span class="legend-colour" style="background-color: #10b981;"></span>
-        <span>Survived 7 years (IHT-exempt)</span>
+        <span>Survived 7 years (Inheritance Tax-exempt)</span>
       </div>
     </div>
 
@@ -45,7 +45,7 @@
     <div class="taper-relief-info">
       <h4>Taper Relief Rates</h4>
       <p class="relief-note">
-        <strong>Note:</strong> Gifts to your spouse or civil partner are exempt from IHT under the unlimited spouse exemption and do not need to survive 7 years. The 7-year rule only applies to Potentially Exempt Transfers (PETs) to other individuals.
+        <strong>Note:</strong> Gifts to your spouse or civil partner are exempt from Inheritance Tax under the unlimited spouse exemption and do not need to survive 7 years. The 7-year rule only applies to Potentially Exempt Transfers (PETs) to other individuals.
       </p>
       <table class="relief-table">
         <thead>
@@ -291,7 +291,7 @@ export default {
     },
 
     getGiftColour(yearsElapsed, giftType) {
-      // Exempt gifts (spouse, charity) are always green - immediately IHT-free
+      // Exempt gifts (spouse, charity) are always green - immediately Inheritance Tax-free
       if (giftType === 'exempt') {
         return '#10b981'; // Green - exempt
       }
@@ -315,13 +315,13 @@ export default {
     },
 
     getGiftStatus(yearsElapsed, giftType) {
-      // Exempt gifts (spouse, charity) are immediately IHT-exempt
+      // Exempt gifts (spouse, charity) are immediately Inheritance Tax-exempt
       if (giftType === 'exempt') {
-        return 'Exempt Gift - IHT-Free';
+        return 'Exempt Gift - Inheritance Tax-Free';
       }
 
       if (yearsElapsed >= 7) {
-        return 'IHT-Exempt (7 years survived)';
+        return 'Inheritance Tax-Exempt (7 years survived)';
       } else if (yearsElapsed >= 3) {
         return `Taper Relief (${this.calculateTaperRelief(yearsElapsed)}%)`;
       } else {
