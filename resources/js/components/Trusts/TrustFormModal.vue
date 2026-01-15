@@ -61,7 +61,66 @@
                 <option value="loan">Loan Trust</option>
                 <option value="mixed">Mixed Trust</option>
                 <option value="settlor_interested">Settlor-Interested Trust</option>
+                <option value="other">Other</option>
               </select>
+            </div>
+
+            <!-- Other Trust Type Fields (shown when 'other' is selected) -->
+            <div v-if="formData.trust_type === 'other'" class="space-y-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                  Trust Type Description <span class="text-red-500">*</span>
+                </label>
+                <input
+                  v-model="formData.other_type_description"
+                  type="text"
+                  required
+                  class="input-field"
+                  placeholder="e.g., Offshore Asset Protection Trust"
+                />
+                <p class="mt-1 text-xs text-gray-500">Please describe the type of trust</p>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                  Country <span class="text-red-500">*</span>
+                </label>
+                <select
+                  v-model="formData.country"
+                  required
+                  class="input-field"
+                >
+                  <option value="">Select country</option>
+                  <option value="United Kingdom">United Kingdom</option>
+                  <option value="United States">United States</option>
+                  <option value="Ireland">Ireland</option>
+                  <option value="Jersey">Jersey</option>
+                  <option value="Guernsey">Guernsey</option>
+                  <option value="Isle of Man">Isle of Man</option>
+                  <option value="Gibraltar">Gibraltar</option>
+                  <option value="Cayman Islands">Cayman Islands</option>
+                  <option value="British Virgin Islands">British Virgin Islands</option>
+                  <option value="Luxembourg">Luxembourg</option>
+                  <option value="Switzerland">Switzerland</option>
+                  <option value="Singapore">Singapore</option>
+                  <option value="Hong Kong">Hong Kong</option>
+                  <option value="New Zealand">New Zealand</option>
+                  <option value="Australia">Australia</option>
+                  <option value="Canada">Canada</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div v-if="formData.country === 'other'">
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                  Other Country <span class="text-red-500">*</span>
+                </label>
+                <input
+                  v-model="formData.other_country"
+                  type="text"
+                  required
+                  class="input-field"
+                  placeholder="Enter country name"
+                />
+              </div>
             </div>
 
             <!-- Creation Date and Initial Value -->
@@ -203,6 +262,9 @@ export default {
       formData: {
         trust_name: '',
         trust_type: '',
+        other_type_description: '',
+        country: '',
+        other_country: '',
         trust_creation_date: '',
         initial_value: 0,
         current_value: 0,
@@ -214,9 +276,36 @@ export default {
     };
   },
 
+  computed: {
+    predefinedCountries() {
+      return [
+        'United Kingdom', 'United States', 'Ireland', 'Jersey', 'Guernsey',
+        'Isle of Man', 'Gibraltar', 'Cayman Islands', 'British Virgin Islands',
+        'Luxembourg', 'Switzerland', 'Singapore', 'Hong Kong', 'New Zealand',
+        'Australia', 'Canada'
+      ];
+    },
+  },
+
+  watch: {
+    'formData.trust_type'(newType) {
+      // Clear other fields when switching away from "other"
+      if (newType !== 'other') {
+        this.formData.other_type_description = '';
+        this.formData.country = '';
+        this.formData.other_country = '';
+      }
+    },
+  },
+
   mounted() {
     if (this.trust) {
       this.formData = { ...this.trust };
+      // Handle custom country when editing
+      if (this.trust.country && !this.predefinedCountries.includes(this.trust.country)) {
+        this.formData.other_country = this.trust.country;
+        this.formData.country = 'other';
+      }
     }
   },
 
@@ -234,7 +323,22 @@ export default {
           this.formData.current_value = 0;
         }
 
-        this.$emit('save', this.formData);
+        // Prepare data for submission
+        const submitData = { ...this.formData };
+
+        // Handle "other" country selection
+        if (submitData.country === 'other' && submitData.other_country) {
+          submitData.country = submitData.other_country;
+        }
+        delete submitData.other_country;
+
+        // Clear other fields if not "other" type
+        if (submitData.trust_type !== 'other') {
+          submitData.other_type_description = null;
+          submitData.country = null;
+        }
+
+        this.$emit('save', submitData);
       } catch (err) {
         this.error = err.message || 'An error occurred';
       } finally {

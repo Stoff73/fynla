@@ -23,12 +23,18 @@
       <!-- Trust Type -->
       <div class="item-row">
         <span class="item-name">
-          {{ formatTrustType(trust.trust_type) }}
+          {{ formatTrustType(trust.trust_type, trust.other_type_description) }}
           <span v-if="trust.is_relevant_property_trust" class="badge rpt">RPT</span>
           <span :class="['badge', trust.is_active ? 'active' : 'inactive']">
             {{ trust.is_active ? 'Active' : 'Inactive' }}
           </span>
         </span>
+      </div>
+
+      <!-- Country (for Other trusts) -->
+      <div v-if="trust.trust_type === 'other' && trust.country" class="item-row">
+        <span class="item-name">Country</span>
+        <span class="item-value">{{ trust.country }}</span>
       </div>
 
       <!-- Creation Date -->
@@ -84,7 +90,7 @@ export default {
       });
     },
 
-    formatTrustType(type) {
+    formatTrustType(type, otherDescription = null) {
       const types = {
         bare: 'Bare Trust',
         interest_in_possession: 'Interest in Possession',
@@ -95,6 +101,7 @@ export default {
         loan: 'Loan Trust',
         mixed: 'Mixed Trust',
         settlor_interested: 'Settlor-Interested Trust',
+        other: otherDescription || 'Other Trust',
       };
       return types[type] || type;
     },
