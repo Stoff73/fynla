@@ -145,22 +145,48 @@
               <p v-if="errors.tax_year" class="mt-1 text-sm text-red-600">{{ errors.tax_year }}</p>
             </div>
 
-            <!-- Platform Fee Percent -->
+            <!-- Platform Fee Section -->
             <div>
-              <label for="platform_fee_percent" class="block text-sm font-medium text-gray-700 mb-1">
-                Platform Fee (% p.a.)
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Platform Fee
               </label>
-              <input
-                id="platform_fee_percent"
-                v-model.number="formData.platform_fee_percent"
-                type="number"
-                step="0.01"
-                min="0"
-                max="5"
-                class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="e.g., 0.45"
-              />
-              <p class="mt-1 text-xs text-gray-500">Annual platform/administration fee as a percentage</p>
+              <div class="flex gap-2">
+                <div class="flex-1">
+                  <input
+                    id="platform_fee_value"
+                    v-model.number="platformFeeValue"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    :placeholder="formData.platform_fee_type === 'percentage' ? 'e.g., 0.45' : 'e.g., 50.00'"
+                  />
+                </div>
+                <div class="w-20">
+                  <select
+                    id="platform_fee_type"
+                    v-model="formData.platform_fee_type"
+                    class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="percentage">%</option>
+                    <option value="fixed">£</option>
+                  </select>
+                </div>
+                <div class="w-32">
+                  <select
+                    id="platform_fee_frequency"
+                    v-model="formData.platform_fee_frequency"
+                    class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="monthly">Monthly</option>
+                    <option value="quarterly">Quarterly</option>
+                    <option value="annually">Annually</option>
+                  </select>
+                </div>
+              </div>
+              <p class="mt-1 text-xs text-gray-500">
+                {{ feeHelpText }}
+              </p>
             </div>
 
             <!-- Risk Level Section -->
@@ -389,6 +415,9 @@ export default {
         tax_year: '2025/26',
         contributions_ytd: null,
         platform_fee_percent: null,
+        platform_fee_amount: null,
+        platform_fee_type: 'percentage',
+        platform_fee_frequency: 'annually',
         isa_type: 'stocks_and_shares',
         isa_subscription_current_year: null,
         ownership_type: 'individual',
@@ -461,6 +490,36 @@ export default {
       if (this.allowanceUsedPercent >= 50) return 'bg-yellow-500';
       return 'bg-green-600';
     },
+
+    platformFeeValue: {
+      get() {
+        return this.formData.platform_fee_type === 'percentage'
+          ? this.formData.platform_fee_percent
+          : this.formData.platform_fee_amount;
+      },
+      set(value) {
+        if (this.formData.platform_fee_type === 'percentage') {
+          this.formData.platform_fee_percent = value;
+          this.formData.platform_fee_amount = null;
+        } else {
+          this.formData.platform_fee_amount = value;
+          this.formData.platform_fee_percent = null;
+        }
+      },
+    },
+
+    feeHelpText() {
+      const frequency = this.formData.platform_fee_frequency;
+      const frequencyText = {
+        monthly: 'per month',
+        quarterly: 'per quarter',
+        annually: 'per year',
+      };
+      if (this.formData.platform_fee_type === 'percentage') {
+        return `Platform fee as a percentage of assets ${frequencyText[frequency]}`;
+      }
+      return `Fixed platform fee charged ${frequencyText[frequency]}`;
+    },
   },
 
   watch: {
@@ -477,6 +536,8 @@ export default {
             ownership_type: newAccount.ownership_type || 'individual',
             joint_owner_id: newAccount.joint_owner_id || null,
             trust_id: newAccount.trust_id || null,
+            platform_fee_type: newAccount.platform_fee_type || 'percentage',
+            platform_fee_frequency: newAccount.platform_fee_frequency || 'annually',
           };
         } else {
           this.resetForm();
@@ -496,6 +557,8 @@ export default {
             joint_owner_id: this.account.joint_owner_id || null,
             trust_id: this.account.trust_id || null,
             risk_preference: this.account.risk_preference || null,
+            platform_fee_type: this.account.platform_fee_type || 'percentage',
+            platform_fee_frequency: this.account.platform_fee_frequency || 'annually',
           };
         }
         this.errors = {};
@@ -525,6 +588,13 @@ export default {
       // Clear account_type_other when switching away from 'other'
       if (newType !== 'other') {
         this.formData.account_type_other = '';
+      }
+    },
+    'formData.platform_fee_type'(newType, oldType) {
+      // Clear values when switching fee types to avoid confusion
+      if (oldType && newType !== oldType) {
+        this.formData.platform_fee_percent = null;
+        this.formData.platform_fee_amount = null;
       }
     },
   },
@@ -615,10 +685,18 @@ export default {
         isValid = false;
       }
 
-      if (this.formData.platform_fee_percent !== null &&
-          (this.formData.platform_fee_percent < 0 || this.formData.platform_fee_percent > 5)) {
-        this.errors.platform_fee_percent = 'Platform fee must be between 0 and 5%';
-        isValid = false;
+      // Platform fee validation
+      if (this.formData.platform_fee_type === 'percentage') {
+        if (this.formData.platform_fee_percent !== null &&
+            (this.formData.platform_fee_percent < 0 || this.formData.platform_fee_percent > 10)) {
+          this.errors.platform_fee_value = 'Platform fee must be between 0 and 10%';
+          isValid = false;
+        }
+      } else if (this.formData.platform_fee_type === 'fixed') {
+        if (this.formData.platform_fee_amount !== null && this.formData.platform_fee_amount < 0) {
+          this.errors.platform_fee_value = 'Platform fee cannot be negative';
+          isValid = false;
+        }
       }
 
       // ISA-specific validation
@@ -652,6 +730,9 @@ export default {
         tax_year: '2025/26',
         contributions_ytd: null,
         platform_fee_percent: null,
+        platform_fee_amount: null,
+        platform_fee_type: 'percentage',
+        platform_fee_frequency: 'annually',
         isa_type: 'stocks_and_shares',
         isa_subscription_current_year: null,
         ownership_type: 'individual',
