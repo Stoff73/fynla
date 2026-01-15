@@ -38,7 +38,8 @@
                 </span>
               </div>
               <h1 class="trust-name">{{ trust.trust_name }}</h1>
-              <p class="trust-type">{{ formatTrustType(trust.trust_type) }}</p>
+              <p class="trust-type">{{ formatTrustType(trust.trust_type, trust.other_type_description) }}</p>
+              <p v-if="trust.trust_type === 'other' && trust.country" class="trust-country">{{ trust.country }}</p>
             </div>
             <div class="header-actions">
               <button @click="editTrust" class="edit-btn">
@@ -268,7 +269,7 @@ export default {
       });
     },
 
-    formatTrustType(type) {
+    formatTrustType(type, otherDescription = null) {
       const types = {
         bare: 'Bare Trust',
         interest_in_possession: 'Interest in Possession',
@@ -279,6 +280,7 @@ export default {
         loan: 'Loan Trust',
         mixed: 'Mixed Trust',
         settlor_interested: 'Settlor-Interested Trust',
+        other: otherDescription || 'Other Trust',
       };
       return types[type] || type;
     },
@@ -294,6 +296,7 @@ export default {
         loan: '45% / 39.35% (dividends)',
         mixed: 'Mixed rates',
         settlor_interested: 'Settlor rates',
+        other: 'Varies by jurisdiction',
       };
       return rates[type] || 'N/A';
     },
@@ -309,6 +312,7 @@ export default {
         loan: '24% (£1,500 exempt)',
         mixed: '24% (£1,500 exempt)',
         settlor_interested: 'Settlor rates',
+        other: 'Varies by jurisdiction',
       };
       return rates[type] || 'N/A';
     },
@@ -324,6 +328,7 @@ export default {
         loan: 'Loan in estate, growth outside',
         mixed: 'Depends on trust structure',
         settlor_interested: 'In settlor\'s estate',
+        other: 'Varies by jurisdiction',
       };
       return treatments[type] || 'N/A';
     },
@@ -339,6 +344,7 @@ export default {
         loan: 'Growth taxed at trust rates; original loan amount not taxable',
         mixed: 'Complex tax treatment - depends on trust structure',
         settlor_interested: 'All income and gains taxed on settlor',
+        other: 'Tax treatment depends on the trust jurisdiction and local laws. Consult a specialist adviser.',
       };
       return notes[type] || '';
     },
@@ -496,6 +502,12 @@ export default {
   font-size: 16px;
   color: #6b7280;
   margin: 0;
+}
+
+.trust-country {
+  font-size: 14px;
+  color: #9ca3af;
+  margin: 4px 0 0 0;
 }
 
 .header-actions {

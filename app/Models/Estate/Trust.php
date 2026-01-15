@@ -19,6 +19,8 @@ class Trust extends Model
         'household_id',
         'trust_name',
         'trust_type',
+        'other_type_description',
+        'country',
         'trust_creation_date',
         'initial_value',
         'current_value',
