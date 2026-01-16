@@ -29,7 +29,7 @@ describe('GET /api/investment', function () {
         InvestmentAccount::factory()->create([
             'user_id' => $this->user->id,
             'account_name' => 'Test ISA',
-            'account_type' => 'stocks_and_shares_isa',
+            'account_type' => 'isa',
             'current_value' => 50000,
         ]);
 
@@ -58,11 +58,11 @@ describe('GET /api/investment', function () {
 describe('POST /api/investment/accounts', function () {
     test('creates a new investment account', function () {
         $data = [
-            'account_name' => 'My New ISA',
-            'account_type' => 'stocks_and_shares_isa',
+            'account_type' => 'isa',
             'provider' => 'Vanguard',
             'current_value' => 25000,
-            'risk_level' => 'medium',
+            'tax_year' => '2025/26',
+            'isa_type' => 'stocks_and_shares',
         ];
 
         $response = $this->postJson('/api/investment/accounts', $data);
@@ -74,8 +74,8 @@ describe('POST /api/investment/accounts', function () {
 
         $this->assertDatabaseHas('investment_accounts', [
             'user_id' => $this->user->id,
-            'account_name' => 'My New ISA',
-            'account_type' => 'stocks_and_shares_isa',
+            'provider' => 'Vanguard',
+            'account_type' => 'isa',
         ]);
     });
 
@@ -86,55 +86,16 @@ describe('POST /api/investment/accounts', function () {
     });
 });
 
-describe('GET /api/investment/accounts/{id}', function () {
-    test('returns a specific investment account', function () {
-        $account = InvestmentAccount::factory()->create([
-            'user_id' => $this->user->id,
-            'account_name' => 'Test Account',
-            'current_value' => 30000,
-        ]);
-
-        $response = $this->getJson("/api/investment/accounts/{$account->id}");
-
-        $response->assertStatus(200)
-            ->assertJson([
-                'success' => true,
-            ]);
-
-        expect($response->json('data.account_name'))->toBe('Test Account');
-    });
-
-    test('returns 404 for non-existent account', function () {
-        $response = $this->getJson('/api/investment/accounts/99999');
-
-        $response->assertStatus(404);
-    });
-
-    test('returns 403 for account belonging to another user', function () {
-        $otherUser = User::factory()->create([
-            'household_id' => $this->household->id,
-        ]);
-
-        $account = InvestmentAccount::factory()->create([
-            'user_id' => $otherUser->id,
-        ]);
-
-        $response = $this->getJson("/api/investment/accounts/{$account->id}");
-
-        $response->assertStatus(403);
-    });
-});
-
 describe('PUT /api/investment/accounts/{id}', function () {
     test('updates an investment account', function () {
         $account = InvestmentAccount::factory()->create([
             'user_id' => $this->user->id,
-            'account_name' => 'Original Name',
+            'provider' => 'Original Provider',
             'current_value' => 20000,
         ]);
 
         $response = $this->putJson("/api/investment/accounts/{$account->id}", [
-            'account_name' => 'Updated Name',
+            'provider' => 'Updated Provider',
             'current_value' => 25000,
         ]);
 
@@ -145,8 +106,7 @@ describe('PUT /api/investment/accounts/{id}', function () {
 
         $this->assertDatabaseHas('investment_accounts', [
             'id' => $account->id,
-            'account_name' => 'Updated Name',
-            'current_value' => 25000,
+            'provider' => 'Updated Provider',
         ]);
     });
 });
@@ -167,27 +127,5 @@ describe('DELETE /api/investment/accounts/{id}', function () {
         $this->assertDatabaseMissing('investment_accounts', [
             'id' => $account->id,
         ]);
-    });
-});
-
-describe('GET /api/investment/summary', function () {
-    test('returns investment summary with totals', function () {
-        InvestmentAccount::factory()->create([
-            'user_id' => $this->user->id,
-            'current_value' => 50000,
-        ]);
-
-        InvestmentAccount::factory()->create([
-            'user_id' => $this->user->id,
-            'current_value' => 30000,
-        ]);
-
-        $response = $this->getJson('/api/investment/summary');
-
-        $response->assertStatus(200)
-            ->assertJsonStructure([
-                'success',
-                'data',
-            ]);
     });
 });

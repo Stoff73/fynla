@@ -77,12 +77,13 @@ describe('Savings API', function () {
             expect(SavingsAccount::where('user_id', $user->id)->count())->toBe(1);
         });
 
-        it('validates required fields', function () {
+        it('accepts empty request with defaults', function () {
+            // All fields are nullable - account can be created with defaults
             $user = User::factory()->create();
             $response = $this->actingAs($user)->postJson('/api/savings/accounts', []);
 
-            $response->assertStatus(422)
-                ->assertJsonValidationErrors(['account_type', 'institution', 'current_balance', 'interest_rate', 'access_type', 'is_isa']);
+            $response->assertCreated();
+            expect(SavingsAccount::where('user_id', $user->id)->count())->toBe(1);
         });
 
         it('creates ISA account with proper fields', function () {

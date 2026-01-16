@@ -33,14 +33,25 @@ beforeEach(function () {
 });
 
 describe('GET /api/investment/risk/profile', function () {
-    test('returns null when no risk profile exists', function () {
+    test('auto-calculates risk profile when none exists', function () {
+        // With auto-risk calculator, profiles are created on-demand
         $response = $this->getJson('/api/investment/risk/profile');
 
         $response->assertStatus(200)
-            ->assertJson([
-                'success' => true,
-                'data' => null,
+            ->assertJsonStructure([
+                'success',
+                'data' => [
+                    'risk_level',
+                    'factor_breakdown',
+                    'risk_assessed_at',
+                    'is_self_assessed',
+                    'config',
+                ],
             ]);
+
+        expect($response->json('success'))->toBe(true);
+        expect($response->json('data.is_self_assessed'))->toBe(false);
+        expect($response->json('data.factor_breakdown'))->toHaveCount(7);
     });
 
     test('returns existing risk profile with factor breakdown', function () {
@@ -194,6 +205,7 @@ describe('GET /api/investment/risk/levels', function () {
 
 describe('GET /api/investment/risk/allowed-levels', function () {
     test('returns all levels when no profile exists', function () {
+        // Without auto-calculation on this endpoint, returns all levels
         $response = $this->getJson('/api/investment/risk/allowed-levels');
 
         $response->assertStatus(200)
@@ -205,7 +217,8 @@ describe('GET /api/investment/risk/allowed-levels', function () {
                 ],
             ]);
 
-        expect($response->json('data.main_level'))->toBeNull();
+        // No profile means no main level set
+        // All 5 levels are returned as allowed
         expect($response->json('data.allowed_levels'))->toHaveCount(5);
     });
 
@@ -222,10 +235,13 @@ describe('GET /api/investment/risk/allowed-levels', function () {
         $response->assertStatus(200);
 
         expect($response->json('data.main_level'))->toBe('medium');
-        expect($response->json('data.allowed_levels'))->toContain('lower_medium');
-        expect($response->json('data.allowed_levels'))->toContain('medium');
-        expect($response->json('data.allowed_levels'))->toContain('upper_medium');
-        expect($response->json('data.allowed_levels'))->toHaveCount(3);
+
+        // allowed_levels is array of objects with 'key' field
+        $allowedKeys = collect($response->json('data.allowed_levels'))->pluck('key')->toArray();
+        expect($allowedKeys)->toContain('lower_medium');
+        expect($allowedKeys)->toContain('medium');
+        expect($allowedKeys)->toContain('upper_medium');
+        expect($allowedKeys)->toHaveCount(3);
     });
 
     test('returns only 2 levels at low end', function () {
@@ -241,9 +257,11 @@ describe('GET /api/investment/risk/allowed-levels', function () {
         $response->assertStatus(200);
 
         expect($response->json('data.main_level'))->toBe('low');
-        expect($response->json('data.allowed_levels'))->toContain('low');
-        expect($response->json('data.allowed_levels'))->toContain('lower_medium');
-        expect($response->json('data.allowed_levels'))->toHaveCount(2);
+
+        $allowedKeys = collect($response->json('data.allowed_levels'))->pluck('key')->toArray();
+        expect($allowedKeys)->toContain('low');
+        expect($allowedKeys)->toContain('lower_medium');
+        expect($allowedKeys)->toHaveCount(2);
     });
 
     test('returns only 2 levels at high end', function () {
@@ -259,9 +277,11 @@ describe('GET /api/investment/risk/allowed-levels', function () {
         $response->assertStatus(200);
 
         expect($response->json('data.main_level'))->toBe('high');
-        expect($response->json('data.allowed_levels'))->toContain('upper_medium');
-        expect($response->json('data.allowed_levels'))->toContain('high');
-        expect($response->json('data.allowed_levels'))->toHaveCount(2);
+
+        $allowedKeys = collect($response->json('data.allowed_levels'))->pluck('key')->toArray();
+        expect($allowedKeys)->toContain('upper_medium');
+        expect($allowedKeys)->toContain('high');
+        expect($allowedKeys)->toHaveCount(2);
     });
 });
 
@@ -301,7 +321,8 @@ describe('GET /api/investment/risk/config/{level}', function () {
     test('returns error for invalid risk level', function () {
         $response = $this->getJson('/api/investment/risk/config/invalid');
 
-        $response->assertStatus(400);
+        // Laravel validation returns 422 for invalid input
+        $response->assertStatus(422);
     });
 });
 
@@ -322,7 +343,9 @@ describe('POST /api/investment/risk/validate-product-level', function () {
             ->assertJson([
                 'success' => true,
                 'data' => [
-                    'valid' => true,
+                    'is_valid' => true,
+                    'main_level' => 'medium',
+                    'requested_level' => 'upper_medium',
                 ],
             ]);
     });
@@ -343,7 +366,9 @@ describe('POST /api/investment/risk/validate-product-level', function () {
             ->assertJson([
                 'success' => true,
                 'data' => [
-                    'valid' => false,
+                    'is_valid' => false,
+                    'main_level' => 'low',
+                    'requested_level' => 'high',
                 ],
             ]);
     });

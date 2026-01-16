@@ -30,16 +30,13 @@ class RecalculateRiskProfileJob implements ShouldQueue
 
     public $timeout = 30;
 
-    /**
-     * The number of seconds before the job should be processed.
-     * Acts as debounce - if multiple changes happen quickly, only the last job runs.
-     */
-    public $delay = 5;
-
     public function __construct(
         private int $userId,
         private string $trigger = 'unknown'
-    ) {}
+    ) {
+        // Set delay for debouncing - if multiple changes happen quickly, only the last job runs
+        $this->delay = 5;
+    }
 
     public function handle(RiskPreferenceService $riskPreferenceService): void
     {
