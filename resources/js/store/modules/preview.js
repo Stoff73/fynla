@@ -18,6 +18,8 @@ import youngFamilyData from '../../data/personas/young_family.json';
 import peakEarnersData from '../../data/personas/peak_earners.json';
 import widowData from '../../data/personas/widow.json';
 import entrepreneurData from '../../data/personas/entrepreneur.json';
+import youngSaverData from '../../data/personas/young_saver.json';
+import retiredCoupleData from '../../data/personas/retired_couple.json';
 
 // Full persona data for use in components that need detailed info
 const PERSONA_DATA = {
@@ -25,10 +27,20 @@ const PERSONA_DATA = {
     peak_earners: peakEarnersData,
     widow: widowData,
     entrepreneur: entrepreneurData,
+    young_saver: youngSaverData,
+    retired_couple: retiredCoupleData,
 };
 
-// Persona metadata for the selector UI
+// Persona metadata for the selector UI (order determines display order)
 const PERSONA_METADATA = {
+    young_saver: {
+        id: 'young_saver',
+        name: 'Alex Morgan',
+        tagline: 'Young professional building savings',
+        netWorthRange: '-£35k to -£30k',
+        focus: 'First home, emergency fund',
+        description: 'A 24-year-old junior data analyst, renting and saving for a house deposit with a Lifetime ISA.',
+    },
     young_family: {
         id: 'young_family',
         name: 'Emily & James Carter',
@@ -36,6 +48,14 @@ const PERSONA_METADATA = {
         netWorthRange: '£80k - £120k',
         focus: 'Protection gaps, emergency fund',
         description: 'A young married couple in their early 30s with two children, mortgage, and workplace pensions.',
+    },
+    entrepreneur: {
+        id: 'entrepreneur',
+        name: 'Alex Chen',
+        tagline: 'Self-made tech entrepreneur',
+        netWorthRange: '£800k - £1m',
+        focus: 'Business protection, single estate',
+        description: 'A 38-year-old single tech consultancy owner with business interests and SIPP.',
     },
     peak_earners: {
         id: 'peak_earners',
@@ -45,6 +65,14 @@ const PERSONA_METADATA = {
         focus: 'Tax efficiency, pension allowances',
         description: 'A couple in their late 40s with high incomes, BTL property, and complex pension arrangements.',
     },
+    retired_couple: {
+        id: 'retired_couple',
+        name: 'Patricia & Harold Bennett',
+        tagline: 'Retired couple with estate focus',
+        netWorthRange: '£800k - £900k',
+        focus: 'IHT planning, gifting strategy',
+        description: 'A retired couple in their early 70s drawing DB pensions, focusing on IHT planning and gifting.',
+    },
     widow: {
         id: 'widow',
         name: 'Margaret Thompson',
@@ -52,14 +80,6 @@ const PERSONA_METADATA = {
         netWorthRange: '£1.4m - £1.6m',
         focus: 'IHT planning, gifting strategy',
         description: 'A 68-year-old retired headteacher who was widowed, with complex estate planning needs.',
-    },
-    entrepreneur: {
-        id: 'entrepreneur',
-        name: 'Alex Chen',
-        tagline: 'Self-made tech entrepreneur',
-        netWorthRange: '£800k - £1m',
-        focus: 'Business protection, single estate',
-        description: 'A 38-year-old single tech consultancy owner with business interests and SIPP.',
     },
 };
 

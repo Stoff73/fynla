@@ -183,6 +183,8 @@ export default {
                     peak_earners: 'bg-green-600 hover:bg-green-700 text-white',
                     widow: 'bg-purple-600 hover:bg-purple-700 text-white',
                     entrepreneur: 'bg-orange-600 hover:bg-orange-700 text-white',
+                    young_saver: 'bg-cyan-600 hover:bg-cyan-700 text-white',
+                    retired_couple: 'bg-rose-600 hover:bg-rose-700 text-white',
                 };
                 base = darkColors[this.currentPersonaId] || 'bg-amber-600 hover:bg-amber-700 text-white';
             } else {
@@ -254,6 +256,8 @@ export default {
                 peak_earners: 'bg-green-100',
                 widow: 'bg-purple-100',
                 entrepreneur: 'bg-orange-100',
+                young_saver: 'bg-cyan-100',
+                retired_couple: 'bg-rose-100',
             };
             return colors[persona.id] || 'bg-gray-100';
         },
@@ -264,6 +268,8 @@ export default {
                 peak_earners: '💼',
                 widow: '👵',
                 entrepreneur: '🚀',
+                young_saver: '🎓',
+                retired_couple: '👴👵',
             };
             return emojis[personaId] || '👤';
         },

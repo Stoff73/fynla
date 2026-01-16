@@ -1,0 +1,215 @@
+{
+  "id": "young_saver",
+  "name": "Alex Morgan",
+  "tagline": "Young professional building first-time buyer savings",
+  "description": "A 24-year-old junior data analyst in Manchester, renting and saving for a house deposit. Building emergency fund and using a Lifetime ISA for first home. Student loan from university, workplace pension with NEST.",
+
+  "user": {
+    "first_name": "Alex",
+    "last_name": "Morgan",
+    "email": "alex.morgan@example.com",
+    "date_of_birth": "2000-09-15",
+    "age": 24,
+    "gender": "male",
+    "marital_status": "single",
+    "annual_income": 32000,
+    "employment_status": "employed",
+    "employer_name": "DataInsights Ltd",
+    "occupation": "Junior Data Analyst",
+    "target_retirement_age": 67,
+    "target_retirement_income": 25000,
+    "monthly_expenditure": 1833,
+    "health_status": "yes",
+    "smoking_status": "never",
+    "has_will": false,
+    "has_lasting_power_of_attorney": false,
+    "address": {
+      "line_1": "Flat 4, 28 Deansgate Mews",
+      "city": "Manchester",
+      "postcode": "M3 4LQ"
+    }
+  },
+
+  "spouse": null,
+
+  "family_members": [],
+
+  "properties": [],
+
+  "mortgages": [],
+
+  "savings_accounts": [
+    {
+      "id": 1,
+      "account_name": "Alex's Current Account",
+      "provider_name": "Monzo",
+      "account_type": "current_account",
+      "current_balance": 850,
+      "interest_rate": 0,
+      "is_isa": false,
+      "access_type": "immediate",
+      "ownership_type": "individual",
+      "monthly_contribution": 0,
+      "notes": "Day-to-day spending account"
+    },
+    {
+      "id": 2,
+      "account_name": "Emergency Fund",
+      "provider_name": "Chase",
+      "account_type": "instant_access",
+      "current_balance": 1500,
+      "interest_rate": 4.5,
+      "is_isa": false,
+      "access_type": "immediate",
+      "ownership_type": "individual",
+      "monthly_contribution": 100,
+      "notes": "Building towards 3 months expenses"
+    },
+    {
+      "id": 3,
+      "account_name": "Cash ISA",
+      "provider_name": "Marcus",
+      "account_type": "cash_isa",
+      "current_balance": 3200,
+      "interest_rate": 4.25,
+      "is_isa": true,
+      "isa_subscription_current_year": 1200,
+      "access_type": "immediate",
+      "ownership_type": "individual",
+      "monthly_contribution": 100,
+      "notes": "Flexible savings with tax-free interest"
+    },
+    {
+      "id": 4,
+      "account_name": "Lifetime ISA",
+      "provider_name": "Moneybox",
+      "account_type": "lifetime_isa",
+      "current_balance": 2400,
+      "interest_rate": 0,
+      "is_isa": true,
+      "isa_subscription_current_year": 2000,
+      "access_type": "notice",
+      "ownership_type": "individual",
+      "monthly_contribution": 150,
+      "notes": "Saving for first home deposit. 25% government bonus on contributions up to 4000/year. Can use for first home up to 450k or at 60+."
+    }
+  ],
+
+  "investment_accounts": [],
+
+  "dc_pensions": [
+    {
+      "id": 1,
+      "scheme_name": "DataInsights Workplace Pension",
+      "provider_name": "NEST",
+      "pension_type": "occupational",
+      "scheme_type": "workplace",
+      "current_fund_value": 4800,
+      "employee_contribution_percent": 5,
+      "employer_contribution_percent": 3,
+      "annual_salary": 32000,
+      "retirement_age": 67,
+      "ownership_type": "individual",
+      "risk_preference": "medium",
+      "notes": "Auto-enrolled workplace pension. Contributing 5% with 3% employer match."
+    }
+  ],
+
+  "db_pensions": [],
+
+  "state_pension": null,
+
+  "life_insurance_policies": [],
+
+  "critical_illness_policies": [],
+
+  "income_protection_policies": [],
+
+  "disability_policies": [],
+
+  "sickness_illness_policies": [],
+
+  "liabilities": [
+    {
+      "id": 1,
+      "liability_type": "student_loan",
+      "liability_name": "Student Loan Plan 2",
+      "current_balance": 42000,
+      "original_amount": 45000,
+      "interest_rate": 7.3,
+      "monthly_payment": 35,
+      "start_date": "2022-04-01",
+      "end_date": null,
+      "lender_name": "Student Loans Company",
+      "notes": "Plan 2 loan - repay 9% of earnings above 27295/year. Written off after 30 years."
+    },
+    {
+      "id": 2,
+      "liability_type": "other",
+      "liability_name": "iPhone 15 Pro Finance",
+      "current_balance": 420,
+      "original_amount": 840,
+      "interest_rate": 0,
+      "monthly_payment": 35,
+      "start_date": "2024-01-15",
+      "end_date": "2026-01-15",
+      "lender_name": "Apple",
+      "notes": "24-month interest-free contract, 12 months remaining"
+    }
+  ],
+
+  "gifts": [],
+
+  "trusts": [],
+
+  "business_interests": [],
+
+  "chattels": [],
+
+  "expenditure": {
+    "total_monthly": 1833,
+    "categories": {
+      "housing": 650,
+      "utilities": 150,
+      "food_groceries": 250,
+      "transport_fuel": 85,
+      "mobile_phones": 35,
+      "subscriptions": 45,
+      "entertainment_dining": 200,
+      "clothing_personal_care": 50,
+      "other_expenditure": 368
+    }
+  },
+
+  "key_concerns": [
+    "How can I save for a house deposit while paying off my student loan?",
+    "Should I put more into my pension or focus on my LISA?",
+    "Am I saving enough for emergencies?",
+    "What happens if I lose my job?"
+  ],
+
+  "highlights": {
+    "protection_gaps": [
+      "No life insurance - minimal need as single with no dependents",
+      "No income protection - consider once earning more",
+      "Employer may provide death-in-service benefit - check"
+    ],
+    "net_worth_range": "-35k to -30k",
+    "primary_focus": "Emergency fund, first-time buyer savings, pension contributions"
+  },
+
+  "risk_profile": {
+    "main_risk_level": "medium",
+    "notes": "Young with long investment horizon, can take more risk for growth but currently focused on cash savings for house deposit"
+  },
+
+  "will": {
+    "has_will": false,
+    "spouse_primary_beneficiary": false,
+    "spouse_bequest_percentage": 0,
+    "executor_name": null,
+    "executor_notes": null,
+    "will_last_updated": null,
+    "bequests": []
+  }
+}
