@@ -27,13 +27,13 @@
           </router-link>
         </div>
         <div v-if="activeTab === 'current'" class="header-buttons">
-          <button @click="showPensionForm = true" class="add-pension-button">
+          <button v-preview-disabled="'add'" @click="showPensionForm = true" class="add-pension-button">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="button-icon">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
             </svg>
             Add Pension
           </button>
-          <button @click="showUploadModal = true" class="upload-button">
+          <button v-preview-disabled="'upload'" @click="showUploadModal = true" class="upload-button">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="button-icon">
               <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
             </svg>
@@ -120,7 +120,7 @@
             <!-- Empty State -->
             <div v-if="allPensions.length === 0" class="empty-standalone">
               <p>No pensions added</p>
-              <button @click="showPensionForm = true" class="add-first-btn">Add your first pension</button>
+              <button v-preview-disabled="'add'" @click="showPensionForm = true" class="add-first-btn">Add your first pension</button>
             </div>
 
             <!-- Retirement Income Card -->

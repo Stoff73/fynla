@@ -335,6 +335,7 @@
     <!-- Add Gift Button -->
     <div class="mb-6">
       <button
+        v-preview-disabled="'add'"
         @click="openCreateGiftForm"
         class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
       >
@@ -419,12 +420,14 @@
             </div>
             <div class="ml-4 flex-shrink-0">
               <button
+                v-preview-disabled="'edit'"
                 @click="editGift(gift)"
                 class="text-blue-600 hover:text-blue-900 mr-3"
               >
                 Edit
               </button>
               <button
+                v-preview-disabled="'delete'"
                 @click="handleDeleteGift(gift.id)"
                 class="text-red-600 hover:text-red-900"
               >

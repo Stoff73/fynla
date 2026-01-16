@@ -12,7 +12,7 @@
     <template v-else>
       <div class="list-header">
         <h2 class="list-title">Properties</h2>
-        <button @click="addProperty" class="add-property-button">
+        <button v-preview-disabled="'add'" @click="addProperty" class="add-property-button">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="button-icon">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
           </svg>

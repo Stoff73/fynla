@@ -6,6 +6,9 @@ import router from './router';
 import store from './store';
 import VueApexCharts from 'vue3-apexcharts';
 
+// Import custom directives
+import { previewDisabled } from './directives/previewDisabled';
+
 // Create Vue app instance
 const app = createApp(App);
 
@@ -13,6 +16,9 @@ const app = createApp(App);
 app.use(router);
 app.use(store);
 app.use(VueApexCharts);
+
+// Register custom directives
+app.directive('preview-disabled', previewDisabled);
 
 // Initialize preview mode from sessionStorage if available
 // This allows preview mode to survive page reloads

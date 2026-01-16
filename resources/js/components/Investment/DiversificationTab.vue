@@ -24,7 +24,7 @@
       </svg>
       <h3 class="text-lg font-medium text-amber-800 mb-2">No Holdings Recorded</h3>
       <p class="text-amber-600 mb-4">Add holdings to this {{ accountType === 'pension' ? 'pension' : 'account' }} to see diversification analysis.</p>
-      <button v-if="showAddHoldings" @click="$emit('add-holdings')" class="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition">
+      <button v-if="showAddHoldings" v-preview-disabled="'add'" @click="$emit('add-holdings')" class="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition">
         Add Holdings
       </button>
     </div>

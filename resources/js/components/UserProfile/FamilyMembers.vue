@@ -8,6 +8,7 @@
         </p>
       </div>
       <button
+        v-preview-disabled="'add'"
         @click="openAddModal"
         class="btn-primary w-full sm:w-auto flex-shrink-0"
       >
@@ -102,12 +103,14 @@
 
           <div v-if="!member.is_shared" class="flex space-x-2 ml-4">
             <button
+              v-preview-disabled="'edit'"
               @click="openEditModal(member)"
               class="btn-secondary-sm"
             >
               Edit
             </button>
             <button
+              v-preview-disabled="'delete'"
               @click="confirmDelete(member)"
               class="btn-danger-sm"
             >
@@ -127,6 +130,7 @@
     <div v-else class="card p-8 text-center">
       <p class="text-body-base text-gray-500">No family members added yet</p>
       <button
+        v-preview-disabled="'add'"
         @click="openAddModal"
         class="btn-primary mt-4"
       >

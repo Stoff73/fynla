@@ -28,6 +28,7 @@
           </div>
           <div class="flex space-x-2 w-full sm:w-auto">
             <button
+              v-preview-disabled="'edit'"
               @click="showEditModal = true"
               class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
             >
@@ -35,6 +36,7 @@
             </button>
             <button
               v-if="pensionType !== 'state'"
+              v-preview-disabled="'delete'"
               @click="confirmDelete"
               class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
             >
