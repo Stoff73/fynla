@@ -61,6 +61,47 @@ abstract class BaseAgent
     }
 
     /**
+     * Get a standardized cache key for user-specific data.
+     *
+     * @param  int  $userId  User ID
+     * @param  string  $suffix  Cache key suffix (e.g., 'analysis', 'recommendations')
+     */
+    protected function getUserCacheKey(int $userId, string $suffix): string
+    {
+        $agentName = strtolower(class_basename(static::class));
+
+        return "{$agentName}_{$userId}_{$suffix}";
+    }
+
+    /**
+     * Clear all cached data for a specific user.
+     *
+     * @param  int  $userId  User ID
+     * @param  array  $suffixes  Cache key suffixes to clear (default: common suffixes)
+     */
+    public function clearUserCache(int $userId, array $suffixes = ['analysis', 'recommendations', 'scenarios']): void
+    {
+        foreach ($suffixes as $suffix) {
+            Cache::forget($this->getUserCacheKey($userId, $suffix));
+        }
+    }
+
+    /**
+     * Remember user-specific data with standardized cache key.
+     *
+     * @param  int  $userId  User ID
+     * @param  string  $suffix  Cache key suffix
+     * @param  callable  $callback  Callback to execute on cache miss
+     * @param  int|null  $ttl  Time to live in seconds
+     */
+    protected function rememberForUser(int $userId, string $suffix, callable $callback, ?int $ttl = null): mixed
+    {
+        $key = $this->getUserCacheKey($userId, $suffix);
+
+        return $this->remember($key, $callback, $ttl);
+    }
+
+    /**
      * Format currency value to GBP.
      */
     protected function formatCurrency(float $amount, int $decimals = 2): string

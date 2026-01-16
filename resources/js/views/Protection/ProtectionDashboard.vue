@@ -78,7 +78,7 @@ import CurrentSituation from '@/components/Protection/CurrentSituation.vue';
 import ProfileCompletenessAlert from '@/components/Shared/ProfileCompletenessAlert.vue';
 import PolicyFormModal from '@/components/Protection/PolicyFormModal.vue';
 import protectionService from '@/services/protectionService';
-import api from '@/services/api';
+import userProfileService from '@/services/userProfileService';
 
 export default {
   name: 'ProtectionDashboard',
@@ -129,8 +129,8 @@ export default {
     async loadProfileCompleteness() {
       this.loadingCompleteness = true;
       try {
-        const response = await api.get('/user/profile/completeness');
-        this.profileCompleteness = response.data.data;
+        const response = await userProfileService.getProfileCompleteness();
+        this.profileCompleteness = response.data;
       } catch (error) {
         console.error('Failed to load profile completeness:', error);
       } finally {
@@ -207,7 +207,3 @@ export default {
   },
 };
 </script>
-
-<style scoped>
-/* Protection dashboard styles */
-</style>

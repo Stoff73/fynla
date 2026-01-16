@@ -46,12 +46,17 @@ const getters = {
     },
 
     // Get ISA allowance remaining
+    // Note: Returns 0 if ISA data not loaded - ensure fetchISAAllowance is called on init
     isaAllowanceRemaining: (state) => {
-        if (!state.isaAllowance) return 20000; // Default UK ISA allowance
+        if (!state.isaAllowance) {
+            // Return 0 instead of hardcoded fallback - forces proper API fetch
+            console.warn('ISA allowance not loaded - call fetchISAAllowance first');
+            return 0;
+        }
 
         const cashISAUsed = state.isaAllowance.cash_isa_used || 0;
         const stocksISAUsed = state.isaAllowance.stocks_shares_isa_used || 0;
-        const totalAllowance = state.isaAllowance.total_allowance || 20000;
+        const totalAllowance = state.isaAllowance.total_allowance || 0;
 
         return totalAllowance - cashISAUsed - stocksISAUsed;
     },
@@ -60,7 +65,8 @@ const getters = {
     isaUsagePercent: (state, getters) => {
         if (!state.isaAllowance) return 0;
 
-        const totalAllowance = state.isaAllowance.total_allowance || 20000;
+        const totalAllowance = state.isaAllowance.total_allowance || 0;
+        if (totalAllowance === 0) return 0;
         const remaining = getters.isaAllowanceRemaining;
 
         return Math.round(((totalAllowance - remaining) / totalAllowance) * 100);

@@ -206,16 +206,14 @@ class InvestmentController extends Controller
      */
     public function getMonteCarloResults(string $jobId): JsonResponse
     {
-        \Log::info("Checking Monte Carlo results for job: {$jobId}");
+        \Log::debug("Checking Monte Carlo results for job: {$jobId}");
 
         $status = Cache::get("monte_carlo_status_{$jobId}");
 
-        \Log::info("Monte Carlo status for {$jobId}: ".($status ?? 'NULL'));
+        \Log::debug("Monte Carlo status for {$jobId}: ".($status ?? 'NULL'));
 
         if (! $status) {
-            // List all cache keys to debug
-            $allKeys = Cache::get('_all_monte_carlo_keys', []);
-            \Log::warning("Job {$jobId} not found in cache. Status is NULL");
+            \Log::debug("Job {$jobId} not found in cache");
 
             return response()->json([
                 'success' => false,

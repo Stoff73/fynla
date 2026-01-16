@@ -7,11 +7,13 @@ namespace App\Providers;
 use App\Models\DCPension;
 use App\Models\FamilyMember;
 use App\Models\Investment\InvestmentAccount;
+use App\Models\Property;
 use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Observers\DCPensionRiskObserver;
 use App\Observers\FamilyMemberRiskObserver;
 use App\Observers\InvestmentAccountRiskObserver;
+use App\Observers\PropertyRiskObserver;
 use App\Observers\SavingsAccountRiskObserver;
 use App\Observers\UserRiskObserver;
 use Illuminate\Auth\Events\Registered;
@@ -43,6 +45,7 @@ class EventServiceProvider extends ServiceProvider
         SavingsAccount::class => [SavingsAccountRiskObserver::class],
         InvestmentAccount::class => [InvestmentAccountRiskObserver::class],
         DCPension::class => [DCPensionRiskObserver::class],
+        Property::class => [PropertyRiskObserver::class],
     ];
 
     /**

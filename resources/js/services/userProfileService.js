@@ -159,6 +159,35 @@ const userProfileService = {
     const response = await api.get('/user/financial-commitments');
     return response.data;
   },
+
+  /**
+   * Get profile completeness score and breakdown
+   * @returns {Promise<{completeness: number, sections: Object}>}
+   */
+  async getProfileCompleteness() {
+    const response = await api.get('/user/profile/completeness');
+    return response.data;
+  },
+
+  /**
+   * Get spouse data
+   * @returns {Promise}
+   */
+  async getSpouse() {
+    const response = await api.get('/user/spouse');
+    return response.data;
+  },
+
+  /**
+   * Update spouse information
+   * @param {number} spouseId - Spouse user ID
+   * @param {Object} data - Spouse data to update
+   * @returns {Promise}
+   */
+  async updateSpouse(spouseId, data) {
+    const response = await api.put(`/users/${spouseId}`, data);
+    return response.data;
+  },
 };
 
 export default userProfileService;
