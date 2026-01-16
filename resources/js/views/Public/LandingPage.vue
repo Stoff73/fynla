@@ -1,7 +1,7 @@
 <template>
   <PublicLayout>
     <!-- Hero Section -->
-    <div class="relative min-h-[90vh] flex items-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 overflow-hidden">
+    <div class="relative min-h-[75vh] flex items-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 overflow-hidden">
       <!-- Background Elements -->
       <div class="absolute inset-0">
         <div class="absolute inset-0 bg-gradient-to-br from-primary-900/80 to-slate-900/90"></div>
@@ -13,19 +13,19 @@
       <!-- Grid Pattern Overlay -->
       <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0wIDBoNjB2NjBIMHoiLz48cGF0aCBkPSJNMzAgMzBtLTEgMGExIDEgMCAxIDAgMiAwYTEgMSAwIDEgMCAtMiAwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMSkiLz48L2c+PC9zdmc+')] opacity-30"></div>
 
-      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div class="text-center">
           <!-- Badge -->
           <button
             type="button"
             @click="enterPreviewMode"
-            class="inline-flex items-center px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-amber-200 text-sm font-medium mb-8 hover:bg-white/20 transition-all cursor-pointer"
+            class="inline-flex items-center px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-amber-200 text-sm font-medium mb-6 hover:bg-white/20 transition-all cursor-pointer"
           >
             <span class="w-2 h-2 bg-amber-400 rounded-full mr-2 animate-pulse"></span>
             Interactive Demo - No Sign-up Required
           </button>
 
-          <h1 class="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight">
+          <h1 class="text-5xl md:text-7xl font-bold text-white mb-4 leading-tight">
             Your Complete<br />
             <span class="hero-word-container">
               <transition name="hero-fade" mode="out-in">
@@ -38,11 +38,11 @@
             Platform
           </h1>
 
-          <p class="text-xl md:text-2xl text-slate-300 mb-10 max-w-3xl mx-auto leading-relaxed">
+          <p class="text-xl md:text-2xl text-slate-300 mb-6 max-w-3xl mx-auto leading-relaxed">
             Comprehensive tools designed for UK individuals and families to plan protection, savings, investments, retirement, and estate with confidence.
           </p>
 
-          <div class="flex flex-col sm:flex-row justify-center gap-4 mb-16">
+          <div class="flex flex-col sm:flex-row justify-center gap-4 mb-8">
             <button
               type="button"
               @click="enterPreviewMode"
@@ -85,36 +85,48 @@
 
           <!-- Stats in glass cards -->
           <div class="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
-            <div class="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20">
+            <div
+              @click="scrollToSection('planning-modules')"
+              class="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20 cursor-pointer hover:bg-white/20 hover:border-white/30 transition-all"
+            >
               <div class="text-3xl md:text-4xl font-bold text-white mb-1">5</div>
               <div class="text-slate-300 text-sm">Planning Modules</div>
             </div>
-            <div class="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20">
+            <div
+              @click="scrollToSection('key-features')"
+              class="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20 cursor-pointer hover:bg-white/20 hover:border-white/30 transition-all"
+            >
               <div class="text-3xl md:text-4xl font-bold text-white mb-1">UK</div>
               <div class="text-slate-300 text-sm">Tax Optimised</div>
             </div>
-            <div class="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20">
+            <router-link
+              to="/security"
+              class="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20 cursor-pointer hover:bg-white/20 hover:border-white/30 transition-all block"
+            >
               <div class="text-3xl md:text-4xl font-bold text-white mb-1">100%</div>
               <div class="text-slate-300 text-sm">Secure & Private</div>
-            </div>
-            <div class="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20">
+            </router-link>
+            <div
+              @click="enterPreviewMode"
+              class="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20 cursor-pointer hover:bg-white/20 hover:border-white/30 transition-all"
+            >
               <div class="text-3xl md:text-4xl font-bold text-white mb-1">Free</div>
               <div class="text-slate-300 text-sm">Demo Access</div>
             </div>
           </div>
-        </div>
-      </div>
 
-      <!-- Scroll Indicator -->
-      <div class="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
-        <svg class="w-6 h-6 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-        </svg>
+          <!-- Scroll Indicator -->
+          <div class="flex justify-center mt-8 animate-bounce">
+            <svg class="w-6 h-6 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+            </svg>
+          </div>
+        </div>
       </div>
     </div>
 
     <!-- Planning Modules Section -->
-    <div class="relative bg-gradient-to-b from-slate-900 to-slate-800 py-24 overflow-hidden">
+    <div id="planning-modules" class="relative bg-gradient-to-b from-slate-900 to-slate-800 py-24 overflow-hidden">
       <!-- Background blur elements -->
       <div class="absolute top-0 left-1/4 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl"></div>
       <div class="absolute bottom-0 right-1/4 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl"></div>
@@ -231,7 +243,7 @@
     </div>
 
     <!-- Key Features Section -->
-    <div class="relative bg-slate-800 py-24 overflow-hidden">
+    <div id="key-features" class="relative bg-slate-800 py-24 overflow-hidden">
       <div class="absolute inset-0 bg-gradient-to-b from-slate-800 to-slate-900"></div>
 
       <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -391,6 +403,13 @@ export default {
       }, 3000);
     },
 
+    scrollToSection(sectionId) {
+      const element = document.getElementById(sectionId);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
+    },
+
     enterPreviewMode() {
       this.showSelectionModal = true;
     },
@@ -422,7 +441,7 @@ export default {
 .hero-word-container {
   display: inline-block;
   min-width: 280px;
-  text-align: left;
+  text-align: right;
 }
 
 .hero-word {

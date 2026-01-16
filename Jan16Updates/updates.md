@@ -1,0 +1,84 @@
+# January 16, 2026 Updates
+
+## Landing Page Improvements
+
+### Hero Section - Rotating Text Fix
+Fixed spacing issue where the word "Estate" in the rotating hero text had a visible gap before "Planning".
+
+**Change Made** (`LandingPage.vue`):
+- Changed `.hero-word-container` text alignment from `left` to `right`
+- Shorter words like "Estate" now align correctly with consistent spacing before "Planning"
+
+---
+
+### Hero Section - Interactive Stats Cards
+Made the stats cards in the hero section clickable with appropriate navigation.
+
+**Changes Made** (`LandingPage.vue`):
+- **"5 Planning Modules"** card: Scrolls to the planning modules section
+- **"UK Tax Optimised"** card: Scrolls to the key features section
+- **"100% Secure & Private"** card: Links to new `/security` page
+- **"Free Demo Access"** card: Opens the persona selection modal (same as "Try the Demo" button)
+- Added hover effects to all clickable cards
+- Added `scrollToSection()` method for smooth scrolling
+- Added `id="planning-modules"` and `id="key-features"` to target sections
+
+---
+
+### Hero Section - Layout Optimisation
+Reduced hero section size so all content fits on the page without scrolling.
+
+**Changes Made** (`LandingPage.vue`):
+- Reduced minimum height from `90vh` to `75vh`
+- Reduced vertical padding from `py-20` to `py-12`
+- Reduced badge margin from `mb-8` to `mb-6`
+- Reduced title margin from `mb-6` to `mb-4`
+- Reduced description margin from `mb-10` to `mb-6`
+- Reduced buttons margin from `mb-16` to `mb-8`
+- Moved scroll indicator from absolute positioning to normal flow below the cards
+
+---
+
+## New Security Page
+
+### Summary
+Created a comprehensive Security & Privacy page accessible at `/security`.
+
+**New File** (`resources/js/views/Public/SecurityPage.vue`):
+- Hero section with emerald/teal gradient theme
+- Overview cards: Encrypted Connections, UK Data Residency, Your Data Your Control
+- Detailed sections covering:
+  - Authentication & Account Security (MFA, session management, brute-force protection, password security)
+  - Data Protection & Encryption (encryption at rest, key management, encrypted backups, secrets management)
+  - Access Control (RBAC, least privilege, internal access logging)
+  - Auditability & Monitoring (audit logs, immutable logs, suspicious activity alerts)
+  - GDPR & Privacy Compliance (right to erasure, data minimisation, consent tracking, data export)
+  - API & Application Security (rate limiting, token security, permission scoping)
+  - Business Continuity (disaster recovery, uptime monitoring)
+- Important disclaimer about not being regulated financial advice
+- Contact section with email link
+
+**Router Update** (`resources/js/router/index.js`):
+- Added lazy-loaded `SecurityPage` component import
+- Added `/security` route with `meta: { public: true }`
+
+---
+
+## Router - Scroll Behaviour
+
+### Summary
+Added scroll behaviour to ensure all pages load at the top when navigating.
+
+**Change Made** (`resources/js/router/index.js`):
+- Added `scrollBehavior` function to router configuration
+- New page navigation scrolls to top
+- Browser back/forward restores previous scroll position
+- Hash links scroll smoothly to the target element
+
+---
+
+## Files Changed
+
+- `resources/js/views/Public/LandingPage.vue` - Hero improvements and card links
+- `resources/js/views/Public/SecurityPage.vue` - New file
+- `resources/js/router/index.js` - Security route and scroll behaviour

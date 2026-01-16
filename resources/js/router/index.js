@@ -6,6 +6,7 @@ import store from '@/store';
 const LandingPage = () => import('@/views/Public/LandingPage.vue');
 const CalculatorsPage = () => import('@/views/Public/CalculatorsPage.vue');
 const LearningCentre = () => import('@/views/Public/LearningCentre.vue');
+const SecurityPage = () => import('@/views/Public/SecurityPage.vue');
 
 // Auth pages
 const Login = () => import('@/views/Login.vue');
@@ -63,6 +64,12 @@ const routes = [
     path: '/learning-centre',
     name: 'LearningCentre',
     component: LearningCentre,
+    meta: { public: true },
+  },
+  {
+    path: '/security',
+    name: 'Security',
+    component: SecurityPage,
     meta: { public: true },
   },
 
@@ -558,6 +565,15 @@ const routerBase = import.meta.env.VITE_ROUTER_BASE || '/';
 const router = createRouter({
   history: createWebHistory(routerBase),
   routes,
+  scrollBehavior(to, from, savedPosition) {
+    if (savedPosition) {
+      return savedPosition;
+    }
+    if (to.hash) {
+      return { el: to.hash, behavior: 'smooth' };
+    }
+    return { top: 0 };
+  },
 });
 
 // Navigation guards
