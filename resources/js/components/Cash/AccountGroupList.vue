@@ -10,15 +10,25 @@
         class="account-item"
       >
         <div class="account-info">
-          <span class="account-name">{{ getAccountName(account) }}</span>
+          <div class="account-name-row">
+            <span class="account-name">{{ getAccountName(account) }}</span>
+            <span v-if="isJointAccount(account)" class="joint-badge">
+              Joint ({{ account.ownership_percentage }}%)
+            </span>
+          </div>
           <span class="account-provider">{{ getProvider(account) }}</span>
         </div>
-        <span
-          class="account-balance"
-          :class="balanceClass(account)"
-        >
-          {{ formatBalance(account) }}
-        </span>
+        <div class="account-balance-col">
+          <span
+            class="account-balance"
+            :class="balanceClass(account)"
+          >
+            {{ formatUserShare(account) }}
+          </span>
+          <span v-if="isJointAccount(account)" class="full-balance">
+            Full: {{ formatBalance(account) }}
+          </span>
+        </div>
       </div>
     </div>
 
@@ -86,6 +96,26 @@ export default {
       return types[type] || type;
     },
 
+    isJointAccount(account) {
+      return account.ownership_type === 'joint' || account.ownership_type === 'tenants_in_common';
+    },
+
+    getUserShare(account) {
+      const balance = account.current_balance || 0;
+      if (this.isJointAccount(account) && account.ownership_percentage) {
+        return balance * (account.ownership_percentage / 100);
+      }
+      return balance;
+    },
+
+    formatUserShare(account) {
+      const share = this.getUserShare(account);
+      if (this.isLiability) {
+        return `-${this.formatCurrency(Math.abs(share))}`;
+      }
+      return this.formatCurrency(share);
+    },
+
     formatBalance(account) {
       const balance = account.current_balance || 0;
       if (this.isLiability) {
@@ -96,7 +126,7 @@ export default {
 
     balanceClass(account) {
       if (this.isLiability) return 'text-red-600';
-      const balance = account.current_balance || 0;
+      const balance = this.getUserShare(account);
       return balance >= 0 ? 'text-green-600' : 'text-red-600';
     },
   },
@@ -153,6 +183,12 @@ export default {
   flex: 1;
 }
 
+.account-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .account-name {
   font-size: 14px;
   font-weight: 600;
@@ -163,16 +199,38 @@ export default {
   transition: color 0.2s;
 }
 
+.joint-badge {
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  background: #f3e8ff;
+  color: #6b21a8;
+  white-space: nowrap;
+}
+
 .account-provider {
   font-size: 12px;
   color: #9ca3af;
 }
 
+.account-balance-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
+  margin-left: 12px;
+}
+
 .account-balance {
   font-size: 14px;
   font-weight: 700;
-  flex-shrink: 0;
-  margin-left: 12px;
+}
+
+.full-balance {
+  font-size: 11px;
+  color: #9ca3af;
 }
 
 .empty-message {
