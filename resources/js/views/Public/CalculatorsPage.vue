@@ -1,42 +1,36 @@
 <template>
   <PublicLayout>
     <!-- Hero Section -->
-    <div class="relative min-h-[50vh] flex items-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 overflow-hidden">
-      <!-- Animated Background Elements -->
-      <div class="absolute inset-0 overflow-hidden">
-        <div class="absolute top-1/4 left-1/4 w-72 h-72 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
-        <div class="absolute top-1/3 right-1/4 w-72 h-72 bg-teal-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
-        <div class="absolute bottom-1/4 left-1/3 w-72 h-72 bg-cyan-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
+    <div class="relative bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 overflow-hidden">
+      <!-- Background Elements -->
+      <div class="absolute inset-0">
+        <div class="absolute inset-0 bg-gradient-to-br from-primary-900/80 to-slate-900/90"></div>
+        <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-pulse"></div>
+        <div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-teal-500/20 rounded-full blur-3xl animate-pulse" style="animation-delay: 1s;"></div>
       </div>
 
       <!-- Grid Pattern Overlay -->
-      <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0wIDBoNjB2NjBIMHoiLz48cGF0aCBkPSJNMzAgMzBtLTEgMGExIDEgMCAxIDAgMiAwYTEgMSAwIDEgMCAtMiAwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMSkiLz48L2c+PC9zdmc+')] opacity-40"></div>
+      <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0wIDBoNjB2NjBIMHoiLz48cGF0aCBkPSJNMzAgMzBtLTEgMGExIDEgMCAxIDAgMiAwYTEgMSAwIDEgMCAtMiAwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMSkiLz48L2c+PC9zdmc+')] opacity-30"></div>
 
-      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center w-full">
+      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-center">
         <!-- Badge -->
-        <div class="inline-flex items-center px-4 py-2 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-200 text-sm font-medium mb-6 backdrop-blur-sm">
+        <div class="inline-flex items-center px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-blue-200 text-sm font-medium mb-4">
           <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
           </svg>
           Free Financial Tools
         </div>
 
-        <h1 class="text-4xl md:text-6xl font-bold text-white mb-6">
+        <h1 class="text-4xl md:text-5xl font-bold text-white mb-4">
           Financial
-          <span class="bg-gradient-to-r from-blue-400 via-teal-400 to-cyan-400 bg-clip-text text-transparent">
-            Calculators
-          </span>
+          <span class="text-primary-400">Calculators</span>
         </h1>
-        <p class="text-xl text-slate-300 max-w-2xl mx-auto">
-          Free tools to help you understand your finances better. Plan your taxes, mortgages, savings, and retirement with confidence.
+        <p class="text-lg text-slate-300 max-w-2xl mx-auto mb-8">
+          Free tools to help you understand your finances better.
         </p>
-      </div>
-    </div>
 
-    <!-- Calculator Selection Cards -->
-    <div class="bg-slate-50 py-12">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <!-- Calculator Selection Cards - Now in hero -->
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-3 max-w-4xl mx-auto">
           <button
             v-for="calc in calculators"
             :key="calc.id"
@@ -44,15 +38,34 @@
             :class="[
               'group relative p-4 rounded-xl transition-all duration-300 text-center',
               activeCalculator === calc.id
-                ? 'bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/25 scale-105'
-                : 'bg-white text-slate-700 hover:bg-slate-100 hover:shadow-md border border-slate-200'
+                ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25'
+                : 'bg-white/10 backdrop-blur-md text-white hover:bg-white/20 border border-white/20'
             ]"
           >
             <div :class="[
               'w-10 h-10 mx-auto mb-2 rounded-lg flex items-center justify-center transition-colors',
-              activeCalculator === calc.id ? 'bg-white/20' : 'bg-slate-100 group-hover:bg-slate-200'
+              activeCalculator === calc.id ? 'bg-white/20' : 'bg-white/10'
             ]">
-              <component :is="calc.icon" :class="activeCalculator === calc.id ? 'text-white' : 'text-slate-600'" />
+              <!-- Income Tax Icon - Blue -->
+              <svg v-if="calc.id === 'income-tax'" class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              </svg>
+              <!-- Mortgage Icon - Teal -->
+              <svg v-else-if="calc.id === 'mortgage'" class="w-5 h-5 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              </svg>
+              <!-- Loan Icon - Amber -->
+              <svg v-else-if="calc.id === 'loan'" class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <!-- Emergency Fund Icon - Emerald -->
+              <svg v-else-if="calc.id === 'emergency-fund'" class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+              <!-- Pension Icon - Purple -->
+              <svg v-else-if="calc.id === 'pension'" class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+              </svg>
             </div>
             <span class="font-medium text-sm">{{ calc.name }}</span>
           </button>
@@ -662,23 +675,39 @@
     </div>
 
     <!-- CTA Section -->
-    <div class="bg-gradient-to-r from-slate-800 to-slate-900 py-16">
-      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h2 class="text-3xl font-bold text-white mb-4">
-          Ready for Comprehensive Financial Planning?
-        </h2>
-        <p class="text-slate-300 mb-8">
-          Create a free account to access all planning tools and get a complete view of your finances.
-        </p>
-        <router-link
-          to="/register"
-          class="inline-flex items-center px-8 py-4 bg-gradient-to-r from-blue-500 to-teal-500 text-white rounded-xl font-semibold hover:from-blue-600 hover:to-teal-600 transition-all shadow-lg hover:shadow-xl"
-        >
-          Get Started Free
-          <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-          </svg>
-        </router-link>
+    <div class="relative bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 py-16 overflow-hidden">
+      <div class="absolute inset-0">
+        <div class="absolute inset-0 bg-gradient-to-br from-primary-900/50 to-slate-900/80"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-500/10 rounded-full blur-3xl"></div>
+      </div>
+      <div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <div class="bg-white/5 backdrop-blur-md rounded-3xl p-10 border border-white/10">
+          <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">
+            Ready for Comprehensive Financial Planning?
+          </h2>
+          <p class="text-lg text-slate-300 mb-8 max-w-2xl mx-auto">
+            Create a free account to access all planning tools and get a complete view of your finances.
+          </p>
+          <div class="flex flex-col sm:flex-row justify-center gap-4">
+            <router-link
+              to="/register"
+              class="group px-8 py-4 bg-amber-500 text-slate-900 rounded-xl font-semibold text-lg hover:bg-amber-400 transition-all shadow-lg hover:shadow-xl"
+            >
+              <span class="flex items-center justify-center">
+                Get Started Free
+                <svg class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </span>
+            </router-link>
+            <router-link
+              to="/login"
+              class="px-8 py-4 bg-white/10 backdrop-blur-md text-white rounded-xl font-semibold text-lg hover:bg-white/20 transition-all border border-white/20"
+            >
+              Sign In
+            </router-link>
+          </div>
+        </div>
       </div>
     </div>
   </PublicLayout>
@@ -928,31 +957,3 @@ export default {
 };
 </script>
 
-<style scoped>
-@keyframes blob {
-  0% {
-    transform: translate(0px, 0px) scale(1);
-  }
-  33% {
-    transform: translate(30px, -50px) scale(1.1);
-  }
-  66% {
-    transform: translate(-20px, 20px) scale(0.9);
-  }
-  100% {
-    transform: translate(0px, 0px) scale(1);
-  }
-}
-
-.animate-blob {
-  animation: blob 7s infinite;
-}
-
-.animation-delay-2000 {
-  animation-delay: 2s;
-}
-
-.animation-delay-4000 {
-  animation-delay: 4s;
-}
-</style>
