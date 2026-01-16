@@ -117,6 +117,35 @@ Options -Indexes
 </IfModule>
 
 # =============================================================================
+# MIME Types
+# =============================================================================
+<IfModule mod_mime.c>
+    # CSS
+    AddType text/css css
+
+    # JavaScript
+    AddType application/javascript js mjs
+
+    # JSON
+    AddType application/json json
+
+    # Fonts
+    AddType font/ttf ttf
+    AddType font/otf otf
+    AddType font/woff woff
+    AddType font/woff2 woff2
+
+    # SVG
+    AddType image/svg+xml svg svgz
+
+    # WebP
+    AddType image/webp webp
+</IfModule>
+
+# =============================================================================
 # Character Encoding
 # =============================================================================
 AddDefaultCharset UTF-8
+<IfModule mod_mime.c>
+    AddCharset UTF-8 .html .css .js .json .xml
+</IfModule>
