@@ -22,6 +22,7 @@
             class="sidebar-link"
             :class="{ active: isActive(item.path) }"
             :title="sidebarCollapsed ? item.label : ''"
+            @click.native="handleSidebarClick(item.path)"
           >
             <svg class="sidebar-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" :d="item.iconPath" />
@@ -126,7 +127,7 @@ export default {
   },
 
   methods: {
-    ...mapActions('netWorth', ['refreshNetWorth']),
+    ...mapActions('netWorth', ['refreshNetWorth', 'setDetailView']),
 
     getRoutePath(path) {
       return `${this.basePath}/${path}`;
@@ -138,6 +139,12 @@ export default {
 
     toggleSidebar() {
       this.sidebarCollapsed = !this.sidebarCollapsed;
+    },
+
+    handleSidebarClick(path) {
+      // Clear detail view when clicking sidebar links
+      // This allows returning to list view even when already on the same route
+      this.setDetailView(false);
     },
   },
 

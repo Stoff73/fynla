@@ -124,22 +124,20 @@ export default {
       if (this.property.mortgages && this.property.mortgages.length > 0) {
         return this.property.mortgages.some(m => m.outstanding_balance > 0);
       }
-      return this.property.outstanding_mortgage > 0;
+      return (this.property.mortgage_balance > 0) || (this.property.outstanding_mortgage > 0);
     },
 
     mortgageAmount() {
-      // Single-record pattern: Use mortgage_user_share from API if available
-      if (this.property.mortgage_user_share !== undefined) {
-        return this.property.mortgage_user_share;
-      }
-      // Fallback: Calculate from full mortgage balance
+      // Get full mortgage balance from various possible sources
       let fullMortgage = 0;
       if (this.property.mortgages && this.property.mortgages.length > 0) {
         fullMortgage = this.property.mortgages.reduce((total, m) => total + (m.outstanding_balance || 0), 0);
+      } else if (this.property.mortgage_balance) {
+        fullMortgage = this.property.mortgage_balance;
       } else {
         fullMortgage = this.property.outstanding_mortgage || 0;
       }
-      // Calculate user's share of mortgage
+      // Calculate user's share of mortgage for joint/tenants in common
       if (this.isSharedOwnership && this.property.ownership_percentage) {
         return fullMortgage * (this.property.ownership_percentage / 100);
       }
