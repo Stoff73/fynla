@@ -9,18 +9,21 @@ use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\NetWorth\NetWorthService;
 use App\Services\Risk\AutoRiskCalculator;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+
+uses(RefreshDatabase::class);
+
+beforeEach(function () {
+    // Mock the NetWorthService
+    $this->netWorthService = Mockery::mock(NetWorthService::class);
+    $this->calculator = new AutoRiskCalculator($this->netWorthService);
+});
+
+afterEach(function () {
+    Mockery::close();
+});
 
 describe('AutoRiskCalculator', function () {
-    beforeEach(function () {
-        // Mock the NetWorthService
-        $this->netWorthService = Mockery::mock(NetWorthService::class);
-        $this->calculator = new AutoRiskCalculator($this->netWorthService);
-    });
-
-    afterEach(function () {
-        Mockery::close();
-    });
-
     describe('calculateRiskProfile', function () {
         it('returns risk_level and factor_breakdown', function () {
             $user = User::factory()->create([
