@@ -77,8 +77,49 @@ Added scroll behaviour to ensure all pages load at the top when navigating.
 
 ---
 
+## Calculators Page Restyle
+
+### Summary
+Restyled the Calculators page to match the updated landing page design pattern.
+
+**Changes Made** (`CalculatorsPage.vue`):
+- Reduced hero section (removed min-height constraint)
+- Moved calculator selector cards into hero section with glass styling
+- Added inline SVG icons with distinct colours for each calculator type:
+  - Income Tax: Blue
+  - Retirement: Teal
+  - IHT: Amber
+  - CGT: Emerald
+  - Pension Contribution: Purple
+- Updated CTA section with glass card styling and animated background
+- Removed old blob animation styles
+
+---
+
+## Learning Centre Restyle
+
+### Summary
+Restyled the Learning Centre page to match the updated design pattern.
+
+**Changes Made** (`LearningCentre.vue`):
+- Reduced hero section with pulse animation background
+- Moved category navigation buttons into hero section with glass styling
+- Added coloured inline SVG icons for each category:
+  - Basics: Indigo
+  - Protection: Emerald
+  - Retirement: Amber
+  - Estate: Rose
+  - Investment: Violet
+  - Tax: Blue
+- Updated CTA section with glass card styling and animated background
+- Removed old unused blob animation styles
+
+---
+
 ## Files Changed
 
 - `resources/js/views/Public/LandingPage.vue` - Hero improvements and card links
 - `resources/js/views/Public/SecurityPage.vue` - New file
 - `resources/js/router/index.js` - Security route and scroll behaviour
+- `resources/js/views/Public/CalculatorsPage.vue` - Restyled with glass effects and coloured icons
+- `resources/js/views/Public/LearningCentre.vue` - Restyled with glass effects and coloured icons
