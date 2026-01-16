@@ -2,105 +2,131 @@
   <div class="max-w-5xl mx-auto">
     <!-- Main Welcome Card -->
     <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-6 mb-6">
-      <h1 class="text-h2 font-display text-gray-900 mb-4">
-        Welcome {{ userName }} to Fynla Demo
+      <h1 class="text-h2 font-display text-gray-900 mb-2">
+        Welcome {{ userName }}
       </h1>
-      <p class="text-body text-gray-700 mb-4">
-        This demo tries to show the potential for a full financial planning app. Currently we have the following functionality:
+      <p class="text-body text-primary-600 font-medium mb-6">
+        Thank you for registering with Fynla!
       </p>
-      <ul class="space-y-2 text-body-sm text-gray-600 mb-6">
-        <li class="flex items-start">
-          <svg class="w-5 h-5 text-primary-600 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-          </svg>
-          <span>Onboarding / Factfind process</span>
-        </li>
-        <li class="flex items-start">
-          <svg class="w-5 h-5 text-primary-600 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-          </svg>
-          <span>Spouse account linking for jointly owned assets and liabilities</span>
-        </li>
-        <li class="flex items-start">
-          <svg class="w-5 h-5 text-primary-600 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-          </svg>
-          <span>Dashboard view</span>
-        </li>
-        <li class="flex items-start">
-          <svg class="w-5 h-5 text-primary-600 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-          </svg>
-          <span>Net Worth dashboard</span>
-        </li>
-        <li class="flex items-start">
-          <svg class="w-5 h-5 text-primary-600 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-          </svg>
-          <span>Estate Planning Dashboard</span>
-        </li>
-        <li class="flex items-start">
-          <svg class="w-5 h-5 text-primary-600 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-          </svg>
-          <span>Protection dashboard</span>
-        </li>
-        <li class="flex items-start">
-          <svg class="w-5 h-5 text-primary-600 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-          </svg>
-          <span>User profile section</span>
-        </li>
-        <li class="flex items-start">
-          <svg class="w-5 h-5 text-primary-600 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-          </svg>
-          <span>Balance sheet for single and linked accounts</span>
-        </li>
-        <li class="flex items-start">
-          <svg class="w-5 h-5 text-primary-600 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-          </svg>
-          <span>IHT calculator and liability indicator</span>
-        </li>
-        <li class="flex items-start">
-          <svg class="w-5 h-5 text-primary-600 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-          </svg>
-          <span>Comprehensive Estate Planning Plan</span>
-        </li>
-        <li class="flex items-start">
-          <svg class="w-5 h-5 text-primary-600 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-          </svg>
-          <span>Many other bits and bobs, so please click all buttons, tabs and check as much as you can.</span>
-        </li>
-      </ul>
 
-      <!-- Security Note -->
-      <div class="bg-gray-50 rounded-lg p-4 mb-6">
-        <h3 class="text-body font-semibold text-gray-900 mb-2">Note on security:</h3>
-        <p class="text-body-sm text-gray-700 mb-2">
-          While this is a demo, I have built this with information security in mind, so the following is in place:
+      <!-- Why Complete Onboarding -->
+      <div class="bg-primary-50 rounded-lg p-4 mb-6 border border-primary-100">
+        <h3 class="text-body font-semibold text-gray-900 mb-2 flex items-center">
+          <svg class="w-5 h-5 text-primary-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          Why Complete the Onboarding?
+        </h3>
+        <p class="text-body-sm text-gray-700">
+          The more information you provide, the better quality your personalised financial strategies and the more comprehensive your dashboards will be. Our planning tools use your data to generate tailored recommendations for protection, savings, investments, retirement, and estate planning.
         </p>
-        <ul class="space-y-1 text-body-sm text-gray-600">
+      </div>
+
+      <!-- What's Involved Section -->
+      <div class="mb-6">
+        <h3 class="text-body font-semibold text-gray-900 mb-3 flex items-center">
+          <svg class="w-5 h-5 text-gray-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+          </svg>
+          What's Involved in Onboarding?
+        </h3>
+        <p class="text-body-sm text-gray-600 mb-4">
+          The onboarding process collects information to power your financial planning dashboards. Here are the steps:
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div class="flex items-start p-3 bg-gray-50 rounded-lg">
+            <span class="flex items-center justify-center w-6 h-6 bg-primary-100 text-primary-700 rounded-full text-sm font-semibold mr-3 flex-shrink-0">1</span>
+            <div>
+              <p class="text-body-sm font-medium text-gray-900">Personal Information</p>
+              <p class="text-caption text-gray-500">Name, date of birth, contact details</p>
+            </div>
+          </div>
+
+          <div class="flex items-start p-3 bg-gray-50 rounded-lg">
+            <span class="flex items-center justify-center w-6 h-6 bg-primary-100 text-primary-700 rounded-full text-sm font-semibold mr-3 flex-shrink-0">2</span>
+            <div>
+              <p class="text-body-sm font-medium text-gray-900">Income Details</p>
+              <p class="text-caption text-gray-500">Employment, salary, other income sources</p>
+            </div>
+          </div>
+
+          <div class="flex items-start p-3 bg-gray-50 rounded-lg">
+            <span class="flex items-center justify-center w-6 h-6 bg-primary-100 text-primary-700 rounded-full text-sm font-semibold mr-3 flex-shrink-0">3</span>
+            <div>
+              <p class="text-body-sm font-medium text-gray-900">Monthly Expenditure</p>
+              <p class="text-caption text-gray-500">Regular outgoings and commitments</p>
+            </div>
+          </div>
+
+          <div class="flex items-start p-3 bg-gray-50 rounded-lg">
+            <span class="flex items-center justify-center w-6 h-6 bg-primary-100 text-primary-700 rounded-full text-sm font-semibold mr-3 flex-shrink-0">4</span>
+            <div>
+              <p class="text-body-sm font-medium text-gray-900">Assets</p>
+              <p class="text-caption text-gray-500">Properties, savings, investments, pensions</p>
+            </div>
+          </div>
+
+          <div class="flex items-start p-3 bg-gray-50 rounded-lg">
+            <span class="flex items-center justify-center w-6 h-6 bg-primary-100 text-primary-700 rounded-full text-sm font-semibold mr-3 flex-shrink-0">5</span>
+            <div>
+              <p class="text-body-sm font-medium text-gray-900">Liabilities</p>
+              <p class="text-caption text-gray-500">Mortgages, loans, credit cards</p>
+            </div>
+          </div>
+
+          <div class="flex items-start p-3 bg-gray-50 rounded-lg">
+            <span class="flex items-center justify-center w-6 h-6 bg-primary-100 text-primary-700 rounded-full text-sm font-semibold mr-3 flex-shrink-0">6</span>
+            <div>
+              <p class="text-body-sm font-medium text-gray-900">Protection Policies</p>
+              <p class="text-caption text-gray-500">Life insurance, income protection, critical illness</p>
+            </div>
+          </div>
+
+          <div class="flex items-start p-3 bg-gray-50 rounded-lg">
+            <span class="flex items-center justify-center w-6 h-6 bg-primary-100 text-primary-700 rounded-full text-sm font-semibold mr-3 flex-shrink-0">7</span>
+            <div>
+              <p class="text-body-sm font-medium text-gray-900">Family Information</p>
+              <p class="text-caption text-gray-500">Spouse/partner, dependants</p>
+            </div>
+          </div>
+
+          <div class="flex items-start p-3 bg-gray-50 rounded-lg">
+            <span class="flex items-center justify-center w-6 h-6 bg-primary-100 text-primary-700 rounded-full text-sm font-semibold mr-3 flex-shrink-0">8</span>
+            <div>
+              <p class="text-body-sm font-medium text-gray-900">Estate Planning</p>
+              <p class="text-caption text-gray-500">Will status, trusts, domicile information</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Skip Ahead Note -->
+      <div class="bg-gray-50 rounded-lg p-4 mb-6 border border-gray-200">
+        <p class="text-body-sm text-gray-700 flex items-start">
+          <svg class="w-5 h-5 text-gray-500 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 9l3 3m0 0l-3 3m3-3H8m13 0a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <span><strong>Skip ahead options available:</strong> Each step has a skip option if you don't have certain information to hand. You can always return to complete sections later from your profile or the relevant dashboard.</span>
+        </p>
+      </div>
+
+      <!-- Trial Information -->
+      <div class="bg-amber-50 rounded-lg p-4 mb-6 border border-amber-200">
+        <h3 class="text-body font-semibold text-gray-900 mb-2 flex items-center">
+          <svg class="w-5 h-5 text-amber-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          Your Free Trial
+        </h3>
+        <ul class="text-body-sm text-gray-700 space-y-2">
           <li class="flex items-start">
-            <svg class="w-4 h-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-            </svg>
-            <span>Encrypted database</span>
+            <span class="font-semibold text-amber-700 mr-2">7-Day Trial:</span>
+            <span>You have full access to all features for 7 days from registration.</span>
           </li>
           <li class="flex items-start">
-            <svg class="w-4 h-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-            </svg>
-            <span>Secure log-in and password control</span>
-          </li>
-          <li class="flex items-start">
-            <svg class="w-4 h-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-            </svg>
-            <span>Account silo monitoring, so no leaking of info</span>
+            <span class="font-semibold text-amber-700 mr-2">30-Day Window:</span>
+            <span>After your trial ends, you have 30 days to subscribe. If you don't subscribe within this period, your data will be permanently deleted from our database.</span>
           </li>
         </ul>
       </div>
@@ -119,29 +145,8 @@
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
-          {{ loading ? 'Loading...' : 'Continue to Onboarding' }}
+          {{ loading ? 'Loading...' : 'Start Onboarding' }}
         </button>
-      </div>
-    </div>
-
-    <!-- Note from CSJ Card -->
-    <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-      <h2 class="text-h3 font-display text-gray-900 mb-4">Note from CSJ</h2>
-      <div class="text-body-sm text-gray-700 space-y-4">
-        <p>Dear {{ userName }},</p>
-        <p>
-          Thank you so much for giving your time to check out Fynla.
-        </p>
-        <p>
-          It has taken 2 months to put this together, and the point of asking you to go through this app is to see if this is viable or not. The feedback form is pretty simple, or just email me, <a href="mailto:c.jones@csjones.co" class="text-primary-600 hover:text-primary-700 underline">c.jones@csjones.co</a> or just give me a call.
-        </p>
-        <p>
-          Thanks again for going through the app, really appreciate it, and good luck.
-        </p>
-        <p class="font-semibold">CSJ</p>
-        <p class="text-gray-500 italic">
-          P.S. There are bugs, and issues, remember I am not a developer, so I run out of talent everyday, thank goodness for AI :)
-        </p>
       </div>
     </div>
 
@@ -165,25 +170,10 @@ export default {
     const loading = ref(false);
     const error = ref(null);
 
-    // Nickname mapping for special users (Welcome screen only)
-    const nicknameMap = {
-      'Steven Cracknell': 'Captain',
-      'Darren Veenhuis': 'Dazzler',
-      'Gareth Brace': 'Big G',
-      'Stephen Kavanagh': 'Oh Ah',
-      'Tristan von Strein': 'TDawg',
-      'Paul Smith': 'Smitty',
-      'Brett Isenberg': 'Slippery',
-    };
-
     const userName = computed(() => {
       const user = store.state.auth.user;
       if (user && user.name) {
-        // Check if user has a nickname
-        if (nicknameMap[user.name]) {
-          return nicknameMap[user.name];
-        }
-        // Get first name only for other users
+        // Get first name only
         return user.name.split(' ')[0];
       }
       return '';
