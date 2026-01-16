@@ -116,10 +116,71 @@ Restyled the Learning Centre page to match the updated design pattern.
 
 ---
 
+## Version Update to v0.5.1
+
+### Summary
+Updated the application version to v0.5.1 with comprehensive changelog covering all changes from January 6-16.
+
+**Files Updated:**
+- `resources/js/components/Footer.vue` - Version v0.4.5 → v0.5.1
+- `resources/js/layouts/PublicLayout.vue` - Version v0.4.5 → v0.5.1
+- `CLAUDE.md` - Version v0.4.5 → v0.5.1
+- `resources/js/views/Version.vue` - Added v0.5.1 release notes
+
+**Changelog Sections Added:**
+- UI Refresh & New Features
+- Estate & Retirement Module Updates
+- Dashboard & UX Improvements
+- Forms & Data Entry
+- Bug Fixes
+- Technical Changes
+
+---
+
+## Security Page - Contact Email Fix
+
+### Summary
+Fixed the Contact Us button on the Security page to open email to the correct address.
+
+**Change Made** (`SecurityPage.vue`):
+- Changed `mailto:security@fynla.org` to `mailto:info@fynla.org`
+
+---
+
+## Sitemap Page for Google Indexing
+
+### Summary
+Created a sitemap page and XML sitemap for search engine indexing.
+
+**New Files:**
+- `resources/js/views/Public/SitemapPage.vue` - User-friendly HTML sitemap page
+- `public/sitemap.xml` - XML sitemap for search engine crawlers
+
+**Changes Made:**
+- Added `/sitemap` route in `router/index.js`
+- Added Sitemap link in `Footer.vue` (logged-in users)
+- Added Sitemap link in `PublicLayout.vue` (public pages, Legal section)
+- Updated `public/robots.txt` with sitemap reference
+
+**Sitemap Page Sections:**
+- Main Pages (Home, Calculators, Learning Centre, Security, Version, Help)
+- Account (Login, Register, Forgot Password)
+- Planning Modules (requires login)
+- Calculators (all calculator types)
+
+---
+
 ## Files Changed
 
 - `resources/js/views/Public/LandingPage.vue` - Hero improvements and card links
-- `resources/js/views/Public/SecurityPage.vue` - New file
-- `resources/js/router/index.js` - Security route and scroll behaviour
+- `resources/js/views/Public/SecurityPage.vue` - New file, contact email fix
+- `resources/js/views/Public/SitemapPage.vue` - New file
+- `resources/js/router/index.js` - Security route, sitemap route, scroll behaviour
 - `resources/js/views/Public/CalculatorsPage.vue` - Restyled with glass effects and coloured icons
 - `resources/js/views/Public/LearningCentre.vue` - Restyled with glass effects and coloured icons
+- `resources/js/components/Footer.vue` - Version update, sitemap link
+- `resources/js/layouts/PublicLayout.vue` - Version update, sitemap link
+- `resources/js/views/Version.vue` - v0.5.1 changelog
+- `CLAUDE.md` - Version update
+- `public/sitemap.xml` - New file
+- `public/robots.txt` - Sitemap reference
