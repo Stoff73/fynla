@@ -1,7 +1,7 @@
 <template>
   <PublicLayout>
     <!-- Hero Section -->
-    <div class="relative min-h-[75vh] flex items-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 overflow-hidden">
+    <div class="relative bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 overflow-hidden">
       <!-- Background Elements -->
       <div class="absolute inset-0">
         <div class="absolute inset-0 bg-gradient-to-br from-primary-900/80 to-slate-900/90"></div>

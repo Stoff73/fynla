@@ -10,7 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - https://fynla.org (primary)
 - https://csjones.co/fynla (legacy)
 
-**Version**: v0.4.5
+**Version**: v0.5.1
 
 ## Essential Commands
 

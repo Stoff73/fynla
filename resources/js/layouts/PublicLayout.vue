@@ -154,7 +154,7 @@
         <div class="border-t border-gray-800 mt-8 pt-8 text-center">
           <p class="text-sm text-gray-400">
             &copy; 2025 Fynla - Financial Planning System.
-            <router-link to="/version" class="ml-2 text-primary-400 hover:text-primary-300">v0.4.5</router-link>
+            <router-link to="/version" class="ml-2 text-primary-400 hover:text-primary-300">v0.5.1</router-link>
             <span class="mx-2">|</span>
             <a href="https://fynla.org" target="_blank" rel="noopener noreferrer" class="text-primary-400 hover:text-primary-300">fynla.org</a>
           </p>
