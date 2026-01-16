@@ -43,7 +43,9 @@
           <div v-else>
             <LetterToSpouse v-if="activeTab === 'letter'" />
             <WillPlanning v-if="activeTab === 'will'" />
-            <PersonalAccounts v-if="activeTab === 'accounts'" />
+            <BalanceSheetTab v-if="activeTab === 'balance_sheet'" />
+            <IncomeStatementTab v-if="activeTab === 'income_statement'" />
+            <CashFlowTab v-if="activeTab === 'cash_flow'" />
             <RiskProfileSummary v-if="activeTab === 'risk'" />
           </div>
         </div>
@@ -58,7 +60,9 @@ import { useStore } from 'vuex';
 import AppLayout from '@/layouts/AppLayout.vue';
 import LetterToSpouse from '@/components/UserProfile/LetterToSpouse.vue';
 import WillPlanning from '@/components/Estate/WillPlanning.vue';
-import PersonalAccounts from '@/components/UserProfile/PersonalAccounts.vue';
+import BalanceSheetTab from '@/components/UserProfile/BalanceSheetTab.vue';
+import IncomeStatementTab from '@/components/UserProfile/IncomeStatementTab.vue';
+import CashFlowTab from '@/components/UserProfile/CashFlowTab.vue';
 import RiskProfileSummary from '@/components/Risk/RiskProfileSummary.vue';
 
 export default {
@@ -68,7 +72,9 @@ export default {
     AppLayout,
     LetterToSpouse,
     WillPlanning,
-    PersonalAccounts,
+    BalanceSheetTab,
+    IncomeStatementTab,
+    CashFlowTab,
     RiskProfileSummary,
   },
 
@@ -90,7 +96,9 @@ export default {
       return [
         { id: 'letter', label: isExpressionOfWishes ? 'Expression of Wishes' : 'Letter to Spouse' },
         { id: 'will', label: 'Will' },
-        { id: 'accounts', label: 'Financial Statements' },
+        { id: 'balance_sheet', label: 'Balance Sheet' },
+        { id: 'income_statement', label: 'Income Statement' },
+        { id: 'cash_flow', label: 'Cash Flow' },
         { id: 'risk', label: 'Risk Profile' },
       ];
     });
@@ -113,7 +121,7 @@ export default {
       const urlParams = new URLSearchParams(window.location.search);
       const section = urlParams.get('section');
       if (section) {
-        const validTabIds = ['letter', 'will', 'accounts', 'risk'];
+        const validTabIds = ['letter', 'will', 'balance_sheet', 'income_statement', 'cash_flow', 'risk'];
         if (validTabIds.includes(section)) {
           activeTab.value = section;
         }
