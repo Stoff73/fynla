@@ -7,7 +7,7 @@
           <div>
             <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Risk Profile</h1>
             <p class="mt-2 text-sm sm:text-base text-gray-600">
-              Understanding risk is key to successful investing
+              Your risk profile is automatically calculated from your financial data
             </p>
           </div>
           <router-link
@@ -28,113 +28,134 @@
       </div>
 
       <template v-else>
-        <!-- Redirect notice (when coming from investment/retirement form) -->
-        <div v-if="redirectReason" class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+        <!-- Section 1: Calculated Risk Level -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">Your Risk Level</h2>
+
+          <!-- Risk Level Display - Clickable to see explanation -->
+          <router-link to="/risk-profile/levels" class="flex items-center gap-6 group cursor-pointer">
+            <div
+              class="flex-shrink-0 w-24 h-24 rounded-full flex items-center justify-center transition-transform group-hover:scale-105"
+              :class="riskLevelBgClass"
+            >
+              <span class="text-3xl font-bold" :class="riskLevelTextClass">
+                {{ riskLevelNumeric }}
+              </span>
+            </div>
+            <div class="flex-1">
+              <div class="flex items-center gap-2">
+                <h3 class="text-2xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">{{ riskLevelDisplayName }}</h3>
+                <svg class="w-5 h-5 text-gray-400 group-hover:text-blue-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+              <p class="text-sm text-gray-600 mt-1">{{ riskLevelDescription }}</p>
+              <p v-if="!isSelfAssessed" class="text-xs text-gray-500 mt-2 flex items-center gap-1">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+                Automatically calculated from your financial data
+              </p>
+              <p v-if="riskAssessedAt" class="text-xs text-gray-400 mt-1">
+                Last updated: {{ formatDate(riskAssessedAt) }}
+              </p>
+              <p class="text-xs text-blue-600 group-hover:text-blue-800 mt-2 flex items-center gap-1">
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Click to learn what risk levels mean
+              </p>
+            </div>
+          </router-link>
+        </div>
+
+        <!-- Section 2: Factor Breakdown -->
+        <div v-if="factorBreakdown && factorBreakdown.length > 0" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">How Your Risk Level is Calculated</h3>
+          <p class="text-sm text-gray-600 mb-4">
+            Your risk profile is determined by analyzing 7 financial factors. The most common risk level across all factors becomes your overall risk level.
+          </p>
+
+          <!-- Factor Level Summary -->
+          <div class="flex flex-wrap gap-2 mb-4 p-3 bg-gray-50 rounded-lg">
+            <span
+              v-for="(count, level) in levelCounts"
+              :key="level"
+              class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium"
+              :class="getLevelBadgeClass(level)"
+            >
+              {{ getLevelDisplayName(level) }}: {{ count }}
+            </span>
+          </div>
+
+          <!-- Factor Cards Grid -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <router-link
+              v-for="factor in factorBreakdown"
+              :key="factor.factor"
+              :to="`/risk-profile/factor/${factor.factor}`"
+              class="block"
+            >
+              <FactorBreakdownCard :factor="factor" />
+            </router-link>
+          </div>
+          <p class="text-xs text-gray-500 mt-3 text-center">
+            Click on any factor to learn more about how it's calculated
+          </p>
+        </div>
+
+        <!-- Section 3: Understanding Your Risk Level -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Understanding Your Risk Level</h3>
+          <div class="text-sm text-gray-600 space-y-3">
+            <p>
+              Your risk profile influences the mix of assets in your portfolio - from lower-risk
+              cash and bonds to higher-risk equities and alternatives. The {{ (riskLevelDisplayName || 'medium').toLowerCase() }} risk level suggests:
+            </p>
+            <div v-if="riskConfig" class="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4">
+              <div class="text-center p-3 bg-gray-50 rounded-lg">
+                <p class="text-2xl font-bold text-blue-600">{{ riskConfig.asset_allocation?.equities || 0 }}%</p>
+                <p class="text-xs text-gray-500">Equities</p>
+              </div>
+              <div class="text-center p-3 bg-gray-50 rounded-lg">
+                <p class="text-2xl font-bold text-green-600">{{ riskConfig.asset_allocation?.bonds || 0 }}%</p>
+                <p class="text-xs text-gray-500">Bonds</p>
+              </div>
+              <div class="text-center p-3 bg-gray-50 rounded-lg">
+                <p class="text-2xl font-bold text-teal-600">{{ riskConfig.asset_allocation?.cash || 0 }}%</p>
+                <p class="text-xs text-gray-500">Cash</p>
+              </div>
+              <div class="text-center p-3 bg-gray-50 rounded-lg">
+                <p class="text-2xl font-bold text-purple-600">{{ riskConfig.asset_allocation?.alternatives || 0 }}%</p>
+                <p class="text-xs text-gray-500">Alternatives</p>
+              </div>
+            </div>
+            <div v-if="riskConfig" class="mt-4 p-3 bg-blue-50 border border-blue-100 rounded-lg">
+              <p class="text-sm text-blue-800">
+                <strong>Expected returns:</strong> {{ riskConfig.expected_returns?.min }}% - {{ riskConfig.expected_returns?.max }}% annually,
+                with typical volatility of {{ riskConfig.volatility_percent }}%.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 4: Override Notice -->
+        <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
           <div class="flex items-start gap-3">
             <svg class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <div>
-              <p class="text-sm font-medium text-amber-800">
-                {{ redirectReason === 'investment' ? 'Set your risk profile to add investments' : 'Set your risk profile to add pensions' }}
-              </p>
+              <p class="text-sm font-medium text-amber-800">Product-Level Overrides</p>
               <p class="text-sm text-amber-700 mt-1">
-                Understanding your risk tolerance helps ensure your {{ redirectReason === 'investment' ? 'investment' : 'pension' }} choices align with your goals. Select a risk level below and save to continue.
+                When adding investments or pensions, you can adjust the risk level by one step up or down from your profile.
+                This allows flexibility for individual products while staying within a reasonable range.
               </p>
             </div>
           </div>
         </div>
 
-        <!-- Section 1: Introduction -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-          <h2 class="text-lg font-semibold text-gray-900 mb-4">Understanding Investment Risk</h2>
-          <div class="text-sm text-gray-600 space-y-3">
-            <p>
-              Before investing, it's important to understand your attitude to risk and your capacity
-              to withstand potential losses. This helps ensure your investments are aligned with your
-              goals and circumstances.
-            </p>
-            <p>
-              Your risk profile influences the mix of assets in your portfolio - from lower-risk
-              cash and bonds to higher-risk equities and alternatives. There's no right or wrong
-              answer; the best approach depends on your individual situation.
-            </p>
-          </div>
-        </div>
-
-        <!-- Section 2: Risk Factors -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-          <RiskFactorsPanel />
-        </div>
-
-        <!-- Section 3: Capacity for Loss -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-          <CapacityForLossSection :selected-level="selectedRiskLevel" />
-        </div>
-
-        <!-- Section 4: Time Horizon -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-          <TimeHorizonSection v-model="selectedTimeHorizon" @change="handleTimeHorizonChange" />
-        </div>
-
-        <!-- Section 5: Choose Your Risk Level -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-          <h3 class="text-lg font-semibold text-gray-900 mb-2">Choose Your Risk Level</h3>
-          <p class="text-sm text-gray-600 mb-6">
-            Based on your understanding of risk, capacity for loss, and time horizon,
-            select the risk level that best matches your investment approach.
-          </p>
-
-          <RiskLevelSelector
-            v-model="selectedRiskLevel"
-            :show-allocation="true"
-            :show-returns="true"
-            @change="handleRiskLevelChange"
-          />
-
-          <!-- Save button -->
-          <div class="mt-6 flex items-center justify-between">
-            <div v-if="hasChanges" class="text-sm text-amber-600 flex items-center gap-2">
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-              You have unsaved changes
-            </div>
-            <div v-else></div>
-
-            <button
-              type="button"
-              :disabled="saving || !selectedRiskLevel"
-              class="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              @click="saveRiskProfile"
-            >
-              <span v-if="saving">
-                <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-              </span>
-              {{ saving ? 'Saving...' : 'Save Risk Profile' }}
-            </button>
-          </div>
-
-          <!-- Success message -->
-          <transition name="fade">
-            <div v-if="saveSuccess" class="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 text-green-800">
-              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span class="text-sm font-medium">Risk profile saved successfully</span>
-            </div>
-          </transition>
-        </div>
-
-        <!-- Section 6: Investment Types -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-          <InvestmentTypesAccordion />
-        </div>
-
-        <!-- Section 7: Products with Custom Risk -->
+        <!-- Section 5: Products with Custom Risk -->
         <div v-if="productsWithCustomRisk.length > 0" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
           <h3 class="text-lg font-semibold text-gray-900 mb-2">Products with Custom Risk Settings</h3>
           <p class="text-sm text-gray-600 mb-4">
@@ -167,6 +188,11 @@
             </div>
           </div>
         </div>
+
+        <!-- Section 6: Investment Types (Educational) -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+          <InvestmentTypesAccordion />
+        </div>
       </template>
     </div>
   </AppLayout>
@@ -174,53 +200,80 @@
 
 <script>
 import AppLayout from '@/layouts/AppLayout.vue';
-import RiskLevelSelector from '@/components/Shared/RiskLevelSelector.vue';
 import RiskBadge from '@/components/Shared/RiskBadge.vue';
-import RiskFactorsPanel from '@/components/Risk/RiskFactorsPanel.vue';
-import CapacityForLossSection from '@/components/Risk/CapacityForLossSection.vue';
-import TimeHorizonSection from '@/components/Risk/TimeHorizonSection.vue';
+import FactorBreakdownCard from '@/components/Risk/FactorBreakdownCard.vue';
 import InvestmentTypesAccordion from '@/components/Risk/InvestmentTypesAccordion.vue';
 import riskService from '@/services/riskService';
 
 export default {
-  name: 'RiskProfilePage',
+  name: 'RiskProfilePage', // Force HMR reload
 
   components: {
     AppLayout,
-    RiskLevelSelector,
     RiskBadge,
-    RiskFactorsPanel,
-    CapacityForLossSection,
-    TimeHorizonSection,
+    FactorBreakdownCard,
     InvestmentTypesAccordion,
   },
 
   data() {
     return {
       loading: true,
-      saving: false,
-      saveSuccess: false,
-      selectedRiskLevel: null,
-      originalRiskLevel: null,
-      selectedTimeHorizon: null,
+      riskLevel: null,
+      riskConfig: null,
+      factorBreakdown: [],
+      riskAssessedAt: null,
+      isSelfAssessed: false,
       productsWithCustomRisk: [],
-      // Redirect handling
-      redirectUrl: null,
-      redirectReason: null,
     };
   },
 
   computed: {
-    hasChanges() {
-      return this.selectedRiskLevel !== this.originalRiskLevel;
+    riskLevelDisplayName() {
+      return riskService.getDisplayName(this.riskLevel) || 'Medium';
+    },
+
+    riskLevelDescription() {
+      return this.riskConfig?.short_description || '';
+    },
+
+    riskLevelNumeric() {
+      return this.riskConfig?.level_numeric || '-';
+    },
+
+    riskLevelBgClass() {
+      const classes = {
+        low: 'bg-green-100',
+        lower_medium: 'bg-teal-100',
+        medium: 'bg-blue-100',
+        upper_medium: 'bg-amber-100',
+        high: 'bg-red-100',
+      };
+      return classes[this.riskLevel] || 'bg-gray-100';
+    },
+
+    riskLevelTextClass() {
+      const classes = {
+        low: 'text-green-600',
+        lower_medium: 'text-teal-600',
+        medium: 'text-blue-600',
+        upper_medium: 'text-amber-600',
+        high: 'text-red-600',
+      };
+      return classes[this.riskLevel] || 'text-gray-600';
+    },
+
+    levelCounts() {
+      if (!this.factorBreakdown || this.factorBreakdown.length === 0) return {};
+
+      const counts = {};
+      this.factorBreakdown.forEach((factor) => {
+        counts[factor.level] = (counts[factor.level] || 0) + 1;
+      });
+      return counts;
     },
   },
 
   async created() {
-    // Capture redirect parameters from query string
-    this.redirectUrl = this.$route.query.redirect || null;
-    this.redirectReason = this.$route.query.reason || null;
-
     await this.loadRiskProfile();
   },
 
@@ -228,13 +281,15 @@ export default {
     async loadRiskProfile() {
       this.loading = true;
       try {
-        const response = await riskService.getProfile();
-        if (response.data?.risk_level) {
-          this.selectedRiskLevel = response.data.risk_level;
-          this.originalRiskLevel = response.data.risk_level;
-        }
-        if (response.data?.time_horizon_years) {
-          this.selectedTimeHorizon = this.mapYearsToHorizon(response.data.time_horizon_years);
+        // Always recalculate on load to ensure fresh data
+        const response = await riskService.recalculate();
+
+        if (response.data) {
+          this.riskLevel = response.data.risk_level;
+          this.riskConfig = response.data.config;
+          this.factorBreakdown = response.data.factor_breakdown || [];
+          this.riskAssessedAt = response.data.risk_assessed_at;
+          this.isSelfAssessed = response.data.is_self_assessed;
         }
 
         // Load products with custom risk
@@ -248,7 +303,6 @@ export default {
 
     async loadProductsWithCustomRisk() {
       try {
-        // Fetch investment accounts and DC pensions with custom risk
         await Promise.all([
           this.$store.dispatch('investment/fetchAccounts'),
           this.$store.dispatch('retirement/fetchRetirementData'),
@@ -280,71 +334,36 @@ export default {
       }
     },
 
-    mapYearsToHorizon(years) {
-      if (years <= 3) return 'short';
-      if (years <= 7) return 'medium';
-      if (years <= 15) return 'long';
-      if (years <= 25) return 'very_long';
-      return 'indefinite';
+    formatDate(dateString) {
+      if (!dateString) return '';
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-GB', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      });
     },
 
-    mapHorizonToYears(horizon) {
-      const mapping = {
-        short: 2,
-        medium: 5,
-        long: 11,
-        very_long: 20,
-        indefinite: 30,
+    getLevelDisplayName(level) {
+      const names = {
+        low: 'Low',
+        lower_medium: 'Lower-Med',
+        medium: 'Medium',
+        upper_medium: 'Upper-Med',
+        high: 'High',
       };
-      return mapping[horizon] || null;
+      return names[level] || level;
     },
 
-    handleRiskLevelChange(level) {
-      this.saveSuccess = false;
-    },
-
-    handleTimeHorizonChange(horizon) {
-      // Time horizon is informational for now
-    },
-
-    async saveRiskProfile() {
-      if (!this.selectedRiskLevel) return;
-
-      this.saving = true;
-      this.saveSuccess = false;
-
-      try {
-        const data = {
-          risk_level: this.selectedRiskLevel,
-          is_self_assessed: true,
-        };
-
-        if (this.selectedTimeHorizon) {
-          data.time_horizon_years = this.mapHorizonToYears(this.selectedTimeHorizon);
-        }
-
-        await riskService.setProfile(data);
-        this.originalRiskLevel = this.selectedRiskLevel;
-        this.saveSuccess = true;
-
-        // If we came from a redirect (e.g., investment form), navigate back
-        if (this.redirectUrl) {
-          setTimeout(() => {
-            this.$router.push(this.redirectUrl);
-          }, 1000);
-          return;
-        }
-
-        // Otherwise, hide success message after 3 seconds
-        setTimeout(() => {
-          this.saveSuccess = false;
-        }, 3000);
-      } catch (error) {
-        console.error('Error saving risk profile:', error);
-        alert('Failed to save risk profile. Please try again.');
-      } finally {
-        this.saving = false;
-      }
+    getLevelBadgeClass(level) {
+      const classes = {
+        low: 'bg-green-100 text-green-800',
+        lower_medium: 'bg-teal-100 text-teal-800',
+        medium: 'bg-blue-100 text-blue-800',
+        upper_medium: 'bg-amber-100 text-amber-800',
+        high: 'bg-red-100 text-red-800',
+      };
+      return classes[level] || 'bg-gray-100 text-gray-800';
     },
 
     getProductIconClasses(type) {
@@ -356,16 +375,3 @@ export default {
   },
 };
 </script>
-
-<style scoped>
-.fade-enter-active,
-.fade-leave-active {
-  transition: all 0.3s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-  transform: translateY(-10px);
-}
-</style>

@@ -4,6 +4,16 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Models\DCPension;
+use App\Models\FamilyMember;
+use App\Models\Investment\InvestmentAccount;
+use App\Models\SavingsAccount;
+use App\Models\User;
+use App\Observers\DCPensionRiskObserver;
+use App\Observers\FamilyMemberRiskObserver;
+use App\Observers\InvestmentAccountRiskObserver;
+use App\Observers\SavingsAccountRiskObserver;
+use App\Observers\UserRiskObserver;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
@@ -20,6 +30,19 @@ class EventServiceProvider extends ServiceProvider
         Registered::class => [
             SendEmailVerificationNotification::class,
         ],
+    ];
+
+    /**
+     * The model observers for your application.
+     *
+     * @var array<class-string, array<int, class-string>>
+     */
+    protected $observers = [
+        User::class => [UserRiskObserver::class],
+        FamilyMember::class => [FamilyMemberRiskObserver::class],
+        SavingsAccount::class => [SavingsAccountRiskObserver::class],
+        InvestmentAccount::class => [InvestmentAccountRiskObserver::class],
+        DCPension::class => [DCPensionRiskObserver::class],
     ];
 
     /**

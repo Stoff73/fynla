@@ -648,8 +648,13 @@ class RetirementStrategyService
             return null;
         }
 
-        $targetIncome = $currentStatus['target_income'];
+        $targetIncome = $currentStatus['target_income'] ?? 0;
         $guaranteedIncome = $currentStatus['guaranteed_income'] ?? 0;
+
+        // Cannot calculate if no target income set
+        if ($targetIncome <= 0) {
+            return null;
+        }
 
         // Find the optimal retirement age by testing each year
         // We want the MINIMUM delay that achieves ~95-100% income coverage

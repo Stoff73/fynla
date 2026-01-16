@@ -24,6 +24,7 @@ class RiskProfile extends Model
         'esg_preference',
         'risk_assessed_at',
         'is_self_assessed',
+        'factor_breakdown',
     ];
 
     protected $casts = [
@@ -32,6 +33,7 @@ class RiskProfile extends Model
         'esg_preference' => 'boolean',
         'risk_assessed_at' => 'datetime',
         'is_self_assessed' => 'boolean',
+        'factor_breakdown' => 'array',
     ];
 
     /**

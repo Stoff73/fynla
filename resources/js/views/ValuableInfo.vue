@@ -44,6 +44,7 @@
             <LetterToSpouse v-if="activeTab === 'letter'" />
             <WillPlanning v-if="activeTab === 'will'" />
             <PersonalAccounts v-if="activeTab === 'accounts'" />
+            <RiskProfileSummary v-if="activeTab === 'risk'" />
           </div>
         </div>
       </div>
@@ -58,6 +59,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import LetterToSpouse from '@/components/UserProfile/LetterToSpouse.vue';
 import WillPlanning from '@/components/Estate/WillPlanning.vue';
 import PersonalAccounts from '@/components/UserProfile/PersonalAccounts.vue';
+import RiskProfileSummary from '@/components/Risk/RiskProfileSummary.vue';
 
 export default {
   name: 'ValuableInfo',
@@ -67,6 +69,7 @@ export default {
     LetterToSpouse,
     WillPlanning,
     PersonalAccounts,
+    RiskProfileSummary,
   },
 
   setup() {
@@ -88,6 +91,7 @@ export default {
         { id: 'letter', label: isExpressionOfWishes ? 'Expression of Wishes' : 'Letter to Spouse' },
         { id: 'will', label: 'Will' },
         { id: 'accounts', label: 'Financial Statements' },
+        { id: 'risk', label: 'Risk Profile' },
       ];
     });
 
@@ -109,7 +113,7 @@ export default {
       const urlParams = new URLSearchParams(window.location.search);
       const section = urlParams.get('section');
       if (section) {
-        const validTabIds = ['letter', 'will', 'accounts'];
+        const validTabIds = ['letter', 'will', 'accounts', 'risk'];
         if (validTabIds.includes(section)) {
           activeTab.value = section;
         }

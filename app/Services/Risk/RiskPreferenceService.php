@@ -7,6 +7,7 @@ namespace App\Services\Risk;
 use App\Models\Investment\RiskProfile;
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Risk Preference Service
@@ -132,6 +133,46 @@ class RiskPreferenceService
     }
 
     /**
+     * Calculate and set risk level automatically based on financial factors
+     *
+     * Uses AutoRiskCalculator to analyze 7 factors and determine appropriate risk level.
+     */
+    public function calculateAndSetRiskLevel(int $userId): array
+    {
+        $calculator = app(AutoRiskCalculator::class);
+        $user = User::findOrFail($userId);
+
+        $result = $calculator->calculateRiskProfile($user);
+
+        $riskProfile = RiskProfile::updateOrCreate(
+            ['user_id' => $userId],
+            [
+                'risk_level' => $result['risk_level'],
+                'factor_breakdown' => $result['factor_breakdown'],
+                'is_self_assessed' => false,
+                'risk_assessed_at' => now(),
+            ]
+        );
+
+        // Clear cached data
+        $this->clearUserCache($userId);
+
+        Log::info('Auto-calculated risk profile', [
+            'user_id' => $userId,
+            'risk_level' => $result['risk_level'],
+            'factor_count' => count($result['factor_breakdown']),
+        ]);
+
+        return [
+            'risk_level' => $result['risk_level'],
+            'factor_breakdown' => $result['factor_breakdown'],
+            'risk_assessed_at' => $riskProfile->risk_assessed_at?->toIso8601String(),
+            'is_self_assessed' => false,
+            'config' => $this->getRiskLevelConfig($result['risk_level']),
+        ];
+    }
+
+    /**
      * Get user's current main risk level
      */
     public function getMainRiskLevel(int $userId): ?string
@@ -162,6 +203,7 @@ class RiskPreferenceService
             'risk_level' => $profile->risk_level,
             'risk_assessed_at' => $profile->risk_assessed_at?->toIso8601String(),
             'is_self_assessed' => $profile->is_self_assessed,
+            'factor_breakdown' => $profile->factor_breakdown,
             'config' => $config,
         ];
     }

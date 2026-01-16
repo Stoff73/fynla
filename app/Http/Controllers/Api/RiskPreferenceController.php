@@ -53,6 +53,8 @@ class RiskPreferenceController extends Controller
      * Get user's risk profile
      *
      * GET /api/risk/profile
+     *
+     * If no profile exists, automatically calculates one from financial factors.
      */
     public function getProfile(Request $request): JsonResponse
     {
@@ -61,17 +63,22 @@ class RiskPreferenceController extends Controller
         try {
             $profile = $this->riskPreferenceService->getRiskProfile($user->id);
 
+            // Auto-calculate if no profile exists
             if (! $profile) {
+                $profile = $this->riskPreferenceService->calculateAndSetRiskLevel($user->id);
+
                 return response()->json([
                     'success' => true,
-                    'data' => null,
-                    'message' => 'No risk profile set. Please set your risk preference.',
+                    'data' => $profile,
+                    'auto_calculated' => true,
+                    'message' => 'Risk profile automatically calculated based on your financial data.',
                 ]);
             }
 
             return response()->json([
                 'success' => true,
                 'data' => $profile,
+                'auto_calculated' => false,
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to retrieve risk profile', [
@@ -133,6 +140,38 @@ class RiskPreferenceController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to set risk profile',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Recalculate risk profile based on financial factors
+     *
+     * POST /api/risk/recalculate
+     */
+    public function recalculate(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        try {
+            $result = $this->riskPreferenceService->calculateAndSetRiskLevel($user->id);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Risk profile recalculated successfully',
+                'data' => $result,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to recalculate risk profile', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to recalculate risk profile',
                 'error' => $e->getMessage(),
             ], 500);
         }

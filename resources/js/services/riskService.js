@@ -73,11 +73,21 @@ const riskService = {
   },
 
   /**
+   * Recalculate risk profile based on financial factors
+   * @returns {Promise} Updated risk profile with factor breakdown
+   */
+  async recalculate() {
+    const response = await api.post('/investment/risk/recalculate');
+    return response.data;
+  },
+
+  /**
    * Helper: Get risk level display name
    * @param {string} level - The risk level value
    * @returns {string} Display name for the risk level
    */
   getDisplayName(level) {
+    if (!level) return 'Medium';
     const names = {
       low: 'Low',
       lower_medium: 'Lower-Medium',
@@ -89,7 +99,7 @@ const riskService = {
       balanced: 'Balanced',
       adventurous: 'Adventurous',
     };
-    return names[level] || level;
+    return names[level] || 'Medium';
   },
 
   /**

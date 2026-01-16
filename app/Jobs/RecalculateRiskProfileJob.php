@@ -1,0 +1,72 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Jobs;
+
+use App\Services\Risk\RiskPreferenceService;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
+
+/**
+ * Job to recalculate a user's risk profile when their financial data changes.
+ *
+ * This job is dispatched by model observers when relevant data changes:
+ * - User profile (income, education, employment, retirement age)
+ * - Family members (dependants count)
+ * - Savings accounts (emergency fund)
+ * - Investment accounts (capacity for loss)
+ * - DC Pensions (capacity for loss)
+ */
+class RecalculateRiskProfileJob implements ShouldQueue
+{
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    public $tries = 1;
+
+    public $timeout = 30;
+
+    /**
+     * The number of seconds before the job should be processed.
+     * Acts as debounce - if multiple changes happen quickly, only the last job runs.
+     */
+    public $delay = 5;
+
+    public function __construct(
+        private int $userId,
+        private string $trigger = 'unknown'
+    ) {}
+
+    public function handle(RiskPreferenceService $riskPreferenceService): void
+    {
+        Log::info("Recalculating risk profile for user {$this->userId}", [
+            'trigger' => $this->trigger,
+        ]);
+
+        try {
+            $result = $riskPreferenceService->calculateAndSetRiskLevel($this->userId);
+
+            Log::info("Risk profile recalculated for user {$this->userId}", [
+                'new_level' => $result['risk_level'],
+                'trigger' => $this->trigger,
+            ]);
+        } catch (\Exception $e) {
+            Log::error("Failed to recalculate risk profile for user {$this->userId}", [
+                'error' => $e->getMessage(),
+                'trigger' => $this->trigger,
+            ]);
+        }
+    }
+
+    /**
+     * Get the unique ID for this job to prevent duplicate processing.
+     */
+    public function uniqueId(): string
+    {
+        return 'risk_recalc_'.$this->userId;
+    }
+}

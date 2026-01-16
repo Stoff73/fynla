@@ -34,6 +34,8 @@ const SavingsDashboard = () => import('@/views/Savings/SavingsDashboard.vue');
 const SavingsAccountDetail = () => import('@/views/Savings/SavingsAccountDetail.vue');
 const CashOverview = () => import('@/views/NetWorth/CashOverview.vue');
 const RiskProfilePage = () => import('@/views/Risk/RiskProfilePage.vue');
+const RiskLevelsExplainedPage = () => import('@/views/Risk/RiskLevelsExplainedPage.vue');
+const RiskFactorDetailPage = () => import('@/views/Risk/RiskFactorDetailPage.vue');
 const PensionDetail = () => import('@/views/Retirement/PensionDetail.vue');
 const EstateDashboard = () => import('@/views/Estate/EstateDashboard.vue');
 const ComprehensiveEstatePlan = () => import('@/views/Estate/ComprehensiveEstatePlan.vue');
@@ -305,6 +307,32 @@ const routes = [
         { label: 'Home', path: '/dashboard' },
         { label: 'Investment', path: '/investment' },
         { label: 'Risk Profile', path: '/risk-profile' },
+      ],
+    },
+  },
+  {
+    path: '/risk-profile/levels',
+    name: 'RiskLevelsExplained',
+    component: RiskLevelsExplainedPage,
+    meta: {
+      requiresAuth: true,
+      breadcrumb: [
+        { label: 'Home', path: '/dashboard' },
+        { label: 'Risk Profile', path: '/risk-profile' },
+        { label: 'Risk Levels Explained', path: '/risk-profile/levels' },
+      ],
+    },
+  },
+  {
+    path: '/risk-profile/factor/:factor',
+    name: 'RiskFactorDetail',
+    component: RiskFactorDetailPage,
+    meta: {
+      requiresAuth: true,
+      breadcrumb: [
+        { label: 'Home', path: '/dashboard' },
+        { label: 'Risk Profile', path: '/risk-profile' },
+        { label: 'Factor Details', path: '' },
       ],
     },
   },

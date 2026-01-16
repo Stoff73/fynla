@@ -5,17 +5,19 @@
       {{ label }}
     </label>
 
-    <!-- Risk Level Buttons -->
+    <!-- Risk Level Cards -->
     <div class="flex gap-1 sm:gap-2">
       <button
         v-for="level in riskLevels"
         :key="level.value"
         type="button"
         :disabled="!isLevelAllowed(level.value)"
-        class="flex-1 py-2 px-1 sm:px-3 rounded-lg text-xs sm:text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-offset-1"
+        class="flex-1 py-2 px-1 sm:px-3 rounded-lg text-xs sm:text-sm font-medium transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1 relative"
         :class="getButtonClasses(level.value)"
         :style="getButtonStyle(level.value)"
         @click="selectLevel(level.value)"
+        @mouseenter="hoveredLevel = level.value"
+        @mouseleave="hoveredLevel = null"
       >
         <span class="hidden sm:inline">{{ level.label }}</span>
         <span class="sm:hidden">{{ level.shortLabel }}</span>
@@ -121,6 +123,11 @@ export default {
       type: Array,
       default: () => ['low', 'lower_medium', 'medium', 'upper_medium', 'high'],
     },
+    profileLevel: {
+      type: String,
+      default: null,
+      validator: (value) => !value || ['low', 'lower_medium', 'medium', 'upper_medium', 'high'].includes(value),
+    },
     compact: {
       type: Boolean,
       default: false,
@@ -152,6 +159,7 @@ export default {
   data() {
     return {
       showInfo: true,
+      hoveredLevel: null,
       defaultRiskLevels: [
         {
           value: 'low',
@@ -233,7 +241,10 @@ export default {
   methods: {
     isLevelAllowed(level) {
       if (this.disabled) return false;
-      return this.allowedLevels.includes(level);
+      // Handle both array of strings ['low', 'medium'] and array of objects [{key: 'low'}, ...]
+      return this.allowedLevels.some(allowed =>
+        typeof allowed === 'string' ? allowed === level : allowed.key === level
+      );
     },
 
     selectLevel(level) {
@@ -245,72 +256,83 @@ export default {
 
     getButtonStyle(level) {
       const isSelected = this.modelValue === level;
+      const isProfileLevel = this.profileLevel === level;
       const isAllowed = this.isLevelAllowed(level);
+      const isHovered = this.hoveredLevel === level;
 
-      // Color definitions (using inline styles as fallback)
+      // Color definitions - profile level gets bold color, adjacent levels get lighter shade
       const colors = {
-        low: { bg: '#16a34a', bgLight: '#f0fdf4', border: '#bbf7d0', text: '#15803d' },
-        lower_medium: { bg: '#0d9488', bgLight: '#f0fdfa', border: '#99f6e4', text: '#0f766e' },
-        medium: { bg: '#2563eb', bgLight: '#eff6ff', border: '#bfdbfe', text: '#1d4ed8' },
-        upper_medium: { bg: '#d97706', bgLight: '#fffbeb', border: '#fde68a', text: '#b45309' },
-        high: { bg: '#dc2626', bgLight: '#fef2f2', border: '#fecaca', text: '#b91c1c' },
+        low: { bg: '#16a34a', bgLight: '#bbf7d0', border: '#22c55e', borderLight: '#86efac', text: '#14532d' },
+        lower_medium: { bg: '#0d9488', bgLight: '#99f6e4', border: '#14b8a6', borderLight: '#5eead4', text: '#134e4a' },
+        medium: { bg: '#2563eb', bgLight: '#bfdbfe', border: '#3b82f6', borderLight: '#93c5fd', text: '#1e3a8a' },
+        upper_medium: { bg: '#d97706', bgLight: '#fde68a', border: '#f59e0b', borderLight: '#fcd34d', text: '#78350f' },
+        high: { bg: '#dc2626', bgLight: '#fecaca', border: '#ef4444', borderLight: '#fca5a5', text: '#7f1d1d' },
       };
 
       const color = colors[level] || colors.medium;
 
+      // Disabled/not allowed - grey
       if (!isAllowed) {
         return {
-          backgroundColor: '#f3f4f6',
-          color: '#9ca3af',
-          borderWidth: '1px',
-          borderColor: '#e5e7eb',
+          'background-color': '#e5e7eb',
+          'color': '#9ca3af',
+          'border': '1px solid #d1d5db',
+          'opacity': '0.6',
         };
       }
 
-      if (isSelected) {
+      // Selected state OR profile level (when no selection made) - full solid color
+      if (isSelected || (isProfileLevel && !this.modelValue)) {
         return {
-          backgroundColor: color.bg,
-          color: '#ffffff',
-          boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+          'background-color': color.bg,
+          'color': '#ffffff',
+          'border': `2px solid ${color.bg}`,
+          'box-shadow': '0 2px 4px 0 rgba(0, 0, 0, 0.15)',
+        };
+      }
+
+      // Profile level when something else is selected - medium highlight
+      if (isProfileLevel) {
+        return {
+          'background-color': color.bgLight,
+          'color': color.text,
+          'border': `2px solid ${color.border}`,
+        };
+      }
+
+      // Allowed but not selected or profile - grey by default, bold color on hover
+      if (isHovered) {
+        return {
+          'background-color': color.bg,
+          'color': '#ffffff',
+          'border': `2px solid ${color.bg}`,
+          'box-shadow': '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
         };
       }
 
       return {
-        backgroundColor: color.bgLight,
-        color: color.text,
-        borderWidth: '1px',
-        borderColor: color.border,
+        'background-color': '#f3f4f6',
+        'color': '#6b7280',
+        'border': '2px solid #d1d5db',
       };
     },
 
     getButtonClasses(level) {
-      // Keep this for hover states and other Tailwind utilities
       const isSelected = this.modelValue === level;
+      const isProfileLevel = this.profileLevel === level;
       const isAllowed = this.isLevelAllowed(level);
 
       if (!isAllowed) {
-        return 'cursor-not-allowed';
+        return 'cursor-not-allowed opacity-50';
       }
 
-      if (isSelected) {
-        return '';
+      // Selected OR profile level (when nothing selected) - show ring
+      if (isSelected || (isProfileLevel && !this.modelValue)) {
+        return 'ring-2 ring-offset-1';
       }
 
-      // Unselected - add hover effect
-      switch (level) {
-        case 'low':
-          return 'hover:bg-green-100';
-        case 'lower_medium':
-          return 'hover:bg-teal-100';
-        case 'medium':
-          return 'hover:bg-blue-100';
-        case 'upper_medium':
-          return 'hover:bg-amber-100';
-        case 'high':
-          return 'hover:bg-red-100';
-        default:
-          return 'hover:bg-gray-100';
-      }
+      // Allowed but not selected/active - just cursor pointer (hover handled via inline styles)
+      return 'cursor-pointer';
     },
 
     getInfoPanelClasses() {

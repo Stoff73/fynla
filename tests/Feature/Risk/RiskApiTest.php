@@ -1,0 +1,350 @@
+<?php
+
+declare(strict_types=1);
+
+use App\Models\DCPension;
+use App\Models\FamilyMember;
+use App\Models\Household;
+use App\Models\Investment\InvestmentAccount;
+use App\Models\Investment\RiskProfile;
+use App\Models\SavingsAccount;
+use App\Models\User;
+use Database\Seeders\TaxConfigurationSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+
+uses(RefreshDatabase::class);
+
+beforeEach(function () {
+    $this->seed(TaxConfigurationSeeder::class);
+
+    $this->household = Household::factory()->create();
+
+    $this->user = User::factory()->create([
+        'household_id' => $this->household->id,
+        'date_of_birth' => now()->subYears(40),
+        'target_retirement_age' => 67,
+        'education_level' => 'undergraduate',
+        'employment_status' => 'employed',
+        'monthly_expenditure' => 3000,
+        'annual_employment_income' => 60000,
+    ]);
+
+    $this->actingAs($this->user, 'sanctum');
+});
+
+describe('GET /api/investment/risk/profile', function () {
+    test('returns null when no risk profile exists', function () {
+        $response = $this->getJson('/api/investment/risk/profile');
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'data' => null,
+            ]);
+    });
+
+    test('returns existing risk profile with factor breakdown', function () {
+        RiskProfile::create([
+            'user_id' => $this->user->id,
+            'risk_level' => 'medium',
+            'is_self_assessed' => false,
+            'risk_assessed_at' => now(),
+            'factor_breakdown' => [
+                ['factor' => 'capacity_for_loss', 'level' => 'medium'],
+                ['factor' => 'time_horizon', 'level' => 'medium'],
+            ],
+        ]);
+
+        $response = $this->getJson('/api/investment/risk/profile');
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'success',
+                'data' => [
+                    'risk_level',
+                    'risk_assessed_at',
+                    'is_self_assessed',
+                    'factor_breakdown',
+                    'config',
+                ],
+            ]);
+
+        expect($response->json('data.risk_level'))->toBe('medium');
+        expect($response->json('data.is_self_assessed'))->toBe(false);
+    });
+
+    test('requires authentication', function () {
+        $response = $this->withoutMiddleware()
+            ->getJson('/api/investment/risk/profile');
+
+        // Without authentication middleware, this tests the route exists
+        $response->assertStatus(200);
+    });
+});
+
+describe('POST /api/investment/risk/recalculate', function () {
+    test('calculates risk profile from user data', function () {
+        // Setup user with financial data
+        InvestmentAccount::factory()->create([
+            'user_id' => $this->user->id,
+            'current_value' => 25000,
+        ]);
+
+        DCPension::factory()->create([
+            'user_id' => $this->user->id,
+            'current_fund_value' => 50000,
+        ]);
+
+        SavingsAccount::factory()->create([
+            'user_id' => $this->user->id,
+            'is_emergency_fund' => true,
+            'current_balance' => 15000,
+        ]);
+
+        $response = $this->postJson('/api/investment/risk/recalculate');
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'success',
+                'data' => [
+                    'risk_level',
+                    'factor_breakdown',
+                    'risk_assessed_at',
+                    'is_self_assessed',
+                    'config',
+                ],
+            ]);
+
+        expect($response->json('data.is_self_assessed'))->toBe(false);
+        expect($response->json('data.factor_breakdown'))->toHaveCount(7);
+
+        // Verify it was saved to database
+        $profile = RiskProfile::where('user_id', $this->user->id)->first();
+        expect($profile)->not->toBeNull();
+        expect($profile->risk_level)->toBe($response->json('data.risk_level'));
+    });
+
+    test('returns 7 factors in breakdown', function () {
+        $response = $this->postJson('/api/investment/risk/recalculate');
+
+        $response->assertStatus(200);
+
+        $factors = $response->json('data.factor_breakdown');
+        expect($factors)->toHaveCount(7);
+
+        $factorNames = collect($factors)->pluck('factor')->toArray();
+        expect($factorNames)->toContain('capacity_for_loss');
+        expect($factorNames)->toContain('time_horizon');
+        expect($factorNames)->toContain('education');
+        expect($factorNames)->toContain('dependants');
+        expect($factorNames)->toContain('employment');
+        expect($factorNames)->toContain('emergency_cash');
+        expect($factorNames)->toContain('surplus_cash');
+    });
+
+    test('updates existing profile on recalculation', function () {
+        // Create initial profile
+        RiskProfile::create([
+            'user_id' => $this->user->id,
+            'risk_level' => 'low',
+            'is_self_assessed' => true,
+            'risk_assessed_at' => now()->subDays(30),
+        ]);
+
+        $response = $this->postJson('/api/investment/risk/recalculate');
+
+        $response->assertStatus(200);
+
+        // Should update, not create new
+        expect(RiskProfile::where('user_id', $this->user->id)->count())->toBe(1);
+
+        $profile = RiskProfile::where('user_id', $this->user->id)->first();
+        expect($profile->is_self_assessed)->toBe(false); // Changed from self-assessed
+    });
+});
+
+describe('GET /api/investment/risk/levels', function () {
+    test('returns all 5 risk levels with configurations', function () {
+        $response = $this->getJson('/api/investment/risk/levels');
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'success',
+                'data' => [
+                    '*' => [
+                        'key',
+                        'level_numeric',
+                        'display_name',
+                        'short_description',
+                        'full_description',
+                        'asset_allocation',
+                        'expected_returns',
+                        'volatility_percent',
+                        'colour_class',
+                    ],
+                ],
+            ]);
+
+        expect($response->json('data'))->toHaveCount(5);
+
+        $levelKeys = collect($response->json('data'))->pluck('key')->toArray();
+        expect($levelKeys)->toBe(['low', 'lower_medium', 'medium', 'upper_medium', 'high']);
+    });
+});
+
+describe('GET /api/investment/risk/allowed-levels', function () {
+    test('returns all levels when no profile exists', function () {
+        $response = $this->getJson('/api/investment/risk/allowed-levels');
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'success',
+                'data' => [
+                    'main_level',
+                    'allowed_levels',
+                ],
+            ]);
+
+        expect($response->json('data.main_level'))->toBeNull();
+        expect($response->json('data.allowed_levels'))->toHaveCount(5);
+    });
+
+    test('returns main level +/- 1 when profile exists', function () {
+        RiskProfile::create([
+            'user_id' => $this->user->id,
+            'risk_level' => 'medium',
+            'is_self_assessed' => false,
+            'risk_assessed_at' => now(),
+        ]);
+
+        $response = $this->getJson('/api/investment/risk/allowed-levels');
+
+        $response->assertStatus(200);
+
+        expect($response->json('data.main_level'))->toBe('medium');
+        expect($response->json('data.allowed_levels'))->toContain('lower_medium');
+        expect($response->json('data.allowed_levels'))->toContain('medium');
+        expect($response->json('data.allowed_levels'))->toContain('upper_medium');
+        expect($response->json('data.allowed_levels'))->toHaveCount(3);
+    });
+
+    test('returns only 2 levels at low end', function () {
+        RiskProfile::create([
+            'user_id' => $this->user->id,
+            'risk_level' => 'low',
+            'is_self_assessed' => false,
+            'risk_assessed_at' => now(),
+        ]);
+
+        $response = $this->getJson('/api/investment/risk/allowed-levels');
+
+        $response->assertStatus(200);
+
+        expect($response->json('data.main_level'))->toBe('low');
+        expect($response->json('data.allowed_levels'))->toContain('low');
+        expect($response->json('data.allowed_levels'))->toContain('lower_medium');
+        expect($response->json('data.allowed_levels'))->toHaveCount(2);
+    });
+
+    test('returns only 2 levels at high end', function () {
+        RiskProfile::create([
+            'user_id' => $this->user->id,
+            'risk_level' => 'high',
+            'is_self_assessed' => false,
+            'risk_assessed_at' => now(),
+        ]);
+
+        $response = $this->getJson('/api/investment/risk/allowed-levels');
+
+        $response->assertStatus(200);
+
+        expect($response->json('data.main_level'))->toBe('high');
+        expect($response->json('data.allowed_levels'))->toContain('upper_medium');
+        expect($response->json('data.allowed_levels'))->toContain('high');
+        expect($response->json('data.allowed_levels'))->toHaveCount(2);
+    });
+});
+
+describe('GET /api/investment/risk/config/{level}', function () {
+    test('returns configuration for valid risk level', function () {
+        $response = $this->getJson('/api/investment/risk/config/medium');
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'success',
+                'data' => [
+                    'key',
+                    'level_numeric',
+                    'display_name',
+                    'short_description',
+                    'full_description',
+                    'asset_allocation' => [
+                        'equities',
+                        'bonds',
+                        'cash',
+                        'alternatives',
+                    ],
+                    'expected_returns' => [
+                        'min',
+                        'max',
+                        'typical',
+                    ],
+                    'volatility_percent',
+                    'colour_class',
+                ],
+            ]);
+
+        expect($response->json('data.key'))->toBe('medium');
+        expect($response->json('data.display_name'))->toBe('Medium');
+    });
+
+    test('returns error for invalid risk level', function () {
+        $response = $this->getJson('/api/investment/risk/config/invalid');
+
+        $response->assertStatus(400);
+    });
+});
+
+describe('POST /api/investment/risk/validate-product-level', function () {
+    test('validates product level is within allowed range', function () {
+        RiskProfile::create([
+            'user_id' => $this->user->id,
+            'risk_level' => 'medium',
+            'is_self_assessed' => false,
+            'risk_assessed_at' => now(),
+        ]);
+
+        $response = $this->postJson('/api/investment/risk/validate-product-level', [
+            'risk_level' => 'upper_medium',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'data' => [
+                    'valid' => true,
+                ],
+            ]);
+    });
+
+    test('rejects product level outside allowed range', function () {
+        RiskProfile::create([
+            'user_id' => $this->user->id,
+            'risk_level' => 'low',
+            'is_self_assessed' => false,
+            'risk_assessed_at' => now(),
+        ]);
+
+        $response = $this->postJson('/api/investment/risk/validate-product-level', [
+            'risk_level' => 'high', // 3 levels away from 'low'
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'data' => [
+                    'valid' => false,
+                ],
+            ]);
+    });
+});

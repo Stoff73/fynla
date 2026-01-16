@@ -244,6 +244,7 @@
             <RiskLevelSelector
               v-model="formData.risk_preference"
               :allowed-levels="allowedRiskLevels"
+              :profile-level="mainRiskLevel"
               :compact="true"
               :show-allocation="false"
               :show-returns="false"
@@ -434,17 +435,8 @@ export default {
   },
 
   async mounted() {
-    // Load risk profile when component mounts
+    // Load risk profile when component mounts (auto-calculated if none exists)
     await this.loadRiskProfile();
-
-    // If no risk profile set, redirect to risk profile page
-    if (!this.hasRiskProfile) {
-      this.$emit('close');
-      this.$router.push({
-        path: '/risk-profile',
-        query: { redirect: this.$route.fullPath, reason: 'retirement' },
-      });
-    }
   },
 
   methods: {
