@@ -22,11 +22,16 @@ class OnboardingService
     {
         $user = User::findOrFail($userId);
 
+        $skippedSteps = $user->onboarding_skipped_steps ?? [];
+
         $status = [
             'onboarding_completed' => $user->onboarding_completed,
             'focus_area' => $user->onboarding_focus_area,
             'current_step' => $user->onboarding_current_step,
-            'skipped_steps' => $user->onboarding_skipped_steps ?? [],
+            'skipped_steps' => $skippedSteps,
+            'has_skipped_steps' => !empty($skippedSteps),
+            'skipped_steps_count' => count($skippedSteps),
+            'fully_completed' => $user->onboarding_completed && empty($skippedSteps),
             'started_at' => $user->onboarding_started_at?->toISOString(),
             'completed_at' => $user->onboarding_completed_at?->toISOString(),
             'progress_percentage' => 0,

@@ -14,11 +14,17 @@ const state = {
   showSkipModal: false,
   currentSkipReason: '',
   skipStepName: '',
+  skippedSteps: [],
+  hasSkippedSteps: false,
+  fullyCompleted: false,
 };
 
 const getters = {
   isOnboardingComplete: (state) => state.status === 'completed',
   isOnboardingInProgress: (state) => state.status === 'in_progress',
+  isFullyCompleted: (state) => state.fullyCompleted,
+  hasSkippedSteps: (state) => state.hasSkippedSteps,
+  skippedSteps: (state) => state.skippedSteps,
   currentStep: (state) => {
     return state.steps[state.currentStepIndex] || null;
   },
@@ -39,7 +45,7 @@ const getters = {
 };
 
 const actions = {
-  async fetchOnboardingStatus({ commit, state }) {
+  async fetchOnboardingStatus({ commit, state, dispatch }) {
     commit('SET_LOADING', true);
     commit('SET_ERROR', null);
 
@@ -54,11 +60,14 @@ const actions = {
         progressPercentage: data.progress_percentage,
         totalSteps: data.total_steps,
         completedSteps: data.completed_steps,
+        skippedSteps: data.skipped_steps || [],
+        hasSkippedSteps: data.has_skipped_steps || false,
+        fullyCompleted: data.fully_completed || false,
       });
 
       // If user has a focus area, fetch the steps
       if (data.focus_area) {
-        await actions.fetchSteps({ commit, state });
+        await dispatch('fetchSteps');
       }
 
       return data;
@@ -295,12 +304,15 @@ const actions = {
 };
 
 const mutations = {
-  SET_STATUS(state, { completed, focusArea, currentStep, progressPercentage, totalSteps }) {
+  SET_STATUS(state, { completed, focusArea, currentStep, progressPercentage, totalSteps, skippedSteps, hasSkippedSteps, fullyCompleted }) {
     state.status = completed ? 'completed' : focusArea ? 'in_progress' : null;
     if (focusArea !== undefined) state.focusArea = focusArea;
     if (currentStep !== undefined) state.currentStepName = currentStep;
     if (progressPercentage !== undefined) state.progressPercentage = progressPercentage;
     if (totalSteps !== undefined) state.totalSteps = totalSteps;
+    if (skippedSteps !== undefined) state.skippedSteps = skippedSteps;
+    if (hasSkippedSteps !== undefined) state.hasSkippedSteps = hasSkippedSteps;
+    if (fullyCompleted !== undefined) state.fullyCompleted = fullyCompleted;
   },
 
   SET_FOCUS_AREA(state, focusArea) {
@@ -364,6 +376,9 @@ const mutations = {
     state.showSkipModal = false;
     state.currentSkipReason = '';
     state.skipStepName = '';
+    state.skippedSteps = [];
+    state.hasSkippedSteps = false;
+    state.fullyCompleted = false;
   },
 };
 

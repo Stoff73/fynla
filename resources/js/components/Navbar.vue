@@ -87,7 +87,7 @@
 
         <div class="hidden sm:ml-6 sm:flex sm:items-center space-x-4">
           <router-link
-            v-if="!onboardingCompleted"
+            v-if="showCompleteSetupButton"
             to="/onboarding"
             class="inline-flex items-center px-3 py-2 border border-transparent text-body-sm font-medium rounded-button text-white bg-primary-600 hover:bg-primary-700"
           >
@@ -222,7 +222,7 @@
           Dashboard
         </router-link>
         <router-link
-          v-if="!onboardingCompleted"
+          v-if="showCompleteSetupButton"
           to="/onboarding"
           class="block pl-3 pr-4 py-2 border-l-4 border-primary-600 text-base font-medium bg-primary-50 text-primary-700"
         >
@@ -350,6 +350,17 @@ export default {
       return user?.onboarding_completed || false;
     });
 
+    // Show "Complete Setup" button if onboarding is not done OR if sections were skipped
+    const showCompleteSetupButton = computed(() => {
+      const user = store.getters['auth/currentUser'];
+      if (!user?.onboarding_completed) {
+        return true; // Not completed yet
+      }
+      // Check if there are skipped sections from the user's data
+      const skippedSteps = user?.onboarding_skipped_steps;
+      return Array.isArray(skippedSteps) && skippedSteps.length > 0;
+    });
+
     const isActive = (path) => {
       return route.path === path;
     };
@@ -389,6 +400,7 @@ export default {
       userName,
       isAdmin,
       onboardingCompleted,
+      showCompleteSetupButton,
       isActive,
       handleLogout,
     };
