@@ -65,7 +65,7 @@
 </template>
 
 <script>
-import { mapActions } from 'vuex';
+import { mapActions, mapState } from 'vuex';
 import PropertyCard from './PropertyCard.vue';
 import PropertyForm from './Property/PropertyForm.vue';
 import PropertyDetailInline from '@/components/NetWorth/Property/PropertyDetailInline.vue';
@@ -94,6 +94,8 @@ export default {
   },
 
   computed: {
+    ...mapState('netWorth', ['isDetailView']),
+
     isPreviewMode() {
       return this.$store.getters['preview/isPreviewMode'];
     },
@@ -101,6 +103,16 @@ export default {
     filteredProperties() {
       // Sort by value (high to low) by default
       return [...this.properties].sort((a, b) => b.current_value - a.current_value);
+    },
+  },
+
+  watch: {
+    // Clear selection when sidebar link is clicked (sets isDetailView to false)
+    isDetailView(newVal) {
+      if (!newVal && this.selectedProperty) {
+        this.selectedProperty = null;
+        this.fetchProperties();
+      }
     },
   },
 

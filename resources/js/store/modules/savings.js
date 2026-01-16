@@ -12,19 +12,29 @@ const state = {
 };
 
 const getters = {
-    // Get total savings across all accounts
+    // Get total savings across all accounts (user's share for joint accounts)
     totalSavings: (state) => {
         return state.accounts.reduce((sum, account) => {
-            return sum + parseFloat(account.current_balance || 0);
+            const balance = parseFloat(account.current_balance || 0);
+            const isJoint = account.ownership_type === 'joint' || account.ownership_type === 'tenants_in_common';
+            if (isJoint && account.ownership_percentage) {
+                return sum + (balance * (account.ownership_percentage / 100));
+            }
+            return sum + balance;
         }, 0);
     },
 
-    // Get total emergency fund (only accounts marked as emergency fund)
+    // Get total emergency fund (only accounts marked as emergency fund, user's share for joint)
     emergencyFundTotal: (state) => {
         return state.accounts
             .filter(account => account.is_emergency_fund)
             .reduce((sum, account) => {
-                return sum + parseFloat(account.current_balance || 0);
+                const balance = parseFloat(account.current_balance || 0);
+                const isJoint = account.ownership_type === 'joint' || account.ownership_type === 'tenants_in_common';
+                if (isJoint && account.ownership_percentage) {
+                    return sum + (balance * (account.ownership_percentage / 100));
+                }
+                return sum + balance;
             }, 0);
     },
 
@@ -80,11 +90,18 @@ const getters = {
         return state.goals.filter(goal => !getters.goalsOnTrack.includes(goal));
     },
 
-    // Get total ISA balances
+    // Get total ISA balances (user's share for joint accounts)
     totalISABalance: (state) => {
         return state.accounts
             .filter(account => account.is_isa)
-            .reduce((sum, account) => sum + parseFloat(account.current_balance || 0), 0);
+            .reduce((sum, account) => {
+                const balance = parseFloat(account.current_balance || 0);
+                const isJoint = account.ownership_type === 'joint' || account.ownership_type === 'tenants_in_common';
+                if (isJoint && account.ownership_percentage) {
+                    return sum + (balance * (account.ownership_percentage / 100));
+                }
+                return sum + balance;
+            }, 0);
     },
 
     // Get accounts by access type
