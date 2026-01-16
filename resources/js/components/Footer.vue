@@ -25,6 +25,9 @@
           <router-link to="/help" class="text-body-sm text-gray-500 hover:text-gray-700">
             Help
           </router-link>
+          <router-link to="/sitemap" class="text-body-sm text-gray-500 hover:text-gray-700">
+            Sitemap
+          </router-link>
         </div>
       </div>
       <div class="mt-3 sm:mt-4 text-center">

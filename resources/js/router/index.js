@@ -7,6 +7,7 @@ const LandingPage = () => import('@/views/Public/LandingPage.vue');
 const CalculatorsPage = () => import('@/views/Public/CalculatorsPage.vue');
 const LearningCentre = () => import('@/views/Public/LearningCentre.vue');
 const SecurityPage = () => import('@/views/Public/SecurityPage.vue');
+const SitemapPage = () => import('@/views/Public/SitemapPage.vue');
 
 // Auth pages
 const Login = () => import('@/views/Login.vue');
@@ -70,6 +71,12 @@ const routes = [
     path: '/security',
     name: 'Security',
     component: SecurityPage,
+    meta: { public: true },
+  },
+  {
+    path: '/sitemap',
+    name: 'Sitemap',
+    component: SitemapPage,
     meta: { public: true },
   },
 
