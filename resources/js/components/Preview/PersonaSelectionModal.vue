@@ -168,6 +168,8 @@ export default {
                 peak_earners: '💼',
                 widow: '👵',
                 entrepreneur: '🚀',
+                young_saver: '🎓',
+                retired_couple: '👴👵',
             };
             return emojis[personaId] || '👤';
         },
@@ -178,6 +180,8 @@ export default {
                 peak_earners: 'bg-gradient-to-br from-green-500 to-green-700',
                 widow: 'bg-gradient-to-br from-purple-500 to-purple-700',
                 entrepreneur: 'bg-gradient-to-br from-orange-500 to-orange-700',
+                young_saver: 'bg-gradient-to-br from-cyan-500 to-cyan-700',
+                retired_couple: 'bg-gradient-to-br from-rose-500 to-rose-700',
             };
             return gradients[personaId] || 'bg-gradient-to-br from-primary-500 to-primary-700';
         },
@@ -188,6 +192,8 @@ export default {
                 peak_earners: 'bg-green-100 text-green-700',
                 widow: 'bg-purple-100 text-purple-700',
                 entrepreneur: 'bg-orange-100 text-orange-700',
+                young_saver: 'bg-cyan-100 text-cyan-700',
+                retired_couple: 'bg-rose-100 text-rose-700',
             };
             return classes[personaId] || 'bg-gray-100 text-gray-700';
         },

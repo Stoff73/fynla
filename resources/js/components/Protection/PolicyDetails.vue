@@ -10,6 +10,7 @@
       </div>
 
       <button
+        v-preview-disabled="'add'"
         @click="showAddPolicyModal = true"
         class="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
       >
@@ -90,6 +91,7 @@
         {{ emptyStateMessage }}
       </p>
       <button
+        v-preview-disabled="'add'"
         @click="showAddPolicyModal = true"
         class="mt-4 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
       >

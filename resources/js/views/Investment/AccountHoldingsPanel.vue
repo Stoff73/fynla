@@ -3,7 +3,7 @@
     <!-- Header with Add Button -->
     <div class="panel-header">
       <h3 class="panel-title">Holdings in {{ account.account_name }}</h3>
-      <button @click="$emit('open-holding-modal')" class="add-holding-btn">
+      <button v-preview-disabled="'add'" @click="$emit('open-holding-modal')" class="add-holding-btn">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="btn-icon">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
         </svg>
@@ -140,7 +140,7 @@
       </svg>
       <p class="empty-title">No holdings yet</p>
       <p class="empty-subtitle">Add your first holding to track your investments</p>
-      <button @click="$emit('open-holding-modal')" class="add-first-btn">
+      <button v-preview-disabled="'add'" @click="$emit('open-holding-modal')" class="add-first-btn">
         Add First Holding
       </button>
     </div>

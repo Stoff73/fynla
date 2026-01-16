@@ -200,6 +200,7 @@
           <!-- Save Button -->
           <div class="flex justify-end pt-4">
             <button
+              v-preview-disabled="'save'"
               @click="saveWill"
               :disabled="saving"
               class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
@@ -215,6 +216,7 @@
         <div class="flex justify-between items-center mb-4">
           <h3 class="text-lg font-semibold text-gray-900">Specific Bequests</h3>
           <button
+            v-preview-disabled="'add'"
             @click="showBequestModal = true"
             class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm"
           >
@@ -252,12 +254,14 @@
               </div>
               <div class="flex gap-2">
                 <button
+                  v-preview-disabled="'edit'"
                   @click="editBequest(bequest)"
                   class="text-blue-600 hover:text-blue-800 text-sm"
                 >
                   Edit
                 </button>
                 <button
+                  v-preview-disabled="'delete'"
                   @click="deleteBequest(bequest.id)"
                   class="text-red-600 hover:text-red-800 text-sm"
                 >

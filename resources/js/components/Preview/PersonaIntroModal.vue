@@ -128,6 +128,8 @@ export default {
                 peak_earners: '💼',
                 widow: '👵',
                 entrepreneur: '🚀',
+                young_saver: '🎓',
+                retired_couple: '👴👵',
             };
             return emojis[this.persona.id] || '👤';
         },
@@ -140,6 +142,8 @@ export default {
                 peak_earners: 'bg-gradient-to-br from-green-500 to-green-700',
                 widow: 'bg-gradient-to-br from-purple-500 to-purple-700',
                 entrepreneur: 'bg-gradient-to-br from-orange-500 to-orange-700',
+                young_saver: 'bg-gradient-to-br from-cyan-500 to-cyan-700',
+                retired_couple: 'bg-gradient-to-br from-rose-500 to-rose-700',
             };
             return gradients[this.persona.id] || 'bg-gradient-to-br from-primary-500 to-primary-700';
         },
@@ -168,6 +172,16 @@ export default {
                     'Is my business adequately protected?',
                     'Am I saving enough for retirement?',
                     'How do I balance business growth with personal security?',
+                ],
+                young_saver: [
+                    'How can I save for a house deposit while paying off my student loan?',
+                    'Should I put more into my pension or focus on my LISA?',
+                    'Am I saving enough for emergencies?',
+                ],
+                retired_couple: [
+                    'How much inheritance tax will our children pay?',
+                    'Should we be gifting more now while we can see them use it?',
+                    'What happens if one of us needs care?',
                 ],
             };
 

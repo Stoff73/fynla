@@ -10,6 +10,7 @@ use App\Models\CriticalIllnessPolicy;
 use App\Models\DBPension;
 use App\Models\DCPension;
 use App\Models\Estate\Bequest;
+use App\Models\Estate\Gift;
 use App\Models\Estate\Liability;
 use App\Models\Estate\Trust;
 use App\Models\Estate\Will;
@@ -39,6 +40,8 @@ class PreviewUserSeeder extends Seeder
         'peak_earners',
         'widow',
         'entrepreneur',
+        'young_saver',
+        'retired_couple',
     ];
 
     /**
@@ -112,7 +115,7 @@ class PreviewUserSeeder extends Seeder
         // Create pensions
         $this->createDCPensions($user, $spouse, $data['dc_pensions'] ?? []);
         $this->createDBPensions($user, $spouse, $data['db_pensions'] ?? []);
-        $this->createStatePension($user, $spouse, $data['state_pension'] ?? null);
+        $this->createStatePension($user, $spouse, $data['state_pension'] ?? null, $data['spouse_state_pension'] ?? null);
 
         // Create insurance policies
         $this->createLifeInsurancePolicies($user, $spouse, $data['life_insurance_policies'] ?? []);
@@ -133,6 +136,9 @@ class PreviewUserSeeder extends Seeder
 
         // Create trusts
         $this->createTrusts($user, $data['trusts'] ?? []);
+
+        // Create gifts
+        $this->createGifts($user, $spouse, $data['gifts'] ?? []);
 
         // Create business interests
         $this->createBusinessInterests($user, $data['business_interests'] ?? []);
@@ -709,22 +715,32 @@ class PreviewUserSeeder extends Seeder
     }
 
     /**
-     * Create state pension for the user.
+     * Create state pension for the user and optionally the spouse.
      */
-    private function createStatePension(User $user, ?User $spouse, ?array $statePension): void
+    private function createStatePension(User $user, ?User $spouse, ?array $statePension, ?array $spouseStatePension = null): void
     {
-        if (! $statePension) {
-            return;
+        if ($statePension) {
+            StatePension::create([
+                'user_id' => $user->id,
+                'ni_years_completed' => 35,
+                'ni_years_required' => 35,
+                'state_pension_forecast_annual' => $statePension['forecast_annual_amount'] ?? 0,
+                'state_pension_age' => $statePension['state_pension_age'] ?? 66,
+                'already_receiving' => $statePension['already_receiving'] ?? false,
+            ]);
         }
 
-        StatePension::create([
-            'user_id' => $user->id,
-            'ni_years_completed' => 35,
-            'ni_years_required' => 35,
-            'state_pension_forecast_annual' => $statePension['forecast_annual_amount'] ?? 0,
-            'state_pension_age' => $statePension['state_pension_age'] ?? 66,
-            'already_receiving' => $statePension['already_receiving'] ?? false,
-        ]);
+        // Create spouse state pension if provided
+        if ($spouse && $spouseStatePension) {
+            StatePension::create([
+                'user_id' => $spouse->id,
+                'ni_years_completed' => 35,
+                'ni_years_required' => 35,
+                'state_pension_forecast_annual' => $spouseStatePension['forecast_annual_amount'] ?? 0,
+                'state_pension_age' => $spouseStatePension['state_pension_age'] ?? 66,
+                'already_receiving' => $spouseStatePension['already_receiving'] ?? false,
+            ]);
+        }
     }
 
     /**
@@ -986,6 +1002,38 @@ class PreviewUserSeeder extends Seeder
                 'notes' => $trust['notes'] ?? null,
                 'is_relevant_property_trust' => $trust['is_relevant_property_trust'] ?? false,
                 'is_active' => $trust['is_active'] ?? true,
+            ]);
+        }
+    }
+
+    /**
+     * Create gifts for users.
+     * Assigns gifts to spouse if recipient_name contains "Harold" or similar indicators.
+     */
+    private function createGifts(User $user, ?User $spouse, array $gifts): void
+    {
+        foreach ($gifts as $gift) {
+            // Determine if this gift is from the spouse
+            $owner = $user;
+            if ($spouse) {
+                $recipientName = strtolower($gift['recipient_name'] ?? '');
+                $spouseFirstName = strtolower($spouse->first_name ?? '');
+
+                // Check if gift is from spouse (e.g., "Harold to grandchildren")
+                if ($spouseFirstName && str_contains($recipientName, $spouseFirstName)) {
+                    $owner = $spouse;
+                }
+            }
+
+            Gift::create([
+                'user_id' => $owner->id,
+                'gift_date' => $gift['gift_date'] ?? null,
+                'recipient' => $gift['recipient_name'] ?? '',
+                'gift_type' => $gift['gift_type'] ?? 'pet',
+                'gift_value' => $gift['amount'] ?? 0,
+                'status' => $gift['status'] ?? 'within_7_years',
+                'taper_relief_applicable' => $gift['taper_relief_applicable'] ?? false,
+                'notes' => $gift['notes'] ?? null,
             ]);
         }
     }

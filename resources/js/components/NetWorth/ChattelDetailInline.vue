@@ -37,6 +37,7 @@
           <div class="flex space-x-2 w-full sm:w-auto">
             <button
               v-if="chattel.is_primary_owner !== false"
+              v-preview-disabled="'edit'"
               @click="$emit('edit', chattel)"
               class="px-4 py-2 bg-pink-600 text-white rounded-md hover:bg-pink-700 transition-colors"
             >
@@ -44,6 +45,7 @@
             </button>
             <button
               v-if="chattel.is_primary_owner !== false"
+              v-preview-disabled="'delete'"
               @click="confirmDelete"
               class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
             >

@@ -36,6 +36,8 @@ class PreviewController extends Controller
         'peak_earners',
         'widow',
         'entrepreneur',
+        'young_saver',
+        'retired_couple',
     ];
 
     /**
@@ -65,6 +67,18 @@ class PreviewController extends Controller
             'name' => 'Alex Chen',
             'tagline' => 'Entrepreneur with business interests',
             'description' => 'A 42-year-old business owner with complex income streams and business succession planning needs.',
+        ],
+        'young_saver' => [
+            'id' => 'young_saver',
+            'name' => 'Alex Morgan',
+            'tagline' => 'Young professional building first-time buyer savings',
+            'description' => 'A 24-year-old junior data analyst, renting and saving for a house deposit with a Lifetime ISA.',
+        ],
+        'retired_couple' => [
+            'id' => 'retired_couple',
+            'name' => 'Patricia & Harold Bennett',
+            'tagline' => 'Retired couple with estate planning focus',
+            'description' => 'A retired couple in their early 70s drawing DB pensions, focusing on IHT planning and gifting to grandchildren.',
         ],
     ];
 

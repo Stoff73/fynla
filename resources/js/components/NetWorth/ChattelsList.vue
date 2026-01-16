@@ -23,7 +23,7 @@
             <option value="collectible">Collectibles</option>
             <option value="other">Other</option>
           </select>
-          <button @click="openAddModal" class="add-button">
+          <button v-preview-disabled="'add'" @click="openAddModal" class="add-button">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
             </svg>
@@ -48,7 +48,7 @@
         </svg>
         <p class="empty-title">No Chattels Recorded</p>
         <p class="empty-subtitle">Track and value your personal assets including vehicles, art, antiques, jewelry, and collectibles.</p>
-        <button @click="openAddModal" class="add-first-button">
+        <button v-preview-disabled="'add'" @click="openAddModal" class="add-first-button">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
           </svg>

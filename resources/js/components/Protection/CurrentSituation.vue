@@ -31,6 +31,7 @@
                 View Gap Analysis →
               </button>
               <button
+                v-preview-disabled="'add'"
                 @click="$emit('add-policy')"
                 class="px-4 py-2 bg-white text-amber-600 border border-amber-600 rounded-md hover:bg-amber-50 transition-colors font-medium text-sm"
               >
@@ -44,6 +45,7 @@
                 <input
                   id="has_no_policies"
                   v-model="hasNoPoliciesChecked"
+                  v-preview-disabled="'edit'"
                   type="checkbox"
                   class="h-4 w-4 text-amber-600 border-gray-300 rounded focus:ring-amber-500"
                   @change="updateHasNoPoliciesFlag"
@@ -72,6 +74,7 @@
 
         <div class="flex gap-3">
           <button
+            v-preview-disabled="'add'"
             @click="$emit('add-policy')"
             class="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
           >
@@ -92,6 +95,7 @@
             Add New Policy
           </button>
           <button
+            v-preview-disabled="'upload'"
             @click="showUploadModal = true"
             class="inline-flex items-center px-4 py-2 border-2 border-blue-600 text-blue-600 bg-white rounded-lg hover:bg-blue-50 transition-colors font-medium"
           >

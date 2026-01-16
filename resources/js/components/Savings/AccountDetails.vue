@@ -9,6 +9,7 @@
         </p>
       </div>
       <button
+        v-preview-disabled="'add'"
         @click="handleAddAccount"
         class="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
       >
@@ -84,6 +85,7 @@
             Edit
           </button>
           <button
+            v-preview-disabled="'delete'"
             @click="handleDeleteAccount(account.id)"
             class="px-4 py-2 bg-red-50 text-red-600 text-sm font-medium rounded-lg hover:bg-red-100"
           >
@@ -113,6 +115,7 @@
         Get started by adding your first savings account.
       </p>
       <button
+        v-preview-disabled="'add'"
         @click="handleAddAccount"
         class="mt-4 px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-2"
       >

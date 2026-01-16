@@ -33,12 +33,14 @@
           </div>
           <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto shrink-0">
             <button
+              v-preview-disabled="'edit'"
               @click="showEditModal = true"
               class="btn-primary whitespace-nowrap"
             >
               Edit
             </button>
             <button
+              v-preview-disabled="'delete'"
               @click="confirmDelete"
               class="btn-danger whitespace-nowrap"
             >
