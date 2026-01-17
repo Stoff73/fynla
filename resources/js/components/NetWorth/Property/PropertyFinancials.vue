@@ -82,8 +82,12 @@
 
       <div class="mt-6 p-4 bg-gray-50 border-2 border-gray-300 rounded-lg">
         <div class="flex justify-between items-center">
-          <span class="text-lg font-semibold text-gray-900">Total Monthly Costs</span>
+          <span class="text-lg font-semibold text-gray-900">Full Property Costs</span>
           <span class="text-2xl font-bold text-gray-900">{{ formatCurrency(totalMonthlyCosts) }}</span>
+        </div>
+        <div v-if="isSharedOwnership" class="flex justify-between items-center mt-3 pt-3 border-t border-gray-300">
+          <span class="text-lg font-semibold text-blue-700">Your Share ({{ property.ownership_percentage }}%)</span>
+          <span class="text-2xl font-bold text-blue-600">{{ formatCurrency(userMonthlyCosts) }}</span>
         </div>
       </div>
     </div>
@@ -94,45 +98,73 @@
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div class="bg-gray-50 rounded-lg p-4">
-          <p class="text-sm text-green-700">Monthly Rental Income</p>
+          <p class="text-sm text-green-700">{{ isSharedOwnership ? 'Full Monthly Rental Income' : 'Monthly Rental Income' }}</p>
           <p class="text-2xl font-bold text-green-900">{{ formatCurrency(property.monthly_rental_income || 0) }}</p>
+          <div v-if="isSharedOwnership" class="mt-2 pt-2 border-t border-green-200">
+            <p class="text-xs text-green-600">Your Share ({{ property.ownership_percentage }}%)</p>
+            <p class="text-lg font-bold text-green-700">{{ formatCurrency(userMonthlyRentalIncome) }}</p>
+          </div>
         </div>
 
         <div class="bg-gray-50 rounded-lg p-4">
-          <p class="text-sm text-blue-700">Net Monthly Income</p>
+          <p class="text-sm text-blue-700">{{ isSharedOwnership ? 'Full Net Monthly Income' : 'Net Monthly Income' }}</p>
           <p class="text-2xl font-bold text-blue-900">{{ formatCurrency(netMonthlyIncome) }}</p>
           <p class="text-xs text-blue-600 mt-1">After all costs</p>
+          <div v-if="isSharedOwnership" class="mt-2 pt-2 border-t border-blue-200">
+            <p class="text-xs text-blue-600">Your Share ({{ property.ownership_percentage }}%)</p>
+            <p class="text-lg font-bold text-blue-700">{{ formatCurrency(userNetMonthlyIncome) }}</p>
+          </div>
         </div>
 
         <div class="bg-gray-50 rounded-lg p-4">
           <p class="text-sm text-purple-700">Net Rental Yield</p>
           <p class="text-2xl font-bold text-purple-900">{{ netRentalYield }}%</p>
-          <p class="text-xs text-purple-600 mt-1">Annual</p>
+          <p class="text-xs text-purple-600 mt-1">Annual (Full Property)</p>
         </div>
       </div>
 
       <dl class="space-y-2">
         <div class="flex justify-between py-2 border-b border-gray-100">
-          <dt class="text-sm text-gray-600">Monthly Rental Income:</dt>
+          <dt class="text-sm text-gray-600">Full Monthly Rental Income:</dt>
           <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(property.monthly_rental_income || 0) }}</dd>
+        </div>
+        <div v-if="isSharedOwnership" class="flex justify-between py-2 border-b border-gray-100">
+          <dt class="text-sm text-gray-600">Your Share ({{ property.ownership_percentage }}%):</dt>
+          <dd class="text-sm font-medium text-blue-600">{{ formatCurrency(userMonthlyRentalIncome) }}</dd>
         </div>
 
         <div class="flex justify-between py-2 border-b border-gray-100">
-          <dt class="text-sm text-gray-600">Less: Total Monthly Costs:</dt>
+          <dt class="text-sm text-gray-600">Less: Full Monthly Costs:</dt>
           <dd class="text-sm font-medium text-red-600">-{{ formatCurrency(totalMonthlyCosts) }}</dd>
+        </div>
+        <div v-if="isSharedOwnership" class="flex justify-between py-2 border-b border-gray-100">
+          <dt class="text-sm text-gray-600">Your Share of Costs ({{ property.ownership_percentage }}%):</dt>
+          <dd class="text-sm font-medium text-red-600">-{{ formatCurrency(userMonthlyCosts) }}</dd>
         </div>
 
         <div class="flex justify-between py-3 border-t-2 border-gray-300 mt-2">
-          <dt class="text-base font-semibold text-gray-700">Net Monthly Income:</dt>
+          <dt class="text-base font-semibold text-gray-700">{{ isSharedOwnership ? 'Full Net Monthly Income:' : 'Net Monthly Income:' }}</dt>
           <dd class="text-base font-bold" :class="netMonthlyIncome >= 0 ? 'text-green-600' : 'text-red-600'">
             {{ formatCurrency(netMonthlyIncome) }}
           </dd>
         </div>
+        <div v-if="isSharedOwnership" class="flex justify-between py-3">
+          <dt class="text-base font-semibold text-blue-700">Your Net Monthly Income:</dt>
+          <dd class="text-base font-bold" :class="userNetMonthlyIncome >= 0 ? 'text-blue-600' : 'text-red-600'">
+            {{ formatCurrency(userNetMonthlyIncome) }}
+          </dd>
+        </div>
 
         <div class="flex justify-between py-2 bg-gray-50 rounded-md p-2 mt-2">
-          <dt class="text-sm text-gray-600">Projected Annual Net Income:</dt>
+          <dt class="text-sm text-gray-600">{{ isSharedOwnership ? 'Full Annual Net Income:' : 'Projected Annual Net Income:' }}</dt>
           <dd class="text-sm font-semibold" :class="netAnnualIncome >= 0 ? 'text-green-600' : 'text-red-600'">
             {{ formatCurrency(netAnnualIncome) }}
+          </dd>
+        </div>
+        <div v-if="isSharedOwnership" class="flex justify-between py-2 bg-blue-50 rounded-md p-2">
+          <dt class="text-sm text-blue-700">Your Annual Net Income:</dt>
+          <dd class="text-sm font-semibold" :class="userNetAnnualIncome >= 0 ? 'text-blue-600' : 'text-red-600'">
+            {{ formatCurrency(userNetAnnualIncome) }}
           </dd>
         </div>
       </dl>
@@ -427,6 +459,10 @@ export default {
       }, 0);
     },
 
+    isSharedOwnership() {
+      return this.property?.ownership_type === 'joint' || this.property?.ownership_type === 'tenants_in_common';
+    },
+
     totalMonthlyCosts() {
       return (
         (parseFloat(this.property.monthly_council_tax) || 0) +
@@ -442,13 +478,36 @@ export default {
       );
     },
 
+    userMonthlyCosts() {
+      if (this.isSharedOwnership && this.property?.ownership_percentage) {
+        return this.totalMonthlyCosts * (this.property.ownership_percentage / 100);
+      }
+      return this.totalMonthlyCosts;
+    },
+
+    userMonthlyRentalIncome() {
+      const fullRentalIncome = parseFloat(this.property.monthly_rental_income) || 0;
+      if (this.isSharedOwnership && this.property?.ownership_percentage) {
+        return fullRentalIncome * (this.property.ownership_percentage / 100);
+      }
+      return fullRentalIncome;
+    },
+
     netMonthlyIncome() {
       const monthlyIncome = parseFloat(this.property.monthly_rental_income) || 0;
       return monthlyIncome - this.totalMonthlyCosts;
     },
 
+    userNetMonthlyIncome() {
+      return this.userMonthlyRentalIncome - this.userMonthlyCosts;
+    },
+
     netAnnualIncome() {
       return this.netMonthlyIncome * 12;
+    },
+
+    userNetAnnualIncome() {
+      return this.userNetMonthlyIncome * 12;
     },
 
     netRentalYield() {

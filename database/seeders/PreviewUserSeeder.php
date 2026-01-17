@@ -342,11 +342,28 @@ class PreviewUserSeeder extends Seeder
         $propertyMap = [];
 
         foreach ($properties as $prop) {
-            $isJoint = ($prop['ownership_type'] ?? 'individual') === 'joint';
+            $ownershipType = $prop['ownership_type'] ?? 'individual';
+            $isSharedOwnership = in_array($ownershipType, ['joint', 'tenants_in_common']);
             $totalValue = $prop['current_value'] ?? 0;
 
             // Parse the address if provided as a single string
             $addressParts = $this->parseAddress($prop['address'] ?? '');
+
+            // Determine ownership percentage - use from JSON if provided, otherwise default
+            $ownershipPercentage = $prop['ownership_percentage'] ?? ($isSharedOwnership ? 50 : 100);
+
+            // Determine joint owner - linked spouse or named person
+            $jointOwnerId = null;
+            $jointOwnerName = null;
+            if ($isSharedOwnership) {
+                if (!empty($prop['joint_owner_name'])) {
+                    // Non-linked joint owner (e.g., "Mike Jones")
+                    $jointOwnerName = $prop['joint_owner_name'];
+                } elseif ($spouse) {
+                    // Linked spouse account
+                    $jointOwnerId = $spouse->id;
+                }
+            }
 
             // Single-record pattern: Store FULL value directly (no splitting)
             $property = Property::create([
@@ -355,14 +372,29 @@ class PreviewUserSeeder extends Seeder
                 'current_value' => $totalValue, // FULL value
                 'purchase_price' => $prop['purchase_price'] ?? null,
                 'purchase_date' => $prop['purchase_date'] ?? null,
-                'ownership_type' => $prop['ownership_type'] ?? 'individual',
-                'ownership_percentage' => $isJoint ? 50 : 100,
-                'monthly_rental_income' => $prop['actual_rental_income'] ?? $prop['estimated_rental_value'] ?? null,
-                'joint_owner_id' => $isJoint && $spouse ? $spouse->id : null,
+                'ownership_type' => $ownershipType,
+                'ownership_percentage' => $ownershipPercentage,
+                'monthly_rental_income' => $prop['monthly_rental_income'] ?? $prop['actual_rental_income'] ?? $prop['estimated_rental_value'] ?? null,
+                'joint_owner_id' => $jointOwnerId,
+                'joint_owner_name' => $jointOwnerName,
                 'address_line_1' => $addressParts['line_1'],
                 'city' => $addressParts['city'],
                 'county' => $addressParts['county'] ?: null,
                 'postcode' => $addressParts['postcode'] ?: null,
+                // Monthly expenses
+                'monthly_council_tax' => $prop['monthly_council_tax'] ?? null,
+                'monthly_gas' => $prop['monthly_gas'] ?? null,
+                'monthly_electricity' => $prop['monthly_electricity'] ?? null,
+                'monthly_water' => $prop['monthly_water'] ?? null,
+                'monthly_building_insurance' => $prop['monthly_building_insurance'] ?? null,
+                'monthly_contents_insurance' => $prop['monthly_contents_insurance'] ?? null,
+                'monthly_service_charge' => $prop['monthly_service_charge'] ?? null,
+                'monthly_maintenance_reserve' => $prop['monthly_maintenance_reserve'] ?? null,
+                'other_monthly_costs' => $prop['other_monthly_costs'] ?? null,
+                // Tenant info (for BTL)
+                'tenant_name' => $prop['tenant_name'] ?? null,
+                'lease_start_date' => $prop['lease_start_date'] ?? null,
+                'lease_end_date' => $prop['lease_end_date'] ?? null,
             ]);
 
             $propertyMap[$prop['id']] = $property->id;
@@ -429,9 +461,26 @@ class PreviewUserSeeder extends Seeder
     {
         foreach ($mortgages as $mort) {
             $propertyId = $propertyMap[$mort['property_id']] ?? null;
-            $isJoint = ($mort['ownership_type'] ?? 'individual') === 'joint';
+            $ownershipType = $mort['ownership_type'] ?? 'individual';
+            $isSharedOwnership = in_array($ownershipType, ['joint', 'tenants_in_common']);
             $totalBalance = $mort['outstanding_balance'] ?? 0;
             $totalPayment = $mort['monthly_payment'] ?? null;
+
+            // Determine ownership percentage - use from JSON if provided, otherwise default
+            $ownershipPercentage = $mort['ownership_percentage'] ?? ($isSharedOwnership ? 50 : 100);
+
+            // Determine joint owner - linked spouse or named person
+            $jointOwnerId = null;
+            $jointOwnerName = null;
+            if ($isSharedOwnership) {
+                if (!empty($mort['joint_owner_name'])) {
+                    // Non-linked joint owner (e.g., "Mike Jones")
+                    $jointOwnerName = $mort['joint_owner_name'];
+                } elseif ($spouse) {
+                    // Linked spouse account
+                    $jointOwnerId = $spouse->id;
+                }
+            }
 
             // Single-record pattern: Store FULL balances directly (no splitting)
             Mortgage::create([
@@ -447,9 +496,10 @@ class PreviewUserSeeder extends Seeder
                 'monthly_payment' => $totalPayment, // FULL payment
                 'remaining_term_months' => $mort['remaining_term_months'] ?? null,
                 'start_date' => $mort['mortgage_start_date'] ?? null,
-                'ownership_type' => $mort['ownership_type'] ?? 'individual',
-                'ownership_percentage' => $isJoint ? 50 : 100,
-                'joint_owner_id' => $isJoint && $spouse ? $spouse->id : null,
+                'ownership_type' => $ownershipType,
+                'ownership_percentage' => $ownershipPercentage,
+                'joint_owner_id' => $jointOwnerId,
+                'joint_owner_name' => $jointOwnerName,
             ]);
             // Single-record pattern: NO reciprocal mortgage for spouse
         }

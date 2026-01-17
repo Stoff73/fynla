@@ -136,6 +136,15 @@
       "bedrooms": 4,
       "estimated_rental_value": 0,
       "council_tax_band": "F",
+      "monthly_council_tax": 280,
+      "monthly_gas": 95,
+      "monthly_electricity": 70,
+      "monthly_water": 40,
+      "monthly_building_insurance": 45,
+      "monthly_contents_insurance": 30,
+      "monthly_service_charge": 0,
+      "monthly_maintenance_reserve": 120,
+      "other_monthly_costs": 0,
       "notes": "Mortgage paid off - full ownership"
     },
     {
@@ -153,6 +162,15 @@
       "estimated_rental_value": 1200,
       "actual_rental_income": 0,
       "council_tax_band": "D",
+      "monthly_council_tax": 175,
+      "monthly_gas": 60,
+      "monthly_electricity": 55,
+      "monthly_water": 30,
+      "monthly_building_insurance": 35,
+      "monthly_contents_insurance": 25,
+      "monthly_service_charge": 0,
+      "monthly_maintenance_reserve": 80,
+      "other_monthly_costs": 0,
       "notes": "Holiday cottage - family use only, not let"
     }
   ],
@@ -414,7 +432,7 @@
       "amount": 3000,
       "gift_date": "2023-04-06",
       "notes": "Annual exemption for 2023/24 tax year",
-      "status": "exempt"
+      "status": "within_7_years"
     },
     {
       "id": 5,
@@ -423,7 +441,7 @@
       "amount": 3000,
       "gift_date": "2024-04-06",
       "notes": "Annual exemption for 2024/25 tax year",
-      "status": "exempt"
+      "status": "within_7_years"
     }
   ],
 

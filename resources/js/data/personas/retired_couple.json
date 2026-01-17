@@ -131,6 +131,15 @@
       "bedrooms": 4,
       "estimated_rental_value": 0,
       "council_tax_band": "F",
+      "monthly_council_tax": 265,
+      "monthly_gas": 85,
+      "monthly_electricity": 65,
+      "monthly_water": 40,
+      "monthly_building_insurance": 45,
+      "monthly_contents_insurance": 30,
+      "monthly_service_charge": 0,
+      "monthly_maintenance_reserve": 100,
+      "other_monthly_costs": 0,
       "notes": "Mortgage paid off since 2010. Family home for 30 years."
     }
   ],
