@@ -14,6 +14,21 @@
 
 ---
 
+## CRITICAL: .htaccess File Warning
+
+> **DO NOT upload `public/.htaccess` from your local folder!**
+>
+> The local `public/.htaccess` is configured for csjones.co/tengo (subdirectory deployment) and will cause **500 Internal Server Error** on fynla.org.
+>
+> **Always use:** `deploy/fynla-org/.htaccess` → upload to `public_html/public/.htaccess`
+
+The wrong .htaccess causes:
+- `<DirectoryMatch not allowed here` error (500 Internal Server Error)
+- Wrong `RewriteBase /tengo/` instead of `/`
+- CSS/JS MIME type issues in incognito mode
+
+---
+
 ## Pre-Deployment: Local Preparation
 
 ### Step 1: Build Frontend Assets Locally

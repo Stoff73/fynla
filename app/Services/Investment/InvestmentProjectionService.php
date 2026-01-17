@@ -22,6 +22,29 @@ class InvestmentProjectionService
     ) {}
 
     /**
+     * Get the user's share value for an account (handles joint ownership).
+     */
+    private function getUserShareValue(InvestmentAccount $account): float
+    {
+        $fullValue = (float) $account->current_value;
+
+        if ($account->ownership_type === 'joint') {
+            $percentage = (float) ($account->ownership_percentage ?? 50) / 100;
+            return $fullValue * $percentage;
+        }
+
+        return $fullValue;
+    }
+
+    /**
+     * Get total portfolio value accounting for joint ownership.
+     */
+    private function getTotalPortfolioValue(Collection $accounts): float
+    {
+        return $accounts->sum(fn ($account) => $this->getUserShareValue($account));
+    }
+
+    /**
      * Get complete portfolio projections with account breakdowns.
      */
     public function getPortfolioProjections(
@@ -75,7 +98,7 @@ class InvestmentProjectionService
         array $periods,
         ?array $contributionOverrides
     ): array {
-        $totalValue = $accounts->sum('current_value');
+        $totalValue = $this->getTotalPortfolioValue($accounts);
         $monthlyContribution = $this->contributionEstimator->estimatePortfolioContribution(
             $accounts,
             $contributionOverrides
@@ -132,7 +155,7 @@ class InvestmentProjectionService
         array $periods,
         ?float $contributionOverride
     ): array {
-        $value = (float) $account->current_value;
+        $value = $this->getUserShareValue($account);
         $monthlyContribution = $this->contributionEstimator->estimateMonthlyContribution(
             $account,
             $contributionOverride
@@ -242,7 +265,7 @@ class InvestmentProjectionService
 
     private function calculatePortfolioRisk(Collection $accounts, User $user): array
     {
-        $totalValue = $accounts->sum('current_value');
+        $totalValue = $this->getTotalPortfolioValue($accounts);
 
         if ($totalValue <= 0) {
             return $this->riskService->getReturnParameters('medium');
@@ -252,7 +275,7 @@ class InvestmentProjectionService
         $weightedVolatility = 0.0;
 
         foreach ($accounts as $account) {
-            $weight = (float) $account->current_value / $totalValue;
+            $weight = $this->getUserShareValue($account) / $totalValue;
             $riskLevel = $account->risk_preference
                 ?? $this->riskService->getMainRiskLevel($user->id)
                 ?? 'medium';
@@ -296,5 +319,69 @@ class InvestmentProjectionService
             'sipp' => 'SIPP',
             default => ucfirst($type),
         };
+    }
+
+    /**
+     * Calculate projections for a single account with optional risk level override.
+     * Used for "what-if" scenarios to show how projections change with different risk levels.
+     */
+    public function getAccountProjectionWithRiskOverride(
+        InvestmentAccount $account,
+        User $user,
+        ?string $riskLevelOverride = null,
+        array $periods = self::DEFAULT_PROJECTION_PERIODS
+    ): array {
+        $value = $this->getUserShareValue($account);
+        $monthlyContribution = $this->contributionEstimator->estimateMonthlyContribution($account);
+
+        // Use override risk level if provided, otherwise use account's or user's
+        $riskLevel = $riskLevelOverride
+            ?? $account->risk_preference
+            ?? $this->riskService->getMainRiskLevel($user->id)
+            ?? 'medium';
+
+        $riskParams = $this->riskService->getReturnParameters($riskLevel);
+
+        $projections = [];
+        foreach ($periods as $years) {
+            $simulation = $this->simulator->simulate(
+                $value,
+                $monthlyContribution,
+                $riskParams['expected_return_typical'] / 100,
+                $riskParams['volatility'] / 100,
+                $years,
+                self::MONTE_CARLO_ITERATIONS
+            );
+
+            $yearByYear = $this->extractProbabilityBands($simulation);
+            $finalYear = end($yearByYear);
+
+            $projections[$years] = [
+                'years' => $years,
+                'median_value' => $finalYear['percentile_50'] ?? $value,
+                'percentiles' => [
+                    'p5' => $finalYear['percentile_5'] ?? $value,
+                    'p10' => $finalYear['percentile_10'] ?? $value,
+                    'p15' => $finalYear['percentile_15'] ?? $value,
+                    'p20' => $finalYear['percentile_20'] ?? $value,
+                    'p50' => $finalYear['percentile_50'] ?? $value,
+                    'p75' => $finalYear['percentile_75'] ?? $value,
+                    'p90' => $finalYear['percentile_90'] ?? $value,
+                ],
+                'year_by_year' => $yearByYear,
+            ];
+        }
+
+        return [
+            'account_id' => $account->id,
+            'account_name' => $account->provider.' '.$this->formatAccountType($account->account_type),
+            'account_type' => $account->account_type,
+            'current_value' => round($value, 2),
+            'estimated_monthly_contribution' => round($monthlyContribution, 2),
+            'risk_level' => $riskLevel,
+            'expected_return' => $riskParams['expected_return_typical'],
+            'volatility' => $riskParams['volatility'],
+            'projections' => $projections,
+        ];
     }
 }

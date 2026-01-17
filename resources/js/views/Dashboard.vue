@@ -38,6 +38,11 @@
           <TaxOptimisationCard v-else />
         </div>
 
+        <!-- Goals -->
+        <div class="flex">
+          <GoalsOverviewCard />
+        </div>
+
         <!-- Estate -->
         <div v-if="shouldShowEstateCard" class="flex">
           <div v-if="loading.estate" class="card animate-pulse">
@@ -123,6 +128,7 @@ import NetWorthOverviewCard from '@/components/Dashboard/NetWorthOverviewCard.vu
 import RetirementOverviewCard from '@/components/Dashboard/RetirementOverviewCard.vue';
 import InvestmentsOverviewCard from '@/components/Dashboard/InvestmentsOverviewCard.vue';
 import TaxOptimisationCard from '@/components/Dashboard/TaxOptimisationCard.vue';
+import GoalsOverviewCard from '@/components/Dashboard/GoalsOverviewCard.vue';
 import ProtectionOverviewCard from '@/components/Protection/ProtectionOverviewCard.vue';
 import EstateOverviewCard from '@/components/Estate/EstateOverviewCard.vue';
 import UKTaxesOverviewCard from '@/components/Dashboard/UKTaxesOverviewCard.vue';
@@ -137,6 +143,7 @@ export default {
     RetirementOverviewCard,
     InvestmentsOverviewCard,
     TaxOptimisationCard,
+    GoalsOverviewCard,
     ProtectionOverviewCard,
     EstateOverviewCard,
     UKTaxesOverviewCard,

@@ -58,102 +58,76 @@
         <p class="empty-subtitle">Add your first investment account to track your portfolio</p>
       </div>
 
-      <div v-else class="investments-grid">
-        <div
-          v-for="account in accounts"
-          :key="account.id"
-          @click="selectAccount(account)"
-          class="investment-card"
-        >
-          <div class="card-header">
-            <span :class="['badge', getOwnershipBadgeClass(account.ownership_type)]">
-              {{ formatOwnershipType(account.ownership_type) }}
-            </span>
-            <span :class="['badge', accountTypeBadgeClass(account.account_type)]">
-              {{ formatAccountType(account.account_type) }}
-            </span>
-            <RiskBadge
-              v-if="account.risk_preference"
-              :level="account.risk_preference"
-              size="sm"
-              :abbreviated="true"
-              :has-custom-risk="account.has_custom_risk"
-            />
-          </div>
-          <div class="card-content">
-            <h4 class="account-provider">{{ account.provider }}</h4>
-            <p class="account-name-text">{{ account.account_name }}</p>
-            <div class="account-details">
-              <!-- Joint account display -->
-              <template v-if="account.ownership_type === 'joint'">
-                <div class="detail-row">
-                  <span class="detail-label">Full Value</span>
-                  <span class="detail-value">{{ formatCurrency(account.current_value) }}</span>
-                </div>
-                <div class="detail-row">
-                  <span class="detail-label">Your Share ({{ account.ownership_percentage || 50 }}%)</span>
-                  <span class="detail-value text-purple-600">{{ formatCurrency(account.current_value * ((account.ownership_percentage || 50) / 100)) }}</span>
-                </div>
-              </template>
-              <!-- Individual account -->
-              <template v-else>
-                <div class="detail-row">
-                  <span class="detail-label">Current Value</span>
-                  <span class="detail-value">{{ formatCurrency(account.current_value) }}</span>
-                </div>
-              </template>
-
-              <!-- ISA allowance info -->
-              <div v-if="account.account_type === 'isa'" class="isa-info">
-                <div class="detail-row">
-                  <span class="detail-label">ISA Used (YTD)</span>
-                  <span class="detail-value text-green-600">{{ formatCurrency(account.isa_subscription_current_year || 0) }}</span>
-                </div>
-              </div>
-
-              <div v-if="account.ytd_return" class="detail-row">
-                <span class="detail-label">YTD Return</span>
-                <span class="detail-value" :class="getReturnColorClass(account.ytd_return)">
-                  {{ formatReturn(account.ytd_return) }}
+      <!-- Two-column layout: Account Cards (left) + Performance Chart (right) -->
+      <div v-else class="main-content-grid">
+        <!-- Left Column: Compact Account Cards -->
+        <div class="accounts-column">
+          <div
+            v-for="account in accounts"
+            :key="account.id"
+            @click="selectAccount(account)"
+            class="compact-account-card"
+          >
+              <div class="card-header">
+                <span :class="['badge', getOwnershipBadgeClass(account.ownership_type)]">
+                  {{ formatOwnershipType(account.ownership_type) }}
                 </span>
+                <span :class="['badge', accountTypeBadgeClass(account.account_type)]">
+                  {{ formatAccountType(account.account_type) }}
+                </span>
+                <RiskBadge
+                  v-if="account.risk_preference"
+                  :level="account.risk_preference"
+                  size="sm"
+                  :abbreviated="true"
+                  :has-custom-risk="account.has_custom_risk"
+                />
+              </div>
+              <div class="card-content">
+                <h4 class="account-provider">{{ account.provider }}</h4>
+                <p class="account-name-text">{{ account.account_name }}</p>
+                <div class="account-details">
+                  <!-- Joint account display -->
+                  <template v-if="account.ownership_type === 'joint'">
+                    <div class="detail-row">
+                      <span class="detail-label">Full Value</span>
+                      <span class="detail-value">{{ formatCurrency(account.current_value) }}</span>
+                    </div>
+                    <div class="detail-row">
+                      <span class="detail-label">Your Share ({{ account.ownership_percentage || 50 }}%)</span>
+                      <span class="detail-value text-purple-600">{{ formatCurrency(account.current_value * ((account.ownership_percentage || 50) / 100)) }}</span>
+                    </div>
+                  </template>
+                  <!-- Individual account -->
+                  <template v-else>
+                    <div class="detail-row">
+                      <span class="detail-label">Current Value</span>
+                      <span class="detail-value">{{ formatCurrency(account.current_value) }}</span>
+                    </div>
+                  </template>
+
+                  <!-- ISA allowance info -->
+                  <div v-if="account.account_type === 'isa'" class="isa-info">
+                    <div class="detail-row">
+                      <span class="detail-label">ISA Used (YTD)</span>
+                      <span class="detail-value text-green-600">{{ formatCurrency(account.isa_subscription_current_year || 0) }}</span>
+                    </div>
+                  </div>
+
+                  <div v-if="account.ytd_return" class="detail-row">
+                    <span class="detail-label">YTD Return</span>
+                    <span class="detail-value" :class="getReturnColorClass(account.ytd_return)">
+                      {{ formatReturn(account.ytd_return) }}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      <!-- Portfolio Summary -->
-      <div v-if="accounts.length > 0" class="wealth-summary">
-        <h3 class="summary-title">Investment Portfolio Summary</h3>
-        <div class="summary-grid">
-          <div class="summary-item portfolio">
-            <p class="summary-label">Total Portfolio Value</p>
-            <p class="summary-value">{{ formatCurrency(totalPortfolioValue) }}</p>
-            <p class="summary-count">{{ accounts.length }} account{{ accounts.length !== 1 ? 's' : '' }}</p>
-          </div>
-          <div class="summary-item returns" :class="(portfolioGrossReturn || 0) >= 0 ? 'positive' : 'negative'">
-            <p class="summary-label">Annualised Return</p>
-            <div class="return-values">
-              <div class="return-row">
-                <span class="return-label">Gross</span>
-                <span class="return-value" :class="(portfolioGrossReturn || 0) >= 0 ? 'text-green-600' : 'text-red-600'">
-                  {{ portfolioGrossReturn !== null ? formatReturn(portfolioGrossReturn) : 'N/A' }}
-                </span>
-              </div>
-              <div class="return-row">
-                <span class="return-label">Net of fees</span>
-                <span class="return-value" :class="(portfolioNetReturn || 0) >= 0 ? 'text-green-600' : 'text-red-600'">
-                  {{ portfolioNetReturn !== null ? formatReturn(portfolioNetReturn) : 'N/A' }}
-                </span>
-              </div>
-            </div>
-            <p class="summary-count">{{ holdingsCount }} holding{{ holdingsCount !== 1 ? 's' : '' }}</p>
-          </div>
-          <div class="summary-item diversification">
-            <p class="summary-label">Diversification Score</p>
-            <p class="summary-value">{{ portfolioDiversificationScore }}/100</p>
-            <p class="summary-count">{{ diversificationLabel }}</p>
-          </div>
+        <!-- Right Column: Portfolio Performance -->
+        <div class="performance-section">
+          <Performance />
         </div>
       </div>
 
@@ -789,18 +763,43 @@ export default {
   height: 20px;
 }
 
-.investments-grid {
+/* Two-column layout: Account Cards (left) + Performance Chart (right) */
+.main-content-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: 280px 1fr;
   gap: 20px;
   margin-bottom: 24px;
+}
+
+.accounts-column {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.compact-account-card {
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  padding: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.compact-account-card:hover {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  border-color: #3b82f6;
+}
+
+.performance-section {
+  min-width: 0;
 }
 
 .investment-card {
   background: white;
   border-radius: 12px;
   border: 1px solid #e5e7eb;
-  padding: 20px;
+  padding: 16px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -813,19 +812,28 @@ export default {
 
 .card-header {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 12px;
+  justify-content: flex-start;
+  align-items: center;
+  margin-bottom: 8px;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
+}
+
+.compact-account-card .card-header {
+  margin-bottom: 6px;
 }
 
 .badge {
   display: inline-block;
-  padding: 4px 10px;
-  font-size: 11px;
+  padding: 3px 8px;
+  font-size: 10px;
   font-weight: 600;
-  border-radius: 6px;
+  border-radius: 4px;
+}
+
+.compact-account-card .badge {
+  padding: 2px 6px;
+  font-size: 9px;
 }
 
 .badge-individual {
@@ -881,7 +889,11 @@ export default {
 .card-content {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
+}
+
+.compact-account-card .card-content {
+  gap: 4px;
 }
 
 .account-provider {
@@ -891,11 +903,21 @@ export default {
   margin: 0;
 }
 
+.compact-account-card .account-provider {
+  font-size: 14px;
+  font-weight: 600;
+}
+
 .account-name-text {
   font-size: 14px;
   color: #6b7280;
   margin: 0;
   min-height: 20px;
+}
+
+.compact-account-card .account-name-text {
+  font-size: 12px;
+  min-height: auto;
 }
 
 .account-details {
@@ -905,6 +927,12 @@ export default {
   margin-top: 8px;
   padding-top: 12px;
   border-top: 1px solid #e5e7eb;
+}
+
+.compact-account-card .account-details {
+  gap: 4px;
+  margin-top: 6px;
+  padding-top: 8px;
 }
 
 .detail-row {
@@ -924,11 +952,25 @@ export default {
   font-weight: 700;
 }
 
+.compact-account-card .detail-label {
+  font-size: 11px;
+}
+
+.compact-account-card .detail-value {
+  font-size: 13px;
+  font-weight: 600;
+}
+
 .isa-info {
   background: #f0fdf4;
   border-radius: 6px;
   padding: 8px;
   margin: 4px 0;
+}
+
+.compact-account-card .isa-info {
+  padding: 6px;
+  margin: 2px 0;
 }
 
 .loading-state,
@@ -983,8 +1025,8 @@ export default {
   padding: 24px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   border: 1px solid #e5e7eb;
-  margin-bottom: 24px;
 }
+
 
 .summary-title {
   font-size: 18px;
@@ -1163,6 +1205,22 @@ export default {
   }
 }
 
+@media (max-width: 1024px) {
+  .main-content-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .accounts-column {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    order: 2;
+  }
+
+  .performance-section {
+    order: 1;
+  }
+}
+
 @media (max-width: 768px) {
   .investment-list {
     padding: 16px;
@@ -1184,7 +1242,12 @@ export default {
     justify-content: center;
   }
 
-  .investments-grid {
+  .main-content-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .accounts-column {
     grid-template-columns: 1fr;
   }
 

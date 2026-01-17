@@ -17,32 +17,9 @@
 
     <!-- Tax Optimization Content -->
     <div v-else>
-      <!-- Header Section with Tax Efficiency Score -->
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        <!-- Tax Efficiency Score Card -->
-        <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg shadow-md p-6 lg:col-span-1">
-          <h3 class="text-lg font-semibold text-gray-800 mb-4">Tax Efficiency Score</h3>
-          <div class="flex items-center justify-center mb-4">
-            <div class="relative">
-              <apexchart
-                v-if="taxAnalysis"
-                type="radialBar"
-                :options="efficiencyScoreChartOptions"
-                :series="[taxAnalysis.efficiency_score.score]"
-                height="200"
-              />
-            </div>
-          </div>
-          <div class="text-center">
-            <p class="text-3xl font-bold mb-1" :class="getScoreColour(taxAnalysis?.efficiency_score?.grade)">
-              {{ taxAnalysis?.efficiency_score?.grade || 'N/A' }}
-            </p>
-            <p class="text-sm text-gray-600">{{ taxAnalysis?.efficiency_score?.interpretation }}</p>
-          </div>
-        </div>
-
-        <!-- Current Tax Position Summary -->
-        <div class="bg-white rounded-lg shadow-md p-6 lg:col-span-2">
+      <!-- Current Tax Position Summary -->
+      <div class="mb-6">
+        <div class="bg-white rounded-lg shadow-md p-6">
           <h3 class="text-lg font-semibold text-gray-800 mb-4">Current Tax Position ({{ taxYear }})</h3>
           <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
@@ -198,59 +175,6 @@ export default {
     isPreviewMode() {
       return this.$store.getters['preview/isPreviewMode'];
     },
-    efficiencyScoreChartOptions() {
-      const score = this.taxAnalysis?.efficiency_score?.score || 0;
-      const grade = this.taxAnalysis?.efficiency_score?.grade || 'N/A';
-
-      return {
-        chart: {
-          type: 'radialBar',
-          sparkline: {
-            enabled: true,
-          },
-        },
-        plotOptions: {
-          radialBar: {
-            startAngle: -135,
-            endAngle: 135,
-            hollow: {
-              size: '65%',
-            },
-            track: {
-              background: '#e5e7eb',
-              strokeWidth: '100%',
-            },
-            dataLabels: {
-              name: {
-                show: false,
-              },
-              value: {
-                show: true,
-                fontSize: '24px',
-                fontWeight: 'bold',
-                offsetY: 8,
-                color: this.getScoreColourHex(grade),
-                formatter: (val) => `${Math.round(val)}`,
-              },
-            },
-          },
-        },
-        fill: {
-          type: 'gradient',
-          gradient: {
-            shade: 'dark',
-            type: 'horizontal',
-            shadeIntensity: 0.5,
-            gradientToColours: [this.getScoreColourHex(grade)],
-            stops: [0, 100],
-          },
-        },
-        stroke: {
-          lineCap: 'round',
-        },
-        colours: [this.getScoreColourHex(grade)],
-      };
-    },
   },
 
   mounted() {
@@ -345,30 +269,6 @@ export default {
         // After April 6 - use current year
         return `${year}/${String(year + 1).slice(-2)}`;
       }
-    },
-
-    getScoreColour(grade) {
-      const colours = {
-        'A': 'text-green-600',
-        'B': 'text-blue-600',
-        'C': 'text-yellow-600',
-        'D': 'text-orange-600',
-        'E': 'text-red-600',
-        'F': 'text-red-700',
-      };
-      return colours[grade] || 'text-gray-600';
-    },
-
-    getScoreColourHex(grade) {
-      const colours = {
-        'A': '#10B981', // green-600
-        'B': '#3B82F6', // blue-600
-        'C': '#FBBF24', // yellow-600
-        'D': '#F97316', // orange-600
-        'E': '#EF4444', // red-600
-        'F': '#DC2626', // red-700
-      };
-      return colours[grade] || '#6B7280'; // gray-600
     },
 
     formatNumber(value) {

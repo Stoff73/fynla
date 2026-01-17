@@ -43,19 +43,7 @@
       </div>
 
       <!-- Section A: Overview Cards -->
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <!-- Tax Efficiency Score -->
-        <div class="bg-gray-50 rounded-lg p-4">
-          <p class="text-sm text-gray-600 mb-1">Tax Efficiency Score</p>
-          <div class="flex items-baseline">
-            <p class="text-3xl font-bold" :class="getScoreClass(efficiencyScore.score)">{{ efficiencyScore.score }}</p>
-            <span class="ml-2 text-lg font-semibold" :class="getGradeClass(efficiencyScore.grade)">
-              Grade {{ efficiencyScore.grade }}
-            </span>
-          </div>
-          <p class="text-xs text-gray-500 mt-1">{{ efficiencyScore.interpretation }}</p>
-        </div>
-
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <!-- ISA Allowance -->
         <div class="bg-gray-50 rounded-lg p-4">
           <p class="text-sm text-gray-600 mb-1">ISA Allowance Used</p>
@@ -407,10 +395,6 @@ export default {
       return this.taxData?.current_position || {};
     },
 
-    efficiencyScore() {
-      return this.taxData?.efficiency_score || { score: 0, grade: 'N/A', interpretation: '' };
-    },
-
     potentialSavings() {
       return this.taxData?.potential_savings || { total_potential_savings: 0 };
     },
@@ -518,18 +502,6 @@ export default {
       } finally {
         this.loading = false;
       }
-    },
-
-    getScoreClass(score) {
-      if (score >= 80) return 'text-green-600';
-      if (score >= 60) return 'text-amber-600';
-      return 'text-red-600';
-    },
-
-    getGradeClass(grade) {
-      if (['A', 'B'].includes(grade)) return 'text-green-600';
-      if (['C', 'D'].includes(grade)) return 'text-amber-600';
-      return 'text-red-600';
     },
 
     getPriorityClass(priority) {

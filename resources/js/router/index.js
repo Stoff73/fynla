@@ -32,6 +32,7 @@ const PolicyDetail = () => import('@/components/Protection/PolicyDetail.vue');
 const ComprehensiveProtectionPlan = () => import('@/views/Protection/ComprehensiveProtectionPlan.vue');
 const SavingsDashboard = () => import('@/views/Savings/SavingsDashboard.vue');
 const SavingsAccountDetail = () => import('@/views/Savings/SavingsAccountDetail.vue');
+const GoalsDashboard = () => import('@/views/Goals/GoalsDashboard.vue');
 const CashOverview = () => import('@/views/NetWorth/CashOverview.vue');
 const RiskProfilePage = () => import('@/views/Risk/RiskProfilePage.vue');
 const RiskLevelsExplainedPage = () => import('@/views/Risk/RiskLevelsExplainedPage.vue');
@@ -290,6 +291,18 @@ const routes = [
         { label: 'Home', path: '/dashboard' },
         { label: 'Savings', path: '/savings' },
         { label: 'Account', path: '' },
+      ],
+    },
+  },
+  {
+    path: '/goals',
+    name: 'Goals',
+    component: GoalsDashboard,
+    meta: {
+      requiresAuth: true,
+      breadcrumb: [
+        { label: 'Home', path: '/dashboard' },
+        { label: 'Goals', path: '/goals' },
       ],
     },
   },
@@ -570,6 +583,12 @@ const routes = [
     meta: { public: true, previewMode: true },
   },
   {
+    path: '/preview/goals',
+    name: 'PreviewGoals',
+    component: GoalsDashboard,
+    meta: { public: true, previewMode: true },
+  },
+  {
     path: '/preview/investment',
     redirect: '/preview/net-worth/investments',
   },
@@ -688,6 +707,7 @@ router.afterEach((to) => {
   const moduleMap = {
     '/protection': 'protection',
     '/savings': 'savings',
+    '/goals': 'goals',
     '/investment': 'investment',
     '/net-worth/investments': 'investment',
     '/net-worth/retirement': 'retirement',

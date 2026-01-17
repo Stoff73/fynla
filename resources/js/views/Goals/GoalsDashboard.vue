@@ -1,0 +1,440 @@
+<template>
+  <AppLayout>
+    <div class="goals-dashboard py-2 sm:py-6">
+      <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="mb-8">
+          <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2">Goals & Financial Planning</h1>
+          <p class="text-gray-600">
+            Set financial goals, track your progress, and stay on track to achieve what matters most
+          </p>
+        </div>
+
+        <!-- Loading State -->
+        <div v-if="loading" class="flex justify-center items-center py-12">
+          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+        </div>
+
+        <!-- Error State -->
+        <div
+          v-else-if="error"
+          class="bg-red-50 border-l-4 border-red-500 p-4 mb-6"
+        >
+          <div class="flex">
+            <div class="flex-shrink-0">
+              <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+              </svg>
+            </div>
+            <div class="ml-3">
+              <p class="text-sm text-red-700">{{ error }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Main Content -->
+        <div v-else class="bg-white rounded-lg shadow">
+          <!-- Tab Navigation -->
+          <div class="border-b border-gray-200">
+            <nav class="-mb-px flex overflow-x-auto" aria-label="Tabs">
+              <button
+                v-for="tab in tabs"
+                :key="tab.id"
+                @click="activeTab = tab.id"
+                :class="[
+                  activeTab === tab.id
+                    ? 'border-primary-500 text-primary-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+                  'whitespace-nowrap py-3 sm:py-4 px-3 sm:px-6 border-b-2 font-medium text-xs sm:text-sm transition-colors duration-200 flex-shrink-0',
+                ]"
+              >
+                {{ tab.label }}
+              </button>
+            </nav>
+          </div>
+
+          <!-- Tab Content -->
+          <div class="p-6">
+            <!-- Overview Tab -->
+            <div v-if="activeTab === 'overview'">
+              <GoalsOverview
+                :summary="summary"
+                :top-goals="topGoals"
+                :best-streak="bestStreak"
+                @create-goal="openCreateModal"
+                @view-goal="viewGoal"
+              />
+            </div>
+
+            <!-- All Goals Tab -->
+            <div v-else-if="activeTab === 'all'">
+              <GoalsList
+                :goals="filteredGoals"
+                :filters="filters"
+                @update-filters="updateFilters"
+                @edit-goal="openEditModal"
+                @delete-goal="confirmDeleteGoal"
+                @add-contribution="openContributionModal"
+                @create-goal="openCreateModal"
+              />
+            </div>
+
+            <!-- By Module Tab -->
+            <div v-else-if="activeTab === 'modules'">
+              <GoalsByModule
+                :goals-by-module="goalsByModule"
+                @edit-goal="openEditModal"
+                @view-goal="viewGoal"
+              />
+            </div>
+
+            <!-- Analysis Tab -->
+            <div v-else-if="activeTab === 'analysis'">
+              <GoalsAnalysis
+                :analysis="analysis"
+                :loading="analysisLoading"
+                @refresh="fetchAnalysis"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Create/Edit Goal Modal -->
+    <GoalFormModal
+      :is-open="showGoalModal"
+      :goal="editingGoal"
+      @close="closeGoalModal"
+      @save="handleSaveGoal"
+    />
+
+    <!-- Contribution Modal -->
+    <ContributionModal
+      :is-open="showContributionModal"
+      :goal="contributionGoal"
+      @close="closeContributionModal"
+      @save="handleSaveContribution"
+    />
+
+    <!-- Delete Confirmation Modal -->
+    <div v-if="showDeleteModal" class="fixed inset-0 z-50 overflow-y-auto">
+      <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" @click="closeDeleteModal"></div>
+        <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+          <div class="bg-white px-4 pt-5 pb-4 sm:p-6">
+            <div class="sm:flex sm:items-start">
+              <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">Delete Goal</h3>
+                <div class="mt-2">
+                  <p class="text-sm text-gray-500">
+                    Are you sure you want to delete "{{ deletingGoal?.goal_name }}"? This action cannot be undone.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+            <button
+              type="button"
+              @click="handleDeleteGoal"
+              :disabled="deleteLoading"
+              class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50"
+            >
+              {{ deleteLoading ? 'Deleting...' : 'Delete' }}
+            </button>
+            <button
+              type="button"
+              @click="closeDeleteModal"
+              class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:w-auto sm:text-sm"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </AppLayout>
+</template>
+
+<script>
+import { mapState, mapGetters, mapActions } from 'vuex';
+import AppLayout from '@/layouts/AppLayout.vue';
+import GoalFormModal from '@/components/Goals/GoalFormModal.vue';
+import GoalsOverview from '@/components/Goals/GoalsOverview.vue';
+import GoalsList from '@/components/Goals/GoalsList.vue';
+import GoalsByModule from '@/components/Goals/GoalsByModule.vue';
+import GoalsAnalysis from '@/components/Goals/GoalsAnalysis.vue';
+import ContributionModal from '@/components/Goals/ContributionModal.vue';
+
+export default {
+  name: 'GoalsDashboard',
+
+  components: {
+    AppLayout,
+    GoalFormModal,
+    GoalsOverview,
+    GoalsList,
+    GoalsByModule,
+    GoalsAnalysis,
+    ContributionModal,
+  },
+
+  data() {
+    return {
+      activeTab: 'overview',
+      tabs: [
+        { id: 'overview', label: 'Overview' },
+        { id: 'all', label: 'All Goals' },
+        { id: 'modules', label: 'By Module' },
+        { id: 'analysis', label: 'Analysis' },
+      ],
+      showGoalModal: false,
+      editingGoal: null,
+      showContributionModal: false,
+      contributionGoal: null,
+      showDeleteModal: false,
+      deletingGoal: null,
+      deleteLoading: false,
+      filters: {
+        status: 'all',
+        module: 'all',
+        priority: 'all',
+        search: '',
+      },
+      analysisLoading: false,
+    };
+  },
+
+  computed: {
+    ...mapState('goals', ['loading', 'error', 'goals', 'analysis']),
+    ...mapGetters('goals', ['dashboardData', 'goalsForModule']),
+
+    summary() {
+      return {
+        total_goals: this.dashboardData?.total_goals || 0,
+        on_track_count: this.dashboardData?.on_track_count || 0,
+        total_target: this.dashboardData?.total_target || 0,
+        total_current: this.dashboardData?.total_current || 0,
+        overall_progress: this.dashboardData?.overall_progress || 0,
+      };
+    },
+
+    topGoals() {
+      return this.dashboardData?.top_goals || [];
+    },
+
+    bestStreak() {
+      return this.dashboardData?.best_streak || 0;
+    },
+
+    goalsByModule() {
+      return {
+        savings: this.goalsForModule('savings'),
+        investment: this.goalsForModule('investment'),
+        property: this.goalsForModule('property'),
+        retirement: this.goalsForModule('retirement'),
+      };
+    },
+
+    filteredGoals() {
+      let result = [...this.goals];
+
+      // Filter by status
+      if (this.filters.status !== 'all') {
+        if (this.filters.status === 'on_track') {
+          result = result.filter(g => g.is_on_track);
+        } else if (this.filters.status === 'behind') {
+          result = result.filter(g => !g.is_on_track && g.status === 'active');
+        } else {
+          result = result.filter(g => g.status === this.filters.status);
+        }
+      }
+
+      // Filter by module
+      if (this.filters.module !== 'all') {
+        result = result.filter(g => g.assigned_module === this.filters.module);
+      }
+
+      // Filter by priority
+      if (this.filters.priority !== 'all') {
+        result = result.filter(g => g.priority === this.filters.priority);
+      }
+
+      // Filter by search
+      if (this.filters.search) {
+        const search = this.filters.search.toLowerCase();
+        result = result.filter(g =>
+          g.goal_name.toLowerCase().includes(search) ||
+          (g.description && g.description.toLowerCase().includes(search))
+        );
+      }
+
+      return result;
+    },
+  },
+
+  mounted() {
+    this.loadGoalsData();
+
+    // Check for action query parameter (e.g., from dashboard empty state CTA)
+    if (this.$route.query.action === 'create') {
+      this.openCreateModal();
+    }
+  },
+
+  methods: {
+    ...mapActions('goals', [
+      'fetchGoals',
+      'fetchDashboardOverview',
+      'fetchAnalysis',
+      'createGoal',
+      'updateGoal',
+      'deleteGoal',
+      'recordContribution',
+    ]),
+
+    async loadGoalsData() {
+      try {
+        await Promise.all([
+          this.fetchGoals(),
+          this.fetchDashboardOverview(),
+        ]);
+      } catch (error) {
+        console.error('Failed to load goals data:', error);
+      }
+    },
+
+    async loadAnalysis() {
+      this.analysisLoading = true;
+      try {
+        await this.fetchAnalysis();
+      } catch (error) {
+        console.error('Failed to load analysis:', error);
+      } finally {
+        this.analysisLoading = false;
+      }
+    },
+
+    updateFilters(newFilters) {
+      this.filters = { ...this.filters, ...newFilters };
+    },
+
+    openCreateModal() {
+      this.editingGoal = null;
+      this.showGoalModal = true;
+    },
+
+    openEditModal(goal) {
+      this.editingGoal = goal;
+      this.showGoalModal = true;
+    },
+
+    closeGoalModal() {
+      this.showGoalModal = false;
+      this.editingGoal = null;
+    },
+
+    async handleSaveGoal(formData) {
+      try {
+        if (this.editingGoal) {
+          await this.updateGoal({ goalId: this.editingGoal.id, goalData: formData });
+        } else {
+          await this.createGoal(formData);
+        }
+        this.closeGoalModal();
+        await this.loadGoalsData();
+      } catch (error) {
+        console.error('Failed to save goal:', error);
+      }
+    },
+
+    openContributionModal(goal) {
+      this.contributionGoal = goal;
+      this.showContributionModal = true;
+    },
+
+    closeContributionModal() {
+      this.showContributionModal = false;
+      this.contributionGoal = null;
+    },
+
+    async handleSaveContribution(contributionData) {
+      try {
+        await this.recordContribution({
+          goalId: this.contributionGoal.id,
+          contributionData: contributionData,
+        });
+        this.closeContributionModal();
+        await this.loadGoalsData();
+      } catch (error) {
+        console.error('Failed to record contribution:', error);
+      }
+    },
+
+    confirmDeleteGoal(goal) {
+      this.deletingGoal = goal;
+      this.showDeleteModal = true;
+    },
+
+    closeDeleteModal() {
+      this.showDeleteModal = false;
+      this.deletingGoal = null;
+    },
+
+    async handleDeleteGoal() {
+      if (!this.deletingGoal) return;
+
+      this.deleteLoading = true;
+      try {
+        await this.deleteGoal(this.deletingGoal.id);
+        this.closeDeleteModal();
+        await this.loadGoalsData();
+      } catch (error) {
+        console.error('Failed to delete goal:', error);
+      } finally {
+        this.deleteLoading = false;
+      }
+    },
+
+    viewGoal(goal) {
+      // For now, open edit modal - could add a detail view later
+      this.openEditModal(goal);
+    },
+  },
+
+  watch: {
+    activeTab(newTab) {
+      if (newTab === 'analysis' && !this.analysis) {
+        this.loadAnalysis();
+      }
+    },
+  },
+};
+</script>
+
+<style scoped>
+/* Mobile optimization for tab navigation */
+@media (max-width: 640px) {
+  .goals-dashboard nav[aria-label="Tabs"] button {
+    font-size: 0.875rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+/* Smooth scroll for tab navigation on mobile */
+nav[aria-label="Tabs"] {
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+nav[aria-label="Tabs"]::-webkit-scrollbar {
+  display: none;
+}
+</style>
