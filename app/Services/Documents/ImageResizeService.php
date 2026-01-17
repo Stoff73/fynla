@@ -153,6 +153,11 @@ class ImageResizeService
     {
         $maxDim = self::MAX_DIMENSION;
 
+        // Guard against zero dimensions
+        if ($width <= 0 || $height <= 0) {
+            return [1, 1];
+        }
+
         if ($width <= $maxDim && $height <= $maxDim) {
             return [$width, $height];
         }

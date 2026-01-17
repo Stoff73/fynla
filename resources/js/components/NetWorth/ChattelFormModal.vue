@@ -200,19 +200,29 @@
               </div>
             </div>
 
-            <div v-if="form.ownership_type === 'joint'" class="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Joint Owner</label>
-                <select
-                  v-model="form.joint_owner_id"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
-                >
-                  <option :value="null">Select joint owner</option>
-                  <option v-if="spouse" :value="spouse.id">{{ spouse.first_name }} {{ spouse.surname }}</option>
-                </select>
+            <div v-if="form.ownership_type === 'joint'" class="space-y-4 p-4 bg-gray-50 rounded-lg">
+              <!-- Ownership Split Display -->
+              <div class="bg-white p-3 rounded border border-pink-300">
+                <div class="flex justify-between items-center">
+                  <div>
+                    <p class="text-sm font-medium text-gray-700">Your Share</p>
+                    <p class="text-2xl font-bold text-pink-600">{{ form.ownership_percentage || 50 }}%</p>
+                  </div>
+                  <div class="text-gray-400">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                    </svg>
+                  </div>
+                  <div class="text-right">
+                    <p class="text-sm font-medium text-gray-700">Joint Owner's Share</p>
+                    <p class="text-2xl font-bold text-pink-600">{{ 100 - (form.ownership_percentage || 50) }}%</p>
+                  </div>
+                </div>
               </div>
+
+              <!-- Ownership Percentage Input -->
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Your Share (%)</label>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Your Ownership Share (%)</label>
                 <input
                   v-model.number="form.ownership_percentage"
                   type="number"
@@ -221,7 +231,40 @@
                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
                   placeholder="50"
                 />
+                <p class="text-xs text-gray-500 mt-1">Default is 50/50. Adjust if ownership split is different.</p>
               </div>
+
+              <!-- Joint Owner Selection -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Joint Owner</label>
+                <select
+                  v-model="jointOwnerSelection"
+                  @change="handleJointOwnerSelection"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+                >
+                  <option value="">Select joint owner</option>
+                  <option v-if="spouse" :value="'linked_' + spouse.id">{{ spouse.name }} (Spouse - Linked Account)</option>
+                  <option value="other">Other (Enter Name)</option>
+                </select>
+              </div>
+
+              <!-- Free Text Joint Owner Name -->
+              <div v-if="jointOwnerSelection === 'other'">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Joint Owner Name</label>
+                <input
+                  v-model="form.joint_owner_name"
+                  type="text"
+                  placeholder="Enter joint owner's full name"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+                />
+                <p class="text-xs text-gray-500 mt-1">
+                  Note: This person doesn't have an account in the system. The chattel will only appear in your account.
+                </p>
+              </div>
+
+              <p class="text-xs text-gray-500">
+                Joint assets with linked accounts will appear in both owners' accounts with respective ownership percentages.
+              </p>
             </div>
           </div>
 
@@ -261,8 +304,6 @@
 </template>
 
 <script>
-import { mapState } from 'vuex';
-
 export default {
   name: 'ChattelFormModal',
 
@@ -281,6 +322,7 @@ export default {
 
   data() {
     return {
+      jointOwnerSelection: '',
       form: {
         chattel_type: 'other',
         name: '',
@@ -288,6 +330,7 @@ export default {
         ownership_type: 'individual',
         ownership_percentage: 100,
         joint_owner_id: null,
+        joint_owner_name: '',
         current_value: null,
         valuation_date: this.formatDateForInput(new Date()),
         purchase_price: null,
@@ -312,7 +355,9 @@ export default {
   },
 
   computed: {
-    ...mapState('userProfile', ['spouse']),
+    spouse() {
+      return this.$store.getters['userProfile/spouse'];
+    },
 
     currentYear() {
       return new Date().getFullYear();
@@ -324,6 +369,8 @@ export default {
       if (newVal === 'individual') {
         this.form.ownership_percentage = 100;
         this.form.joint_owner_id = null;
+        this.form.joint_owner_name = '';
+        this.jointOwnerSelection = '';
       } else if (newVal === 'joint' && this.form.ownership_percentage === 100) {
         this.form.ownership_percentage = 50;
       }
@@ -345,6 +392,7 @@ export default {
         ownership_type: this.chattel.ownership_type || 'individual',
         ownership_percentage: this.chattel.ownership_percentage || 100,
         joint_owner_id: this.chattel.joint_owner_id || null,
+        joint_owner_name: this.chattel.joint_owner_name || '',
         current_value: this.chattel.current_value || null,
         valuation_date: this.formatDateForInput(this.chattel.valuation_date),
         purchase_price: this.chattel.purchase_price || null,
@@ -355,6 +403,15 @@ export default {
         registration_number: this.chattel.registration_number || '',
         notes: this.chattel.notes || '',
       };
+
+      // Set joint owner selection state based on existing data
+      if (this.form.joint_owner_id) {
+        this.jointOwnerSelection = 'linked_' + this.form.joint_owner_id;
+      } else if (this.form.joint_owner_name) {
+        this.jointOwnerSelection = 'other';
+      } else {
+        this.jointOwnerSelection = '';
+      }
     },
 
     formatDateForInput(date) {
@@ -362,6 +419,21 @@ export default {
       const d = new Date(date);
       if (isNaN(d.getTime())) return '';
       return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    },
+
+    handleJointOwnerSelection() {
+      if (this.jointOwnerSelection.startsWith('linked_')) {
+        // Extract ID and set joint_owner_id
+        this.form.joint_owner_id = parseInt(this.jointOwnerSelection.replace('linked_', ''));
+        this.form.joint_owner_name = ''; // Clear free text field
+      } else if (this.jointOwnerSelection === 'other') {
+        // Clear linked ID when using free text
+        this.form.joint_owner_id = null;
+      } else {
+        // No selection - clear both
+        this.form.joint_owner_id = null;
+        this.form.joint_owner_name = '';
+      }
     },
 
     validate() {

@@ -77,7 +77,16 @@
       "is_primary_residence": true,
       "bedrooms": 3,
       "estimated_rental_value": 0,
-      "council_tax_band": "D"
+      "council_tax_band": "D",
+      "monthly_council_tax": 185,
+      "monthly_gas": 95,
+      "monthly_electricity": 75,
+      "monthly_water": 40,
+      "monthly_building_insurance": 35,
+      "monthly_contents_insurance": 25,
+      "monthly_service_charge": 0,
+      "monthly_maintenance_reserve": 100,
+      "other_monthly_costs": 0
     }
   ],
 

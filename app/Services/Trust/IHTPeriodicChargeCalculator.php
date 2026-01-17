@@ -116,6 +116,15 @@ class IHTPeriodicChargeCalculator
         $quartersSinceLastCharge = $this->calculateQuartersSinceLastCharge($trust, $exitDate);
         $trustValue = $trust->total_asset_value ?? $trust->current_value ?? 0;
 
+        // Guard against zero trust value
+        if ($trustValue <= 0) {
+            return [
+                'charge_applicable' => false,
+                'reason' => 'Trust has no value',
+                'charge_amount' => 0,
+            ];
+        }
+
         // Calculate chargeable value
         $chargeableValue = max(0, $trustValue - $this->getNRB());
 

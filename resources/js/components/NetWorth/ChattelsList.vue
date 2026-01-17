@@ -131,8 +131,10 @@ export default {
     },
   },
 
-  mounted() {
+  async mounted() {
     this.fetchData();
+    // Fetch family members to ensure spouse data is available for joint ownership dropdown
+    await this.$store.dispatch('userProfile/fetchFamilyMembers');
   },
 
   methods: {

@@ -183,7 +183,6 @@ export default {
   display: grid;
   grid-template-columns: 240px 1fr;
   gap: 24px;
-  overflow: hidden;
   transition: grid-template-columns 0.2s ease;
 }
 
@@ -297,17 +296,25 @@ export default {
 .main-content {
   min-height: 500px;
   min-width: 0; /* Prevents grid item from overflowing container */
-  overflow: hidden;
+  overflow-x: auto; /* Allow horizontal scroll if needed instead of clipping */
 }
 
 /* Mobile responsive */
 @media (max-width: 1024px) {
   .net-worth-dashboard.with-sidebar {
-    grid-template-columns: 1fr;
+    display: block; /* Switch from grid to block for simpler mobile layout */
+  }
+
+  .net-worth-dashboard.with-sidebar.sidebar-collapsed {
+    display: block;
   }
 
   .sidebar {
     display: none;
+  }
+
+  .main-content {
+    width: 100%;
   }
 }
 

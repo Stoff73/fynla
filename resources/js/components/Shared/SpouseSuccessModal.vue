@@ -12,7 +12,7 @@
           <!-- Icon -->
           <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full" :class="isCreated ? 'bg-green-100' : 'bg-blue-100'">
             <svg v-if="isCreated" class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
             </svg>
             <svg v-else class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
@@ -31,30 +31,25 @@
             </div>
           </div>
 
-          <!-- Account Details (for created accounts) -->
-          <div v-if="isCreated && spouseEmail && temporaryPassword" class="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <!-- Email Sent Confirmation (for created accounts) -->
+          <div v-if="isCreated && spouseEmail" class="mt-4 bg-green-50 border border-green-200 rounded-lg p-4">
             <div class="flex">
               <div class="flex-shrink-0">
-                <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                  <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
                 </svg>
               </div>
               <div class="ml-3 flex-1">
-                <h3 class="text-sm font-medium text-yellow-800">
-                  Share these credentials with your spouse
+                <h3 class="text-sm font-medium text-green-800">
+                  Login details sent
                 </h3>
-                <div class="mt-2 text-sm text-yellow-700 space-y-2">
-                  <div class="bg-white rounded px-3 py-2 font-mono text-xs border border-yellow-300">
-                    <div class="font-semibold text-gray-700 mb-1">Email</div>
-                    <div class="select-all">{{ spouseEmail }}</div>
-                  </div>
-                  <div class="bg-white rounded px-3 py-2 font-mono text-xs border border-yellow-300">
-                    <div class="font-semibold text-gray-700 mb-1">Temporary Password</div>
-                    <div class="select-all break-all">{{ temporaryPassword }}</div>
-                  </div>
-                  <p class="text-xs">
-                    Your spouse will be required to change this password when they first log in.
-                    They will also receive an email with login instructions.
+                <div class="mt-2 text-sm text-green-700">
+                  <p>
+                    An email has been sent to <span class="font-semibold">{{ spouseEmail }}</span> with their login credentials and instructions.
+                  </p>
+                  <p class="mt-2 text-xs text-green-600">
+                    Your spouse will be required to change their temporary password when they first log in.
                   </p>
                 </div>
               </div>
@@ -127,7 +122,7 @@ export default {
     },
     message() {
       return this.isCreated
-        ? 'A new account has been created for your spouse. Please share the login credentials below with them.'
+        ? 'A new account has been created for your spouse and login details have been sent to their email address.'
         : 'Your spouse\'s existing account has been successfully linked to yours.';
     },
   },
