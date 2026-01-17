@@ -42,13 +42,16 @@ const getters = {
     // Get goals
     goals: (state) => state.goals,
 
-    // Get total portfolio value across all accounts
+    // Get total portfolio value across all accounts (user's share only for joint accounts)
     totalPortfolioValue: (state) => {
-        if (state.analysis?.portfolio_summary?.total_value) {
-            return state.analysis.portfolio_summary.total_value;
-        }
         return state.accounts.reduce((sum, account) => {
-            return sum + parseFloat(account.current_value || 0);
+            const fullValue = parseFloat(account.current_value || 0);
+            // For joint accounts, only count the user's share
+            if (account.ownership_type === 'joint') {
+                const percentage = parseFloat(account.ownership_percentage || 50) / 100;
+                return sum + (fullValue * percentage);
+            }
+            return sum + fullValue;
         }, 0);
     },
 
@@ -127,10 +130,15 @@ const getters = {
         return state.accounts.filter(account => account.account_type === 'isa');
     },
 
-    // Get total ISA value
+    // Get total ISA value (user's share only for joint accounts, though ISAs should be individual)
     totalISAValue: (state, getters) => {
         return getters.isaAccounts.reduce((sum, account) => {
-            return sum + parseFloat(account.current_value || 0);
+            const fullValue = parseFloat(account.current_value || 0);
+            if (account.ownership_type === 'joint') {
+                const percentage = parseFloat(account.ownership_percentage || 50) / 100;
+                return sum + (fullValue * percentage);
+            }
+            return sum + fullValue;
         }, 0);
     },
 
@@ -142,9 +150,10 @@ const getters = {
     },
 
     // Get current year ISA contributions (for allowance tracking)
+    // Uses isa_subscription_current_year which tracks ISA-specific contributions
     totalISAContributions: (state, getters) => {
         return getters.isaAccounts.reduce((sum, account) => {
-            return sum + parseFloat(account.contributions_ytd || 0);
+            return sum + parseFloat(account.isa_subscription_current_year || 0);
         }, 0);
     },
 

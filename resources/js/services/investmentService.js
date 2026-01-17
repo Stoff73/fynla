@@ -1529,10 +1529,12 @@ const investmentService = {
      * Get Monte Carlo projections for a specific investment account
      * GET /api/investment/accounts/{id}/projections
      * @param {Number} accountId - Investment account ID
+     * @param {String} riskLevel - Optional risk level override (low, lower_medium, medium, upper_medium, high)
      * @returns {Promise} Account projections with year-by-year probability bands
      */
-    async getAccountProjections(accountId) {
-        const response = await api.get(`/investment/accounts/${accountId}/projections`);
+    async getAccountProjections(accountId, riskLevel = null) {
+        const params = riskLevel ? { risk_level: riskLevel } : {};
+        const response = await api.get(`/investment/accounts/${accountId}/projections`, { params });
         return response.data;
     },
 

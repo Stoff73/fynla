@@ -7,6 +7,27 @@ This directory contains environment-specific configurations for deploying Fynla 
 > The server does not have enough memory to run `npm install` or `npm run build`.
 > You MUST build the frontend assets locally and include `public/build/` in the deployment package.
 
+---
+
+## CRITICAL: .htaccess File Warning
+
+> **DO NOT upload `public/.htaccess` from your local folder!**
+>
+> The local `public/.htaccess` is configured for csjones.co/tengo (subdirectory) and will cause **500 Internal Server Error** on fynla.org.
+
+**Correct files to use:**
+| Target | .htaccess Source | Upload To |
+|--------|------------------|-----------|
+| fynla.org | `deploy/fynla-org/.htaccess` | `public_html/public/.htaccess` |
+| csjones.co/fynla | `deploy/csjones-fynla/.htaccess` | `public_html/public/.htaccess` |
+
+The wrong .htaccess causes:
+- `<DirectoryMatch not allowed here` error (not allowed in .htaccess on shared hosting)
+- Wrong `RewriteBase` path
+- CSS/JS MIME type issues
+
+---
+
 ## Directory Structure
 
 ```

@@ -758,12 +758,20 @@ class InvestmentController extends Controller
 
     /**
      * Get Monte Carlo projections for an investment account.
+     * Accepts optional risk_level query parameter for "what-if" scenarios.
      *
-     * GET /api/investment/accounts/{id}/projections
+     * GET /api/investment/accounts/{id}/projections?risk_level=high
      */
     public function getAccountProjections(Request $request, int $id): JsonResponse
     {
         $user = $request->user();
+
+        // Validate risk_level if provided
+        $validated = $request->validate([
+            'risk_level' => ['nullable', 'string', Rule::in(['low', 'lower_medium', 'medium', 'upper_medium', 'high'])],
+        ]);
+
+        $riskLevelOverride = $validated['risk_level'] ?? null;
 
         // Validate user has access to this account
         $account = InvestmentAccount::where(function ($query) use ($user) {
@@ -779,26 +787,24 @@ class InvestmentController extends Controller
         }
 
         try {
-            $projections = $this->projectionService->getPortfolioProjections(
+            \Log::info('getAccountProjections called', [
+                'account_id' => $id,
+                'risk_level_override' => $riskLevelOverride,
+            ]);
+
+            // Use the risk-override method for direct account projection
+            $accountProjection = $this->projectionService->getAccountProjectionWithRiskOverride(
+                $account,
                 $user,
-                [5, 10, 20, 30],
-                null,
-                20
+                $riskLevelOverride,
+                [5, 10, 20, 30]
             );
 
-            // Find this specific account's projections
-            $accountProjection = collect($projections['accounts'])
-                ->firstWhere('account_id', $id);
-
-            if (! $accountProjection) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Could not generate projections for this account',
-                ], 500);
-            }
-
-            // Get the 20-year projection data for the chart
-            $yearByYear = $accountProjection['projections'][20]['year_by_year'] ?? [];
+            \Log::info('Projection result', [
+                'risk_level' => $accountProjection['risk_level'],
+                'expected_return' => $accountProjection['expected_return'],
+                'volatility' => $accountProjection['volatility'],
+            ]);
 
             return response()->json([
                 'success' => true,
@@ -812,9 +818,7 @@ class InvestmentController extends Controller
                     'risk_level' => $accountProjection['risk_level'],
                     'expected_return' => $accountProjection['expected_return'],
                     'volatility' => $accountProjection['volatility'],
-                    'projection_years' => 20,
-                    'percentiles_at_end' => $accountProjection['projections'][20]['percentiles'] ?? [],
-                    'year_by_year' => $yearByYear,
+                    'projections' => $accountProjection['projections'],
                 ],
             ]);
         } catch (\Exception $e) {

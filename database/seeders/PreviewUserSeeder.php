@@ -571,13 +571,23 @@ class PreviewUserSeeder extends Seeder
             }
 
             // Single-record pattern: Store FULL value directly (no splitting)
+            $accountType = $account['account_type'] ?? 'gia';
+            $annualContribution = $account['annual_contribution'] ?? 0;
+
+            // For ISA accounts, set isa_subscription_current_year
+            $isaSubscription = null;
+            if ($accountType === 'isa') {
+                $isaSubscription = $account['isa_subscription_current_year'] ?? $annualContribution;
+            }
+
             $investmentAccount = InvestmentAccount::create([
                 'user_id' => $owner->id,
                 'account_name' => $account['account_name'] ?? null,
                 'provider' => $account['provider_name'] ?? '',
-                'account_type' => $account['account_type'] ?? 'gia',
+                'account_type' => $accountType,
                 'current_value' => $totalValue, // FULL value
-                'contributions_ytd' => $account['annual_contribution'] ?? 0,
+                'contributions_ytd' => $annualContribution,
+                'isa_subscription_current_year' => $isaSubscription,
                 'tax_year' => '2024/25',
                 'ownership_type' => $account['ownership_type'] ?? 'individual',
                 'ownership_percentage' => $isJoint ? 50 : 100,

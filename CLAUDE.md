@@ -482,6 +482,8 @@ DELETE /api/savings/accounts/{id}   # Delete
 | `429 Too Many Requests` | Rate limit exceeded | `php artisan cache:clear` on server |
 | MIME type errors on production | Wrong VITE_BASE_PATH | Rebuild using `./deploy/fynla-org/build.sh` |
 | Blank page with 127.0.0.1:5173 | `public/hot` file deployed | `rm public/hot` on server |
+| 500 + `DirectoryMatch not allowed` | Wrong .htaccess deployed | Upload `deploy/fynla-org/.htaccess` to `public/.htaccess` |
+| CSS not loading in incognito | Missing MIME types in .htaccess | Upload `deploy/fynla-org/.htaccess` (includes `AddType text/css css`) |
 
 ### Production Site Blank Page (public/hot Issue)
 
@@ -522,6 +524,38 @@ Network tab shows assets at `/assets/` returning 503 or HTML instead of JS/CSS.
 ```
 
 **Prevention:** Never run `npm run build` directly for production. The build scripts export the required environment variables before building.
+
+### Production 500 Error (.htaccess Issue)
+
+**Symptom:** Production site returns 500 Internal Server Error. Apache error log shows:
+```
+<DirectoryMatch not allowed here
+```
+
+**Cause:** The local `public/.htaccess` file is configured for csjones.co/tengo (subdirectory deployment) and contains `<DirectoryMatch>` which is not allowed in `.htaccess` files on shared hosting.
+
+**Fix:** Replace the server's `public/.htaccess` with the correct version:
+```bash
+# SSH to server
+ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
+cd ~/www/fynla.org/public_html
+
+# Check current .htaccess (if it shows RewriteBase /tengo/, it's WRONG)
+head -25 public/.htaccess
+
+# Upload deploy/fynla-org/.htaccess via FileManager to public/.htaccess
+# OR use the build script which includes the correct .htaccess
+```
+
+**CRITICAL:**
+- **DO NOT** upload `public/.htaccess` from your local folder for fynla.org deployments
+- **ALWAYS** use `deploy/fynla-org/.htaccess` for fynla.org
+- **ALWAYS** use `deploy/csjones-fynla/.htaccess` for csjones.co/fynla
+
+The correct `.htaccess` uses:
+- `RewriteBase /` (not `/tengo/`)
+- `RewriteRule ^\.git - [F,L]` instead of `<DirectoryMatch>` (shared hosting compatible)
+- MIME types for CSS/JS files
 
 ### 429 Too Many Requests (Rate Limiting)
 
