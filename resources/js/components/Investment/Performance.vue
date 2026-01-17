@@ -36,62 +36,8 @@
 
     <!-- Main Content - Performance Data Exists -->
     <div v-else class="space-y-6">
-      <!-- Performance Summary Cards -->
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <!-- Total Value -->
-        <div class="bg-white rounded-lg shadow-md p-6">
-          <p class="text-sm text-gray-600 mb-2">Total Portfolio Value</p>
-          <p class="text-3xl font-bold text-gray-800">
-            {{ formatCurrency(totalPortfolioValue) }}
-          </p>
-          <p class="text-xs text-gray-500 mt-1">Across {{ accountCount }} account{{ accountCount !== 1 ? 's' : '' }}</p>
-        </div>
-
-        <!-- Holdings Count -->
-        <div class="bg-white rounded-lg shadow-md p-6">
-          <p class="text-sm text-gray-600 mb-2">Total Holdings</p>
-          <p class="text-3xl font-bold text-gray-800">
-            {{ holdingsCount }}
-          </p>
-          <p class="text-xs text-gray-500 mt-1">Investment positions</p>
-        </div>
-
-        <!-- Average Return (if available) -->
-        <div class="bg-white rounded-lg shadow-md p-6">
-          <p class="text-sm text-gray-600 mb-2">Portfolio Health</p>
-          <p class="text-3xl font-bold" :class="portfolioHealthColour">
-            {{ portfolioHealthScore }}/100
-          </p>
-          <p class="text-xs text-gray-500 mt-1">Based on analysis</p>
-        </div>
-
-        <!-- Asset Allocation Diversity -->
-        <div class="bg-white rounded-lg shadow-md p-6">
-          <p class="text-sm text-gray-600 mb-2">Diversification</p>
-          <p class="text-3xl font-bold" :class="diversificationColour">
-            {{ diversificationScore }}%
-          </p>
-          <p class="text-xs text-gray-500 mt-1">Asset allocation spread</p>
-        </div>
-      </div>
-
       <!-- Future Value Projections Section -->
       <div class="bg-white rounded-lg shadow-md p-6">
-        <div class="flex items-center justify-between mb-6">
-          <h3 class="text-lg font-semibold text-gray-800">Future Value Projections</h3>
-          <div class="flex items-center gap-4">
-            <select
-              v-model="selectedProjectionYears"
-              @change="loadProjections"
-              class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-            >
-              <option :value="5">5 Years</option>
-              <option :value="10">10 Years</option>
-              <option :value="20">20 Years</option>
-              <option :value="30">30 Years</option>
-            </select>
-          </div>
-        </div>
 
         <!-- Projections Loading State -->
         <div v-if="projectionsLoading" class="flex justify-center items-center py-8">
@@ -106,14 +52,36 @@
 
         <!-- Portfolio Projection Chart -->
         <div v-else-if="portfolioProjection && selectedProjectionData">
-          <div class="flex items-center justify-between mb-4">
-            <h4 class="text-md font-medium text-gray-700">Total Portfolio</h4>
-            <div class="text-sm text-gray-500">
-              <span class="font-medium">Current: </span>
-              <span class="text-gray-900">{{ formatCurrency(portfolioProjection.current_value) }}</span>
-              <span class="mx-2">|</span>
-              <span class="font-medium">Est. Monthly Contribution: </span>
-              <span class="text-gray-900">{{ formatCurrency(portfolioProjection.estimated_monthly_contribution) }}</span>
+          <!-- Summary Cards -->
+          <div class="grid grid-cols-2 gap-4 mb-6">
+            <!-- Current Portfolio Card -->
+            <div class="bg-gray-50 rounded-lg p-4">
+              <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Current Portfolio</p>
+              <p class="text-2xl font-bold text-gray-900">{{ formatCurrency(totalPortfolioValue) }}</p>
+              <p class="text-sm text-gray-500 mt-1">
+                <span class="text-green-600 font-medium">+{{ formatCurrency(portfolioProjection.estimated_monthly_contribution) }}</span> /month
+              </p>
+            </div>
+
+            <!-- Future Value Card -->
+            <div class="bg-blue-50 rounded-lg p-4">
+              <div class="flex items-center justify-between mb-1">
+                <p class="text-xs text-blue-600 uppercase tracking-wide">Projected Value (95%)</p>
+                <select
+                  v-model="selectedProjectionYears"
+                  @change="loadProjections"
+                  class="px-2 py-1 text-xs border border-blue-200 rounded bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option :value="5">5 Years</option>
+                  <option :value="10">10 Years</option>
+                  <option :value="20">20 Years</option>
+                  <option :value="30">30 Years</option>
+                </select>
+              </div>
+              <p class="text-2xl font-bold text-blue-900">{{ formatCurrency(selectedProjectionData?.percentiles?.p5) }}</p>
+              <p class="text-sm text-blue-600 mt-1">
+                in {{ selectedProjectionYears }} years
+              </p>
             </div>
           </div>
 
@@ -121,26 +89,6 @@
             :data="selectedProjectionData"
             title="Portfolio Value"
           />
-
-          <!-- Projection Summary Cards -->
-          <div class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div class="bg-gray-50 rounded-lg p-4">
-              <p class="text-xs text-blue-600 font-medium">95% Probability</p>
-              <p class="text-lg font-bold text-blue-900">{{ formatCurrency(selectedProjectionData?.percentiles?.p5) }}</p>
-            </div>
-            <div class="bg-gray-50 rounded-lg p-4">
-              <p class="text-xs text-blue-600 font-medium">80% Probability</p>
-              <p class="text-lg font-bold text-blue-900">{{ formatCurrency(selectedProjectionData?.percentiles?.p20) }}</p>
-            </div>
-            <div class="bg-gray-50 rounded-lg p-4">
-              <p class="text-xs text-green-600 font-medium">Median (50%)</p>
-              <p class="text-lg font-bold text-green-900">{{ formatCurrency(selectedProjectionData?.percentiles?.p50) }}</p>
-            </div>
-            <div class="bg-gray-50 rounded-lg p-4">
-              <p class="text-xs text-gray-600 font-medium">Upside (10%)</p>
-              <p class="text-lg font-bold text-gray-900">{{ formatCurrency(selectedProjectionData?.percentiles?.p90) }}</p>
-            </div>
-          </div>
 
           <!-- Per-Account Projections -->
           <div v-if="accountProjections && accountProjections.length > 1" class="mt-8">

@@ -67,10 +67,6 @@ export default {
           data: this.data.year_by_year.map(y => y.percentile_10),
         },
         {
-          name: '85% Probability',
-          data: this.data.year_by_year.map(y => y.percentile_15),
-        },
-        {
           name: '80% Probability',
           data: this.data.year_by_year.map(y => y.percentile_20),
         },
@@ -102,10 +98,10 @@ export default {
             speed: 800,
           },
         },
-        colors: ['#1e3a5f', '#2563eb', '#3b82f6', '#60a5fa'],
+        colors: ['#1e3a5f', '#2563eb', '#60a5fa'],
         stroke: {
           curve: 'smooth',
-          width: [1, 1, 1, 1],
+          width: [1, 1, 1],
         },
         fill: {
           type: 'gradient',
