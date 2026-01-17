@@ -57,6 +57,9 @@
             <p v-if="account.ownership_type === 'joint'" class="text-sm text-purple-600 mt-1">
               Your {{ account.ownership_percentage ?? 50 }}% share: {{ formatCurrency(userShareValue) }}
             </p>
+            <p v-if="estimatedMonthlyContribution > 0" class="text-sm text-green-600 mt-1">
+              <span class="font-medium">+{{ formatCurrency(estimatedMonthlyContribution) }}</span> /month
+            </p>
           </div>
           <div class="bg-gray-50 rounded-lg p-4">
             <p class="text-sm text-gray-600">Annualised Return</p>
@@ -97,26 +100,8 @@
         </div>
       </div>
 
-      <!-- Tabs -->
+      <!-- Tab Content (navigation removed - use sidebar cards to navigate) -->
       <div class="bg-white rounded-lg shadow-md">
-        <div class="border-b border-gray-200">
-          <nav class="flex -mb-px overflow-x-auto">
-            <button
-              v-for="tab in tabs"
-              :key="tab.id"
-              @click="activeTab = tab.id"
-              class="px-6 py-3 border-b-2 font-medium text-sm transition-colors whitespace-nowrap"
-              :class="
-                activeTab === tab.id
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              "
-            >
-              {{ tab.label }}
-            </button>
-          </nav>
-        </div>
-
         <div class="p-6">
           <!-- Overview Tab -->
           <AccountSummaryPanel
@@ -143,6 +128,7 @@
           <AccountPerformancePanel
             v-else-if="activeTab === 'performance'"
             :account="account"
+            @change-tab="handleTabChange"
           />
 
           <!-- Rebalancing Tab -->
@@ -249,7 +235,7 @@ export default {
 
   data() {
     return {
-      activeTab: 'overview',
+      activeTab: 'performance',
       loading: false,
       showEditModal: false,
       showDeleteConfirm: false,
@@ -283,6 +269,24 @@ export default {
 
     holdingsCount() {
       return this.account.holdings?.length || 0;
+    },
+
+    // Estimate monthly contribution from YTD (UK tax year starts April 6)
+    estimatedMonthlyContribution() {
+      const ytd = this.account.contributions_ytd || 0;
+      if (ytd <= 0) return 0;
+
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const taxYearStart = new Date(currentYear, 3, 6); // April 6
+
+      // If before April 6, tax year started previous year
+      if (now < taxYearStart) {
+        taxYearStart.setFullYear(currentYear - 1);
+      }
+
+      const monthsElapsed = Math.max(1, Math.ceil((now - taxYearStart) / (1000 * 60 * 60 * 24 * 30)));
+      return ytd / monthsElapsed;
     },
 
     isaRemaining() {
@@ -514,6 +518,10 @@ export default {
       this.closeHoldingModal();
       await this.fetchInvestmentData();
       this.$emit('updated');
+    },
+
+    handleTabChange(tabId) {
+      this.activeTab = tabId;
     },
   },
 };
