@@ -504,5 +504,96 @@
       "executor_name": "Mark Bennett & Adams & Co Solicitors",
       "will_last_updated": "2023-08-15"
     }
-  }
+  },
+
+  "goals": [
+    {
+      "goal_name": "Annual Gifting to Grandchildren",
+      "goal_type": "custom",
+      "custom_goal_type_name": "Gifting Strategy",
+      "description": "Use both annual exemptions (£6,000 total) to gift to grandchildren JISAs, reducing estate for IHT",
+      "target_amount": 6000,
+      "current_amount": 3000,
+      "target_date": "2026-04-05",
+      "start_date": "2025-04-06",
+      "assigned_module": "savings",
+      "priority": "high",
+      "is_essential": false,
+      "monthly_contribution": 500,
+      "contribution_streak": 6,
+      "longest_streak": 12,
+      "last_contribution_date": "2026-01-01",
+      "ownership_type": "joint"
+    },
+    {
+      "goal_name": "Grandchildren Education Trust",
+      "goal_type": "education",
+      "description": "Build education fund across 5 grandchildren's JISAs for university costs",
+      "target_amount": 75000,
+      "current_amount": 24000,
+      "target_date": "2035-09-01",
+      "start_date": "2020-01-01",
+      "assigned_module": "investment",
+      "priority": "medium",
+      "is_essential": false,
+      "monthly_contribution": 300,
+      "contribution_streak": 36,
+      "longest_streak": 48,
+      "last_contribution_date": "2026-01-01",
+      "ownership_type": "joint"
+    },
+    {
+      "goal_name": "Care Fee Reserve",
+      "goal_type": "custom",
+      "custom_goal_type_name": "Care Planning",
+      "description": "Maintain liquid savings to cover potential care costs without selling home. Target 3 years residential care at current rates.",
+      "target_amount": 180000,
+      "current_amount": 145500,
+      "target_date": "2030-12-31",
+      "start_date": "2020-01-01",
+      "assigned_module": "savings",
+      "priority": "critical",
+      "is_essential": true,
+      "monthly_contribution": 500,
+      "contribution_streak": 60,
+      "longest_streak": 60,
+      "last_contribution_date": "2026-01-01",
+      "ownership_type": "joint"
+    },
+    {
+      "goal_name": "IHT Reduction Target",
+      "goal_type": "custom",
+      "custom_goal_type_name": "Estate Planning",
+      "description": "Reduce estate below combined NRB+RNRB threshold (£1M) through strategic gifting over 7 years",
+      "target_amount": 100000,
+      "current_amount": 46000,
+      "target_date": "2032-04-05",
+      "start_date": "2021-04-06",
+      "assigned_module": "savings",
+      "priority": "high",
+      "is_essential": false,
+      "monthly_contribution": 0,
+      "contribution_streak": 0,
+      "longest_streak": 0,
+      "last_contribution_date": null,
+      "ownership_type": "joint"
+    },
+    {
+      "goal_name": "Annual Holiday Fund",
+      "goal_type": "holiday",
+      "description": "Annual family gathering holiday - cruise or European trip with children and grandchildren",
+      "target_amount": 8000,
+      "current_amount": 2500,
+      "target_date": "2026-08-01",
+      "start_date": "2025-09-01",
+      "assigned_module": "savings",
+      "priority": "low",
+      "is_essential": false,
+      "monthly_contribution": 600,
+      "contribution_streak": 4,
+      "longest_streak": 12,
+      "last_contribution_date": "2026-01-01",
+      "ownership_type": "joint"
+    }
+  ]
 }

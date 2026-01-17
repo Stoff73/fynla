@@ -6,6 +6,7 @@ import protection from './modules/protection';
 import savings from './modules/savings';
 import investment from './modules/investment';
 import retirement from './modules/retirement';
+import goals from './modules/goals';
 import estate from './modules/estate';
 import holistic from './modules/holistic';
 import userProfile from './modules/userProfile';
@@ -29,6 +30,7 @@ const store = createStore({
     savings,
     investment,
     retirement,
+    goals,
     estate,
     holistic,
     userProfile,

@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\Estate\TrustController;
 use App\Http\Controllers\Api\Estate\WillController;
 use App\Http\Controllers\Api\EstateController;
 use App\Http\Controllers\Api\FamilyMembersController;
+use App\Http\Controllers\Api\GoalsController;
 use App\Http\Controllers\Api\HolisticPlanningController;
 use App\Http\Controllers\Api\InfoGuideController;
 use App\Http\Controllers\Api\Investment\AssetLocationController;
@@ -323,6 +324,33 @@ Route::middleware('auth:sanctum')->prefix('savings')->group(function () {
         Route::delete('/{id}', [SavingsController::class, 'destroyGoal']);
         Route::patch('/{id}/progress', [SavingsController::class, 'updateGoalProgress']);
     });
+});
+
+// Goals module routes (unified goals-based planning)
+Route::middleware('auth:sanctum')->prefix('goals')->group(function () {
+    // Main goals data and analysis
+    Route::get('/', [GoalsController::class, 'index']);
+    Route::get('/analysis', [GoalsController::class, 'analysis']);
+    Route::get('/dashboard-overview', [GoalsController::class, 'dashboardOverview']);
+
+    // Reference data
+    Route::get('/types', [GoalsController::class, 'getGoalTypes']);
+    Route::get('/risk-levels', [GoalsController::class, 'getRiskLevels']);
+
+    // Property cost calculator
+    Route::post('/calculate-property-costs', [GoalsController::class, 'calculatePropertyCosts']);
+
+    // Goal CRUD
+    Route::post('/', [GoalsController::class, 'store']);
+    Route::get('/{id}', [GoalsController::class, 'show']);
+    Route::put('/{id}', [GoalsController::class, 'update']);
+    Route::delete('/{id}', [GoalsController::class, 'destroy']);
+
+    // Goal-specific operations
+    Route::post('/{id}/contribution', [GoalsController::class, 'recordContribution']);
+    Route::get('/{id}/projections', [GoalsController::class, 'getProjections']);
+    Route::get('/{id}/scenarios', [GoalsController::class, 'getScenarios']);
+    Route::get('/{id}/contributions', [GoalsController::class, 'getContributionHistory']);
 });
 
 // Investment module routes

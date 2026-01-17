@@ -343,5 +343,76 @@
     "spouse_will": {
       "has_will": false
     }
-  }
+  },
+
+  "goals": [
+    {
+      "goal_name": "Emergency Fund",
+      "goal_type": "emergency_fund",
+      "description": "Build 6 months of expenses as emergency buffer",
+      "target_amount": 25000,
+      "current_amount": 8500,
+      "target_date": "2026-12-31",
+      "start_date": "2024-06-01",
+      "assigned_module": "savings",
+      "priority": "critical",
+      "is_essential": true,
+      "monthly_contribution": 400,
+      "contribution_streak": 8,
+      "longest_streak": 8,
+      "last_contribution_date": "2026-01-01",
+      "ownership_type": "joint"
+    },
+    {
+      "goal_name": "Oliver's University Fund",
+      "goal_type": "education",
+      "description": "Save for Oliver's university education in 13 years",
+      "target_amount": 50000,
+      "current_amount": 5000,
+      "target_date": "2039-09-01",
+      "start_date": "2024-01-01",
+      "assigned_module": "investment",
+      "priority": "high",
+      "is_essential": false,
+      "monthly_contribution": 200,
+      "contribution_streak": 12,
+      "longest_streak": 12,
+      "last_contribution_date": "2026-01-01",
+      "ownership_type": "joint"
+    },
+    {
+      "goal_name": "Sophia's University Fund",
+      "goal_type": "education",
+      "description": "Save for Sophia's university education in 15 years",
+      "target_amount": 50000,
+      "current_amount": 2800,
+      "target_date": "2041-09-01",
+      "start_date": "2024-01-01",
+      "assigned_module": "investment",
+      "priority": "high",
+      "is_essential": false,
+      "monthly_contribution": 150,
+      "contribution_streak": 10,
+      "longest_streak": 12,
+      "last_contribution_date": "2026-01-01",
+      "ownership_type": "joint"
+    },
+    {
+      "goal_name": "Family Holiday Fund",
+      "goal_type": "holiday",
+      "description": "Annual family holiday to Europe",
+      "target_amount": 4000,
+      "current_amount": 1200,
+      "target_date": "2026-07-01",
+      "start_date": "2025-09-01",
+      "assigned_module": "savings",
+      "priority": "low",
+      "is_essential": false,
+      "monthly_contribution": 300,
+      "contribution_streak": 4,
+      "longest_streak": 4,
+      "last_contribution_date": "2026-01-01",
+      "ownership_type": "joint"
+    }
+  ]
 }

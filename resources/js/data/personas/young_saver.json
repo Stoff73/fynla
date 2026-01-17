@@ -211,5 +211,82 @@
     "executor_notes": null,
     "will_last_updated": null,
     "bequests": []
-  }
+  },
+
+  "goals": [
+    {
+      "goal_name": "First Home Deposit",
+      "goal_type": "property_purchase",
+      "description": "Save for house deposit in Manchester using LISA 25% bonus. Targeting £250k property with 10% deposit.",
+      "target_amount": 25000,
+      "current_amount": 5600,
+      "target_date": "2029-06-01",
+      "start_date": "2024-01-01",
+      "assigned_module": "property",
+      "priority": "critical",
+      "is_essential": true,
+      "monthly_contribution": 250,
+      "contribution_streak": 18,
+      "longest_streak": 18,
+      "last_contribution_date": "2026-01-01",
+      "ownership_type": "individual",
+      "property_location": "Manchester",
+      "is_first_time_buyer": true,
+      "estimated_property_price": 250000,
+      "deposit_percentage": 10
+    },
+    {
+      "goal_name": "Emergency Fund",
+      "goal_type": "emergency_fund",
+      "description": "Build 3 months of living expenses as safety net",
+      "target_amount": 5500,
+      "current_amount": 1500,
+      "target_date": "2027-06-01",
+      "start_date": "2024-06-01",
+      "assigned_module": "savings",
+      "priority": "high",
+      "is_essential": true,
+      "monthly_contribution": 100,
+      "contribution_streak": 15,
+      "longest_streak": 15,
+      "last_contribution_date": "2026-01-01",
+      "ownership_type": "individual"
+    },
+    {
+      "goal_name": "Max LISA This Year",
+      "goal_type": "custom",
+      "custom_goal_type_name": "LISA Maximization",
+      "description": "Contribute full £4,000 to Lifetime ISA to get maximum £1,000 government bonus",
+      "target_amount": 4000,
+      "current_amount": 2000,
+      "target_date": "2026-04-05",
+      "start_date": "2025-04-06",
+      "assigned_module": "savings",
+      "priority": "medium",
+      "is_essential": false,
+      "monthly_contribution": 150,
+      "contribution_streak": 10,
+      "longest_streak": 12,
+      "last_contribution_date": "2026-01-01",
+      "ownership_type": "individual"
+    },
+    {
+      "goal_name": "Career Development Fund",
+      "goal_type": "custom",
+      "custom_goal_type_name": "Education",
+      "description": "Save for professional certifications (AWS, data science courses) to boost earning potential",
+      "target_amount": 3000,
+      "current_amount": 800,
+      "target_date": "2027-03-01",
+      "start_date": "2025-06-01",
+      "assigned_module": "savings",
+      "priority": "low",
+      "is_essential": false,
+      "monthly_contribution": 75,
+      "contribution_streak": 6,
+      "longest_streak": 6,
+      "last_contribution_date": "2026-01-01",
+      "ownership_type": "individual"
+    }
+  ]
 }

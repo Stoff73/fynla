@@ -15,6 +15,7 @@ use App\Models\Estate\Liability;
 use App\Models\Estate\Trust;
 use App\Models\Estate\Will;
 use App\Models\FamilyMember;
+use App\Models\Goal;
 use App\Models\IncomeProtectionPolicy;
 use App\Models\Investment\Holding;
 use App\Models\Investment\InvestmentAccount;
@@ -145,6 +146,9 @@ class PreviewUserSeeder extends Seeder
 
         // Create chattels
         $this->createChattels($user, $spouse, $data['chattels'] ?? []);
+
+        // Create goals
+        $this->createGoals($user, $spouse, $data['goals'] ?? []);
 
         $this->command->info("  Created user: {$user->name} ({$user->email})");
         if ($spouse) {
@@ -1174,6 +1178,62 @@ class PreviewUserSeeder extends Seeder
                 'year' => $chattel['year'] ?? null,
                 'registration_number' => $chattel['registration_number'] ?? null,
                 'notes' => $chattel['notes'] ?? null,
+            ]);
+        }
+    }
+
+    /**
+     * Create goals for users.
+     * Assigns goals to spouse if 'owner' => 'spouse' flag is set.
+     */
+    private function createGoals(User $user, ?User $spouse, array $goals): void
+    {
+        foreach ($goals as $goal) {
+            // Determine owner
+            $owner = $user;
+            if ($spouse && ($goal['owner'] ?? null) === 'spouse') {
+                $owner = $spouse;
+            }
+
+            // Determine joint owner for joint goals
+            $jointOwnerId = null;
+            if (($goal['ownership_type'] ?? 'individual') === 'joint' && $spouse) {
+                $jointOwnerId = ($owner->id === $user->id) ? $spouse->id : $user->id;
+            }
+
+            Goal::create([
+                'user_id' => $owner->id,
+                'goal_name' => $goal['goal_name'] ?? '',
+                'goal_type' => $goal['goal_type'] ?? 'custom',
+                'custom_goal_type_name' => $goal['custom_goal_type_name'] ?? null,
+                'description' => $goal['description'] ?? null,
+                'target_amount' => $goal['target_amount'] ?? 0,
+                'current_amount' => $goal['current_amount'] ?? 0,
+                'target_date' => $goal['target_date'] ?? null,
+                'start_date' => $goal['start_date'] ?? now()->toDateString(),
+                'assigned_module' => $goal['assigned_module'] ?? null,
+                'module_override' => $goal['module_override'] ?? false,
+                'priority' => $goal['priority'] ?? 'medium',
+                'is_essential' => $goal['is_essential'] ?? false,
+                'status' => $goal['status'] ?? 'active',
+                'monthly_contribution' => $goal['monthly_contribution'] ?? null,
+                'contribution_frequency' => $goal['contribution_frequency'] ?? 'monthly',
+                'contribution_streak' => $goal['contribution_streak'] ?? 0,
+                'longest_streak' => $goal['longest_streak'] ?? 0,
+                'last_contribution_date' => $goal['last_contribution_date'] ?? null,
+                'risk_preference' => $goal['risk_preference'] ?? null,
+                'use_global_risk_profile' => $goal['use_global_risk_profile'] ?? true,
+                'ownership_type' => $goal['ownership_type'] ?? 'individual',
+                'joint_owner_id' => $jointOwnerId,
+                'ownership_percentage' => $goal['ownership_percentage'] ?? 100,
+                // Property-specific fields
+                'property_location' => $goal['property_location'] ?? null,
+                'property_type' => $goal['property_type'] ?? null,
+                'is_first_time_buyer' => $goal['is_first_time_buyer'] ?? false,
+                'estimated_property_price' => $goal['estimated_property_price'] ?? null,
+                'deposit_percentage' => $goal['deposit_percentage'] ?? null,
+                'stamp_duty_estimate' => $goal['stamp_duty_estimate'] ?? null,
+                'additional_costs_estimate' => $goal['additional_costs_estimate'] ?? null,
             ]);
         }
     }
