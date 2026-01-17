@@ -424,6 +424,14 @@ class EfficientFrontierController extends Controller
 
             // Calculate current allocation
             $totalValue = $holdings->sum('current_value');
+
+            if ($totalValue <= 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Portfolio has no value',
+                ], 400);
+            }
+
             $allocation = [
                 'equities' => 0.0,
                 'bonds' => 0.0,

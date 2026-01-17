@@ -73,6 +73,14 @@ class RebalancingStrategiesController extends Controller
 
             // Calculate current allocation
             $totalValue = $holdings->sum('current_value');
+
+            if ($totalValue <= 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Portfolio has no value',
+                ], 400);
+            }
+
             $currentAllocation = [];
 
             foreach ($holdings as $holding) {
@@ -206,6 +214,14 @@ class RebalancingStrategiesController extends Controller
             }
 
             $totalValue = $holdings->sum('current_value');
+
+            if ($totalValue <= 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Portfolio has no value',
+                ], 400);
+            }
+
             $currentAllocation = [];
 
             foreach ($holdings as $holding) {
@@ -327,6 +343,14 @@ class RebalancingStrategiesController extends Controller
             }
 
             $totalValue = $holdings->sum('current_value');
+
+            if ($totalValue <= 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Portfolio has no value',
+                ], 400);
+            }
+
             $currentAllocation = [];
 
             foreach ($holdings as $holding) {

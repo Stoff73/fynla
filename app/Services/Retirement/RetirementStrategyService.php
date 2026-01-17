@@ -673,7 +673,7 @@ class RetirementStrategyService
             // Calculate sustainable income at this pot
             $sustainableIncome = $projectedPot * 0.047; // 4.7% withdrawal rate
             $totalIncome = $sustainableIncome + $guaranteedIncome;
-            $incomeCoverage = ($totalIncome / $targetIncome) * 100;
+            $incomeCoverage = $targetIncome > 0 ? ($totalIncome / $targetIncome) * 100 : 0;
 
             // Find the minimum delay that gets us to at least 95% coverage
             if ($incomeCoverage >= 95 && $recommendedYearsDelay === 0) {
@@ -697,7 +697,7 @@ class RetirementStrategyService
             );
             $sustainableIncomeAtMax = $projectedPotAtMax * 0.047;
             $totalIncomeAtMax = $sustainableIncomeAtMax + $guaranteedIncome;
-            $bestIncomeCoverage = ($totalIncomeAtMax / $targetIncome) * 100;
+            $bestIncomeCoverage = $targetIncome > 0 ? ($totalIncomeAtMax / $targetIncome) * 100 : 0;
         }
 
         $yearsDelay = $recommendedYearsDelay;
