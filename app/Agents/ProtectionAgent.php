@@ -11,7 +11,6 @@ use App\Services\Protection\RecommendationEngine;
 use App\Services\Protection\ScenarioBuilder;
 use App\Services\UserProfile\ProfileCompletenessChecker;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Log;
 
 class ProtectionAgent extends BaseAgent
 {

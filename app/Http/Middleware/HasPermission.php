@@ -42,7 +42,7 @@ class HasPermission
 
         return response()->json([
             'success' => false,
-            'message' => 'Access denied. Required permission: ' . implode(' or ', $permissions),
+            'message' => 'Access denied. Required permission: '.implode(' or ', $permissions),
         ], 403);
     }
 }

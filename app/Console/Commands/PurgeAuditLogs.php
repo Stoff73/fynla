@@ -60,6 +60,7 @@ class PurgeAuditLogs extends Command
 
         if ($totalCount === 0) {
             $this->info('No audit logs to purge.');
+
             return Command::SUCCESS;
         }
 

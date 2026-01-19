@@ -29,7 +29,7 @@ class OnboardingService
             'focus_area' => $user->onboarding_focus_area,
             'current_step' => $user->onboarding_current_step,
             'skipped_steps' => $skippedSteps,
-            'has_skipped_steps' => !empty($skippedSteps),
+            'has_skipped_steps' => ! empty($skippedSteps),
             'skipped_steps_count' => count($skippedSteps),
             'fully_completed' => $user->onboarding_completed && empty($skippedSteps),
             'started_at' => $user->onboarding_started_at?->toISOString(),

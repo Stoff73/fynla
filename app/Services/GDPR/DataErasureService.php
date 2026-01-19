@@ -231,7 +231,7 @@ class DataErasureService
      */
     private function anonymizeUser(User $user): void
     {
-        $anonymizedEmail = 'deleted_' . $user->id . '@anonymized.local';
+        $anonymizedEmail = 'deleted_'.$user->id.'@anonymized.local';
 
         $user->update([
             'email' => $anonymizedEmail,

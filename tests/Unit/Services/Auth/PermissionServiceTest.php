@@ -8,7 +8,7 @@ use App\Models\User;
 use App\Services\Auth\PermissionService;
 
 beforeEach(function () {
-    $this->permissionService = new PermissionService();
+    $this->permissionService = new PermissionService;
 
     // Create roles
     $this->userRole = Role::firstOrCreate(

@@ -5,10 +5,9 @@ declare(strict_types=1);
 use App\Models\User;
 use App\Models\UserSession;
 use App\Services\Auth\SessionService;
-use Laravel\Sanctum\PersonalAccessToken;
 
 beforeEach(function () {
-    $this->sessionService = new SessionService();
+    $this->sessionService = new SessionService;
     $this->user = User::factory()->create();
 });
 

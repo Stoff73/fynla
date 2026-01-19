@@ -18,7 +18,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
  */
 class DCPension extends Model
 {
-    use HasFactory, Auditable;
+    use Auditable, HasFactory;
 
     protected $table = 'dc_pensions';
 

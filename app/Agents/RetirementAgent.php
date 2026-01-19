@@ -18,7 +18,6 @@ use App\Services\Retirement\ContributionOptimizer;
 use App\Services\Retirement\DecumulationPlanner;
 use App\Services\Retirement\PensionPortfolioAnalyzer;
 use App\Services\Retirement\PensionProjector;
-use Illuminate\Support\Facades\Log;
 
 /**
  * Retirement Agent

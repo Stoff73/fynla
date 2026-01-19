@@ -12,12 +12,16 @@ class Role extends Model
 {
     // Default roles
     public const ROLE_USER = 'user';
+
     public const ROLE_SUPPORT = 'support';
+
     public const ROLE_ADMIN = 'admin';
 
     // Role levels (higher = more permissions)
     public const LEVEL_USER = 0;
+
     public const LEVEL_SUPPORT = 50;
+
     public const LEVEL_ADMIN = 100;
 
     protected $fillable = [

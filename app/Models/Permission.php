@@ -11,27 +11,40 @@ class Permission extends Model
 {
     // Permission categories
     public const CATEGORY_USERS = 'users';
+
     public const CATEGORY_CONTENT = 'content';
+
     public const CATEGORY_SETTINGS = 'settings';
+
     public const CATEGORY_ADMIN = 'admin';
 
     // Common permissions
     public const USERS_VIEW = 'users.view';
+
     public const USERS_EDIT = 'users.edit';
+
     public const USERS_DELETE = 'users.delete';
+
     public const USERS_IMPERSONATE = 'users.impersonate';
 
     public const CONTENT_VIEW = 'content.view';
+
     public const CONTENT_CREATE = 'content.create';
+
     public const CONTENT_EDIT = 'content.edit';
+
     public const CONTENT_DELETE = 'content.delete';
 
     public const SETTINGS_VIEW = 'settings.view';
+
     public const SETTINGS_EDIT = 'settings.edit';
 
     public const ADMIN_ACCESS = 'admin.access';
+
     public const ADMIN_AUDIT_VIEW = 'admin.audit.view';
+
     public const ADMIN_TAX_CONFIG = 'admin.tax_config';
+
     public const ADMIN_ERASURE_PROCESS = 'admin.erasure_process';
 
     protected $fillable = [

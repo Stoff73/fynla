@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 
 class EncryptExistingData extends Command
 {
@@ -98,7 +97,7 @@ class EncryptExistingData extends Command
 
         if ($specificModel && ! isset($this->modelsToEncrypt[$specificModel])) {
             $this->error("Unknown model: {$specificModel}");
-            $this->info('Available models: ' . implode(', ', array_keys($this->modelsToEncrypt)));
+            $this->info('Available models: '.implode(', ', array_keys($this->modelsToEncrypt)));
 
             return Command::FAILURE;
         }

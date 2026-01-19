@@ -30,6 +30,7 @@ class InvestmentProjectionService
 
         if ($account->ownership_type === 'joint') {
             $percentage = (float) ($account->ownership_percentage ?? 50) / 100;
+
             return $fullValue * $percentage;
         }
 

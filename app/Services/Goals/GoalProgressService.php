@@ -6,7 +6,6 @@ namespace App\Services\Goals;
 
 use App\Models\Goal;
 use App\Models\GoalContribution;
-use Carbon\Carbon;
 
 /**
  * Service for calculating goal progress, streaks, and milestones.

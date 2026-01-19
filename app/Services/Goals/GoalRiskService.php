@@ -7,7 +7,6 @@ namespace App\Services\Goals;
 use App\Models\Goal;
 use App\Models\Investment\RiskProfile;
 use App\Models\User;
-use Carbon\Carbon;
 
 /**
  * Service for goal-based risk assessment and projections for investment goals.

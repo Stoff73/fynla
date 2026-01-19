@@ -360,7 +360,7 @@ class PreviewUserSeeder extends Seeder
             $jointOwnerId = null;
             $jointOwnerName = null;
             if ($isSharedOwnership) {
-                if (!empty($prop['joint_owner_name'])) {
+                if (! empty($prop['joint_owner_name'])) {
                     // Non-linked joint owner (e.g., "Mike Jones")
                     $jointOwnerName = $prop['joint_owner_name'];
                 } elseif ($spouse) {
@@ -477,7 +477,7 @@ class PreviewUserSeeder extends Seeder
             $jointOwnerId = null;
             $jointOwnerName = null;
             if ($isSharedOwnership) {
-                if (!empty($mort['joint_owner_name'])) {
+                if (! empty($mort['joint_owner_name'])) {
                     // Non-linked joint owner (e.g., "Mike Jones")
                     $jointOwnerName = $mort['joint_owner_name'];
                 } elseif ($spouse) {

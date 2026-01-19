@@ -49,7 +49,7 @@ class DataExportService
             $user = $export->user;
             $data = $this->gatherUserData($user);
 
-            $filename = 'exports/user_' . $user->id . '_' . now()->format('Y-m-d_His') . '.' . $export->format;
+            $filename = 'exports/user_'.$user->id.'_'.now()->format('Y-m-d_His').'.'.$export->format;
 
             if ($export->format === DataExport::FORMAT_JSON) {
                 $content = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
@@ -238,7 +238,7 @@ class DataExportService
     {
         foreach ($data as $key => $value) {
             if (is_array($value)) {
-                $this->flattenForCsv($lines, $prefix . '.' . $key, $value);
+                $this->flattenForCsv($lines, $prefix.'.'.$key, $value);
             } else {
                 $lines[] = $this->csvLine($prefix, (string) $key, $value);
             }
@@ -249,7 +249,7 @@ class DataExportService
     {
         $escapedValue = str_replace('"', '""', (string) $value);
 
-        return '"' . $category . '","' . $field . '","' . $escapedValue . '"';
+        return '"'.$category.'","'.$field.'","'.$escapedValue.'"';
     }
 
     /**

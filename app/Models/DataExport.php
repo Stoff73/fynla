@@ -10,12 +10,17 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class DataExport extends Model
 {
     public const STATUS_PENDING = 'pending';
+
     public const STATUS_PROCESSING = 'processing';
+
     public const STATUS_COMPLETED = 'completed';
+
     public const STATUS_FAILED = 'failed';
+
     public const STATUS_EXPIRED = 'expired';
 
     public const FORMAT_JSON = 'json';
+
     public const FORMAT_CSV = 'csv';
 
     // Export files expire after 7 days

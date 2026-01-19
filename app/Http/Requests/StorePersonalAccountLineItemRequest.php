@@ -20,12 +20,12 @@ class StorePersonalAccountLineItemRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         // Set default period dates if not provided (current tax year: Apr 6 to Apr 5)
-        if (!$this->has('period_start') || $this->period_start === null) {
+        if (! $this->has('period_start') || $this->period_start === null) {
             $now = now();
             $year = $now->month >= 4 && $now->day >= 6 ? $now->year : $now->year - 1;
             $this->merge([
                 'period_start' => "{$year}-04-06",
-                'period_end' => ($year + 1) . '-04-05',
+                'period_end' => ($year + 1).'-04-05',
             ]);
         }
     }

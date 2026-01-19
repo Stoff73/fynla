@@ -6,7 +6,6 @@ namespace App\Services\Goals;
 
 use App\Models\Goal;
 use App\Models\User;
-use Carbon\Carbon;
 
 /**
  * Service for analyzing goal affordability based on user's financial situation.

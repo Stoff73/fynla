@@ -13,7 +13,6 @@ use App\Services\GDPR\DataErasureService;
 use App\Services\GDPR\DataExportService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 
 class GDPRController extends Controller
 {
@@ -160,7 +159,7 @@ class GDPRController extends Controller
             ], 404);
         }
 
-        $filename = 'fynla_data_export_' . now()->format('Y-m-d') . '.' . $export->format;
+        $filename = 'fynla_data_export_'.now()->format('Y-m-d').'.'.$export->format;
 
         return response()->download($filePath, $filename);
     }

@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use App\Models\DCPension;
-use App\Models\FamilyMember;
 use App\Models\Household;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\Investment\RiskProfile;

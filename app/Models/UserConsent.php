@@ -10,8 +10,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class UserConsent extends Model
 {
     public const TYPE_TERMS = 'terms';
+
     public const TYPE_PRIVACY = 'privacy';
+
     public const TYPE_MARKETING = 'marketing';
+
     public const TYPE_DATA_PROCESSING = 'data_processing';
 
     // Current versions of each consent type

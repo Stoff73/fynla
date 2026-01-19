@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Crypt;
 
 class SavingsAccount extends Model
 {
-    use HasFactory, Auditable;
+    use Auditable, HasFactory;
 
     protected $fillable = [
         'user_id',
