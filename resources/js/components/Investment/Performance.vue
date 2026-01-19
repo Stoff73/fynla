@@ -36,9 +36,14 @@
 
     <!-- Main Content - Performance Data Exists -->
     <div v-else class="space-y-6">
-      <!-- Future Value Projections Section -->
-      <div class="bg-white rounded-lg shadow-md p-6">
-
+      <!-- Future Value Projections Section (Clickable) -->
+      <div
+        class="bg-white rounded-lg shadow-md p-6 cursor-pointer transition-all hover:shadow-lg"
+        @click="goToProjections"
+        role="button"
+        tabindex="0"
+        @keydown.enter="goToProjections"
+      >
         <!-- Projections Loading State -->
         <div v-if="projectionsLoading" class="flex justify-center items-center py-8">
           <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -56,7 +61,7 @@
           <div class="grid grid-cols-2 gap-4 mb-6">
             <!-- Current Portfolio Card -->
             <div class="bg-gray-50 rounded-lg p-4">
-              <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Current Portfolio</p>
+              <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Current Total Portfolio</p>
               <p class="text-2xl font-bold text-gray-900">{{ formatCurrency(totalPortfolioValue) }}</p>
               <p class="text-sm text-gray-500 mt-1">
                 <span class="text-green-600 font-medium">+{{ formatCurrency(portfolioProjection.estimated_monthly_contribution) }}</span> /month
@@ -69,6 +74,7 @@
                 <p class="text-xs text-blue-600 uppercase tracking-wide">Projected Value (95%)</p>
                 <select
                   v-model="selectedProjectionYears"
+                  @click.stop
                   @change="loadProjections"
                   class="px-2 py-1 text-xs border border-blue-200 rounded bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
@@ -89,60 +95,6 @@
             :data="selectedProjectionData"
             title="Portfolio Value"
           />
-
-          <!-- Per-Account Projections -->
-          <div v-if="accountProjections && accountProjections.length > 1" class="mt-8">
-            <button
-              @click="showAccountProjections = !showAccountProjections"
-              class="flex items-center gap-2 text-md font-medium text-gray-700 hover:text-gray-900"
-            >
-              <svg
-                class="w-5 h-5 transition-transform"
-                :class="{ 'rotate-90': showAccountProjections }"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-              </svg>
-              Per-Account Projections ({{ accountProjections.length }} accounts)
-            </button>
-
-            <div v-if="showAccountProjections" class="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div
-                v-for="account in accountProjections"
-                :key="account.account_id"
-                class="border border-gray-200 rounded-lg p-4"
-              >
-                <div class="flex items-center justify-between mb-3">
-                  <h5 class="font-medium text-gray-800">{{ account.account_name }}</h5>
-                  <span class="text-sm text-gray-500">{{ formatCurrency(account.current_value) }}</span>
-                </div>
-
-                <InvestmentProjectionChart
-                  v-if="account.projections[selectedProjectionYears]"
-                  :data="account.projections[selectedProjectionYears]"
-                  :title="account.account_name"
-                  :compact="true"
-                />
-
-                <div class="mt-3 flex justify-between text-sm">
-                  <div>
-                    <span class="text-gray-500">Median in {{ selectedProjectionYears }} years:</span>
-                    <span class="font-medium text-gray-900 ml-1">
-                      {{ formatCurrency(account.projections[selectedProjectionYears]?.median_value) }}
-                    </span>
-                  </div>
-                  <div>
-                    <span class="text-gray-500">Est. contribution:</span>
-                    <span class="font-medium text-gray-900 ml-1">
-                      {{ formatCurrency(account.estimated_monthly_contribution) }}/mo
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
 
         <!-- No projection data yet -->
@@ -188,7 +140,6 @@ export default {
   data() {
     return {
       selectedProjectionYears: 10,
-      showAccountProjections: false,
     };
   },
 
@@ -225,7 +176,6 @@ export default {
       if (this.analysis && this.analysis.portfolio_health_score !== undefined) {
         return this.analysis.portfolio_health_score;
       }
-      // Default score based on basic diversification
       if (this.holdingsCount < 3) return 45;
       if (this.holdingsCount < 5) return 60;
       if (this.holdingsCount < 10) return 75;
@@ -243,7 +193,6 @@ export default {
       if (this.analysis && this.analysis.diversification_score !== undefined) {
         return Math.round(this.analysis.diversification_score);
       }
-      // Basic diversification based on holdings count
       const count = this.holdingsCount;
       if (count >= 10) return 90;
       if (count >= 7) return 75;
@@ -261,10 +210,6 @@ export default {
 
     portfolioProjection() {
       return this.portfolioProjections?.portfolio;
-    },
-
-    accountProjections() {
-      return this.portfolioProjections?.accounts || [];
     },
 
     selectedProjectionData() {
@@ -307,10 +252,11 @@ export default {
     navigateToTab(tabId) {
       this.$emit('navigate-to-tab', tabId);
     },
+
+    goToProjections() {
+      const base = this.$route.path.startsWith('/preview') ? '/preview' : '';
+      this.$router.push(`${base}/net-worth/investment-detail`);
+    },
   },
 };
 </script>
-
-<style scoped>
-/* Add any specific styles here */
-</style>

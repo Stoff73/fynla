@@ -185,6 +185,31 @@ const routes = [
         component: InvestmentList,
       },
       {
+        path: 'investment-detail',
+        name: 'InvestmentDetail',
+        component: () => import('@/components/NetWorth/InvestmentProjections.vue'),
+      },
+      {
+        path: 'tax-efficiency',
+        name: 'TaxEfficiencyDetail',
+        component: () => import('@/components/NetWorth/TaxEfficiencyDetail.vue'),
+      },
+      {
+        path: 'holdings-detail',
+        name: 'HoldingsDetail',
+        component: () => import('@/components/NetWorth/HoldingsDetail.vue'),
+      },
+      {
+        path: 'fees-detail',
+        name: 'FeesDetail',
+        component: () => import('@/components/NetWorth/FeesDetail.vue'),
+      },
+      {
+        path: 'strategy-detail',
+        name: 'StrategyDetail',
+        component: () => import('@/components/NetWorth/StrategyDetail.vue'),
+      },
+      {
         path: 'cash',
         name: 'NetWorthCash',
         component: CashOverview,
@@ -567,6 +592,31 @@ const routes = [
         path: 'investments',
         name: 'PreviewNetWorthInvestments',
         component: InvestmentList,
+      },
+      {
+        path: 'investment-detail',
+        name: 'PreviewInvestmentDetail',
+        component: () => import('@/components/NetWorth/InvestmentProjections.vue'),
+      },
+      {
+        path: 'tax-efficiency',
+        name: 'PreviewTaxEfficiencyDetail',
+        component: () => import('@/components/NetWorth/TaxEfficiencyDetail.vue'),
+      },
+      {
+        path: 'holdings-detail',
+        name: 'PreviewHoldingsDetail',
+        component: () => import('@/components/NetWorth/HoldingsDetail.vue'),
+      },
+      {
+        path: 'fees-detail',
+        name: 'PreviewFeesDetail',
+        component: () => import('@/components/NetWorth/FeesDetail.vue'),
+      },
+      {
+        path: 'strategy-detail',
+        name: 'PreviewStrategyDetail',
+        component: () => import('@/components/NetWorth/StrategyDetail.vue'),
       },
     ],
   },
