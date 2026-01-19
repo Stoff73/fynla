@@ -25,12 +25,36 @@
         <h2 class="mt-6 text-center text-h3 text-gray-900">
           Sign in to your account
         </h2>
-        <p class="mt-2 text-center text-body-sm text-gray-600">
-          Or
-          <router-link to="/register" class="font-medium text-primary-600 hover:text-primary-700">
-            create a new account
-          </router-link>
-        </p>
+
+        <!-- Beta Warning -->
+        <div class="mt-4 bg-amber-200 border-2 border-amber-500 rounded-lg p-4">
+          <div class="flex items-start gap-3">
+            <svg class="w-5 h-5 text-amber-700 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div>
+              <p class="text-sm font-semibold text-amber-900">Beta Version</p>
+              <p class="text-sm text-amber-800 mt-1">
+                This application is currently in beta. Any information entered may be deleted or altered without notice.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Wishlist Link -->
+        <div class="mt-4 text-center">
+          <a
+            href="https://docs.google.com/forms/d/e/1FAIpQLSds1-zixuMDTjkBCZ3lEl-q5NzA0pwXyvb8cJIuNrz2fwjSXg/viewform?usp=publish-editor"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center gap-2 text-primary-600 hover:text-primary-700 font-medium text-sm"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+            </svg>
+            Wishlist for priority access on release
+          </a>
+        </div>
       </div>
 
       <form class="mt-8 space-y-6" @submit.prevent="handleLogin">
@@ -120,7 +144,7 @@ import ChangePasswordModal from '../components/Auth/ChangePasswordModal.vue';
 import VerificationCodeModal from '../components/Auth/VerificationCodeModal.vue';
 import authService from '../services/authService';
 import api from '../services/api';
-import logoImage from '@/assets/logo.png';
+import logoImage from '@/assets/logoTransparent.png';
 
 export default {
   name: 'Login',

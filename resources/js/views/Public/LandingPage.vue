@@ -42,7 +42,7 @@
             Comprehensive tools designed for UK individuals and families to plan protection, savings, investments, retirement, and estate with confidence.
           </p>
 
-          <div class="flex flex-col sm:flex-row justify-center gap-4 mb-8">
+          <div class="flex flex-col sm:flex-row justify-center gap-4 mb-6">
             <button
               type="button"
               @click="enterPreviewMode"
@@ -64,9 +64,11 @@
                 </svg>
               </span>
             </button>
-            <router-link
-              to="/register"
-              class="group px-8 py-4 bg-white/10 backdrop-blur-md text-white rounded-xl font-semibold text-lg hover:bg-white/20 transition-all border border-white/20"
+            <button
+              type="button"
+              @click="enterPreviewMode"
+              :disabled="enteringPreview"
+              class="group px-8 py-4 bg-white/10 backdrop-blur-md text-white rounded-xl font-semibold text-lg hover:bg-white/20 transition-all border border-white/20 disabled:opacity-50 disabled:cursor-wait"
             >
               <span class="flex items-center justify-center">
                 Get Started Free
@@ -74,13 +76,28 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                 </svg>
               </span>
-            </router-link>
+            </button>
             <router-link
               to="/login"
               class="px-8 py-4 bg-transparent text-white rounded-xl font-semibold text-lg hover:bg-white/10 transition-all border border-white/20"
             >
               Sign In
             </router-link>
+          </div>
+
+          <!-- Wishlist Link -->
+          <div class="mb-8 text-center">
+            <a
+              href="https://docs.google.com/forms/d/e/1FAIpQLSds1-zixuMDTjkBCZ3lEl-q5NzA0pwXyvb8cJIuNrz2fwjSXg/viewform?usp=publish-editor"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center gap-2 px-5 py-2.5 bg-white/10 backdrop-blur-md text-amber-200 rounded-full font-medium text-sm hover:bg-white/20 transition-all border border-white/20"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+              </svg>
+              Wishlist for priority access on release
+            </a>
           </div>
 
           <!-- Stats in glass cards -->
@@ -318,17 +335,19 @@
                 </svg>
               </span>
             </button>
-            <router-link
-              to="/register"
-              class="group px-8 py-4 bg-white text-slate-900 rounded-xl font-semibold text-lg hover:bg-slate-100 transition-all shadow-lg hover:shadow-xl"
+            <button
+              type="button"
+              @click="enterPreviewMode"
+              :disabled="enteringPreview"
+              class="group px-8 py-4 bg-white text-slate-900 rounded-xl font-semibold text-lg hover:bg-slate-100 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-wait"
             >
               <span class="flex items-center justify-center">
-                Create Free Account
+                Get Started Free
                 <svg class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                 </svg>
               </span>
-            </router-link>
+            </button>
           </div>
         </div>
       </div>
@@ -386,6 +405,17 @@ export default {
 
   mounted() {
     this.startHeroWordRotation();
+    this.checkDemoParam();
+  },
+
+  watch: {
+    '$route.query.demo': {
+      handler(newVal) {
+        if (newVal === 'true') {
+          this.checkDemoParam();
+        }
+      },
+    },
   },
 
   beforeUnmount() {
@@ -396,6 +426,14 @@ export default {
 
   methods: {
     ...mapActions('preview', ['loadPersona']),
+
+    checkDemoParam() {
+      if (this.$route.query.demo === 'true') {
+        this.showSelectionModal = true;
+        // Clear the query parameter from URL
+        this.$router.replace({ path: '/', query: {} });
+      }
+    },
 
     startHeroWordRotation() {
       this.heroWordInterval = setInterval(() => {

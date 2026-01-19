@@ -42,7 +42,7 @@
               Log In
             </router-link>
             <router-link
-              to="/register"
+              to="/?demo=true"
               class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
             >
               Get Started
@@ -96,7 +96,7 @@
             Log In
           </router-link>
           <router-link
-            to="/register"
+            to="/?demo=true"
             class="block pl-3 pr-4 py-2 text-base font-medium text-blue-600 hover:bg-gray-50"
             @click="mobileMenuOpen = false"
           >
@@ -166,7 +166,7 @@
 </template>
 
 <script>
-import logoImage from '@/assets/logo.png';
+import logoImage from '@/assets/logoTransparent.png';
 
 export default {
   name: 'PublicLayout',
@@ -187,7 +187,8 @@ export default {
 </script>
 
 <style scoped>
-.router-link-active {
+/* Only apply active styling to navigation links, not buttons */
+nav .md\:space-x-8 .router-link-active {
   @apply text-blue-600;
 }
 </style>

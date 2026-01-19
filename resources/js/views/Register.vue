@@ -25,18 +25,34 @@
           </router-link>
         </p>
 
-        <!-- Preview mode indicator -->
-        <div v-if="wasInPreview" class="mt-4 bg-amber-50 border border-amber-200 rounded-lg p-3">
-          <div class="flex items-center gap-2 text-sm text-amber-800">
-            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+        <!-- Beta Warning -->
+        <div class="mt-4 bg-amber-200 border-2 border-amber-500 rounded-lg p-4">
+          <div class="flex items-start gap-3">
+            <svg class="w-5 h-5 text-amber-700 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
-            <span>
-              Registering from preview mode.
-              <strong>{{ currentPersonaName }}</strong>'s data can be saved after registration.
-            </span>
+            <div>
+              <p class="text-sm font-semibold text-amber-900">Beta Version</p>
+              <p class="text-sm text-amber-800 mt-1">
+                This application is currently in beta. Any information entered may be deleted or altered without notice.
+              </p>
+            </div>
           </div>
+        </div>
+
+        <!-- Wishlist Link -->
+        <div class="mt-4 text-center">
+          <a
+            href="https://docs.google.com/forms/d/e/1FAIpQLSds1-zixuMDTjkBCZ3lEl-q5NzA0pwXyvb8cJIuNrz2fwjSXg/viewform?usp=publish-editor"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center gap-2 text-primary-600 hover:text-primary-700 font-medium text-sm"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+            </svg>
+            Wishlist for priority access on release
+          </a>
         </div>
       </div>
 
@@ -175,30 +191,22 @@
       </form>
     </div>
 
-    <!-- Keep Data or Fresh Modal (for preview mode registrations) -->
-    <KeepDataOrFreshModal
-      :is-open="showKeepDataModal"
-      :persona="personaForModal"
-      @choice="handleKeepDataChoice"
-    />
   </div>
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed } from 'vue';
 import { useStore } from 'vuex';
 import { useRouter } from 'vue-router';
-import KeepDataOrFreshModal from '@/components/Preview/KeepDataOrFreshModal.vue';
 import VerificationCodeModal from '@/components/Auth/VerificationCodeModal.vue';
 import api from '@/services/api';
 import authService from '@/services/authService';
-import logoImage from '@/assets/images/logo.png';
+import logoImage from '@/assets/images/logoTransparent.png';
 
 export default {
   name: 'Register',
 
   components: {
-    KeepDataOrFreshModal,
     VerificationCodeModal,
   },
 
@@ -217,38 +225,12 @@ export default {
 
     const errors = ref({});
     const errorMessage = ref('');
-    const showKeepDataModal = ref(false);
-    const previewPersonaId = ref(null);
-    const personaForModal = ref(null);  // Cached persona to pass to modal after registration
     const showVerificationModal = ref(false);
     const pendingId = ref(null);
     const pendingEmail = ref('');
     const isSubmitting = ref(false);
 
     const loading = computed(() => store.getters['auth/loading'] || isSubmitting.value);
-
-    // Check if user is coming from preview mode
-    const wasInPreview = computed(() => store.getters['preview/isPreviewMode']);
-    const currentPersona = computed(() => store.getters['preview/currentPersona']);
-    const currentPersonaName = computed(() => currentPersona.value?.name || 'Demo User');
-
-    // Store preview state before registration clears it
-    let cachedWasInPreview = false;
-    let cachedCurrentPersona = null;
-
-    // Pre-fill name from persona if in preview mode
-    onMounted(() => {
-      if (wasInPreview.value && currentPersona.value) {
-        // Extract first person's name from persona (e.g., "James & Emily Wilson" -> "James Wilson")
-        const personaName = currentPersona.value.name || '';
-        if (personaName.includes('&')) {
-          // For couples, don't pre-fill - let them enter their own name
-        } else {
-          // For single personas, optionally pre-fill
-          // form.value.name = personaName; // Commented out - let user enter their own name
-        }
-      }
-    });
 
     const handleRegister = async () => {
       // Guard against double submission
@@ -259,23 +241,9 @@ export default {
       errorMessage.value = '';
       isSubmitting.value = true;
 
-      // Cache preview state before it gets cleared
-      cachedWasInPreview = wasInPreview.value;
-      cachedCurrentPersona = currentPersona.value;
-
       try {
-        // Include registration source if from preview
-        const registrationData = {
-          ...form.value,
-        };
-
-        if (cachedWasInPreview) {
-          registrationData.registration_source = 'preview';
-          registrationData.preview_persona_id = cachedCurrentPersona?.id;
-        }
-
         // Call register API directly to handle verification response
-        const response = await api.post('/auth/register', registrationData);
+        const response = await api.post('/auth/register', form.value);
 
         // Check if verification is required
         if (response.data.requires_verification) {
@@ -311,21 +279,12 @@ export default {
       store.commit('auth/setToken', data.access_token);
       store.commit('auth/setUser', data.user);
 
-      // Check if coming from preview mode (use cached values)
-      if (cachedWasInPreview && cachedCurrentPersona) {
-        // Show keep/fresh modal with cached persona (currentPersona is now null after auth change)
-        previewPersonaId.value = cachedCurrentPersona.id;
-        personaForModal.value = cachedCurrentPersona;
-        showKeepDataModal.value = true;
-      } else {
-        // Direct registration - go to dashboard with guidance
-        try {
-          await store.dispatch('guidance/showWelcomeModal');
-        } catch (e) {
-          // Guidance module might not exist
-        }
-        router.push({ name: 'Dashboard' });
-      }
+      // Clear preview-related localStorage (user is now a real registered user)
+      localStorage.removeItem('preview_persona_id');
+      localStorage.removeItem('preview_mode');
+
+      // Go to onboarding
+      router.push({ name: 'Onboarding' });
     };
 
     const handleVerificationClose = () => {
@@ -334,54 +293,17 @@ export default {
       pendingEmail.value = '';
     };
 
-    const handleKeepDataChoice = async ({ choice, createSpouseAccount, personaId }) => {
-      try {
-        if (choice === 'keep') {
-          // Seed persona data to user's account
-          await api.post('/user/seed-persona-data', {
-            persona_id: personaId,
-            create_spouse_account: createSpouseAccount,
-          });
-        }
-
-        // Clear preview-related localStorage (user is now a real registered user)
-        // Do NOT call exitPreview as it would clear the auth token and redirect to '/'
-        localStorage.removeItem('preview_persona_id');
-        localStorage.removeItem('preview_mode');
-
-        // Start guidance for new user
-        try {
-          await store.dispatch('guidance/showWelcomeModal');
-        } catch (e) {
-          // Guidance module might not exist
-        }
-
-        // Navigate to dashboard
-        router.push({ name: 'Dashboard' });
-      } catch (error) {
-        console.error('Failed to handle keep data choice:', error);
-        errorMessage.value = 'Failed to set up your account. Please try again.';
-        showKeepDataModal.value = false;
-      }
-    };
-
     return {
       form,
       errors,
       errorMessage,
       loading,
-      showKeepDataModal,
       showVerificationModal,
       pendingId,
       pendingEmail,
-      wasInPreview,
-      currentPersona,
-      currentPersonaName,
-      personaForModal,
       handleRegister,
       handleVerified,
       handleVerificationClose,
-      handleKeepDataChoice,
       logoImage,
     };
   },
