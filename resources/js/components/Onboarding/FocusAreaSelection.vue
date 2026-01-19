@@ -179,7 +179,7 @@
 import { ref, computed } from 'vue';
 import { useStore } from 'vuex';
 import { useRouter } from 'vue-router';
-import logoImage from '@/assets/images/logo.png';
+import logoImage from '@/assets/images/logoTransparent.png';
 
 export default {
   name: 'FocusAreaSelection',

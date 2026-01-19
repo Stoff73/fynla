@@ -144,7 +144,7 @@ import ChangePasswordModal from '../components/Auth/ChangePasswordModal.vue';
 import VerificationCodeModal from '../components/Auth/VerificationCodeModal.vue';
 import authService from '../services/authService';
 import api from '../services/api';
-import logoImage from '@/assets/logo.png';
+import logoImage from '@/assets/logoTransparent.png';
 
 export default {
   name: 'Login',

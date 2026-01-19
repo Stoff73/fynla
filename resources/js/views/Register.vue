@@ -201,7 +201,7 @@ import { useRouter } from 'vue-router';
 import VerificationCodeModal from '@/components/Auth/VerificationCodeModal.vue';
 import api from '@/services/api';
 import authService from '@/services/authService';
-import logoImage from '@/assets/images/logo.png';
+import logoImage from '@/assets/images/logoTransparent.png';
 
 export default {
   name: 'Register',

@@ -53,7 +53,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import PrintHeader from '@/components/Common/PrintHeader.vue';
 import InvestmentSavingsPlanView from '@/components/Plans/InvestmentSavingsPlanView.vue';
 import html2pdf from 'html2pdf.js';
-import logoImage from '@/assets/logo.png';
+import logoImage from '@/assets/logoTransparent.png';
 
 export default {
   name: 'InvestmentSavingsPlan',

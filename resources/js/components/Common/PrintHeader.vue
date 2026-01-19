@@ -6,7 +6,7 @@
 </template>
 
 <script>
-import logoImage from '@/assets/logo.png';
+import logoImage from '@/assets/logoTransparent.png';
 
 export default {
   name: 'PrintHeader',

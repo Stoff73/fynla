@@ -743,7 +743,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import PrintHeader from '@/components/Common/PrintHeader.vue';
 import estateService from '@/services/estateService';
 import html2pdf from 'html2pdf.js';
-import logoImage from '@/assets/logo.png';
+import logoImage from '@/assets/logoTransparent.png';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
