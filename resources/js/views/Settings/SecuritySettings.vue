@@ -346,27 +346,27 @@ export default {
         this.mfaEnabled = false;
         this.showDisableMFAModal = false;
         this.disablePassword = '';
-        this.$toast.success('Two-factor authentication has been disabled.');
+        this.$toast?.success?.('Two-factor authentication has been disabled.');
       } catch (error) {
-        this.$toast.error(error.response?.data?.message || 'Failed to disable MFA.');
+        this.$toast?.error?.(error.response?.data?.message || 'Failed to disable MFA.');
       }
     },
     async revokeSession(sessionId) {
       try {
         await api.delete(`/auth/sessions/${sessionId}`);
         this.sessions = this.sessions.filter((s) => s.id !== sessionId);
-        this.$toast.success('Session revoked successfully.');
+        this.$toast?.success?.('Session revoked successfully.');
       } catch (error) {
-        this.$toast.error(error.response?.data?.message || 'Failed to revoke session.');
+        this.$toast?.error?.(error.response?.data?.message || 'Failed to revoke session.');
       }
     },
     async revokeAllOtherSessions() {
       try {
         await api.delete('/auth/sessions/others/all');
         this.sessions = this.sessions.filter((s) => s.is_current);
-        this.$toast.success('All other sessions have been revoked.');
+        this.$toast?.success?.('All other sessions have been revoked.');
       } catch (error) {
-        this.$toast.error(error.response?.data?.message || 'Failed to revoke sessions.');
+        this.$toast?.error?.(error.response?.data?.message || 'Failed to revoke sessions.');
       }
     },
     async changePassword() {
@@ -378,9 +378,9 @@ export default {
           new_password: '',
           new_password_confirmation: '',
         };
-        this.$toast.success('Password changed successfully.');
+        this.$toast?.success?.('Password changed successfully.');
       } catch (error) {
-        this.$toast.error(error.response?.data?.message || 'Failed to change password.');
+        this.$toast?.error?.(error.response?.data?.message || 'Failed to change password.');
       }
     },
     formatDate(dateString) {
@@ -532,110 +532,9 @@ export default {
   font-weight: bold;
 }
 
-/* Modal styles */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 50;
-}
-
+/* Modal/button/form styles are in app.css */
 .modal {
-  background: white;
-  border-radius: 0.5rem;
-  width: 100%;
   max-width: 400px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-}
-
-.modal-header {
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.modal-header h3 {
-  margin: 0;
-  font-size: 1.125rem;
-  font-weight: 600;
-}
-
-.modal-body {
-  padding: 1.5rem;
-}
-
-.modal-footer {
-  padding: 1rem 1.5rem;
-  border-top: 1px solid #e5e7eb;
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
-}
-
-.form-group {
-  margin-bottom: 1rem;
-}
-
-.form-group label {
-  display: block;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #374151;
-  margin-bottom: 0.375rem;
-}
-
-.form-input {
-  width: 100%;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-}
-
-.form-hint {
-  font-size: 0.75rem;
-  color: #6b7280;
-  margin-top: 0.25rem;
-}
-
-.btn {
-  padding: 0.5rem 1rem;
-  border-radius: 0.375rem;
-  font-weight: 500;
-  font-size: 0.875rem;
-  cursor: pointer;
-  border: none;
-  transition: all 0.15s;
-}
-
-.btn-primary {
-  background-color: #3b82f6;
-  color: white;
-}
-
-.btn-primary:hover {
-  background-color: #2563eb;
-}
-
-.btn-danger {
-  background-color: #ef4444;
-  color: white;
-}
-
-.btn-danger:hover {
-  background-color: #dc2626;
-}
-
-.btn-outline {
-  background-color: white;
-  border: 1px solid #d1d5db;
-  color: #374151;
-}
-
-.btn-outline:hover {
-  background-color: #f9fafb;
 }
 
 .btn-outline.btn-danger {
@@ -646,16 +545,6 @@ export default {
 
 .btn-outline.btn-danger:hover {
   background-color: #fef2f2;
-}
-
-.btn-sm {
-  padding: 0.25rem 0.75rem;
-  font-size: 0.75rem;
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 .empty-state {

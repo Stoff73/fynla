@@ -21,6 +21,7 @@
     <MFAVerifyModal
       :is-open="showMFAModal"
       :user-id="pendingUserId"
+      :mfa-token="pendingMfaToken"
       @verified="handleMFAVerified"
       @close="handleMFAClose"
     />
@@ -180,6 +181,7 @@ export default {
     const showVerificationModal = ref(false);
     const showMFAModal = ref(false);
     const pendingUserId = ref(null);
+    const pendingMfaToken = ref(null);
     const pendingEmail = ref('');
     const isSubmitting = ref(false);
 
@@ -200,6 +202,7 @@ export default {
         // Check if MFA verification is required
         if (response.data.requires_mfa) {
           pendingUserId.value = response.data.data.user_id;
+          pendingMfaToken.value = response.data.data.mfa_token;
           pendingEmail.value = response.data.data.email;
           showMFAModal.value = true;
           return;
@@ -274,6 +277,7 @@ export default {
     const handleMFAClose = () => {
       showMFAModal.value = false;
       pendingUserId.value = null;
+      pendingMfaToken.value = null;
       pendingEmail.value = '';
     };
 
@@ -296,6 +300,7 @@ export default {
       showVerificationModal,
       showMFAModal,
       pendingUserId,
+      pendingMfaToken,
       pendingEmail,
       logoUrl: logoImage,
       handleLogin,

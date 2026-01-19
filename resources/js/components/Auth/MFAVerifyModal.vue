@@ -88,27 +88,44 @@
 </template>
 
 <script>
+/**
+ * @fileoverview MFA Verification Modal Component
+ * Handles TOTP code verification during login when MFA is enabled.
+ * Supports both authenticator codes and recovery codes.
+ */
 import api from '@/services/api';
 
 export default {
   name: 'MFAVerifyModal',
   props: {
+    /** @type {boolean} Whether the modal is visible */
     isOpen: {
       type: Boolean,
       required: true,
     },
+    /** @type {number|string|null} User ID (legacy, prefer mfaToken) */
     userId: {
       type: [Number, String],
-      required: true,
+      default: null,
+    },
+    /** @type {string|null} Secure challenge token from login response */
+    mfaToken: {
+      type: String,
+      default: null,
     },
   },
   emits: ['verified', 'close'],
   data() {
     return {
+      /** @type {string} TOTP code from authenticator app */
       code: '',
+      /** @type {string} Recovery code for backup authentication */
       recoveryCode: '',
+      /** @type {string} Error message to display */
       error: '',
+      /** @type {boolean} Whether verification is in progress */
       loading: false,
+      /** @type {boolean} Whether showing recovery code input */
       showRecoveryInput: false,
     };
   },
@@ -123,10 +140,17 @@ export default {
     },
   },
   methods: {
+    /**
+     * Filter input to only allow digits in TOTP code
+     * @param {Event} event - Input event
+     */
     handleCodeInput(event) {
-      // Only allow digits
       this.code = event.target.value.replace(/\D/g, '');
     },
+    /**
+     * Verify TOTP code with the server
+     * @returns {Promise<void>}
+     */
     async verifyCode() {
       if (this.code.length !== 6) return;
 
@@ -134,14 +158,20 @@ export default {
       this.loading = true;
 
       try {
-        const response = await api.post('/auth/mfa/verify', {
-          code: this.code,
-          user_id: this.userId,
-        });
+        // Build request payload - prefer mfa_token over user_id
+        const payload = { code: this.code };
+        if (this.mfaToken) {
+          payload.mfa_token = this.mfaToken;
+        }
+        if (this.userId) {
+          payload.user_id = this.userId;
+        }
+
+        const response = await api.post('/auth/mfa/verify', payload);
 
         if (response.data.success) {
           this.$emit('verified', {
-            access_token: response.data.data.token,
+            access_token: response.data.data.access_token,
             user: response.data.data.user,
           });
         }
@@ -152,6 +182,10 @@ export default {
         this.loading = false;
       }
     },
+    /**
+     * Authenticate using a recovery code
+     * @returns {Promise<void>}
+     */
     async useRecoveryCode() {
       if (!this.recoveryCode.trim()) return;
 
@@ -159,10 +193,16 @@ export default {
       this.loading = true;
 
       try {
-        const response = await api.post('/auth/mfa/recovery', {
-          recovery_code: this.recoveryCode.trim(),
-          user_id: this.userId,
-        });
+        // Build request payload - prefer mfa_token over user_id
+        const payload = { recovery_code: this.recoveryCode.trim() };
+        if (this.mfaToken) {
+          payload.mfa_token = this.mfaToken;
+        }
+        if (this.userId) {
+          payload.user_id = this.userId;
+        }
+
+        const response = await api.post('/auth/mfa/recovery', payload);
 
         if (response.data.success) {
           // Show warning about remaining codes if needed
@@ -171,7 +211,7 @@ export default {
           }
 
           this.$emit('verified', {
-            access_token: response.data.data.token,
+            access_token: response.data.data.access_token,
             user: response.data.data.user,
           });
         }
@@ -181,10 +221,16 @@ export default {
         this.loading = false;
       }
     },
+    /**
+     * Handle cancel button click - reset form and emit close event
+     */
     handleCancel() {
       this.resetForm();
       this.$emit('close');
     },
+    /**
+     * Reset all form fields to initial state
+     */
     resetForm() {
       this.code = '';
       this.recoveryCode = '';
@@ -196,38 +242,12 @@ export default {
 </script>
 
 <style scoped>
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 50;
-}
-
+/* Component-specific styles - modal/button base styles are in app.css */
 .modal {
-  background: white;
-  border-radius: 0.5rem;
-  width: 100%;
   max-width: 400px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-}
-
-.modal-header {
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.modal-header h3 {
-  margin: 0;
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: #111827;
 }
 
 .modal-body {
-  padding: 1.5rem;
   text-align: center;
 }
 
@@ -241,22 +261,6 @@ export default {
   display: flex;
   justify-content: center;
   margin-bottom: 1rem;
-}
-
-.code-input {
-  width: 160px;
-  padding: 0.75rem;
-  font-size: 1.5rem;
-  text-align: center;
-  letter-spacing: 0.25em;
-  border: 2px solid #e5e7eb;
-  border-radius: 0.5rem;
-  font-family: monospace;
-}
-
-.code-input:focus {
-  outline: none;
-  border-color: #3b82f6;
 }
 
 .recovery-input-container {
@@ -281,12 +285,6 @@ export default {
   border-color: #3b82f6;
 }
 
-.error-message {
-  color: #dc2626;
-  font-size: 0.875rem;
-  margin-bottom: 1rem;
-}
-
 .actions {
   margin-bottom: 1rem;
 }
@@ -306,46 +304,5 @@ export default {
 
 .text-link:hover {
   color: #2563eb;
-}
-
-.modal-footer {
-  padding: 1rem 1.5rem;
-  border-top: 1px solid #e5e7eb;
-  display: flex;
-  justify-content: flex-end;
-}
-
-.btn {
-  padding: 0.5rem 1rem;
-  border-radius: 0.375rem;
-  font-weight: 500;
-  font-size: 0.875rem;
-  cursor: pointer;
-  border: none;
-  transition: all 0.15s;
-}
-
-.btn-primary {
-  background-color: #3b82f6;
-  color: white;
-}
-
-.btn-primary:hover {
-  background-color: #2563eb;
-}
-
-.btn-outline {
-  background-color: white;
-  border: 1px solid #d1d5db;
-  color: #374151;
-}
-
-.btn-outline:hover {
-  background-color: #f9fafb;
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 </style>

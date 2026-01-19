@@ -125,7 +125,7 @@ class DataErasureService
         $deleted[] = 'goals';
 
         // Protection policies
-        $user->lifePolicies()->delete();
+        $user->lifeInsurancePolicies()->delete();
         $user->criticalIllnessPolicies()->delete();
         $user->incomeProtectionPolicies()->delete();
         $deleted[] = 'protection_policies';

@@ -62,7 +62,7 @@ class SessionController extends Controller
         // Audit log
         $this->auditService->logAuth(AuditLog::ACTION_SESSION_REVOKED, $user, [
             'session_id' => $id,
-            'device' => $session->device ?? null,
+            'device' => $session->device_name ?? null,
         ]);
 
         return response()->json([

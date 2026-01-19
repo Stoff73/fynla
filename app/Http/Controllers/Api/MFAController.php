@@ -10,7 +10,9 @@ use App\Services\Audit\AuditService;
 use App\Services\Auth\MFAService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class MFAController extends Controller
 {
@@ -94,22 +96,76 @@ class MFAController extends Controller
     }
 
     /**
+     * Generate an MFA challenge token for secure verification
+     * Called by AuthController when MFA is required
+     */
+    public static function generateChallengeToken(int $userId): string
+    {
+        $token = Str::random(64);
+        $cacheKey = "mfa_challenge:{$token}";
+
+        // Store challenge for 5 minutes
+        Cache::put($cacheKey, [
+            'user_id' => $userId,
+            'created_at' => now()->timestamp,
+        ], 300);
+
+        return $token;
+    }
+
+    /**
+     * Validate and consume an MFA challenge token
+     */
+    private function validateChallengeToken(string $token): ?int
+    {
+        $cacheKey = "mfa_challenge:{$token}";
+        $challenge = Cache::get($cacheKey);
+
+        if (! $challenge) {
+            return null;
+        }
+
+        // Consume the token (one-time use)
+        Cache::forget($cacheKey);
+
+        return $challenge['user_id'];
+    }
+
+    /**
      * Verify MFA code during login
      */
     public function verify(Request $request): JsonResponse
     {
         $request->validate([
             'code' => 'required|string|size:6',
-            'user_id' => 'required|integer',
+            'mfa_token' => 'required|string',
+            // Keep user_id for backwards compatibility but prefer mfa_token
+            'user_id' => 'sometimes|integer',
         ]);
 
-        $user = \App\Models\User::find($request->user_id);
+        // Prefer secure mfa_token, fall back to user_id for backwards compatibility
+        $userId = null;
+        if ($request->filled('mfa_token')) {
+            $userId = $this->validateChallengeToken($request->mfa_token);
+        } elseif ($request->filled('user_id')) {
+            // Backwards compatibility - will be deprecated
+            $userId = $request->user_id;
+        }
+
+        // Use consistent error message to prevent user enumeration
+        $genericError = response()->json([
+            'success' => false,
+            'message' => 'Invalid or expired verification request.',
+        ], 401);
+
+        if (! $userId) {
+            return $genericError;
+        }
+
+        $user = \App\Models\User::find($userId);
 
         if (! $user) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid request.',
-            ], 400);
+            return $genericError;
         }
 
         if (! $this->mfaService->verifyCode($user, $request->code)) {
@@ -138,7 +194,7 @@ class MFAController extends Controller
             'success' => true,
             'message' => 'MFA verification successful.',
             'data' => [
-                'token' => $token,
+                'access_token' => $token,
                 'user' => [
                     'id' => $user->id,
                     'name' => $user->name,
@@ -156,16 +212,34 @@ class MFAController extends Controller
     {
         $request->validate([
             'recovery_code' => 'required|string',
-            'user_id' => 'required|integer',
+            'mfa_token' => 'required|string',
+            // Keep user_id for backwards compatibility but prefer mfa_token
+            'user_id' => 'sometimes|integer',
         ]);
 
-        $user = \App\Models\User::find($request->user_id);
+        // Prefer secure mfa_token, fall back to user_id for backwards compatibility
+        $userId = null;
+        if ($request->filled('mfa_token')) {
+            $userId = $this->validateChallengeToken($request->mfa_token);
+        } elseif ($request->filled('user_id')) {
+            // Backwards compatibility - will be deprecated
+            $userId = $request->user_id;
+        }
+
+        // Use consistent error message to prevent user enumeration
+        $genericError = response()->json([
+            'success' => false,
+            'message' => 'Invalid or expired verification request.',
+        ], 401);
+
+        if (! $userId) {
+            return $genericError;
+        }
+
+        $user = \App\Models\User::find($userId);
 
         if (! $user) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid request.',
-            ], 400);
+            return $genericError;
         }
 
         if (! $this->mfaService->verifyRecoveryCode($user, $request->recovery_code)) {
@@ -190,7 +264,7 @@ class MFAController extends Controller
             'success' => true,
             'message' => 'Recovery code accepted.',
             'data' => [
-                'token' => $token,
+                'access_token' => $token,
                 'user' => [
                     'id' => $user->id,
                     'name' => $user->name,

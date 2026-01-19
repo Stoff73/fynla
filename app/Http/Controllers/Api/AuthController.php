@@ -180,13 +180,17 @@ class AuthController extends Controller
 
         // Check if user has MFA enabled
         if ($this->mfaService->hasMFAEnabled($user)) {
+            // Generate secure MFA challenge token
+            $mfaToken = MFAController::generateChallengeToken($user->id);
+
             // Don't record as successful yet - MFA verification is still required
             return response()->json([
                 'success' => true,
                 'message' => 'MFA verification required.',
                 'requires_mfa' => true,
                 'data' => [
-                    'user_id' => $user->id,
+                    'user_id' => $user->id, // Kept for backwards compatibility
+                    'mfa_token' => $mfaToken, // Secure challenge token
                     'email' => $this->maskEmail($user->email),
                 ],
             ]);

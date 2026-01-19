@@ -34,6 +34,15 @@ class ErasureRequest extends Model
         'data_categories_deleted' => 'array',
     ];
 
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            $model->requested_at = $model->requested_at ?? now();
+        });
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

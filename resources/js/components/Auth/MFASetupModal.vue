@@ -130,6 +130,13 @@
 </template>
 
 <script>
+/**
+ * @fileoverview MFA Setup Modal Component
+ * Provides a multi-step wizard for setting up two-factor authentication.
+ * Step 1: Display QR code and secret for authenticator app
+ * Step 2: Verify TOTP code from authenticator
+ * Step 3: Display and save recovery codes
+ */
 import api from '@/services/api';
 
 export default {
@@ -137,12 +144,19 @@ export default {
   emits: ['close', 'success'],
   data() {
     return {
+      /** @type {number} Current setup wizard step (1-3) */
       step: 1,
+      /** @type {string|null} Base64 QR code image data */
       qrCode: null,
+      /** @type {string} TOTP secret key for manual entry */
       secret: '',
+      /** @type {string} User-entered verification code */
       verificationCode: '',
+      /** @type {string[]} Generated recovery codes */
       recoveryCodes: [],
+      /** @type {string} Error message to display */
       error: '',
+      /** @type {boolean} Whether verification is in progress */
       verifying: false,
     };
   },
@@ -150,6 +164,10 @@ export default {
     this.initSetup();
   },
   methods: {
+    /**
+     * Initialize MFA setup by fetching QR code and secret from API
+     * @returns {Promise<void>}
+     */
     async initSetup() {
       try {
         const response = await api.post('/auth/mfa/setup');
@@ -159,6 +177,10 @@ export default {
         this.error = 'Failed to initialize MFA setup. Please try again.';
       }
     },
+    /**
+     * Verify the TOTP code entered by user and enable MFA
+     * @returns {Promise<void>}
+     */
     async verifySetup() {
       this.error = '';
       this.verifying = true;
@@ -175,12 +197,18 @@ export default {
         this.verifying = false;
       }
     },
+    /**
+     * Copy recovery codes to clipboard
+     */
     copyRecoveryCodes() {
       const text = this.recoveryCodes.join('\n');
       navigator.clipboard.writeText(text);
       this.$toast?.success?.('Recovery codes copied to clipboard') ||
         alert('Recovery codes copied to clipboard');
     },
+    /**
+     * Complete MFA setup and emit success event
+     */
     finish() {
       this.$emit('success');
     },
@@ -189,53 +217,9 @@ export default {
 </script>
 
 <style scoped>
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 50;
-}
-
+/* Component-specific styles - modal base styles are in app.css */
 .modal {
-  background: white;
-  border-radius: 0.5rem;
-  width: 100%;
   max-width: 440px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-}
-
-.modal-header {
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.modal-header h3 {
-  margin: 0;
-  font-size: 1.125rem;
-  font-weight: 600;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  cursor: pointer;
-  color: #6b7280;
-  line-height: 1;
-}
-
-.close-btn:hover {
-  color: #111827;
-}
-
-.modal-body {
-  padding: 1.5rem;
 }
 
 .setup-step {
@@ -307,28 +291,6 @@ export default {
   margin-bottom: 1rem;
 }
 
-.code-input {
-  width: 160px;
-  padding: 0.75rem;
-  font-size: 1.5rem;
-  text-align: center;
-  letter-spacing: 0.25em;
-  border: 2px solid #e5e7eb;
-  border-radius: 0.5rem;
-  font-family: monospace;
-}
-
-.code-input:focus {
-  outline: none;
-  border-color: #3b82f6;
-}
-
-.error-message {
-  color: #dc2626;
-  font-size: 0.875rem;
-  margin-bottom: 1rem;
-}
-
 .step-actions {
   display: flex;
   justify-content: center;
@@ -378,42 +340,5 @@ export default {
   font-size: 0.875rem;
 }
 
-.btn {
-  padding: 0.5rem 1rem;
-  border-radius: 0.375rem;
-  font-weight: 500;
-  font-size: 0.875rem;
-  cursor: pointer;
-  border: none;
-  transition: all 0.15s;
-}
-
-.btn-primary {
-  background-color: #3b82f6;
-  color: white;
-}
-
-.btn-primary:hover {
-  background-color: #2563eb;
-}
-
-.btn-outline {
-  background-color: white;
-  border: 1px solid #d1d5db;
-  color: #374151;
-}
-
-.btn-outline:hover {
-  background-color: #f9fafb;
-}
-
-.btn-sm {
-  padding: 0.25rem 0.75rem;
-  font-size: 0.75rem;
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
+/* Button styles are in app.css */
 </style>

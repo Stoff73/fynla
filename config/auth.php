@@ -112,4 +112,39 @@ return [
 
     'password_timeout' => 10800,
 
+    /*
+    |--------------------------------------------------------------------------
+    | Login Lockout Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Configure the progressive lockout thresholds for failed login attempts.
+    | Format: [failed_attempts => lockout_minutes]
+    |
+    */
+
+    'lockout' => [
+        'thresholds' => [
+            3 => 1,      // 3 failures = 1 minute lockout
+            5 => 5,      // 5 failures = 5 minute lockout
+            10 => 30,    // 10 failures = 30 minute lockout
+            15 => 1440,  // 15+ failures = 24 hour lockout
+        ],
+        'ip_max_attempts' => 50, // Block IP after this many failed attempts in an hour
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Audit Log Retention
+    |--------------------------------------------------------------------------
+    |
+    | Configure how long audit logs are retained before being purged.
+    | GDPR-related logs should be kept longer for compliance.
+    |
+    */
+
+    'audit' => [
+        'retention_days' => 90,           // Default retention period
+        'gdpr_retention_days' => 2555,    // ~7 years for GDPR compliance
+    ],
+
 ];

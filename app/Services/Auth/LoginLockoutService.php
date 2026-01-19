@@ -11,14 +11,26 @@ use Carbon\Carbon;
 class LoginLockoutService
 {
     /**
-     * Lockout thresholds: [failed_attempts => lockout_minutes]
+     * Get lockout thresholds from config
+     * Format: [failed_attempts => lockout_minutes]
      */
-    private const LOCKOUT_THRESHOLDS = [
-        3 => 1,      // 3 failures = 1 minute lockout
-        5 => 5,      // 5 failures = 5 minute lockout
-        10 => 30,    // 10 failures = 30 minute lockout
-        15 => 1440,  // 15+ failures = 24 hour lockout
-    ];
+    private function getLockoutThresholds(): array
+    {
+        return config('auth.lockout.thresholds', [
+            3 => 1,      // 3 failures = 1 minute lockout
+            5 => 5,      // 5 failures = 5 minute lockout
+            10 => 30,    // 10 failures = 30 minute lockout
+            15 => 1440,  // 15+ failures = 24 hour lockout
+        ]);
+    }
+
+    /**
+     * Get max IP attempts from config
+     */
+    private function getIpMaxAttempts(): int
+    {
+        return config('auth.lockout.ip_max_attempts', 50);
+    }
 
     /**
      * Check if a user/email is currently locked out
@@ -47,7 +59,7 @@ class LoginLockoutService
         $ip = request()->ip();
         $recentFailures = LoginAttempt::recentFailedAttemptsFromIp($ip, 60);
 
-        return $recentFailures >= 50; // Block IP after 50 failed attempts in an hour
+        return $recentFailures >= $this->getIpMaxAttempts();
     }
 
     /**
@@ -142,7 +154,7 @@ class LoginLockoutService
     {
         $lockoutMinutes = 0;
 
-        foreach (self::LOCKOUT_THRESHOLDS as $threshold => $minutes) {
+        foreach ($this->getLockoutThresholds() as $threshold => $minutes) {
             if ($failedCount >= $threshold) {
                 $lockoutMinutes = $minutes;
             }
