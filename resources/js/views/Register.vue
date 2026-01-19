@@ -54,20 +54,6 @@
             Wishlist for priority access on release
           </a>
         </div>
-
-        <!-- Preview mode indicator -->
-        <div v-if="wasInPreview" class="mt-4 bg-amber-50 border border-amber-200 rounded-lg p-3">
-          <div class="flex items-center gap-2 text-sm text-amber-800">
-            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-            </svg>
-            <span>
-              Registering from preview mode.
-              <strong>{{ currentPersonaName }}</strong>'s data can be saved after registration.
-            </span>
-          </div>
-        </div>
       </div>
 
       <form class="mt-8 space-y-6" @submit.prevent="handleRegister">
@@ -348,13 +334,8 @@ export default {
         personaForModal.value = cachedCurrentPersona;
         showKeepDataModal.value = true;
       } else {
-        // Direct registration - go to dashboard with guidance
-        try {
-          await store.dispatch('guidance/showWelcomeModal');
-        } catch (e) {
-          // Guidance module might not exist
-        }
-        router.push({ name: 'Dashboard' });
+        // Direct registration - go to onboarding
+        router.push({ name: 'Onboarding' });
       }
     };
 
@@ -379,15 +360,8 @@ export default {
         localStorage.removeItem('preview_persona_id');
         localStorage.removeItem('preview_mode');
 
-        // Start guidance for new user
-        try {
-          await store.dispatch('guidance/showWelcomeModal');
-        } catch (e) {
-          // Guidance module might not exist
-        }
-
-        // Navigate to dashboard
-        router.push({ name: 'Dashboard' });
+        // Navigate to onboarding
+        router.push({ name: 'Onboarding' });
       } catch (error) {
         console.error('Failed to handle keep data choice:', error);
         errorMessage.value = 'Failed to set up your account. Please try again.';
@@ -404,9 +378,6 @@ export default {
       showVerificationModal,
       pendingId,
       pendingEmail,
-      wasInPreview,
-      currentPersona,
-      currentPersonaName,
       personaForModal,
       handleRegister,
       handleVerified,
