@@ -29,9 +29,9 @@
 
 ## Pre-Deployment Checklist
 
-- [ ] Local tests passing (`./vendor/bin/pest`)
-- [ ] Code formatted (`./vendor/bin/pint --test`)
-- [ ] All changes committed and pushed to main
+- [x] Local tests passing (`./vendor/bin/pest`)
+- [x] Code formatted (`./vendor/bin/pint --test`)
+- [x] All changes committed and pushed to main
 - [ ] **Database backup taken on server** (CRITICAL)
 - [ ] Maintenance mode plan ready
 
