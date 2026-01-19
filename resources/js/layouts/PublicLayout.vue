@@ -187,7 +187,8 @@ export default {
 </script>
 
 <style scoped>
-.router-link-active {
+/* Only apply active styling to navigation links, not buttons */
+nav .md\:space-x-8 .router-link-active {
   @apply text-blue-600;
 }
 </style>
