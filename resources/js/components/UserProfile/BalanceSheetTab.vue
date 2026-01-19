@@ -18,35 +18,19 @@
     <div v-else-if="hasData" class="space-y-6">
       <!-- Assets Section -->
       <div class="card p-6 overflow-x-auto">
-        <h3 class="text-h5 font-semibold text-success-700 mb-4">Assets</h3>
         <table class="min-w-full divide-y divide-gray-200">
           <thead>
             <tr>
-              <th class="px-3 py-2 text-left text-body-sm font-semibold text-gray-900">Line Item</th>
-              <th class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900">{{ userName }}</th>
-              <th v-if="hasSpouse" class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900">{{ spouseName }}</th>
-              <th class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900">Combined</th>
+              <th class="px-3 py-2 text-left text-h5 font-semibold text-success-700" style="width: 40%">Assets</th>
+              <th class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900" style="width: 20%">{{ userName }}</th>
+              <th v-if="hasSpouse" class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900" style="width: 20%">{{ spouseName }}</th>
+              <th class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900" style="width: 20%">Combined</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-200">
-            <!-- Property Group -->
-            <tr class="bg-gray-50">
-              <td colspan="4" class="px-3 py-2 text-body-sm font-semibold text-gray-700">Property</td>
-            </tr>
-            <tr v-for="(item, index) in propertyAssets" :key="'property-' + index">
-              <td class="px-3 py-2 text-body-base text-gray-700 pl-6">{{ item.line_item }}</td>
-              <td class="px-3 py-2 text-right text-body-base font-medium text-gray-900">
-                {{ formatCurrency(item.userAmount) }}
-              </td>
-              <td v-if="hasSpouse" class="px-3 py-2 text-right text-body-base font-medium text-gray-900">
-                {{ formatCurrency(item.spouseAmount) }}
-              </td>
-              <td class="px-3 py-2 text-right text-body-base font-medium text-gray-900">
-                {{ formatCurrency(item.userAmount + item.spouseAmount) }}
-              </td>
-            </tr>
+            <!-- Property Group Header with Sub-total -->
             <tr class="bg-gray-100">
-              <td class="px-3 py-2 text-body-sm font-semibold text-gray-700 pl-6">Sub-total Property</td>
+              <td class="px-3 py-2 text-body-sm font-semibold text-gray-700" style="width: 40%">Property</td>
               <td class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900">
                 {{ formatCurrency(propertySubtotal.user) }}
               </td>
@@ -57,25 +41,22 @@
                 {{ formatCurrency(propertySubtotal.combined) }}
               </td>
             </tr>
-
-            <!-- Investments Group (including Pensions) -->
-            <tr class="bg-gray-50">
-              <td colspan="4" class="px-3 py-2 text-body-sm font-semibold text-gray-700">Investments (incl. Pensions)</td>
-            </tr>
-            <tr v-for="(item, index) in investmentAssets" :key="'investment-' + index">
-              <td class="px-3 py-2 text-body-base text-gray-700 pl-6">{{ item.line_item }}</td>
-              <td class="px-3 py-2 text-right text-body-base font-medium text-gray-900">
+            <tr v-for="(item, index) in propertyAssets" :key="'property-' + index">
+              <td class="px-3 py-2 text-body-sm text-gray-700 pl-6">{{ item.line_item }}</td>
+              <td class="px-3 py-2 text-right text-body-sm font-medium text-gray-900">
                 {{ formatCurrency(item.userAmount) }}
               </td>
-              <td v-if="hasSpouse" class="px-3 py-2 text-right text-body-base font-medium text-gray-900">
+              <td v-if="hasSpouse" class="px-3 py-2 text-right text-body-sm font-medium text-gray-900">
                 {{ formatCurrency(item.spouseAmount) }}
               </td>
-              <td class="px-3 py-2 text-right text-body-base font-medium text-gray-900">
+              <td class="px-3 py-2 text-right text-body-sm font-medium text-gray-900">
                 {{ formatCurrency(item.userAmount + item.spouseAmount) }}
               </td>
             </tr>
+
+            <!-- Investments Group Header with Sub-total -->
             <tr class="bg-gray-100">
-              <td class="px-3 py-2 text-body-sm font-semibold text-gray-700 pl-6">Sub-total Investments</td>
+              <td class="px-3 py-2 text-body-sm font-semibold text-gray-700">Investments (incl. Pensions)</td>
               <td class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900">
                 {{ formatCurrency(investmentSubtotal.user) }}
               </td>
@@ -86,25 +67,22 @@
                 {{ formatCurrency(investmentSubtotal.combined) }}
               </td>
             </tr>
-
-            <!-- Cash Group -->
-            <tr class="bg-gray-50">
-              <td colspan="4" class="px-3 py-2 text-body-sm font-semibold text-gray-700">Cash</td>
-            </tr>
-            <tr v-for="(item, index) in cashAssets" :key="'cash-' + index">
-              <td class="px-3 py-2 text-body-base text-gray-700 pl-6">{{ item.line_item }}</td>
-              <td class="px-3 py-2 text-right text-body-base font-medium text-gray-900">
+            <tr v-for="(item, index) in investmentAssets" :key="'investment-' + index">
+              <td class="px-3 py-2 text-body-sm text-gray-700 pl-6">{{ item.line_item }}</td>
+              <td class="px-3 py-2 text-right text-body-sm font-medium text-gray-900">
                 {{ formatCurrency(item.userAmount) }}
               </td>
-              <td v-if="hasSpouse" class="px-3 py-2 text-right text-body-base font-medium text-gray-900">
+              <td v-if="hasSpouse" class="px-3 py-2 text-right text-body-sm font-medium text-gray-900">
                 {{ formatCurrency(item.spouseAmount) }}
               </td>
-              <td class="px-3 py-2 text-right text-body-base font-medium text-gray-900">
+              <td class="px-3 py-2 text-right text-body-sm font-medium text-gray-900">
                 {{ formatCurrency(item.userAmount + item.spouseAmount) }}
               </td>
             </tr>
+
+            <!-- Cash Group Header with Sub-total -->
             <tr class="bg-gray-100">
-              <td class="px-3 py-2 text-body-sm font-semibold text-gray-700 pl-6">Sub-total Cash</td>
+              <td class="px-3 py-2 text-body-sm font-semibold text-gray-700">Cash</td>
               <td class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900">
                 {{ formatCurrency(cashSubtotal.user) }}
               </td>
@@ -113,6 +91,18 @@
               </td>
               <td class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900">
                 {{ formatCurrency(cashSubtotal.combined) }}
+              </td>
+            </tr>
+            <tr v-for="(item, index) in cashAssets" :key="'cash-' + index">
+              <td class="px-3 py-2 text-body-sm text-gray-700 pl-6">{{ item.line_item }}</td>
+              <td class="px-3 py-2 text-right text-body-sm font-medium text-gray-900">
+                {{ formatCurrency(item.userAmount) }}
+              </td>
+              <td v-if="hasSpouse" class="px-3 py-2 text-right text-body-sm font-medium text-gray-900">
+                {{ formatCurrency(item.spouseAmount) }}
+              </td>
+              <td class="px-3 py-2 text-right text-body-sm font-medium text-gray-900">
+                {{ formatCurrency(item.userAmount + item.spouseAmount) }}
               </td>
             </tr>
           </tbody>
@@ -135,26 +125,25 @@
 
       <!-- Liabilities Section -->
       <div class="card p-6 overflow-x-auto">
-        <h3 class="text-h5 font-semibold text-error-700 mb-4">Liabilities</h3>
         <table class="min-w-full divide-y divide-gray-200">
           <thead>
             <tr>
-              <th class="px-3 py-2 text-left text-body-sm font-semibold text-gray-900">Line Item</th>
-              <th class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900">{{ userName }}</th>
-              <th v-if="hasSpouse" class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900">{{ spouseName }}</th>
-              <th class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900">Combined</th>
+              <th class="px-3 py-2 text-left text-h5 font-semibold text-error-700" style="width: 40%">Liabilities</th>
+              <th class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900" style="width: 20%">{{ userName }}</th>
+              <th v-if="hasSpouse" class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900" style="width: 20%">{{ spouseName }}</th>
+              <th class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900" style="width: 20%">Combined</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-200">
             <tr v-for="(item, index) in allLiabilities" :key="'liability-' + index">
-              <td class="px-3 py-2 text-body-base text-gray-700">{{ item.line_item }}</td>
-              <td class="px-3 py-2 text-right text-body-base font-medium text-gray-900">
+              <td class="px-3 py-2 text-body-sm text-gray-700" style="width: 40%">{{ item.line_item }}</td>
+              <td class="px-3 py-2 text-right text-body-sm font-medium text-gray-900">
                 {{ formatCurrency(item.userAmount) }}
               </td>
-              <td v-if="hasSpouse" class="px-3 py-2 text-right text-body-base font-medium text-gray-900">
+              <td v-if="hasSpouse" class="px-3 py-2 text-right text-body-sm font-medium text-gray-900">
                 {{ formatCurrency(item.spouseAmount) }}
               </td>
-              <td class="px-3 py-2 text-right text-body-base font-medium text-gray-900">
+              <td class="px-3 py-2 text-right text-body-sm font-medium text-gray-900">
                 {{ formatCurrency(item.userAmount + item.spouseAmount) }}
               </td>
             </tr>
@@ -181,18 +170,18 @@
         <table class="min-w-full">
           <thead>
             <tr>
-              <th class="px-3 py-2 text-left text-body-sm font-semibold text-gray-900">Net Worth</th>
-              <th class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900">{{ userName }}</th>
-              <th v-if="hasSpouse" class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900">{{ spouseName }}</th>
-              <th class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900">Combined</th>
+              <th class="px-3 py-2 text-left text-body-sm font-semibold text-gray-900" style="width: 40%">Net Worth</th>
+              <th class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900" style="width: 20%">{{ userName }}</th>
+              <th v-if="hasSpouse" class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900" style="width: 20%">{{ spouseName }}</th>
+              <th class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900" style="width: 20%">Combined</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td class="px-3 py-3 text-h5 font-semibold text-gray-900">Equity (Net Worth)</td>
+              <td class="px-3 py-3 text-body-base font-bold text-gray-900" style="width: 40%">Total</td>
               <td class="px-3 py-3 text-right">
                 <p
-                  class="text-h3 font-display font-bold"
+                  class="text-h5 font-bold"
                   :class="netWorth.user >= 0 ? 'text-success-700' : 'text-error-700'"
                 >
                   {{ formatCurrency(netWorth.user) }}
@@ -200,7 +189,7 @@
               </td>
               <td v-if="hasSpouse" class="px-3 py-3 text-right">
                 <p
-                  class="text-h3 font-display font-bold"
+                  class="text-h5 font-bold"
                   :class="netWorth.spouse >= 0 ? 'text-success-700' : 'text-error-700'"
                 >
                   {{ formatCurrency(netWorth.spouse) }}
@@ -208,7 +197,7 @@
               </td>
               <td class="px-3 py-3 text-right">
                 <p
-                  class="text-h3 font-display font-bold"
+                  class="text-h5 font-bold"
                   :class="netWorth.combined >= 0 ? 'text-success-700' : 'text-error-700'"
                 >
                   {{ formatCurrency(netWorth.combined) }}
@@ -294,19 +283,19 @@ export default {
       userAssets.forEach(item => {
         allLineItems.set(item.line_item, {
           line_item: item.line_item,
-          userAmount: item.amount || 0,
+          userAmount: Number(item.amount) || 0,
           spouseAmount: 0,
         });
       });
 
       spouseAssets.forEach(item => {
         if (allLineItems.has(item.line_item)) {
-          allLineItems.get(item.line_item).spouseAmount = item.amount || 0;
+          allLineItems.get(item.line_item).spouseAmount = Number(item.amount) || 0;
         } else {
           allLineItems.set(item.line_item, {
             line_item: item.line_item,
             userAmount: 0,
-            spouseAmount: item.amount || 0,
+            spouseAmount: Number(item.amount) || 0,
           });
         }
       });
@@ -316,15 +305,15 @@ export default {
 
     const propertyAssets = computed(() => getMergedAssets('property'));
 
-    // Investment assets include 'investment' and 'pension' categories (excluding state pension)
+    // Investment assets include 'investment', 'pension' (excluding state pension), 'business', and 'chattel' categories
     const investmentAssets = computed(() => {
       const investments = getMergedAssets('investment');
       const pensions = getMergedAssets('pension').filter(p =>
         !p.line_item.toLowerCase().includes('state pension')
       );
-      // Also include business interests
       const businesses = getMergedAssets('business');
-      return [...investments, ...pensions, ...businesses];
+      const chattels = getMergedAssets('chattel');
+      return [...investments, ...pensions, ...businesses, ...chattels];
     });
 
     const cashAssets = computed(() => getMergedAssets('cash'));
@@ -357,19 +346,19 @@ export default {
       userLiabilities.forEach(item => {
         allLineItems.set(item.line_item, {
           line_item: item.line_item,
-          userAmount: item.amount || 0,
+          userAmount: Number(item.amount) || 0,
           spouseAmount: 0,
         });
       });
 
       spouseLiabilities.forEach(item => {
         if (allLineItems.has(item.line_item)) {
-          allLineItems.get(item.line_item).spouseAmount = item.amount || 0;
+          allLineItems.get(item.line_item).spouseAmount = Number(item.amount) || 0;
         } else {
           allLineItems.set(item.line_item, {
             line_item: item.line_item,
             userAmount: 0,
-            spouseAmount: item.amount || 0,
+            spouseAmount: Number(item.amount) || 0,
           });
         }
       });
@@ -403,6 +392,20 @@ export default {
           if (response.data.spouse_data?.balance_sheet) {
             spouseData.value = response.data.spouse_data.balance_sheet;
           }
+          // Debug logging
+          const rawData = JSON.parse(JSON.stringify({
+            userData: userData.value,
+            spouseData: spouseData.value,
+          }));
+          console.log('Balance Sheet Data:', rawData);
+          console.log('User Assets by category:', rawData.userData?.assets?.reduce((acc, a) => {
+            acc[a.category] = (acc[a.category] || 0) + a.amount;
+            return acc;
+          }, {}));
+          console.log('Spouse Assets by category:', rawData.spouseData?.assets?.reduce((acc, a) => {
+            acc[a.category] = (acc[a.category] || 0) + a.amount;
+            return acc;
+          }, {}));
         }
       } catch (error) {
         console.error('Failed to load balance sheet:', error);
