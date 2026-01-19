@@ -405,13 +405,17 @@ export default {
 
   mounted() {
     this.startHeroWordRotation();
+    this.checkDemoParam();
+  },
 
-    // Check for demo query parameter to auto-open persona modal
-    if (this.$route.query.demo === 'true') {
-      this.showSelectionModal = true;
-      // Clear the query parameter from URL
-      this.$router.replace({ path: '/', query: {} });
-    }
+  watch: {
+    '$route.query.demo': {
+      handler(newVal) {
+        if (newVal === 'true') {
+          this.checkDemoParam();
+        }
+      },
+    },
   },
 
   beforeUnmount() {
@@ -422,6 +426,14 @@ export default {
 
   methods: {
     ...mapActions('preview', ['loadPersona']),
+
+    checkDemoParam() {
+      if (this.$route.query.demo === 'true') {
+        this.showSelectionModal = true;
+        // Clear the query parameter from URL
+        this.$router.replace({ path: '/', query: {} });
+      }
+    },
 
     startHeroWordRotation() {
       this.heroWordInterval = setInterval(() => {
