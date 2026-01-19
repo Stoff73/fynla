@@ -9,8 +9,15 @@ use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
 use App\Mail\VerificationCode;
 use App\Models\EmailVerificationCode;
+use App\Models\AuditLog;
+use App\Models\LoginAttempt;
 use App\Models\PendingRegistration;
 use App\Models\User;
+use App\Models\UserSession;
+use App\Services\Audit\AuditService;
+use App\Services\Auth\LoginLockoutService;
+use App\Services\Auth\MFAService;
+use App\Services\Auth\SessionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -19,6 +26,13 @@ use Illuminate\Support\Facades\Mail;
 
 class AuthController extends Controller
 {
+    public function __construct(
+        private LoginLockoutService $lockoutService,
+        private MFAService $mfaService,
+        private SessionService $sessionService,
+        private AuditService $auditService
+    ) {}
+
     /**
      * Register a new user.
      *
@@ -86,23 +100,70 @@ class AuthController extends Controller
      */
     public function login(LoginRequest $request): JsonResponse
     {
+        $email = $request->email;
+
+        // Check if account is locked
+        if ($this->lockoutService->isLocked($email)) {
+            $lockoutInfo = $this->lockoutService->getLockoutInfo($email);
+
+            return response()->json([
+                'success' => false,
+                'message' => $lockoutInfo['message'],
+                'locked' => true,
+                'remaining_seconds' => $lockoutInfo['remaining_seconds'],
+            ], 423); // 423 Locked
+        }
+
+        // Check if IP is blocked
+        if ($this->lockoutService->isIpLocked()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Too many failed attempts from this location. Please try again later.',
+                'locked' => true,
+            ], 423);
+        }
+
         if (! Auth::attempt($request->only('email', 'password'))) {
+            // Record failed attempt
+            $this->lockoutService->recordFailedAttempt($email, LoginAttempt::REASON_INVALID_CREDENTIALS);
+
+            // Audit log - find user if exists for better tracking
+            $user = User::where('email', $email)->first();
+            $this->auditService->logAuth(AuditLog::ACTION_LOGIN_FAILED, $user, [
+                'email' => $email,
+                'reason' => 'invalid_credentials',
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid credentials',
             ], 401);
         }
 
-        $user = User::where('email', $request->email)->firstOrFail();
+        $user = User::where('email', $email)->firstOrFail();
 
         // Skip verification for preview users - return token immediately
         if ($user->is_preview_user) {
+            // Record successful login
+            $this->lockoutService->recordSuccessfulLogin($email);
+
+            // Audit log
+            $this->auditService->logAuth(AuditLog::ACTION_LOGIN_SUCCESS, $user, [
+                'method' => 'preview_user',
+            ]);
+
             // Load spouse relationship if spouse_id exists
             if ($user->spouse_id) {
                 $user->load('spouse');
             }
 
             $token = $user->createToken('auth_token')->plainTextToken;
+
+            // Create session for this token
+            $accessToken = $user->tokens()->latest()->first();
+            if ($accessToken) {
+                UserSession::createForToken($user, $accessToken);
+            }
 
             return response()->json([
                 'success' => true,
@@ -112,6 +173,21 @@ class AuthController extends Controller
                     'access_token' => $token,
                     'token_type' => 'Bearer',
                     'must_change_password' => $user->must_change_password,
+                    'mfa_enabled' => $user->mfa_enabled,
+                ],
+            ]);
+        }
+
+        // Check if user has MFA enabled
+        if ($this->mfaService->hasMFAEnabled($user)) {
+            // Don't record as successful yet - MFA verification is still required
+            return response()->json([
+                'success' => true,
+                'message' => 'MFA verification required.',
+                'requires_mfa' => true,
+                'data' => [
+                    'user_id' => $user->id,
+                    'email' => $this->maskEmail($user->email),
                 ],
             ]);
         }
@@ -144,11 +220,20 @@ class AuthController extends Controller
      */
     public function logout(Request $request): JsonResponse
     {
-        // Check if user has a current access token before deleting
-        $token = $request->user()->currentAccessToken();
+        $user = $request->user();
+        $token = $user->currentAccessToken();
 
-        if ($token && method_exists($token, 'delete')) {
-            $token->delete();
+        // Audit log
+        $this->auditService->logAuth(AuditLog::ACTION_LOGOUT, $user);
+
+        if ($token) {
+            // Delete the session first (if exists)
+            UserSession::where('token_id', $token->id)->delete();
+
+            // Then delete the token
+            if (method_exists($token, 'delete')) {
+                $token->delete();
+            }
         }
 
         return response()->json([
@@ -212,6 +297,9 @@ class AuthController extends Controller
         $user->must_change_password = false;
         $user->save();
 
+        // Audit log
+        $this->auditService->logAuth(AuditLog::ACTION_PASSWORD_CHANGED, $user);
+
         return response()->json([
             'success' => true,
             'message' => 'Password changed successfully',
@@ -259,11 +347,22 @@ class AuthController extends Controller
                 'pending_id' => $pending->id,
             ]);
 
+            // Audit log - new user registration
+            $this->auditService->logAuth(AuditLog::ACTION_LOGIN_SUCCESS, $user, [
+                'method' => 'registration',
+            ]);
+
             // Delete the pending registration
             $pending->delete();
 
             // Create auth token
             $token = $user->createToken('auth_token')->plainTextToken;
+
+            // Create session for this token
+            $accessToken = $user->tokens()->latest()->first();
+            if ($accessToken) {
+                UserSession::createForToken($user, $accessToken);
+            }
 
             return response()->json([
                 'success' => true,
@@ -273,6 +372,7 @@ class AuthController extends Controller
                     'access_token' => $token,
                     'token_type' => 'Bearer',
                     'must_change_password' => false,
+                    'mfa_enabled' => false,
                 ],
             ]);
         }
@@ -297,12 +397,26 @@ class AuthController extends Controller
         // Get user and create token
         $user = User::findOrFail($request->user_id);
 
+        // Record successful login
+        $this->lockoutService->recordSuccessfulLogin($user->email);
+
+        // Audit log
+        $this->auditService->logAuth(AuditLog::ACTION_LOGIN_SUCCESS, $user, [
+            'method' => 'email_verification',
+        ]);
+
         // Load spouse relationship if spouse_id exists
         if ($user->spouse_id) {
             $user->load('spouse');
         }
 
         $token = $user->createToken('auth_token')->plainTextToken;
+
+        // Create session for this token
+        $accessToken = $user->tokens()->latest()->first();
+        if ($accessToken) {
+            UserSession::createForToken($user, $accessToken);
+        }
 
         return response()->json([
             'success' => true,
@@ -312,6 +426,7 @@ class AuthController extends Controller
                 'access_token' => $token,
                 'token_type' => 'Bearer',
                 'must_change_password' => $user->must_change_password,
+                'mfa_enabled' => $user->mfa_enabled,
             ],
         ]);
     }

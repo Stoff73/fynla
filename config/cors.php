@@ -17,8 +17,10 @@ return [
 
     'paths' => ['api/*', 'sanctum/csrf-cookie'],
 
-    'allowed_methods' => ['*'],
+    // Restrict to actual HTTP methods used by the API
+    'allowed_methods' => ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
 
+    // Use environment variables for allowed origins (no wildcards in production)
     'allowed_origins' => array_filter(array_unique(array_merge(
         explode(',', env('ALLOWED_ORIGINS', '')),
         [
@@ -29,11 +31,24 @@ return [
 
     'allowed_origins_patterns' => [],
 
-    'allowed_headers' => ['*'],
+    // Restrict to headers actually used by the application
+    'allowed_headers' => [
+        'Accept',
+        'Authorization',
+        'Content-Type',
+        'X-Requested-With',
+        'X-XSRF-TOKEN',
+    ],
 
-    'exposed_headers' => [],
+    // Expose rate limit headers so frontend can handle them
+    'exposed_headers' => [
+        'X-RateLimit-Limit',
+        'X-RateLimit-Remaining',
+        'X-RateLimit-Reset',
+    ],
 
-    'max_age' => 0,
+    // Cache preflight requests for 1 hour (3600 seconds)
+    'max_age' => 3600,
 
     'supports_credentials' => true,
 

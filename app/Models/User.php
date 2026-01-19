@@ -43,6 +43,8 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'mfa_secret',
+        'mfa_recovery_codes',
     ];
 
     /**
@@ -65,6 +67,14 @@ class User extends Authenticatable
         'is_admin' => 'boolean',
         'is_preview_user' => 'boolean',
         'must_change_password' => 'boolean',
+        // MFA fields
+        'mfa_enabled' => 'boolean',
+        'mfa_recovery_codes' => 'array',
+        'mfa_confirmed_at' => 'datetime',
+        // Lockout fields
+        'failed_login_count' => 'integer',
+        'locked_until' => 'datetime',
+        'last_failed_login_at' => 'datetime',
         'date_of_birth' => 'date',
         'retirement_date' => 'date',
         'is_primary_account' => 'boolean',
@@ -197,11 +207,51 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the user's role.
+     */
+    public function role(): BelongsTo
+    {
+        return $this->belongsTo(Role::class);
+    }
+
+    /**
      * Get the user's spouse.
      */
     public function spouse(): BelongsTo
     {
         return $this->belongsTo(User::class, 'spouse_id');
+    }
+
+    /**
+     * Get the user's active sessions.
+     */
+    public function sessions(): HasMany
+    {
+        return $this->hasMany(UserSession::class);
+    }
+
+    /**
+     * Get the user's consent records.
+     */
+    public function consents(): HasMany
+    {
+        return $this->hasMany(UserConsent::class);
+    }
+
+    /**
+     * Get the user's data export requests.
+     */
+    public function dataExports(): HasMany
+    {
+        return $this->hasMany(DataExport::class);
+    }
+
+    /**
+     * Get the user's erasure requests.
+     */
+    public function erasureRequests(): HasMany
+    {
+        return $this->hasMany(ErasureRequest::class);
     }
 
     /**
