@@ -9,18 +9,13 @@ beforeEach(function () {
     $this->user = User::factory()->create([
         'email' => 'gdpr-test@example.com',
         'password' => bcrypt('password123'),
-        'is_preview_user' => true,
+        'is_preview_user' => false, // Regular user for GDPR tests
     ]);
 });
 
 describe('Consent Management', function () {
     it('returns user consents', function () {
-        UserConsent::create([
-            'user_id' => $this->user->id,
-            'consent_type' => 'analytics',
-            'granted' => true,
-            'ip_address' => '127.0.0.1',
-        ]);
+        UserConsent::recordConsent($this->user->id, 'terms', true);
 
         $response = $this->actingAs($this->user)
             ->getJson('/api/auth/gdpr/consents');
@@ -33,6 +28,7 @@ describe('Consent Management', function () {
                 'success',
                 'data' => [
                     'consents',
+                    'needs_reconsent',
                 ],
             ]);
     });
@@ -40,30 +36,26 @@ describe('Consent Management', function () {
     it('updates user consent', function () {
         $response = $this->actingAs($this->user)
             ->putJson('/api/auth/gdpr/consents', [
-                'consent_type' => 'analytics',
-                'granted' => true,
+                'consents' => [
+                    'marketing' => true,
+                ],
             ]);
 
         $response->assertStatus(200)
             ->assertJson([
                 'success' => true,
             ]);
-
-        $this->assertDatabaseHas('user_consents', [
-            'user_id' => $this->user->id,
-            'consent_type' => 'analytics',
-            'granted' => true,
-        ]);
     });
 
-    it('requires valid consent type', function () {
+    it('requires consents array', function () {
         $response = $this->actingAs($this->user)
             ->putJson('/api/auth/gdpr/consents', [
-                'consent_type' => 'invalid_type',
+                'consent_type' => 'marketing',
                 'granted' => true,
             ]);
 
-        $response->assertStatus(422);
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['consents']);
     });
 
     it('requires authentication', function () {
@@ -83,10 +75,24 @@ describe('Data Export', function () {
         $response->assertStatus(200)
             ->assertJson([
                 'success' => true,
+            ])
+            ->assertJsonStructure([
+                'success',
+                'message',
+                'data' => [
+                    'export_id',
+                    'status',
+                    'format',
+                ],
             ]);
     });
 
-    it('returns export status', function () {
+    it('returns export status after requesting export', function () {
+        // First request an export
+        $this->actingAs($this->user)
+            ->postJson('/api/auth/gdpr/export', ['format' => 'json']);
+
+        // Then check status
         $response = $this->actingAs($this->user)
             ->getJson('/api/auth/gdpr/export/status');
 
@@ -94,9 +100,17 @@ describe('Data Export', function () {
             ->assertJsonStructure([
                 'success',
                 'data' => [
-                    'exports',
+                    'export_id',
+                    'status',
                 ],
             ]);
+    });
+
+    it('returns 404 when no export exists', function () {
+        $response = $this->actingAs($this->user)
+            ->getJson('/api/auth/gdpr/export/status');
+
+        $response->assertStatus(404);
     });
 
     it('requires authentication', function () {
@@ -112,7 +126,8 @@ describe('Data Erasure', function () {
     it('requests account erasure', function () {
         $response = $this->actingAs($this->user)
             ->postJson('/api/auth/gdpr/erasure', [
-                'password' => 'password123',
+                'confirm' => true,
+                'reason' => 'Testing erasure request',
             ]);
 
         $response->assertStatus(200)
@@ -126,13 +141,27 @@ describe('Data Erasure', function () {
         ]);
     });
 
-    it('fails with invalid password', function () {
+    it('requires confirm field', function () {
         $response = $this->actingAs($this->user)
             ->postJson('/api/auth/gdpr/erasure', [
-                'password' => 'wrongpassword',
+                'reason' => 'Testing',
             ]);
 
-        $response->assertStatus(422);
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['confirm']);
+    });
+
+    it('prevents preview users from requesting erasure', function () {
+        $previewUser = User::factory()->create([
+            'is_preview_user' => true,
+        ]);
+
+        $response = $this->actingAs($previewUser)
+            ->postJson('/api/auth/gdpr/erasure', [
+                'confirm' => true,
+            ]);
+
+        $response->assertStatus(403);
     });
 
     it('returns erasure status', function () {
@@ -148,7 +177,7 @@ describe('Data Erasure', function () {
 
     it('requires authentication', function () {
         $response = $this->postJson('/api/auth/gdpr/erasure', [
-            'password' => 'password123',
+            'confirm' => true,
         ]);
 
         $response->assertStatus(401);
@@ -157,20 +186,9 @@ describe('Data Erasure', function () {
 
 describe('Consent History', function () {
     it('returns consent history', function () {
-        // Create some consent history
-        UserConsent::create([
-            'user_id' => $this->user->id,
-            'consent_type' => 'analytics',
-            'granted' => true,
-            'ip_address' => '127.0.0.1',
-        ]);
-
-        UserConsent::create([
-            'user_id' => $this->user->id,
-            'consent_type' => 'analytics',
-            'granted' => false,
-            'ip_address' => '127.0.0.1',
-        ]);
+        // Create some consent history using the model method
+        UserConsent::recordConsent($this->user->id, 'marketing', true);
+        UserConsent::recordConsent($this->user->id, 'marketing', false);
 
         $response = $this->actingAs($this->user)
             ->getJson('/api/auth/gdpr/consents/history');

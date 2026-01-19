@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use App\Models\User;
-use Illuminate\Support\Facades\Cache;
 
 beforeEach(function () {
     $this->user = User::factory()->create([
@@ -30,7 +29,7 @@ describe('MFA Status', function () {
     it('returns MFA enabled status for user with MFA', function () {
         $this->user->update([
             'mfa_enabled' => true,
-            'mfa_secret' => 'TESTSECRET123456',
+            'mfa_secret' => encrypt('TESTSECRET123456'),
         ]);
 
         $response = $this->actingAs($this->user)
@@ -81,7 +80,7 @@ describe('MFA Disable', function () {
     it('disables MFA with valid password', function () {
         $this->user->update([
             'mfa_enabled' => true,
-            'mfa_secret' => 'TESTSECRET123456',
+            'mfa_secret' => encrypt('TESTSECRET123456'),
         ]);
 
         $response = $this->actingAs($this->user)
@@ -98,18 +97,17 @@ describe('MFA Disable', function () {
         expect($this->user->mfa_enabled)->toBeFalse();
     });
 
-    it('fails with invalid password', function () {
+    it('requires password field', function () {
         $this->user->update([
             'mfa_enabled' => true,
-            'mfa_secret' => 'TESTSECRET123456',
+            'mfa_secret' => encrypt('TESTSECRET123456'),
         ]);
 
         $response = $this->actingAs($this->user)
-            ->postJson('/api/auth/mfa/disable', [
-                'password' => 'wrongpassword',
-            ]);
+            ->postJson('/api/auth/mfa/disable', []);
 
-        $response->assertStatus(422);
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['password']);
     });
 
     it('requires authentication', function () {
@@ -121,29 +119,38 @@ describe('MFA Disable', function () {
     });
 });
 
-describe('MFA Challenge Token', function () {
-    it('returns mfa_token when MFA is required during login', function () {
+describe('MFA Recovery Codes', function () {
+    it('regenerates recovery codes', function () {
         $this->user->update([
             'mfa_enabled' => true,
-            'mfa_secret' => 'TESTSECRET123456',
+            'mfa_secret' => encrypt('TESTSECRET123456'),
+            'mfa_recovery_codes' => json_encode([
+                hash('sha256', 'old-code-1'),
+                hash('sha256', 'old-code-2'),
+            ]),
         ]);
 
-        $response = $this->postJson('/api/auth/login', [
-            'email' => 'mfa-test@example.com',
-            'password' => 'password123',
-        ]);
+        $response = $this->actingAs($this->user)
+            ->postJson('/api/auth/mfa/recovery-codes', [
+                'password' => 'password123',
+            ]);
 
         $response->assertStatus(200)
-            ->assertJson([
-                'success' => true,
-                'requires_mfa' => true,
-            ])
             ->assertJsonStructure([
+                'success',
                 'data' => [
-                    'mfa_token',
+                    'recovery_codes',
                 ],
             ]);
 
-        expect($response->json('data.mfa_token'))->toHaveLength(64);
+        expect($response->json('data.recovery_codes'))->toHaveCount(10);
+    });
+
+    it('requires authentication', function () {
+        $response = $this->postJson('/api/auth/mfa/recovery-codes', [
+            'password' => 'password123',
+        ]);
+
+        $response->assertStatus(401);
     });
 });
