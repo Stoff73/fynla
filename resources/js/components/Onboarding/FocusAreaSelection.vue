@@ -132,7 +132,7 @@
       </div>
 
       <!-- Continue Button -->
-      <div class="text-center">
+      <div class="text-center space-y-4">
         <button
           @click="selectFocusArea('estate')"
           :disabled="loading"
@@ -147,6 +147,19 @@
           </svg>
           {{ loading ? 'Loading...' : 'Start Onboarding' }}
         </button>
+
+        <div>
+          <button
+            @click="skipOnboarding"
+            :disabled="loading"
+            class="inline-flex items-center text-body-sm font-medium text-gray-500 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            Skip onboarding and go to dashboard
+            <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
 
@@ -159,6 +172,7 @@
 <script>
 import { ref, computed } from 'vue';
 import { useStore } from 'vuex';
+import { useRouter } from 'vue-router';
 
 export default {
   name: 'FocusAreaSelection',
@@ -167,6 +181,7 @@ export default {
 
   setup(props, { emit }) {
     const store = useStore();
+    const router = useRouter();
     const loading = ref(false);
     const error = ref(null);
 
@@ -193,11 +208,16 @@ export default {
       }
     };
 
+    const skipOnboarding = () => {
+      router.push({ name: 'Dashboard' });
+    };
+
     return {
       loading,
       error,
       userName,
       selectFocusArea,
+      skipOnboarding,
     };
   },
 };
