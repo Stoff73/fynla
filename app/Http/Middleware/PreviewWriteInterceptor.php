@@ -39,6 +39,8 @@ class PreviewWriteInterceptor
         'api/auth/verify-code',   // Required for registration verification
         'api/auth/resend-code',   // Required for registration verification
         'api/onboarding',         // Allow onboarding to work in preview mode
+        'api/documents/upload',   // Allow document upload & AI extraction
+        'api/documents/upload-only', // Allow document upload without extraction
     ];
 
     /**
@@ -50,6 +52,7 @@ class PreviewWriteInterceptor
         '/calculate-',          // Hyphenated calculation endpoints (calculate-sdlt, calculate-iht)
         '/projections',         // Projection/simulation endpoints (investment, retirement)
         '/recalculate',         // Risk profile recalculation endpoint
+        '/reprocess',           // Document re-extraction endpoint
     ];
 
     /**
