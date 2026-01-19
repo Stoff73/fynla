@@ -34,6 +34,7 @@ use App\Http\Controllers\Api\Investment\TaxOptimizationController;
 use App\Http\Controllers\Api\InvestmentController;
 use App\Http\Controllers\Api\InvestmentProjectionController;
 use App\Http\Controllers\Api\LetterToSpouseController;
+use App\Http\Controllers\Api\MFAController;
 use App\Http\Controllers\Api\MortgageController;
 use App\Http\Controllers\Api\NetWorthController;
 use App\Http\Controllers\Api\OnboardingController;
@@ -49,7 +50,9 @@ use App\Http\Controllers\Api\Retirement\DCPensionHoldingsController;
 use App\Http\Controllers\Api\RetirementController;
 use App\Http\Controllers\Api\RiskPreferenceController;
 use App\Http\Controllers\Api\SavingsController;
+use App\Http\Controllers\Api\SessionController;
 use App\Http\Controllers\Api\SpousePermissionController;
+use App\Http\Controllers\Api\GDPRController;
 use App\Http\Controllers\Api\UKTaxesController;
 use App\Http\Controllers\Api\UserProfileController;
 use Illuminate\Support\Facades\Route;
@@ -72,10 +75,49 @@ Route::prefix('auth')->group(function () {
     Route::post('/verify-code', [AuthController::class, 'verifyCode'])->middleware('throttle:10,1');
     Route::post('/resend-code', [AuthController::class, 'resendCode'])->middleware('throttle:5,1');
 
+    // MFA verification during login (no auth required - user is partially authenticated)
+    Route::post('/mfa/verify', [MFAController::class, 'verify'])->middleware('throttle:10,1');
+    Route::post('/mfa/recovery', [MFAController::class, 'useRecoveryCode'])->middleware('throttle:5,1');
+
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/user', [AuthController::class, 'user']);
         Route::post('/change-password', [AuthController::class, 'changePassword'])->middleware('throttle:5,1');
+
+        // MFA management (requires full authentication)
+        Route::prefix('mfa')->group(function () {
+            Route::get('/status', [MFAController::class, 'status']);
+            Route::post('/setup', [MFAController::class, 'setup']);
+            Route::post('/verify-setup', [MFAController::class, 'verifySetup']);
+            Route::post('/disable', [MFAController::class, 'disable']);
+            Route::post('/recovery-codes', [MFAController::class, 'regenerateRecoveryCodes']);
+        });
+
+        // Session management
+        Route::prefix('sessions')->group(function () {
+            Route::get('/', [SessionController::class, 'index']);
+            Route::delete('/{id}', [SessionController::class, 'destroy']);
+            Route::delete('/others/all', [SessionController::class, 'destroyOthers']);
+        });
+
+        // GDPR & Privacy routes
+        Route::prefix('gdpr')->group(function () {
+            // Consent management
+            Route::get('/consents', [GDPRController::class, 'getConsents']);
+            Route::put('/consents', [GDPRController::class, 'updateConsents']);
+            Route::get('/consents/history', [GDPRController::class, 'getConsentHistory']);
+
+            // Data export (right to portability) - rate limited to 3/hour
+            Route::post('/export', [GDPRController::class, 'requestExport'])->middleware('throttle:export');
+            Route::get('/export/status', [GDPRController::class, 'getExportStatus']);
+            Route::get('/export/{id}/download', [GDPRController::class, 'downloadExport']);
+
+            // Data erasure (right to be forgotten) - sensitive operation
+            Route::post('/erasure', [GDPRController::class, 'requestErasure'])->middleware('throttle:sensitive');
+            Route::get('/erasure/status', [GDPRController::class, 'getErasureStatus']);
+            Route::post('/erasure/{id}/confirm', [GDPRController::class, 'confirmErasure'])->middleware('throttle:sensitive');
+            Route::post('/erasure/{id}/cancel', [GDPRController::class, 'cancelErasure']);
+        });
     });
 });
 

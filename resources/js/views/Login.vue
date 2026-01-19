@@ -17,6 +17,14 @@
       @close="handleVerificationClose"
     />
 
+    <!-- MFA Verification Modal -->
+    <MFAVerifyModal
+      :is-open="showMFAModal"
+      :user-id="pendingUserId"
+      @verified="handleMFAVerified"
+      @close="handleMFAClose"
+    />
+
     <div class="max-w-md w-full space-y-8">
       <div>
         <div class="text-center">
@@ -142,6 +150,7 @@ import { useStore } from 'vuex';
 import { useRouter } from 'vue-router';
 import ChangePasswordModal from '../components/Auth/ChangePasswordModal.vue';
 import VerificationCodeModal from '../components/Auth/VerificationCodeModal.vue';
+import MFAVerifyModal from '../components/Auth/MFAVerifyModal.vue';
 import authService from '../services/authService';
 import api from '../services/api';
 import logoImage from '@/assets/logoTransparent.png';
@@ -152,6 +161,7 @@ export default {
   components: {
     ChangePasswordModal,
     VerificationCodeModal,
+    MFAVerifyModal,
   },
 
   setup() {
@@ -168,6 +178,7 @@ export default {
     const errorMessage = ref('');
     const showPasswordModal = ref(false);
     const showVerificationModal = ref(false);
+    const showMFAModal = ref(false);
     const pendingUserId = ref(null);
     const pendingEmail = ref('');
     const isSubmitting = ref(false);
@@ -186,7 +197,15 @@ export default {
           password: form.value.password,
         });
 
-        // Check if verification is required
+        // Check if MFA verification is required
+        if (response.data.requires_mfa) {
+          pendingUserId.value = response.data.data.user_id;
+          pendingEmail.value = response.data.data.email;
+          showMFAModal.value = true;
+          return;
+        }
+
+        // Check if email verification is required
         if (response.data.requires_verification) {
           pendingUserId.value = response.data.data.user_id;
           pendingEmail.value = response.data.data.email;
@@ -240,6 +259,24 @@ export default {
       pendingEmail.value = '';
     };
 
+    const handleMFAVerified = async (data) => {
+      showMFAModal.value = false;
+
+      // Store the token
+      authService.setToken(data.access_token);
+      store.commit('auth/setToken', data.access_token);
+      store.commit('auth/setUser', data.user);
+
+      // Redirect to dashboard
+      router.push({ name: 'Dashboard' });
+    };
+
+    const handleMFAClose = () => {
+      showMFAModal.value = false;
+      pendingUserId.value = null;
+      pendingEmail.value = '';
+    };
+
     const handlePasswordChanged = () => {
       showPasswordModal.value = false;
 
@@ -257,12 +294,15 @@ export default {
       loading,
       showPasswordModal,
       showVerificationModal,
+      showMFAModal,
       pendingUserId,
       pendingEmail,
       logoUrl: logoImage,
       handleLogin,
       handleVerified,
       handleVerificationClose,
+      handleMFAVerified,
+      handleMFAClose,
       handlePasswordChanged,
     };
   },

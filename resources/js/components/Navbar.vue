@@ -86,6 +86,19 @@
         </div>
 
         <div class="hidden sm:ml-6 sm:flex sm:items-center space-x-4">
+          <!-- 2FA Reminder -->
+          <router-link
+            v-if="showMFAReminder"
+            to="/settings/security"
+            class="inline-flex items-center px-3 py-2 border border-amber-400 text-body-sm font-medium rounded-button text-amber-700 bg-amber-50 hover:bg-amber-100 transition-colors"
+            title="Secure your account with two-factor authentication"
+          >
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+            Enable 2FA
+          </router-link>
+
           <router-link
             v-if="showCompleteSetupButton"
             to="/onboarding"
@@ -220,6 +233,13 @@
           :class="isActive('/dashboard') ? 'bg-primary-50 border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700'"
         >
           Dashboard
+        </router-link>
+        <router-link
+          v-if="showMFAReminder"
+          to="/settings/security"
+          class="block pl-3 pr-4 py-2 border-l-4 border-amber-400 text-base font-medium bg-amber-50 text-amber-700"
+        >
+          Enable 2FA
         </router-link>
         <router-link
           v-if="showCompleteSetupButton"
@@ -361,6 +381,16 @@ export default {
       return Array.isArray(skippedSteps) && skippedSteps.length > 0;
     });
 
+    // Show 2FA reminder if MFA is not enabled and user is not a preview user
+    const showMFAReminder = computed(() => {
+      const user = store.getters['auth/currentUser'];
+      if (!user) return false;
+      // Don't show for preview users
+      if (user.is_preview_user) return false;
+      // Show if MFA is not enabled
+      return user.mfa_enabled !== true;
+    });
+
     const isActive = (path) => {
       return route.path === path;
     };
@@ -401,6 +431,7 @@ export default {
       isAdmin,
       onboardingCompleted,
       showCompleteSetupButton,
+      showMFAReminder,
       isActive,
       handleLogout,
     };

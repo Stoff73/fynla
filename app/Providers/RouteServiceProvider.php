@@ -26,12 +26,43 @@ class RouteServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Default API rate limit
         RateLimiter::for('api', function (Request $request) {
             // Higher limit for local development
             // Production needs higher limit too - dashboard makes ~15 API calls per page load
             $limit = app()->environment('local') ? 1000 : 300;
 
             return Limit::perMinute($limit)->by($request->user()?->id ?: $request->ip());
+        });
+
+        // Strict rate limit for authentication endpoints
+        RateLimiter::for('auth', function (Request $request) {
+            return Limit::perMinute(5)->by($request->ip())->response(function () {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Too many authentication attempts. Please try again later.',
+                ], 429);
+            });
+        });
+
+        // Rate limit for data export (expensive operation)
+        RateLimiter::for('export', function (Request $request) {
+            return Limit::perHour(3)->by($request->user()?->id ?: $request->ip())->response(function () {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Export limit reached. Please try again later.',
+                ], 429);
+            });
+        });
+
+        // Rate limit for sensitive operations (erasure, password change)
+        RateLimiter::for('sensitive', function (Request $request) {
+            return Limit::perMinute(3)->by($request->user()?->id ?: $request->ip())->response(function () {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Too many requests for this operation. Please try again later.',
+                ], 429);
+            });
         });
 
         $this->routes(function () {
