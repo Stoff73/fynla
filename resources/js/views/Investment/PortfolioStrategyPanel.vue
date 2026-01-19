@@ -24,7 +24,7 @@
         <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5m.75-9l3-3 2.148 2.148A12.061 12.061 0 0116.5 7.605" />
       </svg>
       <p class="text-lg font-medium">No Strategy Data</p>
-      <p class="text-sm">Add investment accounts to see strategy recommendations.</p>
+      <p class="text-sm">Add investment accounts to see strategies.</p>
     </div>
 
     <!-- Main Content -->
@@ -33,7 +33,7 @@
       <div class="flex items-center justify-between">
         <div>
           <h2 class="text-xl font-semibold text-gray-800">Investment Strategy</h2>
-          <p class="text-sm text-gray-500">Prioritised recommendations to optimise your portfolio</p>
+          <p class="text-sm text-gray-500">Prioritised strategies to optimise your portfolio</p>
         </div>
         <button
           @click="fetchStrategy"
@@ -53,7 +53,7 @@
         <div class="bg-green-50 rounded-lg p-4 border border-green-200">
           <p class="text-sm text-gray-600 mb-1">Potential Annual Savings</p>
           <p class="text-2xl font-bold text-green-600">{{ formatCurrency(summary.total_potential_savings) }}</p>
-          <p class="text-xs text-gray-500 mt-1">from {{ summary.recommendation_count }} recommendations</p>
+          <p class="text-xs text-gray-500 mt-1">from {{ summary.strategy_count || summary.recommendation_count }} strategies</p>
         </div>
 
         <!-- High Priority Count -->
@@ -228,7 +228,7 @@
                 <p v-if="account.provider" class="text-sm text-gray-500">{{ account.provider }} - {{ formatAccountType(account.account_type) }}</p>
               </div>
               <span class="bg-gray-200 text-gray-800 text-xs font-medium px-2 py-1 rounded-full">
-                {{ account.recommendations.length }} recommendations
+                {{ account.recommendations.length }} strategies
               </span>
             </div>
           </div>
@@ -241,7 +241,7 @@
             />
           </div>
           <div v-else class="p-6 text-center text-gray-500">
-            <p class="text-sm">No recommendations for this account</p>
+            <p class="text-sm">No strategies for this account</p>
           </div>
         </div>
       </div>
@@ -367,7 +367,7 @@ export default {
         this.strategyData = await investmentService.getPortfolioStrategy();
       } catch (err) {
         console.error('Failed to fetch portfolio strategy:', err);
-        this.error = err.response?.data?.message || 'Failed to load strategy recommendations';
+        this.error = err.response?.data?.message || 'Failed to load strategies';
       } finally {
         this.loading = false;
       }

@@ -359,6 +359,19 @@ watch: {
 
 Preview mode uses database-backed personas with real user records (`is_preview_user=true`).
 
+### Testing with Preview Personas (CRITICAL)
+
+**ALWAYS test via the landing page persona selector, NOT by navigating directly to URLs.**
+
+```
+1. Go to http://localhost:8000
+2. Click "Try the Demo" button
+3. Select a persona (e.g., "David & Sarah Mitchell")
+4. Navigate to the page you want to test
+```
+
+**NEVER** navigate directly to preview URLs or use API login endpoints for browser testing. The landing page flow ensures proper session setup and state initialization.
+
 ### Seeding Preview Users
 
 ```bash

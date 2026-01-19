@@ -127,12 +127,43 @@
 
         <!-- Right Column: Portfolio Performance -->
         <div class="performance-section">
-          <Performance />
+          <Performance @navigate-to-tab="activePortfolioTab = $event" />
         </div>
       </div>
 
-      <!-- Portfolio Features Tabs -->
-      <div v-if="accounts.length > 0" class="portfolio-features">
+      <!-- Strategy Card (full width) -->
+      <div
+        v-if="hasRecommendations"
+        class="bg-white rounded-lg shadow-md p-6 cursor-pointer transition-all hover:shadow-lg mb-6"
+        @click="goToStrategy"
+        role="button"
+        tabindex="0"
+        @keydown.enter="goToStrategy"
+      >
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold text-gray-800">{{ recommendationCount === 1 ? 'Strategy' : 'Strategies' }}</h3>
+          <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+            {{ recommendationCount }} {{ recommendationCount === 1 ? 'strategy' : 'strategies' }}
+          </span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div
+            v-for="(rec, index) in topRecommendations"
+            :key="index"
+            class="flex flex-col gap-2 p-3 bg-gray-50 rounded-lg"
+          >
+            <span :class="getPriorityBadgeClass(rec.priority)" class="px-2 py-0.5 rounded text-xs font-medium w-fit">
+              {{ getPriorityLabel(rec.priority) }}
+            </span>
+            <p class="font-medium text-gray-900 text-sm">{{ rec.title }}</p>
+            <p class="text-xs text-gray-600 line-clamp-2">{{ rec.description }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Portfolio Features Tabs - Hidden from dashboard, components still available for detail views -->
+      <!-- <div v-if="accounts.length > 0" class="portfolio-features">
         <h3 class="features-title">Portfolio Analysis</h3>
         <div class="features-tabs">
           <button
@@ -146,16 +177,13 @@
         </div>
 
         <div class="features-content">
-          <!-- Holdings Tab -->
           <Holdings
             v-if="activePortfolioTab === 'holdings'"
             :selected-account-id="null"
           />
 
-          <!-- Performance Tab -->
           <Performance v-else-if="activePortfolioTab === 'performance'" />
 
-          <!-- Optimisation Tab (Coming Soon) -->
           <div v-else-if="activePortfolioTab === 'optimization'" class="coming-soon-wrapper">
             <div class="coming-soon-banner">
               <p class="text-2xl font-bold text-amber-700">Coming Soon</p>
@@ -165,7 +193,6 @@
             </div>
           </div>
 
-          <!-- Goals Tab (Coming Soon) -->
           <div v-else-if="activePortfolioTab === 'goals'" class="coming-soon-wrapper">
             <div class="coming-soon-banner">
               <p class="text-2xl font-bold text-amber-700">Coming Soon</p>
@@ -178,19 +205,16 @@
             </div>
           </div>
 
-          <!-- Tax Efficiency Tab -->
           <TaxEfficiencyPanel v-else-if="activePortfolioTab === 'taxefficiency'" />
 
-          <!-- Fees Tab -->
           <FeeBreakdown v-else-if="activePortfolioTab === 'fees'" />
 
-          <!-- Strategy Tab -->
           <PortfolioStrategyPanel
-            v-else-if="activePortfolioTab === 'recommendations'"
+            v-else-if="activePortfolioTab === 'strategy'"
             @navigate="handleStrategyNavigate"
           />
         </div>
-      </div>
+      </div> -->
     </template>
 
     <!-- Account Form Modal -->
@@ -277,18 +301,31 @@ export default {
         { id: 'goals', label: 'Goals' },
         { id: 'taxefficiency', label: 'Tax Efficiency' },
         { id: 'fees', label: 'Fees' },
-        { id: 'recommendations', label: 'Strategy' },
+        { id: 'strategy', label: 'Strategy' },
       ],
     };
   },
 
   computed: {
-    ...mapState('investment', ['loading', 'error']),
+    ...mapState('investment', ['loading', 'error', 'recommendations']),
     ...mapGetters('investment', [
       'accounts',
       'totalPortfolioValue',
       'holdingsCount',
     ]),
+
+    hasRecommendations() {
+      return this.recommendations?.recommendations?.length > 0;
+    },
+
+    recommendationCount() {
+      return this.recommendations?.recommendation_count || 0;
+    },
+
+    topRecommendations() {
+      if (!this.recommendations?.recommendations) return [];
+      return this.recommendations.recommendations.slice(0, 3);
+    },
 
     // Calculate portfolio-wide diversification score (value-weighted average)
     portfolioDiversificationScore() {
@@ -373,6 +410,23 @@ export default {
     selectAccount(account) {
       this.selectedAccount = account;
       this.setDetailView(true);
+    },
+
+    goToStrategy() {
+      const base = this.$route.path.startsWith('/preview') ? '/preview' : '';
+      this.$router.push(`${base}/net-worth/strategy-detail`);
+    },
+
+    getPriorityLabel(priority) {
+      if (priority <= 2) return 'High';
+      if (priority <= 3) return 'Medium';
+      return 'Low';
+    },
+
+    getPriorityBadgeClass(priority) {
+      if (priority <= 2) return 'bg-red-500 text-white';
+      if (priority <= 3) return 'bg-amber-500 text-white';
+      return 'bg-blue-500 text-white';
     },
 
     handleStrategyNavigate(tab) {

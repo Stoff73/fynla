@@ -53,6 +53,7 @@ class PreviewWriteInterceptor
         '/projections',         // Projection/simulation endpoints (investment, retirement)
         '/recalculate',         // Risk profile recalculation endpoint
         '/reprocess',           // Document re-extraction endpoint
+        '/analyze',             // Analysis endpoints (investment portfolio analysis)
     ];
 
     /**

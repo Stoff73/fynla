@@ -3,7 +3,7 @@
     <!-- Header with Statistics -->
     <div class="p-6 border-b border-gray-200">
       <div class="flex items-center justify-between mb-6">
-        <h2 class="text-2xl font-bold text-gray-900">Investment Recommendations</h2>
+        <h2 class="text-2xl font-bold text-gray-900">Investment Strategies</h2>
         <button
           @click="refreshRecommendations"
           class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors duration-200"
@@ -14,97 +14,35 @@
       </div>
 
       <!-- Statistics Cards -->
-      <div v-if="recommendationStats" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+      <div v-if="effectiveStats" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
         <!-- Total Recommendations -->
         <div class="bg-gray-50 rounded-lg p-4">
           <div class="text-sm font-medium text-blue-600 mb-1">Total</div>
-          <div class="text-2xl font-bold text-blue-900">{{ recommendationStats.total }}</div>
+          <div class="text-2xl font-bold text-blue-900">{{ effectiveStats.total }}</div>
         </div>
 
         <!-- Pending -->
         <div class="bg-gray-50 rounded-lg p-4">
           <div class="text-sm font-medium text-amber-600 mb-1">Pending</div>
-          <div class="text-2xl font-bold text-amber-900">{{ recommendationStats.pending }}</div>
+          <div class="text-2xl font-bold text-amber-900">{{ effectiveStats.pending }}</div>
         </div>
 
         <!-- In Progress -->
         <div class="bg-gray-50 rounded-lg p-4">
           <div class="text-sm font-medium text-purple-600 mb-1">In Progress</div>
-          <div class="text-2xl font-bold text-purple-900">{{ recommendationStats.in_progress }}</div>
+          <div class="text-2xl font-bold text-purple-900">{{ effectiveStats.in_progress }}</div>
         </div>
 
         <!-- Completed -->
         <div class="bg-gray-50 rounded-lg p-4">
           <div class="text-sm font-medium text-green-600 mb-1">Completed</div>
-          <div class="text-2xl font-bold text-green-900">{{ recommendationStats.completed }}</div>
+          <div class="text-2xl font-bold text-green-900">{{ effectiveStats.completed }}</div>
         </div>
 
         <!-- Potential Savings -->
         <div class="bg-gray-50 rounded-lg p-4">
           <div class="text-sm font-medium text-indigo-600 mb-1">Potential Savings</div>
-          <div class="text-2xl font-bold text-indigo-900">£{{ formatNumber(recommendationStats.total_potential_saving) }}</div>
-        </div>
-      </div>
-
-      <!-- Filters -->
-      <div class="flex flex-wrap gap-4">
-        <!-- Status Filter -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-          <select
-            v-model="filters.status"
-            @change="applyFilters"
-            class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="">All Statuses</option>
-            <option value="pending">Pending</option>
-            <option value="in_progress">In Progress</option>
-            <option value="completed">Completed</option>
-            <option value="dismissed">Dismissed</option>
-          </select>
-        </div>
-
-        <!-- Category Filter -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
-          <select
-            v-model="filters.category"
-            @change="applyFilters"
-            class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="">All Categories</option>
-            <option value="rebalancing">Rebalancing</option>
-            <option value="tax">Tax Optimization</option>
-            <option value="fees">Fee Reduction</option>
-            <option value="risk">Risk Management</option>
-            <option value="goal">Goal Alignment</option>
-            <option value="contribution">Contribution Strategy</option>
-          </select>
-        </div>
-
-        <!-- Priority Filter -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Priority</label>
-          <select
-            v-model="filters.priority_level"
-            @change="applyFilters"
-            class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="">All Priorities</option>
-            <option value="high">High (1-3)</option>
-            <option value="medium">Medium (4-7)</option>
-            <option value="low">Low (8+)</option>
-          </select>
-        </div>
-
-        <!-- Clear Filters -->
-        <div class="flex items-end">
-          <button
-            @click="clearFilters"
-            class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors duration-200"
-          >
-            Clear Filters
-          </button>
+          <div class="text-2xl font-bold text-indigo-900">£{{ formatNumber(effectiveStats.total_potential_saving) }}</div>
         </div>
       </div>
     </div>
@@ -117,7 +55,7 @@
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
         </svg>
-        <p class="mt-4 text-gray-600">Loading recommendations...</p>
+        <p class="mt-4 text-gray-600">Loading strategies...</p>
       </div>
 
       <!-- Empty State -->
@@ -125,8 +63,8 @@
         <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
         </svg>
-        <h3 class="mt-4 text-lg font-medium text-gray-900">No recommendations found</h3>
-        <p class="mt-2 text-gray-500">Try adjusting your filters or generate a new investment plan.</p>
+        <h3 class="mt-4 text-lg font-medium text-gray-900">No strategies found</h3>
+        <p class="mt-2 text-gray-500">Try adjusting your filters or generate new strategies.</p>
       </div>
 
       <!-- Recommendations Cards -->
@@ -261,8 +199,8 @@
     >
       <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
         <div class="p-6">
-          <h3 class="text-lg font-semibold text-gray-900 mb-4">Dismiss Recommendation</h3>
-          <p class="text-gray-700 mb-4">Please provide a reason for dismissing this recommendation:</p>
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Dismiss Strategy</h3>
+          <p class="text-gray-700 mb-4">Please provide a reason for dismissing this strategy:</p>
           <textarea
             v-model="dismissalReason"
             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -317,13 +255,53 @@ export default {
       'recommendationStats',
     ]),
 
+    // Get dynamic recommendations from analyseInvestment (shown on Strategies card)
+    dynamicRecommendations() {
+      return this.$store.state.investment.recommendations?.recommendations || [];
+    },
+
     recommendations() {
-      return this.investmentRecommendations;
+      // Use tracked recommendations if available, otherwise fallback to dynamic ones
+      if (this.investmentRecommendations && this.investmentRecommendations.length > 0) {
+        return this.investmentRecommendations;
+      }
+      // Convert dynamic recommendations to display format
+      return this.dynamicRecommendations.map((rec, index) => ({
+        id: `dynamic-${index}`,
+        title: rec.title,
+        description: rec.description,
+        category: rec.category || 'general',
+        priority: rec.priority || 5,
+        status: 'pending',
+        potential_saving: rec.potential_saving || 0,
+        isDynamic: true, // Flag to indicate this is a dynamic recommendation
+      }));
+    },
+
+    // Override stats to include dynamic recommendations count
+    effectiveStats() {
+      if (this.recommendationStats && this.recommendationStats.total > 0) {
+        return this.recommendationStats;
+      }
+      const recs = this.recommendations;
+      return {
+        total: recs.length,
+        pending: recs.filter(r => r.status === 'pending').length,
+        in_progress: recs.filter(r => r.status === 'in_progress').length,
+        completed: recs.filter(r => r.status === 'completed').length,
+        total_potential_saving: recs.reduce((sum, r) => sum + (r.potential_saving || 0), 0),
+      };
     },
   },
 
   mounted() {
     this.loadRecommendations();
+    // Also load dynamic recommendations if not already loaded
+    if (!this.dynamicRecommendations.length) {
+      this.$store.dispatch('investment/fetchInvestmentData').then(() => {
+        this.$store.dispatch('investment/analyseInvestment');
+      });
+    }
   },
 
   methods: {
@@ -400,7 +378,7 @@ export default {
     },
 
     async deleteRecommendation(id) {
-      if (!confirm('Are you sure you want to delete this recommendation? This action cannot be undone.')) {
+      if (!confirm('Are you sure you want to delete this strategy? This action cannot be undone.')) {
         return;
       }
 

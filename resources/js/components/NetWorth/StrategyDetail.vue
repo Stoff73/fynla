@@ -1,0 +1,104 @@
+<template>
+  <div class="detail-page">
+    <!-- Header -->
+    <div class="page-header">
+      <button @click="goBack" class="back-button">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="back-icon">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+        </svg>
+        Back to Investments
+      </button>
+      <h1 class="page-title">Strategy</h1>
+      <p class="page-subtitle">Personalised strategies to optimise your portfolio</p>
+    </div>
+
+    <!-- Content -->
+    <div class="content">
+      <Recommendations />
+    </div>
+  </div>
+</template>
+
+<script>
+import Recommendations from '@/components/Investment/Recommendations.vue';
+
+export default {
+  name: 'StrategyDetail',
+
+  components: {
+    Recommendations,
+  },
+
+  computed: {
+    isPreviewMode() {
+      return this.$route.path.startsWith('/preview');
+    },
+  },
+
+  methods: {
+    goBack() {
+      const base = this.isPreviewMode ? '/preview' : '';
+      this.$router.push(`${base}/net-worth/investments`);
+    },
+  },
+};
+</script>
+
+<style scoped>
+.detail-page {
+  padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.page-header {
+  margin-bottom: 32px;
+}
+
+.back-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #f3f4f6;
+  border: none;
+  border-radius: 8px;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 16px;
+}
+
+.back-button:hover {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.back-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.page-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 8px 0;
+}
+
+.page-subtitle {
+  font-size: 16px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.content {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+}
+</style>
