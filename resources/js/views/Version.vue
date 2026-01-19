@@ -18,7 +18,7 @@
               <p class="mt-1 text-body-sm text-gray-600">Latest release information</p>
             </div>
             <div class="text-right">
-              <div class="text-3xl font-bold text-primary-600">v0.5.1</div>
+              <div class="text-3xl font-bold text-primary-600">v0.6.2</div>
               <div class="text-body-sm text-gray-500 mt-1">Production Ready</div>
             </div>
           </div>
@@ -28,7 +28,7 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
               <h3 class="text-body-sm font-semibold text-gray-700 mb-2">Release Date</h3>
-              <p class="text-body-base text-gray-900">16 January 2026</p>
+              <p class="text-body-base text-gray-900">19 January 2026</p>
             </div>
             <div>
               <h3 class="text-body-sm font-semibold text-gray-700 mb-2">Status</h3>
@@ -37,6 +37,300 @@
               </span>
             </div>
           </div>
+
+          <!-- Security Compliance -->
+          <div class="mb-6">
+            <h3 class="text-body-lg font-semibold text-gray-900 mb-4">🔐 Security Compliance Implementation</h3>
+            <ul class="space-y-2">
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-gray-700"><strong>TOTP Multi-Factor Authentication:</strong> Two-factor authentication with QR code setup, recovery codes, and verification modal.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-gray-700"><strong>Failed Login Tracking:</strong> Progressive lockout (1min → 5min → 30min → 24hr) with IP logging.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-gray-700"><strong>Session Management:</strong> View active sessions, revoke individual or all other sessions from Security Settings.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-gray-700"><strong>GDPR Compliance:</strong> Data export (JSON/CSV), data erasure workflow, consent tracking with history.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-gray-700"><strong>Comprehensive Audit Logging:</strong> Auditable trait on 15 financial models tracking all create/update/delete operations.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-gray-700"><strong>RBAC Authorization:</strong> Role-based access (User, Support, Admin) with granular permissions.</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Goals Module -->
+          <div class="mb-6">
+            <h3 class="text-body-lg font-semibold text-gray-900 mb-4">🎯 Goals-Based Planning Module</h3>
+            <ul class="space-y-2">
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-blue-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-gray-700"><strong>Centralised Goal Management:</strong> Set financial goals with automatic module assignment (Savings, Investment, Property, Retirement).</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-blue-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-gray-700"><strong>Progress Tracking:</strong> Visual progress bars, milestone tracker (25/50/75/100%), contribution streaks.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-blue-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-gray-700"><strong>Dashboard Integration:</strong> Goals overview card on main dashboard with quick access to full goals page.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-blue-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-gray-700"><strong>Goal Types:</strong> Emergency fund, property purchase, education, retirement, wealth accumulation, wedding, holiday, and custom goals.</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Automated Risk Calculator -->
+          <div class="mb-6">
+            <h3 class="text-body-lg font-semibold text-gray-900 mb-4">📊 Automated Risk Profile Calculator</h3>
+            <ul class="space-y-2">
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-purple-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-gray-700"><strong>7-Factor Analysis:</strong> Capacity for loss, time horizon, education, dependants, employment, emergency cash, surplus income.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-purple-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-gray-700"><strong>Auto-Recalculation:</strong> Risk profile updates automatically when relevant data changes via model observers.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-purple-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-gray-700"><strong>Risk Profile Pages:</strong> Factor breakdown display, risk levels explained page, individual factor detail pages.</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Financial Statements -->
+          <div class="mb-6">
+            <h3 class="text-body-lg font-semibold text-gray-900 mb-4">📋 Financial Statements (Valuable Info)</h3>
+            <ul class="space-y-2">
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-amber-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-gray-700"><strong>Balance Sheet:</strong> 3-column layout (User, Spouse, Combined) with assets grouped by Property, Investments, Cash.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-amber-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-gray-700"><strong>Income Statement & Cash Flow:</strong> Combined tab with monthly/annual columns, estimated tax calculations, before/after tax cash flow.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-amber-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-gray-700"><strong>Joint Ownership Calculations:</strong> All joint accounts/properties show user's share based on ownership percentage.</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Investment Dashboard -->
+          <div class="mb-6">
+            <h3 class="text-body-lg font-semibold text-gray-900 mb-4">📈 Investment Dashboard Redesign</h3>
+            <ul class="space-y-2">
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-teal-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-gray-700"><strong>Strategy Terminology:</strong> Changed from "Portfolio Analysis" to "Strategy" across all investment components.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-teal-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-gray-700"><strong>Sidebar Card Navigation:</strong> Clickable insight cards (Diversification, Rebalancing, Fees, Tax Status) replacing tab navigation.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-teal-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-gray-700"><strong>Asset Allocation Bar:</strong> Visual stacked bar chart with colour-coded segments and inline legend.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-teal-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-gray-700"><strong>Simplified Monte Carlo:</strong> Removed 85% probability band, cleaner 3-band visualisation (80%, 90%, 95%).</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- New Personas & Preview Mode -->
+          <div class="mb-6">
+            <h3 class="text-body-lg font-semibold text-gray-900 mb-4">👥 New Personas & Preview Mode</h3>
+            <ul class="space-y-2">
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-cyan-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-gray-700"><strong>Young Adult Saver:</strong> Alex Morgan (24), single, renting, building savings with LISA and Cash ISA, student loan.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-cyan-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-gray-700"><strong>Retired Couple:</strong> Patricia & Harold Bennett (70/72), DB pensions in payment, IHT planning, active gifting.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-cyan-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-gray-700"><strong>Preview Mode Restrictions:</strong> v-preview-disabled directive disables edit/delete buttons with informative tooltips.</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Beta Registration Flow -->
+          <div class="mb-6">
+            <h3 class="text-body-lg font-semibold text-gray-900 mb-4">🚀 Registration & UI Updates</h3>
+            <ul class="space-y-2">
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-rose-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-gray-700"><strong>Beta Warnings:</strong> Prominent amber banner on login/register pages about beta status and data volatility.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-rose-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-gray-700"><strong>Wishlist Link:</strong> Priority access signup via Google Forms on login, register, and landing pages.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-rose-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-gray-700"><strong>Onboarding Updates:</strong> Logo on welcome page, skip to dashboard button, simplified registration flow.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-rose-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-gray-700"><strong>Transparent Logo:</strong> New logoTransparent.png used site-wide for seamless blending.</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Bug Fixes -->
+          <div class="mb-6">
+            <h3 class="text-body-lg font-semibold text-gray-900 mb-4">🐛 Bug Fixes & Code Quality</h3>
+            <ul class="space-y-2">
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-red-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-gray-700"><strong>Division by Zero Audit:</strong> Fixed 7 unprotected division operations across 5 files.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-red-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-gray-700"><strong>Mobile Responsive Fix:</strong> Net Worth module no longer goes blank when reducing screen width.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-red-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-gray-700"><strong>Chattels Joint Ownership:</strong> Fixed dropdown not showing linked spouse, added "Other" option, editable ownership percentage.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-red-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-gray-700"><strong>Spouse Success Modal:</strong> Now shows email confirmation instead of displaying credentials directly.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-red-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-gray-700"><strong>Security Code Quality:</strong> 14 issues fixed including critical bug in DataErasureService, MFA enumeration vulnerability.</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Technical Changes -->
+          <div class="mb-6">
+            <h3 class="text-body-lg font-semibold text-gray-900 mb-4">⚙️ Technical Changes</h3>
+            <ul class="space-y-2">
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-gray-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-gray-700"><strong>New Packages:</strong> pragmarx/google2fa-laravel, bacon/bacon-qr-code for TOTP MFA.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-gray-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-gray-700"><strong>9 New Migrations:</strong> Login attempts, MFA fields, user sessions, audit logs, GDPR tables, roles/permissions.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-gray-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-gray-700"><strong>9 New Services:</strong> LoginLockoutService, MFAService, SessionService, AuditService, DataExportService, DataErasureService, ConsentService, PermissionService, GoalAssignmentService.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-gray-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-gray-700"><strong>134 New Tests:</strong> 102 unit tests + 32 feature tests for security functionality.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-gray-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-gray-700"><strong>CORS Tightening:</strong> Restricted origins and methods in production configuration.</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Version History Divider -->
+        <div class="border-t border-gray-200 my-8"></div>
+
+        <!-- Previous Version: v0.5.1 -->
+        <div class="mb-8 px-6">
+          <h2 class="text-h3 font-display text-gray-900 mb-4">Previous Release: v0.5.1</h2>
+          <p class="text-body-sm text-gray-600 mb-4">Released: 16 January 2026</p>
 
           <!-- What's New in v0.5.1 -->
           <div class="mb-6">
