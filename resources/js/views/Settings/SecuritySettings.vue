@@ -1,5 +1,6 @@
 <template>
-  <div class="security-settings">
+  <AppLayout>
+    <div class="security-settings">
     <div class="page-header">
       <h1 class="page-title">Security Settings</h1>
       <p class="page-description">
@@ -269,15 +270,18 @@
       </div>
     </div>
   </div>
+  </AppLayout>
 </template>
 
 <script>
+import AppLayout from '@/layouts/AppLayout.vue';
 import MFASetupModal from '@/components/Auth/MFASetupModal.vue';
 import api from '@/services/api';
 
 export default {
   name: 'SecuritySettings',
   components: {
+    AppLayout,
     MFASetupModal,
   },
   data() {

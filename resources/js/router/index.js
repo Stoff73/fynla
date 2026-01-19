@@ -17,6 +17,8 @@ const Onboarding = () => import('@/views/Onboarding/OnboardingView.vue');
 // Authenticated pages
 const Dashboard = () => import('@/views/Dashboard.vue');
 const Settings = () => import('@/views/Settings.vue');
+const SecuritySettings = () => import('@/views/Settings/SecuritySettings.vue');
+const PrivacySettings = () => import('@/views/Settings/PrivacySettings.vue');
 const UserProfile = () => import('@/views/UserProfile.vue');
 const NetWorthDashboard = () => import('@/views/NetWorth/NetWorthDashboard.vue');
 const NetWorthWealthSummary = () => import('@/components/NetWorth/NetWorthWealthSummary.vue');
@@ -120,6 +122,32 @@ const routes = [
     name: 'Settings',
     component: Settings,
     meta: { requiresAuth: true },
+  },
+  {
+    path: '/settings/security',
+    name: 'SecuritySettings',
+    component: SecuritySettings,
+    meta: {
+      requiresAuth: true,
+      breadcrumb: [
+        { label: 'Home', path: '/dashboard' },
+        { label: 'Settings', path: '/settings' },
+        { label: 'Security', path: '/settings/security' },
+      ],
+    },
+  },
+  {
+    path: '/settings/privacy',
+    name: 'PrivacySettings',
+    component: PrivacySettings,
+    meta: {
+      requiresAuth: true,
+      breadcrumb: [
+        { label: 'Home', path: '/dashboard' },
+        { label: 'Settings', path: '/settings' },
+        { label: 'Privacy & Data', path: '/settings/privacy' },
+      ],
+    },
   },
   {
     path: '/valuable-info',

@@ -80,12 +80,22 @@
         <div class="space-y-4">
           <div class="flex items-center justify-between py-4 border-b border-gray-200">
             <div>
-              <h3 class="text-body-base font-medium text-gray-900">Change Password</h3>
-              <p class="text-body-sm text-gray-600">Update your password to keep your account secure</p>
+              <h3 class="text-body-base font-medium text-gray-900">Security Settings</h3>
+              <p class="text-body-sm text-gray-600">Manage two-factor authentication, active sessions, and password</p>
             </div>
-            <button class="btn-secondary" disabled>
-              Coming Soon
-            </button>
+            <router-link to="/settings/security" class="btn-primary">
+              Manage Security
+            </router-link>
+          </div>
+
+          <div class="flex items-center justify-between py-4 border-b border-gray-200">
+            <div>
+              <h3 class="text-body-base font-medium text-gray-900">Privacy & Data</h3>
+              <p class="text-body-sm text-gray-600">Manage consent preferences and data export requests</p>
+            </div>
+            <router-link to="/settings/privacy" class="btn-secondary">
+              Manage Privacy
+            </router-link>
           </div>
 
           <div class="flex items-center justify-between py-4 border-b border-gray-200">

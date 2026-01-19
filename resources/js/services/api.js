@@ -3,10 +3,10 @@ import store from '@/store';
 
 // Create axios instance with default config
 // Use environment-specific base URL (production or local development)
-// Use environment-specific base URL (production or local development)
-// Force local backend if running on localhost to avoid CORS issues from accidental prod env vars
+// For local development, use the same hostname as the current page to avoid CORS issues
 const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-const apiBaseURL = isLocal ? 'http://127.0.0.1:8000' : (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000');
+const localHost = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+const apiBaseURL = isLocal ? `http://${localHost}:8000` : (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000');
 const api = axios.create({
   baseURL: `${apiBaseURL}/api`,
   headers: {
