@@ -64,9 +64,11 @@
                 </svg>
               </span>
             </button>
-            <router-link
-              to="/register"
-              class="group px-8 py-4 bg-white/10 backdrop-blur-md text-white rounded-xl font-semibold text-lg hover:bg-white/20 transition-all border border-white/20"
+            <button
+              type="button"
+              @click="enterPreviewMode"
+              :disabled="enteringPreview"
+              class="group px-8 py-4 bg-white/10 backdrop-blur-md text-white rounded-xl font-semibold text-lg hover:bg-white/20 transition-all border border-white/20 disabled:opacity-50 disabled:cursor-wait"
             >
               <span class="flex items-center justify-center">
                 Get Started Free
@@ -74,7 +76,7 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                 </svg>
               </span>
-            </router-link>
+            </button>
             <router-link
               to="/login"
               class="px-8 py-4 bg-transparent text-white rounded-xl font-semibold text-lg hover:bg-white/10 transition-all border border-white/20"
@@ -333,17 +335,19 @@
                 </svg>
               </span>
             </button>
-            <router-link
-              to="/register"
-              class="group px-8 py-4 bg-white text-slate-900 rounded-xl font-semibold text-lg hover:bg-slate-100 transition-all shadow-lg hover:shadow-xl"
+            <button
+              type="button"
+              @click="enterPreviewMode"
+              :disabled="enteringPreview"
+              class="group px-8 py-4 bg-white text-slate-900 rounded-xl font-semibold text-lg hover:bg-slate-100 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-wait"
             >
               <span class="flex items-center justify-center">
-                Create Free Account
+                Get Started Free
                 <svg class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                 </svg>
               </span>
-            </router-link>
+            </button>
           </div>
         </div>
       </div>
@@ -401,6 +405,13 @@ export default {
 
   mounted() {
     this.startHeroWordRotation();
+
+    // Check for demo query parameter to auto-open persona modal
+    if (this.$route.query.demo === 'true') {
+      this.showSelectionModal = true;
+      // Clear the query parameter from URL
+      this.$router.replace({ path: '/', query: {} });
+    }
   },
 
   beforeUnmount() {

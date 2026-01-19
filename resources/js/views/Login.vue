@@ -25,12 +25,6 @@
         <h2 class="mt-6 text-center text-h3 text-gray-900">
           Sign in to your account
         </h2>
-        <p class="mt-2 text-center text-body-sm text-gray-600">
-          Or
-          <router-link to="/register" class="font-medium text-primary-600 hover:text-primary-700">
-            create a new account
-          </router-link>
-        </p>
 
         <!-- Beta Warning -->
         <div class="mt-4 bg-amber-200 border-2 border-amber-500 rounded-lg p-4">
