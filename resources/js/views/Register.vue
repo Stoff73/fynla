@@ -191,20 +191,13 @@
       </form>
     </div>
 
-    <!-- Keep Data or Fresh Modal (for preview mode registrations) -->
-    <KeepDataOrFreshModal
-      :is-open="showKeepDataModal"
-      :persona="personaForModal"
-      @choice="handleKeepDataChoice"
-    />
   </div>
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed } from 'vue';
 import { useStore } from 'vuex';
 import { useRouter } from 'vue-router';
-import KeepDataOrFreshModal from '@/components/Preview/KeepDataOrFreshModal.vue';
 import VerificationCodeModal from '@/components/Auth/VerificationCodeModal.vue';
 import api from '@/services/api';
 import authService from '@/services/authService';
@@ -214,7 +207,6 @@ export default {
   name: 'Register',
 
   components: {
-    KeepDataOrFreshModal,
     VerificationCodeModal,
   },
 
@@ -233,38 +225,12 @@ export default {
 
     const errors = ref({});
     const errorMessage = ref('');
-    const showKeepDataModal = ref(false);
-    const previewPersonaId = ref(null);
-    const personaForModal = ref(null);  // Cached persona to pass to modal after registration
     const showVerificationModal = ref(false);
     const pendingId = ref(null);
     const pendingEmail = ref('');
     const isSubmitting = ref(false);
 
     const loading = computed(() => store.getters['auth/loading'] || isSubmitting.value);
-
-    // Check if user is coming from preview mode
-    const wasInPreview = computed(() => store.getters['preview/isPreviewMode']);
-    const currentPersona = computed(() => store.getters['preview/currentPersona']);
-    const currentPersonaName = computed(() => currentPersona.value?.name || 'Demo User');
-
-    // Store preview state before registration clears it
-    let cachedWasInPreview = false;
-    let cachedCurrentPersona = null;
-
-    // Pre-fill name from persona if in preview mode
-    onMounted(() => {
-      if (wasInPreview.value && currentPersona.value) {
-        // Extract first person's name from persona (e.g., "James & Emily Wilson" -> "James Wilson")
-        const personaName = currentPersona.value.name || '';
-        if (personaName.includes('&')) {
-          // For couples, don't pre-fill - let them enter their own name
-        } else {
-          // For single personas, optionally pre-fill
-          // form.value.name = personaName; // Commented out - let user enter their own name
-        }
-      }
-    });
 
     const handleRegister = async () => {
       // Guard against double submission
@@ -275,23 +241,9 @@ export default {
       errorMessage.value = '';
       isSubmitting.value = true;
 
-      // Cache preview state before it gets cleared
-      cachedWasInPreview = wasInPreview.value;
-      cachedCurrentPersona = currentPersona.value;
-
       try {
-        // Include registration source if from preview
-        const registrationData = {
-          ...form.value,
-        };
-
-        if (cachedWasInPreview) {
-          registrationData.registration_source = 'preview';
-          registrationData.preview_persona_id = cachedCurrentPersona?.id;
-        }
-
         // Call register API directly to handle verification response
-        const response = await api.post('/auth/register', registrationData);
+        const response = await api.post('/auth/register', form.value);
 
         // Check if verification is required
         if (response.data.requires_verification) {
@@ -327,16 +279,12 @@ export default {
       store.commit('auth/setToken', data.access_token);
       store.commit('auth/setUser', data.user);
 
-      // Check if coming from preview mode (use cached values)
-      if (cachedWasInPreview && cachedCurrentPersona) {
-        // Show keep/fresh modal with cached persona (currentPersona is now null after auth change)
-        previewPersonaId.value = cachedCurrentPersona.id;
-        personaForModal.value = cachedCurrentPersona;
-        showKeepDataModal.value = true;
-      } else {
-        // Direct registration - go to onboarding
-        router.push({ name: 'Onboarding' });
-      }
+      // Clear preview-related localStorage (user is now a real registered user)
+      localStorage.removeItem('preview_persona_id');
+      localStorage.removeItem('preview_mode');
+
+      // Go to onboarding
+      router.push({ name: 'Onboarding' });
     };
 
     const handleVerificationClose = () => {
@@ -345,44 +293,17 @@ export default {
       pendingEmail.value = '';
     };
 
-    const handleKeepDataChoice = async ({ choice, createSpouseAccount, personaId }) => {
-      try {
-        if (choice === 'keep') {
-          // Seed persona data to user's account
-          await api.post('/user/seed-persona-data', {
-            persona_id: personaId,
-            create_spouse_account: createSpouseAccount,
-          });
-        }
-
-        // Clear preview-related localStorage (user is now a real registered user)
-        // Do NOT call exitPreview as it would clear the auth token and redirect to '/'
-        localStorage.removeItem('preview_persona_id');
-        localStorage.removeItem('preview_mode');
-
-        // Navigate to onboarding
-        router.push({ name: 'Onboarding' });
-      } catch (error) {
-        console.error('Failed to handle keep data choice:', error);
-        errorMessage.value = 'Failed to set up your account. Please try again.';
-        showKeepDataModal.value = false;
-      }
-    };
-
     return {
       form,
       errors,
       errorMessage,
       loading,
-      showKeepDataModal,
       showVerificationModal,
       pendingId,
       pendingEmail,
-      personaForModal,
       handleRegister,
       handleVerified,
       handleVerificationClose,
-      handleKeepDataChoice,
       logoImage,
     };
   },
