@@ -2,6 +2,11 @@
   <div class="max-w-5xl mx-auto">
     <!-- Main Welcome Card -->
     <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-6 mb-6">
+      <!-- Logo -->
+      <div class="flex justify-center mb-4">
+        <img :src="logoImage" alt="Fynla" class="h-32 w-auto">
+      </div>
+
       <h1 class="text-h2 font-display text-gray-900 mb-2">
         Welcome {{ userName }}
       </h1>
@@ -173,6 +178,7 @@
 import { ref, computed } from 'vue';
 import { useStore } from 'vuex';
 import { useRouter } from 'vue-router';
+import logoImage from '@/assets/images/logo.png';
 
 export default {
   name: 'FocusAreaSelection',
@@ -218,6 +224,7 @@ export default {
       userName,
       selectFocusArea,
       skipOnboarding,
+      logoImage,
     };
   },
 };
