@@ -99,7 +99,7 @@ class SessionService
         $session = UserSession::where('token_id', $currentToken->id)->first();
 
         if ($session) {
-            $session->touch();
+            $session->touchActivity();
         }
     }
 

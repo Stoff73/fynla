@@ -407,6 +407,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the user's goals.
+     */
+    public function goals(): HasMany
+    {
+        return $this->hasMany(Goal::class);
+    }
+
+    /**
      * Check if user has accepted permission to share data with spouse
      *
      * IMPORTANT: If spouse accounts are linked (spouse_id is set) and both users

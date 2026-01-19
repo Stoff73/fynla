@@ -175,7 +175,7 @@ class DataExportService
 
     private function exportLifePolicies(User $user): array
     {
-        return $user->lifePolicies()->get()->map(fn ($p) => $p->toArray())->toArray();
+        return $user->lifeInsurancePolicies()->get()->map(fn ($p) => $p->toArray())->toArray();
     }
 
     private function exportCriticalIllnessPolicies(User $user): array

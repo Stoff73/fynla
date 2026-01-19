@@ -62,7 +62,7 @@ class UserSession extends Model
     /**
      * Update last activity timestamp
      */
-    public function touch(): bool
+    public function touchActivity(): bool
     {
         $this->last_activity_at = now();
 
