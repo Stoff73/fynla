@@ -562,3 +562,31 @@
 - [ ] Create user documentation for MFA, sessions, GDPR
 - [ ] Schedule quarterly security review
 - [ ] Plan penetration testing (Phase 2 - future)
+
+---
+
+## Phase 8: Code Quality Audit (Complete)
+
+> **Added:** 19 January 2025 - All tasks completed post-merge
+
+### 8.1 Critical Bug Fixes
+
+- [x] **TASK-001** Fix `lifePolicies` → `lifeInsurancePolicies` in DataErasureService
+- [x] **TASK-002** Fix MFA user enumeration vulnerability (use secure challenge tokens)
+- [x] **TASK-014** Add `device_name` to UserSession fillable attributes
+
+### 8.2 Test Coverage
+
+- [x] **TASK-003** Add SessionService unit tests (10 tests)
+- [x] **TASK-004** Add PermissionService unit tests (8 tests)
+- [x] **TASK-005** Add DataErasureService unit tests (8 tests)
+- [x] **TASK-010** Add feature tests for MFA, Sessions, GDPR APIs (32 tests)
+
+### 8.3 Code Quality
+
+- [x] **TASK-006** Extract shared modal CSS to `_modals.css`
+- [x] **TASK-007** Fix toast notification pattern in MFASetupModal
+- [x] **TASK-008** Add default `requested_at` to ErasureRequest model
+- [x] **TASK-011** Add JSDoc comments to MFA Vue components
+- [x] **TASK-012** Extract audit retention config to `config/audit.php`
+- [x] **TASK-013** Create `PurgeAuditLogs` artisan command

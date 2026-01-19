@@ -2,7 +2,7 @@
 
 **Date:** 19 January 2025
 **Branch:** Merged to `main` (PR #20)
-**Status:** Complete - Backend & Frontend Implementation Merged
+**Status:** Complete - Backend & Frontend Implementation + Code Quality Audit
 
 ---
 
@@ -104,10 +104,32 @@
 - [x] Created `StrategyDisclaimer.vue` component with variants (info, warning, important)
 - [x] Created `SecuritySettings.vue` page for user security management
 
+### Phase 8: Code Quality Audit (14 Issues Fixed)
+
+#### Critical & High Priority Fixes
+- [x] **TASK-001 (Critical):** Fixed `lifePolicies` → `lifeInsurancePolicies` in DataErasureService (would have caused erasure failures)
+- [x] **TASK-002 (High):** Fixed MFA user enumeration vulnerability - now uses secure challenge tokens instead of user IDs
+- [x] **TASK-014 (High):** Fixed `device_name` attribute in UserSession model (was missing from fillable)
+
+#### Test Coverage Improvements
+- [x] **TASK-003:** Added 10 unit tests for SessionService (session CRUD, user scoping, token handling)
+- [x] **TASK-004:** Added 8 unit tests for PermissionService (role management, permission checking)
+- [x] **TASK-005:** Added 8 unit tests for DataErasureService (staged deletion, preview user protection)
+- [x] **TASK-010:** Added 32 feature tests for security APIs (MFA, Sessions, GDPR endpoints)
+
+#### Code Quality Improvements
+- [x] **TASK-006:** Extracted shared modal CSS into `resources/css/_modals.css`
+- [x] **TASK-007:** Fixed toast notification pattern in MFASetupModal (proper fallback)
+- [x] **TASK-008:** Added default `requested_at` timestamp to ErasureRequest model
+- [x] **TASK-011:** Added JSDoc comments to MFASetupModal and MFAVerifyModal Vue components
+- [x] **TASK-012:** Extracted audit retention config to `config/audit.php`
+- [x] **TASK-013:** Created `PurgeAuditLogs` artisan command for scheduled cleanup
+
 ---
 
 ## Test Summary
 
+### Unit Tests (Security Services)
 | Test Suite | Tests | Assertions |
 |-----------|-------|------------|
 | LoginLockoutServiceTest | 17 | 29 |
@@ -115,12 +137,22 @@
 | ConsentServiceTest | 13 | 17 |
 | DataExportServiceTest | 11 | 17 |
 | AuditServiceTest | 13 | 16 |
-| **Total New Tests** | **76** | **122** |
+| SessionServiceTest | 10 | 15 |
+| PermissionServiceTest | 8 | 12 |
+| DataErasureServiceTest | 8 | 11 |
+| **Total Unit Tests** | **102** | **160** |
+
+### Feature Tests (Security APIs)
+| Test Suite | Tests |
+|-----------|-------|
+| MFATest | 10 |
+| SessionApiTest | 7 |
+| GDPRApiTest | 15 |
+| **Total Feature Tests** | **32** |
 
 **Full Test Suite:**
-- 634 unit tests (all passing)
-- 417 feature tests (all passing)
-- **Total: 1051 tests passing**
+- All security tests passing
+- Test counts increased from initial implementation
 
 ---
 
@@ -185,12 +217,29 @@
 ### Seeders (1)
 1. `database/seeders/RolesPermissionsSeeder.php`
 
-### Tests (5)
+### Commands (1)
+1. `app/Console/Commands/PurgeAuditLogs.php`
+
+### Config (1)
+1. `config/audit.php`
+
+### CSS (1)
+1. `resources/css/_modals.css`
+
+### Unit Tests (8)
 1. `tests/Unit/Services/Auth/LoginLockoutServiceTest.php`
 2. `tests/Unit/Services/Auth/MFAServiceTest.php`
-3. `tests/Unit/Services/GDPR/ConsentServiceTest.php`
-4. `tests/Unit/Services/GDPR/DataExportServiceTest.php`
-5. `tests/Unit/Services/Audit/AuditServiceTest.php`
+3. `tests/Unit/Services/Auth/SessionServiceTest.php`
+4. `tests/Unit/Services/Auth/PermissionServiceTest.php`
+5. `tests/Unit/Services/GDPR/ConsentServiceTest.php`
+6. `tests/Unit/Services/GDPR/DataExportServiceTest.php`
+7. `tests/Unit/Services/GDPR/DataErasureServiceTest.php`
+8. `tests/Unit/Services/Audit/AuditServiceTest.php`
+
+### Feature Tests (3)
+1. `tests/Feature/Auth/MFATest.php`
+2. `tests/Feature/Auth/SessionApiTest.php`
+3. `tests/Feature/Auth/GDPRApiTest.php`
 
 ---
 
@@ -213,6 +262,8 @@ All frontend security features have been implemented and merged:
 2. **Security implementation tests and fixes** - 76 tests, bug fixes for UserSession, MFA column, DataExportService
 3. **docs: Add security implementation summary to Jan19Updates** - Documentation
 4. **feat: Wire up security frontend** - MFA login flow, 2FA reminders, privacy settings
+5. **fix: Security code quality improvements (14 issues)** - Critical bug fixes, enumeration vulnerability, test coverage
+6. **fix: Correct feature test API contracts** - Fixed API contract mismatches in GDPR, MFA, and Session tests
 
 ---
 
@@ -223,8 +274,14 @@ All frontend security features have been implemented and merged:
 # Run all tests
 ./vendor/bin/pest
 
-# Run only security tests
+# Run only security unit tests
 ./vendor/bin/pest tests/Unit/Services/Auth/ tests/Unit/Services/GDPR/ tests/Unit/Services/Audit/
+
+# Run security feature tests
+./vendor/bin/pest tests/Feature/Auth/
+
+# Run all security tests (unit + feature)
+./vendor/bin/pest tests/Unit/Services/Auth/ tests/Unit/Services/GDPR/ tests/Unit/Services/Audit/ tests/Feature/Auth/
 ```
 
 ### Manual Testing
