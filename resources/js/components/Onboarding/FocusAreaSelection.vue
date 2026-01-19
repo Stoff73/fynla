@@ -12,7 +12,7 @@
             Thank you for registering with Fynla!
           </p>
         </div>
-        <img :src="logoImage" alt="Fynla" class="h-24 w-auto">
+        <img :src="logoImage" alt="Fynla" class="h-36 w-auto bg-white rounded-lg p-2">
       </div>
 
       <!-- Why Complete Onboarding -->
