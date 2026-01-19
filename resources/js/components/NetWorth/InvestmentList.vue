@@ -162,8 +162,8 @@
         </div>
       </div>
 
-      <!-- Portfolio Features Tabs -->
-      <div v-if="accounts.length > 0" class="portfolio-features">
+      <!-- Portfolio Features Tabs - Hidden from dashboard, components still available for detail views -->
+      <!-- <div v-if="accounts.length > 0" class="portfolio-features">
         <h3 class="features-title">Portfolio Analysis</h3>
         <div class="features-tabs">
           <button
@@ -177,16 +177,13 @@
         </div>
 
         <div class="features-content">
-          <!-- Holdings Tab -->
           <Holdings
             v-if="activePortfolioTab === 'holdings'"
             :selected-account-id="null"
           />
 
-          <!-- Performance Tab -->
           <Performance v-else-if="activePortfolioTab === 'performance'" />
 
-          <!-- Optimisation Tab (Coming Soon) -->
           <div v-else-if="activePortfolioTab === 'optimization'" class="coming-soon-wrapper">
             <div class="coming-soon-banner">
               <p class="text-2xl font-bold text-amber-700">Coming Soon</p>
@@ -196,7 +193,6 @@
             </div>
           </div>
 
-          <!-- Goals Tab (Coming Soon) -->
           <div v-else-if="activePortfolioTab === 'goals'" class="coming-soon-wrapper">
             <div class="coming-soon-banner">
               <p class="text-2xl font-bold text-amber-700">Coming Soon</p>
@@ -209,19 +205,16 @@
             </div>
           </div>
 
-          <!-- Tax Efficiency Tab -->
           <TaxEfficiencyPanel v-else-if="activePortfolioTab === 'taxefficiency'" />
 
-          <!-- Fees Tab -->
           <FeeBreakdown v-else-if="activePortfolioTab === 'fees'" />
 
-          <!-- Strategy Tab -->
           <PortfolioStrategyPanel
             v-else-if="activePortfolioTab === 'strategy'"
             @navigate="handleStrategyNavigate"
           />
         </div>
-      </div>
+      </div> -->
     </template>
 
     <!-- Account Form Modal -->
