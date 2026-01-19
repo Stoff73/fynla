@@ -2,17 +2,18 @@
   <div class="max-w-5xl mx-auto">
     <!-- Main Welcome Card -->
     <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-6 mb-6">
-      <!-- Logo -->
-      <div class="flex justify-center mb-4">
-        <img :src="logoImage" alt="Fynla" class="h-32 w-auto">
+      <!-- Header with Welcome and Logo -->
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h1 class="text-h2 font-display text-gray-900 mb-2">
+            Welcome {{ userName }}
+          </h1>
+          <p class="text-body text-primary-600 font-medium">
+            Thank you for registering with Fynla!
+          </p>
+        </div>
+        <img :src="logoImage" alt="Fynla" class="h-24 w-auto">
       </div>
-
-      <h1 class="text-h2 font-display text-gray-900 mb-2">
-        Welcome {{ userName }}
-      </h1>
-      <p class="text-body text-primary-600 font-medium mb-6">
-        Thank you for registering with Fynla!
-      </p>
 
       <!-- Why Complete Onboarding -->
       <div class="bg-primary-50 rounded-lg p-4 mb-6 border border-primary-100">
