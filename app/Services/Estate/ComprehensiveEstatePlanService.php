@@ -9,6 +9,7 @@ use App\Models\FamilyMember;
 use App\Models\User;
 use App\Services\TaxConfigService;
 use App\Services\UserProfile\ProfileCompletenessChecker;
+use App\Traits\CalculatesOwnershipShare;
 use Illuminate\Support\Collection;
 
 /**
@@ -21,6 +22,8 @@ use Illuminate\Support\Collection;
  */
 class ComprehensiveEstatePlanService
 {
+    use CalculatesOwnershipShare;
+
     public function __construct(
         private PersonalizedGiftingStrategyService $giftingStrategy,
         private PersonalizedTrustStrategyService $trustStrategy,
@@ -497,34 +500,68 @@ class ComprehensiveEstatePlanService
 
     /**
      * Get detailed liabilities for a user (mortgages and other liabilities)
+     *
+     * Single-record pattern: Apply ownership percentage to get user's share
      */
     private function getDetailedLiabilities(int $userId): array
     {
         $liabilities = [];
 
-        // Get mortgages with property addresses
+        // Get mortgages where user is owner OR joint_owner, with property addresses
         $mortgages = \App\Models\Mortgage::where('user_id', $userId)
+            ->orWhere('joint_owner_id', $userId)
             ->with('property:id,address_line_1')
             ->get();
 
         foreach ($mortgages as $mortgage) {
+            // Apply ownership share calculation for user's portion of mortgage
+            $userShare = $this->calculateUserMortgageShare($mortgage, $userId);
+
             $liabilities[] = [
                 'type' => 'Mortgage',
                 'name' => $mortgage->property?->address_line_1
                     ? "Mortgage - {$mortgage->property->address_line_1}"
                     : ($mortgage->lender_name ? "Mortgage - {$mortgage->lender_name}" : 'Mortgage'),
-                'balance' => (float) $mortgage->outstanding_balance,
+                'balance' => $userShare,
+                'full_balance' => (float) $mortgage->outstanding_balance,
+                'ownership_type' => $mortgage->ownership_type ?? 'individual',
+                'ownership_percentage' => $mortgage->ownership_percentage ?? 100,
             ];
         }
 
-        // Get other liabilities (credit cards, loans, etc.)
-        $otherLiabilities = \App\Models\Estate\Liability::where('user_id', $userId)->get();
+        // Get other liabilities where user is owner OR joint_owner
+        $otherLiabilities = \App\Models\Estate\Liability::where('user_id', $userId)
+            ->orWhere('joint_owner_id', $userId)
+            ->get();
 
         foreach ($otherLiabilities as $liability) {
+            // Liability model uses 'current_balance' not 'current_value'
+            // Calculate user's share manually based on ownership type
+            $fullBalance = (float) ($liability->current_balance ?? 0);
+            $ownershipType = $liability->ownership_type ?? 'individual';
+
+            if ($ownershipType === 'individual' || $ownershipType === 'trust') {
+                // Individual ownership - 100% if owner, 0 if not
+                $userShare = $liability->user_id === $userId ? $fullBalance : 0.0;
+            } else {
+                // Joint ownership - apply percentage
+                $percentage = (float) ($liability->ownership_percentage ?? 50);
+                if ($liability->user_id === $userId) {
+                    $userShare = $fullBalance * ($percentage / 100);
+                } elseif (($liability->joint_owner_id ?? null) === $userId) {
+                    $userShare = $fullBalance * ((100 - $percentage) / 100);
+                } else {
+                    $userShare = 0.0;
+                }
+            }
+
             $liabilities[] = [
                 'type' => ucfirst(str_replace('_', ' ', $liability->liability_type)),
                 'name' => $liability->liability_name,
-                'balance' => (float) $liability->current_balance,
+                'balance' => $userShare,
+                'full_balance' => $fullBalance,
+                'ownership_type' => $ownershipType,
+                'ownership_percentage' => $liability->ownership_percentage ?? 100,
             ];
         }
 
@@ -611,7 +648,8 @@ class ComprehensiveEstatePlanService
         }
 
         $totalAssets = $assets->sum('current_value');
-        $totalLiabilities = $ihtAnalysis['liabilities'] ?? 0;
+        // Use user's liabilities from IHT analysis (correctly calculates ownership shares)
+        $totalLiabilities = $ihtAnalysis['user_total_liabilities'] ?? 0;
         $netWorth = $totalAssets - $totalLiabilities;
 
         $result = [
@@ -705,8 +743,8 @@ class ComprehensiveEstatePlanService
             }
 
             $spouseTotalAssets = $spouseAssets->sum('current_value');
-            $spouseLiabilities = \App\Models\Estate\Liability::where('user_id', $spouse->id)->sum('current_balance') ?? 0;
-            $spouseLiabilities += \App\Models\Mortgage::where('user_id', $spouse->id)->sum('outstanding_balance') ?? 0;
+            // Use aggregator service to correctly apply ownership share to liabilities
+            $spouseLiabilities = $this->assetAggregator->calculateUserLiabilities($spouse);
             $spouseNetWorth = $spouseTotalAssets - $spouseLiabilities;
 
             $result['spouse'] = [

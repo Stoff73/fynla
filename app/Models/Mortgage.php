@@ -36,6 +36,7 @@ class Mortgage extends Model
         'maturity_date',
         'remaining_term_months',
         'ownership_type',
+        'ownership_percentage',
         'joint_owner_id',
         'joint_owner_name',
         'notes',
@@ -56,6 +57,7 @@ class Mortgage extends Model
         'variable_interest_rate' => 'decimal:4',
         'monthly_payment' => 'decimal:2',
         'remaining_term_months' => 'integer',
+        'ownership_percentage' => 'decimal:2',
     ];
 
     /**
