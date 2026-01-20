@@ -6,6 +6,9 @@
     <div class="bg-white border border-gray-200 rounded-lg p-6">
       <div class="mb-4">
         <h4 class="text-md font-semibold text-gray-700">Monthly Costs</h4>
+        <p v-if="isSharedOwnership" class="mt-2 text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <strong>Note:</strong> Enter 100% of all property costs. The system will automatically calculate your share ({{ property.ownership_percentage }}%) based on your ownership percentage.
+        </p>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -447,14 +450,30 @@ export default {
   },
 
   computed: {
-    monthlyMortgagePayments() {
+    mortgageList() {
       // Use mortgages from prop, or fallback to property.mortgages
-      const mortgageList = this.mortgages && this.mortgages.length > 0
+      return this.mortgages && this.mortgages.length > 0
         ? this.mortgages
         : (this.property.mortgages || []);
+    },
 
-      return mortgageList.reduce((total, mortgage) => {
+    monthlyMortgagePayments() {
+      // Full mortgage payments (for display)
+      return this.mortgageList.reduce((total, mortgage) => {
         const payment = parseFloat(mortgage.monthly_payment) || 0;
+        return total + payment;
+      }, 0);
+    },
+
+    userMonthlyMortgagePayments() {
+      // User's share of mortgage payments, respecting each mortgage's ownership_type
+      return this.mortgageList.reduce((total, mortgage) => {
+        const payment = parseFloat(mortgage.monthly_payment) || 0;
+        // Only apply ownership split if mortgage is jointly owned
+        if (mortgage.ownership_type === 'joint' && this.property?.ownership_percentage) {
+          return total + (payment * (this.property.ownership_percentage / 100));
+        }
+        // Individual mortgage - full payment belongs to this owner
         return total + payment;
       }, 0);
     },
@@ -463,7 +482,7 @@ export default {
       return this.property?.ownership_type === 'joint' || this.property?.ownership_type === 'tenants_in_common';
     },
 
-    totalMonthlyCosts() {
+    nonMortgageMonthlyCosts() {
       return (
         (parseFloat(this.property.monthly_council_tax) || 0) +
         (parseFloat(this.property.monthly_gas) || 0) +
@@ -473,16 +492,21 @@ export default {
         (parseFloat(this.property.monthly_contents_insurance) || 0) +
         (parseFloat(this.property.monthly_service_charge) || 0) +
         (parseFloat(this.property.monthly_maintenance_reserve) || 0) +
-        (parseFloat(this.property.other_monthly_costs) || 0) +
-        this.monthlyMortgagePayments
+        (parseFloat(this.property.other_monthly_costs) || 0)
       );
     },
 
+    totalMonthlyCosts() {
+      return this.nonMortgageMonthlyCosts + this.monthlyMortgagePayments;
+    },
+
     userMonthlyCosts() {
+      // User's share: property costs use property ownership %, mortgage uses mortgage ownership
+      let userNonMortgageCosts = this.nonMortgageMonthlyCosts;
       if (this.isSharedOwnership && this.property?.ownership_percentage) {
-        return this.totalMonthlyCosts * (this.property.ownership_percentage / 100);
+        userNonMortgageCosts = this.nonMortgageMonthlyCosts * (this.property.ownership_percentage / 100);
       }
-      return this.totalMonthlyCosts;
+      return userNonMortgageCosts + this.userMonthlyMortgagePayments;
     },
 
     userMonthlyRentalIncome() {

@@ -272,6 +272,12 @@ export default {
         console.error('Failed to save family member:', err);
         const errorMsg = err.response?.data?.message || err.message || 'Unknown error';
         error.value = `Failed to save family member: ${errorMsg}`;
+        closeModal();
+
+        // Clear error after 8 seconds
+        setTimeout(() => {
+          error.value = null;
+        }, 8000);
       }
     };
 

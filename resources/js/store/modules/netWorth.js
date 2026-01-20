@@ -326,6 +326,26 @@ const actions = {
         }
     },
 
+    /**
+     * Sync related modules after property/mortgage changes
+     * This ensures Estate Planning, Expenses, and Dashboard show updated data
+     */
+    async syncRelatedModules({ dispatch, rootGetters }) {
+        try {
+            // Refresh estate data (for IHT calculations and estate planning)
+            await dispatch('estate/fetchEstateData', null, { root: true });
+
+            // Recalculate IHT if user is married (second death planning)
+            const user = rootGetters['auth/user'];
+            if (user?.marital_status === 'married' || user?.marital_status === 'civil_partnership') {
+                await dispatch('estate/calculateSecondDeathIHTPlanning', null, { root: true });
+            }
+        } catch (error) {
+            // Log but don't throw - this is a background sync
+            console.warn('Failed to sync related modules:', error);
+        }
+    },
+
     async loadAllData({ dispatch }) {
         await Promise.all([
             dispatch('fetchOverview'),
@@ -390,6 +410,8 @@ const actions = {
                 commit('ADD_PROPERTY', response.data);
                 // Refresh net worth after adding property
                 await dispatch('refreshNetWorth');
+                // Sync estate planning, expenses, and other modules
+                dispatch('syncRelatedModules');
                 return response.data;
             } else {
                 throw new Error(response.message || 'Failed to create property');
@@ -414,6 +436,8 @@ const actions = {
                 commit('UPDATE_PROPERTY', response.data);
                 // Refresh net worth after updating property
                 await dispatch('refreshNetWorth');
+                // Sync estate planning, expenses, and other modules
+                dispatch('syncRelatedModules');
                 return response.data;
             } else {
                 throw new Error(response.message || 'Failed to update property');
@@ -438,6 +462,8 @@ const actions = {
                 commit('REMOVE_PROPERTY', propertyId);
                 // Refresh net worth after deleting property
                 await dispatch('refreshNetWorth');
+                // Sync estate planning, expenses, and other modules
+                dispatch('syncRelatedModules');
             } else {
                 throw new Error(response.message || 'Failed to delete property');
             }
@@ -506,6 +532,8 @@ const actions = {
                 await dispatch('fetchProperty', propertyId);
                 // Refresh net worth
                 await dispatch('refreshNetWorth');
+                // Sync estate planning, expenses, and other modules
+                dispatch('syncRelatedModules');
                 return response.data;
             } else {
                 throw new Error(response.message || 'Failed to create mortgage');
@@ -534,6 +562,8 @@ const actions = {
                 }
                 // Refresh net worth
                 await dispatch('refreshNetWorth');
+                // Sync estate planning, expenses, and other modules
+                dispatch('syncRelatedModules');
                 return response.data;
             } else {
                 throw new Error(response.message || 'Failed to update mortgage');
@@ -562,6 +592,8 @@ const actions = {
                 }
                 // Refresh net worth
                 await dispatch('refreshNetWorth');
+                // Sync estate planning, expenses, and other modules
+                dispatch('syncRelatedModules');
             } else {
                 throw new Error(response.message || 'Failed to delete mortgage');
             }

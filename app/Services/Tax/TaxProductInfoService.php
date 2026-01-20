@@ -28,12 +28,36 @@ class TaxProductInfoService
      */
     public function getInvestmentTaxInfo(string $accountType): array
     {
+        // Map account types to tax product types
+        $productType = $this->mapInvestmentProductType($accountType);
+
         $references = TaxProductReference::getForProductType(
             TaxProductReference::CATEGORY_INVESTMENT,
-            $accountType
+            $productType
         );
 
-        return $this->buildTaxInfoResponse($references, $accountType);
+        return $this->buildTaxInfoResponse($references, $productType);
+    }
+
+    /**
+     * Map investment account type to the appropriate tax product type.
+     *
+     * @param  string  $accountType  Account type from database
+     * @return string Tax product type
+     */
+    private function mapInvestmentProductType(string $accountType): string
+    {
+        return match ($accountType) {
+            'stocks_and_shares_isa', 'isa' => 'isa',
+            'general_investment_account', 'gia' => 'gia',
+            'onshore_bond', 'investment_bond' => 'onshore_bond',
+            'offshore_bond' => 'offshore_bond',
+            'vct', 'venture_capital_trust' => 'vct',
+            'eis', 'enterprise_investment_scheme' => 'eis',
+            'seis', 'seed_enterprise_investment_scheme' => 'eis',  // Use EIS tax rules for SEIS
+            'nsi', 'premium_bonds', 'ns_i' => 'nsi',
+            default => 'other',
+        };
     }
 
     /**

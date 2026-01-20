@@ -114,13 +114,39 @@ Vue Component → JS Service → API → Controller → Agent → Services → M
 
 ## Critical Rules
 
-### 1. Keep It Simple
+### 1. NEVER CREATE DEPLOYMENT PACKAGES (CRITICAL - VIOLATION = IMMEDIATE FAILURE)
+
+**ABSOLUTELY NEVER create ZIP files, deployment packages, or archives.** This is a CRITICAL rule with ZERO exceptions.
+
+When deploying:
+1. **List the exact files that changed** - provide full paths
+2. **User uploads files manually** via SiteGround File Manager
+3. **If frontend changed**: Run `npm run build` with correct env vars, then list files in `public/build/` to upload
+4. **Provide SSH commands** for migrations, seeders, cache clears
+
+**Example of correct deployment output:**
+```
+Files to upload:
+- resources/js/components/NetWorth/Property/PropertyForm.vue
+- resources/js/components/NetWorth/Property/PropertyDetail.vue
+- app/Http/Controllers/Api/PropertyController.php
+
+Frontend rebuild required: YES
+After running build, upload entire public/build/ folder
+
+SSH commands after upload:
+php artisan config:clear && php artisan cache:clear && php artisan optimize
+```
+
+**NEVER run build scripts that create ZIP files. NEVER.**
+
+### 2. Keep It Simple
 
 **ALWAYS use the simplest solution.** Do not over-engineer, over-complicate, or add unnecessary validation/checks. Write minimal, clean code that does exactly what's needed - nothing more.
 
 Before writing code, ask: "What's the simplest way to do this?" If your solution has excessive error handling, verbose logging, or redundant checks - simplify it.
 
-### 2. Use Available Skills
+### 3. Use Available Skills
 
 Check for relevant skills before starting any task:
 - **systematic-debugging** - For ALL bugs and troubleshooting
@@ -132,7 +158,7 @@ Agents available:
 - **laravel-stack-deployer** - Production deployments
 - **code-quality-auditor** - Code quality audits
 
-### 3. Never Hardcode Tax Values
+### 4. Never Hardcode Tax Values
 
 All UK tax values come from database via `TaxConfigService`:
 
@@ -150,7 +176,7 @@ public function calculate()
 
 **Never use** `config('uk_tax_config')` - it's deprecated.
 
-### 4. Unified Form Components
+### 5. Unified Form Components
 
 One form serves all contexts (onboarding, dashboard, edit):
 
@@ -165,7 +191,7 @@ One form serves all contexts (onboarding, dashboard, edit):
 
 **Critical**: Use `@save` not `@submit` (causes double submission bug).
 
-### 5. Canonical Data Types
+### 6. Canonical Data Types
 
 Use exact values from database enums:
 
@@ -178,7 +204,7 @@ Use exact values from database enums:
 
 **Never use** `sole` (use `individual`), `second_home`, `part_and_part`.
 
-### 6. Environment Separation
+### 7. Environment Separation
 
 The project supports multiple deployment targets with clear separation:
 
@@ -217,26 +243,19 @@ export $(cat .env.production | xargs)
 ./dev.sh
 ```
 
-### 7. Deployment
+### 8. Deployment (Manual File Upload ONLY)
 
-**DO NOT create deployment packages (ZIP files).** Instead:
-1. Upload only changed files via SiteGround File Manager
-2. Run SSH commands for migrations, seeders, and cache clears
-3. If frontend changes exist, rebuild locally and upload `public/build/`
+**See Rule #1: NEVER create ZIP files or deployment packages.**
 
-**Deployment guides:**
-- `deploy/DEPLOYMENT_v0.6.2.md` - Current release deployment
-- `deploy/README.md` - Environment configuration overview
-
-**Frontend rebuild (when Vue files changed):**
+**Frontend rebuild (when Vue/JS files changed):**
 ```bash
-# Local machine only - server cannot run npm
+# Set environment variables and build
 export VITE_BASE_PATH=/build/
 export VITE_ROUTER_BASE=/
 export VITE_API_BASE_URL=https://fynla.org
 npm run build
 
-# Then upload public/build/ folder to server
+# Then list files in public/build/ for user to upload
 ```
 
 **SSH commands (after uploading files):**

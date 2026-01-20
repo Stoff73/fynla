@@ -72,7 +72,7 @@
             <h4 class="text-lg font-semibold text-gray-800 mb-4">Basic Information</h4>
 
             <div>
-              <label for="property_type" class="block text-sm font-medium text-gray-700 mb-1">Property Type</label>
+              <label for="property_type" class="block text-sm font-medium text-gray-700 mb-1">Property Type <span class="text-red-500">*</span></label>
               <select
                 id="property_type"
                 name="property_type"
@@ -88,7 +88,7 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label for="address_line_1" class="block text-sm font-medium text-gray-700 mb-1">Address Line 1</label>
+                <label for="address_line_1" class="block text-sm font-medium text-gray-700 mb-1">Address Line 1 <span class="text-red-500">*</span></label>
                 <input
                   id="address_line_1"
                   name="address_line_1"
@@ -110,7 +110,7 @@
               </div>
 
               <div>
-                <label for="city" class="block text-sm font-medium text-gray-700 mb-1">City</label>
+                <label for="city" class="block text-sm font-medium text-gray-700 mb-1">City <span class="text-red-500">*</span></label>
                 <input
                   id="city"
                   name="city"
@@ -132,7 +132,7 @@
               </div>
 
               <div>
-                <label for="postcode" class="block text-sm font-medium text-gray-700 mb-1">Postcode</label>
+                <label for="postcode" class="block text-sm font-medium text-gray-700 mb-1">Postcode <span class="text-red-500">*</span></label>
                 <input
                   id="postcode"
                   name="postcode"
@@ -193,7 +193,7 @@
 
               <div>
                 <label for="current_value" class="block text-sm font-medium text-gray-700 mb-1">
-                  {{ isJointPropertyEdit ? 'Full Property Value (£)' : 'Current Value (£)' }}
+                  {{ isJointPropertyEdit ? 'Full Property Value (£)' : 'Current Value (£)' }} <span class="text-red-500">*</span>
                 </label>
                 <input
                   id="current_value"
@@ -686,7 +686,7 @@
 
               <div>
                 <label for="outstanding_balance" class="block text-sm font-medium text-gray-700 mb-1">
-                  {{ isJointPropertyEdit ? 'Full Outstanding Balance (£)' : 'Outstanding Balance (£)' }}
+                  {{ isJointPropertyEdit ? 'Full Outstanding Balance (£)' : 'Outstanding Balance (£)' }} <span class="text-red-500">*</span>
                 </label>
                 <input
                   id="outstanding_balance"
@@ -840,7 +840,7 @@
 
             <div>
               <label for="monthly_payment" class="block text-sm font-medium text-gray-700 mb-1">
-                Monthly Payment (£)
+                Monthly Payment (£) <span class="text-red-500">*</span>
               </label>
               <input
                 id="monthly_payment"
@@ -928,6 +928,11 @@
           <!-- Step 4: Costs -->
           <div v-show="currentStep === stepMapping[4]" class="space-y-4">
             <h4 class="text-lg font-semibold text-gray-800 mb-4">Monthly Costs</h4>
+
+            <!-- Shared ownership note -->
+            <p v-if="(form.ownership_type === 'joint' || form.ownership_type === 'tenants_in_common') && form.joint_owner_id" class="text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <strong>Note:</strong> Enter 100% of all property costs. The system will automatically calculate your share ({{ form.ownership_percentage }}%) based on your ownership percentage.
+            </p>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <!-- Mortgage Payment (pulled from mortgage data) -->
@@ -1363,6 +1368,7 @@ export default {
         start_date: '',
         maturity_date: '',
         ownership_type: 'individual',
+        ownership_percentage: 100,
         joint_owner_id: null,
         joint_owner_name: '',
       },
@@ -1512,7 +1518,8 @@ export default {
       }
 
       // Also sync mortgage ownership_type with property ownership_type
-      this.mortgageForm.ownership_type = newVal;
+      // Convert tenants_in_common to joint for mortgage (mortgages only have individual/joint)
+      this.mortgageForm.ownership_type = (newVal === 'joint' || newVal === 'tenants_in_common') ? 'joint' : 'individual';
     },
 
     mortgageJointOwnerSelection(newVal) {
@@ -1530,12 +1537,28 @@ export default {
       }
     },
 
-    // When mortgage checkbox changes, adjust current step if needed
+    // When mortgage checkbox changes, sync ownership settings and adjust step if needed
     hasMortgage(newVal, oldVal) {
+      // If checking mortgage, sync ownership settings from property
+      if (newVal && !oldVal) {
+        // Sync mortgage ownership_type with property ownership_type
+        // Convert tenants_in_common to joint for mortgage (mortgages only have individual/joint)
+        const propertyType = this.form.ownership_type;
+        this.mortgageForm.ownership_type = (propertyType === 'joint' || propertyType === 'tenants_in_common') ? 'joint' : 'individual';
+        // Sync joint owner settings
+        this.mortgageForm.joint_owner_id = this.form.joint_owner_id;
+        this.mortgageForm.joint_owner_name = this.form.joint_owner_name;
+        this.mortgageForm.ownership_percentage = this.form.ownership_percentage;
+      }
       // If unchecking mortgage while on mortgage step, move to next logical step
       if (oldVal && !newVal && this.currentStep === this.stepMapping[3]) {
         this.currentStep = this.stepMapping[4] || this.currentStep + 1;
       }
+    },
+
+    // Sync mortgage ownership_percentage with property ownership_percentage
+    'form.ownership_percentage'(newVal) {
+      this.mortgageForm.ownership_percentage = newVal;
     },
 
     // Sync mortgage joint owner with property joint owner
@@ -1643,6 +1666,7 @@ export default {
         this.mortgageForm.start_date = this.formatDateForInput(mortgage.start_date);
         this.mortgageForm.maturity_date = this.formatDateForInput(mortgage.maturity_date);
         this.mortgageForm.ownership_type = mortgage.ownership_type || 'individual';
+        this.mortgageForm.ownership_percentage = mortgage.ownership_percentage || this.form.ownership_percentage || 50;
         this.mortgageForm.joint_owner_id = mortgage.joint_owner_id || null;
         this.mortgageForm.joint_owner_name = mortgage.joint_owner_name || '';
 
@@ -1659,7 +1683,10 @@ export default {
         }
       } else {
         // No existing mortgage - sync ownership from property form
-        this.mortgageForm.ownership_type = this.form.ownership_type || 'individual';
+        // Convert tenants_in_common to joint for mortgage
+        const propType = this.form.ownership_type;
+        this.mortgageForm.ownership_type = (propType === 'joint' || propType === 'tenants_in_common') ? 'joint' : 'individual';
+        this.mortgageForm.ownership_percentage = this.form.ownership_percentage || 50;
         this.mortgageForm.joint_owner_id = this.form.joint_owner_id || null;
         this.mortgageForm.joint_owner_name = this.form.joint_owner_name || '';
       }

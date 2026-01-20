@@ -284,10 +284,20 @@ export default {
 
     const isEditing = computed(() => !!props.member);
 
-    // Date constraints
+    // Date constraints - both min and max depend on relationship
     const minDob = computed(() => {
-      // Max age: 105 years
       const date = new Date();
+
+      if (form.value.relationship === 'child' || form.value.relationship === 'step_child') {
+        // Child: oldest allowed is 18 or 22 years ago depending on education
+        const educationStatuses = ['pre_school', 'primary', 'secondary', 'further_education', 'higher_education'];
+        const isInEducation = educationStatuses.includes(form.value.education_status);
+        const maxAge = isInEducation ? 22 : 18;
+        date.setFullYear(date.getFullYear() - maxAge);
+        return date.toISOString().split('T')[0];
+      }
+
+      // All others: max age 105 years
       date.setFullYear(date.getFullYear() - 105);
       return date.toISOString().split('T')[0];
     });
@@ -296,23 +306,13 @@ export default {
       const today = new Date();
 
       if (form.value.relationship === 'spouse') {
-        // Spouse must be 16+
+        // Spouse must be 16+ (born at least 16 years ago)
         const date = new Date();
         date.setFullYear(date.getFullYear() - 16);
         return date.toISOString().split('T')[0];
       }
 
-      if (form.value.relationship === 'child' || form.value.relationship === 'step_child') {
-        // Child max age depends on education status
-        const educationStatuses = ['pre_school', 'primary', 'secondary', 'further_education', 'higher_education'];
-        const isInEducation = educationStatuses.includes(form.value.education_status);
-        const maxAge = isInEducation ? 22 : 18;
-        const date = new Date();
-        date.setFullYear(date.getFullYear() - maxAge);
-        return date.toISOString().split('T')[0];
-      }
-
-      // Other family members - any age up to today
+      // Children and others: can be born up to today
       return today.toISOString().split('T')[0];
     });
 

@@ -724,24 +724,24 @@ export default {
 
     getTaxStatusBgClass(status) {
       const classes = {
-        exempt: 'bg-green-50 border-green-200',
-        taxable: 'bg-amber-50 border-amber-200',
-        deferred: 'bg-blue-50 border-blue-200',
-        relief: 'bg-purple-50 border-purple-200',
-        limit: 'bg-gray-50 border-gray-200',
+        exempt: 'bg-green-500 border-green-500 text-white',
+        taxable: 'bg-amber-500 border-amber-500 text-white',
+        deferred: 'bg-blue-500 border-blue-500 text-white',
+        relief: 'bg-purple-500 border-purple-500 text-white',
+        limit: 'bg-gray-500 border-gray-500 text-white',
       };
-      return classes[status] || 'bg-gray-50 border-gray-200';
+      return classes[status] || 'bg-gray-500 border-gray-500 text-white';
     },
 
     getTaxStatusIconClass(status) {
       const classes = {
-        exempt: 'bg-green-100 text-green-600',
-        taxable: 'bg-amber-100 text-amber-600',
-        deferred: 'bg-blue-100 text-blue-600',
-        relief: 'bg-purple-100 text-purple-600',
-        limit: 'bg-gray-100 text-gray-600',
+        exempt: 'bg-green-600 text-white',
+        taxable: 'bg-amber-600 text-white',
+        deferred: 'bg-blue-600 text-white',
+        relief: 'bg-purple-600 text-white',
+        limit: 'bg-gray-600 text-white',
       };
-      return classes[status] || 'bg-gray-100 text-gray-600';
+      return classes[status] || 'bg-gray-600 text-white';
     },
 
     getTaxStatusIcon(status) {
@@ -918,12 +918,12 @@ export default {
 .tax-item-title {
   font-size: 13px;
   font-weight: 600;
-  color: #111827;
+  color: white;
 }
 
 .tax-item-summary {
   font-size: 11px;
-  color: #6b7280;
+  color: rgba(255, 255, 255, 0.9);
   line-height: 1.4;
 }
 

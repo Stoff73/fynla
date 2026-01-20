@@ -6,10 +6,12 @@ namespace App\Services\UserProfile;
 
 use App\Models\SavingsAccount;
 use App\Models\User;
+use App\Traits\CalculatesOwnershipShare;
 use Carbon\Carbon;
 
 class PersonalAccountsService
 {
+    use CalculatesOwnershipShare;
     /**
      * Calculate Profit and Loss statement for the user
      *
@@ -232,10 +234,10 @@ class PersonalAccountsService
             ->orWhere('joint_owner_id', $user->id)
             ->get();
         foreach ($cashAccounts as $account) {
-            // For joint accounts, show user's share (50% for joint ownership)
-            $amount = $account->current_balance;
-            if ($account->ownership_type === 'joint' && $account->joint_owner_id) {
-                $amount = $account->current_balance * 0.5;
+            // Use trait to calculate user's share based on ownership_percentage
+            $amount = $this->calculateUserShare($account, $user->id);
+            if ($amount <= 0) {
+                continue;
             }
             $assets[] = [
                 'line_item' => $account->institution ? "{$account->institution} - {$account->account_type}" : $account->account_type,
@@ -249,10 +251,10 @@ class PersonalAccountsService
             ->orWhere('joint_owner_id', $user->id)
             ->get();
         foreach ($investmentAccounts as $account) {
-            // For joint accounts, show user's share (50% for joint ownership)
-            $amount = $account->current_value;
-            if ($account->ownership_type === 'joint' && $account->joint_owner_id) {
-                $amount = $account->current_value * 0.5;
+            // Use trait to calculate user's share based on ownership_percentage
+            $amount = $this->calculateUserShare($account, $user->id);
+            if ($amount <= 0) {
+                continue;
             }
             $assets[] = [
                 'line_item' => $account->provider ? "{$account->provider} - {$account->account_type}" : $account->account_type,
@@ -270,10 +272,10 @@ class PersonalAccountsService
             if ($property->property_type) {
                 $propertyLabel .= ' ('.str_replace('_', ' ', ucwords($property->property_type, '_')).')';
             }
-            // For joint properties, show user's share (50% for joint ownership)
-            $amount = $property->current_value;
-            if ($property->ownership_type === 'joint' && $property->joint_owner_id) {
-                $amount = $property->current_value * 0.5;
+            // Use trait to calculate user's share based on ownership_percentage
+            $amount = $this->calculateUserShare($property, $user->id);
+            if ($amount <= 0) {
+                continue;
             }
             $assets[] = [
                 'line_item' => $propertyLabel,
@@ -333,10 +335,10 @@ class PersonalAccountsService
                 $mortgageLabel .= ' - Mortgage';
             }
 
-            // For joint mortgages, show user's share (50% for joint ownership)
-            $amount = $mortgage->outstanding_balance;
-            if ($mortgage->ownership_type === 'joint' && $mortgage->joint_owner_id) {
-                $amount = $mortgage->outstanding_balance * 0.5;
+            // Use trait to calculate user's share based on ownership_percentage
+            $amount = $this->calculateUserMortgageShare($mortgage, $user->id);
+            if ($amount <= 0) {
+                continue;
             }
 
             $liabilities[] = [
@@ -352,10 +354,10 @@ class PersonalAccountsService
             ->get();
         foreach ($userLiabilities as $liability) {
             $typeLabel = str_replace('_', ' ', ucwords($liability->liability_type, '_'));
-            // For joint liabilities, show user's share (50% for joint ownership)
-            $amount = $liability->current_balance;
-            if ($liability->ownership_type === 'joint' && $liability->joint_owner_id) {
-                $amount = $liability->current_balance * 0.5;
+            // Use trait to calculate user's share based on ownership_percentage
+            $amount = $this->calculateUserShare($liability, $user->id);
+            if ($amount <= 0) {
+                continue;
             }
             $liabilities[] = [
                 'line_item' => $liability->liability_name ?? $typeLabel,

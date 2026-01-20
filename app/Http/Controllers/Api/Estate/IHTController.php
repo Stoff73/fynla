@@ -13,11 +13,13 @@ use App\Models\User;
 use App\Services\Estate\EstateAssetAggregatorService;
 use App\Services\Estate\IHTCalculationService;
 use App\Services\TaxConfigService;
+use App\Traits\CalculatesOwnershipShare;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class IHTController extends Controller
 {
+    use CalculatesOwnershipShare;
     public function __construct(
         private IHTCalculationService $ihtCalculationService,
         private EstateAssetAggregatorService $assetAggregator,
@@ -272,7 +274,11 @@ class IHTController extends Controller
      */
     private function formatLiabilitiesBreakdown(User $user, ?User $spouse = null, bool $includeSpouse = false): array
     {
-        $userMortgages = Mortgage::where('user_id', $user->id)->with('property')->get();
+        // Get mortgages where user is primary owner OR joint owner
+        $userMortgages = Mortgage::where(function ($query) use ($user) {
+            $query->where('user_id', $user->id)
+                  ->orWhere('joint_owner_id', $user->id);
+        })->with('property')->get();
         $userLiabilities = Liability::where('user_id', $user->id)->get();
 
         $userMortgagesFormatted = [];
@@ -290,19 +296,29 @@ class IHTController extends Controller
         foreach ($userMortgages as $mortgage) {
             if ($mortgage->outstanding_balance > 0) {
                 $propertyName = $mortgage->property ? $mortgage->property->address_line_1 : 'Unknown Property';
-                $isJoint = $mortgage->property && $mortgage->property->ownership_type === 'joint';
+                $isJoint = ($mortgage->ownership_type ?? 'individual') === 'joint';
+
+                // Calculate user's share of the mortgage using trait method
+                $userShare = $this->calculateUserMortgageShare($mortgage, $user->id);
+
+                // Skip if user has no share (shouldn't happen but safety check)
+                if ($userShare <= 0) {
+                    continue;
+                }
 
                 // Mortgages are assumed to be paid off by age 70
-                $projectedBalance = ($userAgeAtDeath >= 70) ? 0 : $mortgage->outstanding_balance;
+                $projectedBalance = ($userAgeAtDeath >= 70) ? 0 : $userShare;
 
                 $userMortgagesFormatted[] = [
                     'property_address' => $propertyName,
-                    'outstanding_balance' => $mortgage->outstanding_balance,
+                    'outstanding_balance' => $userShare,
+                    'full_balance' => (float) $mortgage->outstanding_balance,
                     'projected_balance' => $projectedBalance,
                     'mortgage_type' => $mortgage->mortgage_type ?? 'repayment',
                     'is_joint' => $isJoint,
+                    'ownership_percentage' => $isJoint ? ($mortgage->user_id === $user->id ? $mortgage->ownership_percentage : (100 - $mortgage->ownership_percentage)) : 100,
                 ];
-                $userMortgagesTotal += $mortgage->outstanding_balance;
+                $userMortgagesTotal += $userShare;
                 $userMortgagesProjectedTotal += $projectedBalance;
             }
         }
@@ -338,7 +354,11 @@ class IHTController extends Controller
         ];
 
         if ($includeSpouse && $spouse) {
-            $spouseMortgages = Mortgage::where('user_id', $spouse->id)->with('property')->get();
+            // Get mortgages where spouse is primary owner OR joint owner
+            $spouseMortgages = Mortgage::where(function ($query) use ($spouse) {
+                $query->where('user_id', $spouse->id)
+                      ->orWhere('joint_owner_id', $spouse->id);
+            })->with('property')->get();
             $spouseLiabilities = Liability::where('user_id', $spouse->id)->get();
 
             $spouseMortgagesFormatted = [];
@@ -356,19 +376,29 @@ class IHTController extends Controller
             foreach ($spouseMortgages as $mortgage) {
                 if ($mortgage->outstanding_balance > 0) {
                     $propertyName = $mortgage->property ? $mortgage->property->address_line_1 : 'Unknown Property';
-                    $isJoint = $mortgage->property && $mortgage->property->ownership_type === 'joint';
+                    $isJoint = ($mortgage->ownership_type ?? 'individual') === 'joint';
+
+                    // Calculate spouse's share of the mortgage using trait method
+                    $spouseShare = $this->calculateUserMortgageShare($mortgage, $spouse->id);
+
+                    // Skip if spouse has no share (shouldn't happen but safety check)
+                    if ($spouseShare <= 0) {
+                        continue;
+                    }
 
                     // Mortgages are assumed to be paid off by age 70
-                    $projectedBalance = ($spouseAgeAtDeath >= 70) ? 0 : $mortgage->outstanding_balance;
+                    $projectedBalance = ($spouseAgeAtDeath >= 70) ? 0 : $spouseShare;
 
                     $spouseMortgagesFormatted[] = [
                         'property_address' => $propertyName,
-                        'outstanding_balance' => $mortgage->outstanding_balance,
+                        'outstanding_balance' => $spouseShare,
+                        'full_balance' => (float) $mortgage->outstanding_balance,
                         'projected_balance' => $projectedBalance,
                         'mortgage_type' => $mortgage->mortgage_type ?? 'repayment',
                         'is_joint' => $isJoint,
+                        'ownership_percentage' => $isJoint ? ($mortgage->user_id === $spouse->id ? $mortgage->ownership_percentage : (100 - $mortgage->ownership_percentage)) : 100,
                     ];
-                    $spouseMortgagesTotal += $mortgage->outstanding_balance;
+                    $spouseMortgagesTotal += $spouseShare;
                     $spouseMortgagesProjectedTotal += $projectedBalance;
                 }
             }

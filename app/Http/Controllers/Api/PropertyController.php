@@ -137,7 +137,7 @@ class PropertyController extends Controller
                 'mortgage_type' => $validated['mortgage_type'] ?? 'repayment',
                 'repayment_percentage' => $validated['mortgage_repayment_percentage'] ?? null,
                 'interest_only_percentage' => $validated['mortgage_interest_only_percentage'] ?? null,
-                'original_loan_amount' => 0.00,  // Not provided in property form
+                'original_loan_amount' => $validated['mortgage_original_loan_amount'] ?? null,
                 'outstanding_balance' => $validated['outstanding_mortgage'],  // FULL balance
                 'interest_rate' => $validated['mortgage_interest_rate'] ?? 0.0000,
                 'rate_type' => $validated['mortgage_rate_type'] ?? 'fixed',
@@ -149,15 +149,29 @@ class PropertyController extends Controller
                 'start_date' => $validated['mortgage_start_date'] ?? now(),
                 'maturity_date' => $validated['mortgage_maturity_date'] ?? now()->addYears(25),
                 'remaining_term_months' => 300,
-                'ownership_type' => $validated['ownership_type'],
-                'ownership_percentage' => $validated['ownership_percentage'],
+                // Use mortgage's own ownership_type if provided, otherwise inherit from property
+                // Convert tenants_in_common to joint (mortgages only support individual/joint)
+                'ownership_type' => $this->normalizeMortgageOwnershipType(
+                    $validated['mortgage_ownership_type'] ?? $validated['ownership_type']
+                ),
+                // Use mortgage-specific ownership_percentage if provided, otherwise inherit from property
+                'ownership_percentage' => $validated['mortgage_ownership_percentage'] ?? $validated['ownership_percentage'],
             ];
 
             // Add joint ownership fields if applicable
-            if (in_array($validated['ownership_type'], ['joint', 'tenants_in_common']) && isset($validated['joint_owner_id'])) {
-                $jointOwner = \App\Models\User::find($validated['joint_owner_id']);
-                $mortgageData['joint_owner_id'] = $validated['joint_owner_id'];
+            // Use mortgage-specific joint_owner_id if provided, otherwise inherit from property
+            $mortgageJointOwnerId = $validated['mortgage_joint_owner_id'] ?? $validated['joint_owner_id'] ?? null;
+            $mortgageOwnershipType = $mortgageData['ownership_type'];
+
+            if ($mortgageOwnershipType === 'joint' && $mortgageJointOwnerId) {
+                $jointOwner = \App\Models\User::find($mortgageJointOwnerId);
+                $mortgageData['joint_owner_id'] = $mortgageJointOwnerId;
                 $mortgageData['joint_owner_name'] = $jointOwner ? $jointOwner->name : null;
+
+                // Apply same 50% default for joint mortgages (match property behavior)
+                if ($mortgageData['ownership_percentage'] == 100.00) {
+                    $mortgageData['ownership_percentage'] = 50.00;
+                }
             }
 
             \App\Models\Mortgage::create($mortgageData);
@@ -448,5 +462,19 @@ class PropertyController extends Controller
         });
 
         $user->update(['annual_rental_income' => $annualRentalIncome]);
+    }
+
+    /**
+     * Normalize ownership type for mortgages.
+     * Mortgages only support 'individual' and 'joint', not 'tenants_in_common'.
+     */
+    private function normalizeMortgageOwnershipType(?string $ownershipType): string
+    {
+        // Convert tenants_in_common to joint for mortgages
+        if ($ownershipType === 'joint' || $ownershipType === 'tenants_in_common') {
+            return 'joint';
+        }
+
+        return 'individual';
     }
 }

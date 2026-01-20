@@ -27,6 +27,9 @@ const actions = {
     // Clear any existing auth state to prevent data leakage
     commit('clearAuth');
 
+    // CRITICAL: Reset userProfile state to prevent data leakage between users
+    commit('userProfile/resetState', null, { root: true });
+
     // If was in preview mode, just clear localStorage (don't redirect via exitPreview)
     if (wasInPreviewMode) {
       localStorage.removeItem('auth_token');
@@ -60,6 +63,9 @@ const actions = {
     // Clear any existing auth state to prevent data leakage
     commit('clearAuth');
 
+    // CRITICAL: Reset userProfile state to prevent data leakage between users
+    commit('userProfile/resetState', null, { root: true });
+
     // If was in preview mode, just clear localStorage (don't redirect via exitPreview)
     if (wasInPreviewMode) {
       localStorage.removeItem('auth_token');
@@ -90,7 +96,8 @@ const actions = {
       await authService.logout();
       commit('clearAuth');
 
-      // Reset all module states on logout
+      // Reset all module states on logout to prevent data leakage
+      commit('userProfile/resetState', null, { root: true });
       dispatch('netWorth/resetState', null, { root: true }).catch(() => {});
     } catch (error) {
       console.error('Logout error:', error);

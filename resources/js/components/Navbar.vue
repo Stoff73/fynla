@@ -40,7 +40,7 @@
           <router-link
             v-if="showMFAReminder"
             to="/settings/security"
-            class="inline-flex items-center px-3 py-2 border border-amber-400 text-body-sm font-medium rounded-button text-amber-700 bg-amber-50 hover:bg-amber-100 transition-colors"
+            class="inline-flex items-center px-3 py-2 border border-green-600 text-body-sm font-medium rounded-button text-white bg-green-600 hover:bg-green-700 transition-colors"
             title="Secure your account with two-factor authentication"
           >
             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -187,7 +187,7 @@
         <router-link
           v-if="showMFAReminder"
           to="/settings/security"
-          class="block pl-3 pr-4 py-2 border-l-4 border-amber-400 text-base font-medium bg-amber-50 text-amber-700"
+          class="block pl-3 pr-4 py-2 border-l-4 border-green-600 text-base font-medium bg-green-600 text-white"
         >
           Enable 2FA
         </router-link>

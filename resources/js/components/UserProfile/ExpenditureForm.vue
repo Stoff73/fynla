@@ -709,7 +709,7 @@
                 </div>
                 <div v-if="property.breakdown" class="grid grid-cols-2 gap-2 text-body-sm text-gray-600">
                   <div v-if="property.breakdown.mortgage" class="flex justify-between">
-                    <span>Mortgage:</span>
+                    <span>Mortgage<span v-if="property.is_joint && property.mortgage_ownership_percentage !== property.ownership_percentage"> ({{ property.mortgage_ownership_percentage }}%)</span>:</span>
                     <span>{{ formatCurrency(property.breakdown.mortgage) }}</span>
                   </div>
                   <div v-if="property.breakdown.council_tax" class="flex justify-between">
@@ -738,7 +738,7 @@
                   </div>
                 </div>
                 <p v-if="property.is_joint" class="text-body-sm text-amber-600 mt-2">
-                  50% of joint property expenses
+                  Your {{ property.ownership_percentage || 50 }}% share ({{ property.ownership_type === 'tenants_in_common' ? 'Tenants in Common' : 'Joint' }})
                 </p>
               </div>
             </div>
@@ -1363,7 +1363,7 @@
                 </div>
                 <div v-if="property.breakdown" class="grid grid-cols-2 gap-2 text-body-sm text-gray-600">
                   <div v-if="property.breakdown.mortgage" class="flex justify-between">
-                    <span>Mortgage:</span>
+                    <span>Mortgage<span v-if="property.mortgage_ownership_percentage !== property.ownership_percentage"> ({{ 100 - property.mortgage_ownership_percentage }}%)</span>:</span>
                     <span>{{ formatCurrency(property.breakdown.mortgage) }}</span>
                   </div>
                   <div v-if="property.breakdown.council_tax" class="flex justify-between">
@@ -1392,7 +1392,7 @@
                   </div>
                 </div>
                 <p class="text-body-sm text-amber-600 mt-2">
-                  50% of joint property expenses
+                  Their {{ 100 - (property.ownership_percentage || 50) }}% share ({{ property.ownership_type === 'tenants_in_common' ? 'Tenants in Common' : 'Joint' }})
                 </p>
               </div>
             </div>

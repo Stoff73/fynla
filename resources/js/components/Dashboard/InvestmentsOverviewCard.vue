@@ -153,9 +153,21 @@ export default {
         const currentValue = parseFloat(account.current_value || 0);
         const annualisedReturn = account.annualised_return;
 
+        // Build display name: prefer provider + account_type, fallback to account_name
+        let displayName = 'Unnamed Account';
+        if (account.provider && account.account_type) {
+          displayName = `${account.provider} - ${account.account_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}`;
+        } else if (account.provider) {
+          displayName = account.provider;
+        } else if (account.account_name) {
+          displayName = account.account_name;
+        } else if (account.name) {
+          displayName = account.name;
+        }
+
         return {
           id: account.id,
-          name: account.account_name || account.name || 'Unnamed Account',
+          name: displayName,
           account_type: account.account_type,
           current_value: currentValue,
           annualised_return: annualisedReturn,

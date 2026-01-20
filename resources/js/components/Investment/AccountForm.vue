@@ -145,8 +145,8 @@
               <p v-if="errors.tax_year" class="mt-1 text-sm text-red-600">{{ errors.tax_year }}</p>
             </div>
 
-            <!-- Platform Fee Section -->
-            <div>
+            <!-- Platform Fee Section (not shown for NS&I) -->
+            <div v-if="!isNSIType">
               <label class="block text-sm font-medium text-gray-700 mb-1">
                 Platform Fee
               </label>
@@ -295,8 +295,8 @@
               </div>
             </div>
 
-            <!-- Joint Ownership Section -->
-            <div class="space-y-4 pt-4 border-t border-gray-200">
+            <!-- Joint Ownership Section (not shown for ISA or NS&I - they are always individual) -->
+            <div v-if="!isISAType && !isNSIType" class="space-y-4 pt-4 border-t border-gray-200">
               <h4 class="text-sm font-semibold text-gray-900">Ownership</h4>
 
               <!-- Ownership Type -->
@@ -456,6 +456,10 @@ export default {
       return this.formData.account_type === 'isa';
     },
 
+    isNSIType() {
+      return this.formData.account_type === 'nsi';
+    },
+
     currentTaxYear() {
       const now = new Date();
       const year = now.getFullYear();
@@ -576,10 +580,27 @@ export default {
       if (newType !== 'isa') {
         this.formData.isa_type = 'stocks_and_shares';
         this.formData.isa_subscription_current_year = null;
+      } else {
+        // ISA can only be owned by an individual
+        this.formData.ownership_type = 'individual';
+        this.formData.joint_owner_id = null;
+        this.formData.trust_id = null;
       }
       // Clear account_type_other when switching away from 'other'
       if (newType !== 'other') {
         this.formData.account_type_other = '';
+      }
+      // Auto-populate NS&I fields
+      if (newType === 'nsi') {
+        this.formData.provider = 'NS&I';
+        this.formData.platform = 'NS&I';
+        // NS&I has no platform fees
+        this.formData.platform_fee_percent = null;
+        this.formData.platform_fee_amount = null;
+        // NS&I is always individual ownership
+        this.formData.ownership_type = 'individual';
+        this.formData.joint_owner_id = null;
+        this.formData.trust_id = null;
       }
     },
     'formData.platform_fee_type'(newType, oldType) {

@@ -561,6 +561,26 @@ const mutations = {
   setError(state, error) {
     state.error = error;
   },
+
+  resetState(state) {
+    state.profile = null;
+    state.personalInfo = null;
+    state.familyMembers = [];
+    state.incomeOccupation = null;
+    state.personalAccounts = {
+      profitAndLoss: null,
+      cashflow: null,
+      balanceSheet: null,
+    };
+    state.spouseAccounts = null;
+    state.loading = false;
+    state.error = null;
+    // Clear localStorage for current user
+    const userKey = getUserStorageKey('personalAccounts_data');
+    const spouseKey = getUserStorageKey('spouseAccounts_data');
+    localStorage.removeItem(userKey);
+    localStorage.removeItem(spouseKey);
+  },
 };
 
 export default {
