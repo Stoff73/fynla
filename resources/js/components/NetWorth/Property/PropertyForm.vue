@@ -72,7 +72,7 @@
             <h4 class="text-lg font-semibold text-gray-800 mb-4">Basic Information</h4>
 
             <div>
-              <label for="property_type" class="block text-sm font-medium text-gray-700 mb-1">Property Type</label>
+              <label for="property_type" class="block text-sm font-medium text-gray-700 mb-1">Property Type <span class="text-red-500">*</span></label>
               <select
                 id="property_type"
                 name="property_type"
@@ -88,7 +88,7 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label for="address_line_1" class="block text-sm font-medium text-gray-700 mb-1">Address Line 1</label>
+                <label for="address_line_1" class="block text-sm font-medium text-gray-700 mb-1">Address Line 1 <span class="text-red-500">*</span></label>
                 <input
                   id="address_line_1"
                   name="address_line_1"
@@ -110,7 +110,7 @@
               </div>
 
               <div>
-                <label for="city" class="block text-sm font-medium text-gray-700 mb-1">City</label>
+                <label for="city" class="block text-sm font-medium text-gray-700 mb-1">City <span class="text-red-500">*</span></label>
                 <input
                   id="city"
                   name="city"
@@ -132,7 +132,7 @@
               </div>
 
               <div>
-                <label for="postcode" class="block text-sm font-medium text-gray-700 mb-1">Postcode</label>
+                <label for="postcode" class="block text-sm font-medium text-gray-700 mb-1">Postcode <span class="text-red-500">*</span></label>
                 <input
                   id="postcode"
                   name="postcode"
@@ -193,7 +193,7 @@
 
               <div>
                 <label for="current_value" class="block text-sm font-medium text-gray-700 mb-1">
-                  {{ isJointPropertyEdit ? 'Full Property Value (£)' : 'Current Value (£)' }}
+                  {{ isJointPropertyEdit ? 'Full Property Value (£)' : 'Current Value (£)' }} <span class="text-red-500">*</span>
                 </label>
                 <input
                   id="current_value"
@@ -686,7 +686,7 @@
 
               <div>
                 <label for="outstanding_balance" class="block text-sm font-medium text-gray-700 mb-1">
-                  {{ isJointPropertyEdit ? 'Full Outstanding Balance (£)' : 'Outstanding Balance (£)' }}
+                  {{ isJointPropertyEdit ? 'Full Outstanding Balance (£)' : 'Outstanding Balance (£)' }} <span class="text-red-500">*</span>
                 </label>
                 <input
                   id="outstanding_balance"
@@ -840,7 +840,7 @@
 
             <div>
               <label for="monthly_payment" class="block text-sm font-medium text-gray-700 mb-1">
-                Monthly Payment (£)
+                Monthly Payment (£) <span class="text-red-500">*</span>
               </label>
               <input
                 id="monthly_payment"
