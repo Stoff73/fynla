@@ -112,9 +112,12 @@ export default {
     },
 
     mortgageLabel() {
-      if (this.isSharedOwnership) {
-        const userName = this.$store?.state?.user?.user?.name || 'Your';
-        return `${userName} share of mortgage (${this.property.ownership_percentage}%)`;
+      // Check if any mortgage is jointly owned
+      if (this.property.mortgages && this.property.mortgages.length > 0) {
+        const hasJointMortgage = this.property.mortgages.some(m => m.ownership_type === 'joint');
+        if (hasJointMortgage) {
+          return `Your share of mortgage (${this.property.ownership_percentage}%)`;
+        }
       }
       return 'Mortgage Outstanding';
     },
@@ -128,16 +131,24 @@ export default {
     },
 
     mortgageAmount() {
-      // Get full mortgage balance from various possible sources
-      let fullMortgage = 0;
+      // Get mortgage balance, respecting each mortgage's ownership_type
       if (this.property.mortgages && this.property.mortgages.length > 0) {
-        fullMortgage = this.property.mortgages.reduce((total, m) => total + (m.outstanding_balance || 0), 0);
-      } else if (this.property.mortgage_balance) {
-        fullMortgage = this.property.mortgage_balance;
-      } else {
-        fullMortgage = this.property.outstanding_mortgage || 0;
+        let total = 0;
+        for (const mortgage of this.property.mortgages) {
+          const balance = mortgage.outstanding_balance || 0;
+          // Only apply ownership split if mortgage is jointly owned
+          if (mortgage.ownership_type === 'joint' && this.property.ownership_percentage) {
+            total += balance * (this.property.ownership_percentage / 100);
+          } else {
+            // Individual mortgage - full amount belongs to this owner
+            total += balance;
+          }
+        }
+        return total;
       }
-      // Calculate user's share of mortgage for joint/tenants in common
+
+      // Fallback for properties without detailed mortgage records
+      const fullMortgage = this.property.mortgage_balance || this.property.outstanding_mortgage || 0;
       if (this.isSharedOwnership && this.property.ownership_percentage) {
         return fullMortgage * (this.property.ownership_percentage / 100);
       }

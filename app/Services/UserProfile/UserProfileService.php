@@ -627,63 +627,77 @@ class UserProfileService
         foreach ($properties as $property) {
             $totalMonthlyExpense = 0;
             $breakdown = [];
+            $isJoint = in_array($property->ownership_type, ['joint', 'tenants_in_common']);
+            $ownershipMultiplier = $isJoint ? (($property->ownership_percentage ?? 50) / 100) : 1;
 
-            // Mortgage payment (DB stores user's share per reciprocal records pattern)
+            // Mortgage payment - respect mortgage's own ownership_type
             $mortgage = $property->mortgages()->first();
+            $mortgageOwnershipPercentage = 100; // Default to 100% for individual or no mortgage
             if ($mortgage && $mortgage->monthly_payment > 0) {
-                $totalMonthlyExpense += $mortgage->monthly_payment;
-                $breakdown['mortgage'] = $mortgage->monthly_payment;
+                // Check mortgage's ownership_type, not property's
+                $mortgageAmount = $mortgage->monthly_payment;
+                if ($mortgage->ownership_type === 'joint') {
+                    // Joint mortgage: apply property ownership percentage
+                    $mortgageAmount = $mortgage->monthly_payment * $ownershipMultiplier;
+                    $mortgageOwnershipPercentage = $property->ownership_percentage ?? 50;
+                }
+                // Individual mortgage: full amount belongs to this owner (100%)
+                $totalMonthlyExpense += $mortgageAmount;
+                $breakdown['mortgage'] = $mortgageAmount;
             }
 
+            // Non-mortgage expenses: apply property ownership percentage for joint/tenants_in_common
             // Council tax
             if ($property->monthly_council_tax > 0) {
-                $totalMonthlyExpense += $property->monthly_council_tax;
-                $breakdown['council_tax'] = $property->monthly_council_tax;
+                $amount = $property->monthly_council_tax * $ownershipMultiplier;
+                $totalMonthlyExpense += $amount;
+                $breakdown['council_tax'] = $amount;
             }
 
             // Utilities (gas + electricity + water)
             $utilities = ($property->monthly_gas ?? 0) + ($property->monthly_electricity ?? 0) + ($property->monthly_water ?? 0);
             if ($utilities > 0) {
-                $totalMonthlyExpense += $utilities;
-                $breakdown['utilities'] = $utilities;
+                $amount = $utilities * $ownershipMultiplier;
+                $totalMonthlyExpense += $amount;
+                $breakdown['utilities'] = $amount;
             }
 
             // Insurance (building + contents)
             $insurance = ($property->monthly_building_insurance ?? 0) + ($property->monthly_contents_insurance ?? 0);
             if ($insurance > 0) {
-                $totalMonthlyExpense += $insurance;
-                $breakdown['insurance'] = $insurance;
+                $amount = $insurance * $ownershipMultiplier;
+                $totalMonthlyExpense += $amount;
+                $breakdown['insurance'] = $amount;
             }
 
             // Service charge
             if (($property->monthly_service_charge ?? 0) > 0) {
-                $totalMonthlyExpense += $property->monthly_service_charge;
-                $breakdown['service_charge'] = $property->monthly_service_charge;
+                $amount = $property->monthly_service_charge * $ownershipMultiplier;
+                $totalMonthlyExpense += $amount;
+                $breakdown['service_charge'] = $amount;
             }
 
             // Maintenance reserve
             if (($property->monthly_maintenance_reserve ?? 0) > 0) {
-                $totalMonthlyExpense += $property->monthly_maintenance_reserve;
-                $breakdown['maintenance'] = $property->monthly_maintenance_reserve;
+                $amount = $property->monthly_maintenance_reserve * $ownershipMultiplier;
+                $totalMonthlyExpense += $amount;
+                $breakdown['maintenance'] = $amount;
             }
 
             // Other costs
             if (($property->other_monthly_costs ?? 0) > 0) {
-                $totalMonthlyExpense += $property->other_monthly_costs;
-                $breakdown['other'] = $property->other_monthly_costs;
+                $amount = $property->other_monthly_costs * $ownershipMultiplier;
+                $totalMonthlyExpense += $amount;
+                $breakdown['other'] = $amount;
             }
 
             if ($totalMonthlyExpense > 0) {
-                // Check if joint ownership
-                $isJoint = in_array($property->ownership_type, ['joint', 'tenants_in_common']);
-
                 // Apply ownership filter
                 if (! $this->shouldIncludeByOwnership($isJoint, $ownershipFilter)) {
                     continue;
                 }
 
-                // Property costs are stored as user's share in reciprocal records
-                // Mortgage payments are adjusted above using ownership_percentage
+                // monthly_amount is now the user's actual share
                 $commitments['properties'][] = [
                     'id' => $property->id,
                     'name' => $property->property_name ?? $property->address_line_1,
@@ -692,7 +706,8 @@ class UserProfileService
                     'breakdown' => $breakdown,
                     'is_joint' => $isJoint,
                     'ownership_type' => $property->ownership_type,
-                    'ownership_percentage' => $property->ownership_percentage ?? 100,
+                    'ownership_percentage' => $isJoint ? ($property->ownership_percentage ?? 50) : 100,
+                    'mortgage_ownership_percentage' => $mortgageOwnershipPercentage,
                 ];
             }
         }

@@ -68,6 +68,10 @@ class StorePropertyRequest extends FormRequest
             'mortgage_variable_interest_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'mortgage_start_date' => ['nullable', 'date'],
             'mortgage_maturity_date' => ['nullable', 'date'],
+            'mortgage_ownership_type' => ['nullable', Rule::in(['individual', 'joint'])],
+            'mortgage_original_loan_amount' => ['nullable', 'numeric', 'min:0'],
+            'mortgage_joint_owner_id' => ['nullable', 'exists:users,id'],
+            'mortgage_ownership_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
 
             // Rental (for BTL)
             'rental_income' => ['nullable', 'numeric', 'min:0'],

@@ -184,6 +184,11 @@ export default {
             data.property.mortgage_rate_type = data.mortgage.rate_type;
             data.property.mortgage_start_date = data.mortgage.start_date;
             data.property.mortgage_maturity_date = data.mortgage.maturity_date;
+            data.property.mortgage_ownership_type = data.mortgage.ownership_type;
+            data.property.mortgage_original_loan_amount = data.mortgage.original_loan_amount;
+            // Include joint ownership fields for mortgage
+            data.property.mortgage_joint_owner_id = data.mortgage.joint_owner_id;
+            data.property.mortgage_ownership_percentage = data.mortgage.ownership_percentage;
           }
 
           propertyResponse = await api.post('/properties', data.property);

@@ -1363,6 +1363,7 @@ export default {
         start_date: '',
         maturity_date: '',
         ownership_type: 'individual',
+        ownership_percentage: 100,
         joint_owner_id: null,
         joint_owner_name: '',
       },
@@ -1512,7 +1513,8 @@ export default {
       }
 
       // Also sync mortgage ownership_type with property ownership_type
-      this.mortgageForm.ownership_type = newVal;
+      // Convert tenants_in_common to joint for mortgage (mortgages only have individual/joint)
+      this.mortgageForm.ownership_type = (newVal === 'joint' || newVal === 'tenants_in_common') ? 'joint' : 'individual';
     },
 
     mortgageJointOwnerSelection(newVal) {
@@ -1530,12 +1532,28 @@ export default {
       }
     },
 
-    // When mortgage checkbox changes, adjust current step if needed
+    // When mortgage checkbox changes, sync ownership settings and adjust step if needed
     hasMortgage(newVal, oldVal) {
+      // If checking mortgage, sync ownership settings from property
+      if (newVal && !oldVal) {
+        // Sync mortgage ownership_type with property ownership_type
+        // Convert tenants_in_common to joint for mortgage (mortgages only have individual/joint)
+        const propertyType = this.form.ownership_type;
+        this.mortgageForm.ownership_type = (propertyType === 'joint' || propertyType === 'tenants_in_common') ? 'joint' : 'individual';
+        // Sync joint owner settings
+        this.mortgageForm.joint_owner_id = this.form.joint_owner_id;
+        this.mortgageForm.joint_owner_name = this.form.joint_owner_name;
+        this.mortgageForm.ownership_percentage = this.form.ownership_percentage;
+      }
       // If unchecking mortgage while on mortgage step, move to next logical step
       if (oldVal && !newVal && this.currentStep === this.stepMapping[3]) {
         this.currentStep = this.stepMapping[4] || this.currentStep + 1;
       }
+    },
+
+    // Sync mortgage ownership_percentage with property ownership_percentage
+    'form.ownership_percentage'(newVal) {
+      this.mortgageForm.ownership_percentage = newVal;
     },
 
     // Sync mortgage joint owner with property joint owner
@@ -1643,6 +1661,7 @@ export default {
         this.mortgageForm.start_date = this.formatDateForInput(mortgage.start_date);
         this.mortgageForm.maturity_date = this.formatDateForInput(mortgage.maturity_date);
         this.mortgageForm.ownership_type = mortgage.ownership_type || 'individual';
+        this.mortgageForm.ownership_percentage = mortgage.ownership_percentage || this.form.ownership_percentage || 50;
         this.mortgageForm.joint_owner_id = mortgage.joint_owner_id || null;
         this.mortgageForm.joint_owner_name = mortgage.joint_owner_name || '';
 
@@ -1659,7 +1678,10 @@ export default {
         }
       } else {
         // No existing mortgage - sync ownership from property form
-        this.mortgageForm.ownership_type = this.form.ownership_type || 'individual';
+        // Convert tenants_in_common to joint for mortgage
+        const propType = this.form.ownership_type;
+        this.mortgageForm.ownership_type = (propType === 'joint' || propType === 'tenants_in_common') ? 'joint' : 'individual';
+        this.mortgageForm.ownership_percentage = this.form.ownership_percentage || 50;
         this.mortgageForm.joint_owner_id = this.form.joint_owner_id || null;
         this.mortgageForm.joint_owner_name = this.form.joint_owner_name || '';
       }
