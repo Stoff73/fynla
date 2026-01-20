@@ -128,6 +128,7 @@ export default {
 
   methods: {
     ...mapActions('netWorth', ['refreshNetWorth', 'setDetailView']),
+    ...mapActions('retirement', ['resetToMainDashboard']),
 
     getRoutePath(path) {
       return `${this.basePath}/${path}`;
@@ -145,6 +146,11 @@ export default {
       // Clear detail view when clicking sidebar links
       // This allows returning to list view even when already on the same route
       this.setDetailView(false);
+
+      // Reset retirement tab to main dashboard when clicking retirement link
+      if (path === 'retirement') {
+        this.resetToMainDashboard();
+      }
     },
   },
 

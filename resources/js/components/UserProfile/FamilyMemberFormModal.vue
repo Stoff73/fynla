@@ -108,6 +108,8 @@
                   v-model="form.date_of_birth"
                   type="date"
                   class="input-field"
+                  :max="maxDobForRelationship"
+                  :min="minDob"
                 />
               </div>
 
@@ -282,6 +284,38 @@ export default {
 
     const isEditing = computed(() => !!props.member);
 
+    // Date constraints
+    const minDob = computed(() => {
+      // Max age: 105 years
+      const date = new Date();
+      date.setFullYear(date.getFullYear() - 105);
+      return date.toISOString().split('T')[0];
+    });
+
+    const maxDobForRelationship = computed(() => {
+      const today = new Date();
+
+      if (form.value.relationship === 'spouse') {
+        // Spouse must be 16+
+        const date = new Date();
+        date.setFullYear(date.getFullYear() - 16);
+        return date.toISOString().split('T')[0];
+      }
+
+      if (form.value.relationship === 'child' || form.value.relationship === 'step_child') {
+        // Child max age depends on education status
+        const educationStatuses = ['pre_school', 'primary', 'secondary', 'further_education', 'higher_education'];
+        const isInEducation = educationStatuses.includes(form.value.education_status);
+        const maxAge = isInEducation ? 22 : 18;
+        const date = new Date();
+        date.setFullYear(date.getFullYear() - maxAge);
+        return date.toISOString().split('T')[0];
+      }
+
+      // Other family members - any age up to today
+      return today.toISOString().split('T')[0];
+    });
+
     const form = ref({
       relationship: '',
       email: '',
@@ -348,9 +382,54 @@ export default {
       }
     }, { immediate: true });
 
+    // Validate date of birth based on relationship
+    const validateDob = () => {
+      if (!form.value.date_of_birth) return true;
+
+      const dob = new Date(form.value.date_of_birth);
+      const today = new Date();
+      const age = Math.floor((today - dob) / (365.25 * 24 * 60 * 60 * 1000));
+
+      if (dob > today) {
+        errorMessage.value = 'Date of birth cannot be in the future.';
+        return false;
+      }
+
+      if (age > 105) {
+        errorMessage.value = 'Date of birth cannot be more than 105 years ago.';
+        return false;
+      }
+
+      if (form.value.relationship === 'spouse' && age < 16) {
+        errorMessage.value = 'Please enter a valid date of birth. Spouse must be at least 16 years old.';
+        return false;
+      }
+
+      if (['child', 'step_child'].includes(form.value.relationship)) {
+        const educationStatuses = ['pre_school', 'primary', 'secondary', 'further_education', 'higher_education'];
+        const isInEducation = educationStatuses.includes(form.value.education_status);
+        const maxAge = isInEducation ? 22 : 18;
+
+        if (age > maxAge) {
+          errorMessage.value = isInEducation
+            ? 'Child in education must be 22 years old or younger.'
+            : 'Child not in education must be 18 years old or younger.';
+          return false;
+        }
+      }
+
+      return true;
+    };
+
     const handleSubmit = async () => {
       submitting.value = true;
       errorMessage.value = '';
+
+      // Validate DOB before submitting
+      if (!validateDob()) {
+        submitting.value = false;
+        return;
+      }
 
       try {
         // Clean up form data - remove empty strings
@@ -388,6 +467,8 @@ export default {
       isEditing,
       submitting,
       errorMessage,
+      minDob,
+      maxDobForRelationship,
       handleSubmit,
     };
   },

@@ -24,7 +24,7 @@
           Why Complete the Onboarding?
         </h3>
         <p class="text-body-sm text-gray-700">
-          The more information you provide, the better quality your personalised financial strategies and the more comprehensive your dashboards will be. Our planning tools use your data to generate tailored recommendations for protection, savings, investments, retirement, and estate planning.
+          The more information you provide, the better quality your personalised financial strategies and the more comprehensive your dashboards will be. Our planning tools use your data to generate tailored strategies for protection, savings, investments, retirement, and estate planning.
         </p>
       </div>
 
@@ -118,20 +118,20 @@
       </div>
 
       <!-- Trial Information -->
-      <div class="bg-amber-50 rounded-lg p-4 mb-6 border border-amber-200">
+      <div class="bg-blue-100 rounded-lg p-4 mb-6">
         <h3 class="text-body font-semibold text-gray-900 mb-2 flex items-center">
-          <svg class="w-5 h-5 text-amber-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
           </svg>
           Your Free Trial
         </h3>
         <ul class="text-body-sm text-gray-700 space-y-2">
-          <li class="flex items-start">
-            <span class="font-semibold text-amber-700 mr-2">7-Day Trial:</span>
+          <li class="flex">
+            <span class="font-semibold text-blue-700 flex-shrink-0 w-32">7-Day Trial:</span>
             <span>You have full access to all features for 7 days from registration.</span>
           </li>
-          <li class="flex items-start">
-            <span class="font-semibold text-amber-700 mr-2">30-Day Window:</span>
+          <li class="flex">
+            <span class="font-semibold text-blue-700 flex-shrink-0 w-32">30-Day Window:</span>
             <span>After your trial ends, you have 30 days to subscribe. If you don't subscribe within this period, your data will be permanently deleted from our database.</span>
           </li>
         </ul>

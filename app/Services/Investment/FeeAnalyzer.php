@@ -139,7 +139,7 @@ class FeeAnalyzer
      */
     public function identifyHighFeeHoldings(Collection $holdings): array
     {
-        $highFeeThreshold = 0.75; // 0.75% OCF is considered high
+        $highFeeThreshold = 0.5; // 0.5% OCF is considered high (above passive index fund range)
 
         $highFeeHoldings = $holdings->filter(function ($holding) use ($highFeeThreshold) {
             return $holding->ocf_percent > $highFeeThreshold;

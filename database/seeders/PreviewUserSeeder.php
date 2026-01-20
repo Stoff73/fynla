@@ -94,9 +94,9 @@ class PreviewUserSeeder extends Seeder
         // Create primary user (pass expenditure data if available)
         $user = $this->createUser($data['user'], $personaId, $data['expenditure'] ?? null);
 
-        // Create spouse if exists (pass expenditure data for household sharing)
+        // Create spouse if exists and not deceased (pass expenditure data for household sharing)
         $spouse = null;
-        if (! empty($data['spouse'])) {
+        if (! empty($data['spouse']) && empty($data['spouse']['deceased'])) {
             $spouse = $this->createSpouse($data['spouse'], $personaId, $user, $data['expenditure'] ?? null);
         }
 
@@ -188,6 +188,7 @@ class PreviewUserSeeder extends Seeder
         $user->monthly_expenditure = $userData['monthly_expenditure'] ?? null;
         $user->health_status = $userData['health_status'] ?? null;
         $user->smoking_status = $userData['smoking_status'] ?? null;
+        $user->education_level = $userData['education_level'] ?? null;
 
         // Expenditure categories (from separate expenditure data in persona JSON)
         // Use 0 as default for any missing categories to avoid NOT NULL constraint violations
@@ -241,6 +242,16 @@ class PreviewUserSeeder extends Seeder
             $user->postcode = $userData['address']['postcode'] ?? null;
         }
 
+        // Domicile information
+        if (! empty($userData['domicile'])) {
+            $domicile = $userData['domicile'];
+            $user->country_of_birth = $domicile['country_of_birth'] ?? null;
+            $user->uk_arrival_date = $domicile['uk_arrival_date'] ?? null;
+            $user->years_uk_resident = $domicile['years_uk_resident'] ?? null;
+            $user->domicile_status = $domicile['domicile_status'] ?? 'uk_domiciled';
+            $user->deemed_domicile_date = $domicile['deemed_domicile_date'] ?? null;
+        }
+
         $user->save();
 
         return $user;
@@ -274,6 +285,11 @@ class PreviewUserSeeder extends Seeder
         $spouse->employer = $spouseData['employer_name'] ?? null;
         $spouse->annual_employment_income = $spouseData['annual_income'] ?? null;
 
+        // Health data
+        $spouse->health_status = $spouseData['health_status'] ?? null;
+        $spouse->smoking_status = $spouseData['smoking_status'] ?? null;
+        $spouse->education_level = $spouseData['education_level'] ?? null;
+
         // Expenditure: Split household expenditure proportionally or 50/50
         // For a household scenario, spouse gets their share of joint costs
         // Supports both old names (food, transport) and new names (food_groceries, transport_fuel)
@@ -298,6 +314,16 @@ class PreviewUserSeeder extends Seeder
             $spouse->children_activities = round(($categories['children_activities'] ?? 0) * $share);
             $spouse->gifts_charity = round(($categories['gifts_charity'] ?? 0) * $share);
             $spouse->other_expenditure = round((($categories['other_expenditure'] ?? $categories['other'] ?? 0)) * $share);
+        }
+
+        // Domicile information (spouse can have their own domicile data)
+        if (! empty($spouseData['domicile'])) {
+            $domicile = $spouseData['domicile'];
+            $spouse->country_of_birth = $domicile['country_of_birth'] ?? null;
+            $spouse->uk_arrival_date = $domicile['uk_arrival_date'] ?? null;
+            $spouse->years_uk_resident = $domicile['years_uk_resident'] ?? null;
+            $spouse->domicile_status = $domicile['domicile_status'] ?? 'uk_domiciled';
+            $spouse->deemed_domicile_date = $domicile['deemed_domicile_date'] ?? null;
         }
 
         $spouse->save();
@@ -824,6 +850,7 @@ class PreviewUserSeeder extends Seeder
                 'policy_end_date' => $policy['policy_end_date'] ?? null,
                 'in_trust' => $policy['in_trust'] ?? false,
                 'policy_number' => $policy['policy_reference'] ?? null,
+                'beneficiaries' => $policy['beneficiaries'] ?? null,
             ]);
         }
     }

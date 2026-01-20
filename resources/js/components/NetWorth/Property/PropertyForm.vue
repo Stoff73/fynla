@@ -865,7 +865,7 @@
               </div>
 
               <div>
-                <label for="maturity_date" class="block text-sm font-medium text-gray-700 mb-1">Maturity Date</label>
+                <label for="maturity_date" class="block text-sm font-medium text-gray-700 mb-1">End Date</label>
                 <input
                   id="maturity_date"
                   v-model="mortgageForm.maturity_date"

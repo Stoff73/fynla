@@ -168,25 +168,6 @@ export default {
         dataLabels: {
           enabled: false,
         },
-        annotations: {
-          xaxis: [
-            {
-              x: this.years[this.years.length - 1],
-              borderColor: '#f59e0b',
-              strokeDashArray: 0,
-              label: {
-                borderColor: '#f59e0b',
-                style: {
-                  color: '#fff',
-                  background: '#f59e0b',
-                  fontSize: '11px',
-                },
-                text: 'Retirement',
-                position: 'top',
-              },
-            },
-          ],
-        },
       };
     },
   },

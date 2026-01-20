@@ -20,6 +20,7 @@
     "monthly_expenditure": 2660,
     "health_status": "yes",
     "smoking_status": "never",
+    "education_level": "professional",
     "has_will": true,
     "has_lasting_power_of_attorney": true,
     "address": {
@@ -27,6 +28,12 @@
       "city": "Tunbridge Wells",
       "county": "Kent",
       "postcode": "TN1 2QE"
+    },
+    "domicile": {
+      "country_of_birth": "South Africa",
+      "uk_arrival_date": "2005-06-01",
+      "years_uk_resident": 21,
+      "domicile_status": "uk_domiciled"
     }
   },
 
@@ -40,7 +47,10 @@
     "employment_status": "retired",
     "employer_name": "HMRC",
     "former_employer": "HMRC",
-    "occupation": "Retired Civil Servant"
+    "occupation": "Retired Civil Servant",
+    "health_status": "yes_previous",
+    "smoking_status": "quit_long_ago",
+    "education_level": "a_level"
   },
 
   "family_members": [

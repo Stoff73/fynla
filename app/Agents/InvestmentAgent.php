@@ -55,6 +55,8 @@ class InvestmentAgent extends BaseAgent
             // Fee analysis
             $feeAnalysis = $this->feeAnalyzer->calculateTotalFees($accounts, $holdings);
             $lowCostComparison = $this->feeAnalyzer->compareToLowCostAlternatives($holdings);
+            $highFeeHoldings = $this->feeAnalyzer->identifyHighFeeHoldings($holdings);
+            $feeAnalysis['high_fee_holdings'] = $highFeeHoldings['holdings'];
 
             // Tax efficiency
             $unrealizedGains = $this->taxCalculator->calculateUnrealizedGains($holdings);
@@ -109,8 +111,8 @@ class InvestmentAgent extends BaseAgent
         $recommendations = [];
         $priority = 1;
 
-        // Diversification recommendations
-        if ($analysis['diversification_score'] < 60) {
+        // Diversification recommendations (threshold: 70 - room for improvement if not well diversified)
+        if ($analysis['diversification_score'] < 70) {
             $recommendations[] = [
                 'category' => 'Diversification',
                 'priority' => $priority++,
@@ -120,15 +122,27 @@ class InvestmentAgent extends BaseAgent
             ];
         }
 
-        // Fee recommendations
-        if (isset($analysis['low_cost_comparison']['annual_saving']) && $analysis['low_cost_comparison']['annual_saving'] > 100) {
-            $saving = $analysis['low_cost_comparison']['annual_saving'];
+        // Fee recommendations (threshold: £50 annual savings - meaningful savings)
+        if (isset($analysis['low_cost_comparison']['annual_saving']) && $analysis['low_cost_comparison']['annual_saving'] > 50) {
+            $saving = round($analysis['low_cost_comparison']['annual_saving']);
             $recommendations[] = [
                 'category' => 'Fees',
                 'priority' => $priority++,
                 'title' => 'Reduce Investment Fees',
                 'description' => "You could save £{$saving} per year by switching to lower-cost funds",
                 'action' => 'Review holdings and consider lower-cost index funds',
+            ];
+        }
+
+        // High-fee holdings recommendation (any holding with OCF > 0.5%)
+        if (isset($analysis['fee_analysis']['high_fee_holdings']) && count($analysis['fee_analysis']['high_fee_holdings']) > 0) {
+            $count = count($analysis['fee_analysis']['high_fee_holdings']);
+            $recommendations[] = [
+                'category' => 'High Fees',
+                'priority' => $priority++,
+                'title' => 'Review High-Fee Holdings',
+                'description' => "You have {$count} holding(s) with fees above 0.5%. Consider lower-cost alternatives.",
+                'action' => 'Compare fund fees and switch to low-cost index alternatives where appropriate',
             ];
         }
 
@@ -143,8 +157,8 @@ class InvestmentAgent extends BaseAgent
             ];
         }
 
-        // Tax efficiency recommendations
-        if (isset($analysis['tax_efficiency']['efficiency_score']) && $analysis['tax_efficiency']['efficiency_score'] < 70) {
+        // Tax efficiency recommendations (threshold: 80 - still room to optimise)
+        if (isset($analysis['tax_efficiency']['efficiency_score']) && $analysis['tax_efficiency']['efficiency_score'] < 80) {
             $recommendations[] = [
                 'category' => 'Tax Efficiency',
                 'priority' => $priority++,

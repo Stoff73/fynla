@@ -22,7 +22,7 @@
               <strong>Will Module - Enhanced Features Coming Soon</strong>
             </p>
             <p class="text-body-sm text-blue-700 mt-1">
-              While you can record your basic will information here, comprehensive will analysis and recommendations are currently in development. The full Will Planning module will include automated will reviews, beneficiary analysis, executor guidance, and integration with your estate planning strategy in upcoming releases.
+              While you can record your basic will information here, comprehensive will analysis and strategies are currently in development. The full Will Planning module will include automated will reviews, beneficiary analysis, executor guidance, and integration with your estate planning strategy in upcoming releases.
             </p>
           </div>
         </div>
@@ -82,8 +82,8 @@
         >
       </div>
 
-      <div v-if="!formData.has_will" class="bg-amber-50 p-4 rounded-lg border border-amber-200">
-        <p class="text-body-sm text-amber-800">
+      <div v-if="!formData.has_will" class="bg-green-50 p-4 rounded-lg border border-green-200">
+        <p class="text-body-sm text-green-800">
           <strong>Important:</strong> Without a will, your estate will be distributed according to intestacy rules, which may not reflect your wishes.
         </p>
       </div>

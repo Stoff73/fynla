@@ -21,6 +21,7 @@
     "monthly_expenditure": 9500,
     "health_status": "yes",
     "smoking_status": "never",
+    "education_level": "postgraduate",
     "has_will": true,
     "has_lasting_power_of_attorney": true,
     "address": {
@@ -40,7 +41,10 @@
     "annual_income": 120000,
     "employment_status": "employed",
     "employer_name": "Surrey NHS Trust",
-    "occupation": "GP Partner"
+    "occupation": "GP Partner",
+    "health_status": "yes",
+    "smoking_status": "never",
+    "education_level": "postgraduate"
   },
 
   "family_members": [
@@ -550,7 +554,8 @@
       "in_trust": true,
       "joint_life": true,
       "policy_reference": "VIT-LT-456789",
-      "notes": "Family protection - in trust for IHT efficiency"
+      "notes": "Family protection - in trust for IHT efficiency",
+      "beneficiaries": "Sarah Mitchell (spouse), William Mitchell (child), Charlotte Mitchell (child)"
     }
   ],
 
@@ -705,15 +710,26 @@
   "expenditure": {
     "total_monthly": 9500,
     "categories": {
-      "housing": 3302,
-      "utilities": 400,
-      "food": 800,
-      "transport": 600,
-      "school_fees": 2800,
+      "food_groceries": 800,
+      "transport_fuel": 400,
+      "healthcare_medical": 150,
       "insurance": 350,
-      "entertainment": 500,
-      "holidays": 500,
-      "other": 248
+      "mobile_phones": 120,
+      "internet_tv": 100,
+      "subscriptions": 80,
+      "clothing_personal_care": 300,
+      "entertainment_dining": 400,
+      "holidays_travel": 500,
+      "pets": 0,
+      "childcare": 0,
+      "school_fees": 2800,
+      "school_lunches": 150,
+      "school_extras": 200,
+      "university_fees": 0,
+      "children_activities": 250,
+      "gifts_charity": 200,
+      "regular_savings": 500,
+      "other_expenditure": 200
     }
   },
 

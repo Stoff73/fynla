@@ -7,11 +7,11 @@
       </p>
     </div>
 
-    <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
-      <p class="text-body-sm text-amber-800">
+    <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+      <p class="text-body-sm text-green-800">
         <strong>Note:</strong> Household expenditure such as Council Tax, utilities, and maintenance are entered in the Properties tab. Car loans/repayments, other loans, credit cards, and hire purchase are entered in the Liabilities section.
       </p>
-      <p v-if="isMarried && !useSeparateExpenditure" class="text-body-sm text-amber-800 mt-2">
+      <p v-if="isMarried && !useSeparateExpenditure" class="text-body-sm text-green-800 mt-2">
         Expenditure entered below is for the whole household and assumes a 50/50 split with your spouse.
       </p>
     </div>

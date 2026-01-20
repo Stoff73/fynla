@@ -20,6 +20,17 @@
 
       <!-- Pension Content -->
       <div v-else-if="pension" class="space-y-6">
+        <!-- Back Button -->
+        <button
+          @click="goBack"
+          class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+        >
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          Back to Retirement
+        </button>
+
         <!-- Header -->
         <div class="bg-white rounded-lg shadow-md p-6">
           <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
@@ -349,6 +360,10 @@ export default {
   },
 
   methods: {
+    goBack() {
+      this.$router.push('/net-worth/retirement');
+    },
+
     async loadPension() {
       this.loading = true;
       this.error = null;

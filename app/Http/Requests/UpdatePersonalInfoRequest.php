@@ -24,11 +24,14 @@ class UpdatePersonalInfoRequest extends FormRequest
      */
     public function rules(): array
     {
+        $minAge18 = now()->subYears(18)->format('Y-m-d');
+        $maxAge105 = now()->subYears(105)->format('Y-m-d');
+
         return [
             'first_name' => ['sometimes', 'string', 'max:255'],
             'surname' => ['sometimes', 'string', 'max:255'],
             'email' => ['sometimes', 'email', 'max:255', Rule::unique('users')->ignore($this->user()->id)],
-            'date_of_birth' => ['sometimes', 'nullable', 'date', 'before:today'],
+            'date_of_birth' => ['sometimes', 'nullable', 'date', 'before_or_equal:' . $minAge18, 'after:' . $maxAge105],
             'gender' => ['sometimes', 'nullable', Rule::in(['male', 'female', 'other', 'prefer_not_to_say'])],
             'marital_status' => ['sometimes', 'nullable', Rule::in(['single', 'married', 'divorced', 'widowed'])],
             'national_insurance_number' => ['sometimes', 'nullable', 'string', 'regex:/^[A-Z]{2}[0-9]{6}[A-Z]{1}$/'],
@@ -50,7 +53,8 @@ class UpdatePersonalInfoRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'date_of_birth.before' => 'Date of birth must be in the past.',
+            'date_of_birth.before_or_equal' => 'You must be at least 18 years old.',
+            'date_of_birth.after' => 'Date of birth cannot be more than 105 years ago.',
             'national_insurance_number.regex' => 'National Insurance number must be in format: AB123456C',
             'postcode.regex' => 'Please enter a valid UK postcode.',
             'phone.regex' => 'Please enter a valid UK phone number (e.g., 07700900123 or +447700900123).',

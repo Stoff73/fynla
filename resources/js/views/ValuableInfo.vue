@@ -54,8 +54,9 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useStore } from 'vuex';
+import { useRouter, useRoute } from 'vue-router';
 import AppLayout from '@/layouts/AppLayout.vue';
 import LetterToSpouse from '@/components/UserProfile/LetterToSpouse.vue';
 import WillPlanning from '@/components/Estate/WillPlanning.vue';
@@ -77,10 +78,20 @@ export default {
 
   setup() {
     const store = useStore();
+    const router = useRouter();
+    const route = useRoute();
     const activeTab = ref('letter');
     const loading = ref(false);
 
     const user = computed(() => store.getters['userProfile/user']);
+
+    // Update URL when tab changes (for proper back navigation)
+    watch(activeTab, (newTab) => {
+      const currentSection = route.query.section;
+      if (currentSection !== newTab) {
+        router.replace({ query: { section: newTab } });
+      }
+    });
 
     // Marital statuses that show "Expression of Wishes" instead of "Letter to Spouse"
     const expressionOfWishesStatuses = ['single', 'widowed', 'divorced'];
@@ -114,8 +125,7 @@ export default {
       loadProfile();
 
       // Check for section query parameter and set active tab
-      const urlParams = new URLSearchParams(window.location.search);
-      const section = urlParams.get('section');
+      const section = route.query.section;
       if (section) {
         const validTabIds = ['letter', 'will', 'balance_sheet', 'income_statement', 'risk'];
         if (validTabIds.includes(section)) {

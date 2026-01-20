@@ -6,7 +6,7 @@ const state = {
     goals: [],
     riskProfile: null,
     analysis: null,
-    recommendations: [],
+    recommendations: null,  // { recommendation_count, recommendations: [] }
     monteCarloResults: {},      // Keyed by jobId
     monteCarloStatus: {},        // Keyed by jobId
     monteCarloResultsByGoal: {}, // Keyed by goalId
@@ -329,13 +329,16 @@ const actions = {
         }
     },
 
-    // Fetch recommendations
+    // Fetch recommendations (uses analyze endpoint which returns recommendations)
     async fetchRecommendations({ commit }) {
         commit('setLoading', true);
         commit('setError', null);
 
         try {
-            const response = await investmentService.getRecommendations();
+            // Use analyzeInvestment endpoint which returns { analysis, recommendations }
+            const response = await investmentService.analyzeInvestment();
+            commit('setAnalysis', response.data.analysis);
+            // Store full recommendations object { recommendation_count, recommendations: [] }
             commit('setRecommendations', response.data.recommendations);
             return response;
         } catch (error) {

@@ -81,6 +81,8 @@
             type="date"
             class="input-field"
             :disabled="!isEditing"
+            :max="maxDob"
+            :min="minDob"
           />
         </div>
 
@@ -273,6 +275,19 @@ export default {
     const profile = computed(() => store.getters['userProfile/profile']);
     const personalInfo = computed(() => store.getters['userProfile/personalInfo']);
 
+    // Date constraints: user must be 18-105 years old
+    const maxDob = computed(() => {
+      const date = new Date();
+      date.setFullYear(date.getFullYear() - 18);
+      return date.toISOString().split('T')[0];
+    });
+
+    const minDob = computed(() => {
+      const date = new Date();
+      date.setFullYear(date.getFullYear() - 105);
+      return date.toISOString().split('T')[0];
+    });
+
     const form = ref({
       name: '',
       email: '',
@@ -390,6 +405,8 @@ export default {
       submitting,
       successMessage,
       errorMessage,
+      maxDob,
+      minDob,
       handleSubmit,
       handleCancel,
     };

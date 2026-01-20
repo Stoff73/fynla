@@ -124,7 +124,7 @@
             </div>
 
             <!-- Retirement Income Card -->
-            <div class="income-card-standalone target clickable" @click="activeTab = 'income'">
+            <div class="income-card-standalone target clickable" @click="setActiveTab('income')">
               <div class="income-card-label">Target Annual Income</div>
               <div class="income-card-value">{{ formatCurrency(targetIncome) }}</div>
               <div class="income-card-divider"></div>
@@ -162,7 +162,7 @@
             <!-- Projections Content -->
             <template v-else>
               <!-- Monte Carlo Chart - Clickable to Future Value Tab -->
-              <div class="chart-card clickable" @click="activeTab = 'future'">
+              <div class="chart-card clickable" @click="setActiveTab('future')">
                 <div class="chart-header">
                   <h3 class="chart-title">Pension Pot Projection</h3>
                   <span class="risk-badge-corner">{{ formatRiskLevel(projections.pension_pot_projection?.risk_level) }} Risk</span>
@@ -187,7 +187,7 @@
         </div>
 
         <!-- Strategies Section - Full Width -->
-        <div v-if="showStrategies && !projectionsLoading" class="strategies-section clickable" @click="activeTab = 'strategies'">
+        <div v-if="showStrategies && !projectionsLoading" class="strategies-section clickable" @click="setActiveTab('strategies')">
           <div class="strategies-header">
             <div class="strategies-header-left">
               <h3 class="strategies-title">Recommended Strategies</h3>
@@ -253,13 +253,20 @@
         v-else-if="activeTab === 'future'"
         :projections="projections"
         :loading="projectionsLoading"
+        @back="setActiveTab('current')"
       />
 
       <!-- Strategies Tab -->
-      <StrategiesTab v-else-if="activeTab === 'strategies'" />
+      <StrategiesTab
+        v-else-if="activeTab === 'strategies'"
+        @back="setActiveTab('current')"
+      />
 
       <!-- Retirement Income Tab -->
-      <RetirementIncomeTab v-else-if="activeTab === 'income'" />
+      <RetirementIncomeTab
+        v-else-if="activeTab === 'income'"
+        @back="setActiveTab('current')"
+      />
     </template>
 
     <!-- Pension Form Modal -->
@@ -321,7 +328,6 @@ export default {
 
   data() {
     return {
-      activeTab: 'current',
       selectedPension: null,
       selectedPensionType: null,
       showPensionForm: false,
@@ -344,6 +350,7 @@ export default {
       'strategies',
       'strategiesLoading',
       'profile',
+      'activeTab',
     ]),
 
     allPensions() {
@@ -474,6 +481,12 @@ export default {
       if (newTab === 'future' && !this.projections) {
         this.loadProjections();
       }
+      // Scroll to top when switching to detail tabs
+      if (newTab === 'strategies' || newTab === 'future' || newTab === 'income') {
+        this.$nextTick(() => {
+          window.scrollTo({ top: 0, behavior: 'instant' });
+        });
+      }
     },
   },
 
@@ -485,6 +498,7 @@ export default {
       'createDCPension',
       'createDBPension',
       'updateStatePension',
+      'setActiveTab',
     ]),
     ...mapActions('netWorth', ['setDetailView']),
 

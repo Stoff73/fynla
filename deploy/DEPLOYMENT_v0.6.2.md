@@ -1,234 +1,240 @@
 # Fynla Deployment Guide - v0.6.2
-## Release Date: 19 January 2026
+## Release Date: 20 January 2026
+
+---
+
+## Deployment Philosophy
+
+**DO NOT create deployment packages.** Instead:
+1. Upload only changed files via SiteGround File Manager
+2. Run SSH commands for migrations, seeders, and cache clears
+3. If frontend changes exist, rebuild locally and upload `public/build/`
+
+---
+
+## Server Connection
+
+```bash
+ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
+cd ~/www/fynla.org/public_html
+```
 
 ---
 
 ## Release Overview
 
 **Version:** 0.6.2
-**Target:** https://fynla.org (SiteGround Shared Hosting)
+**Target:** https://fynla.org
 **Previous Version:** 0.5.1
 
 ### What's New in v0.6.2
 
 | Category | Feature |
 |----------|---------|
-| **Security** | TOTP MFA authentication, session management, login lockout |
-| **Security** | GDPR compliance (data export, erasure requests, consent tracking) |
+| **Security** | TOTP MFA, session management, login lockout |
+| **Security** | GDPR compliance (data export, erasure, consent) |
 | **Security** | Role-Based Access Control (RBAC) |
-| **Goals** | Goals-based financial planning module with progress tracking |
-| **Investment** | Automated 7-factor risk calculator questionnaire |
-| **Investment** | Dashboard redesign with "strategy" terminology |
-| **Statements** | Balance Sheet tab (User/Spouse/Combined columns) |
-| **Statements** | Income Statement + Cash Flow combined tab |
-| **Preview** | 4 new personas with comprehensive test data |
-| **Registration** | Beta registration flow improvements |
-| **Bug Fixes** | Division by zero audit, mobile fixes, numerous improvements |
+| **Goals** | Goals-based financial planning module |
+| **Investment** | Automated 7-factor risk calculator |
+| **Investment** | Dashboard redesign + Strategy card fix |
+| **Statements** | Balance Sheet tab, Income Statement tab |
+| **Preview** | 4 personas with comprehensive test data |
+| **Bug Fixes** | Strategy card thresholds, UI polish |
 
 ---
 
 ## Pre-Deployment Checklist
 
-- [x] Local tests passing (`./vendor/bin/pest`)
-- [x] Code formatted (`./vendor/bin/pint --test`)
-- [x] All changes committed and pushed to main
-- [ ] **Database backup taken on server** (CRITICAL)
-- [ ] Maintenance mode plan ready
+- [x] Local tests passing
+- [x] Code formatted (`./vendor/bin/pint`)
+- [x] All changes committed to main
+- [ ] **Database backup taken on server**
 
 ---
 
-## CRITICAL WARNINGS
-
-### 1. .htaccess File
-
-> **DO NOT upload `public/.htaccess` from your local folder!**
->
-> **Always use:** `deploy/fynla-org/.htaccess` → upload to `public_html/public/.htaccess`
-
-The wrong .htaccess causes:
-- 500 Internal Server Error (`<DirectoryMatch>` not allowed)
-- Wrong `RewriteBase /tengo/` instead of `/`
-- CSS/JS MIME type issues
-
-### 2. Build Locally
-
-> **The server cannot run `npm install` or `npm run build`** (memory limits)
->
-> You MUST build frontend assets locally and include `public/build/` in the deployment package.
-
-### 3. public/hot File
-
-> **NEVER deploy `public/hot`** - causes blank page with 127.0.0.1:5173 errors.
->
-> If this file exists locally, delete it or the build script will exclude it automatically.
-
----
-
-## Database Migrations (20 total since v0.5.1)
-
-These migrations will run with `php artisan migrate --force`:
-
-```
-# Previous Updates (Jan 10-17)
-2026_01_10_131616_add_payday_day_of_month_to_users_table
-2026_01_12_115104_add_dashboard_widget_order_to_users
-2026_01_15_105903_add_other_trust_type_and_country_to_trusts_table
-2026_01_15_111814_add_platform_fee_type_and_frequency_to_investment_accounts_table
-2026_01_16_151113_add_factor_breakdown_to_risk_profiles
-2026_01_17_092200_add_joint_owner_name_to_chattels_table
-2026_01_17_100145_add_tenants_in_common_to_mortgages_ownership_type
-
-# Goals Module (Jan 18)
-2026_01_18_000001_create_goals_table
-2026_01_18_000002_create_goal_contributions_table
-2026_01_18_000003_migrate_existing_goals_data
-
-# Security Compliance (Jan 19)
-2026_01_19_134658_create_login_attempts_table
-2026_01_19_134659_add_mfa_fields_to_users_table
-2026_01_19_134700_add_lockout_fields_to_users_table
-2026_01_19_134700_create_user_sessions_table
-2026_01_19_135404_create_audit_logs_table
-2026_01_19_140001_create_erasure_requests_table
-2026_01_19_140002_create_user_consents_table
-2026_01_19_140003_create_data_exports_table
-2026_01_19_140501_create_roles_permissions_tables
-2026_01_19_142149_alter_mfa_secret_column_to_text
-```
-
----
-
-## New Composer Dependencies
-
-These packages are required for MFA (TOTP) functionality:
+## Step 1: Backup Database (CRITICAL)
 
 ```bash
-composer require pragmarx/google2fa-laravel bacon/bacon-qr-code
-```
-
-**Note:** The deployment package should include `vendor/` with these already installed. If deploying selectively, run this command on the server.
-
----
-
-## Required Seeders (Order Matters!)
-
-**Run these in order after migrations:**
-
-| Order | Seeder | Purpose |
-|-------|--------|---------|
-| 1 | `TaxConfigurationSeeder` | UK tax values (required for calculations) |
-| 2 | `TaxProductReferenceSeeder` | Tax Status tab data |
-| 3 | `ActuarialLifeTablesSeeder` | Life expectancy tables |
-| 4 | `RolesPermissionsSeeder` | **NEW:** RBAC roles and permissions |
-| 5 | `AdminUserSeeder` | Admin user account |
-| 6 | `PreviewUserSeeder` | Preview personas (4 updated) |
-
----
-
-## Server Details
-
-| Setting | Value |
-|---------|-------|
-| Host | `ssh.fynla.org` |
-| Port | `18765` |
-| Path | `~/www/fynla.org/public_html` |
-| SSH Key | `~/.ssh/production` |
-| SSH Username | `u2783-hrf1k8bpfg02` |
-
-**SSH Connection:**
-```bash
+# SSH to server first
 ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
-```
-
----
-
-## Step-by-Step Deployment
-
-### Step 1: Build Locally
-
-```bash
-cd /Users/Chris/Desktop/fpsApp/fynla
-./deploy/fynla-org/build.sh
-```
-
-This script:
-1. Sets `VITE_BASE_PATH=/build/` for root deployment
-2. Runs `npm run build`
-3. Creates deployment package (excludes `public/hot`, `.git`, `node_modules`)
-4. Includes correct `.htaccess` from `deploy/fynla-org/`
-
-**Verify build output:**
-```bash
-ls -la public/build/
-cat public/build/manifest.json
-```
-
-### Step 2: Take Database Backup on Server
-
-```bash
-ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
-
-# Create backup
 cd ~/www/fynla.org/public_html
-mysqldump -u YOUR_DB_USER -p YOUR_DATABASE > ~/backup_v0.5.1_$(date +%Y%m%d_%H%M%S).sql
+
+# Create backup (get credentials from .env)
+mysqldump -u DB_USER -p DB_NAME > ~/backup_v0.5.1_$(date +%Y%m%d).sql
 ```
 
 Or use SiteGround Site Tools > Security > Backups
 
-### Step 3: Enable Maintenance Mode (Optional)
+---
+
+## Step 2: Upload Changed Files
+
+### Backend Files to Upload
+
+Upload via SiteGround File Manager to `www/fynla.org/public_html/`
+
+**Agents (2 files):**
+```
+app/Agents/GoalsAgent.php
+app/Agents/InvestmentAgent.php  # Modified - Strategy card thresholds + high_fee_holdings
+```
+
+**Controllers (7 files):**
+```
+app/Http/Controllers/Api/GoalsController.php
+app/Http/Controllers/Api/MFAController.php
+app/Http/Controllers/Api/SessionController.php
+app/Http/Controllers/Api/GDPRController.php
+app/Http/Controllers/Api/PreviewController.php  # Modified - young_saver/retired_couple personas
+app/Http/Controllers/Api/AuthController.php  # Modified
+app/Http/Controllers/Api/InvestmentController.php  # Modified
+```
+
+**Middleware (3 files):**
+```
+app/Http/Middleware/EnsureMFAVerified.php
+app/Http/Middleware/HasPermission.php
+app/Http/Middleware/HasRole.php
+```
+
+**Models (10 files):**
+```
+app/Models/Goal.php
+app/Models/GoalContribution.php
+app/Models/LoginAttempt.php
+app/Models/UserSession.php
+app/Models/AuditLog.php
+app/Models/ErasureRequest.php
+app/Models/UserConsent.php
+app/Models/DataExport.php
+app/Models/Role.php
+app/Models/Permission.php
+app/Models/User.php  # Modified
+```
+
+**Services - Auth (4 files):**
+```
+app/Services/Auth/MFAService.php
+app/Services/Auth/LoginLockoutService.php
+app/Services/Auth/SessionService.php
+app/Services/Auth/PermissionService.php
+```
+
+**Services - Audit (1 file):**
+```
+app/Services/Audit/AuditService.php
+```
+
+**Services - GDPR (3 files):**
+```
+app/Services/GDPR/DataExportService.php
+app/Services/GDPR/DataErasureService.php
+app/Services/GDPR/ConsentService.php
+```
+
+**Services - Goals (4 files):**
+```
+app/Services/Goals/GoalAssignmentService.php
+app/Services/Goals/GoalAffordabilityService.php
+app/Services/Goals/GoalRiskService.php
+app/Services/Goals/GoalProgressService.php
+```
+
+**Services - Investment (1 file - Strategy card fix):**
+```
+app/Services/Investment/FeeAnalyzer.php  # Modified - high-fee threshold
+```
+
+**Traits (1 file):**
+```
+app/Traits/Auditable.php
+```
+
+**Migrations (16 files):**
+```
+database/migrations/2026_01_16_151113_add_factor_breakdown_to_risk_profiles.php
+database/migrations/2026_01_17_092200_add_joint_owner_name_to_chattels_table.php
+database/migrations/2026_01_17_100145_add_tenants_in_common_to_mortgages_ownership_type.php
+database/migrations/2026_01_18_000001_create_goals_table.php
+database/migrations/2026_01_18_000002_create_goal_contributions_table.php
+database/migrations/2026_01_18_000003_migrate_existing_goals_data.php
+database/migrations/2026_01_19_134658_create_login_attempts_table.php
+database/migrations/2026_01_19_134659_add_mfa_fields_to_users_table.php
+database/migrations/2026_01_19_134700_add_lockout_fields_to_users_table.php
+database/migrations/2026_01_19_134700_create_user_sessions_table.php
+database/migrations/2026_01_19_135404_create_audit_logs_table.php
+database/migrations/2026_01_19_140001_create_erasure_requests_table.php
+database/migrations/2026_01_19_140002_create_user_consents_table.php
+database/migrations/2026_01_19_140003_create_data_exports_table.php
+database/migrations/2026_01_19_140501_create_roles_permissions_tables.php
+database/migrations/2026_01_19_142149_alter_mfa_secret_column_to_text.php
+```
+
+**Seeders (1 file):**
+```
+database/seeders/RolesPermissionsSeeder.php
+database/seeders/PreviewUserSeeder.php  # Modified
+```
+
+**Routes (1 file):**
+```
+routes/api.php
+```
+
+---
+
+## Step 3: Frontend Build (if frontend changed)
+
+Frontend files changed - rebuild required:
 
 ```bash
+# Local machine
+cd /Users/Chris/Desktop/fpsApp/fynla
+
+# Set environment and build
+export VITE_BASE_PATH=/build/
+export VITE_ROUTER_BASE=/
+export VITE_API_BASE_URL=https://fynla.org
+npm run build
+
+# Verify build
+ls -la public/build/
+```
+
+**Upload entire `public/build/` folder** to server via File Manager.
+
+Also upload `deploy/fynla-org/.htaccess` to `public/.htaccess` (if not already correct).
+
+---
+
+## Step 4: Install Composer Dependencies
+
+```bash
+# SSH to server
+ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
 cd ~/www/fynla.org/public_html
-php artisan down --message="Upgrading to v0.6.2. Back in a few minutes."
+
+# Install MFA packages
+composer require pragmarx/google2fa-laravel bacon/bacon-qr-code
+
+# Fix security vulnerability
+composer update symfony/http-foundation
+composer audit
 ```
 
-### Step 4: Upload Deployment Package
+---
 
-**Option A: Full Package Upload**
-
-1. Upload `fynla-deploy.tar.gz` via SiteGround File Manager
-2. Navigate to `~/www/fynla.org/public_html/`
-3. Upload the file
-
-**Option B: Selective Upload**
-
-Upload only changed files (see list below) if you prefer a smaller upload.
-
-### Step 5: Extract Files (SSH)
-
-```bash
-cd ~/www/fynla.org/public_html
-
-# Extract tarball
-tar -xzf fynla-deploy.tar.gz
-
-# Move files (if extracted to subfolder)
-mv fynla-deploy/* .
-mv fynla-deploy/.* . 2>/dev/null
-
-# Clean up
-rmdir fynla-deploy 2>/dev/null
-rm fynla-deploy.tar.gz
-```
-
-### Step 6: Install New Composer Dependencies
-
-If using selective upload (not full package):
-```bash
-composer require pragmarx/google2fa-laravel bacon/bacon-qr-code --no-dev
-```
-
-If using full package, vendor/ is already included.
-
-### Step 7: Run Migrations
+## Step 5: Run Migrations
 
 ```bash
 php artisan migrate --force
 ```
 
-Expected: 20 migrations (see list above)
+Expected: 16 migrations
 
-### Step 8: Run Seeders (In Order!)
+---
+
+## Step 6: Run Seeders
 
 ```bash
 php artisan db:seed --class=TaxConfigurationSeeder --force
@@ -239,7 +245,9 @@ php artisan db:seed --class=AdminUserSeeder --force
 php artisan db:seed --class=PreviewUserSeeder --force
 ```
 
-### Step 9: Clear and Rebuild Caches
+---
+
+## Step 7: Clear Caches
 
 ```bash
 php artisan config:clear
@@ -252,36 +260,21 @@ php artisan view:cache
 php artisan optimize
 ```
 
-### Step 10: Disable Maintenance Mode
-
-```bash
-php artisan up
-```
-
 ---
 
-## All-in-One SSH Command Block
-
-**Copy and paste this entire block after uploading files:**
+## All-in-One SSH Commands (After File Upload)
 
 ```bash
 cd ~/www/fynla.org/public_html && \
-echo "=== Starting v0.6.2 Deployment ===" && \
-tar -xzf fynla-deploy.tar.gz && \
-mv fynla-deploy/* . 2>/dev/null && \
-mv fynla-deploy/.* . 2>/dev/null && \
-rmdir fynla-deploy 2>/dev/null && \
-rm fynla-deploy.tar.gz && \
-echo "Files extracted" && \
+composer require pragmarx/google2fa-laravel bacon/bacon-qr-code && \
+composer update symfony/http-foundation && \
 php artisan migrate --force && \
-echo "Migrations complete" && \
 php artisan db:seed --class=TaxConfigurationSeeder --force && \
 php artisan db:seed --class=TaxProductReferenceSeeder --force && \
-php artisan db:seed --class=ActuarialLifeTablesSeeder --force && \
+php artisan db:seed --class=ActuarialLifeTablesSeeder --force || true && \
 php artisan db:seed --class=RolesPermissionsSeeder --force && \
 php artisan db:seed --class=AdminUserSeeder --force && \
 php artisan db:seed --class=PreviewUserSeeder --force && \
-echo "Seeders complete" && \
 php artisan config:clear && \
 php artisan cache:clear && \
 php artisan route:clear && \
@@ -290,7 +283,7 @@ php artisan config:cache && \
 php artisan route:cache && \
 php artisan view:cache && \
 php artisan optimize && \
-echo "=== v0.6.2 Deployment Complete! ===" && \
+echo "=== Deployment Complete ===" && \
 php artisan --version
 ```
 
@@ -298,190 +291,62 @@ php artisan --version
 
 ## Post-Deployment Verification
 
-### Quick Tests
-
-| Test | URL/Action | Expected |
-|------|------------|----------|
-| Homepage | https://fynla.org | Landing page loads |
-| Version | Footer shows `v0.6.2` | Correct version |
-| Login | Admin login | Works |
-| MFA | Settings > Security | MFA setup available |
-| Goals | Goals page | Goals module accessible |
-| Risk | Investment > Risk | Questionnaire works |
-| Statements | Valuable Info | Balance Sheet, Income Statement tabs |
-| Personas | Landing > Try Demo | 4 personas work |
-
-### Detailed Verification Checklist
-
-- [ ] Homepage loads with no console errors
-- [ ] Footer shows v0.6.2
-- [ ] Admin login works (`admin@fps.com` / `admin123`)
-- [ ] Preview personas selectable from landing page
-- [ ] James Carter (young_family) data loads correctly
-- [ ] David Mitchell (peak_earners) data loads correctly
-- [ ] Goals module: Can view/add goals
-- [ ] Investment Risk Calculator: 7-question flow works
-- [ ] Investment Dashboard: Shows "strategy" terminology
-- [ ] Valuable Info: Balance Sheet tab displays
-- [ ] Valuable Info: Income Statement/Cash Flow tab displays
-- [ ] Settings: Security section visible (MFA setup available)
-- [ ] Mobile responsive: Test on phone/tablet
-
-### Log Check
-
-```bash
-# Check for errors
-tail -100 ~/www/fynla.org/public_html/storage/logs/laravel.log
-```
+| Test | Expected |
+|------|----------|
+| https://fynla.org | Landing page loads |
+| Footer version | v0.6.2 |
+| Preview personas | 4 personas work |
+| Investment Dashboard | Strategy card shows recommendations |
+| Goals module | Accessible |
+| Risk calculator | 7-question flow |
 
 ---
 
-## Rollback Procedure
+## Bug Fixes in v0.6.2
 
-If something goes wrong:
+### BUG-001: Strategy Card Not Showing
 
-### 1. Restore Database
+**Files changed:**
+- `app/Agents/InvestmentAgent.php` - Adjusted recommendation thresholds
+- `app/Services/Investment/FeeAnalyzer.php` - Lowered high-fee threshold
+
+**Fix:** Thresholds were too stringent. Changed:
+- Diversification: < 60 → < 70
+- Fee savings: > £100 → > £50
+- Tax efficiency: < 70 → < 80
+- High-fee: 0.75% → 0.5%
+- Added new "High-Fee Holdings" recommendation
+
+### UI-001: Strategy Count Badge Removed
+
+**File changed:**
+- `resources/js/components/NetWorth/InvestmentList.vue`
+
+**Fix:** Removed redundant "4 strategies" badge from card header.
+
+---
+
+## Rollback
 
 ```bash
-mysql -u YOUR_DB_USER -p YOUR_DATABASE < ~/backup_v0.5.1_TIMESTAMP.sql
-```
+# Restore database
+mysql -u DB_USER -p DB_NAME < ~/backup_v0.5.1_YYYYMMDD.sql
 
-### 2. Restore Files
-
-Use SiteGround Site Tools > Security > Backups to restore previous file state.
-
-### 3. Rollback Migrations (Alternative)
-
-```bash
-# Rollback all Jan 19 migrations
-php artisan migrate:rollback --step=10 --force
+# Rollback migrations
+php artisan migrate:rollback --step=16 --force
 
 # Clear caches
-php artisan config:clear
-php artisan cache:clear
+php artisan optimize:clear
 ```
 
 ---
 
 ## Troubleshooting
 
-### Common Issues
-
-| Issue | Symptom | Solution |
-|-------|---------|----------|
-| Blank page | 127.0.0.1:5173 in console | `rm public/hot` on server |
-| 500 Error | "DirectoryMatch not allowed" | Upload `deploy/fynla-org/.htaccess` to `public/.htaccess` |
-| MIME errors | JS/CSS not loading | Wrong VITE_BASE_PATH; rebuild locally |
-| MFA not working | Setup fails | Check `google2fa-laravel` installed |
-| Goals missing | 404 on goals | Check migrations ran |
-| Personas broken | "User not found" | Run PreviewUserSeeder |
-| Tax errors | "No active tax config" | Run TaxConfigurationSeeder |
-
-### Debug Commands
-
-```bash
-# Check environment
-php artisan env
-
-# Check migrations
-php artisan migrate:status | tail -25
-
-# Test database
-php artisan tinker --execute="DB::connection()->getPdo();"
-
-# Check routes
-php artisan route:list | grep -E "(goals|mfa|risk)"
-
-# Check logs
-tail -100 storage/logs/laravel.log
-
-# Clear everything
-php artisan optimize:clear
-```
-
----
-
-## Files Changed Since v0.5.1
-
-### New Backend Files
-
-```
-app/Http/Controllers/Api/GoalsController.php
-app/Http/Controllers/Api/MFAController.php
-app/Http/Controllers/Api/SessionController.php
-app/Http/Controllers/Api/GDPRController.php
-app/Http/Middleware/EnsureMFAVerified.php
-app/Models/Goal.php
-app/Models/GoalContribution.php
-app/Models/LoginAttempt.php
-app/Models/UserSession.php
-app/Models/AuditLog.php
-app/Models/ErasureRequest.php
-app/Models/UserConsent.php
-app/Models/DataExport.php
-app/Models/Role.php
-app/Models/Permission.php
-app/Services/Auth/MFAService.php
-app/Services/Auth/LoginLockoutService.php
-app/Services/Auth/SessionService.php
-app/Services/Audit/AuditService.php
-app/Services/GDPR/DataExportService.php
-app/Services/GDPR/DataErasureService.php
-app/Services/GDPR/ConsentService.php
-app/Services/Goals/GoalService.php
-app/Services/Investment/RiskCalculatorService.php
-database/seeders/RolesPermissionsSeeder.php
-```
-
-### New Frontend Files
-
-```
-resources/js/views/Goals/GoalsDashboard.vue
-resources/js/components/Goals/GoalCard.vue
-resources/js/components/Goals/GoalFormModal.vue
-resources/js/components/Goals/GoalProgressBar.vue
-resources/js/components/Auth/MFASetupModal.vue
-resources/js/components/Auth/MFAVerifyModal.vue
-resources/js/components/Settings/ActiveSessions.vue
-resources/js/components/Investment/RiskQuestionnaire.vue
-resources/js/components/UserProfile/BalanceSheetTab.vue
-resources/js/components/UserProfile/IncomeStatementTab.vue
-resources/js/store/modules/goals.js
-```
-
-### Modified Files
-
-```
-app/Http/Controllers/Api/AuthController.php
-app/Http/Controllers/Api/InvestmentController.php
-app/Models/User.php
-resources/js/views/Investment/InvestmentDashboard.vue
-resources/js/views/ValuableInfo.vue
-resources/js/components/Footer.vue
-resources/js/views/Version.vue
-routes/api.php
-database/seeders/PreviewUserSeeder.php
-```
-
----
-
-## Security Checklist
-
-- [ ] `APP_DEBUG=false` in .env
-- [ ] `APP_ENV=production` in .env
-- [ ] `.env` file is NOT in public directory
-- [ ] `.htaccess` blocks access to .env and .git
-- [ ] HTTPS is enforced
-- [ ] `SESSION_SECURE_COOKIE=true`
-- [ ] MFA available for users
-- [ ] Login lockout active (5 failed attempts = 15 min lockout)
-- [ ] RBAC roles configured
-
----
-
-## Support
-
-If deployment fails:
-1. Check Laravel logs: `storage/logs/laravel.log`
-2. Check SiteGround error logs: Site Tools > Statistics > Error Log
-3. Restore from backup if needed
+| Issue | Solution |
+|-------|----------|
+| Blank page | `rm public/hot` on server |
+| 500 error | Upload `deploy/fynla-org/.htaccess` to `public/.htaccess` |
+| MIME errors | Rebuild with correct VITE_BASE_PATH |
+| Strategy card missing | Clear cache: `php artisan cache:clear` |
+| Personas broken | Run PreviewUserSeeder |

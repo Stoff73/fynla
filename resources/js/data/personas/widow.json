@@ -19,6 +19,7 @@
     "monthly_expenditure": 3200,
     "health_status": "yes_previous",
     "smoking_status": "never",
+    "education_level": "postgraduate",
     "has_will": true,
     "has_lasting_power_of_attorney": true,
     "address": {
@@ -380,7 +381,8 @@
       "in_trust": true,
       "joint_life": false,
       "policy_reference": "AV-WOL-123456",
-      "notes": "Written in trust for IHT purposes - pays outside estate"
+      "notes": "Written in trust for IHT purposes - pays outside estate",
+      "beneficiaries": "Andrew Thompson (child), Catherine Williams (child), Richard Thompson (child)"
     }
   ],
 
@@ -485,16 +487,26 @@
   "expenditure": {
     "total_monthly": 3200,
     "categories": {
-      "housing": 400,
-      "utilities": 300,
-      "food": 400,
-      "transport": 200,
+      "food_groceries": 400,
+      "transport_fuel": 200,
+      "healthcare_medical": 200,
       "insurance": 250,
-      "entertainment": 300,
-      "holidays": 500,
+      "mobile_phones": 35,
+      "internet_tv": 65,
+      "subscriptions": 30,
+      "clothing_personal_care": 80,
+      "entertainment_dining": 200,
+      "holidays_travel": 500,
+      "pets": 50,
+      "childcare": 0,
+      "school_fees": 0,
+      "school_lunches": 0,
+      "school_extras": 0,
+      "university_fees": 0,
+      "children_activities": 0,
       "gifts_charity": 400,
-      "health": 200,
-      "other": 250
+      "regular_savings": 500,
+      "other_expenditure": 290
     }
   },
 

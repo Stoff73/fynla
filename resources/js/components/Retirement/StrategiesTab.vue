@@ -1,5 +1,16 @@
 <template>
   <div class="strategies-tab">
+    <!-- Back Button -->
+    <button
+      @click="$emit('back')"
+      class="back-button"
+    >
+      <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+      </svg>
+      Back to Pensions
+    </button>
+
     <!-- Loading State -->
     <div v-if="loading" class="loading-state">
       <div class="spinner"></div>
@@ -110,6 +121,8 @@ export default {
 
   mixins: [currencyMixin],
 
+  emits: ['back'],
+
   components: {
     StrategyCard,
   },
@@ -202,6 +215,33 @@ export default {
 <style scoped>
 .strategies-tab {
   animation: fadeIn 0.3s ease-out;
+}
+
+/* Back Button */
+.back-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.back-button:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.back-button svg {
+  width: 20px;
+  height: 20px;
 }
 
 @keyframes fadeIn {

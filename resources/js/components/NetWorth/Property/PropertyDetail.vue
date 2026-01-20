@@ -339,7 +339,7 @@
                         <dd class="text-sm font-medium text-gray-900">{{ formatDate(mortgage.start_date) }}</dd>
                       </div>
                       <div v-if="mortgage.maturity_date" class="flex justify-between">
-                        <dt class="text-sm text-gray-600">Maturity Date:</dt>
+                        <dt class="text-sm text-gray-600">End Date:</dt>
                         <dd class="text-sm font-medium text-gray-900">{{ formatDate(mortgage.maturity_date) }}</dd>
                       </div>
                     </dl>

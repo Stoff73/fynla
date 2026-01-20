@@ -11,9 +11,11 @@
     @skip="handleSkip"
   >
     <div class="space-y-6">
-      <p class="text-body-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
-        Protection policies provide financial security for you and your family. Adding your existing coverage helps us analyse any gaps in your protection.
-      </p>
+      <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <p class="text-body-sm text-blue-800">
+          <strong>Why this matters:</strong> Protection policies provide financial security for you and your family. We analyse your existing coverage to identify any gaps and provide recommendations based on your income, debts, and dependants.
+        </p>
+      </div>
 
       <!-- I have no policies checkbox -->
       <div class="border border-gray-200 rounded-lg p-4 bg-blue-50">

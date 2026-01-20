@@ -27,6 +27,7 @@
             type="date"
             class="input-field"
             :max="maxDob"
+            :min="minDob"
           >
           <p class="mt-1 text-body-sm text-gray-500">
             Used for age-based calculations and projections
@@ -189,7 +190,7 @@
         </h4>
         <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
           <p class="text-body-sm text-blue-800">
-            <strong>Why this matters:</strong> Health and lifestyle information helps us provide accurate protection recommendations and estimate insurance premium costs.
+            <strong>Why this matters:</strong> Health and lifestyle information helps us provide accurate protection strategies and estimate insurance premium costs.
           </p>
         </div>
 
@@ -305,6 +306,13 @@ export default {
       // Max DOB is 18 years ago (minimum age)
       const date = new Date();
       date.setFullYear(date.getFullYear() - 18);
+      return date.toISOString().split('T')[0];
+    });
+
+    const minDob = computed(() => {
+      // Min DOB is 105 years ago (maximum age)
+      const date = new Date();
+      date.setFullYear(date.getFullYear() - 105);
       return date.toISOString().split('T')[0];
     });
 
@@ -427,6 +435,7 @@ export default {
       loading,
       error,
       maxDob,
+      minDob,
       formatNI,
       formatPostcode,
       handleNext,

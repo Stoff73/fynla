@@ -30,6 +30,7 @@ const state = {
     incomeAllocations: [], // User's current allocations from sliders
     includeSpouseAssets: false, // Toggle for spouse's assets
     customTargetIncome: null, // Custom target income override
+    activeTab: 'current', // Current active tab in PensionList
     loading: false,
     error: null,
 };
@@ -136,6 +137,9 @@ const mutations = {
     },
     SET_CUSTOM_TARGET_INCOME(state, amount) {
         state.customTargetIncome = amount;
+    },
+    SET_ACTIVE_TAB(state, tab) {
+        state.activeTab = tab;
     },
 };
 
@@ -539,6 +543,14 @@ const actions = {
 
     setCustomTargetIncome({ commit }, amount) {
         commit('SET_CUSTOM_TARGET_INCOME', amount);
+    },
+
+    setActiveTab({ commit }, tab) {
+        commit('SET_ACTIVE_TAB', tab);
+    },
+
+    resetToMainDashboard({ commit }) {
+        commit('SET_ACTIVE_TAB', 'current');
     },
 };
 

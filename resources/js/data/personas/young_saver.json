@@ -21,6 +21,7 @@
     "monthly_expenditure": 1833,
     "health_status": "yes",
     "smoking_status": "never",
+    "education_level": "undergraduate",
     "has_will": false,
     "has_lasting_power_of_attorney": false,
     "address": {

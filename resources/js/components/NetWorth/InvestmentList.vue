@@ -140,11 +140,8 @@
         tabindex="0"
         @keydown.enter="goToStrategy"
       >
-        <div class="flex items-center justify-between mb-4">
+        <div class="mb-4">
           <h3 class="text-lg font-semibold text-gray-800">{{ recommendationCount === 1 ? 'Strategy' : 'Strategies' }}</h3>
-          <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
-            {{ recommendationCount }} {{ recommendationCount === 1 ? 'strategy' : 'strategies' }}
-          </span>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -404,7 +401,7 @@ export default {
   },
 
   methods: {
-    ...mapActions('investment', ['fetchInvestmentData', 'analyseInvestment', 'createAccount', 'updateAccount', 'deleteAccount']),
+    ...mapActions('investment', ['fetchInvestmentData', 'analyseInvestment', 'fetchRecommendations', 'createAccount', 'updateAccount', 'deleteAccount']),
     ...mapActions('netWorth', ['setDetailView']),
 
     selectAccount(account) {
@@ -518,7 +515,8 @@ export default {
     async loadData() {
       try {
         await this.fetchInvestmentData();
-        await this.analyseInvestment();
+        // Fetch recommendations separately (same pattern as Retirement StrategiesTab)
+        await this.fetchRecommendations();
       } catch (error) {
         console.error('Failed to load investment data:', error);
       }

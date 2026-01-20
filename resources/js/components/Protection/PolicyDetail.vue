@@ -338,8 +338,12 @@ export default {
     tabs() {
       const baseTabs = [
         { id: 'overview', label: 'Overview' },
-        { id: 'beneficiaries', label: 'Beneficiaries' },
       ];
+
+      // Only show beneficiaries tab for life insurance policies
+      if (this.policy?.policy_type === 'life') {
+        baseTabs.push({ id: 'beneficiaries', label: 'Beneficiaries' });
+      }
 
       // Add conditions tab for critical illness and income protection
       if (this.policy && (this.policy.policy_type === 'criticalIllness' || this.policy.policy_type === 'incomeProtection')) {

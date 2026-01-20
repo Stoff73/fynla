@@ -21,6 +21,7 @@
     "monthly_expenditure": 5500,
     "health_status": "yes",
     "smoking_status": "never",
+    "education_level": "postgraduate",
     "has_will": false,
     "has_lasting_power_of_attorney": false,
     "address": {
@@ -28,6 +29,12 @@
       "line_2": "42 Deansgate",
       "city": "Manchester",
       "postcode": "M3 4LQ"
+    },
+    "domicile": {
+      "country_of_birth": "South Africa",
+      "uk_arrival_date": "2018-03-15",
+      "years_uk_resident": 8,
+      "domicile_status": "non_uk_domiciled"
     }
   },
 
@@ -376,7 +383,8 @@
       "in_trust": false,
       "joint_life": false,
       "policy_reference": "ZUR-LT-567890",
-      "notes": "Personal life cover"
+      "notes": "Personal life cover",
+      "beneficiaries": "Wei Chen (father), Mei Chen (mother)"
     },
     {
       "id": 2,
@@ -390,7 +398,8 @@
       "in_trust": false,
       "joint_life": false,
       "policy_reference": "LG-KP-234567",
-      "notes": "Key person insurance - paid by company"
+      "notes": "Key person insurance - paid by company",
+      "beneficiaries": "Chen Tech Consulting Ltd (company)"
     }
   ],
 
@@ -497,16 +506,26 @@
   "expenditure": {
     "total_monthly": 5500,
     "categories": {
-      "housing": 1350,
-      "utilities": 200,
-      "food": 600,
-      "transport": 800,
+      "food_groceries": 450,
+      "transport_fuel": 400,
+      "healthcare_medical": 80,
       "insurance": 350,
-      "entertainment": 800,
-      "holidays": 500,
-      "clothing": 300,
-      "gym_wellness": 200,
-      "other": 400
+      "mobile_phones": 85,
+      "internet_tv": 75,
+      "subscriptions": 120,
+      "clothing_personal_care": 250,
+      "entertainment_dining": 600,
+      "holidays_travel": 500,
+      "pets": 0,
+      "childcare": 0,
+      "school_fees": 0,
+      "school_lunches": 0,
+      "school_extras": 0,
+      "university_fees": 0,
+      "children_activities": 0,
+      "gifts_charity": 150,
+      "regular_savings": 1000,
+      "other_expenditure": 440
     }
   },
 

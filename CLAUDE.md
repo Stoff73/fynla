@@ -10,7 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - https://fynla.org (primary)
 - https://csjones.co/fynla (legacy)
 
-**Version**: v0.5.1
+**Version**: v0.6.2
 
 ## Essential Commands
 
@@ -219,11 +219,38 @@ export $(cat .env.production | xargs)
 
 ### 7. Deployment
 
-**Full deployment guides:**
-- `DEPLOYMENT_FYNLA_ORG.md` - Step-by-step guide for fynla.org
+**DO NOT create deployment packages (ZIP files).** Instead:
+1. Upload only changed files via SiteGround File Manager
+2. Run SSH commands for migrations, seeders, and cache clears
+3. If frontend changes exist, rebuild locally and upload `public/build/`
+
+**Deployment guides:**
+- `deploy/DEPLOYMENT_v0.6.2.md` - Current release deployment
 - `deploy/README.md` - Environment configuration overview
 
-**Never include `public/build/` in deployment packages without permission.**
+**Frontend rebuild (when Vue files changed):**
+```bash
+# Local machine only - server cannot run npm
+export VITE_BASE_PATH=/build/
+export VITE_ROUTER_BASE=/
+export VITE_API_BASE_URL=https://fynla.org
+npm run build
+
+# Then upload public/build/ folder to server
+```
+
+**SSH commands (after uploading files):**
+```bash
+ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
+cd ~/www/fynla.org/public_html
+
+# Migrations & seeders
+php artisan migrate --force
+php artisan db:seed --class=PreviewUserSeeder --force
+
+# Clear caches
+php artisan config:clear && php artisan cache:clear && php artisan optimize
+```
 
 ## Key Patterns
 
@@ -481,6 +508,20 @@ DELETE /api/savings/accounts/{id}   # Delete
 ```
 
 ## Troubleshooting
+
+### IMPORTANT: Browser Caching is NEVER the Issue
+
+The user ALWAYS tests in incognito mode with hard refresh. Do NOT suggest:
+- Clearing browser cache
+- Using incognito mode
+- Hard refresh (Ctrl+Shift+R)
+- "It might be cached"
+
+If something isn't working on production, the issue is ALWAYS one of:
+1. A file wasn't uploaded to production
+2. Server-side PHP OPcache needs clearing
+3. Laravel cache needs clearing: `php artisan cache:clear`
+4. A bug in the code
 
 ### Common API Errors
 

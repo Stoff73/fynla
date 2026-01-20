@@ -98,11 +98,18 @@ export default {
 
     const formData = ref({
       domicile_status: 'uk_domiciled', // Will be auto-determined
-      country_of_birth: 'United Kingdom', // Default to UK
+      country_of_birth: 'England', // Default to England
       uk_arrival_date: null,
       years_uk_resident: null,
       deemed_domicile_date: null,
     });
+
+    // UK constituent countries
+    const ukCountries = ['England', 'Scotland', 'Wales', 'Northern Ireland'];
+
+    const isUKCountry = (country) => {
+      return ukCountries.includes(country);
+    };
 
     const loading = ref(false);
     const error = ref(null);
@@ -120,11 +127,11 @@ export default {
     const shouldShowUKArrivalDate = computed(() => {
       // Show UK arrival date field only if born outside UK
       return formData.value.country_of_birth &&
-             formData.value.country_of_birth !== 'United Kingdom';
+             !isUKCountry(formData.value.country_of_birth);
     });
 
     const domicileStatusLabel = computed(() => {
-      if (formData.value.country_of_birth === 'United Kingdom') {
+      if (isUKCountry(formData.value.country_of_birth)) {
         return 'UK Domiciled';
       }
 
@@ -163,7 +170,7 @@ export default {
 
     const handleCountryChange = () => {
       // If UK born, clear UK arrival fields and set as UK domiciled
-      if (formData.value.country_of_birth === 'United Kingdom') {
+      if (isUKCountry(formData.value.country_of_birth)) {
         formData.value.uk_arrival_date = null;
         formData.value.years_uk_resident = null;
         formData.value.deemed_domicile_date = null;
@@ -177,7 +184,7 @@ export default {
 
     const updateDomicileStatus = () => {
       // Auto-determine domicile status based on country of birth and years resident
-      if (formData.value.country_of_birth === 'United Kingdom') {
+      if (isUKCountry(formData.value.country_of_birth)) {
         formData.value.domicile_status = 'uk_domiciled';
       } else if (yearsResident.value !== null && yearsResident.value >= 15) {
         // Deemed domiciled if 15+ years resident

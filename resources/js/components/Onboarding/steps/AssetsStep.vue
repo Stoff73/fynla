@@ -35,7 +35,7 @@
 
       <!-- Retirement Tab -->
       <div v-show="activeTab === 'retirement'" class="space-y-4">
-        <!-- Feature Status Notice -->
+        <!-- Why Retirement Info Matters -->
         <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <div class="flex">
             <svg class="h-5 w-5 text-blue-400 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -43,18 +43,11 @@
             </svg>
             <div>
               <p class="text-body-sm text-blue-800">
-                <strong>Retirement Module - Coming Soon</strong>
-              </p>
-              <p class="text-body-sm text-blue-700 mt-1">
-                While the comprehensive Retirement Planning module is currently in development, you can record your pension details here. This information will be used in your Net Worth calculations only. Full retirement readiness analysis, pension projections, tax optimisation strategies, income planning assessments, and decumulation planning will be available in upcoming releases.
+                <strong>Why this matters:</strong> Your pension information is essential for accurate financial planning. It directly impacts your net worth calculations and retirement readiness projections. We also provide future calculations, income projections and tax optimised drawdown plans for retirement.
               </p>
             </div>
           </div>
         </div>
-
-        <p class="text-body-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
-          Pensions are often one of the largest components of retirement planning. Add your money purchase pensions, final salary pensions, and State Pension forecast to get a complete retirement picture.
-        </p>
 
         <!-- Pensions Grid -->
         <div v-if="pensions.dc.length > 0 || pensions.db.length > 0 || pensions.state" class="pensions-grid">
@@ -214,9 +207,18 @@
 
       <!-- Properties Tab -->
       <div v-show="activeTab === 'properties'" class="space-y-4">
-        <p class="text-body-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
-          Properties are usually the largest component of an estate. Adding property details helps us calculate your potential Inheritance Tax liability.
-        </p>
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div class="flex">
+            <svg class="h-5 w-5 text-blue-400 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+            </svg>
+            <div>
+              <p class="text-body-sm text-blue-800">
+                <strong>Why this matters:</strong> Properties are usually the largest component of an estate. Adding property details helps us calculate your potential Inheritance Tax liability. Rental income can also be used for retirement planning, and releasing capital from properties may form part of your financial strategy.
+              </p>
+            </div>
+          </div>
+        </div>
 
         <!-- Added Properties List -->
         <div v-if="properties.length > 0" class="space-y-3">
@@ -250,7 +252,7 @@
 
       <!-- Investments Tab -->
       <div v-show="activeTab === 'investments'" class="space-y-4">
-        <!-- Feature Status Notice -->
+        <!-- Why Investment Info Matters -->
         <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <div class="flex">
             <svg class="h-5 w-5 text-blue-400 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -258,18 +260,11 @@
             </svg>
             <div>
               <p class="text-body-sm text-blue-800">
-                <strong>Investment Module - Coming Soon</strong>
-              </p>
-              <p class="text-body-sm text-blue-700 mt-1">
-                While the comprehensive Investment Planning module is currently in development, you can record your investment accounts and holdings here. This information will be used in your Estate Planning calculations and Inheritance Tax liability assessments. Full portfolio analysis, performance tracking, and investment recommendations will be available in upcoming releases.
+                <strong>Why this matters:</strong> Your investment information feeds into our comprehensive analysis including future value calculations, risk assessment, fee comparisons, and tax optimisation strategies. This data also informs your net worth calculations and estate planning.
               </p>
             </div>
           </div>
         </div>
-
-        <p class="text-body-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
-          Investment accounts include ISAs, General Investment Accounts, and bonds. These form part of your overall wealth.
-        </p>
 
         <!-- Investments Grid -->
         <div v-if="investments.length > 0" class="accounts-grid">
@@ -354,9 +349,18 @@
 
       <!-- Cash Tab -->
       <div v-show="activeTab === 'cash'" class="space-y-4">
-        <p class="text-body-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
-          Include all cash and bank accounts, including current accounts, Cash ISAs, easy access savings, and fixed-term deposits.
-        </p>
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div class="flex">
+            <svg class="h-5 w-5 text-blue-400 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+            </svg>
+            <div>
+              <p class="text-body-sm text-blue-800">
+                <strong>Why this matters:</strong> We use your cash and savings information to inform affordability calculations, provide budget tracking and assess emergency cash needs. Include all cash and bank accounts, including current accounts, Cash ISAs, easy access savings, and fixed-term deposits.
+              </p>
+            </div>
+          </div>
+        </div>
 
         <!-- Cash Accounts Grid -->
         <div v-if="savingsAccounts.length > 0" class="accounts-grid">

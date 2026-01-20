@@ -21,6 +21,7 @@
     "monthly_expenditure": 4200,
     "health_status": "yes",
     "smoking_status": "never",
+    "education_level": "undergraduate",
     "has_will": false,
     "has_lasting_power_of_attorney": false,
     "address": {
@@ -39,7 +40,10 @@
     "annual_income": 48000,
     "employment_status": "employed",
     "employer_name": "MediaGroup PLC",
-    "occupation": "Marketing Manager"
+    "occupation": "Marketing Manager",
+    "health_status": "yes",
+    "smoking_status": "never",
+    "education_level": "undergraduate"
   },
 
   "family_members": [
@@ -259,7 +263,8 @@
       "in_trust": false,
       "joint_life": true,
       "policy_reference": "LG-TERM-789456",
-      "notes": "Joint level term for mortgage protection"
+      "notes": "Joint level term for mortgage protection",
+      "beneficiaries": "Emily Carter (spouse), Oliver Carter (child), Sophie Carter (child)"
     }
   ],
 
@@ -297,15 +302,26 @@
   "expenditure": {
     "total_monthly": 4200,
     "categories": {
-      "housing": 1485,
-      "utilities": 250,
-      "food": 600,
-      "transport": 450,
+      "food_groceries": 600,
+      "transport_fuel": 250,
+      "healthcare_medical": 50,
+      "insurance": 180,
+      "mobile_phones": 80,
+      "internet_tv": 60,
+      "subscriptions": 45,
+      "clothing_personal_care": 150,
+      "entertainment_dining": 250,
+      "holidays_travel": 200,
+      "pets": 0,
       "childcare": 800,
-      "insurance": 150,
-      "entertainment": 200,
-      "clothing": 100,
-      "other": 165
+      "school_fees": 0,
+      "school_lunches": 60,
+      "school_extras": 80,
+      "university_fees": 0,
+      "children_activities": 150,
+      "gifts_charity": 100,
+      "regular_savings": 200,
+      "other_expenditure": 145
     }
   },
 
