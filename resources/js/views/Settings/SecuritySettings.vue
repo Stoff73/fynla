@@ -334,9 +334,11 @@ export default {
     setupMFA() {
       this.showMFASetupModal = true;
     },
-    onMFAEnabled() {
+    async onMFAEnabled() {
       this.mfaEnabled = true;
       this.showMFASetupModal = false;
+      // Update user in Vuex store so navbar/dashboard hide the 2FA prompts
+      await this.$store.dispatch('auth/fetchUser');
     },
     async disableMFA() {
       try {
@@ -346,6 +348,8 @@ export default {
         this.mfaEnabled = false;
         this.showDisableMFAModal = false;
         this.disablePassword = '';
+        // Update user in Vuex store so navbar/dashboard show the 2FA prompts again
+        await this.$store.dispatch('auth/fetchUser');
         this.$toast?.success?.('Two-factor authentication has been disabled.');
       } catch (error) {
         this.$toast?.error?.(error.response?.data?.message || 'Failed to disable MFA.');
