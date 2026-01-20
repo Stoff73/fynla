@@ -390,11 +390,6 @@
               @update-costs="handleCostsUpdate"
             />
           </div>
-
-          <!-- Taxes Tab -->
-          <div v-show="activeTab === 'taxes'">
-            <PropertyTaxCalculator :property="property" />
-          </div>
         </div>
       </div>
     </div>
@@ -429,7 +424,6 @@
 import { mapState, mapActions } from 'vuex';
 import PropertyForm from './PropertyForm.vue';
 import PropertyFinancials from './PropertyFinancials.vue';
-import PropertyTaxCalculator from './PropertyTaxCalculator.vue';
 import ConfirmationModal from '../../Common/ConfirmationModal.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
@@ -441,7 +435,6 @@ export default {
   components: {
     PropertyForm,
     PropertyFinancials,
-    PropertyTaxCalculator,
     ConfirmationModal,
   },
 
@@ -461,7 +454,6 @@ export default {
         { id: 'overview', label: 'Overview' },
         { id: 'mortgage', label: 'Mortgage' },
         { id: 'financials', label: 'Financials' },
-        { id: 'taxes', label: 'Taxes' },
       ],
       showEditModal: false,
       showDeleteConfirm: false,
