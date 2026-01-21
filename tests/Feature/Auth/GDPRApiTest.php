@@ -208,3 +208,268 @@ describe('Consent History', function () {
         $response->assertStatus(401);
     });
 });
+
+describe('Immediate Self-Service Deletion', function () {
+    it('initiates account deletion for user without 2FA', function () {
+        $response = $this->actingAs($this->user)
+            ->postJson('/api/auth/gdpr/erasure/initiate', [
+                'type' => 'account',
+            ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'requires_2fa' => false,
+                'requires_email_verification' => true,
+            ])
+            ->assertJsonStructure([
+                'success',
+                'requires_2fa',
+                'requires_email_verification',
+                'session_token',
+            ]);
+
+        // Verify session token is 64 characters
+        $this->assertEquals(64, strlen($response->json('session_token')));
+    });
+
+    it('initiates data deletion for user without 2FA', function () {
+        $response = $this->actingAs($this->user)
+            ->postJson('/api/auth/gdpr/erasure/initiate', [
+                'type' => 'data',
+            ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'requires_2fa' => false,
+                'requires_email_verification' => true,
+            ]);
+    });
+
+    it('initiates deletion for user with 2FA enabled', function () {
+        // Enable 2FA for user
+        $this->user->update([
+            'mfa_enabled' => true,
+            'mfa_secret' => encrypt('TESTSECRET12345678901234567890'),
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->postJson('/api/auth/gdpr/erasure/initiate', [
+                'type' => 'account',
+            ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'requires_2fa' => true,
+                'requires_email_verification' => false,
+            ]);
+    });
+
+    it('prevents preview users from initiating deletion', function () {
+        $previewUser = User::factory()->create([
+            'is_preview_user' => true,
+        ]);
+
+        $response = $this->actingAs($previewUser)
+            ->postJson('/api/auth/gdpr/erasure/initiate', [
+                'type' => 'account',
+            ]);
+
+        $response->assertStatus(403)
+            ->assertJson([
+                'success' => false,
+                'message' => 'Preview accounts cannot be deleted.',
+            ]);
+    });
+
+    it('validates deletion type', function () {
+        $response = $this->actingAs($this->user)
+            ->postJson('/api/auth/gdpr/erasure/initiate', [
+                'type' => 'invalid',
+            ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['type']);
+    });
+
+    it('rejects verification with invalid session token', function () {
+        $response = $this->actingAs($this->user)
+            ->postJson('/api/auth/gdpr/erasure/verify', [
+                'session_token' => str_repeat('x', 64),
+                'code' => '123456',
+            ]);
+
+        $response->assertStatus(400)
+            ->assertJson([
+                'success' => false,
+                'message' => 'Invalid or expired session. Please start again.',
+            ]);
+    });
+
+    it('rejects verification with invalid code', function () {
+        // First initiate deletion to get a valid session
+        $initiateResponse = $this->actingAs($this->user)
+            ->postJson('/api/auth/gdpr/erasure/initiate', [
+                'type' => 'account',
+            ]);
+
+        $sessionToken = $initiateResponse->json('session_token');
+
+        // Try to verify with wrong code
+        $response = $this->actingAs($this->user)
+            ->postJson('/api/auth/gdpr/erasure/verify', [
+                'session_token' => $sessionToken,
+                'code' => '000000', // Wrong code
+            ]);
+
+        $response->assertStatus(401)
+            ->assertJson([
+                'success' => false,
+            ]);
+    });
+
+    it('rejects execution with unverified session', function () {
+        // Initiate deletion
+        $initiateResponse = $this->actingAs($this->user)
+            ->postJson('/api/auth/gdpr/erasure/initiate', [
+                'type' => 'account',
+            ]);
+
+        $sessionToken = $initiateResponse->json('session_token');
+
+        // Try to execute without verifying
+        $response = $this->actingAs($this->user)
+            ->postJson('/api/auth/gdpr/erasure/execute', [
+                'session_token' => $sessionToken,
+                'confirmation' => 'Delete my Account',
+            ]);
+
+        $response->assertStatus(400)
+            ->assertJson([
+                'success' => false,
+                'message' => 'Identity not verified. Please complete verification first.',
+            ]);
+    });
+
+    it('rejects execution with wrong confirmation phrase', function () {
+        // For this test, we need to manually set up a verified session in cache
+        $sessionToken = str_repeat('a', 64);
+        \Illuminate\Support\Facades\Cache::put("deletion_session:{$this->user->id}", [
+            'token' => $sessionToken,
+            'type' => 'account',
+            'verified' => true,
+            'verified_at' => now()->timestamp,
+            'attempts' => 0,
+        ], now()->addMinutes(15));
+
+        $response = $this->actingAs($this->user)
+            ->postJson('/api/auth/gdpr/erasure/execute', [
+                'session_token' => $sessionToken,
+                'confirmation' => 'wrong phrase',
+            ]);
+
+        $response->assertStatus(400)
+            ->assertJson([
+                'success' => false,
+                'message' => 'Please type exactly: "Delete my Account"',
+            ]);
+    });
+
+    it('validates confirmation phrase is case-sensitive', function () {
+        $sessionToken = str_repeat('b', 64);
+        \Illuminate\Support\Facades\Cache::put("deletion_session:{$this->user->id}", [
+            'token' => $sessionToken,
+            'type' => 'account',
+            'verified' => true,
+            'verified_at' => now()->timestamp,
+            'attempts' => 0,
+        ], now()->addMinutes(15));
+
+        // Try lowercase
+        $response = $this->actingAs($this->user)
+            ->postJson('/api/auth/gdpr/erasure/execute', [
+                'session_token' => $sessionToken,
+                'confirmation' => 'delete my account', // lowercase
+            ]);
+
+        $response->assertStatus(400);
+    });
+
+    it('requires authentication for initiate', function () {
+        $response = $this->postJson('/api/auth/gdpr/erasure/initiate', [
+            'type' => 'account',
+        ]);
+
+        $response->assertStatus(401);
+    });
+
+    it('requires authentication for verify', function () {
+        $response = $this->postJson('/api/auth/gdpr/erasure/verify', [
+            'session_token' => str_repeat('x', 64),
+            'code' => '123456',
+        ]);
+
+        $response->assertStatus(401);
+    });
+
+    it('requires authentication for execute', function () {
+        $response = $this->postJson('/api/auth/gdpr/erasure/execute', [
+            'session_token' => str_repeat('x', 64),
+            'confirmation' => 'Delete my Account',
+        ]);
+
+        $response->assertStatus(401);
+    });
+
+    it('allows resending code for email verification', function () {
+        // Initiate deletion
+        $initiateResponse = $this->actingAs($this->user)
+            ->postJson('/api/auth/gdpr/erasure/initiate', [
+                'type' => 'account',
+            ]);
+
+        $sessionToken = $initiateResponse->json('session_token');
+
+        // Resend code
+        $response = $this->actingAs($this->user)
+            ->postJson('/api/auth/gdpr/erasure/resend-code', [
+                'session_token' => $sessionToken,
+            ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'message' => 'Verification code sent to your email.',
+            ]);
+    });
+
+    it('rejects resend for user with 2FA', function () {
+        // Enable 2FA
+        $this->user->update([
+            'mfa_enabled' => true,
+            'mfa_secret' => encrypt('TESTSECRET12345678901234567890'),
+        ]);
+
+        // Initiate deletion
+        $initiateResponse = $this->actingAs($this->user)
+            ->postJson('/api/auth/gdpr/erasure/initiate', [
+                'type' => 'account',
+            ]);
+
+        $sessionToken = $initiateResponse->json('session_token');
+
+        // Try to resend code
+        $response = $this->actingAs($this->user)
+            ->postJson('/api/auth/gdpr/erasure/resend-code', [
+                'session_token' => $sessionToken,
+            ]);
+
+        $response->assertStatus(400)
+            ->assertJson([
+                'success' => false,
+                'message' => 'Use your authenticator app for verification.',
+            ]);
+    });
+});

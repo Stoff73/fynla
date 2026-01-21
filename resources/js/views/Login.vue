@@ -74,11 +74,11 @@
       </div>
 
       <form class="mt-8 space-y-6" @submit.prevent="handleLogin">
-        <div v-if="errorMessage" class="rounded-lg bg-red-50 border border-red-200 p-4">
-          <p class="text-body-sm font-medium text-red-800">{{ errorMessage }}</p>
-          <p v-if="showRegisterHint" class="mt-2 text-body-sm text-red-700">
+        <div v-if="errorMessage" class="rounded-lg bg-red-50 border border-red-200 p-4 text-center">
+          <p class="text-sm text-red-800">{{ errorMessage }}</p>
+          <p v-if="showRegisterHint" class="mt-2 text-sm text-red-800">
             Don't have an account?
-            <router-link to="/register" class="font-semibold text-red-800 underline hover:text-red-900">
+            <router-link to="/register" class="font-medium underline">
               Register here
             </router-link>
           </p>
@@ -208,7 +208,9 @@ export default {
     const loading = computed(() => store.getters['auth/loading'] || isSubmitting.value);
 
     const showRegisterHint = computed(() => {
-      return errorMessage.value && errorMessage.value.toLowerCase().includes('invalid credentials');
+      if (!errorMessage.value) return false;
+      const msg = errorMessage.value.toLowerCase();
+      return msg.includes('no account found') || msg.includes('invalid credentials');
     });
 
     const handleLogin = async () => {
