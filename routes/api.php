@@ -37,6 +37,7 @@ use App\Http\Controllers\Api\InvestmentProjectionController;
 use App\Http\Controllers\Api\LetterToSpouseController;
 use App\Http\Controllers\Api\MFAController;
 use App\Http\Controllers\Api\MortgageController;
+use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\NetWorthController;
 use App\Http\Controllers\Api\OnboardingController;
 use App\Http\Controllers\Api\PersonalAccountsController;
@@ -78,6 +79,16 @@ Route::prefix('auth')->group(function () {
     // MFA verification during login (no auth required - user is partially authenticated)
     Route::post('/mfa/verify', [MFAController::class, 'verify'])->middleware('throttle:10,1');
     Route::post('/mfa/recovery', [MFAController::class, 'useRecoveryCode'])->middleware('throttle:5,1');
+
+    // Password reset routes (no auth required)
+    Route::prefix('password-reset')->group(function () {
+        Route::post('/request', [PasswordResetController::class, 'request'])->middleware('throttle:3,1');
+        Route::post('/verify-email', [PasswordResetController::class, 'verifyEmail'])->middleware('throttle:10,1');
+        Route::post('/resend-code', [PasswordResetController::class, 'resendCode'])->middleware('throttle:5,1');
+        Route::post('/verify-mfa', [PasswordResetController::class, 'verifyMfa'])->middleware('throttle:10,1');
+        Route::post('/mfa-recovery', [PasswordResetController::class, 'useMfaRecovery'])->middleware('throttle:5,1');
+        Route::post('/reset', [PasswordResetController::class, 'reset'])->middleware('throttle:5,1');
+    });
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
