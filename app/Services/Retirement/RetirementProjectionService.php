@@ -77,8 +77,10 @@ class RetirementProjectionService
             $totalMonthlyContribution += $this->calculateMonthlyContribution($pension);
         }
 
-        // Get risk parameters
-        $riskLevel = $this->getUserRiskLevel($user);
+        // Get risk parameters and track source
+        $riskResult = $this->getUserRiskLevelWithSource($user);
+        $riskLevel = $riskResult['level'];
+        $riskSource = $riskResult['source'];
         $riskParams = $this->riskService->getReturnParameters($riskLevel);
 
         $expectedReturn = $riskParams['expected_return_typical'] / 100; // Convert percentage to decimal
@@ -106,6 +108,7 @@ class RetirementProjectionService
             'current_value' => round($totalCurrentValue, 2),
             'monthly_contribution' => round($totalMonthlyContribution, 2),
             'risk_level' => $riskLevel,
+            'risk_source' => $riskSource,
             'expected_return' => $riskParams['expected_return_typical'],
             'volatility' => $riskParams['volatility'],
             'years_to_retirement' => $yearsToRetirement,
@@ -134,7 +137,15 @@ class RetirementProjectionService
         $monthlyContribution = $this->calculateMonthlyContribution($pension);
 
         // Get risk parameters - use pension's risk preference if set, otherwise user's
-        $riskLevel = $pension->risk_preference ?? $this->getUserRiskLevel($user);
+        $riskSource = 'default';
+        if ($pension->risk_preference !== null) {
+            $riskLevel = $pension->risk_preference;
+            $riskSource = 'profile';
+        } else {
+            $riskResult = $this->getUserRiskLevelWithSource($user);
+            $riskLevel = $riskResult['level'];
+            $riskSource = $riskResult['source'];
+        }
         $riskParams = $this->riskService->getReturnParameters($riskLevel);
 
         $expectedReturn = $riskParams['expected_return_typical'] / 100;
@@ -159,6 +170,7 @@ class RetirementProjectionService
             'current_value' => round($currentValue, 2),
             'monthly_contribution' => round($monthlyContribution, 2),
             'risk_level' => $riskLevel,
+            'risk_source' => $riskSource,
             'expected_return' => $riskParams['expected_return_typical'],
             'volatility' => $riskParams['volatility'],
             'years_to_retirement' => $yearsToRetirement,
@@ -374,6 +386,20 @@ class RetirementProjectionService
     {
         $result = [];
         $currentYear = (int) date('Y');
+        $startValue = $simulation['summary']['start_value'] ?? 0;
+
+        // Add year 0 (current year) with current value - all bands start at the same point
+        $result[] = [
+            'year' => $currentYear,
+            'year_number' => 0,
+            'percentile_5' => round($startValue, 2),
+            'percentile_10' => round($startValue, 2),
+            'percentile_15' => round($startValue, 2),
+            'percentile_20' => round($startValue, 2),
+            'percentile_50' => round($startValue, 2),
+            'percentile_75' => round($startValue, 2),
+            'percentile_90' => round($startValue, 2),
+        ];
 
         foreach ($simulation['year_by_year'] as $yearData) {
             $yearIndex = $yearData['year'];
@@ -463,20 +489,39 @@ class RetirementProjectionService
      */
     private function getUserRiskLevel(User $user): string
     {
+        return $this->getUserRiskLevelWithSource($user)['level'];
+    }
+
+    /**
+     * Get user's risk level with source tracking.
+     *
+     * @return array{level: string, source: string}
+     */
+    private function getUserRiskLevelWithSource(User $user): array
+    {
         // Check risk profile via service
         $riskProfile = $this->riskService->getRiskProfile($user->id);
         if ($riskProfile && isset($riskProfile['risk_level'])) {
-            return $riskProfile['risk_level'];
+            return [
+                'level' => $riskProfile['risk_level'],
+                'source' => 'profile',
+            ];
         }
 
         // Check DC pensions for custom risk
         foreach ($user->dcPensions as $pension) {
             if ($pension->risk_preference) {
-                return $pension->risk_preference;
+                return [
+                    'level' => $pension->risk_preference,
+                    'source' => 'profile',
+                ];
             }
         }
 
-        return 'medium';
+        return [
+            'level' => 'medium',
+            'source' => 'default',
+        ];
     }
 
     /**
