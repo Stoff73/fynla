@@ -55,45 +55,47 @@
           <p class="text-sm text-red-800">{{ projectionsError }}</p>
         </div>
 
-        <!-- Portfolio Projection Chart -->
+        <!-- Portfolio Projection Chart - Matching pension chart style exactly -->
         <div v-else-if="portfolioProjection && selectedProjectionData">
-          <!-- Summary Cards -->
-          <div class="grid grid-cols-2 gap-4 mb-6">
-            <!-- Current Portfolio Card -->
-            <div class="bg-gray-50 rounded-lg p-4">
-              <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Current Total Portfolio</p>
-              <p class="text-2xl font-bold text-gray-900">{{ formatCurrency(totalPortfolioValue) }}</p>
-              <p class="text-sm text-gray-500 mt-1">
-                <span class="text-green-600 font-medium">+{{ formatCurrency(portfolioProjection.estimated_monthly_contribution) }}</span> /month
-              </p>
+          <!-- Header Row -->
+          <div class="chart-header">
+            <h3 class="chart-title">Portfolio Projection</h3>
+            <div class="chart-header-right">
+              <span v-if="portfolioProjection.risk_level" class="risk-badge-corner">
+                {{ formatRiskLevel(portfolioProjection.risk_level) }} Risk
+              </span>
+              <select
+                v-model="selectedProjectionYears"
+                @click.stop
+                @change="loadProjections"
+                class="period-selector"
+              >
+                <option :value="5">5 Years</option>
+                <option :value="10">10 Years</option>
+                <option :value="20">20 Years</option>
+                <option :value="30">30 Years</option>
+              </select>
             </div>
+          </div>
 
-            <!-- Future Value Card -->
-            <div class="bg-blue-50 rounded-lg p-4">
-              <div class="flex items-center justify-between mb-1">
-                <p class="text-xs text-blue-600 uppercase tracking-wide">Projected Value (95%)</p>
-                <select
-                  v-model="selectedProjectionYears"
-                  @click.stop
-                  @change="loadProjections"
-                  class="px-2 py-1 text-xs border border-blue-200 rounded bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option :value="5">5 Years</option>
-                  <option :value="10">10 Years</option>
-                  <option :value="20">20 Years</option>
-                  <option :value="30">30 Years</option>
-                </select>
-              </div>
-              <p class="text-2xl font-bold text-blue-900">{{ formatCurrency(selectedProjectionData?.percentiles?.p5) }}</p>
-              <p class="text-sm text-blue-600 mt-1">
-                in {{ selectedProjectionYears }} years
-              </p>
+          <!-- Summary Cards - Compact style matching pension chart -->
+          <div class="summary-row">
+            <div class="summary-item blue">
+              <span class="summary-item-label">Current Portfolio</span>
+              <span class="summary-item-value">{{ formatCurrency(totalPortfolioValue) }}</span>
+            </div>
+            <div class="summary-item purple">
+              <span class="summary-item-label">Projected Value (95%)</span>
+              <span class="summary-item-value">{{ formatCurrency(selectedProjectionData?.percentiles?.p5) }}</span>
             </div>
           </div>
 
           <InvestmentProjectionChart
             :data="selectedProjectionData"
             title="Portfolio Value"
+            :risk-source="portfolioProjection.risk_source"
+            :expected-return="portfolioProjection.expected_return"
+            :risk-level="portfolioProjection.risk_level"
           />
         </div>
 
@@ -257,6 +259,116 @@ export default {
       const base = this.$route.path.startsWith('/preview') ? '/preview' : '';
       this.$router.push(`${base}/net-worth/investment-detail`);
     },
+
+    formatRiskLevel(level) {
+      const levels = {
+        low: 'Low',
+        lower_medium: 'Lower-Medium',
+        medium: 'Medium',
+        upper_medium: 'Upper-Medium',
+        high: 'High',
+      };
+      return levels[level] || level || 'Unknown';
+    },
   },
 };
 </script>
+
+<style scoped>
+/* Chart styles - matching pension chart exactly */
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.chart-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+}
+
+.chart-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.risk-badge-corner {
+  display: inline-block;
+  padding: 4px 10px;
+  background: #eff6ff;
+  color: #2563eb;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.period-selector {
+  padding: 6px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #374151;
+  background: white;
+  cursor: pointer;
+}
+
+.period-selector:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+/* Summary Row - matching pension chart style exactly */
+.summary-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.summary-item {
+  padding: 12px 16px;
+  border-radius: 8px;
+}
+
+.summary-item.blue {
+  background: #eff6ff;
+}
+
+.summary-item.purple {
+  background: #f5f3ff;
+}
+
+.summary-item-label {
+  display: block;
+  font-size: 12px;
+  color: #6b7280;
+  margin-bottom: 4px;
+}
+
+.summary-item-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+}
+
+@media (max-width: 640px) {
+  .summary-row {
+    grid-template-columns: 1fr;
+  }
+
+  .chart-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .chart-header-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+</style>

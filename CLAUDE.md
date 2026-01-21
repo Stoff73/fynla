@@ -2,6 +2,15 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## CRITICAL WARNING - READ FIRST
+
+**NEVER MENTION OPCACHE.** Do not suggest OPcache as a solution, do not mention clearing OPcache, do not reference OPcache in any troubleshooting. If something isn't working on production, the issue is ALWAYS one of:
+1. A file wasn't uploaded to production
+2. A bug in the code
+3. Laravel cache needs clearing: `php artisan cache:clear`
+
+OPcache is NOT the problem. EVER. Do not default to this.
+
 ## Project Overview
 
 **Fynla** is a UK-focused comprehensive financial planning application (Laravel 10 + Vue.js 3 + MySQL 8). It covers five integrated modules: Protection, Savings, Investment, Retirement, and Estate Planning.

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
+use App\Models\DCPension;
+use App\Models\Investment\InvestmentAccount;
 use App\Services\Risk\RiskPreferenceService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -46,11 +48,30 @@ class RecalculateRiskProfileJob implements ShouldQueue
 
         try {
             $result = $riskPreferenceService->calculateAndSetRiskLevel($this->userId);
+            $newRiskLevel = $result['risk_level'];
 
             Log::info("Risk profile recalculated for user {$this->userId}", [
-                'new_level' => $result['risk_level'],
+                'new_level' => $newRiskLevel,
                 'trigger' => $this->trigger,
             ]);
+
+            // Backfill investment accounts without risk_preference
+            $accountsUpdated = InvestmentAccount::where('user_id', $this->userId)
+                ->whereNull('risk_preference')
+                ->update(['risk_preference' => $newRiskLevel]);
+
+            // Backfill DC pensions without risk_preference
+            $pensionsUpdated = DCPension::where('user_id', $this->userId)
+                ->whereNull('risk_preference')
+                ->update(['risk_preference' => $newRiskLevel]);
+
+            if ($accountsUpdated > 0 || $pensionsUpdated > 0) {
+                Log::info("Backfilled risk_preference for user {$this->userId}", [
+                    'accounts_updated' => $accountsUpdated,
+                    'pensions_updated' => $pensionsUpdated,
+                    'risk_level' => $newRiskLevel,
+                ]);
+            }
         } catch (\Exception $e) {
             Log::error("Failed to recalculate risk profile for user {$this->userId}", [
                 'error' => $e->getMessage(),

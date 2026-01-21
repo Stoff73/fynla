@@ -28,47 +28,44 @@
     <div v-else-if="portfolioProjection" class="content">
       <!-- Two Column Layout: Projection + Analysis Summaries -->
       <div class="top-section">
-        <!-- Left: Portfolio Projection -->
-        <div class="projection-panel">
-          <div class="panel-header">
-            <h2 class="panel-title">Portfolio Projection</h2>
-            <select
-              v-model="selectedProjectionYears"
-              @change="onPeriodChange"
-              class="period-selector"
-            >
-              <option :value="5">5 Years</option>
-              <option :value="10">10 Years</option>
-              <option :value="20">20 Years</option>
-              <option :value="30">30 Years</option>
-            </select>
-          </div>
-
-          <!-- Summary Cards -->
-          <div class="projection-summary">
-            <div class="summary-card">
-              <p class="card-label">Current Total Portfolio</p>
-              <p class="card-value">{{ formatCurrency(totalPortfolioValue) }}</p>
-              <p class="card-subtext">
-                <span class="text-green-600 font-medium">+{{ formatCurrency(portfolioProjection.estimated_monthly_contribution) }}</span> /month
-              </p>
-            </div>
-
-            <div class="summary-card highlight">
-              <p class="card-label">Projected ({{ selectedProjectionYears }}yr)</p>
-              <p class="card-value text-blue-900">{{ formatCurrency(selectedProjectionData?.percentiles?.p5) }}</p>
-              <p class="card-subtext">95% confidence</p>
+        <!-- Left: Portfolio Projection - Matching pension chart style -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3 class="chart-title">Portfolio Projection</h3>
+            <div class="chart-header-right">
+              <span v-if="portfolioProjection.risk_level" class="risk-badge-corner">
+                {{ formatRiskLevel(portfolioProjection.risk_level) }} Risk
+              </span>
+              <select
+                v-model="selectedProjectionYears"
+                @change="onPeriodChange"
+                class="period-selector"
+              >
+                <option :value="5">5 Years</option>
+                <option :value="10">10 Years</option>
+                <option :value="20">20 Years</option>
+                <option :value="30">30 Years</option>
+              </select>
             </div>
           </div>
-
-          <!-- Chart -->
-          <div class="chart-container">
-            <InvestmentProjectionChart
-              v-if="selectedProjectionData"
-              :data="selectedProjectionData"
-              title="Portfolio Value"
-            />
+          <div class="summary-row">
+            <div class="summary-item blue">
+              <span class="summary-item-label">Current Portfolio</span>
+              <span class="summary-item-value">{{ formatCurrency(totalPortfolioValue) }}</span>
+            </div>
+            <div class="summary-item purple">
+              <span class="summary-item-label">Projected Value (95%)</span>
+              <span class="summary-item-value">{{ formatCurrency(selectedProjectionData?.percentiles?.p5) }}</span>
+            </div>
           </div>
+          <InvestmentProjectionChart
+            v-if="selectedProjectionData"
+            :data="selectedProjectionData"
+            title="Portfolio Value"
+            :risk-source="portfolioProjection.risk_source"
+            :expected-return="portfolioProjection.expected_return"
+            :risk-level="portfolioProjection.risk_level"
+          />
         </div>
 
         <!-- Right: Analysis Summaries -->
@@ -605,27 +602,42 @@ export default {
   margin-bottom: 32px;
 }
 
-/* Projection Panel */
-.projection-panel {
+/* Chart Card - matching pension chart style exactly */
+.chart-card {
   background: white;
   border-radius: 12px;
   padding: 24px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   border: 1px solid #e5e7eb;
 }
 
-.panel-header {
+.chart-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
-.panel-title {
+.chart-title {
   font-size: 18px;
   font-weight: 600;
   color: #111827;
   margin: 0;
+}
+
+.chart-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.risk-badge-corner {
+  display: inline-block;
+  padding: 4px 10px;
+  background: #eff6ff;
+  color: #2563eb;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .period-selector {
@@ -643,46 +655,38 @@ export default {
   border-color: #3b82f6;
 }
 
-.projection-summary {
+/* Summary Row - matching pension chart style exactly */
+.summary-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, 1fr);
   gap: 16px;
   margin-bottom: 20px;
 }
 
-.summary-card {
-  background: #f9fafb;
+.summary-item {
+  padding: 12px 16px;
   border-radius: 8px;
-  padding: 16px;
 }
 
-.summary-card.highlight {
+.summary-item.blue {
   background: #eff6ff;
 }
 
-.card-label {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #6b7280;
-  margin: 0 0 6px 0;
+.summary-item.purple {
+  background: #f5f3ff;
 }
 
-.card-value {
-  font-size: 22px;
-  font-weight: 700;
-  color: #111827;
-  margin: 0 0 4px 0;
-}
-
-.card-subtext {
+.summary-item-label {
+  display: block;
   font-size: 12px;
   color: #6b7280;
-  margin: 0;
+  margin-bottom: 4px;
 }
 
-.chart-container {
-  margin-top: 8px;
+.summary-item-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
 }
 
 /* Analysis Panels */
@@ -979,7 +983,7 @@ export default {
     padding: 16px;
   }
 
-  .projection-summary {
+  .summary-row {
     grid-template-columns: 1fr;
   }
 
@@ -991,14 +995,19 @@ export default {
     min-width: 100%;
   }
 
-  .panel-header {
+  .chart-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
   }
 
-  .card-value {
-    font-size: 20px;
+  .chart-header-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .summary-item-value {
+    font-size: 16px;
   }
 }
 </style>

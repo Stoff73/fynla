@@ -239,40 +239,42 @@
             </div>
           </div>
 
-          <!-- Risk Level Section -->
-          <div v-if="hasRiskProfile" class="pt-4 border-t border-gray-200">
-            <RiskLevelSelector
-              v-model="formData.risk_preference"
-              :allowed-levels="allowedRiskLevels"
-              :profile-level="mainRiskLevel"
-              :compact="true"
-              :show-allocation="false"
-              :show-returns="false"
-              :collapsible="true"
-              label="Risk Level for This Pension"
-            />
-            <p class="mt-2 text-xs text-gray-500">
-              Your main risk profile is <strong>{{ mainRiskLevelDisplay }}</strong>.
-              You can adjust this pension within one level of your main preference.
-            </p>
-          </div>
-          <div v-else class="pt-4 border-t border-gray-200">
-            <div class="bg-gray-50 rounded-md p-3">
-              <div class="flex items-start gap-2">
-                <svg class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <div>
-                  <p class="text-sm text-blue-800">
-                    <router-link to="/risk-profile" class="font-medium underline hover:text-blue-900">
-                      Set your risk profile
-                    </router-link>
-                    to get personalised risk guidance for your pension investments.
-                  </p>
+          <!-- Risk Level Section (hidden during onboarding) -->
+          <template v-if="!isOnboarding">
+            <div v-if="hasRiskProfile" class="pt-4 border-t border-gray-200">
+              <RiskLevelSelector
+                v-model="formData.risk_preference"
+                :allowed-levels="allowedRiskLevels"
+                :profile-level="mainRiskLevel"
+                :compact="true"
+                :show-allocation="false"
+                :show-returns="false"
+                :collapsible="true"
+                label="Risk Level for This Pension"
+              />
+              <p class="mt-2 text-xs text-gray-500">
+                Your main risk profile is <strong>{{ mainRiskLevelDisplay }}</strong>.
+                You can adjust this pension within one level of your main preference.
+              </p>
+            </div>
+            <div v-else class="pt-4 border-t border-gray-200">
+              <div class="bg-gray-50 rounded-md p-3">
+                <div class="flex items-start gap-2">
+                  <svg class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div>
+                    <p class="text-sm text-blue-800">
+                      <router-link to="/risk-profile" class="font-medium underline hover:text-blue-900">
+                        Set your risk profile
+                      </router-link>
+                      to get personalised risk guidance for your pension investments.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          </template>
 
           <!-- Salary Sacrifice (Workplace Pensions Only) -->
           <div v-if="isWorkplacePension" class="flex items-center">
@@ -344,6 +346,10 @@ export default {
       default: null,
     },
     isEdit: {
+      type: Boolean,
+      default: false,
+    },
+    isOnboarding: {
       type: Boolean,
       default: false,
     },

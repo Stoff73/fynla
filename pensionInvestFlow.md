@@ -804,3 +804,361 @@ if ($holdingsCount > 0 && $analysis['diversification_score'] < 70) {
 | AccountPerformancePanel (Diversification) | Hidden when no recommendations | Shows "Enter Holdings" or "Well Diversified" |
 | PensionDetail (Expected Return) | Always showed percentage | Shows "Enter Holdings" when no holdings |
 | InvestmentAgent | Triggered diversification rec even with no holdings | Only triggers when holdings exist |
+
+---
+
+# Risk Level Section - Onboarding vs Dashboard (21 January 2026)
+
+## Summary
+
+Risk level indicators should not be shown during onboarding since the user's risk profile has not been calculated yet. The forms now detect their context and conditionally display the risk section.
+
+## Behavior
+
+| Context | Risk Profile Exists | Display |
+|---------|---------------------|---------|
+| **Onboarding** | Any | Hidden (no risk section shown) |
+| **Dashboard** | Yes | Risk level selector with allowed levels (±1 from main profile) |
+| **Dashboard** | No | "Set your risk profile" link to /risk-profile |
+
+## Files Changed
+
+### resources/js/components/Investment/AccountForm.vue
+- **Added prop**: `isOnboarding` (Boolean, default: false)
+- **Change**: Wrapped risk section with `<template v-if="!isOnboarding">` to hide during onboarding
+```vue
+<!-- Risk Level Section (hidden during onboarding) -->
+<template v-if="!isOnboarding">
+  <div v-if="hasRiskProfile" class="pt-4 border-t border-gray-200">
+    <RiskLevelSelector ... />
+  </div>
+  <div v-else class="pt-4 border-t border-gray-200">
+    <!-- "Set your risk profile" link -->
+  </div>
+</template>
+```
+
+### resources/js/components/Retirement/DCPensionForm.vue
+- **Added prop**: `isOnboarding` (Boolean, default: false)
+- **Change**: Wrapped risk section with `<template v-if="!isOnboarding">` to hide during onboarding
+```vue
+<!-- Risk Level Section (hidden during onboarding) -->
+<template v-if="!isOnboarding">
+  <div v-if="hasRiskProfile" class="pt-4 border-t border-gray-200">
+    <RiskLevelSelector ... />
+  </div>
+  <div v-else class="pt-4 border-t border-gray-200">
+    <!-- "Set your risk profile" link -->
+  </div>
+</template>
+```
+
+### resources/js/components/Onboarding/steps/AssetsStep.vue
+- **Change**: Pass `:is-onboarding="true"` to AccountForm and DCPensionForm
+```vue
+<AccountForm
+  v-if="showInvestmentForm"
+  :show="showInvestmentForm"
+  :account="editingInvestment"
+  :is-onboarding="true"
+  @close="closeInvestmentForm"
+  @save="handleInvestmentSaved"
+/>
+
+<DCPensionForm
+  v-if="showPensionForm && pensionFormType === 'dc'"
+  :pension="editingPension"
+  :is-onboarding="true"
+  @close="closePensionForm"
+  @save="handlePensionSaved"
+/>
+```
+
+## Risk Profile Data Flow
+
+1. **Dashboard**: Forms call `loadRiskProfile()` on mount → `riskService.getProfile()` → API auto-calculates if none exists
+2. **Onboarding**: Risk section hidden entirely, no API calls for risk profile
+3. **After onboarding**: User can set up risk profile from `/risk-profile` page or when editing accounts/pensions from dashboard
+
+---
+
+# Auto-Assign Risk Level to Accounts and Pensions (21 January 2026)
+
+## Summary
+
+Risk level is now automatically assigned to investment accounts and DC pensions to ensure consistent risk allocation across all products.
+
+## Behavior
+
+| Scenario | What Happens |
+|----------|--------------|
+| **Create account/pension (profile exists)** | Auto-assign main risk level |
+| **Create account/pension (no profile)** | risk_preference = NULL |
+| **Risk profile calculated** | Backfill all NULL risk_preference with main level |
+| **Onboarding flow** | Accounts created → profile calculated later → backfill triggered |
+
+## Files Changed
+
+### app/Http/Controllers/Api/InvestmentController.php
+- **Method**: `storeAccount()`
+- **Change**: Auto-assign main risk level before creating account
+```php
+// Auto-assign main risk level if user has a risk profile
+$riskProfile = RiskProfile::where('user_id', $user->id)->first();
+if ($riskProfile && $riskProfile->risk_level) {
+    $validated['risk_preference'] = $riskProfile->risk_level;
+}
+
+$account = InvestmentAccount::create($validated);
+```
+
+### app/Http/Controllers/Api/RetirementController.php
+- **Method**: `storeDCPension()`
+- **Change**: Auto-assign main risk level before creating pension
+```php
+// Auto-assign main risk level if user has a risk profile
+$riskProfile = RiskProfile::where('user_id', $user->id)->first();
+if ($riskProfile && $riskProfile->risk_level) {
+    $data['risk_preference'] = $riskProfile->risk_level;
+}
+
+$pension = DCPension::create($data);
+```
+
+### app/Jobs/RecalculateRiskProfileJob.php
+- **Method**: `handle()`
+- **Change**: After calculating risk profile, backfill accounts/pensions without risk_preference
+```php
+// Backfill investment accounts without risk_preference
+$accountsUpdated = InvestmentAccount::where('user_id', $this->userId)
+    ->whereNull('risk_preference')
+    ->update(['risk_preference' => $newRiskLevel]);
+
+// Backfill DC pensions without risk_preference
+$pensionsUpdated = DCPension::where('user_id', $this->userId)
+    ->whereNull('risk_preference')
+    ->update(['risk_preference' => $newRiskLevel]);
+```
+
+## Onboarding Flow Example
+
+1. User starts onboarding
+2. User adds investment account → `risk_preference = NULL` (no profile yet)
+3. User adds DC pension → `risk_preference = NULL` (no profile yet)
+4. User completes profile data (income, dependants, etc.)
+5. `RecalculateRiskProfileJob` triggered → calculates risk level
+6. Job backfills: account gets `risk_preference = 'medium'`, pension gets `risk_preference = 'medium'`
+7. User can later override individual product risk from dashboard (±1 level)
+
+## Dashboard Flow Example
+
+1. User has existing risk profile (e.g., 'medium')
+2. User adds new investment account
+3. Account auto-assigned `risk_preference = 'medium'`
+4. User can later override from dashboard (±1 level allowed)
+
+---
+
+# Risk Badge Display on Dashboard Cards (21 January 2026)
+
+## Summary
+
+Risk level badges are displayed in the top right corner of investment account cards and DC pension cards on the dashboard for quick visual reference.
+
+## Display Behavior
+
+| Card Type | Badge Shown | Position |
+|-----------|-------------|----------|
+| Investment Account | Abbreviated risk level (e.g., "Med", "L-Med") | Top right corner |
+| DC Pension | Abbreviated risk level (e.g., "Med", "L-Med") | Top right corner |
+| DB Pension | No risk badge (DB pensions don't have risk allocation) | N/A |
+| State Pension | No risk badge | N/A |
+
+## Files Changed
+
+### resources/js/components/NetWorth/InvestmentList.vue
+- **Change**: Moved RiskBadge to top right corner with absolute positioning
+- **CSS**: Added `position: relative` to `.compact-account-card`
+- **CSS**: Added `.compact-account-card :deep(.risk-badge-corner)` for absolute positioning
+
+```vue
+<div class="compact-account-card">
+  <!-- Risk Badge - Top Right Corner -->
+  <RiskBadge
+    v-if="account.risk_preference"
+    :level="account.risk_preference"
+    size="sm"
+    :abbreviated="true"
+    :has-custom-risk="account.has_custom_risk"
+    class="risk-badge-corner"
+  />
+  <div class="card-header">
+    <!-- Only show badge for joint accounts -->
+    <span v-if="account.ownership_type === 'joint'" ...>
+```
+
+### resources/js/components/NetWorth/PensionList.vue
+- **Change**: Moved RiskBadge outside of `card-compact-header` to top right corner
+- **CSS**: Added `position: relative` to `.pension-card-standalone`
+- **CSS**: Added `.pension-card-standalone :deep(.pension-risk-badge)` for absolute positioning
+
+```vue
+<div class="pension-card-standalone">
+  <!-- Risk Badge - Top Right Corner -->
+  <RiskBadge
+    v-if="pension.risk_preference"
+    :level="pension.risk_preference"
+    size="xs"
+    :abbreviated="true"
+    class="pension-risk-badge"
+  />
+  <div class="card-compact-header">
+    <span class="badge badge-dc">{{ formatDCPensionType(pension.pension_type) }}</span>
+  </div>
+  ...
+</div>
+```
+
+## CSS Implementation Note
+
+Vue scoped CSS requires `:deep()` selector to style child components:
+
+```css
+.compact-account-card {
+  position: relative;
+}
+
+.compact-account-card :deep(.risk-badge-corner) {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 10;
+}
+```
+
+## Ownership Badge Changes
+
+Also removed "Individual" ownership label from investment cards - only "Joint" label is now shown for joint accounts.
+
+---
+
+# Monte Carlo Projection - Risk-Based Growth Rates (21 January 2026)
+
+## Summary
+
+Monte Carlo projections for investments and pensions now use risk-based growth rates. The system tracks whether the growth rate comes from the user's risk profile or uses a default value.
+
+## Risk Source Tracking
+
+| Scenario | Risk Source | Growth Rate | Message Displayed |
+|----------|-------------|-------------|-------------------|
+| **No risk profile** | `default` | 5% | "No risk set, using default 5%" |
+| **Risk profile exists** | `profile` | Based on risk level | "Using risk based X% for [risk level] risk" |
+
+## Risk Level Returns
+
+| Risk Level | Expected Return |
+|------------|-----------------|
+| Low | 2% |
+| Lower-Medium | 3.5% |
+| Medium | 5% |
+| Upper-Medium | 6.5% |
+| High | 8% |
+
+## Backend Flow
+
+### Investment Projections
+
+**InvestmentProjectionService.php** → `calculatePortfolioRiskWithSource()`
+
+```
+1. Check if any accounts have custom risk_preference
+2. Check if user has a main risk profile
+3. If profile exists → use profile-based returns, source = 'profile'
+4. If no profile → use default 5%, source = 'default'
+5. Return: { params, source, expected_return, risk_level }
+```
+
+**Response includes:**
+```php
+'risk_source' => 'profile' | 'default',
+'expected_return' => float,
+'risk_level' => string | null,
+```
+
+### Retirement Projections
+
+**RetirementProjectionService.php** → `getUserRiskLevelWithSource()`
+
+```
+1. Check user's risk profile
+2. If profile exists → use profile risk level, source = 'profile'
+3. Check DC pension risk preferences as fallback
+4. If nothing found → use 'medium', source = 'default'
+5. Return: { level, source }
+```
+
+**Response includes:**
+```php
+'risk_source' => 'profile' | 'default',
+'expected_return' => float,
+'risk_level' => string,
+```
+
+## Frontend Display
+
+### Investment Performance Tab (Performance.vue)
+
+**Chart Header Layout:**
+```
++----------------------------------------------------------+
+| Portfolio Projection     [Medium Risk] [10 Years ▼]      |
++----------------------------------------------------------+
+| Current Portfolio          | Projected Value (95%)       |
+| £150,000                   | £245,000                    |
++----------------------------------------------------------+
+|                                                          |
+|        [Monte Carlo Area Chart - 4 bands]                |
+|                                                          |
++----------------------------------------------------------+
+```
+
+**Risk Message (below chart):**
+- Default: "No risk set, using default 5%"
+- Profile: "Using risk based 6.5% for Upper-Medium risk"
+
+### Pension List (PensionList.vue)
+
+Same layout as investment with:
+- Risk badge in header
+- Period selector dropdown
+- Compact summary cards
+- 4 probability bands with blue/green colors
+- Risk message footer
+
+## Chart Styling
+
+**Colors (both charts):**
+```javascript
+colors: ['#1e3a5f', '#2563eb', '#059669', '#34d399']
+// Dark blue, Blue, Green, Light green
+```
+
+**Probability Bands:**
+- 95% Probability (percentile_5) - Dark blue
+- 90% Probability (percentile_10) - Blue
+- 85% Probability (percentile_15) - Green
+- 80% Probability (percentile_20) - Light green
+
+## Files Changed
+
+**Backend:**
+- `app/Services/Investment/InvestmentProjectionService.php` - Added `risk_source` tracking
+- `app/Services/Retirement/RetirementProjectionService.php` - Added `risk_source` tracking
+
+**Frontend:**
+- `resources/js/components/Investment/Performance.vue` - Chart header, summary cards, risk badge
+- `resources/js/components/Investment/InvestmentProjectionChart.vue` - 4 bands, colors, risk message
+- `resources/js/components/Retirement/PensionPotProjectionChart.vue` - Colors, risk message
+- `resources/js/components/NetWorth/PensionList.vue` - Pass risk props to chart
+- `resources/js/components/NetWorth/InvestmentProjections.vue` - Pass risk props to chart

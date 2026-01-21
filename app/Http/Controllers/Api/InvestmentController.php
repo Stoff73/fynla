@@ -306,6 +306,12 @@ class InvestmentController extends Controller
             $validated['ownership_percentage'] = $validated['ownership_percentage'] ?? 100.00;
         }
 
+        // Auto-assign main risk level if user has a risk profile
+        $riskProfile = RiskProfile::where('user_id', $user->id)->first();
+        if ($riskProfile && $riskProfile->risk_level) {
+            $validated['risk_preference'] = $riskProfile->risk_level;
+        }
+
         $account = InvestmentAccount::create($validated);
 
         // No auto-created holdings - user must add holdings manually

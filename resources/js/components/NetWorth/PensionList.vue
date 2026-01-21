@@ -457,8 +457,8 @@ export default {
     },
 
     showStrategies() {
-      const status = this.projections?.income_drawdown?.on_track_status;
-      return status !== 'Excellent' && status !== 'On Track';
+      // Always show strategies section if we have projections
+      return !!this.projections?.income_drawdown;
     },
 
     strategiesOnTrack() {
