@@ -39,6 +39,7 @@ class SavingsAccount extends Model
         // Junior ISA beneficiary fields
         'beneficiary_id',
         'beneficiary_name',
+        'beneficiary_dob',
     ];
 
     protected $casts = [
@@ -49,6 +50,7 @@ class SavingsAccount extends Model
         'is_emergency_fund' => 'boolean',
         'is_isa' => 'boolean',
         'isa_subscription_amount' => 'decimal:2',
+        'beneficiary_dob' => 'date',
     ];
 
     /**

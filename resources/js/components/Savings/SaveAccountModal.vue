@@ -232,17 +232,35 @@
                 </div>
               </div>
 
-              <!-- Custom Beneficiary Name (if "Other" selected) -->
-              <div v-if="isJuniorISA && formData.beneficiary_id === 'other'">
-                <label class="block text-sm font-medium text-gray-700 mb-1">
-                  Beneficiary Name
-                </label>
-                <input
-                  v-model="formData.beneficiary_name"
-                  type="text"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Enter child's full name"
-                />
+              <!-- Custom Beneficiary Details (if "Other" selected) -->
+              <div v-if="isJuniorISA && formData.beneficiary_id === 'other'" class="space-y-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">
+                    Beneficiary Name
+                  </label>
+                  <input
+                    v-model="formData.beneficiary_name"
+                    type="text"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter child's full name"
+                  />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">
+                    Date of Birth
+                  </label>
+                  <input
+                    v-model="formData.beneficiary_dob"
+                    type="date"
+                    :max="maxBeneficiaryDob"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <p class="text-xs text-gray-500 mt-1">Required to show correct ISA guidance</p>
+                </div>
+                <!-- Age 16-17 guidance for "Other" beneficiary -->
+                <div v-if="isOtherBeneficiary16Or17" class="p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-800">
+                  <strong>Note:</strong> At 16-17, they can also open their own adult Cash ISA and Stocks & Shares ISA (£20,000 total) which they can access anytime. Combined with the Junior ISA (£9,000), they could save up to £29,000 per year.
+                </div>
               </div>
 
               <!-- ISA Type (not shown for Junior ISA - it's always Cash) -->
@@ -422,6 +440,7 @@ export default {
         joint_owner_id: null,
         beneficiary_id: '',
         beneficiary_name: '',
+        beneficiary_dob: '',
       },
     };
   },
@@ -462,6 +481,24 @@ export default {
 
     isBeneficiary16Or17() {
       return this.selectedBeneficiaryAge !== null && this.selectedBeneficiaryAge >= 16 && this.selectedBeneficiaryAge <= 17;
+    },
+
+    maxBeneficiaryDob() {
+      // Child must be under 18, so max DOB is today
+      return new Date().toISOString().split('T')[0];
+    },
+
+    otherBeneficiaryAge() {
+      if (!this.formData.beneficiary_dob) {
+        return null;
+      }
+      const dob = new Date(this.formData.beneficiary_dob);
+      const today = new Date();
+      return Math.floor((today - dob) / (365.25 * 24 * 60 * 60 * 1000));
+    },
+
+    isOtherBeneficiary16Or17() {
+      return this.otherBeneficiaryAge !== null && this.otherBeneficiaryAge >= 16 && this.otherBeneficiaryAge <= 17;
     },
   },
 
@@ -523,6 +560,7 @@ export default {
         joint_owner_id: this.account.joint_owner_id || null,
         beneficiary_id: this.account.beneficiary_id || '',
         beneficiary_name: this.account.beneficiary_name || '',
+        beneficiary_dob: this.formatDateForInput(this.account.beneficiary_dob) || '',
       };
     },
 
@@ -573,6 +611,7 @@ export default {
         // Junior ISA beneficiary fields
         beneficiary_id: this.isJuniorISA && this.formData.beneficiary_id !== 'other' ? this.formData.beneficiary_id : null,
         beneficiary_name: this.isJuniorISA ? this.formData.beneficiary_name : null,
+        beneficiary_dob: this.isJuniorISA && this.formData.beneficiary_id === 'other' ? this.formData.beneficiary_dob : null,
       };
 
       return data;
