@@ -32,7 +32,19 @@
       </div>
     </div>
 
-    <p v-else class="empty-message">{{ emptyMessage }}</p>
+    <div v-else class="empty-state">
+      <p class="empty-message">{{ emptyMessage }}</p>
+      <button
+        v-if="showAddButton"
+        @click="$emit('add-account')"
+        class="add-account-btn"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+        </svg>
+        Add Account
+      </button>
+    </div>
   </div>
 </template>
 
@@ -61,9 +73,13 @@ export default {
       type: Boolean,
       default: false,
     },
+    showAddButton: {
+      type: Boolean,
+      default: false,
+    },
   },
 
-  emits: ['select-account'],
+  emits: ['select-account', 'add-account'],
 
   methods: {
     getAccountName(account) {
@@ -233,11 +249,38 @@ export default {
   color: #9ca3af;
 }
 
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+}
+
 .empty-message {
   font-size: 13px;
   color: #9ca3af;
   text-align: center;
-  padding: 8px 0;
   margin: 0;
+}
+
+.add-account-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #7c3aed;
+  background: #f5f3ff;
+  border: 1px solid #ddd6fe;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.add-account-btn:hover {
+  background: #ede9fe;
+  border-color: #c4b5fd;
 }
 </style>

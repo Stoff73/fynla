@@ -5,7 +5,9 @@
       title="Current Accounts"
       :accounts="groupedAccounts.current"
       empty-message="No current accounts"
+      :show-add-button="true"
       @select-account="handleSelectAccount"
+      @add-account="handleAddCurrentAccount"
     />
 
     <!-- Current Accounts Monthly Flow -->
@@ -32,7 +34,9 @@
       title="Savings Accounts"
       :accounts="groupedAccounts.savings"
       empty-message="No savings accounts"
+      :show-add-button="true"
       @select-account="handleSelectAccount"
+      @add-account="handleAddSavingsAccount"
     />
 
     <!-- Savings Monthly Flow -->
@@ -99,7 +103,7 @@ export default {
     },
   },
 
-  emits: ['select-account'],
+  emits: ['select-account', 'add-account'],
 
   data() {
     return {
@@ -139,6 +143,14 @@ export default {
   methods: {
     handleSelectAccount(account) {
       this.$emit('select-account', account);
+    },
+
+    handleAddCurrentAccount() {
+      this.$emit('add-account', 'current_account');
+    },
+
+    handleAddSavingsAccount() {
+      this.$emit('add-account', 'savings_account');
     },
   },
 };

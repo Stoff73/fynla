@@ -350,6 +350,10 @@ export default {
       type: Boolean,
       default: false,
     },
+    defaultAccountType: {
+      type: String,
+      default: '',
+    },
   },
 
   data() {
@@ -414,6 +418,8 @@ export default {
   mounted() {
     if (this.isEditing && this.account) {
       this.loadAccountData();
+    } else if (this.defaultAccountType) {
+      this.formData.account_type = this.defaultAccountType;
     }
   },
 

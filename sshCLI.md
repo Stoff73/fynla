@@ -1,0 +1,48 @@
+# SSH CLI Commands - fynla.org
+
+## Connect to Server
+
+```bash
+ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
+```
+
+## Navigate to Application
+
+```bash
+cd ~/www/fynla.org/public_html
+```
+
+## Cache Clearing & Optimisation
+
+```bash
+php artisan config:clear && php artisan cache:clear && php artisan view:clear && php artisan optimize
+```
+
+## Preview User Management
+
+### Delete all preview users
+
+```bash
+php artisan tinker --execute="App\Models\User::where('is_preview_user', true)->delete();"
+```
+
+### Reseed preview users
+
+```bash
+php artisan db:seed --class=PreviewUserSeeder --force
+```
+
+### Full preview user reset (delete + reseed)
+
+```bash
+php artisan tinker --execute="App\Models\User::where('is_preview_user', true)->delete();" && php artisan db:seed --class=PreviewUserSeeder --force
+```
+
+## Common Post-Deployment Sequence
+
+```bash
+cd ~/www/fynla.org/public_html
+php artisan config:clear && php artisan cache:clear && php artisan view:clear && php artisan optimize
+php artisan tinker --execute="App\Models\User::where('is_preview_user', true)->delete();"
+php artisan db:seed --class=PreviewUserSeeder --force
+```

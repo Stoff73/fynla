@@ -42,12 +42,13 @@
             :monthly-income="monthlyIncome"
             :monthly-expenditure="currentAccountExpenditure"
             @select-account="selectAccount"
+            @add-account="openAddAccountModal"
           />
         </div>
 
         <!-- Center Panel - Insights (6 cols) -->
         <div class="lg:col-span-6 space-y-6">
-          <CashInsightsPanel :goals="goals" :financial-commitments="financialCommitments" />
+          <CashInsightsPanel :financial-commitments="financialCommitments" />
         </div>
 
         <!-- Right Panel - Actions (3 cols) -->
@@ -62,6 +63,7 @@
       v-if="showAccountModal"
       :account="editingAccount"
       :is-editing="!!editingAccount"
+      :default-account-type="defaultAccountType"
       @save="handleSaveAccount"
       @close="closeAccountModal"
     />
@@ -96,6 +98,7 @@ export default {
       selectedAccount: null,
       showAccountModal: false,
       editingAccount: null,
+      defaultAccountType: '',
       // Financial commitments from user profile API
       financialCommitmentsData: null,
     };
@@ -275,6 +278,13 @@ export default {
     closeAccountModal() {
       this.showAccountModal = false;
       this.editingAccount = null;
+      this.defaultAccountType = '';
+    },
+
+    openAddAccountModal(accountType) {
+      this.editingAccount = null;
+      this.defaultAccountType = accountType;
+      this.showAccountModal = true;
     },
   },
 };
