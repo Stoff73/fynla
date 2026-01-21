@@ -975,9 +975,9 @@
             <tr class="bg-white border-l-4 border-red-500 border-t-2 border-red-300">
               <td class="px-4 py-3 text-sm font-bold text-red-900">Total Liabilities</td>
               <td class="px-4 py-3 text-sm text-right font-bold text-red-900">-{{ formatCurrency(secondDeathData.calculation?.total_liabilities || 0) }}</td>
-              <td class="px-4 py-3 text-sm text-right font-bold text-red-900">-{{ formatCurrency(secondDeathData.calculation?.total_liabilities || 0) }}</td>
+              <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-bold text-red-900">-{{ formatCurrency(secondDeathData.calculation?.total_liabilities || 0) }}</td>
               <td class="px-4 py-3 text-sm text-right font-bold text-red-900">-{{ formatCurrency(secondDeathData.calculation?.projected_liabilities || 0) }}</td>
-              <td class="px-4 py-3 text-sm text-right font-bold text-red-900">-{{ formatCurrency(secondDeathData.calculation?.projected_liabilities || 0) }}</td>
+              <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-bold text-red-900">-{{ formatCurrency(secondDeathData.calculation?.projected_liabilities || 0) }}</td>
             </tr>
 
             <!-- Net Estate Total -->
@@ -995,30 +995,30 @@
               <tr class="bg-gray-50">
                 <td class="px-4 py-3 text-sm text-gray-600 pl-8">Less: {{ secondDeathData.assets_breakdown.user.name }}'s NRB</td>
                 <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
+                <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
                 <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
-                <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
-                <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
+                <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
               </tr>
               <tr class="bg-gray-50">
                 <td class="px-4 py-3 text-sm text-gray-600 pl-8">Less: {{ secondDeathData.assets_breakdown.spouse.name }}'s NRB</td>
                 <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
+                <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
                 <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
-                <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
-                <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
+                <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
               </tr>
               <tr class="bg-gray-50" v-if="ihtData?.rnrb_available > 0">
                 <td class="px-4 py-3 text-sm text-gray-600 pl-8">Less: {{ secondDeathData.assets_breakdown.user.name }}'s RNRB</td>
                 <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency((ihtData?.rnrb_available || 0) / 2) }}</td>
+                <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency((ihtData?.rnrb_available || 0) / 2) }}</td>
                 <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency((ihtData?.rnrb_available || 0) / 2) }}</td>
-                <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency((ihtData?.rnrb_available || 0) / 2) }}</td>
-                <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency((ihtData?.rnrb_available || 0) / 2) }}</td>
+                <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency((ihtData?.rnrb_available || 0) / 2) }}</td>
               </tr>
               <tr class="bg-gray-50" v-if="ihtData?.rnrb_available > 0">
                 <td class="px-4 py-3 text-sm text-gray-600 pl-8">Less: {{ secondDeathData.assets_breakdown.spouse.name }}'s RNRB</td>
                 <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency((ihtData?.rnrb_available || 0) / 2) }}</td>
+                <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency((ihtData?.rnrb_available || 0) / 2) }}</td>
                 <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency((ihtData?.rnrb_available || 0) / 2) }}</td>
-                <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency((ihtData?.rnrb_available || 0) / 2) }}</td>
-                <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency((ihtData?.rnrb_available || 0) / 2) }}</td>
+                <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency((ihtData?.rnrb_available || 0) / 2) }}</td>
               </tr>
             </template>
             <template v-else>
@@ -1026,16 +1026,16 @@
               <tr class="bg-gray-50">
                 <td class="px-4 py-3 text-sm text-gray-600">Less: Nil Rate Band (NRB)</td>
                 <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(ihtData?.nrb_available || 0) }}</td>
+                <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(ihtData?.nrb_available || 0) }}</td>
                 <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(ihtData?.nrb_available || 0) }}</td>
-                <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(ihtData?.nrb_available || 0) }}</td>
-                <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(ihtData?.nrb_available || 0) }}</td>
+                <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(ihtData?.nrb_available || 0) }}</td>
               </tr>
               <tr class="bg-gray-50" v-if="ihtData?.rnrb_available > 0">
                 <td class="px-4 py-3 text-sm text-gray-600">Less: Residence Nil Rate Band (RNRB)</td>
                 <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(ihtData?.rnrb_available || 0) }}</td>
+                <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(ihtData?.rnrb_available || 0) }}</td>
                 <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(ihtData?.rnrb_available || 0) }}</td>
-                <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(ihtData?.rnrb_available || 0) }}</td>
-                <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(ihtData?.rnrb_available || 0) }}</td>
+                <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(ihtData?.rnrb_available || 0) }}</td>
               </tr>
             </template>
 
