@@ -283,30 +283,28 @@
                 <div class="text-[10px] font-normal text-amber-400 normal-case mt-0.5">-5 years</div>
               </th>
               <th class="px-4 py-3 text-right text-xs font-medium text-purple-600 uppercase tracking-wider">
-                <div class="flex items-center justify-end gap-1 mb-0.5">
+                <div class="flex items-center justify-end">
                   <button
                     @click="showMinus5Years = !showMinus5Years"
-                    class="flex items-center gap-0.5 px-1.5 py-0.5 hover:bg-amber-50 rounded text-[10px] text-amber-600 border border-amber-300 transition-colors"
+                    class="p-1 hover:bg-purple-100 rounded transition-colors"
                     :title="showMinus5Years ? 'Hide -5 years' : 'Show -5 years'"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3 h-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4 text-amber-500">
                       <path stroke-linecap="round" stroke-linejoin="round" :d="showMinus5Years ? 'M8.25 4.5l7.5 7.5-7.5 7.5' : 'M15.75 19.5L8.25 12l7.5-7.5'" />
                     </svg>
-                    <span class="normal-case">-5</span>
                   </button>
+                  <span class="mx-1">Age {{ secondDeathData.second_death_analysis.second_death.estimated_age_at_death }}</span>
                   <button
                     @click="showPlus5Years = !showPlus5Years"
-                    class="flex items-center gap-0.5 px-1.5 py-0.5 hover:bg-blue-50 rounded text-[10px] text-blue-600 border border-blue-300 transition-colors"
+                    class="p-1 hover:bg-purple-100 rounded transition-colors"
                     :title="showPlus5Years ? 'Hide +5 years' : 'Show +5 years'"
                   >
-                    <span class="normal-case">+5</span>
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3 h-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4 text-blue-500">
                       <path stroke-linecap="round" stroke-linejoin="round" :d="showPlus5Years ? 'M15.75 19.5L8.25 12l7.5-7.5' : 'M8.25 4.5l7.5 7.5-7.5 7.5'" />
                     </svg>
                   </button>
                 </div>
-                <div>Age {{ secondDeathData.second_death_analysis.second_death.estimated_age_at_death }}</div>
-                <div class="text-[10px] font-normal text-purple-400 normal-case mt-0.5">Life expectancy</div>
+                <div class="text-[10px] font-normal text-purple-400 normal-case mt-0.5 text-right">Life expectancy</div>
               </th>
               <th v-if="showPlus5Years" class="px-4 py-3 text-right text-xs font-medium text-blue-600 uppercase tracking-wider">
                 <div>Age {{ projectionPlus5?.estimated_age_at_death || '...' }}</div>
@@ -701,30 +699,28 @@
                 <div class="text-[10px] font-normal text-amber-400 normal-case mt-0.5">-5 years</div>
               </th>
               <th class="px-4 py-3 text-right text-xs font-medium text-purple-600 uppercase tracking-wider">
-                <div class="flex items-center justify-end gap-1 mb-0.5">
+                <div class="flex items-center justify-end">
                   <button
                     @click="showMinus5Years = !showMinus5Years"
-                    class="flex items-center gap-0.5 px-1.5 py-0.5 hover:bg-amber-50 rounded text-[10px] text-amber-600 border border-amber-300 transition-colors"
+                    class="p-1 hover:bg-purple-100 rounded transition-colors"
                     :title="showMinus5Years ? 'Hide -5 years' : 'Show -5 years'"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3 h-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4 text-amber-500">
                       <path stroke-linecap="round" stroke-linejoin="round" :d="showMinus5Years ? 'M8.25 4.5l7.5 7.5-7.5 7.5' : 'M15.75 19.5L8.25 12l7.5-7.5'" />
                     </svg>
-                    <span class="normal-case">-5</span>
                   </button>
+                  <span class="mx-1">Age {{ projection?.at_death?.estimated_age_at_death || '...' }}</span>
                   <button
                     @click="showPlus5Years = !showPlus5Years"
-                    class="flex items-center gap-0.5 px-1.5 py-0.5 hover:bg-blue-50 rounded text-[10px] text-blue-600 border border-blue-300 transition-colors"
+                    class="p-1 hover:bg-purple-100 rounded transition-colors"
                     :title="showPlus5Years ? 'Hide +5 years' : 'Show +5 years'"
                   >
-                    <span class="normal-case">+5</span>
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3 h-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4 text-blue-500">
                       <path stroke-linecap="round" stroke-linejoin="round" :d="showPlus5Years ? 'M15.75 19.5L8.25 12l7.5-7.5' : 'M8.25 4.5l7.5 7.5-7.5 7.5'" />
                     </svg>
                   </button>
                 </div>
-                <div>Age {{ projection?.at_death?.estimated_age_at_death || '...' }}</div>
-                <div class="text-[10px] font-normal text-purple-400 normal-case mt-0.5">Life expectancy</div>
+                <div class="text-[10px] font-normal text-purple-400 normal-case mt-0.5 text-right">Life expectancy</div>
               </th>
               <th v-if="showPlus5Years" class="px-4 py-3 text-right text-xs font-medium text-blue-600 uppercase tracking-wider">
                 <div>Age {{ projectionPlus5?.estimated_age_at_death || '...' }}</div>
