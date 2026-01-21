@@ -286,21 +286,23 @@
                 <div class="flex items-center justify-end gap-2">
                   <button
                     @click="showMinus5Years = !showMinus5Years"
-                    class="p-1 hover:bg-purple-100 rounded transition-colors"
+                    class="flex items-center gap-1 p-1 hover:bg-purple-100 rounded transition-colors"
                     :title="showMinus5Years ? 'Hide -5 years' : 'Show -5 years'"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-amber-500">
-                      <path stroke-linecap="round" stroke-linejoin="round" :d="showMinus5Years ? 'M15.75 19.5L8.25 12l7.5-7.5' : 'M8.25 4.5l7.5 7.5-7.5 7.5'" />
+                      <path stroke-linecap="round" stroke-linejoin="round" :d="showMinus5Years ? 'M8.25 4.5l7.5 7.5-7.5 7.5' : 'M15.75 19.5L8.25 12l7.5-7.5'" />
                     </svg>
+                    <span class="text-[10px] text-amber-500 normal-case">-5 yrs</span>
                   </button>
                   <span>Age {{ secondDeathData.second_death_analysis.second_death.estimated_age_at_death }}</span>
                   <button
                     @click="showPlus5Years = !showPlus5Years"
-                    class="p-1 hover:bg-purple-100 rounded transition-colors"
+                    class="flex items-center gap-1 p-1 hover:bg-purple-100 rounded transition-colors"
                     :title="showPlus5Years ? 'Hide +5 years' : 'Show +5 years'"
                   >
+                    <span class="text-[10px] text-blue-500 normal-case">+5 yrs</span>
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-blue-500">
-                      <path stroke-linecap="round" stroke-linejoin="round" :d="showPlus5Years ? 'M8.25 4.5l7.5 7.5-7.5 7.5' : 'M15.75 19.5L8.25 12l7.5-7.5'" />
+                      <path stroke-linecap="round" stroke-linejoin="round" :d="showPlus5Years ? 'M15.75 19.5L8.25 12l7.5-7.5' : 'M8.25 4.5l7.5 7.5-7.5 7.5'" />
                     </svg>
                   </button>
                 </div>
@@ -702,21 +704,23 @@
                 <div class="flex items-center justify-end gap-2">
                   <button
                     @click="showMinus5Years = !showMinus5Years"
-                    class="p-1 hover:bg-purple-100 rounded transition-colors"
+                    class="flex items-center gap-1 p-1 hover:bg-purple-100 rounded transition-colors"
                     :title="showMinus5Years ? 'Hide -5 years' : 'Show -5 years'"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-amber-500">
-                      <path stroke-linecap="round" stroke-linejoin="round" :d="showMinus5Years ? 'M15.75 19.5L8.25 12l7.5-7.5' : 'M8.25 4.5l7.5 7.5-7.5 7.5'" />
+                      <path stroke-linecap="round" stroke-linejoin="round" :d="showMinus5Years ? 'M8.25 4.5l7.5 7.5-7.5 7.5' : 'M15.75 19.5L8.25 12l7.5-7.5'" />
                     </svg>
+                    <span class="text-[10px] text-amber-500 normal-case">-5 yrs</span>
                   </button>
                   <span>Age {{ projection?.at_death?.estimated_age_at_death || '...' }}</span>
                   <button
                     @click="showPlus5Years = !showPlus5Years"
-                    class="p-1 hover:bg-purple-100 rounded transition-colors"
+                    class="flex items-center gap-1 p-1 hover:bg-purple-100 rounded transition-colors"
                     :title="showPlus5Years ? 'Hide +5 years' : 'Show +5 years'"
                   >
+                    <span class="text-[10px] text-blue-500 normal-case">+5 yrs</span>
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-blue-500">
-                      <path stroke-linecap="round" stroke-linejoin="round" :d="showPlus5Years ? 'M8.25 4.5l7.5 7.5-7.5 7.5' : 'M15.75 19.5L8.25 12l7.5-7.5'" />
+                      <path stroke-linecap="round" stroke-linejoin="round" :d="showPlus5Years ? 'M15.75 19.5L8.25 12l7.5-7.5' : 'M8.25 4.5l7.5 7.5-7.5 7.5'" />
                     </svg>
                   </button>
                 </div>
