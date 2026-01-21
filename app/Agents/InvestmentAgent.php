@@ -112,7 +112,9 @@ class InvestmentAgent extends BaseAgent
         $priority = 1;
 
         // Diversification recommendations (threshold: 70 - room for improvement if not well diversified)
-        if ($analysis['diversification_score'] < 70) {
+        // Only show when there are actual holdings (not for accounts with no holdings)
+        $holdingsCount = $analysis['portfolio_summary']['holdings_count'] ?? 0;
+        if ($holdingsCount > 0 && $analysis['diversification_score'] < 70) {
             $recommendations[] = [
                 'category' => 'Diversification',
                 'priority' => $priority++,

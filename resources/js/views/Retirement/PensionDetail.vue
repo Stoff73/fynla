@@ -67,7 +67,8 @@
             </div>
             <div class="bg-gray-50 rounded-lg p-4">
               <p class="text-sm text-gray-600">Expected Return</p>
-              <p class="text-2xl font-bold text-gray-900">{{ pension.expected_return_percent || 0 }}%</p>
+              <p v-if="hasHoldings" class="text-2xl font-bold text-gray-900">{{ pension.expected_return_percent || 0 }}%</p>
+              <p v-else class="text-lg font-semibold text-blue-600 cursor-pointer hover:underline" @click="addHoldings">Enter Holdings</p>
             </div>
             <div class="bg-gray-50 rounded-lg p-4">
               <p class="text-sm text-gray-600">Retirement Age</p>
@@ -357,6 +358,10 @@ export default {
       }
       return this.pension?.scheme_name || this.pension?.employer_name || 'Pension';
     },
+
+    hasHoldings() {
+      return this.pension?.holdings?.length > 0;
+    },
   },
 
   methods: {
@@ -395,6 +400,11 @@ export default {
     },
 
     editPension() {
+      this.showEditModal = true;
+    },
+
+    addHoldings() {
+      // Open edit modal to add holdings
       this.showEditModal = true;
     },
 

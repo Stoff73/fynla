@@ -14,12 +14,17 @@
         <div class="sidebar-cards">
           <!-- Diversification Insights Card -->
           <div
-            v-if="recommendations.length > 0"
             class="insight-card cursor-pointer hover:shadow-md transition-shadow"
-            @click="goToDiversificationTab"
+            @click="hasHoldings ? goToDiversificationTab() : $emit('add-holding')"
           >
             <h4 class="text-sm font-semibold text-gray-900 mb-3">Diversification Insights</h4>
-            <div class="space-y-2">
+            <!-- No Holdings State -->
+            <div v-if="!hasHoldings" class="text-center py-4">
+              <p class="text-lg font-semibold text-blue-600 hover:underline">Enter Holdings</p>
+              <p class="text-xs text-gray-500 mt-1">Add holdings to see diversification analysis</p>
+            </div>
+            <!-- Has Holdings -->
+            <div v-else-if="recommendations.length > 0" class="space-y-2">
               <div
                 v-for="(rec, index) in recommendations.slice(0, 3)"
                 :key="index"
@@ -34,6 +39,10 @@
               <p v-if="recommendations.length > 3" class="text-xs text-gray-500 text-center pt-1">
                 +{{ recommendations.length - 3 }} more insights
               </p>
+            </div>
+            <div v-else class="text-center py-4">
+              <p class="text-sm text-green-600 font-medium">Well Diversified</p>
+              <p class="text-xs text-gray-500 mt-1">No recommendations at this time</p>
             </div>
           </div>
 
@@ -273,7 +282,7 @@ export default {
     },
   },
 
-  emits: ['change-tab'],
+  emits: ['change-tab', 'add-holding'],
 
   data() {
     return {
