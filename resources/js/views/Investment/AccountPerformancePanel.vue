@@ -48,61 +48,75 @@
 
           <!-- Rebalancing Summary Card -->
           <div
-            v-if="rebalancingData"
             class="insight-card cursor-pointer hover:shadow-md transition-shadow"
-            @click="goToRebalancingTab"
+            @click="hasHoldings ? goToRebalancingTab() : $emit('add-holding')"
           >
             <h4 class="text-sm font-semibold text-gray-900 mb-3">Rebalancing Status</h4>
 
-            <!-- Drift Score -->
-            <div class="text-center p-3 rounded-lg mb-3" :class="getDriftBgClass()">
-              <p class="text-xs text-gray-600 mb-1">Portfolio Drift</p>
-              <p class="text-2xl font-bold" :class="getDriftStatusClass()">
-                {{ rebalancingData.drift_analysis?.drift_score?.toFixed(1) || '0.0' }}%
-              </p>
-              <p class="text-xs mt-1" :class="rebalancingData.drift_analysis?.needs_rebalancing ? 'text-amber-600 font-medium' : 'text-green-600'">
-                {{ rebalancingData.drift_analysis?.needs_rebalancing ? 'Rebalancing Recommended' : 'On Track' }}
-              </p>
+            <!-- No Holdings State -->
+            <div v-if="!hasHoldings" class="text-center py-4">
+              <p class="text-lg font-semibold text-blue-600 hover:underline">Enter Holdings</p>
+              <p class="text-xs text-gray-500 mt-1">Add holdings to get rebalancing strategies</p>
             </div>
 
-            <!-- Current vs Target (Top 2 Asset Classes) -->
-            <div class="space-y-2">
-              <div v-if="rebalancingData.current_allocation?.equities !== undefined" class="allocation-row">
-                <div class="flex justify-between text-xs mb-1">
-                  <span class="font-medium text-gray-700">Equities</span>
-                  <span class="text-gray-500">
-                    {{ formatAllocation(rebalancingData.current_allocation.equities) }}% → {{ formatAllocation(rebalancingData.target_allocation?.equities) }}%
-                  </span>
+            <!-- Has Holdings + Rebalancing Data -->
+            <template v-else-if="rebalancingData">
+              <!-- Drift Score -->
+              <div class="text-center p-3 rounded-lg mb-3" :class="getDriftBgClass()">
+                <p class="text-xs text-gray-600 mb-1">Portfolio Drift</p>
+                <p class="text-2xl font-bold" :class="getDriftStatusClass()">
+                  {{ rebalancingData.drift_analysis?.drift_score?.toFixed(1) || '0.0' }}%
+                </p>
+                <p class="text-xs mt-1" :class="rebalancingData.drift_analysis?.needs_rebalancing ? 'text-amber-600 font-medium' : 'text-green-600'">
+                  {{ rebalancingData.drift_analysis?.needs_rebalancing ? 'Rebalancing Recommended' : 'On Track' }}
+                </p>
+              </div>
+
+              <!-- Current vs Target (Top 2 Asset Classes) -->
+              <div class="space-y-2">
+                <div v-if="rebalancingData.current_allocation?.equities !== undefined" class="allocation-row">
+                  <div class="flex justify-between text-xs mb-1">
+                    <span class="font-medium text-gray-700">Equities</span>
+                    <span class="text-gray-500">
+                      {{ formatAllocation(rebalancingData.current_allocation.equities) }}% → {{ formatAllocation(rebalancingData.target_allocation?.equities) }}%
+                    </span>
+                  </div>
+                  <div class="h-2 bg-gray-200 rounded overflow-hidden relative">
+                    <div
+                      class="absolute h-full w-0.5 bg-gray-800 z-10"
+                      :style="{ left: formatAllocation(rebalancingData.target_allocation?.equities) + '%' }"
+                    ></div>
+                    <div
+                      class="h-full bg-blue-500 rounded"
+                      :style="{ width: formatAllocation(rebalancingData.current_allocation.equities) + '%' }"
+                    ></div>
+                  </div>
                 </div>
-                <div class="h-2 bg-gray-200 rounded overflow-hidden relative">
-                  <div
-                    class="absolute h-full w-0.5 bg-gray-800 z-10"
-                    :style="{ left: formatAllocation(rebalancingData.target_allocation?.equities) + '%' }"
-                  ></div>
-                  <div
-                    class="h-full bg-blue-500 rounded"
-                    :style="{ width: formatAllocation(rebalancingData.current_allocation.equities) + '%' }"
-                  ></div>
+                <div v-if="rebalancingData.current_allocation?.bonds !== undefined" class="allocation-row">
+                  <div class="flex justify-between text-xs mb-1">
+                    <span class="font-medium text-gray-700">Bonds</span>
+                    <span class="text-gray-500">
+                      {{ formatAllocation(rebalancingData.current_allocation.bonds) }}% → {{ formatAllocation(rebalancingData.target_allocation?.bonds) }}%
+                    </span>
+                  </div>
+                  <div class="h-2 bg-gray-200 rounded overflow-hidden relative">
+                    <div
+                      class="absolute h-full w-0.5 bg-gray-800 z-10"
+                      :style="{ left: formatAllocation(rebalancingData.target_allocation?.bonds) + '%' }"
+                    ></div>
+                    <div
+                      class="h-full bg-green-500 rounded"
+                      :style="{ width: formatAllocation(rebalancingData.current_allocation.bonds) + '%' }"
+                    ></div>
+                  </div>
                 </div>
               </div>
-              <div v-if="rebalancingData.current_allocation?.bonds !== undefined" class="allocation-row">
-                <div class="flex justify-between text-xs mb-1">
-                  <span class="font-medium text-gray-700">Bonds</span>
-                  <span class="text-gray-500">
-                    {{ formatAllocation(rebalancingData.current_allocation.bonds) }}% → {{ formatAllocation(rebalancingData.target_allocation?.bonds) }}%
-                  </span>
-                </div>
-                <div class="h-2 bg-gray-200 rounded overflow-hidden relative">
-                  <div
-                    class="absolute h-full w-0.5 bg-gray-800 z-10"
-                    :style="{ left: formatAllocation(rebalancingData.target_allocation?.bonds) + '%' }"
-                  ></div>
-                  <div
-                    class="h-full bg-green-500 rounded"
-                    :style="{ width: formatAllocation(rebalancingData.current_allocation.bonds) + '%' }"
-                  ></div>
-                </div>
-              </div>
+            </template>
+
+            <!-- Has Holdings but Loading -->
+            <div v-else class="text-center py-4">
+              <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+              <p class="text-xs text-gray-500 mt-2">Loading...</p>
             </div>
           </div>
 
@@ -113,8 +127,14 @@
           >
             <h4 class="text-sm font-semibold text-gray-900 mb-3">Total Fees</h4>
 
-            <!-- Total Fee Percentage -->
-            <div class="text-center p-3 rounded-lg" :class="getTotalFeeBgClass()">
+            <!-- No Fees Entered State -->
+            <div v-if="!hasHoldings && totalFeePercent === 0" class="text-center py-4">
+              <p class="text-lg font-semibold text-blue-600 hover:underline">Add Fees</p>
+              <p class="text-xs text-gray-500 mt-1">Add fees to get fee optimisation strategies</p>
+            </div>
+
+            <!-- Has Fees (from platform fee or holdings) -->
+            <div v-else class="text-center p-3 rounded-lg" :class="getTotalFeeBgClass()">
               <p class="text-xs text-gray-600 mb-1">Annual Fee Rate</p>
               <p class="text-2xl font-bold" :class="getTotalFeeClass()">
                 {{ formatPercentage(totalFeePercent) }}
