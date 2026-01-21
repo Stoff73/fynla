@@ -112,6 +112,37 @@ class DataErasureService
     }
 
     /**
+     * Delete user's financial data but keep account active
+     * User stays logged in with empty account
+     */
+    public function deleteDataOnly(User $user): array
+    {
+        $deletedCategories = [];
+
+        DB::transaction(function () use ($user, &$deletedCategories) {
+            // Delete financial data (same as full erasure)
+            $deletedCategories = $this->deleteFinancialData($user);
+
+            // Reset profile fields that aren't needed for account
+            $user->update([
+                'employment_status' => null,
+                'salary' => null,
+                'national_insurance_number' => null,
+            ]);
+
+            $deletedCategories[] = 'profile_financial_fields';
+        });
+
+        // Log the action
+        $this->auditService->logGDPR(AuditLog::ACTION_ERASURE_COMPLETED, $user->id, [
+            'type' => 'data_only',
+            'categories_deleted' => $deletedCategories,
+        ]);
+
+        return $deletedCategories;
+    }
+
+    /**
      * Delete all financial data for a user
      */
     private function deleteFinancialData(User $user): array

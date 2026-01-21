@@ -30,23 +30,6 @@
 
           <div class="consent-item">
             <div class="consent-info">
-              <h3>Analytics</h3>
-              <p>Help us improve the app by collecting usage data.</p>
-            </div>
-            <div class="consent-toggle">
-              <label class="toggle">
-                <input
-                  v-model="consents.analytics"
-                  type="checkbox"
-                  @change="updateConsent('analytics', consents.analytics)"
-                >
-                <span class="toggle-slider"></span>
-              </label>
-            </div>
-          </div>
-
-          <div class="consent-item">
-            <div class="consent-info">
               <h3>Marketing Communications</h3>
               <p>Receive updates about new features and financial planning tips.</p>
             </div>
@@ -118,14 +101,14 @@
       <!-- Data Deletion Section -->
       <div class="settings-section danger-section">
         <div class="section-header">
-          <h2 class="section-title">Delete Your Account</h2>
+          <h2 class="section-title">Delete Your Data or Account</h2>
         </div>
         <p class="section-description">
-          Permanently delete your account and all associated data. This action cannot be undone.
+          Choose to delete your financial data while keeping your account, or permanently delete your entire account.
         </p>
         <div class="section-actions">
-          <button class="btn btn-danger" @click="showDeleteModal = true">
-            Request Account Deletion
+          <button class="btn btn-danger" @click="openDeletionWizard">
+            Manage Account Deletion
           </button>
         </div>
       </div>
@@ -158,55 +141,206 @@
         </p>
       </div>
 
-      <!-- Delete Account Modal -->
-      <div v-if="showDeleteModal" class="modal-overlay">
-        <div class="modal">
-          <div class="modal-header">
-            <h3>Delete Account</h3>
-          </div>
-          <div class="modal-body">
-            <div class="warning-box">
-              <p><strong>Warning:</strong> This will permanently delete:</p>
-              <ul>
-                <li>Your profile and personal information</li>
-                <li>All financial data (properties, accounts, policies)</li>
-                <li>Goals and planning history</li>
-                <li>All activity logs</li>
-              </ul>
-              <p class="warning-note">This action cannot be undone.</p>
+      <!-- Deletion Wizard Modal -->
+      <div v-if="deletionWizard.show" class="modal-overlay" @click.self="closeDeletionWizard">
+        <div class="modal deletion-modal">
+          <!-- Step indicator -->
+          <div class="step-indicator">
+            <div class="step" :class="{ active: deletionWizard.step >= 1, completed: deletionWizard.step > 1 }">
+              <span class="step-number">1</span>
+              <span class="step-label">Choose</span>
             </div>
-            <div class="form-group">
-              <label for="delete-confirm">Type "DELETE" to confirm:</label>
+            <div class="step-line" :class="{ active: deletionWizard.step > 1 }"></div>
+            <div class="step" :class="{ active: deletionWizard.step >= 2, completed: deletionWizard.step > 2 }">
+              <span class="step-number">2</span>
+              <span class="step-label">Verify</span>
+            </div>
+            <div class="step-line" :class="{ active: deletionWizard.step > 2 }"></div>
+            <div class="step" :class="{ active: deletionWizard.step >= 3 }">
+              <span class="step-number">3</span>
+              <span class="step-label">Confirm</span>
+            </div>
+          </div>
+
+          <!-- Close button -->
+          <button class="modal-close" @click="closeDeletionWizard">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+
+          <!-- Step 1: Choose deletion type -->
+          <div v-if="deletionWizard.step === 1" class="wizard-step">
+            <h3 class="wizard-title">What would you like to delete?</h3>
+
+            <div class="deletion-options">
+              <button
+                class="deletion-option"
+                :class="{ selected: deletionWizard.type === 'data' }"
+                @click="selectDeletionType('data')"
+                :disabled="deletionWizard.loading"
+              >
+                <div class="option-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </div>
+                <h4>Delete My Data</h4>
+                <p>Remove all financial data but keep your account active. You'll be returned to an empty dashboard.</p>
+              </button>
+
+              <button
+                class="deletion-option danger"
+                :class="{ selected: deletionWizard.type === 'account' }"
+                @click="selectDeletionType('account')"
+                :disabled="deletionWizard.loading"
+              >
+                <div class="option-icon danger">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <h4>Delete My Account</h4>
+                <p>Permanently delete your account and all data. You'll be logged out and won't be able to sign in again.</p>
+              </button>
+            </div>
+
+            <div v-if="deletionWizard.error" class="error-message">
+              {{ deletionWizard.error }}
+            </div>
+
+            <div v-if="deletionWizard.loading" class="loading-indicator">
+              <div class="spinner"></div>
+              <span>Preparing...</span>
+            </div>
+          </div>
+
+          <!-- Step 2: Verify identity -->
+          <div v-if="deletionWizard.step === 2" class="wizard-step">
+            <h3 class="wizard-title">Verify Your Identity</h3>
+
+            <div v-if="deletionWizard.verificationMethod === '2fa'" class="verification-section">
+              <div class="verification-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+              <p class="verification-instruction">Enter the 6-digit code from your authenticator app:</p>
+            </div>
+
+            <div v-else class="verification-section">
+              <div class="verification-icon email">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <p class="verification-instruction">We've sent a verification code to your email. Enter it below:</p>
+            </div>
+
+            <!-- 6-digit code input -->
+            <div class="code-input-container">
               <input
-                id="delete-confirm"
-                v-model="deleteConfirmation"
+                v-for="(digit, index) in 6"
+                :key="index"
+                :ref="el => codeInputRefs[index] = el"
+                type="text"
+                maxlength="1"
+                inputmode="numeric"
+                pattern="[0-9]*"
+                class="code-input"
+                :class="{ error: deletionWizard.error }"
+                :value="codeDigits[index]"
+                @input="handleCodeInput($event, index)"
+                @keydown="handleCodeKeydown($event, index)"
+                @paste="handleCodePaste"
+                :disabled="deletionWizard.loading"
+              />
+            </div>
+
+            <div v-if="deletionWizard.error" class="error-message">
+              {{ deletionWizard.error }}
+            </div>
+
+            <div class="verification-actions">
+              <button
+                v-if="deletionWizard.verificationMethod === 'email'"
+                class="btn btn-link"
+                @click="resendCode"
+                :disabled="deletionWizard.loading || resendCooldown > 0"
+              >
+                {{ resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : 'Resend code' }}
+              </button>
+
+              <button
+                class="btn btn-primary"
+                @click="verifyIdentity"
+                :disabled="!isCodeComplete || deletionWizard.loading"
+              >
+                {{ deletionWizard.loading ? 'Verifying...' : 'Verify' }}
+              </button>
+            </div>
+
+            <button class="btn btn-outline btn-back" @click="goBackToStep1">
+              Back
+            </button>
+          </div>
+
+          <!-- Step 3: Final confirmation -->
+          <div v-if="deletionWizard.step === 3" class="wizard-step">
+            <h3 class="wizard-title">Final Confirmation</h3>
+
+            <div class="warning-box">
+              <div class="warning-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <div class="warning-content">
+                <p><strong>Warning:</strong> This will permanently delete:</p>
+                <ul>
+                  <li>Your profile and personal information</li>
+                  <li>All financial data (properties, accounts, policies)</li>
+                  <li>Goals and planning history</li>
+                  <li>All activity logs</li>
+                </ul>
+                <p v-if="deletionWizard.type === 'account'" class="warning-note">
+                  Your account will be permanently closed and you will be logged out.
+                </p>
+                <p v-else class="warning-note info">
+                  Your account will remain active but all data will be removed.
+                </p>
+              </div>
+            </div>
+
+            <div class="confirmation-input">
+              <label>
+                Type exactly: <strong>"{{ requiredConfirmationPhrase }}"</strong>
+              </label>
+              <input
+                v-model="deletionWizard.confirmationText"
                 type="text"
                 class="form-input"
-                placeholder="DELETE"
-              >
+                :placeholder="requiredConfirmationPhrase"
+                :disabled="deletionWizard.loading"
+              />
             </div>
-            <div class="form-group">
-              <label for="delete-password">Enter your password:</label>
-              <input
-                id="delete-password"
-                v-model="deletePassword"
-                type="password"
-                class="form-input"
-                placeholder="Your password"
-              >
+
+            <div v-if="deletionWizard.error" class="error-message">
+              {{ deletionWizard.error }}
             </div>
-          </div>
-          <div class="modal-footer">
-            <button class="btn btn-outline" @click="showDeleteModal = false">
-              Cancel
-            </button>
-            <button
-              class="btn btn-danger"
-              :disabled="deleteConfirmation !== 'DELETE' || !deletePassword"
-              @click="requestDeletion"
-            >
-              Delete My Account
-            </button>
+
+            <div class="confirmation-actions">
+              <button class="btn btn-outline" @click="goBackToStep2">
+                Back
+              </button>
+              <button
+                class="btn btn-danger"
+                @click="executeDelete"
+                :disabled="!confirmationValid || deletionWizard.loading"
+              >
+                {{ deletionWizard.loading ? 'Deleting...' : (deletionWizard.type === 'account' ? 'Delete My Account' : 'Delete My Data') }}
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -226,17 +360,46 @@ export default {
   data() {
     return {
       consents: {
-        analytics: false,
-        marketing: false,
+        marketing: true,
       },
       exportFormat: 'json',
       exportLoading: false,
       pendingExport: null,
       completedExport: null,
-      showDeleteModal: false,
-      deleteConfirmation: '',
-      deletePassword: '',
+
+      // Deletion wizard state
+      deletionWizard: {
+        show: false,
+        step: 1,
+        type: null, // 'account' | 'data'
+        sessionToken: null,
+        verificationMethod: null, // '2fa' | 'email'
+        confirmationText: '',
+        loading: false,
+        error: null,
+      },
+
+      // Code input state
+      codeDigits: ['', '', '', '', '', ''],
+      codeInputRefs: [],
+      resendCooldown: 0,
     };
+  },
+  computed: {
+    requiredConfirmationPhrase() {
+      return this.deletionWizard.type === 'account'
+        ? 'Delete my Account'
+        : 'Delete my Data';
+    },
+    confirmationValid() {
+      return this.deletionWizard.confirmationText === this.requiredConfirmationPhrase;
+    },
+    isCodeComplete() {
+      return this.codeDigits.every(d => d !== '') && this.codeDigits.join('').length === 6;
+    },
+    fullCode() {
+      return this.codeDigits.join('');
+    },
   },
   mounted() {
     this.loadConsents();
@@ -248,9 +411,7 @@ export default {
         const response = await api.get('/auth/gdpr/consents');
         const consents = response.data.data?.consents || [];
         consents.forEach(consent => {
-          if (consent.consent_type === 'analytics') {
-            this.consents.analytics = consent.granted;
-          } else if (consent.consent_type === 'marketing') {
+          if (consent.consent_type === 'marketing') {
             this.consents.marketing = consent.granted;
           }
         });
@@ -318,18 +479,209 @@ export default {
           alert('Failed to download export');
       }
     },
-    async requestDeletion() {
+
+    // Deletion wizard methods
+    openDeletionWizard() {
+      this.deletionWizard = {
+        show: true,
+        step: 1,
+        type: null,
+        sessionToken: null,
+        verificationMethod: null,
+        confirmationText: '',
+        loading: false,
+        error: null,
+      };
+      this.codeDigits = ['', '', '', '', '', ''];
+    },
+    closeDeletionWizard() {
+      this.deletionWizard.show = false;
+      this.deletionWizard.step = 1;
+      this.deletionWizard.type = null;
+      this.deletionWizard.sessionToken = null;
+      this.deletionWizard.error = null;
+      this.codeDigits = ['', '', '', '', '', ''];
+    },
+
+    async selectDeletionType(type) {
+      this.deletionWizard.type = type;
+      this.deletionWizard.loading = true;
+      this.deletionWizard.error = null;
+
       try {
-        await api.post('/auth/gdpr/erasure', {
-          password: this.deletePassword,
+        const response = await api.post('/auth/gdpr/erasure/initiate', { type });
+        this.deletionWizard.sessionToken = response.data.session_token;
+
+        if (response.data.requires_2fa) {
+          this.deletionWizard.verificationMethod = '2fa';
+        } else {
+          this.deletionWizard.verificationMethod = 'email';
+        }
+
+        this.deletionWizard.step = 2;
+
+        // Focus first code input
+        this.$nextTick(() => {
+          if (this.codeInputRefs[0]) {
+            this.codeInputRefs[0].focus();
+          }
         });
-        this.$toast?.success?.('Account deletion request submitted. You will receive a confirmation email.') ||
-          alert('Account deletion request submitted. You will receive a confirmation email.');
-        this.showDeleteModal = false;
       } catch (error) {
-        this.$toast?.error?.(error.response?.data?.message || 'Failed to submit deletion request') ||
-          alert(error.response?.data?.message || 'Failed to submit deletion request');
+        this.deletionWizard.error = error.response?.data?.message || 'Failed to initiate deletion';
+      } finally {
+        this.deletionWizard.loading = false;
       }
+    },
+
+    async verifyIdentity() {
+      if (!this.isCodeComplete) return;
+
+      this.deletionWizard.loading = true;
+      this.deletionWizard.error = null;
+
+      try {
+        await api.post('/auth/gdpr/erasure/verify', {
+          session_token: this.deletionWizard.sessionToken,
+          code: this.fullCode,
+        });
+
+        this.deletionWizard.step = 3;
+      } catch (error) {
+        this.deletionWizard.error = error.response?.data?.message || 'Verification failed';
+        this.clearCode();
+      } finally {
+        this.deletionWizard.loading = false;
+      }
+    },
+
+    async resendCode() {
+      if (this.resendCooldown > 0) return;
+
+      try {
+        await api.post('/auth/gdpr/erasure/resend-code', {
+          session_token: this.deletionWizard.sessionToken,
+        });
+
+        this.$toast?.success?.('Verification code sent') ||
+          alert('Verification code sent to your email');
+
+        // Start cooldown
+        this.resendCooldown = 60;
+        const interval = setInterval(() => {
+          this.resendCooldown--;
+          if (this.resendCooldown <= 0) {
+            clearInterval(interval);
+          }
+        }, 1000);
+      } catch (error) {
+        this.$toast?.error?.(error.response?.data?.message || 'Failed to resend code') ||
+          alert(error.response?.data?.message || 'Failed to resend code');
+      }
+    },
+
+    async executeDelete() {
+      if (!this.confirmationValid) return;
+
+      this.deletionWizard.loading = true;
+      this.deletionWizard.error = null;
+
+      try {
+        const response = await api.post('/auth/gdpr/erasure/execute', {
+          session_token: this.deletionWizard.sessionToken,
+          confirmation: this.deletionWizard.confirmationText,
+        });
+
+        if (response.data.logout_required) {
+          // Account deleted - log out and redirect
+          await this.$store.dispatch('auth/logout');
+          this.$router.push('/login');
+        } else {
+          // Data deleted - show success and reload
+          this.$toast?.success?.('Your data has been deleted') ||
+            alert('Your data has been deleted');
+          this.closeDeletionWizard();
+          this.$router.push('/dashboard');
+        }
+      } catch (error) {
+        this.deletionWizard.error = error.response?.data?.message || 'Deletion failed';
+      } finally {
+        this.deletionWizard.loading = false;
+      }
+    },
+
+    goBackToStep1() {
+      this.deletionWizard.step = 1;
+      this.deletionWizard.type = null;
+      this.deletionWizard.sessionToken = null;
+      this.deletionWizard.error = null;
+      this.codeDigits = ['', '', '', '', '', ''];
+    },
+
+    goBackToStep2() {
+      this.deletionWizard.step = 2;
+      this.deletionWizard.confirmationText = '';
+      this.deletionWizard.error = null;
+    },
+
+    // Code input handlers
+    handleCodeInput(event, index) {
+      const value = event.target.value.replace(/[^0-9]/g, '');
+      this.codeDigits[index] = value;
+      this.deletionWizard.error = null;
+
+      // Move to next input
+      if (value && index < 5) {
+        this.$nextTick(() => {
+          if (this.codeInputRefs[index + 1]) {
+            this.codeInputRefs[index + 1].focus();
+          }
+        });
+      }
+    },
+
+    handleCodeKeydown(event, index) {
+      // Handle backspace
+      if (event.key === 'Backspace' && !this.codeDigits[index] && index > 0) {
+        this.$nextTick(() => {
+          if (this.codeInputRefs[index - 1]) {
+            this.codeInputRefs[index - 1].focus();
+          }
+        });
+      }
+      // Handle arrow keys
+      if (event.key === 'ArrowLeft' && index > 0) {
+        this.codeInputRefs[index - 1]?.focus();
+      }
+      if (event.key === 'ArrowRight' && index < 5) {
+        this.codeInputRefs[index + 1]?.focus();
+      }
+    },
+
+    handleCodePaste(event) {
+      event.preventDefault();
+      const pastedData = event.clipboardData.getData('text').replace(/[^0-9]/g, '').slice(0, 6);
+      if (pastedData) {
+        pastedData.split('').forEach((digit, i) => {
+          if (i < 6) this.codeDigits[i] = digit;
+        });
+        this.deletionWizard.error = null;
+        // Focus the appropriate input
+        const nextEmpty = Math.min(pastedData.length, 5);
+        this.$nextTick(() => {
+          if (this.codeInputRefs[nextEmpty]) {
+            this.codeInputRefs[nextEmpty].focus();
+          }
+        });
+      }
+    },
+
+    clearCode() {
+      this.codeDigits = ['', '', '', '', '', ''];
+      this.$nextTick(() => {
+        if (this.codeInputRefs[0]) {
+          this.codeInputRefs[0].focus();
+        }
+      });
     },
   },
 };
@@ -560,30 +912,290 @@ export default {
   text-decoration: underline;
 }
 
-/* Modal/button/form styles are in app.css */
-.modal {
-  max-width: 440px;
+.section-actions {
+  margin-top: 1rem;
 }
 
-.modal-header h3 {
-  color: #dc2626;
-}
-
-.warning-box {
-  background-color: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: 0.375rem;
+/* Deletion Modal Styles */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
   padding: 1rem;
+}
+
+.deletion-modal {
+  background: white;
+  border-radius: 1rem;
+  max-width: 520px;
+  width: 100%;
+  padding: 2rem;
+  position: relative;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  padding: 0.5rem;
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  border-radius: 0.375rem;
+  transition: color 0.2s;
+}
+
+.modal-close:hover {
+  color: #111827;
+}
+
+/* Step Indicator */
+.step-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 2rem;
+  padding: 0 1rem;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.step-number {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #e5e7eb;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.875rem;
+  transition: all 0.2s;
+}
+
+.step.active .step-number {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.step.completed .step-number {
+  background-color: #10b981;
+  color: white;
+}
+
+.step-label {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.step.active .step-label {
+  color: #3b82f6;
+  font-weight: 500;
+}
+
+.step-line {
+  flex: 1;
+  height: 2px;
+  background-color: #e5e7eb;
+  margin: 0 0.5rem;
+  margin-bottom: 1.5rem;
+  max-width: 60px;
+}
+
+.step-line.active {
+  background-color: #10b981;
+}
+
+/* Wizard Steps */
+.wizard-step {
+  text-align: center;
+}
+
+.wizard-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 1.5rem;
+}
+
+/* Deletion Options (Step 1) */
+.deletion-options {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
   margin-bottom: 1rem;
 }
 
-.warning-box p {
-  color: #991b1b;
-  font-size: 0.875rem;
-  margin: 0;
+.deletion-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.5rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 0.75rem;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
 }
 
-.warning-box ul {
+.deletion-option:hover {
+  border-color: #3b82f6;
+  background-color: #f0f9ff;
+}
+
+.deletion-option.selected {
+  border-color: #3b82f6;
+  background-color: #eff6ff;
+}
+
+.deletion-option.danger:hover {
+  border-color: #dc2626;
+  background-color: #fef2f2;
+}
+
+.deletion-option.danger.selected {
+  border-color: #dc2626;
+  background-color: #fef2f2;
+}
+
+.option-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: #dbeafe;
+  color: #3b82f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.option-icon.danger {
+  background-color: #fee2e2;
+  color: #dc2626;
+}
+
+.deletion-option h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 0.5rem;
+}
+
+.deletion-option p {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Verification Section (Step 2) */
+.verification-section {
+  margin-bottom: 1.5rem;
+}
+
+.verification-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background-color: #dbeafe;
+  color: #3b82f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+}
+
+.verification-icon.email {
+  background-color: #fef3c7;
+  color: #f59e0b;
+}
+
+.verification-instruction {
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.code-input-container {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.code-input {
+  width: 48px;
+  height: 56px;
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 600;
+  border: 2px solid #d1d5db;
+  border-radius: 0.5rem;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.code-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.code-input.error {
+  border-color: #dc2626;
+  background-color: #fef2f2;
+}
+
+.verification-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.btn-back {
+  width: 100%;
+}
+
+/* Warning Box (Step 3) */
+.warning-box {
+  display: flex;
+  gap: 1rem;
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  text-align: left;
+}
+
+.warning-icon {
+  flex-shrink: 0;
+  color: #dc2626;
+}
+
+.warning-content p {
+  color: #991b1b;
+  font-size: 0.875rem;
+  margin: 0 0 0.5rem;
+}
+
+.warning-content ul {
   margin: 0.5rem 0;
   padding-left: 1.25rem;
   color: #991b1b;
@@ -595,8 +1207,137 @@ export default {
   margin-top: 0.75rem !important;
 }
 
-.section-actions {
-  margin-top: 1rem;
+.warning-note.info {
+  color: #1e40af !important;
+}
+
+.confirmation-input {
+  text-align: left;
+  margin-bottom: 1.5rem;
+}
+
+.confirmation-input label {
+  display: block;
+  font-size: 0.875rem;
+  color: #374151;
+  margin-bottom: 0.5rem;
+}
+
+.confirmation-input strong {
+  color: #dc2626;
+}
+
+.form-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.confirmation-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.confirmation-actions .btn {
+  flex: 1;
+}
+
+/* Error & Loading States */
+.error-message {
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  padding: 0.75rem 1rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+}
+
+.loading-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  color: #6b7280;
+  padding: 1rem;
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #e5e7eb;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Button Styles */
+.btn {
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #2563eb;
+}
+
+.btn-danger {
+  background-color: #dc2626;
+  color: white;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background-color: #b91c1c;
+}
+
+.btn-outline {
+  background-color: white;
+  border: 1px solid #d1d5db;
+  color: #374151;
+}
+
+.btn-outline:hover:not(:disabled) {
+  background-color: #f9fafb;
+}
+
+.btn-link {
+  background: none;
+  color: #3b82f6;
+  padding: 0.5rem;
+}
+
+.btn-link:hover:not(:disabled) {
+  text-decoration: underline;
 }
 
 @keyframes spin {

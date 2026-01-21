@@ -5,21 +5,32 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Mail\DeletionVerificationCode;
+use App\Models\AuditLog;
 use App\Models\DataExport;
 use App\Models\ErasureRequest;
+use App\Models\User;
 use App\Models\UserConsent;
+use App\Services\Audit\AuditService;
+use App\Services\Auth\MFAService;
 use App\Services\GDPR\ConsentService;
 use App\Services\GDPR\DataErasureService;
 use App\Services\GDPR\DataExportService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 
 class GDPRController extends Controller
 {
     public function __construct(
         private DataExportService $exportService,
         private DataErasureService $erasureService,
-        private ConsentService $consentService
+        private ConsentService $consentService,
+        private MFAService $mfaService,
+        private AuditService $auditService
     ) {}
 
     /**
@@ -313,5 +324,284 @@ class GDPRController extends Controller
                 ]),
             ],
         ]);
+    }
+
+    // =========================================================================
+    // IMMEDIATE SELF-SERVICE DELETION ENDPOINTS
+    // =========================================================================
+
+    /**
+     * Step 1: Initiate deletion - check 2FA status, send email code if needed
+     * POST /auth/gdpr/erasure/initiate
+     */
+    public function initiateErasure(Request $request): JsonResponse
+    {
+        $request->validate([
+            'type' => 'required|in:account,data',
+        ]);
+
+        $user = $request->user();
+
+        // Block preview users
+        if ($user->is_preview_user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Preview accounts cannot be deleted.',
+            ], 403);
+        }
+
+        // Generate deletion session token (64 chars, 15 min expiry)
+        $sessionToken = Str::random(64);
+        Cache::put("deletion_session:{$user->id}", [
+            'token' => $sessionToken,
+            'type' => $request->type,
+            'verified' => false,
+            'attempts' => 0,
+        ], now()->addMinutes(15));
+
+        // Log initiation
+        $this->auditService->logGDPR(AuditLog::ACTION_ERASURE_REQUESTED, $user->id, [
+            'type' => $request->type,
+            'step' => 'initiated',
+        ]);
+
+        // Check if 2FA enabled
+        if ($this->mfaService->hasMFAEnabled($user)) {
+            return response()->json([
+                'success' => true,
+                'requires_2fa' => true,
+                'requires_email_verification' => false,
+                'session_token' => $sessionToken,
+            ]);
+        }
+
+        // Send email verification code
+        $this->sendDeletionVerificationEmail($user);
+
+        return response()->json([
+            'success' => true,
+            'requires_2fa' => false,
+            'requires_email_verification' => true,
+            'session_token' => $sessionToken,
+        ]);
+    }
+
+    /**
+     * Step 2: Verify identity with 2FA or email code
+     * POST /auth/gdpr/erasure/verify
+     */
+    public function verifyErasure(Request $request): JsonResponse
+    {
+        $request->validate([
+            'session_token' => 'required|string|size:64',
+            'code' => 'required|string|size:6',
+        ]);
+
+        $user = $request->user();
+        $cacheKey = "deletion_session:{$user->id}";
+        $session = Cache::get($cacheKey);
+
+        // Validate session exists and matches token
+        if (! $session || $session['token'] !== $request->session_token) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid or expired session. Please start again.',
+            ], 400);
+        }
+
+        // Check attempt limit
+        if ($session['attempts'] >= 3) {
+            Cache::forget($cacheKey);
+            Cache::forget("deletion_code:{$user->id}");
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Too many failed attempts. Please start again.',
+            ], 400);
+        }
+
+        // Verify code based on verification method
+        $codeValid = false;
+
+        if ($this->mfaService->hasMFAEnabled($user)) {
+            // Verify 2FA TOTP code
+            $codeValid = $this->mfaService->verifyCode($user, $request->code);
+        } else {
+            // Verify email code
+            $codeValid = $this->verifyDeletionEmailCode($user, $request->code);
+        }
+
+        if (! $codeValid) {
+            // Increment attempts
+            $session['attempts']++;
+            Cache::put($cacheKey, $session, now()->addMinutes(15));
+
+            $remainingAttempts = 3 - $session['attempts'];
+
+            return response()->json([
+                'success' => false,
+                'message' => $remainingAttempts > 0
+                    ? "Invalid verification code. {$remainingAttempts} attempt(s) remaining."
+                    : 'Too many failed attempts. Please start again.',
+            ], 401);
+        }
+
+        // Mark session as verified
+        $session['verified'] = true;
+        $session['verified_at'] = now()->timestamp;
+        Cache::put($cacheKey, $session, now()->addMinutes(15));
+
+        // Clean up email code if used
+        Cache::forget("deletion_code:{$user->id}");
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Identity verified successfully.',
+            'session_token' => $request->session_token,
+            'type' => $session['type'],
+        ]);
+    }
+
+    /**
+     * Step 3: Execute deletion with confirmation phrase
+     * POST /auth/gdpr/erasure/execute
+     */
+    public function executeErasure(Request $request): JsonResponse
+    {
+        $request->validate([
+            'session_token' => 'required|string|size:64',
+            'confirmation' => 'required|string',
+        ]);
+
+        $user = $request->user();
+        $cacheKey = "deletion_session:{$user->id}";
+        $session = Cache::get($cacheKey);
+
+        // Validate session exists, matches token, and is verified
+        if (! $session || $session['token'] !== $request->session_token) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid or expired session. Please start again.',
+            ], 400);
+        }
+
+        if (! $session['verified']) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Identity not verified. Please complete verification first.',
+            ], 400);
+        }
+
+        // Validate confirmation phrase (case-sensitive)
+        $expectedPhrase = $session['type'] === 'account' ? 'Delete my Account' : 'Delete my Data';
+        if ($request->confirmation !== $expectedPhrase) {
+            return response()->json([
+                'success' => false,
+                'message' => "Please type exactly: \"{$expectedPhrase}\"",
+            ], 400);
+        }
+
+        // Clean up session
+        Cache::forget($cacheKey);
+
+        // Execute deletion based on type
+        if ($session['type'] === 'account') {
+            // Full account deletion - creates erasure request and processes immediately
+            $erasureRequest = $this->erasureService->requestErasure($user, 'Self-service account deletion');
+            $this->erasureService->confirmErasure($erasureRequest);
+            $this->erasureService->processErasure($erasureRequest, 'self-service');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Your account and all associated data has been deleted.',
+                'type' => 'account',
+                'logout_required' => true,
+            ]);
+        } else {
+            // Data-only deletion - keep account but clear financial data
+            $deletedCategories = $this->erasureService->deleteDataOnly($user);
+
+            $this->auditService->logGDPR(AuditLog::ACTION_ERASURE_COMPLETED, $user->id, [
+                'type' => 'data_only',
+                'categories_deleted' => $deletedCategories,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Your financial data has been deleted. Your account remains active.',
+                'type' => 'data',
+                'logout_required' => false,
+                'deleted_categories' => $deletedCategories,
+            ]);
+        }
+    }
+
+    /**
+     * Resend deletion verification email code
+     * POST /auth/gdpr/erasure/resend-code
+     */
+    public function resendDeletionCode(Request $request): JsonResponse
+    {
+        $request->validate([
+            'session_token' => 'required|string|size:64',
+        ]);
+
+        $user = $request->user();
+        $cacheKey = "deletion_session:{$user->id}";
+        $session = Cache::get($cacheKey);
+
+        // Validate session
+        if (! $session || $session['token'] !== $request->session_token) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid or expired session. Please start again.',
+            ], 400);
+        }
+
+        // Only allow resend for email verification (not 2FA)
+        if ($this->mfaService->hasMFAEnabled($user)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Use your authenticator app for verification.',
+            ], 400);
+        }
+
+        // Send new code
+        $this->sendDeletionVerificationEmail($user);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Verification code sent to your email.',
+        ]);
+    }
+
+    /**
+     * Send deletion verification email with 6-digit code
+     */
+    private function sendDeletionVerificationEmail(User $user): void
+    {
+        $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+
+        Cache::put("deletion_code:{$user->id}", [
+            'code' => Hash::make($code),
+            'created_at' => now()->timestamp,
+        ], now()->addMinutes(15));
+
+        Mail::to($user)->send(new DeletionVerificationCode($user, $code));
+    }
+
+    /**
+     * Verify deletion email code
+     */
+    private function verifyDeletionEmailCode(User $user, string $code): bool
+    {
+        $cacheKey = "deletion_code:{$user->id}";
+        $storedCode = Cache::get($cacheKey);
+
+        if (! $storedCode) {
+            return false;
+        }
+
+        return Hash::check($code, $storedCode['code']);
     }
 }

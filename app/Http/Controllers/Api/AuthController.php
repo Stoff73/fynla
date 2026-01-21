@@ -123,24 +123,52 @@ class AuthController extends Controller
             ], 423);
         }
 
+        // Check if user exists first
+        $user = User::where('email', $email)->first();
+
+        if (! $user) {
+            // Record failed attempt
+            $this->lockoutService->recordFailedAttempt($email, LoginAttempt::REASON_INVALID_CREDENTIALS);
+
+            // Audit log for non-existent user (no user_id)
+            try {
+                $this->auditService->logAuth(AuditLog::ACTION_LOGIN_FAILED, null, [
+                    'email' => $email,
+                    'reason' => 'user_not_found',
+                ]);
+            } catch (\Exception $e) {
+                // Don't let audit logging crash the login flow
+                \Log::warning('Failed to log auth event', ['error' => $e->getMessage()]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'No account found with this email address.',
+                'user_not_found' => true,
+                'register_url' => '/register',
+            ], 401);
+        }
+
         if (! Auth::attempt($request->only('email', 'password'))) {
             // Record failed attempt
             $this->lockoutService->recordFailedAttempt($email, LoginAttempt::REASON_INVALID_CREDENTIALS);
 
-            // Audit log - find user if exists for better tracking
-            $user = User::where('email', $email)->first();
-            $this->auditService->logAuth(AuditLog::ACTION_LOGIN_FAILED, $user, [
-                'email' => $email,
-                'reason' => 'invalid_credentials',
-            ]);
+            // Audit log - wrap in try-catch to prevent crashes
+            try {
+                $this->auditService->logAuth(AuditLog::ACTION_LOGIN_FAILED, $user, [
+                    'email' => $email,
+                    'reason' => 'invalid_password',
+                ]);
+            } catch (\Exception $e) {
+                // Don't let audit logging crash the login flow
+                \Log::warning('Failed to log auth event', ['error' => $e->getMessage()]);
+            }
 
             return response()->json([
                 'success' => false,
-                'message' => 'Invalid credentials',
+                'message' => 'Invalid password. Please try again.',
             ], 401);
         }
-
-        $user = User::where('email', $email)->firstOrFail();
 
         // Skip verification for preview users - return token immediately
         if ($user->is_preview_user) {

@@ -123,7 +123,13 @@ Route::prefix('auth')->group(function () {
             Route::get('/export/status', [GDPRController::class, 'getExportStatus']);
             Route::get('/export/{id}/download', [GDPRController::class, 'downloadExport']);
 
-            // Data erasure (right to be forgotten) - sensitive operation
+            // Data erasure (right to be forgotten) - self-service immediate deletion
+            Route::post('/erasure/initiate', [GDPRController::class, 'initiateErasure'])->middleware('throttle:sensitive');
+            Route::post('/erasure/verify', [GDPRController::class, 'verifyErasure'])->middleware('throttle:sensitive');
+            Route::post('/erasure/execute', [GDPRController::class, 'executeErasure'])->middleware('throttle:sensitive');
+            Route::post('/erasure/resend-code', [GDPRController::class, 'resendDeletionCode'])->middleware('throttle:sensitive');
+
+            // Legacy erasure endpoints (deprecated, kept for backwards compatibility)
             Route::post('/erasure', [GDPRController::class, 'requestErasure'])->middleware('throttle:sensitive');
             Route::get('/erasure/status', [GDPRController::class, 'getErasureStatus']);
             Route::post('/erasure/{id}/confirm', [GDPRController::class, 'confirmErasure'])->middleware('throttle:sensitive');
