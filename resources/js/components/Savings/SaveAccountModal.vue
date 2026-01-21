@@ -203,8 +203,46 @@
 
             <!-- ISA Details (if is_isa is true or ISA product type selected) -->
             <div v-if="formData.is_isa || isISAProductType" class="space-y-4 pl-6 border-l-2 border-blue-200">
-              <!-- ISA Type -->
-              <div>
+              <!-- Junior ISA Beneficiary (only for Junior ISA) -->
+              <div v-if="isJuniorISA">
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                  Beneficiary (Child)
+                </label>
+                <select
+                  v-model="formData.beneficiary_id"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  @change="handleBeneficiaryChange"
+                >
+                  <option value="">Select beneficiary...</option>
+                  <option
+                    v-for="child in eligibleChildren"
+                    :key="child.id"
+                    :value="child.id"
+                  >
+                    {{ child.first_name }} {{ child.last_name }} ({{ formatRelationship(child.relationship) }})
+                  </option>
+                  <option value="other">Other (enter name)</option>
+                </select>
+                <p class="text-xs text-gray-500 mt-1">
+                  Junior ISAs are for children under 18. The child owns the account.
+                </p>
+              </div>
+
+              <!-- Custom Beneficiary Name (if "Other" selected) -->
+              <div v-if="isJuniorISA && formData.beneficiary_id === 'other'">
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                  Beneficiary Name
+                </label>
+                <input
+                  v-model="formData.beneficiary_name"
+                  type="text"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Enter child's full name"
+                />
+              </div>
+
+              <!-- ISA Type (not shown for Junior ISA - it's always Cash) -->
+              <div v-if="!isJuniorISA">
                 <label class="block text-sm font-medium text-gray-700 mb-1">
                   ISA Type
                 </label>
@@ -247,12 +285,14 @@
                     type="number"
                     step="0.01"
                     min="0"
-                    max="20000"
+                    :max="isJuniorISA ? 9000 : 20000"
                     class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="0.00"
                   />
                 </div>
-                <p class="text-xs text-gray-500 mt-1">Max £20,000 per tax year (2025/26)</p>
+                <p class="text-xs text-gray-500 mt-1">
+                  Max £{{ isJuniorISA ? '9,000' : '20,000' }} per tax year (2025/26)
+                </p>
               </div>
             </div>
 
@@ -376,6 +416,8 @@ export default {
         isa_subscription_amount: null,
         ownership_type: 'individual',
         joint_owner_id: null,
+        beneficiary_id: '',
+        beneficiary_name: '',
       },
     };
   },
@@ -389,8 +431,16 @@ export default {
       return ['cash_isa', 'junior_isa'].includes(this.formData.account_type);
     },
 
+    isJuniorISA() {
+      return this.formData.account_type === 'junior_isa';
+    },
+
     isNSIProductType() {
       return ['premium_bonds', 'nsi'].includes(this.formData.account_type);
+    },
+
+    eligibleChildren() {
+      return this.$store.getters['userProfile/juniorIsaEligibleChildren'] || [];
     },
   },
 
@@ -421,6 +471,9 @@ export default {
   },
 
   mounted() {
+    // Fetch family members for Junior ISA beneficiary selection
+    this.$store.dispatch('userProfile/fetchFamilyMembers');
+
     if (this.isEditing && this.account) {
       this.loadAccountData();
     } else if (this.defaultAccountType) {
@@ -447,6 +500,8 @@ export default {
         isa_subscription_amount: this.account.isa_subscription_amount ? parseFloat(this.account.isa_subscription_amount) : null,
         ownership_type: this.account.ownership_type || 'individual',
         joint_owner_id: this.account.joint_owner_id || null,
+        beneficiary_id: this.account.beneficiary_id || '',
+        beneficiary_name: this.account.beneficiary_name || '',
       };
     },
 
@@ -494,9 +549,34 @@ export default {
         isa_subscription_amount: this.formData.is_isa ? this.formData.isa_subscription_amount : null,
         ownership_type: this.formData.ownership_type,
         joint_owner_id: this.formData.ownership_type === 'joint' ? this.formData.joint_owner_id : null,
+        // Junior ISA beneficiary fields
+        beneficiary_id: this.isJuniorISA && this.formData.beneficiary_id !== 'other' ? this.formData.beneficiary_id : null,
+        beneficiary_name: this.isJuniorISA ? this.formData.beneficiary_name : null,
       };
 
       return data;
+    },
+
+    handleBeneficiaryChange() {
+      // When a child is selected from the list, auto-fill the beneficiary name
+      if (this.formData.beneficiary_id && this.formData.beneficiary_id !== 'other') {
+        const selectedChild = this.eligibleChildren.find(c => c.id === parseInt(this.formData.beneficiary_id));
+        if (selectedChild) {
+          this.formData.beneficiary_name = `${selectedChild.first_name} ${selectedChild.last_name}`.trim();
+        }
+      } else if (this.formData.beneficiary_id === 'other') {
+        // Clear the name so user can enter it
+        this.formData.beneficiary_name = '';
+      }
+    },
+
+    formatRelationship(relationship) {
+      const labels = {
+        child: 'Child',
+        step_child: 'Step Child',
+        other_dependent: 'Dependant',
+      };
+      return labels[relationship] || relationship;
     },
 
     handleClose() {
