@@ -40,7 +40,6 @@
                 <option value="">Select account type</option>
                 <option value="isa">ISA (Stocks & Shares)</option>
                 <option value="gia">General Investment Account</option>
-                <option value="nsi">NS&I (National Savings & Investments)</option>
                 <option value="onshore_bond">Onshore Bond</option>
                 <option value="offshore_bond">Offshore Bond</option>
                 <option value="vct">Venture Capital Trust (VCT)</option>

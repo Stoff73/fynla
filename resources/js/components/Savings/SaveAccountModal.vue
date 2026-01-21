@@ -256,8 +256,8 @@
               </div>
             </div>
 
-            <!-- Joint Ownership Section -->
-            <div class="space-y-4 pt-4 border-t border-gray-200">
+            <!-- Joint Ownership Section (hidden for NS&I and ISA - always individual) -->
+            <div v-if="!isNSIProductType && !isISAProductType" class="space-y-4 pt-4 border-t border-gray-200">
               <h4 class="text-sm font-semibold text-gray-900">Ownership</h4>
 
               <!-- Ownership Type -->
@@ -396,10 +396,12 @@ export default {
 
   watch: {
     'formData.account_type'(newType) {
-      // Auto-set ISA fields when ISA product type is selected
+      // Auto-set ISA fields when ISA product type is selected (ISAs are always individual)
       if (this.isISAProductType) {
         this.formData.is_isa = true;
         this.formData.country = 'United Kingdom';
+        this.formData.ownership_type = 'individual';
+        this.formData.joint_owner_id = null;
         // Set isa_type based on account_type
         if (newType === 'cash_isa') {
           this.formData.isa_type = 'cash';
@@ -407,10 +409,13 @@ export default {
           this.formData.isa_type = 'junior';
         }
       }
-      // Auto-set country for NS&I products
+      // Auto-set fields for NS&I products
       if (this.isNSIProductType) {
         this.formData.country = 'United Kingdom';
         this.formData.is_isa = false;
+        this.formData.institution = 'NS&I';
+        this.formData.ownership_type = 'individual';
+        this.formData.joint_owner_id = null;
       }
     },
   },
