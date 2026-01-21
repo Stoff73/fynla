@@ -199,7 +199,7 @@ const actions = {
     },
 
     // Account actions
-    async createAccount({ commit }, accountData) {
+    async createAccount({ commit, dispatch }, accountData) {
         commit('setLoading', true);
         commit('setError', null);
 
@@ -207,6 +207,8 @@ const actions = {
             const response = await savingsService.createAccount(accountData);
             const account = response.data || response;
             commit('addAccount', account);
+            // Refresh net worth to update wealth summary
+            await dispatch('netWorth/refreshNetWorth', null, { root: true });
             return response;
         } catch (error) {
             const errorMessage = error.message || 'Failed to create account';
@@ -228,7 +230,7 @@ const actions = {
         }
     },
 
-    async updateAccount({ commit }, { id, accountData }) {
+    async updateAccount({ commit, dispatch }, { id, accountData }) {
         commit('setLoading', true);
         commit('setError', null);
 
@@ -236,6 +238,8 @@ const actions = {
             const response = await savingsService.updateAccount(id, accountData);
             const account = response.data || response;
             commit('updateAccount', account);
+            // Refresh net worth to update wealth summary
+            await dispatch('netWorth/refreshNetWorth', null, { root: true });
             return response;
         } catch (error) {
             const errorMessage = error.message || 'Failed to update account';
@@ -246,13 +250,15 @@ const actions = {
         }
     },
 
-    async deleteAccount({ commit }, id) {
+    async deleteAccount({ commit, dispatch }, id) {
         commit('setLoading', true);
         commit('setError', null);
 
         try {
             const response = await savingsService.deleteAccount(id);
             commit('removeAccount', id);
+            // Refresh net worth to update wealth summary
+            await dispatch('netWorth/refreshNetWorth', null, { root: true });
             return response;
         } catch (error) {
             const errorMessage = error.message || 'Failed to delete account';

@@ -111,9 +111,33 @@ class InvestmentAgent extends BaseAgent
         $recommendations = [];
         $priority = 1;
 
+        $holdingsCount = $analysis['portfolio_summary']['holdings_count'] ?? 0;
+        $hasRiskProfile = isset($analysis['allocation_deviation']);
+
+        // No risk profile recommendation - always show if not set
+        if (! $hasRiskProfile) {
+            $recommendations[] = [
+                'category' => 'Risk Profile',
+                'priority' => $priority++,
+                'title' => 'Complete Your Risk Profile',
+                'description' => 'Set up your risk profile to get personalised investment recommendations and target allocations.',
+                'action' => 'Complete the risk questionnaire to determine your investment strategy',
+            ];
+        }
+
+        // No holdings recommendation - show if accounts exist but no holdings
+        if ($holdingsCount === 0 && ($analysis['portfolio_summary']['accounts_count'] ?? 0) > 0) {
+            $recommendations[] = [
+                'category' => 'Portfolio Setup',
+                'priority' => $priority++,
+                'title' => 'Add Your Holdings',
+                'description' => 'Add your fund holdings to get detailed fee analysis, diversification scores, and tax efficiency recommendations.',
+                'action' => 'Click on your investment account and add your holdings',
+            ];
+        }
+
         // Diversification recommendations (threshold: 70 - room for improvement if not well diversified)
         // Only show when there are actual holdings (not for accounts with no holdings)
-        $holdingsCount = $analysis['portfolio_summary']['holdings_count'] ?? 0;
         if ($holdingsCount > 0 && $analysis['diversification_score'] < 70) {
             $recommendations[] = [
                 'category' => 'Diversification',

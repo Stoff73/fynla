@@ -298,6 +298,8 @@ const actions = {
             const response = await retirementService.createDCPension(pensionData);
             commit('ADD_DC_PENSION', response.data);
             await dispatch('analyseRetirement');
+            // Refresh net worth to update wealth summary
+            await dispatch('netWorth/refreshNetWorth', null, { root: true });
             return response.data;
         } catch (error) {
             commit('SET_ERROR', error.response?.data?.message || 'Failed to create DC pension');
@@ -314,6 +316,8 @@ const actions = {
             const response = await retirementService.updateDCPension(id, data);
             commit('UPDATE_DC_PENSION', response.data);
             await dispatch('analyseRetirement');
+            // Refresh net worth to update wealth summary
+            await dispatch('netWorth/refreshNetWorth', null, { root: true });
             return response.data;
         } catch (error) {
             commit('SET_ERROR', error.response?.data?.message || 'Failed to update DC pension');
@@ -330,6 +334,8 @@ const actions = {
             await retirementService.deleteDCPension(id);
             commit('REMOVE_DC_PENSION', id);
             await dispatch('analyseRetirement');
+            // Refresh net worth to update wealth summary
+            await dispatch('netWorth/refreshNetWorth', null, { root: true });
         } catch (error) {
             commit('SET_ERROR', error.response?.data?.message || 'Failed to delete DC pension');
             throw error;
@@ -345,6 +351,8 @@ const actions = {
             const response = await retirementService.createDBPension(pensionData);
             commit('ADD_DB_PENSION', response.data);
             await dispatch('analyseRetirement');
+            // Refresh net worth to update wealth summary
+            await dispatch('netWorth/refreshNetWorth', null, { root: true });
             return response.data;
         } catch (error) {
             commit('SET_ERROR', error.response?.data?.message || 'Failed to create DB pension');
@@ -361,6 +369,8 @@ const actions = {
             const response = await retirementService.updateDBPension(id, data);
             commit('UPDATE_DB_PENSION', response.data);
             await dispatch('analyseRetirement');
+            // Refresh net worth to update wealth summary
+            await dispatch('netWorth/refreshNetWorth', null, { root: true });
             return response.data;
         } catch (error) {
             commit('SET_ERROR', error.response?.data?.message || 'Failed to update DB pension');
@@ -377,6 +387,8 @@ const actions = {
             await retirementService.deleteDBPension(id);
             commit('REMOVE_DB_PENSION', id);
             await dispatch('analyseRetirement');
+            // Refresh net worth to update wealth summary
+            await dispatch('netWorth/refreshNetWorth', null, { root: true });
         } catch (error) {
             commit('SET_ERROR', error.response?.data?.message || 'Failed to delete DB pension');
             throw error;
@@ -392,6 +404,8 @@ const actions = {
             const response = await retirementService.updateStatePension(data);
             commit('SET_STATE_PENSION', response.data);
             await dispatch('analyseRetirement');
+            // Refresh net worth to update wealth summary
+            await dispatch('netWorth/refreshNetWorth', null, { root: true });
             return response.data;
         } catch (error) {
             commit('SET_ERROR', error.response?.data?.message || 'Failed to update state pension');

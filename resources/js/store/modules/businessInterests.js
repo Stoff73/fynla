@@ -75,6 +75,8 @@ const actions = {
     try {
       const response = await businessInterestService.createBusinessInterest(businessData);
       await dispatch('fetchBusinesses');
+      // Refresh net worth to update wealth summary
+      await dispatch('netWorth/refreshNetWorth', null, { root: true });
       return response;
     } catch (error) {
       const errorMessage = error.response?.data?.message || 'Failed to create business interest';
@@ -92,6 +94,8 @@ const actions = {
     try {
       const response = await businessInterestService.updateBusinessInterest(id, data);
       await dispatch('fetchBusinesses');
+      // Refresh net worth to update wealth summary
+      await dispatch('netWorth/refreshNetWorth', null, { root: true });
       return response;
     } catch (error) {
       const errorMessage = error.response?.data?.message || 'Failed to update business interest';
@@ -109,6 +113,8 @@ const actions = {
     try {
       const response = await businessInterestService.deleteBusinessInterest(id);
       await dispatch('fetchBusinesses');
+      // Refresh net worth to update wealth summary
+      await dispatch('netWorth/refreshNetWorth', null, { root: true });
       return response;
     } catch (error) {
       const errorMessage = error.response?.data?.message || 'Failed to delete business interest';

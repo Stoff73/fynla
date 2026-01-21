@@ -82,6 +82,8 @@ const actions = {
     try {
       const response = await chattelService.createChattel(chattelData);
       await dispatch('fetchChattels');
+      // Refresh net worth to update wealth summary
+      await dispatch('netWorth/refreshNetWorth', null, { root: true });
       return response;
     } catch (error) {
       const errorMessage = error.response?.data?.message || 'Failed to create chattel';
@@ -99,6 +101,8 @@ const actions = {
     try {
       const response = await chattelService.updateChattel(id, data);
       await dispatch('fetchChattels');
+      // Refresh net worth to update wealth summary
+      await dispatch('netWorth/refreshNetWorth', null, { root: true });
       return response;
     } catch (error) {
       const errorMessage = error.response?.data?.message || 'Failed to update chattel';
@@ -116,6 +120,8 @@ const actions = {
     try {
       const response = await chattelService.deleteChattel(id);
       await dispatch('fetchChattels');
+      // Refresh net worth to update wealth summary
+      await dispatch('netWorth/refreshNetWorth', null, { root: true });
       return response;
     } catch (error) {
       const errorMessage = error.response?.data?.message || 'Failed to delete chattel';
