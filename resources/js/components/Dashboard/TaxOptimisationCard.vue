@@ -1,12 +1,9 @@
 <template>
-  <div
-    class="card cursor-pointer hover:shadow-lg hover:-translate-y-0.5 hover:border-primary-500 transition-all duration-200"
-    @click="navigateToTaxInfo"
-  >
+  <div class="card">
     <!-- Allowance List -->
     <div class="space-y-4">
       <!-- ISA Allowance -->
-      <div class="allowance-item">
+      <div class="allowance-item cursor-pointer hover:bg-gray-50 rounded-lg p-2 -m-2 transition-colors" @click="navigateTo('/investment')">
         <div class="flex justify-between items-center mb-1">
           <span class="text-sm font-medium text-gray-700">ISA</span>
           <span class="text-xs text-gray-500">{{ formatCurrency(isaUsed) }} / {{ formatCurrency(isaLimit) }}</span>
@@ -22,7 +19,7 @@
       </div>
 
       <!-- Pension Annual Allowance -->
-      <div class="allowance-item">
+      <div class="allowance-item cursor-pointer hover:bg-gray-50 rounded-lg p-2 -m-2 transition-colors" @click="navigateTo('/retirement')">
         <div class="flex justify-between items-center mb-1">
           <span class="text-sm font-medium text-gray-700">Pension</span>
           <span class="text-xs text-gray-500">{{ formatCurrency(pensionUsed) }} / {{ formatCurrency(pensionLimit) }}</span>
@@ -38,7 +35,7 @@
       </div>
 
       <!-- CGT Allowance (only if user has non-ISA investments) -->
-      <div v-if="hasNonIsaInvestments" class="allowance-item">
+      <div v-if="hasNonIsaInvestments" class="allowance-item cursor-pointer hover:bg-gray-50 rounded-lg p-2 -m-2 transition-colors" @click="navigateTo('/investment')">
         <div class="flex justify-between items-center mb-1">
           <span class="text-sm font-medium text-gray-700">CGT</span>
           <span class="text-xs text-gray-500">{{ formatCurrency(cgtUsed) }} / {{ formatCurrency(cgtLimit) }}</span>
@@ -54,7 +51,7 @@
       </div>
 
       <!-- Dividend Allowance (only if user receives dividend income) -->
-      <div v-if="hasDividendIncome" class="allowance-item">
+      <div v-if="hasDividendIncome" class="allowance-item cursor-pointer hover:bg-gray-50 rounded-lg p-2 -m-2 transition-colors" @click="navigateTo('/investment')">
         <div class="flex justify-between items-center mb-1">
           <span class="text-sm font-medium text-gray-700">Dividend</span>
           <span class="text-xs text-gray-500">{{ formatCurrency(dividendUsed) }} / {{ formatCurrency(dividendLimit) }}</span>
@@ -253,8 +250,8 @@ export default {
   },
 
   methods: {
-    navigateToTaxInfo() {
-      this.$router.push('/savings');
+    navigateTo(route) {
+      this.$router.push(route);
     },
 
     getProgressBarClass(percent) {

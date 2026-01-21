@@ -189,6 +189,7 @@
             + Add State Pension
           </button>
           <button
+            v-preview-disabled="'upload'"
             type="button"
             class="inline-flex items-center px-4 py-2 border-2 border-blue-600 text-blue-600 bg-white rounded-md hover:bg-blue-50 transition-colors text-sm font-medium"
             @click="openUploadModal('pension_statement')"
@@ -331,6 +332,7 @@
             + Add Investment Account
           </button>
           <button
+            v-preview-disabled="'upload'"
             type="button"
             class="inline-flex items-center px-4 py-2 border-2 border-blue-600 text-blue-600 bg-white rounded-md hover:bg-blue-50 transition-colors text-sm font-medium"
             @click="openUploadModal('investment_statement')"
@@ -421,6 +423,7 @@
             + Add Account
           </button>
           <button
+            v-preview-disabled="'upload'"
             type="button"
             class="inline-flex items-center px-4 py-2 border-2 border-blue-600 text-blue-600 bg-white rounded-md hover:bg-blue-50 transition-colors text-sm font-medium"
             @click="openUploadModal('savings_statement')"

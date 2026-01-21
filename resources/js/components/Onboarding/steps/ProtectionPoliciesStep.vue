@@ -112,6 +112,7 @@
           + Add Protection Policy
         </button>
         <button
+          v-preview-disabled="'upload'"
           type="button"
           class="inline-flex items-center px-4 py-2 border-2 border-blue-600 text-blue-600 bg-white rounded-md hover:bg-blue-50 transition-colors text-sm font-medium"
           @click="showUploadModal = true"

@@ -95,6 +95,7 @@
             Add New Policy
           </button>
           <button
+            v-preview-disabled="'upload'"
             @click="showUploadModal = true"
             class="inline-flex items-center px-4 py-2 border-2 border-blue-600 text-blue-600 bg-white rounded-lg hover:bg-blue-50 transition-colors font-medium"
           >

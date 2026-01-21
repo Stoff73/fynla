@@ -264,7 +264,7 @@
           with the combined estate then passing to your beneficiaries. The projected age ({{ secondDeathData.second_death_analysis.second_death.estimated_age_at_death }})
           is based on your life expectancy and may differ from your spouse's.
         </p>
-        <p class="text-sm text-blue-700">
+        <p class="text-sm text-blue-800">
           <strong>If one spouse dies first:</strong> Under most wills, the entire estate passes to the surviving spouse tax-free
           (spouse exemption). Inheritance Tax would then be calculated on the surviving spouse's estate at their death,
           potentially with different allowances and values.
@@ -657,7 +657,7 @@
           with the combined estate then passing to your beneficiaries. The projected age ({{ projection.at_death.estimated_age_at_death }})
           is based on your life expectancy and may differ from your spouse's.
         </p>
-        <p class="text-sm text-blue-700">
+        <p class="text-sm text-blue-800">
           <strong>If one spouse dies first:</strong> Under most wills, the entire estate passes to the surviving spouse tax-free
           (spouse exemption). Inheritance Tax would then be calculated on the surviving spouse's estate at their death,
           potentially with different allowances and values.

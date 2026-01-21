@@ -140,13 +140,36 @@ php artisan config:clear && php artisan cache:clear && php artisan optimize
 
 **NEVER run build scripts that create ZIP files. NEVER.**
 
-### 2. Keep It Simple
+### 2. SECURITY - Preview Users Are COMPLETELY ISOLATED (CRITICAL)
+
+**This is a FINANCIAL APPLICATION. Security is PARAMOUNT.**
+
+Preview users (`is_preview_user = true`) are **COMPLETELY SEPARATE** from real users. NEVER:
+- Confuse preview user debugging with real user issues
+- Suggest queries that could affect real user data when debugging preview issues
+- Mix preview user logic with regular user authentication
+- Assume preview issues could be caused by real user data conflicts
+
+**Preview users are seeded test personas only.** They exist in isolation with their own:
+- User records (`preview_persona_id` identifies them)
+- Properties, mortgages, savings, investments, pensions
+- Spouse records (also preview users)
+
+When debugging preview mode issues:
+1. Only query users WHERE `is_preview_user = true`
+2. Never suggest the issue could be "duplicate users" mixing preview with real
+3. Check the seeder ran correctly and data was created for the preview user IDs
+4. Check OPcache/Laravel cache if data exists but doesn't display
+
+**VIOLATION OF THIS RULE = IMMEDIATE FAILURE**
+
+### 3. Keep It Simple
 
 **ALWAYS use the simplest solution.** Do not over-engineer, over-complicate, or add unnecessary validation/checks. Write minimal, clean code that does exactly what's needed - nothing more.
 
 Before writing code, ask: "What's the simplest way to do this?" If your solution has excessive error handling, verbose logging, or redundant checks - simplify it.
 
-### 3. Use Available Skills
+### 4. Use Available Skills
 
 Check for relevant skills before starting any task:
 - **systematic-debugging** - For ALL bugs and troubleshooting
@@ -158,7 +181,7 @@ Agents available:
 - **laravel-stack-deployer** - Production deployments
 - **code-quality-auditor** - Code quality audits
 
-### 4. Never Hardcode Tax Values
+### 5. Never Hardcode Tax Values
 
 All UK tax values come from database via `TaxConfigService`:
 
@@ -176,7 +199,7 @@ public function calculate()
 
 **Never use** `config('uk_tax_config')` - it's deprecated.
 
-### 5. Unified Form Components
+### 6. Unified Form Components
 
 One form serves all contexts (onboarding, dashboard, edit):
 
@@ -191,7 +214,7 @@ One form serves all contexts (onboarding, dashboard, edit):
 
 **Critical**: Use `@save` not `@submit` (causes double submission bug).
 
-### 6. Canonical Data Types
+### 7. Canonical Data Types
 
 Use exact values from database enums:
 
@@ -204,7 +227,7 @@ Use exact values from database enums:
 
 **Never use** `sole` (use `individual`), `second_home`, `part_and_part`.
 
-### 7. Environment Separation
+### 8. Environment Separation
 
 The project supports multiple deployment targets with clear separation:
 
@@ -243,7 +266,7 @@ export $(cat .env.production | xargs)
 ./dev.sh
 ```
 
-### 8. Deployment (Manual File Upload ONLY)
+### 9. Deployment (Manual File Upload ONLY)
 
 **See Rule #1: NEVER create ZIP files or deployment packages.**
 
