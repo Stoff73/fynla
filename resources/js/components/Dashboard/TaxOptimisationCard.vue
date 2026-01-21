@@ -19,7 +19,7 @@
       </div>
 
       <!-- Pension Annual Allowance -->
-      <div class="allowance-item cursor-pointer hover:bg-gray-50 rounded-lg p-2 -m-2 transition-colors" @click="navigateTo('/retirement')">
+      <div class="allowance-item cursor-pointer hover:bg-gray-50 rounded-lg p-2 -m-2 transition-colors" @click="navigateTo('/net-worth/retirement')">
         <div class="flex justify-between items-center mb-1">
           <span class="text-sm font-medium text-gray-700">Pension</span>
           <span class="text-xs text-gray-500">{{ formatCurrency(pensionUsed) }} / {{ formatCurrency(pensionLimit) }}</span>
