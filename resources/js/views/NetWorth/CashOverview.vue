@@ -32,8 +32,8 @@
         </div>
       </div>
 
-      <!-- Main 3-Column Layout -->
-      <div v-else class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <!-- Main 3-Column Layout (Preview Users Only) -->
+      <div v-else-if="isPreviewMode" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <!-- Left Panel - Account Summary (3 cols) -->
         <div class="lg:col-span-3">
           <AccountSummaryPanel
@@ -54,6 +54,105 @@
         <!-- Right Panel - Actions (3 cols) -->
         <div class="lg:col-span-3 space-y-6">
           <CashActionsPanel />
+        </div>
+      </div>
+
+      <!-- Real Users: Add Account Cards + Open Banking -->
+      <div v-else class="space-y-6">
+        <!-- Add Account Cards - 4 Column Grid -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <!-- Current Account Card -->
+          <div class="account-card">
+            <h4 class="card-title">Current Accounts</h4>
+            <p class="empty-message">No current accounts</p>
+            <button @click="openAddAccountModal('current_account')" class="add-account-btn">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+              </svg>
+              Add Account
+            </button>
+          </div>
+
+          <!-- Savings Account Card -->
+          <div class="account-card">
+            <h4 class="card-title">Savings Accounts</h4>
+            <p class="empty-message">No savings accounts</p>
+            <button @click="openAddAccountModal('savings_account')" class="add-account-btn">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+              </svg>
+              Add Account
+            </button>
+          </div>
+
+          <!-- Cash ISA Card -->
+          <div class="account-card">
+            <h4 class="card-title">Cash ISAs</h4>
+            <p class="empty-message">No cash ISAs</p>
+            <button @click="openAddAccountModal('isa')" class="add-account-btn">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+              </svg>
+              Add Account
+            </button>
+          </div>
+
+          <!-- NS&I Card -->
+          <div class="account-card">
+            <h4 class="card-title">NS&I</h4>
+            <p class="empty-message">No NS&I accounts</p>
+            <button @click="openAddAccountModal('ns_and_i')" class="add-account-btn">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+              </svg>
+              Add Account
+            </button>
+          </div>
+        </div>
+
+        <!-- Open Banking Card -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div class="flex items-start justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-900">Open Banking</h3>
+            <span class="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">Coming Soon</span>
+          </div>
+          <p class="text-sm text-gray-600 mb-4">
+            Securely connect your bank accounts to unlock powerful financial insights and automated tracking.
+          </p>
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+            <div>
+              <p class="font-medium text-gray-900">Real-time Balances</p>
+              <p class="text-gray-500">Auto-sync all accounts</p>
+            </div>
+            <div>
+              <p class="font-medium text-gray-900">Budget Tracking</p>
+              <p class="text-gray-500">Set and monitor budgets</p>
+            </div>
+            <div>
+              <p class="font-medium text-gray-900">Credit Card Spending</p>
+              <p class="text-gray-500">Track and categorise</p>
+            </div>
+            <div>
+              <p class="font-medium text-gray-900">Cash Flow Forecast</p>
+              <p class="text-gray-500">Predict future balances</p>
+            </div>
+            <div>
+              <p class="font-medium text-gray-900">Spending Insights</p>
+              <p class="text-gray-500">Where your money goes</p>
+            </div>
+            <div>
+              <p class="font-medium text-gray-900">Payday Tracking</p>
+              <p class="text-gray-500">Income detection</p>
+            </div>
+            <div>
+              <p class="font-medium text-gray-900">Bill Reminders</p>
+              <p class="text-gray-500">Never miss a payment</p>
+            </div>
+            <div>
+              <p class="font-medium text-gray-900">Bank-Grade Security</p>
+              <p class="text-gray-500">Read-only access</p>
+            </div>
+          </div>
         </div>
       </div>
     </template>
@@ -109,6 +208,7 @@ export default {
     ...mapState('userProfile', ['incomeOccupation']),
     ...mapGetters('savings', ['totalSavings']),
     ...mapGetters('userProfile', ['totalAnnualIncome']),
+    ...mapGetters('preview', ['isPreviewMode']),
 
     // Monthly income from user profile (full month - assumed payday has occurred)
     monthlyIncome() {
@@ -293,5 +393,50 @@ export default {
 <style scoped>
 .cash-overview {
   min-height: 400px;
+}
+
+.account-card {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 12px 0;
+  align-self: flex-start;
+}
+
+.empty-message {
+  font-size: 13px;
+  color: #9ca3af;
+  text-align: center;
+  margin: 0 0 12px 0;
+}
+
+.add-account-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #7c3aed;
+  background: #f5f3ff;
+  border: 1px solid #ddd6fe;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.add-account-btn:hover {
+  background: #ede9fe;
+  border-color: #c4b5fd;
 }
 </style>
