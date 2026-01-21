@@ -10,6 +10,7 @@
     <div v-else class="chart-placeholder">
       <p>No projection data available</p>
     </div>
+    <p v-if="riskMessage" class="chart-footer">{{ riskMessage }}</p>
   </div>
 </template>
 
@@ -30,6 +31,18 @@ export default {
     data: {
       type: Object,
       required: true,
+    },
+    riskSource: {
+      type: String,
+      default: null,
+    },
+    expectedReturn: {
+      type: Number,
+      default: null,
+    },
+    riskLevel: {
+      type: String,
+      default: null,
     },
   },
 
@@ -70,6 +83,16 @@ export default {
       ];
     },
 
+    riskMessage() {
+      // Don't show risk message if no risk profile set
+      if (!this.riskSource || !this.expectedReturn || this.riskSource === 'default') {
+        return null;
+      }
+
+      const levelDisplay = this.formatRiskLevel(this.riskLevel);
+      return `Using ${levelDisplay} risk profile (${this.expectedReturn}% expected return)`;
+    },
+
     chartOptions() {
       return {
         chart: {
@@ -97,8 +120,8 @@ export default {
             speed: 800,
           },
         },
-        // Color gradient from darkest (95%) to lightest (80%)
-        colors: ['#1e3a5f', '#2563eb', '#3b82f6', '#60a5fa'],
+        // Blue and green gradient for more contrast
+        colors: ['#1e3a5f', '#2563eb', '#059669', '#34d399'],
         stroke: {
           curve: 'smooth',
           width: [1, 1, 1, 1],
@@ -191,6 +214,17 @@ export default {
       }
       return this.formatCurrency(value);
     },
+
+    formatRiskLevel(level) {
+      const levels = {
+        low: 'Low',
+        lower_medium: 'Lower-Medium',
+        medium: 'Medium',
+        upper_medium: 'Upper-Medium',
+        high: 'High',
+      };
+      return levels[level] || level || 'Unknown';
+    },
   },
 };
 </script>
@@ -214,5 +248,13 @@ export default {
   color: #6b7280;
   font-size: 14px;
   margin: 0;
+}
+
+.chart-footer {
+  text-align: center;
+  font-size: 12px;
+  color: #6b7280;
+  margin: 8px 0 0 0;
+  font-style: italic;
 }
 </style>
