@@ -224,8 +224,12 @@
                   <option value="other">Other (enter name)</option>
                 </select>
                 <p class="text-xs text-gray-500 mt-1">
-                  Junior ISAs are for children under 18. The child owns the account.
+                  Junior ISAs are for children under 18. The child owns the account but cannot access it until age 18.
                 </p>
+                <!-- Age 16-17 guidance -->
+                <div v-if="isBeneficiary16Or17" class="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-800">
+                  <strong>Note:</strong> At 16-17, they can also open their own adult Cash ISA and Stocks & Shares ISA (£20,000 total) which they can access anytime. Combined with the Junior ISA (£9,000), they could save up to £29,000 per year.
+                </div>
               </div>
 
               <!-- Custom Beneficiary Name (if "Other" selected) -->
@@ -441,6 +445,23 @@ export default {
 
     eligibleChildren() {
       return this.$store.getters['userProfile/juniorIsaEligibleChildren'] || [];
+    },
+
+    selectedBeneficiaryAge() {
+      if (!this.formData.beneficiary_id || this.formData.beneficiary_id === 'other') {
+        return null;
+      }
+      const child = this.eligibleChildren.find(c => c.id === parseInt(this.formData.beneficiary_id));
+      if (!child || !child.date_of_birth) {
+        return null;
+      }
+      const dob = new Date(child.date_of_birth);
+      const today = new Date();
+      return Math.floor((today - dob) / (365.25 * 24 * 60 * 60 * 1000));
+    },
+
+    isBeneficiary16Or17() {
+      return this.selectedBeneficiaryAge !== null && this.selectedBeneficiaryAge >= 16 && this.selectedBeneficiaryAge <= 17;
     },
   },
 
