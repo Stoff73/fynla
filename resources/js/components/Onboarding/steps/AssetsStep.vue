@@ -454,6 +454,7 @@
       v-if="showInvestmentForm"
       :show="showInvestmentForm"
       :account="editingInvestment"
+      :is-onboarding="true"
       @close="closeInvestmentForm"
       @save="handleInvestmentSaved"
     />
@@ -470,6 +471,7 @@
     <DCPensionForm
       v-if="showPensionForm && pensionFormType === 'dc'"
       :pension="editingPension"
+      :is-onboarding="true"
       @close="closePensionForm"
       @save="handlePensionSaved"
     />

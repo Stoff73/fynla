@@ -5,11 +5,12 @@
       type="area"
       :options="chartOptions"
       :series="series"
-      height="350"
+      :height="compact ? 250 : 350"
     />
     <div v-else class="chart-placeholder">
       <p>No projection data available</p>
     </div>
+    <p v-if="!compact && riskMessage" class="chart-footer">{{ riskMessage }}</p>
   </div>
 </template>
 
@@ -38,6 +39,18 @@ export default {
       type: Boolean,
       default: false,
     },
+    riskSource: {
+      type: String,
+      default: null,
+    },
+    expectedReturn: {
+      type: Number,
+      default: null,
+    },
+    riskLevel: {
+      type: String,
+      default: null,
+    },
   },
 
   data() {
@@ -55,7 +68,7 @@ export default {
     series() {
       if (!this.data?.year_by_year || this.data.year_by_year.length === 0) return [];
 
-      // Create stacked areas for probability bands
+      // Create stacked areas for probability bands (4 bands to match retirement chart)
       // Order from bottom to top: 95% (darkest) -> 80% (lightest)
       return [
         {
@@ -67,10 +80,24 @@ export default {
           data: this.data.year_by_year.map(y => y.percentile_10),
         },
         {
+          name: '85% Probability',
+          data: this.data.year_by_year.map(y => y.percentile_15),
+        },
+        {
           name: '80% Probability',
           data: this.data.year_by_year.map(y => y.percentile_20),
         },
       ];
+    },
+
+    riskMessage() {
+      // Don't show risk message if no risk profile set
+      if (!this.riskSource || !this.expectedReturn || this.riskSource === 'default') {
+        return null;
+      }
+
+      const levelDisplay = this.formatRiskLevel(this.riskLevel);
+      return `Using ${levelDisplay} risk profile (${this.expectedReturn}% expected return)`;
     },
 
     chartOptions() {
@@ -98,10 +125,11 @@ export default {
             speed: 800,
           },
         },
-        colors: ['#1e3a5f', '#2563eb', '#60a5fa'],
+        // Blue and green gradient for more contrast
+        colors: ['#1e3a5f', '#2563eb', '#059669', '#34d399'],
         stroke: {
           curve: 'smooth',
-          width: [1, 1, 1],
+          width: [1, 1, 1, 1],
         },
         fill: {
           type: 'gradient',
@@ -172,6 +200,17 @@ export default {
       if (value >= 1000) return '£' + (value / 1000).toFixed(0) + 'K';
       return this.formatCurrency(value);
     },
+
+    formatRiskLevel(level) {
+      const levels = {
+        low: 'Low',
+        lower_medium: 'Lower-Medium',
+        medium: 'Medium',
+        upper_medium: 'Upper-Medium',
+        high: 'High',
+      };
+      return levels[level] || level || 'Unknown';
+    },
   },
 };
 </script>
@@ -195,5 +234,13 @@ export default {
   color: #6b7280;
   font-size: 14px;
   margin: 0;
+}
+
+.chart-footer {
+  text-align: center;
+  font-size: 12px;
+  color: #6b7280;
+  margin: 8px 0 0 0;
+  font-style: italic;
 }
 </style>

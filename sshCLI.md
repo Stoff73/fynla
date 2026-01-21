@@ -25,6 +25,14 @@ php artisan config:clear && php artisan cache:clear && php artisan view:clear &&
 ```bash
 php artisan tinker --execute="App\Models\User::where('is_preview_user', true)->delete();"
 ```
+php artisan tinker --execute="                                                                                            
+  \App\Models\User::where('is_preview_user', true)->each(function(\$u) {                                                    
+      \App\Models\Property::where('user_id', \$u->id)->orWhere('joint_owner_id', \$u->id)->delete();                        
+      \App\Models\Mortgage::where('user_id', \$u->id)->orWhere('joint_owner_id', \$u->id)->delete();                        
+      \$u->delete();                                                                                                        
+  });                                                                                                                       
+  echo 'All preview users deleted';                                                                                         
+  "                                     
 
 ### Reseed preview users
 

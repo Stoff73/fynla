@@ -243,6 +243,12 @@ class RetirementController extends Controller
         $data = $request->validated();
         $data['user_id'] = $user->id;
 
+        // Auto-assign main risk level if user has a risk profile
+        $riskProfile = RiskProfile::where('user_id', $user->id)->first();
+        if ($riskProfile && $riskProfile->risk_level) {
+            $data['risk_preference'] = $riskProfile->risk_level;
+        }
+
         $pension = DCPension::create($data);
 
         // Invalidate cache

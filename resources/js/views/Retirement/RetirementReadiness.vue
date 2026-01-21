@@ -37,6 +37,15 @@
           @click="viewPension('dc', pension.id)"
           class="pension-card"
         >
+          <!-- Risk Badge - Top Right Corner -->
+          <RiskBadge
+            v-if="pension.risk_preference"
+            :level="pension.risk_preference"
+            size="sm"
+            :abbreviated="true"
+            :has-custom-risk="pension.has_custom_risk"
+            style="position: absolute; top: 12px; right: 12px; z-index: 10;"
+          />
           <div class="card-header">
             <span class="badge badge-dc">
               {{ formatDCPensionType(pension.pension_type) }}
@@ -228,6 +237,7 @@
 import { mapState, mapGetters } from 'vuex';
 import UnifiedPensionForm from '../../components/Retirement/UnifiedPensionForm.vue';
 import DocumentUploadModal from '@/components/Shared/DocumentUploadModal.vue';
+import RiskBadge from '@/components/Shared/RiskBadge.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
@@ -238,6 +248,7 @@ export default {
   components: {
     UnifiedPensionForm,
     DocumentUploadModal,
+    RiskBadge,
   },
 
   emits: ['select-pension'],
@@ -481,6 +492,14 @@ export default {
   padding: 20px;
   cursor: pointer;
   transition: all 0.2s ease;
+  position: relative;
+}
+
+.pension-card :deep(.risk-badge-corner) {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 10;
 }
 
 .pension-card:hover {

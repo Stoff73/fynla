@@ -105,9 +105,11 @@ class InvestmentProjectionService
             $contributionOverrides
         );
 
-        // Calculate weighted portfolio risk
-        $riskParams = $this->calculatePortfolioRisk($accounts, $user);
+        // Calculate weighted portfolio risk and determine if using default or profile
+        $riskResult = $this->calculatePortfolioRiskWithSource($accounts, $user);
+        $riskParams = $riskResult['params'];
         $riskLevel = $this->determineRiskLevel($riskParams['expected_return_typical']);
+        $riskSource = $riskResult['source'];
 
         $projections = [];
         foreach ($periods as $years) {
@@ -143,6 +145,7 @@ class InvestmentProjectionService
             'current_value' => round($totalValue, 2),
             'estimated_monthly_contribution' => round($monthlyContribution, 2),
             'risk_level' => $riskLevel,
+            'risk_source' => $riskSource,
             'expected_return' => $riskParams['expected_return_typical'],
             'volatility' => $riskParams['volatility'],
             'projections' => $projections,
@@ -162,10 +165,19 @@ class InvestmentProjectionService
             $contributionOverride
         );
 
-        // Get risk level for this account
-        $riskLevel = $account->risk_preference
-            ?? $this->riskService->getMainRiskLevel($user->id)
-            ?? 'medium';
+        // Get risk level for this account and track source
+        $mainRiskLevel = $this->riskService->getMainRiskLevel($user->id);
+        $riskSource = 'default';
+
+        if ($account->risk_preference !== null) {
+            $riskLevel = $account->risk_preference;
+            $riskSource = 'profile';
+        } elseif ($mainRiskLevel !== null) {
+            $riskLevel = $mainRiskLevel;
+            $riskSource = 'profile';
+        } else {
+            $riskLevel = 'medium';
+        }
 
         $riskParams = $this->riskService->getReturnParameters($riskLevel);
 
@@ -206,6 +218,7 @@ class InvestmentProjectionService
             'current_value' => round($value, 2),
             'estimated_monthly_contribution' => round($monthlyContribution, 2),
             'risk_level' => $riskLevel,
+            'risk_source' => $riskSource,
             'expected_return' => $riskParams['expected_return_typical'],
             'volatility' => $riskParams['volatility'],
             'projections' => $projections,
@@ -220,6 +233,21 @@ class InvestmentProjectionService
     {
         $result = [];
         $currentYear = (int) date('Y');
+        $startValue = $simulation['summary']['start_value'] ?? 0;
+        $totalYears = count($simulation['year_by_year']);
+
+        // Add year 0 (current year) with current value - all bands start at the same point
+        $result[] = [
+            'year' => $currentYear,
+            'year_number' => 0,
+            'percentile_5' => round($startValue, 2),
+            'percentile_10' => round($startValue, 2),
+            'percentile_15' => round($startValue, 2),
+            'percentile_20' => round($startValue, 2),
+            'percentile_50' => round($startValue, 2),
+            'percentile_75' => round($startValue, 2),
+            'percentile_90' => round($startValue, 2),
+        ];
 
         foreach ($simulation['year_by_year'] as $yearData) {
             $yearIndex = $yearData['year'];
@@ -237,6 +265,25 @@ class InvestmentProjectionService
             $p15 = $p10 + ($spread * 0.33);
             $p20 = $p10 + ($spread * 0.67);
 
+            // Smooth transition for early years - blend with start value
+            // Year 1: 70% Monte Carlo, 30% start value
+            // Year 2: 90% Monte Carlo, 10% start value
+            // Year 3+: 100% Monte Carlo
+            $blendFactor = 1.0;
+            if ($yearIndex === 1) {
+                $blendFactor = 0.7;
+            } elseif ($yearIndex === 2) {
+                $blendFactor = 0.9;
+            }
+
+            $p5 = $this->blendValue($p5, $startValue, $blendFactor);
+            $p10 = $this->blendValue($p10, $startValue, $blendFactor);
+            $p15 = $this->blendValue($p15, $startValue, $blendFactor);
+            $p20 = $this->blendValue($p20, $startValue, $blendFactor);
+            $p50 = $this->blendValue($p50, $startValue, $blendFactor);
+            $p75 = $this->blendValue($p75, $startValue, $blendFactor);
+            $p90 = $this->blendValue($p90, $startValue, $blendFactor);
+
             $result[] = [
                 'year' => $currentYear + $yearIndex,
                 'year_number' => $yearIndex,
@@ -253,6 +300,14 @@ class InvestmentProjectionService
         return $result;
     }
 
+    /**
+     * Blend a Monte Carlo value with the start value for smooth transitions.
+     */
+    private function blendValue(float $monteCarloValue, float $startValue, float $blendFactor): float
+    {
+        return ($monteCarloValue * $blendFactor) + ($startValue * (1 - $blendFactor));
+    }
+
     private function getPercentileValue(array $percentiles, string $key): float
     {
         foreach ($percentiles as $p) {
@@ -264,22 +319,37 @@ class InvestmentProjectionService
         return 0.0;
     }
 
-    private function calculatePortfolioRisk(Collection $accounts, User $user): array
+    private function calculatePortfolioRiskWithSource(Collection $accounts, User $user): array
     {
         $totalValue = $this->getTotalPortfolioValue($accounts);
 
         if ($totalValue <= 0) {
-            return $this->riskService->getReturnParameters('medium');
+            return [
+                'params' => $this->riskService->getReturnParameters('medium'),
+                'source' => 'default',
+            ];
         }
 
         $weightedReturn = 0.0;
         $weightedVolatility = 0.0;
+        $hasProfileRisk = false;
+
+        // Check if user has a risk profile
+        $mainRiskLevel = $this->riskService->getMainRiskLevel($user->id);
+        if ($mainRiskLevel !== null) {
+            $hasProfileRisk = true;
+        }
 
         foreach ($accounts as $account) {
             $weight = $this->getUserShareValue($account) / $totalValue;
             $riskLevel = $account->risk_preference
-                ?? $this->riskService->getMainRiskLevel($user->id)
+                ?? $mainRiskLevel
                 ?? 'medium';
+
+            // If account has explicit risk preference, it counts as profile-based
+            if ($account->risk_preference !== null) {
+                $hasProfileRisk = true;
+            }
 
             $params = $this->riskService->getReturnParameters($riskLevel);
             $weightedReturn += $weight * $params['expected_return_typical'];
@@ -287,10 +357,13 @@ class InvestmentProjectionService
         }
 
         return [
-            'expected_return_typical' => $weightedReturn,
-            'volatility' => $weightedVolatility,
-            'expected_return_min' => $weightedReturn * 0.7,
-            'expected_return_max' => $weightedReturn * 1.3,
+            'params' => [
+                'expected_return_typical' => $weightedReturn,
+                'volatility' => $weightedVolatility,
+                'expected_return_min' => $weightedReturn * 0.7,
+                'expected_return_max' => $weightedReturn * 1.3,
+            ],
+            'source' => $hasProfileRisk ? 'profile' : 'default',
         ];
     }
 
@@ -336,10 +409,21 @@ class InvestmentProjectionService
         $monthlyContribution = $this->contributionEstimator->estimateMonthlyContribution($account);
 
         // Use override risk level if provided, otherwise use account's or user's
-        $riskLevel = $riskLevelOverride
-            ?? $account->risk_preference
-            ?? $this->riskService->getMainRiskLevel($user->id)
-            ?? 'medium';
+        $mainRiskLevel = $this->riskService->getMainRiskLevel($user->id);
+        $riskSource = 'default';
+
+        if ($riskLevelOverride !== null) {
+            $riskLevel = $riskLevelOverride;
+            $riskSource = 'override';
+        } elseif ($account->risk_preference !== null) {
+            $riskLevel = $account->risk_preference;
+            $riskSource = 'profile';
+        } elseif ($mainRiskLevel !== null) {
+            $riskLevel = $mainRiskLevel;
+            $riskSource = 'profile';
+        } else {
+            $riskLevel = 'medium';
+        }
 
         $riskParams = $this->riskService->getReturnParameters($riskLevel);
 
@@ -380,6 +464,7 @@ class InvestmentProjectionService
             'current_value' => round($value, 2),
             'estimated_monthly_contribution' => round($monthlyContribution, 2),
             'risk_level' => $riskLevel,
+            'risk_source' => $riskSource,
             'expected_return' => $riskParams['expected_return_typical'],
             'volatility' => $riskParams['volatility'],
             'projections' => $projections,

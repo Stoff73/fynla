@@ -43,9 +43,10 @@
           <span class="detail-label">Your Share ({{ account.ownership_percentage || 50 }}%)</span>
           <span class="detail-value">{{ formatCurrency(account.current_value * ((account.ownership_percentage || 50) / 100)) }}</span>
         </div>
-        <div v-if="account.ytd_return !== null && account.ytd_return !== undefined" class="detail-item">
+        <div class="detail-item">
           <span class="detail-label">YTD Return</span>
-          <span class="detail-value" :class="returnColorClass">{{ formatReturn(account.ytd_return) }}</span>
+          <span v-if="hasHoldings && account.ytd_return !== null && account.ytd_return !== undefined" class="detail-value" :class="returnColorClass">{{ formatReturn(account.ytd_return) }}</span>
+          <span v-else class="detail-value text-blue-600 cursor-pointer hover:underline" @click="$emit('add-holding')">Enter Holdings</span>
         </div>
         <div class="detail-item">
           <span class="detail-label">Valuation Date</span>

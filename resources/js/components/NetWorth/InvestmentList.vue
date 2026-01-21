@@ -68,20 +68,22 @@
             @click="selectAccount(account)"
             class="compact-account-card"
           >
+              <!-- Risk Badge - Top Right Corner -->
+              <RiskBadge
+                v-if="account.risk_preference"
+                :level="account.risk_preference"
+                size="sm"
+                :abbreviated="true"
+                :has-custom-risk="account.has_custom_risk"
+                class="risk-badge-corner"
+              />
               <div class="card-header">
-                <span :class="['badge', getOwnershipBadgeClass(account.ownership_type)]">
+                <span v-if="account.ownership_type === 'joint'" :class="['badge', getOwnershipBadgeClass(account.ownership_type)]">
                   {{ formatOwnershipType(account.ownership_type) }}
                 </span>
                 <span :class="['badge', accountTypeBadgeClass(account.account_type)]">
                   {{ formatAccountType(account.account_type) }}
                 </span>
-                <RiskBadge
-                  v-if="account.risk_preference"
-                  :level="account.risk_preference"
-                  size="sm"
-                  :abbreviated="true"
-                  :has-custom-risk="account.has_custom_risk"
-                />
               </div>
               <div class="card-content">
                 <h4 class="account-provider">{{ account.provider }}</h4>
@@ -836,6 +838,14 @@ export default {
   padding: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
+  position: relative;
+}
+
+.compact-account-card :deep(.risk-badge-corner) {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 10;
 }
 
 .compact-account-card:hover {

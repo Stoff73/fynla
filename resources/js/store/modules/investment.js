@@ -335,11 +335,12 @@ const actions = {
         commit('setError', null);
 
         try {
-            // Use analyzeInvestment endpoint which returns { analysis, recommendations }
+            // Use analyzeInvestment endpoint which returns { success, data: { analysis, recommendations } }
+            // Service already returns response.data, so we access .data.analysis and .data.recommendations
             const response = await investmentService.analyzeInvestment();
-            commit('setAnalysis', response.data.analysis);
+            commit('setAnalysis', response.data?.analysis);
             // Store full recommendations object { recommendation_count, recommendations: [] }
-            commit('setRecommendations', response.data.recommendations);
+            commit('setRecommendations', response.data?.recommendations);
             return response;
         } catch (error) {
             const errorMessage = error.message || 'Failed to fetch recommendations';
@@ -445,6 +446,8 @@ const actions = {
             commit('addAccount', response.data);
             // Refresh analysis after adding account
             await dispatch('analyseInvestment');
+            // Refresh net worth to update wealth summary
+            await dispatch('netWorth/refreshNetWorth', null, { root: true });
             return response;
         } catch (error) {
             const errorMessage = error.message || 'Failed to create account';
@@ -463,6 +466,8 @@ const actions = {
             const response = await investmentService.updateAccount(id, accountData);
             commit('updateAccount', response.data);
             await dispatch('analyseInvestment');
+            // Refresh net worth to update wealth summary
+            await dispatch('netWorth/refreshNetWorth', null, { root: true });
             return response;
         } catch (error) {
             const errorMessage = error.message || 'Failed to update account';
@@ -481,6 +486,8 @@ const actions = {
             const response = await investmentService.deleteAccount(id);
             commit('removeAccount', id);
             await dispatch('analyseInvestment');
+            // Refresh net worth to update wealth summary
+            await dispatch('netWorth/refreshNetWorth', null, { root: true });
             return response;
         } catch (error) {
             const errorMessage = error.message || 'Failed to delete account';

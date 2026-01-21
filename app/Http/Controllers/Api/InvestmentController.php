@@ -306,24 +306,16 @@ class InvestmentController extends Controller
             $validated['ownership_percentage'] = $validated['ownership_percentage'] ?? 100.00;
         }
 
+        // Auto-assign main risk level if user has a risk profile
+        $riskProfile = RiskProfile::where('user_id', $user->id)->first();
+        if ($riskProfile && $riskProfile->risk_level) {
+            $validated['risk_preference'] = $riskProfile->risk_level;
+        }
+
         $account = InvestmentAccount::create($validated);
 
-        // Automatically create a Cash holding for 100% of the account value
-        // This will be reduced as users add other holdings
-        Holding::create([
-            'holdable_id' => $account->id,
-            'holdable_type' => InvestmentAccount::class,
-            'asset_type' => 'cash',
-            'security_name' => 'Cash',
-            'allocation_percent' => 100.00,
-            'current_value' => $account->current_value,
-            'quantity' => null,
-            'purchase_price' => null,
-            'purchase_date' => null,
-            'current_price' => null,
-            'cost_basis' => null,
-            'ocf_percent' => 0.00,
-        ]);
+        // No auto-created holdings - user must add holdings manually
+        // Returns card will show "Enter Holdings" until holdings are added
 
         // Single-record pattern: NO reciprocal account creation
         // Joint owner sees this account via the joint_owner_id query

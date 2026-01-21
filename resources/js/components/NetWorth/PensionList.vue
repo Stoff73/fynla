@@ -64,6 +64,15 @@
         </div>
       </div>
 
+      <!-- Empty State - No Pensions -->
+      <div v-else-if="allPensions.length === 0" class="empty-state">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="empty-icon">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
+        </svg>
+        <p>No pensions found</p>
+        <p class="empty-subtitle">Add your first pension to track your retirement planning</p>
+      </div>
+
       <!-- Current Pensions Tab - New 3-Column Layout -->
       <template v-else-if="activeTab === 'current'">
         <!-- Main 3-Column Layout -->
@@ -77,17 +86,30 @@
               @click="selectPension(pension, 'dc')"
               class="pension-card-standalone"
             >
-              <div class="card-compact-header">
+              <!-- Risk Badge - Top Right Corner -->
+              <RiskBadge
+                v-if="pension.risk_preference"
+                :level="pension.risk_preference"
+                size="xs"
+                :abbreviated="true"
+                class="pension-risk-badge"
+              />
+              <div class="card-header">
                 <span class="badge badge-dc">{{ formatDCPensionType(pension.pension_type) }}</span>
-                <RiskBadge
-                  v-if="pension.risk_preference"
-                  :level="pension.risk_preference"
-                  size="xs"
-                  :abbreviated="true"
-                />
               </div>
-              <div class="card-compact-name">{{ pension.scheme_name || 'DC Pension' }}</div>
-              <div class="card-compact-value">{{ formatCurrency(pension.current_fund_value) }}</div>
+              <div class="card-content">
+                <h4 class="pension-provider">{{ pension.scheme_name || 'DC Pension' }}</h4>
+                <div class="pension-details">
+                  <div class="detail-row">
+                    <span class="detail-label">Current Value</span>
+                    <span class="detail-value">{{ formatCurrency(pension.current_fund_value) }}</span>
+                  </div>
+                  <div v-if="pension.monthly_contribution_amount" class="detail-row">
+                    <span class="detail-label">Monthly Contribution</span>
+                    <span class="detail-value text-green-600">{{ formatCurrency(pension.monthly_contribution_amount) }}</span>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <!-- DB Pensions -->
@@ -97,11 +119,22 @@
               @click="selectPension(pension, 'db')"
               class="pension-card-standalone"
             >
-              <div class="card-compact-header">
+              <div class="card-header">
                 <span class="badge badge-db">{{ formatDBPensionType(pension.scheme_type) }}</span>
               </div>
-              <div class="card-compact-name">{{ pension.scheme_name || 'DB Pension' }}</div>
-              <div class="card-compact-value">{{ formatCurrency(pension.accrued_annual_pension) }}<span class="per-year">/yr</span></div>
+              <div class="card-content">
+                <h4 class="pension-provider">{{ pension.scheme_name || 'DB Pension' }}</h4>
+                <div class="pension-details">
+                  <div class="detail-row">
+                    <span class="detail-label">Annual Pension</span>
+                    <span class="detail-value">{{ formatCurrency(pension.accrued_annual_pension) }}</span>
+                  </div>
+                  <div v-if="pension.lump_sum_entitlement" class="detail-row">
+                    <span class="detail-label">Lump Sum</span>
+                    <span class="detail-value text-purple-600">{{ formatCurrency(pension.lump_sum_entitlement) }}</span>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <!-- State Pension -->
@@ -110,17 +143,18 @@
               @click="selectPension(statePension, 'state')"
               class="pension-card-standalone"
             >
-              <div class="card-compact-header">
+              <div class="card-header">
                 <span class="badge badge-state">State Pension</span>
               </div>
-              <div class="card-compact-name">UK State Pension</div>
-              <div class="card-compact-value">{{ formatCurrency(statePension.state_pension_forecast_annual || 0) }}<span class="per-year">/yr</span></div>
-            </div>
-
-            <!-- Empty State -->
-            <div v-if="allPensions.length === 0" class="empty-standalone">
-              <p>No pensions added</p>
-              <button v-preview-disabled="'add'" @click="showPensionForm = true" class="add-first-btn">Add your first pension</button>
+              <div class="card-content">
+                <h4 class="pension-provider">UK State Pension</h4>
+                <div class="pension-details">
+                  <div class="detail-row">
+                    <span class="detail-label">Annual Pension</span>
+                    <span class="detail-value">{{ formatCurrency(statePension.state_pension_forecast_annual || 0) }}</span>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <!-- Retirement Income Card -->
@@ -177,10 +211,12 @@
                     <span class="summary-item-value">{{ formatCurrency(projections.pension_pot_projection?.percentile_5_at_retirement) }}</span>
                   </div>
                 </div>
-                <PensionPotProjectionChart :data="projections.pension_pot_projection" />
-                <p class="chart-footer">
-                  Monte Carlo simulation for {{ projections.pension_pot_projection?.dc_pension_count }} DC pension(s) to age {{ projections.pension_pot_projection?.retirement_age }}
-                </p>
+                <PensionPotProjectionChart
+                  :data="projections.pension_pot_projection"
+                  :risk-source="projections.pension_pot_projection?.risk_source"
+                  :expected-return="projections.pension_pot_projection?.expected_return"
+                  :risk-level="projections.pension_pot_projection?.risk_level"
+                />
               </div>
             </template>
           </div>
@@ -421,8 +457,8 @@ export default {
     },
 
     showStrategies() {
-      const status = this.projections?.income_drawdown?.on_track_status;
-      return status !== 'Excellent' && status !== 'On Track';
+      // Always show strategies section if we have projections
+      return !!this.projections?.income_drawdown;
     },
 
     strategiesOnTrack() {
@@ -583,6 +619,10 @@ export default {
     },
 
     async loadProjectionsAndStrategies() {
+      // Don't load projections/strategies if no pensions exist
+      if (this.allPensions.length === 0) {
+        return;
+      }
       try {
         await this.fetchProjections();
         if (this.showStrategies) {
@@ -740,19 +780,26 @@ export default {
 
 /* Standalone Pension Cards */
 .pension-card-standalone {
+  position: relative;
   background: white;
   border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 16px;
+  border-radius: 8px;
+  padding: 12px;
   cursor: pointer;
-  transition: all 0.15s;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+/* Risk Badge - Top Right Corner */
+.pension-card-standalone :deep(.pension-risk-badge) {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 10;
 }
 
 .pension-card-standalone:hover {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
   border-color: #3b82f6;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
-  transform: translateY(-1px);
 }
 
 /* Empty Standalone State */
@@ -836,17 +883,20 @@ export default {
   font-weight: 500;
 }
 
-.card-compact-header {
+/* Card Header - matches investment cards */
+.card-header {
   display: flex;
+  justify-content: flex-start;
   align-items: center;
-  gap: 8px;
   margin-bottom: 6px;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .badge {
   display: inline-block;
-  padding: 2px 8px;
-  font-size: 10px;
+  padding: 2px 6px;
+  font-size: 9px;
   font-weight: 600;
   border-radius: 4px;
 }
@@ -866,26 +916,48 @@ export default {
   color: #065f46;
 }
 
-.card-compact-name {
+/* Card Content - matches investment cards */
+.card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pension-provider {
   font-size: 14px;
   font-weight: 600;
   color: #111827;
-  margin-bottom: 2px;
+  margin: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.card-compact-value {
-  font-size: 16px;
-  font-weight: 700;
-  color: #3b82f6;
+/* Pension Details - matches investment account-details */
+.pension-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px solid #e5e7eb;
 }
 
-.per-year {
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.detail-label {
   font-size: 11px;
-  font-weight: 500;
   color: #6b7280;
+}
+
+.detail-value {
+  font-size: 13px;
+  color: #111827;
+  font-weight: 600;
 }
 
 /* Empty Compact State */
@@ -956,6 +1028,22 @@ export default {
   background: white;
   border-radius: 12px;
   border: 2px dashed #d1d5db;
+}
+
+/* Full-width Empty State - matches investment list */
+.empty-state {
+  text-align: center;
+  padding: 80px 40px;
+  background: white;
+  border-radius: 12px;
+  border: 2px dashed #d1d5db;
+}
+
+.empty-state p {
+  color: #6b7280;
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
 }
 
 .empty-icon {
