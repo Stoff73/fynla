@@ -419,10 +419,29 @@ class RetirementProjectionService
             $p15 = $p10 + ($spread * 0.33);
             $p20 = $p10 + ($spread * 0.67);
 
+            // Smooth transition for early years - blend with start value
+            // Year 1: 70% Monte Carlo, 30% start value
+            // Year 2: 90% Monte Carlo, 10% start value
+            // Year 3+: 100% Monte Carlo
+            $blendFactor = 1.0;
+            if ($yearIndex === 1) {
+                $blendFactor = 0.7;
+            } elseif ($yearIndex === 2) {
+                $blendFactor = 0.9;
+            }
+
+            $p5 = $this->blendValue($p5, $startValue, $blendFactor);
+            $p10 = $this->blendValue($p10, $startValue, $blendFactor);
+            $p15 = $this->blendValue($p15, $startValue, $blendFactor);
+            $p20 = $this->blendValue($p20, $startValue, $blendFactor);
+            $p50 = $this->blendValue($p50, $startValue, $blendFactor);
+            $p75 = $this->blendValue($p75, $startValue, $blendFactor);
+            $p90 = $this->blendValue($p90, $startValue, $blendFactor);
+
             $result[] = [
                 'year' => $currentYear + $yearIndex,
                 'year_number' => $yearIndex,
-                'percentile_5' => round($p5, 2),
+                'percentile_5' => round(max(0, $p5), 2),
                 'percentile_10' => round($p10, 2),
                 'percentile_15' => round($p15, 2),
                 'percentile_20' => round($p20, 2),
@@ -433,6 +452,14 @@ class RetirementProjectionService
         }
 
         return $result;
+    }
+
+    /**
+     * Blend a Monte Carlo value with the start value for smooth transitions.
+     */
+    private function blendValue(float $monteCarloValue, float $startValue, float $blendFactor): float
+    {
+        return ($monteCarloValue * $blendFactor) + ($startValue * (1 - $blendFactor));
     }
 
     /**
