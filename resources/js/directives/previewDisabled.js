@@ -22,7 +22,7 @@ const tooltips = {
     add: 'Register to add data',
     edit: 'Register to edit data',
     delete: 'Register to delete data',
-    upload: 'Register to upload data',
+    upload: 'Register to upload documents',
     save: 'Register to save data',
     default: 'Register to use this feature',
 };

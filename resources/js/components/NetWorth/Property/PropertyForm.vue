@@ -855,7 +855,7 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label for="start_date" class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                <label for="start_date" class="block text-sm font-medium text-gray-700 mb-1">Mortgage Start Date</label>
                 <input
                   id="start_date"
                   v-model="mortgageForm.start_date"
@@ -865,7 +865,7 @@
               </div>
 
               <div>
-                <label for="maturity_date" class="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+                <label for="maturity_date" class="block text-sm font-medium text-gray-700 mb-1">Mortgage End Date</label>
                 <input
                   id="maturity_date"
                   v-model="mortgageForm.maturity_date"

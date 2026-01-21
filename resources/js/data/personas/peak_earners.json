@@ -80,7 +80,7 @@
       "purchase_price": 625000,
       "purchase_date": "2012-04-01",
       "ownership_type": "joint",
-      "ownership_percentage": 100,
+      "ownership_percentage": 50,
       "is_primary_residence": true,
       "bedrooms": 5,
       "estimated_rental_value": 0,
@@ -104,7 +104,7 @@
       "purchase_price": 340000,
       "purchase_date": "2018-10-15",
       "ownership_type": "joint",
-      "ownership_percentage": 100,
+      "ownership_percentage": 50,
       "is_primary_residence": false,
       "bedrooms": 2,
       "estimated_rental_value": 1800,
@@ -170,7 +170,7 @@
       "remaining_term_months": 156,
       "mortgage_start_date": "2012-04-01",
       "ownership_type": "joint",
-      "ownership_percentage": 100
+      "ownership_percentage": 50
     },
     {
       "id": 2,
@@ -185,7 +185,7 @@
       "remaining_term_months": 180,
       "mortgage_start_date": "2018-10-15",
       "ownership_type": "joint",
-      "ownership_percentage": 100,
+      "ownership_percentage": 50,
       "notes": "BTL mortgage"
     },
     {

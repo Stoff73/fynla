@@ -77,7 +77,7 @@
       "purchase_price": 285000,
       "purchase_date": "2019-06-15",
       "ownership_type": "joint",
-      "ownership_percentage": 100,
+      "ownership_percentage": 50,
       "is_primary_residence": true,
       "bedrooms": 3,
       "estimated_rental_value": 0,
@@ -109,7 +109,7 @@
       "remaining_term_months": 276,
       "mortgage_start_date": "2019-06-15",
       "ownership_type": "joint",
-      "ownership_percentage": 100
+      "ownership_percentage": 50
     }
   ],
 

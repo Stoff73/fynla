@@ -179,9 +179,13 @@ const actions = {
         commit('SET_ERROR', null);
 
         try {
-            // Clear any existing auth state first
+            // CRITICAL: Clear ALL auth and data state to prevent data leakage
             localStorage.removeItem('auth_token');
             commit('auth/clearAuth', null, { root: true });
+
+            // CRITICAL: Reset all module states to prevent previous user's data from showing
+            commit('userProfile/resetState', null, { root: true });
+            dispatch('netWorth/resetState', null, { root: true }).catch(() => {});
 
             const response = await api.post(`/preview/login/${personaId}`);
 
@@ -190,6 +194,11 @@ const actions = {
                 localStorage.setItem('auth_token', token);
                 commit('auth/setToken', token, { root: true });
                 commit('auth/setUser', response.data.user, { root: true });
+
+                // CRITICAL: Reload the page to ensure ALL state is fresh
+                // This prevents any possibility of previous user data showing
+                window.location.href = '/dashboard';
+
                 return response.data;
             } else {
                 throw new Error(response.data.message || 'Failed to enter preview mode');
@@ -207,13 +216,17 @@ const actions = {
      * Switch to a different preview persona
      * @param {string} personaId - ID of persona to switch to
      */
-    async switchPersona({ commit, getters }, personaId) {
+    async switchPersona({ commit, dispatch, getters }, personaId) {
         if (getters.currentPersonaId === personaId) return;
 
         commit('SET_LOADING', true);
         commit('SET_ERROR', null);
 
         try {
+            // CRITICAL: Reset module states before switching to prevent data leakage
+            commit('userProfile/resetState', null, { root: true });
+            dispatch('netWorth/resetState', null, { root: true }).catch(() => {});
+
             const response = await api.post(`/preview/switch/${personaId}`);
 
             if (response.data.success) {

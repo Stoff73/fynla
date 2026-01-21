@@ -136,7 +136,7 @@
       "purchase_price": 185000,
       "purchase_date": "1995-06-01",
       "ownership_type": "joint",
-      "ownership_percentage": 100,
+      "ownership_percentage": 50,
       "is_primary_residence": true,
       "bedrooms": 4,
       "estimated_rental_value": 0,
