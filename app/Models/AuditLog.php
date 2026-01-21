@@ -63,6 +63,10 @@ class AuditLog extends Model
 
     public const ACTION_PASSWORD_CHANGED = 'password_changed';
 
+    public const ACTION_PASSWORD_RESET_REQUESTED = 'password_reset_requested';
+
+    public const ACTION_PASSWORD_RESET_COMPLETED = 'password_reset_completed';
+
     public const ACTION_SESSION_REVOKED = 'session_revoked';
 
     /**
@@ -190,6 +194,8 @@ class AuditLog extends Model
             self::ACTION_MFA_DISABLED => 'MFA disabled',
             self::ACTION_MFA_VERIFIED => 'MFA verified',
             self::ACTION_PASSWORD_CHANGED => 'Password changed',
+            self::ACTION_PASSWORD_RESET_REQUESTED => 'Password reset requested',
+            self::ACTION_PASSWORD_RESET_COMPLETED => 'Password reset completed',
             self::ACTION_SESSION_REVOKED => 'Session revoked',
             self::ACTION_CREATED => 'Created',
             self::ACTION_UPDATED => 'Updated',

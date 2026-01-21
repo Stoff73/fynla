@@ -146,6 +146,86 @@ const authService = {
     });
     return response.data;
   },
+
+  /**
+   * Request password reset
+   * @param {string} email - User email address
+   * @returns {Promise}
+   */
+  async requestPasswordReset(email) {
+    const response = await api.post('/auth/password-reset/request', { email });
+    return response.data;
+  },
+
+  /**
+   * Verify password reset email code
+   * @param {string} token - Reset session token
+   * @param {string} code - 6-digit verification code
+   * @returns {Promise}
+   */
+  async verifyPasswordResetEmail(token, code) {
+    const response = await api.post('/auth/password-reset/verify-email', {
+      token,
+      code,
+    });
+    return response.data;
+  },
+
+  /**
+   * Resend password reset code
+   * @param {string} token - Reset session token
+   * @returns {Promise}
+   */
+  async resendPasswordResetCode(token) {
+    const response = await api.post('/auth/password-reset/resend-code', {
+      token,
+    });
+    return response.data;
+  },
+
+  /**
+   * Verify password reset MFA code
+   * @param {string} token - Reset session token
+   * @param {string} code - 6-digit MFA code
+   * @returns {Promise}
+   */
+  async verifyPasswordResetMfa(token, code) {
+    const response = await api.post('/auth/password-reset/verify-mfa', {
+      token,
+      code,
+    });
+    return response.data;
+  },
+
+  /**
+   * Use recovery code for password reset MFA
+   * @param {string} token - Reset session token
+   * @param {string} recoveryCode - Recovery code
+   * @returns {Promise}
+   */
+  async usePasswordResetRecoveryCode(token, recoveryCode) {
+    const response = await api.post('/auth/password-reset/mfa-recovery', {
+      token,
+      recovery_code: recoveryCode,
+    });
+    return response.data;
+  },
+
+  /**
+   * Reset password
+   * @param {string} token - Reset session token
+   * @param {string} password - New password
+   * @param {string} passwordConfirmation - Password confirmation
+   * @returns {Promise}
+   */
+  async resetPassword(token, password, passwordConfirmation) {
+    const response = await api.post('/auth/password-reset/reset', {
+      token,
+      password,
+      password_confirmation: passwordConfirmation,
+    });
+    return response.data;
+  },
 };
 
 export default authService;

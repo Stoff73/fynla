@@ -105,6 +105,29 @@ const getters = {
   spouseAccounts: (state) => state.spouseAccounts,
   loading: (state) => state.loading,
   error: (state) => state.error,
+
+  /**
+   * Get children/dependants eligible for Junior ISA (under 18)
+   */
+  juniorIsaEligibleChildren: (state) => {
+    const today = new Date();
+    return state.familyMembers.filter(member => {
+      // Only include children, step children, and other dependents
+      if (!['child', 'step_child', 'other_dependent'].includes(member.relationship)) {
+        return false;
+      }
+
+      // Check if under 18
+      if (member.date_of_birth) {
+        const dob = new Date(member.date_of_birth);
+        const age = Math.floor((today - dob) / (365.25 * 24 * 60 * 60 * 1000));
+        return age < 18;
+      }
+
+      // If no DOB, include but they'll need to verify age
+      return true;
+    });
+  },
 };
 
 const actions = {

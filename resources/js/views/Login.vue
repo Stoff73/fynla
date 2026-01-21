@@ -26,6 +26,13 @@
       @close="handleMFAClose"
     />
 
+    <!-- Forgot Password Modal -->
+    <ForgotPasswordModal
+      :is-open="showForgotPasswordModal"
+      @close="showForgotPasswordModal = false"
+      @success="handlePasswordResetSuccess"
+    />
+
     <div class="max-w-md w-full space-y-8">
       <div>
         <div class="text-center">
@@ -129,9 +136,13 @@
           </div>
 
           <div class="text-body-sm">
-            <a href="#" class="font-medium text-primary-600 hover:text-primary-700">
+            <button
+              type="button"
+              @click="showForgotPasswordModal = true"
+              class="font-medium text-primary-600 hover:text-primary-700"
+            >
               Forgot your password?
-            </a>
+            </button>
           </div>
         </div>
 
@@ -158,6 +169,7 @@ import { useRouter } from 'vue-router';
 import ChangePasswordModal from '../components/Auth/ChangePasswordModal.vue';
 import VerificationCodeModal from '../components/Auth/VerificationCodeModal.vue';
 import MFAVerifyModal from '../components/Auth/MFAVerifyModal.vue';
+import ForgotPasswordModal from '../components/Auth/ForgotPasswordModal.vue';
 import authService from '../services/authService';
 import api from '../services/api';
 import logoImage from '@/assets/logoTransparent.png';
@@ -169,6 +181,7 @@ export default {
     ChangePasswordModal,
     VerificationCodeModal,
     MFAVerifyModal,
+    ForgotPasswordModal,
   },
 
   setup() {
@@ -186,6 +199,7 @@ export default {
     const showPasswordModal = ref(false);
     const showVerificationModal = ref(false);
     const showMFAModal = ref(false);
+    const showForgotPasswordModal = ref(false);
     const pendingUserId = ref(null);
     const pendingMfaToken = ref(null);
     const pendingEmail = ref('');
@@ -301,6 +315,12 @@ export default {
       router.push({ name: 'Dashboard' });
     };
 
+    const handlePasswordResetSuccess = () => {
+      showForgotPasswordModal.value = false;
+      // User will need to log in with new password
+      // The modal shows a success message and closes
+    };
+
     return {
       form,
       errors,
@@ -310,6 +330,7 @@ export default {
       showPasswordModal,
       showVerificationModal,
       showMFAModal,
+      showForgotPasswordModal,
       pendingUserId,
       pendingMfaToken,
       pendingEmail,
@@ -320,6 +341,7 @@ export default {
       handleMFAVerified,
       handleMFAClose,
       handlePasswordChanged,
+      handlePasswordResetSuccess,
     };
   },
 };

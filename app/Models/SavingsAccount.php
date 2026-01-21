@@ -36,6 +36,10 @@ class SavingsAccount extends Model
         'ownership_percentage',
         'joint_owner_id',
         'trust_id',
+        // Junior ISA beneficiary fields
+        'beneficiary_id',
+        'beneficiary_name',
+        'beneficiary_dob',
     ];
 
     protected $casts = [
@@ -46,6 +50,7 @@ class SavingsAccount extends Model
         'is_emergency_fund' => 'boolean',
         'is_isa' => 'boolean',
         'isa_subscription_amount' => 'decimal:2',
+        'beneficiary_dob' => 'date',
     ];
 
     /**
@@ -54,6 +59,14 @@ class SavingsAccount extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Beneficiary relationship (for Junior ISAs)
+     */
+    public function beneficiary(): BelongsTo
+    {
+        return $this->belongsTo(FamilyMember::class, 'beneficiary_id');
     }
 
     /**
