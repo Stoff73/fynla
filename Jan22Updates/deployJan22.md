@@ -5,6 +5,8 @@
 2. Fix pension projections to include percentage-based contributions (workplace pensions)
 3. **CRITICAL SECURITY FIX**: Preview mode session isolation to prevent data leakage
 4. Remove Diversification tab from pension detail view
+5. Retirement strategy affordability enhancements (employer match, strategy flow, income gap display)
+6. Priority 2 contribution increase with tax relief reinvestment (relief at source, self-assessment refund, compound projection)
 
 ---
 
@@ -25,6 +27,7 @@ Vue components and JS services were modified.
 app/Http/Controllers/Api/PostcodeLookupController.php  (NEW)
 app/Http/Controllers/Api/PreviewController.php         (SECURITY FIX)
 app/Services/Retirement/PensionProjector.php
+app/Services/Retirement/RetirementStrategyService.php  (STRATEGY ENHANCEMENTS)
 config/services.php
 routes/api.php
 ```
@@ -60,6 +63,7 @@ php artisan config:clear && php artisan cache:clear && php artisan route:clear &
 | `app/Http/Controllers/Api/PostcodeLookupController.php` | NEW | Backend |
 | `app/Http/Controllers/Api/PreviewController.php` | SECURITY FIX | Backend |
 | `app/Services/Retirement/PensionProjector.php` | Modified | Backend |
+| `app/Services/Retirement/RetirementStrategyService.php` | Modified | Backend |
 | `config/services.php` | Modified | Backend |
 | `routes/api.php` | Modified | Backend |
 | `resources/js/components/Shared/PostcodeLookup.vue` | NEW | Frontend |
@@ -99,3 +103,44 @@ php artisan config:clear && php artisan cache:clear && php artisan route:clear &
 1. Go to Retirement module → Click on any DC pension
 2. **Verify:** Tabs show only: Overview, Projections, Documents
 3. **Verify:** No "Diversification" tab appears
+
+### Retirement Strategy Affordability
+1. Log in as James Carter (young_family persona)
+2. Go to Retirement → Strategies tab
+3. **Verify:** Employer match strategy shows affordability info:
+   - `net_cost_annual` field present
+   - `can_afford` boolean present
+4. If strategy is not affordable:
+   - **Verify:** `skipped_reason: 'affordability'` appears
+   - **Verify:** Green message about reviewing expenditure appears
+   - **Verify:** Contribution increase strategy is skipped
+5. For Strategy 4 (Income Target):
+   - **Verify:** Description shows gap between sustainable income and target
+   - Example: "You can sustainably withdraw £X/year... This is £Y/year less than your target"
+
+### Priority 2 Contribution Increase with Tax Relief
+1. Log in as David Mitchell (peak_earners persona - higher rate taxpayer)
+2. Go to Retirement → Strategies tab
+3. Find the "Increase Pension Contributions" strategy (Priority 2)
+4. **Verify:** `contribution_breakdown` object present with:
+   - `gross_contribution` - total going into pension
+   - `user_pays_upfront` - 80% of gross (net payment)
+   - `hmrc_adds` - 20% relief at source
+   - `self_assessment_refund` - additional relief for higher/additional rate
+   - `effective_annual_cost` - user's true cost after all relief
+   - `tax_band` - shows "higher" or "additional"
+5. **Verify:** `refund_reinvestment` object present with:
+   - `refund_amount` - annual refund amount
+   - `refund_timing` - e.g., "January 2028"
+   - `recommended_destination` - "pension", "isa", "bond_wrapper", or "gia"
+   - `fallback_order` - ["pension", "isa", "bond_wrapper", "gia"]
+6. **Verify:** `compound_projection` object present with:
+   - `years_to_retirement` - years until retirement
+   - `without_reinvestment.total_contributions` - base contributions
+   - `without_reinvestment.projected_pot` - pot without reinvestment
+   - `with_reinvestment.total_contributions` - enhanced contributions
+   - `with_reinvestment.projected_pot` - pot with reinvestment
+   - `with_reinvestment.additional_benefit` - extra pot from reinvestment
+   - `yearly_breakdown[]` - year-by-year projection details
+7. **Verify:** Description shows compound benefit message for higher/additional rate taxpayers:
+   - Example: "By reinvesting your tax refund each year until retirement (20 years), you could add an estimated £X extra to your retirement pot."

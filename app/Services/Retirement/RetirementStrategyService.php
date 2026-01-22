@@ -65,44 +65,58 @@ class RetirementStrategyService
         // Track cumulative additional income for chained strategies
         $cumulativeAdditionalIncome = 0.0;
         $cumulativeAdditionalMonthly = 0.0;
+        $matchingSkippedForAffordability = false;
 
-        // Priority 1: Employer match strategies
-        $employerMatchStrategies = $this->checkEmployerMatchStrategies($user, $currentStatus, $cumulativeAdditionalIncome);
+        // Priority 1: Employer match strategies (with affordability check)
+        $employerMatchResult = $this->checkEmployerMatchStrategies($user, $currentStatus, $cumulativeAdditionalIncome, $affordability);
+        $employerMatchStrategies = $employerMatchResult['strategies'];
+        $matchingSkippedForAffordability = $employerMatchResult['skipped_for_affordability'];
+
         foreach ($employerMatchStrategies as $strategy) {
-            // Calculate TRUE cumulative income with this strategy
-            $newCumulativeIncome = $cumulativeAdditionalIncome + ($strategy['impact']['additional_annual_income'] ?? 0);
-            $newCumulativeMonthly = $cumulativeAdditionalMonthly + ($strategy['impact']['additional_monthly'] ?? 0);
+            // Only accumulate values if the strategy is affordable
+            $isAffordable = $strategy['affordability']['can_afford'] ?? true;
 
-            // Recalculate probability based on TRUE cumulative income
-            $trueCumulativeProbability = $this->calculateNewProbability(
-                $currentStatus['projected_income'] + $cumulativeAdditionalIncome,
-                $currentStatus['target_income'],
-                $strategy['impact']['additional_annual_income'] ?? 0
-            );
+            if ($isAffordable) {
+                // Calculate TRUE cumulative income with this strategy
+                $newCumulativeIncome = $cumulativeAdditionalIncome + ($strategy['impact']['additional_annual_income'] ?? 0);
+                $newCumulativeMonthly = $cumulativeAdditionalMonthly + ($strategy['impact']['additional_monthly'] ?? 0);
 
-            // Update strategy's impact with correct cumulative probability
-            $strategy['impact']['new_probability'] = round($trueCumulativeProbability, 0);
-            $strategy['impact']['probability_improvement'] = round($trueCumulativeProbability - $cumulativeProbability, 0);
+                // Recalculate probability based on TRUE cumulative income
+                $trueCumulativeProbability = $this->calculateNewProbability(
+                    $currentStatus['projected_income'] + $cumulativeAdditionalIncome,
+                    $currentStatus['target_income'],
+                    $strategy['impact']['additional_annual_income'] ?? 0
+                );
 
-            // Build projection with cumulative values
-            $strategy['projection'] = $this->buildStrategyProjection(
-                $currentStatus,
-                $newCumulativeMonthly,
-                $newCumulativeIncome
-            );
+                // Update strategy's impact with correct cumulative probability
+                $strategy['impact']['new_probability'] = round($trueCumulativeProbability, 0);
+                $strategy['impact']['probability_improvement'] = round($trueCumulativeProbability - $cumulativeProbability, 0);
 
-            $strategies[] = $strategy;
-            $cumulativeAdditionalIncome = $newCumulativeIncome;
-            $cumulativeAdditionalMonthly = $newCumulativeMonthly;
-            $cumulativeProbability = $trueCumulativeProbability;
+                // Build projection with cumulative values
+                $strategy['projection'] = $this->buildStrategyProjection(
+                    $currentStatus,
+                    $newCumulativeMonthly,
+                    $newCumulativeIncome
+                );
 
-            if ($cumulativeProbability >= self::ON_TRACK_PROBABILITY) {
-                break;
+                $strategies[] = $strategy;
+                $cumulativeAdditionalIncome = $newCumulativeIncome;
+                $cumulativeAdditionalMonthly = $newCumulativeMonthly;
+                $cumulativeProbability = $trueCumulativeProbability;
+
+                if ($cumulativeProbability >= self::ON_TRACK_PROBABILITY) {
+                    break;
+                }
+            } else {
+                // Strategy not affordable - still add to list but don't accumulate values
+                $strategy['impact']['probability_improvement'] = 0;
+                $strategies[] = $strategy;
             }
         }
 
         // Priority 2: Increase contributions (if still not on track)
-        if ($cumulativeProbability < self::ON_TRACK_PROBABILITY) {
+        // SKIP if employer match was skipped due to affordability (user can't afford matching, so can't afford more contributions)
+        if ($cumulativeProbability < self::ON_TRACK_PROBABILITY && ! $matchingSkippedForAffordability) {
             $contributionStrategy = $this->checkContributionIncreaseStrategy(
                 $user,
                 $affordability,
@@ -141,9 +155,16 @@ class RetirementStrategyService
         }
 
         // Priority 3: Retirement age (if still not on track)
+        $cannotAchieveTargetBy68 = false;
+        $sustainableIncomeAt68 = null;
+
         if ($cumulativeProbability < self::ON_TRACK_PROBABILITY) {
             $retirementAgeStrategy = $this->checkRetirementAgeStrategy($user, $currentStatus, $cumulativeAdditionalIncome);
             if ($retirementAgeStrategy) {
+                // Track if target cannot be achieved by age 68 (triggers Strategy 4)
+                $cannotAchieveTargetBy68 = $retirementAgeStrategy['cannot_achieve_target_by_68'] ?? false;
+                $sustainableIncomeAt68 = $retirementAgeStrategy['impact']['sustainable_income_at_68'] ?? null;
+
                 // Build retirement-age-specific projection with cumulative context
                 $yearsDelay = $retirementAgeStrategy['impact']['years_delay'] ?? 0;
                 $retirementAgeStrategy['projection'] = $this->buildRetirementAgeProjection(
@@ -171,9 +192,17 @@ class RetirementStrategyService
             }
         }
 
-        // Priority 4: Reduce income target (if still not on track)
-        if ($cumulativeProbability < self::ON_TRACK_PROBABILITY) {
-            $incomeTargetStrategy = $this->checkIncomeTargetStrategy($user, $projections, $currentStatus, $cumulativeAdditionalIncome);
+        // Priority 4: Reduce income target
+        // Triggered if: still not on track OR cannot achieve target by age 68
+        if ($cumulativeProbability < self::ON_TRACK_PROBABILITY || $cannotAchieveTargetBy68) {
+            // Pass sustainable income at 68 if Strategy 3 flagged cannot_achieve_target_by_68
+            $incomeTargetStrategy = $this->checkIncomeTargetStrategy(
+                $user,
+                $projections,
+                $currentStatus,
+                $cumulativeAdditionalIncome,
+                $cannotAchieveTargetBy68 ? $sustainableIncomeAt68 : null
+            );
             if ($incomeTargetStrategy) {
                 // For income target, show current projection with the new target
                 $incomeTargetStrategy['projection'] = $this->buildIncomeTargetProjection(
@@ -420,11 +449,15 @@ class RetirementStrategyService
 
     /**
      * Check for employer match optimization opportunities.
+     *
+     * @param  array  $affordability  User's affordability data including disposable_income
+     * @return array  Contains 'strategies' array and 'skipped_for_affordability' bool
      */
-    private function checkEmployerMatchStrategies(User $user, array $currentStatus, float $cumulativeAdditionalIncome): array
+    private function checkEmployerMatchStrategies(User $user, array $currentStatus, float $cumulativeAdditionalIncome, array $affordability): array
     {
         $strategies = [];
         $priority = 1;
+        $skippedForAffordability = false;
 
         $workplacePensions = $user->dcPensions->where('scheme_type', 'workplace');
 
@@ -446,9 +479,16 @@ class RetirementStrategyService
 
                 // Calculate additional contribution to reach match
                 $additionalPercent = $matchLimit - $currentEmployee;
-                $additionalMonthly = ($annualSalary * $additionalPercent / 100) / 12;
-                $employerBonus = $additionalMonthly; // Employer matches
-                $totalAdditionalMonthly = $additionalMonthly + $employerBonus;
+                $additionalMonthlyEmployee = ($annualSalary * $additionalPercent / 100) / 12;
+                $employerBonus = $additionalMonthlyEmployee; // Employer matches
+                $totalAdditionalMonthly = $additionalMonthlyEmployee + $employerBonus;
+
+                // Calculate employee's annual contribution increase (for affordability)
+                $additionalAnnualEmployee = $additionalMonthlyEmployee * 12;
+
+                // AFFORDABILITY CHECK: Calculate net cost considering salary sacrifice
+                $netCost = $this->calculateNetCostOfContribution($additionalAnnualEmployee, $user);
+                $canAfford = $affordability['disposable_income'] >= $netCost;
 
                 // Calculate realistic impact on retirement income
                 $additionalAnnualIncome = $this->calculateContributionImpactOnIncome(
@@ -464,7 +504,7 @@ class RetirementStrategyService
                     $additionalAnnualIncome
                 );
 
-                $strategies[] = [
+                $strategy = [
                     'type' => 'employer_match',
                     'applicable' => true,
                     'priority' => $priority,
@@ -490,13 +530,29 @@ class RetirementStrategyService
                         'additional_annual_income' => round($additionalAnnualIncome, 2),
                         'new_probability' => round($newProbability, 0),
                     ],
+                    'affordability' => [
+                        'net_cost_annual' => round($netCost, 2),
+                        'disposable_income' => round($affordability['disposable_income'], 2),
+                        'can_afford' => $canAfford,
+                    ],
                 ];
 
+                // Add skip reason and message if not affordable
+                if (! $canAfford) {
+                    $skippedForAffordability = true;
+                    $strategy['skipped_reason'] = 'affordability';
+                    $strategy['affordability_message'] = 'While maximising your employer\'s matching contribution would significantly boost your pension, it\'s not currently affordable based on your disposable income. Consider reviewing your monthly expenditure or revisiting this strategy when your financial circumstances change.';
+                }
+
+                $strategies[] = $strategy;
                 $priority++;
             }
         }
 
-        return $strategies;
+        return [
+            'strategies' => $strategies,
+            'skipped_for_affordability' => $skippedForAffordability,
+        ];
     }
 
     /**
@@ -543,6 +599,12 @@ class RetirementStrategyService
 
     /**
      * Check for contribution increase opportunity.
+     *
+     * Enhanced to include:
+     * - Relief at source calculation (HMRC adds 20%)
+     * - Self-assessment refund for higher/additional rate taxpayers
+     * - Refund reinvestment strategy (Pension → ISA → Bond Wrapper → GIA)
+     * - Compound projection of refund reinvestment until retirement
      */
     private function checkContributionIncreaseStrategy(
         User $user,
@@ -564,21 +626,31 @@ class RetirementStrategyService
             return null;
         }
 
+        // Get user's marginal tax rate for relief calculations
+        $marginalRate = $this->getMarginalTaxRate($user);
+
+        // Calculate contribution breakdown with relief at source
+        // User's disposable income is what they can pay upfront (net)
+        $contributionBreakdown = $this->calculateContributionWithRelief(
+            $disposableIncome,
+            $remainingAllowance,
+            $marginalRate
+        );
+
+        // Get the recommended gross contribution (50% of max for conservative approach)
+        $recommendedGrossAnnual = $contributionBreakdown['gross_contribution'] * 0.5;
+        $maxGrossAnnual = $contributionBreakdown['gross_contribution'];
+
         // Current total monthly contributions
         $currentMonthly = $this->calculateTotalContributions($user) / 12;
 
-        // Maximum additional contribution is limited by both affordability and allowance
-        $maxAdditionalAnnual = min($disposableIncome, $remainingAllowance);
-        $maxAdditionalMonthly = $maxAdditionalAnnual / 12;
-
-        // Recommended: use half of available additional capacity
-        $recommendedAdditional = $maxAdditionalMonthly * 0.5;
-        $recommendedMonthly = $currentMonthly + $recommendedAdditional;
-        $maxMonthly = $currentMonthly + $maxAdditionalMonthly;
+        // Convert to monthly for slider
+        $recommendedGrossMonthly = $recommendedGrossAnnual / 12;
+        $maxGrossMonthly = $maxGrossAnnual / 12;
 
         // Calculate realistic impact on retirement income
         $additionalAnnualIncome = $this->calculateContributionImpactOnIncome(
-            $recommendedAdditional,
+            $recommendedGrossMonthly,
             $currentStatus['years_to_retirement'],
             $currentStatus['expected_return']
         );
@@ -590,18 +662,37 @@ class RetirementStrategyService
             $additionalAnnualIncome
         );
 
-        // Determine which constraint is binding for the description
-        $isAllowanceBinding = $remainingAllowance < $disposableIncome;
-        $description = $isAllowanceBinding
-            ? sprintf(
-                'You can add up to %s/month within your annual allowance (disposable income: %s/month).',
-                $this->formatCurrency($maxAdditionalMonthly),
-                $this->formatCurrency($disposableIncome / 12)
-            )
-            : sprintf(
-                'You have disposable income of %s/month available for additional contributions.',
-                $this->formatCurrency($disposableIncome / 12)
-            );
+        // Calculate refund reinvestment strategy for recommended contribution
+        $recommendedRefund = 0.0;
+        if ($marginalRate >= 0.45) {
+            $recommendedRefund = $recommendedGrossAnnual * 0.25;
+        } elseif ($marginalRate >= 0.40) {
+            $recommendedRefund = $recommendedGrossAnnual * 0.20;
+        }
+
+        // Assume pension allowance for next year is same (full year of reinvestment possible)
+        $refundReinvestment = $this->calculateRefundReinvestmentStrategy(
+            $recommendedRefund,
+            $remainingAllowance - $recommendedGrossAnnual, // Remaining after this year's contribution
+            20000.0 // ISA allowance
+        );
+
+        // Project compound benefit of reinvestment until retirement
+        $yearsToRetirement = $currentStatus['years_to_retirement'];
+        $compoundProjection = $this->projectCompoundBenefitToRetirement(
+            $recommendedGrossAnnual,
+            $marginalRate,
+            $yearsToRetirement,
+            $currentStatus['expected_return'] ?? 0.05
+        );
+
+        // Build enhanced description based on tax band
+        $description = $this->buildContributionDescription(
+            $contributionBreakdown,
+            $recommendedGrossAnnual,
+            $compoundProjection,
+            $yearsToRetirement
+        );
 
         return [
             'type' => 'increase_contribution',
@@ -610,24 +701,83 @@ class RetirementStrategyService
             'title' => 'Increase Pension Contributions',
             'description' => $description,
             'current_value' => round($currentMonthly, 0),
-            'recommended_value' => round($recommendedMonthly, 0),
+            'recommended_value' => round($currentMonthly + $recommendedGrossMonthly, 0),
             'slider_config' => [
                 'min' => round($currentMonthly, 0),
-                'max' => round($maxMonthly, 0),
+                'max' => round($currentMonthly + $maxGrossMonthly, 0),
                 'step' => 50,
-                'unit' => '/month',
+                'unit' => '/month gross',
                 'format' => 'currency',
             ],
+            'contribution_breakdown' => [
+                'gross_contribution' => round($recommendedGrossAnnual, 0),
+                'user_pays_upfront' => round($recommendedGrossAnnual * 0.80, 0),
+                'hmrc_adds' => round($recommendedGrossAnnual * 0.20, 0),
+                'self_assessment_refund' => round($recommendedRefund, 0),
+                'effective_annual_cost' => round(($recommendedGrossAnnual * 0.80) - $recommendedRefund, 0),
+                'tax_band' => $contributionBreakdown['tax_band'],
+            ],
+            'refund_reinvestment' => $refundReinvestment,
+            'compound_projection' => $compoundProjection,
             'constraints' => [
-                'affordability_limit' => round($disposableIncome / 12, 2),
-                'annual_allowance_limit' => round($remainingAllowance / 12, 2),
+                'limited_by' => $contributionBreakdown['limited_by'],
+                'remaining_allowance' => round($remainingAllowance, 0),
+                'disposable_income' => round($disposableIncome, 0),
             ],
             'impact' => [
-                'additional_monthly' => round($recommendedAdditional, 2),
+                'additional_monthly' => round($recommendedGrossMonthly, 2),
                 'additional_annual_income' => round($additionalAnnualIncome, 2),
                 'new_probability' => round($newProbability, 0),
             ],
         ];
+    }
+
+    /**
+     * Build user-friendly description for contribution increase strategy.
+     */
+    private function buildContributionDescription(
+        array $breakdown,
+        float $recommendedGross,
+        array $compoundProjection,
+        int $yearsToRetirement
+    ): string {
+        $grossFormatted = $this->formatCurrency($recommendedGross);
+        $userPays = $this->formatCurrency($recommendedGross * 0.80);
+        $hmrcAdds = $this->formatCurrency($recommendedGross * 0.20);
+        $taxBand = $breakdown['tax_band'];
+
+        if ($taxBand === 'basic' || $taxBand === 'non_taxpayer') {
+            return sprintf(
+                'You can contribute up to %s/year to your pension. You pay %s and HMRC automatically adds %s (20%% basic rate relief).',
+                $grossFormatted,
+                $userPays,
+                $hmrcAdds
+            );
+        }
+
+        // Higher or additional rate taxpayer
+        $refundPercent = $taxBand === 'additional' ? '25%' : '20%';
+        $refundAmount = $taxBand === 'additional'
+            ? $this->formatCurrency($recommendedGross * 0.25)
+            : $this->formatCurrency($recommendedGross * 0.20);
+        $effectiveCost = $taxBand === 'additional'
+            ? $this->formatCurrency($recommendedGross * 0.55)
+            : $this->formatCurrency($recommendedGross * 0.60);
+
+        $additionalBenefit = $compoundProjection['with_reinvestment']['additional_benefit'] ?? 0;
+        $additionalBenefitFormatted = $this->formatCurrency($additionalBenefit);
+
+        return sprintf(
+            'You can contribute up to %s/year to your pension. You pay %s upfront, HMRC adds %s (20%% relief at source), and you receive an additional %s back through self-assessment (%s rate relief). Your effective cost is just %s. By reinvesting your tax refund each year until retirement (%d years), you could add an estimated %s extra to your retirement pot.',
+            $grossFormatted,
+            $userPays,
+            $hmrcAdds,
+            $refundAmount,
+            $taxBand,
+            $effectiveCost,
+            $yearsToRetirement,
+            $additionalBenefitFormatted
+        );
     }
 
     /**
@@ -661,6 +811,7 @@ class RetirementStrategyService
         $recommendedAge = $currentRetirementAge;
         $recommendedYearsDelay = 0;
         $bestIncomeCoverage = 0;
+        $cannotAchieveTargetBy68 = false;
 
         for ($testYears = 1; $testYears <= ($maxRecommendedAge - $currentRetirementAge); $testYears++) {
             // Calculate projected pot at this delayed retirement
@@ -684,10 +835,11 @@ class RetirementStrategyService
             }
         }
 
-        // If we couldn't reach 95% within max recommended age, use max
+        // If we couldn't reach 95% within max recommended age, use max and flag it
         if ($recommendedYearsDelay === 0) {
             $recommendedAge = $maxRecommendedAge;
             $recommendedYearsDelay = $maxRecommendedAge - $currentRetirementAge;
+            $cannotAchieveTargetBy68 = true; // Flag for triggering Strategy 4
 
             // Calculate coverage at max recommended age
             $projectedPotAtMax = $this->calculatePotAtDelayedRetirement(
@@ -746,7 +898,10 @@ class RetirementStrategyService
                 'years_delay' => $yearsDelay,
                 'additional_annual_income' => round($additionalAnnualIncome, 2),
                 'new_probability' => round($newProbability, 0),
+                'sustainable_income_at_68' => round($totalIncome, 2),
             ],
+            // Flag for triggering Strategy 4 when target cannot be achieved by age 68
+            'cannot_achieve_target_by_68' => $cannotAchieveTargetBy68,
             // Note: projection is added in getStrategies() to ensure consistency with cumulative values
         ];
     }
@@ -754,17 +909,28 @@ class RetirementStrategyService
     /**
      * Check for income target reduction strategy.
      * This strategy is about accepting a LOWER retirement income target.
-     * It does NOT use cumulative income - it's an alternative to contribution-based strategies.
+     *
+     * Can be triggered:
+     * 1. As final fallback when other strategies are insufficient
+     * 2. When Strategy 3 (retirement age) cannot achieve target by age 68
+     *
+     * @param  float|null  $sustainableIncomeAt68  Sustainable income from Strategy 3 at age 68
      */
-    private function checkIncomeTargetStrategy(User $user, array $projections, array $currentStatus, float $cumulativeAdditionalIncome): ?array
+    private function checkIncomeTargetStrategy(User $user, array $projections, array $currentStatus, float $cumulativeAdditionalIncome, ?float $sustainableIncomeAt68 = null): ?array
     {
         $targetIncome = $projections['income_drawdown']['target_income'];
         $guaranteedIncome = $projections['income_drawdown']['guaranteed_income']['total'] ?? 0;
 
-        // Use ORIGINAL projected income (not cumulative) - this is an alternative strategy
-        // Total achievable income = sustainable from pot + guaranteed (DB pensions, state pension)
-        $originalSustainableIncome = $currentStatus['projected_income'];
-        $totalAchievableIncome = $originalSustainableIncome + $guaranteedIncome;
+        // Use sustainable income at 68 if provided (from Strategy 3), otherwise use current projection
+        // This ensures we show the achievable income INCLUDING the retirement age delay benefit
+        if ($sustainableIncomeAt68 !== null && $sustainableIncomeAt68 > 0) {
+            $totalAchievableIncome = $sustainableIncomeAt68;
+            $triggeredByRetirementAge = true;
+        } else {
+            $originalSustainableIncome = $currentStatus['projected_income'];
+            $totalAchievableIncome = $originalSustainableIncome + $guaranteedIncome;
+            $triggeredByRetirementAge = false;
+        }
 
         // Minimum is total achievable, max is current target
         $minIncome = $totalAchievableIncome;
@@ -775,25 +941,30 @@ class RetirementStrategyService
             return null;
         }
 
-        // Recommend reducing to match what's achievable (total income including guaranteed)
-        // This shows "if you accept what you'll actually get, you're on track"
+        // Calculate the gap between target and achievable
+        $incomeGap = $targetIncome - $totalAchievableIncome;
+
+        // Recommend reducing to match what's achievable
         $recommendedIncome = $totalAchievableIncome;
 
         // Calculate new probability with reduced target
-        // With target = achievable income, coverage = 100%, probability = 95%
         $incomeRatio = $recommendedIncome > 0 ? $totalAchievableIncome / $recommendedIncome : 0;
         $newProbability = min(self::ON_TRACK_PROBABILITY, max(10, round(10 + ($incomeRatio * 85), 0)));
+
+        // Build description showing the gap clearly (green-toned informative message)
+        $description = sprintf(
+            'Based on your projected pension pot at age 68, you can sustainably withdraw %s/year (using a 4.7%% withdrawal rate with 95%% probability of lasting 30 years). This is %s/year less than your target retirement income of %s/year.',
+            $this->formatCurrency($totalAchievableIncome),
+            $this->formatCurrency($incomeGap),
+            $this->formatCurrency($targetIncome)
+        );
 
         return [
             'type' => 'income_target',
             'applicable' => true,
             'priority' => 4,
             'title' => 'Adjust Retirement Income Target',
-            'description' => sprintf(
-                'Accept a lower retirement income target of %s/year (currently projecting %s total).',
-                $this->formatCurrency($recommendedIncome),
-                $this->formatCurrency($totalAchievableIncome)
-            ),
+            'description' => $description,
             'current_value' => round($targetIncome, 0),
             'recommended_value' => round($recommendedIncome, 0),
             'slider_config' => [
@@ -805,14 +976,18 @@ class RetirementStrategyService
             ],
             'constraints' => [
                 'guaranteed_income' => round($guaranteedIncome, 2),
-                'sustainable_income' => round($originalSustainableIncome, 2),
+                'sustainable_income' => round($totalAchievableIncome - $guaranteedIncome, 2),
                 'total_achievable_income' => round($totalAchievableIncome, 2),
             ],
             'impact' => [
-                'income_reduction' => round($targetIncome - $recommendedIncome, 2),
+                'income_reduction' => round($incomeGap, 2),
+                'income_gap' => round($incomeGap, 2),
                 'additional_annual_income' => 0,
                 'new_probability' => round($newProbability, 0),
             ],
+            // Green-toned message style for frontend
+            'message_style' => 'informative',
+            'triggered_by_retirement_age' => $triggeredByRetirementAge,
         ];
     }
 
@@ -953,6 +1128,335 @@ class RetirementStrategyService
         // Contribution history tracking requires historical data storage
         // For now, return false to show the "not available" message in UI
         return false;
+    }
+
+    /**
+     * Calculate the net cost of additional pension contributions.
+     *
+     * First £2,000/year via salary sacrifice has zero cost (saves both tax AND NI).
+     * Above £2,000/year via relief at source: cost = contribution × (1 - marginal_tax_rate).
+     *
+     * Tax Year 2025/26: Salary sacrifice limit is £2,000.
+     */
+    private function calculateNetCostOfContribution(float $additionalAnnual, User $user): float
+    {
+        $salarySacrificeLimit = 2000.0;
+
+        // First £2,000 via salary sacrifice - no cost to employee
+        $viaReliefAtSource = max(0, $additionalAnnual - $salarySacrificeLimit);
+
+        if ($viaReliefAtSource <= 0) {
+            // All contribution is within salary sacrifice limit - zero cost
+            return 0.0;
+        }
+
+        // Get user's marginal tax rate
+        $marginalRate = $this->getMarginalTaxRate($user);
+
+        // Relief at source: employee pays net (after tax relief)
+        // Basic rate (20%): cost = contribution × 0.80
+        // Higher rate (40%): cost = contribution × 0.60
+        // Additional rate (45%): cost = contribution × 0.55
+        $netCostReliefAtSource = $viaReliefAtSource * (1 - $marginalRate);
+
+        return $netCostReliefAtSource;
+    }
+
+    /**
+     * Get user's marginal income tax rate based on gross income.
+     *
+     * Uses TaxConfigService for tax bands to ensure consistency.
+     */
+    private function getMarginalTaxRate(User $user): float
+    {
+        $grossIncome = (float) ($user->annual_employment_income ?? 0)
+            + (float) ($user->annual_self_employment_income ?? 0);
+
+        $incomeTax = $this->taxConfig->getIncomeTax();
+        $personalAllowance = $incomeTax['personal_allowance'];
+        $basicLimit = $personalAllowance + $incomeTax['bands'][0]['max']; // £50,270
+        $higherLimit = $personalAllowance + $incomeTax['bands'][1]['max']; // £125,140
+
+        if ($grossIncome <= $personalAllowance) {
+            return 0.0;
+        } elseif ($grossIncome <= $basicLimit) {
+            return 0.20;
+        } elseif ($grossIncome <= $higherLimit) {
+            return 0.40;
+        } else {
+            return 0.45;
+        }
+    }
+
+    /**
+     * Calculate contribution amounts with relief at source.
+     *
+     * Relief at Source: User pays net (80%), HMRC adds 20% automatically.
+     * Higher/Additional rate taxpayers get additional relief via self-assessment.
+     *
+     * @param float $netAffordable Maximum net amount user can afford upfront
+     * @param float $remainingAllowance Remaining Annual Allowance
+     * @param float $marginalRate User's marginal tax rate (0, 0.20, 0.40, or 0.45)
+     * @return array Contribution breakdown with gross, net, HMRC addition, and refund
+     */
+    private function calculateContributionWithRelief(
+        float $netAffordable,
+        float $remainingAllowance,
+        float $marginalRate
+    ): array {
+        // Convert net affordable to gross (relief at source adds 25% on top)
+        // Net × 1.25 = Gross, or Gross = Net ÷ 0.80
+        $maxGrossFromAffordability = $netAffordable / 0.80;
+
+        // Cap at remaining Annual Allowance
+        $grossContribution = min($maxGrossFromAffordability, $remainingAllowance);
+
+        // User pays 80% upfront
+        $userPaysUpfront = $grossContribution * 0.80;
+
+        // HMRC adds 20% automatically (relief at source)
+        $hmrcAdds = $grossContribution * 0.20;
+
+        // Self-assessment refund for higher/additional rate taxpayers
+        // Higher rate (40%): additional 20% refund
+        // Additional rate (45%): additional 25% refund
+        $selfAssessmentRefund = 0.0;
+        $taxBand = 'basic';
+
+        if ($marginalRate >= 0.45) {
+            $selfAssessmentRefund = $grossContribution * 0.25;
+            $taxBand = 'additional';
+        } elseif ($marginalRate >= 0.40) {
+            $selfAssessmentRefund = $grossContribution * 0.20;
+            $taxBand = 'higher';
+        } elseif ($marginalRate >= 0.20) {
+            $taxBand = 'basic';
+        } else {
+            $taxBand = 'non_taxpayer';
+        }
+
+        // Effective annual cost = what user pays minus what they get back
+        $effectiveAnnualCost = $userPaysUpfront - $selfAssessmentRefund;
+
+        // Determine binding constraint
+        $limitedBy = $maxGrossFromAffordability <= $remainingAllowance
+            ? 'affordability'
+            : 'annual_allowance';
+
+        return [
+            'gross_contribution' => round($grossContribution, 2),
+            'user_pays_upfront' => round($userPaysUpfront, 2),
+            'hmrc_adds' => round($hmrcAdds, 2),
+            'self_assessment_refund' => round($selfAssessmentRefund, 2),
+            'effective_annual_cost' => round($effectiveAnnualCost, 2),
+            'tax_band' => $taxBand,
+            'marginal_rate' => $marginalRate,
+            'limited_by' => $limitedBy,
+        ];
+    }
+
+    /**
+     * Calculate refund reinvestment strategy.
+     *
+     * Priority order: Pension → ISA → Bond Wrapper → GIA
+     *
+     * @param float $refundAmount The self-assessment refund to reinvest
+     * @param float $remainingPensionAllowance Remaining pension Annual Allowance
+     * @param float $remainingIsaAllowance Remaining ISA allowance (£20,000 standard)
+     * @return array Recommended destination and breakdown
+     */
+    private function calculateRefundReinvestmentStrategy(
+        float $refundAmount,
+        float $remainingPensionAllowance,
+        float $remainingIsaAllowance = 20000.0
+    ): array {
+        if ($refundAmount <= 0) {
+            return [
+                'refund_amount' => 0,
+                'recommended_destination' => null,
+                'allocations' => [],
+                'fallback_order' => ['pension', 'isa', 'bond_wrapper', 'gia'],
+            ];
+        }
+
+        $allocations = [];
+        $remainingRefund = $refundAmount;
+        $recommendedDestination = null;
+
+        // Priority 1: Pension (if allowance available)
+        if ($remainingPensionAllowance > 0 && $remainingRefund > 0) {
+            $toPension = min($remainingRefund, $remainingPensionAllowance);
+            $allocations['pension'] = round($toPension, 2);
+            $remainingRefund -= $toPension;
+
+            if ($recommendedDestination === null) {
+                $recommendedDestination = 'pension';
+            }
+        }
+
+        // Priority 2: ISA (if allowance available)
+        if ($remainingIsaAllowance > 0 && $remainingRefund > 0) {
+            $toIsa = min($remainingRefund, $remainingIsaAllowance);
+            $allocations['isa'] = round($toIsa, 2);
+            $remainingRefund -= $toIsa;
+
+            if ($recommendedDestination === null) {
+                $recommendedDestination = 'isa';
+            }
+        }
+
+        // Priority 3: Bond Wrapper (no limit)
+        if ($remainingRefund > 0) {
+            // For simplicity, allocate a reasonable amount to bond wrapper
+            // before falling back to GIA (£10k threshold)
+            $toBondWrapper = min($remainingRefund, 10000.0);
+            $allocations['bond_wrapper'] = round($toBondWrapper, 2);
+            $remainingRefund -= $toBondWrapper;
+
+            if ($recommendedDestination === null) {
+                $recommendedDestination = 'bond_wrapper';
+            }
+        }
+
+        // Priority 4: GIA (fallback, no limit)
+        if ($remainingRefund > 0) {
+            $allocations['gia'] = round($remainingRefund, 2);
+
+            if ($recommendedDestination === null) {
+                $recommendedDestination = 'gia';
+            }
+        }
+
+        // Calculate refund timing (self-assessment refund arrives ~January after tax year end)
+        $now = now();
+        $currentTaxYearEnd = $now->month >= 4 && $now->day >= 6
+            ? $now->year + 1
+            : $now->year;
+        $refundTiming = sprintf('January %d', $currentTaxYearEnd + 1);
+
+        return [
+            'refund_amount' => round($refundAmount, 2),
+            'refund_timing' => $refundTiming,
+            'recommended_destination' => $recommendedDestination,
+            'pension_allowance_available' => $remainingPensionAllowance > 0,
+            'isa_allowance_available' => $remainingIsaAllowance > 0,
+            'allocations' => $allocations,
+            'fallback_order' => ['pension', 'isa', 'bond_wrapper', 'gia'],
+        ];
+    }
+
+    /**
+     * Project compound benefit of refund reinvestment until retirement.
+     *
+     * For higher/additional rate taxpayers, reinvesting the self-assessment refund
+     * back into pension creates a compounding cycle: refund → pension → more refund.
+     *
+     * @param float $annualGrossContribution Annual gross contribution to pension
+     * @param float $marginalRate User's marginal tax rate
+     * @param int $yearsToRetirement Years until target retirement
+     * @param float $growthRate Expected annual growth rate (default 5%)
+     * @return array Projection with yearly breakdown and totals
+     */
+    private function projectCompoundBenefitToRetirement(
+        float $annualGrossContribution,
+        float $marginalRate,
+        int $yearsToRetirement,
+        float $growthRate = 0.05
+    ): array {
+        if ($yearsToRetirement <= 0 || $annualGrossContribution <= 0) {
+            return [
+                'years_to_retirement' => $yearsToRetirement,
+                'without_reinvestment' => [
+                    'total_contributions' => 0,
+                    'projected_pot' => 0,
+                ],
+                'with_reinvestment' => [
+                    'total_contributions' => 0,
+                    'projected_pot' => 0,
+                    'additional_benefit' => 0,
+                ],
+                'yearly_breakdown' => [],
+            ];
+        }
+
+        // Calculate refund rate based on marginal tax rate
+        // Higher rate (40%): 20% refund, Additional rate (45%): 25% refund
+        $refundRate = 0.0;
+        if ($marginalRate >= 0.45) {
+            $refundRate = 0.25;
+        } elseif ($marginalRate >= 0.40) {
+            $refundRate = 0.20;
+        }
+
+        // Without reinvestment: simple annual contribution with growth
+        $withoutReinvestment = [
+            'total_contributions' => $annualGrossContribution * $yearsToRetirement,
+            'projected_pot' => 0,
+        ];
+
+        // Calculate pot without reinvestment using future value of annuity
+        for ($year = 1; $year <= $yearsToRetirement; $year++) {
+            $yearsToGrow = $yearsToRetirement - $year;
+            $futureValue = $annualGrossContribution * pow(1 + $growthRate, $yearsToGrow);
+            $withoutReinvestment['projected_pot'] += $futureValue;
+        }
+
+        // With reinvestment: refund from each year gets reinvested as pension contribution
+        $yearlyBreakdown = [];
+        $cumulativeRefundReinvested = 0.0;
+        $totalContributionsWithReinvestment = 0.0;
+        $projectedPotWithReinvestment = 0.0;
+
+        for ($year = 1; $year <= $yearsToRetirement; $year++) {
+            // Reinvest refund from previous year into pension
+            // When reinvested into pension, net becomes gross (÷ 0.80)
+            $refundReinvestedNet = $cumulativeRefundReinvested;
+            $refundReinvestedGross = $refundReinvestedNet > 0
+                ? $refundReinvestedNet / 0.80
+                : 0.0;
+
+            // Total gross contribution this year = base + reinvested refund
+            $totalGrossThisYear = $annualGrossContribution + $refundReinvestedGross;
+            $totalContributionsWithReinvestment += $totalGrossThisYear;
+
+            // Calculate refund generated this year for next year's reinvestment
+            $refundGeneratedThisYear = $totalGrossThisYear * $refundRate;
+            $cumulativeRefundReinvested = $refundGeneratedThisYear;
+
+            // Calculate future value of this year's contribution
+            $yearsToGrow = $yearsToRetirement - $year;
+            $futureValue = $totalGrossThisYear * pow(1 + $growthRate, $yearsToGrow);
+            $projectedPotWithReinvestment += $futureValue;
+
+            $yearlyBreakdown[] = [
+                'year' => $year,
+                'base_contribution' => round($annualGrossContribution, 0),
+                'refund_reinvested_net' => round($refundReinvestedNet, 0),
+                'refund_reinvested_gross' => round($refundReinvestedGross, 0),
+                'total_gross' => round($totalGrossThisYear, 0),
+                'refund_generated' => round($refundGeneratedThisYear, 0),
+                'years_to_grow' => $yearsToGrow,
+                'future_value' => round($futureValue, 0),
+            ];
+        }
+
+        $additionalBenefit = $projectedPotWithReinvestment - $withoutReinvestment['projected_pot'];
+
+        return [
+            'years_to_retirement' => $yearsToRetirement,
+            'growth_rate' => $growthRate,
+            'refund_rate' => $refundRate,
+            'without_reinvestment' => [
+                'total_contributions' => round($withoutReinvestment['total_contributions'], 0),
+                'projected_pot' => round($withoutReinvestment['projected_pot'], 0),
+            ],
+            'with_reinvestment' => [
+                'total_contributions' => round($totalContributionsWithReinvestment, 0),
+                'projected_pot' => round($projectedPotWithReinvestment, 0),
+                'additional_benefit' => round($additionalBenefit, 0),
+            ],
+            'yearly_breakdown' => $yearlyBreakdown,
+        ];
     }
 
     /**
