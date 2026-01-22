@@ -10,6 +10,8 @@
 7. **BUG FIX**: Compound projection growth rate calculation (was using 500% instead of 5%)
 8. Persona data fixes: realistic disposable income for all personas, 50/50 expenditure split for married couples
 9. ExpenditureForm household total calculation fix
+10. **BUG FIX**: Cash dashboard not displaying accounts for real users (BUG-012)
+11. Investment contribution tracking fields for expenditure calculations
 
 ---
 
@@ -31,9 +33,12 @@ app/Http/Controllers/Api/PostcodeLookupController.php  (NEW)
 app/Http/Controllers/Api/PreviewController.php         (SECURITY FIX)
 app/Services/Retirement/PensionProjector.php
 app/Services/Retirement/RetirementStrategyService.php  (STRATEGY ENHANCEMENTS + BUG FIX)
+app/Services/UserProfile/UserProfileService.php        (INVESTMENT CONTRIBUTIONS)
+app/Models/Investment/InvestmentAccount.php            (NEW CONTRIBUTION FIELDS)
 config/services.php
 routes/api.php
-database/seeders/PreviewUserSeeder.php                 (PERSONA DATA FIX)
+database/seeders/PreviewUserSeeder.php                 (PERSONA DATA FIX + CONTRIBUTIONS)
+database/migrations/2026_01_22_162633_add_contribution_fields_to_investment_accounts_table.php (NEW)
 ```
 
 ### Frontend (after rebuild)
@@ -45,6 +50,8 @@ public/build/  (entire folder)
 ```
 resources/js/data/personas/young_family.json
 resources/js/data/personas/peak_earners.json
+resources/js/data/personas/entrepreneur.json
+resources/js/data/personas/widow.json
 ```
 
 ---
@@ -61,7 +68,9 @@ GETADDRESS_API_KEY=UlM5caQqhUSoCCG3sZo1Yw49819
 ## SSH Commands After Upload
 
 ```bash
+php artisan migrate --force
 php artisan config:clear && php artisan cache:clear && php artisan route:clear && php artisan optimize
+php artisan db:seed --class=PreviewUserSeeder --force
 ```
 
 ---
@@ -74,8 +83,11 @@ php artisan config:clear && php artisan cache:clear && php artisan route:clear &
 | `app/Http/Controllers/Api/PreviewController.php` | SECURITY FIX | Backend |
 | `app/Services/Retirement/PensionProjector.php` | Modified | Backend |
 | `app/Services/Retirement/RetirementStrategyService.php` | Modified | Backend |
+| `app/Services/UserProfile/UserProfileService.php` | Modified | Backend |
+| `app/Models/Investment/InvestmentAccount.php` | Modified | Backend |
 | `config/services.php` | Modified | Backend |
 | `routes/api.php` | Modified | Backend |
+| `database/migrations/2026_01_22_162633_add_contribution_fields...` | NEW | Backend |
 | `resources/js/components/Shared/PostcodeLookup.vue` | NEW | Frontend |
 | `resources/js/services/postcodeService.js` | NEW | Frontend |
 | `resources/js/components/Estate/AssetForm.vue` | Modified | Frontend |
@@ -84,8 +96,12 @@ php artisan config:clear && php artisan cache:clear && php artisan route:clear &
 | `resources/js/components/UserProfile/PersonalInformation.vue` | Modified | Frontend |
 | `resources/js/components/NetWorth/PensionDetailInline.vue` | Modified | Frontend |
 | `resources/js/components/UserProfile/ExpenditureForm.vue` | Modified | Frontend |
+| `resources/js/views/NetWorth/CashOverview.vue` | BUG FIX | Frontend |
+| `resources/js/components/Investment/AccountForm.vue` | Modified | Frontend |
 | `resources/js/data/personas/young_family.json` | Modified | Frontend |
 | `resources/js/data/personas/peak_earners.json` | Modified | Frontend |
+| `resources/js/data/personas/entrepreneur.json` | Modified | Frontend |
+| `resources/js/data/personas/widow.json` | Modified | Frontend |
 | `database/seeders/PreviewUserSeeder.php` | Modified | Backend |
 
 ---
