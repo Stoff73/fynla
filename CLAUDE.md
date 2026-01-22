@@ -2,714 +2,185 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## CRITICAL WARNING - READ FIRST
-
-**NEVER MENTION OPCACHE.** Do not suggest OPcache as a solution, do not mention clearing OPcache, do not reference OPcache in any troubleshooting. If something isn't working on production, the issue is ALWAYS one of:
-1. A file wasn't uploaded to production
-2. A bug in the code
-3. Laravel cache needs clearing: `php artisan cache:clear`
-
-OPcache is NOT the problem. EVER. Do not default to this.
-
 ## Project Overview
 
-**Fynla** is a UK-focused comprehensive financial planning application (Laravel 10 + Vue.js 3 + MySQL 8). It covers five integrated modules: Protection, Savings, Investment, Retirement, and Estate Planning.
+**Fynla** is a UK financial planning application (Laravel 10 + Vue.js 3 + MySQL 8) covering five modules: Protection, Savings, Investment, Retirement, and Estate Planning.
 
-**Production URLs**:
-- https://fynla.org (primary)
-- https://csjones.co/fynla (legacy)
+| Metric | Count |
+|--------|-------|
+| Vue Components | 282 |
+| PHP Services | 137 |
+| Controllers | 62 |
+| Models | 65 |
+| Vuex Stores | 21 |
+| Agents | 8 |
 
-**Version**: v0.6.2
+**Production**: https://fynla.org | **Version**: v0.6.2
 
-## Essential Commands
-
-### Development Servers (MUST run both)
-
-```bash
-# Recommended - handles everything automatically
-./dev.sh
-
-# Manual alternative (3 terminals)
-php artisan serve                    # Laravel backend (port 8000)
-npm run dev                          # Vite frontend (port 5173)
-php artisan queue:work database      # Queue worker (optional, for Monte Carlo)
-```
-
-### Testing
+## Commands
 
 ```bash
+# Development
+./dev.sh                             # Start Laravel + Vite (recommended)
+
+# Testing
 ./vendor/bin/pest                    # Run all tests
-./vendor/bin/pest --testsuite=Unit   # Unit tests only
-./vendor/bin/pest tests/Unit/Services/Protection/AdequacyScorerTest.php  # Single file
+./vendor/bin/pest tests/Unit/...     # Single file
+
+# Database (run after tests or migrations)
+php artisan migrate && php artisan db:seed
+
+# Code formatting
+./vendor/bin/pint                    # PSR-12 format
 ```
 
-**IMPORTANT:** Pest tests may truncate the database. After running tests, reseed required data:
-```bash
-php artisan db:seed --class=TaxConfigurationSeeder --force
-php artisan db:seed --class=TaxProductReferenceSeeder --force
-php artisan db:seed --class=ActuarialLifeTablesSeeder --force
-php artisan db:seed --class=AdminUserSeeder --force
-php artisan db:seed --class=PreviewUserSeeder --force
-```
+**Reseed specific data:**
 
-### Code Quality
-
-```bash
-./vendor/bin/pint                    # Format code (PSR-12)
-./vendor/bin/pint --test             # Check without fixing
-```
-
-### Database
-
-```bash
-php artisan migrate                  # Run migrations
-php artisan db:seed                  # Seed all data (reference + users in dev)
-```
-
-**IMPORTANT:** After migrations, always ensure required data is seeded. See **`/seedMigration.md`** for full documentation.
-
-**Required seeders (MUST run for app to function):**
-```bash
-php artisan db:seed --class=TaxConfigurationSeeder --force
-php artisan db:seed --class=TaxProductReferenceSeeder --force
-php artisan db:seed --class=ActuarialLifeTablesSeeder --force
-php artisan db:seed --class=AdminUserSeeder --force
-php artisan db:seed --class=PreviewUserSeeder --force
-```
-
-Quick reference for common issues:
-
-| Issue | Solution |
-|-------|----------|
-| Tax Status tab empty | `php artisan db:seed --class=TaxProductReferenceSeeder --force` |
+| Issue | Command |
+|-------|---------|
 | Tax calculations failing | `php artisan db:seed --class=TaxConfigurationSeeder --force` |
+| Tax Status tab empty | `php artisan db:seed --class=TaxProductReferenceSeeder --force` |
 | Preview personas broken | `php artisan db:seed --class=PreviewUserSeeder --force` |
-| Admin login not working | `php artisan db:seed --class=AdminUserSeeder --force` |
 | Life expectancy errors | `php artisan db:seed --class=ActuarialLifeTablesSeeder --force` |
 
 ## Architecture
 
-### Agent-Based System
-
-Each module has an Agent orchestrating business logic:
-- **ProtectionAgent** - Life/CI/IP coverage analysis
-- **SavingsAgent** - Emergency fund & ISA tracking
-- **InvestmentAgent** - Portfolio analysis & Monte Carlo
-- **RetirementAgent** - Pension projections & readiness
-- **CoordinatingAgent** - Cross-module holistic planning
-
-**Note**: Estate module uses direct service architecture (IHTCalculationService).
-
-### Request Flow
-
 ```
-Vue Component → JS Service → API → Controller → Agent → Services → Models → DB
+Vue Component → API Service → Controller → Agent → Services → Models → DB
 ```
-
-### Directory Structure
 
 **Backend** (`app/`):
-- `Agents/` - Business logic orchestrators
-- `Services/{Module}/` - Domain calculations (63 services)
-- `Http/Controllers/Api/` - API endpoints (48 controllers)
-- `Http/Requests/` - Form validation
-- `Models/` - Eloquent models
+- `Agents/` - Module orchestrators (ProtectionAgent, SavingsAgent, InvestmentAgent, RetirementAgent, EstateAgent, GoalsAgent, CoordinatingAgent)
+- `Services/{Module}/` - Domain calculations
+- `Http/Controllers/Api/` - API endpoints
 
 **Frontend** (`resources/js/`):
-- `views/{Module}/` - Dashboard views
-- `components/{Module}/` - Module components
+- `components/{Module}/` - Vue components
+- `store/modules/` - Vuex state management
 - `services/` - API wrappers
-- `store/modules/` - Vuex stores (17 modules)
 
-## Critical Rules
+## Key Rules
 
-### 1. NEVER CREATE DEPLOYMENT PACKAGES (CRITICAL - VIOLATION = IMMEDIATE FAILURE)
+### 1. No Deployment Packages
+Never create ZIP files. List changed files for manual upload via SiteGround File Manager.
 
-**ABSOLUTELY NEVER create ZIP files, deployment packages, or archives.** This is a CRITICAL rule with ZERO exceptions.
+### 2. Preview User Isolation
+Preview users (`is_preview_user = true`) are seeded test personas, completely separate from real users. When debugging preview issues, only query `WHERE is_preview_user = true`.
 
-When deploying:
-1. **List the exact files that changed** - provide full paths
-2. **User uploads files manually** via SiteGround File Manager
-3. **If frontend changed**: Run `npm run build` with correct env vars, then list files in `public/build/` to upload
-4. **Provide SSH commands** for migrations, seeders, cache clears
-
-**Example of correct deployment output:**
-```
-Files to upload:
-- resources/js/components/NetWorth/Property/PropertyForm.vue
-- resources/js/components/NetWorth/Property/PropertyDetail.vue
-- app/Http/Controllers/Api/PropertyController.php
-
-Frontend rebuild required: YES
-After running build, upload entire public/build/ folder
-
-SSH commands after upload:
-php artisan config:clear && php artisan cache:clear && php artisan optimize
-```
-
-**NEVER run build scripts that create ZIP files. NEVER.**
-
-### 2. SECURITY - Preview Users Are COMPLETELY ISOLATED (CRITICAL)
-
-**This is a FINANCIAL APPLICATION. Security is PARAMOUNT.**
-
-Preview users (`is_preview_user = true`) are **COMPLETELY SEPARATE** from real users. NEVER:
-- Confuse preview user debugging with real user issues
-- Suggest queries that could affect real user data when debugging preview issues
-- Mix preview user logic with regular user authentication
-- Assume preview issues could be caused by real user data conflicts
-
-**Preview users are seeded test personas only.** They exist in isolation with their own:
-- User records (`preview_persona_id` identifies them)
-- Properties, mortgages, savings, investments, pensions
-- Spouse records (also preview users)
-
-When debugging preview mode issues:
-1. Only query users WHERE `is_preview_user = true`
-2. Never suggest the issue could be "duplicate users" mixing preview with real
-3. Check the seeder ran correctly and data was created for the preview user IDs
-4. Check OPcache/Laravel cache if data exists but doesn't display
-
-**VIOLATION OF THIS RULE = IMMEDIATE FAILURE**
-
-### 3. Keep It Simple
-
-**ALWAYS use the simplest solution.** Do not over-engineer, over-complicate, or add unnecessary validation/checks. Write minimal, clean code that does exactly what's needed - nothing more.
-
-Before writing code, ask: "What's the simplest way to do this?" If your solution has excessive error handling, verbose logging, or redundant checks - simplify it.
-
-### 4. Use Available Skills
-
-Check for relevant skills before starting any task:
-- **systematic-debugging** - For ALL bugs and troubleshooting
-- **fps-module-builder** - Creating new full-stack modules
-- **fps-feature-builder** - Adding features to existing modules
-- **fps-component-builder** - Creating Vue 3 components
-
-Agents available:
-- **laravel-stack-deployer** - Production deployments
-- **code-quality-auditor** - Code quality audits
-
-### 5. Never Hardcode Tax Values
-
-All UK tax values come from database via `TaxConfigService`:
-
+### 3. No Hardcoded Tax Values
+Use `TaxConfigService` for all UK tax values:
 ```php
-use App\Services\TaxConfigService;
-
-public function __construct(private TaxConfigService $taxConfig) {}
-
-public function calculate()
-{
-    $nrb = $this->taxConfig->getInheritanceTax()['nil_rate_band'];  // £325,000
-    $isaLimit = $this->taxConfig->getISAAllowances()['annual_allowance'];  // £20,000
-}
+$nrb = $this->taxConfig->getInheritanceTax()['nil_rate_band'];
 ```
 
-**Never use** `config('uk_tax_config')` - it's deprecated.
+### 4. Form Events
+Use `@save` not `@submit` on form modals (prevents double submission).
 
-### 6. Unified Form Components
-
-One form serves all contexts (onboarding, dashboard, edit):
-
-```vue
-<PolicyFormModal
-  :policy="editingPolicy"
-  :is-editing="!!editingPolicy"
-  @save="handleSave"
-  @close="closeModal"
-/>
-```
-
-**Critical**: Use `@save` not `@submit` (causes double submission bug).
-
-### 7. Canonical Data Types
-
-Use exact values from database enums:
-
+### 5. Canonical Enums
 | Type | Values |
 |------|--------|
 | Ownership | `individual`, `joint`, `tenants_in_common`, `trust` |
 | Property | `main_residence`, `secondary_residence`, `buy_to_let` |
 | Mortgage | `repayment`, `interest_only`, `mixed` |
-| Liability | `mortgage`, `secured_loan`, `personal_loan`, `credit_card`, `overdraft`, `hire_purchase`, `student_loan`, `business_loan`, `other` |
 
-**Never use** `sole` (use `individual`), `second_home`, `part_and_part`.
+Never use `sole` (use `individual`).
 
-### 8. Environment Separation
+### 6. Currency Formatting
+Always use `currencyMixin` - never define local `formatCurrency()` methods.
 
-The project supports multiple deployment targets with clear separation:
-
-```
-deploy/
-├── fynla-org/          # ROOT deployment at https://fynla.org
-│   ├── .env.production
-│   ├── .htaccess
-│   └── build.sh
-└── csjones-fynla/      # SUBDIRECTORY deployment at https://csjones.co/fynla
-    ├── .env.production
-    ├── .htaccess
-    └── build.sh
+### 7. Joint Assets Pattern
+Joint assets create TWO records (one per owner with their share):
+```php
+Property::create(['user_id' => $user->id, 'current_value' => 160000, 'ownership_percentage' => 50]);
+Property::create(['user_id' => $spouse->id, 'current_value' => 160000, 'ownership_percentage' => 50]);
 ```
 
-**Build for specific target:**
+## Deployment
+
+Use deployment scripts (never `npm run build` directly):
 ```bash
 ./deploy/fynla-org/build.sh        # For fynla.org
 ./deploy/csjones-fynla/build.sh    # For csjones.co/fynla
 ```
 
-**Key differences between environments:**
+| Setting | fynla.org | csjones.co/fynla |
+|---------|-----------|------------------|
+| VITE_BASE_PATH | `/build/` | `/fynla/build/` |
+| RewriteBase | `/` | `/fynla/` |
 
-| Setting | fynla.org (ROOT) | csjones.co/fynla (SUBDIRECTORY) |
-|---------|------------------|----------------------------------|
-| `VITE_BASE_PATH` | `/build/` | `/fynla/build/` |
-| `APP_URL` | `https://fynla.org` | `https://csjones.co/fynla` |
-| `.htaccess RewriteBase` | `/` | `/fynla/` |
-
-**Never export production env vars in development:**
-```bash
-# WRONG - causes CORS, DB, cache errors
-export $(cat .env.production | xargs)
-
-# CORRECT - always use
-./dev.sh
-```
-
-### 9. Deployment (Manual File Upload ONLY)
-
-**See Rule #1: NEVER create ZIP files or deployment packages.**
-
-**Frontend rebuild (when Vue/JS files changed):**
-```bash
-# Set environment variables and build
-export VITE_BASE_PATH=/build/
-export VITE_ROUTER_BASE=/
-export VITE_API_BASE_URL=https://fynla.org
-npm run build
-
-# Then list files in public/build/ for user to upload
-```
-
-**SSH commands (after uploading files):**
+**SSH access:**
 ```bash
 ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
 cd ~/www/fynla.org/public_html
-
-# Migrations & seeders
-php artisan migrate --force
-php artisan db:seed --class=PreviewUserSeeder --force
-
-# Clear caches
-php artisan config:clear && php artisan cache:clear && php artisan optimize
+php artisan migrate --force && php artisan cache:clear
 ```
 
-## Key Patterns
+## Preview Mode
 
-### Database Field Names
+Test via landing page persona selector at http://localhost:8000, not direct URLs.
 
-Use exact field names from schema:
-- Liabilities: `liability_name` (not `description`), `current_balance` (not `amount`)
-- DC Pensions: `monthly_contribution_amount` (not `employee_contribution_amount`)
-- DB Pensions: `accrued_annual_pension` (not `current_annual_pension`), `lump_sum_entitlement` (not `lump_sum_option`)
-- Mortgages: `ownership_type`, `joint_owner_id`, `joint_owner_name`
-
-### Reciprocal Records Pattern (Joint Assets)
-
-Joint assets create TWO database records - one for each owner with their share:
-
-```php
-// Creating a joint property (£320,000 total, 50/50 split)
-// Record 1: Primary user
-Property::create([
-    'user_id' => $user->id,
-    'joint_owner_id' => $spouse->id,
-    'current_value' => 160000,  // User's 50% share
-    'ownership_percentage' => 50,
-    'ownership_type' => 'joint',
-]);
-
-// Record 2: Spouse (reciprocal)
-Property::create([
-    'user_id' => $spouse->id,
-    'joint_owner_id' => $user->id,
-    'current_value' => 160000,  // Spouse's 50% share
-    'ownership_percentage' => 50,
-    'ownership_type' => 'joint',
-]);
-```
-
-**Key principles:**
-- Each record stores the owner's share in `current_value` (not the total)
-- Services only query by `user_id` - no complex joint_owner_id logic needed
-- Applies to: Properties, Mortgages, Savings, Investments
-- Individual pensions are assigned to the correct spouse via owner detection
-
-### Date Formatting
-
-HTML5 date inputs require `yyyy-MM-dd`:
-
-```javascript
-formatDateForInput(date) {
-  if (!date) return '';
-  const d = new Date(date);
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-}
-```
-
-### Currency Formatting
-
-**Always use the centralized `currencyMixin`** - never define local `formatCurrency()` methods in Vue components.
-
-```javascript
-// In Vue component
-import { currencyMixin } from '@/mixins/currencyMixin';
-
-export default {
-  mixins: [currencyMixin],
-  // Now use this.formatCurrency(), this.formatCurrencyWithPence(), etc.
-}
-```
-
-Available methods from the mixin:
-- `formatCurrency(value)` - £1,234 (no decimals)
-- `formatCurrencyWithPence(value)` - £1,234.56 (2 decimals)
-- `formatCurrencyCompact(value)` - £1.2M or £500K (compact notation)
-- `parseCurrency(string)` - Converts "£1,234" back to number
-- `formatPercentage(value, options)` - 12.5%
-
-**Never define local formatCurrency methods** - this causes code duplication. The mixin is already included in 111+ components.
-
-### Sync Related Form Data
-
-When forms have parent-child relationships (property + mortgage):
-
-```javascript
-watch: {
-  'form.ownership_type'(newVal) {
-    this.mortgageForm.ownership_type = newVal;
-  },
-  'form.joint_owner_id'(newVal) {
-    this.mortgageForm.joint_owner_id = newVal;
-  }
-}
-```
-
-### Coming Soon Banner
-
-```vue
-<div class="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-  <div class="bg-amber-100 border-2 border-amber-400 rounded-lg px-8 py-4 transform -rotate-12 shadow-lg">
-    <p class="text-2xl font-bold text-amber-700">Coming Soon</p>
-  </div>
-</div>
-```
+| Persona | Users | Focus |
+|---------|-------|-------|
+| young_family | James & Emily Carter | Mortgage, workplace pensions |
+| peak_earners | David & Sarah Mitchell | Multiple properties, SIPP + NHS pension |
+| widow | Margaret Thompson | Estate planning |
+| entrepreneur | Alex Chen | SIPP, business interests |
 
 ## UK Tax Context
 
-- **Tax Year**: April 6 to April 5
-- **Active Year**: 2025/26
-- **IHT**: 40% above NRB (£325,000) + RNRB (£175,000)
-- **ISA Allowance**: £20,000 (individual ownership only)
-- **Pension Annual Allowance**: £60,000
+- Tax Year: April 6 - April 5 (active: 2025/26)
+- IHT: 40% above NRB (£325k) + RNRB (£175k)
+- ISA: £20,000/year
+- Pension AA: £60,000
+
+## Credentials
+
+- **Demo**: demo@fps.com / password
+- **Admin**: admin@fps.com / admin123
+
+## Troubleshooting
+
+Don't suggest browser cache clearing - user tests in incognito.
+
+| Error | Fix |
+|-------|-----|
+| Blank page with 127.0.0.1:5173 | `rm public/hot` on server |
+| MIME type errors | Rebuild with `./deploy/fynla-org/build.sh` |
+| 500 DirectoryMatch error | Upload `deploy/fynla-org/.htaccess` |
+| 429 Too Many Requests | `php artisan cache:clear` |
+
+Check routes: `php artisan route:list --path=endpoint`
 
 ## Coding Standards
 
-### PHP (PSR-12)
+**PHP (PSR-12)**
 - `declare(strict_types=1);` in all files
 - Classes: `PascalCase`, Methods: `camelCase`, Database: `snake_case`
 - Type hints required
 
-### Vue.js
+**Vue.js**
 - Multi-word component names
 - Always use `:key` with `v-for`
 - Never `v-if` with `v-for` on same element
 
-### British vs American Spelling
-- **User-facing text**: British (Optimisation, Customise)
-- **Code syntax**: American (optimize, center) - follows framework conventions
-
-## Demo Credentials
-
-- **User**: demo@fps.com / password
-- **Admin**: admin@fps.com / admin123
-
-## Preview Mode
-
-Preview mode uses database-backed personas with real user records (`is_preview_user=true`).
-
-### Testing with Preview Personas (CRITICAL)
-
-**ALWAYS test via the landing page persona selector, NOT by navigating directly to URLs.**
-
-```
-1. Go to http://localhost:8000
-2. Click "Try the Demo" button
-3. Select a persona (e.g., "David & Sarah Mitchell")
-4. Navigate to the page you want to test
-```
-
-**NEVER** navigate directly to preview URLs or use API login endpoints for browser testing. The landing page flow ensures proper session setup and state initialization.
-
-### Seeding Preview Users
-
-```bash
-# Delete and reseed all preview users
-php artisan db:seed --class=PreviewUserSeeder --force
-```
-
-### Preview Personas
-
-| Persona | Primary | Spouse | Key Data |
-|---------|---------|--------|----------|
-| young_family | James Carter | Emily Carter | Joint property, workplace pensions |
-| peak_earners | David Mitchell | Sarah Mitchell | Multiple properties, SIPP + NHS DB pension |
-| widow | Margaret Thompson | Robert (deceased) | Estate planning focus |
-| entrepreneur | Alex Chen | None | SIPP, business interests |
-
-### Owner Detection for Pensions/Accounts
-
-The seeder uses multiple detection methods to assign pensions and accounts to the correct spouse:
-
-1. **Explicit owner flag**: `'owner' => 'spouse'` in JSON
-2. **Name matching**: Account/pension name contains spouse's first name
-3. **Employer matching**: Scheme name contains spouse's employer
-4. **Salary matching**: Pension salary matches spouse's income (within 1%)
-
-### Frontend Components in Preview Mode
-
-**Important**: Preview users are real database users. Frontend components should NOT bypass API calls in preview mode.
-
-```javascript
-// WRONG - bypasses API in preview mode
-async loadData() {
-    if (this.$store.getters['preview/isPreviewMode']) {
-        this.computePreviewData();  // Client-side calculation
-        return;
-    }
-    // API call...
-}
-
-// CORRECT - all users use API
-async loadData() {
-    // Preview users are real DB users - use normal API
-    const response = await api.get('/endpoint');
-    // ...
-}
-```
-
-Write operations can still be blocked in preview mode using `PreviewWriteInterceptor` middleware.
-
-## API Testing
-
-### Authentication
-```bash
-# Login with preview persona (returns token)
-curl -X POST "http://localhost:8000/api/preview/login/young_family" -H "Accept: application/json"
-
-# Use token for authenticated requests
-curl -H "Authorization: Bearer TOKEN" -H "Accept: application/json" "http://localhost:8000/api/endpoint"
-```
-
-### Key API Routes
-
-| Module | Endpoint | Method | Description |
-|--------|----------|--------|-------------|
-| **Auth** | `/api/preview/login/{persona}` | POST | Login as preview persona |
-| **Profile** | `/api/user/profile` | GET | User profile with income/tax |
-| **Profile** | `/api/user/family-members` | GET | Family members list |
-| **Profile** | `/api/user/spouse` | GET | Spouse data |
-| **Net Worth** | `/api/properties` | GET | Properties list |
-| **Net Worth** | `/api/liabilities` | GET | Liabilities list |
-| **Savings** | `/api/savings` | GET | Savings accounts |
-| **Savings** | `/api/savings/accounts` | POST | Create savings account |
-| **Investment** | `/api/investment` | GET | Investment accounts |
-| **Investment** | `/api/investment/risk/profile` | GET | Risk profile |
-| **Retirement** | `/api/retirement` | GET | All pension data |
-| **Retirement** | `/api/retirement/dc-pensions` | GET | DC pensions |
-| **Retirement** | `/api/retirement/db-pensions` | GET | DB pensions |
-| **Protection** | `/api/protection` | GET | All policies |
-| **Protection** | `/api/protection/policies/life` | POST | Create life policy |
-| **Protection** | `/api/protection/adequacy` | GET | Adequacy analysis |
-| **Estate** | `/api/estate` | GET | Estate overview |
-| **Estate** | `/api/estate/calculate-iht` | POST | Calculate IHT |
-| **Dashboard** | `/api/dashboard` | GET | Dashboard summary |
-| **Tax** | `/api/tax-info/investment/isa` | GET | ISA tax info |
-| **Tax** | `/api/tax-settings/current` | GET | Current tax settings (admin) |
-
-### CRUD Pattern for Protection Policies
-```bash
-# Create
-POST /api/protection/policies/life
-POST /api/protection/policies/critical-illness
-POST /api/protection/policies/income-protection
-
-# Update
-PUT /api/protection/policies/life/{id}
-
-# Delete
-DELETE /api/protection/policies/life/{id}
-```
-
-### CRUD Pattern for Savings
-```bash
-POST   /api/savings/accounts        # Create
-GET    /api/savings/accounts/{id}   # Read
-PUT    /api/savings/accounts/{id}   # Update
-DELETE /api/savings/accounts/{id}   # Delete
-```
-
-## Troubleshooting
-
-### IMPORTANT: Browser Caching is NEVER the Issue
-
-The user ALWAYS tests in incognito mode with hard refresh. Do NOT suggest:
-- Clearing browser cache
-- Using incognito mode
-- Hard refresh (Ctrl+Shift+R)
-- "It might be cached"
-
-If something isn't working on production, the issue is ALWAYS one of:
-1. A file wasn't uploaded to production
-2. Server-side PHP OPcache needs clearing
-3. Laravel cache needs clearing: `php artisan cache:clear`
-4. A bug in the code
-
-### Common API Errors
-
-| Error | Cause | Solution |
-|-------|-------|----------|
-| `No active tax configuration found` | TaxConfigurationSeeder not run | `php artisan db:seed --class=TaxConfigurationSeeder --force` |
-| `Preview user not found` | PreviewUserSeeder not run | `php artisan db:seed --class=PreviewUserSeeder --force` |
-| `401 Unauthenticated` | Missing/invalid Bearer token | Get fresh token from `/api/preview/login/{persona}` |
-| `403 Admin access required` | Endpoint requires admin role | Use admin credentials or different endpoint |
-| `405 Method Not Allowed` | Wrong HTTP method | Check route with `php artisan route:list --path=endpoint` |
-| Tax Status tab empty | TaxProductReferenceSeeder not run | `php artisan db:seed --class=TaxProductReferenceSeeder --force` |
-| `429 Too Many Requests` | Rate limit exceeded | `php artisan cache:clear` on server |
-| MIME type errors on production | Wrong VITE_BASE_PATH | Rebuild using `./deploy/fynla-org/build.sh` |
-| Blank page with 127.0.0.1:5173 | `public/hot` file deployed | `rm public/hot` on server |
-| 500 + `DirectoryMatch not allowed` | Wrong .htaccess deployed | Upload `deploy/fynla-org/.htaccess` to `public/.htaccess` |
-| CSS not loading in incognito | Missing MIME types in .htaccess | Upload `deploy/fynla-org/.htaccess` (includes `AddType text/css css`) |
-
-### Production Site Blank Page (public/hot Issue)
-
-**Symptom:** Production site shows blank white page, browser Network tab shows requests to `http://127.0.0.1:5173/`.
-
-**Cause:** The `public/hot` file was accidentally deployed to the server. This file is created by `npm run dev` and tells Laravel to use Vite dev server instead of built assets.
-
-**Fix on server:**
-```bash
-ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
-cd ~/www/fynla.org/public_html
-rm public/hot
-php artisan config:clear
-php artisan view:clear
-```
-
-**Prevention:** The build scripts (`deploy/fynla-org/build.sh` and `deploy/csjones-fynla/build.sh`) now exclude `public/hot` from deployment packages. The file is also in `.gitignore`.
-
-**NEVER deploy `public/hot` to production.** If running `npm run dev` locally before building, delete `public/hot` before running the build script, or the build script will automatically exclude it.
-
-### Production MIME Type Errors (Wrong Asset Paths)
-
-**Symptom:** Production site loads but console shows errors like:
-```
-Failed to load module script: Expected a JavaScript module script but the server responded with a MIME type of "text/html"
-```
-Network tab shows assets at `/assets/` returning 503 or HTML instead of JS/CSS.
-
-**Cause:** Frontend was built without `VITE_BASE_PATH` set correctly. Vite generates asset paths based on this variable:
-- Without it: `/assets/app-xxxxx.js` (WRONG for fynla.org)
-- With `/build/`: `/build/assets/app-xxxxx.js` (CORRECT for fynla.org)
-
-**Fix:** Rebuild using the correct deployment script:
-```bash
-# ALWAYS use the deployment scripts - never run npm run build directly
-./deploy/fynla-org/build.sh        # For fynla.org (sets VITE_BASE_PATH=/build/)
-./deploy/csjones-fynla/build.sh    # For csjones.co/fynla (sets VITE_BASE_PATH=/fynla/build/)
-```
-
-**Prevention:** Never run `npm run build` directly for production. The build scripts export the required environment variables before building.
-
-### Production 500 Error (.htaccess Issue)
-
-**Symptom:** Production site returns 500 Internal Server Error. Apache error log shows:
-```
-<DirectoryMatch not allowed here
-```
-
-**Cause:** The local `public/.htaccess` file is configured for csjones.co/tengo (subdirectory deployment) and contains `<DirectoryMatch>` which is not allowed in `.htaccess` files on shared hosting.
-
-**Fix:** Replace the server's `public/.htaccess` with the correct version:
-```bash
-# SSH to server
-ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
-cd ~/www/fynla.org/public_html
-
-# Check current .htaccess (if it shows RewriteBase /tengo/, it's WRONG)
-head -25 public/.htaccess
-
-# Upload deploy/fynla-org/.htaccess via FileManager to public/.htaccess
-# OR use the build script which includes the correct .htaccess
-```
-
-**CRITICAL:**
-- **DO NOT** upload `public/.htaccess` from your local folder for fynla.org deployments
-- **ALWAYS** use `deploy/fynla-org/.htaccess` for fynla.org
-- **ALWAYS** use `deploy/csjones-fynla/.htaccess` for csjones.co/fynla
-
-The correct `.htaccess` uses:
-- `RewriteBase /` (not `/tengo/`)
-- `RewriteRule ^\.git - [F,L]` instead of `<DirectoryMatch>` (shared hosting compatible)
-- MIME types for CSS/JS files
-
-### 429 Too Many Requests (Rate Limiting)
-
-**Symptom:** Console shows `429 Too Many Requests` errors, API calls fail intermittently.
-
-**Cause:** API rate limit too low for dashboard usage. The dashboard makes ~15 API calls per page load. Default Laravel rate limit of 60/minute is easily exceeded with normal usage.
-
-**Fix:** Rate limit is configured in `app/Providers/RouteServiceProvider.php`:
-```php
-$limit = app()->environment('local') ? 1000 : 300;  // 300/min in production
-```
-
-After changing, clear caches on server:
-```bash
-php artisan config:clear
-php artisan cache:clear
-```
-
-**Current limits:**
-- Local development: 1000 requests/minute
-- Production: 300 requests/minute
-
-### After Running Pest Tests
-
-Pest tests may clear required data. Always reseed after running tests:
-```bash
-php artisan db:seed --class=TaxConfigurationSeeder --force
-php artisan db:seed --class=TaxProductReferenceSeeder --force
-php artisan db:seed --class=ActuarialLifeTablesSeeder --force
-php artisan db:seed --class=AdminUserSeeder --force
-php artisan db:seed --class=PreviewUserSeeder --force
-```
-
-### Checking Routes
-
-```bash
-# List all routes
-php artisan route:list
-
-# Filter by path
-php artisan route:list --path=protection
-php artisan route:list --path=estate
-php artisan route:list --path=savings
-```
-
-### Response Headers
-
-All API responses include rate limiting headers:
-- `X-RateLimit-Limit`: Maximum requests allowed (1000 for most endpoints, 5-10 for auth)
-- `X-RateLimit-Remaining`: Remaining requests in window
-- `Content-Type: application/json`
-- `Cache-Control: no-cache, private`
+**Spelling**
+- User-facing text: British (Optimisation, Customise)
+- Code syntax: American (optimize, center)
+
+## Automatic Tool Usage
+
+When working on this codebase, automatically use these without prompting:
+
+**Skills** (invoke with `/command`):
+- `/systematic-debugging` - For any bug, error, or unexpected behaviour investigation
+- `/fps-component-builder` - When creating new Vue components
+- `/fps-feature-builder` - When adding features to existing modules
+- `/fps-module-builder` - When creating new full-stack modules
+
+**Agents** (invoke automatically when relevant):
+- `code-quality-auditor` - After completing multi-file feature work
+- `database-optimizer` - When queries are slow or designing new tables/schemas
+- `laravel-stack-deployer` - For production deployment tasks
+- `product-manager` - When planning new features or creating user stories
+- `premium-ui-designer` - When polishing UI, adding animations, or improving UX
+- `Explore` - For codebase exploration and understanding
