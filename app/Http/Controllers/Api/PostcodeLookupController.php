@@ -68,12 +68,11 @@ class PostcodeLookupController extends Controller
             return response()->json($cachedResult);
         }
 
-        // Call GetAddress.io API
+        // Call GetAddress.io Autocomplete API
         try {
             $response = Http::timeout(10)
-                ->get("https://api.getaddress.io/find/{$postcode}", [
+                ->get("https://api.getaddress.io/autocomplete/{$postcode}", [
                     'api-key' => $apiKey,
-                    'expand' => 'true', // Get expanded address fields
                 ]);
 
             if ($response->successful()) {
@@ -172,25 +171,19 @@ class PostcodeLookupController extends Controller
     }
 
     /**
-     * Format addresses from GetAddress.io response
+     * Format addresses from GetAddress.io autocomplete response
+     *
+     * Autocomplete returns: {"suggestions": [{"address": "1 Street, Town, County, Postcode", "id": "..."}]}
      */
     private function formatAddresses(array $data, string $postcode): array
     {
         $addresses = [];
 
-        if (isset($data['addresses']) && is_array($data['addresses'])) {
-            foreach ($data['addresses'] as $address) {
-                // GetAddress.io with expand=true returns objects with named fields
-                if (is_array($address)) {
-                    $addresses[] = [
-                        'line_1' => trim($address['line_1'] ?? ''),
-                        'line_2' => trim($address['line_2'] ?? ''),
-                        'city' => trim($address['town_or_city'] ?? ''),
-                        'county' => trim($address['county'] ?? ''),
-                        'postcode' => $postcode,
-                        // Formatted display string for dropdown
-                        'display' => $this->formatDisplayAddress($address, $postcode),
-                    ];
+        if (isset($data['suggestions']) && is_array($data['suggestions'])) {
+            foreach ($data['suggestions'] as $suggestion) {
+                if (isset($suggestion['address'])) {
+                    $parsed = $this->parseAddressString($suggestion['address'], $postcode);
+                    $addresses[] = $parsed;
                 }
             }
         }
@@ -199,18 +192,67 @@ class PostcodeLookupController extends Controller
     }
 
     /**
-     * Create a display string for the address dropdown
+     * Parse an address string into components
+     *
+     * GetAddress.io autocomplete returns addresses like:
+     * "1 Amherst Place, Sevenoaks, Kent, TN13 3BT"
+     * "Flat 1, 25 High Street, London, Greater London, SW1A 1AA"
      */
-    private function formatDisplayAddress(array $address, string $postcode): string
+    private function parseAddressString(string $addressString, string $postcode): array
     {
-        $parts = array_filter([
-            trim($address['line_1'] ?? ''),
-            trim($address['line_2'] ?? ''),
-            trim($address['town_or_city'] ?? ''),
-            trim($address['county'] ?? ''),
-            $postcode,
-        ]);
+        // Split by comma and trim each part
+        $parts = array_map('trim', explode(',', $addressString));
 
-        return implode(', ', $parts);
+        // Remove empty parts
+        $parts = array_values(array_filter($parts, fn ($p) => $p !== ''));
+
+        $count = count($parts);
+
+        // Default values
+        $line1 = '';
+        $line2 = '';
+        $city = '';
+        $county = '';
+
+        // Parse based on number of parts
+        // Typical formats:
+        // 4 parts: "Street, Town, County, Postcode"
+        // 5 parts: "Building, Street, Town, County, Postcode"
+        // 3 parts: "Street, Town, Postcode"
+
+        if ($count >= 4) {
+            // Last part is postcode, second-to-last is county, third-to-last is city
+            $line1 = $parts[0];
+            $line2 = $count >= 5 ? $parts[1] : '';
+            $city = $parts[$count - 3];
+            $county = $parts[$count - 2];
+        } elseif ($count === 3) {
+            // Street, Town, Postcode (no county)
+            $line1 = $parts[0];
+            $city = $parts[1];
+        } elseif ($count === 2) {
+            // Street, Postcode only
+            $line1 = $parts[0];
+        } elseif ($count === 1) {
+            $line1 = $parts[0];
+        }
+
+        // For addresses with more than 5 parts, combine early parts into line_1/line_2
+        if ($count > 5) {
+            $extraParts = $count - 4; // How many extra parts beyond the standard 4
+            $line1 = implode(', ', array_slice($parts, 0, $extraParts + 1));
+            $line2 = $parts[$extraParts + 1] ?? '';
+            $city = $parts[$count - 3];
+            $county = $parts[$count - 2];
+        }
+
+        return [
+            'line_1' => $line1,
+            'line_2' => $line2,
+            'city' => $city,
+            'county' => $county,
+            'postcode' => $postcode,
+            'display' => $addressString,
+        ];
     }
 }
