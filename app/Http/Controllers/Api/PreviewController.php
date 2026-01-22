@@ -87,7 +87,7 @@ class PreviewController extends Controller
      *
      * POST /api/preview/login/{personaId}
      */
-    public function login(string $personaId): JsonResponse
+    public function login(Request $request, string $personaId): JsonResponse
     {
         if (! in_array($personaId, self::VALID_PERSONAS)) {
             return response()->json([
@@ -95,6 +95,17 @@ class PreviewController extends Controller
                 'message' => 'Invalid persona ID',
             ], 400);
         }
+
+        // CRITICAL SECURITY: Clear any existing session to prevent data leakage
+        // This ensures that if a real user was logged in, their session is destroyed
+        // before we log in the preview user
+        if (\Illuminate\Support\Facades\Auth::guard('web')->check()) {
+            \Illuminate\Support\Facades\Auth::guard('web')->logout();
+        }
+
+        // Invalidate the session and regenerate CSRF token
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
 
         // Find the preview user for this persona
         $previewUser = User::where('is_preview_user', true)
