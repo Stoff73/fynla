@@ -152,6 +152,15 @@
       <div v-if="formData.asset_type === 'property'" class="conditional-fields">
         <h4 class="section-title">Property Details</h4>
 
+        <!-- Postcode Lookup -->
+        <div class="form-group">
+          <PostcodeLookup
+            v-model="postcodeValue"
+            label="Find Address by Postcode"
+            @address-selected="handleAddressSelected"
+          />
+        </div>
+
         <div class="form-row">
           <div class="form-group">
             <label for="property_address">Property Address</label>
@@ -225,8 +234,14 @@
 </template>
 
 <script>
+import PostcodeLookup from '@/components/Shared/PostcodeLookup.vue';
+
 export default {
   name: 'AssetForm',
+
+  components: {
+    PostcodeLookup,
+  },
 
   props: {
     asset: {
@@ -258,6 +273,7 @@ export default {
         // General
         notes: '',
       },
+      postcodeValue: '', // For PostcodeLookup component
       errors: {},
       isSubmitting: false,
     };
@@ -360,12 +376,25 @@ export default {
         this.formData.property_address = '';
         this.formData.mortgage_outstanding = null;
         this.formData.is_main_residence = false;
+        this.postcodeValue = '';
       }
 
       // Auto-suggest IHT exemption for certain asset types
       if (['pension', 'life_insurance'].includes(this.formData.asset_type)) {
         this.formData.is_iht_exempt = true;
       }
+    },
+
+    handleAddressSelected(address) {
+      // Construct full address string from postcode lookup
+      const parts = [
+        address.line_1,
+        address.line_2,
+        address.city,
+        address.county,
+        address.postcode,
+      ].filter(Boolean); // Remove empty parts
+      this.formData.property_address = parts.join(', ');
     },
 
     validateForm() {
@@ -440,6 +469,7 @@ export default {
         is_main_residence: false,
         notes: '',
       };
+      this.postcodeValue = '';
       this.errors = {};
     },
   },

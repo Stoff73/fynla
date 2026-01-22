@@ -158,6 +158,16 @@
       <!-- Address Section -->
       <div class="border-t border-gray-200 pt-6">
         <h3 class="text-h5 font-semibold text-gray-900 mb-4">Address</h3>
+
+        <!-- Postcode Lookup (only when editing) -->
+        <PostcodeLookup
+          v-if="isEditing"
+          v-model="form.postcode"
+          label="Find Address by Postcode"
+          class="mb-4"
+          @address-selected="handleAddressSelected"
+        />
+
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
           <!-- Address Line 1 -->
           <div class="sm:col-span-2">
@@ -258,12 +268,17 @@
 <script>
 import { ref, computed, watch } from 'vue';
 import { useStore } from 'vuex';
+import PostcodeLookup from '@/components/Shared/PostcodeLookup.vue';
 
 // Preview mode message
 const PREVIEW_SUCCESS_MESSAGE = 'Changes saved for this session only (preview mode).';
 
 export default {
   name: 'PersonalInformation',
+
+  components: {
+    PostcodeLookup,
+  },
 
   setup() {
     const store = useStore();
@@ -399,6 +414,15 @@ export default {
       errorMessage.value = '';
     };
 
+    const handleAddressSelected = (address) => {
+      // Populate address fields from postcode lookup
+      form.value.address_line_1 = address.line_1 || '';
+      form.value.address_line_2 = address.line_2 || '';
+      form.value.city = address.city || '';
+      form.value.county = address.county || '';
+      form.value.postcode = address.postcode || '';
+    };
+
     return {
       form,
       isEditing,
@@ -409,6 +433,7 @@ export default {
       minDob,
       handleSubmit,
       handleCancel,
+      handleAddressSelected,
     };
   },
 };
