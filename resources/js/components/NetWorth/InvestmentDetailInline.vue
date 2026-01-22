@@ -50,47 +50,34 @@
         </div>
 
         <!-- Key Metrics -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mt-6">
-          <div class="bg-gray-50 rounded-lg p-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mt-6">
+          <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
             <p class="text-sm text-gray-600">Current Value</p>
             <p class="text-2xl font-bold text-blue-600">{{ formatCurrency(account.current_value) }}</p>
-            <p v-if="account.ownership_type === 'joint'" class="text-sm text-purple-600 mt-1">
-              Your {{ account.ownership_percentage ?? 50 }}% share: {{ formatCurrency(userShareValue) }}
-            </p>
-            <p v-if="estimatedMonthlyContribution > 0" class="text-sm text-green-600 mt-1">
-              <span class="font-medium">+{{ formatCurrency(estimatedMonthlyContribution) }}</span> /month
+            <p v-if="account.ownership_type === 'joint'" class="text-xs text-violet-600 mt-1">
+              Your {{ account.ownership_percentage ?? 50 }}%: {{ formatCurrency(userShareValue) }}
             </p>
           </div>
           <div class="bg-gray-50 rounded-lg p-4">
             <p class="text-sm text-gray-600">Annualised Return</p>
-            <div class="flex items-baseline gap-2">
-              <p class="text-2xl font-bold" :class="getReturnColorClass(grossReturnPercent)">
-                {{ formatReturnPercent(grossReturnPercent) }}
-              </p>
-              <span class="text-xs text-gray-500">p.a. gross</span>
-            </div>
-            <div v-if="grossReturnPercent !== null" class="mt-1 flex items-baseline gap-2">
-              <p class="text-lg font-semibold" :class="getReturnColorClass(netReturnPercent)">
-                {{ formatReturnPercent(netReturnPercent) }}
-              </p>
-              <span class="text-xs text-gray-500">p.a. net of {{ formatPercentage(totalFeePercent) }} fees</span>
-            </div>
-            <p v-if="usingDefaultHoldingPeriod" class="text-xs text-amber-600 mt-2">
-              *Based on 3-year default holding period
+            <p class="text-2xl font-bold" :class="getReturnColorClass(grossReturnPercent)">
+              {{ formatReturnPercent(grossReturnPercent) }}
+            </p>
+            <p v-if="grossReturnPercent !== null" class="text-xs text-gray-500 mt-1">
+              {{ formatReturnPercent(netReturnPercent) }} net of fees
             </p>
           </div>
-          <!-- ISA Contributions Card (for ISA accounts) -->
-          <div v-if="account.account_type === 'isa'" class="bg-gray-50 rounded-lg p-4">
-            <div class="flex justify-between items-start">
-              <div>
-                <p class="text-sm text-gray-600">ISA Contributions (This Year)</p>
-                <p class="text-2xl font-bold text-green-600">{{ formatCurrency(account.isa_subscription_current_year || 0) }}</p>
-              </div>
-              <div class="text-right">
-                <p class="text-sm text-gray-600">Allowance Remaining</p>
-                <p class="text-xl font-bold" :class="getIsaRemainingClass()">{{ formatCurrency(isaRemaining) }}</p>
-              </div>
-            </div>
+          <div class="bg-gray-50 rounded-lg p-4">
+            <p class="text-sm text-gray-600">Monthly Contribution</p>
+            <p class="text-2xl font-bold" :class="estimatedMonthlyContribution > 0 ? 'text-green-600' : 'text-gray-900'">
+              {{ estimatedMonthlyContribution > 0 ? formatCurrency(estimatedMonthlyContribution) : '—' }}
+            </p>
+          </div>
+          <!-- ISA Allowance Card (for ISA accounts) -->
+          <div v-if="account.account_type === 'isa'" class="bg-green-50 rounded-lg p-4 border border-green-200">
+            <p class="text-sm text-gray-600">ISA Allowance Used</p>
+            <p class="text-2xl font-bold text-green-600">{{ formatCurrency(account.isa_subscription_current_year || 0) }}</p>
+            <p class="text-xs text-gray-500 mt-1">{{ formatCurrency(isaRemaining) }} remaining</p>
           </div>
           <!-- Holdings Card (for non-ISA accounts) -->
           <div v-else class="bg-gray-50 rounded-lg p-4">
@@ -459,12 +446,12 @@ export default {
 
     getReturnColorClass(value) {
       if (!value && value !== 0) return 'text-gray-600';
-      return value >= 0 ? 'text-green-600' : 'text-red-600';
+      return value >= 0 ? 'text-green-600' : 'text-gray-600';
     },
 
     getIsaRemainingClass() {
-      if (this.isaRemaining <= 0) return 'text-red-600';
-      if (this.isaRemaining < 5000) return 'text-amber-600';
+      if (this.isaRemaining <= 0) return 'text-gray-600';
+      if (this.isaRemaining < 5000) return 'text-blue-600';
       return 'text-green-600';
     },
 
