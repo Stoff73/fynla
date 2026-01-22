@@ -97,7 +97,8 @@ export default {
       }
 
       const levelDisplay = this.formatRiskLevel(this.riskLevel);
-      return `Using ${levelDisplay} risk profile (${this.expectedReturn}% expected return)`;
+      const formattedReturn = Number(this.expectedReturn).toFixed(2);
+      return `Using ${levelDisplay} risk profile (${formattedReturn}% expected return)`;
     },
 
     chartOptions() {

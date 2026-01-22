@@ -623,7 +623,11 @@ class UserProfileService
         }
 
         // 2. Property Expenses (mortgage + council tax + utilities + maintenance)
-        $properties = \App\Models\Property::where('user_id', $user->id)->get();
+        // Include properties owned by user OR where user is the joint owner
+        $properties = \App\Models\Property::where(function ($query) use ($user) {
+            $query->where('user_id', $user->id)
+                  ->orWhere('joint_owner_id', $user->id);
+        })->get();
         foreach ($properties as $property) {
             $totalMonthlyExpense = 0;
             $breakdown = [];
@@ -713,8 +717,56 @@ class UserProfileService
         }
 
         // 3. Investment Contributions
-        // NOTE: InvestmentAccount only tracks contributions_ytd (year-to-date), not monthly contributions
-        // If monthly tracking is needed, a new field must be added to the database schema
+        // Include accounts owned by user OR where user is the joint owner
+        $investmentAccounts = \App\Models\Investment\InvestmentAccount::where(function ($query) use ($user) {
+            $query->where('user_id', $user->id)
+                  ->orWhere('joint_owner_id', $user->id);
+        })->get();
+        foreach ($investmentAccounts as $account) {
+            $monthlyContribution = 0;
+
+            // Regular contributions (convert to monthly if needed)
+            if ($account->monthly_contribution_amount > 0) {
+                $monthlyContribution = match ($account->contribution_frequency) {
+                    'quarterly' => $account->monthly_contribution_amount / 3,
+                    'annually' => $account->monthly_contribution_amount / 12,
+                    default => $account->monthly_contribution_amount, // monthly
+                };
+            }
+
+            // Planned lump sum (spread over 12 months if within next year)
+            if ($account->planned_lump_sum_amount > 0 && $account->planned_lump_sum_date) {
+                $lumpSumDate = \Carbon\Carbon::parse($account->planned_lump_sum_date);
+                $now = \Carbon\Carbon::now();
+                // Only include if lump sum is within the next 12 months
+                if ($lumpSumDate->isBetween($now, $now->copy()->addYear())) {
+                    $monthlyContribution += $account->planned_lump_sum_amount / 12;
+                }
+            }
+
+            if ($monthlyContribution > 0) {
+                // Check joint ownership
+                $isJoint = in_array($account->ownership_type, ['joint', 'tenants_in_common']);
+
+                // Apply ownership filter
+                if (! $this->shouldIncludeByOwnership($isJoint, $ownershipFilter)) {
+                    continue;
+                }
+
+                // Apply ownership percentage for joint accounts
+                $ownershipMultiplier = $isJoint ? (($account->ownership_percentage ?? 50) / 100) : 1;
+                $displayAmount = $monthlyContribution * $ownershipMultiplier;
+
+                $commitments['investments'][] = [
+                    'id' => $account->id,
+                    'name' => $account->account_name ?? 'Investment Account',
+                    'type' => $account->account_type ?? 'investment',
+                    'monthly_amount' => round($displayAmount, 2),
+                    'is_joint' => $isJoint,
+                    'ownership_type' => $account->ownership_type ?? 'individual',
+                ];
+            }
+        }
 
         // 4. Protection Premiums
         // Life Insurance

@@ -1306,35 +1306,35 @@
           </div>
         </div>
 
-        <!-- Financial Commitments (Read-Only) - Spouse Tab (Joint Items Only) -->
-        <div v-if="hasAnyJointCommitments" class="card p-6 bg-blue-50 border-2 border-blue-200">
+        <!-- Financial Commitments (Read-Only) - Spouse Tab -->
+        <div v-if="hasAnySpouseCommitments" class="card p-6 bg-blue-50 border-2 border-blue-200">
           <div class="flex items-center justify-between mb-4">
             <div>
               <h4 class="text-h5 font-semibold text-gray-900">
-                Shared Financial Commitments (Automated)
+                Financial Commitments (Automated)
               </h4>
               <p class="text-body-sm text-gray-600 mt-1">
-                Joint commitments automatically pulled from your entered data
+                Spouse's commitments automatically pulled from entered data
               </p>
             </div>
             <span v-if="loadingCommitments" class="text-body-sm text-gray-500">Loading...</span>
           </div>
 
-          <!-- Retirement Contributions (Joint Only) -->
-          <div v-if="hasJointRetirementCommitments" class="mb-6">
+          <!-- Retirement Contributions -->
+          <div v-if="hasSpouseRetirementCommitments" class="mb-6">
             <h5 class="text-body font-medium text-gray-900 mb-3">
               Retirement Contributions
             </h5>
             <div class="space-y-2">
               <div
-                v-for="pension in jointRetirementCommitments"
+                v-for="pension in spouseRetirementCommitments"
                 :key="pension.id"
                 class="flex justify-between items-center p-3 bg-white rounded-lg"
               >
                 <div>
                   <p class="text-body text-gray-900">{{ pension.name }}</p>
-                  <p class="text-body-sm text-amber-600">
-                    50% of joint contribution
+                  <p v-if="pension.is_joint" class="text-body-sm text-amber-600">
+                    Their share of joint contribution
                   </p>
                 </div>
                 <p class="text-body font-medium text-gray-900">
@@ -1344,14 +1344,14 @@
             </div>
           </div>
 
-          <!-- Property Expenses (Joint Only) -->
-          <div v-if="hasJointPropertyCommitments" class="mb-6">
+          <!-- Property Expenses -->
+          <div v-if="hasSpousePropertyCommitments" class="mb-6">
             <h5 class="text-body font-medium text-gray-900 mb-3">
               Property Expenses
             </h5>
             <div class="space-y-2">
               <div
-                v-for="property in jointPropertyCommitments"
+                v-for="property in spousePropertyCommitments"
                 :key="property.id"
                 class="p-3 bg-white rounded-lg"
               >
@@ -1363,7 +1363,7 @@
                 </div>
                 <div v-if="property.breakdown" class="grid grid-cols-2 gap-2 text-body-sm text-gray-600">
                   <div v-if="property.breakdown.mortgage" class="flex justify-between">
-                    <span>Mortgage<span v-if="property.mortgage_ownership_percentage !== property.ownership_percentage"> ({{ 100 - property.mortgage_ownership_percentage }}%)</span>:</span>
+                    <span>Mortgage:</span>
                     <span>{{ formatCurrency(property.breakdown.mortgage) }}</span>
                   </div>
                   <div v-if="property.breakdown.council_tax" class="flex justify-between">
@@ -1391,29 +1391,54 @@
                     <span>{{ formatCurrency(property.breakdown.other) }}</span>
                   </div>
                 </div>
-                <p class="text-body-sm text-amber-600 mt-2">
-                  Their {{ 100 - (property.ownership_percentage || 50) }}% share ({{ property.ownership_type === 'tenants_in_common' ? 'Tenants in Common' : 'Joint' }})
+                <p v-if="property.is_joint" class="text-body-sm text-amber-600 mt-2">
+                  Their {{ property.ownership_percentage || 50 }}% share ({{ property.ownership_type === 'tenants_in_common' ? 'Tenants in Common' : 'Joint' }})
                 </p>
               </div>
             </div>
           </div>
 
-          <!-- Protection Premiums (Joint Only) -->
-          <div v-if="hasJointProtectionCommitments" class="mb-6">
+          <!-- Investment Contributions -->
+          <div v-if="hasSpouseInvestmentCommitments" class="mb-6">
+            <h5 class="text-body font-medium text-gray-900 mb-3">
+              Investment Contributions
+            </h5>
+            <div class="space-y-2">
+              <div
+                v-for="investment in spouseInvestmentCommitments"
+                :key="investment.id"
+                class="flex justify-between items-center p-3 bg-white rounded-lg"
+              >
+                <div>
+                  <p class="text-body text-gray-900">{{ investment.name }}</p>
+                  <p class="text-body-sm text-gray-600 capitalize">{{ investment.type.replace('_', ' ') }}</p>
+                  <p v-if="investment.is_joint" class="text-body-sm text-amber-600">
+                    Their share of joint contribution
+                  </p>
+                </div>
+                <p class="text-body font-medium text-gray-900">
+                  {{ formatCurrency(investment.monthly_amount) }}/month
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Protection Premiums -->
+          <div v-if="hasSpouseProtectionCommitments" class="mb-6">
             <h5 class="text-body font-medium text-gray-900 mb-3">
               Protection Premiums
             </h5>
             <div class="space-y-2">
               <div
-                v-for="policy in jointProtectionCommitments"
+                v-for="policy in spouseProtectionCommitments"
                 :key="policy.id"
                 class="flex justify-between items-center p-3 bg-white rounded-lg"
               >
                 <div>
                   <p class="text-body text-gray-900">{{ policy.name }}</p>
                   <p class="text-body-sm text-gray-600 capitalize">{{ policy.type.replace('_', ' ') }}</p>
-                  <p class="text-body-sm text-amber-600">
-                    50% of joint premium
+                  <p v-if="policy.is_joint" class="text-body-sm text-amber-600">
+                    Their share of joint premium
                   </p>
                 </div>
                 <p class="text-body font-medium text-gray-900">
@@ -1423,22 +1448,22 @@
             </div>
           </div>
 
-          <!-- Liability Payments (Joint Only) -->
-          <div v-if="hasJointLiabilityCommitments">
+          <!-- Liability Payments -->
+          <div v-if="hasSpouseLiabilityCommitments">
             <h5 class="text-body font-medium text-gray-900 mb-3">
               Liability Payments
             </h5>
             <div class="space-y-2">
               <div
-                v-for="liability in jointLiabilityCommitments"
+                v-for="liability in spouseLiabilityCommitments"
                 :key="liability.id"
                 class="flex justify-between items-center p-3 bg-white rounded-lg"
               >
                 <div>
                   <p class="text-body text-gray-900">{{ liability.name }}</p>
                   <p class="text-body-sm text-gray-600 capitalize">{{ liability.type.replace('_', ' ') }}</p>
-                  <p class="text-body-sm text-amber-600">
-                    50% of joint liability
+                  <p v-if="liability.is_joint" class="text-body-sm text-amber-600">
+                    Their share of joint liability
                   </p>
                 </div>
                 <p class="text-body font-medium text-gray-900">
@@ -1448,12 +1473,12 @@
             </div>
           </div>
 
-          <!-- Total Joint Commitments -->
+          <!-- Total Spouse Commitments -->
           <div class="pt-4 border-t border-blue-300">
             <div class="flex justify-between items-center">
-              <p class="text-body font-semibold text-gray-900">Total Monthly Shared Commitments</p>
+              <p class="text-body font-semibold text-gray-900">Total Monthly Commitments</p>
               <p class="text-h4 font-display text-gray-900">
-                {{ formatCurrency(jointCommitmentsTotal) }}
+                {{ formatCurrency(spouseCommitmentsTotal) }}
               </p>
             </div>
           </div>
@@ -1620,6 +1645,7 @@ export default {
     const simpleMonthlyExpenditure = ref(0);
     const spouseSimpleMonthlyExpenditure = ref(0);
     const financialCommitments = ref(null);
+    const spouseFinancialCommitments = ref(null);
     const loadingCommitments = ref(false);
 
     const formData = ref({
@@ -1756,9 +1782,9 @@ export default {
 
     const totalAnnualWithCommitments = computed(() => totalMonthlyWithCommitments.value * 12);
 
-    // Spouse totals including joint commitments only
+    // Spouse totals including spouse's own commitments (from spouse API)
     const spouseTotalMonthlyWithCommitments = computed(() => {
-      return spouseTotalMonthlyExpenditure.value + jointCommitmentsTotal.value;
+      return spouseTotalMonthlyExpenditure.value + spouseCommitmentsTotal.value;
     });
 
     const spouseTotalAnnualWithCommitments = computed(() => spouseTotalMonthlyWithCommitments.value * 12);
@@ -1843,15 +1869,68 @@ export default {
       return retirement + properties + protection + liabilities;
     });
 
+    // Computed properties for spouse's own commitments (from spouse API)
+    const spouseRetirementCommitments = computed(() => {
+      return spouseFinancialCommitments.value?.commitments?.retirement || [];
+    });
+
+    const spousePropertyCommitments = computed(() => {
+      return spouseFinancialCommitments.value?.commitments?.properties || [];
+    });
+
+    const spouseInvestmentCommitments = computed(() => {
+      return spouseFinancialCommitments.value?.commitments?.investments || [];
+    });
+
+    const spouseProtectionCommitments = computed(() => {
+      return spouseFinancialCommitments.value?.commitments?.protection || [];
+    });
+
+    const spouseLiabilityCommitments = computed(() => {
+      return spouseFinancialCommitments.value?.commitments?.liabilities || [];
+    });
+
+    const hasSpouseRetirementCommitments = computed(() => spouseRetirementCommitments.value.length > 0);
+    const hasSpousePropertyCommitments = computed(() => spousePropertyCommitments.value.length > 0);
+    const hasSpouseInvestmentCommitments = computed(() => spouseInvestmentCommitments.value.length > 0);
+    const hasSpouseProtectionCommitments = computed(() => spouseProtectionCommitments.value.length > 0);
+    const hasSpouseLiabilityCommitments = computed(() => spouseLiabilityCommitments.value.length > 0);
+
+    const hasAnySpouseCommitments = computed(() => {
+      return hasSpouseRetirementCommitments.value ||
+             hasSpousePropertyCommitments.value ||
+             hasSpouseInvestmentCommitments.value ||
+             hasSpouseProtectionCommitments.value ||
+             hasSpouseLiabilityCommitments.value;
+    });
+
+    const spouseCommitmentsTotal = computed(() => {
+      return spouseFinancialCommitments.value?.totals?.total || 0;
+    });
+
     // Fetch financial commitments
     const fetchFinancialCommitments = async () => {
       // Fetch for all users (including preview mode)
       // Preview users are real database users and use the same code paths
       loadingCommitments.value = true;
       try {
+        // Fetch user commitments
         const response = await userProfileService.getFinancialCommitments();
         if (response.success) {
           financialCommitments.value = response.data;
+        }
+
+        // Fetch spouse commitments if married
+        if (props.isMarried) {
+          try {
+            const spouseResponse = await userProfileService.getSpouseFinancialCommitments();
+            if (spouseResponse.success) {
+              spouseFinancialCommitments.value = spouseResponse.data;
+            }
+          } catch (spouseError) {
+            // Spouse commitments fetch failed - not critical
+            console.warn('Failed to fetch spouse financial commitments:', spouseError);
+          }
         }
       } catch (error) {
         console.error('Failed to fetch financial commitments:', error);
@@ -2125,6 +2204,20 @@ export default {
       hasJointLiabilityCommitments,
       hasAnyJointCommitments,
       jointCommitmentsTotal,
+      // Spouse commitments (from spouse API)
+      spouseFinancialCommitments,
+      spouseRetirementCommitments,
+      spousePropertyCommitments,
+      spouseInvestmentCommitments,
+      spouseProtectionCommitments,
+      spouseLiabilityCommitments,
+      hasSpouseRetirementCommitments,
+      hasSpousePropertyCommitments,
+      hasSpouseInvestmentCommitments,
+      hasSpouseProtectionCommitments,
+      hasSpouseLiabilityCommitments,
+      hasAnySpouseCommitments,
+      spouseCommitmentsTotal,
       // Expose for parent component to manage tab cycling
       getNextTab,
       advanceToNextTab,
