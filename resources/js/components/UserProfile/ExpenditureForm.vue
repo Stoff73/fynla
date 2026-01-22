@@ -1763,13 +1763,15 @@ export default {
 
     const spouseTotalAnnualWithCommitments = computed(() => spouseTotalMonthlyWithCommitments.value * 12);
 
-    // Household total with commitments (prevents double-counting of joint items)
+    // Household total with commitments
+    // For married users: always sum user + spouse (each has 50% of household expenditure)
+    // For single users: just user's total
     const householdTotalMonthlyWithCommitments = computed(() => {
-      if (!props.isMarried || !useSeparateExpenditure.value) {
-        // Not using separate mode, just user total with all commitments
+      if (!props.isMarried) {
+        // Single user - just their total
         return totalMonthlyWithCommitments.value;
       }
-      // Separate mode: user (manual + all commitments) + spouse (manual + joint commitments only)
+      // Married: sum both spouses (user 50% + spouse 50% = 100% household)
       return totalMonthlyWithCommitments.value + spouseTotalMonthlyWithCommitments.value;
     });
 

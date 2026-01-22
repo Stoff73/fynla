@@ -133,10 +133,13 @@ Test via landing page persona selector at http://localhost:8000, not direct URLs
 - ISA: £20,000/year
 - Pension AA: £60,000
 
-## Credentials
+## Authentication for Testing
 
-- **Demo**: demo@fps.com / password
-- **Admin**: admin@fps.com / admin123
+**No demo accounts exist.** When testing requires login:
+1. Ask the user for credentials (email and password)
+2. Enter the provided credentials
+3. When the verification code screen appears, **ask the user for the code**
+4. Enter the code provided and continue testing
 
 ## Troubleshooting
 

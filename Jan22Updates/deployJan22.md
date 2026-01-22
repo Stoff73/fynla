@@ -7,6 +7,9 @@
 4. Remove Diversification tab from pension detail view
 5. Retirement strategy affordability enhancements (employer match, strategy flow, income gap display)
 6. Priority 2 contribution increase with tax relief reinvestment (relief at source, self-assessment refund, compound projection)
+7. **BUG FIX**: Compound projection growth rate calculation (was using 500% instead of 5%)
+8. Persona data fixes: realistic disposable income for all personas, 50/50 expenditure split for married couples
+9. ExpenditureForm household total calculation fix
 
 ---
 
@@ -27,14 +30,21 @@ Vue components and JS services were modified.
 app/Http/Controllers/Api/PostcodeLookupController.php  (NEW)
 app/Http/Controllers/Api/PreviewController.php         (SECURITY FIX)
 app/Services/Retirement/PensionProjector.php
-app/Services/Retirement/RetirementStrategyService.php  (STRATEGY ENHANCEMENTS)
+app/Services/Retirement/RetirementStrategyService.php  (STRATEGY ENHANCEMENTS + BUG FIX)
 config/services.php
 routes/api.php
+database/seeders/PreviewUserSeeder.php                 (PERSONA DATA FIX)
 ```
 
 ### Frontend (after rebuild)
 ```
 public/build/  (entire folder)
+```
+
+### Persona Data (for seeder - upload BEFORE running seeder)
+```
+resources/js/data/personas/young_family.json
+resources/js/data/personas/peak_earners.json
 ```
 
 ---
@@ -73,6 +83,10 @@ php artisan config:clear && php artisan cache:clear && php artisan route:clear &
 | `resources/js/components/Onboarding/steps/PersonalInfoStep.vue` | Modified | Frontend |
 | `resources/js/components/UserProfile/PersonalInformation.vue` | Modified | Frontend |
 | `resources/js/components/NetWorth/PensionDetailInline.vue` | Modified | Frontend |
+| `resources/js/components/UserProfile/ExpenditureForm.vue` | Modified | Frontend |
+| `resources/js/data/personas/young_family.json` | Modified | Frontend |
+| `resources/js/data/personas/peak_earners.json` | Modified | Frontend |
+| `database/seeders/PreviewUserSeeder.php` | Modified | Backend |
 
 ---
 
@@ -143,4 +157,27 @@ php artisan config:clear && php artisan cache:clear && php artisan route:clear &
    - `with_reinvestment.additional_benefit` - extra pot from reinvestment
    - `yearly_breakdown[]` - year-by-year projection details
 7. **Verify:** Description shows compound benefit message for higher/additional rate taxpayers:
-   - Example: "By reinvesting your tax refund each year until retirement (20 years), you could add an estimated £X extra to your retirement pot."
+   - Example: "Increase your pension contributions. As a higher rate taxpayer, £X/year costs you just £Y after tax relief. Reinvesting your refunds could add £Z to your pot."
+
+### Compound Projection Bug Fix (BUG-003)
+1. Log in as David Mitchell (peak_earners persona - higher rate taxpayer)
+2. Go to Retirement → Strategies tab
+3. Find the "Increase Pension Contributions" strategy
+4. **Verify:** `compound_projection.with_reinvestment.additional_benefit` shows sensible value (£10k-£50k range, NOT billions)
+5. **Verify:** Description mentions a realistic additional pot value
+
+### Persona Data Fixes (DATA-004)
+1. Log in as James Carter (young_family persona)
+2. Go to Retirement → Strategies tab
+3. **Verify:** Disposable income shows positive value (~£1,200-£1,500/month)
+4. **Verify:** Contribution increase strategy is NOT skipped due to affordability
+5. Log in as David Mitchell (peak_earners persona)
+6. Go to Retirement → Strategies tab
+7. **Verify:** Disposable income shows ~£3,500/month or higher
+8. **Verify:** Can afford to increase pension contributions
+
+### ExpenditureForm Household Total Fix (UI-019)
+1. Log in as any married persona (e.g., James Carter)
+2. Go to User Profile → Expenditure tab
+3. **Verify:** Household total = User expenditure + Spouse expenditure
+4. **Verify:** Each spouse shows 50% of household total (not 100% + 50% = 150%)

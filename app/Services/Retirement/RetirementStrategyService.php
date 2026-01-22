@@ -679,11 +679,13 @@ class RetirementStrategyService
 
         // Project compound benefit of reinvestment until retirement
         $yearsToRetirement = $currentStatus['years_to_retirement'];
+        // expected_return is stored as percentage (e.g., 5 for 5%), convert to decimal
+        $growthRate = ($currentStatus['expected_return'] ?? 5) / 100;
         $compoundProjection = $this->projectCompoundBenefitToRetirement(
             $recommendedGrossAnnual,
             $marginalRate,
             $yearsToRetirement,
-            $currentStatus['expected_return'] ?? 0.05
+            $growthRate
         );
 
         // Build enhanced description based on tax band
@@ -741,42 +743,30 @@ class RetirementStrategyService
         array $compoundProjection,
         int $yearsToRetirement
     ): string {
-        $grossFormatted = $this->formatCurrency($recommendedGross);
-        $userPays = $this->formatCurrency($recommendedGross * 0.80);
-        $hmrcAdds = $this->formatCurrency($recommendedGross * 0.20);
         $taxBand = $breakdown['tax_band'];
+        $effectiveCost = $taxBand === 'additional'
+            ? $this->formatCurrency($recommendedGross * 0.55)
+            : ($taxBand === 'higher'
+                ? $this->formatCurrency($recommendedGross * 0.60)
+                : $this->formatCurrency($recommendedGross * 0.80));
 
         if ($taxBand === 'basic' || $taxBand === 'non_taxpayer') {
             return sprintf(
-                'You can contribute up to %s/year to your pension. You pay %s and HMRC automatically adds %s (20%% basic rate relief).',
-                $grossFormatted,
-                $userPays,
-                $hmrcAdds
+                'Increase your pension contributions. With tax relief, %s/year costs you just %s.',
+                $this->formatCurrency($recommendedGross),
+                $effectiveCost
             );
         }
 
-        // Higher or additional rate taxpayer
-        $refundPercent = $taxBand === 'additional' ? '25%' : '20%';
-        $refundAmount = $taxBand === 'additional'
-            ? $this->formatCurrency($recommendedGross * 0.25)
-            : $this->formatCurrency($recommendedGross * 0.20);
-        $effectiveCost = $taxBand === 'additional'
-            ? $this->formatCurrency($recommendedGross * 0.55)
-            : $this->formatCurrency($recommendedGross * 0.60);
-
+        // Higher or additional rate taxpayer - emphasise the benefit
         $additionalBenefit = $compoundProjection['with_reinvestment']['additional_benefit'] ?? 0;
-        $additionalBenefitFormatted = $this->formatCurrency($additionalBenefit);
 
         return sprintf(
-            'You can contribute up to %s/year to your pension. You pay %s upfront, HMRC adds %s (20%% relief at source), and you receive an additional %s back through self-assessment (%s rate relief). Your effective cost is just %s. By reinvesting your tax refund each year until retirement (%d years), you could add an estimated %s extra to your retirement pot.',
-            $grossFormatted,
-            $userPays,
-            $hmrcAdds,
-            $refundAmount,
+            'Increase your pension contributions. As a %s rate taxpayer, %s/year costs you just %s after tax relief. Reinvesting your refunds could add %s to your pot.',
             $taxBand,
+            $this->formatCurrency($recommendedGross),
             $effectiveCost,
-            $yearsToRetirement,
-            $additionalBenefitFormatted
+            $this->formatCurrency($additionalBenefit)
         );
     }
 
