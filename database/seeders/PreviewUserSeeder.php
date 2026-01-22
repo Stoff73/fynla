@@ -191,30 +191,38 @@ class PreviewUserSeeder extends Seeder
         $user->education_level = $userData['education_level'] ?? null;
 
         // Expenditure categories (from separate expenditure data in persona JSON)
-        // Use 0 as default for any missing categories to avoid NOT NULL constraint violations
+        // For married users in joint mode, each spouse gets 50% of household expenditure
+        // For single users, they get 100%
         // Supports both old names (food, transport) and new names (food_groceries, transport_fuel)
         if ($expenditureData && ! empty($expenditureData['categories'])) {
             $categories = $expenditureData['categories'];
-            $user->monthly_expenditure = $expenditureData['total_monthly'] ?? $userData['monthly_expenditure'] ?? 0;
-            $user->food_groceries = $categories['food_groceries'] ?? $categories['food'] ?? 0;
-            $user->transport_fuel = $categories['transport_fuel'] ?? $categories['transport'] ?? 0;
-            $user->healthcare_medical = $categories['healthcare_medical'] ?? 0;
-            $user->insurance = $categories['insurance'] ?? 0;
-            $user->mobile_phones = $categories['mobile_phones'] ?? 0;
-            $user->internet_tv = $categories['internet_tv'] ?? 0;
-            $user->subscriptions = $categories['subscriptions'] ?? 0;
-            $user->clothing_personal_care = $categories['clothing_personal_care'] ?? $categories['clothing'] ?? 0;
-            $user->entertainment_dining = $categories['entertainment_dining'] ?? $categories['entertainment'] ?? 0;
-            $user->holidays_travel = $categories['holidays_travel'] ?? 0;
-            $user->pets = $categories['pets'] ?? 0;
-            $user->childcare = $categories['childcare'] ?? 0;
-            $user->school_fees = $categories['school_fees'] ?? 0;
-            $user->children_activities = $categories['children_activities'] ?? 0;
-            $user->gifts_charity = $categories['gifts_charity'] ?? 0;
-            $user->other_expenditure = $categories['other_expenditure'] ?? $categories['other'] ?? 0;
+            // Married users get 50% share, single users get 100%
+            $share = ($userData['marital_status'] ?? 'single') === 'married' ? 0.5 : 1.0;
+            $user->monthly_expenditure = round(($expenditureData['total_monthly'] ?? $userData['monthly_expenditure'] ?? 0) * $share);
+            $user->food_groceries = round(($categories['food_groceries'] ?? $categories['food'] ?? 0) * $share);
+            $user->transport_fuel = round(($categories['transport_fuel'] ?? $categories['transport'] ?? 0) * $share);
+            $user->healthcare_medical = round(($categories['healthcare_medical'] ?? 0) * $share);
+            $user->insurance = round(($categories['insurance'] ?? 0) * $share);
+            $user->mobile_phones = round(($categories['mobile_phones'] ?? 0) * $share);
+            $user->internet_tv = round(($categories['internet_tv'] ?? 0) * $share);
+            $user->subscriptions = round(($categories['subscriptions'] ?? 0) * $share);
+            $user->clothing_personal_care = round(($categories['clothing_personal_care'] ?? $categories['clothing'] ?? 0) * $share);
+            $user->entertainment_dining = round(($categories['entertainment_dining'] ?? $categories['entertainment'] ?? 0) * $share);
+            $user->holidays_travel = round(($categories['holidays_travel'] ?? 0) * $share);
+            $user->pets = round(($categories['pets'] ?? 0) * $share);
+            $user->childcare = round(($categories['childcare'] ?? 0) * $share);
+            $user->school_fees = round(($categories['school_fees'] ?? 0) * $share);
+            $user->school_lunches = round(($categories['school_lunches'] ?? 0) * $share);
+            $user->school_extras = round(($categories['school_extras'] ?? 0) * $share);
+            $user->university_fees = round(($categories['university_fees'] ?? 0) * $share);
+            $user->children_activities = round(($categories['children_activities'] ?? 0) * $share);
+            $user->gifts_charity = round(($categories['gifts_charity'] ?? 0) * $share);
+            $user->regular_savings = round(($categories['regular_savings'] ?? 0) * $share);
+            $user->other_expenditure = round(($categories['other_expenditure'] ?? $categories['other'] ?? 0) * $share);
         } else {
             // Set defaults if no expenditure data provided
-            $user->monthly_expenditure = $userData['monthly_expenditure'] ?? 0;
+            $share = ($userData['marital_status'] ?? 'single') === 'married' ? 0.5 : 1.0;
+            $user->monthly_expenditure = round(($userData['monthly_expenditure'] ?? 0) * $share);
             $user->food_groceries = 0;
             $user->transport_fuel = 0;
             $user->healthcare_medical = 0;
@@ -228,8 +236,12 @@ class PreviewUserSeeder extends Seeder
             $user->pets = 0;
             $user->childcare = 0;
             $user->school_fees = 0;
+            $user->school_lunches = 0;
+            $user->school_extras = 0;
+            $user->university_fees = 0;
             $user->children_activities = 0;
             $user->gifts_charity = 0;
+            $user->regular_savings = 0;
             $user->other_expenditure = 0;
         }
 
@@ -290,30 +302,55 @@ class PreviewUserSeeder extends Seeder
         $spouse->smoking_status = $spouseData['smoking_status'] ?? null;
         $spouse->education_level = $spouseData['education_level'] ?? null;
 
-        // Expenditure: Split household expenditure proportionally or 50/50
-        // For a household scenario, spouse gets their share of joint costs
-        // Supports both old names (food, transport) and new names (food_groceries, transport_fuel)
+        // Expenditure: In joint mode (default), each spouse gets 50% of household expenditure
+        // Household total = user 50% + spouse 50% = 100%
         if ($expenditureData && ! empty($expenditureData['categories'])) {
             $categories = $expenditureData['categories'];
-            // Use 50% of household expenditure as default spouse share
             $share = 0.5;
             $spouse->monthly_expenditure = round(($expenditureData['total_monthly'] ?? 0) * $share);
-            $spouse->food_groceries = round((($categories['food_groceries'] ?? $categories['food'] ?? 0)) * $share);
-            $spouse->transport_fuel = round((($categories['transport_fuel'] ?? $categories['transport'] ?? 0)) * $share);
+            $spouse->food_groceries = round(($categories['food_groceries'] ?? $categories['food'] ?? 0) * $share);
+            $spouse->transport_fuel = round(($categories['transport_fuel'] ?? $categories['transport'] ?? 0) * $share);
             $spouse->healthcare_medical = round(($categories['healthcare_medical'] ?? 0) * $share);
             $spouse->insurance = round(($categories['insurance'] ?? 0) * $share);
             $spouse->mobile_phones = round(($categories['mobile_phones'] ?? 0) * $share);
             $spouse->internet_tv = round(($categories['internet_tv'] ?? 0) * $share);
             $spouse->subscriptions = round(($categories['subscriptions'] ?? 0) * $share);
-            $spouse->clothing_personal_care = round((($categories['clothing_personal_care'] ?? $categories['clothing'] ?? 0)) * $share);
-            $spouse->entertainment_dining = round((($categories['entertainment_dining'] ?? $categories['entertainment'] ?? 0)) * $share);
+            $spouse->clothing_personal_care = round(($categories['clothing_personal_care'] ?? $categories['clothing'] ?? 0) * $share);
+            $spouse->entertainment_dining = round(($categories['entertainment_dining'] ?? $categories['entertainment'] ?? 0) * $share);
             $spouse->holidays_travel = round(($categories['holidays_travel'] ?? 0) * $share);
             $spouse->pets = round(($categories['pets'] ?? 0) * $share);
             $spouse->childcare = round(($categories['childcare'] ?? 0) * $share);
             $spouse->school_fees = round(($categories['school_fees'] ?? 0) * $share);
+            $spouse->school_lunches = round(($categories['school_lunches'] ?? 0) * $share);
+            $spouse->school_extras = round(($categories['school_extras'] ?? 0) * $share);
+            $spouse->university_fees = round(($categories['university_fees'] ?? 0) * $share);
             $spouse->children_activities = round(($categories['children_activities'] ?? 0) * $share);
             $spouse->gifts_charity = round(($categories['gifts_charity'] ?? 0) * $share);
-            $spouse->other_expenditure = round((($categories['other_expenditure'] ?? $categories['other'] ?? 0)) * $share);
+            $spouse->regular_savings = round(($categories['regular_savings'] ?? 0) * $share);
+            $spouse->other_expenditure = round(($categories['other_expenditure'] ?? $categories['other'] ?? 0) * $share);
+        } else {
+            // No expenditure data - set all to 0
+            $spouse->monthly_expenditure = 0;
+            $spouse->food_groceries = 0;
+            $spouse->transport_fuel = 0;
+            $spouse->healthcare_medical = 0;
+            $spouse->insurance = 0;
+            $spouse->mobile_phones = 0;
+            $spouse->internet_tv = 0;
+            $spouse->subscriptions = 0;
+            $spouse->clothing_personal_care = 0;
+            $spouse->entertainment_dining = 0;
+            $spouse->holidays_travel = 0;
+            $spouse->pets = 0;
+            $spouse->childcare = 0;
+            $spouse->school_fees = 0;
+            $spouse->school_lunches = 0;
+            $spouse->school_extras = 0;
+            $spouse->university_fees = 0;
+            $spouse->children_activities = 0;
+            $spouse->gifts_charity = 0;
+            $spouse->regular_savings = 0;
+            $spouse->other_expenditure = 0;
         }
 
         // Domicile information (spouse can have their own domicile data)

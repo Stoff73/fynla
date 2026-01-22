@@ -36,8 +36,7 @@ class PensionProjector
     public function projectDCPension(DCPension $pension, int $yearsToRetirement, float $growthRate): float
     {
         $currentValue = (float) $pension->current_fund_value;
-        $monthlyContribution = (float) $pension->monthly_contribution_amount ?? 0.0;
-        $annualContribution = $monthlyContribution * 12;
+        $annualContribution = $this->calculateAnnualContribution($pension);
 
         // Account for platform fees
         $netGrowthRate = $growthRate - ((float) $pension->platform_fee_percent ?? 0.0) / 100;
@@ -237,5 +236,38 @@ class PensionProjector
         }
 
         return self::DEFAULT_GROWTH_RATE;
+    }
+
+    /**
+     * Calculate annual contribution for a DC pension.
+     *
+     * Handles two contribution methods:
+     * 1. Fixed monthly amount (SIPP/personal pensions): monthly_contribution_amount × 12
+     * 2. Percentage of salary (workplace pensions): salary × (employee% + employer%)
+     *
+     * @return float Annual contribution amount
+     */
+    private function calculateAnnualContribution(DCPension $pension): float
+    {
+        // Priority 1: Fixed monthly contribution (SIPP/personal pensions)
+        $monthlyContribution = (float) ($pension->monthly_contribution_amount ?? 0.0);
+        if ($monthlyContribution > 0) {
+            return $monthlyContribution * 12;
+        }
+
+        // Priority 2: Percentage-based contributions (workplace pensions)
+        $annualSalary = (float) ($pension->annual_salary ?? 0.0);
+        if ($annualSalary > 0) {
+            $employeePercent = (float) ($pension->employee_contribution_percent ?? 0.0);
+            $employerPercent = (float) ($pension->employer_contribution_percent ?? 0.0);
+            $totalPercent = $employeePercent + $employerPercent;
+
+            if ($totalPercent > 0) {
+                return $annualSalary * ($totalPercent / 100);
+            }
+        }
+
+        // No contributions
+        return 0.0;
     }
 }

@@ -95,6 +95,9 @@ Property::create(['user_id' => $user->id, 'current_value' => 160000, 'ownership_
 Property::create(['user_id' => $spouse->id, 'current_value' => 160000, 'ownership_percentage' => 50]);
 ```
 
+### 8. PreviewWriteInterceptor Middleware
+When adding new auth-related POST routes, add them to `EXCLUDED_ROUTES` in `app/Http/Middleware/PreviewWriteInterceptor.php`. This middleware intercepts all write operations from preview users - any route that must work regardless of preview mode state (login, register, password reset) must be excluded.
+
 ## Deployment
 
 Use deployment scripts (never `npm run build` directly):
@@ -133,10 +136,13 @@ Test via landing page persona selector at http://localhost:8000, not direct URLs
 - ISA: £20,000/year
 - Pension AA: £60,000
 
-## Credentials
+## Authentication for Testing
 
-- **Demo**: demo@fps.com / password
-- **Admin**: admin@fps.com / admin123
+**No demo accounts exist.** When testing requires login:
+1. Ask the user for credentials (email and password)
+2. Enter the provided credentials
+3. When the verification code screen appears, **ask the user for the code**
+4. Enter the code provided and continue testing
 
 ## Troubleshooting
 
