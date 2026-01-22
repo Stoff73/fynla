@@ -654,6 +654,10 @@ class PreviewUserSeeder extends Seeder
                 'account_type' => $accountType,
                 'current_value' => $totalValue, // FULL value
                 'contributions_ytd' => $annualContribution,
+                'monthly_contribution_amount' => $account['monthly_contribution_amount'] ?? null,
+                'contribution_frequency' => $account['contribution_frequency'] ?? 'monthly',
+                'planned_lump_sum_amount' => $account['planned_lump_sum_amount'] ?? null,
+                'planned_lump_sum_date' => isset($account['planned_lump_sum_date']) ? $account['planned_lump_sum_date'] : null,
                 'isa_subscription_current_year' => $isaSubscription,
                 'tax_year' => '2024/25',
                 'ownership_type' => $account['ownership_type'] ?? 'individual',
