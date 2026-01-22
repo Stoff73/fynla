@@ -4,6 +4,7 @@
 1. UK postcode lookup feature for all address forms using GetAddress.io API
 2. Fix pension projections to include percentage-based contributions (workplace pensions)
 3. **CRITICAL SECURITY FIX**: Preview mode session isolation to prevent data leakage
+4. Remove Diversification tab from pension detail view
 
 ---
 
@@ -67,6 +68,7 @@ php artisan config:clear && php artisan cache:clear && php artisan route:clear &
 | `resources/js/components/NetWorth/Property/PropertyForm.vue` | Modified | Frontend |
 | `resources/js/components/Onboarding/steps/PersonalInfoStep.vue` | Modified | Frontend |
 | `resources/js/components/UserProfile/PersonalInformation.vue` | Modified | Frontend |
+| `resources/js/components/NetWorth/PensionDetailInline.vue` | Modified | Frontend |
 
 ---
 
@@ -92,3 +94,8 @@ php artisan config:clear && php artisan cache:clear && php artisan route:clear &
 4. Select any persona (e.g., Emily & James Carter)
 5. **Verify:** Dashboard shows Carter family data (Net Worth £97,200), NOT the real user's data
 6. Verify "Preview Mode" banner appears with correct persona name
+
+### Pension Detail View
+1. Go to Retirement module → Click on any DC pension
+2. **Verify:** Tabs show only: Overview, Projections, Documents
+3. **Verify:** No "Diversification" tab appears
