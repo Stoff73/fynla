@@ -57,14 +57,25 @@
         </div>
       </div>
 
-      <!-- Real Users: Add Account Cards + Open Banking -->
-      <div v-else class="space-y-6">
-        <!-- Add Account Cards - 4 Column Grid -->
+      <!-- Real Users: Account Cards + Open Banking -->
+      <div v-else class="space-y-6 pt-6">
+        <!-- Account Cards - 4 Column Grid -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <!-- Current Account Card -->
           <div class="account-card">
             <h4 class="card-title">Current Accounts</h4>
-            <p class="empty-message">No current accounts</p>
+            <template v-if="currentAccounts.length > 0">
+              <div
+                v-for="account in currentAccounts"
+                :key="account.id"
+                class="account-item"
+                @click="selectAccount(account)"
+              >
+                <span class="account-name">{{ account.institution || 'Current Account' }}</span>
+                <span class="account-balance">{{ formatCurrency(account.current_balance) }}</span>
+              </div>
+            </template>
+            <p v-else class="empty-message">No current accounts</p>
             <button @click="openAddAccountModal('current_account')" class="add-account-btn">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -76,7 +87,18 @@
           <!-- Savings Account Card -->
           <div class="account-card">
             <h4 class="card-title">Savings Accounts</h4>
-            <p class="empty-message">No savings accounts</p>
+            <template v-if="savingsAccounts.length > 0">
+              <div
+                v-for="account in savingsAccounts"
+                :key="account.id"
+                class="account-item"
+                @click="selectAccount(account)"
+              >
+                <span class="account-name">{{ account.institution || 'Savings Account' }}</span>
+                <span class="account-balance">{{ formatCurrency(account.current_balance) }}</span>
+              </div>
+            </template>
+            <p v-else class="empty-message">No savings accounts</p>
             <button @click="openAddAccountModal('savings_account')" class="add-account-btn">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -88,8 +110,19 @@
           <!-- Cash ISA Card -->
           <div class="account-card">
             <h4 class="card-title">Cash ISAs</h4>
-            <p class="empty-message">No cash ISAs</p>
-            <button @click="openAddAccountModal('isa')" class="add-account-btn">
+            <template v-if="isaAccounts.length > 0">
+              <div
+                v-for="account in isaAccounts"
+                :key="account.id"
+                class="account-item"
+                @click="selectAccount(account)"
+              >
+                <span class="account-name">{{ account.institution || 'Cash ISA' }}</span>
+                <span class="account-balance">{{ formatCurrency(account.current_balance) }}</span>
+              </div>
+            </template>
+            <p v-else class="empty-message">No cash ISAs</p>
+            <button @click="openAddAccountModal('cash_isa')" class="add-account-btn">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
               </svg>
@@ -100,8 +133,19 @@
           <!-- NS&I Card -->
           <div class="account-card">
             <h4 class="card-title">NS&I</h4>
-            <p class="empty-message">No NS&I accounts</p>
-            <button @click="openAddAccountModal('ns_and_i')" class="add-account-btn">
+            <template v-if="nsiAccounts.length > 0">
+              <div
+                v-for="account in nsiAccounts"
+                :key="account.id"
+                class="account-item"
+                @click="selectAccount(account)"
+              >
+                <span class="account-name">{{ account.institution || 'NS&I' }}</span>
+                <span class="account-balance">{{ formatCurrency(account.current_balance) }}</span>
+              </div>
+            </template>
+            <p v-else class="empty-message">No NS&I accounts</p>
+            <button @click="openAddAccountModal('premium_bonds')" class="add-account-btn">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
               </svg>
@@ -173,6 +217,7 @@
 import { mapState, mapActions, mapGetters } from 'vuex';
 import estateService from '@/services/estateService';
 import userProfileService from '@/services/userProfileService';
+import currencyMixin from '@/mixins/currencyMixin';
 import AccountSummaryPanel from '@/components/Cash/AccountSummaryPanel.vue';
 import CashInsightsPanel from '@/components/Cash/CashInsightsPanel.vue';
 import CashActionsPanel from '@/components/Cash/CashActionsPanel.vue';
@@ -189,6 +234,8 @@ export default {
     SaveAccountModal,
     SavingsAccountDetailInline,
   },
+
+  mixins: [currencyMixin],
 
   data() {
     return {
@@ -209,6 +256,29 @@ export default {
     ...mapGetters('savings', ['totalSavings']),
     ...mapGetters('userProfile', ['totalAnnualIncome']),
     ...mapGetters('preview', ['isPreviewMode']),
+
+    // Filter accounts by type for real users view
+    currentAccounts() {
+      return this.accounts.filter(a => a.account_type === 'current_account');
+    },
+
+    savingsAccounts() {
+      return this.accounts.filter(a =>
+        ['savings_account', 'easy_access', 'instant_access', 'notice', 'fixed'].includes(a.account_type)
+      );
+    },
+
+    isaAccounts() {
+      return this.accounts.filter(a =>
+        ['cash_isa', 'junior_isa'].includes(a.account_type) || a.is_isa
+      );
+    },
+
+    nsiAccounts() {
+      return this.accounts.filter(a =>
+        ['premium_bonds', 'nsi'].includes(a.account_type)
+      );
+    },
 
     // Monthly income from user profile (full month - assumed payday has occurred)
     monthlyIncome() {
@@ -418,6 +488,39 @@ export default {
   color: #9ca3af;
   text-align: center;
   margin: 0 0 12px 0;
+}
+
+.account-item {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  background: #f9fafb;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.account-item:hover {
+  background: #f3f4f6;
+}
+
+.account-name {
+  font-size: 13px;
+  color: #374151;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 60%;
+}
+
+.account-balance {
+  font-size: 13px;
+  color: #059669;
+  font-weight: 600;
 }
 
 .add-account-btn {
