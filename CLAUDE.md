@@ -95,6 +95,9 @@ Property::create(['user_id' => $user->id, 'current_value' => 160000, 'ownership_
 Property::create(['user_id' => $spouse->id, 'current_value' => 160000, 'ownership_percentage' => 50]);
 ```
 
+### 8. PreviewWriteInterceptor Middleware
+When adding new auth-related POST routes, add them to `EXCLUDED_ROUTES` in `app/Http/Middleware/PreviewWriteInterceptor.php`. This middleware intercepts all write operations from preview users - any route that must work regardless of preview mode state (login, register, password reset) must be excluded.
+
 ## Deployment
 
 Use deployment scripts (never `npm run build` directly):

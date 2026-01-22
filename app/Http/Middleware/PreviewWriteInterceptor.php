@@ -34,10 +34,13 @@ class PreviewWriteInterceptor
     private const EXCLUDED_ROUTES = [
         'api/preview/exit',
         'api/preview/switch',
+        'api/auth/login',         // Allow real login even with stale preview token
         'api/auth/logout',
         'api/auth/register',      // Allow preview users to create real accounts
         'api/auth/verify-code',   // Required for registration verification
         'api/auth/resend-code',   // Required for registration verification
+        'api/auth/forgot-password', // Allow password reset
+        'api/auth/reset-password',  // Allow password reset
         'api/onboarding',         // Allow onboarding to work in preview mode
         'api/documents/upload',   // Allow document upload & AI extraction
         'api/documents/upload-only', // Allow document upload without extraction
