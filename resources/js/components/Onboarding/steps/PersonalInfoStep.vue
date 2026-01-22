@@ -98,6 +98,14 @@
           Address
         </h4>
 
+        <!-- Postcode Lookup -->
+        <PostcodeLookup
+          v-model="formData.postcode"
+          label="Find Address by Postcode"
+          class="mb-4"
+          @address-selected="handleAddressSelected"
+        />
+
         <div class="grid grid-cols-1 gap-4">
           <div>
             <label for="address_line_1" class="label">
@@ -270,12 +278,14 @@
 import { ref, computed, onMounted } from 'vue';
 import { useStore } from 'vuex';
 import OnboardingStep from '../OnboardingStep.vue';
+import PostcodeLookup from '@/components/Shared/PostcodeLookup.vue';
 
 export default {
   name: 'PersonalInfoStep',
 
   components: {
     OnboardingStep,
+    PostcodeLookup,
   },
 
   emits: ['next', 'back', 'skip'],
@@ -324,6 +334,15 @@ export default {
     const formatPostcode = (event) => {
       // Simple postcode formatting - uppercase
       formData.value.postcode = event.target.value.toUpperCase();
+    };
+
+    const handleAddressSelected = (address) => {
+      // Populate address fields from postcode lookup
+      formData.value.address_line_1 = address.line_1 || '';
+      formData.value.address_line_2 = address.line_2 || '';
+      formData.value.city = address.city || '';
+      formData.value.county = address.county || '';
+      formData.value.postcode = address.postcode || '';
     };
 
     const validateForm = () => {
@@ -439,6 +458,7 @@ export default {
       formatNI,
       formatPostcode,
       handleNext,
+      handleAddressSelected,
     };
   },
 };

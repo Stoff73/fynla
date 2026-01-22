@@ -35,4 +35,8 @@ return [
         'api_key' => env('ANTHROPIC_API_KEY'),
     ],
 
+    'getaddress' => [
+        'api_key' => env('GETADDRESS_API_KEY'),
+    ],
+
 ];

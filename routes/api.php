@@ -38,6 +38,7 @@ use App\Http\Controllers\Api\LetterToSpouseController;
 use App\Http\Controllers\Api\MFAController;
 use App\Http\Controllers\Api\MortgageController;
 use App\Http\Controllers\Api\PasswordResetController;
+use App\Http\Controllers\Api\PostcodeLookupController;
 use App\Http\Controllers\Api\NetWorthController;
 use App\Http\Controllers\Api\OnboardingController;
 use App\Http\Controllers\Api\PersonalAccountsController;
@@ -975,3 +976,7 @@ Route::middleware(['auth:sanctum', 'throttle:30,1'])->prefix('documents')->group
     Route::post('/{id}/reprocess', [DocumentController::class, 'reprocess'])->middleware('throttle:5,1');
     Route::delete('/{id}', [DocumentController::class, 'destroy']);
 });
+
+// Postcode Lookup routes (UK address lookup via GetAddress.io)
+Route::middleware(['auth:sanctum', 'throttle:30,1'])
+    ->get('/postcode-lookup/{postcode}', [PostcodeLookupController::class, 'lookup']);
