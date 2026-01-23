@@ -274,6 +274,10 @@ export default {
       type: Array,
       required: true,
     },
+    defaultAccountId: {
+      type: Number,
+      default: null,
+    },
   },
 
   data() {
@@ -428,7 +432,7 @@ export default {
 
     resetForm() {
       this.formData = {
-        investment_account_id: '',
+        investment_account_id: this.defaultAccountId || '',
         security_name: '',
         ticker: '',
         isin: '',

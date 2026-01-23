@@ -94,6 +94,7 @@
           <AccountSummaryPanel
             v-if="activeTab === 'overview'"
             :account="account"
+            @add-holding="openHoldingModal(null)"
           />
 
           <!-- Holdings Tab -->
@@ -116,6 +117,7 @@
             v-else-if="activeTab === 'performance'"
             :account="account"
             @change-tab="handleTabChange"
+            @add-holding="openHoldingModal(null)"
           />
 
           <!-- Rebalancing Tab -->
@@ -169,10 +171,10 @@
 
     <!-- Holding Form Modal -->
     <HoldingForm
-      v-if="showHoldingModal"
-      :account-id="account.id"
+      :show="showHoldingModal"
       :holding="editingHolding"
-      :is-edit="!!editingHolding"
+      :accounts="[account]"
+      :default-account-id="account.id"
       @close="closeHoldingModal"
       @save="handleHoldingSave"
     />

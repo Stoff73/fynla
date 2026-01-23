@@ -224,6 +224,14 @@
         </div>
       </div>
 
+      <!-- Account Strategy Card (full-width below chart) -->
+      <AccountStrategyCard
+        :account="account"
+        :rebalancing-data="rebalancingData"
+        @change-tab="$emit('change-tab', $event)"
+        @add-holding="$emit('add-holding')"
+      />
+
       <!-- Tax Status Summary -->
       <div
         v-if="taxInfo"
@@ -280,6 +288,7 @@
 
 <script>
 import VueApexCharts from 'vue3-apexcharts';
+import AccountStrategyCard from '@/components/Investment/AccountStrategyCard.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import investmentService from '@/services/investmentService';
 import diversificationService from '@/services/diversificationService';
@@ -293,6 +302,7 @@ export default {
 
   components: {
     apexchart: VueApexCharts,
+    AccountStrategyCard,
   },
 
   props: {
@@ -359,6 +369,10 @@ export default {
           data: this.projectionData.year_by_year.map(y => Math.round(y.percentile_10)),
         },
         {
+          name: '85% Probability',
+          data: this.projectionData.year_by_year.map(y => Math.round(y.percentile_15)),
+        },
+        {
           name: '80% Probability',
           data: this.projectionData.year_by_year.map(y => Math.round(y.percentile_20)),
         },
@@ -392,10 +406,10 @@ export default {
             speed: 800,
           },
         },
-        colors: ['#1e3a5f', '#2563eb', '#60a5fa'],
+        colors: ['#1e3a5f', '#2563eb', '#059669', '#34d399'],
         stroke: {
           curve: 'smooth',
-          width: [2, 2, 2],
+          width: [1, 1, 1, 1],
         },
         fill: {
           type: 'gradient',

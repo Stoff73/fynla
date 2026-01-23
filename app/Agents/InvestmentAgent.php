@@ -14,6 +14,7 @@ use App\Services\Investment\InvestmentProjectionService;
 use App\Services\Investment\MonteCarloSimulator;
 use App\Services\Investment\PortfolioAnalyzer;
 use App\Services\Investment\TaxEfficiencyCalculator;
+use App\Services\TaxConfigService;
 use Illuminate\Support\Facades\Cache;
 
 class InvestmentAgent extends BaseAgent
@@ -23,7 +24,8 @@ class InvestmentAgent extends BaseAgent
         private MonteCarloSimulator $monteCarloSimulator,
         private AssetAllocationOptimizer $allocationOptimizer,
         private FeeAnalyzer $feeAnalyzer,
-        private TaxEfficiencyCalculator $taxCalculator
+        private TaxEfficiencyCalculator $taxCalculator,
+        private TaxConfigService $taxConfig
     ) {}
 
     /**
@@ -70,6 +72,23 @@ class InvestmentAgent extends BaseAgent
                 $allocationDeviation = $this->allocationOptimizer->calculateDeviation($allocation, $targetAllocation);
             }
 
+            // Tax wrapper summary
+            $isaAccounts = $accounts->where('account_type', 'isa');
+            $isaAllowance = $this->taxConfig->getISAAllowances()['annual_allowance'] ?? 20000;
+            $isaUsedThisYear = $isaAccounts->sum('isa_subscription_current_year');
+            $isaRemaining = max(0, $isaAllowance - $isaUsedThisYear);
+
+            $taxWrappers = [
+                'has_isa' => $isaAccounts->isNotEmpty(),
+                'isa_allowance' => $isaAllowance,
+                'isa_used_this_year' => round($isaUsedThisYear, 2),
+                'isa_remaining' => round($isaRemaining, 2),
+                'has_gia' => $accounts->where('account_type', 'gia')->isNotEmpty(),
+                'gia_value' => round($accounts->where('account_type', 'gia')->sum('current_value'), 2),
+                'has_onshore_bond' => $accounts->where('account_type', 'onshore_bond')->isNotEmpty(),
+                'has_offshore_bond' => $accounts->where('account_type', 'offshore_bond')->isNotEmpty(),
+            ];
+
             return [
                 'portfolio_summary' => [
                     'total_value' => round($totalValue, 2),
@@ -87,6 +106,7 @@ class InvestmentAgent extends BaseAgent
                     'efficiency_score' => $taxEfficiencyScore,
                     'harvesting_opportunities' => $harvestingOpportunities,
                 ],
+                'tax_wrappers' => $taxWrappers,
                 'allocation_deviation' => $allocationDeviation,
                 'goals' => $goals->map(function ($goal) use ($totalValue) {
                     $progress = $totalValue > 0 ? ($totalValue / $goal->target_amount) * 100 : 0;
@@ -172,8 +192,21 @@ class InvestmentAgent extends BaseAgent
             ];
         }
 
-        // Allocation recommendations
-        if (isset($analysis['allocation_deviation']['needs_rebalancing']) && $analysis['allocation_deviation']['needs_rebalancing']) {
+        // High platform fee recommendation (platform fees above 0.8% of portfolio)
+        $platformFeeEntry = collect($analysis['fee_analysis']['fee_breakdown'] ?? [])
+            ->firstWhere('type', 'Platform Fees');
+        if ($platformFeeEntry && ($platformFeeEntry['percent_of_portfolio'] ?? 0) > 0.8) {
+            $recommendations[] = [
+                'category' => 'Platform Fees',
+                'priority' => $priority++,
+                'title' => 'Review Platform Fees',
+                'description' => 'Your platform fees are '.round($platformFeeEntry['percent_of_portfolio'], 2).'% of your portfolio. Consider switching to a lower-cost platform.',
+                'action' => 'Compare platform fees across providers',
+            ];
+        }
+
+        // Allocation recommendations (only when holdings exist - can't rebalance with no holdings)
+        if ($holdingsCount > 0 && isset($analysis['allocation_deviation']['needs_rebalancing']) && $analysis['allocation_deviation']['needs_rebalancing']) {
             $recommendations[] = [
                 'category' => 'Asset Allocation',
                 'priority' => $priority++,
@@ -183,14 +216,39 @@ class InvestmentAgent extends BaseAgent
             ];
         }
 
-        // Tax efficiency recommendations (threshold: 80 - still room to optimise)
-        if (isset($analysis['tax_efficiency']['efficiency_score']) && $analysis['tax_efficiency']['efficiency_score'] < 80) {
+        // Tax efficiency recommendations - practical hierarchy
+        $taxWrappers = $analysis['tax_wrappers'] ?? [];
+        $hasGia = $taxWrappers['has_gia'] ?? false;
+        $hasIsa = $taxWrappers['has_isa'] ?? false;
+        $isaRemaining = $taxWrappers['isa_remaining'] ?? 0;
+        $giaValue = $taxWrappers['gia_value'] ?? 0;
+
+        if ($hasGia && ! $hasIsa) {
+            // Priority 1: Has GIA but no ISA - most tax inefficient
             $recommendations[] = [
                 'category' => 'Tax Efficiency',
                 'priority' => $priority++,
-                'title' => 'Improve Tax Efficiency',
-                'description' => 'Your tax efficiency score is '.$analysis['tax_efficiency']['efficiency_score'].'/100',
-                'action' => 'Consider using ISA allowance more effectively',
+                'title' => 'Open a Stocks & Shares ISA',
+                'description' => 'Your investments are in a General Investment Account where gains and dividends are taxable. An ISA shelters up to '.number_format($taxWrappers['isa_allowance'] ?? 20000).'/year from income tax and capital gains tax.',
+                'action' => 'Open an ISA and transfer or contribute up to the annual allowance',
+            ];
+        } elseif ($hasIsa && $isaRemaining > 0 && $hasGia) {
+            // Priority 2: Has ISA with allowance remaining and GIA holdings to shelter
+            $recommendations[] = [
+                'category' => 'Tax Efficiency',
+                'priority' => $priority++,
+                'title' => 'Use Your ISA Allowance',
+                'description' => 'You have '.number_format($isaRemaining).' ISA allowance remaining this tax year. Consider moving GIA holdings ('.number_format($giaValue).') into your ISA before 5 April.',
+                'action' => 'Transfer or contribute GIA funds into your ISA to shelter from tax',
+            ];
+        } elseif ($hasGia && $giaValue > 50000 && ! ($taxWrappers['has_onshore_bond'] ?? false) && ! ($taxWrappers['has_offshore_bond'] ?? false)) {
+            // Priority 3: ISA used but significant GIA value - suggest bonds
+            $recommendations[] = [
+                'category' => 'Tax Efficiency',
+                'priority' => $priority++,
+                'title' => 'Consider Tax-Efficient Bonds',
+                'description' => 'With '.number_format($giaValue).' in your GIA, consider onshore bonds (tax-deferred growth, 5% annual tax-free withdrawal) or offshore bonds (gross roll-up, no annual UK tax on gains) for additional tax efficiency.',
+                'action' => 'Speak to your adviser about investment bonds for tax-deferred growth',
             ];
         }
 
