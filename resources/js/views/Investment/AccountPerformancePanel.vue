@@ -67,7 +67,7 @@
                 <p class="text-2xl font-bold" :class="getDriftStatusClass()">
                   {{ rebalancingData.drift_analysis?.drift_score?.toFixed(1) || '0.0' }}%
                 </p>
-                <p class="text-xs mt-1" :class="rebalancingData.drift_analysis?.needs_rebalancing ? 'text-amber-600 font-medium' : 'text-green-600'">
+                <p class="text-xs mt-1" :class="rebalancingData.drift_analysis?.needs_rebalancing ? 'text-blue-600 font-medium' : 'text-green-600'">
                   {{ rebalancingData.drift_analysis?.needs_rebalancing ? 'Rebalancing Recommended' : 'On Track' }}
                 </p>
               </div>
@@ -224,6 +224,14 @@
         </div>
       </div>
 
+      <!-- Account Strategy Card (full-width below chart) -->
+      <AccountStrategyCard
+        :account="account"
+        :rebalancing-data="rebalancingData"
+        @change-tab="$emit('change-tab', $event)"
+        @add-holding="$emit('add-holding')"
+      />
+
       <!-- Tax Status Summary -->
       <div
         v-if="taxInfo"
@@ -261,7 +269,7 @@
             <span>Tax-Free</span>
           </div>
           <div class="tax-legend-item">
-            <span class="tax-legend-dot bg-amber-500"></span>
+            <span class="tax-legend-dot bg-slate-500"></span>
             <span>Taxable</span>
           </div>
           <div class="tax-legend-item">
@@ -280,6 +288,7 @@
 
 <script>
 import VueApexCharts from 'vue3-apexcharts';
+import AccountStrategyCard from '@/components/Investment/AccountStrategyCard.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import investmentService from '@/services/investmentService';
 import diversificationService from '@/services/diversificationService';
@@ -293,6 +302,7 @@ export default {
 
   components: {
     apexchart: VueApexCharts,
+    AccountStrategyCard,
   },
 
   props: {
@@ -359,6 +369,10 @@ export default {
           data: this.projectionData.year_by_year.map(y => Math.round(y.percentile_10)),
         },
         {
+          name: '85% Probability',
+          data: this.projectionData.year_by_year.map(y => Math.round(y.percentile_15)),
+        },
+        {
           name: '80% Probability',
           data: this.projectionData.year_by_year.map(y => Math.round(y.percentile_20)),
         },
@@ -392,10 +406,10 @@ export default {
             speed: 800,
           },
         },
-        colors: ['#1e3a5f', '#2563eb', '#60a5fa'],
+        colors: ['#1e3a5f', '#2563eb', '#059669', '#34d399'],
         stroke: {
           curve: 'smooth',
-          width: [2, 2, 2],
+          width: [1, 1, 1, 1],
         },
         fill: {
           type: 'gradient',
@@ -629,7 +643,7 @@ export default {
     getRecommendationClass(type) {
       switch (type) {
         case 'success': return 'text-green-600 bg-green-50 border-green-200';
-        case 'warning': return 'text-amber-600 bg-amber-50 border-amber-200';
+        case 'warning': return 'text-violet-600 bg-violet-50 border-violet-200';
         case 'info': return 'text-blue-600 bg-blue-50 border-blue-200';
         default: return 'text-gray-600 bg-gray-50 border-gray-200';
       }
@@ -657,16 +671,16 @@ export default {
       if (!this.rebalancingData?.drift_analysis) return 'text-gray-600';
       const score = this.rebalancingData.drift_analysis.drift_score;
       if (score < 5) return 'text-green-600';
-      if (score < 10) return 'text-amber-600';
-      return 'text-red-600';
+      if (score < 10) return 'text-blue-600';
+      return 'text-violet-600';
     },
 
     getDriftBgClass() {
       if (!this.rebalancingData?.drift_analysis) return 'bg-gray-50';
       const score = this.rebalancingData.drift_analysis.drift_score;
       if (score < 5) return 'bg-green-50';
-      if (score < 10) return 'bg-amber-50';
-      return 'bg-red-50';
+      if (score < 10) return 'bg-blue-50';
+      return 'bg-violet-50';
     },
 
     formatAllocation(value) {
@@ -679,16 +693,16 @@ export default {
 
     getTotalFeeClass() {
       const fee = this.totalFeePercent;
-      if (fee < 0.5) return 'text-green-600';
-      if (fee < 1.0) return 'text-amber-600';
-      return 'text-red-600';
+      if (fee < 0.8) return 'text-green-600';
+      if (fee < 1.5) return 'text-blue-600';
+      return 'text-violet-600';
     },
 
     getTotalFeeBgClass() {
       const fee = this.totalFeePercent;
-      if (fee < 0.5) return 'bg-green-50';
-      if (fee < 1.0) return 'bg-amber-50';
-      return 'bg-red-50';
+      if (fee < 0.8) return 'bg-green-50';
+      if (fee < 1.5) return 'bg-blue-50';
+      return 'bg-violet-50';
     },
 
     goToHoldingsTab() {
@@ -754,7 +768,7 @@ export default {
     getTaxStatusBgClass(status) {
       const classes = {
         exempt: 'bg-green-500 border-green-500 text-white',
-        taxable: 'bg-amber-500 border-amber-500 text-white',
+        taxable: 'bg-slate-500 border-slate-500 text-white',
         deferred: 'bg-blue-500 border-blue-500 text-white',
         relief: 'bg-purple-500 border-purple-500 text-white',
         limit: 'bg-gray-500 border-gray-500 text-white',
@@ -765,7 +779,7 @@ export default {
     getTaxStatusIconClass(status) {
       const classes = {
         exempt: 'bg-green-600 text-white',
-        taxable: 'bg-amber-600 text-white',
+        taxable: 'bg-slate-600 text-white',
         deferred: 'bg-blue-600 text-white',
         relief: 'bg-purple-600 text-white',
         limit: 'bg-gray-600 text-white',

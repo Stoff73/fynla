@@ -10,8 +10,9 @@
 7. **BUG FIX**: Compound projection growth rate calculation (was using 500% instead of 5%)
 8. Persona data fixes: realistic disposable income for all personas, 50/50 expenditure split for married couples
 9. ExpenditureForm household total calculation fix
-10. **BUG FIX**: Cash dashboard not displaying accounts for real users (BUG-012)
-11. Investment contribution tracking fields for expenditure calculations
+10. Investment Strategy Detail implementation: fee thresholds, UI color scheme, risk asset allocations
+11. **BUG FIX**: Cash dashboard not displaying accounts for real users (BUG-012)
+12. Investment contribution tracking fields for expenditure calculations
 
 ---
 
@@ -33,6 +34,8 @@ app/Http/Controllers/Api/PostcodeLookupController.php  (NEW)
 app/Http/Controllers/Api/PreviewController.php         (SECURITY FIX)
 app/Services/Retirement/PensionProjector.php
 app/Services/Retirement/RetirementStrategyService.php  (STRATEGY ENHANCEMENTS + BUG FIX)
+app/Services/Investment/FeeAnalyzer.php                (FEE THRESHOLD 0.8% + NEW assessFeeTier METHOD)
+app/Services/Risk/RiskPreferenceService.php            (ASSET ALLOCATION FIX)
 app/Services/UserProfile/UserProfileService.php        (INVESTMENT CONTRIBUTIONS)
 app/Models/Investment/InvestmentAccount.php            (NEW CONTRIBUTION FIELDS)
 config/services.php
@@ -83,6 +86,8 @@ php artisan db:seed --class=PreviewUserSeeder --force
 | `app/Http/Controllers/Api/PreviewController.php` | SECURITY FIX | Backend |
 | `app/Services/Retirement/PensionProjector.php` | Modified | Backend |
 | `app/Services/Retirement/RetirementStrategyService.php` | Modified | Backend |
+| `app/Services/Investment/FeeAnalyzer.php` | Modified | Backend |
+| `app/Services/Risk/RiskPreferenceService.php` | Modified | Backend |
 | `app/Services/UserProfile/UserProfileService.php` | Modified | Backend |
 | `app/Models/Investment/InvestmentAccount.php` | Modified | Backend |
 | `config/services.php` | Modified | Backend |
@@ -96,6 +101,9 @@ php artisan db:seed --class=PreviewUserSeeder --force
 | `resources/js/components/UserProfile/PersonalInformation.vue` | Modified | Frontend |
 | `resources/js/components/NetWorth/PensionDetailInline.vue` | Modified | Frontend |
 | `resources/js/components/UserProfile/ExpenditureForm.vue` | Modified | Frontend |
+| `resources/js/components/NetWorth/InvestmentDetailInline.vue` | Modified | Frontend |
+| `resources/js/views/Investment/AccountPerformancePanel.vue` | Modified | Frontend |
+| `resources/js/components/Investment/DiversificationTab.vue` | Modified | Frontend |
 | `resources/js/views/NetWorth/CashOverview.vue` | BUG FIX | Frontend |
 | `resources/js/components/Investment/AccountForm.vue` | Modified | Frontend |
 | `resources/js/data/personas/young_family.json` | Modified | Frontend |
@@ -197,3 +205,20 @@ php artisan db:seed --class=PreviewUserSeeder --force
 2. Go to User Profile → Expenditure tab
 3. **Verify:** Household total = User expenditure + Spouse expenditure
 4. **Verify:** Each spouse shows 50% of household total (not 100% + 50% = 150%)
+
+### Investment Strategy Detail Implementation (INVEST-001)
+1. Go to Investment module → Click on any investment account with holdings
+2. **Verify UI Colors:**
+   - Header card: `bg-blue-50` with blue border (not pastel)
+   - Negative returns: Gray text (not red)
+   - Fee warnings: Violet for high fees (not amber/red)
+   - Diversification warnings: Violet icons (not amber)
+3. **Verify Fee Thresholds:**
+   - Total fees < 0.8%: Green (acceptable)
+   - Total fees 0.8% - 1.5%: Blue (elevated)
+   - Total fees > 1.5%: Violet (high)
+4. **Verify Diversification Score Colors:**
+   - Score >= 80: Green (Excellent)
+   - Score >= 60: Blue (Good)
+   - Score >= 40: Violet (Fair)
+   - Score < 40: Gray (Poor)

@@ -161,6 +161,15 @@ const userProfileService = {
   },
 
   /**
+   * Get spouse's financial commitments (pensions, properties, investments, protection, liabilities)
+   * @returns {Promise}
+   */
+  async getSpouseFinancialCommitments() {
+    const response = await api.get('/user/spouse/financial-commitments');
+    return response.data;
+  },
+
+  /**
    * Get profile completeness score and breakdown
    * @returns {Promise<{completeness: number, sections: Object}>}
    */

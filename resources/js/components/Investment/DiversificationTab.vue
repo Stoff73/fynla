@@ -8,23 +8,23 @@
 
     <!-- Error State -->
     <div v-else-if="error" class="bg-gray-50 rounded-lg p-6 text-center">
-      <svg class="w-12 h-12 text-red-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg class="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
       </svg>
-      <p class="text-red-600 font-medium">{{ error }}</p>
-      <button @click="loadData" class="mt-4 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition">
+      <p class="text-gray-600 font-medium">{{ error }}</p>
+      <button @click="loadData" class="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition">
         Try Again
       </button>
     </div>
 
     <!-- Empty State (No Holdings) -->
-    <div v-else-if="data && !data.has_holdings" class="bg-gray-50 rounded-lg p-8 text-center">
-      <svg class="w-16 h-16 text-amber-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div v-else-if="data && !data.has_holdings" class="bg-blue-50 rounded-lg p-8 text-center border border-blue-200">
+      <svg class="w-16 h-16 text-blue-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
       </svg>
-      <h3 class="text-lg font-medium text-amber-800 mb-2">No Holdings Recorded</h3>
-      <p class="text-amber-600 mb-4">Add holdings to this {{ accountType === 'pension' ? 'pension' : 'account' }} to see diversification analysis.</p>
-      <button v-if="showAddHoldings" v-preview-disabled="'add'" @click="$emit('add-holdings')" class="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition">
+      <h3 class="text-lg font-medium text-blue-800 mb-2">No Holdings Recorded</h3>
+      <p class="text-blue-600 mb-4">Add holdings to this {{ accountType === 'pension' ? 'pension' : 'account' }} to see diversification analysis.</p>
+      <button v-if="showAddHoldings" v-preview-disabled="'add'" @click="$emit('add-holdings')" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
         Add Holdings
       </button>
     </div>
@@ -200,13 +200,13 @@
             class="flex items-start space-x-2 p-3 rounded-lg"
             :class="warning.type === 'warning' ? 'bg-gray-50' : 'bg-gray-50'"
           >
-            <svg v-if="warning.type === 'warning'" class="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg v-if="warning.type === 'warning'" class="w-5 h-5 text-violet-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
             <svg v-else class="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <p class="text-sm" :class="warning.type === 'warning' ? 'text-amber-700' : 'text-blue-700'">{{ warning.message }}</p>
+            <p class="text-sm" :class="warning.type === 'warning' ? 'text-violet-700' : 'text-blue-700'">{{ warning.message }}</p>
           </div>
         </div>
       </div>
@@ -224,7 +224,7 @@
             <svg v-if="rec.type === 'success'" class="w-6 h-6 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <svg v-else-if="rec.type === 'warning'" class="w-6 h-6 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg v-else-if="rec.type === 'warning'" class="w-6 h-6 text-violet-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
             <svg v-else class="w-6 h-6 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -316,16 +316,16 @@ export default {
     getScoreColor(score) {
       if (score >= 80) return 'text-green-600';
       if (score >= 60) return 'text-blue-600';
-      if (score >= 40) return 'text-amber-600';
-      return 'text-red-600';
+      if (score >= 40) return 'text-violet-600';
+      return 'text-gray-600';
     },
 
     getScoreBadge(label) {
       const classes = {
         'Excellent': 'bg-green-500 text-white',
         'Good': 'bg-blue-500 text-white',
-        'Fair': 'bg-amber-500 text-white',
-        'Poor': 'bg-red-500 text-white',
+        'Fair': 'bg-violet-500 text-white',
+        'Poor': 'bg-gray-500 text-white',
       };
       return classes[label] || 'bg-gray-500 text-white';
     },
@@ -333,36 +333,36 @@ export default {
     getScoreBarColor(score) {
       if (score >= 80) return 'bg-green-500';
       if (score >= 60) return 'bg-blue-500';
-      if (score >= 40) return 'bg-amber-500';
-      return 'bg-red-500';
+      if (score >= 40) return 'bg-violet-500';
+      return 'bg-gray-500';
     },
 
     getHHIColor(hhi) {
       if (hhi < 0.15) return 'text-green-600';
-      if (hhi <= 0.25) return 'text-amber-600';
-      return 'text-red-600';
+      if (hhi <= 0.25) return 'text-blue-600';
+      return 'text-violet-600';
     },
 
     getHHIBadge(label) {
       const classes = {
         'Well Diversified': 'bg-green-500 text-white',
-        'Moderate Concentration': 'bg-amber-500 text-white',
-        'High Concentration': 'bg-red-500 text-white',
+        'Moderate Concentration': 'bg-blue-500 text-white',
+        'High Concentration': 'bg-violet-500 text-white',
       };
       return classes[label] || 'bg-gray-500 text-white';
     },
 
     getHHIBarColor(hhi) {
       if (hhi < 0.15) return 'bg-green-500';
-      if (hhi <= 0.25) return 'bg-amber-500';
-      return 'bg-red-500';
+      if (hhi <= 0.25) return 'bg-blue-500';
+      return 'bg-violet-500';
     },
 
     getDeviationColor(deviation) {
       const absDeviation = Math.abs(deviation);
       if (absDeviation < 5) return 'text-green-600';
-      if (absDeviation <= 10) return 'text-amber-600';
-      return 'text-red-600';
+      if (absDeviation <= 10) return 'text-blue-600';
+      return 'text-violet-600';
     },
 
     getAssetClassBarColor(className) {
@@ -376,8 +376,8 @@ export default {
     },
 
     getSeverityBadge(severity) {
-      if (severity === 'minor') return 'bg-amber-500 text-white';
-      if (severity === 'significant') return 'bg-red-500 text-white';
+      if (severity === 'minor') return 'bg-blue-500 text-white';
+      if (severity === 'significant') return 'bg-violet-500 text-white';
       return 'bg-green-500 text-white';
     },
 
@@ -393,7 +393,7 @@ export default {
     getRecText(type) {
       const texts = {
         success: 'text-green-700',
-        warning: 'text-amber-700',
+        warning: 'text-violet-700',
         info: 'text-blue-700',
       };
       return texts[type] || 'text-gray-700';

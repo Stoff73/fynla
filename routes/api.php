@@ -175,6 +175,7 @@ Route::middleware('auth:sanctum')->prefix('user')->group(function () {
     Route::put('/profile/domicile', [UserProfileController::class, 'updateDomicileInfo']);
     Route::get('/profile/completeness', [ProfileCompletenessController::class, 'check']);
     Route::get('/financial-commitments', [UserProfileController::class, 'getFinancialCommitments']);
+    Route::get('/spouse/financial-commitments', [UserProfileController::class, 'getSpouseFinancialCommitments']);
     Route::put('/dashboard-widget-order', [UserProfileController::class, 'updateDashboardWidgetOrder']);
 
     // Letter to Spouse

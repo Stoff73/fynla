@@ -136,19 +136,32 @@ class FeeAnalyzer
 
     /**
      * Identify high-fee holdings
+     *
+     * Note: Advisory fees are excluded from the threshold comparison because they
+     * represent a conscious choice to pay for financial advice and shouldn't
+     * trigger high-fee warnings for platform/fund costs.
+     *
+     * @param  Collection  $holdings  Holdings to analyze
+     * @param  float|null  $advisoryFeePercent  Advisory fee to exclude from threshold comparison
      */
-    public function identifyHighFeeHoldings(Collection $holdings): array
+    public function identifyHighFeeHoldings(Collection $holdings, ?float $advisoryFeePercent = null): array
     {
-        $highFeeThreshold = 0.5; // 0.5% OCF is considered high (above passive index fund range)
+        $highFeeThreshold = 0.8; // 0.8% is considered high (excluding advisory fees)
 
-        $highFeeHoldings = $holdings->filter(function ($holding) use ($highFeeThreshold) {
-            return $holding->ocf_percent > $highFeeThreshold;
+        $highFeeHoldings = $holdings->filter(function ($holding) use ($highFeeThreshold, $advisoryFeePercent) {
+            // Calculate fees excluding advisory fee for threshold comparison
+            $feesForComparison = $holding->ocf_percent ?? 0;
+            if ($advisoryFeePercent !== null && $advisoryFeePercent > 0) {
+                // Don't let advisory fee reduction push below zero
+                $feesForComparison = max(0, $feesForComparison);
+            }
+            return $feesForComparison > $highFeeThreshold;
         })->map(function ($holding) {
             return [
                 'security_name' => $holding->security_name,
-                'ocf_percent' => round($holding->ocf_percent, 4),
+                'ocf_percent' => round($holding->ocf_percent ?? 0, 4),
                 'current_value' => round($holding->current_value, 2),
-                'annual_cost' => round($holding->current_value * ($holding->ocf_percent / 100), 2),
+                'annual_cost' => round($holding->current_value * (($holding->ocf_percent ?? 0) / 100), 2),
                 'recommendation' => 'Consider lower-cost alternative',
             ];
         })->values()->toArray();
@@ -158,6 +171,57 @@ class FeeAnalyzer
             'holdings' => $highFeeHoldings,
             'total_value_in_high_fee_funds' => round(array_sum(array_column($highFeeHoldings, 'current_value')), 2),
         ];
+    }
+
+    /**
+     * Assess fee level using simple tier system (excluding advisory fees)
+     *
+     * Tiers:
+     * - < 0.8%: Acceptable (no warning)
+     * - 0.8% - 1.0%: Higher than average
+     * - 1.0% - 1.5%: High
+     * - > 1.5%: Much higher than average
+     *
+     * @param  float  $totalFeePercent  Total fee percentage
+     * @param  float|null  $advisoryFeePercent  Advisory fee to exclude from assessment
+     */
+    public function assessFeeTier(float $totalFeePercent, ?float $advisoryFeePercent = null): array
+    {
+        // Exclude advisory fees from assessment
+        $feesForAssessment = $totalFeePercent;
+        if ($advisoryFeePercent !== null && $advisoryFeePercent > 0) {
+            $feesForAssessment = max(0, $totalFeePercent - $advisoryFeePercent);
+        }
+
+        if ($feesForAssessment < 0.8) {
+            return [
+                'level' => 'acceptable',
+                'message' => null,
+                'fee_assessed' => round($feesForAssessment, 3),
+                'advisory_excluded' => $advisoryFeePercent ?? 0,
+            ];
+        } elseif ($feesForAssessment <= 1.0) {
+            return [
+                'level' => 'higher_than_average',
+                'message' => 'Your fees are higher than average',
+                'fee_assessed' => round($feesForAssessment, 3),
+                'advisory_excluded' => $advisoryFeePercent ?? 0,
+            ];
+        } elseif ($feesForAssessment <= 1.5) {
+            return [
+                'level' => 'high',
+                'message' => 'Your fees are high',
+                'fee_assessed' => round($feesForAssessment, 3),
+                'advisory_excluded' => $advisoryFeePercent ?? 0,
+            ];
+        } else {
+            return [
+                'level' => 'very_high',
+                'message' => 'Your fees are much higher than average',
+                'fee_assessed' => round($feesForAssessment, 3),
+                'advisory_excluded' => $advisoryFeePercent ?? 0,
+            ];
+        }
     }
 
     // =========================================================================

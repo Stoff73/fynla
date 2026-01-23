@@ -623,7 +623,11 @@ class UserProfileService
         }
 
         // 2. Property Expenses (mortgage + council tax + utilities + maintenance)
-        $properties = \App\Models\Property::where('user_id', $user->id)->get();
+        // Include properties owned by user OR where user is the joint owner
+        $properties = \App\Models\Property::where(function ($query) use ($user) {
+            $query->where('user_id', $user->id)
+                  ->orWhere('joint_owner_id', $user->id);
+        })->get();
         foreach ($properties as $property) {
             $totalMonthlyExpense = 0;
             $breakdown = [];

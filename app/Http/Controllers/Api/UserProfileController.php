@@ -259,6 +259,40 @@ class UserProfileController extends Controller
     }
 
     /**
+     * Get spouse's financial commitments for expenditure tracking
+     *
+     * GET /api/user/spouse/financial-commitments
+     */
+    public function getSpouseFinancialCommitments(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $spouse = $user->spouse;
+
+        if (! $spouse) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No spouse found',
+            ], 404);
+        }
+
+        try {
+            $ownershipFilter = $request->query('ownership_filter', 'all');
+            $commitments = $this->userProfileService->getFinancialCommitments($spouse, $ownershipFilter);
+
+            return response()->json([
+                'success' => true,
+                'data' => $commitments,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch spouse financial commitments',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Update dashboard widget order
      *
      * PUT /api/user/dashboard-widget-order
