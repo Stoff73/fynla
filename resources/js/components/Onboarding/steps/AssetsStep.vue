@@ -485,7 +485,7 @@
 
     <StatePensionForm
       v-if="showPensionForm && pensionFormType === 'state'"
-      :pension="editingPension"
+      :state-pension="editingPension"
       @close="closePensionForm"
       @save="handlePensionSaved"
     />

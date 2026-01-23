@@ -205,7 +205,6 @@
     <SaveAccountModal
       v-if="showAccountModal"
       :account="editingAccount"
-      :is-editing="!!editingAccount"
       :default-account-type="defaultAccountType"
       @save="handleSaveAccount"
       @close="closeAccountModal"

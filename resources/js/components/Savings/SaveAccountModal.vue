@@ -408,10 +408,6 @@ export default {
       type: Object,
       default: null,
     },
-    isEditing: {
-      type: Boolean,
-      default: false,
-    },
     defaultAccountType: {
       type: String,
       default: '',
@@ -446,6 +442,10 @@ export default {
   },
 
   computed: {
+    isEditing() {
+      return !!this.account;
+    },
+
     spouse() {
       return this.$store.getters['userProfile/spouse'];
     },

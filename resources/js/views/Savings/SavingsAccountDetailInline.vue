@@ -239,7 +239,6 @@
     <SaveAccountModal
       v-if="showEditModal"
       :account="account"
-      :is-editing="true"
       @close="showEditModal = false"
       @save="handleAccountSaved"
     />

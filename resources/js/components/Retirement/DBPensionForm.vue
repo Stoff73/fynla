@@ -241,10 +241,6 @@ export default {
       type: Object,
       default: null,
     },
-    isEdit: {
-      type: Boolean,
-      default: false,
-    },
   },
 
   data() {
@@ -267,6 +263,10 @@ export default {
 
   computed: {
     ...mapGetters('auth', ['currentUser']),
+
+    isEdit() {
+      return !!this.pension;
+    },
   },
 
   watch: {

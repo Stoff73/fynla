@@ -345,10 +345,6 @@ export default {
       type: Object,
       default: null,
     },
-    isEdit: {
-      type: Boolean,
-      default: false,
-    },
     isOnboarding: {
       type: Boolean,
       default: false,
@@ -388,6 +384,10 @@ export default {
 
   computed: {
     ...mapGetters('auth', ['currentUser']),
+
+    isEdit() {
+      return !!this.pension;
+    },
 
     hasRiskProfile() {
       return !!this.mainRiskLevel;
