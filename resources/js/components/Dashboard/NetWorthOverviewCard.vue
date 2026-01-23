@@ -50,7 +50,7 @@
             <span class="breakdown-value breakdown-value-asset">{{ formatCurrency(breakdown.business) }}</span>
           </div>
           <div class="breakdown-item" v-if="breakdown.chattels > 0">
-            <span class="breakdown-label">Chattels</span>
+            <span class="breakdown-label">Personal Valuables</span>
             <span class="breakdown-value breakdown-value-asset">{{ formatCurrency(breakdown.chattels) }}</span>
           </div>
         </div>

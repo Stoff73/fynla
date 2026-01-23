@@ -5,13 +5,13 @@
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
         <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
       </svg>
-      Back to Chattels
+      Back to Personal Valuables
     </button>
 
     <!-- Loading State -->
     <div v-if="loading" class="text-center py-12">
       <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-pink-600"></div>
-      <p class="mt-4 text-gray-600">Loading chattel details...</p>
+      <p class="mt-4 text-gray-600">Loading details...</p>
     </div>
 
     <!-- Chattel Content -->
@@ -208,7 +208,7 @@
               <h3 class="text-lg font-semibold text-gray-800 mb-4">Calculate CGT on Disposal</h3>
               <p class="text-sm text-gray-600 mb-6">
                 Enter the expected sale price to calculate potential Capital Gains Tax liability.
-                CGT applies to chattels sold for over £6,000, with marginal relief available for sales between £6,000 and £15,000.
+                CGT applies to personal valuables sold for over £6,000, with marginal relief available for sales between £6,000 and £15,000.
               </p>
 
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -338,7 +338,7 @@
     <!-- Delete Confirmation -->
     <ConfirmationModal
       v-if="showDeleteConfirm"
-      title="Delete Chattel"
+      title="Delete Valuable"
       message="Are you sure you want to delete this item? This action cannot be undone."
       @confirm="handleDelete"
       @cancel="showDeleteConfirm = false"

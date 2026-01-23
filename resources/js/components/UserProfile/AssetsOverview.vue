@@ -126,7 +126,7 @@
       >
         <div class="flex justify-between items-start">
           <div>
-            <h3 class="text-body-base font-semibold text-gray-900">Chattels</h3>
+            <h3 class="text-body-base font-semibold text-gray-900">Personal Valuables</h3>
             <p class="text-body-xs text-gray-500 mt-1">
               {{ assetsSummary?.chattels?.count || 0 }} {{ assetsSummary?.chattels?.count === 1 ? 'item' : 'items' }}
             </p>

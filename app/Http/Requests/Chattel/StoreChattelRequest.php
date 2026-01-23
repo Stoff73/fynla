@@ -51,8 +51,8 @@ class StoreChattelRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'chattel_type.required' => 'Please select a chattel type.',
-            'chattel_type.in' => 'Please select a valid chattel type.',
+            'chattel_type.required' => 'Please select a type.',
+            'chattel_type.in' => 'Please select a valid type.',
             'name.required' => 'Please provide a name for this item.',
             'current_value.required' => 'Please provide the current value.',
             'current_value.numeric' => 'Current value must be a number.',

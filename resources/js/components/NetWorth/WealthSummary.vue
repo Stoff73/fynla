@@ -49,7 +49,7 @@
         <div v-if="hasSpouse" class="column-value">{{ formatCurrency(spouseBreakdown.business) }}</div>
       </router-link>
       <router-link v-if="showAssetRow('chattels')" :to="getAssetLink('chattels')" class="summary-row breakdown-row clickable-row">
-        <div class="row-label">Chattels</div>
+        <div class="row-label">Personal Valuables</div>
         <div class="column-value">{{ formatCurrency(userBreakdown.chattels) }}</div>
         <div v-if="hasSpouse" class="column-value">{{ formatCurrency(spouseBreakdown.chattels) }}</div>
       </router-link>

@@ -361,7 +361,7 @@ class ModuleDataRequirementsService
             'relationships' => [
                 'chattels' => [
                     'label' => 'Your valuable items',
-                    'why' => 'Add chattels to track values, calculate Capital Gains Tax on disposal, and include in estate planning',
+                    'why' => 'Add personal valuables to track values, calculate Capital Gains Tax on disposal, and include in estate planning',
                     'link' => '/net-worth/chattels',
                 ],
             ],
