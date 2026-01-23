@@ -18,6 +18,8 @@
 15. **BUG FIX**: Editing an investment account now stays on the detail view (instead of navigating back to dashboard) and the fee card refreshes with updated data
 16. **BUG FIX**: Backend FeeAnalyzer now calculates fixed (£) platform fees correctly for portfolio-level "Review Platform Fees" recommendation trigger
 17. **FIX**: Consistent form scroll behaviour — all form modals now use `max-h-[90vh] overflow-y-auto` on the modal panel with buttons inside the scroll container. Removed sticky footers, moved scroll from inner divs to modal level, and fixed `overflow-hidden` clipping buttons. 16 forms standardised across all modules.
+18. **FIX**: Onboarding Personal Information — required fields (DOB, Gender, Marital Status, Address Line 1, City, Postcode) now marked with red asterisks and show specific inline error messages when missing.
+19. **REDESIGN**: Onboarding Employment & Income — Employment Status moved to first field; occupation/employer/industry/retirement age hidden for retired/unemployed; income sources now dynamic per status (employment income for employed, self-employment for self-employed, benefit income for unemployed, retirement info message for retired, other income as catch-all); dividend and interest income removed.
 
 ---
 
@@ -50,6 +52,8 @@ resources/js/components/Shared/DocumentUploadModal.vue
 resources/js/components/Admin/UserFormModal.vue
 resources/js/components/UserProfile/FamilyMemberFormModal.vue
 resources/js/components/Auth/ChangePasswordModal.vue
+resources/js/components/Onboarding/steps/PersonalInfoStep.vue
+resources/js/components/Onboarding/steps/IncomeStep.vue
 resources/js/components/NetWorth/InvestmentDetailInline.vue
 resources/js/components/Investment/AccountStrategyCard.vue  (NEW)
 resources/js/views/Investment/AccountPerformancePanel.vue

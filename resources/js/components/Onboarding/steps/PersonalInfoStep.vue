@@ -19,17 +19,19 @@
         <!-- Date of Birth -->
         <div>
           <label for="date_of_birth" class="label">
-            Date of Birth
+            Date of Birth <span class="text-red-500">*</span>
           </label>
           <input
             id="date_of_birth"
             v-model="formData.date_of_birth"
             type="date"
             class="input-field"
+            :class="{ 'border-red-300': fieldErrors.date_of_birth }"
             :max="maxDob"
             :min="minDob"
           >
-          <p class="mt-1 text-body-sm text-gray-500">
+          <p v-if="fieldErrors.date_of_birth" class="mt-1 text-body-sm text-red-600">{{ fieldErrors.date_of_birth }}</p>
+          <p v-else class="mt-1 text-body-sm text-gray-500">
             Used for age-based calculations and projections
           </p>
         </div>
@@ -37,29 +39,32 @@
         <!-- Gender -->
         <div>
           <label for="gender" class="label">
-            Gender
+            Gender <span class="text-red-500">*</span>
           </label>
           <select
             id="gender"
             v-model="formData.gender"
             class="input-field"
+            :class="{ 'border-red-300': fieldErrors.gender }"
           >
             <option value="">Select gender</option>
             <option value="male">Male</option>
             <option value="female">Female</option>
             <option value="other">Other</option>
           </select>
+          <p v-if="fieldErrors.gender" class="mt-1 text-body-sm text-red-600">{{ fieldErrors.gender }}</p>
         </div>
 
         <!-- Marital Status -->
         <div>
           <label for="marital_status" class="label">
-            Marital Status
+            Marital Status <span class="text-red-500">*</span>
           </label>
           <select
             id="marital_status"
             v-model="formData.marital_status"
             class="input-field"
+            :class="{ 'border-red-300': fieldErrors.marital_status }"
           >
             <option value="">Select marital status</option>
             <option value="single">Single</option>
@@ -67,7 +72,8 @@
             <option value="divorced">Divorced</option>
             <option value="widowed">Widowed</option>
           </select>
-          <p class="mt-1 text-body-sm text-gray-500">
+          <p v-if="fieldErrors.marital_status" class="mt-1 text-body-sm text-red-600">{{ fieldErrors.marital_status }}</p>
+          <p v-else class="mt-1 text-body-sm text-gray-500">
             Affects spouse exemption and transferable nil rate band
           </p>
         </div>
@@ -109,15 +115,17 @@
         <div class="grid grid-cols-1 gap-4">
           <div>
             <label for="address_line_1" class="label">
-              Address Line 1
+              Address Line 1 <span class="text-red-500">*</span>
             </label>
             <input
               id="address_line_1"
               v-model="formData.address_line_1"
               type="text"
               class="input-field"
+              :class="{ 'border-red-300': fieldErrors.address_line_1 }"
               placeholder="123 Test Street"
             >
+            <p v-if="fieldErrors.address_line_1" class="mt-1 text-body-sm text-red-600">{{ fieldErrors.address_line_1 }}</p>
           </div>
 
           <div>
@@ -136,15 +144,17 @@
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label for="city" class="label">
-                City
+                City <span class="text-red-500">*</span>
               </label>
               <input
                 id="city"
                 v-model="formData.city"
                 type="text"
                 class="input-field"
+                :class="{ 'border-red-300': fieldErrors.city }"
                 placeholder="London"
               >
+              <p v-if="fieldErrors.city" class="mt-1 text-body-sm text-red-600">{{ fieldErrors.city }}</p>
             </div>
 
             <div>
@@ -162,17 +172,19 @@
 
             <div>
               <label for="postcode" class="label">
-                Postcode
+                Postcode <span class="text-red-500">*</span>
               </label>
               <input
                 id="postcode"
                 v-model="formData.postcode"
                 type="text"
                 class="input-field"
+                :class="{ 'border-red-300': fieldErrors.postcode }"
                 placeholder="SW1A 1AA"
                 maxlength="8"
                 @input="formatPostcode"
               >
+              <p v-if="fieldErrors.postcode" class="mt-1 text-body-sm text-red-600">{{ fieldErrors.postcode }}</p>
             </div>
           </div>
 
@@ -311,6 +323,7 @@ export default {
 
     const loading = ref(false);
     const error = ref(null);
+    const fieldErrors = ref({});
 
     const maxDob = computed(() => {
       // Max DOB is 18 years ago (minimum age)
@@ -346,7 +359,32 @@ export default {
     };
 
     const validateForm = () => {
-      // All fields are optional - no validation required
+      fieldErrors.value = {};
+
+      if (!formData.value.date_of_birth) {
+        fieldErrors.value.date_of_birth = 'Date of Birth is required';
+      }
+      if (!formData.value.gender) {
+        fieldErrors.value.gender = 'Gender is required';
+      }
+      if (!formData.value.marital_status) {
+        fieldErrors.value.marital_status = 'Marital Status is required';
+      }
+      if (!formData.value.address_line_1 || !formData.value.address_line_1.trim()) {
+        fieldErrors.value.address_line_1 = 'Address Line 1 is required';
+      }
+      if (!formData.value.city || !formData.value.city.trim()) {
+        fieldErrors.value.city = 'City is required';
+      }
+      if (!formData.value.postcode || !formData.value.postcode.trim()) {
+        fieldErrors.value.postcode = 'Postcode is required';
+      }
+
+      if (Object.keys(fieldErrors.value).length > 0) {
+        error.value = 'Please complete all required fields marked with *';
+        return false;
+      }
+
       return true;
     };
 
@@ -453,6 +491,7 @@ export default {
       formData,
       loading,
       error,
+      fieldErrors,
       maxDob,
       minDob,
       formatNI,

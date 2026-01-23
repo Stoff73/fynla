@@ -24,45 +24,6 @@
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label for="occupation" class="label">
-              Occupation
-            </label>
-            <input
-              id="occupation"
-              v-model="formData.occupation"
-              type="text"
-              class="input-field"
-              placeholder="Software Developer"
-            >
-          </div>
-
-          <div>
-            <label for="employer" class="label">
-              Employer
-            </label>
-            <input
-              id="employer"
-              v-model="formData.employer"
-              type="text"
-              class="input-field"
-              placeholder="Tech Company Ltd"
-            >
-          </div>
-
-          <div>
-            <label for="industry" class="label">
-              Industry
-            </label>
-            <input
-              id="industry"
-              v-model="formData.industry"
-              type="text"
-              class="input-field"
-              placeholder="Technology"
-            >
-          </div>
-
-          <div>
             <label for="employment_status" class="label">
               Employment Status
             </label>
@@ -81,25 +42,6 @@
             </select>
           </div>
 
-          <!-- Retirement Age (for non-retired) -->
-          <div v-if="formData.employment_status && formData.employment_status !== 'retired'">
-            <label for="target_retirement_age" class="label">
-              What age do you want to retire?
-            </label>
-            <input
-              id="target_retirement_age"
-              v-model.number="formData.target_retirement_age"
-              type="number"
-              min="30"
-              max="75"
-              class="input-field"
-              placeholder="65"
-            >
-            <p class="mt-1 text-body-sm text-gray-500">
-              Your planned retirement age. This may be different to the age entered for your DC Pension Plans.
-            </p>
-          </div>
-
           <!-- Retirement Date (for retired users) -->
           <div v-if="formData.employment_status === 'retired'">
             <label for="retirement_date" class="label">
@@ -116,6 +58,66 @@
               The date you retired from work
             </p>
           </div>
+
+          <template v-if="showEmploymentFields">
+            <div>
+              <label for="occupation" class="label">
+                Occupation
+              </label>
+              <input
+                id="occupation"
+                v-model="formData.occupation"
+                type="text"
+                class="input-field"
+                placeholder="Software Developer"
+              >
+            </div>
+
+            <div>
+              <label for="employer" class="label">
+                Employer
+              </label>
+              <input
+                id="employer"
+                v-model="formData.employer"
+                type="text"
+                class="input-field"
+                placeholder="Tech Company Ltd"
+              >
+            </div>
+
+            <div>
+              <label for="industry" class="label">
+                Industry
+              </label>
+              <input
+                id="industry"
+                v-model="formData.industry"
+                type="text"
+                class="input-field"
+                placeholder="Technology"
+              >
+            </div>
+
+            <!-- Retirement Age (for non-retired) -->
+            <div v-if="formData.employment_status && formData.employment_status !== 'retired'">
+              <label for="target_retirement_age" class="label">
+                What age do you want to retire?
+              </label>
+              <input
+                id="target_retirement_age"
+                v-model.number="formData.target_retirement_age"
+                type="number"
+                min="30"
+                max="75"
+                class="input-field"
+                placeholder="65"
+              >
+              <p class="mt-1 text-body-sm text-gray-500">
+                Your planned retirement age. This may be different to the age entered for your DC Pension Plans.
+              </p>
+            </div>
+          </template>
         </div>
 
         <!-- Early Retirement Warning -->
@@ -135,7 +137,7 @@
       </div>
 
       <!-- Income Section -->
-      <div class="border-t pt-4">
+      <div v-if="formData.employment_status" class="border-t pt-4">
         <h4 class="text-body font-medium text-gray-900 mb-4">
           Income Sources
         </h4>
@@ -161,10 +163,20 @@
               From properties entered in Assets & Wealth (read-only)
             </p>
           </div>
-          <!-- Employment Income -->
-          <div>
+
+          <!-- Retired: Info message -->
+          <div v-if="formData.employment_status === 'retired'" class="md:col-span-2">
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p class="text-body-sm text-blue-800">
+                Income from retirement funds (pensions, annuities) is automatically calculated from the pensions you add in the Retirement module.
+              </p>
+            </div>
+          </div>
+
+          <!-- Employment Income (employed/part_time only) -->
+          <div v-if="formData.employment_status === 'employed' || formData.employment_status === 'part_time'">
             <label for="annual_employment_income" class="label">
-              Annual Employment Income (Full-Time/Part-Time)
+              Annual Employment Income
             </label>
             <div class="relative">
               <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">£</span>
@@ -179,12 +191,12 @@
               >
             </div>
             <p class="mt-1 text-body-sm text-gray-500">
-              Salary, bonuses, full-time or part-time employment income (before tax)
+              Salary, bonuses, and other employment income (before tax)
             </p>
           </div>
 
-          <!-- Self-Employment Income -->
-          <div>
+          <!-- Self-Employment Income (self_employed only) -->
+          <div v-if="formData.employment_status === 'self_employed'">
             <label for="annual_self_employment_income" class="label">
               Annual Self-Employment Income
             </label>
@@ -205,38 +217,16 @@
             </p>
           </div>
 
-          <!-- Dividend Income -->
-          <div>
-            <label for="annual_dividend_income" class="label">
-              Annual Dividend Income
+          <!-- Benefit Income (unemployed only) -->
+          <div v-if="formData.employment_status === 'unemployed'">
+            <label for="annual_benefit_income" class="label">
+              Annual Benefit Income
             </label>
             <div class="relative">
               <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">£</span>
               <input
-                id="annual_dividend_income"
-                v-model.number="formData.annual_dividend_income"
-                type="number"
-                min="0"
-                step="1000"
-                class="input-field pl-8"
-                placeholder="0"
-              >
-            </div>
-            <p class="mt-1 text-body-sm text-gray-500">
-              Income from dividends and distributions
-            </p>
-          </div>
-
-          <!-- Interest Income -->
-          <div>
-            <label for="annual_interest_income" class="label">
-              Annual Interest Income
-            </label>
-            <div class="relative">
-              <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">£</span>
-              <input
-                id="annual_interest_income"
-                v-model.number="formData.annual_interest_income"
+                id="annual_benefit_income"
+                v-model.number="formData.annual_benefit_income"
                 type="number"
                 min="0"
                 step="100"
@@ -245,12 +235,12 @@
               >
             </div>
             <p class="mt-1 text-body-sm text-gray-500">
-              Income from savings accounts and bonds
+              Universal Credit, JSA, ESA, or other state benefits
             </p>
           </div>
 
-          <!-- Other Income -->
-          <div>
+          <!-- Other Income (always shown when status is selected) -->
+          <div v-if="formData.employment_status">
             <label for="annual_other_income" class="label">
               Annual Other Income
             </label>
@@ -272,7 +262,7 @@
           </div>
 
           <!-- Total Income (calculated) -->
-          <div class="bg-gray-50 rounded-lg p-4">
+          <div v-if="formData.employment_status" class="bg-gray-50 rounded-lg p-4">
             <p class="text-body-sm text-gray-600">Total Annual Income</p>
             <p class="text-h3 font-display text-gray-900">
               {{ formatCurrency(totalIncome) }}
@@ -315,8 +305,7 @@ export default {
       retirement_date: '',
       annual_employment_income: 0,
       annual_self_employment_income: 0,
-      annual_dividend_income: 0,
-      annual_interest_income: 0,
+      annual_benefit_income: 0,
       annual_other_income: 0,
     });
 
@@ -328,6 +317,11 @@ export default {
       return new Date().toISOString().split('T')[0];
     });
 
+    const showEmploymentFields = computed(() => {
+      return formData.value.employment_status !== 'retired' &&
+             formData.value.employment_status !== 'unemployed';
+    });
+
     const hasRentalIncome = computed(() => {
       return annualRentalIncome.value > 0;
     });
@@ -336,8 +330,7 @@ export default {
       return (
         (formData.value.annual_employment_income || 0) +
         (formData.value.annual_self_employment_income || 0) +
-        (formData.value.annual_dividend_income || 0) +
-        (formData.value.annual_interest_income || 0) +
+        (formData.value.annual_benefit_income || 0) +
         (formData.value.annual_other_income || 0) +
         (annualRentalIncome.value || 0)
       );
@@ -469,6 +462,7 @@ export default {
       loading,
       error,
       today,
+      showEmploymentFields,
       totalIncome,
       retirementAge,
       showEarlyRetirementWarning,
