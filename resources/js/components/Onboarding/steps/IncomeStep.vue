@@ -434,9 +434,13 @@ export default {
 
         if (properties.length > 0) {
           const totalRentalIncome = properties.reduce((total, property) => {
-            const monthlyRental = property.monthly_rental_income || 0;
-            // Values are ALREADY stored as user's share in database - just annualize
-            // DO NOT multiply by ownership_percentage again (would cause double calculation)
+            let monthlyRental = property.monthly_rental_income || 0;
+            // monthly_rental_income stores FULL rental amount
+            // Apply ownership percentage for joint/tenants_in_common
+            if (property.ownership_type === 'joint' || property.ownership_type === 'tenants_in_common') {
+              const percentage = property.ownership_percentage || 50;
+              monthlyRental = monthlyRental * (percentage / 100);
+            }
             return total + (monthlyRental * 12);
           }, 0);
           annualRentalIncome.value = totalRentalIncome;
