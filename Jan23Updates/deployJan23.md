@@ -20,6 +20,10 @@
 17. **FIX**: Consistent form scroll behaviour — all form modals now use `max-h-[90vh] overflow-y-auto` on the modal panel with buttons inside the scroll container. Removed sticky footers, moved scroll from inner divs to modal level, and fixed `overflow-hidden` clipping buttons. 16 forms standardised across all modules.
 18. **FIX**: Onboarding Personal Information — required fields (DOB, Gender, Marital Status, Address Line 1, City, Postcode) now marked with red asterisks and show specific inline error messages when missing.
 19. **REDESIGN**: Onboarding Employment & Income — Employment Status moved to first field; occupation/employer/industry/retirement age hidden for retired/unemployed; income sources now dynamic per status (employment income for employed, self-employment for self-employed, benefit income for unemployed, retirement info message for retired, other income as catch-all); dividend and interest income removed.
+20. **BUG FIX**: Onboarding Asset cards (Retirement, Cash tabs) now open the edit form when clicked — previously always opened add form because `isEdit`/`isEditing` prop was never passed. Fixed by deriving edit mode from data prop presence (matching working Investment AccountForm pattern). Also fixed StatePensionForm prop binding (`:pension` → `:state-pension`).
+21. **BUG FIX**: Onboarding Health & Lifestyle fields no longer block step progress — empty dropdown values (empty strings) were failing MySQL enum validation. Backend now only includes `health_status`, `smoking_status`, `education_level` in the update when a valid value is selected.
+22. **UX**: Property form — Costs tab and BTL Details tab now show contextual info notes for shared ownership properties explaining that users should enter 100% of costs/rent, with specific split method (50/50 for joint, by ownership % for tenants in common).
+23. **BUG FIX**: Rental income for joint/tenants-in-common properties now correctly applies ownership percentage when calculating the user's share for the Income section. Previously took 100% of rental income regardless of ownership type. Fixed in both backend (`UserProfileService`) and frontend (`IncomeStep`).
 
 ---
 
@@ -54,6 +58,15 @@ resources/js/components/UserProfile/FamilyMemberFormModal.vue
 resources/js/components/Auth/ChangePasswordModal.vue
 resources/js/components/Onboarding/steps/PersonalInfoStep.vue
 resources/js/components/Onboarding/steps/IncomeStep.vue
+resources/js/components/Onboarding/steps/AssetsStep.vue
+resources/js/components/Retirement/DCPensionForm.vue
+resources/js/components/Retirement/DBPensionForm.vue
+resources/js/components/Retirement/UnifiedPensionForm.vue
+resources/js/components/Retirement/StatePensionForm.vue
+resources/js/views/Retirement/RetirementReadiness.vue
+resources/js/views/NetWorth/CashOverview.vue
+resources/js/views/Savings/SavingsAccountDetailInline.vue
+resources/js/components/NetWorth/Property/PropertyForm.vue
 resources/js/components/NetWorth/InvestmentDetailInline.vue
 resources/js/components/Investment/AccountStrategyCard.vue  (NEW)
 resources/js/views/Investment/AccountPerformancePanel.vue
@@ -77,6 +90,8 @@ app/Http/Controllers/Api/Estate/IHTController.php
 app/Http/Requests/Chattel/StoreChattelRequest.php
 app/Services/Estate/AssetLiquidityAnalyzer.php
 app/Services/UserProfile/ModuleDataRequirementsService.php
+app/Services/Onboarding/OnboardingService.php
+app/Services/UserProfile/UserProfileService.php
 app/Services/Investment/FeeAnalyzer.php
 app/Http/Controllers/Api/InvestmentController.php
 app/Agents/InvestmentAgent.php
@@ -95,6 +110,8 @@ app/Http/Controllers/Api/Estate/IHTController.php
 app/Http/Requests/Chattel/StoreChattelRequest.php
 app/Services/Estate/AssetLiquidityAnalyzer.php
 app/Services/UserProfile/ModuleDataRequirementsService.php
+app/Services/Onboarding/OnboardingService.php
+app/Services/UserProfile/UserProfileService.php
 ```
 
 ### Frontend (after rebuild)
