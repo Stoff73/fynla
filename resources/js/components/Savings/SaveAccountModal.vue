@@ -371,20 +371,20 @@
           </div>
 
           <!-- Form Actions -->
-          <div class="mt-6 flex gap-3">
-            <button
-              type="submit"
-              :disabled="submitting"
-              class="flex-1 px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
-            >
-              {{ submitting ? 'Saving...' : (isEditing ? 'Update Account' : 'Add Account') }}
-            </button>
+          <div class="mt-6 flex justify-end gap-3">
             <button
               type="button"
               @click="handleClose"
-              class="px-6 py-3 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors"
+              class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
             >
               Cancel
+            </button>
+            <button
+              type="submit"
+              :disabled="submitting"
+              class="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {{ submitting ? 'Saving...' : (isEditing ? 'Update Account' : 'Add Account') }}
             </button>
           </div>
         </form>

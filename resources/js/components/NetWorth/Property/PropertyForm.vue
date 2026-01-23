@@ -230,16 +230,16 @@
             </div>
 
             <!-- Mortgage Checkbox -->
-            <div class="mt-4 p-4 bg-gray-50 rounded-md">
+            <div class="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
               <label class="flex items-center cursor-pointer">
                 <input
                   type="checkbox"
                   v-model="hasMortgage"
-                  class="mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  class="mr-3 h-4 w-4 text-green-600 focus:ring-green-500 border-green-300 rounded"
                 />
-                <span class="text-sm font-medium text-gray-700">This property has a mortgage</span>
+                <span class="text-sm font-medium text-green-800">This property has a mortgage</span>
               </label>
-              <p class="text-xs text-gray-500 mt-1 ml-7">Check this if you want to add mortgage details</p>
+              <p class="text-xs text-green-600 mt-1 ml-7">Check this if you want to add mortgage details</p>
             </div>
           </div>
 
@@ -1286,7 +1286,7 @@
               v-if="currentStep >= totalSteps || isEditMode"
               type="submit"
               :disabled="submitting"
-              class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              class="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {{ submitting ? 'Saving...' : 'Save Property' }}
             </button>
