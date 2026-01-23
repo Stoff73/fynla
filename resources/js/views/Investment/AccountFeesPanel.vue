@@ -10,7 +10,7 @@
         </div>
         <div class="card-content">
           <span class="card-label">Platform Fee</span>
-          <span class="card-value">{{ formatPercentage(platformFeePercent) }}</span>
+          <span class="card-value">{{ platformFeeDisplay }}</span>
         </div>
       </div>
 
@@ -56,7 +56,7 @@
       <h4 class="section-title">Annual Cost Breakdown</h4>
       <div class="cost-breakdown">
         <div class="cost-row">
-          <span class="cost-label">Platform Fee ({{ formatPercentage(platformFeePercent) }})</span>
+          <span class="cost-label">{{ platformFeeCostLabel }}</span>
           <span class="cost-value">{{ formatCurrency(annualPlatformFee) }}</span>
         </div>
         <div class="cost-row">
@@ -162,8 +162,52 @@ export default {
       return this.holdings.reduce((sum, h) => sum + (parseFloat(h.current_value) || 0), 0);
     },
 
-    // Platform fee percentage
+    // Whether platform fee is fixed (£) or percentage
+    platformFeeType() {
+      return this.account.platform_fee_type || 'percentage';
+    },
+
+    platformFeeFrequency() {
+      return this.account.platform_fee_frequency || 'annually';
+    },
+
+    // Display text for platform fee card
+    platformFeeDisplay() {
+      if (this.platformFeeType === 'fixed') {
+        const amount = parseFloat(this.account.platform_fee_amount) || 0;
+        const freq = { monthly: '/month', quarterly: '/quarter', annually: '/year' };
+        return `${this.formatCurrency(amount)}${freq[this.platformFeeFrequency] || '/year'}`;
+      }
+      return this.formatPercentage(this.platformFeePercent);
+    },
+
+    // Label for cost breakdown row
+    platformFeeCostLabel() {
+      if (this.platformFeeType === 'fixed') {
+        return `Platform Fee (${this.platformFeeDisplay})`;
+      }
+      return `Platform Fee (${this.formatPercentage(this.platformFeePercent)})`;
+    },
+
+    // Annual platform fee in £
+    annualPlatformFeeAmount() {
+      if (this.platformFeeType === 'fixed') {
+        const amount = parseFloat(this.account.platform_fee_amount) || 0;
+        if (this.platformFeeFrequency === 'monthly') return amount * 12;
+        if (this.platformFeeFrequency === 'quarterly') return amount * 4;
+        return amount;
+      }
+      const accountValue = parseFloat(this.account.current_value) || 0;
+      return accountValue * (this.platformFeePercent / 100);
+    },
+
+    // Platform fee as effective percentage (for totals and projections)
     platformFeePercent() {
+      if (this.platformFeeType === 'fixed') {
+        const accountValue = parseFloat(this.account.current_value) || 0;
+        if (accountValue === 0) return 0;
+        return (this.annualPlatformFeeAmount / accountValue) * 100;
+      }
       return parseFloat(this.account.platform_fee_percent) || 0;
     },
 
@@ -190,8 +234,7 @@ export default {
 
     // Annual costs in £
     annualPlatformFee() {
-      const accountValue = parseFloat(this.account.current_value) || 0;
-      return accountValue * (this.platformFeePercent / 100);
+      return this.annualPlatformFeeAmount;
     },
 
     annualAdvisorFee() {

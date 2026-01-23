@@ -461,11 +461,16 @@ export default {
       }, 5000);
     },
 
-    handleAccountUpdated() {
+    async handleAccountUpdated() {
       // In preview mode, we handle updates via handlePreviewAccountUpdated
       const isPreview = this.$store.getters['preview/isPreviewMode'];
       if (!isPreview) {
-        this.loadData();
+        await this.loadData();
+        // Refresh selectedAccount reference from the updated store
+        if (this.selectedAccount) {
+          const fresh = this.accounts.find(a => a.id === this.selectedAccount.id);
+          if (fresh) this.selectedAccount = fresh;
+        }
       }
     },
 
@@ -630,7 +635,17 @@ export default {
     },
 
     calculateAccountFees(account) {
-      const platformFee = parseFloat(account.platform_fee_percent) || 0;
+      let platformFee = 0;
+      if (account.platform_fee_type === 'fixed') {
+        const amount = parseFloat(account.platform_fee_amount) || 0;
+        let annualAmount = amount;
+        if (account.platform_fee_frequency === 'monthly') annualAmount = amount * 12;
+        else if (account.platform_fee_frequency === 'quarterly') annualAmount = amount * 4;
+        const acctValue = parseFloat(account.current_value) || 0;
+        platformFee = acctValue > 0 ? (annualAmount / acctValue) * 100 : 0;
+      } else {
+        platformFee = parseFloat(account.platform_fee_percent) || 0;
+      }
       const advisorFee = parseFloat(account.advisor_fee_percent) || 0;
 
       // Weighted average OCF from holdings

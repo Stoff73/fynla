@@ -481,6 +481,14 @@ export default {
 
     // Fee computed properties
     platformFeePercent() {
+      if (this.account.platform_fee_type === 'fixed') {
+        const amount = parseFloat(this.account.platform_fee_amount) || 0;
+        let annualAmount = amount;
+        if (this.account.platform_fee_frequency === 'monthly') annualAmount = amount * 12;
+        else if (this.account.platform_fee_frequency === 'quarterly') annualAmount = amount * 4;
+        const accountValue = parseFloat(this.account.current_value) || 0;
+        return accountValue > 0 ? (annualAmount / accountValue) * 100 : 0;
+      }
       return parseFloat(this.account.platform_fee_percent) || 0;
     },
 

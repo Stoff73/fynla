@@ -404,7 +404,17 @@ export default {
 
     avgPlatformFee() {
       if (!this.accounts || this.accounts.length === 0) return 0;
-      const totalFees = this.accounts.reduce((sum, a) => sum + (parseFloat(a.platform_fee_percent) || 0), 0);
+      const totalFees = this.accounts.reduce((sum, a) => {
+        if (a.platform_fee_type === 'fixed') {
+          const amount = parseFloat(a.platform_fee_amount) || 0;
+          let annual = amount;
+          if (a.platform_fee_frequency === 'monthly') annual = amount * 12;
+          else if (a.platform_fee_frequency === 'quarterly') annual = amount * 4;
+          const value = parseFloat(a.current_value) || 0;
+          return sum + (value > 0 ? (annual / value) * 100 : 0);
+        }
+        return sum + (parseFloat(a.platform_fee_percent) || 0);
+      }, 0);
       return totalFees / this.accounts.length;
     },
   },
