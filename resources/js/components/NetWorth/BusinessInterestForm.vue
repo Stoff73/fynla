@@ -526,7 +526,7 @@
           </div>
 
           <!-- Footer -->
-          <div class="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-6 py-4 flex justify-between rounded-b-lg">
+          <div class="bg-gray-50 border-t border-gray-200 px-6 py-4 flex justify-between rounded-b-lg">
             <button
               type="button"
               @click="previousStep"

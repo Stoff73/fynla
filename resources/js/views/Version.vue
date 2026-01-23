@@ -269,7 +269,7 @@
                 <svg class="w-5 h-5 text-red-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
-                <span class="text-body-base text-gray-700"><strong>Chattels Joint Ownership:</strong> Fixed dropdown not showing linked spouse, added "Other" option, editable ownership percentage.</span>
+                <span class="text-body-base text-gray-700"><strong>Personal Valuables Joint Ownership:</strong> Fixed dropdown not showing linked spouse, added "Other" option, editable ownership percentage.</span>
               </li>
               <li class="flex items-start">
                 <svg class="w-5 h-5 text-red-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -564,13 +564,13 @@
           <p class="text-body-sm text-gray-600 mb-4">Released: 1 January 2026</p>
 
           <div class="mb-6">
-            <h3 class="text-body-lg font-semibold text-gray-900 mb-4">💎 Chattels Module with CGT Calculator</h3>
+            <h3 class="text-body-lg font-semibold text-gray-900 mb-4">💎 Personal Valuables Module with CGT Calculator</h3>
             <ul class="space-y-2">
               <li class="flex items-start">
                 <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
-                <span class="text-body-base text-gray-700"><strong>Full Chattels Module:</strong> Track vehicles, art, antiques, jewelry, collectibles in Net Worth.</span>
+                <span class="text-body-base text-gray-700"><strong>Full Personal Valuables Module:</strong> Track vehicles, art, antiques, jewelry, collectibles in Net Worth.</span>
               </li>
               <li class="flex items-start">
                 <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">

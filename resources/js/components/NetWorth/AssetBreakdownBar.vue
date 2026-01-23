@@ -83,7 +83,7 @@ export default {
           },
         },
         xaxis: {
-          categories: ['Property', 'Investments', 'Cash', 'Business', 'Chattels'],
+          categories: ['Property', 'Investments', 'Cash', 'Business', 'Personal Valuables'],
           labels: {
             formatter: (val) => {
               return this.formatCurrency(val);

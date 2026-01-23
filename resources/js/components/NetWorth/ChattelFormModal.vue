@@ -6,7 +6,7 @@
         <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 rounded-t-lg z-10">
           <div class="flex items-center justify-between">
             <h3 class="text-xl font-semibold text-gray-900">
-              {{ isEditing ? 'Edit Chattel' : 'Add Chattel' }}
+              {{ isEditing ? 'Edit Valuable' : 'Add Valuable' }}
             </h3>
             <button
               @click="$emit('close')"
@@ -282,7 +282,7 @@
         </form>
 
         <!-- Footer -->
-        <div class="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-6 py-4 flex justify-end gap-3 rounded-b-lg">
+        <div class="bg-gray-50 border-t border-gray-200 px-6 py-4 flex justify-end gap-3 rounded-b-lg">
           <button
             type="button"
             @click="$emit('close')"
@@ -295,7 +295,7 @@
             :disabled="saving"
             class="px-4 py-2 bg-pink-600 text-white rounded-md hover:bg-pink-700 transition-colors disabled:opacity-50"
           >
-            {{ saving ? 'Saving...' : (isEditing ? 'Save Changes' : 'Add Chattel') }}
+            {{ saving ? 'Saving...' : (isEditing ? 'Save Changes' : 'Add Valuable') }}
           </button>
         </div>
       </div>

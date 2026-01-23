@@ -365,7 +365,17 @@ export default {
 
     // Total fee percentage (matching Fees tab calculation)
     totalFeePercent() {
-      const platformFee = parseFloat(this.account.platform_fee_percent) || 0;
+      let platformFee = 0;
+      if (this.account.platform_fee_type === 'fixed') {
+        const amount = parseFloat(this.account.platform_fee_amount) || 0;
+        let annualAmount = amount;
+        if (this.account.platform_fee_frequency === 'monthly') annualAmount = amount * 12;
+        else if (this.account.platform_fee_frequency === 'quarterly') annualAmount = amount * 4;
+        const accountValue = parseFloat(this.account.current_value) || 0;
+        platformFee = accountValue > 0 ? (annualAmount / accountValue) * 100 : 0;
+      } else {
+        platformFee = parseFloat(this.account.platform_fee_percent) || 0;
+      }
       const advisorFee = parseFloat(this.account.advisor_fee_percent) || 0;
 
       // Weighted average OCF
@@ -477,7 +487,6 @@ export default {
         }
 
         this.$emit('updated');
-        this.$emit('back');
       } catch (error) {
         console.error('Failed to update account:', error);
       }

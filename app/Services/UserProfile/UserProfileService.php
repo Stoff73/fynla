@@ -158,14 +158,19 @@ class UserProfileService
 
     /**
      * Calculate total annual rental income from user's properties
-     * Note: monthly_rental_income is ALREADY stored as user's share in database
+     * Note: monthly_rental_income stores the FULL rental amount.
+     * Apply ownership percentage for joint/tenants_in_common properties.
      */
     private function calculateAnnualRentalIncome(User $user): float
     {
         return $user->properties->sum(function ($property) {
-            $monthlyRental = $property->monthly_rental_income ?? 0;
+            $monthlyRental = (float) ($property->monthly_rental_income ?? 0);
 
-            // Values are already user's share - just annualize
+            if ($property->ownership_type === 'joint' || $property->ownership_type === 'tenants_in_common') {
+                $percentage = (float) ($property->ownership_percentage ?? 50);
+                $monthlyRental = $monthlyRental * ($percentage / 100);
+            }
+
             return $monthlyRental * 12;
         });
     }

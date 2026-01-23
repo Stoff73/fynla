@@ -7,7 +7,7 @@
       <!-- Centre modal -->
       <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
 
-      <div class="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full sm:p-6">
+      <div class="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full sm:p-6 max-h-[90vh] overflow-y-auto">
         <div>
           <div class="mb-4">
             <h3 class="text-h4 font-semibold text-gray-900" id="modal-title">
@@ -35,6 +35,9 @@
               </select>
               <p v-if="form.relationship === 'spouse'" class="mt-1 text-body-xs text-primary-600">
                 A user account will be created for your spouse if they don't have one yet. If they already have an account, it will be linked.
+              </p>
+              <p v-if="form.relationship === 'spouse'" class="mt-1 text-body-xs text-amber-600">
+                Please ensure details are correct — once added, this linked account can only be edited or deleted by logging into the spouse's account.
               </p>
             </div>
 
@@ -129,44 +132,6 @@
                   <option value="other">Other</option>
                   <option value="prefer_not_to_say">Prefer not to say</option>
                 </select>
-              </div>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <!-- National Insurance Number -->
-              <div>
-                <label for="national_insurance_number" class="block text-body-sm font-medium text-gray-700 mb-1">
-                  National Insurance Number
-                </label>
-                <input
-                  id="national_insurance_number"
-                  v-model="form.national_insurance_number"
-                  type="text"
-                  placeholder="AB123456C"
-                  maxlength="9"
-                  class="input-field uppercase"
-                />
-              </div>
-
-              <!-- Annual Income -->
-              <div>
-                <label for="annual_income" class="block text-body-sm font-medium text-gray-700 mb-1">
-                  Annual Income
-                </label>
-                <div class="relative rounded-md shadow-sm">
-                  <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <span class="text-gray-500 sm:text-sm">£</span>
-                  </div>
-                  <input
-                    id="annual_income"
-                    v-model.number="form.annual_income"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    class="input-field pl-7"
-                    placeholder="0.00"
-                  />
-                </div>
               </div>
             </div>
 
@@ -324,8 +289,6 @@ export default {
       last_name: '',
       date_of_birth: '',
       gender: '',
-      national_insurance_number: '',
-      annual_income: null,
       is_dependent: false,
       education_status: '',
       notes: '',
@@ -357,8 +320,6 @@ export default {
           last_name: member.last_name || '',
           date_of_birth: formatDateForInput(member.date_of_birth),
           gender: member.gender || '',
-          national_insurance_number: member.national_insurance_number || '',
-          annual_income: member.annual_income || null,
           is_dependent: member.is_dependent || false,
           education_status: member.education_status || '',
           notes: member.notes || '',
@@ -373,8 +334,6 @@ export default {
           last_name: '',
           date_of_birth: '',
           gender: '',
-          national_insurance_number: '',
-          annual_income: null,
           is_dependent: false,
           education_status: '',
           notes: '',
@@ -434,11 +393,6 @@ export default {
       try {
         // Clean up form data - remove empty strings
         const formData = { ...form.value };
-
-        // Convert National Insurance number to uppercase
-        if (formData.national_insurance_number && formData.national_insurance_number.trim() !== '') {
-          formData.national_insurance_number = formData.national_insurance_number.toUpperCase().trim();
-        }
 
         // Construct full name from parts for backward compatibility
         const nameParts = [

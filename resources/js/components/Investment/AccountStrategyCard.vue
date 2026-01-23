@@ -121,7 +121,17 @@ export default {
       }
 
       // 4. High account fees (excluding advisory)
-      const platformFee = parseFloat(this.account.platform_fee_percent) || 0;
+      let platformFee = 0;
+      if (this.account.platform_fee_type === 'fixed') {
+        const feeAmount = parseFloat(this.account.platform_fee_amount) || 0;
+        let annualAmount = feeAmount;
+        if (this.account.platform_fee_frequency === 'monthly') annualAmount = feeAmount * 12;
+        else if (this.account.platform_fee_frequency === 'quarterly') annualAmount = feeAmount * 4;
+        const acctValue = parseFloat(this.account.current_value) || 0;
+        platformFee = acctValue > 0 ? (annualAmount / acctValue) * 100 : 0;
+      } else {
+        platformFee = parseFloat(this.account.platform_fee_percent) || 0;
+      }
       const weightedOCF = this.totalHoldingsValue > 0
         ? this.holdings.reduce((sum, h) => sum + ((h.current_value || 0) * (parseFloat(h.ocf_percent) || 0)), 0) / this.totalHoldingsValue
         : 0;

@@ -212,7 +212,7 @@
             </svg>
           </div>
           <div class="card-title-section">
-            <h3 class="card-title">Chattels</h3>
+            <h3 class="card-title">Personal Valuables</h3>
             <p class="card-total">{{ formatCurrency(assetsSummaryDetailed.chattels?.total_value || 0) }}</p>
           </div>
           <div class="card-arrow">
@@ -223,7 +223,7 @@
         </div>
         <div class="card-items">
           <div v-if="chattelItems.length === 0" class="empty-state">
-            <p>No chattels recorded</p>
+            <p>No personal valuables recorded</p>
           </div>
           <div v-else>
             <div

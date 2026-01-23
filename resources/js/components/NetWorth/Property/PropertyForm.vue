@@ -230,16 +230,16 @@
             </div>
 
             <!-- Mortgage Checkbox -->
-            <div class="mt-4 p-4 bg-gray-50 rounded-md">
+            <div class="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
               <label class="flex items-center cursor-pointer">
                 <input
                   type="checkbox"
                   v-model="hasMortgage"
-                  class="mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  class="mr-3 h-4 w-4 text-green-600 focus:ring-green-500 border-green-300 rounded"
                 />
-                <span class="text-sm font-medium text-gray-700">This property has a mortgage</span>
+                <span class="text-sm font-medium text-green-800">This property has a mortgage</span>
               </label>
-              <p class="text-xs text-gray-500 mt-1 ml-7">Check this if you want to add mortgage details</p>
+              <p class="text-xs text-green-600 mt-1 ml-7">Check this if you want to add mortgage details</p>
             </div>
           </div>
 
@@ -938,8 +938,11 @@
             <h4 class="text-lg font-semibold text-gray-800 mb-4">Monthly Costs</h4>
 
             <!-- Shared ownership note -->
-            <p v-if="(form.ownership_type === 'joint' || form.ownership_type === 'tenants_in_common') && form.joint_owner_id" class="text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg p-3">
-              <strong>Note:</strong> Enter 100% of all property costs. The system will automatically calculate your share ({{ form.ownership_percentage }}%) based on your ownership percentage.
+            <p v-if="form.ownership_type === 'joint'" class="text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <strong>Note:</strong> Enter 100% of all property costs. These will be shared 50/50 between you and your joint owner.
+            </p>
+            <p v-else-if="form.ownership_type === 'tenants_in_common'" class="text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <strong>Note:</strong> Enter 100% of all property costs. These will be split by your ownership percentage ({{ form.ownership_percentage }}%).
             </p>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1103,6 +1106,14 @@
           <div v-if="form.property_type === 'buy_to_let'" v-show="currentStep === stepMapping[5]" class="space-y-4">
             <h4 class="text-lg font-semibold text-gray-800 mb-4">Buy to Let Details</h4>
 
+            <!-- Shared ownership note for rental income -->
+            <p v-if="form.ownership_type === 'joint'" class="text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <strong>Note:</strong> Enter 100% of the rental income. This will be shared 50/50 between you and your joint owner.
+            </p>
+            <p v-else-if="form.ownership_type === 'tenants_in_common'" class="text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <strong>Note:</strong> Enter 100% of the rental income. This will be split by your ownership percentage ({{ form.ownership_percentage }}%).
+            </p>
+
             <div class="space-y-4">
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -1234,7 +1245,7 @@
         </div>
 
         <!-- Footer -->
-        <div class="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-6 py-4 flex justify-between rounded-b-lg">
+        <div class="bg-gray-50 border-t border-gray-200 px-6 py-4 flex justify-between rounded-b-lg">
           <button
             type="button"
             @click="previousStep"
@@ -1275,7 +1286,7 @@
               v-if="currentStep >= totalSteps || isEditMode"
               type="submit"
               :disabled="submitting"
-              class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              class="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {{ submitting ? 'Saving...' : 'Save Property' }}
             </button>
@@ -1304,6 +1315,10 @@ export default {
 
   props: {
     property: {
+      type: Object,
+      default: null,
+    },
+    userAddress: {
       type: Object,
       default: null,
     },
@@ -1543,6 +1558,16 @@ export default {
         // If current step is the BTL step, move back to the previous step
         if (this.currentStep === this.stepMapping[5]) {
           this.currentStep = Math.max(1, this.currentStep - 1);
+        }
+      }
+      // Auto-populate address from user profile when main_residence is selected (new property only)
+      if (newVal === 'main_residence' && !this.property && this.userAddress) {
+        if (!this.form.address_line_1) {
+          this.form.address_line_1 = this.userAddress.address_line_1 || '';
+          this.form.address_line_2 = this.userAddress.address_line_2 || '';
+          this.form.city = this.userAddress.city || '';
+          this.form.county = this.userAddress.county || '';
+          this.form.postcode = this.userAddress.postcode || '';
         }
       }
     },

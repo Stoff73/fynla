@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests\Savings;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateSavingsAccountRequest extends FormRequest
 {
@@ -26,6 +27,9 @@ class UpdateSavingsAccountRequest extends FormRequest
             'maturity_date' => 'nullable|date',
             'is_emergency_fund' => 'sometimes|boolean',
             'is_isa' => 'sometimes|boolean',
+            'ownership_type' => ['sometimes', Rule::in(['individual', 'joint', 'trust'])],
+            'ownership_percentage' => 'sometimes|nullable|numeric|min:0|max:100',
+            'joint_owner_id' => 'sometimes|nullable|exists:users,id',
             'country' => 'sometimes|nullable|string|max:255',
             'isa_type' => 'nullable|in:cash,stocks_shares,LISA',
             'isa_subscription_year' => 'nullable|string',

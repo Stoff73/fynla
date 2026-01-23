@@ -16,7 +16,7 @@
       <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
 
       <!-- Modal panel -->
-      <div class="relative inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+      <div class="relative inline-block align-bottom bg-white rounded-lg text-left shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full max-h-[90vh] overflow-y-auto">
         <!-- Header -->
         <div class="bg-white px-6 pt-6 border-b border-gray-200">
           <div class="flex items-center justify-between mb-4">
@@ -63,7 +63,7 @@
         </div>
 
         <!-- Content Area -->
-        <div class="px-6 py-6 max-h-[60vh] overflow-y-auto">
+        <div class="px-6 py-6">
           <!-- Step 1: Upload -->
           <div v-if="currentStep === 'upload'">
             <UploadDropZone

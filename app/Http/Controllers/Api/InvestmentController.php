@@ -275,7 +275,10 @@ class InvestmentController extends Controller
             'current_value' => 'required|numeric|min:0',
             'contributions_ytd' => 'nullable|numeric|min:0',
             'tax_year' => 'required|string|max:10',
-            'platform_fee_percent' => 'nullable|numeric|min:0|max:100',
+            'platform_fee_percent' => 'nullable|numeric|min:0',
+            'platform_fee_amount' => 'nullable|numeric|min:0',
+            'platform_fee_type' => ['nullable', Rule::in(['percentage', 'fixed'])],
+            'platform_fee_frequency' => ['nullable', Rule::in(['monthly', 'quarterly', 'annually'])],
             'isa_type' => ['nullable', Rule::in(['stocks_and_shares', 'lifetime', 'innovative_finance'])],
             'isa_subscription_current_year' => 'nullable|numeric|min:0|max:20000',
             'ownership_type' => ['nullable', Rule::in(['individual', 'joint', 'trust'])],
@@ -366,7 +369,13 @@ class InvestmentController extends Controller
             'current_value' => 'nullable|numeric|min:0',
             'contributions_ytd' => 'nullable|numeric|min:0',
             'tax_year' => 'nullable|string|max:10',
-            'platform_fee_percent' => 'nullable|numeric|min:0|max:100',
+            'platform_fee_percent' => 'nullable|numeric|min:0',
+            'platform_fee_amount' => 'nullable|numeric|min:0',
+            'platform_fee_type' => ['nullable', Rule::in(['percentage', 'fixed'])],
+            'platform_fee_frequency' => ['nullable', Rule::in(['monthly', 'quarterly', 'annually'])],
+            'ownership_type' => ['nullable', Rule::in(['individual', 'joint', 'trust'])],
+            'ownership_percentage' => 'nullable|numeric|min:0|max:100',
+            'joint_owner_id' => 'nullable|exists:users,id',
             'isa_type' => ['nullable', Rule::in(['stocks_and_shares', 'lifetime', 'innovative_finance'])],
             'isa_subscription_current_year' => 'nullable|numeric|min:0|max:20000',
         ]);
@@ -375,6 +384,9 @@ class InvestmentController extends Controller
         if ($this->isSharedOwnership($account) && $account->joint_owner_id && isset($validated['current_value'])) {
             $this->logJointAccountUpdate($user, $account, $validated);
         }
+
+        // Track old joint owner before update (for cache clearing if ownership changes)
+        $oldJointOwnerId = $account->joint_owner_id;
 
         // Single-record pattern: Update directly (no reciprocal update)
         $account->update($validated);
@@ -385,6 +397,11 @@ class InvestmentController extends Controller
         // If joint owner, clear their cache too
         if ($account->joint_owner_id) {
             $this->investmentAgent->clearCache($account->joint_owner_id);
+        }
+
+        // If old joint owner was removed, clear their cache too
+        if ($oldJointOwnerId && $oldJointOwnerId !== $account->joint_owner_id) {
+            $this->investmentAgent->clearCache($oldJointOwnerId);
         }
 
         // Add calculated fields to response

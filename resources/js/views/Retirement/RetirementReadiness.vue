@@ -217,7 +217,6 @@
       v-if="showPensionForm"
       :pension="selectedPension"
       :state-pension="statePension"
-      :is-edit="isEditMode"
       @close="closePensionForm"
       @save="handlePensionSave"
     />
@@ -258,7 +257,6 @@ export default {
       showPensionForm: false,
       showUploadModal: false,
       selectedPension: null,
-      isEditMode: false,
     };
   },
 
@@ -345,7 +343,6 @@ export default {
     closePensionForm() {
       this.showPensionForm = false;
       this.selectedPension = null;
-      this.isEditMode = false;
     },
 
     async handlePensionSave(data) {

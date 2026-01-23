@@ -184,7 +184,7 @@ class AssetLiquidityAnalyzer
                 'is_giftable' => true,
                 'not_giftable_reason' => null,
                 'gifting_considerations' => [
-                    'Chattels (personal possessions) can be gifted',
+                    'Personal valuables can be gifted',
                     'Items worth over £6,000 may trigger Capital Gains Tax on gift',
                     'Wasting assets (lifespan under 50 years) are CGT exempt',
                     'Sets of items are valued together for CGT purposes',

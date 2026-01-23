@@ -606,28 +606,6 @@
               </p>
             </div>
 
-            <!-- Regular Savings -->
-            <div>
-              <label for="regular_savings" class="label">
-                Regular Savings
-              </label>
-              <div class="relative">
-                <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">£</span>
-                <input
-                  id="regular_savings"
-                  v-model.number="formData.regular_savings"
-                  type="number"
-                  min="0"
-                  step="50"
-                  class="input-field pl-8"
-                  placeholder="200"
-                >
-              </div>
-              <p class="mt-1 text-body-sm text-gray-500">
-                Automatic savings contributions
-              </p>
-            </div>
-
             <!-- Other Expenditure -->
             <div>
               <label for="other_expenditure" class="label">
@@ -1260,28 +1238,6 @@
               </p>
             </div>
 
-            <!-- Regular Savings -->
-            <div>
-              <label for="spouse_regular_savings" class="label">
-                Regular Savings
-              </label>
-              <div class="relative">
-                <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">£</span>
-                <input
-                  id="spouse_regular_savings"
-                  v-model.number="spouseFormData.regular_savings"
-                  type="number"
-                  min="0"
-                  step="50"
-                  class="input-field pl-8"
-                  placeholder="200"
-                >
-              </div>
-              <p class="mt-1 text-body-sm text-gray-500">
-                Automatic savings contributions
-              </p>
-            </div>
-
             <!-- Other Expenditure -->
             <div>
               <label for="spouse_other_expenditure" class="label">
@@ -1727,7 +1683,6 @@ export default {
         (formData.value.university_fees || 0) +
         (formData.value.children_activities || 0) +
         (formData.value.gifts_charity || 0) +
-        (formData.value.regular_savings || 0) +
         (formData.value.other_expenditure || 0)
       );
     });
@@ -1758,7 +1713,6 @@ export default {
         (spouseFormData.value.university_fees || 0) +
         (spouseFormData.value.children_activities || 0) +
         (spouseFormData.value.gifts_charity || 0) +
-        (spouseFormData.value.regular_savings || 0) +
         (spouseFormData.value.other_expenditure || 0)
       );
     });
@@ -2008,7 +1962,6 @@ export default {
         (props.spouseData.university_fees || 0) > 0 ||
         (props.spouseData.children_activities || 0) > 0 ||
         (props.spouseData.gifts_charity || 0) > 0 ||
-        (props.spouseData.regular_savings || 0) > 0 ||
         (props.spouseData.other_expenditure || 0) > 0;
 
       if (hasDetailedData) {

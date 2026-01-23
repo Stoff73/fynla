@@ -5,7 +5,7 @@
       <div class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity"></div>
 
       <!-- Modal -->
-      <div class="relative w-full max-w-md transform overflow-hidden rounded-lg bg-white shadow-xl transition-all">
+      <div class="relative w-full max-w-md transform rounded-lg bg-white shadow-xl transition-all max-h-[90vh] overflow-y-auto">
         <div class="bg-white px-4 pb-4 pt-5 sm:p-6">
           <div class="mb-4">
             <h3 class="text-lg font-semibold text-gray-900">

@@ -117,7 +117,7 @@
             </div>
           </div>
 
-          <div v-if="!member.is_shared" class="flex space-x-2 ml-4">
+          <div v-if="!member.is_shared && member.relationship !== 'spouse'" class="flex space-x-2 ml-4">
             <button
               v-preview-disabled="'edit'"
               @click="openEditModal(member)"
@@ -132,6 +132,11 @@
             >
               Delete
             </button>
+          </div>
+          <div v-else-if="member.relationship === 'spouse'" class="ml-4">
+            <p class="text-body-xs text-gray-500 italic">
+              Linked account — can only be edited or deleted by logging into the spouse's account
+            </p>
           </div>
           <div v-else class="ml-4">
             <p class="text-body-xs text-gray-500 italic">

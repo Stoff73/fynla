@@ -234,7 +234,7 @@
 
     <!-- Asset Form Modal -->
     <div v-if="showAssetForm" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50 p-4">
-      <div class="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-hidden">
+      <div class="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto">
         <AssetForm
           :asset="editingAsset"
           :mode="editingAsset ? 'edit' : 'create'"
@@ -246,7 +246,7 @@
 
     <!-- Liability Form Modal -->
     <div v-if="showLiabilityForm" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50 p-4">
-      <div class="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-hidden">
+      <div class="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto">
         <LiabilityForm
           :liability="editingLiability"
           :mode="editingLiability ? 'edit' : 'create'"

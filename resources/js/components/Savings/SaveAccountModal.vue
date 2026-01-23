@@ -12,7 +12,7 @@
 
       <!-- Modal panel -->
       <div
-        class="relative inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full"
+        class="relative inline-block align-bottom bg-white rounded-lg text-left shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full max-h-[90vh] overflow-y-auto"
       >
         <!-- Header -->
         <div class="bg-white px-6 pt-6">
@@ -38,7 +38,7 @@
 
         <!-- Form -->
         <form @submit.prevent="handleSubmit" class="px-6 pb-6">
-          <div class="space-y-4 max-h-[calc(100vh-300px)] overflow-y-auto pr-2">
+          <div class="space-y-4 pr-2">
             <!-- Institution -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">
@@ -371,20 +371,20 @@
           </div>
 
           <!-- Form Actions -->
-          <div class="mt-6 flex gap-3">
-            <button
-              type="submit"
-              :disabled="submitting"
-              class="flex-1 px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
-            >
-              {{ submitting ? 'Saving...' : (isEditing ? 'Update Account' : 'Add Account') }}
-            </button>
+          <div class="mt-6 flex justify-end gap-3">
             <button
               type="button"
               @click="handleClose"
-              class="px-6 py-3 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors"
+              class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
             >
               Cancel
+            </button>
+            <button
+              type="submit"
+              :disabled="submitting"
+              class="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {{ submitting ? 'Saving...' : (isEditing ? 'Update Account' : 'Add Account') }}
             </button>
           </div>
         </form>
@@ -407,10 +407,6 @@ export default {
     account: {
       type: Object,
       default: null,
-    },
-    isEditing: {
-      type: Boolean,
-      default: false,
     },
     defaultAccountType: {
       type: String,
@@ -446,6 +442,10 @@ export default {
   },
 
   computed: {
+    isEditing() {
+      return !!this.account;
+    },
+
     spouse() {
       return this.$store.getters['userProfile/spouse'];
     },
@@ -524,6 +524,12 @@ export default {
         this.formData.institution = 'NS&I';
         this.formData.ownership_type = 'individual';
         this.formData.joint_owner_id = null;
+      }
+      // Auto-set access type based on product type
+      if (newType === 'notice') {
+        this.formData.access_type = 'notice';
+      } else if (newType === 'fixed') {
+        this.formData.access_type = 'fixed';
       }
     },
   },

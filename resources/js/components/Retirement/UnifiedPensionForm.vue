@@ -62,7 +62,6 @@
     <DCPensionForm
       v-if="mainPensionType === 'dc'"
       :pension="pension"
-      :is-edit="isEdit"
       @close="handleClose"
       @save="handleSave"
     />
@@ -71,7 +70,6 @@
     <DBPensionForm
       v-if="mainPensionType === 'db'"
       :pension="pension"
-      :is-edit="isEdit"
       @close="handleClose"
       @save="handleSave"
     />
@@ -108,10 +106,6 @@ export default {
     statePension: {
       type: Object,
       default: null,
-    },
-    isEdit: {
-      type: Boolean,
-      default: false,
     },
     initialPensionType: {
       type: String,

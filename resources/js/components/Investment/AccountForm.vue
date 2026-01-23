@@ -5,7 +5,7 @@
       <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" @click="closeModal"></div>
 
       <!-- Modal panel -->
-      <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+      <div class="inline-block align-bottom bg-white rounded-lg text-left shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full max-h-[90vh] overflow-y-auto">
         <!-- Header -->
         <div class="bg-white px-6 py-4 border-b border-gray-200">
           <div class="flex justify-between items-center">
@@ -25,7 +25,7 @@
 
         <!-- Form -->
         <form @submit.prevent="submitForm">
-          <div class="bg-white px-6 py-4 space-y-4 max-h-[70vh] overflow-y-auto">
+          <div class="bg-white px-6 py-4 space-y-4">
             <!-- Account Type -->
             <div>
               <label for="account_type" class="block text-sm font-medium text-gray-700 mb-1">
@@ -256,6 +256,20 @@
               <p class="mt-1 text-xs text-gray-500">
                 {{ feeHelpText }}
               </p>
+              <!-- High percentage fee warning -->
+              <div v-if="feePercentageWarning" class="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-md">
+                <p class="text-sm text-amber-800">
+                  You have entered <strong>{{ formData.platform_fee_percent }}%</strong> as a percentage fee. Did you mean <strong>£{{ formData.platform_fee_percent }}</strong> instead?
+                </p>
+                <div class="mt-2 flex gap-2">
+                  <button type="button" @click="confirmFeeAndSubmit" class="px-3 py-1 text-xs font-medium bg-amber-600 text-white rounded hover:bg-amber-700 transition-colors">
+                    Yes, it's {{ formData.platform_fee_percent }}%
+                  </button>
+                  <button type="button" @click="switchFeeToFixed" class="px-3 py-1 text-xs font-medium border border-amber-600 text-amber-700 rounded hover:bg-amber-100 transition-colors">
+                    Change to £
+                  </button>
+                </div>
+              </div>
             </div>
 
             <!-- Risk Level Section (hidden during onboarding) -->
@@ -507,6 +521,7 @@ export default {
       },
       errors: {},
       submitting: false,
+      feePercentageWarning: false,
       ISA_ALLOWANCE: 20000, // 2025/26 tax year
       // Risk profile state
       mainRiskLevel: null,
@@ -693,11 +708,20 @@ export default {
       }
     },
     'formData.platform_fee_type'(newType, oldType) {
-      // Clear values when switching fee types to avoid confusion
       if (oldType && newType !== oldType) {
-        this.formData.platform_fee_percent = null;
-        this.formData.platform_fee_amount = null;
+        // Transfer value to the new field type
+        if (newType === 'fixed') {
+          this.formData.platform_fee_amount = this.formData.platform_fee_percent;
+          this.formData.platform_fee_percent = null;
+        } else {
+          this.formData.platform_fee_percent = this.formData.platform_fee_amount;
+          this.formData.platform_fee_amount = null;
+        }
+        this.feePercentageWarning = false;
       }
+    },
+    'formData.platform_fee_percent'() {
+      this.feePercentageWarning = false;
     },
   },
 
@@ -721,39 +745,40 @@ export default {
       }
     },
 
-    async submitForm() {
+    submitForm() {
       this.errors = {};
+
+      // Client-side validation
+      if (!this.validateForm()) {
+        return;
+      }
+
+      // Check for high percentage fee warning
+      if (this.formData.platform_fee_type === 'percentage' &&
+          this.formData.platform_fee_percent > 5 &&
+          !this.feePercentageWarning) {
+        this.feePercentageWarning = true;
+        return;
+      }
+
       this.submitting = true;
 
-      try {
-        // Client-side validation
-        if (!this.validateForm()) {
-          this.submitting = false;
-          return;
-        }
+      // Clean up data before submission
+      const submitData = { ...this.formData };
 
-        // Clean up data before submission
-        const submitData = { ...this.formData };
-
-        // For ISA accounts, keep isa_subscription_current_year (backend expects this field)
-        if (submitData.account_type === 'isa') {
-          // Backend uses isa_subscription_current_year, not contributions_ytd
-          // Keep isa_subscription_current_year as is
-        } else {
-          // Remove ISA fields if not ISA account
-          delete submitData.isa_type;
-          delete submitData.isa_subscription_current_year;
-        }
-
-        // Emit save event - parent will close modal after successful save
-        this.$emit('save', submitData);
-      } catch (error) {
-        console.error('Form submission error:', error);
-        if (error.response?.data?.errors) {
-          this.errors = error.response.data.errors;
-        }
-        this.submitting = false;
+      // For ISA accounts, keep isa_subscription_current_year (backend expects this field)
+      if (submitData.account_type === 'isa') {
+        // Backend uses isa_subscription_current_year, not contributions_ytd
+        // Keep isa_subscription_current_year as is
+      } else {
+        // Remove ISA fields if not ISA account
+        delete submitData.isa_type;
+        delete submitData.isa_subscription_current_year;
       }
+
+      // Emit save event - parent will close modal after successful save
+      this.$emit('save', submitData);
+      this.submitting = false;
     },
 
     validateForm() {
@@ -789,9 +814,8 @@ export default {
 
       // Platform fee validation
       if (this.formData.platform_fee_type === 'percentage') {
-        if (this.formData.platform_fee_percent !== null &&
-            (this.formData.platform_fee_percent < 0 || this.formData.platform_fee_percent > 10)) {
-          this.errors.platform_fee_value = 'Platform fee must be between 0 and 10%';
+        if (this.formData.platform_fee_percent !== null && this.formData.platform_fee_percent < 0) {
+          this.errors.platform_fee_value = 'Platform fee cannot be negative';
           isValid = false;
         }
       } else if (this.formData.platform_fee_type === 'fixed') {
@@ -814,6 +838,15 @@ export default {
       }
 
       return isValid;
+    },
+
+    confirmFeeAndSubmit() {
+      this.submitForm();
+    },
+
+    switchFeeToFixed() {
+      this.formData.platform_fee_type = 'fixed';
+      this.feePercentageWarning = false;
     },
 
     closeModal() {
@@ -847,6 +880,7 @@ export default {
         risk_preference: null,
       };
       this.errors = {};
+      this.feePercentageWarning = false;
     },
   },
 };

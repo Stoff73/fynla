@@ -155,7 +155,16 @@ export default {
     accountFeeData() {
       return this.accounts.map(account => {
         const value = parseFloat(account.current_value) || 0;
-        const platformFee = parseFloat(account.platform_fee_percent) || 0;
+        let platformFee = 0;
+        if (account.platform_fee_type === 'fixed') {
+          const feeAmt = parseFloat(account.platform_fee_amount) || 0;
+          let annual = feeAmt;
+          if (account.platform_fee_frequency === 'monthly') annual = feeAmt * 12;
+          else if (account.platform_fee_frequency === 'quarterly') annual = feeAmt * 4;
+          platformFee = value > 0 ? (annual / value) * 100 : 0;
+        } else {
+          platformFee = parseFloat(account.platform_fee_percent) || 0;
+        }
         const advisorFee = parseFloat(account.advisor_fee_percent) || 0;
 
         // Calculate weighted average OCF for this account's holdings
