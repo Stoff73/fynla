@@ -138,11 +138,10 @@ Test via landing page persona selector at http://localhost:8000, not direct URLs
 
 ## Authentication for Testing
 
-**No demo accounts exist.** When testing requires login:
-1. Ask the user for credentials (email and password)
-2. Enter the provided credentials
-3. When the verification code screen appears, **ask the user for the code**
-4. Enter the code provided and continue testing
+When testing requires login:
+1. Enter credentials: `chris@fynla.org` / `Password1!`
+2. When the verification code screen appears, **ask the user for the code**
+3. Enter the code provided and continue testing
 
 ## Troubleshooting
 
