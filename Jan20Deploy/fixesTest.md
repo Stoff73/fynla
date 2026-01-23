@@ -255,3 +255,127 @@ Fixed 50/50 expenditure split and adjusted incomes/expenses for positive disposa
 ## BUG-011: Login Blocked by PreviewWriteInterceptor Middleware
 Login failed when user had stale preview token in localStorage.
 Added api/auth/login to PreviewWriteInterceptor excluded routes.
+
+---
+
+# 23 January 2026
+
+## BUG-012: Cash Dashboard Not Displaying Accounts for Real Users
+Real users' savings/current accounts were created in the database but never displayed in the UI.
+Fixed data loading to show accounts for non-preview users.
+
+## BUG-013: "Enter Holdings" Links Not Working in Investment Detail View
+"Enter Holdings" links in Diversification and Rebalancing cards did nothing when clicked.
+Added missing event listener and HoldingForm auto-selects the current account.
+
+## BUG-014: Detail View Monte Carlo Chart Inconsistent with Dashboard
+Monte Carlo chart in detail view used different probability bands and colours than dashboard.
+Fixed to match dashboard (4 bands: 95%, 90%, 85%, 80% with blue-to-green colours).
+
+## BUG-015: Account Strategy Card Position Inconsistent with Dashboard
+Account Strategy Card was in left sidebar instead of full-width below chart.
+Moved to full-width position matching the dashboard pattern.
+
+## BUG-016: IHT Calculation Table Gap and -£0 Liability Values
+Table had hardcoded colspan causing gaps and floating -£0 values in liabilities.
+Fixed dynamic colspan, added formatLiability method, corrected v-if conditions.
+
+## FEATURE-001: IHT Table Concertina/Accordion
+Added collapsible groupings to IHT tables so multi-item asset/liability types collapse under summary headings.
+Sections start collapsed by default, reducing table clutter.
+
+## FEATURE-002: IHT Table Section-Level Concertina
+Added outer section-level concertina ("User's Assets", "Spouse's Liabilities", etc.).
+Section headers collapse to show subtotals, giving users three levels of detail.
+
+## FEATURE-003: IHT Ownership Labels (Tenancy in Common and Mortgage Percentages)
+Enhanced ownership labels in IHT tables.
+Tenancy in Common assets show percentage, joint mortgages show actual split when not 50/50.
+
+## FEATURE-004: Rename "Chattels" to "Personal Valuables"
+All user-facing instances of "Chattel/Chattels" renamed to "Personal Valuable/Personal Valuables".
+Internal code unchanged.
+
+## BUG-017: Platform Fee Fields Not Persisting to Database
+Platform fee values did not persist when adding/editing investment accounts.
+Added missing fields to backend validation rules.
+
+## BUG-018: Platform Fee Value Lost When Toggling %/£ Type
+Entering a platform fee value then changing between % and £ caused the value to disappear.
+Fixed value transfer between fee type fields on toggle.
+
+## BUG-019: Fixed (£) Platform Fees Not Displayed in Fee Cards or Calculations
+Fixed platform fees showed 0.00% in fee cards and were ignored in projections.
+Updated all fee display and calculation logic to handle fixed fees.
+
+## BUG-020: Detail View Navigates Away After Editing Account and Fee Card Not Refreshing
+Editing an account navigated back to dashboard, and fee card didn't refresh.
+Fixed to stay on detail view and reload data after update.
+
+## BUG-021: Backend FeeAnalyzer Not Calculating Fixed (£) Platform Fees for Recommendations
+Fixed fees above 0.8% threshold did not trigger "Review Platform Fees" recommendation.
+Updated FeeAnalyzer to convert fixed fees to percentage equivalent for comparison.
+
+## BUG-018: Inconsistent Form Button Scroll Behaviour
+Form modals had inconsistent scroll behaviour — some sticky footers, some clipped buttons.
+Standardised all 16 forms to max-h-[90vh] overflow-y-auto with buttons inside scroll container.
+
+## BUG-019: Onboarding Personal Information Validation
+Clicking Continue without entering data showed vague error with no field indication.
+Added red asterisks on required fields and specific inline error messages.
+
+## FEATURE-002: Onboarding Employment & Income Redesign
+Employment & Income step showed all fields regardless of status.
+Redesigned to be context-aware — fields and income sources now dynamic per employment status.
+
+## BUG-020: Onboarding Asset Cards Open Add Form Instead of Edit Form
+Clicking existing pension/savings cards opened Add form instead of Edit form.
+Fixed by deriving edit mode from data prop presence (matching working AccountForm pattern).
+
+## BUG-021: Health & Lifestyle Fields Block Onboarding Step Progress
+Empty Health & Lifestyle dropdowns failed MySQL enum validation, blocking progress.
+Backend now only includes these fields when a valid value is selected.
+
+## FEATURE-003: Property Form Ownership Split Notes
+Users entering joint property costs had no guidance on whether to enter full or shared amounts.
+Added contextual info messages for Costs and BTL tabs explaining 100% entry with split method.
+
+## BUG-022: Rental Income Not Applying Ownership Percentage for Joint/TiC Properties
+Rental income showed 100% regardless of ownership type.
+Fixed backend and frontend to apply ownership percentage for joint/tenants-in-common.
+
+## FEATURE-004: Consistent Button Styling Across Forms
+Button styling inconsistent between property, savings, and investment forms.
+Standardised: blue submit buttons, green mortgage checkbox, right-aligned with Cancel/Submit order.
+
+## FEATURE-005: Remove NI Number and Annual Income from Family Member Form
+NI Number and Annual Income fields were unnecessary at family member level.
+Removed from template, data, and submit logic.
+
+## BUG-023: Dashboard State Pension Showing for All Users Without Pension Data
+State Pension line (£11,500/yr default) showed for all users regardless of pension data.
+Now only shows when user has entered at least one pension (DC, DB, or state).
+
+## FEATURE-006: Remove Regular Savings from Expenses Form
+Regular Savings input in Other Expenses was duplicating data captured in Savings module.
+Removed from both user and spouse forms, excluded from monthly totals.
+
+## FEATURE-007: Savings Account Access Type Auto-Selection
+Selecting Notice Account or Fixed Term product type required manual access type selection.
+Access type now auto-sets to match the product type.
+
+## FEATURE-008: Onboarding Property Address Auto-Population
+Users had to re-enter address when adding Main Residence during onboarding.
+Address fields now auto-populate from Personal Details when Main Residence is selected.
+
+## BUG-024: Investment Account Ownership Fields Not Persisting on Update
+Changing ownership type on an investment account didn't save.
+Added ownership_type, ownership_percentage, joint_owner_id to updateAccount validation rules.
+
+## BUG-025: Savings Account Ownership Fields Not Persisting on Update
+Same issue as BUG-024 but for savings accounts.
+Added ownership fields to UpdateSavingsAccountRequest validation rules.
+
+## FEATURE-009: Spouse Account Non-Editable in Family Section
+Spouse accounts could be edited/deleted from primary user's account.
+Removed edit/delete buttons for spouse members, added info message about linked account access.

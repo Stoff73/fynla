@@ -27,6 +27,12 @@
 24. **UX**: Consistent button styling — Property form save button changed from green to blue matching investments; mortgage checkbox card styled green for visibility; Savings form buttons restyled to match investment AccountForm (smaller padding, bordered cancel button, right-aligned with Cancel/Submit order).
 25. **UX**: Removed National Insurance Number and Annual Income fields from the family member form — unnecessary at this level.
 26. **FIX**: Dashboard state pension line (£11,500/yr default) now only shows when user has entered at least one pension (DC, DB, or state). Previously showed for all users regardless. Also excluded from projected income calculation when no pensions exist.
+27. **UX**: Removed "Regular Savings" input from Other Expenses (Monthly) section in the Expenditure form — this data is captured elsewhere (Savings module). Removed from both user and spouse forms, and excluded from monthly totals calculation.
+28. **UX**: Savings account form — selecting "Notice Account" product type now auto-sets access type to "Notice Required"; selecting "Fixed Term" auto-sets to "Fixed Term".
+29. **UX**: Onboarding property form — selecting "Main Residence" as property type now auto-populates address fields (line 1, line 2, city, county, postcode) from the user's personal details address entered earlier in onboarding.
+30. **BUG FIX**: Investment account update now persists ownership fields (`ownership_type`, `ownership_percentage`, `joint_owner_id`). These were missing from the `updateAccount` validation rules so were silently stripped by Laravel. Also added old joint owner cache clearing when ownership changes.
+31. **BUG FIX**: Savings account update now persists ownership fields — same issue as investments. Added `ownership_type`, `ownership_percentage`, `joint_owner_id` to `UpdateSavingsAccountRequest`. Properties and pensions were already correct.
+32. **UX**: Spouse family member — edit and delete buttons removed from both User Profile and Onboarding family sections. Replaced with message: "Linked account — can only be edited or deleted by logging into the spouse's account." Warning added to the add form reminding users to enter correct information.
 
 ---
 
@@ -72,6 +78,15 @@ resources/js/views/Savings/SavingsAccountDetailInline.vue
 resources/js/components/NetWorth/Property/PropertyForm.vue
 resources/js/components/UserProfile/FamilyMemberFormModal.vue
 resources/js/components/Dashboard/RetirementOverviewCard.vue
+resources/js/components/UserProfile/ExpenditureForm.vue
+resources/js/components/Savings/SaveAccountModal.vue
+resources/js/components/Onboarding/steps/AssetsStep.vue
+resources/js/components/NetWorth/Property/PropertyForm.vue
+app/Http/Controllers/Api/InvestmentController.php
+app/Http/Requests/Savings/UpdateSavingsAccountRequest.php
+resources/js/components/UserProfile/FamilyMembers.vue
+resources/js/components/UserProfile/FamilyMemberFormModal.vue
+resources/js/components/Onboarding/steps/FamilyInfoStep.vue
 resources/js/components/NetWorth/InvestmentDetailInline.vue
 resources/js/components/Investment/AccountStrategyCard.vue  (NEW)
 resources/js/views/Investment/AccountPerformancePanel.vue

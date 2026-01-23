@@ -445,6 +445,7 @@
     <PropertyForm
       v-if="showPropertyForm"
       :property="editingProperty"
+      :user-address="userAddress"
       @close="closePropertyForm"
       @save="handlePropertySaved"
     />
@@ -516,6 +517,7 @@ import propertyService from '@/services/propertyService';
 import investmentService from '@/services/investmentService';
 import savingsService from '@/services/savingsService';
 import retirementService from '@/services/retirementService';
+import userProfileService from '@/services/userProfileService';
 
 export default {
   name: 'AssetsStep',
@@ -554,6 +556,7 @@ export default {
 
     const loading = ref(false);
     const error = ref(null);
+    const userAddress = ref(null);
 
     // Document upload state
     const showUploadModal = ref(false);
@@ -581,6 +584,7 @@ export default {
           loadProperties(),
           loadInvestments(),
           loadSavingsAccounts(),
+          loadUserAddress(),
         ]);
       } catch (err) {
         // Data loading errors are handled in individual methods
@@ -791,6 +795,22 @@ export default {
         savingsAccounts.value = response.data?.accounts || [];
       } catch (err) {
         // Savings loading failed silently - will show empty list
+      }
+    }
+
+    async function loadUserAddress() {
+      try {
+        const response = await userProfileService.getProfile();
+        const profile = response.data || response;
+        userAddress.value = {
+          address_line_1: profile.address_line_1 || '',
+          address_line_2: profile.address_line_2 || '',
+          city: profile.city || '',
+          county: profile.county || '',
+          postcode: profile.postcode || '',
+        };
+      } catch (err) {
+        // Address loading failed silently - auto-populate won't work
       }
     }
 
@@ -1042,6 +1062,7 @@ export default {
       // Common
       loading,
       error,
+      userAddress,
       handleNext,
       handleBack,
       handleSkip,

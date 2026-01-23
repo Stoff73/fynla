@@ -373,6 +373,9 @@ class InvestmentController extends Controller
             'platform_fee_amount' => 'nullable|numeric|min:0',
             'platform_fee_type' => ['nullable', Rule::in(['percentage', 'fixed'])],
             'platform_fee_frequency' => ['nullable', Rule::in(['monthly', 'quarterly', 'annually'])],
+            'ownership_type' => ['nullable', Rule::in(['individual', 'joint', 'trust'])],
+            'ownership_percentage' => 'nullable|numeric|min:0|max:100',
+            'joint_owner_id' => 'nullable|exists:users,id',
             'isa_type' => ['nullable', Rule::in(['stocks_and_shares', 'lifetime', 'innovative_finance'])],
             'isa_subscription_current_year' => 'nullable|numeric|min:0|max:20000',
         ]);
@@ -381,6 +384,9 @@ class InvestmentController extends Controller
         if ($this->isSharedOwnership($account) && $account->joint_owner_id && isset($validated['current_value'])) {
             $this->logJointAccountUpdate($user, $account, $validated);
         }
+
+        // Track old joint owner before update (for cache clearing if ownership changes)
+        $oldJointOwnerId = $account->joint_owner_id;
 
         // Single-record pattern: Update directly (no reciprocal update)
         $account->update($validated);
@@ -391,6 +397,11 @@ class InvestmentController extends Controller
         // If joint owner, clear their cache too
         if ($account->joint_owner_id) {
             $this->investmentAgent->clearCache($account->joint_owner_id);
+        }
+
+        // If old joint owner was removed, clear their cache too
+        if ($oldJointOwnerId && $oldJointOwnerId !== $account->joint_owner_id) {
+            $this->investmentAgent->clearCache($oldJointOwnerId);
         }
 
         // Add calculated fields to response

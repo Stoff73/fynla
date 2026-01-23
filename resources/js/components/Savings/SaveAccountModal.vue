@@ -525,6 +525,12 @@ export default {
         this.formData.ownership_type = 'individual';
         this.formData.joint_owner_id = null;
       }
+      // Auto-set access type based on product type
+      if (newType === 'notice') {
+        this.formData.access_type = 'notice';
+      } else if (newType === 'fixed') {
+        this.formData.access_type = 'fixed';
+      }
     },
   },
 

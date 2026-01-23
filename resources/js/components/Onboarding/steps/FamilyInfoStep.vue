@@ -62,7 +62,7 @@
                 <span class="text-orange-600">● Financially dependent</span>
               </p>
             </div>
-            <div class="flex gap-2 ml-4">
+            <div v-if="member.relationship !== 'spouse'" class="flex gap-2 ml-4">
               <button
                 type="button"
                 class="text-primary-600 hover:text-primary-700 text-body-sm"
@@ -77,6 +77,11 @@
               >
                 Delete
               </button>
+            </div>
+            <div v-else class="ml-4">
+              <p class="text-body-xs text-gray-500 italic max-w-[180px] text-right">
+                Linked account — edit or delete by logging into the spouse's account
+              </p>
             </div>
           </div>
         </div>

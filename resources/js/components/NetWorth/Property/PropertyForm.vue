@@ -1318,6 +1318,10 @@ export default {
       type: Object,
       default: null,
     },
+    userAddress: {
+      type: Object,
+      default: null,
+    },
   },
 
   data() {
@@ -1554,6 +1558,16 @@ export default {
         // If current step is the BTL step, move back to the previous step
         if (this.currentStep === this.stepMapping[5]) {
           this.currentStep = Math.max(1, this.currentStep - 1);
+        }
+      }
+      // Auto-populate address from user profile when main_residence is selected (new property only)
+      if (newVal === 'main_residence' && !this.property && this.userAddress) {
+        if (!this.form.address_line_1) {
+          this.form.address_line_1 = this.userAddress.address_line_1 || '';
+          this.form.address_line_2 = this.userAddress.address_line_2 || '';
+          this.form.city = this.userAddress.city || '';
+          this.form.county = this.userAddress.county || '';
+          this.form.postcode = this.userAddress.postcode || '';
         }
       }
     },
