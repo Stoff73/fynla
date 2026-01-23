@@ -24,6 +24,9 @@
 21. **BUG FIX**: Onboarding Health & Lifestyle fields no longer block step progress — empty dropdown values (empty strings) were failing MySQL enum validation. Backend now only includes `health_status`, `smoking_status`, `education_level` in the update when a valid value is selected.
 22. **UX**: Property form — Costs tab and BTL Details tab now show contextual info notes for shared ownership properties explaining that users should enter 100% of costs/rent, with specific split method (50/50 for joint, by ownership % for tenants in common).
 23. **BUG FIX**: Rental income for joint/tenants-in-common properties now correctly applies ownership percentage when calculating the user's share for the Income section. Previously took 100% of rental income regardless of ownership type. Fixed in both backend (`UserProfileService`) and frontend (`IncomeStep`).
+24. **UX**: Consistent button styling — Property form save button changed from green to blue matching investments; mortgage checkbox card styled green for visibility; Savings form buttons restyled to match investment AccountForm (smaller padding, bordered cancel button, right-aligned with Cancel/Submit order).
+25. **UX**: Removed National Insurance Number and Annual Income fields from the family member form — unnecessary at this level.
+26. **FIX**: Dashboard state pension line (£11,500/yr default) now only shows when user has entered at least one pension (DC, DB, or state). Previously showed for all users regardless. Also excluded from projected income calculation when no pensions exist.
 
 ---
 
@@ -67,6 +70,8 @@ resources/js/views/Retirement/RetirementReadiness.vue
 resources/js/views/NetWorth/CashOverview.vue
 resources/js/views/Savings/SavingsAccountDetailInline.vue
 resources/js/components/NetWorth/Property/PropertyForm.vue
+resources/js/components/UserProfile/FamilyMemberFormModal.vue
+resources/js/components/Dashboard/RetirementOverviewCard.vue
 resources/js/components/NetWorth/InvestmentDetailInline.vue
 resources/js/components/Investment/AccountStrategyCard.vue  (NEW)
 resources/js/views/Investment/AccountPerformancePanel.vue
