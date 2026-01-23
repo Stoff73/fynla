@@ -717,15 +717,13 @@ class UserProfileService
         }
 
         // 3. Investment Contributions
-        // Include accounts owned by user OR where user is the joint owner
-        $investmentAccounts = \App\Models\Investment\InvestmentAccount::where(function ($query) use ($user) {
-            $query->where('user_id', $user->id)
-                  ->orWhere('joint_owner_id', $user->id);
-        })->get();
+        $investmentAccounts = \App\Models\Investment\InvestmentAccount::where('user_id', $user->id)->get();
         foreach ($investmentAccounts as $account) {
-            $monthlyContribution = 0;
+            $isJoint = in_array($account->ownership_type, ['joint', 'tenants_in_common']);
+            $ownershipMultiplier = $isJoint ? (($account->ownership_percentage ?? 50) / 100) : 1;
 
-            // Regular contributions (convert to monthly if needed)
+            // Calculate monthly contribution based on frequency
+            $monthlyContribution = 0;
             if ($account->monthly_contribution_amount > 0) {
                 $monthlyContribution = match ($account->contribution_frequency) {
                     'quarterly' => $account->monthly_contribution_amount / 3,
@@ -734,36 +732,39 @@ class UserProfileService
                 };
             }
 
-            // Planned lump sum (spread over 12 months if within next year)
+            // Calculate monthly equivalent of planned lump sum (spread over 12 months if within current year)
+            $monthlyLumpSum = 0;
             if ($account->planned_lump_sum_amount > 0 && $account->planned_lump_sum_date) {
                 $lumpSumDate = \Carbon\Carbon::parse($account->planned_lump_sum_date);
                 $now = \Carbon\Carbon::now();
-                // Only include if lump sum is within the next 12 months
-                if ($lumpSumDate->isBetween($now, $now->copy()->addYear())) {
-                    $monthlyContribution += $account->planned_lump_sum_amount / 12;
+
+                // Only include if lump sum is planned within the next 12 months
+                if ($lumpSumDate->isFuture() && $lumpSumDate->diffInMonths($now) <= 12) {
+                    $monthsUntilLumpSum = max(1, $lumpSumDate->diffInMonths($now));
+                    $monthlyLumpSum = $account->planned_lump_sum_amount / $monthsUntilLumpSum;
                 }
             }
 
-            if ($monthlyContribution > 0) {
-                // Check joint ownership
-                $isJoint = in_array($account->ownership_type, ['joint', 'tenants_in_common']);
+            $totalMonthly = ($monthlyContribution + $monthlyLumpSum) * $ownershipMultiplier;
 
+            if ($totalMonthly > 0) {
                 // Apply ownership filter
                 if (! $this->shouldIncludeByOwnership($isJoint, $ownershipFilter)) {
                     continue;
                 }
 
-                // Apply ownership percentage for joint accounts
-                $ownershipMultiplier = $isJoint ? (($account->ownership_percentage ?? 50) / 100) : 1;
-                $displayAmount = $monthlyContribution * $ownershipMultiplier;
-
                 $commitments['investments'][] = [
                     'id' => $account->id,
-                    'name' => $account->account_name ?? 'Investment Account',
+                    'name' => $account->account_name ?? $account->provider ?? 'Investment Account',
                     'type' => $account->account_type ?? 'investment',
-                    'monthly_amount' => round($displayAmount, 2),
+                    'monthly_amount' => $totalMonthly,
+                    'breakdown' => [
+                        'regular_contribution' => $monthlyContribution * $ownershipMultiplier,
+                        'lump_sum_monthly' => $monthlyLumpSum * $ownershipMultiplier,
+                    ],
                     'is_joint' => $isJoint,
-                    'ownership_type' => $account->ownership_type ?? 'individual',
+                    'ownership_type' => $account->ownership_type,
+                    'ownership_percentage' => $isJoint ? ($account->ownership_percentage ?? 50) : 100,
                 ];
             }
         }

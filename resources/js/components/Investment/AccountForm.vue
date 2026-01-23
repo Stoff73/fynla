@@ -126,6 +126,76 @@
               <p class="mt-1 text-xs text-gray-500">Current total value of the account</p>
             </div>
 
+            <!-- Contributions Section -->
+            <div class="space-y-4 pt-4 border-t border-gray-200">
+              <h4 class="text-sm font-semibold text-gray-900">Regular Contributions</h4>
+
+              <!-- Monthly Contribution Amount and Frequency -->
+              <div>
+                <label for="monthly_contribution_amount" class="block text-sm font-medium text-gray-700 mb-1">
+                  Regular Contribution Amount (£)
+                </label>
+                <div class="flex gap-2">
+                  <div class="flex-1">
+                    <input
+                      id="monthly_contribution_amount"
+                      v-model.number="formData.monthly_contribution_amount"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div class="w-32">
+                    <select
+                      id="contribution_frequency"
+                      v-model="formData.contribution_frequency"
+                      class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="monthly">Monthly</option>
+                      <option value="quarterly">Quarterly</option>
+                      <option value="annually">Annually</option>
+                    </select>
+                  </div>
+                </div>
+                <p class="mt-1 text-xs text-gray-500">
+                  Regular contributions you make to this account
+                </p>
+              </div>
+
+              <!-- Planned Lump Sum -->
+              <div>
+                <label for="planned_lump_sum_amount" class="block text-sm font-medium text-gray-700 mb-1">
+                  Planned Lump Sum (£)
+                </label>
+                <div class="flex gap-2">
+                  <div class="flex-1">
+                    <input
+                      id="planned_lump_sum_amount"
+                      v-model.number="formData.planned_lump_sum_amount"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div class="w-40">
+                    <input
+                      id="planned_lump_sum_date"
+                      v-model="formData.planned_lump_sum_date"
+                      type="date"
+                      class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+                <p class="mt-1 text-xs text-gray-500">
+                  One-off contribution planned for this account (optional)
+                </p>
+              </div>
+            </div>
+
             <!-- Tax Year -->
             <div>
               <label for="tax_year" class="block text-sm font-medium text-gray-700 mb-1">
@@ -420,6 +490,10 @@ export default {
         current_value: null,
         tax_year: '2025/26',
         contributions_ytd: null,
+        monthly_contribution_amount: null,
+        contribution_frequency: 'monthly',
+        planned_lump_sum_amount: null,
+        planned_lump_sum_date: null,
         platform_fee_percent: null,
         platform_fee_amount: null,
         platform_fee_type: 'percentage',
@@ -548,6 +622,11 @@ export default {
             trust_id: newAccount.trust_id || null,
             platform_fee_type: newAccount.platform_fee_type || 'percentage',
             platform_fee_frequency: newAccount.platform_fee_frequency || 'annually',
+            // Contribution fields
+            monthly_contribution_amount: newAccount.monthly_contribution_amount || null,
+            contribution_frequency: newAccount.contribution_frequency || 'monthly',
+            planned_lump_sum_amount: newAccount.planned_lump_sum_amount || null,
+            planned_lump_sum_date: newAccount.planned_lump_sum_date || null,
           };
         } else {
           this.resetForm();
@@ -569,6 +648,11 @@ export default {
             risk_preference: this.account.risk_preference || null,
             platform_fee_type: this.account.platform_fee_type || 'percentage',
             platform_fee_frequency: this.account.platform_fee_frequency || 'annually',
+            // Contribution fields
+            monthly_contribution_amount: this.account.monthly_contribution_amount || null,
+            contribution_frequency: this.account.contribution_frequency || 'monthly',
+            planned_lump_sum_amount: this.account.planned_lump_sum_amount || null,
+            planned_lump_sum_date: this.account.planned_lump_sum_date || null,
           };
         }
         this.errors = {};
@@ -747,6 +831,10 @@ export default {
         current_value: null,
         tax_year: '2025/26',
         contributions_ytd: null,
+        monthly_contribution_amount: null,
+        contribution_frequency: 'monthly',
+        planned_lump_sum_amount: null,
+        planned_lump_sum_date: null,
         platform_fee_percent: null,
         platform_fee_amount: null,
         platform_fee_type: 'percentage',
