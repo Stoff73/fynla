@@ -27,7 +27,7 @@
           <span class="text-sm text-gray-600">Guaranteed Income</span>
           <span class="text-sm font-semibold text-gray-900">{{ formatCurrency(dbPensionIncome) }}/yr</span>
         </div>
-        <div class="flex justify-between items-center">
+        <div v-if="hasPensions" class="flex justify-between items-center">
           <span class="text-sm text-gray-600">State Pension</span>
           <span class="text-sm font-semibold text-gray-900">{{ formatCurrency(statePensionIncome) }}/yr</span>
         </div>
@@ -152,8 +152,18 @@ export default {
       }, 0);
     },
 
+    // Whether user has entered any pension data
+    hasPensions() {
+      const hasDC = this.dcPensions && this.dcPensions.length > 0;
+      const hasDB = this.dbPensions && this.dbPensions.length > 0;
+      const hasState = !!this.statePension;
+      return hasDC || hasDB || hasState;
+    },
+
     // State pension - use configured amount or default to full UK state pension
+    // Only returns a value if user has entered pension data
     statePensionIncome() {
+      if (!this.hasPensions) return 0;
       const configured = parseFloat(this.statePension?.annual_amount || 0);
       return configured > 0 ? configured : DEFAULT_STATE_PENSION;
     },
