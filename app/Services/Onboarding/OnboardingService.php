@@ -172,7 +172,7 @@ class OnboardingService
         $user = User::findOrFail($userId);
 
         // Update user personal information fields
-        $user->update([
+        $updateData = [
             'date_of_birth' => $data['date_of_birth'] ?? null,
             'gender' => $data['gender'] ?? null,
             'marital_status' => $data['marital_status'] ?? null,
@@ -183,10 +183,20 @@ class OnboardingService
             'county' => $data['county'] ?? null,
             'postcode' => $data['postcode'] ?? null,
             'phone' => $data['phone'] ?? null,
-            'health_status' => $data['health_status'] ?? null,
-            'smoking_status' => $data['smoking_status'] ?? null,
-            'education_level' => $data['education_level'] ?? null,
-        ]);
+        ];
+
+        // Only include health/lifestyle fields if a valid value was selected
+        if (! empty($data['health_status'])) {
+            $updateData['health_status'] = $data['health_status'];
+        }
+        if (! empty($data['smoking_status'])) {
+            $updateData['smoking_status'] = $data['smoking_status'];
+        }
+        if (! empty($data['education_level'])) {
+            $updateData['education_level'] = $data['education_level'];
+        }
+
+        $user->update($updateData);
     }
 
     /**
