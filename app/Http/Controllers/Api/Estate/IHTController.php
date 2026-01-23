@@ -198,6 +198,7 @@ class IHTController extends Controller
                     'projected_value' => $projectedValue,
                     'is_joint' => $isJoint,
                     'ownership_type' => $asset->ownership_type,
+                    'ownership_percentage' => $asset->ownership_percentage ?? 100,
                 ];
                 $userAssetsTotal += $displayValue;
                 $userAssetsProjectedTotal += $projectedValue;
@@ -248,6 +249,7 @@ class IHTController extends Controller
                         'projected_value' => $projectedValue,
                         'is_joint' => $isJoint,
                         'ownership_type' => $asset->ownership_type,
+                        'ownership_percentage' => $asset->ownership_percentage ?? 100,
                     ];
                     $spouseAssetsTotal += $displayValue;
                     $spouseAssetsProjectedTotal += $projectedValue;
