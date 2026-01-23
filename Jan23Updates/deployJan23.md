@@ -17,6 +17,7 @@
 14. **BUG FIX**: Fixed (£) platform fees now display correctly across all fee cards, cost breakdowns, projections, and strategy recommendations (previously only percentage fees were shown)
 15. **BUG FIX**: Editing an investment account now stays on the detail view (instead of navigating back to dashboard) and the fee card refreshes with updated data
 16. **BUG FIX**: Backend FeeAnalyzer now calculates fixed (£) platform fees correctly for portfolio-level "Review Platform Fees" recommendation trigger
+17. **FIX**: Consistent form scroll behaviour — all form modals now use `max-h-[90vh] overflow-y-auto` on the modal panel with buttons inside the scroll container. Removed sticky footers, moved scroll from inner divs to modal level, and fixed `overflow-hidden` clipping buttons. 16 forms standardised across all modules.
 
 ---
 
@@ -34,8 +35,22 @@ Vue components were modified.
 
 ```
 resources/js/components/Investment/AccountForm.vue
-resources/js/components/NetWorth/InvestmentDetailInline.vue
 resources/js/components/Investment/HoldingForm.vue
+resources/js/components/Investment/GoalForm.vue
+resources/js/components/NetWorth/Property/PropertyForm.vue
+resources/js/components/NetWorth/BusinessInterestForm.vue
+resources/js/components/NetWorth/ChattelFormModal.vue
+resources/js/components/Protection/PolicyFormModal.vue
+resources/js/components/Savings/SaveAccountModal.vue
+resources/js/components/Savings/SaveGoalModal.vue
+resources/js/components/Goals/GoalFormModal.vue
+resources/js/components/Goals/ContributionModal.vue
+resources/js/components/Estate/AssetsLiabilities.vue
+resources/js/components/Shared/DocumentUploadModal.vue
+resources/js/components/Admin/UserFormModal.vue
+resources/js/components/UserProfile/FamilyMemberFormModal.vue
+resources/js/components/Auth/ChangePasswordModal.vue
+resources/js/components/NetWorth/InvestmentDetailInline.vue
 resources/js/components/Investment/AccountStrategyCard.vue  (NEW)
 resources/js/views/Investment/AccountPerformancePanel.vue
 resources/js/views/Investment/AccountFeesPanel.vue

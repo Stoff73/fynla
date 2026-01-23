@@ -12,7 +12,7 @@
 
       <!-- Modal panel -->
       <div
-        class="relative inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full"
+        class="relative inline-block align-bottom bg-white rounded-lg text-left shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full max-h-[90vh] overflow-y-auto"
       >
         <!-- Header -->
         <div class="bg-white px-6 pt-6">
@@ -38,7 +38,7 @@
 
         <!-- Form -->
         <form @submit.prevent="handleSubmit" class="px-6 pb-6">
-          <div class="space-y-4 max-h-[calc(100vh-300px)] overflow-y-auto pr-2">
+          <div class="space-y-4 pr-2">
             <!-- Institution -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">

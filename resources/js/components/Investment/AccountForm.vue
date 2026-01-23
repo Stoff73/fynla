@@ -5,7 +5,7 @@
       <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" @click="closeModal"></div>
 
       <!-- Modal panel -->
-      <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+      <div class="inline-block align-bottom bg-white rounded-lg text-left shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full max-h-[90vh] overflow-y-auto">
         <!-- Header -->
         <div class="bg-white px-6 py-4 border-b border-gray-200">
           <div class="flex justify-between items-center">
@@ -25,7 +25,7 @@
 
         <!-- Form -->
         <form @submit.prevent="submitForm">
-          <div class="bg-white px-6 py-4 space-y-4 max-h-[70vh] overflow-y-auto">
+          <div class="bg-white px-6 py-4 space-y-4">
             <!-- Account Type -->
             <div>
               <label for="account_type" class="block text-sm font-medium text-gray-700 mb-1">
