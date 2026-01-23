@@ -938,8 +938,11 @@
             <h4 class="text-lg font-semibold text-gray-800 mb-4">Monthly Costs</h4>
 
             <!-- Shared ownership note -->
-            <p v-if="(form.ownership_type === 'joint' || form.ownership_type === 'tenants_in_common') && form.joint_owner_id" class="text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg p-3">
-              <strong>Note:</strong> Enter 100% of all property costs. The system will automatically calculate your share ({{ form.ownership_percentage }}%) based on your ownership percentage.
+            <p v-if="form.ownership_type === 'joint'" class="text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <strong>Note:</strong> Enter 100% of all property costs. These will be shared 50/50 between you and your joint owner.
+            </p>
+            <p v-else-if="form.ownership_type === 'tenants_in_common'" class="text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <strong>Note:</strong> Enter 100% of all property costs. These will be split by your ownership percentage ({{ form.ownership_percentage }}%).
             </p>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1102,6 +1105,14 @@
           <!-- Step 5: BTL Details (Conditional - only if property_type is buy_to_let) -->
           <div v-if="form.property_type === 'buy_to_let'" v-show="currentStep === stepMapping[5]" class="space-y-4">
             <h4 class="text-lg font-semibold text-gray-800 mb-4">Buy to Let Details</h4>
+
+            <!-- Shared ownership note for rental income -->
+            <p v-if="form.ownership_type === 'joint'" class="text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <strong>Note:</strong> Enter 100% of the rental income. This will be shared 50/50 between you and your joint owner.
+            </p>
+            <p v-else-if="form.ownership_type === 'tenants_in_common'" class="text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <strong>Note:</strong> Enter 100% of the rental income. This will be split by your ownership percentage ({{ form.ownership_percentage }}%).
+            </p>
 
             <div class="space-y-4">
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
