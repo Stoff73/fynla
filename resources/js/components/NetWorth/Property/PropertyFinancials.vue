@@ -82,10 +82,10 @@
           </div>
         </div>
 
-        <div v-if="property.property_type === 'buy_to_let' && (parseFloat(property.managing_agent_fee) || 0) > 0">
+        <div v-if="property.property_type === 'buy_to_let'">
           <label class="block text-sm font-medium text-gray-700 mb-1">Management Agent Fee (£/month)</label>
           <div class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-gray-700">
-            {{ formatCurrency(property.managing_agent_fee) }}
+            {{ (parseFloat(property.managing_agent_fee) || 0) > 0 ? formatCurrency(property.managing_agent_fee) : 'Not set' }}
           </div>
         </div>
       </div>
