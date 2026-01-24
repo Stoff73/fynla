@@ -38,6 +38,7 @@
 35. **UX**: All risk factor detail views — concise with source data, formula-style calculations, compact thresholds
 36. **BUG FIX**: Goals module — all modal buttons unclickable due to CSS z-stacking (fixed backdrop intercepting clicks). Added `relative z-10` to modal panels in GoalFormModal, ContributionModal, and delete modal. Also added form validation error messages and changed submit button to `type="submit"`.
 37. **BUG FIX**: Goals module — goals with 0% progress incorrectly showing "On track" status. Backend `is_on_track` now returns `false` when `current_amount <= 0`. Frontend adds "Not started" (gray) state distinct from "Behind" (orange) across GoalsOverview, GoalsByModule, and GoalCard.
+38. **FIX**: Pension strategies — now show retirement age and years-to-retirement used in calculations. Each strategy description references the growth period. Context banner shows "Retirement age X · Y years of growth". Income target description no longer hardcodes "age 68". Default retirement age changed from 65 to 68 across both services. If user has no DOB, strategies return amber "Date of Birth Required" message instead of calculating.
 
 ---
 
@@ -86,6 +87,11 @@ app/Services/Goals/GoalProgressService.php
 resources/js/components/Goals/GoalsOverview.vue
 resources/js/components/Goals/GoalsByModule.vue
 resources/js/components/Goals/GoalCard.vue
+app/Services/Retirement/RetirementStrategyService.php
+app/Services/Retirement/RetirementProjectionService.php
+resources/js/components/Retirement/StrategiesTab.vue
+resources/js/components/Retirement/StrategyCard.vue
+resources/js/components/NetWorth/PensionList.vue
 ```
 
 ---
@@ -205,3 +211,25 @@ php artisan migrate --force && php artisan cache:clear
 3. **`BaseAgent.php`** — older version on server was missing `clearUserCache()`, causing `Call to undefined method` fatal error after goal creation
 
 These fixes are included in the files listed above.
+
+---
+
+## To Upload (Item 38 — Pension Strategies)
+
+### Backend (PHP)
+```
+app/Services/Retirement/RetirementStrategyService.php
+app/Services/Retirement/RetirementProjectionService.php
+```
+
+### Frontend
+```
+public/build/  (entire folder)
+```
+
+### Post-Deployment
+```bash
+php artisan cache:clear
+```
+
+- No migrations required — backend change only adds data to existing API response

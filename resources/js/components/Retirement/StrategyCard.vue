@@ -18,6 +18,14 @@
 
     <p class="description">{{ strategy.description }}</p>
 
+    <!-- Retirement Age Context -->
+    <div v-if="strategy.retirement_age && strategy.type !== 'retirement_age'" class="strategy-context">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="context-icon-sm">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <span>{{ strategy.years_to_retirement }} years of growth to age {{ strategy.retirement_age }}</span>
+    </div>
+
     <!-- Slider Control -->
     <div class="slider-section">
       <div class="slider-header">
@@ -489,8 +497,23 @@ export default {
 .description {
   font-size: 14px;
   color: #6b7280;
-  margin: 0 0 20px 0;
+  margin: 0 0 12px 0;
   line-height: 1.5;
+}
+
+.strategy-context {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #15803d;
+  margin: 0 0 20px 0;
+}
+
+.context-icon-sm {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
 }
 
 /* Slider Section */

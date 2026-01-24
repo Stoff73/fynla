@@ -379,3 +379,71 @@ Added ownership fields to UpdateSavingsAccountRequest validation rules.
 ## FEATURE-009: Spouse Account Non-Editable in Family Section
 Spouse accounts could be edited/deleted from primary user's account.
 Removed edit/delete buttons for spouse members, added info message about linked account access.
+
+---
+
+# 24 January 2026
+
+## FEATURE-010: BTL Management Agent Tab & Fee Integration
+BTL properties had no way to show managing agent details or include agent fee in cost calculations.
+Added Management Agent tab with agent info, integrated fee into net rental yield and Expenditure tab.
+
+## CLEANUP-001: Remove Dead PropertyDetail.vue Component
+`PropertyDetail.vue` was a standalone route component never navigated to — app uses `PropertyDetailInline.vue`.
+Deleted component and removed unused `/property/:id` route.
+
+## BUG-026: Expenditure Property Costs Not Individually Itemised
+Property costs in Expenditure were grouped (utilities, insurance) and missing management agent fee.
+Split into individual items (gas, electricity, water, building insurance, contents insurance, management agent).
+
+## BUG-027: Spouse Expenditure Using Wrong Ownership Percentage for Joint Properties
+Spouse Expenditure tab applied primary owner's percentage to both users for joint/TiC properties.
+Fixed to invert percentage for the joint owner (e.g. 70/30 split now shows 30% for spouse).
+
+## BUG-028: Spouse Expenditure Tab Missing Individual Cost Breakdown Items
+Spouse tab only showed mortgage and council tax despite correct totals.
+Updated spouse template to use new individual breakdown keys matching user tab.
+
+## BUG-029: Mortgage Tab Co-Owner Dropdown Not Defaulting from Ownership Tab
+Mortgage tab co-owner dropdown was empty despite ownership tab having a co-owner selected.
+Fixed watchers to sync `mortgageJointOwnerSelection` when ownership tab values change.
+
+## FEATURE-011: Management Agent Tab Visibility and Tab Order
+Management Agent tab was always visible and positioned after Financials.
+Moved between Mortgage and Financials; hidden when no agent data exists.
+
+## BUG-030: Financials Tab Management Agent Fee Hidden When No Fee Set
+Management Agent Fee field was hidden when no fee entered, leaving no reminder for BTL users.
+Changed to always show for BTL properties with "Not set" placeholder when empty.
+
+## BUG-031: BTL Rental Income Analysis — Net Income & Section 24 Tax Credit
+BTL Financials mixed full property and share figures, had no Section 24 tax credit calculation.
+Restructured into cash flow breakdown + tax position box with Section 24 credit. Added interest portion field, per-property rental breakdown in Tax & NI card, and Learning Centre guide.
+
+## BUG-032: Dead Code Removal — Unused Questionnaire-Based Risk Profiling System
+Questionnaire-based risk profiling (System 3) was never connected to any UI.
+Removed controller, 3 service classes, 6 API routes, and 5 dead frontend methods.
+
+## BUG-033: Capacity for Loss — Rework Thresholds & Detail View
+Capacity for Loss used only 3 threshold levels with no actual calculation values shown.
+Updated to 4 levels (HIGH/MEDIUM/MEDIUM-LOW/LOW), detail view shows formula with £ values, spectrum updated to 4 zones.
+
+## BUG-034: Risk Factor Detail Views — Concise With Source Data
+Risk factor detail views were verbose with generic cards and no actual data shown.
+Each factor now shows concise formula/source values, compact thresholds with "You are here" highlight.
+
+## BUG-035: Goals Module — Modal Buttons Unclickable (CSS z-stacking)
+All goal modal buttons unclickable due to backdrop overlay intercepting click events.
+Added `relative z-10` to modal panels, changed submit to `type="submit"`, added validation messages.
+
+## BUG-036: Goals Module — "On Track" Shown With 0% Progress
+Goals with no contributions showed green "On track" status due to tolerance margin edge case.
+Backend returns false when `current_amount <= 0`. Frontend adds gray "Not started" state.
+
+## BUG-037: Goals Module — Production 500 Error on Goal Creation
+Goal creation returned 500 despite goal being persisted — stale `BaseAgent.php` missing `clearUserCache()`.
+Changed catch to `\Throwable`, added `$goal->fresh()`, uploaded current BaseAgent to server.
+
+## BUG-038: Pension Strategies Not Showing Retirement Age or Growth Period
+Pension strategies didn't show which retirement age or years-to-retirement were used in calculations.
+Each strategy now shows age/years context. Default changed from 65 to 68. DOB-required guard added with amber UI state.

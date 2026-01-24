@@ -26,6 +26,18 @@
       <button class="retry-button" @click="fetchStrategies">Try Again</button>
     </div>
 
+    <!-- Requires DOB -->
+    <div v-else-if="requiresDob" class="dob-required">
+      <div class="dob-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+        </svg>
+      </div>
+      <h3>Date of Birth Required</h3>
+      <p class="dob-message">Please enter your date of birth in your profile to calculate pension strategies.</p>
+      <p class="dob-subtitle">Your date of birth is needed to calculate years to retirement and project investment growth.</p>
+    </div>
+
     <!-- On Track Banner -->
     <div v-else-if="isOnTrack" class="on-track-banner">
       <div class="on-track-icon">
@@ -40,6 +52,20 @@
 
     <!-- Strategies Content -->
     <template v-else-if="strategies">
+      <!-- Retirement Age Context -->
+      <div class="retirement-context">
+        <div class="context-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <div class="context-text">
+          <span class="context-label">Retirement age {{ retirementAge }}</span>
+          <span class="context-separator">&middot;</span>
+          <span class="context-detail">{{ yearsToRetirement }} years of growth</span>
+        </div>
+      </div>
+
       <!-- Summary Cards -->
       <div class="summary-grid-2">
         <!-- Affordability Card -->
@@ -132,6 +158,18 @@ export default {
 
     loading() {
       return this.strategiesLoading;
+    },
+
+    requiresDob() {
+      return this.strategies?.requires_dob === true;
+    },
+
+    retirementAge() {
+      return this.strategies?.current_status?.retirement_age || 68;
+    },
+
+    yearsToRetirement() {
+      return this.strategies?.current_status?.years_to_retirement || 0;
     },
 
     currentProbability() {
@@ -372,6 +410,97 @@ export default {
   max-width: 500px;
   margin-left: auto;
   margin-right: auto;
+}
+
+/* DOB Required */
+.dob-required {
+  text-align: center;
+  padding: 60px 40px;
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border-radius: 16px;
+  border: 2px solid #fde68a;
+}
+
+.dob-icon {
+  width: 72px;
+  height: 72px;
+  background: #f59e0b;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 24px;
+}
+
+.dob-icon svg {
+  width: 40px;
+  height: 40px;
+  color: white;
+}
+
+.dob-required h3 {
+  font-size: 22px;
+  font-weight: 700;
+  color: #92400e;
+  margin: 0 0 12px 0;
+}
+
+.dob-message {
+  font-size: 16px;
+  color: #b45309;
+  margin: 0 0 8px 0;
+  font-weight: 500;
+}
+
+.dob-subtitle {
+  font-size: 14px;
+  color: #d97706;
+  margin: 0;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Retirement Context */
+.retirement-context {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.context-icon {
+  flex-shrink: 0;
+}
+
+.context-icon svg {
+  width: 20px;
+  height: 20px;
+  color: #16a34a;
+}
+
+.context-text {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.context-label {
+  font-weight: 600;
+  color: #166534;
+}
+
+.context-separator {
+  color: #86efac;
+}
+
+.context-detail {
+  color: #15803d;
 }
 
 /* Summary Cards */
