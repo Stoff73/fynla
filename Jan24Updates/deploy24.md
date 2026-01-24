@@ -36,6 +36,7 @@
 33. **CLEANUP**: Removed unused questionnaire-based risk profiling system (System 3) — `RiskProfileController`, `RiskProfiler`, `RiskQuestionnaire`, `CapacityForLossAnalyzer`, 6 API routes, and 5 dead frontend methods. App uses only auto-calculator (7-factor) and self-assessment systems.
 34. **REWORK**: Capacity for Loss — 4 threshold levels (was 3), detail view shows formula with actual £ values, spectrum updated to 4 zones, factor breakdown recalculated live
 35. **UX**: All risk factor detail views — concise with source data, formula-style calculations, compact thresholds
+36. **BUG FIX**: Goals module — all modal buttons unclickable due to CSS z-stacking (fixed backdrop intercepting clicks). Added `relative z-10` to modal panels in GoalFormModal, ContributionModal, and delete modal. Also added form validation error messages and changed submit button to `type="submit"`.
 
 ---
 
@@ -76,6 +77,9 @@ app/Http/Controllers/Api/Investment/RiskProfileController.php  (DELETED)
 app/Services/Investment/RiskProfile/RiskProfiler.php  (DELETED)
 app/Services/Investment/RiskProfile/RiskQuestionnaire.php  (DELETED)
 app/Services/Investment/RiskProfile/CapacityForLossAnalyzer.php  (DELETED)
+resources/js/components/Goals/GoalFormModal.vue
+resources/js/components/Goals/ContributionModal.vue
+resources/js/views/Goals/GoalsDashboard.vue
 ```
 
 ---
