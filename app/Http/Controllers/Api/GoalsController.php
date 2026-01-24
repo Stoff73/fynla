@@ -145,12 +145,15 @@ class GoalsController extends Controller
             // Clear cache
             $this->goalsAgent->clearCache($user->id);
 
+            // Refresh to ensure casts are applied for serialization
+            $goal = $goal->fresh();
+
             return response()->json([
                 'success' => true,
                 'message' => 'Goal created successfully.',
                 'data' => $goal,
             ], 201);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return $this->errorResponse($e, 'Create goal', 500, ['user_id' => $user->id]);
         }
     }

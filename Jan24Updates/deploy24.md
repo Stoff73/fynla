@@ -161,3 +161,47 @@ php artisan migrate --force && php artisan cache:clear
 ```
 
 - Migration makes `factor_breakdown` column nullable on `risk_profiles` table
+
+---
+
+## To Upload (Items 36-37 — Goals Module)
+
+### Backend (PHP)
+```
+app/Http/Controllers/Api/GoalsController.php
+app/Agents/GoalsAgent.php
+app/Agents/BaseAgent.php
+app/Services/Goals/GoalAssignmentService.php
+app/Services/Goals/GoalAffordabilityService.php
+app/Services/Goals/GoalProgressService.php
+app/Services/Goals/GoalRiskService.php
+app/Http/Requests/Goals/StoreGoalRequest.php
+app/Http/Requests/Goals/UpdateGoalRequest.php
+app/Models/Goal.php
+app/Models/GoalContribution.php
+database/migrations/2026_01_24_160001_create_goals_table_v2.php
+database/migrations/2026_01_24_160002_create_goal_contributions_table_v2.php
+```
+
+### Frontend
+```
+public/build/  (entire folder)
+```
+
+### Post-Deployment
+```bash
+php artisan migrate --force && php artisan cache:clear
+```
+
+- Migrations create `goals` and `goal_contributions` tables
+- `BaseAgent.php` required — contains `clearUserCache()` method called by `GoalsAgent::clearCache()`
+
+### Production Bug Fix (during deployment)
+
+`GoalsController.php` was further patched after initial upload:
+
+1. **`catch (\Throwable $e)`** — changed from `\Exception` to catch PHP Errors (TypeError etc.) that bypass Exception handling
+2. **`$goal->fresh()`** — re-fetches model from DB before JSON response to ensure `$appends` attributes are properly calculated
+3. **`BaseAgent.php`** — older version on server was missing `clearUserCache()`, causing `Call to undefined method` fatal error after goal creation
+
+These fixes are included in the files listed above.

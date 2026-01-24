@@ -588,3 +588,24 @@ Also changed the Create Goal button to `type="submit"` and added inline validati
 - `GoalsOverview.vue`: Helper methods `isNotStarted()`, `getGoalStatusDotClass()`, `getGoalStatusLabel()`, `getGoalProgressBarClass()`
 - `GoalsByModule.vue`: Same pattern with `getProgressTextClass()`, `getProgressBarClass()`, `getStatusBadgeClass()`, `getStatusDotClass()`, `getStatusLabel()`
 - `GoalCard.vue`: `isNotStarted` computed property, updated all status/progress computed properties
+
+### Production 500 error — Goal creation fails silently
+
+**Root Cause:** Three layered issues discovered during production deployment:
+
+1. **`catch (\Exception)` not catching PHP Errors:** The controller caught `\Exception` but PHP `\Error` types (TypeError etc.) bypass this. The real error occurred after `Goal::create()` succeeded, so the goal was persisted but the 500 response made the frontend think it failed.
+
+2. **Missing `BaseAgent::clearUserCache()` on server:** `GoalsController::store()` → `$this->goalsAgent->clearCache($userId)` → `$this->clearUserCache($userId)`. The `BaseAgent.php` on production was an older version without this method. Server log: `Call to undefined method App\Agents\GoalsAgent::clearUserCache()`.
+
+3. **Model serialization before refresh:** `Goal::create()` returns a model instance without properly calculated `$appends` attributes (progress_percentage, days_remaining, etc.). Needed `$goal->fresh()` before JSON response.
+
+**Fix (Backend):**
+- `GoalsController.php`: Changed `catch (\Exception $e)` → `catch (\Throwable $e)`
+- `GoalsController.php`: Added `$goal = $goal->fresh()` before response
+- `BaseAgent.php`: Uploaded current version to production (contains `clearUserCache()` method)
+
+**Debugging trace:**
+1. "Internal server error" → exception bypassed controller's catch block
+2. Changed to `\Throwable` → error now caught, response: "Create goal failed..."
+3. Server logs → `Call to undefined method App\Agents\GoalsAgent::clearUserCache()`
+4. Fix: Upload `BaseAgent.php` with the `clearUserCache()` method
