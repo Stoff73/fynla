@@ -21,8 +21,17 @@
 18. **NEW**: Amber reminder when repayment/mixed mortgage has no interest portion entered
 19. **NEW**: Learning Centre — Section 24 educational content added to Tax Planning category (before/after, 3-step process, mortgage type table, tax band impact, worked example)
 20. **NEW**: UK Tax & NI card now shows per-property rental income breakdown (property names with individual taxable amounts)
-21. **NEW**: Section 24 tax credit applied to income tax calculation — shown as credit reducing tax payable in summary card
+21. **NEW**: Section 24 tax credit applied to income tax calculation — Earned Income card shows Tax Payable subtotal → Section 24 credit → Tax Payable After Credit flow; TaxSummaryCard removed (info now inline)
 22. **REFACTOR**: PropertyFinancials tax section now uses API-returned `tax_position` (single source of truth from `PropertyService::calculateTaxPosition()`)
+23. **UX**: Monthly Costs section restyled to match Rental Income Analysis format — simple list rows, no grid/cards, totals inline
+24. **FIX**: Removed double border lines between last cost item and totals in both Monthly Costs and Rental Income Analysis sections
+25. **UX**: Running Costs and Mortgage Payment labels now show ownership percentage for shared properties (e.g. "Less: Running Costs (70%):") for clarity
+26. **UX**: Monthly Costs and Rental Income Analysis cards now side-by-side (2-column grid) on BTL properties for better use of space
+27. **UX**: Sidebar auto-collapses on property section for more screen width
+28. **CLEANUP**: Removed summary cards (Your Rental Income, Net Rental Income, Net Rental Yield) from top of Rental Income Analysis — info already in cash flow breakdown
+29. **CLEANUP**: Removed Equity card from property detail header — header now shows Full Property Value, Your Share, Mortgage Balance (+ Net Rental Yield for BTL)
+30. **CLEANUP**: Removed Financial Summary section from bottom of Financials tab — duplicated info already in header
+31. **CLEANUP**: Removed redundant `<h3>` headings from Management Agent and Financials tabs — tab labels already identify content
 
 ---
 
@@ -46,6 +55,7 @@ app/Models/Mortgage.php
 app/Http/Requests/StoreMortgageRequest.php
 app/Http/Requests/UpdateMortgageRequest.php
 database/migrations/2026_01_24_091552_add_monthly_interest_portion_to_mortgages_table.php (NEW)
+resources/js/views/NetWorth/NetWorthDashboard.vue
 resources/js/components/NetWorth/Property/PropertyDetailInline.vue
 resources/js/components/NetWorth/Property/PropertyFinancials.vue
 resources/js/components/NetWorth/Property/PropertyForm.vue

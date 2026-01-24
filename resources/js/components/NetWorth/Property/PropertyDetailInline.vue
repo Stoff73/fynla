@@ -66,10 +66,6 @@
             <p class="text-2xl font-bold text-gray-900">{{ formatCurrency(calculateUserPropertyShare()) }}</p>
           </div>
           <div class="bg-gray-50 rounded-lg p-4">
-            <p class="text-sm text-gray-600">Equity</p>
-            <p class="text-2xl font-bold text-green-600">{{ formatCurrency(property.equity || 0) }}</p>
-          </div>
-          <div class="bg-gray-50 rounded-lg p-4">
             <p class="text-sm text-gray-600">Mortgage Balance</p>
             <p class="text-2xl font-bold text-gray-900">{{ formatCurrency(mortgageBalance) }}</p>
           </div>
@@ -393,8 +389,6 @@
 
           <!-- Management Agent Tab -->
           <div v-show="activeTab === 'management_agent'" class="space-y-6">
-            <h3 class="text-lg font-semibold text-gray-800">Management Agent</h3>
-
             <div v-if="!hasManagingAgentData" class="text-center py-8 text-gray-500">
               <p>No management agent details recorded for this property.</p>
               <p class="text-sm mt-2">Click "Edit" to add management agent details.</p>

@@ -1,7 +1,6 @@
 <template>
   <div class="space-y-6">
-    <h3 class="text-lg font-semibold text-gray-800">Property Financials</h3>
-
+    <div :class="property.property_type === 'buy_to_let' ? 'grid grid-cols-1 lg:grid-cols-2 gap-6' : ''">
     <!-- Monthly Costs -->
     <div class="bg-white border border-gray-200 rounded-lg p-6">
       <div class="mb-4">
@@ -12,62 +11,62 @@
       </div>
 
       <dl class="space-y-2">
-        <div v-if="monthlyMortgagePayments > 0" class="flex justify-between py-2 border-b border-gray-100">
+        <div v-if="monthlyMortgagePayments > 0" class="flex justify-between py-2">
           <dt class="text-sm text-gray-600">Mortgage Payment:</dt>
           <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(monthlyMortgagePayments) }}</dd>
         </div>
 
-        <div v-if="property.monthly_council_tax > 0" class="flex justify-between py-2 border-b border-gray-100">
+        <div v-if="property.monthly_council_tax > 0" class="flex justify-between py-2">
           <dt class="text-sm text-gray-600">Council Tax:</dt>
           <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(property.monthly_council_tax) }}</dd>
         </div>
 
-        <div v-if="property.monthly_gas > 0" class="flex justify-between py-2 border-b border-gray-100">
+        <div v-if="property.monthly_gas > 0" class="flex justify-between py-2">
           <dt class="text-sm text-gray-600">Gas:</dt>
           <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(property.monthly_gas) }}</dd>
         </div>
 
-        <div v-if="property.monthly_electricity > 0" class="flex justify-between py-2 border-b border-gray-100">
+        <div v-if="property.monthly_electricity > 0" class="flex justify-between py-2">
           <dt class="text-sm text-gray-600">Electricity:</dt>
           <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(property.monthly_electricity) }}</dd>
         </div>
 
-        <div v-if="property.monthly_water > 0" class="flex justify-between py-2 border-b border-gray-100">
+        <div v-if="property.monthly_water > 0" class="flex justify-between py-2">
           <dt class="text-sm text-gray-600">Water:</dt>
           <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(property.monthly_water) }}</dd>
         </div>
 
-        <div v-if="property.monthly_building_insurance > 0" class="flex justify-between py-2 border-b border-gray-100">
+        <div v-if="property.monthly_building_insurance > 0" class="flex justify-between py-2">
           <dt class="text-sm text-gray-600">Building Insurance:</dt>
           <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(property.monthly_building_insurance) }}</dd>
         </div>
 
-        <div v-if="property.monthly_contents_insurance > 0" class="flex justify-between py-2 border-b border-gray-100">
+        <div v-if="property.monthly_contents_insurance > 0" class="flex justify-between py-2">
           <dt class="text-sm text-gray-600">Contents Insurance:</dt>
           <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(property.monthly_contents_insurance) }}</dd>
         </div>
 
-        <div v-if="property.monthly_service_charge > 0" class="flex justify-between py-2 border-b border-gray-100">
+        <div v-if="property.monthly_service_charge > 0" class="flex justify-between py-2">
           <dt class="text-sm text-gray-600">Service Charge:</dt>
           <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(property.monthly_service_charge) }}</dd>
         </div>
 
-        <div v-if="property.monthly_maintenance_reserve > 0" class="flex justify-between py-2 border-b border-gray-100">
+        <div v-if="property.monthly_maintenance_reserve > 0" class="flex justify-between py-2">
           <dt class="text-sm text-gray-600">Maintenance Reserve:</dt>
           <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(property.monthly_maintenance_reserve) }}</dd>
         </div>
 
-        <div v-if="property.other_monthly_costs > 0" class="flex justify-between py-2 border-b border-gray-100">
+        <div v-if="property.other_monthly_costs > 0" class="flex justify-between py-2">
           <dt class="text-sm text-gray-600">Other Costs:</dt>
           <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(property.other_monthly_costs) }}</dd>
         </div>
 
-        <div v-if="property.property_type === 'buy_to_let'" class="flex justify-between py-2 border-b border-gray-100">
+        <div v-if="property.property_type === 'buy_to_let'" class="flex justify-between py-2">
           <dt class="text-sm text-gray-600">Management Agent Fee:</dt>
           <dd class="text-sm font-medium text-gray-900">{{ (parseFloat(property.managing_agent_fee) || 0) > 0 ? formatCurrency(property.managing_agent_fee) : 'Not set' }}</dd>
         </div>
 
-        <div class="flex justify-between py-3 border-t-2 border-gray-300 mt-2">
+        <div class="flex justify-between py-3 border-t-2 border-gray-300">
           <dt class="text-base font-semibold text-gray-700">Total Monthly Costs:</dt>
           <dd class="text-base font-bold text-gray-900">{{ formatCurrency(totalMonthlyCosts) }}</dd>
         </div>
@@ -82,45 +81,24 @@
     <div v-if="property.property_type === 'buy_to_let'" class="bg-white border border-gray-200 rounded-lg p-6">
       <h4 class="text-md font-semibold text-gray-700 mb-4">Rental Income Analysis</h4>
 
-      <!-- Summary Cards -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div class="bg-gray-50 rounded-lg p-4">
-          <p class="text-sm text-green-700">Your Rental Income</p>
-          <p class="text-2xl font-bold text-green-900">{{ formatCurrency(userMonthlyRentalIncome) }}</p>
-          <p v-if="isSharedOwnership" class="text-xs text-green-600 mt-1">{{ property.ownership_percentage }}% of {{ formatCurrency(property.monthly_rental_income || 0) }}</p>
-        </div>
-
-        <div class="bg-gray-50 rounded-lg p-4">
-          <p class="text-sm text-blue-700">Your Net Rental Income</p>
-          <p class="text-2xl font-bold" :class="userNetMonthlyIncome >= 0 ? 'text-blue-900' : 'text-red-600'">{{ formatCurrency(userNetMonthlyIncome) }}</p>
-          <p class="text-xs text-blue-600 mt-1">After all costs</p>
-        </div>
-
-        <div class="bg-gray-50 rounded-lg p-4">
-          <p class="text-sm text-purple-700">Net Rental Yield</p>
-          <p class="text-2xl font-bold text-purple-900">{{ netRentalYield }}%</p>
-          <p class="text-xs text-purple-600 mt-1">Annual</p>
-        </div>
-      </div>
-
       <!-- Cash Flow Breakdown -->
       <dl class="space-y-2">
-        <div class="flex justify-between py-2 border-b border-gray-100">
+        <div class="flex justify-between py-2">
           <dt class="text-sm text-gray-600">Your Monthly Rental Income:</dt>
           <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(userMonthlyRentalIncome) }}</dd>
         </div>
 
-        <div class="flex justify-between py-2 border-b border-gray-100">
-          <dt class="text-sm text-gray-600">Less: Running Costs:</dt>
+        <div class="flex justify-between py-2">
+          <dt class="text-sm text-gray-600">Less: Running Costs{{ isSharedOwnership ? ' (' + property.ownership_percentage + '%)' : '' }}:</dt>
           <dd class="text-sm font-medium text-red-600">-{{ formatCurrency(userNonMortgageCosts) }}</dd>
         </div>
 
-        <div v-if="userMonthlyMortgagePayments > 0" class="flex justify-between py-2 border-b border-gray-100">
-          <dt class="text-sm text-gray-600">Less: Mortgage Payment:</dt>
+        <div v-if="userMonthlyMortgagePayments > 0" class="flex justify-between py-2">
+          <dt class="text-sm text-gray-600">Less: Mortgage Payment{{ isSharedOwnership ? ' (' + property.ownership_percentage + '%)' : '' }}:</dt>
           <dd class="text-sm font-medium text-red-600">-{{ formatCurrency(userMonthlyMortgagePayments) }}</dd>
         </div>
 
-        <div class="flex justify-between py-3 border-t-2 border-gray-300 mt-2">
+        <div class="flex justify-between py-3 border-t-2 border-gray-300">
           <dt class="text-base font-semibold text-gray-700">Your Net Monthly Income:</dt>
           <dd class="text-base font-bold" :class="userNetMonthlyIncome >= 0 ? 'text-green-600' : 'text-red-600'">
             {{ formatCurrency(userNetMonthlyIncome) }}
@@ -183,6 +161,7 @@
         </dl>
       </div>
     </div>
+    </div><!-- end grid wrapper -->
 
     <!-- SDLT Paid -->
     <div v-if="property.sdlt_paid" class="bg-white border border-gray-200 rounded-lg p-6">
@@ -193,39 +172,6 @@
       </div>
     </div>
 
-    <!-- Summary Metrics -->
-    <div class="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-6">
-      <h4 class="text-md font-semibold text-gray-800 mb-4">Financial Summary</h4>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <p class="text-sm text-gray-700">Total Investment:</p>
-          <p class="text-xl font-bold text-gray-900">{{ formatCurrency(totalInvestment) }}</p>
-          <p class="text-xs text-gray-600 mt-1">Purchase price + SDLT + improvements</p>
-        </div>
-
-        <div>
-          <p class="text-sm text-gray-700">Current Equity:</p>
-          <p class="text-xl font-bold text-green-600">{{ formatCurrency(property.equity || 0) }}</p>
-          <p class="text-xs text-gray-600 mt-1">Current value - mortgage balance</p>
-        </div>
-
-        <div>
-          <p class="text-sm text-gray-700">Value Appreciation:</p>
-          <p class="text-xl font-bold" :class="valueChange >= 0 ? 'text-green-600' : 'text-red-600'">
-            {{ formatCurrency(valueChange) }}
-          </p>
-          <p class="text-xs text-gray-600 mt-1">{{ valueChangePercent }}% since purchase</p>
-        </div>
-
-        <div v-if="property.property_type === 'buy_to_let'">
-          <p class="text-sm text-gray-700">Annual Cash Flow:</p>
-          <p class="text-xl font-bold" :class="netAnnualIncome >= 0 ? 'text-green-600' : 'text-red-600'">
-            {{ formatCurrency(netAnnualIncome) }}
-          </p>
-          <p class="text-xs text-gray-600 mt-1">Rental income - costs</p>
-        </div>
-      </div>
-    </div>
 
     <!-- Edit Costs Modal -->
     <div v-if="showEditCostsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
@@ -488,6 +434,20 @@ export default {
 
     isSharedOwnership() {
       return this.property?.ownership_type === 'joint' || this.property?.ownership_type === 'tenants_in_common';
+    },
+
+    userPropertyValue() {
+      const value = parseFloat(this.property.current_value) || 0;
+      if (this.isSharedOwnership && this.property?.ownership_percentage) {
+        return value * (this.property.ownership_percentage / 100);
+      }
+      return value;
+    },
+
+    mortgageBalance() {
+      return this.mortgageList.reduce((total, mortgage) => {
+        return total + (parseFloat(mortgage.outstanding_balance) || 0);
+      }, 0);
     },
 
     nonMortgageMonthlyCosts() {
