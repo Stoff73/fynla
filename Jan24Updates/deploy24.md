@@ -32,6 +32,7 @@
 29. **CLEANUP**: Removed Equity card from property detail header — header now shows Full Property Value, Your Share, Mortgage Balance (+ Net Rental Yield for BTL)
 30. **CLEANUP**: Removed Financial Summary section from bottom of Financials tab — duplicated info already in header
 31. **CLEANUP**: Removed redundant `<h3>` headings from Management Agent and Financials tabs — tab labels already identify content
+32. **UX**: Removed border/outline from Management Agent tab content for cleaner appearance
 
 ---
 

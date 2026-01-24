@@ -394,7 +394,7 @@
               <p class="text-sm mt-2">Click "Edit" to add management agent details.</p>
             </div>
 
-            <div v-else class="bg-white border border-gray-200 rounded-lg p-6">
+            <div v-else class="p-6">
               <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <h4 class="text-md font-semibold text-gray-700 mb-3">Agent Details</h4>
