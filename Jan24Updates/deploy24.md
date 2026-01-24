@@ -7,6 +7,8 @@
 4. **NEW**: Managing agent fee editable in the Financials tab Edit Costs modal (BTL only)
 5. **NEW**: Managing agent fee shown as a row in the Financials tab Monthly Costs grid (BTL only)
 6. **CLEANUP**: Removed dead `PropertyDetail.vue` component and its unused `/property/:id` route — app only uses `PropertyDetailInline.vue`
+7. **FIX**: Expenditure property costs now individually itemised — Gas, Electricity, Water shown separately (not grouped as "Utilities"); Building Insurance and Contents Insurance shown separately (not grouped as "Insurance")
+8. **FIX**: Management Agent fee now displays as a named line item in the Expenditure property cost breakdown
 
 ---
 
@@ -27,6 +29,7 @@ app/Services/Property/PropertyService.php
 app/Services/UserProfile/UserProfileService.php
 resources/js/components/NetWorth/Property/PropertyDetailInline.vue
 resources/js/components/NetWorth/Property/PropertyFinancials.vue
+resources/js/components/UserProfile/ExpenditureForm.vue
 resources/js/components/NetWorth/Property/PropertyDetail.vue  (DELETED)
 resources/js/router/index.js
 ```

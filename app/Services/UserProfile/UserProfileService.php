@@ -663,20 +663,33 @@ class UserProfileService
                 $breakdown['council_tax'] = $amount;
             }
 
-            // Utilities (gas + electricity + water)
-            $utilities = ($property->monthly_gas ?? 0) + ($property->monthly_electricity ?? 0) + ($property->monthly_water ?? 0);
-            if ($utilities > 0) {
-                $amount = $utilities * $ownershipMultiplier;
+            // Utilities (individual)
+            if (($property->monthly_gas ?? 0) > 0) {
+                $amount = $property->monthly_gas * $ownershipMultiplier;
                 $totalMonthlyExpense += $amount;
-                $breakdown['utilities'] = $amount;
+                $breakdown['gas'] = $amount;
+            }
+            if (($property->monthly_electricity ?? 0) > 0) {
+                $amount = $property->monthly_electricity * $ownershipMultiplier;
+                $totalMonthlyExpense += $amount;
+                $breakdown['electricity'] = $amount;
+            }
+            if (($property->monthly_water ?? 0) > 0) {
+                $amount = $property->monthly_water * $ownershipMultiplier;
+                $totalMonthlyExpense += $amount;
+                $breakdown['water'] = $amount;
             }
 
-            // Insurance (building + contents)
-            $insurance = ($property->monthly_building_insurance ?? 0) + ($property->monthly_contents_insurance ?? 0);
-            if ($insurance > 0) {
-                $amount = $insurance * $ownershipMultiplier;
+            // Insurance (individual)
+            if (($property->monthly_building_insurance ?? 0) > 0) {
+                $amount = $property->monthly_building_insurance * $ownershipMultiplier;
                 $totalMonthlyExpense += $amount;
-                $breakdown['insurance'] = $amount;
+                $breakdown['building_insurance'] = $amount;
+            }
+            if (($property->monthly_contents_insurance ?? 0) > 0) {
+                $amount = $property->monthly_contents_insurance * $ownershipMultiplier;
+                $totalMonthlyExpense += $amount;
+                $breakdown['contents_insurance'] = $amount;
             }
 
             // Service charge
