@@ -5,7 +5,7 @@
       <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" @click="close"></div>
 
       <!-- Modal panel -->
-      <div class="inline-block align-bottom bg-white rounded-lg text-left shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full max-h-[90vh] overflow-y-auto">
+      <div class="relative z-10 inline-block align-bottom bg-white rounded-lg text-left shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full max-h-[90vh] overflow-y-auto">
         <form @submit.prevent="handleSubmit">
           <div class="bg-white px-4 pt-5 pb-4 sm:p-6">
             <h3 class="text-lg font-semibold text-gray-900 mb-4">
@@ -223,6 +223,15 @@
             </div>
           </div>
 
+          <!-- Validation Errors -->
+          <div v-if="validationErrors.length" class="px-4 sm:px-6 pb-2">
+            <div class="p-3 bg-red-50 border border-red-200 rounded-md">
+              <ul class="list-disc list-inside text-sm text-red-700 space-y-1">
+                <li v-for="error in validationErrors" :key="error">{{ error }}</li>
+              </ul>
+            </div>
+          </div>
+
           <!-- Footer -->
           <div class="bg-gray-50 px-4 py-3 sm:px-6 flex justify-end gap-3">
             <button
@@ -233,8 +242,7 @@
               Cancel
             </button>
             <button
-              type="button"
-              @click="handleSubmit"
+              type="submit"
               :disabled="loading"
               class="px-4 py-2 text-sm font-medium text-white bg-primary-600 border border-transparent rounded-md hover:bg-primary-700 disabled:opacity-50"
             >
@@ -272,6 +280,7 @@ export default {
     return {
       form: this.getDefaultForm(),
       loading: false,
+      validationErrors: [],
       propertyCosts: null,
       priorities: [
         { value: 'critical', label: 'Critical', activeClass: 'border-red-500 bg-red-50 text-red-700' },
@@ -390,6 +399,7 @@ export default {
         this.form = this.getDefaultForm();
       }
       this.propertyCosts = null;
+      this.validationErrors = [];
     },
 
     async calculatePropertyCosts() {
@@ -417,7 +427,14 @@ export default {
     },
 
     async handleSubmit() {
-      if (!this.form.goal_name || !this.form.goal_type || !this.form.target_amount || !this.form.target_date) {
+      this.validationErrors = [];
+
+      if (!this.form.goal_name) this.validationErrors.push('Goal name is required');
+      if (!this.form.goal_type) this.validationErrors.push('Goal type is required');
+      if (!this.form.target_amount) this.validationErrors.push('Target amount is required');
+      if (!this.form.target_date) this.validationErrors.push('Target date is required');
+
+      if (this.validationErrors.length > 0) {
         return;
       }
 

@@ -40,7 +40,7 @@ class GoalProgressService
             'progress_percentage' => round(min($progressPercentage, 100), 2),
             'expected_progress' => round($expectedProgress, 2),
             'progress_delta' => round($progressDelta, 2),
-            'is_on_track' => $progressDelta >= -10,
+            'is_on_track' => $currentAmount > 0 && $progressDelta >= -10,
             'status' => $this->getProgressStatus($progressDelta),
             'days_elapsed' => $daysElapsed,
             'days_remaining' => $daysRemaining,

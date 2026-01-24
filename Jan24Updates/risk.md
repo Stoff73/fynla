@@ -27,7 +27,6 @@ The Risk module provides a 5-level risk profiling system that determines investm
 | Controller | Path | Lines | Purpose |
 |-----------|------|-------|---------|
 | `RiskPreferenceController` | `app/Http/Controllers/Api/RiskPreferenceController.php` | 305 | User risk preference management |
-| `RiskProfileController` | `app/Http/Controllers/Api/Investment/RiskProfileController.php` | 294 | Investment risk questionnaire flow |
 
 ---
 
@@ -35,13 +34,15 @@ The Risk module provides a 5-level risk profiling system that determines investm
 
 **File:** `app/Services/Risk/AutoRiskCalculator.php` (422 lines)
 
-### Factor 1: Capacity for Loss (Lines 66-100)
+### Factor 1: Capacity for Loss (Lines 67-110)
 - **Formula:** `(investments + pensions) / net worth`
 - **Data sources:** `InvestmentAccount.current_value` + `DCPension.current_fund_value`
-- **Levels:**
-  - HIGH: < 30% of net worth in investments
-  - MEDIUM: 30-75%
-  - LOWER_MEDIUM: > 75%
+- **Returns:** `components` array with `investments_total`, `pensions_total`, `net_worth` (actual £ values for display)
+- **Levels (4 thresholds):**
+  - HIGH: 0-15% of net worth in investments/pensions (less at risk, more capacity to lose)
+  - MEDIUM: 15-50%
+  - LOWER_MEDIUM: 50-75% (medium-low capacity)
+  - LOW: >75% (most at risk, least capacity to lose)
 
 ### Factor 2: Time Horizon (Lines 111-146)
 - **Data:** Years to retirement from `target_retirement_age` or calculated from `date_of_birth`
@@ -107,32 +108,18 @@ The Risk module provides a 5-level risk profiling system that determines investm
 
 ---
 
-## 5. Two Parallel Risk Systems
+## 5. Two Risk Systems
 
 ### System 1: Automatic (Default)
 - Triggered on: Data changes, first login, manual recalculation
 - Uses: `AutoRiskCalculator` -> 7 factors -> mode
-- Stores: `risk_level` + `factor_breakdown` (JSON) + `risk_assessed_at` + `is_self_assessed=false`
+- Stores: `risk_level` + `factor_breakdown` (JSON, nullable) + `risk_assessed_at` + `is_self_assessed=false`
+- `getRiskProfile()` recalculates factor_breakdown live (always uses current financial data)
 
 ### System 2: Self-Assessment (User Override)
 - User manually selects from 5 levels via `RiskLevelSelector.vue`
 - Stores: `risk_level` only, `is_self_assessed=true`
 - Overrides auto-calculated profile
-
-### System 3: Questionnaire-Based (Investment Module)
-**File:** `app/Services/Investment/RiskProfile/RiskProfiler.php` (441 lines)
-
-6-question categories scored 1-10:
-1. Risk Tolerance (emotional response to volatility)
-2. Investment Experience
-3. Time Horizon
-4. Financial Goals
-5. Reaction to Loss
-6. Market Knowledge
-
-Maps to: Very Conservative (1-2), Conservative (3-4), Moderate (5-6), Growth (7-8), Aggressive (9-10)
-
-Reconciles tolerance vs capacity for loss (Lines 157-191).
 
 ---
 
@@ -200,7 +187,6 @@ Reconciles tolerance vs capacity for loss (Lines 157-191).
 |-------|----------|-------|
 | Self-Assessment | `RiskLevelSelector.vue` | 5-level button selector |
 | Product Override | Investment/Pension forms | Risk level dropdown (+/-1 constraint) |
-| Questionnaire | `RiskProfileController` endpoints | 6 sections, multi-choice answers |
 
 ### Indirect Inputs (Trigger Auto-Recalculation)
 
@@ -272,6 +258,7 @@ From other models:
 |-----------|---------|
 | `2026_01_03_154132_make_risk_profile_columns_nullable.php` | Made optional fields nullable |
 | `2026_01_16_151113_add_factor_breakdown_to_risk_profiles.php` | Added JSON factor_breakdown column |
+| `2026_01_24_134257_make_factor_breakdown_nullable_on_risk_profiles.php` | Made factor_breakdown nullable (required for initial auto-calculation) |
 
 ---
 
@@ -384,12 +371,8 @@ Handled by `RiskPreferenceService::mapLegacyTolerance()` (Lines 341-349)
 |------|-------|---------|
 | `app/Models/Investment/RiskProfile.php` | 47 | Risk profile model |
 | `app/Services/Risk/AutoRiskCalculator.php` | 422 | 7-factor auto-calculation engine |
-| `app/Services/Risk/RiskPreferenceService.php` | 360 | Main risk management service |
-| `app/Services/Investment/RiskProfile/RiskProfiler.php` | 441 | Questionnaire-based profiling |
-| `app/Services/Investment/RiskProfile/RiskQuestionnaire.php` | 100+ | Questionnaire questions |
-| `app/Services/Investment/RiskProfile/CapacityForLossAnalyzer.php` | 100+ | Capacity analysis |
-| `app/Http/Controllers/Api/RiskPreferenceController.php` | 305 | API endpoints (preferences) |
-| `app/Http/Controllers/Api/Investment/RiskProfileController.php` | 294 | API endpoints (questionnaire) |
+| `app/Services/Risk/RiskPreferenceService.php` | 367 | Main risk management service |
+| `app/Http/Controllers/Api/RiskPreferenceController.php` | 305 | API endpoints |
 | `app/Jobs/RecalculateRiskProfileJob.php` | 91 | Async recalculation job |
 | `app/Observers/RiskRecalculationObserver.php` | 38 | Base observer class |
 | `app/Observers/UserRiskObserver.php` | 43 | User model observer |
@@ -406,8 +389,8 @@ Handled by `RiskPreferenceService::mapLegacyTolerance()` (Lines 341-349)
 | `resources/js/components/Risk/RiskProfileSummary.vue` | 356 | Summary component |
 | `resources/js/components/Risk/FactorBreakdownCard.vue` | 133 | Factor card component |
 | `resources/js/components/Shared/RiskLevelSelector.vue` | 405 | Risk selector component |
-| `resources/js/components/Risk/CapacityForLossSection.vue` | 195 | Capacity section |
+| `resources/js/components/Risk/CapacityForLossSection.vue` | 195 | Capacity section (4-zone spectrum) |
 | `resources/js/components/Risk/TimeHorizonSection.vue` | 275 | Time horizon section |
 | `resources/js/components/Risk/RiskFactorsPanel.vue` | 181 | Factors panel |
 | `resources/js/components/Risk/InvestmentTypesAccordion.vue` | 393 | Investment types accordion |
-| `tests/Feature/Risk/RiskApiTest.php` | 80+ | Risk API tests |
+| `tests/Unit/Services/Risk/AutoRiskCalculatorTest.php` | 200+ | Calculator unit tests |

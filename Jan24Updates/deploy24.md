@@ -36,6 +36,8 @@
 33. **CLEANUP**: Removed unused questionnaire-based risk profiling system (System 3) — `RiskProfileController`, `RiskProfiler`, `RiskQuestionnaire`, `CapacityForLossAnalyzer`, 6 API routes, and 5 dead frontend methods. App uses only auto-calculator (7-factor) and self-assessment systems.
 34. **REWORK**: Capacity for Loss — 4 threshold levels (was 3), detail view shows formula with actual £ values, spectrum updated to 4 zones, factor breakdown recalculated live
 35. **UX**: All risk factor detail views — concise with source data, formula-style calculations, compact thresholds
+36. **BUG FIX**: Goals module — all modal buttons unclickable due to CSS z-stacking (fixed backdrop intercepting clicks). Added `relative z-10` to modal panels in GoalFormModal, ContributionModal, and delete modal. Also added form validation error messages and changed submit button to `type="submit"`.
+37. **BUG FIX**: Goals module — goals with 0% progress incorrectly showing "On track" status. Backend `is_on_track` now returns `false` when `current_amount <= 0`. Frontend adds "Not started" (gray) state distinct from "Behind" (orange) across GoalsOverview, GoalsByModule, and GoalCard.
 
 ---
 
@@ -76,6 +78,14 @@ app/Http/Controllers/Api/Investment/RiskProfileController.php  (DELETED)
 app/Services/Investment/RiskProfile/RiskProfiler.php  (DELETED)
 app/Services/Investment/RiskProfile/RiskQuestionnaire.php  (DELETED)
 app/Services/Investment/RiskProfile/CapacityForLossAnalyzer.php  (DELETED)
+resources/js/components/Goals/GoalFormModal.vue
+resources/js/components/Goals/ContributionModal.vue
+resources/js/views/Goals/GoalsDashboard.vue
+app/Models/Goal.php
+app/Services/Goals/GoalProgressService.php
+resources/js/components/Goals/GoalsOverview.vue
+resources/js/components/Goals/GoalsByModule.vue
+resources/js/components/Goals/GoalCard.vue
 ```
 
 ---
@@ -115,52 +125,39 @@ php artisan migrate --force && php artisan cache:clear
 
 ---
 
-## Files to Upload (Item 33 — Risk Cleanup)
+## Already Uploaded to Production (Items 33-35 — Risk System)
 
 ### Backend (PHP)
 ```
 routes/api.php
-```
-
-### Frontend (rebuild required)
-```bash
-./deploy/fynla-org/build.sh
-```
-```
-public/build/  (entire folder)
-```
-
----
-
-## Files to Upload (Item 34 — Capacity for Loss Rework)
-
-### Backend (PHP)
-```
+app/Http/Controllers/Api/RiskPreferenceController.php
 app/Services/Risk/AutoRiskCalculator.php
 app/Services/Risk/RiskPreferenceService.php
+app/Providers/EventServiceProvider.php
+app/Jobs/RecalculateRiskProfileJob.php
+app/Observers/DCPensionRiskObserver.php
+app/Observers/FamilyMemberRiskObserver.php
+app/Observers/InvestmentAccountRiskObserver.php
+app/Observers/PropertyRiskObserver.php
+app/Observers/SavingsAccountRiskObserver.php
+app/Observers/UserRiskObserver.php
+database/migrations/2026_01_24_134257_make_factor_breakdown_nullable_on_risk_profiles.php
 ```
 
-### Frontend (rebuild required)
-```bash
-./deploy/fynla-org/build.sh
-```
+### Frontend
 ```
 public/build/  (entire folder)
 ```
 
----
-
-## Files to Remove from Server
-
+### Already Removed from Server
 ```
 app/Http/Controllers/Api/Investment/RiskProfileController.php
 app/Services/Investment/RiskProfile/  (entire folder)
 ```
 
----
-
-## Post-Deployment
-
+### Post-Deployment (already run)
 ```bash
-php artisan cache:clear
+php artisan migrate --force && php artisan cache:clear
 ```
+
+- Migration makes `factor_breakdown` column nullable on `risk_profiles` table

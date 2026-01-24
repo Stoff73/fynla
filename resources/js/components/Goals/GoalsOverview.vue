@@ -115,10 +115,10 @@
               </span>
               <span
                 class="w-2 h-2 rounded-full"
-                :class="goal.is_on_track ? 'bg-green-500' : 'bg-orange-500'"
+                :class="getGoalStatusDotClass(goal)"
               ></span>
               <span class="text-xs text-gray-500">
-                {{ goal.is_on_track ? 'On track' : 'Behind' }}
+                {{ getGoalStatusLabel(goal) }}
               </span>
             </div>
 
@@ -126,7 +126,7 @@
               <div class="w-full bg-gray-200 rounded-full h-2">
                 <div
                   class="h-2 rounded-full"
-                  :class="goal.is_on_track ? 'bg-blue-500' : 'bg-orange-500'"
+                  :class="getGoalProgressBarClass(goal)"
                   :style="{ width: Math.min(goal.progress_percentage, 100) + '%' }"
                 ></div>
               </div>
@@ -269,6 +269,28 @@ export default {
         retirement: 'bg-amber-100 text-amber-700',
       };
       return classes[module] || 'bg-gray-100 text-gray-700';
+    },
+
+    isNotStarted(goal) {
+      return parseFloat(goal.current_amount) <= 0;
+    },
+
+    getGoalStatusDotClass(goal) {
+      if (this.isNotStarted(goal)) return 'bg-gray-400';
+      if (goal.is_on_track) return 'bg-green-500';
+      return 'bg-orange-500';
+    },
+
+    getGoalStatusLabel(goal) {
+      if (this.isNotStarted(goal)) return 'Not started';
+      if (goal.is_on_track) return 'On track';
+      return 'Behind';
+    },
+
+    getGoalProgressBarClass(goal) {
+      if (this.isNotStarted(goal)) return 'bg-gray-300';
+      if (goal.is_on_track) return 'bg-blue-500';
+      return 'bg-orange-500';
     },
   },
 };

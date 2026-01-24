@@ -171,6 +171,11 @@ class Goal extends Model
             return $this->status === 'completed';
         }
 
+        // Can't be "on track" if nothing has been saved yet
+        if ((float) $this->current_amount <= 0) {
+            return false;
+        }
+
         if (! $this->start_date || ! $this->target_date) {
             return false;
         }

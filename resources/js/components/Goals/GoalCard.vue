@@ -123,24 +123,31 @@ export default {
       return Math.round((parseFloat(this.goal.current_amount) / parseFloat(this.goal.target_amount)) * 100);
     },
 
+    isNotStarted() {
+      return parseFloat(this.goal.current_amount) <= 0;
+    },
+
     isOnTrack() {
       return this.goal.is_on_track;
     },
 
     progressTextClass() {
       if (this.progressPercent >= 100) return 'text-green-600';
+      if (this.isNotStarted) return 'text-gray-500';
       if (this.isOnTrack) return 'text-blue-600';
       return 'text-orange-600';
     },
 
     progressBarClass() {
       if (this.progressPercent >= 100) return 'bg-green-500';
+      if (this.isNotStarted) return 'bg-gray-300';
       if (this.isOnTrack) return 'bg-blue-500';
       return 'bg-orange-500';
     },
 
     borderColorClass() {
       if (this.goal.status === 'completed') return 'border-l-green-500';
+      if (this.isNotStarted) return 'border-l-gray-300';
       if (this.isOnTrack) return 'border-l-blue-500';
       return 'border-l-orange-500';
     },
@@ -166,6 +173,7 @@ export default {
       if (this.goal.status === 'completed') return 'Completed';
       if (this.goal.status === 'paused') return 'Paused';
       if (this.progressPercent >= 100) return 'Goal Achieved';
+      if (this.isNotStarted) return 'Not Started';
       if (this.isOnTrack) return 'On Track';
       return 'Behind Schedule';
     },
@@ -173,6 +181,7 @@ export default {
     statusBadgeClass() {
       if (this.goal.status === 'completed' || this.progressPercent >= 100) return 'bg-green-100 text-green-800';
       if (this.goal.status === 'paused') return 'bg-gray-100 text-gray-800';
+      if (this.isNotStarted) return 'bg-gray-100 text-gray-700';
       if (this.isOnTrack) return 'bg-blue-100 text-blue-800';
       return 'bg-orange-100 text-orange-800';
     },
@@ -180,6 +189,7 @@ export default {
     statusDotClass() {
       if (this.goal.status === 'completed' || this.progressPercent >= 100) return 'bg-green-500';
       if (this.goal.status === 'paused') return 'bg-gray-500';
+      if (this.isNotStarted) return 'bg-gray-400';
       if (this.isOnTrack) return 'bg-blue-500';
       return 'bg-orange-500';
     },
