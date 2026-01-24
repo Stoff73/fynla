@@ -116,108 +116,222 @@
           </div>
         </template>
 
-        <!-- GENERIC: All other factors -->
+        <!-- ALL OTHER FACTORS: Custom concise views -->
         <template v-else>
-          <!-- Your Value Card -->
+          <!-- Your Data card -->
           <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-            <div class="flex items-center gap-4">
-              <div
-                class="w-16 h-16 rounded-full flex items-center justify-center"
-                :class="getFactorBgClass(factorData.level)"
-              >
-                <svg v-if="factorKey === 'time_horizon'" class="w-8 h-8" :class="getFactorColorClass(factorData.level)" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <svg v-else-if="factorKey === 'education'" class="w-8 h-8" :class="getFactorColorClass(factorData.level)" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
-                </svg>
-                <svg v-else-if="factorKey === 'dependants'" class="w-8 h-8" :class="getFactorColorClass(factorData.level)" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
-                <svg v-else-if="factorKey === 'employment'" class="w-8 h-8" :class="getFactorColorClass(factorData.level)" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-                <svg v-else-if="factorKey === 'emergency_cash'" class="w-8 h-8" :class="getFactorColorClass(factorData.level)" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-                <svg v-else-if="factorKey === 'surplus_cash'" class="w-8 h-8" :class="getFactorColorClass(factorData.level)" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                </svg>
-                <svg v-else class="w-8 h-8" :class="getFactorColorClass(factorData.level)" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Your Data</h3>
+
+            <!-- TIME HORIZON -->
+            <template v-if="factorKey === 'time_horizon'">
+              <div class="flex items-center justify-center gap-2 text-center py-4">
+                <div class="flex flex-col items-center">
+                  <div class="flex items-center gap-1 border-b-2 border-gray-300 pb-2 px-2">
+                    <div class="flex flex-col items-center">
+                      <span class="text-base font-semibold text-gray-900">{{ factorData.components?.target_retirement_age || '67' }}</span>
+                      <span class="text-xs text-gray-400">retirement age</span>
+                    </div>
+                    <span class="text-gray-400 text-lg mx-1">&minus;</span>
+                    <div class="flex flex-col items-center">
+                      <span class="text-base font-semibold text-gray-900">{{ factorData.components?.current_age || '—' }}</span>
+                      <span class="text-xs text-gray-400">current age</span>
+                    </div>
+                  </div>
+                </div>
+                <span class="text-gray-400 text-lg mx-2">=</span>
+                <div class="flex flex-col items-center">
+                  <span class="text-xl font-bold text-gray-900">{{ factorData.value }}</span>
+                  <span
+                    class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium mt-1"
+                    :class="getLevelBadgeClass(factorData.level)"
+                  >
+                    {{ getLevelDisplayName(factorData.level) }}
+                  </span>
+                </div>
               </div>
-              <div class="flex-1">
-                <p class="text-sm text-gray-500">Your current value</p>
-                <p class="text-3xl font-bold text-gray-900">{{ factorData.value }}</p>
-                <span
-                  class="inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-medium mt-2"
-                  :class="getLevelBadgeClass(factorData.level)"
-                >
-                  {{ getLevelDisplayName(factorData.level) }} Risk
-                </span>
+              <p class="text-xs text-gray-400 text-center">Source: Your profile date of birth &amp; target retirement age</p>
+            </template>
+
+            <!-- EDUCATION -->
+            <template v-else-if="factorKey === 'education'">
+              <div class="divide-y divide-gray-200">
+                <div class="flex justify-between py-2">
+                  <span class="text-sm text-gray-600">Education level</span>
+                  <span class="text-sm font-semibold text-gray-900">{{ factorData.value }}</span>
+                </div>
+                <div class="flex justify-between py-2">
+                  <span class="text-sm text-gray-600">Degree-level or above</span>
+                  <span class="text-sm font-semibold text-gray-900">{{ factorData.components?.has_degree ? 'Yes' : 'No' }}</span>
+                </div>
+                <div class="flex justify-between items-center pt-3">
+                  <span class="text-sm font-semibold text-gray-900">Result</span>
+                  <span
+                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                    :class="getLevelBadgeClass(factorData.level)"
+                  >
+                    {{ getLevelDisplayName(factorData.level) }}
+                  </span>
+                </div>
               </div>
-            </div>
+              <p class="text-xs text-gray-400 mt-3">Source: Your profile education level</p>
+            </template>
+
+            <!-- DEPENDANTS -->
+            <template v-else-if="factorKey === 'dependants'">
+              <div class="divide-y divide-gray-200">
+                <div class="flex justify-between py-2">
+                  <span class="text-sm text-gray-600">Dependants found</span>
+                  <span class="text-sm font-semibold text-gray-900">{{ factorData.components?.count || 0 }}</span>
+                </div>
+                <template v-if="factorData.components?.dependants?.length">
+                  <div
+                    v-for="dep in factorData.components.dependants"
+                    :key="dep.name"
+                    class="flex justify-between py-2"
+                  >
+                    <span class="text-sm text-gray-600">{{ dep.name }}</span>
+                    <span class="text-sm text-gray-500">{{ formatRelationship(dep.relationship) }}</span>
+                  </div>
+                </template>
+                <div class="flex justify-between items-center pt-3">
+                  <span class="text-sm font-semibold text-gray-900">Result</span>
+                  <span
+                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                    :class="getLevelBadgeClass(factorData.level)"
+                  >
+                    {{ getLevelDisplayName(factorData.level) }}
+                  </span>
+                </div>
+              </div>
+              <p class="text-xs text-gray-400 mt-3">Source: Family members marked as dependants</p>
+            </template>
+
+            <!-- EMPLOYMENT -->
+            <template v-else-if="factorKey === 'employment'">
+              <div class="divide-y divide-gray-200">
+                <div class="flex justify-between py-2">
+                  <span class="text-sm text-gray-600">Employment status</span>
+                  <span class="text-sm font-semibold text-gray-900">{{ factorData.value }}</span>
+                </div>
+                <div class="flex justify-between py-2">
+                  <span class="text-sm text-gray-600">Active income</span>
+                  <span class="text-sm font-semibold text-gray-900">{{ factorData.components?.is_working ? 'Yes' : 'No' }}</span>
+                </div>
+                <div class="flex justify-between items-center pt-3">
+                  <span class="text-sm font-semibold text-gray-900">Result</span>
+                  <span
+                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                    :class="getLevelBadgeClass(factorData.level)"
+                  >
+                    {{ getLevelDisplayName(factorData.level) }}
+                  </span>
+                </div>
+              </div>
+              <p class="text-xs text-gray-400 mt-3">Source: Your profile employment status</p>
+            </template>
+
+            <!-- EMERGENCY CASH -->
+            <template v-else-if="factorKey === 'emergency_cash'">
+              <div class="flex items-center justify-center gap-2 text-center py-4">
+                <div class="flex flex-col items-center">
+                  <div class="flex items-center gap-1 border-b-2 border-gray-300 pb-2 px-2">
+                    <div class="flex flex-col items-center">
+                      <span class="text-base font-semibold text-gray-900">{{ formatCurrency(factorData.components?.emergency_fund_total || 0) }}</span>
+                      <span class="text-xs text-gray-400">emergency fund</span>
+                    </div>
+                  </div>
+                  <div class="flex flex-col items-center pt-2">
+                    <span class="text-base font-semibold text-gray-900">{{ formatCurrency(factorData.components?.monthly_expenditure || 0) }}</span>
+                    <span class="text-xs text-gray-400">monthly expenditure</span>
+                  </div>
+                </div>
+                <span class="text-gray-400 text-lg mx-2">=</span>
+                <div class="flex flex-col items-center">
+                  <span class="text-xl font-bold text-gray-900">{{ factorData.value }}</span>
+                  <span
+                    class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium mt-1"
+                    :class="getLevelBadgeClass(factorData.level)"
+                  >
+                    {{ getLevelDisplayName(factorData.level) }}
+                  </span>
+                </div>
+              </div>
+              <p class="text-xs text-gray-400 text-center">Source: Savings accounts marked as emergency fund &amp; your monthly expenditure</p>
+            </template>
+
+            <!-- SURPLUS CASH -->
+            <template v-else-if="factorKey === 'surplus_cash'">
+              <div class="flex items-center justify-center gap-2 text-center py-4">
+                <div class="flex flex-col items-center">
+                  <div class="flex items-center gap-1">
+                    <div class="flex flex-col items-center">
+                      <span class="text-base font-semibold text-gray-900">{{ formatCurrency(factorData.components?.monthly_income || 0) }}</span>
+                      <span class="text-xs text-gray-400">monthly income</span>
+                    </div>
+                    <span class="text-gray-400 text-lg mx-1">&minus;</span>
+                    <div class="flex flex-col items-center">
+                      <span class="text-base font-semibold text-gray-900">{{ formatCurrency(factorData.components?.monthly_expenditure || 0) }}</span>
+                      <span class="text-xs text-gray-400">monthly expenditure</span>
+                    </div>
+                  </div>
+                </div>
+                <span class="text-gray-400 text-lg mx-2">=</span>
+                <div class="flex flex-col items-center">
+                  <span class="text-xl font-bold text-gray-900">{{ factorData.value }}</span>
+                  <span
+                    class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium mt-1"
+                    :class="getLevelBadgeClass(factorData.level)"
+                  >
+                    {{ getLevelDisplayName(factorData.level) }}
+                  </span>
+                </div>
+              </div>
+              <p class="text-xs text-gray-400 text-center">Source: Your profile income ({{ formatCurrency(factorData.components?.annual_income || 0) }}/yr) &amp; monthly expenditure</p>
+            </template>
           </div>
 
-          <!-- Your Situation -->
-          <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-            <h3 class="text-sm font-semibold text-blue-900 mb-1">Your situation</h3>
-            <p class="text-sm text-blue-800">{{ factorData.description }}</p>
-          </div>
-
-          <!-- What This Measures -->
+          <!-- Thresholds -->
           <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-3">What this measures</h3>
-            <p class="text-gray-600">{{ factorExplanation.what }}</p>
-          </div>
-
-          <!-- Why It Matters -->
-          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-3">Why it matters for risk</h3>
-            <p class="text-gray-600">{{ factorExplanation.why }}</p>
-          </div>
-
-          <!-- How It's Calculated -->
-          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-3">How it's calculated</h3>
-            <p class="text-gray-600">{{ factorExplanation.how }}</p>
-          </div>
-
-          <!-- Risk Level Thresholds -->
-          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">Risk level thresholds</h3>
-            <p class="text-sm text-gray-600 mb-4">
-              The following thresholds determine which risk level is assigned based on your value:
-            </p>
-            <div class="space-y-3">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Threshold Levels</h3>
+            <div class="space-y-2">
               <div
                 v-for="threshold in factorExplanation.thresholds"
                 :key="threshold.level"
-                class="flex items-center justify-between p-4 rounded-lg border"
+                class="flex items-center justify-between p-3 rounded-lg border"
                 :class="threshold.level === factorData.level
                   ? 'bg-blue-50 border-blue-300'
                   : 'bg-gray-50 border-gray-200'"
               >
                 <div class="flex items-center gap-3">
                   <div
-                    class="w-10 h-10 rounded-full flex items-center justify-center font-bold"
-                    :class="getLevelCircleClass(threshold.level)"
-                  >
-                    {{ getLevelNumeric(threshold.level) }}
-                  </div>
+                    class="w-3 h-3 rounded-full"
+                    :class="getThresholdDotClass(threshold.level)"
+                  ></div>
                   <div>
-                    <p class="font-medium text-gray-900">{{ threshold.range }}</p>
-                    <p class="text-sm text-gray-500">{{ getLevelDisplayName(threshold.level) }} risk</p>
+                    <span class="text-sm font-medium text-gray-900">{{ threshold.range }}</span>
+                    <span class="text-sm text-gray-500 ml-2">{{ getLevelDisplayName(threshold.level) }}</span>
                   </div>
                 </div>
                 <span
                   v-if="threshold.level === factorData.level"
-                  class="px-3 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full"
+                  class="px-2.5 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded-full"
                 >
                   You are here
                 </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Concise Explanation -->
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div class="space-y-4">
+              <div>
+                <h4 class="text-sm font-semibold text-gray-700 mb-1">What</h4>
+                <p class="text-sm text-gray-600">{{ factorExplanation.what }}</p>
+              </div>
+              <div>
+                <h4 class="text-sm font-semibold text-gray-700 mb-1">Why</h4>
+                <p class="text-sm text-gray-600">{{ factorExplanation.why }}</p>
               </div>
             </div>
           </div>
@@ -289,29 +403,26 @@ export default {
           ],
         },
         time_horizon: {
-          what: 'This is the number of years until you plan to retire and start drawing on your investments.',
-          why: 'Longer time horizons allow you to ride out market volatility and recover from downturns. Shorter horizons mean you need to protect your capital as you approach retirement.',
-          how: 'We calculate your target retirement age minus your current age. If you\'re already retired or have a specific retirement date set, we use that instead.',
+          what: 'Years until you plan to retire and draw on investments.',
+          why: 'More time means more ability to recover from downturns.',
           thresholds: [
             { level: 'high', range: '20+ years' },
-            { level: 'upper_medium', range: '15-20 years' },
-            { level: 'medium', range: '3-15 years' },
+            { level: 'upper_medium', range: '15–20 years' },
+            { level: 'medium', range: '3–15 years' },
             { level: 'lower_medium', range: 'Less than 3 years or retired' },
           ],
         },
         education: {
-          what: 'This is your highest level of formal education.',
-          why: 'Higher education often correlates with greater financial literacy and understanding of complex investment concepts. This doesn\'t mean less educated people can\'t invest wisely, but it suggests familiarity with analytical thinking and complex information.',
-          how: 'We check your education level from your profile. Degree-level education or higher indicates medium risk tolerance; otherwise, we suggest a more cautious approach.',
+          what: 'Your highest level of formal education.',
+          why: 'Higher education correlates with familiarity with complex financial concepts.',
           thresholds: [
             { level: 'medium', range: 'Degree or higher' },
             { level: 'lower_medium', range: 'Below degree level' },
           ],
         },
         dependants: {
-          what: 'This is the number of people who depend on you financially, such as children or elderly relatives.',
-          why: 'More dependants mean more financial responsibilities and less flexibility to take risks. You need to ensure stability for those who rely on you financially.',
-          how: 'We count family members in your profile who are marked as dependants.',
+          what: 'Number of people who depend on you financially.',
+          why: 'More dependants means more financial responsibility and less flexibility.',
           thresholds: [
             { level: 'upper_medium', range: 'No dependants' },
             { level: 'medium', range: '1 dependant' },
@@ -319,31 +430,28 @@ export default {
           ],
         },
         employment: {
-          what: 'This is your current employment status and income stability.',
-          why: 'Active employment provides ongoing income to rebuild investments if they fall. Without regular income, you\'re more reliant on existing capital and need to preserve it.',
-          how: 'We check your employment status from your profile. Employed or self-employed indicates the ability to recover from losses; retired or unemployed suggests a need for capital preservation.',
+          what: 'Your current employment status.',
+          why: 'Active income provides ability to rebuild if investments fall.',
           thresholds: [
             { level: 'medium', range: 'Employed or self-employed' },
             { level: 'lower_medium', range: 'Retired, unemployed, or other' },
           ],
         },
         emergency_cash: {
-          what: 'This measures how many months of living expenses you could cover with your emergency fund savings.',
-          why: 'A strong emergency fund means you won\'t need to sell investments at a bad time to cover unexpected costs. This gives you the freedom to stay invested through market downturns.',
-          how: 'We calculate: Emergency Fund Balance ÷ Monthly Expenditure. This gives the number of months you could sustain your lifestyle without income.',
+          what: 'Months of expenses covered by your emergency fund.',
+          why: 'A strong buffer means you won\'t need to sell investments at a bad time.',
           thresholds: [
             { level: 'upper_medium', range: '6+ months' },
-            { level: 'medium', range: '3-6 months' },
+            { level: 'medium', range: '3–6 months' },
             { level: 'lower_medium', range: 'Less than 3 months' },
           ],
         },
         surplus_cash: {
-          what: 'This is your monthly income minus your monthly expenditure - the amount available for saving or investing each month.',
-          why: 'A healthy surplus means you can regularly add to investments and have flexibility to take more risk. If you\'re spending everything you earn, you have less room for error.',
-          how: 'We calculate: (Total Annual Income ÷ 12) - Monthly Expenditure. This gives your monthly disposable income.',
+          what: 'Monthly income minus monthly expenditure.',
+          why: 'A surplus means you can regularly invest and have room for error.',
           thresholds: [
             { level: 'upper_medium', range: 'More than £500/month' },
-            { level: 'medium', range: '£1 - £500/month' },
+            { level: 'medium', range: '£1–£500/month' },
             { level: 'lower_medium', range: '£0 or negative' },
           ],
         },
@@ -351,7 +459,6 @@ export default {
       return explanations[this.factorKey] || {
         what: 'This factor contributes to your overall risk assessment.',
         why: 'It helps determine an appropriate level of investment risk for your situation.',
-        how: 'Based on the data in your profile.',
         thresholds: [],
       };
     },
@@ -469,12 +576,18 @@ export default {
 
     getThresholdDotClass(level) {
       const classes = {
-        high: 'bg-green-500',
+        high: 'bg-red-500',
+        upper_medium: 'bg-amber-500',
         medium: 'bg-blue-500',
         lower_medium: 'bg-teal-500',
-        low: 'bg-red-500',
+        low: 'bg-green-500',
       };
       return classes[level] || 'bg-gray-400';
+    },
+
+    formatRelationship(rel) {
+      if (!rel) return '';
+      return rel.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
     },
   },
 };
