@@ -243,6 +243,19 @@
             <span>Analysing strategies...</span>
           </div>
 
+          <!-- DOB Required -->
+          <div v-else-if="strategiesRequiresDob" class="dob-required-preview">
+            <div class="dob-required-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+              </svg>
+            </div>
+            <div class="dob-required-text">
+              <h4>Date of Birth Required</h4>
+              <p>Enter your date of birth in your profile to calculate pension strategies.</p>
+            </div>
+          </div>
+
           <!-- On Track Banner -->
           <div v-else-if="strategiesOnTrack" class="on-track-banner">
             <div class="on-track-icon">
@@ -459,6 +472,10 @@ export default {
     showStrategies() {
       // Always show strategies section if we have projections
       return !!this.projections?.income_drawdown;
+    },
+
+    strategiesRequiresDob() {
+      return this.strategies?.requires_dob === true;
     },
 
     strategiesOnTrack() {
@@ -1238,6 +1255,47 @@ export default {
   border-top-color: #3b82f6;
   border-radius: 50%;
   animation: spin 1s linear infinite;
+}
+
+/* DOB Required Preview */
+.dob-required-preview {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border: 1px solid #fde68a;
+  border-radius: 10px;
+}
+
+.dob-required-icon {
+  width: 48px;
+  height: 48px;
+  background: #f59e0b;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.dob-required-icon svg {
+  width: 28px;
+  height: 28px;
+  color: white;
+}
+
+.dob-required-text h4 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #92400e;
+  margin: 0 0 4px 0;
+}
+
+.dob-required-text p {
+  font-size: 14px;
+  color: #b45309;
+  margin: 0;
 }
 
 .on-track-banner {

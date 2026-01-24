@@ -38,6 +38,15 @@ class RetirementStrategyService
         $user = User::with(['dcPensions', 'dbPensions', 'statePension'])
             ->findOrFail($userId);
 
+        // Cannot calculate strategies without date of birth
+        if (! $user->date_of_birth) {
+            return [
+                'requires_dob' => true,
+                'message' => 'Please enter your date of birth in your profile to calculate pension strategies.',
+                'strategies' => [],
+            ];
+        }
+
         // Get current projections
         $projections = $this->projectionService->getProjections($userId);
         $currentStatus = $this->extractCurrentStatus($projections);
@@ -303,7 +312,7 @@ class RetirementStrategyService
             'income_target' => $this->buildIncomeTargetProjection($currentStatus, $newValue),
             'retirement_age' => $this->buildRetirementAgeProjection(
                 $currentStatus,
-                (int) $newValue - ($user->target_retirement_age ?? 65),
+                (int) $newValue - ($user->target_retirement_age ?? 68),
                 $priorAdditionalMonthly  // Pass prior strategies' additional monthly for cumulative projection
             ),
             default => $this->buildStrategyProjection($currentStatus, $totalAdditionalMonthly, $totalAdditionalIncome),
@@ -510,10 +519,14 @@ class RetirementStrategyService
                     'priority' => $priority,
                     'title' => 'Maximise Employer Match',
                     'description' => sprintf(
-                        'Your employer matches up to %.1f%% of salary. You\'re currently contributing %.1f%%.',
+                        'Your employer matches up to %.1f%% of salary. You\'re currently contributing %.1f%%. Growth projected over %d years to retirement age %d.',
                         $matchLimit,
-                        $currentEmployee
+                        $currentEmployee,
+                        $currentStatus['years_to_retirement'],
+                        $currentStatus['retirement_age']
                     ),
+                    'retirement_age' => $currentStatus['retirement_age'],
+                    'years_to_retirement' => $currentStatus['years_to_retirement'],
                     'pension_id' => $pension->id,
                     'pension_name' => $pension->scheme_name ?? 'Workplace Pension',
                     'current_value' => $currentEmployee,
@@ -689,11 +702,13 @@ class RetirementStrategyService
         );
 
         // Build enhanced description based on tax band
+        $retirementAge = $currentStatus['retirement_age'];
         $description = $this->buildContributionDescription(
             $contributionBreakdown,
             $recommendedGrossAnnual,
             $compoundProjection,
-            $yearsToRetirement
+            $yearsToRetirement,
+            $retirementAge
         );
 
         return [
@@ -702,6 +717,8 @@ class RetirementStrategyService
             'priority' => 2,
             'title' => 'Increase Pension Contributions',
             'description' => $description,
+            'retirement_age' => $retirementAge,
+            'years_to_retirement' => $yearsToRetirement,
             'current_value' => round($currentMonthly, 0),
             'recommended_value' => round($currentMonthly + $recommendedGrossMonthly, 0),
             'slider_config' => [
@@ -741,7 +758,8 @@ class RetirementStrategyService
         array $breakdown,
         float $recommendedGross,
         array $compoundProjection,
-        int $yearsToRetirement
+        int $yearsToRetirement,
+        int $retirementAge = 65
     ): string {
         $taxBand = $breakdown['tax_band'];
         $effectiveCost = $taxBand === 'additional'
@@ -750,11 +768,14 @@ class RetirementStrategyService
                 ? $this->formatCurrency($recommendedGross * 0.60)
                 : $this->formatCurrency($recommendedGross * 0.80));
 
+        $yearsContext = sprintf(' Growth projected over %d years to age %d.', $yearsToRetirement, $retirementAge);
+
         if ($taxBand === 'basic' || $taxBand === 'non_taxpayer') {
             return sprintf(
-                'Increase your pension contributions. With tax relief, %s/year costs you just %s.',
+                'Increase your pension contributions. With tax relief, %s/year costs you just %s.%s',
                 $this->formatCurrency($recommendedGross),
-                $effectiveCost
+                $effectiveCost,
+                $yearsContext
             );
         }
 
@@ -762,11 +783,12 @@ class RetirementStrategyService
         $additionalBenefit = $compoundProjection['with_reinvestment']['additional_benefit'] ?? 0;
 
         return sprintf(
-            'Increase your pension contributions. As a %s rate taxpayer, %s/year costs you just %s after tax relief. Reinvesting your refunds could add %s to your pot.',
+            'Increase your pension contributions. As a %s rate taxpayer, %s/year costs you just %s after tax relief. Reinvesting your refunds could add %s to your pot.%s',
             $taxBand,
             $this->formatCurrency($recommendedGross),
             $effectiveCost,
-            $this->formatCurrency($additionalBenefit)
+            $this->formatCurrency($additionalBenefit),
+            $yearsContext
         );
     }
 
@@ -776,7 +798,7 @@ class RetirementStrategyService
     private function checkRetirementAgeStrategy(User $user, array $currentStatus, float $cumulativeAdditionalIncome): ?array
     {
         $currentAge = $user->date_of_birth?->age ?? 40;
-        $currentRetirementAge = $user->target_retirement_age ?? 65;
+        $currentRetirementAge = $user->target_retirement_age ?? 68;
 
         // Minimum is current target, max recommendation is 68, slider max is 75
         $minAge = $currentRetirementAge;
@@ -844,8 +866,13 @@ class RetirementStrategyService
 
         $yearsDelay = $recommendedYearsDelay;
 
-        // Build description
-        $description = 'Working longer allows more time for contributions and investment growth.';
+        // Build description with retirement age context
+        $yearsToRetirement = max(1, $currentRetirementAge - $currentAge);
+        $description = sprintf(
+            'Your current retirement age is %d (%d years away). Working longer allows more time for contributions and investment growth.',
+            $currentRetirementAge,
+            $yearsToRetirement
+        );
 
         // Calculate impact using pot at delayed retirement
         $projectedPot = $this->calculatePotAtDelayedRetirement(
@@ -871,6 +898,8 @@ class RetirementStrategyService
             'priority' => 3,
             'title' => 'Adjust Retirement Age',
             'description' => $description,
+            'retirement_age' => $currentRetirementAge,
+            'years_to_retirement' => $yearsToRetirement,
             'current_value' => $currentRetirementAge,
             'recommended_value' => $recommendedAge,
             'slider_config' => [
@@ -942,8 +971,10 @@ class RetirementStrategyService
         $newProbability = min(self::ON_TRACK_PROBABILITY, max(10, round(10 + ($incomeRatio * 85), 0)));
 
         // Build description showing the gap clearly (green-toned informative message)
+        $projectedAge = $triggeredByRetirementAge ? 68 : ($currentStatus['retirement_age'] ?? 68);
         $description = sprintf(
-            'Based on your projected pension pot at age 68, you can sustainably withdraw %s/year (using a 4.7%% withdrawal rate with 95%% probability of lasting 30 years). This is %s/year less than your target retirement income of %s/year.',
+            'Based on your projected pension pot at age %d, you can sustainably withdraw %s/year (using a 4.7%% withdrawal rate with 95%% probability of lasting 30 years). This is %s/year less than your target retirement income of %s/year.',
+            $projectedAge,
             $this->formatCurrency($totalAchievableIncome),
             $this->formatCurrency($incomeGap),
             $this->formatCurrency($targetIncome)
@@ -955,6 +986,8 @@ class RetirementStrategyService
             'priority' => 4,
             'title' => 'Adjust Retirement Income Target',
             'description' => $description,
+            'retirement_age' => $currentStatus['retirement_age'],
+            'years_to_retirement' => $currentStatus['years_to_retirement'],
             'current_value' => round($targetIncome, 0),
             'recommended_value' => round($recommendedIncome, 0),
             'slider_config' => [
