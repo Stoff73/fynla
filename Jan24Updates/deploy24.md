@@ -10,6 +10,7 @@
 7. **FIX**: Expenditure property costs now individually itemised — Gas, Electricity, Water shown separately (not grouped as "Utilities"); Building Insurance and Contents Insurance shown separately (not grouped as "Insurance")
 8. **FIX**: Management Agent fee now displays as a named line item in the Expenditure property cost breakdown
 9. **BUG FIX**: Spouse expenditure tab now shows correct ownership percentage for joint/TiC properties — was applying primary owner's percentage to both users instead of inverting for the joint owner
+10. **BUG FIX**: Spouse expenditure tab now shows all individual property cost breakdown items (gas, electricity, water, building insurance, contents insurance, management agent) — template was still using old grouped keys
 
 ---
 
