@@ -14,6 +14,12 @@
 11. **UX**: Mortgage tab co-owner dropdown now auto-defaults from the ownership tab selection (spouse or "Other" with name) — previously required re-selection
 12. **UX**: Management Agent tab now positioned between Mortgage and Financials; hidden when no agent data exists (fee field remains in Financials as a reminder)
 13. **UX**: Financials tab Management Agent Fee field now always visible for BTL properties — shows "Not set" when no fee entered, serving as a reminder
+14. **NEW**: `monthly_interest_portion` field added to mortgages table — used for Section 24 tax credit calculation on repayment/mixed BTL mortgages
+15. **NEW**: BTL Financials tab restructured — clear cash flow breakdown (income → costs → mortgage → net) separated from tax position (taxable rental income + Section 24 credit)
+16. **NEW**: Section 24 Tax Credit calculation — 20% of mortgage interest shown in a separate "For Your Income Tax Calculation" box, with taxable rental income (excl. mortgage costs). These two figures feed into Income & Occupation tab
+17. **NEW**: Interest portion field on mortgage form — shown for BTL repayment/mixed mortgages, with helper text explaining Section 24 usage
+18. **NEW**: Amber reminder when repayment/mixed mortgage has no interest portion entered
+19. **NEW**: Learning Centre — Section 24 educational content added to Tax Planning category (before/after, 3-step process, mortgage type table, tax band impact, worked example)
 
 ---
 
@@ -32,10 +38,15 @@ Vue components and router were modified.
 ```
 app/Services/Property/PropertyService.php
 app/Services/UserProfile/UserProfileService.php
+app/Models/Mortgage.php
+app/Http/Requests/StoreMortgageRequest.php
+app/Http/Requests/UpdateMortgageRequest.php
+database/migrations/2026_01_24_091552_add_monthly_interest_portion_to_mortgages_table.php (NEW)
 resources/js/components/NetWorth/Property/PropertyDetailInline.vue
 resources/js/components/NetWorth/Property/PropertyFinancials.vue
-resources/js/components/UserProfile/ExpenditureForm.vue
 resources/js/components/NetWorth/Property/PropertyForm.vue
+resources/js/components/UserProfile/ExpenditureForm.vue
+resources/js/views/Public/LearningCentre.vue
 resources/js/components/NetWorth/Property/PropertyDetail.vue  (DELETED)
 resources/js/router/index.js
 ```
@@ -48,6 +59,10 @@ resources/js/router/index.js
 ```
 app/Services/Property/PropertyService.php
 app/Services/UserProfile/UserProfileService.php
+app/Models/Mortgage.php
+app/Http/Requests/StoreMortgageRequest.php
+app/Http/Requests/UpdateMortgageRequest.php
+database/migrations/2026_01_24_091552_add_monthly_interest_portion_to_mortgages_table.php
 ```
 
 ### Frontend (after rebuild)
@@ -68,7 +83,8 @@ resources/js/components/NetWorth/Property/PropertyDetail.vue
 ## Post-Deployment
 
 ```bash
-php artisan cache:clear
+php artisan migrate --force && php artisan cache:clear
 ```
 
-Cache clear required so cached property analysis regenerates with the updated cost calculation.
+- Migration adds `monthly_interest_portion` column to `mortgages` table
+- Cache clear required so cached property analysis regenerates with the updated cost calculation

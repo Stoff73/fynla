@@ -106,78 +106,88 @@
     <div v-if="property.property_type === 'buy_to_let'" class="bg-white border border-gray-200 rounded-lg p-6">
       <h4 class="text-md font-semibold text-gray-700 mb-4">Rental Income Analysis</h4>
 
+      <!-- Summary Cards -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div class="bg-gray-50 rounded-lg p-4">
-          <p class="text-sm text-green-700">{{ isSharedOwnership ? 'Full Monthly Rental Income' : 'Monthly Rental Income' }}</p>
-          <p class="text-2xl font-bold text-green-900">{{ formatCurrency(property.monthly_rental_income || 0) }}</p>
-          <div v-if="isSharedOwnership" class="mt-2 pt-2 border-t border-green-200">
-            <p class="text-xs text-green-600">Your Share ({{ property.ownership_percentage }}%)</p>
-            <p class="text-lg font-bold text-green-700">{{ formatCurrency(userMonthlyRentalIncome) }}</p>
-          </div>
+          <p class="text-sm text-green-700">Your Rental Income</p>
+          <p class="text-2xl font-bold text-green-900">{{ formatCurrency(userMonthlyRentalIncome) }}</p>
+          <p v-if="isSharedOwnership" class="text-xs text-green-600 mt-1">{{ property.ownership_percentage }}% of {{ formatCurrency(property.monthly_rental_income || 0) }}</p>
         </div>
 
         <div class="bg-gray-50 rounded-lg p-4">
-          <p class="text-sm text-blue-700">{{ isSharedOwnership ? 'Full Net Monthly Income' : 'Net Monthly Income' }}</p>
-          <p class="text-2xl font-bold text-blue-900">{{ formatCurrency(netMonthlyIncome) }}</p>
+          <p class="text-sm text-blue-700">Your Net Rental Income</p>
+          <p class="text-2xl font-bold" :class="userNetMonthlyIncome >= 0 ? 'text-blue-900' : 'text-red-600'">{{ formatCurrency(userNetMonthlyIncome) }}</p>
           <p class="text-xs text-blue-600 mt-1">After all costs</p>
-          <div v-if="isSharedOwnership" class="mt-2 pt-2 border-t border-blue-200">
-            <p class="text-xs text-blue-600">Your Share ({{ property.ownership_percentage }}%)</p>
-            <p class="text-lg font-bold text-blue-700">{{ formatCurrency(userNetMonthlyIncome) }}</p>
-          </div>
         </div>
 
         <div class="bg-gray-50 rounded-lg p-4">
           <p class="text-sm text-purple-700">Net Rental Yield</p>
           <p class="text-2xl font-bold text-purple-900">{{ netRentalYield }}%</p>
-          <p class="text-xs text-purple-600 mt-1">Annual (Full Property)</p>
+          <p class="text-xs text-purple-600 mt-1">Annual</p>
         </div>
       </div>
 
+      <!-- Cash Flow Breakdown -->
       <dl class="space-y-2">
         <div class="flex justify-between py-2 border-b border-gray-100">
-          <dt class="text-sm text-gray-600">Full Monthly Rental Income:</dt>
-          <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(property.monthly_rental_income || 0) }}</dd>
-        </div>
-        <div v-if="isSharedOwnership" class="flex justify-between py-2 border-b border-gray-100">
-          <dt class="text-sm text-gray-600">Your Share ({{ property.ownership_percentage }}%):</dt>
-          <dd class="text-sm font-medium text-blue-600">{{ formatCurrency(userMonthlyRentalIncome) }}</dd>
+          <dt class="text-sm text-gray-600">Your Monthly Rental Income:</dt>
+          <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(userMonthlyRentalIncome) }}</dd>
         </div>
 
         <div class="flex justify-between py-2 border-b border-gray-100">
-          <dt class="text-sm text-gray-600">Less: Full Monthly Costs:</dt>
-          <dd class="text-sm font-medium text-red-600">-{{ formatCurrency(totalMonthlyCosts) }}</dd>
+          <dt class="text-sm text-gray-600">Less: Running Costs:</dt>
+          <dd class="text-sm font-medium text-red-600">-{{ formatCurrency(userNonMortgageCosts) }}</dd>
         </div>
-        <div v-if="isSharedOwnership" class="flex justify-between py-2 border-b border-gray-100">
-          <dt class="text-sm text-gray-600">Your Share of Costs ({{ property.ownership_percentage }}%):</dt>
-          <dd class="text-sm font-medium text-red-600">-{{ formatCurrency(userMonthlyCosts) }}</dd>
+
+        <div v-if="userMonthlyMortgagePayments > 0" class="flex justify-between py-2 border-b border-gray-100">
+          <dt class="text-sm text-gray-600">Less: Mortgage Payment:</dt>
+          <dd class="text-sm font-medium text-red-600">-{{ formatCurrency(userMonthlyMortgagePayments) }}</dd>
         </div>
 
         <div class="flex justify-between py-3 border-t-2 border-gray-300 mt-2">
-          <dt class="text-base font-semibold text-gray-700">{{ isSharedOwnership ? 'Full Net Monthly Income:' : 'Net Monthly Income:' }}</dt>
-          <dd class="text-base font-bold" :class="netMonthlyIncome >= 0 ? 'text-green-600' : 'text-red-600'">
-            {{ formatCurrency(netMonthlyIncome) }}
-          </dd>
-        </div>
-        <div v-if="isSharedOwnership" class="flex justify-between py-3">
-          <dt class="text-base font-semibold text-blue-700">Your Net Monthly Income:</dt>
-          <dd class="text-base font-bold" :class="userNetMonthlyIncome >= 0 ? 'text-blue-600' : 'text-red-600'">
+          <dt class="text-base font-semibold text-gray-700">Your Net Monthly Income:</dt>
+          <dd class="text-base font-bold" :class="userNetMonthlyIncome >= 0 ? 'text-green-600' : 'text-red-600'">
             {{ formatCurrency(userNetMonthlyIncome) }}
           </dd>
         </div>
-
-        <div class="flex justify-between py-2 bg-gray-50 rounded-md p-2 mt-2">
-          <dt class="text-sm text-gray-600">{{ isSharedOwnership ? 'Full Annual Net Income:' : 'Projected Annual Net Income:' }}</dt>
-          <dd class="text-sm font-semibold" :class="netAnnualIncome >= 0 ? 'text-green-600' : 'text-red-600'">
-            {{ formatCurrency(netAnnualIncome) }}
-          </dd>
-        </div>
-        <div v-if="isSharedOwnership" class="flex justify-between py-2 bg-blue-50 rounded-md p-2">
-          <dt class="text-sm text-blue-700">Your Annual Net Income:</dt>
-          <dd class="text-sm font-semibold" :class="userNetAnnualIncome >= 0 ? 'text-blue-600' : 'text-red-600'">
+        <div class="flex justify-between py-2 bg-gray-50 rounded-md p-2 mt-1">
+          <dt class="text-sm text-gray-600">Projected Annual Net Income:</dt>
+          <dd class="text-sm font-semibold" :class="userNetAnnualIncome >= 0 ? 'text-green-600' : 'text-red-600'">
             {{ formatCurrency(userNetAnnualIncome) }}
           </dd>
         </div>
       </dl>
+
+      <!-- Tax Position (separate from cash flow) -->
+      <div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <h5 class="text-sm font-semibold text-blue-900 mb-3">For Your Income Tax Calculation</h5>
+        <p class="text-xs text-blue-700 mb-3">These figures are used in your Income &amp; Occupation tab for UK tax and NI calculations.</p>
+        <dl class="space-y-2">
+          <div class="flex justify-between py-2 border-b border-blue-100">
+            <dt class="text-sm text-blue-800">Taxable Rental Income:</dt>
+            <dd class="text-sm font-bold text-blue-900">{{ formatCurrency(userTaxableMonthlyRentalIncome * 12) }}/year</dd>
+          </div>
+          <div class="flex justify-between py-1 pl-4">
+            <dt class="text-xs text-blue-600">Rental income minus allowable costs (excl. mortgage)</dt>
+            <dd class="text-xs text-blue-600">{{ formatCurrency(userTaxableMonthlyRentalIncome) }}/month</dd>
+          </div>
+
+          <div v-if="monthlyMortgageInterest > 0" class="flex justify-between py-2 border-b border-blue-100">
+            <dt class="text-sm text-blue-800">Section 24 Tax Credit (20%):</dt>
+            <dd class="text-sm font-bold text-green-700">-{{ formatCurrency(mortgageInterestTaxCredit * 12) }}/year</dd>
+          </div>
+          <div v-if="monthlyMortgageInterest > 0" class="flex justify-between py-1 pl-4">
+            <dt class="text-xs text-blue-600">20% of {{ formatCurrency(monthlyMortgageInterest * 12) }}/year mortgage interest, deducted from tax payable</dt>
+            <dd class="text-xs text-blue-600">{{ formatCurrency(mortgageInterestTaxCredit) }}/month</dd>
+          </div>
+        </dl>
+
+        <div v-if="showInterestPortionReminder" class="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-md">
+          <p class="text-sm text-amber-800">
+            Your mortgage may qualify for a tax credit. Enter the interest portion of your monthly payment in the mortgage details to calculate your Section 24 tax relief (20% of mortgage interest).
+          </p>
+        </div>
+      </div>
 
       <div v-if="property.tenant_name" class="mt-4 p-4 bg-gray-50 rounded-md">
         <h5 class="text-sm font-semibold text-gray-700 mb-2">Tenancy Information</h5>
@@ -519,6 +529,13 @@ export default {
       );
     },
 
+    userNonMortgageCosts() {
+      if (this.isSharedOwnership && this.property?.ownership_percentage) {
+        return this.nonMortgageMonthlyCosts * (this.property.ownership_percentage / 100);
+      }
+      return this.nonMortgageMonthlyCosts;
+    },
+
     totalMonthlyCosts() {
       return this.nonMortgageMonthlyCosts + this.monthlyMortgagePayments;
     },
@@ -562,6 +579,56 @@ export default {
       if (currentValue === 0) return '0.00';
       const yieldValue = (this.netAnnualIncome / currentValue) * 100;
       return yieldValue.toFixed(2);
+    },
+
+    taxableMonthlyRentalIncome() {
+      const rentalIncome = parseFloat(this.property.monthly_rental_income) || 0;
+      return rentalIncome - this.nonMortgageMonthlyCosts;
+    },
+
+    userTaxableMonthlyRentalIncome() {
+      return this.userMonthlyRentalIncome - this.userNonMortgageCosts;
+    },
+
+    monthlyMortgageInterest() {
+      if (!this.mortgageList.length) return 0;
+
+      return this.mortgageList.reduce((total, mortgage) => {
+        const payment = parseFloat(mortgage.monthly_payment) || 0;
+        const type = mortgage.mortgage_type;
+
+        if (type === 'interest_only') {
+          return total + payment;
+        }
+
+        if (type === 'repayment') {
+          const portion = parseFloat(mortgage.monthly_interest_portion) || 0;
+          return total + portion;
+        }
+
+        if (type === 'mixed') {
+          const ioPercent = parseFloat(mortgage.interest_only_percentage) || 0;
+          const ioPortion = payment * (ioPercent / 100);
+          const repaymentPortion = parseFloat(mortgage.monthly_interest_portion) || 0;
+          return total + ioPortion + repaymentPortion;
+        }
+
+        return total;
+      }, 0);
+    },
+
+    mortgageInterestTaxCredit() {
+      return this.monthlyMortgageInterest * 0.20;
+    },
+
+    showInterestPortionReminder() {
+      if (!this.mortgageList.length) return false;
+      return this.mortgageList.some(mortgage => {
+        const type = mortgage.mortgage_type;
+        if (type !== 'repayment' && type !== 'mixed') return false;
+        const portion = parseFloat(mortgage.monthly_interest_portion) || 0;
+        return portion === 0;
+      });
     },
 
     totalInvestment() {
