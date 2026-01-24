@@ -68,30 +68,30 @@ describe('AutoRiskCalculator', function () {
     });
 
     describe('capacity for loss factor', function () {
-        it('returns HIGH when investments are less than 30% of net worth', function () {
+        it('returns HIGH when investments are 15% or less of net worth', function () {
             $user = User::factory()->create();
 
-            // Create small investments relative to net worth
-            InvestmentAccount::factory()->create(['user_id' => $user->id, 'current_value' => 10000]);
-            DCPension::factory()->create(['user_id' => $user->id, 'current_fund_value' => 10000]);
+            InvestmentAccount::factory()->create(['user_id' => $user->id, 'current_value' => 5000]);
+            DCPension::factory()->create(['user_id' => $user->id, 'current_fund_value' => 5000]);
 
             $this->netWorthService->shouldReceive('calculateNetWorth')
-                ->andReturn(['net_worth' => 100000]); // 20% in investments
+                ->andReturn(['net_worth' => 100000]); // 10% in investments
 
             $result = $this->calculator->calculateRiskProfile($user);
             $capacityFactor = collect($result['factor_breakdown'])->firstWhere('factor', 'capacity_for_loss');
 
             expect($capacityFactor['level'])->toBe('high');
+            expect($capacityFactor['components'])->toHaveKeys(['investments_total', 'pensions_total', 'net_worth']);
         });
 
-        it('returns MEDIUM when investments are 30-75% of net worth', function () {
+        it('returns MEDIUM when investments are 15-50% of net worth', function () {
             $user = User::factory()->create();
 
-            InvestmentAccount::factory()->create(['user_id' => $user->id, 'current_value' => 25000]);
-            DCPension::factory()->create(['user_id' => $user->id, 'current_fund_value' => 25000]);
+            InvestmentAccount::factory()->create(['user_id' => $user->id, 'current_value' => 15000]);
+            DCPension::factory()->create(['user_id' => $user->id, 'current_fund_value' => 15000]);
 
             $this->netWorthService->shouldReceive('calculateNetWorth')
-                ->andReturn(['net_worth' => 100000]); // 50% in investments
+                ->andReturn(['net_worth' => 100000]); // 30% in investments
 
             $result = $this->calculator->calculateRiskProfile($user);
             $capacityFactor = collect($result['factor_breakdown'])->firstWhere('factor', 'capacity_for_loss');
@@ -99,7 +99,22 @@ describe('AutoRiskCalculator', function () {
             expect($capacityFactor['level'])->toBe('medium');
         });
 
-        it('returns LOWER_MEDIUM when investments exceed 75% of net worth', function () {
+        it('returns LOWER_MEDIUM when investments are 50-75% of net worth', function () {
+            $user = User::factory()->create();
+
+            InvestmentAccount::factory()->create(['user_id' => $user->id, 'current_value' => 30000]);
+            DCPension::factory()->create(['user_id' => $user->id, 'current_fund_value' => 30000]);
+
+            $this->netWorthService->shouldReceive('calculateNetWorth')
+                ->andReturn(['net_worth' => 100000]); // 60% in investments
+
+            $result = $this->calculator->calculateRiskProfile($user);
+            $capacityFactor = collect($result['factor_breakdown'])->firstWhere('factor', 'capacity_for_loss');
+
+            expect($capacityFactor['level'])->toBe('lower_medium');
+        });
+
+        it('returns LOW when investments exceed 75% of net worth', function () {
             $user = User::factory()->create();
 
             InvestmentAccount::factory()->create(['user_id' => $user->id, 'current_value' => 40000]);
@@ -111,7 +126,7 @@ describe('AutoRiskCalculator', function () {
             $result = $this->calculator->calculateRiskProfile($user);
             $capacityFactor = collect($result['factor_breakdown'])->firstWhere('factor', 'capacity_for_loss');
 
-            expect($capacityFactor['level'])->toBe('lower_medium');
+            expect($capacityFactor['level'])->toBe('low');
         });
     });
 

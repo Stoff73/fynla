@@ -59,9 +59,10 @@ class AutoRiskCalculator
      * Factor 1: Capacity for Loss
      * (investments + pensions) / net worth
      *
-     * <30% = HIGH (more capacity to lose)
-     * 30-75% = MEDIUM
-     * >75% = LOWER_MEDIUM (less capacity to lose)
+     * 0-15% = HIGH (less at risk, more capacity to lose)
+     * 15-50% = MEDIUM
+     * 50-75% = LOWER_MEDIUM (medium-low capacity)
+     * >75% = LOW (most at risk, least capacity to lose)
      */
     private function calculateCapacityForLoss(User $user): array
     {
@@ -75,27 +76,36 @@ class AutoRiskCalculator
 
         // Calculate ratio
         $ratio = $netWorth > 0 ? ($atRiskAssets / $netWorth) * 100 : 0;
+        $roundedRatio = round($ratio, 1);
 
         // Determine level
-        if ($ratio < 30) {
+        if ($ratio <= 15) {
             $level = 'high';
-            $description = 'Less than 30% of your net worth is in investments/pensions, giving you higher capacity to take risk.';
-        } elseif ($ratio <= 75) {
+            $description = $roundedRatio.'% of your net worth is in investments/pensions, giving you high capacity to take risk.';
+        } elseif ($ratio <= 50) {
             $level = 'medium';
-            $description = 'Between 30-75% of your net worth is in investments/pensions, indicating moderate capacity for loss.';
-        } else {
+            $description = $roundedRatio.'% of your net worth is in investments/pensions, indicating moderate capacity for loss.';
+        } elseif ($ratio <= 75) {
             $level = 'lower_medium';
-            $description = 'More than 75% of your net worth is in investments/pensions, suggesting lower capacity for loss.';
+            $description = $roundedRatio.'% of your net worth is in investments/pensions, suggesting medium-low capacity for loss.';
+        } else {
+            $level = 'low';
+            $description = $roundedRatio.'% of your net worth is in investments/pensions, indicating low capacity to absorb losses.';
         }
 
         return [
             'factor' => 'capacity_for_loss',
             'display_name' => 'Capacity for Loss',
             'level' => $level,
-            'value' => round($ratio, 1).'%',
-            'raw_value' => round($ratio, 1),
+            'value' => $roundedRatio.'%',
+            'raw_value' => $roundedRatio,
             'description' => $description,
             'icon' => 'shield',
+            'components' => [
+                'investments_total' => round((float) $investmentsTotal, 2),
+                'pensions_total' => round((float) $pensionsTotal, 2),
+                'net_worth' => round((float) $netWorth, 2),
+            ],
         ];
     }
 
