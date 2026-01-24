@@ -20,6 +20,9 @@
 17. **NEW**: Interest portion field on mortgage form — shown for BTL repayment/mixed mortgages, with helper text explaining Section 24 usage
 18. **NEW**: Amber reminder when repayment/mixed mortgage has no interest portion entered
 19. **NEW**: Learning Centre — Section 24 educational content added to Tax Planning category (before/after, 3-step process, mortgage type table, tax band impact, worked example)
+20. **NEW**: UK Tax & NI card now shows per-property rental income breakdown (property names with individual taxable amounts)
+21. **NEW**: Section 24 tax credit applied to income tax calculation — shown as credit reducing tax payable in summary card
+22. **REFACTOR**: PropertyFinancials tax section now uses API-returned `tax_position` (single source of truth from `PropertyService::calculateTaxPosition()`)
 
 ---
 
@@ -38,6 +41,7 @@ Vue components and router were modified.
 ```
 app/Services/Property/PropertyService.php
 app/Services/UserProfile/UserProfileService.php
+app/Services/UKTaxCalculator.php
 app/Models/Mortgage.php
 app/Http/Requests/StoreMortgageRequest.php
 app/Http/Requests/UpdateMortgageRequest.php
@@ -46,6 +50,9 @@ resources/js/components/NetWorth/Property/PropertyDetailInline.vue
 resources/js/components/NetWorth/Property/PropertyFinancials.vue
 resources/js/components/NetWorth/Property/PropertyForm.vue
 resources/js/components/UserProfile/ExpenditureForm.vue
+resources/js/components/UserProfile/IncomeOccupation.vue
+resources/js/components/UserProfile/TaxIncomeCard.vue
+resources/js/components/UserProfile/TaxSummaryCard.vue
 resources/js/views/Public/LearningCentre.vue
 resources/js/components/NetWorth/Property/PropertyDetail.vue  (DELETED)
 resources/js/router/index.js
@@ -59,6 +66,7 @@ resources/js/router/index.js
 ```
 app/Services/Property/PropertyService.php
 app/Services/UserProfile/UserProfileService.php
+app/Services/UKTaxCalculator.php
 app/Models/Mortgage.php
 app/Http/Requests/StoreMortgageRequest.php
 app/Http/Requests/UpdateMortgageRequest.php

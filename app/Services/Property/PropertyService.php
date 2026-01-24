@@ -72,10 +72,88 @@ class PropertyService
     }
 
     /**
-     * Calculate total monthly costs for the property
-     *
-     * Single-record pattern: Returns FULL monthly costs (not user's share).
+     * Calculate tax position for a BTL property.
+     * Single source of truth for taxable rental income and Section 24 credit.
+     * Used by both the property financials tab and the income tax calculator.
      */
+    public function calculateTaxPosition(Property $property): array
+    {
+        $monthlyRental = (float) ($property->monthly_rental_income ?? 0);
+
+        // Non-mortgage allowable costs (deductible from rental income for tax)
+        $monthlyAllowableCosts = (float) ($property->monthly_gas ?? 0)
+            + (float) ($property->monthly_electricity ?? 0)
+            + (float) ($property->monthly_water ?? 0)
+            + (float) ($property->monthly_building_insurance ?? 0)
+            + (float) ($property->monthly_contents_insurance ?? 0)
+            + (float) ($property->monthly_service_charge ?? 0)
+            + (float) ($property->monthly_ground_rent ?? 0)
+            + (float) ($property->managing_agent_fee ?? 0);
+
+        $monthlyTaxableIncome = $monthlyRental - $monthlyAllowableCosts;
+
+        // Calculate mortgage interest for Section 24
+        $monthlyMortgageInterest = 0;
+        $mortgages = $property->mortgages;
+
+        foreach ($mortgages as $mortgage) {
+            $payment = (float) ($mortgage->monthly_payment ?? 0);
+            $type = $mortgage->mortgage_type;
+
+            if ($type === 'interest_only') {
+                $monthlyMortgageInterest += $payment;
+            } elseif ($type === 'repayment') {
+                $monthlyMortgageInterest += (float) ($mortgage->monthly_interest_portion ?? 0);
+            } elseif ($type === 'mixed') {
+                $ioPercent = (float) ($mortgage->interest_only_percentage ?? 0);
+                $ioPortion = $payment * ($ioPercent / 100);
+                $repaymentPortion = (float) ($mortgage->monthly_interest_portion ?? 0);
+                $monthlyMortgageInterest += $ioPortion + $repaymentPortion;
+            }
+        }
+
+        // Apply ownership percentage for joint properties
+        $ownershipMultiplier = 1.0;
+        if ($property->ownership_type === 'joint' || $property->ownership_type === 'tenants_in_common') {
+            $ownershipMultiplier = ((float) ($property->ownership_percentage ?? 50)) / 100;
+        }
+
+        $userMonthlyTaxable = $monthlyTaxableIncome * $ownershipMultiplier;
+        $userMonthlyInterest = $monthlyMortgageInterest * $ownershipMultiplier;
+        $monthlySection24Credit = $userMonthlyInterest * 0.20;
+
+        $propertyName = $property->name ?: ($property->address_line_1 ?: 'BTL Property');
+
+        return [
+            'property_name' => $propertyName,
+            'monthly_taxable_income' => round($userMonthlyTaxable, 2),
+            'annual_taxable_income' => round($userMonthlyTaxable * 12, 2),
+            'monthly_mortgage_interest' => round($userMonthlyInterest, 2),
+            'section_24_monthly_credit' => round($monthlySection24Credit, 2),
+            'section_24_annual_credit' => round($monthlySection24Credit * 12, 2),
+            'monthly_allowable_costs' => round($monthlyAllowableCosts * $ownershipMultiplier, 2),
+            'ownership_percentage' => $ownershipMultiplier < 1.0 ? round($ownershipMultiplier * 100) : null,
+            'has_interest_portion_missing' => $this->hasMissingInterestPortion($mortgages),
+        ];
+    }
+
+    /**
+     * Check if any repayment/mixed mortgage is missing the interest portion.
+     */
+    private function hasMissingInterestPortion($mortgages): bool
+    {
+        foreach ($mortgages as $mortgage) {
+            $type = $mortgage->mortgage_type;
+            if ($type === 'repayment' || $type === 'mixed') {
+                if (empty($mortgage->monthly_interest_portion) || (float) $mortgage->monthly_interest_portion === 0.0) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     public function calculateTotalMonthlyCosts(Property $property): float
     {
         $costs = 0;
@@ -145,6 +223,7 @@ class PropertyService
         $equity = $this->calculateEquity($property);
         $monthlyCosts = $this->calculateTotalMonthlyCosts($property);
         $rentalYield = $this->calculateNetRentalYield($property);
+        $taxPosition = $property->property_type === 'buy_to_let' ? $this->calculateTaxPosition($property) : null;
 
         // Calculate loan-to-value ratio
         $currentValue = $property->current_value ?? 0;
@@ -178,6 +257,7 @@ class PropertyService
             'mortgage_balance' => (float) $mortgageBalance,
             'outstanding_mortgage' => (float) ($property->outstanding_mortgage ?? 0),  // Include simple field for reference
             'net_rental_yield' => (float) $rentalYield,  // Top-level for easy access in frontend
+            'tax_position' => $taxPosition,  // BTL only: taxable income & Section 24 credit
 
             // Address fields (flat for form compatibility)
             'address_line_1' => $property->address_line_1,

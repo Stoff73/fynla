@@ -20,6 +20,9 @@
       <div class="text-center">
         <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Income Tax</p>
         <p class="text-xl font-bold text-red-600">-{{ formatCurrency(summary.total_income_tax) }}</p>
+        <p v-if="section24?.applied_credit > 0" class="text-xs text-green-600 mt-0.5">
+          Inc. S24 credit {{ formatCurrency(section24.applied_credit) }}
+        </p>
       </div>
 
       <!-- National Insurance -->
@@ -62,6 +65,10 @@ const props = defineProps({
   summary: {
     type: Object,
     required: true,
+  },
+  section24: {
+    type: Object,
+    default: null,
   },
 });
 

@@ -108,10 +108,10 @@ class UserProfileService
     public function updateIncomeOccupation(User $user, array $data): User
     {
         // Calculate annual rental income from properties
-        $annualRentalIncome = $this->calculateAnnualRentalIncome($user);
+        $rentalBreakdown = $this->calculateAnnualRentalIncome($user);
 
-        // Override the annual_rental_income with calculated value
-        $data['annual_rental_income'] = $annualRentalIncome;
+        // Override the annual_rental_income with calculated total
+        $data['annual_rental_income'] = $rentalBreakdown['total'];
 
         $user->update($data);
 
@@ -157,22 +157,43 @@ class UserProfileService
     }
 
     /**
-     * Calculate total annual rental income from user's properties
-     * Note: monthly_rental_income stores the FULL rental amount.
-     * Apply ownership percentage for joint/tenants_in_common properties.
+     * Calculate total annual taxable rental income from user's BTL properties.
+     * Uses PropertyService::calculateTaxPosition() as the single source of truth.
      */
-    private function calculateAnnualRentalIncome(User $user): float
+    private function calculateAnnualRentalIncome(User $user): array
     {
-        return $user->properties->sum(function ($property) {
-            $monthlyRental = (float) ($property->monthly_rental_income ?? 0);
+        $propertyService = app(\App\Services\Property\PropertyService::class);
+        $properties = [];
+        $totalTaxableIncome = 0;
+        $totalSection24Credit = 0;
 
-            if ($property->ownership_type === 'joint' || $property->ownership_type === 'tenants_in_common') {
-                $percentage = (float) ($property->ownership_percentage ?? 50);
-                $monthlyRental = $monthlyRental * ($percentage / 100);
+        foreach ($user->properties as $property) {
+            if ($property->property_type !== 'buy_to_let') {
+                continue;
             }
 
-            return $monthlyRental * 12;
-        });
+            $property->load('mortgages');
+            $taxPosition = $propertyService->calculateTaxPosition($property);
+
+            if ($taxPosition['annual_taxable_income'] <= 0 && $taxPosition['section_24_annual_credit'] <= 0) {
+                continue;
+            }
+
+            $totalTaxableIncome += $taxPosition['annual_taxable_income'];
+            $totalSection24Credit += $taxPosition['section_24_annual_credit'];
+
+            $properties[] = [
+                'name' => $taxPosition['property_name'],
+                'annual_taxable' => $taxPosition['annual_taxable_income'],
+                'annual_credit' => $taxPosition['section_24_annual_credit'],
+            ];
+        }
+
+        return [
+            'total' => round($totalTaxableIncome, 2),
+            'section_24_credit' => round($totalSection24Credit, 2),
+            'properties' => $properties,
+        ];
     }
 
     /**
@@ -304,7 +325,9 @@ class UserProfileService
      */
     private function buildIncomeOccupation(User $user): array
     {
-        $rentalIncome = $this->calculateAnnualRentalIncome($user);
+        $rentalBreakdown = $this->calculateAnnualRentalIncome($user);
+        $rentalIncome = $rentalBreakdown['total'];
+        $section24Credit = $rentalBreakdown['section_24_credit'];
         $pensionIncome = $this->calculateAnnualPensionIncome($user);
         $pensionContributions = $this->calculateAnnualPensionContributions($user);
 
@@ -330,7 +353,8 @@ class UserProfileService
             $interestIncome,
             $dividendIncome,
             $trustType,
-            $pensionContributions
+            $pensionContributions,
+            $section24Credit
         );
 
         // Get simple calculation for backwards compatibility
@@ -381,6 +405,8 @@ class UserProfileService
             'monthly_expenditure' => $monthlyExpenditure,
             'disposable_income' => $netIncome - $annualExpenditure,
             'monthly_disposable' => ($netIncome - $annualExpenditure) / 12,
+            // Rental income per-property breakdown for UI display
+            'rental_breakdown' => $rentalBreakdown,
             // New detailed breakdown for UI display
             'detailed_tax_breakdown' => $detailedTax,
         ];

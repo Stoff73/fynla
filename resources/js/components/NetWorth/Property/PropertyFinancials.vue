@@ -159,30 +159,30 @@
       </dl>
 
       <!-- Tax Position (separate from cash flow) -->
-      <div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+      <div v-if="property.tax_position" class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
         <h5 class="text-sm font-semibold text-blue-900 mb-3">For Your Income Tax Calculation</h5>
         <p class="text-xs text-blue-700 mb-3">These figures are used in your Income &amp; Occupation tab for UK tax and NI calculations.</p>
         <dl class="space-y-2">
           <div class="flex justify-between py-2 border-b border-blue-100">
             <dt class="text-sm text-blue-800">Taxable Rental Income:</dt>
-            <dd class="text-sm font-bold text-blue-900">{{ formatCurrency(userTaxableMonthlyRentalIncome * 12) }}/year</dd>
+            <dd class="text-sm font-bold text-blue-900">{{ formatCurrency(property.tax_position.annual_taxable_income) }}/year</dd>
           </div>
           <div class="flex justify-between py-1 pl-4">
             <dt class="text-xs text-blue-600">Rental income minus allowable costs (excl. mortgage)</dt>
-            <dd class="text-xs text-blue-600">{{ formatCurrency(userTaxableMonthlyRentalIncome) }}/month</dd>
+            <dd class="text-xs text-blue-600">{{ formatCurrency(property.tax_position.monthly_taxable_income) }}/month</dd>
           </div>
 
-          <div v-if="monthlyMortgageInterest > 0" class="flex justify-between py-2 border-b border-blue-100">
+          <div v-if="property.tax_position.monthly_mortgage_interest > 0" class="flex justify-between py-2 border-b border-blue-100">
             <dt class="text-sm text-blue-800">Section 24 Tax Credit (20%):</dt>
-            <dd class="text-sm font-bold text-green-700">-{{ formatCurrency(mortgageInterestTaxCredit * 12) }}/year</dd>
+            <dd class="text-sm font-bold text-green-700">-{{ formatCurrency(property.tax_position.section_24_annual_credit) }}/year</dd>
           </div>
-          <div v-if="monthlyMortgageInterest > 0" class="flex justify-between py-1 pl-4">
-            <dt class="text-xs text-blue-600">20% of {{ formatCurrency(monthlyMortgageInterest * 12) }}/year mortgage interest, deducted from tax payable</dt>
-            <dd class="text-xs text-blue-600">{{ formatCurrency(mortgageInterestTaxCredit) }}/month</dd>
+          <div v-if="property.tax_position.monthly_mortgage_interest > 0" class="flex justify-between py-1 pl-4">
+            <dt class="text-xs text-blue-600">20% of {{ formatCurrency(property.tax_position.monthly_mortgage_interest * 12) }}/year mortgage interest, deducted from tax payable</dt>
+            <dd class="text-xs text-blue-600">{{ formatCurrency(property.tax_position.section_24_monthly_credit) }}/month</dd>
           </div>
         </dl>
 
-        <div v-if="showInterestPortionReminder" class="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-md">
+        <div v-if="property.tax_position.has_interest_portion_missing" class="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-md">
           <p class="text-sm text-amber-800">
             Your mortgage may qualify for a tax credit. Enter the interest portion of your monthly payment in the mortgage details to calculate your Section 24 tax relief (20% of mortgage interest).
           </p>
@@ -579,56 +579,6 @@ export default {
       if (currentValue === 0) return '0.00';
       const yieldValue = (this.netAnnualIncome / currentValue) * 100;
       return yieldValue.toFixed(2);
-    },
-
-    taxableMonthlyRentalIncome() {
-      const rentalIncome = parseFloat(this.property.monthly_rental_income) || 0;
-      return rentalIncome - this.nonMortgageMonthlyCosts;
-    },
-
-    userTaxableMonthlyRentalIncome() {
-      return this.userMonthlyRentalIncome - this.userNonMortgageCosts;
-    },
-
-    monthlyMortgageInterest() {
-      if (!this.mortgageList.length) return 0;
-
-      return this.mortgageList.reduce((total, mortgage) => {
-        const payment = parseFloat(mortgage.monthly_payment) || 0;
-        const type = mortgage.mortgage_type;
-
-        if (type === 'interest_only') {
-          return total + payment;
-        }
-
-        if (type === 'repayment') {
-          const portion = parseFloat(mortgage.monthly_interest_portion) || 0;
-          return total + portion;
-        }
-
-        if (type === 'mixed') {
-          const ioPercent = parseFloat(mortgage.interest_only_percentage) || 0;
-          const ioPortion = payment * (ioPercent / 100);
-          const repaymentPortion = parseFloat(mortgage.monthly_interest_portion) || 0;
-          return total + ioPortion + repaymentPortion;
-        }
-
-        return total;
-      }, 0);
-    },
-
-    mortgageInterestTaxCredit() {
-      return this.monthlyMortgageInterest * 0.20;
-    },
-
-    showInterestPortionReminder() {
-      if (!this.mortgageList.length) return false;
-      return this.mortgageList.some(mortgage => {
-        const type = mortgage.mortgage_type;
-        if (type !== 'repayment' && type !== 'mixed') return false;
-        const portion = parseFloat(mortgage.monthly_interest_portion) || 0;
-        return portion === 0;
-      });
     },
 
     totalInvestment() {
