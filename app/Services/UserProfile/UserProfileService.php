@@ -637,7 +637,11 @@ class UserProfileService
             $totalMonthlyExpense = 0;
             $breakdown = [];
             $isJoint = in_array($property->ownership_type, ['joint', 'tenants_in_common']);
-            $ownershipMultiplier = $isJoint ? (($property->ownership_percentage ?? 50) / 100) : 1;
+            $userIsOwner = $property->user_id === $user->id;
+            $ownershipPercentage = $isJoint
+                ? ($userIsOwner ? ($property->ownership_percentage ?? 50) : (100 - ($property->ownership_percentage ?? 50)))
+                : 100;
+            $ownershipMultiplier = $ownershipPercentage / 100;
 
             // Mortgage payment - respect mortgage's own ownership_type
             $mortgage = $property->mortgages()->first();
@@ -648,7 +652,7 @@ class UserProfileService
                 if ($mortgage->ownership_type === 'joint') {
                     // Joint mortgage: apply property ownership percentage
                     $mortgageAmount = $mortgage->monthly_payment * $ownershipMultiplier;
-                    $mortgageOwnershipPercentage = $property->ownership_percentage ?? 50;
+                    $mortgageOwnershipPercentage = $ownershipPercentage;
                 }
                 // Individual mortgage: full amount belongs to this owner (100%)
                 $totalMonthlyExpense += $mortgageAmount;
@@ -735,7 +739,7 @@ class UserProfileService
                     'breakdown' => $breakdown,
                     'is_joint' => $isJoint,
                     'ownership_type' => $property->ownership_type,
-                    'ownership_percentage' => $isJoint ? ($property->ownership_percentage ?? 50) : 100,
+                    'ownership_percentage' => $ownershipPercentage,
                     'mortgage_ownership_percentage' => $mortgageOwnershipPercentage,
                 ];
             }
