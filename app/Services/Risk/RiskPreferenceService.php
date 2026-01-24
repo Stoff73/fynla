@@ -188,6 +188,8 @@ class RiskPreferenceService
 
     /**
      * Get user's complete risk profile
+     *
+     * Always recalculates factor_breakdown to ensure current values and components.
      */
     public function getRiskProfile(int $userId): ?array
     {
@@ -199,11 +201,16 @@ class RiskPreferenceService
 
         $config = $this->getRiskLevelConfig($profile->risk_level);
 
+        // Recalculate factors live for current values
+        $calculator = app(AutoRiskCalculator::class);
+        $user = User::findOrFail($userId);
+        $calculated = $calculator->calculateRiskProfile($user);
+
         return [
             'risk_level' => $profile->risk_level,
             'risk_assessed_at' => $profile->risk_assessed_at?->toIso8601String(),
             'is_self_assessed' => $profile->is_self_assessed,
-            'factor_breakdown' => $profile->factor_breakdown,
+            'factor_breakdown' => $calculated['factor_breakdown'],
             'config' => $config,
         ];
     }

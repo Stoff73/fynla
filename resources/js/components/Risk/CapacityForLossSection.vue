@@ -9,18 +9,8 @@
         have recovered over time.
       </p>
       <p>
-        You may <strong>need to consider investments which may fall in value</strong> in order to
-        achieve better long-term growth and keep pace with inflation.
-      </p>
-      <p>
-        Your <strong>investment goals may limit the extent to which you can withstand losses</strong>.
-        For example, if you're saving for a house deposit needed in 2 years, you have less
-        capacity to take risk than someone investing for retirement in 20 years.
-      </p>
-      <p>
-        Consider taking <strong>different approaches for different portions of your money</strong>.
-        Emergency funds should be in easily accessible, low-risk accounts, while long-term
-        investments can afford more volatility.
+        Your capacity for loss is driven by <strong>how much of your net worth is exposed to
+        market risk</strong> through investments and pensions.
       </p>
     </div>
 
@@ -28,14 +18,13 @@
     <div class="bg-gray-50 rounded-lg p-6">
       <h4 class="text-sm font-medium text-gray-700 mb-4 text-center">Your Capacity for Loss Spectrum</h4>
 
-      <!-- Spectrum bar -->
+      <!-- Spectrum bar (4 zones) -->
       <div class="relative h-8 rounded-full overflow-hidden mb-2">
         <div class="absolute inset-0 flex">
           <div class="flex-1 bg-gradient-to-r from-green-400 to-green-500"></div>
-          <div class="flex-1 bg-gradient-to-r from-green-500 to-teal-500"></div>
-          <div class="flex-1 bg-gradient-to-r from-teal-500 to-blue-500"></div>
-          <div class="flex-1 bg-gradient-to-r from-blue-500 to-amber-500"></div>
-          <div class="flex-1 bg-gradient-to-r from-amber-500 to-red-500"></div>
+          <div class="flex-1 bg-gradient-to-r from-blue-400 to-blue-500"></div>
+          <div class="flex-1 bg-gradient-to-r from-teal-400 to-teal-500"></div>
+          <div class="flex-1 bg-gradient-to-r from-red-400 to-red-500"></div>
         </div>
 
         <!-- Marker for current selection -->
@@ -52,13 +41,12 @@
         </transition>
       </div>
 
-      <!-- Labels -->
+      <!-- Labels (4 zones) -->
       <div class="flex justify-between text-xs text-gray-600 mb-4">
-        <span class="text-green-700 font-medium">Low</span>
-        <span class="text-teal-700 font-medium">Lower-Med</span>
+        <span class="text-green-700 font-medium">High Capacity</span>
         <span class="text-blue-700 font-medium">Medium</span>
-        <span class="text-amber-700 font-medium">Upper-Med</span>
-        <span class="text-red-700 font-medium">High</span>
+        <span class="text-teal-700 font-medium">Medium-Low</span>
+        <span class="text-red-700 font-medium">Low Capacity</span>
       </div>
 
       <!-- Interpretation based on selection -->
@@ -71,7 +59,7 @@
     </div>
 
     <!-- Key considerations -->
-    <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
       <div class="bg-white border border-gray-200 rounded-lg p-4">
         <div class="flex items-center gap-2 mb-2">
           <svg class="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -97,19 +85,6 @@
           recover from short-term losses.
         </p>
       </div>
-
-      <div class="bg-white border border-gray-200 rounded-lg p-4">
-        <div class="flex items-center gap-2 mb-2">
-          <svg class="w-5 h-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-          </svg>
-          <h5 class="font-medium text-gray-900 text-sm">Income Stability</h5>
-        </div>
-        <p class="text-xs text-gray-600">
-          Secure, stable income allows more capacity for investment risk than
-          variable or uncertain income.
-        </p>
-      </div>
     </div>
   </div>
 </template>
@@ -128,44 +103,40 @@ export default {
   computed: {
     markerPosition() {
       const positions = {
-        low: '10%',
-        lower_medium: '30%',
-        medium: '50%',
-        upper_medium: '70%',
-        high: '90%',
+        high: '12.5%',
+        medium: '37.5%',
+        lower_medium: '62.5%',
+        low: '87.5%',
       };
       return positions[this.selectedLevel] || '50%';
     },
 
     interpretationClasses() {
       const classes = {
-        low: 'bg-green-50 border border-green-200 text-green-800',
-        lower_medium: 'bg-teal-50 border border-teal-200 text-teal-800',
+        high: 'bg-green-50 border border-green-200 text-green-800',
         medium: 'bg-blue-50 border border-blue-200 text-blue-800',
-        upper_medium: 'bg-amber-50 border border-amber-200 text-amber-800',
-        high: 'bg-red-50 border border-red-200 text-red-800',
+        lower_medium: 'bg-teal-50 border border-teal-200 text-teal-800',
+        low: 'bg-red-50 border border-red-200 text-red-800',
       };
       return classes[this.selectedLevel] || 'bg-gray-50 border border-gray-200 text-gray-800';
     },
 
     interpretationTitle() {
       const titles = {
-        low: 'Low Capacity for Loss',
-        lower_medium: 'Lower-Medium Capacity',
-        medium: 'Medium Capacity',
-        upper_medium: 'Upper-Medium Capacity',
         high: 'High Capacity for Loss',
+        medium: 'Medium Capacity',
+        lower_medium: 'Medium-Low Capacity',
+        low: 'Low Capacity for Loss',
       };
       return titles[this.selectedLevel] || '';
     },
 
     interpretationText() {
       const texts = {
-        low: 'You prefer to prioritise capital preservation. Consider keeping most investments in lower-risk assets like bonds and cash.',
-        lower_medium: 'You can accept small fluctuations for modest growth. A conservative mix with some equity exposure may be suitable.',
-        medium: 'You have balanced capacity. A diversified portfolio across asset classes can help achieve reasonable growth while managing risk.',
-        upper_medium: 'You can accept significant fluctuations for growth. A portfolio with substantial equity allocation may be appropriate.',
-        high: 'You have strong capacity to withstand losses. An aggressive growth strategy with high equity exposure could be suitable for long-term goals.',
+        high: 'Less than 15% of your net worth is at market risk. You have strong capacity to withstand investment losses without affecting your lifestyle.',
+        medium: '15-50% of your net worth is at market risk. A diversified portfolio can help achieve reasonable growth while managing your exposure.',
+        lower_medium: '50-75% of your net worth is at market risk. Consider whether your overall exposure is appropriate for your circumstances.',
+        low: 'More than 75% of your net worth is at market risk. A significant downturn could materially affect your financial position.',
       };
       return texts[this.selectedLevel] || '';
     },

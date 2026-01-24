@@ -30,7 +30,6 @@ use App\Http\Controllers\Api\Investment\PortfolioStrategyController;
 use App\Http\Controllers\Api\Investment\RebalancingActionsController;
 use App\Http\Controllers\Api\Investment\RebalancingCalculationController;
 use App\Http\Controllers\Api\Investment\RebalancingStrategiesController;
-use App\Http\Controllers\Api\Investment\RiskProfileController;
 use App\Http\Controllers\Api\Investment\TaxOptimizationController;
 use App\Http\Controllers\Api\InvestmentController;
 use App\Http\Controllers\Api\InvestmentProjectionController;
@@ -625,23 +624,6 @@ Route::middleware('auth:sanctum')->prefix('investment')->group(function () {
 
         // Cache management
         Route::delete('/clear-cache', [FeeImpactController::class, 'clearCache']);
-    });
-
-    // Risk Profiling (Questionnaire-based)
-    Route::prefix('risk-profile')->group(function () {
-        // Questionnaire
-        Route::get('/questionnaire', [RiskProfileController::class, 'getQuestionnaire']);
-        Route::post('/calculate-score', [RiskProfileController::class, 'calculateScore']);
-
-        // Profile generation
-        Route::post('/generate', [RiskProfileController::class, 'generateProfile']);
-        Route::get('/', [RiskProfileController::class, 'getProfile']);
-
-        // Capacity for loss
-        Route::post('/capacity', [RiskProfileController::class, 'analyzeCapacity']);
-
-        // Cache management
-        Route::delete('/clear-cache', [RiskProfileController::class, 'clearCache']);
     });
 
     // Risk Preference (Self-select 5-level system)
