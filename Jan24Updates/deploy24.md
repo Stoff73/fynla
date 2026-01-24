@@ -34,6 +34,8 @@
 31. **CLEANUP**: Removed redundant `<h3>` headings from Management Agent and Financials tabs — tab labels already identify content
 32. **UX**: Removed border/outline from Management Agent tab content for cleaner appearance
 33. **CLEANUP**: Removed unused questionnaire-based risk profiling system (System 3) — `RiskProfileController`, `RiskProfiler`, `RiskQuestionnaire`, `CapacityForLossAnalyzer`, 6 API routes, and 5 dead frontend methods. App uses only auto-calculator (7-factor) and self-assessment systems.
+34. **REWORK**: Capacity for Loss — 4 threshold levels (was 3), detail view shows formula with actual £ values, spectrum updated to 4 zones, factor breakdown recalculated live
+35. **UX**: All risk factor detail views — concise with source data, formula-style calculations, compact thresholds
 
 ---
 
@@ -118,6 +120,24 @@ php artisan migrate --force && php artisan cache:clear
 ### Backend (PHP)
 ```
 routes/api.php
+```
+
+### Frontend (rebuild required)
+```bash
+./deploy/fynla-org/build.sh
+```
+```
+public/build/  (entire folder)
+```
+
+---
+
+## Files to Upload (Item 34 — Capacity for Loss Rework)
+
+### Backend (PHP)
+```
+app/Services/Risk/AutoRiskCalculator.php
+app/Services/Risk/RiskPreferenceService.php
 ```
 
 ### Frontend (rebuild required)
