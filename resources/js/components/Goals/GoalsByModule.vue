@@ -43,14 +43,14 @@
           <div class="mb-3">
             <div class="flex justify-between text-xs mb-1">
               <span class="text-gray-500">{{ formatCurrency(goal.current_amount) }}</span>
-              <span class="font-medium" :class="goal.is_on_track ? 'text-blue-600' : 'text-orange-600'">
+              <span class="font-medium" :class="getProgressTextClass(goal)">
                 {{ Math.round(goal.progress_percentage || 0) }}%
               </span>
             </div>
             <div class="w-full bg-gray-200 rounded-full h-2">
               <div
                 class="h-2 rounded-full transition-all"
-                :class="goal.is_on_track ? 'bg-blue-500' : 'bg-orange-500'"
+                :class="getProgressBarClass(goal)"
                 :style="{ width: Math.min(goal.progress_percentage || 0, 100) + '%' }"
               ></div>
             </div>
@@ -66,13 +66,13 @@
           <div class="mt-3 flex items-center gap-2">
             <span
               class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
-              :class="goal.is_on_track ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'"
+              :class="getStatusBadgeClass(goal)"
             >
               <span
                 class="w-1.5 h-1.5 rounded-full mr-1"
-                :class="goal.is_on_track ? 'bg-green-500' : 'bg-orange-500'"
+                :class="getStatusDotClass(goal)"
               ></span>
-              {{ goal.is_on_track ? 'On Track' : 'Behind' }}
+              {{ getStatusLabel(goal) }}
             </span>
             <span
               v-if="goal.priority === 'critical' || goal.priority === 'high'"
@@ -167,6 +167,40 @@ export default {
         custom: '⭐',
       };
       return icons[goalType] || '🎯';
+    },
+
+    isNotStarted(goal) {
+      return parseFloat(goal.current_amount) <= 0;
+    },
+
+    getProgressTextClass(goal) {
+      if (this.isNotStarted(goal)) return 'text-gray-500';
+      if (goal.is_on_track) return 'text-blue-600';
+      return 'text-orange-600';
+    },
+
+    getProgressBarClass(goal) {
+      if (this.isNotStarted(goal)) return 'bg-gray-300';
+      if (goal.is_on_track) return 'bg-blue-500';
+      return 'bg-orange-500';
+    },
+
+    getStatusBadgeClass(goal) {
+      if (this.isNotStarted(goal)) return 'bg-gray-100 text-gray-700';
+      if (goal.is_on_track) return 'bg-green-100 text-green-700';
+      return 'bg-orange-100 text-orange-700';
+    },
+
+    getStatusDotClass(goal) {
+      if (this.isNotStarted(goal)) return 'bg-gray-400';
+      if (goal.is_on_track) return 'bg-green-500';
+      return 'bg-orange-500';
+    },
+
+    getStatusLabel(goal) {
+      if (this.isNotStarted(goal)) return 'Not Started';
+      if (goal.is_on_track) return 'On Track';
+      return 'Behind';
     },
 
     formatTimeRemaining(days) {
