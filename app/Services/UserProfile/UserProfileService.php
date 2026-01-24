@@ -700,6 +700,13 @@ class UserProfileService
                 $breakdown['other'] = $amount;
             }
 
+            // Managing agent fee
+            if (($property->managing_agent_fee ?? 0) > 0) {
+                $amount = $property->managing_agent_fee * $ownershipMultiplier;
+                $totalMonthlyExpense += $amount;
+                $breakdown['managing_agent'] = $amount;
+            }
+
             if ($totalMonthlyExpense > 0) {
                 // Apply ownership filter
                 if (! $this->shouldIncludeByOwnership($isJoint, $ownershipFilter)) {

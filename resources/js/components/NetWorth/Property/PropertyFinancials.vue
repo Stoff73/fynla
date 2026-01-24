@@ -81,6 +81,13 @@
             {{ formatCurrency(property.other_monthly_costs || 0) }}
           </div>
         </div>
+
+        <div v-if="property.property_type === 'buy_to_let' && (parseFloat(property.managing_agent_fee) || 0) > 0">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Management Agent Fee (£/month)</label>
+          <div class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-gray-700">
+            {{ formatCurrency(property.managing_agent_fee) }}
+          </div>
+        </div>
       </div>
 
       <div class="mt-6 p-4 bg-gray-50 border-2 border-gray-300 rounded-lg">
@@ -381,6 +388,20 @@
                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
+
+              <div v-if="property.property_type === 'buy_to_let'">
+                <label for="managing_agent_fee" class="block text-sm font-medium text-gray-700 mb-1">
+                  Management Agent Fee (£/month)
+                </label>
+                <input
+                  id="managing_agent_fee"
+                  v-model.number="costsForm.managing_agent_fee"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
             </div>
 
             <!-- Error Message -->
@@ -445,6 +466,7 @@ export default {
         monthly_service_charge: null,
         monthly_maintenance_reserve: null,
         other_monthly_costs: null,
+        managing_agent_fee: null,
       },
     };
   },
@@ -492,7 +514,8 @@ export default {
         (parseFloat(this.property.monthly_contents_insurance) || 0) +
         (parseFloat(this.property.monthly_service_charge) || 0) +
         (parseFloat(this.property.monthly_maintenance_reserve) || 0) +
-        (parseFloat(this.property.other_monthly_costs) || 0)
+        (parseFloat(this.property.other_monthly_costs) || 0) +
+        (parseFloat(this.property.managing_agent_fee) || 0)
       );
     },
 
@@ -583,6 +606,7 @@ export default {
       this.costsForm.monthly_service_charge = this.property.monthly_service_charge || null;
       this.costsForm.monthly_maintenance_reserve = this.property.monthly_maintenance_reserve || null;
       this.costsForm.other_monthly_costs = this.property.other_monthly_costs || null;
+      this.costsForm.managing_agent_fee = this.property.managing_agent_fee || null;
     },
 
     closeEditCostsModal() {

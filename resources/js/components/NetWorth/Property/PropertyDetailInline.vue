@@ -390,6 +390,60 @@
               @update-costs="handleCostsUpdate"
             />
           </div>
+
+          <!-- Management Agent Tab -->
+          <div v-show="activeTab === 'management_agent'" class="space-y-6">
+            <h3 class="text-lg font-semibold text-gray-800">Management Agent</h3>
+
+            <div v-if="!hasManagingAgentData" class="text-center py-8 text-gray-500">
+              <p>No management agent details recorded for this property.</p>
+              <p class="text-sm mt-2">Click "Edit" to add management agent details.</p>
+            </div>
+
+            <div v-else class="bg-white border border-gray-200 rounded-lg p-6">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h4 class="text-md font-semibold text-gray-700 mb-3">Agent Details</h4>
+                  <dl class="space-y-2">
+                    <div v-if="property.managing_agent_name" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
+                      <dt class="text-sm text-gray-600">Name:</dt>
+                      <dd class="text-sm font-medium text-gray-900">{{ property.managing_agent_name }}</dd>
+                    </div>
+                    <div v-if="property.managing_agent_company" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
+                      <dt class="text-sm text-gray-600">Company:</dt>
+                      <dd class="text-sm font-medium text-gray-900">{{ property.managing_agent_company }}</dd>
+                    </div>
+                    <div v-if="property.managing_agent_email" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
+                      <dt class="text-sm text-gray-600">Email:</dt>
+                      <dd class="text-sm font-medium text-gray-900">{{ property.managing_agent_email }}</dd>
+                    </div>
+                    <div v-if="property.managing_agent_phone" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
+                      <dt class="text-sm text-gray-600">Phone:</dt>
+                      <dd class="text-sm font-medium text-gray-900">{{ property.managing_agent_phone }}</dd>
+                    </div>
+                  </dl>
+                </div>
+
+                <div v-if="(parseFloat(property.managing_agent_fee) || 0) > 0">
+                  <h4 class="text-md font-semibold text-gray-700 mb-3">Fee</h4>
+                  <dl class="space-y-2">
+                    <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
+                      <dt class="text-sm text-gray-600">Monthly Fee:</dt>
+                      <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(property.managing_agent_fee) }}</dd>
+                    </div>
+                    <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
+                      <dt class="text-sm text-gray-600">Annual Fee:</dt>
+                      <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(parseFloat(property.managing_agent_fee) * 12) }}</dd>
+                    </div>
+                    <div v-if="isSharedOwnership" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
+                      <dt class="text-sm text-gray-600">Your Share ({{ property.ownership_percentage }}%):</dt>
+                      <dd class="text-sm font-medium text-blue-600">{{ formatCurrency(parseFloat(property.managing_agent_fee) * (property.ownership_percentage / 100)) }}/month</dd>
+                    </div>
+                  </dl>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -450,11 +504,6 @@ export default {
   data() {
     return {
       activeTab: 'overview',
-      tabs: [
-        { id: 'overview', label: 'Overview' },
-        { id: 'mortgage', label: 'Mortgage' },
-        { id: 'financials', label: 'Financials' },
-      ],
       showEditModal: false,
       showDeleteConfirm: false,
       showDeleteMortgageConfirm: false,
@@ -467,6 +516,33 @@ export default {
 
     property() {
       return this.selectedProperty;
+    },
+
+    tabs() {
+      const baseTabs = [
+        { id: 'overview', label: 'Overview' },
+        { id: 'mortgage', label: 'Mortgage' },
+        { id: 'financials', label: 'Financials' },
+      ];
+      if (this.property?.property_type === 'buy_to_let') {
+        baseTabs.push({ id: 'management_agent', label: 'Management Agent' });
+      }
+      return baseTabs;
+    },
+
+    hasManagingAgentData() {
+      if (!this.property) return false;
+      return !!(
+        this.property.managing_agent_name ||
+        this.property.managing_agent_company ||
+        this.property.managing_agent_email ||
+        this.property.managing_agent_phone ||
+        (parseFloat(this.property.managing_agent_fee) || 0) > 0
+      );
+    },
+
+    isSharedOwnership() {
+      return this.property?.ownership_type === 'joint' || this.property?.ownership_type === 'tenants_in_common';
     },
 
     propertyAddress() {
@@ -675,14 +751,10 @@ export default {
       return fullBalance;
     },
 
-    isSharedOwnership() {
-      return this.property?.ownership_type === 'joint' || this.property?.ownership_type === 'tenants_in_common';
-    },
-
     calculateUserRentalIncome() {
       // Single-record pattern: Calculate user's share of rental income
       const fullRentalIncome = this.property?.monthly_rental_income || 0;
-      if (this.isSharedOwnership() && this.property?.ownership_percentage) {
+      if (this.isSharedOwnership && this.property?.ownership_percentage) {
         return fullRentalIncome * (this.property.ownership_percentage / 100);
       }
       return fullRentalIncome;

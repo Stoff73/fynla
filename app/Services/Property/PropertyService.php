@@ -96,6 +96,7 @@ class PropertyService
         $costs += $property->monthly_service_charge ?? 0;
         $costs += $property->monthly_maintenance_reserve ?? 0;
         $costs += $property->other_monthly_costs ?? 0;
+        $costs += $property->managing_agent_fee ?? 0;
 
         return $costs;
     }
