@@ -12,6 +12,7 @@
 9. **BUG FIX**: Spouse expenditure tab now shows correct ownership percentage for joint/TiC properties — was applying primary owner's percentage to both users instead of inverting for the joint owner
 10. **BUG FIX**: Spouse expenditure tab now shows all individual property cost breakdown items (gas, electricity, water, building insurance, contents insurance, management agent) — template was still using old grouped keys
 11. **UX**: Mortgage tab co-owner dropdown now auto-defaults from the ownership tab selection (spouse or "Other" with name) — previously required re-selection
+12. **UX**: Management Agent tab now positioned between Mortgage and Financials; hidden when no agent data exists (fee field remains in Financials as a reminder)
 
 ---
 

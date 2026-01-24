@@ -522,11 +522,11 @@ export default {
       const baseTabs = [
         { id: 'overview', label: 'Overview' },
         { id: 'mortgage', label: 'Mortgage' },
-        { id: 'financials', label: 'Financials' },
       ];
-      if (this.property?.property_type === 'buy_to_let') {
+      if (this.property?.property_type === 'buy_to_let' && this.hasManagingAgentData) {
         baseTabs.push({ id: 'management_agent', label: 'Management Agent' });
       }
+      baseTabs.push({ id: 'financials', label: 'Financials' });
       return baseTabs;
     },
 
@@ -586,6 +586,14 @@ export default {
       const user = this.$store.getters['auth/currentUser'];
       if (!user) return 'You';
       return `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'You';
+    },
+  },
+
+  watch: {
+    hasManagingAgentData(hasData) {
+      if (!hasData && this.activeTab === 'management_agent') {
+        this.activeTab = 'overview';
+      }
     },
   },
 
