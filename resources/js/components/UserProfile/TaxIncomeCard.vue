@@ -25,18 +25,27 @@
     <!-- Earned Income: Show income components breakdown -->
     <div v-if="isEarnedIncome && breakdown.income_components?.length > 0" class="space-y-2 mb-3">
       <!-- Income Components (employment, rental, pension, etc.) -->
-      <div
-        v-for="(component, index) in breakdown.income_components"
-        :key="index"
-        class="flex justify-between items-center text-sm"
-      >
-        <span class="text-gray-600">{{ component.label }}</span>
-        <span
-          :class="component.is_deduction ? 'text-green-600 font-medium' : 'text-gray-900'"
-        >
-          {{ component.is_deduction ? '' : '' }}{{ formatCurrency(component.amount) }}
-        </span>
-      </div>
+      <template v-for="(component, index) in breakdown.income_components" :key="index">
+        <div class="flex justify-between items-center text-sm">
+          <span class="text-gray-600">{{ component.label }}</span>
+          <span
+            :class="component.is_deduction ? 'text-green-600 font-medium' : 'text-gray-900'"
+          >
+            {{ formatCurrency(component.amount) }}
+          </span>
+        </div>
+        <!-- Per-property rental breakdown -->
+        <template v-if="component.label === 'Rental Income' && rentalBreakdown?.properties?.length > 0">
+          <div
+            v-for="(property, pIndex) in rentalBreakdown.properties"
+            :key="'prop-' + pIndex"
+            class="flex justify-between items-center text-xs pl-4"
+          >
+            <span class="text-gray-400">{{ property.name }}</span>
+            <span class="text-gray-500">{{ formatCurrency(property.annual_taxable) }}</span>
+          </div>
+        </template>
+      </template>
 
       <!-- Taxable Income Total (after deductions) -->
       <div class="flex justify-between items-center text-sm border-t border-gray-200 pt-2 mt-2">
@@ -169,6 +178,24 @@
         </span>
         <span class="text-red-600 font-medium">-{{ formatCurrency(breakdown.tax_breakdown.additional_rate.tax) }}</span>
       </div>
+
+      <!-- Tax Payable Subtotal -->
+      <div v-if="section24?.applied_credit > 0" class="flex justify-between items-center text-sm border-t border-gray-200 pt-2 mt-2">
+        <span class="text-gray-700 font-medium">Tax Payable</span>
+        <span class="text-red-600 font-medium">-{{ formatCurrency(totalIncomeTax) }}</span>
+      </div>
+
+      <!-- Section 24 Tax Credit -->
+      <div v-if="section24?.applied_credit > 0" class="flex justify-between items-center text-sm">
+        <span class="text-gray-600">Section 24 Tax Credit</span>
+        <span class="text-green-600 font-medium">+{{ formatCurrency(section24.applied_credit) }}</span>
+      </div>
+
+      <!-- Tax Payable After Credit -->
+      <div v-if="section24?.applied_credit > 0" class="flex justify-between items-center text-sm border-t border-gray-200 pt-2 mt-2">
+        <span class="text-gray-700 font-medium">Tax Payable After Credit</span>
+        <span class="text-red-600 font-bold">-{{ formatCurrency(totalIncomeTax - section24.applied_credit) }}</span>
+      </div>
     </div>
 
     <!-- NI Breakdown (if applicable) -->
@@ -248,7 +275,7 @@
     <div class="pt-2 border-t border-gray-200">
       <div class="flex justify-between items-center">
         <span class="text-sm font-medium text-gray-700">Net Income</span>
-        <span class="text-lg font-bold text-green-700">{{ formatCurrency(breakdown.net_income) }}</span>
+        <span class="text-lg font-bold text-green-700">{{ formatCurrency(adjustedNetIncome) }}</span>
       </div>
     </div>
   </div>
@@ -262,6 +289,14 @@ const props = defineProps({
     type: Object,
     required: true,
   },
+  rentalBreakdown: {
+    type: Object,
+    default: null,
+  },
+  section24: {
+    type: Object,
+    default: null,
+  },
 });
 
 // Check if this is earned income (combined employment, self-employment, rental, pension)
@@ -272,6 +307,19 @@ const isEarnedIncome = computed(() => {
 // Check if this is trust income (has special tax treatment)
 const isTrustIncome = computed(() => {
   return props.breakdown.income_type === 'trust';
+});
+
+// Total income tax from all bands
+const totalIncomeTax = computed(() => {
+  const tb = props.breakdown.tax_breakdown;
+  if (!tb) return 0;
+  return (tb.basic_rate?.tax ?? 0) + (tb.higher_rate?.tax ?? 0) + (tb.additional_rate?.tax ?? 0);
+});
+
+// Net income adjusted for Section 24 credit
+const adjustedNetIncome = computed(() => {
+  const credit = props.section24?.applied_credit ?? 0;
+  return (props.breakdown.net_income ?? 0) + credit;
 });
 
 // Check if NI applies

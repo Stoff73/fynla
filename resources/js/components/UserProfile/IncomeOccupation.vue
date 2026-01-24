@@ -376,15 +376,6 @@
       <div v-if="detailedTaxBreakdown?.summary" class="card p-6">
         <h3 class="text-h5 font-semibold text-gray-900 mb-4">UK Tax & NI Calculations</h3>
 
-        <!-- Summary Card -->
-        <TaxSummaryCard
-          :summary="{
-            ...detailedTaxBreakdown.summary,
-            tax_year: detailedTaxBreakdown.tax_year
-          }"
-          class="mb-6"
-        />
-
         <!-- Income Type Cards -->
         <div
           v-if="detailedTaxBreakdown.income_breakdowns?.length > 0"
@@ -394,6 +385,8 @@
             v-for="(breakdown, index) in detailedTaxBreakdown.income_breakdowns"
             :key="breakdown.income_type + '-' + index"
             :breakdown="breakdown"
+            :rental-breakdown="breakdown.income_type === 'earned' ? rentalBreakdown : null"
+            :section24="breakdown.income_type === 'earned' ? detailedTaxBreakdown.section_24 : null"
           />
         </div>
 
@@ -473,14 +466,12 @@
 import { ref, computed, watch } from 'vue';
 import { useStore } from 'vuex';
 import TaxIncomeCard from './TaxIncomeCard.vue';
-import TaxSummaryCard from './TaxSummaryCard.vue';
 
 export default {
   name: 'IncomeOccupation',
 
   components: {
     TaxIncomeCard,
-    TaxSummaryCard,
   },
 
   setup() {
@@ -492,6 +483,7 @@ export default {
 
     const incomeOccupation = computed(() => store.getters['userProfile/incomeOccupation']);
     const detailedTaxBreakdown = computed(() => incomeOccupation.value?.detailed_tax_breakdown || null);
+    const rentalBreakdown = computed(() => incomeOccupation.value?.rental_breakdown || null);
 
     const form = ref({
       occupation: '',
@@ -685,6 +677,7 @@ export default {
       showEarlyRetirementWarning,
       incomeOccupation,
       detailedTaxBreakdown,
+      rentalBreakdown,
       totalMonthlyExpenditure,
       totalAnnualExpenditure,
       disposableIncome,

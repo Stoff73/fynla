@@ -694,13 +694,25 @@
                     <span>Council Tax:</span>
                     <span>{{ formatCurrency(property.breakdown.council_tax) }}</span>
                   </div>
-                  <div v-if="property.breakdown.utilities" class="flex justify-between">
-                    <span>Utilities:</span>
-                    <span>{{ formatCurrency(property.breakdown.utilities) }}</span>
+                  <div v-if="property.breakdown.gas" class="flex justify-between">
+                    <span>Gas:</span>
+                    <span>{{ formatCurrency(property.breakdown.gas) }}</span>
                   </div>
-                  <div v-if="property.breakdown.insurance" class="flex justify-between">
-                    <span>Insurance:</span>
-                    <span>{{ formatCurrency(property.breakdown.insurance) }}</span>
+                  <div v-if="property.breakdown.electricity" class="flex justify-between">
+                    <span>Electricity:</span>
+                    <span>{{ formatCurrency(property.breakdown.electricity) }}</span>
+                  </div>
+                  <div v-if="property.breakdown.water" class="flex justify-between">
+                    <span>Water:</span>
+                    <span>{{ formatCurrency(property.breakdown.water) }}</span>
+                  </div>
+                  <div v-if="property.breakdown.building_insurance" class="flex justify-between">
+                    <span>Building Insurance:</span>
+                    <span>{{ formatCurrency(property.breakdown.building_insurance) }}</span>
+                  </div>
+                  <div v-if="property.breakdown.contents_insurance" class="flex justify-between">
+                    <span>Contents Insurance:</span>
+                    <span>{{ formatCurrency(property.breakdown.contents_insurance) }}</span>
                   </div>
                   <div v-if="property.breakdown.service_charge" class="flex justify-between">
                     <span>Service Charge:</span>
@@ -709,6 +721,10 @@
                   <div v-if="property.breakdown.maintenance" class="flex justify-between">
                     <span>Maintenance:</span>
                     <span>{{ formatCurrency(property.breakdown.maintenance) }}</span>
+                  </div>
+                  <div v-if="property.breakdown.managing_agent" class="flex justify-between">
+                    <span>Management Agent:</span>
+                    <span>{{ formatCurrency(property.breakdown.managing_agent) }}</span>
                   </div>
                   <div v-if="property.breakdown.other" class="flex justify-between">
                     <span>Other:</span>
@@ -1326,13 +1342,25 @@
                     <span>Council Tax:</span>
                     <span>{{ formatCurrency(property.breakdown.council_tax) }}</span>
                   </div>
-                  <div v-if="property.breakdown.utilities" class="flex justify-between">
-                    <span>Utilities:</span>
-                    <span>{{ formatCurrency(property.breakdown.utilities) }}</span>
+                  <div v-if="property.breakdown.gas" class="flex justify-between">
+                    <span>Gas:</span>
+                    <span>{{ formatCurrency(property.breakdown.gas) }}</span>
                   </div>
-                  <div v-if="property.breakdown.insurance" class="flex justify-between">
-                    <span>Insurance:</span>
-                    <span>{{ formatCurrency(property.breakdown.insurance) }}</span>
+                  <div v-if="property.breakdown.electricity" class="flex justify-between">
+                    <span>Electricity:</span>
+                    <span>{{ formatCurrency(property.breakdown.electricity) }}</span>
+                  </div>
+                  <div v-if="property.breakdown.water" class="flex justify-between">
+                    <span>Water:</span>
+                    <span>{{ formatCurrency(property.breakdown.water) }}</span>
+                  </div>
+                  <div v-if="property.breakdown.building_insurance" class="flex justify-between">
+                    <span>Building Insurance:</span>
+                    <span>{{ formatCurrency(property.breakdown.building_insurance) }}</span>
+                  </div>
+                  <div v-if="property.breakdown.contents_insurance" class="flex justify-between">
+                    <span>Contents Insurance:</span>
+                    <span>{{ formatCurrency(property.breakdown.contents_insurance) }}</span>
                   </div>
                   <div v-if="property.breakdown.service_charge" class="flex justify-between">
                     <span>Service Charge:</span>
@@ -1341,6 +1369,10 @@
                   <div v-if="property.breakdown.maintenance" class="flex justify-between">
                     <span>Maintenance:</span>
                     <span>{{ formatCurrency(property.breakdown.maintenance) }}</span>
+                  </div>
+                  <div v-if="property.breakdown.managing_agent" class="flex justify-between">
+                    <span>Management Agent:</span>
+                    <span>{{ formatCurrency(property.breakdown.managing_agent) }}</span>
                   </div>
                   <div v-if="property.breakdown.other" class="flex justify-between">
                     <span>Other:</span>

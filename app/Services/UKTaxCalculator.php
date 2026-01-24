@@ -47,7 +47,8 @@ class UKTaxCalculator
         float $interestIncome = 0,
         float $dividendIncome = 0,
         ?string $trustType = null,
-        float $pensionContributions = 0
+        float $pensionContributions = 0,
+        float $section24Credit = 0
     ): array {
         $incomeTaxConfig = $this->taxConfig->getIncomeTax();
         $tracker = new TaxBandTracker($incomeTaxConfig);
@@ -200,14 +201,24 @@ class UKTaxCalculator
             $totalTax += $trustTaxBreakdown['total_income_tax'];
         }
 
-        $totalDeductions = $totalTax + $totalNI;
+        // Apply Section 24 tax credit (reduces tax bill, not income)
+        $appliedSection24Credit = min($section24Credit, $totalTax);
+        $totalTaxAfterCredit = $totalTax - $appliedSection24Credit;
+
+        $totalDeductions = $totalTaxAfterCredit + $totalNI;
         $netIncome = $totalGross - $totalDeductions;
 
         return [
             'income_breakdowns' => $incomeBreakdowns,
+            'section_24' => $section24Credit > 0 ? [
+                'annual_credit' => round($section24Credit, 2),
+                'applied_credit' => round($appliedSection24Credit, 2),
+            ] : null,
             'summary' => [
                 'total_gross_income' => round($totalGross, 2),
-                'total_income_tax' => round($totalTax, 2),
+                'total_income_tax_before_credits' => round($totalTax, 2),
+                'section_24_credit' => round($appliedSection24Credit, 2),
+                'total_income_tax' => round($totalTaxAfterCredit, 2),
                 'total_national_insurance' => round($totalNI, 2),
                 'total_deductions' => round($totalDeductions, 2),
                 'net_income' => round($netIncome, 2),

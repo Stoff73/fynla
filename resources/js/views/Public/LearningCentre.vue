@@ -796,6 +796,128 @@
                   </p>
                 </div>
               </div>
+
+              <h3 class="text-2xl font-bold text-slate-900 mt-10 mb-6">Section 24: Mortgage Interest Tax Relief for Landlords</h3>
+
+              <div class="bg-gradient-to-r from-red-50 to-red-100 border-l-4 border-red-600 rounded-r-2xl p-6 mb-6">
+                <h4 class="text-lg font-bold text-red-900 mb-2">What Changed?</h4>
+                <p class="text-red-800">
+                  The Finance Act 2015 (Section 24) fundamentally changed how UK residential landlords receive tax relief on mortgage interest. Fully phased in from April 2020, it replaced the old system of deducting mortgage interest from rental income with a flat 20% tax credit.
+                </p>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div class="bg-gradient-to-br from-slate-50 to-slate-100 rounded-2xl p-6 border border-slate-200">
+                  <h4 class="text-lg font-bold text-slate-900 mb-3">Before Section 24</h4>
+                  <ul class="space-y-2 text-slate-700 text-sm">
+                    <li class="flex items-start"><span class="w-2 h-2 bg-slate-500 rounded-full mr-3 mt-1.5"></span>Mortgage interest was deducted from rental income before calculating tax</li>
+                    <li class="flex items-start"><span class="w-2 h-2 bg-slate-500 rounded-full mr-3 mt-1.5"></span>Higher-rate (40%) taxpayers got 40% relief on interest</li>
+                    <li class="flex items-start"><span class="w-2 h-2 bg-slate-500 rounded-full mr-3 mt-1.5"></span>Additional-rate (45%) taxpayers got 45% relief</li>
+                  </ul>
+                </div>
+
+                <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-6 border border-blue-200">
+                  <h4 class="text-lg font-bold text-blue-900 mb-3">After Section 24 (Now)</h4>
+                  <ul class="space-y-2 text-blue-800 text-sm">
+                    <li class="flex items-start"><span class="w-2 h-2 bg-blue-600 rounded-full mr-3 mt-1.5"></span>Mortgage interest is NOT deducted from rental income</li>
+                    <li class="flex items-start"><span class="w-2 h-2 bg-blue-600 rounded-full mr-3 mt-1.5"></span>Full rental profit is added to your taxable income</li>
+                    <li class="flex items-start"><span class="w-2 h-2 bg-blue-600 rounded-full mr-3 mt-1.5"></span>All landlords get a flat 20% tax credit on mortgage interest</li>
+                  </ul>
+                </div>
+              </div>
+
+              <h4 class="text-xl font-bold text-slate-900 mt-8 mb-4">How It Works in Practice</h4>
+
+              <div class="space-y-4 mb-6">
+                <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+                  <p class="text-sm font-bold text-slate-900 mb-2">Step 1: Calculate Taxable Rental Income</p>
+                  <p class="text-slate-700 text-sm">Rental income minus allowable expenses (running costs, insurance, agent fees, maintenance) but <strong>not</strong> mortgage interest. This full figure is added to your other income for income tax.</p>
+                </div>
+                <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+                  <p class="text-sm font-bold text-slate-900 mb-2">Step 2: Calculate Your Tax Bill</p>
+                  <p class="text-slate-700 text-sm">Income tax is calculated on all your income (employment + rental + other) at the applicable rates (20%, 40%, or 45%).</p>
+                </div>
+                <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+                  <p class="text-sm font-bold text-slate-900 mb-2">Step 3: Apply Section 24 Tax Credit</p>
+                  <p class="text-slate-700 text-sm">20% of your mortgage interest is deducted from your tax bill (not from your income). This is the tax credit.</p>
+                </div>
+              </div>
+
+              <h4 class="text-xl font-bold text-slate-900 mt-8 mb-4">Mortgage Type &amp; Interest Portion</h4>
+
+              <div class="overflow-x-auto mb-6">
+                <table class="min-w-full bg-white rounded-xl overflow-hidden shadow-sm border border-slate-200">
+                  <thead class="bg-gradient-to-r from-slate-100 to-slate-200">
+                    <tr>
+                      <th class="px-6 py-4 text-left text-sm font-bold text-slate-900">Mortgage Type</th>
+                      <th class="px-6 py-4 text-left text-sm font-bold text-slate-900">Interest Portion</th>
+                      <th class="px-6 py-4 text-left text-sm font-bold text-slate-900">Tax Credit</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-200">
+                    <tr class="hover:bg-slate-50">
+                      <td class="px-6 py-4 text-sm font-medium text-slate-900">Interest-only</td>
+                      <td class="px-6 py-4 text-sm text-slate-700">Entire monthly payment is interest</td>
+                      <td class="px-6 py-4 text-sm text-slate-700">Payment x 20%</td>
+                    </tr>
+                    <tr class="hover:bg-slate-50">
+                      <td class="px-6 py-4 text-sm font-medium text-slate-900">Repayment</td>
+                      <td class="px-6 py-4 text-sm text-slate-700">Only part of payment is interest (rest is capital)</td>
+                      <td class="px-6 py-4 text-sm text-slate-700">Interest portion x 20%</td>
+                    </tr>
+                    <tr class="hover:bg-slate-50">
+                      <td class="px-6 py-4 text-sm font-medium text-slate-900">Mixed</td>
+                      <td class="px-6 py-4 text-sm text-slate-700">Interest-only part + interest from repayment part</td>
+                      <td class="px-6 py-4 text-sm text-slate-700">Total interest x 20%</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="bg-gradient-to-r from-amber-50 to-amber-100 border-l-4 border-amber-600 rounded-r-2xl p-6 mb-6">
+                <h4 class="text-lg font-bold text-amber-900 mb-2">Who Is Affected Most?</h4>
+                <p class="text-amber-800 text-sm mb-3">
+                  Basic-rate taxpayers are largely unaffected (they get 20% relief, same as before). Higher-rate and additional-rate taxpayers lose out significantly:
+                </p>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div class="bg-white/70 rounded-xl p-3 text-center">
+                    <p class="font-semibold text-green-700 text-sm">Basic Rate (20%)</p>
+                    <p class="text-xs text-slate-700 mt-1">No change - same 20% relief</p>
+                  </div>
+                  <div class="bg-white/70 rounded-xl p-3 text-center">
+                    <p class="font-semibold text-orange-700 text-sm">Higher Rate (40%)</p>
+                    <p class="text-xs text-slate-700 mt-1">Only gets 20% credit instead of 40% deduction</p>
+                  </div>
+                  <div class="bg-white/70 rounded-xl p-3 text-center">
+                    <p class="font-semibold text-red-700 text-sm">Additional Rate (45%)</p>
+                    <p class="text-xs text-slate-700 mt-1">Only gets 20% credit instead of 45% deduction</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-6 border border-blue-200">
+                <h4 class="text-lg font-bold text-blue-900 mb-3">Example</h4>
+                <p class="text-blue-800 text-sm mb-3">A higher-rate taxpayer with £12,000/year rental profit and £6,000/year mortgage interest:</p>
+                <dl class="space-y-2 text-sm">
+                  <div class="flex justify-between py-1 border-b border-blue-200">
+                    <dt class="text-blue-800">Taxable rental income (added to other income):</dt>
+                    <dd class="font-bold text-blue-900">£12,000</dd>
+                  </div>
+                  <div class="flex justify-between py-1 border-b border-blue-200">
+                    <dt class="text-blue-800">Tax on rental income at 40%:</dt>
+                    <dd class="font-bold text-red-700">£4,800</dd>
+                  </div>
+                  <div class="flex justify-between py-1 border-b border-blue-200">
+                    <dt class="text-blue-800">Section 24 tax credit (20% of £6,000):</dt>
+                    <dd class="font-bold text-green-700">-£1,200</dd>
+                  </div>
+                  <div class="flex justify-between py-2 border-t-2 border-blue-300">
+                    <dt class="text-blue-900 font-semibold">Net tax on rental income:</dt>
+                    <dd class="font-bold text-blue-900">£3,600</dd>
+                  </div>
+                </dl>
+                <p class="text-xs text-blue-700 mt-3">Under the old system, only £6,000 (£12,000 - £6,000 interest) would have been taxable, resulting in just £2,400 tax. Section 24 costs this landlord an extra £1,200/year.</p>
+              </div>
             </div>
           </div>
         </div>

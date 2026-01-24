@@ -25,7 +25,6 @@ const NetWorthWealthSummary = () => import('@/components/NetWorth/NetWorthWealth
 const PropertyList = () => import('@/components/NetWorth/PropertyList.vue');
 const PensionList = () => import('@/components/NetWorth/PensionList.vue');
 const InvestmentList = () => import('@/components/NetWorth/InvestmentList.vue');
-const PropertyDetail = () => import('@/components/NetWorth/Property/PropertyDetail.vue');
 const BusinessInterestsList = () => import('@/components/NetWorth/BusinessInterestsList.vue');
 const ChattelsList = () => import('@/components/NetWorth/ChattelsList.vue');
 const JointAccountHistory = () => import('@/components/NetWorth/JointAccountHistory.vue');
@@ -258,19 +257,6 @@ const routes = [
         component: JointAccountHistory,
       },
     ],
-  },
-  {
-    path: '/property/:id',
-    name: 'PropertyDetail',
-    component: PropertyDetail,
-    meta: {
-      requiresAuth: true,
-      breadcrumb: [
-        { label: 'Home', path: '/dashboard' },
-        { label: 'Net Worth', path: '/net-worth' },
-        { label: 'Property', path: '/property/:id' },
-      ],
-    },
   },
   {
     path: '/pension/:type/:id',

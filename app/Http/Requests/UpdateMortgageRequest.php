@@ -49,6 +49,7 @@ class UpdateMortgageRequest extends FormRequest
 
             // Payment
             'monthly_payment' => ['sometimes', 'numeric', 'min:0'],
+            'monthly_interest_portion' => ['sometimes', 'nullable', 'numeric', 'min:0'],
 
             // Dates
             'start_date' => ['sometimes', 'nullable', 'date'],

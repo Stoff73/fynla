@@ -158,8 +158,8 @@ export default {
     currentSection: {
       immediate: true,
       handler(section) {
-        // Auto-collapse sidebar on investments, cash and retirement tabs for more screen space
-        if (section === 'investments' || section === 'cash' || section === 'retirement') {
+        // Auto-collapse sidebar on certain tabs for more screen space
+        if (section === 'investments' || section === 'cash' || section === 'retirement' || section === 'property') {
           this.sidebarCollapsed = true;
         }
       },

@@ -32,6 +32,7 @@ class Mortgage extends Model
         'variable_interest_rate',
         'rate_fix_end_date',
         'monthly_payment',
+        'monthly_interest_portion',
         'start_date',
         'maturity_date',
         'remaining_term_months',
@@ -56,6 +57,7 @@ class Mortgage extends Model
         'fixed_interest_rate' => 'decimal:4',
         'variable_interest_rate' => 'decimal:4',
         'monthly_payment' => 'decimal:2',
+        'monthly_interest_portion' => 'decimal:2',
         'remaining_term_months' => 'integer',
         'ownership_percentage' => 'decimal:2',
     ];

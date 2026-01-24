@@ -89,10 +89,22 @@ Never use `sole` (use `individual`).
 Always use `currencyMixin` - never define local `formatCurrency()` methods.
 
 ### 7. Joint Assets Pattern
-Joint assets create TWO records (one per owner with their share):
+Joint assets use a SINGLE record with `joint_owner_id` and `ownership_percentage` representing the primary owner's share. The spouse's share is `(100 - ownership_percentage)`:
 ```php
-Property::create(['user_id' => $user->id, 'current_value' => 160000, 'ownership_percentage' => 50]);
-Property::create(['user_id' => $spouse->id, 'current_value' => 160000, 'ownership_percentage' => 50]);
+Property::create([
+    'user_id' => $user->id,
+    'joint_owner_id' => $spouse->id,
+    'ownership_type' => 'tenants_in_common',  // or 'joint'
+    'ownership_percentage' => 70,  // Primary owner's share; spouse gets 30%
+    'current_value' => 320000,
+]);
+```
+When querying for the joint owner's share, invert the percentage:
+```php
+$userIsOwner = $property->user_id === $user->id;
+$ownershipMultiplier = $userIsOwner
+    ? ($property->ownership_percentage ?? 50) / 100
+    : (100 - ($property->ownership_percentage ?? 50)) / 100;
 ```
 
 ### 8. PreviewWriteInterceptor Middleware

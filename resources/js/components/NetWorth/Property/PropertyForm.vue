@@ -861,6 +861,21 @@
               <p class="text-sm text-gray-500 mt-1">Enter your monthly mortgage payment amount</p>
             </div>
 
+            <div v-if="form.property_type === 'buy_to_let' && (mortgageForm.mortgage_type === 'repayment' || mortgageForm.mortgage_type === 'mixed')">
+              <label for="monthly_interest_portion" class="block text-sm font-medium text-gray-700 mb-1">
+                Monthly Interest Portion (£)
+              </label>
+              <input
+                id="monthly_interest_portion"
+                v-model.number="mortgageForm.monthly_interest_portion"
+                type="number"
+                step="0.01"
+                min="0"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <p class="text-sm text-gray-500 mt-1">The interest portion of your monthly repayment, used for Section 24 tax credit calculation</p>
+            </div>
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label for="start_date" class="block text-sm font-medium text-gray-700 mb-1">Mortgage Start Date</label>
@@ -1390,6 +1405,7 @@ export default {
         variable_interest_rate: null,
         rate_fix_end_date: '',
         monthly_payment: null,
+        monthly_interest_portion: null,
         start_date: '',
         maturity_date: '',
         ownership_type: 'individual',
@@ -1584,6 +1600,12 @@ export default {
         this.mortgageForm.joint_owner_id = this.form.joint_owner_id;
         this.mortgageForm.joint_owner_name = this.form.joint_owner_name;
         this.mortgageForm.ownership_percentage = this.form.ownership_percentage;
+        // Sync the dropdown selection
+        if (this.form.joint_owner_id) {
+          this.mortgageJointOwnerSelection = 'linked_' + this.form.joint_owner_id;
+        } else if (this.form.joint_owner_name) {
+          this.mortgageJointOwnerSelection = 'other';
+        }
       }
       // If unchecking mortgage while on mortgage step, move to next logical step
       if (oldVal && !newVal && this.currentStep === this.stepMapping[3]) {
@@ -1600,12 +1622,24 @@ export default {
     'form.joint_owner_id'(newVal) {
       // Update mortgage joint_owner_id to match property joint_owner_id
       this.mortgageForm.joint_owner_id = newVal;
+      // Sync the dropdown selection
+      if (newVal) {
+        this.mortgageJointOwnerSelection = 'linked_' + newVal;
+      } else if (this.form.joint_owner_name) {
+        this.mortgageJointOwnerSelection = 'other';
+      } else {
+        this.mortgageJointOwnerSelection = '';
+      }
     },
 
     // Sync mortgage joint owner name with property joint owner name
     'form.joint_owner_name'(newVal) {
       // Update mortgage joint_owner_name to match property joint_owner_name
       this.mortgageForm.joint_owner_name = newVal;
+      // Sync the dropdown selection
+      if (newVal && !this.form.joint_owner_id) {
+        this.mortgageJointOwnerSelection = 'other';
+      }
     },
   },
 
@@ -1698,6 +1732,7 @@ export default {
         this.mortgageForm.rate_type = mortgage.rate_type || '';
         this.mortgageForm.rate_fix_end_date = this.formatDateForInput(mortgage.rate_fix_end_date);
         this.mortgageForm.monthly_payment = mortgage.monthly_payment || null;
+        this.mortgageForm.monthly_interest_portion = mortgage.monthly_interest_portion || null;
         this.mortgageForm.start_date = this.formatDateForInput(mortgage.start_date);
         this.mortgageForm.maturity_date = this.formatDateForInput(mortgage.maturity_date);
         this.mortgageForm.ownership_type = mortgage.ownership_type || 'individual';
@@ -1882,6 +1917,7 @@ export default {
         if (cleanedMortgage.interest_rate === '') cleanedMortgage.interest_rate = null;
         if (cleanedMortgage.repayment_percentage === '') cleanedMortgage.repayment_percentage = null;
         if (cleanedMortgage.interest_only_percentage === '') cleanedMortgage.interest_only_percentage = null;
+        if (cleanedMortgage.monthly_interest_portion === '') cleanedMortgage.monthly_interest_portion = null;
         if (cleanedMortgage.remaining_term_months === '') cleanedMortgage.remaining_term_months = null;
         if (cleanedMortgage.joint_owner_id === '') cleanedMortgage.joint_owner_id = null;
         if (cleanedMortgage.fixed_rate_percentage === '') cleanedMortgage.fixed_rate_percentage = null;

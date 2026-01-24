@@ -49,6 +49,7 @@ class StoreMortgageRequest extends FormRequest
 
             // Payment
             'monthly_payment' => ['nullable', 'numeric', 'min:0'],
+            'monthly_interest_portion' => ['nullable', 'numeric', 'min:0'],
 
             // Dates
             'start_date' => ['nullable', 'date'],
