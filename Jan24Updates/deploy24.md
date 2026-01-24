@@ -83,6 +83,7 @@ app/Http/Requests/StoreMortgageRequest.php
 app/Http/Requests/UpdateMortgageRequest.php
 database/migrations/2026_01_24_091552_add_monthly_interest_portion_to_mortgages_table.php
 routes/api.php
+app/Http/Controllers/Api/UserProfileController.php
 ```
 
 ### Frontend (after rebuild)
