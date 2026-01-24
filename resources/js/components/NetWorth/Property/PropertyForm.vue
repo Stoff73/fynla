@@ -1584,6 +1584,12 @@ export default {
         this.mortgageForm.joint_owner_id = this.form.joint_owner_id;
         this.mortgageForm.joint_owner_name = this.form.joint_owner_name;
         this.mortgageForm.ownership_percentage = this.form.ownership_percentage;
+        // Sync the dropdown selection
+        if (this.form.joint_owner_id) {
+          this.mortgageJointOwnerSelection = 'linked_' + this.form.joint_owner_id;
+        } else if (this.form.joint_owner_name) {
+          this.mortgageJointOwnerSelection = 'other';
+        }
       }
       // If unchecking mortgage while on mortgage step, move to next logical step
       if (oldVal && !newVal && this.currentStep === this.stepMapping[3]) {
@@ -1600,12 +1606,24 @@ export default {
     'form.joint_owner_id'(newVal) {
       // Update mortgage joint_owner_id to match property joint_owner_id
       this.mortgageForm.joint_owner_id = newVal;
+      // Sync the dropdown selection
+      if (newVal) {
+        this.mortgageJointOwnerSelection = 'linked_' + newVal;
+      } else if (this.form.joint_owner_name) {
+        this.mortgageJointOwnerSelection = 'other';
+      } else {
+        this.mortgageJointOwnerSelection = '';
+      }
     },
 
     // Sync mortgage joint owner name with property joint owner name
     'form.joint_owner_name'(newVal) {
       // Update mortgage joint_owner_name to match property joint_owner_name
       this.mortgageForm.joint_owner_name = newVal;
+      // Sync the dropdown selection
+      if (newVal && !this.form.joint_owner_id) {
+        this.mortgageJointOwnerSelection = 'other';
+      }
     },
   },
 
