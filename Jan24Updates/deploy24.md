@@ -115,52 +115,39 @@ php artisan migrate --force && php artisan cache:clear
 
 ---
 
-## Files to Upload (Item 33 — Risk Cleanup)
+## Already Uploaded to Production (Items 33-35 — Risk System)
 
 ### Backend (PHP)
 ```
 routes/api.php
-```
-
-### Frontend (rebuild required)
-```bash
-./deploy/fynla-org/build.sh
-```
-```
-public/build/  (entire folder)
-```
-
----
-
-## Files to Upload (Item 34 — Capacity for Loss Rework)
-
-### Backend (PHP)
-```
+app/Http/Controllers/Api/RiskPreferenceController.php
 app/Services/Risk/AutoRiskCalculator.php
 app/Services/Risk/RiskPreferenceService.php
+app/Providers/EventServiceProvider.php
+app/Jobs/RecalculateRiskProfileJob.php
+app/Observers/DCPensionRiskObserver.php
+app/Observers/FamilyMemberRiskObserver.php
+app/Observers/InvestmentAccountRiskObserver.php
+app/Observers/PropertyRiskObserver.php
+app/Observers/SavingsAccountRiskObserver.php
+app/Observers/UserRiskObserver.php
+database/migrations/2026_01_24_134257_make_factor_breakdown_nullable_on_risk_profiles.php
 ```
 
-### Frontend (rebuild required)
-```bash
-./deploy/fynla-org/build.sh
-```
+### Frontend
 ```
 public/build/  (entire folder)
 ```
 
----
-
-## Files to Remove from Server
-
+### Already Removed from Server
 ```
 app/Http/Controllers/Api/Investment/RiskProfileController.php
 app/Services/Investment/RiskProfile/  (entire folder)
 ```
 
----
-
-## Post-Deployment
-
+### Post-Deployment (already run)
 ```bash
-php artisan cache:clear
+php artisan migrate --force && php artisan cache:clear
 ```
+
+- Migration makes `factor_breakdown` column nullable on `risk_profiles` table
