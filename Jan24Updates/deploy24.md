@@ -33,6 +33,7 @@
 30. **CLEANUP**: Removed Financial Summary section from bottom of Financials tab — duplicated info already in header
 31. **CLEANUP**: Removed redundant `<h3>` headings from Management Agent and Financials tabs — tab labels already identify content
 32. **UX**: Removed border/outline from Management Agent tab content for cleaner appearance
+33. **CLEANUP**: Removed unused questionnaire-based risk profiling system (System 3) — `RiskProfileController`, `RiskProfiler`, `RiskQuestionnaire`, `CapacityForLossAnalyzer`, 6 API routes, and 5 dead frontend methods. App uses only auto-calculator (7-factor) and self-assessment systems.
 
 ---
 
@@ -67,11 +68,17 @@ resources/js/components/UserProfile/TaxSummaryCard.vue
 resources/js/views/Public/LearningCentre.vue
 resources/js/components/NetWorth/Property/PropertyDetail.vue  (DELETED)
 resources/js/router/index.js
+routes/api.php
+resources/js/services/investmentService.js
+app/Http/Controllers/Api/Investment/RiskProfileController.php  (DELETED)
+app/Services/Investment/RiskProfile/RiskProfiler.php  (DELETED)
+app/Services/Investment/RiskProfile/RiskQuestionnaire.php  (DELETED)
+app/Services/Investment/RiskProfile/CapacityForLossAnalyzer.php  (DELETED)
 ```
 
 ---
 
-## Files to Upload
+## Already Uploaded to Production (Items 1-32)
 
 ### Backend (PHP)
 ```
@@ -86,7 +93,37 @@ routes/api.php
 app/Http/Controllers/Api/UserProfileController.php
 ```
 
-### Frontend (after rebuild)
+### Frontend
+```
+public/build/  (entire folder)
+```
+
+### Already Removed from Server
+```
+resources/js/components/NetWorth/Property/PropertyDetail.vue
+```
+
+### Post-Deployment (already run)
+```bash
+php artisan migrate --force && php artisan cache:clear
+```
+
+- Migration adds `monthly_interest_portion` column to `mortgages` table
+- Cache clear required so cached property analysis regenerates with the updated cost calculation
+
+---
+
+## Files to Upload (Item 33 — Risk Cleanup)
+
+### Backend (PHP)
+```
+routes/api.php
+```
+
+### Frontend (rebuild required)
+```bash
+./deploy/fynla-org/build.sh
+```
 ```
 public/build/  (entire folder)
 ```
@@ -96,7 +133,8 @@ public/build/  (entire folder)
 ## Files to Remove from Server
 
 ```
-resources/js/components/NetWorth/Property/PropertyDetail.vue
+app/Http/Controllers/Api/Investment/RiskProfileController.php
+app/Services/Investment/RiskProfile/  (entire folder)
 ```
 
 ---
@@ -104,8 +142,5 @@ resources/js/components/NetWorth/Property/PropertyDetail.vue
 ## Post-Deployment
 
 ```bash
-php artisan migrate --force && php artisan cache:clear
+php artisan cache:clear
 ```
-
-- Migration adds `monthly_interest_portion` column to `mortgages` table
-- Cache clear required so cached property analysis regenerates with the updated cost calculation
