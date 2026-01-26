@@ -853,6 +853,68 @@ Frontend Vue file changed. Run build script before uploading.
 
 ---
 
+## Bug Fix: IHT Calculator Missing Joint Chattels and Business Interests
+
+**Branch:** ihtBugs
+
+**Status:** READY FOR DEPLOYMENT
+
+### Issue
+
+When a spouse creates joint chattels or business interests, they were not appearing in the other spouse's IHT Calculator. The joint assets were visible in Wealth Summary but missing from estate planning calculations.
+
+### Root Cause
+
+`EstateAssetAggregatorService.gatherUserAssets()` was only querying assets where `user_id` matched, missing assets where the user is the `joint_owner_id`:
+
+```php
+// Before (broken):
+$chattels = Chattel::where('user_id', $user->id)->get();
+$businessInterests = BusinessInterest::where('user_id', $user->id)->get();
+```
+
+Additionally, the share calculation was incorrect for joint owners - it used `ownership_percentage` directly instead of `(100 - ownership_percentage)` for the joint owner's share.
+
+### Fix
+
+Added `orWhere('joint_owner_id', $user->id)` to queries and switched to using the `CalculatesOwnershipShare` trait for correct share calculation:
+
+```php
+// After (fixed):
+$chattels = Chattel::where('user_id', $user->id)
+    ->orWhere('joint_owner_id', $user->id)
+    ->get();
+
+$chattelAssets = $chattels->map(function ($chattel) use ($user) {
+    $userValue = $this->calculateUserShare($chattel, $user->id);  // Trait handles joint owner
+    // ...
+});
+```
+
+### Files Changed
+
+```
+app/Services/Estate/EstateAssetAggregatorService.php
+```
+
+### Rebuild Required: NO
+
+Backend PHP file only. No frontend rebuild needed.
+
+### Upload Checklist
+
+1. Upload `app/Services/Estate/EstateAssetAggregatorService.php`
+2. Clear cache: `php artisan cache:clear`
+
+### Verification
+
+1. Log in as spouse who did NOT create the joint chattel
+2. Navigate to Estate Planning → IHT Calculator
+3. Joint chattels should appear in the asset breakdown
+4. User's share should be correctly calculated (e.g., 50% of full value for 50/50 split)
+
+---
+
 ## Bug Fix: Will Card Navigation to Blank Page
 
 **Branch:** ihtBugs
