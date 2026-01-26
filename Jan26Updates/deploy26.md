@@ -812,7 +812,7 @@ php artisan config:clear
 
 **Branch:** ihtBugs
 
-**Status:** READY FOR DEPLOYMENT
+**Status:** DEPLOYED ✓
 
 ### Issue
 
@@ -857,7 +857,7 @@ Frontend Vue file changed. Run build script before uploading.
 
 **Branch:** ihtBugs
 
-**Status:** READY FOR DEPLOYMENT
+**Status:** DEPLOYED ✓
 
 ### Issue
 
@@ -907,7 +907,7 @@ Frontend Vue file changed. Run build script before uploading.
 
 **Branch:** ihtBugs
 
-**Status:** READY FOR DEPLOYMENT
+**Status:** DEPLOYED ✓
 
 ### Issue
 
@@ -969,7 +969,7 @@ Backend PHP file only. No frontend rebuild needed.
 
 **Branch:** ihtBugs
 
-**Status:** READY FOR DEPLOYMENT
+**Status:** DEPLOYED ✓
 
 ### Issue
 
@@ -1031,7 +1031,7 @@ Frontend Vue file changed. Run build script before uploading.
 
 **Branch:** ihtBugs
 
-**Status:** READY FOR DEPLOYMENT
+**Status:** DEPLOYED ✓
 
 ### Overview
 
@@ -1138,7 +1138,7 @@ Frontend Vue files changed. Run build script before uploading.
 
 **Branch:** ihtBugs
 
-**Status:** READY FOR DEPLOYMENT
+**Status:** DEPLOYED ✓
 
 ### Issue
 
@@ -1197,7 +1197,7 @@ Frontend Vue file changed. Run build script before uploading.
 
 **Branch:** ihtBugs
 
-**Status:** READY FOR DEPLOYMENT
+**Status:** DEPLOYED ✓
 
 ### Issue
 
@@ -1249,6 +1249,48 @@ Frontend Vue files changed. Run build script before uploading.
 5. Should open the Edit Account form (NOT navigate to the Fees tab)
 6. Enter platform fee and save
 7. Click on Total Fees card again → should now navigate to Fees tab (showing fee details)
+
+---
+
+## UI Enhancement: Contextual Back Button in Account Detail View
+
+**Branch:** ihtBugs
+
+**Status:** DEPLOYED ✓
+
+### Description
+
+When viewing sub-tabs (fees, holdings, diversification, etc.) within an investment account detail view, the back button now shows contextual text and provides step-by-step navigation.
+
+### Behaviour
+
+| Current Tab | Back Button Text | Action |
+|-------------|------------------|--------|
+| Performance (default) | "Back to Investments" | Returns to investments list |
+| Fees, Holdings, etc. | "Back to {account provider}" | Returns to performance tab |
+
+### Files Changed
+
+**Frontend:**
+```
+resources/js/components/NetWorth/InvestmentDetailInline.vue
+```
+
+### Rebuild Required: YES
+
+Frontend Vue file changed. Run build script before uploading.
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+### Verification
+
+1. Navigate to Net Worth → Investments
+2. Click on an account (lands on Performance tab) - back button shows "Back to Investments"
+3. Click on Fees tab - back button now shows "Back to {provider name}"
+4. Click back button → returns to Performance tab
+5. Click back button again → returns to Investments list
 
 ---
 
