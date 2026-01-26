@@ -57,7 +57,7 @@ export default {
         vehicle: 'Vehicle',
         art: 'Art',
         antique: 'Antique',
-        jewelry: 'Jewelry',
+        jewelry: 'Jewellery',
         collectible: 'Collectible',
         other: 'Other',
       };

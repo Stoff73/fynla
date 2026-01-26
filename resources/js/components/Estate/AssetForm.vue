@@ -296,7 +296,7 @@ export default {
         savings: 'e.g., Current Account, Premium Bonds',
         business: 'e.g., Company Shares, Partnership Interest',
         life_insurance: 'e.g., Whole of Life Policy',
-        personal: 'e.g., Jewelry, Art Collection, Vehicle',
+        personal: 'e.g., Jewellery, Art Collection, Vehicle',
         other: 'e.g., Other Asset',
       };
       return placeholders[this.formData.asset_type] || 'Enter asset name';

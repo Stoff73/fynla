@@ -347,7 +347,7 @@ export default {
         { value: 'vehicle', label: 'Vehicle' },
         { value: 'art', label: 'Art' },
         { value: 'antique', label: 'Antique' },
-        { value: 'jewelry', label: 'Jewelry' },
+        { value: 'jewelry', label: 'Jewellery' },
         { value: 'collectible', label: 'Collectible' },
         { value: 'other', label: 'Other' },
       ],
