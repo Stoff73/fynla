@@ -853,6 +853,56 @@ Frontend Vue file changed. Run build script before uploading.
 
 ---
 
+## Bug Fix: Property Form Not Scrolling to Top on Section Change
+
+**Branch:** ihtBugs
+
+**Status:** READY FOR DEPLOYMENT
+
+### Issue
+
+During onboarding, when adding a property and moving to the next section of the form, the form did not scroll to the top. Users had to manually scroll up to see the beginning of each new section.
+
+### Fix
+
+Added a `scrollToTop()` method that scrolls the form content container to the top when navigating between steps:
+
+```javascript
+scrollToTop() {
+  this.$nextTick(() => {
+    if (this.$refs.formContent) {
+      this.$refs.formContent.scrollTop = 0;
+    }
+  });
+},
+```
+
+Called in `nextStep()`, `previousStep()`, and `goToStep()` methods.
+
+### Files Changed
+
+```
+resources/js/components/NetWorth/Property/PropertyForm.vue
+```
+
+### Rebuild Required: YES
+
+Frontend Vue file changed. Run build script before uploading.
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+### Verification
+
+1. Navigate to Onboarding or Net Worth → Properties
+2. Click "Add Property"
+3. Fill in Step 1 and click "Next"
+4. Form should scroll to show the top of Step 2
+5. Repeat for all steps, including clicking "Previous" and clicking step numbers directly
+
+---
+
 ## Bug Fix: IHT Calculator Missing Joint Chattels and Business Interests
 
 **Branch:** ihtBugs
