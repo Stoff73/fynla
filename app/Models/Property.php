@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Models\Estate\Trust;
 use App\Traits\Auditable;
+use App\Traits\HasJointOwnership;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,7 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Property extends Model
 {
-    use Auditable, HasFactory;
+    use Auditable, HasFactory, HasJointOwnership;
 
     protected $fillable = [
         'user_id',

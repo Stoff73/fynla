@@ -122,7 +122,7 @@ class SavingsAgent extends BaseAgent
                     ]),
                 ],
             ];
-        });
+        }, null, ['savings', 'user_'.$userId]);
     }
 
     /**

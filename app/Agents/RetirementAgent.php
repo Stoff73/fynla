@@ -49,6 +49,7 @@ class RetirementAgent extends BaseAgent
     public function analyze(int $userId): array
     {
         $cacheKey = "retirement_analysis_{$userId}";
+        $cacheTags = ['retirement', 'user_'.$userId];
 
         return $this->remember($cacheKey, function () use ($userId) {
             // Get all retirement data
@@ -100,7 +101,7 @@ class RetirementAgent extends BaseAgent
                 'annual_allowance' => $allowance,
                 'profile' => $profile,
             ]);
-        });
+        }, null, $cacheTags);
     }
 
     /**
@@ -450,9 +451,10 @@ class RetirementAgent extends BaseAgent
         $cacheKey = $dcPensionId
             ? "dc_pension_{$dcPensionId}_portfolio"
             : "dc_pensions_portfolio_{$userId}";
+        $cacheTags = ['retirement', 'user_'.$userId];
 
         return $this->remember($cacheKey, function () use ($userId, $dcPensionId) {
             return $this->pensionPortfolioAnalyzer->analyze($userId, $dcPensionId);
-        });
+        }, null, $cacheTags);
     }
 }

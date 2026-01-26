@@ -238,9 +238,31 @@ export default {
     },
 
     validateForm() {
-      // All fields are optional - no validation required
       this.errors = {};
-      return true;
+
+      // Gift date is required for IHT 7-year rule calculations
+      if (!this.formData.gift_date) {
+        this.errors.gift_date = 'Gift date is required for IHT planning';
+      }
+
+      // Recipient is required
+      if (!this.formData.recipient || !this.formData.recipient.trim()) {
+        this.errors.recipient = 'Recipient name is required';
+      }
+
+      // Gift value must be provided and positive
+      if (this.formData.gift_value === null || this.formData.gift_value === '') {
+        this.errors.gift_value = 'Gift value is required';
+      } else if (this.formData.gift_value < 0) {
+        this.errors.gift_value = 'Gift value must be a positive amount';
+      }
+
+      // Gift type is required for IHT classification
+      if (!this.formData.gift_type) {
+        this.errors.gift_type = 'Please select a gift type';
+      }
+
+      return Object.keys(this.errors).length === 0;
     },
 
     async handleSubmit() {

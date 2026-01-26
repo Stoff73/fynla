@@ -9,11 +9,13 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Protection\ScenarioRequest;
 use App\Http\Requests\Protection\StoreCriticalIllnessPolicyRequest;
 use App\Http\Requests\Protection\StoreDisabilityPolicyRequest;
+use App\Http\Requests\Protection\StoreIncomeProtectionPolicyRequest;
 use App\Http\Requests\Protection\StoreLifePolicyRequest;
 use App\Http\Requests\Protection\StoreProtectionProfileRequest;
 use App\Http\Requests\Protection\StoreSicknessIllnessPolicyRequest;
 use App\Http\Requests\Protection\UpdateCriticalIllnessPolicyRequest;
 use App\Http\Requests\Protection\UpdateDisabilityPolicyRequest;
+use App\Http\Requests\Protection\UpdateIncomeProtectionPolicyRequest;
 use App\Http\Requests\Protection\UpdateLifePolicyRequest;
 use App\Http\Requests\Protection\UpdateSicknessIllnessPolicyRequest;
 use App\Http\Traits\SanitizedErrorResponse;
@@ -298,26 +300,11 @@ class ProtectionController extends Controller
     /**
      * Store a new income protection policy.
      */
-    public function storeIncomeProtectionPolicy(Request $request): JsonResponse
+    public function storeIncomeProtectionPolicy(StoreIncomeProtectionPolicyRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'provider' => 'required|string|max:255',
-            'policy_number' => 'nullable|string|max:255',
-            'benefit_amount' => 'required|numeric|min:1000',
-            'benefit_frequency' => 'required|in:monthly,weekly',
-            'deferred_period_weeks' => 'nullable|integer|min:0|max:104',
-            'benefit_period_months' => 'nullable|integer|min:1|max:720',
-            'premium_amount' => 'required|numeric|min:0',
-            'premium_frequency' => 'required|in:monthly,quarterly,annually',
-            'occupation_class' => 'nullable|string|max:255',
-            'policy_start_date' => 'nullable|date|before_or_equal:today',
-            'policy_end_date' => 'nullable|date|after:policy_start_date',
-            'policy_term_years' => 'nullable|integer|min:1|max:50',
-        ]);
-
         return $this->storePolicy(
             IncomeProtectionPolicy::class,
-            $validated,
+            $request->validated(),
             $request->user()->id,
             'Income protection'
         );
@@ -326,25 +313,11 @@ class ProtectionController extends Controller
     /**
      * Update an income protection policy.
      */
-    public function updateIncomeProtectionPolicy(Request $request, int $id): JsonResponse
+    public function updateIncomeProtectionPolicy(UpdateIncomeProtectionPolicyRequest $request, int $id): JsonResponse
     {
-        $validated = $request->validate([
-            'provider' => 'sometimes|string|max:255',
-            'policy_number' => 'sometimes|nullable|string|max:255',
-            'benefit_amount' => 'sometimes|numeric|min:1000',
-            'benefit_frequency' => 'sometimes|in:monthly,weekly',
-            'deferred_period_weeks' => 'sometimes|integer|min:0|max:104',
-            'benefit_period_months' => 'sometimes|nullable|integer|min:1|max:720',
-            'premium_amount' => 'sometimes|numeric|min:0',
-            'premium_frequency' => 'sometimes|in:monthly,quarterly,annually',
-            'occupation_class' => 'sometimes|nullable|string|max:255',
-            'policy_start_date' => 'sometimes|date|before_or_equal:today',
-            'policy_end_date' => 'sometimes|nullable|date|after:policy_start_date',
-        ]);
-
         return $this->updatePolicy(
             IncomeProtectionPolicy::class,
-            $validated,
+            $request->validated(),
             $request->user()->id,
             $id,
             'Income protection'

@@ -120,7 +120,7 @@ class InvestmentAgent extends BaseAgent
                     ];
                 }),
             ];
-        });
+        }, null, ['investment', 'user_'.$userId]);
     }
 
     /**

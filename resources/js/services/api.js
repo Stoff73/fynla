@@ -1,6 +1,49 @@
 import axios from 'axios';
 import store from '@/store';
 
+// Retry configuration for transient failures
+const RETRY_CONFIG = {
+  maxRetries: 3,
+  baseDelay: 1000, // 1 second
+  maxDelay: 10000, // 10 seconds
+  // Only retry on server errors (5xx) and network failures
+  retryCondition: (error) => {
+    // Network errors (no response)
+    if (!error.response) return true;
+    // Server errors (5xx)
+    if (error.response.status >= 500 && error.response.status < 600) return true;
+    // Rate limiting (429) - but with longer delay
+    if (error.response.status === 429) return true;
+    return false;
+  },
+  // Only retry idempotent requests by default (GET, HEAD, OPTIONS, PUT, DELETE)
+  // POST is not retried unless explicitly marked safe
+  isIdempotent: (config) => {
+    const method = config.method?.toUpperCase();
+    return ['GET', 'HEAD', 'OPTIONS', 'PUT', 'DELETE'].includes(method);
+  },
+};
+
+/**
+ * Calculate delay with exponential backoff and jitter
+ */
+function getRetryDelay(retryCount, is429 = false) {
+  // For 429 rate limiting, use longer base delay
+  const base = is429 ? RETRY_CONFIG.baseDelay * 2 : RETRY_CONFIG.baseDelay;
+  // Exponential backoff: base * 2^retryCount
+  const exponentialDelay = base * Math.pow(2, retryCount);
+  // Add jitter (random 0-30% variation) to prevent thundering herd
+  const jitter = exponentialDelay * Math.random() * 0.3;
+  return Math.min(exponentialDelay + jitter, RETRY_CONFIG.maxDelay);
+}
+
+/**
+ * Sleep utility for retry delays
+ */
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 // Create axios instance with default config
 // Use environment-specific base URL (production or local development)
 // For local development, use the same hostname as the current page to avoid CORS issues
@@ -98,6 +141,52 @@ api.interceptors.response.use(
       status: null,
       response: null,
     });
+  }
+);
+
+/**
+ * Retry interceptor for transient failures (5xx, network errors, 429)
+ * Uses exponential backoff with jitter
+ */
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const config = error.config;
+
+    // Skip retry if already retried max times or if retry not applicable
+    if (!config || config.__retryCount >= RETRY_CONFIG.maxRetries) {
+      return Promise.reject(error);
+    }
+
+    // Check if we should retry this error
+    if (!RETRY_CONFIG.retryCondition(error)) {
+      return Promise.reject(error);
+    }
+
+    // Only retry idempotent requests to avoid duplicate side effects
+    if (!RETRY_CONFIG.isIdempotent(config)) {
+      return Promise.reject(error);
+    }
+
+    // Initialize retry count
+    config.__retryCount = config.__retryCount || 0;
+    config.__retryCount++;
+
+    // Calculate delay with exponential backoff
+    const is429 = error.response?.status === 429;
+    const delay = getRetryDelay(config.__retryCount - 1, is429);
+
+    console.info(
+      `[API Retry] Attempt ${config.__retryCount}/${RETRY_CONFIG.maxRetries} ` +
+      `for ${config.method?.toUpperCase()} ${config.url} ` +
+      `(status: ${error.response?.status || 'network error'}, delay: ${Math.round(delay)}ms)`
+    );
+
+    // Wait before retrying
+    await sleep(delay);
+
+    // Retry the request
+    return api(config);
   }
 );
 

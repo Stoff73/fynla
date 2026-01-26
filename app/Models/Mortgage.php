@@ -5,13 +5,14 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Traits\Auditable;
+use App\Traits\HasJointOwnership;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Mortgage extends Model
 {
-    use Auditable, HasFactory;
+    use Auditable, HasFactory, HasJointOwnership;
 
     protected $fillable = [
         'property_id',
