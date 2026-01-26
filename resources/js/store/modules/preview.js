@@ -158,7 +158,7 @@ const actions = {
      */
     async initFromStorage() {
         // Preview mode is now determined by auth.user.is_preview_user
-        // The auth store handles restoring the token from localStorage
+        // The auth store handles restoring the token from sessionStorage
         return false;
     },
 
@@ -180,7 +180,7 @@ const actions = {
 
         try {
             // CRITICAL: Clear ALL auth and data state to prevent data leakage
-            localStorage.removeItem('auth_token');
+            sessionStorage.removeItem('auth_token');
             commit('auth/clearAuth', null, { root: true });
 
             // CRITICAL: Reset all module states to prevent previous user's data from showing
@@ -191,7 +191,7 @@ const actions = {
 
             if (response.data.success) {
                 const token = response.data.token;
-                localStorage.setItem('auth_token', token);
+                sessionStorage.setItem('auth_token', token);
                 commit('auth/setToken', token, { root: true });
                 commit('auth/setUser', response.data.user, { root: true });
 
@@ -232,7 +232,7 @@ const actions = {
             if (response.data.success) {
                 // Store the new token
                 const token = response.data.token;
-                localStorage.setItem('auth_token', token);
+                sessionStorage.setItem('auth_token', token);
 
                 // Update auth state with the new preview user
                 commit('auth/setUser', response.data.user, { root: true });
@@ -276,7 +276,7 @@ const actions = {
         }
 
         // Clear auth state
-        localStorage.removeItem('auth_token');
+        sessionStorage.removeItem('auth_token');
         commit('auth/setUser', null, { root: true });
         commit('auth/setToken', null, { root: true });
 
