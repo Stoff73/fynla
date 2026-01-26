@@ -49,8 +49,27 @@
           </div>
         </div>
 
-        <!-- Key Metrics -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mt-6">
+        <!-- Key Metrics - Fee metrics when on fees tab, otherwise standard metrics -->
+        <div v-if="activeTab === 'fees'" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mt-6">
+          <div class="bg-amber-50 rounded-lg p-4 border border-amber-200">
+            <p class="text-sm text-gray-600">Platform Fee</p>
+            <p class="text-2xl font-bold text-amber-600">{{ platformFeeDisplay }}</p>
+          </div>
+          <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
+            <p class="text-sm text-gray-600">Average Fund Fee (OCF)</p>
+            <p class="text-2xl font-bold text-blue-600">{{ weightedAverageOCF.toFixed(2) }}%</p>
+          </div>
+          <div class="bg-purple-50 rounded-lg p-4 border border-purple-200">
+            <p class="text-sm text-gray-600">Advisor Fee</p>
+            <p class="text-2xl font-bold text-purple-600">{{ (advisorFeePercent || 0).toFixed(2) }}%</p>
+          </div>
+          <div class="bg-red-50 rounded-lg p-4 border border-red-200">
+            <p class="text-sm text-gray-600">Total Annual Cost</p>
+            <p class="text-2xl font-bold text-red-600">{{ totalFeePercent.toFixed(2) }}%</p>
+            <p class="text-xs text-gray-500 mt-1">{{ formatCurrency(totalAnnualFeeCost) }}/year</p>
+          </div>
+        </div>
+        <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mt-6">
           <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
             <p class="text-sm text-gray-600">Current Value</p>
             <p class="text-2xl font-bold text-blue-600">{{ formatCurrency(account.current_value) }}</p>
@@ -372,6 +391,36 @@ export default {
       } else {
         return (Math.pow(1 + totalReturn, 1 / years) - 1) * 100;
       }
+    },
+
+    // Platform fee display (for fees tab header)
+    platformFeeDisplay() {
+      if (this.account.platform_fee_type === 'fixed') {
+        const amount = parseFloat(this.account.platform_fee_amount) || 0;
+        const freq = { monthly: '/month', quarterly: '/quarter', annually: '/year' };
+        return `${this.formatCurrency(amount)}${freq[this.account.platform_fee_frequency] || '/year'}`;
+      }
+      return `${(parseFloat(this.account.platform_fee_percent) || 0).toFixed(2)}%`;
+    },
+
+    // Weighted average OCF across holdings
+    weightedAverageOCF() {
+      if (!this.account.holdings?.length || this.totalHoldingsValue === 0) return 0;
+      const totalWeightedOCF = this.account.holdings.reduce((sum, h) => {
+        return sum + ((h.current_value || 0) * (parseFloat(h.ocf_percent) || 0));
+      }, 0);
+      return totalWeightedOCF / this.totalHoldingsValue;
+    },
+
+    // Advisor fee percentage
+    advisorFeePercent() {
+      return parseFloat(this.account.advisor_fee_percent) || 0;
+    },
+
+    // Total annual fee cost in pounds
+    totalAnnualFeeCost() {
+      const accountValue = parseFloat(this.account.current_value) || 0;
+      return accountValue * (this.totalFeePercent / 100);
     },
 
     // Total fee percentage (matching Fees tab calculation)
