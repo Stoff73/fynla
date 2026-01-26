@@ -60,8 +60,8 @@ class ProfileCompletenessChecker
             'dependants' => [
                 'required' => true,
                 'filled' => $this->hasDependants($user),
-                'message' => 'Add dependants (spouse or children) for protection planning',
-                'priority' => 'high',
+                'message' => 'Add any children or other dependants for protection planning',
+                'priority' => 'medium',
                 'link' => '/profile#family',
             ],
             'domicile_info' => [
@@ -154,12 +154,18 @@ class ProfileCompletenessChecker
     }
 
     /**
-     * Check if user has dependants
+     * Check if user has dependants or spouse for protection planning
+     *
+     * For protection purposes, a linked spouse counts as someone to protect
+     * even if they're not marked as a financial dependant (e.g., they work).
+     * This is separate from the spouse_linked check - that verifies accounts
+     * are linked, this verifies there's someone to protect.
      */
     private function hasDependants(User $user): bool
     {
-        // Check if spouse is marked as dependent
-        $spouseDependant = $user->spouse_id && $user->spouse && ($user->spouse->is_dependent ?? false);
+        // For married users, having a linked spouse counts - they're someone to protect
+        // even if they earn their own income (not marked is_dependent)
+        $hasSpouse = ! is_null($user->spouse_id);
 
         // Check if user has dependent children
         $hasChildren = $user->familyMembers()
@@ -176,7 +182,7 @@ class ProfileCompletenessChecker
                 ->exists();
         }
 
-        return $spouseDependant || $hasChildren || $spouseHasChildren;
+        return $hasSpouse || $hasChildren || $spouseHasChildren;
     }
 
     /**

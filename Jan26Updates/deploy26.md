@@ -1444,3 +1444,50 @@ Backend PHP file only.
 4. DB pensions should show "Any final salary or career average pensions" with "Add these if you have..." description
 
 ---
+
+## Bug Fix: Protection Module "Add Dependants" Message After Adding Spouse
+
+**Branch:** ihtBugs
+
+**Status:** READY FOR DEPLOYMENT
+
+### Issue
+
+Married users who had linked their spouse still saw a message asking them to "Add dependants (spouse or children)" in the Protection module's profile completeness alert.
+
+### Root Cause
+
+The `hasDependants()` check only counted a spouse if they were marked as `is_dependent = true`. Working spouses aren't marked as financial dependants, so the check failed.
+
+### Fix
+
+Changed the logic to count a linked spouse as sufficient for protection planning - they're someone to protect even if they earn their own income.
+
+### Files Changed
+
+**Backend:**
+```
+app/Services/UserProfile/ProfileCompletenessChecker.php
+```
+
+### Rebuild Required: NO
+
+Backend PHP file only.
+
+### Upload Checklist
+
+1. Upload `app/Services/UserProfile/ProfileCompletenessChecker.php`
+2. Clear cache:
+   ```bash
+   ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
+   cd ~/www/fynla.org/public_html
+   php artisan cache:clear
+   ```
+
+### Verification
+
+1. Log in as a married user with a linked spouse (no children)
+2. Navigate to Protection module
+3. Should NOT see "Add dependants" in the profile completeness alert
+
+---
