@@ -71,8 +71,21 @@
                 class="account-item"
                 @click="selectAccount(account)"
               >
-                <span class="account-name">{{ account.institution || 'Current Account' }}</span>
-                <span class="account-balance">{{ formatCurrency(account.current_balance) }}</span>
+                <div class="account-info">
+                  <span class="account-name">
+                    {{ account.institution || 'Current Account' }}
+                    <span v-if="isJointAccount(account)" class="joint-badge">(Joint)</span>
+                    <span v-else-if="account.ownership_type === 'tenants_in_common'" class="joint-badge">
+                      (TiC{{ account.ownership_percentage ? ' - ' + account.ownership_percentage + '%' : '' }})
+                    </span>
+                  </span>
+                </div>
+                <div class="account-balances">
+                  <span class="account-balance">{{ formatCurrency(getUserShare(account)) }}</span>
+                  <span v-if="isJointAccount(account) || account.ownership_type === 'tenants_in_common'" class="total-balance">
+                    Total: {{ formatCurrency(account.current_balance) }}
+                  </span>
+                </div>
               </div>
             </template>
             <p v-else class="empty-message">No current accounts</p>
@@ -94,8 +107,21 @@
                 class="account-item"
                 @click="selectAccount(account)"
               >
-                <span class="account-name">{{ account.institution || 'Savings Account' }}</span>
-                <span class="account-balance">{{ formatCurrency(account.current_balance) }}</span>
+                <div class="account-info">
+                  <span class="account-name">
+                    {{ account.institution || 'Savings Account' }}
+                    <span v-if="isJointAccount(account)" class="joint-badge">(Joint)</span>
+                    <span v-else-if="account.ownership_type === 'tenants_in_common'" class="joint-badge">
+                      (TiC{{ account.ownership_percentage ? ' - ' + account.ownership_percentage + '%' : '' }})
+                    </span>
+                  </span>
+                </div>
+                <div class="account-balances">
+                  <span class="account-balance">{{ formatCurrency(getUserShare(account)) }}</span>
+                  <span v-if="isJointAccount(account) || account.ownership_type === 'tenants_in_common'" class="total-balance">
+                    Total: {{ formatCurrency(account.current_balance) }}
+                  </span>
+                </div>
               </div>
             </template>
             <p v-else class="empty-message">No savings accounts</p>
@@ -117,8 +143,21 @@
                 class="account-item"
                 @click="selectAccount(account)"
               >
-                <span class="account-name">{{ account.institution || 'Cash ISA' }}</span>
-                <span class="account-balance">{{ formatCurrency(account.current_balance) }}</span>
+                <div class="account-info">
+                  <span class="account-name">
+                    {{ account.institution || 'Cash ISA' }}
+                    <span v-if="isJointAccount(account)" class="joint-badge">(Joint)</span>
+                    <span v-else-if="account.ownership_type === 'tenants_in_common'" class="joint-badge">
+                      (TiC{{ account.ownership_percentage ? ' - ' + account.ownership_percentage + '%' : '' }})
+                    </span>
+                  </span>
+                </div>
+                <div class="account-balances">
+                  <span class="account-balance">{{ formatCurrency(getUserShare(account)) }}</span>
+                  <span v-if="isJointAccount(account) || account.ownership_type === 'tenants_in_common'" class="total-balance">
+                    Total: {{ formatCurrency(account.current_balance) }}
+                  </span>
+                </div>
               </div>
             </template>
             <p v-else class="empty-message">No cash ISAs</p>
@@ -140,8 +179,21 @@
                 class="account-item"
                 @click="selectAccount(account)"
               >
-                <span class="account-name">{{ account.institution || 'NS&I' }}</span>
-                <span class="account-balance">{{ formatCurrency(account.current_balance) }}</span>
+                <div class="account-info">
+                  <span class="account-name">
+                    {{ account.institution || 'NS&I' }}
+                    <span v-if="isJointAccount(account)" class="joint-badge">(Joint)</span>
+                    <span v-else-if="account.ownership_type === 'tenants_in_common'" class="joint-badge">
+                      (TiC{{ account.ownership_percentage ? ' - ' + account.ownership_percentage + '%' : '' }})
+                    </span>
+                  </span>
+                </div>
+                <div class="account-balances">
+                  <span class="account-balance">{{ formatCurrency(getUserShare(account)) }}</span>
+                  <span v-if="isJointAccount(account) || account.ownership_type === 'tenants_in_common'" class="total-balance">
+                    Total: {{ formatCurrency(account.current_balance) }}
+                  </span>
+                </div>
               </div>
             </template>
             <p v-else class="empty-message">No NS&I accounts</p>
@@ -455,6 +507,18 @@ export default {
       this.defaultAccountType = accountType;
       this.showAccountModal = true;
     },
+
+    isJointAccount(account) {
+      return account.ownership_type === 'joint';
+    },
+
+    getUserShare(account) {
+      const balance = parseFloat(account.current_balance) || 0;
+      if ((this.isJointAccount(account) || account.ownership_type === 'tenants_in_common') && account.ownership_percentage) {
+        return balance * (parseFloat(account.ownership_percentage) / 100);
+      }
+      return balance;
+    },
   },
 };
 </script>
@@ -506,20 +570,45 @@ export default {
   background: #f3f4f6;
 }
 
+.account-info {
+  flex: 1;
+  min-width: 0;
+}
+
 .account-name {
   font-size: 13px;
   color: #374151;
   font-weight: 500;
+  display: block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 60%;
+}
+
+.joint-badge {
+  font-size: 11px;
+  color: #d97706;
+  font-weight: 500;
+  margin-left: 4px;
+}
+
+.account-balances {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
 }
 
 .account-balance {
   font-size: 13px;
   color: #059669;
   font-weight: 600;
+}
+
+.total-balance {
+  font-size: 10px;
+  color: #6b7280;
+  font-weight: 400;
 }
 
 .add-account-btn {
