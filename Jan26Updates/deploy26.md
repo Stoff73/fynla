@@ -1134,6 +1134,54 @@ Frontend Vue files changed. Run build script before uploading.
 
 ---
 
+## Bug Fix: Fee Recommendations Not Triggering Without Holdings
+
+**Branch:** ihtBugs
+
+**Status:** READY FOR DEPLOYMENT
+
+### Issue
+
+When a user entered a high platform fee (e.g., 1.25%) on an investment account without any holdings, the "high fee" strategy recommendation did not appear.
+
+### Root Cause
+
+Two issues in `FeeAnalyzer.php`:
+1. `analyzeAccountFees()` returned `success: false` immediately when no holdings existed, preventing fee analysis entirely
+2. The method used `calculatePlatformFee()` which looked up fees by provider name from a hardcoded list, ignoring the user's entered `platform_fee_percent`
+
+### Fix
+
+Updated `app/Services/Investment/FeeAnalyzer.php`:
+1. Use account's `current_value` when no holdings exist (instead of returning early)
+2. Use the user-entered `platform_fee_percent` or `platform_fee_amount/frequency` instead of provider lookup
+3. Set OCF and transaction costs to 0 when no holdings exist
+
+### Files Changed
+
+**Backend:**
+```
+app/Services/Investment/FeeAnalyzer.php
+```
+
+### Rebuild Required: NO
+
+Backend PHP file only. No frontend rebuild needed.
+
+### Upload Checklist
+
+1. Upload `app/Services/Investment/FeeAnalyzer.php`
+2. Clear cache: `php artisan cache:clear`
+
+### Verification
+
+1. Create an investment account with a current value (e.g., £10,000)
+2. Enter a platform fee of 1.25% (no holdings needed)
+3. Navigate to the account's Performance tab
+4. The Strategy card should show "Portfolio Fees Above Average" recommendation
+
+---
+
 ## Bug Fix: "Add Fees" Link Goes to Wrong Page
 
 **Branch:** ihtBugs
