@@ -808,6 +808,51 @@ php artisan config:clear
 
 ---
 
+## UI Fix: IHT Calculator - Spell Out Acronyms & Standardize Font Sizes
+
+**Branch:** ihtBugs
+
+**Status:** READY FOR DEPLOYMENT
+
+### Issue
+
+1. IHT calculator used acronyms (NRB, RNRB) that users may not understand
+2. Asset/liability category labels used inconsistent font sizes (text-xs vs text-sm)
+
+### Changes Made
+
+**1. Acronyms spelled out:**
+- `NRB` → "Tax-Free Allowance"
+- `RNRB` → "Home Allowance"
+- `Nil Rate Band (NRB)` → "Tax-Free Allowance"
+- `Residence Nil Rate Band (RNRB)` → "Home Allowance"
+
+**2. Font sizes standardized:**
+- Allowance labels: Added `font-semibold text-gray-700` to match Total Liabilities/Taxable Estate styling
+- Asset category labels (Property, Investment, Cash/Savings, Business, Personal Valuables): `text-xs` → `text-sm`
+- Liability category labels (Mortgages, Other Liabilities, liability types): `text-xs` → `text-sm`
+
+### Files Changed
+
+```
+resources/js/components/Estate/IHTPlanning.vue
+```
+
+### Rebuild Required: YES
+
+Frontend Vue file changed. Run build script before uploading.
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+### Upload Checklist
+
+1. Run build script
+2. Upload `public/build/` directory
+
+---
+
 ### Deferred Tasks
 
 | Task | Reason |
