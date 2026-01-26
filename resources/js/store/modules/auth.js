@@ -30,8 +30,9 @@ const actions = {
     // CRITICAL: Reset userProfile state to prevent data leakage between users
     commit('userProfile/resetState', null, { root: true });
 
-    // If was in preview mode, just clear localStorage (don't redirect via exitPreview)
+    // If was in preview mode, clear both storage types (don't redirect via exitPreview)
     if (wasInPreviewMode) {
+      sessionStorage.removeItem('auth_token');
       localStorage.removeItem('auth_token');
     }
 
@@ -66,8 +67,9 @@ const actions = {
     // CRITICAL: Reset userProfile state to prevent data leakage between users
     commit('userProfile/resetState', null, { root: true });
 
-    // If was in preview mode, just clear localStorage (don't redirect via exitPreview)
+    // If was in preview mode, clear both storage types (don't redirect via exitPreview)
     if (wasInPreviewMode) {
+      sessionStorage.removeItem('auth_token');
       localStorage.removeItem('auth_token');
     }
 

@@ -36,6 +36,7 @@ class PreviewWriteInterceptor
         'api/preview/switch',
         'api/auth/login',         // Allow real login even with stale preview token
         'api/auth/logout',
+        'api/auth/logout-beacon', // Beacon logout for browser/tab close
         'api/auth/register',      // Allow preview users to create real accounts
         'api/auth/verify-code',   // Required for registration verification
         'api/auth/resend-code',   // Required for registration verification

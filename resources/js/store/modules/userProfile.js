@@ -1,50 +1,20 @@
 import userProfileService from '@/services/userProfileService';
 
-// Helper to get user-specific localStorage key
-const getUserStorageKey = (key) => {
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
-  return user.id ? `${key}_user_${user.id}` : key;
-};
-
-// Restore personalAccounts from localStorage if available
-const getInitialPersonalAccounts = () => {
-  try {
-    const key = getUserStorageKey('personalAccounts_data');
-    const savedData = localStorage.getItem(key);
-    if (savedData) {
-      return JSON.parse(savedData);
-    }
-  } catch (error) {
-    console.error('Failed to restore personalAccounts from localStorage:', error);
-  }
-  return {
-    profitAndLoss: null,
-    cashflow: null,
-    balanceSheet: null,
-  };
-};
-
-// Restore spouse personalAccounts from localStorage if available
-const getInitialSpouseAccounts = () => {
-  try {
-    const key = getUserStorageKey('spouseAccounts_data');
-    const savedData = localStorage.getItem(key);
-    if (savedData) {
-      return JSON.parse(savedData);
-    }
-  } catch (error) {
-    console.error('Failed to restore spouseAccounts from localStorage:', error);
-  }
-  return null;
-};
+// SECURITY: Financial data is no longer persisted to localStorage
+// All financial data is fetched fresh from the API on each session
+// This prevents sensitive data from being exposed if the browser is left open
 
 const state = {
   profile: null,
   personalInfo: null,
   familyMembers: [],
   incomeOccupation: null,
-  personalAccounts: getInitialPersonalAccounts(),
-  spouseAccounts: getInitialSpouseAccounts(),
+  personalAccounts: {
+    profitAndLoss: null,
+    cashflow: null,
+    balanceSheet: null,
+  },
+  spouseAccounts: null,
   loading: false,
   error: null,
 };
@@ -537,14 +507,12 @@ const mutations = {
   },
 
   setPersonalAccounts(state, data) {
+    // SECURITY: Financial data is stored in memory only, never persisted to localStorage
     state.personalAccounts = {
       profitAndLoss: data.profit_and_loss || null,
       cashflow: data.cashflow || null,
       balanceSheet: data.balance_sheet || null,
     };
-    // Persist to localStorage with user-specific key
-    const userKey = getUserStorageKey('personalAccounts_data');
-    localStorage.setItem(userKey, JSON.stringify(state.personalAccounts));
 
     // Handle spouse data if available
     if (data.spouse_data) {
@@ -553,12 +521,8 @@ const mutations = {
         cashflow: data.spouse_data.cashflow || null,
         balanceSheet: data.spouse_data.balance_sheet || null,
       };
-      const spouseKey = getUserStorageKey('spouseAccounts_data');
-      localStorage.setItem(spouseKey, JSON.stringify(state.spouseAccounts));
     } else {
       state.spouseAccounts = null;
-      const spouseKey = getUserStorageKey('spouseAccounts_data');
-      localStorage.removeItem(spouseKey);
     }
   },
 
@@ -586,6 +550,8 @@ const mutations = {
   },
 
   resetState(state) {
+    // Reset all state to initial values
+    // SECURITY: No localStorage cleanup needed - financial data is memory-only
     state.profile = null;
     state.personalInfo = null;
     state.familyMembers = [];
@@ -598,11 +564,6 @@ const mutations = {
     state.spouseAccounts = null;
     state.loading = false;
     state.error = null;
-    // Clear localStorage for current user
-    const userKey = getUserStorageKey('personalAccounts_data');
-    const spouseKey = getUserStorageKey('spouseAccounts_data');
-    localStorage.removeItem(userKey);
-    localStorage.removeItem(spouseKey);
   },
 };
 

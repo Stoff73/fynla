@@ -75,28 +75,47 @@ const authService = {
   },
 
   /**
-   * Set authentication token in localStorage
+   * Set authentication token in sessionStorage
    * @param {string} token
    */
   setToken(token) {
-    localStorage.setItem('auth_token', token);
+    sessionStorage.setItem('auth_token', token);
   },
 
   /**
-   * Get authentication token from localStorage
+   * Get authentication token from sessionStorage
    * @returns {string|null}
    */
   getToken() {
-    return localStorage.getItem('auth_token');
+    return sessionStorage.getItem('auth_token');
   },
 
   /**
-   * Clear authentication data
+   * Clear all authentication data from both sessionStorage and localStorage
+   * Comprehensive cleanup to prevent any data leakage between sessions
    */
   clearAuth() {
+    // Clear sessionStorage (primary location)
+    sessionStorage.removeItem('auth_token');
+
+    // Clear any legacy localStorage data
     localStorage.removeItem('auth_token');
-    // Remove any legacy cached user data
     localStorage.removeItem('user');
+
+    // Clear ALL user-specific localStorage keys (financial data, accounts, etc.)
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (
+        key.includes('_user_') ||
+        key.includes('personalAccounts') ||
+        key.includes('spouseAccounts') ||
+        key.includes('_data')
+      )) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach(key => localStorage.removeItem(key));
   },
 
   /**

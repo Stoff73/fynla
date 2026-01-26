@@ -76,6 +76,10 @@ Route::prefix('auth')->group(function () {
     Route::post('/verify-code', [AuthController::class, 'verifyCode'])->middleware('throttle:10,1');
     Route::post('/resend-code', [AuthController::class, 'resendCode'])->middleware('throttle:5,1');
 
+    // Beacon logout - accepts token in body for browser/tab close handling
+    // No auth middleware since sendBeacon cannot set Authorization header
+    Route::post('/logout-beacon', [AuthController::class, 'logoutBeacon'])->middleware('throttle:10,1');
+
     // MFA verification during login (no auth required - user is partially authenticated)
     Route::post('/mfa/verify', [MFAController::class, 'verify'])->middleware('throttle:10,1');
     Route::post('/mfa/recovery', [MFAController::class, 'useRecoveryCode'])->middleware('throttle:5,1');

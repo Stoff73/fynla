@@ -23,6 +23,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class AuthController extends Controller
 {
@@ -272,6 +273,54 @@ class AuthController extends Controller
             'success' => true,
             'message' => 'Logged out successfully',
         ]);
+    }
+
+    /**
+     * Logout via beacon API (for browser/tab close).
+     *
+     * This endpoint accepts the token in the request body (not Authorization header)
+     * because sendBeacon cannot set custom headers. No auth middleware is used.
+     *
+     * SECURITY: This endpoint is rate-limited and only accepts POST requests.
+     * The token itself serves as authentication.
+     */
+    public function logoutBeacon(Request $request): JsonResponse
+    {
+        // Accept JSON body from sendBeacon (sent as Blob with application/json)
+        $data = json_decode($request->getContent(), true);
+        $tokenValue = $data['token'] ?? null;
+
+        if (! $tokenValue) {
+            return response()->json(['success' => false, 'message' => 'No token provided'], 400);
+        }
+
+        // Find and revoke the token
+        $accessToken = PersonalAccessToken::findToken($tokenValue);
+
+        if ($accessToken) {
+            // Get the user for audit logging
+            $user = $accessToken->tokenable;
+
+            if ($user) {
+                // Audit log
+                try {
+                    $this->auditService->logAuth(AuditLog::ACTION_LOGOUT, $user, [
+                        'method' => 'beacon',
+                    ]);
+                } catch (\Exception $e) {
+                    // Don't let audit logging prevent logout
+                    \Log::warning('Failed to log beacon logout', ['error' => $e->getMessage()]);
+                }
+            }
+
+            // Delete the session first (if exists)
+            UserSession::where('token_id', $accessToken->id)->delete();
+
+            // Then delete the token
+            $accessToken->delete();
+        }
+
+        return response()->json(['success' => true]);
     }
 
     /**

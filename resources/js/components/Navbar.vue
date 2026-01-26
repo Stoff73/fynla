@@ -1,4 +1,10 @@
 <template>
+  <!-- Logout Success Modal -->
+  <LogoutSuccessModal
+    :show="showLogoutModal"
+    @close="handleLogoutModalClose"
+  />
+
   <nav class="bg-white shadow-sm border-b border-gray-200">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between h-16">
@@ -260,9 +266,15 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useStore } from 'vuex';
 import { useRoute, useRouter } from 'vue-router';
 import logoImage from '@/assets/logoTransparent.png';
+import LogoutSuccessModal from './Auth/LogoutSuccessModal.vue';
+import { stopInactivityTimer } from '@/services/sessionLifecycleService';
 
 export default {
   name: 'Navbar',
+
+  components: {
+    LogoutSuccessModal,
+  },
 
   setup() {
     const store = useStore();
@@ -272,6 +284,7 @@ export default {
     const logoUrl = logoImage;
     const mobileMenuOpen = ref(false);
     const userDropdownOpen = ref(false);
+    const showLogoutModal = ref(false);
 
     const userName = computed(() => {
       const user = store.getters['auth/currentUser'];
@@ -317,12 +330,26 @@ export default {
     };
 
     const handleLogout = async () => {
+      // Close dropdown menu immediately
+      userDropdownOpen.value = false;
+      mobileMenuOpen.value = false;
+
       try {
+        // Stop inactivity timer before logout
+        stopInactivityTimer();
         await store.dispatch('auth/logout');
-        router.push('/login');
+        // Show success modal
+        showLogoutModal.value = true;
       } catch (error) {
         console.error('Logout error:', error);
+        // Even on error, redirect to login
+        router.push('/login');
       }
+    };
+
+    const handleLogoutModalClose = () => {
+      showLogoutModal.value = false;
+      router.push('/login');
     };
 
     // Close dropdowns when clicking outside
@@ -345,6 +372,7 @@ export default {
       logoUrl,
       mobileMenuOpen,
       userDropdownOpen,
+      showLogoutModal,
       userName,
       isAdmin,
       onboardingCompleted,
@@ -352,6 +380,7 @@ export default {
       showMFAReminder,
       isActive,
       handleLogout,
+      handleLogoutModalClose,
     };
   },
 };

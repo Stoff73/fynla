@@ -74,6 +74,17 @@
       </div>
 
       <form class="mt-8 space-y-6" @submit.prevent="handleLogin">
+        <!-- Inactivity Message -->
+        <div v-if="inactivityMessage" class="rounded-lg bg-amber-50 border border-amber-200 p-4 text-center">
+          <div class="flex items-start gap-3 justify-center">
+            <svg class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p class="text-sm text-amber-800">{{ inactivityMessage }}</p>
+          </div>
+        </div>
+
+        <!-- Error Message -->
         <div v-if="errorMessage" class="rounded-lg bg-red-50 border border-red-200 p-4 text-center">
           <p class="text-sm text-red-800">{{ errorMessage }}</p>
           <p v-if="showRegisterHint" class="mt-2 text-sm text-red-800">
@@ -122,19 +133,7 @@
           </div>
         </div>
 
-        <div class="flex items-center justify-between">
-          <div class="flex items-center">
-            <input
-              id="remember-me"
-              v-model="form.remember"
-              type="checkbox"
-              class="h-4 w-4 text-primary-600 focus:ring-primary-600 border-gray-300 rounded"
-            >
-            <label for="remember-me" class="ml-2 block text-body-sm text-gray-900">
-              Remember me
-            </label>
-          </div>
-
+        <div class="flex items-center justify-end">
           <div class="text-body-sm">
             <button
               type="button"
@@ -163,9 +162,9 @@
 </template>
 
 <script>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useStore } from 'vuex';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import ChangePasswordModal from '../components/Auth/ChangePasswordModal.vue';
 import VerificationCodeModal from '../components/Auth/VerificationCodeModal.vue';
 import MFAVerifyModal from '../components/Auth/MFAVerifyModal.vue';
@@ -187,15 +186,16 @@ export default {
   setup() {
     const store = useStore();
     const router = useRouter();
+    const route = useRoute();
 
     const form = ref({
       email: '',
       password: '',
-      remember: false,
     });
 
     const errors = ref({});
     const errorMessage = ref('');
+    const inactivityMessage = ref('');
     const showPasswordModal = ref(false);
     const showVerificationModal = ref(false);
     const showMFAModal = ref(false);
@@ -206,6 +206,15 @@ export default {
     const isSubmitting = ref(false);
 
     const loading = computed(() => store.getters['auth/loading'] || isSubmitting.value);
+
+    // Check for inactivity logout reason on mount
+    onMounted(() => {
+      if (route.query.reason === 'inactivity') {
+        inactivityMessage.value = 'Your session has expired due to inactivity. Please sign in again.';
+        // Clean up the URL parameter
+        router.replace({ path: route.path, query: {} });
+      }
+    });
 
     const showRegisterHint = computed(() => {
       if (!errorMessage.value) return false;
@@ -327,6 +336,7 @@ export default {
       form,
       errors,
       errorMessage,
+      inactivityMessage,
       loading,
       showRegisterHint,
       showPasswordModal,

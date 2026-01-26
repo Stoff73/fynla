@@ -9,6 +9,9 @@ import VueApexCharts from 'vue3-apexcharts';
 // Import custom directives
 import { previewDisabled } from './directives/previewDisabled';
 
+// Import session lifecycle service for security
+import { initSessionLifecycle } from './services/sessionLifecycleService';
+
 // Create Vue app instance
 const app = createApp(App);
 
@@ -25,6 +28,10 @@ app.directive('preview-disabled', previewDisabled);
 store.dispatch('preview/initFromStorage').catch(() => {
     // Preview mode restoration failed silently
 });
+
+// Initialize session lifecycle management for security
+// Handles: browser/tab close logout, inactivity timeout
+initSessionLifecycle(store, router);
 
 // Mount app
 app.mount('#app');
