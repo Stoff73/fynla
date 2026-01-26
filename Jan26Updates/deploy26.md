@@ -1,5 +1,13 @@
 # Deployment Notes - January 26, 2026
 
+---
+
+# ✅ DEPLOYED
+
+**Deployed:** 26 January 2026
+
+---
+
 ## Security Enhancement: Session Management & Data Protection
 
 This update implements strict session security to ensure users must authenticate on every visit with no persistent local data.
@@ -48,12 +56,16 @@ Frontend JavaScript/Vue files have changed. Run the build script before uploadin
 | `resources/js/services/authService.js` | Modified |
 | `resources/js/services/api.js` | Modified |
 | `resources/js/services/sessionLifecycleService.js` | **NEW** |
-| `resources/js/store/modules/userProfile.js` | Modified |
+| `resources/js/store/modules/userProfile.js` | Modified (spouse getter + last_name) |
 | `resources/js/store/modules/auth.js` | Modified |
 | `resources/js/app.js` | Modified |
 | `resources/js/components/Navbar.vue` | Modified (logout modal + dropdown close) |
 | `resources/js/components/Auth/LogoutSuccessModal.vue` | **NEW** |
 | `resources/js/views/Login.vue` | Modified (inactivity msg + removed "Remember me") |
+| `resources/js/views/Register.vue` | Modified (surname → last_name) |
+| `resources/js/components/UserProfile/FamilyMembers.vue` | Modified (spouse modal fix) |
+| `resources/js/components/UserProfile/FamilyMemberFormModal.vue` | Modified (Surname → Last Name label) |
+| `resources/js/components/UserProfile/BalanceSheetTab.vue` | Modified (spouse name display) |
 
 ### Backend (PHP) - Upload Directly
 
@@ -61,6 +73,9 @@ Frontend JavaScript/Vue files have changed. Run the build script before uploadin
 |------|-------------|
 | `app/Http/Controllers/Api/AuthController.php` | Modified |
 | `app/Http/Middleware/PreviewWriteInterceptor.php` | Modified |
+| `app/Services/GDPR/DataErasureService.php` | Modified (spouse cleanup) |
+| `app/Http/Requests/RegisterRequest.php` | Modified (last name error msg) |
+| `app/Http/Requests/StoreFamilyMemberRequest.php` | Modified (last name error msg) |
 | `routes/api.php` | Modified |
 
 ---
@@ -85,6 +100,9 @@ Upload these files via SiteGround File Manager:
 ```
 app/Http/Controllers/Api/AuthController.php
 app/Http/Middleware/PreviewWriteInterceptor.php
+app/Services/GDPR/DataErasureService.php
+app/Http/Requests/RegisterRequest.php
+app/Http/Requests/StoreFamilyMemberRequest.php
 routes/api.php
 ```
 
@@ -119,3 +137,469 @@ If issues occur, restore previous versions of:
 - `public/build/` directory
 
 The new sessionLifecycleService and LogoutSuccessModal are additive and won't break existing functionality if the old build is restored.
+
+---
+
+## Bug Fix: GDPR Account Deletion Verification
+
+**Status:** VERIFIED ✓
+
+### Issue
+Account deletion verification was failing with "Invalid or expired session" error immediately after initiating deletion.
+
+### Root Cause
+Local development `.env` had `CACHE_DRIVER=array`, which only stores data in memory for a single HTTP request. The deletion session was lost between the `initiate` and `verify` API calls.
+
+### Fix
+Changed local `.env` from `CACHE_DRIVER=array` to `CACHE_DRIVER=file`.
+
+**Important:** Laravel server must be restarted after changing `.env` for the change to take effect.
+
+### Verification Testing (26 Jan 2026)
+
+Tested full deletion flow via browser automation:
+
+| Step | Result |
+|------|--------|
+| 1. Navigate to Privacy Settings | ✓ |
+| 2. Click "Manage Account Deletion" | ✓ |
+| 3. Select "Delete My Account" | ✓ Proceeded to Step 2 |
+| 4. Enter verification code from email | ✓ Code accepted |
+| 5. Proceed to Final Confirmation (Step 3) | ✓ |
+
+**Log evidence (before fix - array driver):**
+```
+session_found: false, tokens_match: false → "Invalid or expired session"
+```
+
+**Log evidence (after fix - file driver):**
+```
+session_found: true, tokens_match: true → Verification successful
+```
+
+### Security Note
+This change affects **server-side caching only** and does not conflict with the session security plan:
+
+| Storage Type | Location | Purpose |
+|--------------|----------|---------|
+| sessionStorage | Browser (client) | Auth token - clears on browser close |
+| Laravel Cache (file) | Server | Temporary verification sessions - protected by .htaccess |
+
+Production already uses `CACHE_DRIVER=file` and was unaffected.
+
+---
+
+## Bug Fix: GDPR Account Deletion - Hard Delete with Spouse Cleanup
+
+**Status:** VERIFIED ✓
+
+### Issue
+1. Account deletion was using soft delete (anonymization) instead of hard delete
+2. When a user deleted their account, the linked spouse still showed them in the Family tab
+
+### Changes Made
+Changed from **soft delete** (anonymization) to **hard delete**:
+
+| Before | After |
+|--------|-------|
+| User record anonymized (`deleted_X@anonymized.local`) | User record completely removed from database |
+| Related data kept with anonymized references | All user data hard deleted |
+| Spouse relationship not cleaned up | Spouse's `spouse_id` cleared before deletion |
+
+### Spouse Relationship Logic
+
+When User A deletes their account:
+- User A is completely removed from database
+- User A's spouse (if any) has their `spouse_id` set to NULL
+- The spouse account remains intact and fully functional
+- The spouse will no longer see User A in their Family tab
+
+This works correctly in both directions:
+- If primary account holder deletes → spouse account unaffected
+- If spouse account deletes → primary account unaffected
+
+### Fix
+Updated `app/Services/GDPR/DataErasureService.php`:
+
+```php
+private function deleteUser(User $user): void
+{
+    // Clear spouse relationship before deleting (both directions)
+    if ($user->spouse_id) {
+        $spouse = User::find($user->spouse_id);
+        if ($spouse) {
+            $spouse->update(['spouse_id' => null]);
+        }
+    }
+    User::where('spouse_id', $user->id)->update(['spouse_id' => null]);
+
+    // Revoke tokens and sessions
+    $user->tokens()->delete();
+    $user->sessions()->delete();
+
+    // Hard delete the user record
+    $user->forceDelete();
+}
+```
+
+### Verification
+1. Delete an account that has a linked spouse
+2. Verify user record is completely removed from database
+3. Log into the spouse's account
+4. Navigate to User Profile → Family tab
+5. Deleted user should NOT appear
+
+---
+
+## Bug Fix: GDPR Account Deletion - Family Member Record Not Deleted
+
+**Status:** VERIFIED ✓
+
+### Issue
+After deleting a spouse account, the spouse still appeared in the Family tab of the linked account, even though the user record was deleted and `spouse_id` was cleared.
+
+### Root Cause
+Spouse relationships are stored in TWO places:
+1. `users.spouse_id` - Was being cleared ✓
+2. `family_members` table - Record with `relationship='spouse'` was NOT being deleted ✗
+
+### Fix
+Updated `app/Services/GDPR/DataErasureService.php` to also delete the family_member record:
+
+```php
+// Delete the spouse's family_member record that represents this user
+\App\Models\FamilyMember::where('user_id', $spouse->id)
+    ->where('relationship', 'spouse')
+    ->delete();
+```
+
+### Files Changed
+```
+app/Services/GDPR/DataErasureService.php
+```
+
+### Verification
+1. Delete a spouse account
+2. Log into the linked account
+3. Navigate to User Profile → Family tab
+4. Deleted spouse should NOT appear (no orphaned family_member record)
+
+---
+
+# ⏳ NOT DEPLOYED
+
+*Items below this line have not yet been deployed to production.*
+
+---
+
+## Bug Fix: Spouse Success Modal Not Appearing in User Profile
+
+**Status:** VERIFIED ✓
+
+### Issue
+When creating a spouse account through User Profile → Family tab → Add Family Member, the success modal (SpouseSuccessModal) that shows during onboarding was NOT appearing.
+
+### Root Cause
+After saving a spouse, the code called `store.dispatch('userProfile/fetchProfile')` which sets `loading: true` in the Vuex store. In UserProfile.vue, the tab content is wrapped in:
+
+```vue
+<div v-if="loading">...loading spinner...</div>
+<div v-else>
+  <FamilyMembers v-show="activeTab === 'family'" />
+</div>
+```
+
+When `loading` becomes `true`, the `v-else` block is **removed from the DOM** (because `v-if` removes elements), which **unmounts** the FamilyMembers component. This resets all refs to their initial values, including `showSpouseSuccess = ref(false)`.
+
+When loading finishes, FamilyMembers is remounted as a fresh component with `showSpouseSuccess = false`, so the modal never appears.
+
+### Fix
+Changed the refresh logic to NOT trigger the global loading state:
+
+```javascript
+// Before (causes component unmount/remount):
+await store.dispatch('userProfile/fetchProfile');
+
+// After (refreshes data without loading state):
+await loadFamilyMembers(true); // forceRefresh = true
+```
+
+Also updated `loadFamilyMembers` to accept a `forceRefresh` parameter that bypasses the store cache and fetches directly from the API.
+
+### Files Changed
+```
+resources/js/components/UserProfile/FamilyMembers.vue
+```
+
+### Verification
+1. Log in as a user without a spouse
+2. Navigate to User Profile → Family tab
+3. Click "Add Family Member"
+4. Select "Spouse" and fill in details with a new email
+5. Click "Add Family Member"
+6. **SUCCESS**: "Spouse Account Created" modal appears with login details info
+
+---
+
+## Standardisation: Surname → Last Name
+
+**Status:** COMPLETED ✓
+
+### Issue
+Inconsistent naming across the application:
+- User model uses `surname`
+- FamilyMember model uses `last_name`
+- Form labels showed "Surname" in some places, causing confusion
+- Balance sheet showed only first name for spouse due to field name mismatch
+
+### Changes Made
+
+**Frontend Labels:**
+- Changed all form labels from "Surname" to "Last Name"
+- Registration form now uses `last_name` field (mapped to `surname` for backend)
+- Family Member form already used `last_name`
+
+**Frontend Logic:**
+- `BalanceSheetTab.vue`: Updated userName and spouseName computed properties to check both `last_name` and `surname` with appropriate fallbacks
+- `userProfile.js` store: Spouse getter now returns `first_name` and `last_name` instead of deprecated `name` field
+- `Register.vue`: Maps `last_name` → `surname` when sending to API, and maps `surname` errors back to `last_name` for display
+
+**Backend Validation Messages:**
+- `RegisterRequest.php`: Added custom message "Last name is required."
+- `StoreFamilyMemberRequest.php`: Changed message from "Surname is required." to "Last name is required."
+
+### Files Changed
+
+**Frontend:**
+```
+resources/js/views/Register.vue
+resources/js/components/UserProfile/FamilyMemberFormModal.vue
+resources/js/components/UserProfile/BalanceSheetTab.vue
+resources/js/store/modules/userProfile.js
+```
+
+**Backend:**
+```
+app/Http/Requests/RegisterRequest.php
+app/Http/Requests/StoreFamilyMemberRequest.php
+```
+
+### Verification
+1. Register page shows "Last Name" label
+2. Family Member form shows "Last Name" label
+3. Balance Sheet shows full name (first + last) for both user and spouse
+4. Validation errors display correctly with "Last name" wording
+
+---
+
+## Feature: Cash Tab Joint Account Indicator
+
+**Status:** COMPLETED ✓
+
+### Issue
+Cash accounts in Net Worth → Cash tab did not show whether accounts were jointly held, and did not display user's share vs total balance.
+
+### Changes Made
+Updated `CashOverview.vue` to display:
+- **(Joint)** badge in amber text for joint accounts (matching IHT calculator style)
+- **(TiC - X%)** badge for tenants in common ownership
+- User's share as the primary balance (based on ownership_percentage)
+- **Total: £X** below user's share for joint accounts
+
+### Display Example
+For a joint account with 70% ownership and £50,000 total:
+```
+HSBC Current (Joint)
+£35,000
+Total: £50,000
+```
+
+### Files Changed
+```
+resources/js/views/NetWorth/CashOverview.vue
+```
+
+### Verification
+1. Navigate to Net Worth → Cash tab
+2. View a joint account - should show "(Joint)" badge in amber
+3. Balance should show user's share, with "Total: £X" below
+
+---
+
+## Standardisation: Jewelry → Jewellery (British Spelling)
+
+**Status:** COMPLETED ✓
+
+### Issue
+Personal Valuables module used American spelling "Jewelry" instead of British spelling "Jewellery".
+
+### Changes Made
+Updated all user-facing labels from "Jewelry" to "Jewellery" across the Personal Valuables module.
+
+Note: The database enum value remains `jewelry` (code convention), only the display labels changed.
+
+### Files Changed
+```
+resources/js/components/NetWorth/ChattelFormModal.vue
+resources/js/components/NetWorth/ChattelCard.vue
+resources/js/components/NetWorth/ChattelsList.vue
+resources/js/components/NetWorth/ChattelDetailInline.vue
+resources/js/components/Estate/AssetForm.vue
+resources/js/views/Version.vue
+```
+
+### Verification
+1. Navigate to Net Worth → Personal Valuables
+2. Click "Add Valuable" - type selector should show "Jewellery"
+3. Filter dropdown should show "Jewellery"
+4. Any jewellery items should display "Jewellery" badge
+
+---
+
+## Bug Fix: Balance Sheet Joint Chattels Not Splitting Correctly
+
+**Deployed:** 26 January 2026
+
+**Status:** COMPLETED ✓
+
+### Issue
+1. Joint chattels showed full value under user's account instead of splitting by ownership_percentage
+2. Balance sheet displayed chattel description instead of name in the Assets column
+
+### Root Cause
+The `PersonalAccountsService.php` had two problems:
+1. Only queried `user_id` for chattels (not `joint_owner_id` like other assets)
+2. Used `$chattel->description` instead of `$chattel->name` for the line item
+3. Used raw `current_value` instead of `calculateUserShare()` trait method
+
+### Fix
+Updated `app/Services/UserProfile/PersonalAccountsService.php`:
+
+```php
+// Before (broken):
+foreach ($user->chattels as $chattel) {
+    $assets[] = [
+        'line_item' => $chattel->description ?? 'Chattel',
+        'amount' => $chattel->current_value,
+    ];
+}
+
+// After (fixed):
+$chattels = \App\Models\Chattel::where('user_id', $user->id)
+    ->orWhere('joint_owner_id', $user->id)
+    ->get();
+foreach ($chattels as $chattel) {
+    $amount = $this->calculateUserShare($chattel, $user->id);
+    if ($amount <= 0) continue;
+    $assets[] = [
+        'line_item' => $chattel->name ?? 'Chattel',
+        'amount' => $amount,
+    ];
+}
+```
+
+### Files Changed
+
+```
+app/Services/UserProfile/PersonalAccountsService.php
+```
+
+### Verification
+1. Add a joint chattel with 70% ownership and £10,000 value
+2. Navigate to User Profile → Balance Sheet (Valuable Info)
+3. User column should show £7,000 (70% of £10,000)
+4. Spouse column should show £3,000 (30% of £10,000)
+5. Assets column should show chattel name (not description)
+
+---
+
+## Bug Fix: Balance Sheet Joint Business Interests Not Splitting Correctly
+
+**Deployed:** 26 January 2026
+
+**Status:** COMPLETED ✓
+
+### Issue
+Joint business interests in the Balance Sheet showed the full value under the primary owner's account instead of splitting by ownership percentage. Same issue as chattels.
+
+### Root Cause
+`PersonalAccountsService.php` had the same problem for business interests:
+1. Only queried `user_id`, not `joint_owner_id`
+2. Used raw `current_valuation` without applying ownership split
+
+### Fix
+Updated `app/Services/UserProfile/PersonalAccountsService.php` for business interests.
+
+Also updated `app/Traits/CalculatesOwnershipShare.php` to support `current_valuation` field (used by BusinessInterest model).
+
+### Files Changed
+
+```
+app/Services/UserProfile/PersonalAccountsService.php
+app/Traits/CalculatesOwnershipShare.php
+```
+
+### Verification
+1. Add a joint business interest with 70% ownership and £100,000 valuation
+2. Navigate to User Profile → Balance Sheet (Valuable Info)
+3. User column should show £70,000 (70% share)
+4. Spouse column should show £30,000 (30% share)
+
+---
+
+## Bug Fix: Wealth Summary Joint Chattels/Business Not Splitting Correctly
+
+**Deployed:** 26 January 2026
+
+**Status:** COMPLETED ✓
+
+### Issue
+The Wealth Summary tab in Net Worth module showed the full value of joint chattels and business interests under the primary owner's account instead of correctly splitting by ownership percentage.
+
+### Root Cause
+`NetWorthService.php` had two problems:
+1. `calculateBusinessValue()` and `calculateChattelValue()` only queried `user_id` (not `joint_owner_id`)
+2. These methods summed full values instead of using `CalculatesOwnershipShare` trait to calculate user's share
+
+Incorrect comments claimed values were "already stored as user's share" but this contradicted the single-record architecture where full values are stored.
+
+### Fix
+Updated `app/Services/NetWorth/NetWorthService.php`:
+- Added `use CalculatesOwnershipShare` trait
+- `calculateBusinessValue()`: Now queries both `user_id` and `joint_owner_id`, uses `calculateUserShare()` trait method
+- `calculateChattelValue()`: Same fix as above
+- `getAssetsSummary()`: Updated count queries to include `joint_owner_id`
+- `getAssetsSummaryWithDetails()`: Updated queries and value mappings to use user's share
+
+### Files Changed
+```
+app/Services/NetWorth/NetWorthService.php
+```
+
+### Verification
+1. Add a joint chattel with 70% ownership and £10,000 value
+2. Navigate to Net Worth → Wealth Summary tab
+3. User's chattels should show £7,000 (70% of £10,000)
+4. Spouse's chattels should show £3,000 (30% of £10,000)
+5. Same verification for joint business interests
+
+---
+
+## Summary: All PHP Files for Joint Ownership Fixes
+
+**Deployed:** 26 January 2026
+
+**IMPORTANT:** Upload ALL these files for joint chattels and business interests to work correctly:
+
+```
+app/Traits/CalculatesOwnershipShare.php
+app/Services/UserProfile/PersonalAccountsService.php
+app/Services/NetWorth/NetWorthService.php
+```
+
+After uploading, clear cache:
+```bash
+php artisan cache:clear
+```
+
+---

@@ -251,15 +251,18 @@ export default {
 
     const charitableBequest = computed(() => store.state.auth.user?.charitable_bequest);
 
-    const loadFamilyMembers = async () => {
+    const loadFamilyMembers = async (forceRefresh = false) => {
       // First try to use store data (from fetchProfile) which includes spouse
-      const storeMembers = store.state.userProfile.familyMembers;
-      if (storeMembers && storeMembers.length > 0) {
-        familyMembers.value = storeMembers;
-        return;
+      // Skip store if forceRefresh is true (e.g., after adding a family member)
+      if (!forceRefresh) {
+        const storeMembers = store.state.userProfile.familyMembers;
+        if (storeMembers && storeMembers.length > 0) {
+          familyMembers.value = storeMembers;
+          return;
+        }
       }
 
-      // Fallback to API call (note: this doesn't include spouse as virtual record)
+      // Fetch fresh data from API
       try {
         const response = await familyMembersService.getFamilyMembers();
         familyMembers.value = response.data?.family_members || [];
@@ -345,18 +348,22 @@ export default {
           const response = await familyMembersService.createFamilyMember(formData);
 
           // Check if spouse account was created or linked (not applicable in preview mode)
-          if (!isPreviewMode && formData.relationship === 'spouse' && response.data) {
-            if (response.data.created) {
+          // Note: response is already the API body (service unwraps axios response)
+          const responseData = response?.data || response;
+          const isSpouse = formData.relationship === 'spouse';
+
+          if (!isPreviewMode && isSpouse && responseData) {
+            if (responseData.created) {
               // Show spouse success modal with credentials
               spouseCreated.value = true;
-              spouseEmail.value = response.data.spouse_email;
-              temporaryPassword.value = response.data.temporary_password;
+              spouseEmail.value = responseData.spouse_email || formData.email;
+              temporaryPassword.value = responseData.temporary_password || null;
               showSpouseSuccess.value = true;
               // Refresh user data to reflect spouse linkage (silently - don't block modal)
               store.dispatch('auth/fetchUser').catch((err) => {
                 console.warn('Failed to refresh user data after spouse creation:', err);
               });
-            } else if (response.data.linked) {
+            } else if (responseData.linked) {
               // Show spouse success modal for linking
               spouseCreated.value = false;
               spouseEmail.value = formData.email;
@@ -377,9 +384,10 @@ export default {
         }
 
         closeModal();
-        // Refresh family members list by refreshing the profile store
-        // This ensures the store has the latest data including spouse
-        await store.dispatch('userProfile/fetchProfile');
+        // Refresh family members list directly via API (not fetchProfile)
+        // Using fetchProfile would set loading=true, which unmounts this component
+        // and resets showSpouseSuccess, preventing the modal from appearing
+        await loadFamilyMembers(true); // forceRefresh = true
 
         // Clear success message after 5 seconds
         if (successMessage.value) {

@@ -100,20 +100,20 @@
             </div>
 
             <div>
-              <label for="surname" class="label">
-                Surname
+              <label for="last_name" class="label">
+                Last Name
               </label>
               <input
-                id="surname"
-                v-model="form.surname"
+                id="last_name"
+                v-model="form.last_name"
                 type="text"
                 required
                 class="input-field"
-                :class="{ 'border-error-600': errors.surname }"
+                :class="{ 'border-error-600': errors.last_name }"
                 placeholder="Smith"
               >
-              <p v-if="errors.surname" class="mt-1 text-body-sm text-error-600">
-                {{ errors.surname[0] }}
+              <p v-if="errors.last_name" class="mt-1 text-body-sm text-error-600">
+                {{ errors.last_name[0] }}
               </p>
             </div>
           </div>
@@ -217,7 +217,7 @@ export default {
     const form = ref({
       first_name: '',
       middle_name: '',
-      surname: '',
+      last_name: '',
       email: '',
       password: '',
       password_confirmation: '',
@@ -243,7 +243,13 @@ export default {
 
       try {
         // Call register API directly to handle verification response
-        const response = await api.post('/auth/register', form.value);
+        // Map last_name to surname for backend compatibility
+        const payload = {
+          ...form.value,
+          surname: form.value.last_name,
+        };
+        delete payload.last_name;
+        const response = await api.post('/auth/register', payload);
 
         // Check if verification is required
         if (response.data.requires_verification) {
@@ -259,7 +265,13 @@ export default {
         }
       } catch (error) {
         if (error.response?.data?.errors) {
-          errors.value = error.response.data.errors;
+          // Map surname errors to last_name for frontend display
+          const backendErrors = error.response.data.errors;
+          if (backendErrors.surname) {
+            backendErrors.last_name = backendErrors.surname;
+            delete backendErrors.surname;
+          }
+          errors.value = backendErrors;
         } else {
           errorMessage.value = error.response?.data?.message || error.message || 'Registration failed. Please try again.';
         }

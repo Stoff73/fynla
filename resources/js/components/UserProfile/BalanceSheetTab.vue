@@ -240,15 +240,17 @@ export default {
     const userName = computed(() => {
       if (!user.value) return 'You';
       const firstName = user.value.first_name || '';
-      const surname = user.value.surname || '';
-      return `${firstName} ${surname}`.trim() || 'You';
+      // User model uses surname, FamilyMember uses last_name
+      const lastName = user.value.last_name || user.value.surname || '';
+      return `${firstName} ${lastName}`.trim() || 'You';
     });
 
     const spouseName = computed(() => {
       if (!spouse.value) return 'Spouse';
-      const firstName = spouse.value.first_name || spouse.value.name || '';
-      const surname = spouse.value.surname || '';
-      return `${firstName} ${surname}`.trim() || 'Spouse';
+      const firstName = spouse.value.first_name || '';
+      // FamilyMember uses last_name, User uses surname
+      const lastName = spouse.value.last_name || spouse.value.surname || '';
+      return `${firstName} ${lastName}`.trim() || 'Spouse';
     });
 
     const hasSpouse = computed(() => !!spouseData.value);

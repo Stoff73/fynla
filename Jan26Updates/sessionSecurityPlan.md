@@ -288,3 +288,28 @@ clearAuth() {
 - **sendBeacon** guarantees server receives logout even during page unload
 - Financial data should NEVER be stored client-side for a finance app
 - Disclaimer flags (`disclaimer_dismissed_*`) are non-sensitive UI state - can remain in localStorage
+
+---
+
+## Important: Client-Side vs Server-Side Storage
+
+This security plan addresses **client-side (browser) storage** only:
+
+| Layer | Technology | Purpose | Security |
+|-------|------------|---------|----------|
+| **Client-side** | `sessionStorage` | Auth token | Clears on browser/tab close |
+| **Client-side** | `localStorage` | UI preferences only | No sensitive data |
+| **Server-side** | Laravel Cache (`file` driver) | Temporary server data | Protected by .htaccess, not web-accessible |
+
+### Server-Side Cache Requirements
+
+The Laravel `CACHE_DRIVER` must be set to `file` (not `array`) for features that require data persistence across HTTP requests:
+
+- GDPR deletion verification sessions
+- MFA verification challenges
+- Rate limiting
+
+**Local Development:** Ensure `.env` has `CACHE_DRIVER=file`
+**Production:** Already configured in `.env.production`
+
+The `array` cache driver only holds data in memory for a single request and will cause verification flows to fail.

@@ -239,16 +239,20 @@ export default {
           const response = await familyMembersService.createFamilyMember(formData);
 
           // Check if spouse account was created or linked
-          if (formData.relationship === 'spouse' && response.data) {
-            if (response.data.created) {
+          // Note: response is already the API body (service unwraps axios response)
+          const responseData = response?.data || response;
+          const isSpouse = formData.relationship === 'spouse';
+
+          if (isSpouse && responseData) {
+            if (responseData.created) {
               // Show spouse success modal with credentials
               spouseCreated.value = true;
-              spouseEmail.value = response.data.spouse_email;
-              temporaryPassword.value = response.data.temporary_password;
+              spouseEmail.value = responseData.spouse_email || formData.email;
+              temporaryPassword.value = responseData.temporary_password || null;
               showSpouseSuccess.value = true;
               // Refresh user data to reflect spouse linkage
               await store.dispatch('auth/fetchUser');
-            } else if (response.data.linked) {
+            } else if (responseData.linked) {
               // Show spouse success modal for linking
               spouseCreated.value = false;
               spouseEmail.value = formData.email;

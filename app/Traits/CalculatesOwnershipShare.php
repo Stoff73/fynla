@@ -29,8 +29,9 @@ trait CalculatesOwnershipShare
      */
     protected function calculateUserShare(object $asset, int $userId): float
     {
-        // Get the full value - supports both current_value (properties/investments) and current_balance (savings)
-        $fullValue = (float) ($asset->current_value ?? $asset->current_balance ?? $asset->outstanding_balance ?? 0);
+        // Get the full value - supports current_value (properties/investments/chattels), current_balance (savings),
+        // current_valuation (business interests), and outstanding_balance (mortgages/liabilities)
+        $fullValue = (float) ($asset->current_value ?? $asset->current_balance ?? $asset->current_valuation ?? $asset->outstanding_balance ?? 0);
 
         $ownershipType = $asset->ownership_type ?? 'individual';
 
@@ -134,6 +135,6 @@ trait CalculatesOwnershipShare
      */
     protected function getFullValue(object $asset): float
     {
-        return (float) ($asset->current_value ?? $asset->current_balance ?? $asset->outstanding_balance ?? 0);
+        return (float) ($asset->current_value ?? $asset->current_balance ?? $asset->current_valuation ?? $asset->outstanding_balance ?? 0);
     }
 }

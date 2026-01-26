@@ -72,6 +72,7 @@ class DataErasureService
 
     /**
      * Process the erasure request - actually delete the data
+     * This performs a HARD DELETE of all user data and the user account
      */
     public function processErasure(ErasureRequest $request, ?string $processedBy = null): void
     {
@@ -80,9 +81,10 @@ class DataErasureService
         }
 
         $user = $request->user;
+        $userId = $user->id;
         $deletedCategories = [];
 
-        DB::transaction(function () use ($user, &$deletedCategories) {
+        DB::transaction(function () use ($user, $userId, &$deletedCategories, $request) {
             // Delete financial data in order (respecting foreign keys)
             $deletedCategories = array_merge($deletedCategories, $this->deleteFinancialData($user));
 
@@ -92,23 +94,21 @@ class DataErasureService
             // Delete user exports
             $deletedCategories = array_merge($deletedCategories, $this->deleteExports($user));
 
-            // Anonymize audit logs (keep for compliance but remove PII)
-            $this->anonymizeAuditLogs($user);
-            $deletedCategories[] = 'audit_logs_anonymized';
+            // Delete audit logs for this user (hard delete, not anonymize)
+            AuditLog::where('user_id', $userId)->delete();
+            $deletedCategories[] = 'audit_logs';
 
-            // Finally, anonymize the user account (don't fully delete for referential integrity)
-            $this->anonymizeUser($user);
+            // Delete the erasure request record before deleting user (FK constraint)
+            $request->forceDelete();
+            $deletedCategories[] = 'erasure_request';
+
+            // Finally, hard delete the user account
+            $this->deleteUser($user);
             $deletedCategories[] = 'user_account';
         });
 
-        // Complete the request
-        $request->complete($deletedCategories, $processedBy);
-
-        // Audit log (using the now-anonymized user ID)
-        $this->auditService->logGDPR(AuditLog::ACTION_ERASURE_COMPLETED, $user->id, [
-            'request_id' => $request->id,
-            'categories_deleted' => $deletedCategories,
-        ]);
+        // Note: Cannot complete the request or log audit as user is deleted
+        // The transaction ensures all-or-nothing deletion
     }
 
     /**
@@ -246,49 +246,57 @@ class DataErasureService
     }
 
     /**
-     * Anonymize audit logs - keep structure but remove PII
+     * Hard delete the user account and all associated data
+     *
+     * Spouse relationship handling:
+     * - If this user has a linked spouse, clear the spouse's spouse_id
+     * - Delete the spouse's family_member record that represents this user
+     * - The spouse account remains intact and unaffected
+     * - The spouse will no longer see this user in their Family tab
      */
-    private function anonymizeAuditLogs(User $user): void
+    private function deleteUser(User $user): void
     {
-        AuditLog::where('user_id', $user->id)->update([
-            'ip_address' => null,
-            'user_agent' => null,
-            'metadata' => null,
-        ]);
-    }
+        // Clear spouse relationship before deleting
+        // This ensures the linked spouse doesn't have an orphaned reference
+        if ($user->spouse_id) {
+            $spouse = User::find($user->spouse_id);
+            if ($spouse) {
+                // Delete the spouse's family_member record that represents this user
+                // (the record with relationship='spouse' owned by the spouse)
+                \App\Models\FamilyMember::where('user_id', $spouse->id)
+                    ->where('relationship', 'spouse')
+                    ->delete();
 
-    /**
-     * Anonymize the user account
-     */
-    private function anonymizeUser(User $user): void
-    {
-        $anonymizedEmail = 'deleted_'.$user->id.'@anonymized.local';
+                $spouse->update(['spouse_id' => null]);
+            }
+        }
 
-        $user->update([
-            'email' => $anonymizedEmail,
-            'first_name' => 'Deleted',
-            'middle_name' => null,
-            'surname' => 'User',
-            'date_of_birth' => null,
-            'phone' => null,
-            'address_line_1' => null,
-            'address_line_2' => null,
-            'city' => null,
-            'county' => null,
-            'postcode' => null,
-            'national_insurance_number' => null,
-            'employment_status' => null,
-            'salary' => null,
-            'mfa_secret' => null,
-            'mfa_recovery_codes' => null,
-            'mfa_enabled' => false,
-        ]);
+        // Also check if any other user has this user as their spouse
+        // (handles both directions of the relationship)
+        $usersWithThisSpouse = User::where('spouse_id', $user->id)->get();
+        foreach ($usersWithThisSpouse as $otherUser) {
+            // Delete their family_member record that represents this user
+            \App\Models\FamilyMember::where('user_id', $otherUser->id)
+                ->where('relationship', 'spouse')
+                ->delete();
+
+            $otherUser->update(['spouse_id' => null]);
+        }
 
         // Revoke all tokens
         $user->tokens()->delete();
 
         // Delete all sessions
         $user->sessions()->delete();
+
+        // Hard delete the user record
+        // Foreign keys with cascadeOnDelete will handle:
+        // - goals, goal_contributions
+        // - user_sessions
+        // - user_consents
+        // - data_exports
+        // - password_reset_sessions
+        $user->forceDelete();
     }
 
     /**

@@ -53,7 +53,8 @@ const getters = {
     if (currentUser.spouse) {
       return {
         id: currentUser.spouse_id,
-        name: currentUser.spouse.name || 'Spouse',
+        first_name: currentUser.spouse.first_name || '',
+        last_name: currentUser.spouse.last_name || currentUser.spouse.surname || '',
         email: currentUser.spouse.email,
         relationship: 'spouse',
       };
@@ -62,7 +63,8 @@ const getters = {
     // Fallback: return basic spouse info with just the ID
     return {
       id: currentUser.spouse_id,
-      name: 'Spouse', // Placeholder name
+      first_name: '',
+      last_name: '',
       relationship: 'spouse',
     };
   },

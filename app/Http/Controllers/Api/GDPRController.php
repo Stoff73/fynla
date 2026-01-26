@@ -352,7 +352,9 @@ class GDPRController extends Controller
 
         // Generate deletion session token (64 chars, 15 min expiry)
         $sessionToken = Str::random(64);
-        Cache::put("deletion_session:{$user->id}", [
+        $cacheKey = "deletion_session:{$user->id}";
+
+        Cache::put($cacheKey, [
             'token' => $sessionToken,
             'type' => $request->type,
             'verified' => false,

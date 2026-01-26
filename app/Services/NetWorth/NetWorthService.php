@@ -15,11 +15,14 @@ use App\Models\SavingsAccount;
 use App\Models\StatePension;
 use App\Models\User;
 use App\Services\Shared\CrossModuleAssetAggregator;
+use App\Traits\CalculatesOwnershipShare;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 
 class NetWorthService
 {
+    use CalculatesOwnershipShare;
+
     public function __construct(
         private CrossModuleAssetAggregator $assetAggregator
     ) {}
@@ -84,27 +87,47 @@ class NetWorthService
     }
 
     /**
-     * Calculate total business value
+     * Calculate total business value for user
      *
-     * IMPORTANT: current_valuation is ALREADY stored as the user's share in the database
-     * (divided by ownership_percentage when saving). No need to multiply again.
+     * Single-Record Architecture:
+     * - Database stores FULL business valuation in current_valuation
+     * - Query includes records where user is owner OR joint_owner
+     * - User's share is calculated from ownership_percentage
      */
     private function calculateBusinessValue(int $userId): float
     {
-        return (float) BusinessInterest::where('user_id', $userId)
-            ->sum('current_valuation');
+        $businesses = BusinessInterest::where('user_id', $userId)
+            ->orWhere('joint_owner_id', $userId)
+            ->get();
+
+        $total = 0.0;
+        foreach ($businesses as $business) {
+            $total += $this->calculateUserShare($business, $userId);
+        }
+
+        return $total;
     }
 
     /**
-     * Calculate total chattel value
+     * Calculate total chattel value for user
      *
-     * IMPORTANT: current_value is ALREADY stored as the user's share in the database
-     * (divided by ownership_percentage when saving). No need to multiply again.
+     * Single-Record Architecture:
+     * - Database stores FULL chattel value in current_value
+     * - Query includes records where user is owner OR joint_owner
+     * - User's share is calculated from ownership_percentage
      */
     private function calculateChattelValue(int $userId): float
     {
-        return (float) Chattel::where('user_id', $userId)
-            ->sum('current_value');
+        $chattels = Chattel::where('user_id', $userId)
+            ->orWhere('joint_owner_id', $userId)
+            ->get();
+
+        $total = 0.0;
+        foreach ($chattels as $chattel) {
+            $total += $this->calculateUserShare($chattel, $userId);
+        }
+
+        return $total;
     }
 
     /**
@@ -286,11 +309,13 @@ class NetWorthService
                 'total_value' => $breakdown['cash']['total'],
             ],
             'business' => [
-                'count' => BusinessInterest::where('user_id', $userId)->count(),
+                'count' => BusinessInterest::where('user_id', $userId)
+                    ->orWhere('joint_owner_id', $userId)->count(),
                 'total_value' => $this->calculateBusinessValue($userId),
             ],
             'chattels' => [
-                'count' => Chattel::where('user_id', $userId)->count(),
+                'count' => Chattel::where('user_id', $userId)
+                    ->orWhere('joint_owner_id', $userId)->count(),
                 'total_value' => $this->calculateChattelValue($userId),
             ],
         ];
@@ -386,35 +411,43 @@ class NetWorthService
             ];
         })->toArray();
 
-        // Get business interest items
-        $businesses = BusinessInterest::where('user_id', $userId)->get();
-        $businessItems = $businesses->map(function ($business) {
+        // Get business interest items (include joint-owned)
+        $businesses = BusinessInterest::where('user_id', $userId)
+            ->orWhere('joint_owner_id', $userId)
+            ->get();
+        $businessItems = $businesses->map(function ($business) use ($userId) {
             return [
                 'id' => $business->id,
                 'name' => $business->business_name,
                 'business_type' => $business->business_type,
-                'value' => (float) $business->current_valuation,
+                'value' => $this->calculateUserShare($business, $userId),
+                'full_value' => (float) $business->current_valuation,
                 'ownership_type' => $business->ownership_type,
                 'ownership_percentage' => (float) ($business->ownership_percentage ?? 100),
                 'annual_revenue' => (float) ($business->annual_revenue ?? 0),
                 'annual_profit' => (float) ($business->annual_profit ?? 0),
+                'is_primary_owner' => $business->user_id === $userId,
             ];
         })->toArray();
 
-        // Get chattel items
-        $chattels = Chattel::where('user_id', $userId)->get();
-        $chattelItems = $chattels->map(function ($chattel) {
+        // Get chattel items (include joint-owned)
+        $chattels = Chattel::where('user_id', $userId)
+            ->orWhere('joint_owner_id', $userId)
+            ->get();
+        $chattelItems = $chattels->map(function ($chattel) use ($userId) {
             return [
                 'id' => $chattel->id,
                 'name' => $chattel->name,
                 'chattel_type' => $chattel->chattel_type,
-                'value' => (float) $chattel->current_value,
+                'value' => $this->calculateUserShare($chattel, $userId),
+                'full_value' => (float) $chattel->current_value,
                 'ownership_type' => $chattel->ownership_type,
                 'ownership_percentage' => (float) ($chattel->ownership_percentage ?? 100),
                 'make' => $chattel->make,
                 'model' => $chattel->model,
                 'year' => $chattel->year,
                 'registration_number' => $chattel->registration_number,
+                'is_primary_owner' => $chattel->user_id === $userId,
             ];
         })->toArray();
 

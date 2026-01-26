@@ -85,7 +85,7 @@ class StoreFamilyMemberRequest extends FormRequest
             'email.required_if' => 'Email address is required for spouse.',
             'email.email' => 'Please enter a valid email address.',
             'first_name.required' => 'First name is required.',
-            'last_name.required' => 'Surname is required.',
+            'last_name.required' => 'Last name is required.',
             'date_of_birth.before_or_equal' => 'Date of birth cannot be in the future.',
             'date_of_birth.after' => 'Date of birth cannot be more than 105 years ago.',
             'national_insurance_number.regex' => 'National Insurance number must be in format: AB123456C',
