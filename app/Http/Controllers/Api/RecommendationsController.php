@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\RecommendationTracking;
 use App\Services\Coordination\RecommendationsAggregatorService;
 use Illuminate\Http\JsonResponse;
@@ -13,6 +14,8 @@ use Illuminate\Support\Facades\Validator;
 
 class RecommendationsController extends Controller
 {
+    use SanitizedErrorResponse;
+
     public function __construct(
         private RecommendationsAggregatorService $aggregatorService
     ) {}

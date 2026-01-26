@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Traits\SanitizedErrorResponse;
 use App\Services\Investment\Analytics\CorrelationMatrixCalculator;
 use App\Services\Investment\Analytics\CovarianceMatrixCalculator;
 use App\Services\Investment\Analytics\EfficientFrontierCalculator;
@@ -21,6 +22,8 @@ use Illuminate\Support\Facades\Log;
  */
 class PortfolioOptimizationController extends Controller
 {
+    use SanitizedErrorResponse;
+
     public function __construct(
         private EfficientFrontierCalculator $frontierCalculator,
         private MarkowitzOptimizer $optimizer,

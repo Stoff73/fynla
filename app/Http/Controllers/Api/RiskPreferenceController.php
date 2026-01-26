@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Traits\SanitizedErrorResponse;
 use App\Services\Risk\RiskPreferenceService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,6 +19,8 @@ use Illuminate\Support\Facades\Validator;
  */
 class RiskPreferenceController extends Controller
 {
+    use SanitizedErrorResponse;
+
     public function __construct(
         private RiskPreferenceService $riskPreferenceService
     ) {}

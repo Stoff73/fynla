@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreFamilyMemberRequest;
 use App\Http\Requests\UpdateFamilyMemberRequest;
+use App\Http\Traits\SanitizedErrorResponse;
 use App\Mail\SpouseAccountCreated;
 use App\Mail\SpouseAccountLinked;
 use App\Models\FamilyMember;
@@ -16,6 +17,7 @@ use Illuminate\Support\Facades\Mail;
 
 class FamilyMembersController extends Controller
 {
+    use SanitizedErrorResponse;
     /**
      * Display a listing of the authenticated user's family members.
      *

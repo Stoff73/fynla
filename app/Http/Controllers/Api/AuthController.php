@@ -181,30 +181,9 @@ class AuthController extends Controller
                 'method' => 'preview_user',
             ]);
 
-            // Load spouse relationship if spouse_id exists
-            if ($user->spouse_id) {
-                $user->load('spouse');
-            }
+            $authResult = $this->createAuthTokenWithSession($user);
 
-            $token = $user->createToken('auth_token')->plainTextToken;
-
-            // Create session for this token
-            $accessToken = $user->tokens()->latest()->first();
-            if ($accessToken) {
-                UserSession::createForToken($user, $accessToken);
-            }
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Login successful',
-                'data' => [
-                    'user' => $user,
-                    'access_token' => $token,
-                    'token_type' => 'Bearer',
-                    'must_change_password' => $user->must_change_password,
-                    'mfa_enabled' => $user->mfa_enabled,
-                ],
-            ]);
+            return $this->buildAuthSuccessResponse($user, $authResult['token'], 'Login successful');
         }
 
         // Check if user has MFA enabled
@@ -436,26 +415,9 @@ class AuthController extends Controller
             // Delete the pending registration
             $pending->delete();
 
-            // Create auth token
-            $token = $user->createToken('auth_token')->plainTextToken;
+            $authResult = $this->createAuthTokenWithSession($user);
 
-            // Create session for this token
-            $accessToken = $user->tokens()->latest()->first();
-            if ($accessToken) {
-                UserSession::createForToken($user, $accessToken);
-            }
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Registration complete',
-                'data' => [
-                    'user' => $user,
-                    'access_token' => $token,
-                    'token_type' => 'Bearer',
-                    'must_change_password' => false,
-                    'mfa_enabled' => false,
-                ],
-            ]);
+            return $this->buildAuthSuccessResponse($user, $authResult['token'], 'Registration complete');
         }
 
         // Handle login verification (existing flow)
@@ -486,30 +448,9 @@ class AuthController extends Controller
             'method' => 'email_verification',
         ]);
 
-        // Load spouse relationship if spouse_id exists
-        if ($user->spouse_id) {
-            $user->load('spouse');
-        }
+        $authResult = $this->createAuthTokenWithSession($user);
 
-        $token = $user->createToken('auth_token')->plainTextToken;
-
-        // Create session for this token
-        $accessToken = $user->tokens()->latest()->first();
-        if ($accessToken) {
-            UserSession::createForToken($user, $accessToken);
-        }
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Verification successful',
-            'data' => [
-                'user' => $user,
-                'access_token' => $token,
-                'token_type' => 'Bearer',
-                'must_change_password' => $user->must_change_password,
-                'mfa_enabled' => $user->mfa_enabled,
-            ],
-        ]);
+        return $this->buildAuthSuccessResponse($user, $authResult['token'], 'Verification successful');
     }
 
     /**
@@ -640,5 +581,58 @@ class AuthController extends Controller
         }
 
         return $masked.'@'.$domain;
+    }
+
+    /**
+     * Create auth token and session for user.
+     *
+     * Centralizes the token creation and session tracking logic that's
+     * used across login, registration verification, and MFA verification.
+     *
+     * @return array{token: string, session: UserSession|null}
+     */
+    private function createAuthTokenWithSession(User $user): array
+    {
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        // Create session for this token
+        $accessToken = $user->tokens()->latest()->first();
+        $session = null;
+
+        if ($accessToken) {
+            $session = UserSession::createForToken($user, $accessToken);
+        }
+
+        return [
+            'token' => $token,
+            'session' => $session,
+        ];
+    }
+
+    /**
+     * Build standardized authentication success response.
+     *
+     * @param  array  $extra  Additional data to merge into the response
+     */
+    private function buildAuthSuccessResponse(User $user, string $token, string $message, array $extra = []): JsonResponse
+    {
+        // Load spouse relationship if spouse_id exists
+        if ($user->spouse_id) {
+            $user->load('spouse');
+        }
+
+        $data = array_merge([
+            'user' => $user,
+            'access_token' => $token,
+            'token_type' => 'Bearer',
+            'must_change_password' => $user->must_change_password ?? false,
+            'mfa_enabled' => $user->mfa_enabled ?? false,
+        ], $extra);
+
+        return response()->json([
+            'success' => true,
+            'message' => $message,
+            'data' => $data,
+        ]);
     }
 }

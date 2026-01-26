@@ -5,10 +5,93 @@ declare(strict_types=1);
 namespace App\Services\Property;
 
 use App\Models\Mortgage;
+use App\Models\Property;
+use App\Models\User;
 use Carbon\Carbon;
 
 class MortgageService
 {
+    /**
+     * Create a mortgage record from property form data
+     *
+     * Extracts mortgage-related fields from validated property data and creates
+     * a new Mortgage record linked to the property. Handles ownership inheritance
+     * from property if not explicitly specified.
+     *
+     * @param  Property  $property  The property to attach the mortgage to
+     * @param  array  $validated  Validated form data containing mortgage fields
+     * @param  User  $user  The user creating the mortgage
+     * @return Mortgage|null The created mortgage, or null if no mortgage data provided
+     */
+    public function createFromPropertyData(Property $property, array $validated, User $user): ?Mortgage
+    {
+        // Only create if outstanding_mortgage is provided and > 0
+        if (! isset($validated['outstanding_mortgage']) || $validated['outstanding_mortgage'] <= 0) {
+            return null;
+        }
+
+        $mortgageData = [
+            'property_id' => $property->id,
+            'user_id' => $user->id,
+            'lender_name' => $validated['mortgage_lender_name'] ?? 'To be completed',
+            'mortgage_type' => $validated['mortgage_type'] ?? 'repayment',
+            'repayment_percentage' => $validated['mortgage_repayment_percentage'] ?? null,
+            'interest_only_percentage' => $validated['mortgage_interest_only_percentage'] ?? null,
+            'original_loan_amount' => $validated['mortgage_original_loan_amount'] ?? null,
+            'outstanding_balance' => $validated['outstanding_mortgage'],  // FULL balance
+            'interest_rate' => $validated['mortgage_interest_rate'] ?? 0.0000,
+            'rate_type' => $validated['mortgage_rate_type'] ?? 'fixed',
+            'fixed_rate_percentage' => $validated['mortgage_fixed_rate_percentage'] ?? null,
+            'variable_rate_percentage' => $validated['mortgage_variable_rate_percentage'] ?? null,
+            'fixed_interest_rate' => $validated['mortgage_fixed_interest_rate'] ?? null,
+            'variable_interest_rate' => $validated['mortgage_variable_interest_rate'] ?? null,
+            'monthly_payment' => $validated['mortgage_monthly_payment'] ?? 0.00,  // FULL payment
+            'start_date' => $validated['mortgage_start_date'] ?? now(),
+            'maturity_date' => $validated['mortgage_maturity_date'] ?? now()->addYears(25),
+            'remaining_term_months' => 300,
+            // Use mortgage's own ownership_type if provided, otherwise inherit from property
+            // Convert tenants_in_common to joint (mortgages only support individual/joint)
+            'ownership_type' => $this->normalizeMortgageOwnershipType(
+                $validated['mortgage_ownership_type'] ?? $validated['ownership_type'] ?? 'individual'
+            ),
+            // Use mortgage-specific ownership_percentage if provided, otherwise inherit from property
+            'ownership_percentage' => $validated['mortgage_ownership_percentage']
+                ?? $validated['ownership_percentage']
+                ?? 100.00,
+        ];
+
+        // Add joint ownership fields if applicable
+        $mortgageJointOwnerId = $validated['mortgage_joint_owner_id']
+            ?? $validated['joint_owner_id']
+            ?? null;
+
+        if ($mortgageData['ownership_type'] === 'joint' && $mortgageJointOwnerId) {
+            $jointOwner = User::find($mortgageJointOwnerId);
+            $mortgageData['joint_owner_id'] = $mortgageJointOwnerId;
+            $mortgageData['joint_owner_name'] = $jointOwner?->name;
+
+            // Apply same 50% default for joint mortgages (match property behavior)
+            if ($mortgageData['ownership_percentage'] == 100.00) {
+                $mortgageData['ownership_percentage'] = 50.00;
+            }
+        }
+
+        return Mortgage::create($mortgageData);
+    }
+
+    /**
+     * Normalize ownership type for mortgages.
+     * Mortgages only support 'individual' and 'joint', not 'tenants_in_common'.
+     */
+    private function normalizeMortgageOwnershipType(?string $ownershipType): string
+    {
+        if ($ownershipType === 'joint' || $ownershipType === 'tenants_in_common') {
+            return 'joint';
+        }
+
+        return 'individual';
+    }
+
     /**
      * Calculate monthly mortgage payment
      *

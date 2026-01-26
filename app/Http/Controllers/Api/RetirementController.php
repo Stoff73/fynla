@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api;
 use App\Agents\RetirementAgent;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Retirement\RetirementAnalysisRequest;
+use App\Http\Traits\SanitizedErrorResponse;
 use App\Http\Requests\Retirement\ScenarioRequest;
 use App\Http\Requests\Retirement\StoreDBPensionRequest;
 use App\Http\Requests\Retirement\StoreDCPensionRequest;
@@ -33,6 +34,8 @@ use Illuminate\Support\Facades\Cache;
  */
 class RetirementController extends Controller
 {
+    use SanitizedErrorResponse;
+
     public function __construct(
         private RetirementAgent $agent,
         private AnnualAllowanceChecker $allowanceChecker,

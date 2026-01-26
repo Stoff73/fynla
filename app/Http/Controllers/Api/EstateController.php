@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\Estate\Asset;
 use App\Models\Estate\Gift;
 use App\Models\Estate\IHTProfile;
@@ -20,6 +21,8 @@ use Illuminate\Support\Facades\Cache;
 
 class EstateController extends Controller
 {
+    use SanitizedErrorResponse;
+
     public function __construct(
         private NetWorthAnalyzer $netWorthAnalyzer,
         private CashFlowProjector $cashFlowProjector,

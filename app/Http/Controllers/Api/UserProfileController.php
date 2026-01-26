@@ -8,12 +8,15 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateDomicileInfoRequest;
 use App\Http\Requests\UpdateIncomeOccupationRequest;
 use App\Http\Requests\UpdatePersonalInfoRequest;
+use App\Http\Traits\SanitizedErrorResponse;
 use App\Services\UserProfile\UserProfileService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class UserProfileController extends Controller
 {
+    use SanitizedErrorResponse;
+
     public function __construct(
         private UserProfileService $userProfileService
     ) {}

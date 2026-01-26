@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Traits\SanitizedErrorResponse;
 use App\Services\NetWorth\NetWorthService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class NetWorthController extends Controller
 {
+    use SanitizedErrorResponse;
+
     public function __construct(
         private NetWorthService $netWorthService
     ) {}

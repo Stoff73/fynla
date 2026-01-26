@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Traits\SanitizedErrorResponse;
 use App\Services\Dashboard\DashboardAggregator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -12,6 +13,8 @@ use Illuminate\Support\Facades\Cache;
 
 class DashboardController extends Controller
 {
+    use SanitizedErrorResponse;
+
     public function __construct(
         private DashboardAggregator $aggregator
     ) {}

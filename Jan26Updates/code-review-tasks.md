@@ -18,23 +18,41 @@ Test coverage is significantly below industry standards. Only 99 test files for 
 
 ---
 
-### [ ] Task 2: Standardize error handling across all controllers
-**Effort:** 2-3 hours | **Status:** Pending
+### [x] Task 2: Standardize error handling across all controllers
+**Effort:** 2-3 hours | **Status:** Completed
 
-Ensure all controllers use `SanitizedErrorResponse` trait consistently.
+Added `SanitizedErrorResponse` trait to all controllers lacking it.
 
-**Files to update:**
-- `app/Http/Controllers/Api/ProtectionController.php`
-- Any controller using inline `return response()->json()` for errors
+**Files updated:**
+- `app/Http/Controllers/Api/EstateController.php`
+- `app/Http/Controllers/Api/OnboardingController.php`
+- `app/Http/Controllers/Api/RiskPreferenceController.php`
+- `app/Http/Controllers/Api/RecommendationsController.php`
+- `app/Http/Controllers/Api/NetWorthController.php`
+- `app/Http/Controllers/Api/UserProfileController.php`
+- `app/Http/Controllers/Api/DashboardController.php`
+- `app/Http/Controllers/Api/RetirementController.php`
+- `app/Http/Controllers/Api/FamilyMembersController.php`
+- `app/Http/Controllers/Api/PortfolioOptimizationController.php`
 
 ---
 
-### [ ] Task 3: Refactor large controller methods
-**Effort:** 2-3 hours | **Status:** Pending
+### [x] Task 3: Refactor large controller methods
+**Effort:** 2-3 hours | **Status:** Completed
 
-**Methods to refactor:**
-- `PropertyController::store()` - 125+ lines
-- `AuthController::verifyCode()` - 100+ lines
+**PropertyController::store()** - Reduced from 106 to 56 lines:
+- Extracted mortgage creation logic to `MortgageService::createFromPropertyData()`
+- Removed duplicate `normalizeMortgageOwnershipType()` method
+
+**AuthController::verifyCode()** - Reduced from 117 to 58 lines:
+- Added `createAuthTokenWithSession()` helper method
+- Added `buildAuthSuccessResponse()` helper method
+- Consolidated 3 repeated token/session creation patterns
+
+**Files created/updated:**
+- `app/Services/Property/MortgageService.php` - Added createFromPropertyData() method
+- `app/Http/Controllers/Api/PropertyController.php` - Uses MortgageService
+- `app/Http/Controllers/Api/AuthController.php` - Uses helper methods
 
 ---
 
@@ -151,15 +169,14 @@ Provides:
 
 ## Progress Summary
 
-| Priority | Total | Completed | Remaining |
-|----------|-------|-----------|-----------|
-| HIGH | 4 | 1 | 3 |
-| MEDIUM | 8 | 7 | 1 |
-| **Total** | **12** | **8** | **4** |
+| Priority | Total | Completed | Deferred | Remaining |
+|----------|-------|-----------|----------|-----------|
+| HIGH | 4 | 3 | 1 | 0 |
+| MEDIUM | 8 | 7 | 1 | 0 |
+| **Total** | **12** | **10** | **2** | **0** |
 
-**Completed Tasks:** 4, 5, 6, 7, 8, 10, 11, 12
-**Deferred Tasks:** 1 (testing sprint), 9 (long-term)
-**Remaining Tasks:** 2, 3
+**Completed Tasks:** 2, 3, 4, 5, 6, 7, 8, 10, 11, 12
+**Deferred Tasks:** 1 (testing sprint), 9 (long-term Vue improvement)
 
 **Files Created:**
 - `app/Traits/HasJointOwnership.php`
@@ -171,6 +188,9 @@ Provides:
 **Files Modified:**
 - 8 Models (added HasJointOwnership trait)
 - 4 Agents (added cache tags)
-- `app/Http/Controllers/Api/ProtectionController.php`
+- 10 Controllers (added SanitizedErrorResponse trait)
+- `app/Services/Property/MortgageService.php` (added createFromPropertyData)
+- `app/Http/Controllers/Api/PropertyController.php` (refactored, uses MortgageService)
+- `app/Http/Controllers/Api/AuthController.php` (refactored, helper methods)
 - `resources/js/services/api.js`
 - `resources/js/components/Estate/GiftForm.vue`
