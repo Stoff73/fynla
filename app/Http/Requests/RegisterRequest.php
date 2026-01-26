@@ -44,6 +44,7 @@ class RegisterRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'surname.required' => 'Last name is required.',
             'password.regex' => 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.',
         ];
     }

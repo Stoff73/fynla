@@ -89,7 +89,7 @@
               <!-- Last Name -->
               <div>
                 <label for="last_name" class="block text-body-sm font-medium text-gray-700 mb-1">
-                  Surname
+                  Last Name
                 </label>
                 <input
                   id="last_name"

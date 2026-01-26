@@ -56,13 +56,16 @@ Frontend JavaScript/Vue files have changed. Run the build script before uploadin
 | `resources/js/services/authService.js` | Modified |
 | `resources/js/services/api.js` | Modified |
 | `resources/js/services/sessionLifecycleService.js` | **NEW** |
-| `resources/js/store/modules/userProfile.js` | Modified |
+| `resources/js/store/modules/userProfile.js` | Modified (spouse getter + last_name) |
 | `resources/js/store/modules/auth.js` | Modified |
 | `resources/js/app.js` | Modified |
 | `resources/js/components/Navbar.vue` | Modified (logout modal + dropdown close) |
 | `resources/js/components/Auth/LogoutSuccessModal.vue` | **NEW** |
 | `resources/js/views/Login.vue` | Modified (inactivity msg + removed "Remember me") |
+| `resources/js/views/Register.vue` | Modified (surname → last_name) |
 | `resources/js/components/UserProfile/FamilyMembers.vue` | Modified (spouse modal fix) |
+| `resources/js/components/UserProfile/FamilyMemberFormModal.vue` | Modified (Surname → Last Name label) |
+| `resources/js/components/UserProfile/BalanceSheetTab.vue` | Modified (spouse name display) |
 
 ### Backend (PHP) - Upload Directly
 
@@ -71,6 +74,8 @@ Frontend JavaScript/Vue files have changed. Run the build script before uploadin
 | `app/Http/Controllers/Api/AuthController.php` | Modified |
 | `app/Http/Middleware/PreviewWriteInterceptor.php` | Modified |
 | `app/Services/GDPR/DataErasureService.php` | Modified (spouse cleanup) |
+| `app/Http/Requests/RegisterRequest.php` | Modified (last name error msg) |
+| `app/Http/Requests/StoreFamilyMemberRequest.php` | Modified (last name error msg) |
 | `routes/api.php` | Modified |
 
 ---
@@ -96,6 +101,8 @@ Upload these files via SiteGround File Manager:
 app/Http/Controllers/Api/AuthController.php
 app/Http/Middleware/PreviewWriteInterceptor.php
 app/Services/GDPR/DataErasureService.php
+app/Http/Requests/RegisterRequest.php
+app/Http/Requests/StoreFamilyMemberRequest.php
 routes/api.php
 ```
 
@@ -331,5 +338,56 @@ resources/js/components/UserProfile/FamilyMembers.vue
 4. Select "Spouse" and fill in details with a new email
 5. Click "Add Family Member"
 6. **SUCCESS**: "Spouse Account Created" modal appears with login details info
+
+---
+
+## Standardisation: Surname → Last Name
+
+**Status:** COMPLETED ✓
+
+### Issue
+Inconsistent naming across the application:
+- User model uses `surname`
+- FamilyMember model uses `last_name`
+- Form labels showed "Surname" in some places, causing confusion
+- Balance sheet showed only first name for spouse due to field name mismatch
+
+### Changes Made
+
+**Frontend Labels:**
+- Changed all form labels from "Surname" to "Last Name"
+- Registration form now uses `last_name` field (mapped to `surname` for backend)
+- Family Member form already used `last_name`
+
+**Frontend Logic:**
+- `BalanceSheetTab.vue`: Updated userName and spouseName computed properties to check both `last_name` and `surname` with appropriate fallbacks
+- `userProfile.js` store: Spouse getter now returns `first_name` and `last_name` instead of deprecated `name` field
+- `Register.vue`: Maps `last_name` → `surname` when sending to API, and maps `surname` errors back to `last_name` for display
+
+**Backend Validation Messages:**
+- `RegisterRequest.php`: Added custom message "Last name is required."
+- `StoreFamilyMemberRequest.php`: Changed message from "Surname is required." to "Last name is required."
+
+### Files Changed
+
+**Frontend:**
+```
+resources/js/views/Register.vue
+resources/js/components/UserProfile/FamilyMemberFormModal.vue
+resources/js/components/UserProfile/BalanceSheetTab.vue
+resources/js/store/modules/userProfile.js
+```
+
+**Backend:**
+```
+app/Http/Requests/RegisterRequest.php
+app/Http/Requests/StoreFamilyMemberRequest.php
+```
+
+### Verification
+1. Register page shows "Last Name" label
+2. Family Member form shows "Last Name" label
+3. Balance Sheet shows full name (first + last) for both user and spouse
+4. Validation errors display correctly with "Last name" wording
 
 ---
