@@ -286,15 +286,11 @@ app/Services/GDPR/DataErasureService.php
 
 ---
 
-# ⏳ NOT DEPLOYED
-
-*Items below this line have not yet been deployed to production.*
-
----
-
 ## Bug Fix: Preview Personas Redirect to Login Instead of Dashboard
 
-**Status:** FIXED ✓
+**Deployed:** 26 January 2026
+
+**Status:** VERIFIED ✓
 
 ### Issue
 When selecting a preview persona from the landing page modal, users were redirected to the login page instead of the persona's dashboard.
@@ -331,6 +327,8 @@ This is a frontend-only fix. Upload the new `public/build/` directory.
 ---
 
 ## Bug Fix: Spouse Success Modal Not Appearing in User Profile
+
+**Deployed:** 26 January 2026
 
 **Status:** VERIFIED ✓
 
@@ -381,7 +379,9 @@ resources/js/components/UserProfile/FamilyMembers.vue
 
 ## Standardisation: Surname → Last Name
 
-**Status:** COMPLETED ✓
+**Deployed:** 26 January 2026
+
+**Status:** VERIFIED ✓
 
 ### Issue
 Inconsistent naming across the application:
@@ -432,7 +432,9 @@ app/Http/Requests/StoreFamilyMemberRequest.php
 
 ## Feature: Cash Tab Joint Account Indicator
 
-**Status:** COMPLETED ✓
+**Deployed:** 26 January 2026
+
+**Status:** VERIFIED ✓
 
 ### Issue
 Cash accounts in Net Worth → Cash tab did not show whether accounts were jointly held, and did not display user's share vs total balance.
@@ -466,7 +468,9 @@ resources/js/views/NetWorth/CashOverview.vue
 
 ## Standardisation: Jewelry → Jewellery (British Spelling)
 
-**Status:** COMPLETED ✓
+**Deployed:** 26 January 2026
+
+**Status:** VERIFIED ✓
 
 ### Issue
 Personal Valuables module used American spelling "Jewelry" instead of British spelling "Jewellery".
@@ -643,6 +647,8 @@ php artisan cache:clear
 ---
 
 ## Code Quality Improvements - Code Review Tasks
+
+**Deployed:** 26 January 2026
 
 **Status:** 10 of 12 Tasks Completed (83%)
 
