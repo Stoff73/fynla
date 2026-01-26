@@ -295,14 +295,20 @@ class PersonalAccountsService
             ];
         }
 
-        // Chattels - individual line items
-        // IMPORTANT: current_value is ALREADY stored as the user's share in the database
-        // (divided by ownership_percentage when saving). No need to multiply again.
-        foreach ($user->chattels as $chattel) {
+        // Chattels - individual line items (include joint chattels)
+        $chattels = \App\Models\Chattel::where('user_id', $user->id)
+            ->orWhere('joint_owner_id', $user->id)
+            ->get();
+        foreach ($chattels as $chattel) {
+            // Use trait to calculate user's share based on ownership_percentage
+            $amount = $this->calculateUserShare($chattel, $user->id);
+            if ($amount <= 0) {
+                continue;
+            }
             $assets[] = [
-                'line_item' => $chattel->description ?? 'Chattel',
+                'line_item' => $chattel->name ?? 'Chattel',
                 'category' => 'chattel',
-                'amount' => $chattel->current_value,
+                'amount' => $amount,
             ];
         }
 

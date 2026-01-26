@@ -391,3 +391,67 @@ app/Http/Requests/StoreFamilyMemberRequest.php
 4. Validation errors display correctly with "Last name" wording
 
 ---
+
+## Feature: Cash Tab Joint Account Indicator
+
+**Status:** COMPLETED ✓
+
+### Issue
+Cash accounts in Net Worth → Cash tab did not show whether accounts were jointly held, and did not display user's share vs total balance.
+
+### Changes Made
+Updated `CashOverview.vue` to display:
+- **(Joint)** badge in amber text for joint accounts (matching IHT calculator style)
+- **(TiC - X%)** badge for tenants in common ownership
+- User's share as the primary balance (based on ownership_percentage)
+- **Total: £X** below user's share for joint accounts
+
+### Display Example
+For a joint account with 70% ownership and £50,000 total:
+```
+HSBC Current (Joint)
+£35,000
+Total: £50,000
+```
+
+### Files Changed
+```
+resources/js/views/NetWorth/CashOverview.vue
+```
+
+### Verification
+1. Navigate to Net Worth → Cash tab
+2. View a joint account - should show "(Joint)" badge in amber
+3. Balance should show user's share, with "Total: £X" below
+
+---
+
+## Standardisation: Jewelry → Jewellery (British Spelling)
+
+**Status:** COMPLETED ✓
+
+### Issue
+Personal Valuables module used American spelling "Jewelry" instead of British spelling "Jewellery".
+
+### Changes Made
+Updated all user-facing labels from "Jewelry" to "Jewellery" across the Personal Valuables module.
+
+Note: The database enum value remains `jewelry` (code convention), only the display labels changed.
+
+### Files Changed
+```
+resources/js/components/NetWorth/ChattelFormModal.vue
+resources/js/components/NetWorth/ChattelCard.vue
+resources/js/components/NetWorth/ChattelsList.vue
+resources/js/components/NetWorth/ChattelDetailInline.vue
+resources/js/components/Estate/AssetForm.vue
+resources/js/views/Version.vue
+```
+
+### Verification
+1. Navigate to Net Worth → Personal Valuables
+2. Click "Add Valuable" - type selector should show "Jewellery"
+3. Filter dropdown should show "Jewellery"
+4. Any jewellery items should display "Jewellery" badge
+
+---
