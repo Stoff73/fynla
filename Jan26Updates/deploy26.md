@@ -510,3 +510,39 @@ app/Services/UserProfile/PersonalAccountsService.php
 5. Assets column should show chattel name (not description)
 
 ---
+
+## Bug Fix: Wealth Summary Joint Chattels/Business Not Splitting Correctly
+
+**Status:** COMPLETED ✓
+
+### Issue
+The Wealth Summary tab in Net Worth module showed the full value of joint chattels and business interests under the primary owner's account instead of correctly splitting by ownership percentage.
+
+### Root Cause
+`NetWorthService.php` had two problems:
+1. `calculateBusinessValue()` and `calculateChattelValue()` only queried `user_id` (not `joint_owner_id`)
+2. These methods summed full values instead of using `CalculatesOwnershipShare` trait to calculate user's share
+
+Incorrect comments claimed values were "already stored as user's share" but this contradicted the single-record architecture where full values are stored.
+
+### Fix
+Updated `app/Services/NetWorth/NetWorthService.php`:
+- Added `use CalculatesOwnershipShare` trait
+- `calculateBusinessValue()`: Now queries both `user_id` and `joint_owner_id`, uses `calculateUserShare()` trait method
+- `calculateChattelValue()`: Same fix as above
+- `getAssetsSummary()`: Updated count queries to include `joint_owner_id`
+- `getAssetsSummaryWithDetails()`: Updated queries and value mappings to use user's share
+
+### Files Changed
+```
+app/Services/NetWorth/NetWorthService.php
+```
+
+### Verification
+1. Add a joint chattel with 70% ownership and £10,000 value
+2. Navigate to Net Worth → Wealth Summary tab
+3. User's chattels should show £7,000 (70% of £10,000)
+4. Spouse's chattels should show £3,000 (30% of £10,000)
+5. Same verification for joint business interests
+
+---
