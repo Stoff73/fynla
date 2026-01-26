@@ -1348,3 +1348,50 @@ resources/js/views/Investment/AccountFeesPanel.vue
 4. Fee summary cards no longer duplicated at top of fees panel
 
 ---
+
+## Bug Fix: Add Holdings Not Saving
+
+**Branch:** ihtBugs
+
+**Status:** DEPLOYED ✓
+
+### Issue
+
+When adding a holding from the account detail view, the modal would close but the holding was never saved. No error was shown.
+
+### Root Cause
+
+The `handleHoldingSave()` method in `InvestmentDetailInline.vue` was not actually calling the API to save the holding. The `HoldingForm` component emits `'save'` with the holding data, but the handler:
+1. Did not receive the holding data parameter
+2. Did not call `createHolding` or `updateHolding` Vuex actions
+3. Just closed the modal and refreshed (getting the same unchanged data)
+
+### Fix
+
+1. Added `createHolding` and `updateHolding` to mapActions
+2. Updated `handleHoldingSave(holdingData)` to:
+   - Accept the holding data parameter
+   - Call `createHolding` for new holdings or `updateHolding` for existing
+   - Only close modal on success
+
+### Files Changed
+
+**Frontend:**
+```
+resources/js/components/NetWorth/InvestmentDetailInline.vue
+```
+
+### Rebuild Required: YES
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+### Verification
+
+1. Navigate to Net Worth → Investments → click on an account
+2. Click "Add Holdings" link
+3. Fill in the holding form and save
+4. Holding should now appear in the holdings list
+
+---
