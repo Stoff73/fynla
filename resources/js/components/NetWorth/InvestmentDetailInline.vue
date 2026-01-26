@@ -458,7 +458,7 @@ export default {
   },
 
   methods: {
-    ...mapActions('investment', ['updateAccount', 'deleteAccount', 'fetchInvestmentData']),
+    ...mapActions('investment', ['updateAccount', 'deleteAccount', 'fetchInvestmentData', 'createHolding', 'updateHolding']),
 
     handleBackClick() {
       // If on a sub-tab, go back to performance tab
@@ -582,10 +582,22 @@ export default {
       this.editingHolding = null;
     },
 
-    async handleHoldingSave() {
-      this.closeHoldingModal();
-      await this.fetchInvestmentData();
-      this.$emit('updated');
+    async handleHoldingSave(holdingData) {
+      try {
+        if (holdingData.id) {
+          // Update existing holding
+          await this.updateHolding({ id: holdingData.id, data: holdingData });
+        } else {
+          // Create new holding
+          await this.createHolding(holdingData);
+        }
+        this.closeHoldingModal();
+        await this.fetchInvestmentData();
+        this.$emit('updated');
+      } catch (error) {
+        console.error('Error saving holding:', error);
+        // Modal stays open so user can see/fix any issues
+      }
     },
 
     handleTabChange(tabId) {
