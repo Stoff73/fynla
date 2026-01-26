@@ -88,6 +88,38 @@ export default {
         });
       }
 
+      // High account fees check (runs even without holdings)
+      // Uses account's current_value if no holdings
+      const accountValue = this.totalHoldingsValue > 0
+        ? this.totalHoldingsValue
+        : parseFloat(this.account.current_value) || 0;
+
+      let platformFee = 0;
+      if (this.account.platform_fee_type === 'fixed') {
+        const feeAmount = parseFloat(this.account.platform_fee_amount) || 0;
+        let annualAmount = feeAmount;
+        if (this.account.platform_fee_frequency === 'monthly') annualAmount = feeAmount * 12;
+        else if (this.account.platform_fee_frequency === 'quarterly') annualAmount = feeAmount * 4;
+        platformFee = accountValue > 0 ? (annualAmount / accountValue) * 100 : 0;
+      } else {
+        platformFee = parseFloat(this.account.platform_fee_percent) || 0;
+      }
+
+      const weightedOCF = this.totalHoldingsValue > 0
+        ? this.holdings.reduce((sum, h) => sum + ((h.current_value || 0) * (parseFloat(h.ocf_percent) || 0)), 0) / this.totalHoldingsValue
+        : 0;
+
+      const totalFees = platformFee + weightedOCF;
+      if (totalFees > 0.8 && accountValue > 0) {
+        const annualCost = (accountValue * totalFees) / 100;
+        recs.push({
+          priority: 2,
+          title: 'Review Account Fees',
+          description: `Your total fees are ${totalFees.toFixed(2)}%, costing ${this.formatCurrency(annualCost)}/year. Consider switching to a lower-cost platform.`,
+          action: 'fees',
+        });
+      }
+
       // If no holdings, return early (remaining checks need holdings)
       if (this.holdings.length === 0) {
         return recs.sort((a, b) => a.priority - b.priority);
@@ -117,32 +149,6 @@ export default {
           title: 'Limited Diversification',
           description: `All holdings in this account are ${this.formatAssetType(singleClass)}. Adding other asset classes can reduce volatility.`,
           action: 'diversification',
-        });
-      }
-
-      // 4. High account fees (excluding advisory)
-      let platformFee = 0;
-      if (this.account.platform_fee_type === 'fixed') {
-        const feeAmount = parseFloat(this.account.platform_fee_amount) || 0;
-        let annualAmount = feeAmount;
-        if (this.account.platform_fee_frequency === 'monthly') annualAmount = feeAmount * 12;
-        else if (this.account.platform_fee_frequency === 'quarterly') annualAmount = feeAmount * 4;
-        const acctValue = parseFloat(this.account.current_value) || 0;
-        platformFee = acctValue > 0 ? (annualAmount / acctValue) * 100 : 0;
-      } else {
-        platformFee = parseFloat(this.account.platform_fee_percent) || 0;
-      }
-      const weightedOCF = this.totalHoldingsValue > 0
-        ? this.holdings.reduce((sum, h) => sum + ((h.current_value || 0) * (parseFloat(h.ocf_percent) || 0)), 0) / this.totalHoldingsValue
-        : 0;
-      const totalFees = platformFee + weightedOCF;
-      if (totalFees > 0.8) {
-        const annualCost = (this.totalHoldingsValue * totalFees) / 100;
-        recs.push({
-          priority: 2,
-          title: 'Review Account Fees',
-          description: `Your total fees are ${totalFees.toFixed(2)}%, costing ${this.formatCurrency(annualCost)}/year. Consider switching to a lower-cost platform.`,
-          action: 'fees',
         });
       }
 

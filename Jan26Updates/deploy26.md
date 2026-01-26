@@ -1164,21 +1164,32 @@ Updated `app/Services/Investment/FeeAnalyzer.php`:
 app/Services/Investment/FeeAnalyzer.php
 ```
 
-### Rebuild Required: NO
+**Frontend:**
+```
+resources/js/components/Investment/AccountStrategyCard.vue
+```
 
-Backend PHP file only. No frontend rebuild needed.
+### Rebuild Required: YES
+
+Frontend Vue file changed. Run build script before uploading.
+
+```bash
+./deploy/fynla-org/build.sh
+```
 
 ### Upload Checklist
 
-1. Upload `app/Services/Investment/FeeAnalyzer.php`
-2. Clear cache: `php artisan cache:clear`
+1. Run build script
+2. Upload `public/build/` directory
+3. Upload `app/Services/Investment/FeeAnalyzer.php`
+4. Clear cache: `php artisan cache:clear`
 
 ### Verification
 
 1. Create an investment account with a current value (e.g., £10,000)
 2. Enter a platform fee of 1.25% (no holdings needed)
-3. Navigate to the account's Performance tab
-4. The Strategy card should show "Portfolio Fees Above Average" recommendation
+3. **Portfolio level:** Navigate to Investments tab - should see "Portfolio Fees Above Average" in Strategy card
+4. **Account level:** Click into the account details - the Strategies section should show "Review Account Fees"
 
 ---
 
