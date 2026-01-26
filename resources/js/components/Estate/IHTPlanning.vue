@@ -974,7 +974,7 @@
 
             <!-- NRB (Individual) -->
             <tr>
-              <td class="px-4 py-3 text-sm text-gray-600">Less: Tax-Free Allowance (Individual)</td>
+              <td class="px-4 py-3 text-sm font-semibold text-gray-700">Less: Tax-Free Allowance (Individual)</td>
               <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.nrb || 325000) }}</td>
               <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right text-amber-700">-{{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.nrb || 325000) }}</td>
               <td class="px-4 py-3 text-sm text-right text-purple-700">-{{ formatCurrency(secondDeathData.second_death_analysis.iht_calculation?.nrb || 325000) }}</td>
@@ -983,9 +983,9 @@
 
             <!-- NRB from Spouse -->
             <tr v-if="(secondDeathData.second_death_analysis.current_iht_calculation?.nrb_from_spouse || 0) > 0 || (secondDeathData.second_death_analysis.iht_calculation?.nrb_from_spouse || 0) > 0">
-              <td class="px-4 py-3 text-sm text-gray-600">
+              <td class="px-4 py-3 text-sm font-semibold text-gray-700">
                 Less: Tax-Free Allowance from Spouse
-                <span v-if="!hasSpouseLinked" class="ml-2 text-xs text-amber-600">(Default - verify by linking spouse)</span>
+                <span v-if="!hasSpouseLinked" class="ml-2 text-xs text-amber-600 font-normal">(Default - verify by linking spouse)</span>
               </td>
               <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.nrb_from_spouse || 325000) }}</td>
               <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right text-amber-700">-{{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.nrb_from_spouse || 325000) }}</td>
@@ -995,7 +995,7 @@
 
             <!-- RNRB (Individual) -->
             <tr v-if="secondDeathData.second_death_analysis.iht_calculation?.rnrb_eligible && ((secondDeathData.second_death_analysis.current_iht_calculation?.rnrb_individual || 0) > 0 || (secondDeathData.second_death_analysis.iht_calculation?.rnrb_individual || 0) > 0)">
-              <td class="px-4 py-3 text-sm text-gray-600">Less: Home Allowance (Individual)</td>
+              <td class="px-4 py-3 text-sm font-semibold text-gray-700">Less: Home Allowance (Individual)</td>
               <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.rnrb_individual || 0) }}</td>
               <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right text-amber-700">-{{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.rnrb_individual || 0) }}</td>
               <td class="px-4 py-3 text-sm text-right text-purple-700">-{{ formatCurrency(secondDeathData.second_death_analysis.iht_calculation?.rnrb_individual || 0) }}</td>
@@ -1004,9 +1004,9 @@
 
             <!-- RNRB from Spouse -->
             <tr v-if="secondDeathData.second_death_analysis.iht_calculation?.rnrb_eligible && ((secondDeathData.second_death_analysis.current_iht_calculation?.rnrb_from_spouse || 0) > 0 || (secondDeathData.second_death_analysis.iht_calculation?.rnrb_from_spouse || 0) > 0)">
-              <td class="px-4 py-3 text-sm text-gray-600">
+              <td class="px-4 py-3 text-sm font-semibold text-gray-700">
                 Less: Home Allowance from Spouse
-                <span v-if="!hasSpouseLinked" class="ml-2 text-xs text-amber-600">(Default - verify by linking spouse)</span>
+                <span v-if="!hasSpouseLinked" class="ml-2 text-xs text-amber-600 font-normal">(Default - verify by linking spouse)</span>
               </td>
               <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.rnrb_from_spouse || 0) }}</td>
               <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right text-amber-700">-{{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.rnrb_from_spouse || 0) }}</td>
@@ -1764,28 +1764,28 @@
                 </tr>
                 <template v-if="expandedAllowances">
                   <tr class="bg-gray-50">
-                    <td class="px-4 py-3 text-sm text-gray-600 pl-12">{{ secondDeathData.assets_breakdown.user.name }}'s NRB</td>
+                    <td class="px-4 py-3 text-sm font-semibold text-gray-700 pl-12">{{ secondDeathData.assets_breakdown.user.name }}'s Tax-Free Allowance</td>
                     <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
                     <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
                     <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
                     <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
                   </tr>
                   <tr class="bg-gray-50">
-                    <td class="px-4 py-3 text-sm text-gray-600 pl-12">{{ secondDeathData.assets_breakdown.spouse.name }}'s NRB</td>
+                    <td class="px-4 py-3 text-sm font-semibold text-gray-700 pl-12">{{ secondDeathData.assets_breakdown.spouse.name }}'s Tax-Free Allowance</td>
                     <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
                     <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
                     <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
                     <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
                   </tr>
                   <tr class="bg-gray-50">
-                    <td class="px-4 py-3 text-sm text-gray-600 pl-12">{{ secondDeathData.assets_breakdown.user.name }}'s RNRB</td>
+                    <td class="px-4 py-3 text-sm font-semibold text-gray-700 pl-12">{{ secondDeathData.assets_breakdown.user.name }}'s Home Allowance</td>
                     <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency((ihtData?.rnrb_available || 0) / 2) }}</td>
                     <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency((ihtData?.rnrb_available || 0) / 2) }}</td>
                     <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency((ihtData?.rnrb_available || 0) / 2) }}</td>
                     <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency((ihtData?.rnrb_available || 0) / 2) }}</td>
                   </tr>
                   <tr class="bg-gray-50">
-                    <td class="px-4 py-3 text-sm text-gray-600 pl-12">{{ secondDeathData.assets_breakdown.spouse.name }}'s RNRB</td>
+                    <td class="px-4 py-3 text-sm font-semibold text-gray-700 pl-12">{{ secondDeathData.assets_breakdown.spouse.name }}'s Home Allowance</td>
                     <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency((ihtData?.rnrb_available || 0) / 2) }}</td>
                     <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency((ihtData?.rnrb_available || 0) / 2) }}</td>
                     <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency((ihtData?.rnrb_available || 0) / 2) }}</td>
@@ -1796,14 +1796,14 @@
               <!-- Married couple without RNRB (only 2 rows) - no concertina needed -->
               <template v-else>
                 <tr class="bg-gray-50">
-                  <td class="px-4 py-3 text-sm text-gray-600 pl-8">Less: {{ secondDeathData.assets_breakdown.user.name }}'s NRB</td>
+                  <td class="px-4 py-3 text-sm font-semibold text-gray-700 pl-8">Less: {{ secondDeathData.assets_breakdown.user.name }}'s Tax-Free Allowance</td>
                   <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
                   <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
                   <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
                   <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
                 </tr>
                 <tr class="bg-gray-50">
-                  <td class="px-4 py-3 text-sm text-gray-600 pl-8">Less: {{ secondDeathData.assets_breakdown.spouse.name }}'s NRB</td>
+                  <td class="px-4 py-3 text-sm font-semibold text-gray-700 pl-8">Less: {{ secondDeathData.assets_breakdown.spouse.name }}'s Tax-Free Allowance</td>
                   <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
                   <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
                   <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
@@ -1814,14 +1814,14 @@
             <template v-else>
               <!-- Single person - show combined NRB -->
               <tr class="bg-gray-50">
-                <td class="px-4 py-3 text-sm text-gray-600">Less: Nil Rate Band (NRB)</td>
+                <td class="px-4 py-3 text-sm font-semibold text-gray-700">Less: Tax-Free Allowance</td>
                 <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(ihtData?.nrb_available || 0) }}</td>
                 <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(ihtData?.nrb_available || 0) }}</td>
                 <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(ihtData?.nrb_available || 0) }}</td>
                 <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(ihtData?.nrb_available || 0) }}</td>
               </tr>
               <tr class="bg-gray-50" v-if="ihtData?.rnrb_available > 0">
-                <td class="px-4 py-3 text-sm text-gray-600">Less: Residence Nil Rate Band (RNRB)</td>
+                <td class="px-4 py-3 text-sm font-semibold text-gray-700">Less: Home Allowance</td>
                 <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(ihtData?.rnrb_available || 0) }}</td>
                 <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(ihtData?.rnrb_available || 0) }}</td>
                 <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(ihtData?.rnrb_available || 0) }}</td>
@@ -1860,7 +1860,7 @@
         </div>
 
         <div v-if="ihtData?.liabilities > 0" class="flex justify-between items-center py-2 border-b border-gray-200">
-          <span class="text-sm text-gray-600">Less: Liabilities</span>
+          <span class="text-sm font-semibold text-gray-700">Less: Liabilities</span>
           <span class="text-sm font-medium text-gray-900">-{{ formatCurrency(ihtData?.liabilities || 0) }}</span>
         </div>
 
@@ -1870,27 +1870,27 @@
         </div>
 
         <div class="flex justify-between items-center py-2 border-b border-gray-200">
-          <span class="text-sm text-gray-600">Less: NRB (Individual)</span>
+          <span class="text-sm font-semibold text-gray-700">Less: Tax-Free Allowance (Individual)</span>
           <span class="text-sm font-medium text-gray-900">-{{ formatCurrency(ihtData?.nrb || 325000) }}</span>
         </div>
 
         <div v-if="ihtData?.nrb_from_spouse > 0" class="flex justify-between items-center py-2 border-b border-gray-200">
-          <span class="text-sm text-gray-600">
+          <span class="text-sm font-semibold text-gray-700">
             Less: Tax-Free Allowance from Spouse
-            <span v-if="!hasSpouseLinked" class="ml-2 text-xs text-amber-600">(Default - verify by linking spouse)</span>
+            <span v-if="!hasSpouseLinked" class="ml-2 text-xs text-amber-600 font-normal">(Default - verify by linking spouse)</span>
           </span>
           <span class="text-sm font-medium text-gray-900">-{{ formatCurrency(ihtData.nrb_from_spouse) }}</span>
         </div>
 
         <div v-if="ihtData?.rnrb_eligible && ihtData?.rnrb_individual > 0" class="flex justify-between items-center py-2 border-b border-gray-200">
-          <span class="text-sm text-gray-600">Less: RNRB (Individual)</span>
+          <span class="text-sm font-semibold text-gray-700">Less: Home Allowance (Individual)</span>
           <span class="text-sm font-medium text-gray-900">-{{ formatCurrency(ihtData?.rnrb_individual || 0) }}</span>
         </div>
 
         <div v-if="ihtData?.rnrb_eligible && ihtData?.rnrb_from_spouse > 0" class="flex justify-between items-center py-2 border-b border-gray-200">
-          <span class="text-sm text-gray-600">
+          <span class="text-sm font-semibold text-gray-700">
             Less: Home Allowance from Spouse
-            <span v-if="!hasSpouseLinked" class="ml-2 text-xs text-amber-600">(Default - verify by linking spouse)</span>
+            <span v-if="!hasSpouseLinked" class="ml-2 text-xs text-amber-600 font-normal">(Default - verify by linking spouse)</span>
           </span>
           <span class="text-sm font-medium text-gray-900">-{{ formatCurrency(ihtData?.rnrb_from_spouse || 0) }}</span>
         </div>
@@ -1927,7 +1927,7 @@
                 <span class="font-medium">{{ formatCurrency(gift.gift_value) }}</span>
               </div>
               <div class="flex justify-between text-green-700">
-                <span>Less: NRB covered</span>
+                <span>Less: Tax-Free Allowance covered</span>
                 <span class="font-medium">-{{ formatCurrency(gift.nrb_covered) }}</span>
               </div>
               <div class="flex justify-between border-t border-amber-200 pt-1">
@@ -1972,7 +1972,7 @@
             </svg>
           </div>
           <div class="ml-3">
-            <h3 class="text-sm font-medium text-blue-800">Nil Rate Band (NRB)</h3>
+            <h3 class="text-sm font-medium text-blue-800">Tax-Free Allowance</h3>
             <div class="mt-2 text-sm text-blue-700">
               <p>{{ ihtData.nrb_message }}</p>
             </div>
@@ -1999,7 +1999,7 @@
               ihtData.rnrb_status === 'full' ? 'text-green-800' :
               ihtData.rnrb_status === 'tapered' ? 'text-amber-800' :
               'text-gray-800'
-            ]">Residence Nil Rate Band (RNRB)</h3>
+            ]">Home Allowance</h3>
             <div class="mt-2 text-sm" :class="[
               ihtData.rnrb_status === 'full' ? 'text-green-700' :
               ihtData.rnrb_status === 'tapered' ? 'text-amber-700' :
@@ -2057,7 +2057,7 @@
               <li>Charitable giving (can reduce Inheritance Tax rate from 40% to 36% if ≥10% to charity)</li>
               <li>Trust planning to remove assets from your estate</li>
               <li>Life insurance policies written in trust to cover Inheritance Tax liability</li>
-              <li v-if="!ihtData?.rnrb || ihtData.rnrb === 0">Consider leaving your main residence to direct descendants to claim RNRB (up to £175,000)</li>
+              <li v-if="!ihtData?.rnrb || ihtData.rnrb === 0">Consider leaving your main residence to direct descendants to claim the Home Allowance (up to £175,000)</li>
             </ul>
           </div>
         </div>
