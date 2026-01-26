@@ -61,8 +61,8 @@ Vue Component → API Service → Controller → Agent → Services → Models �
 
 ## Key Rules
 
-### 1. No Deployment Packages
-Never create ZIP files. List changed files for manual upload via SiteGround File Manager.
+### 1. Manual File Upload Only
+Never create ZIP files or deployment packages. The user uploads files manually via SiteGround File Manager. When deploying, list the specific files that changed so the user knows what to upload.
 
 ### 2. Preview User Isolation
 Preview users (`is_preview_user = true`) are seeded test personas, completely separate from real users. When debugging preview issues, only query `WHERE is_preview_user = true`.
@@ -112,10 +112,10 @@ When adding new auth-related POST routes, add them to `EXCLUDED_ROUTES` in `app/
 
 ## Deployment
 
-Use deployment scripts (never `npm run build` directly):
+**Build locally** (server lacks memory for npm):
 ```bash
-./deploy/fynla-org/build.sh        # For fynla.org
-./deploy/csjones-fynla/build.sh    # For csjones.co/fynla
+./deploy/fynla-org/build.sh        # Builds public/build/ for fynla.org
+./deploy/csjones-fynla/build.sh    # Builds for csjones.co/fynla
 ```
 
 | Setting | fynla.org | csjones.co/fynla |
@@ -123,11 +123,16 @@ Use deployment scripts (never `npm run build` directly):
 | VITE_BASE_PATH | `/build/` | `/fynla/build/` |
 | RewriteBase | `/` | `/fynla/` |
 
-**SSH access:**
+**Manual upload process:**
+1. Run build script locally
+2. Upload `public/build/` directory via SiteGround File Manager to `~/www/fynla.org/public_html/public/build/`
+3. Upload any changed PHP files (listed in deployment notes)
+4. SSH to clear caches:
+
 ```bash
 ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
 cd ~/www/fynla.org/public_html
-php artisan migrate --force && php artisan cache:clear
+php artisan cache:clear && php artisan route:clear && php artisan config:clear
 ```
 
 ## Preview Mode
