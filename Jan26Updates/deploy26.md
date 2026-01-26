@@ -853,6 +853,68 @@ Frontend Vue file changed. Run build script before uploading.
 
 ---
 
+## Bug Fix: Will Card Navigation to Blank Page
+
+**Branch:** ihtBugs
+
+**Status:** READY FOR DEPLOYMENT
+
+### Issue
+
+In the Estate Planning module, clicking the Will card in the IHT Mitigation Strategies section navigated to a blank page instead of going to Valuable Info → Wills tab.
+
+### Root Cause
+
+The `navigateToWillTab()` method in `IHTPlanning.vue` emitted a `switch-tab` event with value `'will'` to the parent `EstateDashboard.vue`. However, EstateDashboard only has tabs for: `iht`, `gifting`, `life-policy`, `trusts` — there is no `'will'` tab component.
+
+When the tab value was set to `'will'`, no component rendered because there was no matching `v-if` condition, resulting in a blank page.
+
+The Will tab actually exists in `ValuableInfo.vue` (a separate route), not in EstateDashboard.
+
+### Fix
+
+Changed `navigateToWillTab()` from emitting a tab switch event to performing a direct router navigation:
+
+```javascript
+// Before (broken):
+navigateToWillTab() {
+  this.$emit('switch-tab', 'will');
+},
+
+// After (fixed):
+navigateToWillTab() {
+  this.$router.push({ path: '/valuable-info', query: { section: 'will' } });
+},
+```
+
+### Files Changed
+
+```
+resources/js/components/Estate/IHTPlanning.vue
+```
+
+### Rebuild Required: YES
+
+Frontend Vue file changed. Run build script before uploading.
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+### Upload Checklist
+
+1. Run build script
+2. Upload `public/build/` directory
+
+### Verification
+
+1. Navigate to Estate Planning → IHT Calculator
+2. Scroll to Mitigation Strategies section
+3. Click on the Will card
+4. Should navigate to Valuable Info page with Wills tab active
+
+---
+
 ### Deferred Tasks
 
 | Task | Reason |

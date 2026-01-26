@@ -2656,8 +2656,8 @@ export default {
     },
 
     navigateToWillTab() {
-      // Emit event to parent EstateDashboard to switch to Will tab
-      this.$emit('switch-tab', 'will');
+      // Navigate to Valuable Info page with Wills tab active
+      this.$router.push({ path: '/valuable-info', query: { section: 'will' } });
     },
 
     navigateToProtectionModule() {
