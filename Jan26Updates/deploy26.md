@@ -1302,3 +1302,49 @@ Frontend Vue file changed. Run build script before uploading.
 | Vue prop type validation | Long-term incremental improvement |
 
 ---
+
+## UI Enhancement: Fee Metrics in Header Card
+
+**Branch:** ihtBugs
+
+**Status:** DEPLOYED ✓
+
+### Description
+
+When viewing the fees tab in the investment account detail view, the key metrics section in the header now displays fee-related information instead of the standard metrics.
+
+### Behaviour
+
+| Tab | Header Metrics Shown |
+|-----|---------------------|
+| Performance, Holdings, etc. | Current Value, Annualised Return, Monthly Contribution, ISA Allowance/Holdings |
+| Fees | Platform Fee, Average Fund Fee (OCF), Advisor Fee, Total Annual Cost |
+
+### Changes
+
+1. Added conditional rendering in `InvestmentDetailInline.vue` based on `activeTab`
+2. Added computed properties: `platformFeeDisplay`, `weightedAverageOCF`, `advisorFeePercent`, `totalAnnualFeeCost`
+3. Removed duplicate fee summary cards from `AccountFeesPanel.vue` (now shown in header)
+
+### Files Changed
+
+**Frontend:**
+```
+resources/js/components/NetWorth/InvestmentDetailInline.vue
+resources/js/views/Investment/AccountFeesPanel.vue
+```
+
+### Rebuild Required: YES
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+### Verification
+
+1. Navigate to Net Worth → Investments → click on an account
+2. On Performance tab: header shows Current Value, Annualised Return, etc.
+3. Click on Fees tab: header now shows Platform Fee, Average Fund Fee, Advisor Fee, Total Annual Cost
+4. Fee summary cards no longer duplicated at top of fees panel
+
+---
