@@ -1027,6 +1027,113 @@ Frontend Vue file changed. Run build script before uploading.
 
 ---
 
+## Feature: ISA Subscription Enhancement - Regular Contributions & Lump Sums
+
+**Branch:** ihtBugs
+
+**Status:** READY FOR DEPLOYMENT
+
+### Overview
+
+Enhanced ISA account forms (both Cash ISA and Stocks & Shares ISA) to include regular contributions and planned lump sums inside the ISA subscription box. Added validation to ensure planned contributions don't exceed the shared £20,000 ISA allowance.
+
+### Changes Made
+
+**1. Stocks & Shares ISA (AccountForm.vue):**
+- Moved Regular Contributions section INSIDE the blue ISA subscription box (only shown for ISA accounts)
+- Added planned lump sum fields to the ISA box
+- Added ISA allowance progress bar showing breakdown by:
+  - Cash ISA usage (blue)
+  - Other S&S ISAs (purple)
+  - This account (green)
+  - Planned contributions (amber)
+- Added validation that prevents saving if total planned contributions exceed £20,000 allowance
+- Shows remaining allowance with color-coded warnings (green → orange → red)
+
+**2. Cash ISA (SaveAccountModal.vue):**
+- Added Regular Contribution Amount field with frequency selector (monthly/quarterly/annually)
+- Added Planned Lump Sum field with date picker
+- Added ISA allowance progress bar (same breakdown as S&S ISA)
+- Added validation to prevent exceeding allowance
+- Styled ISA section with blue background and border (matching S&S ISA style)
+- Fields hidden for Junior ISAs (they have separate £9,000 allowance)
+
+**3. Backend (SavingsAccount model + migration):**
+- Added new fields to SavingsAccount model: `regular_contribution_amount`, `contribution_frequency`, `planned_lump_sum_amount`, `planned_lump_sum_date`
+- Created migration to add columns to `savings_accounts` table
+
+### Allowance Tracking Logic
+
+Both forms now correctly track the shared ISA allowance:
+- Gets Cash ISA usage from `savings/currentYearISASubscription` store getter
+- Gets S&S ISA usage from `investment/investmentISASubscription` store getter
+- When editing an account, excludes that account's original subscription from the "other" totals
+- Calculates planned annual contribution: `(regular_amount × frequency_multiplier) + lump_sum`
+- Shows warning if `total_used + planned > £20,000`
+
+### Files Changed
+
+**Frontend (Rebuild Required):**
+```
+resources/js/components/Investment/AccountForm.vue
+resources/js/components/Savings/SaveAccountModal.vue
+```
+
+**Backend:**
+```
+app/Models/SavingsAccount.php
+database/migrations/2026_01_26_000001_add_contribution_fields_to_savings_accounts.php
+```
+
+### Rebuild Required: YES
+
+Frontend Vue files changed. Run build script before uploading.
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+### Upload Checklist
+
+1. Run build script
+2. Upload `public/build/` directory
+3. Upload backend files:
+   ```
+   app/Models/SavingsAccount.php
+   database/migrations/2026_01_26_000001_add_contribution_fields_to_savings_accounts.php
+   ```
+4. Run migration and clear cache:
+   ```bash
+   ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
+   cd ~/www/fynla.org/public_html
+   php artisan migrate --force
+   php artisan cache:clear
+   ```
+
+### Verification
+
+**Cash ISA Form:**
+1. Navigate to Net Worth → Cash tab
+2. Click "Add Account"
+3. Select "Cash ISA" as product type
+4. ISA section should show:
+   - ISA Subscription header with info text
+   - Already Subscribed This Tax Year field
+   - Regular Contribution Amount with frequency dropdown
+   - Planned Lump Sum with date picker
+   - ISA Allowance Usage bar with breakdown
+5. Enter values that exceed £20,000 → should show warning and prevent save
+
+**Stocks & Shares ISA Form:**
+1. Navigate to Net Worth → Investments tab
+2. Click "Add Account"
+3. Select "ISA (Stocks & Shares)" as account type
+4. Regular Contributions and Planned Lump Sum should appear INSIDE the blue ISA box
+5. Allowance bar should show combined Cash ISA + S&S ISA usage
+6. Test exceeding allowance → should show warning
+
+---
+
 ### Deferred Tasks
 
 | Task | Reason |

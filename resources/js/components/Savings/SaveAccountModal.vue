@@ -202,7 +202,20 @@
             </div>
 
             <!-- ISA Details (if is_isa is true or ISA product type selected) -->
-            <div v-if="formData.is_isa || isISAProductType" class="space-y-4 pl-6 border-l-2 border-blue-200">
+            <div v-if="formData.is_isa || isISAProductType" class="space-y-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <!-- ISA Header -->
+              <div class="flex items-start gap-2 mb-2">
+                <svg class="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div>
+                  <p class="text-sm font-medium text-blue-900">ISA Subscription</p>
+                  <p class="text-xs text-blue-700 mt-1">
+                    All ISA contributions (Cash ISA + Stocks &amp; Shares ISA) count towards your £{{ isJuniorISA ? '9,000' : '20,000' }} annual allowance (2025/26)
+                  </p>
+                </div>
+              </div>
+
               <!-- Junior ISA Beneficiary (only for Junior ISA) -->
               <div v-if="isJuniorISA">
                 <label class="block text-sm font-medium text-gray-700 mb-1">
@@ -297,8 +310,8 @@
 
               <!-- ISA Subscription Amount -->
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">
-                  Subscription Amount (Current Tax Year)
+                <label class="block text-sm font-medium text-blue-900 mb-1">
+                  Already Subscribed This Tax Year (£)
                 </label>
                 <div class="relative">
                   <span class="absolute left-3 top-2.5 text-gray-500">£</span>
@@ -308,13 +321,145 @@
                     step="0.01"
                     min="0"
                     :max="isJuniorISA ? 9000 : 20000"
-                    class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    class="w-full pl-8 pr-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
                     placeholder="0.00"
                   />
                 </div>
-                <p class="text-xs text-gray-500 mt-1">
-                  Max £{{ isJuniorISA ? '9,000' : '20,000' }} per tax year (2025/26)
+                <p class="text-xs text-blue-700 mt-1">
+                  Amount already contributed to this account in {{ currentTaxYear }}
                 </p>
+              </div>
+
+              <!-- Regular Contribution (for non-Junior ISAs) -->
+              <div v-if="!isJuniorISA">
+                <label class="block text-sm font-medium text-blue-900 mb-1">
+                  Regular Contribution Amount (£)
+                </label>
+                <div class="flex gap-2">
+                  <div class="flex-1 relative">
+                    <span class="absolute left-3 top-2.5 text-gray-500">£</span>
+                    <input
+                      v-model.number="formData.regular_contribution_amount"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      class="w-full pl-8 pr-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                      :class="{ 'border-red-500': isaAllowanceError }"
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div class="w-32">
+                    <select
+                      v-model="formData.contribution_frequency"
+                      class="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                    >
+                      <option value="monthly">Monthly</option>
+                      <option value="quarterly">Quarterly</option>
+                      <option value="annually">Annually</option>
+                    </select>
+                  </div>
+                </div>
+                <p class="text-xs text-blue-700 mt-1">
+                  Regular contributions you make to this ISA (counts towards allowance)
+                </p>
+              </div>
+
+              <!-- Planned Lump Sum (for non-Junior ISAs) -->
+              <div v-if="!isJuniorISA">
+                <label class="block text-sm font-medium text-blue-900 mb-1">
+                  Planned Lump Sum (£)
+                </label>
+                <div class="flex gap-2">
+                  <div class="flex-1 relative">
+                    <span class="absolute left-3 top-2.5 text-gray-500">£</span>
+                    <input
+                      v-model.number="formData.planned_lump_sum_amount"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      class="w-full pl-8 pr-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                      :class="{ 'border-red-500': isaAllowanceError }"
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div class="w-40">
+                    <input
+                      v-model="formData.planned_lump_sum_date"
+                      type="date"
+                      class="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                    />
+                  </div>
+                </div>
+                <p class="text-xs text-blue-700 mt-1">
+                  One-off contribution planned for this ISA (counts towards allowance)
+                </p>
+              </div>
+
+              <!-- ISA Allowance Warning -->
+              <div v-if="isaAllowanceError" class="p-3 bg-red-50 border border-red-200 rounded-md">
+                <p class="text-sm text-red-800">
+                  <strong>Warning:</strong> {{ isaAllowanceError }}
+                </p>
+              </div>
+
+              <!-- ISA Allowance Summary (for non-Junior ISAs) -->
+              <div v-if="!isJuniorISA" class="bg-white border border-blue-200 rounded-md p-3">
+                <div class="flex justify-between items-center mb-2">
+                  <span class="text-sm font-medium text-gray-700">ISA Allowance Usage:</span>
+                  <span class="text-lg font-bold" :class="totalRemainingAllowanceClass">
+                    {{ formatCurrency(totalRemainingAllowance) }} remaining
+                  </span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-3 mb-2">
+                  <div class="h-full flex rounded-full overflow-hidden">
+                    <!-- Cash ISA portion (other accounts) -->
+                    <div
+                      v-if="otherCashISAUsed > 0"
+                      class="bg-blue-500 h-full"
+                      :style="{ width: (otherCashISAUsed / ISA_ALLOWANCE * 100) + '%' }"
+                      :title="`Other Cash ISAs: ${formatCurrency(otherCashISAUsed)}`"
+                    ></div>
+                    <!-- S&S ISA portion -->
+                    <div
+                      v-if="stocksISAUsed > 0"
+                      class="bg-purple-500 h-full"
+                      :style="{ width: (stocksISAUsed / ISA_ALLOWANCE * 100) + '%' }"
+                      :title="`Stocks ISAs: ${formatCurrency(stocksISAUsed)}`"
+                    ></div>
+                    <!-- This account's subscription -->
+                    <div
+                      v-if="thisAccountSubscription > 0"
+                      class="bg-green-500 h-full"
+                      :style="{ width: (thisAccountSubscription / ISA_ALLOWANCE * 100) + '%' }"
+                      :title="`This account: ${formatCurrency(thisAccountSubscription)}`"
+                    ></div>
+                    <!-- Planned contributions (lighter shade) -->
+                    <div
+                      v-if="plannedAnnualContribution > 0"
+                      class="bg-amber-400 h-full"
+                      :style="{ width: Math.min(plannedAnnualContribution / ISA_ALLOWANCE * 100, 100 - totalUsedPercent) + '%' }"
+                      :title="`Planned: ${formatCurrency(plannedAnnualContribution)}`"
+                    ></div>
+                  </div>
+                </div>
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                  <div class="flex items-center gap-1">
+                    <div class="w-2 h-2 rounded-full bg-blue-500"></div>
+                    <span class="text-gray-600">Other Cash ISAs: {{ formatCurrency(otherCashISAUsed) }}</span>
+                  </div>
+                  <div class="flex items-center gap-1">
+                    <div class="w-2 h-2 rounded-full bg-purple-500"></div>
+                    <span class="text-gray-600">Stocks ISAs: {{ formatCurrency(stocksISAUsed) }}</span>
+                  </div>
+                  <div class="flex items-center gap-1">
+                    <div class="w-2 h-2 rounded-full bg-green-500"></div>
+                    <span class="text-gray-600">This account: {{ formatCurrency(thisAccountSubscription) }}</span>
+                  </div>
+                  <div v-if="plannedAnnualContribution > 0" class="flex items-center gap-1">
+                    <div class="w-2 h-2 rounded-full bg-amber-400"></div>
+                    <span class="text-gray-600">Planned: {{ formatCurrency(plannedAnnualContribution) }}</span>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -395,9 +540,12 @@
 
 <script>
 import CountrySelector from '@/components/Shared/CountrySelector.vue';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'SaveAccountModal',
+
+  mixins: [currencyMixin],
 
   components: {
     CountrySelector,
@@ -417,6 +565,8 @@ export default {
   data() {
     return {
       submitting: false,
+      isaAllowanceError: null,
+      ISA_ALLOWANCE: 20000, // 2025/26 tax year
       formData: {
         institution: '',
         account_type: '',
@@ -432,6 +582,10 @@ export default {
         isa_type: '',
         isa_subscription_year: '2025/26',
         isa_subscription_amount: null,
+        regular_contribution_amount: null,
+        contribution_frequency: 'monthly',
+        planned_lump_sum_amount: null,
+        planned_lump_sum_date: null,
         ownership_type: 'individual',
         joint_owner_id: null,
         beneficiary_id: '',
@@ -500,6 +654,93 @@ export default {
     isOtherBeneficiary16Or17() {
       return this.otherBeneficiaryAge !== null && this.otherBeneficiaryAge >= 16 && this.otherBeneficiaryAge <= 17;
     },
+
+    // ISA Allowance Tracking computed properties
+    currentTaxYear() {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth();
+
+      // UK tax year runs April 6 to April 5
+      if (month < 3) { // Jan-March
+        return `${year - 1}/${year}`;
+      } else {
+        return `${year}/${year + 1}`;
+      }
+    },
+
+    // Get total Cash ISA usage from savings store
+    totalCashISAUsed() {
+      return this.$store.getters['savings/currentYearISASubscription'] || 0;
+    },
+
+    // Get S&S ISA usage from investment store
+    stocksISAUsed() {
+      return this.$store.getters['investment/investmentISASubscription'] || 0;
+    },
+
+    // Get other Cash ISA usage (excluding this account if editing)
+    otherCashISAUsed() {
+      if (!this.isEditing || !this.account) {
+        return this.totalCashISAUsed;
+      }
+      // Subtract this account's subscription from total
+      const thisAccountOriginal = parseFloat(this.account.isa_subscription_amount) || 0;
+      return Math.max(0, this.totalCashISAUsed - thisAccountOriginal);
+    },
+
+    // This account's subscription amount
+    thisAccountSubscription() {
+      return this.formData.isa_subscription_amount || 0;
+    },
+
+    // Calculate planned annual contribution (regular + lump sum)
+    plannedAnnualContribution() {
+      let annual = 0;
+      const amount = this.formData.regular_contribution_amount || 0;
+      const frequency = this.formData.contribution_frequency || 'monthly';
+
+      // Convert to annual based on frequency
+      if (frequency === 'monthly') {
+        annual = amount * 12;
+      } else if (frequency === 'quarterly') {
+        annual = amount * 4;
+      } else {
+        annual = amount; // annually
+      }
+
+      // Add planned lump sum
+      annual += this.formData.planned_lump_sum_amount || 0;
+
+      return annual;
+    },
+
+    // Total ISA usage across all ISAs
+    totalISAUsed() {
+      return this.otherCashISAUsed + this.stocksISAUsed + this.thisAccountSubscription;
+    },
+
+    // Total including planned contributions
+    totalWithPlanned() {
+      return this.totalISAUsed + this.plannedAnnualContribution;
+    },
+
+    // Remaining allowance after all usage
+    totalRemainingAllowance() {
+      return Math.max(0, this.ISA_ALLOWANCE - this.totalWithPlanned);
+    },
+
+    // Percentage used (capped at 100)
+    totalUsedPercent() {
+      return Math.min(100, (this.totalISAUsed / this.ISA_ALLOWANCE) * 100);
+    },
+
+    // Class for remaining allowance display
+    totalRemainingAllowanceClass() {
+      if (this.totalWithPlanned > this.ISA_ALLOWANCE) return 'text-red-600';
+      if (this.totalRemainingAllowance < 2000) return 'text-orange-600';
+      return 'text-green-600';
+    },
   },
 
   watch: {
@@ -562,6 +803,10 @@ export default {
         isa_type: this.account.isa_type || '',
         isa_subscription_year: this.account.isa_subscription_year || '2025/26',
         isa_subscription_amount: this.account.isa_subscription_amount ? parseFloat(this.account.isa_subscription_amount) : null,
+        regular_contribution_amount: this.account.regular_contribution_amount ? parseFloat(this.account.regular_contribution_amount) : null,
+        contribution_frequency: this.account.contribution_frequency || 'monthly',
+        planned_lump_sum_amount: this.account.planned_lump_sum_amount ? parseFloat(this.account.planned_lump_sum_amount) : null,
+        planned_lump_sum_date: this.formatDateForInput(this.account.planned_lump_sum_date),
         ownership_type: this.account.ownership_type || 'individual',
         joint_owner_id: this.account.joint_owner_id || null,
         beneficiary_id: this.account.beneficiary_id || '',
@@ -585,6 +830,17 @@ export default {
 
     async handleSubmit() {
       this.submitting = true;
+      this.isaAllowanceError = null;
+
+      // Validate ISA allowance for non-Junior ISAs
+      if ((this.formData.is_isa || this.isISAProductType) && !this.isJuniorISA) {
+        if (this.totalWithPlanned > this.ISA_ALLOWANCE) {
+          const excess = this.totalWithPlanned - this.ISA_ALLOWANCE;
+          this.isaAllowanceError = `Your planned ISA contributions would exceed the £20,000 allowance by ${this.formatCurrency(excess)}. Consider reducing your regular contributions or lump sum.`;
+          this.submitting = false;
+          return;
+        }
+      }
 
       try {
         const accountData = this.prepareAccountData();
@@ -597,6 +853,7 @@ export default {
     },
 
     prepareAccountData() {
+      const isISA = this.formData.is_isa || this.isISAProductType;
       const data = {
         institution: this.formData.institution,
         account_type: this.formData.account_type,
@@ -608,10 +865,15 @@ export default {
         maturity_date: this.formData.access_type === 'fixed' ? this.formData.maturity_date : null,
         is_emergency_fund: this.formData.is_emergency_fund,
         is_isa: this.formData.is_isa,
-        country: this.formData.is_isa ? 'United Kingdom' : this.formData.country,
-        isa_type: this.formData.is_isa ? this.formData.isa_type : null,
-        isa_subscription_year: this.formData.is_isa ? this.formData.isa_subscription_year : null,
-        isa_subscription_amount: this.formData.is_isa ? this.formData.isa_subscription_amount : null,
+        country: isISA ? 'United Kingdom' : this.formData.country,
+        isa_type: isISA ? this.formData.isa_type : null,
+        isa_subscription_year: isISA ? this.formData.isa_subscription_year : null,
+        isa_subscription_amount: isISA ? this.formData.isa_subscription_amount : null,
+        // Regular contribution and planned lump sum (for ISAs only, excluding Junior ISAs)
+        regular_contribution_amount: isISA && !this.isJuniorISA ? this.formData.regular_contribution_amount : null,
+        contribution_frequency: isISA && !this.isJuniorISA ? this.formData.contribution_frequency : null,
+        planned_lump_sum_amount: isISA && !this.isJuniorISA ? this.formData.planned_lump_sum_amount : null,
+        planned_lump_sum_date: isISA && !this.isJuniorISA ? this.formData.planned_lump_sum_date : null,
         ownership_type: this.formData.ownership_type,
         joint_owner_id: this.formData.ownership_type === 'joint' ? this.formData.joint_owner_id : null,
         // Junior ISA beneficiary fields
