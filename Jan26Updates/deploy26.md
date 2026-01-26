@@ -292,6 +292,44 @@ app/Services/GDPR/DataErasureService.php
 
 ---
 
+## Bug Fix: Preview Personas Redirect to Login Instead of Dashboard
+
+**Status:** FIXED ✓
+
+### Issue
+When selecting a preview persona from the landing page modal, users were redirected to the login page instead of the persona's dashboard.
+
+### Root Cause
+The session security update changed `authService.js` to use `sessionStorage` for auth tokens, but `preview.js` was missed and still used `localStorage`.
+
+When a persona was selected:
+1. Token was stored in `localStorage` (by preview.js)
+2. API requests looked for token in `sessionStorage` (via authService.js)
+3. Token not found → user appeared unauthenticated → redirect to login
+
+### Fix
+Updated `resources/js/store/modules/preview.js` to use `sessionStorage` instead of `localStorage` (4 locations):
+- Line 183: `sessionStorage.removeItem('auth_token')`
+- Line 194: `sessionStorage.setItem('auth_token', token)`
+- Line 235: `sessionStorage.setItem('auth_token', token)`
+- Line 279: `sessionStorage.removeItem('auth_token')`
+
+### Files Changed
+```
+resources/js/store/modules/preview.js
+```
+
+### Rebuild Required: YES
+This is a frontend-only fix. Upload the new `public/build/` directory.
+
+### Verification
+1. Go to landing page
+2. Click "Try Demo" or persona selector
+3. Select any persona (e.g., "Emily & James Carter")
+4. Should redirect to dashboard with persona data loaded
+
+---
+
 ## Bug Fix: Spouse Success Modal Not Appearing in User Profile
 
 **Status:** VERIFIED ✓
