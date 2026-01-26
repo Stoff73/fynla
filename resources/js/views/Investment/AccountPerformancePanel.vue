@@ -123,7 +123,7 @@
           <!-- Fees Summary Card -->
           <div
             class="insight-card cursor-pointer hover:shadow-md transition-shadow"
-            @click="goToFeesTab"
+            @click="handleFeesClick"
           >
             <h4 class="text-sm font-semibold text-gray-900 mb-3">Total Fees</h4>
 
@@ -312,7 +312,7 @@ export default {
     },
   },
 
-  emits: ['change-tab', 'add-holding'],
+  emits: ['change-tab', 'add-holding', 'edit-account'],
 
   data() {
     return {
@@ -697,6 +697,16 @@ export default {
 
     goToFeesTab() {
       this.$emit('change-tab', 'fees');
+    },
+
+    handleFeesClick() {
+      // If no fees entered, open edit form to add fees
+      // Otherwise, navigate to fees tab to view fee details
+      if (!this.hasHoldings && this.totalFeePercent === 0) {
+        this.$emit('edit-account');
+      } else {
+        this.goToFeesTab();
+      }
     },
 
     getTotalFeeClass() {

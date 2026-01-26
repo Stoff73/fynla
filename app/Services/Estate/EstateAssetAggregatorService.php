@@ -100,11 +100,13 @@ class EstateAssetAggregatorService
             ];
         });
 
-        // Business Interests - apply ownership percentage and BPR relief
-        $businessInterests = BusinessInterest::where('user_id', $user->id)->get();
+        // Business Interests - Single-record pattern with joint ownership support
+        $businessInterests = BusinessInterest::where('user_id', $user->id)
+            ->orWhere('joint_owner_id', $user->id)
+            ->get();
         $businessAssets = $businessInterests->map(function ($business) use ($user) {
-            $ownershipPercentage = $business->ownership_percentage ?? 100;
-            $userValue = $business->current_valuation * ($ownershipPercentage / 100);
+            // Use trait to calculate user's share based on ownership_percentage
+            $userValue = $this->calculateUserShare($business, $user->id);
 
             // Business Property Relief (BPR): 100% relief for qualifying trading businesses
             // Requires: bpr_eligible flag AND trading status AND 2+ years ownership
@@ -127,19 +129,21 @@ class EstateAssetAggregatorService
                 'current_value' => $userValue,
                 'full_value' => (float) $business->current_valuation,
                 'ownership_type' => $business->ownership_type ?? 'individual',
-                'ownership_percentage' => $ownershipPercentage,
-                'is_primary_owner' => true,
+                'ownership_percentage' => $business->ownership_percentage ?? 100,
+                'is_primary_owner' => $this->isPrimaryOwner($business, $user->id),
                 'is_iht_exempt' => $ihtExempt, // BPR at 100% for qualifying trading businesses
                 'bpr_eligible' => $business->bpr_eligible ?? false,
                 'trading_status' => $business->trading_status,
             ];
         });
 
-        // Chattels (personal property)
-        $chattels = Chattel::where('user_id', $user->id)->get();
+        // Chattels (personal property) - Single-record pattern with joint ownership support
+        $chattels = Chattel::where('user_id', $user->id)
+            ->orWhere('joint_owner_id', $user->id)
+            ->get();
         $chattelAssets = $chattels->map(function ($chattel) use ($user) {
-            $ownershipPercentage = $chattel->ownership_percentage ?? 100;
-            $userValue = $chattel->current_value * ($ownershipPercentage / 100);
+            // Use trait to calculate user's share based on ownership_percentage
+            $userValue = $this->calculateUserShare($chattel, $user->id);
 
             return (object) [
                 'user_id' => $user->id,
@@ -147,9 +151,9 @@ class EstateAssetAggregatorService
                 'asset_name' => $chattel->name,
                 'current_value' => $userValue,
                 'full_value' => (float) $chattel->current_value,
-                'ownership_type' => 'individual',
-                'ownership_percentage' => $ownershipPercentage,
-                'is_primary_owner' => true,
+                'ownership_type' => $chattel->ownership_type ?? 'individual',
+                'ownership_percentage' => $chattel->ownership_percentage ?? 100,
+                'is_primary_owner' => $this->isPrimaryOwner($chattel, $user->id),
                 'is_iht_exempt' => false,
             ];
         });

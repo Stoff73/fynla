@@ -306,14 +306,10 @@ class FeeAnalyzer
     {
         $holdings = $account->holdings;
 
-        if ($holdings->isEmpty()) {
-            return [
-                'success' => false,
-                'message' => 'No holdings in account',
-            ];
-        }
-
-        $accountValue = $holdings->sum('current_value');
+        // Use holdings value if available, otherwise use account's current_value
+        $accountValue = $holdings->isNotEmpty()
+            ? $holdings->sum('current_value')
+            : (float) ($account->current_value ?? 0);
 
         if ($accountValue == 0) {
             return [
@@ -322,17 +318,34 @@ class FeeAnalyzer
             ];
         }
 
-        // Calculate platform fee
-        $platformFee = $this->calculatePlatformFee($accountValue, $account->platform_name ?? 'Unknown');
+        // Calculate platform fee from user-entered values (same logic as calculateTotalFees)
+        if ($account->platform_fee_type === 'fixed') {
+            $amount = (float) ($account->platform_fee_amount ?? 0);
+            $frequency = $account->platform_fee_frequency ?? 'annually';
+            if ($frequency === 'monthly') {
+                $platformFee = $amount * 12;
+            } elseif ($frequency === 'quarterly') {
+                $platformFee = $amount * 4;
+            } else {
+                $platformFee = $amount;
+            }
+        } else {
+            // Percentage-based platform fee
+            $platformFee = $accountValue * (($account->platform_fee_percent ?? 0) / 100);
+        }
 
-        // Calculate weighted average OCF
-        $weightedOCF = $this->calculateWeightedOCF($holdings, $accountValue);
+        // Calculate weighted average OCF (will be 0 if no holdings)
+        $weightedOCF = $holdings->isNotEmpty()
+            ? $this->calculateWeightedOCF($holdings, $accountValue)
+            : 0;
 
-        // Calculate transaction costs (estimated)
-        $transactionCosts = $this->estimateTransactionCosts($accountValue, $account->turnover_rate ?? 0.10);
+        // Calculate transaction costs (estimated) - only if holdings exist
+        $transactionCosts = $holdings->isNotEmpty()
+            ? $this->estimateTransactionCosts($accountValue, $account->turnover_rate ?? 0.10)
+            : 0;
 
         // Advisory fees (if applicable)
-        $advisoryFee = $account->advisory_fee ?? 0;
+        $advisoryFee = (float) ($account->advisor_fee_percent ?? 0) * $accountValue / 100;
 
         // Total annual fees
         $totalAnnualFees = $platformFee + ($weightedOCF * $accountValue) + $transactionCosts + $advisoryFee;

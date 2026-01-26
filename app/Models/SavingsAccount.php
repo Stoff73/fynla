@@ -32,6 +32,11 @@ class SavingsAccount extends Model
         'isa_type',
         'isa_subscription_year',
         'isa_subscription_amount',
+        // ISA regular contribution fields
+        'regular_contribution_amount',
+        'contribution_frequency',
+        'planned_lump_sum_amount',
+        'planned_lump_sum_date',
         // Ownership fields
         'ownership_type',
         'ownership_percentage',
@@ -51,6 +56,9 @@ class SavingsAccount extends Model
         'is_emergency_fund' => 'boolean',
         'is_isa' => 'boolean',
         'isa_subscription_amount' => 'decimal:2',
+        'regular_contribution_amount' => 'decimal:2',
+        'planned_lump_sum_amount' => 'decimal:2',
+        'planned_lump_sum_date' => 'date',
         'beneficiary_dob' => 'date',
     ];
 

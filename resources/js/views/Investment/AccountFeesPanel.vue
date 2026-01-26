@@ -1,56 +1,5 @@
 <template>
   <div class="account-fees-panel">
-    <!-- Fee Summary Cards -->
-    <div class="fee-summary">
-      <div class="summary-card">
-        <div class="card-icon bg-amber-100">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="icon text-amber-600">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />
-          </svg>
-        </div>
-        <div class="card-content">
-          <span class="card-label">Platform Fee</span>
-          <span class="card-value">{{ platformFeeDisplay }}</span>
-        </div>
-      </div>
-
-      <div class="summary-card">
-        <div class="card-icon bg-blue-100">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="icon text-blue-600">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5" />
-          </svg>
-        </div>
-        <div class="card-content">
-          <span class="card-label">Average Fund Fee (OCF)</span>
-          <span class="card-value">{{ formatPercentage(weightedAverageOCF) }}</span>
-        </div>
-      </div>
-
-      <div class="summary-card">
-        <div class="card-icon bg-purple-100">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="icon text-purple-600">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-          </svg>
-        </div>
-        <div class="card-content">
-          <span class="card-label">Advisor Fee</span>
-          <span class="card-value">{{ formatPercentage(advisorFeePercent) }}</span>
-        </div>
-      </div>
-
-      <div class="summary-card highlight">
-        <div class="card-icon bg-red-100">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="icon text-red-600">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        </div>
-        <div class="card-content">
-          <span class="card-label">Total Annual Cost</span>
-          <span class="card-value text-red-600">{{ formatPercentage(totalFeePercentage) }}</span>
-        </div>
-      </div>
-    </div>
-
     <!-- Annual Cost Breakdown -->
     <div class="cost-section">
       <h4 class="section-title">Annual Cost Breakdown</h4>
@@ -307,62 +256,6 @@ export default {
 <style scoped>
 .account-fees-panel {
   min-height: 400px;
-}
-
-.fee-summary {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 16px;
-  margin-bottom: 24px;
-}
-
-.summary-card {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 16px;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-}
-
-.summary-card.highlight {
-  border-color: #fecaca;
-  background: #fef2f2;
-}
-
-.card-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
-  flex-shrink: 0;
-}
-
-.icon {
-  width: 22px;
-  height: 22px;
-}
-
-.card-content {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.card-label {
-  font-size: 11px;
-  color: #6b7280;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.card-value {
-  font-size: 20px;
-  font-weight: 700;
-  color: #111827;
 }
 
 .section-title {

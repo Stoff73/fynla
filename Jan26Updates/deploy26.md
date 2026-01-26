@@ -808,11 +808,686 @@ php artisan config:clear
 
 ---
 
+## UI Fix: IHT Calculator - Spell Out Acronyms & Standardize Font Sizes
+
+**Branch:** ihtBugs
+
+**Status:** DEPLOYED ✓
+
+### Issue
+
+1. IHT calculator used acronyms (NRB, RNRB) that users may not understand
+2. Asset/liability category labels used inconsistent font sizes (text-xs vs text-sm)
+
+### Changes Made
+
+**1. Acronyms spelled out:**
+- `NRB` → "Tax-Free Allowance"
+- `RNRB` → "Home Allowance"
+- `Nil Rate Band (NRB)` → "Tax-Free Allowance"
+- `Residence Nil Rate Band (RNRB)` → "Home Allowance"
+
+**2. Font sizes standardized:**
+- Allowance labels: Added `font-semibold text-gray-700` to match Total Liabilities/Taxable Estate styling
+- Asset category labels (Property, Investment, Cash/Savings, Business, Personal Valuables): `text-xs` → `text-sm`
+- Liability category labels (Mortgages, Other Liabilities, liability types): `text-xs` → `text-sm`
+
+### Files Changed
+
+```
+resources/js/components/Estate/IHTPlanning.vue
+```
+
+### Rebuild Required: YES
+
+Frontend Vue file changed. Run build script before uploading.
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+### Upload Checklist
+
+1. Run build script
+2. Upload `public/build/` directory
+
+---
+
+## Bug Fix: Property Form Not Scrolling to Top on Section Change
+
+**Branch:** ihtBugs
+
+**Status:** DEPLOYED ✓
+
+### Issue
+
+During onboarding, when adding a property and moving to the next section of the form, the form did not scroll to the top. Users had to manually scroll up to see the beginning of each new section.
+
+### Fix
+
+Added a `scrollToTop()` method that scrolls the form content container to the top when navigating between steps:
+
+```javascript
+scrollToTop() {
+  this.$nextTick(() => {
+    if (this.$refs.formContent) {
+      this.$refs.formContent.scrollTop = 0;
+    }
+  });
+},
+```
+
+Called in `nextStep()`, `previousStep()`, and `goToStep()` methods.
+
+### Files Changed
+
+```
+resources/js/components/NetWorth/Property/PropertyForm.vue
+```
+
+### Rebuild Required: YES
+
+Frontend Vue file changed. Run build script before uploading.
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+### Verification
+
+1. Navigate to Onboarding or Net Worth → Properties
+2. Click "Add Property"
+3. Fill in Step 1 and click "Next"
+4. Form should scroll to show the top of Step 2
+5. Repeat for all steps, including clicking "Previous" and clicking step numbers directly
+
+---
+
+## Bug Fix: IHT Calculator Missing Joint Chattels and Business Interests
+
+**Branch:** ihtBugs
+
+**Status:** DEPLOYED ✓
+
+### Issue
+
+When a spouse creates joint chattels or business interests, they were not appearing in the other spouse's IHT Calculator. The joint assets were visible in Wealth Summary but missing from estate planning calculations.
+
+### Root Cause
+
+`EstateAssetAggregatorService.gatherUserAssets()` was only querying assets where `user_id` matched, missing assets where the user is the `joint_owner_id`:
+
+```php
+// Before (broken):
+$chattels = Chattel::where('user_id', $user->id)->get();
+$businessInterests = BusinessInterest::where('user_id', $user->id)->get();
+```
+
+Additionally, the share calculation was incorrect for joint owners - it used `ownership_percentage` directly instead of `(100 - ownership_percentage)` for the joint owner's share.
+
+### Fix
+
+Added `orWhere('joint_owner_id', $user->id)` to queries and switched to using the `CalculatesOwnershipShare` trait for correct share calculation:
+
+```php
+// After (fixed):
+$chattels = Chattel::where('user_id', $user->id)
+    ->orWhere('joint_owner_id', $user->id)
+    ->get();
+
+$chattelAssets = $chattels->map(function ($chattel) use ($user) {
+    $userValue = $this->calculateUserShare($chattel, $user->id);  // Trait handles joint owner
+    // ...
+});
+```
+
+### Files Changed
+
+```
+app/Services/Estate/EstateAssetAggregatorService.php
+```
+
+### Rebuild Required: NO
+
+Backend PHP file only. No frontend rebuild needed.
+
+### Upload Checklist
+
+1. Upload `app/Services/Estate/EstateAssetAggregatorService.php`
+2. Clear cache: `php artisan cache:clear`
+
+### Verification
+
+1. Log in as spouse who did NOT create the joint chattel
+2. Navigate to Estate Planning → IHT Calculator
+3. Joint chattels should appear in the asset breakdown
+4. User's share should be correctly calculated (e.g., 50% of full value for 50/50 split)
+
+---
+
+## Bug Fix: Will Card Navigation to Blank Page
+
+**Branch:** ihtBugs
+
+**Status:** DEPLOYED ✓
+
+### Issue
+
+In the Estate Planning module, clicking the Will card in the IHT Mitigation Strategies section navigated to a blank page instead of going to Valuable Info → Wills tab.
+
+### Root Cause
+
+The `navigateToWillTab()` method in `IHTPlanning.vue` emitted a `switch-tab` event with value `'will'` to the parent `EstateDashboard.vue`. However, EstateDashboard only has tabs for: `iht`, `gifting`, `life-policy`, `trusts` — there is no `'will'` tab component.
+
+When the tab value was set to `'will'`, no component rendered because there was no matching `v-if` condition, resulting in a blank page.
+
+The Will tab actually exists in `ValuableInfo.vue` (a separate route), not in EstateDashboard.
+
+### Fix
+
+Changed `navigateToWillTab()` from emitting a tab switch event to performing a direct router navigation:
+
+```javascript
+// Before (broken):
+navigateToWillTab() {
+  this.$emit('switch-tab', 'will');
+},
+
+// After (fixed):
+navigateToWillTab() {
+  this.$router.push({ path: '/valuable-info', query: { section: 'will' } });
+},
+```
+
+### Files Changed
+
+```
+resources/js/components/Estate/IHTPlanning.vue
+```
+
+### Rebuild Required: YES
+
+Frontend Vue file changed. Run build script before uploading.
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+### Upload Checklist
+
+1. Run build script
+2. Upload `public/build/` directory
+
+### Verification
+
+1. Navigate to Estate Planning → IHT Calculator
+2. Scroll to Mitigation Strategies section
+3. Click on the Will card
+4. Should navigate to Valuable Info page with Wills tab active
+
+---
+
+## Feature: ISA Subscription Enhancement - Regular Contributions & Lump Sums
+
+**Branch:** ihtBugs
+
+**Status:** DEPLOYED ✓
+
+### Overview
+
+Enhanced ISA account forms (both Cash ISA and Stocks & Shares ISA) to include regular contributions and planned lump sums inside the ISA subscription box. Added validation to ensure planned contributions don't exceed the shared £20,000 ISA allowance.
+
+### Changes Made
+
+**1. Stocks & Shares ISA (AccountForm.vue):**
+- Moved Regular Contributions section INSIDE the blue ISA subscription box (only shown for ISA accounts)
+- Added planned lump sum fields to the ISA box
+- Added ISA allowance progress bar showing breakdown by:
+  - Cash ISA usage (blue)
+  - Other S&S ISAs (purple)
+  - This account (green)
+  - Planned contributions (amber)
+- Added validation that prevents saving if total planned contributions exceed £20,000 allowance
+- Shows remaining allowance with color-coded warnings (green → orange → red)
+
+**2. Cash ISA (SaveAccountModal.vue):**
+- Added Regular Contribution Amount field with frequency selector (monthly/quarterly/annually)
+- Added Planned Lump Sum field with date picker
+- Added ISA allowance progress bar (same breakdown as S&S ISA)
+- Added validation to prevent exceeding allowance
+- Styled ISA section with blue background and border (matching S&S ISA style)
+- Fields hidden for Junior ISAs (they have separate £9,000 allowance)
+
+**3. Backend (SavingsAccount model + migration):**
+- Added new fields to SavingsAccount model: `regular_contribution_amount`, `contribution_frequency`, `planned_lump_sum_amount`, `planned_lump_sum_date`
+- Created migration to add columns to `savings_accounts` table
+
+### Allowance Tracking Logic
+
+Both forms now correctly track the shared ISA allowance:
+- Gets Cash ISA usage from `savings/currentYearISASubscription` store getter
+- Gets S&S ISA usage from `investment/investmentISASubscription` store getter
+- When editing an account, excludes that account's original subscription from the "other" totals
+- Calculates planned annual contribution: `(regular_amount × frequency_multiplier) + lump_sum`
+- Shows warning if `total_used + planned > £20,000`
+
+### Files Changed
+
+**Frontend (Rebuild Required):**
+```
+resources/js/components/Investment/AccountForm.vue
+resources/js/components/Savings/SaveAccountModal.vue
+```
+
+**Backend:**
+```
+app/Models/SavingsAccount.php
+database/migrations/2026_01_26_000001_add_contribution_fields_to_savings_accounts.php
+```
+
+### Rebuild Required: YES
+
+Frontend Vue files changed. Run build script before uploading.
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+### Upload Checklist
+
+1. Run build script
+2. Upload `public/build/` directory
+3. Upload backend files:
+   ```
+   app/Models/SavingsAccount.php
+   database/migrations/2026_01_26_000001_add_contribution_fields_to_savings_accounts.php
+   ```
+4. Run migration and clear cache:
+   ```bash
+   ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
+   cd ~/www/fynla.org/public_html
+   php artisan migrate --force
+   php artisan cache:clear
+   ```
+
+### Verification
+
+**Cash ISA Form:**
+1. Navigate to Net Worth → Cash tab
+2. Click "Add Account"
+3. Select "Cash ISA" as product type
+4. ISA section should show:
+   - ISA Subscription header with info text
+   - Already Subscribed This Tax Year field
+   - Regular Contribution Amount with frequency dropdown
+   - Planned Lump Sum with date picker
+   - ISA Allowance Usage bar with breakdown
+5. Enter values that exceed £20,000 → should show warning and prevent save
+
+**Stocks & Shares ISA Form:**
+1. Navigate to Net Worth → Investments tab
+2. Click "Add Account"
+3. Select "ISA (Stocks & Shares)" as account type
+4. Regular Contributions and Planned Lump Sum should appear INSIDE the blue ISA box
+5. Allowance bar should show combined Cash ISA + S&S ISA usage
+6. Test exceeding allowance → should show warning
+
+---
+
+## Bug Fix: Fee Recommendations Not Triggering Without Holdings
+
+**Branch:** ihtBugs
+
+**Status:** DEPLOYED ✓
+
+### Issue
+
+When a user entered a high platform fee (e.g., 1.25%) on an investment account without any holdings, the "high fee" strategy recommendation did not appear.
+
+### Root Cause
+
+Two issues in `FeeAnalyzer.php`:
+1. `analyzeAccountFees()` returned `success: false` immediately when no holdings existed, preventing fee analysis entirely
+2. The method used `calculatePlatformFee()` which looked up fees by provider name from a hardcoded list, ignoring the user's entered `platform_fee_percent`
+
+### Fix
+
+Updated `app/Services/Investment/FeeAnalyzer.php`:
+1. Use account's `current_value` when no holdings exist (instead of returning early)
+2. Use the user-entered `platform_fee_percent` or `platform_fee_amount/frequency` instead of provider lookup
+3. Set OCF and transaction costs to 0 when no holdings exist
+
+### Files Changed
+
+**Backend:**
+```
+app/Services/Investment/FeeAnalyzer.php
+```
+
+**Frontend:**
+```
+resources/js/components/Investment/AccountStrategyCard.vue
+```
+
+### Rebuild Required: YES
+
+Frontend Vue file changed. Run build script before uploading.
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+### Upload Checklist
+
+1. Run build script
+2. Upload `public/build/` directory
+3. Upload `app/Services/Investment/FeeAnalyzer.php`
+4. Clear cache: `php artisan cache:clear`
+
+### Verification
+
+1. Create an investment account with a current value (e.g., £10,000)
+2. Enter a platform fee of 1.25% (no holdings needed)
+3. **Portfolio level:** Navigate to Investments tab - should see "Portfolio Fees Above Average" in Strategy card
+4. **Account level:** Click into the account details - the Strategies section should show "Review Account Fees"
+
+---
+
+## Bug Fix: "Add Fees" Link Goes to Wrong Page
+
+**Branch:** ihtBugs
+
+**Status:** DEPLOYED ✓
+
+### Issue
+
+In the Investment account details view (Performance tab), when there are no fees entered, clicking the "Add Fees" link navigated to the Fees detail panel instead of opening the Edit form where users can actually enter fees.
+
+### Root Cause
+
+The Fees Summary Card always called `goToFeesTab()` on click, which navigated to the AccountFeesPanel (a read-only display of fee calculations). But when no fees exist, users need to open the account edit form to enter platform fees, advisor fees, etc.
+
+### Fix
+
+Updated `AccountPerformancePanel.vue`:
+1. Added new emit: `'edit-account'`
+2. Changed click handler from `goToFeesTab` to new `handleFeesClick` method
+3. `handleFeesClick` checks if no fees exist (`!hasHoldings && totalFeePercent === 0`):
+   - If no fees: emits `'edit-account'` to open edit form
+   - If has fees: navigates to fees tab as before
+
+Updated `InvestmentDetailInline.vue`:
+1. Added `@edit-account="showEditModal = true"` to AccountPerformancePanel usage
+
+### Files Changed
+
+**Frontend (Rebuild Required):**
+```
+resources/js/views/Investment/AccountPerformancePanel.vue
+resources/js/components/NetWorth/InvestmentDetailInline.vue
+```
+
+### Rebuild Required: YES
+
+Frontend Vue files changed. Run build script before uploading.
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+### Upload Checklist
+
+1. Run build script
+2. Upload `public/build/` directory
+
+### Verification
+
+1. Navigate to Net Worth → Investments tab
+2. Click on an account that has NO fees entered
+3. In the Performance tab, look for "Total Fees" card showing "Add Fees" link
+4. Click "Add Fees"
+5. Should open the Edit Account form (NOT navigate to the Fees tab)
+6. Enter platform fee and save
+7. Click on Total Fees card again → should now navigate to Fees tab (showing fee details)
+
+---
+
+## UI Enhancement: Contextual Back Button in Account Detail View
+
+**Branch:** ihtBugs
+
+**Status:** DEPLOYED ✓
+
+### Description
+
+When viewing sub-tabs (fees, holdings, diversification, etc.) within an investment account detail view, the back button now shows contextual text and provides step-by-step navigation.
+
+### Behaviour
+
+| Current Tab | Back Button Text | Action |
+|-------------|------------------|--------|
+| Performance (default) | "Back to Investments" | Returns to investments list |
+| Fees, Holdings, etc. | "Back to {account provider}" | Returns to performance tab |
+
+### Files Changed
+
+**Frontend:**
+```
+resources/js/components/NetWorth/InvestmentDetailInline.vue
+```
+
+### Rebuild Required: YES
+
+Frontend Vue file changed. Run build script before uploading.
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+### Verification
+
+1. Navigate to Net Worth → Investments
+2. Click on an account (lands on Performance tab) - back button shows "Back to Investments"
+3. Click on Fees tab - back button now shows "Back to {provider name}"
+4. Click back button → returns to Performance tab
+5. Click back button again → returns to Investments list
+
+---
+
 ### Deferred Tasks
 
 | Task | Reason |
 |------|--------|
 | Unit tests for financial calculations | Requires 8+ hour dedicated testing sprint |
 | Vue prop type validation | Long-term incremental improvement |
+
+---
+
+## UI Enhancement: Fee Metrics in Header Card
+
+**Branch:** ihtBugs
+
+**Status:** DEPLOYED ✓
+
+### Description
+
+When viewing the fees tab in the investment account detail view, the key metrics section in the header now displays fee-related information instead of the standard metrics.
+
+### Behaviour
+
+| Tab | Header Metrics Shown |
+|-----|---------------------|
+| Performance, Holdings, etc. | Current Value, Annualised Return, Monthly Contribution, ISA Allowance/Holdings |
+| Fees | Platform Fee, Average Fund Fee (OCF), Advisor Fee, Total Annual Cost |
+
+### Changes
+
+1. Added conditional rendering in `InvestmentDetailInline.vue` based on `activeTab`
+2. Added computed properties: `platformFeeDisplay`, `weightedAverageOCF`, `advisorFeePercent`, `totalAnnualFeeCost`
+3. Removed duplicate fee summary cards from `AccountFeesPanel.vue` (now shown in header)
+
+### Files Changed
+
+**Frontend:**
+```
+resources/js/components/NetWorth/InvestmentDetailInline.vue
+resources/js/views/Investment/AccountFeesPanel.vue
+```
+
+### Rebuild Required: YES
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+### Verification
+
+1. Navigate to Net Worth → Investments → click on an account
+2. On Performance tab: header shows Current Value, Annualised Return, etc.
+3. Click on Fees tab: header now shows Platform Fee, Average Fund Fee, Advisor Fee, Total Annual Cost
+4. Fee summary cards no longer duplicated at top of fees panel
+
+---
+
+## Bug Fix: Add Holdings Not Saving
+
+**Branch:** ihtBugs
+
+**Status:** DEPLOYED ✓
+
+### Issue
+
+When adding a holding from the account detail view, the modal would close but the holding was never saved. No error was shown.
+
+### Root Cause
+
+The `handleHoldingSave()` method in `InvestmentDetailInline.vue` was not actually calling the API to save the holding. The `HoldingForm` component emits `'save'` with the holding data, but the handler:
+1. Did not receive the holding data parameter
+2. Did not call `createHolding` or `updateHolding` Vuex actions
+3. Just closed the modal and refreshed (getting the same unchanged data)
+
+### Fix
+
+1. Added `createHolding` and `updateHolding` to mapActions
+2. Updated `handleHoldingSave(holdingData)` to:
+   - Accept the holding data parameter
+   - Call `createHolding` for new holdings or `updateHolding` for existing
+   - Only close modal on success
+
+### Files Changed
+
+**Frontend:**
+```
+resources/js/components/NetWorth/InvestmentDetailInline.vue
+```
+
+### Rebuild Required: YES
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+### Verification
+
+1. Navigate to Net Worth → Investments → click on an account
+2. Click "Add Holdings" link
+3. Fill in the holding form and save
+4. Holding should now appear in the holdings list
+
+---
+
+## UI Improvement: Info Guide Pension Descriptions
+
+**Branch:** ihtBugs
+
+**Status:** READY FOR DEPLOYMENT
+
+### Description
+
+Updated the "What powers this view" info guide panel in the Retirement and Net Worth modules to better explain the difference between money purchase (DC) and final salary (DB) pensions.
+
+### Changes
+
+**Retirement module:**
+- DC pensions: Now labelled "Your money purchase pensions" with description explaining these are workplace pensions, SIPPs, and personal pensions with a pot value
+- DB pensions: Now labelled "Any final salary or career average pensions" with "Add these if you have..." phrasing to indicate they're optional
+
+**Net Worth module:**
+- DC pensions: Now labelled "Your money purchase pensions" with consistent description
+
+### Files Changed
+
+**Backend:**
+```
+app/Services/UserProfile/ModuleDataRequirementsService.php
+```
+
+### Rebuild Required: NO
+
+Backend PHP file only.
+
+### Upload Checklist
+
+1. Upload `app/Services/UserProfile/ModuleDataRequirementsService.php`
+2. Clear cache:
+   ```bash
+   ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
+   cd ~/www/fynla.org/public_html
+   php artisan cache:clear
+   ```
+
+### Verification
+
+1. Navigate to the Retirement module
+2. Click the info guide button (?)
+3. DC pensions should show "Your money purchase pensions"
+4. DB pensions should show "Any final salary or career average pensions" with "Add these if you have..." description
+
+---
+
+## Bug Fix: Protection Module "Add Dependants" Message After Adding Spouse
+
+**Branch:** ihtBugs
+
+**Status:** READY FOR DEPLOYMENT
+
+### Issue
+
+Married users who had linked their spouse still saw a message asking them to "Add dependants (spouse or children)" in the Protection module's profile completeness alert.
+
+### Root Cause
+
+The `hasDependants()` check only counted a spouse if they were marked as `is_dependent = true`. Working spouses aren't marked as financial dependants, so the check failed.
+
+### Fix
+
+Changed the logic to count a linked spouse as sufficient for protection planning - they're someone to protect even if they earn their own income.
+
+### Files Changed
+
+**Backend:**
+```
+app/Services/UserProfile/ProfileCompletenessChecker.php
+```
+
+### Rebuild Required: NO
+
+Backend PHP file only.
+
+### Upload Checklist
+
+1. Upload `app/Services/UserProfile/ProfileCompletenessChecker.php`
+2. Clear cache:
+   ```bash
+   ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
+   cd ~/www/fynla.org/public_html
+   php artisan cache:clear
+   ```
+
+### Verification
+
+1. Log in as a married user with a linked spouse (no children)
+2. Navigate to Protection module
+3. Should NOT see "Add dependants" in the profile completeness alert
 
 ---

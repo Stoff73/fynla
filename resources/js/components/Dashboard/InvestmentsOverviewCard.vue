@@ -31,27 +31,18 @@
         <div
           v-for="account in accountsList"
           :key="account.id"
-          class="flex justify-between items-start"
+          class="flex justify-between items-center"
         >
-          <div>
-            <span class="text-sm font-medium text-gray-900">{{ account.name }}</span>
+          <div class="flex items-center gap-2">
+            <span class="text-sm font-medium text-gray-900">{{ account.displayName }}</span>
             <span
-              class="ml-2 text-xs px-1.5 py-0.5 rounded border"
-              :class="getAccountTypeBadgeClass(account.account_type)"
+              v-if="account.isJoint"
+              class="text-xs text-amber-600 font-medium"
             >
-              {{ formatAccountType(account.account_type) }}
+              (Joint)
             </span>
           </div>
-          <div class="text-right">
-            <div class="text-sm font-semibold text-gray-900">{{ formatCurrency(account.current_value) }}</div>
-            <div
-              v-if="account.annualised_return !== null && account.annualised_return !== undefined"
-              class="text-xs"
-              :class="account.annualised_return >= 0 ? 'text-green-600' : 'text-red-600'"
-            >
-              {{ account.annualised_return >= 0 ? '+' : '' }}{{ account.annualised_return.toFixed(2) }}%
-            </div>
-          </div>
+          <div class="text-sm font-semibold text-gray-900">{{ formatCurrency(account.current_value) }}</div>
         </div>
       </div>
     </div>
@@ -145,32 +136,29 @@ export default {
       return weightedReturn / totalValue;
     },
 
-    // List of accounts with their annualised returns
+    // List of accounts with provider/type and joint status
     accountsList() {
       if (!this.accounts || this.accounts.length === 0) return [];
 
       return this.accounts.map(account => {
         const currentValue = parseFloat(account.current_value || 0);
-        const annualisedReturn = account.annualised_return;
 
-        // Build display name: prefer provider + account_type, fallback to account_name
-        let displayName = 'Unnamed Account';
-        if (account.provider && account.account_type) {
-          displayName = `${account.provider} - ${account.account_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}`;
-        } else if (account.provider) {
-          displayName = account.provider;
-        } else if (account.account_name) {
-          displayName = account.account_name;
-        } else if (account.name) {
-          displayName = account.name;
+        // Display name: provider if available, otherwise formatted account type
+        let displayName = account.provider;
+        if (!displayName) {
+          displayName = this.formatAccountType(account.account_type);
         }
+
+        // Check if joint ownership
+        const isJoint = account.ownership_type === 'joint' ||
+                        account.ownership_type === 'tenants_in_common' ||
+                        !!account.joint_owner_id;
 
         return {
           id: account.id,
-          name: displayName,
-          account_type: account.account_type,
+          displayName: displayName,
           current_value: currentValue,
-          annualised_return: annualisedReturn,
+          isJoint: isJoint,
         };
       });
     },
@@ -224,20 +212,6 @@ export default {
 
     navigateToCash() {
       this.$router.push('/net-worth/cash');
-    },
-
-    getAccountTypeBadgeClass(accountType) {
-      const type = (accountType || '').toLowerCase();
-      if (type.includes('isa') || type === 'stocks_and_shares_isa') {
-        return 'bg-white text-blue-700 border-blue-500';
-      }
-      if (type === 'sipp' || type.includes('pension')) {
-        return 'bg-white text-purple-700 border-purple-500';
-      }
-      if (type === 'gia' || type === 'general_investment_account' || type === 'trading') {
-        return 'bg-white text-gray-700 border-gray-400';
-      }
-      return 'bg-white text-gray-700 border-gray-400';
     },
 
     formatAccountType(accountType) {
