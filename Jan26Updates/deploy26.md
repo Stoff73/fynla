@@ -458,6 +458,8 @@ resources/js/views/Version.vue
 
 ## Bug Fix: Balance Sheet Joint Chattels Not Splitting Correctly
 
+**Deployed:** 26 January 2026
+
 **Status:** COMPLETED ✓
 
 ### Issue
@@ -513,6 +515,8 @@ app/Services/UserProfile/PersonalAccountsService.php
 
 ## Bug Fix: Balance Sheet Joint Business Interests Not Splitting Correctly
 
+**Deployed:** 26 January 2026
+
 **Status:** COMPLETED ✓
 
 ### Issue
@@ -544,6 +548,8 @@ app/Traits/CalculatesOwnershipShare.php
 ---
 
 ## Bug Fix: Wealth Summary Joint Chattels/Business Not Splitting Correctly
+
+**Deployed:** 26 January 2026
 
 **Status:** COMPLETED ✓
 
@@ -580,6 +586,8 @@ app/Services/NetWorth/NetWorthService.php
 ---
 
 ## Summary: All PHP Files for Joint Ownership Fixes
+
+**Deployed:** 26 January 2026
 
 **IMPORTANT:** Upload ALL these files for joint chattels and business interests to work correctly:
 
