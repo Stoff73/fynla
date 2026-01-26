@@ -1,11 +1,11 @@
 <template>
   <div class="investment-detail-inline w-full max-w-full overflow-hidden">
-    <!-- Back Button -->
-    <button @click="$emit('back')" class="back-button mb-4">
+    <!-- Back Button - contextual based on current tab -->
+    <button @click="handleBackClick" class="back-button mb-4">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
         <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
       </svg>
-      Back to Investments
+      {{ backButtonText }}
     </button>
 
     <!-- Loading State -->
@@ -248,6 +248,16 @@ export default {
       ];
     },
 
+    // Back button text - contextual based on current tab
+    backButtonText() {
+      // If on a sub-tab (not performance), show "Back to {account}"
+      if (this.activeTab !== 'performance') {
+        return `Back to ${this.account.provider || this.account.account_name || 'Account'}`;
+      }
+      // On performance tab, show "Back to Investments"
+      return 'Back to Investments';
+    },
+
     userShareValue() {
       // For joint accounts, calculate the user's share
       if (this.account.ownership_type === 'joint') {
@@ -400,6 +410,16 @@ export default {
 
   methods: {
     ...mapActions('investment', ['updateAccount', 'deleteAccount', 'fetchInvestmentData']),
+
+    handleBackClick() {
+      // If on a sub-tab, go back to performance tab
+      if (this.activeTab !== 'performance') {
+        this.activeTab = 'performance';
+      } else {
+        // On performance tab, go back to investments list
+        this.$emit('back');
+      }
+    },
 
     formatReturnPercent(value) {
       if (value === null || value === undefined) return 'N/A';
