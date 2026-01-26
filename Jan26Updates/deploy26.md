@@ -455,3 +455,58 @@ resources/js/views/Version.vue
 4. Any jewellery items should display "Jewellery" badge
 
 ---
+
+## Bug Fix: Balance Sheet Joint Chattels Not Splitting Correctly
+
+**Status:** COMPLETED ✓
+
+### Issue
+1. Joint chattels showed full value under user's account instead of splitting by ownership_percentage
+2. Balance sheet displayed chattel description instead of name in the Assets column
+
+### Root Cause
+The `PersonalAccountsService.php` had two problems:
+1. Only queried `user_id` for chattels (not `joint_owner_id` like other assets)
+2. Used `$chattel->description` instead of `$chattel->name` for the line item
+3. Used raw `current_value` instead of `calculateUserShare()` trait method
+
+### Fix
+Updated `app/Services/UserProfile/PersonalAccountsService.php`:
+
+```php
+// Before (broken):
+foreach ($user->chattels as $chattel) {
+    $assets[] = [
+        'line_item' => $chattel->description ?? 'Chattel',
+        'amount' => $chattel->current_value,
+    ];
+}
+
+// After (fixed):
+$chattels = \App\Models\Chattel::where('user_id', $user->id)
+    ->orWhere('joint_owner_id', $user->id)
+    ->get();
+foreach ($chattels as $chattel) {
+    $amount = $this->calculateUserShare($chattel, $user->id);
+    if ($amount <= 0) continue;
+    $assets[] = [
+        'line_item' => $chattel->name ?? 'Chattel',
+        'amount' => $amount,
+    ];
+}
+```
+
+### Files Changed
+
+```
+app/Services/UserProfile/PersonalAccountsService.php
+```
+
+### Verification
+1. Add a joint chattel with 70% ownership and £10,000 value
+2. Navigate to User Profile → Balance Sheet (Valuable Info)
+3. User column should show £7,000 (70% of £10,000)
+4. Spouse column should show £3,000 (30% of £10,000)
+5. Assets column should show chattel name (not description)
+
+---
