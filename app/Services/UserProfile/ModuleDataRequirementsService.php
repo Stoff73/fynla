@@ -177,13 +177,13 @@ class ModuleDataRequirementsService
             ],
             'relationships' => [
                 'dc_pensions' => [
-                    'label' => 'Your workplace or personal pensions',
-                    'why' => 'Your main source of retirement income - we project growth and drawdown options',
+                    'label' => 'Your money purchase pensions',
+                    'why' => 'Workplace pensions, SIPPs, and personal pensions with a pot value that you can draw from flexibly in retirement',
                     'link' => '/net-worth',
                 ],
                 'db_pensions' => [
-                    'label' => 'Your final salary or career average pensions',
-                    'why' => 'Guaranteed income in retirement based on your salary and years of service',
+                    'label' => 'Any final salary or career average pensions',
+                    'why' => 'Add these if you have a defined benefit scheme that pays a guaranteed income based on your salary and years of service',
                     'link' => '/net-worth',
                 ],
                 'state_pension' => [
@@ -263,8 +263,8 @@ class ModuleDataRequirementsService
                     'link' => '/net-worth',
                 ],
                 'dc_pensions' => [
-                    'label' => 'Your pension pots',
-                    'why' => 'Pension savings are part of your total wealth',
+                    'label' => 'Your money purchase pensions',
+                    'why' => 'Workplace pensions, SIPPs, and personal pensions are part of your total wealth',
                     'link' => '/net-worth',
                 ],
                 'mortgages' => [

@@ -1395,3 +1395,52 @@ resources/js/components/NetWorth/InvestmentDetailInline.vue
 4. Holding should now appear in the holdings list
 
 ---
+
+## UI Improvement: Info Guide Pension Descriptions
+
+**Branch:** ihtBugs
+
+**Status:** READY FOR DEPLOYMENT
+
+### Description
+
+Updated the "What powers this view" info guide panel in the Retirement and Net Worth modules to better explain the difference between money purchase (DC) and final salary (DB) pensions.
+
+### Changes
+
+**Retirement module:**
+- DC pensions: Now labelled "Your money purchase pensions" with description explaining these are workplace pensions, SIPPs, and personal pensions with a pot value
+- DB pensions: Now labelled "Any final salary or career average pensions" with "Add these if you have..." phrasing to indicate they're optional
+
+**Net Worth module:**
+- DC pensions: Now labelled "Your money purchase pensions" with consistent description
+
+### Files Changed
+
+**Backend:**
+```
+app/Services/UserProfile/ModuleDataRequirementsService.php
+```
+
+### Rebuild Required: NO
+
+Backend PHP file only.
+
+### Upload Checklist
+
+1. Upload `app/Services/UserProfile/ModuleDataRequirementsService.php`
+2. Clear cache:
+   ```bash
+   ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
+   cd ~/www/fynla.org/public_html
+   php artisan cache:clear
+   ```
+
+### Verification
+
+1. Navigate to the Retirement module
+2. Click the info guide button (?)
+3. DC pensions should show "Your money purchase pensions"
+4. DB pensions should show "Any final salary or career average pensions" with "Add these if you have..." description
+
+---
