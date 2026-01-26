@@ -118,6 +118,7 @@
             :account="account"
             @change-tab="handleTabChange"
             @add-holding="openHoldingModal(null)"
+            @edit-account="showEditModal = true"
           />
 
           <!-- Rebalancing Tab -->

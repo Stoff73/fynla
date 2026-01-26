@@ -1134,6 +1134,65 @@ Frontend Vue files changed. Run build script before uploading.
 
 ---
 
+## Bug Fix: "Add Fees" Link Goes to Wrong Page
+
+**Branch:** ihtBugs
+
+**Status:** READY FOR DEPLOYMENT
+
+### Issue
+
+In the Investment account details view (Performance tab), when there are no fees entered, clicking the "Add Fees" link navigated to the Fees detail panel instead of opening the Edit form where users can actually enter fees.
+
+### Root Cause
+
+The Fees Summary Card always called `goToFeesTab()` on click, which navigated to the AccountFeesPanel (a read-only display of fee calculations). But when no fees exist, users need to open the account edit form to enter platform fees, advisor fees, etc.
+
+### Fix
+
+Updated `AccountPerformancePanel.vue`:
+1. Added new emit: `'edit-account'`
+2. Changed click handler from `goToFeesTab` to new `handleFeesClick` method
+3. `handleFeesClick` checks if no fees exist (`!hasHoldings && totalFeePercent === 0`):
+   - If no fees: emits `'edit-account'` to open edit form
+   - If has fees: navigates to fees tab as before
+
+Updated `InvestmentDetailInline.vue`:
+1. Added `@edit-account="showEditModal = true"` to AccountPerformancePanel usage
+
+### Files Changed
+
+**Frontend (Rebuild Required):**
+```
+resources/js/views/Investment/AccountPerformancePanel.vue
+resources/js/components/NetWorth/InvestmentDetailInline.vue
+```
+
+### Rebuild Required: YES
+
+Frontend Vue files changed. Run build script before uploading.
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+### Upload Checklist
+
+1. Run build script
+2. Upload `public/build/` directory
+
+### Verification
+
+1. Navigate to Net Worth → Investments tab
+2. Click on an account that has NO fees entered
+3. In the Performance tab, look for "Total Fees" card showing "Add Fees" link
+4. Click "Add Fees"
+5. Should open the Edit Account form (NOT navigate to the Fees tab)
+6. Enter platform fee and save
+7. Click on Total Fees card again → should now navigate to Fees tab (showing fee details)
+
+---
+
 ### Deferred Tasks
 
 | Task | Reason |
