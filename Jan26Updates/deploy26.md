@@ -511,6 +511,38 @@ app/Services/UserProfile/PersonalAccountsService.php
 
 ---
 
+## Bug Fix: Balance Sheet Joint Business Interests Not Splitting Correctly
+
+**Status:** COMPLETED ✓
+
+### Issue
+Joint business interests in the Balance Sheet showed the full value under the primary owner's account instead of splitting by ownership percentage. Same issue as chattels.
+
+### Root Cause
+`PersonalAccountsService.php` had the same problem for business interests:
+1. Only queried `user_id`, not `joint_owner_id`
+2. Used raw `current_valuation` without applying ownership split
+
+### Fix
+Updated `app/Services/UserProfile/PersonalAccountsService.php` for business interests.
+
+Also updated `app/Traits/CalculatesOwnershipShare.php` to support `current_valuation` field (used by BusinessInterest model).
+
+### Files Changed
+
+```
+app/Services/UserProfile/PersonalAccountsService.php
+app/Traits/CalculatesOwnershipShare.php
+```
+
+### Verification
+1. Add a joint business interest with 70% ownership and £100,000 valuation
+2. Navigate to User Profile → Balance Sheet (Valuable Info)
+3. User column should show £70,000 (70% share)
+4. Spouse column should show £30,000 (30% share)
+
+---
+
 ## Bug Fix: Wealth Summary Joint Chattels/Business Not Splitting Correctly
 
 **Status:** COMPLETED ✓
@@ -544,5 +576,22 @@ app/Services/NetWorth/NetWorthService.php
 3. User's chattels should show £7,000 (70% of £10,000)
 4. Spouse's chattels should show £3,000 (30% of £10,000)
 5. Same verification for joint business interests
+
+---
+
+## Summary: All PHP Files for Joint Ownership Fixes
+
+**IMPORTANT:** Upload ALL these files for joint chattels and business interests to work correctly:
+
+```
+app/Traits/CalculatesOwnershipShare.php
+app/Services/UserProfile/PersonalAccountsService.php
+app/Services/NetWorth/NetWorthService.php
+```
+
+After uploading, clear cache:
+```bash
+php artisan cache:clear
+```
 
 ---
