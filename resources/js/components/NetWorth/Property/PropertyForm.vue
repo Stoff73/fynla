@@ -1,7 +1,7 @@
 <template>
   <div class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center" @click.self="">
     <div class="relative bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden" @click.stop>
-      <div class="overflow-y-auto max-h-[90vh]">
+      <div ref="formContent" class="overflow-y-auto max-h-[90vh]">
       <!-- Header -->
       <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 rounded-t-lg z-10">
         <div class="flex items-center justify-between">
@@ -1781,6 +1781,15 @@ export default {
       }
     },
 
+    scrollToTop() {
+      // Scroll the form content to the top when changing steps
+      this.$nextTick(() => {
+        if (this.$refs.formContent) {
+          this.$refs.formContent.scrollTop = 0;
+        }
+      });
+    },
+
     nextStep() {
       // Validate current step before proceeding
       this.error = null;
@@ -1799,12 +1808,14 @@ export default {
 
       if (this.currentStep < this.totalSteps) {
         this.currentStep++;
+        this.scrollToTop();
       }
     },
 
     previousStep() {
       if (this.currentStep > 1) {
         this.currentStep--;
+        this.scrollToTop();
       }
     },
 
@@ -1816,6 +1827,7 @@ export default {
       // Navigate to the requested step
       if (stepNumber >= 1 && stepNumber <= this.totalSteps) {
         this.currentStep = stepNumber;
+        this.scrollToTop();
       }
     },
 
