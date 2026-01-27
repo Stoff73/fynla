@@ -75,12 +75,12 @@
 
       <form class="mt-8 space-y-6" @submit.prevent="handleLogin">
         <!-- Inactivity Message -->
-        <div v-if="inactivityMessage" class="rounded-lg bg-amber-50 border border-amber-200 p-4 text-center">
+        <div v-if="inactivityMessage" class="rounded-lg bg-orange-500 border border-orange-600 p-4 text-center">
           <div class="flex items-start gap-3 justify-center">
-            <svg class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-5 h-5 text-white flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <p class="text-sm text-amber-800">{{ inactivityMessage }}</p>
+            <p class="text-sm text-white font-medium">{{ inactivityMessage }}</p>
           </div>
         </div>
 
