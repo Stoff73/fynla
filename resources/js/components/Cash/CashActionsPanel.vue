@@ -235,7 +235,7 @@ export default {
 .card-title {
   font-size: 14px;
   font-weight: 600;
-  color: #374151;
+  @apply text-gray-700;
   margin: 0 0 12px 0;
 }
 
@@ -247,7 +247,7 @@ export default {
 .clear-cash-value {
   font-size: 24px;
   font-weight: 700;
-  color: #111827;
+  @apply text-gray-900;
   margin: 0 0 12px 0;
 }
 
@@ -257,14 +257,14 @@ export default {
   flex-direction: column;
   gap: 8px;
   padding-top: 12px;
-  border-top: 1px solid #e5e7eb;
+  @apply border-t border-gray-200;
 }
 
 .detail-row {
   display: flex;
   justify-content: space-between;
   font-size: 13px;
-  color: #6b7280;
+  @apply text-gray-500;
 }
 
 /* Payday */
@@ -281,13 +281,13 @@ export default {
 
 .payday-date {
   font-size: 13px;
-  color: #6b7280;
+  @apply text-gray-500;
 }
 
 .payday-value {
   font-size: 24px;
   font-weight: 700;
-  color: #111827;
+  @apply text-gray-900;
   margin-bottom: 8px;
 }
 
@@ -297,14 +297,14 @@ export default {
 
 .empty-prompt {
   font-size: 13px;
-  color: #6b7280;
+  @apply text-gray-500;
   line-height: 1.5;
   margin: 0 0 12px 0;
 }
 
 .add-info-link {
   font-size: 13px;
-  color: #7c3aed;
+  @apply text-purple-600;
   font-weight: 500;
   text-decoration: none;
 }
@@ -322,7 +322,7 @@ export default {
 
 .credit-card-subtext {
   font-size: 13px;
-  color: #6b7280;
+  @apply text-gray-500;
 }
 
 /* Alerts */
@@ -337,7 +337,7 @@ export default {
   align-items: flex-start;
   gap: 8px;
   font-size: 12px;
-  color: #374151;
+  @apply text-gray-700;
 }
 
 .alert-dot {
@@ -349,11 +349,11 @@ export default {
 }
 
 .alert-item.warning .alert-dot {
-  background: #f59e0b;
+  @apply bg-amber-500;
 }
 
 .alert-item.info .alert-dot {
-  background: #2563eb;
+  @apply bg-blue-600;
 }
 
 .alert-message {
@@ -363,7 +363,7 @@ export default {
 /* Tips */
 .tip-content {
   font-size: 13px;
-  color: #6b7280;
+  @apply text-gray-500;
   line-height: 1.5;
   margin: 0;
 }
@@ -372,13 +372,13 @@ export default {
   padding: 4px;
   background: none;
   border: none;
-  color: #9ca3af;
+  @apply text-gray-400;
   cursor: pointer;
   transition: color 0.2s;
 }
 
 .refresh-btn:hover {
-  color: #7c3aed;
+  @apply text-purple-600;
 }
 
 .refresh-btn svg {

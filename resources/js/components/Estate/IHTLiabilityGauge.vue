@@ -42,6 +42,7 @@
 <script>
 import VueApexCharts from 'vue3-apexcharts';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { SUCCESS_COLORS, WARNING_COLORS, ERROR_COLORS, BORDER_COLORS, BG_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'IHTLiabilityGauge',
@@ -91,9 +92,10 @@ export default {
     },
 
     gaugeColour() {
-      if (this.ihtPercentage >= 20) return '#EF4444'; // Red
-      if (this.ihtPercentage >= 10) return '#F59E0B'; // Amber
-      return '#10B981'; // Green
+      // Use design system semantic colors for threshold-based coloring
+      if (this.ihtPercentage >= 20) return ERROR_COLORS[500];
+      if (this.ihtPercentage >= 10) return WARNING_COLORS[500];
+      return SUCCESS_COLORS[500];
     },
 
     liabilityColourClass() {
@@ -149,10 +151,10 @@ export default {
             hollow: {
               margin: 0,
               size: '70%',
-              background: '#fff',
+              background: BG_COLORS.card,
             },
             track: {
-              background: '#e7e7e7',
+              background: BORDER_COLORS.default,
               strokeWidth: '97%',
               margin: 5,
             },
@@ -218,13 +220,13 @@ export default {
 .gauge-header h3 {
   font-size: 18px;
   font-weight: 600;
-  color: #1f2937;
+  @apply text-gray-800;
   margin: 0 0 8px 0;
 }
 
 .subtitle {
   font-size: 14px;
-  color: #6b7280;
+  @apply text-gray-500;
   margin: 0;
 }
 
@@ -235,7 +237,7 @@ export default {
 .gauge-details {
   margin-top: 24px;
   padding-top: 20px;
-  border-top: 1px solid #e5e7eb;
+  @apply border-t border-gray-200;
 }
 
 .detail-row {
@@ -246,12 +248,12 @@ export default {
 }
 
 .detail-row .label {
-  color: #6b7280;
+  @apply text-gray-500;
   font-weight: 500;
 }
 
 .detail-row .value {
-  color: #1f2937;
+  @apply text-gray-800;
   font-weight: 600;
 }
 
@@ -275,20 +277,14 @@ export default {
 }
 
 .status-good {
-  background-color: #d1fae5;
-  color: #065f46;
-  border: 1px solid #10b981;
+  @apply bg-green-100 text-green-800 border border-green-500;
 }
 
 .status-warning {
-  background-color: #fef3c7;
-  color: #92400e;
-  border: 1px solid #f59e0b;
+  @apply bg-amber-100 text-amber-800 border border-amber-500;
 }
 
 .status-critical {
-  background-color: #fee2e2;
-  color: #991b1b;
-  border: 1px solid #ef4444;
+  @apply bg-red-100 text-red-800 border border-red-500;
 }
 </style>

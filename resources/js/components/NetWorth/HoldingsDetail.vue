@@ -60,10 +60,10 @@ export default {
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
-  background: #f3f4f6;
+  @apply bg-gray-100;
   border: none;
   border-radius: 8px;
-  color: #374151;
+  @apply text-gray-700;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -72,8 +72,8 @@ export default {
 }
 
 .back-button:hover {
-  background: #e5e7eb;
-  color: #111827;
+  @apply bg-gray-200;
+  @apply text-gray-900;
 }
 
 .back-icon {
@@ -84,13 +84,13 @@ export default {
 .page-title {
   font-size: 28px;
   font-weight: 700;
-  color: #111827;
+  @apply text-gray-900;
   margin: 0 0 8px 0;
 }
 
 .page-subtitle {
   font-size: 16px;
-  color: #6b7280;
+  @apply text-gray-500;
   margin: 0;
 }
 
@@ -99,6 +99,6 @@ export default {
   border-radius: 12px;
   padding: 24px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e5e7eb;
+  @apply border border-gray-200;
 }
 </style>

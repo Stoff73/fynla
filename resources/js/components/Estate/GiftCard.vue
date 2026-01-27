@@ -254,7 +254,7 @@ export default {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   transition: transform 0.2s, box-shadow 0.2s;
   overflow: hidden;
-  border-left: 4px solid #d1d5db;
+  @apply border-l-4 border-l-gray-300;
 }
 
 .gift-card:hover {
@@ -263,15 +263,15 @@ export default {
 }
 
 .gift-card.status-exempt {
-  border-left-color: #10b981;
+  @apply border-l-green-500;
 }
 
 .gift-card.status-taper {
-  border-left-color: #f59e0b;
+  @apply border-l-amber-500;
 }
 
 .gift-card.status-taxable {
-  border-left-color: #ef4444;
+  @apply border-l-red-500;
 }
 
 .card-header {
@@ -279,8 +279,8 @@ export default {
   align-items: center;
   gap: 16px;
   padding: 20px;
-  background-color: #f9fafb;
-  border-bottom: 1px solid #e5e7eb;
+  @apply bg-gray-50;
+  @apply border-b border-gray-200;
 }
 
 .gift-icon {
@@ -294,18 +294,18 @@ export default {
 }
 
 .icon-success {
-  background-color: #d1fae5;
-  color: #059669;
+  @apply bg-green-100;
+  @apply text-green-600;
 }
 
 .icon-warning {
-  background-color: #fef3c7;
-  color: #d97706;
+  @apply bg-amber-100;
+  @apply text-amber-600;
 }
 
 .icon-danger {
-  background-color: #fee2e2;
-  color: #dc2626;
+  @apply bg-red-100;
+  @apply text-red-600;
 }
 
 .gift-info {
@@ -315,13 +315,13 @@ export default {
 .recipient-name {
   font-size: 16px;
   font-weight: 600;
-  color: #1f2937;
+  @apply text-gray-800;
   margin: 0 0 4px 0;
 }
 
 .gift-date {
   font-size: 13px;
-  color: #6b7280;
+  @apply text-gray-500;
   margin: 0;
   display: flex;
   align-items: center;
@@ -335,7 +335,7 @@ export default {
 .value-label {
   display: block;
   font-size: 12px;
-  color: #6b7280;
+  @apply text-gray-500;
   margin-bottom: 4px;
 }
 
@@ -343,7 +343,7 @@ export default {
   display: block;
   font-size: 18px;
   font-weight: 700;
-  color: #1f2937;
+  @apply text-gray-800;
 }
 
 .card-body {
@@ -358,12 +358,12 @@ export default {
 }
 
 .info-row .label {
-  color: #6b7280;
+  @apply text-gray-500;
   font-weight: 500;
 }
 
 .info-row .value {
-  color: #1f2937;
+  @apply text-gray-800;
   font-weight: 600;
 }
 
@@ -379,18 +379,18 @@ export default {
 }
 
 .progress-label {
-  color: #6b7280;
+  @apply text-gray-500;
   font-weight: 500;
 }
 
 .progress-percentage {
-  color: #1f2937;
+  @apply text-gray-800;
   font-weight: 600;
 }
 
 .progress-bar-container {
   height: 12px;
-  background-color: #f3f4f6;
+  @apply bg-gray-100;
   border-radius: 6px;
   overflow: hidden;
 }
@@ -402,21 +402,21 @@ export default {
 }
 
 .progress-early {
-  background: linear-gradient(90deg, #ef4444, #dc2626);
+  @apply bg-gradient-to-r from-red-500 to-red-600;
 }
 
 .progress-partial {
-  background: linear-gradient(90deg, #f59e0b, #d97706);
+  @apply bg-gradient-to-r from-amber-500 to-amber-600;
 }
 
 .progress-complete {
-  background: linear-gradient(90deg, #10b981, #059669);
+  @apply bg-gradient-to-r from-green-500 to-green-600;
 }
 
 .taper-relief {
   margin: 16px 0;
   padding: 12px;
-  background-color: #fffbeb;
+  @apply bg-amber-50;
   border-radius: 6px;
 }
 
@@ -432,23 +432,23 @@ export default {
 }
 
 .relief-low {
-  background-color: #fecaca;
-  color: #991b1b;
+  @apply bg-red-200;
+  @apply text-red-800;
 }
 
 .relief-medium {
-  background-color: #fed7aa;
-  color: #92400e;
+  @apply bg-orange-200;
+  @apply text-amber-800;
 }
 
 .relief-high {
-  background-color: #d1fae5;
-  color: #065f46;
+  @apply bg-green-100;
+  @apply text-green-800;
 }
 
 .relief-description {
   font-size: 12px;
-  color: #78350f;
+  @apply text-amber-900;
   margin: 0;
 }
 
@@ -467,21 +467,15 @@ export default {
 }
 
 .banner-success {
-  background-color: #d1fae5;
-  color: #065f46;
-  border: 1px solid #10b981;
+  @apply bg-green-100 text-green-800 border border-green-500;
 }
 
 .banner-warning {
-  background-color: #fef3c7;
-  color: #92400e;
-  border: 1px solid #f59e0b;
+  @apply bg-amber-100 text-amber-800 border border-amber-500;
 }
 
 .banner-danger {
-  background-color: #fee2e2;
-  color: #991b1b;
-  border: 1px solid #ef4444;
+  @apply bg-red-100 text-red-800 border border-red-500;
 }
 
 .card-footer {
@@ -489,8 +483,8 @@ export default {
   justify-content: flex-end;
   gap: 12px;
   padding: 16px 20px;
-  background-color: #f9fafb;
-  border-top: 1px solid #e5e7eb;
+  @apply bg-gray-50;
+  @apply border-t border-gray-200;
 }
 
 .btn {
@@ -517,20 +511,20 @@ export default {
 }
 
 .btn-secondary {
-  background-color: #e5e7eb;
-  color: #374151;
+  @apply bg-gray-200;
+  @apply text-gray-700;
 }
 
 .btn-secondary:hover {
-  background-color: #d1d5db;
+  @apply bg-gray-300;
 }
 
 .btn-danger {
-  background-color: #fecaca;
-  color: #991b1b;
+  @apply bg-red-200;
+  @apply text-red-800;
 }
 
 .btn-danger:hover {
-  background-color: #fca5a5;
+  @apply bg-red-300;
 }
 </style>

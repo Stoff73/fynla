@@ -11,6 +11,7 @@
 
 <script>
 import { mapState } from 'vuex';
+import { PRIMARY_COLORS, SECONDARY_COLORS, BORDER_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'AccumulationChart',
@@ -139,7 +140,7 @@ export default {
           width: [3, 2],
           dashArray: [0, 5],
         },
-        colours: ['#3b82f6', '#9ca3af'], // Blue for growth, Gray for contributions only
+        colors: [PRIMARY_COLORS[500], SECONDARY_COLORS[400]], // Blue for growth, Gray for contributions only
         xaxis: {
           categories: this.ages,
           title: {
@@ -195,13 +196,13 @@ export default {
           },
         },
         grid: {
-          borderColour: '#e5e7eb',
+          borderColor: BORDER_COLORS.default,
           strokeDashArray: 4,
         },
         markers: {
           size: [4, 0],
-          colours: ['#3b82f6'],
-          strokeColours: '#fff',
+          colors: [PRIMARY_COLORS[500]],
+          strokeColors: '#fff',
           strokeWidth: 2,
           hover: {
             size: 6,

@@ -311,6 +311,7 @@
 
 <script>
 import api from '@/services/api';
+import { CHART_COLORS, PRIMARY_COLORS, SUCCESS_COLORS, ERROR_COLORS, WARNING_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'GoalProjection',
@@ -371,7 +372,7 @@ export default {
             opacityTo: 0.2,
           },
         },
-        colours: ['#3B82F6'],
+        colors: [PRIMARY_COLORS[500]],
         tooltip: {
           y: {
             formatter: (val) => val.toFixed(2) + '%',
@@ -415,14 +416,14 @@ export default {
             formatter: (val) => '£' + this.formatNumber(val),
           },
         },
-        colours: ['#3B82F6', '#10B981', '#EF4444', '#F59E0B'],
+        colors: [PRIMARY_COLORS[500], SUCCESS_COLORS[500], ERROR_COLORS[500], WARNING_COLORS[500]],
         legend: {
           position: 'top',
         },
         annotations: {
           yaxis: [{
             y: this.projectionData?.goal?.target_value || 0,
-            borderColour: '#000',
+            borderColor: '#000',
             strokeDashArray: 4,
             label: {
               text: 'Target',
@@ -475,7 +476,7 @@ export default {
         xaxis: {
           categories: ['Return +2%', 'Return +1%', 'Current', 'Return -1%', 'Return -2%'],
         },
-        colours: ['#10B981'],
+        colors: [SUCCESS_COLORS[500]],
       };
     },
 
@@ -515,7 +516,7 @@ export default {
           },
           max: 100,
         },
-        colours: ['#3B82F6', '#10B981', '#6B7280'],
+        colors: [PRIMARY_COLORS[500], SUCCESS_COLORS[500], SECONDARY_COLORS[500]],
         legend: {
           position: 'top',
         },

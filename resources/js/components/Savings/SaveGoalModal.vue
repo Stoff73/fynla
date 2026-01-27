@@ -317,7 +317,7 @@ export default {
 /* Custom scrollbar for form content */
 .overflow-y-auto {
   scrollbar-width: thin;
-  scrollbar-color: #CBD5E0 #F7FAFC;
+  scrollbar-color: theme('colors.gray.300') theme('colors.gray.50');
 }
 
 .overflow-y-auto::-webkit-scrollbar {
@@ -325,16 +325,16 @@ export default {
 }
 
 .overflow-y-auto::-webkit-scrollbar-track {
-  background: #F7FAFC;
+  @apply bg-gray-50;
   border-radius: 3px;
 }
 
 .overflow-y-auto::-webkit-scrollbar-thumb {
-  background: #CBD5E0;
+  @apply bg-gray-300;
   border-radius: 3px;
 }
 
 .overflow-y-auto::-webkit-scrollbar-thumb:hover {
-  background: #A0AEC0;
+  @apply bg-gray-400;
 }
 </style>

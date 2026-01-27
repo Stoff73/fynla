@@ -145,7 +145,7 @@ export default {
   border-radius: 12px;
   padding: 20px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e5e7eb;
+  @apply border border-gray-200;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -153,7 +153,7 @@ export default {
 .business-interest-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  border-color: #a21caf;
+  @apply border-fuchsia-700;
 }
 
 .card-header {
@@ -178,23 +178,23 @@ export default {
 }
 
 .type-sole_trader {
-  background: #dbeafe;
-  color: #1e40af;
+  @apply bg-blue-100;
+  @apply text-blue-800;
 }
 
 .type-partnership {
-  background: #fef3c7;
-  color: #92400e;
+  @apply bg-amber-100;
+  @apply text-amber-800;
 }
 
 .type-limited_company {
-  background: #d1fae5;
-  color: #065f46;
+  @apply bg-green-100;
+  @apply text-green-800;
 }
 
 .type-llp {
-  background: #f3e8ff;
-  color: #6b21a8;
+  @apply bg-purple-50;
+  @apply text-purple-800;
 }
 
 .status-badge {
@@ -205,18 +205,18 @@ export default {
 }
 
 .status-trading {
-  background: #dcfce7;
-  color: #166534;
+  @apply bg-green-100;
+  @apply text-green-800;
 }
 
 .status-dormant {
-  background: #f3f4f6;
-  color: #6b7280;
+  @apply bg-gray-100;
+  @apply text-gray-500;
 }
 
 .status-pre_trading {
-  background: #fef3c7;
-  color: #92400e;
+  @apply bg-amber-100;
+  @apply text-amber-800;
 }
 
 .actions {
@@ -247,23 +247,23 @@ export default {
 }
 
 .edit-btn {
-  background: #f3f4f6;
-  color: #374151;
+  @apply bg-gray-100;
+  @apply text-gray-700;
 }
 
 .edit-btn:hover {
-  background: #e5e7eb;
-  color: #111827;
+  @apply bg-gray-200;
+  @apply text-gray-900;
 }
 
 .delete-btn {
-  background: #fef2f2;
-  color: #dc2626;
+  @apply bg-red-50;
+  @apply text-red-600;
 }
 
 .delete-btn:hover {
-  background: #fee2e2;
-  color: #b91c1c;
+  @apply bg-red-100;
+  @apply text-red-700;
 }
 
 .card-content {
@@ -275,7 +275,7 @@ export default {
 .business-name {
   font-size: 18px;
   font-weight: 600;
-  color: #111827;
+  @apply text-gray-900;
   margin: 0;
 }
 
@@ -284,7 +284,7 @@ export default {
   flex-direction: column;
   gap: 8px;
   padding-top: 12px;
-  border-top: 1px solid #e5e7eb;
+  @apply border-t border-gray-200;
 }
 
 .detail-row {
@@ -297,20 +297,20 @@ export default {
 .detail-row.highlighted {
   font-weight: 600;
   padding-bottom: 8px;
-  border-bottom: 1px solid #e5e7eb;
+  @apply border-b border-gray-200;
 }
 
 .detail-label {
-  color: #6b7280;
+  @apply text-gray-500;
 }
 
 .detail-value {
-  color: #111827;
+  @apply text-gray-900;
   font-weight: 600;
 }
 
 .detail-value.text-gray {
-  color: #6b7280;
+  @apply text-gray-500;
   font-weight: 500;
 }
 
@@ -318,12 +318,12 @@ export default {
   display: inline-flex;
   align-items: center;
   padding: 4px 10px;
-  background: #f0fdf4;
-  color: #166534;
+  @apply bg-green-50;
+  @apply text-green-800;
   border-radius: 6px;
   font-size: 12px;
   font-weight: 600;
-  border: 1px solid #bbf7d0;
+  @apply border border-green-200;
 }
 
 @media (max-width: 768px) {

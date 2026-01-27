@@ -806,7 +806,7 @@ export default {
 }
 
 .toggle input:checked + .toggle-slider {
-  background-color: #3b82f6;
+  @apply bg-primary-500;
 }
 
 .toggle input:checked + .toggle-slider:before {
@@ -988,7 +988,7 @@ export default {
 }
 
 .step.active .step-number {
-  background-color: #3b82f6;
+  @apply bg-primary-500;
   color: white;
 }
 
@@ -1003,7 +1003,7 @@ export default {
 }
 
 .step.active .step-label {
-  color: #3b82f6;
+  @apply text-primary-500;
   font-weight: 500;
 }
 
@@ -1054,12 +1054,12 @@ export default {
 }
 
 .deletion-option:hover {
-  border-color: #3b82f6;
+  border-@apply text-primary-500;
   background-color: #f0f9ff;
 }
 
 .deletion-option.selected {
-  border-color: #3b82f6;
+  border-@apply text-primary-500;
   background-color: #eff6ff;
 }
 
@@ -1078,7 +1078,7 @@ export default {
   height: 48px;
   border-radius: 50%;
   background-color: #dbeafe;
-  color: #3b82f6;
+  @apply text-primary-500;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1114,7 +1114,7 @@ export default {
   height: 64px;
   border-radius: 50%;
   background-color: #dbeafe;
-  color: #3b82f6;
+  @apply text-primary-500;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1151,7 +1151,7 @@ export default {
 }
 
 .code-input:focus {
-  border-color: #3b82f6;
+  border-@apply text-primary-500;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
@@ -1238,7 +1238,7 @@ export default {
 
 .form-input:focus {
   outline: none;
-  border-color: #3b82f6;
+  border-@apply text-primary-500;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
@@ -1275,7 +1275,7 @@ export default {
   width: 20px;
   height: 20px;
   border: 2px solid #e5e7eb;
-  border-top-color: #3b82f6;
+  border-top-@apply text-primary-500;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -1303,7 +1303,7 @@ export default {
 }
 
 .btn-primary {
-  background-color: #3b82f6;
+  @apply bg-primary-500;
   color: white;
 }
 
@@ -1332,7 +1332,7 @@ export default {
 
 .btn-link {
   background: none;
-  color: #3b82f6;
+  @apply text-primary-500;
   padding: 0.5rem;
 }
 

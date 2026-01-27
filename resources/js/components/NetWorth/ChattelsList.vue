@@ -226,7 +226,7 @@ export default {
 .list-title {
   font-size: 24px;
   font-weight: 700;
-  color: #111827;
+  @apply text-gray-900;
   margin: 0;
 }
 
@@ -238,17 +238,17 @@ export default {
 
 .filter-select {
   padding: 8px 12px;
-  border: 1px solid #d1d5db;
+  @apply border border-gray-300;
   border-radius: 8px;
   font-size: 14px;
-  color: #374151;
+  @apply text-gray-700;
   background: white;
   cursor: pointer;
 }
 
 .filter-select:focus {
   outline: none;
-  border-color: #ec4899;
+  @apply border-pink-500;
   box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.1);
 }
 
@@ -257,7 +257,7 @@ export default {
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
-  background: #ec4899;
+  @apply bg-pink-500;
   color: white;
   border: none;
   border-radius: 8px;
@@ -268,7 +268,7 @@ export default {
 }
 
 .add-button:hover {
-  background: #db2777;
+  @apply bg-pink-600;
 }
 
 .chattels-grid {
@@ -293,52 +293,52 @@ export default {
 
 .loading-state p,
 .error-state p {
-  color: #6b7280;
+  @apply text-gray-500;
   font-size: 16px;
   margin: 0;
 }
 
 .error-state p {
-  color: #ef4444;
+  @apply text-red-500;
 }
 
 .retry-button {
   margin-top: 16px;
   padding: 8px 16px;
-  background: #f3f4f6;
-  color: #374151;
-  border: 1px solid #d1d5db;
+  @apply bg-gray-100;
+  @apply text-gray-700;
+  @apply border border-gray-300;
   border-radius: 8px;
   cursor: pointer;
 }
 
 .retry-button:hover {
-  background: #e5e7eb;
+  @apply bg-gray-200;
 }
 
 .empty-state {
   background: white;
   border-radius: 12px;
   padding: 80px 40px;
-  border: 2px dashed #d1d5db;
+  @apply border-2 border-dashed border-gray-300;
 }
 
 .empty-icon {
   width: 64px;
   height: 64px;
-  color: #9ca3af;
+  @apply text-gray-400;
   margin: 0 auto 16px;
 }
 
 .empty-title {
   font-size: 20px;
   font-weight: 700;
-  color: #374151;
+  @apply text-gray-700;
   margin-bottom: 8px;
 }
 
 .empty-subtitle {
-  color: #9ca3af;
+  @apply text-gray-400;
   font-size: 14px;
   font-weight: 400;
   max-width: 400px;
@@ -351,7 +351,7 @@ export default {
   gap: 8px;
   margin-top: 24px;
   padding: 12px 24px;
-  background: #ec4899;
+  @apply bg-pink-500;
   color: white;
   border: none;
   border-radius: 8px;
@@ -362,7 +362,7 @@ export default {
 }
 
 .add-first-button:hover {
-  background: #db2777;
+  @apply bg-pink-600;
 }
 
 @media (max-width: 768px) {

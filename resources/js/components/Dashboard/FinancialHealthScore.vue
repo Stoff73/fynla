@@ -21,7 +21,7 @@
             cy="100"
             r="85"
             fill="none"
-            stroke="#e5e7eb"
+            class="stroke-gray-200"
             stroke-width="20"
           />
           <!-- Progress circle -->
@@ -182,6 +182,7 @@
 
 <script>
 import { mapGetters } from 'vuex';
+import { SUCCESS_COLORS, WARNING_COLORS, ERROR_COLORS, BORDER_COLORS, getColorByThreshold } from '@/constants/designSystem';
 
 export default {
   name: 'FinancialHealthScore',
@@ -273,9 +274,8 @@ export default {
     },
 
     gaugeColour() {
-      if (this.compositeScore >= 80) return '#10b981'; // green
-      if (this.compositeScore >= 60) return '#f59e0b'; // amber
-      return '#ef4444'; // red
+      // Use design system color helper for threshold-based coloring
+      return getColorByThreshold(this.compositeScore, { success: 80, warning: 60 });
     },
 
     scoreTextClass() {

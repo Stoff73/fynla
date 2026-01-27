@@ -215,6 +215,7 @@ import TaxStrategySection from './PlanSections/TaxStrategySection.vue';
 import FeeAnalysisSection from './PlanSections/FeeAnalysisSection.vue';
 import RecommendationsSection from './PlanSections/RecommendationsSection.vue';
 import ActionPlanSection from './PlanSections/ActionPlanSection.vue';
+import { SUCCESS_COLORS, PRIMARY_COLORS, WARNING_COLORS, ERROR_COLORS, BORDER_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'ComprehensiveInvestmentPlan',
@@ -275,7 +276,7 @@ export default {
               size: '65%',
             },
             track: {
-              background: '#e5e7eb',
+              background: BORDER_COLORS.default,
               strokeWidth: '100%',
             },
             dataLabels: {
@@ -390,11 +391,11 @@ export default {
     },
 
     getHealthScoreColourHex(score) {
-      if (score >= 80) return '#10B981'; // green-600
-      if (score >= 60) return '#3B82F6'; // blue-600
-      if (score >= 40) return '#FBBF24'; // yellow-600
-      if (score >= 20) return '#F97316'; // orange-600
-      return '#EF4444'; // red-600
+      if (score >= 80) return SUCCESS_COLORS[500];
+      if (score >= 60) return PRIMARY_COLORS[500];
+      if (score >= 40) return WARNING_COLORS[500];
+      if (score >= 20) return WARNING_COLORS[600];
+      return ERROR_COLORS[500];
     },
 
     getHealthScoreInterpretation(score) {

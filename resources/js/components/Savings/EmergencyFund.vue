@@ -238,26 +238,15 @@ input[type="range"] {
   appearance: none;
   height: 6px;
   border-radius: 3px;
-  background: #E5E7EB;
+  @apply bg-gray-200;
   outline: none;
 }
 
 input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: #3B82F6;
-  cursor: pointer;
+  @apply appearance-none w-[18px] h-[18px] rounded-full bg-primary-500 cursor-pointer;
 }
 
 input[type="range"]::-moz-range-thumb {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: #3B82F6;
-  cursor: pointer;
-  border: none;
+  @apply w-[18px] h-[18px] rounded-full bg-primary-500 cursor-pointer border-none;
 }
 </style>

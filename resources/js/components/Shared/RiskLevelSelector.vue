@@ -107,6 +107,8 @@
 </template>
 
 <script>
+import { RISK_COLORS, TEXT_COLORS, BORDER_COLORS, BG_COLORS } from '@/constants/designSystem';
+
 export default {
   name: 'RiskLevelSelector',
 
@@ -260,23 +262,15 @@ export default {
       const isAllowed = this.isLevelAllowed(level);
       const isHovered = this.hoveredLevel === level;
 
-      // Color definitions - profile level gets bold color, adjacent levels get lighter shade
-      const colors = {
-        low: { bg: '#16a34a', bgLight: '#bbf7d0', border: '#22c55e', borderLight: '#86efac', text: '#14532d' },
-        lower_medium: { bg: '#0d9488', bgLight: '#99f6e4', border: '#14b8a6', borderLight: '#5eead4', text: '#134e4a' },
-        medium: { bg: '#2563eb', bgLight: '#bfdbfe', border: '#3b82f6', borderLight: '#93c5fd', text: '#1e3a8a' },
-        upper_medium: { bg: '#d97706', bgLight: '#fde68a', border: '#f59e0b', borderLight: '#fcd34d', text: '#78350f' },
-        high: { bg: '#dc2626', bgLight: '#fecaca', border: '#ef4444', borderLight: '#fca5a5', text: '#7f1d1d' },
-      };
-
-      const color = colors[level] || colors.medium;
+      // Use design system risk colors
+      const color = RISK_COLORS[level] || RISK_COLORS.medium;
 
       // Disabled/not allowed - grey
       if (!isAllowed) {
         return {
-          'background-color': '#e5e7eb',
-          'color': '#9ca3af',
-          'border': '1px solid #d1d5db',
+          'background-color': BORDER_COLORS.default,
+          'color': TEXT_COLORS.placeholder,
+          'border': `1px solid ${BORDER_COLORS.hover}`,
           'opacity': '0.6',
         };
       }
@@ -285,7 +279,7 @@ export default {
       if (isSelected || (isProfileLevel && !this.modelValue)) {
         return {
           'background-color': color.bg,
-          'color': '#ffffff',
+          'color': BG_COLORS.card,
           'border': `2px solid ${color.bg}`,
           'box-shadow': '0 2px 4px 0 rgba(0, 0, 0, 0.15)',
         };
@@ -304,16 +298,16 @@ export default {
       if (isHovered) {
         return {
           'background-color': color.bg,
-          'color': '#ffffff',
+          'color': BG_COLORS.card,
           'border': `2px solid ${color.bg}`,
           'box-shadow': '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
         };
       }
 
       return {
-        'background-color': '#f3f4f6',
-        'color': '#6b7280',
-        'border': '2px solid #d1d5db',
+        'background-color': BG_COLORS.subtle,
+        'color': TEXT_COLORS.muted,
+        'border': `2px solid ${BORDER_COLORS.hover}`,
       };
     },
 

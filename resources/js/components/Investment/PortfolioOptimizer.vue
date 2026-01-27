@@ -268,6 +268,7 @@
 <script>
 import VueApexCharts from 'vue3-apexcharts';
 import portfolioOptimizationService from '@/services/portfolioOptimizationService';
+import { CHART_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'PortfolioOptimiser',
@@ -339,7 +340,7 @@ export default {
           type: 'donut',
         },
         labels: labels,
-        colours: ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#6B7280', '#14B8A6'],
+        colors: CHART_COLORS,
         legend: {
           position: 'bottom',
         },

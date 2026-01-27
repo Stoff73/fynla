@@ -175,7 +175,7 @@ export default {
   border-radius: 12px;
   padding: 20px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e5e7eb;
+  @apply border border-gray-200;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -183,7 +183,7 @@ export default {
 .property-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  border-color: #3b82f6;
+  @apply border-primary-500;
 }
 
 .card-header {
@@ -203,18 +203,18 @@ export default {
 }
 
 .type-main_residence {
-  background: #dbeafe;
-  color: #1e40af;
+  @apply bg-blue-100;
+  @apply text-blue-800;
 }
 
 .type-secondary_residence {
-  background: #fef3c7;
-  color: #92400e;
+  @apply bg-amber-100;
+  @apply text-amber-800;
 }
 
 .type-buy_to_let {
-  background: #d1fae5;
-  color: #065f46;
+  @apply bg-green-100;
+  @apply text-green-800;
 }
 
 .ownership-badge {
@@ -225,13 +225,13 @@ export default {
 }
 
 .joint-badge {
-  background: #f3e8ff;
-  color: #6b21a8;
+  @apply bg-purple-50;
+  @apply text-purple-800;
 }
 
 .tic-badge {
-  background: #d1fae5;
-  color: #065f46;
+  @apply bg-green-100;
+  @apply text-green-800;
 }
 
 .card-content {
@@ -243,19 +243,19 @@ export default {
 .property-address {
   font-size: 18px;
   font-weight: 600;
-  color: #111827;
+  @apply text-gray-900;
   margin: 0;
 }
 
 .property-address-2 {
   font-size: 14px;
-  color: #6b7280;
+  @apply text-gray-500;
   margin: 0;
 }
 
 .property-location {
   font-size: 14px;
-  color: #6b7280;
+  @apply text-gray-500;
   margin: 0;
 }
 
@@ -263,7 +263,7 @@ export default {
   display: flex;
   flex-direction: column;
   padding-top: 12px;
-  border-top: 1px solid #e5e7eb;
+  @apply border-t border-gray-200;
 }
 
 .value-rows {
@@ -284,26 +284,26 @@ export default {
 .detail-row.equity {
   margin-top: auto;
   padding-top: 8px;
-  border-top: 1px solid #e5e7eb;
+  @apply border-t border-gray-200;
   font-weight: 600;
 }
 
 .detail-label {
-  color: #6b7280;
+  @apply text-gray-500;
 }
 
 .detail-value {
-  color: #111827;
+  @apply text-gray-900;
   font-weight: 600;
 }
 
 .detail-value.full-value {
-  color: #2563eb;
+  @apply text-blue-600;
   font-weight: 700;
 }
 
 .detail-value.mortgage {
-  color: #ef4444;
+  @apply text-red-500;
 }
 
 @media (max-width: 768px) {

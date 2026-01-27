@@ -238,13 +238,13 @@ export default {
 .header h2 {
   font-size: 24px;
   font-weight: 700;
-  color: #111827;
+  @apply text-gray-900;
   margin: 0 0 8px 0;
 }
 
 .subtitle {
   font-size: 14px;
-  color: #6b7280;
+  @apply text-gray-500;
   margin: 0;
 }
 
@@ -254,19 +254,19 @@ export default {
   gap: 12px;
   margin-bottom: 24px;
   padding: 16px;
-  background: #f9fafb;
+  @apply bg-gray-50;
   border-radius: 8px;
 }
 
 .filter-controls label {
   font-size: 14px;
   font-weight: 500;
-  color: #374151;
+  @apply text-gray-700;
 }
 
 .filter-controls select {
   padding: 8px 12px;
-  border: 1px solid #d1d5db;
+  @apply border border-gray-300;
   border-radius: 6px;
   font-size: 14px;
   background: white;
@@ -275,7 +275,7 @@ export default {
 
 .filter-controls select:focus {
   outline: none;
-  border-color: #3b82f6;
+  @apply border-primary-500;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
@@ -285,14 +285,14 @@ export default {
   align-items: center;
   justify-content: center;
   padding: 48px;
-  color: #6b7280;
+  @apply text-gray-500;
 }
 
 .spinner {
   width: 40px;
   height: 40px;
-  border: 3px solid #e5e7eb;
-  border-top-color: #3b82f6;
+  @apply border-[3px] border-gray-200;
+  @apply border-t-primary-500;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 16px;
@@ -311,28 +311,28 @@ export default {
   justify-content: center;
   padding: 48px;
   text-align: center;
-  background: #f9fafb;
+  @apply bg-gray-50;
   border-radius: 12px;
-  border: 2px dashed #e5e7eb;
+  @apply border-2 border-dashed border-gray-200;
 }
 
 .empty-icon {
   width: 48px;
   height: 48px;
-  color: #9ca3af;
+  @apply text-gray-400;
   margin-bottom: 16px;
 }
 
 .empty-state h3 {
   font-size: 18px;
   font-weight: 600;
-  color: #374151;
+  @apply text-gray-700;
   margin: 0 0 8px 0;
 }
 
 .empty-state p {
   font-size: 14px;
-  color: #6b7280;
+  @apply text-gray-500;
   margin: 0;
   max-width: 400px;
 }
@@ -345,7 +345,7 @@ export default {
 
 .log-item {
   background: white;
-  border: 1px solid #e5e7eb;
+  @apply border border-gray-200;
   border-radius: 12px;
   overflow: hidden;
 }
@@ -355,8 +355,8 @@ export default {
   justify-content: space-between;
   align-items: center;
   padding: 16px;
-  background: #f9fafb;
-  border-bottom: 1px solid #e5e7eb;
+  @apply bg-gray-50;
+  @apply border-b border-gray-200;
 }
 
 .log-meta {
@@ -373,23 +373,23 @@ export default {
 }
 
 .log-type.type-property {
-  background: #dbeafe;
-  color: #1d4ed8;
+  @apply bg-blue-100;
+  @apply text-blue-700;
 }
 
 .log-type.type-mortgage {
-  background: #fef3c7;
-  color: #b45309;
+  @apply bg-amber-100;
+  @apply text-amber-700;
 }
 
 .log-type.type-investment {
-  background: #d1fae5;
-  color: #047857;
+  @apply bg-green-100;
+  @apply text-green-700;
 }
 
 .log-type.type-savings {
-  background: #e0e7ff;
-  color: #4338ca;
+  @apply bg-indigo-100;
+  @apply text-indigo-700;
 }
 
 .log-action {
@@ -400,23 +400,23 @@ export default {
 }
 
 .log-action.update {
-  background: #fef3c7;
-  color: #b45309;
+  @apply bg-amber-100;
+  @apply text-amber-700;
 }
 
 .log-action.create {
-  background: #d1fae5;
-  color: #047857;
+  @apply bg-green-100;
+  @apply text-green-700;
 }
 
 .log-action.delete {
-  background: #fee2e2;
-  color: #b91c1c;
+  @apply bg-red-100;
+  @apply text-red-700;
 }
 
 .log-date {
   font-size: 13px;
-  color: #6b7280;
+  @apply text-gray-500;
 }
 
 .log-body {
@@ -428,19 +428,19 @@ export default {
   gap: 24px;
   margin-bottom: 12px;
   font-size: 14px;
-  color: #374151;
+  @apply text-gray-700;
 }
 
 .log-asset {
   font-size: 14px;
-  color: #374151;
+  @apply text-gray-700;
   margin-bottom: 16px;
 }
 
 .log-changes h4 {
   font-size: 14px;
   font-weight: 600;
-  color: #111827;
+  @apply text-gray-900;
   margin: 0 0 12px 0;
 }
 
@@ -454,25 +454,25 @@ export default {
 .changes-table td {
   padding: 10px 12px;
   text-align: left;
-  border-bottom: 1px solid #e5e7eb;
+  @apply border-b border-gray-200;
 }
 
 .changes-table th {
-  background: #f9fafb;
+  @apply bg-gray-50;
   font-weight: 600;
-  color: #374151;
+  @apply text-gray-700;
 }
 
 .field-name {
-  color: #6b7280;
+  @apply text-gray-500;
 }
 
 .before-value {
-  color: #dc2626;
+  @apply text-red-600;
 }
 
 .after-value {
-  color: #059669;
+  @apply text-green-600;
 }
 
 .error-state {
@@ -480,15 +480,15 @@ export default {
   flex-direction: column;
   align-items: center;
   padding: 24px;
-  background: #fef2f2;
+  @apply bg-red-50;
   border-radius: 8px;
-  color: #b91c1c;
+  @apply text-red-700;
 }
 
 .retry-button {
   margin-top: 12px;
   padding: 8px 16px;
-  background: #3b82f6;
+  @apply bg-primary-500;
   color: white;
   border: none;
   border-radius: 6px;
@@ -498,7 +498,7 @@ export default {
 }
 
 .retry-button:hover {
-  background: #2563eb;
+  @apply bg-blue-600;
 }
 
 /* Mobile responsive */

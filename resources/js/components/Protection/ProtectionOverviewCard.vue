@@ -467,13 +467,13 @@ export default {
 .card-title {
   font-size: 20px;
   font-weight: 600;
-  color: #1f2937;
+  @apply text-gray-800;
 }
 
 .card-icon {
   display: flex;
   align-items: center;
-  color: #9ca3af;
+  @apply text-gray-400;
 }
 
 /* Policy Sections Container */
@@ -499,7 +499,7 @@ export default {
 .section-breakdown + .section-breakdown {
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid #e5e7eb;
+  @apply border-t border-gray-200;
 }
 
 .section-header-with-badge {
@@ -512,7 +512,7 @@ export default {
 .section-header {
   font-size: 14px;
   font-weight: 600;
-  color: #374151;
+  @apply text-gray-700;
 }
 
 /* Policy Count Badges */
@@ -526,27 +526,19 @@ export default {
 }
 
 .policy-count-badge-blue {
-  background-color: #ffffff;
-  color: #1e40af;
-  border: 2px solid #2563eb;
+  @apply bg-white text-blue-800 border-2 border-blue-600;
 }
 
 .policy-count-badge-purple {
-  background-color: #ffffff;
-  color: #6b21a8;
-  border: 2px solid #7c3aed;
+  @apply bg-white text-purple-800 border-2 border-purple-600;
 }
 
 .policy-count-badge-teal {
-  background-color: #ffffff;
-  color: #115e59;
-  border: 2px solid #14b8a6;
+  @apply bg-white text-teal-800 border-2 border-teal-500;
 }
 
 .policy-count-badge-amber {
-  background-color: #ffffff;
-  color: #92400e;
-  border: 2px solid #f59e0b;
+  @apply bg-white text-amber-800 border-2 border-amber-500;
 }
 
 /* Policy List */
@@ -578,7 +570,7 @@ export default {
 
 .provider-name {
   font-weight: 600;
-  color: #111827;
+  @apply text-gray-900;
 }
 
 .joint-badge {
@@ -592,23 +584,23 @@ export default {
 }
 
 .joint-badge-blue {
-  background-color: #2563eb;
+  @apply bg-blue-600;
 }
 
 .joint-badge-purple {
-  background-color: #7c3aed;
+  @apply bg-purple-600;
 }
 
 .joint-badge-teal {
-  background-color: #14b8a6;
+  @apply bg-teal-500;
 }
 
 .joint-badge-amber {
-  background-color: #f59e0b;
+  @apply bg-amber-500;
 }
 
 .policy-details {
-  color: #6b7280;
+  @apply text-gray-500;
   font-size: 12px;
 }
 
@@ -619,30 +611,30 @@ export default {
 }
 
 .policy-premium-blue {
-  color: #1e40af;
+  @apply text-blue-800;
 }
 
 .policy-premium-purple {
-  color: #6b21a8;
+  @apply text-purple-800;
 }
 
 .policy-premium-teal {
-  color: #115e59;
+  @apply text-teal-800;
 }
 
 .policy-premium-amber {
-  color: #92400e;
+  @apply text-amber-800;
 }
 
 /* Shortfalls Section */
 .shortfalls-section {
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid #e5e7eb;
+  @apply border-t border-gray-200;
 }
 
 .shortfalls-header {
-  color: #dc2626;
+  @apply text-red-600;
   margin-bottom: 8px;
 }
 
@@ -673,10 +665,10 @@ export default {
   width: 18px;
   height: 18px;
   min-width: 18px;
-  background-color: #fef2f2;
-  border: 1px solid #fecaca;
+  @apply bg-red-50;
+  @apply border border-red-200;
   border-radius: 50%;
-  color: #dc2626;
+  @apply text-red-600;
   font-size: 11px;
   font-weight: 700;
   margin-top: 2px;
@@ -690,16 +682,16 @@ export default {
 
 .shortfall-label {
   font-weight: 600;
-  color: #374151;
+  @apply text-gray-700;
 }
 
 .shortfall-text {
-  color: #6b7280;
+  @apply text-gray-500;
   font-size: 12px;
 }
 
 .shortfall-amount {
-  color: #dc2626;
+  @apply text-red-600;
   font-size: 12px;
   font-weight: 500;
 }
@@ -708,7 +700,7 @@ export default {
 .status-banner {
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid #e5e7eb;
+  @apply border-t border-gray-200;
   display: flex;
   align-items: center;
   padding: 12px;
@@ -716,11 +708,11 @@ export default {
 }
 
 .status-banner-warning {
-  background-color: #f59e0b;
+  @apply bg-amber-500;
 }
 
 .status-banner-success {
-  background-color: #10b981;
+  @apply bg-green-500;
 }
 
 .status-icon {

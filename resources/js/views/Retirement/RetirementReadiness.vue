@@ -438,7 +438,7 @@ export default {
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
-  background: #3b82f6;
+  @apply bg-primary-500;
   color: white;
   border: none;
   border-radius: 8px;
@@ -458,8 +458,8 @@ export default {
   gap: 8px;
   padding: 10px 16px;
   background: white;
-  color: #3b82f6;
-  border: 2px solid #3b82f6;
+  @apply text-primary-500;
+  @apply border-2 border-primary-500;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 600;
@@ -502,7 +502,7 @@ export default {
 .pension-card:hover {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   transform: translateY(-2px);
-  border-color: #3b82f6;
+  border-@apply text-primary-500;
 }
 
 .card-header {
@@ -618,7 +618,7 @@ export default {
 
 .add-pension-button {
   padding: 12px 24px;
-  background: #3b82f6;
+  @apply bg-primary-500;
   color: white;
   border: none;
   border-radius: 8px;

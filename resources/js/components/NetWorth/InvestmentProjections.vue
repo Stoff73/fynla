@@ -207,6 +207,7 @@ import { mapState, mapGetters, mapActions } from 'vuex';
 import VueApexCharts from 'vue3-apexcharts';
 import InvestmentProjectionChart from '@/components/Investment/InvestmentProjectionChart.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { CHART_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'InvestmentProjections',
@@ -346,7 +347,7 @@ export default {
           toolbar: { show: false },
         },
         labels: labels,
-        colors: ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ec4899', '#6366f1'],
+        colors: CHART_COLORS,
         plotOptions: {
           pie: {
             donut: {
@@ -523,10 +524,10 @@ export default {
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
-  background: #f3f4f6;
+  @apply bg-gray-100;
   border: none;
   border-radius: 8px;
-  color: #374151;
+  @apply text-gray-700;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -535,8 +536,8 @@ export default {
 }
 
 .back-button:hover {
-  background: #e5e7eb;
-  color: #111827;
+  @apply bg-gray-200;
+  @apply text-gray-900;
 }
 
 .back-icon {
@@ -547,13 +548,13 @@ export default {
 .page-title {
   font-size: 28px;
   font-weight: 700;
-  color: #111827;
+  @apply text-gray-900;
   margin: 0 0 8px 0;
 }
 
 .page-subtitle {
   font-size: 16px;
-  color: #6b7280;
+  @apply text-gray-500;
   margin: 0;
 }
 
@@ -572,7 +573,7 @@ export default {
 .retry-button {
   margin-top: 16px;
   padding: 10px 20px;
-  background: #3b82f6;
+  @apply bg-primary-500;
   color: white;
   border: none;
   border-radius: 8px;
@@ -581,26 +582,26 @@ export default {
 }
 
 .retry-button:hover {
-  background: #2563eb;
+  @apply bg-blue-600;
 }
 
 .empty-icon {
   width: 64px;
   height: 64px;
-  color: #9ca3af;
+  @apply text-gray-400;
   margin-bottom: 16px;
 }
 
 .empty-text {
   font-size: 18px;
   font-weight: 600;
-  color: #6b7280;
+  @apply text-gray-500;
   margin: 0 0 8px 0;
 }
 
 .empty-subtext {
   font-size: 14px;
-  color: #9ca3af;
+  @apply text-gray-400;
   margin: 0;
 }
 
@@ -617,7 +618,7 @@ export default {
   background: white;
   border-radius: 12px;
   padding: 24px;
-  border: 1px solid #e5e7eb;
+  @apply border border-gray-200;
 }
 
 .chart-header {
@@ -630,7 +631,7 @@ export default {
 .chart-title {
   font-size: 18px;
   font-weight: 600;
-  color: #111827;
+  @apply text-gray-900;
   margin: 0;
 }
 
@@ -643,8 +644,8 @@ export default {
 .risk-badge-corner {
   display: inline-block;
   padding: 4px 10px;
-  background: #eff6ff;
-  color: #2563eb;
+  @apply bg-blue-50;
+  @apply text-blue-600;
   border-radius: 6px;
   font-size: 12px;
   font-weight: 600;
@@ -652,17 +653,17 @@ export default {
 
 .period-selector {
   padding: 6px 12px;
-  border: 1px solid #d1d5db;
+  @apply border border-gray-300;
   border-radius: 6px;
   font-size: 13px;
-  color: #374151;
+  @apply text-gray-700;
   background: white;
   cursor: pointer;
 }
 
 .period-selector:focus {
   outline: none;
-  border-color: #3b82f6;
+  @apply border-primary-500;
 }
 
 /* Summary Row - matching pension chart style exactly */
@@ -679,24 +680,24 @@ export default {
 }
 
 .summary-item.blue {
-  background: #eff6ff;
+  @apply bg-blue-50;
 }
 
 .summary-item.purple {
-  background: #f5f3ff;
+  @apply bg-purple-50;
 }
 
 .summary-item-label {
   display: block;
   font-size: 12px;
-  color: #6b7280;
+  @apply text-gray-500;
   margin-bottom: 4px;
 }
 
 .summary-item-value {
   font-size: 18px;
   font-weight: 700;
-  color: #111827;
+  @apply text-gray-900;
 }
 
 /* Analysis Panels */
@@ -711,7 +712,7 @@ export default {
   border-radius: 12px;
   padding: 16px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e5e7eb;
+  @apply border border-gray-200;
 }
 
 .clickable-card {
@@ -721,7 +722,7 @@ export default {
 
 .clickable-card:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  border-color: #3b82f6;
+  @apply border-primary-500;
 }
 
 .analysis-header {
@@ -734,7 +735,7 @@ export default {
 .analysis-title {
   font-size: 14px;
   font-weight: 600;
-  color: #111827;
+  @apply text-gray-900;
   margin: 0;
 }
 
@@ -746,23 +747,23 @@ export default {
 }
 
 .score-excellent {
-  background: #d1fae5;
-  color: #065f46;
+  @apply bg-green-100;
+  @apply text-green-800;
 }
 
 .score-good {
-  background: #dbeafe;
-  color: #1e40af;
+  @apply bg-blue-100;
+  @apply text-blue-800;
 }
 
 .score-fair {
-  background: #fef3c7;
-  color: #92400e;
+  @apply bg-amber-100;
+  @apply text-amber-800;
 }
 
 .score-poor {
-  background: #fee2e2;
-  color: #991b1b;
+  @apply bg-red-100;
+  @apply text-red-800;
 }
 
 .count-badge {
@@ -770,8 +771,8 @@ export default {
   border-radius: 4px;
   font-size: 12px;
   font-weight: 500;
-  background: #f3f4f6;
-  color: #374151;
+  @apply bg-gray-100;
+  @apply text-gray-700;
 }
 
 .fee-badge {
@@ -779,8 +780,8 @@ export default {
   border-radius: 4px;
   font-size: 12px;
   font-weight: 600;
-  background: #fef3c7;
-  color: #92400e;
+  @apply bg-amber-100;
+  @apply text-amber-800;
 }
 
 .analysis-content {
@@ -797,13 +798,13 @@ export default {
 
 .row-label {
   font-size: 13px;
-  color: #6b7280;
+  @apply text-gray-500;
 }
 
 .row-value {
   font-size: 13px;
   font-weight: 600;
-  color: #111827;
+  @apply text-gray-900;
 }
 
 .score-text {
@@ -834,7 +835,7 @@ export default {
 .no-allocation {
   text-align: center;
   padding: 16px;
-  color: #9ca3af;
+  @apply text-gray-400;
   font-size: 12px;
 }
 
@@ -853,13 +854,13 @@ export default {
 .section-title {
   font-size: 20px;
   font-weight: 600;
-  color: #111827;
+  @apply text-gray-900;
   margin: 0;
 }
 
 .section-subtitle {
   font-size: 14px;
-  color: #6b7280;
+  @apply text-gray-500;
   margin: 8px 0 24px 0;
 }
 
@@ -874,7 +875,7 @@ export default {
   border-radius: 12px;
   padding: 20px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e5e7eb;
+  @apply border border-gray-200;
 }
 
 .account-header {
@@ -887,7 +888,7 @@ export default {
 .account-name {
   font-size: 16px;
   font-weight: 600;
-  color: #111827;
+  @apply text-gray-900;
   margin: 0 0 8px 0;
 }
 
@@ -900,23 +901,23 @@ export default {
 }
 
 .badge-isa {
-  background: #d1fae5;
-  color: #065f46;
+  @apply bg-green-100;
+  @apply text-green-800;
 }
 
 .badge-gia {
-  background: #dbeafe;
-  color: #1e40af;
+  @apply bg-blue-100;
+  @apply text-blue-800;
 }
 
 .badge-sipp {
-  background: #e9d5ff;
-  color: #6b21a8;
+  @apply bg-purple-100;
+  @apply text-purple-800;
 }
 
 .badge-other {
-  background: #f3f4f6;
-  color: #374151;
+  @apply bg-gray-100;
+  @apply text-gray-700;
 }
 
 .account-value {
@@ -926,7 +927,7 @@ export default {
 .value-label {
   display: block;
   font-size: 11px;
-  color: #6b7280;
+  @apply text-gray-500;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -934,15 +935,14 @@ export default {
 .value-amount {
   font-size: 18px;
   font-weight: 700;
-  color: #111827;
+  @apply text-gray-900;
 }
 
 .account-stats {
   display: flex;
   gap: 24px;
   padding: 12px 0;
-  border-top: 1px solid #e5e7eb;
-  border-bottom: 1px solid #e5e7eb;
+  @apply border-t border-b border-gray-200;
   margin-bottom: 16px;
 }
 
@@ -954,13 +954,13 @@ export default {
 
 .stat-label {
   font-size: 12px;
-  color: #6b7280;
+  @apply text-gray-500;
 }
 
 .stat-value {
   font-size: 14px;
   font-weight: 600;
-  color: #111827;
+  @apply text-gray-900;
 }
 
 .account-chart {

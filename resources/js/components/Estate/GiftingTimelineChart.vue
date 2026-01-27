@@ -24,19 +24,19 @@
     <!-- Legend -->
     <div class="legend">
       <div class="legend-item">
-        <span class="legend-colour" style="background-color: #10b981;"></span>
+        <span class="legend-colour bg-green-600"></span>
         <span>Exempt gifts (spouse/charity) - immediately Inheritance Tax-free</span>
       </div>
       <div class="legend-item">
-        <span class="legend-colour" style="background-color: #ef4444;"></span>
+        <span class="legend-colour bg-red-500"></span>
         <span>Within 7 years (potentially taxable)</span>
       </div>
       <div class="legend-item">
-        <span class="legend-colour" style="background-color: #f59e0b;"></span>
+        <span class="legend-colour bg-amber-500"></span>
         <span>Years 3-7 (taper relief applies)</span>
       </div>
       <div class="legend-item">
-        <span class="legend-colour" style="background-color: #10b981;"></span>
+        <span class="legend-colour bg-green-600"></span>
         <span>Survived 7 years (Inheritance Tax-exempt)</span>
       </div>
     </div>
@@ -88,6 +88,7 @@
 <script>
 import VueApexCharts from 'vue3-apexcharts';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { SUCCESS_COLORS, WARNING_COLORS, ERROR_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'GiftingTimelineChart',
@@ -293,15 +294,15 @@ export default {
     getGiftColour(yearsElapsed, giftType) {
       // Exempt gifts (spouse, charity) are always green - immediately Inheritance Tax-free
       if (giftType === 'exempt') {
-        return '#10b981'; // Green - exempt
+        return SUCCESS_COLORS[500]; // Green - exempt
       }
 
       if (yearsElapsed >= 7) {
-        return '#10b981'; // Green - survived 7 years
+        return SUCCESS_COLORS[500]; // Green - survived 7 years
       } else if (yearsElapsed >= 3) {
-        return '#f59e0b'; // Amber - taper relief applies
+        return WARNING_COLORS[500]; // Amber - taper relief applies
       } else {
-        return '#ef4444'; // Red - full rate
+        return ERROR_COLORS[500]; // Red - full rate
       }
     },
 
@@ -369,13 +370,13 @@ export default {
 .chart-header h3 {
   font-size: 18px;
   font-weight: 600;
-  color: #1f2937;
+  @apply text-gray-900;
   margin: 0 0 8px 0;
 }
 
 .subtitle {
   font-size: 14px;
-  color: #6b7280;
+  @apply text-gray-500;
   margin: 0;
 }
 
@@ -386,18 +387,18 @@ export default {
 .empty-state {
   text-align: center;
   padding: 60px 20px;
-  color: #9ca3af;
+  @apply text-gray-400;
 }
 
 .empty-state i {
-  color: #d1d5db;
+  @apply text-gray-300;
   margin-bottom: 16px;
 }
 
 .empty-state p {
   margin: 8px 0;
   font-size: 16px;
-  color: #6b7280;
+  @apply text-gray-500;
 }
 
 .legend {
@@ -407,7 +408,7 @@ export default {
   justify-content: center;
   margin: 24px 0;
   padding: 16px;
-  background-color: #f9fafb;
+  @apply bg-gray-50;
   border-radius: 6px;
 }
 
@@ -416,7 +417,7 @@ export default {
   align-items: center;
   gap: 8px;
   font-size: 13px;
-  color: #374151;
+  @apply text-gray-700;
 }
 
 .legend-colour {
@@ -429,29 +430,22 @@ export default {
 .taper-relief-info {
   margin-top: 32px;
   padding-top: 24px;
-  border-top: 1px solid #e5e7eb;
+  @apply border-t border-gray-200;
 }
 
 .taper-relief-info h4 {
   font-size: 16px;
   font-weight: 600;
-  color: #1f2937;
+  @apply text-gray-900;
   margin: 0 0 12px 0;
 }
 
 .relief-note {
-  font-size: 14px;
-  color: #374151;
-  background-color: #f0fdf4;
-  border-left: 4px solid #10b981;
-  padding: 12px;
-  margin-bottom: 16px;
-  border-radius: 4px;
-  line-height: 1.6;
+  @apply text-sm text-gray-700 bg-green-50 border-l-4 border-green-600 p-3 mb-4 rounded leading-relaxed;
 }
 
 .relief-note strong {
-  color: #065f46;
+  @apply text-green-800;
 }
 
 .relief-table {
@@ -461,34 +455,34 @@ export default {
 }
 
 .relief-table thead {
-  background-color: #f3f4f6;
+  @apply bg-gray-100;
 }
 
 .relief-table th {
   padding: 12px;
   text-align: left;
   font-weight: 600;
-  color: #374151;
-  border-bottom: 2px solid #e5e7eb;
+  @apply text-gray-700;
+  @apply border-b-2 border-gray-200;
 }
 
 .relief-table td {
   padding: 12px;
-  color: #6b7280;
-  border-bottom: 1px solid #e5e7eb;
+  @apply text-gray-500;
+  @apply border-b border-gray-200;
 }
 
 .relief-table tbody tr:hover {
-  background-color: #f9fafb;
+  @apply bg-gray-50;
 }
 
 .relief-table tbody tr.highlight {
-  background-color: #d1fae5;
+  @apply bg-green-100;
   font-weight: 600;
 }
 
 .relief-table tbody tr.highlight td {
-  color: #065f46;
+  @apply text-green-800;
 }
 </style>
 
@@ -503,12 +497,12 @@ export default {
 }
 
 .tooltip-header {
-  background-color: #f3f4f6;
+  @apply bg-gray-100;
   padding: 12px 16px;
-  border-bottom: 1px solid #e5e7eb;
+  @apply border-b border-gray-200;
   border-radius: 6px 6px 0 0;
   font-size: 14px;
-  color: #1f2937;
+  @apply text-gray-900;
 }
 
 .tooltip-body {
@@ -523,16 +517,16 @@ export default {
 }
 
 .tooltip-row span {
-  color: #6b7280;
+  @apply text-gray-500;
 }
 
 .tooltip-row strong {
-  color: #1f2937;
+  @apply text-gray-900;
 }
 
 .tooltip-row.highlight {
   margin-top: 8px;
   padding-top: 8px;
-  border-top: 1px solid #e5e7eb;
+  @apply border-t border-gray-200;
 }
 </style>

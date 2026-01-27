@@ -271,19 +271,19 @@ export default {
   text-align: center;
   margin-bottom: 24px;
   padding-bottom: 16px;
-  border-bottom: 2px solid #e5e7eb;
+  @apply border-b-2 border-gray-200;
 }
 
 .tracker-header h3 {
   font-size: 20px;
   font-weight: 600;
-  color: #1f2937;
+  @apply text-gray-900;
   margin: 0 0 4px 0;
 }
 
 .subtitle {
   font-size: 13px;
-  color: #6b7280;
+  @apply text-gray-500;
   margin: 0;
 }
 
@@ -307,12 +307,12 @@ export default {
 .allowance-title h4 {
   font-size: 15px;
   font-weight: 600;
-  color: #374151;
+  @apply text-gray-700;
   margin: 0;
 }
 
 .info-icon {
-  color: #9ca3af;
+  @apply text-gray-400;
   cursor: help;
   font-size: 14px;
 }
@@ -323,21 +323,21 @@ export default {
 }
 
 .used {
-  color: #ef4444;
+  @apply text-red-500;
 }
 
 .separator {
-  color: #9ca3af;
+  @apply text-gray-400;
   margin: 0 4px;
 }
 
 .total {
-  color: #6b7280;
+  @apply text-gray-500;
 }
 
 .progress-bar-container {
   height: 24px;
-  background-color: #f3f4f6;
+  @apply bg-gray-100;
   border-radius: 12px;
   overflow: hidden;
   position: relative;
@@ -354,19 +354,19 @@ export default {
 }
 
 .progress-good {
-  background: linear-gradient(90deg, #10b981, #059669);
+  @apply bg-gradient-to-r from-green-500 to-green-600;
 }
 
 .progress-warning {
-  background: linear-gradient(90deg, #f59e0b, #d97706);
+  @apply bg-gradient-to-r from-amber-500 to-amber-600;
 }
 
 .progress-critical {
-  background: linear-gradient(90deg, #ef4444, #dc2626);
+  @apply bg-gradient-to-r from-red-500 to-red-600;
 }
 
 .progress-disabled {
-  background: #d1d5db;
+  @apply bg-gray-300;
 }
 
 .progress-label {
@@ -384,7 +384,7 @@ export default {
 }
 
 .remaining {
-  color: #6b7280;
+  @apply text-gray-500;
   font-weight: 500;
 }
 
@@ -399,22 +399,22 @@ export default {
 }
 
 .badge-info {
-  background-color: #dbeafe;
-  color: #1e40af;
+  @apply bg-blue-100;
+  @apply text-blue-800;
 }
 
 .badge-warning {
-  background-color: #fef3c7;
-  color: #92400e;
+  @apply bg-amber-100;
+  @apply text-amber-800;
 }
 
 .badge-error {
-  background-color: #fee2e2;
-  color: #991b1b;
+  @apply bg-red-100;
+  @apply text-red-800;
 }
 
 .combined-summary {
-  background-color: #f9fafb;
+  @apply bg-gray-50;
   border-radius: 8px;
   padding: 16px;
   margin-top: 24px;
@@ -430,11 +430,11 @@ export default {
 .summary-row.highlight {
   margin-top: 8px;
   padding-top: 12px;
-  border-top: 1px solid #e5e7eb;
+  @apply border-t border-gray-200;
 }
 
 .summary-row .label {
-  color: #6b7280;
+  @apply text-gray-500;
   font-weight: 500;
 }
 
@@ -443,12 +443,12 @@ export default {
 }
 
 .total-value {
-  color: #1f2937;
+  @apply text-gray-900;
   font-size: 15px;
 }
 
 .used-value {
-  color: #ef4444;
+  @apply text-red-500;
 }
 
 .taxable-value {
@@ -456,11 +456,7 @@ export default {
 }
 
 .eligibility-notes {
-  margin-top: 20px;
-  padding: 16px;
-  background-color: #fffbeb;
-  border-left: 4px solid #f59e0b;
-  border-radius: 4px;
+  @apply mt-5 p-4 bg-amber-50 border-l-4 border-amber-500 rounded;
 }
 
 .note-header {
@@ -468,7 +464,7 @@ export default {
   align-items: center;
   gap: 8px;
   font-weight: 600;
-  color: #92400e;
+  @apply text-amber-800;
   margin-bottom: 12px;
   font-size: 14px;
 }
@@ -481,7 +477,7 @@ export default {
 
 .eligibility-notes li {
   font-size: 13px;
-  color: #78350f;
+  @apply text-amber-900;
   margin-bottom: 6px;
   line-height: 1.5;
 }

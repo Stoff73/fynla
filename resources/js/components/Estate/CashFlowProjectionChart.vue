@@ -93,6 +93,7 @@
 <script>
 import VueApexCharts from 'vue3-apexcharts';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { SUCCESS_COLORS, ERROR_COLORS, PRIMARY_COLORS, BORDER_COLORS, TEXT_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'CashFlowProjectionChart',
@@ -228,12 +229,12 @@ export default {
                 {
                   from: -Infinity,
                   to: 0,
-                  color: '#ef4444',
+                  color: ERROR_COLORS[500],
                 },
                 {
                   from: 0,
                   to: Infinity,
-                  color: '#10b981',
+                  color: SUCCESS_COLORS[500],
                 },
               ],
             },
@@ -247,7 +248,7 @@ export default {
           offsetY: -25,
           style: {
             fontSize: '11px',
-            colours: ['#374151'],
+            colours: [TEXT_COLORS.secondary],
             fontWeight: 600,
           },
         },
@@ -308,9 +309,9 @@ export default {
             },
           },
         },
-        colours: ['#10b981', '#3b82f6'],
+        colours: [SUCCESS_COLORS[500], PRIMARY_COLORS[500]],
         grid: {
-          borderColour: '#e5e7eb',
+          borderColour: BORDER_COLORS.default,
           strokeDashArray: 4,
         },
       };
@@ -365,13 +366,13 @@ export default {
 .chart-header h3 {
   font-size: 18px;
   font-weight: 600;
-  color: #1f2937;
+  @apply text-gray-800;
   margin: 0 0 8px 0;
 }
 
 .subtitle {
   font-size: 14px;
-  color: #6b7280;
+  @apply text-gray-500;
   margin: 0;
 }
 
@@ -381,7 +382,7 @@ export default {
   gap: 32px;
   margin-bottom: 24px;
   padding: 16px;
-  background-color: #f9fafb;
+  @apply bg-gray-50;
   border-radius: 6px;
 }
 
@@ -394,14 +395,14 @@ export default {
 .control-group label {
   font-size: 13px;
   font-weight: 500;
-  color: #374151;
+  @apply text-gray-700;
   white-space: nowrap;
 }
 
 .form-control-sm {
   padding: 6px 10px;
   font-size: 13px;
-  border: 1px solid #d1d5db;
+  @apply border border-gray-300;
   border-radius: 4px;
   background-color: white;
   cursor: pointer;
@@ -409,7 +410,7 @@ export default {
 
 .form-control-sm:focus {
   outline: none;
-  border-color: #3b82f6;
+  @apply border-primary-500;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
@@ -420,18 +421,18 @@ export default {
 .empty-state {
   text-align: center;
   padding: 80px 20px;
-  color: #9ca3af;
+  @apply text-gray-400;
 }
 
 .empty-state i {
-  color: #d1d5db;
+  @apply text-gray-300;
   margin-bottom: 16px;
 }
 
 .empty-state p {
   margin: 8px 0;
   font-size: 16px;
-  color: #6b7280;
+  @apply text-gray-500;
 }
 
 .summary-cards {
@@ -446,9 +447,9 @@ export default {
   align-items: center;
   gap: 16px;
   padding: 20px;
-  background-color: #f9fafb;
+  @apply bg-gray-50;
   border-radius: 8px;
-  border: 1px solid #e5e7eb;
+  @apply border border-gray-200;
 }
 
 .card-icon {
@@ -462,13 +463,13 @@ export default {
 }
 
 .card-icon.positive {
-  background-color: #d1fae5;
-  color: #059669;
+  @apply bg-green-100;
+  @apply text-green-600;
 }
 
 .card-icon.negative {
-  background-color: #fee2e2;
-  color: #dc2626;
+  @apply bg-red-100;
+  @apply text-red-600;
 }
 
 .card-content {
@@ -480,7 +481,7 @@ export default {
 
 .card-label {
   font-size: 13px;
-  color: #6b7280;
+  @apply text-gray-500;
   font-weight: 500;
 }
 
@@ -490,11 +491,11 @@ export default {
 }
 
 .card-value.positive {
-  color: #059669;
+  @apply text-green-600;
 }
 
 .card-value.negative {
-  color: #dc2626;
+  @apply text-red-600;
 }
 
 @media (max-width: 768px) {

@@ -1095,7 +1095,7 @@ export default {
 .pension-card {
   background: white;
   border-radius: 12px;
-  border: 1px solid #e5e7eb;
+  @apply border border-gray-200;
   padding: 20px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -1104,7 +1104,7 @@ export default {
 .pension-card:hover {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   transform: translateY(-2px);
-  border-color: #3b82f6;
+  @apply border-primary-500;
 }
 
 .card-header {
@@ -1125,18 +1125,18 @@ export default {
 }
 
 .badge-dc {
-  background: #dbeafe;
-  color: #1e40af;
+  @apply bg-blue-100;
+  @apply text-blue-800;
 }
 
 .badge-db {
-  background: #e9d5ff;
-  color: #6b21a8;
+  @apply bg-purple-100;
+  @apply text-purple-800;
 }
 
 .badge-state {
-  background: #d1fae5;
-  color: #065f46;
+  @apply bg-green-100;
+  @apply text-green-800;
 }
 
 .card-content {
@@ -1148,14 +1148,14 @@ export default {
 .pension-scheme {
   font-size: 18px;
   font-weight: 700;
-  color: #111827;
+  @apply text-gray-900;
   margin: 0;
   line-height: 1.3;
 }
 
 .pension-provider-text {
   font-size: 14px;
-  color: #6b7280;
+  @apply text-gray-500;
   margin: 0;
   min-height: 20px;
 }
@@ -1165,7 +1165,7 @@ export default {
   flex-direction: column;
   margin-top: 4px;
   padding-top: 12px;
-  border-top: 1px solid #e5e7eb;
+  @apply border-t border-gray-200;
 }
 
 .value-rows {
@@ -1182,13 +1182,13 @@ export default {
 
 .detail-label {
   font-size: 14px;
-  color: #6b7280;
+  @apply text-gray-500;
   font-weight: 500;
 }
 
 .detail-value {
   font-size: 16px;
-  color: #111827;
+  @apply text-gray-900;
   font-weight: 700;
 }
 
@@ -1202,7 +1202,7 @@ export default {
 .account-card {
   background: white;
   border-radius: 12px;
-  border: 1px solid #e5e7eb;
+  @apply border border-gray-200;
   padding: 20px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -1211,7 +1211,7 @@ export default {
 .account-card:hover {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   transform: translateY(-2px);
-  border-color: #3b82f6;
+  @apply border-primary-500;
 }
 
 .ownership-badge {
@@ -1229,25 +1229,25 @@ export default {
 }
 
 .badge-emergency {
-  background: #d1fae5;
-  color: #065f46;
+  @apply bg-green-100;
+  @apply text-green-800;
 }
 
 .badge-isa {
-  background: #dbeafe;
-  color: #1e40af;
+  @apply bg-blue-100;
+  @apply text-blue-800;
 }
 
 .account-institution {
   font-size: 18px;
   font-weight: 700;
-  color: #111827;
+  @apply text-gray-900;
   margin: 0;
 }
 
 .account-type {
   font-size: 14px;
-  color: #6b7280;
+  @apply text-gray-500;
   margin: 0;
   min-height: 20px;
 }
@@ -1258,11 +1258,11 @@ export default {
   gap: 10px;
   margin-top: 4px;
   padding-top: 12px;
-  border-top: 1px solid #e5e7eb;
+  @apply border-t border-gray-200;
 }
 
 .detail-value.interest {
-  color: #10b981;
+  @apply text-green-500;
 }
 
 @media (max-width: 768px) {

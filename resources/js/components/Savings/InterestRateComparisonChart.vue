@@ -10,6 +10,8 @@
 </template>
 
 <script>
+import { PRIMARY_COLORS, SUCCESS_COLORS, TEXT_COLORS } from '@/constants/designSystem';
+
 export default {
   name: 'InterestRateComparisonChart',
 
@@ -61,7 +63,7 @@ export default {
           offsetY: -20,
           style: {
             fontSize: '12px',
-            colours: ['#304758'],
+            colours: [TEXT_COLORS.secondary],
           },
         },
         stroke: {
@@ -103,7 +105,7 @@ export default {
           floating: false,
           fontSize: '14px',
         },
-        colours: ['#3b82f6', '#10b981'],
+        colours: [PRIMARY_COLORS[500], SUCCESS_COLORS[500]],
       };
     },
 

@@ -143,18 +143,18 @@ export default {
 }
 
 .strategy-disclaimer.info {
-  background-color: #eff6ff;
-  border: 1px solid #bfdbfe;
+  @apply bg-blue-50;
+  @apply border border-blue-200;
 }
 
 .strategy-disclaimer.warning {
-  background-color: #fefce8;
-  border: 1px solid #fde047;
+  @apply bg-yellow-50;
+  @apply border border-amber-300;
 }
 
 .strategy-disclaimer.important {
-  background-color: #fef2f2;
-  border: 1px solid #fecaca;
+  @apply bg-red-50;
+  @apply border border-red-200;
 }
 
 .disclaimer-content {
@@ -167,15 +167,15 @@ export default {
 }
 
 .strategy-disclaimer.info .disclaimer-icon {
-  color: #3b82f6;
+  @apply text-primary-500;
 }
 
 .strategy-disclaimer.warning .disclaimer-icon {
-  color: #eab308;
+  @apply text-amber-500;
 }
 
 .strategy-disclaimer.important .disclaimer-icon {
-  color: #ef4444;
+  @apply text-red-500;
 }
 
 .disclaimer-text {
@@ -189,15 +189,15 @@ export default {
 }
 
 .strategy-disclaimer.info .disclaimer-title {
-  color: #1e40af;
+  @apply text-blue-800;
 }
 
 .strategy-disclaimer.warning .disclaimer-title {
-  color: #854d0e;
+  @apply text-amber-800;
 }
 
 .strategy-disclaimer.important .disclaimer-title {
-  color: #991b1b;
+  @apply text-red-800;
 }
 
 .disclaimer-body {
@@ -206,15 +206,15 @@ export default {
 }
 
 .strategy-disclaimer.info .disclaimer-body {
-  color: #1e3a5f;
+  @apply text-blue-900;
 }
 
 .strategy-disclaimer.warning .disclaimer-body {
-  color: #713f12;
+  @apply text-amber-900;
 }
 
 .strategy-disclaimer.important .disclaimer-body {
-  color: #7f1d1d;
+  @apply text-red-900;
 }
 
 .dismiss-button {
@@ -233,14 +233,14 @@ export default {
 }
 
 .strategy-disclaimer.info .dismiss-button {
-  color: #3b82f6;
+  @apply text-primary-500;
 }
 
 .strategy-disclaimer.warning .dismiss-button {
-  color: #eab308;
+  @apply text-amber-500;
 }
 
 .strategy-disclaimer.important .dismiss-button {
-  color: #ef4444;
+  @apply text-red-500;
 }
 </style>

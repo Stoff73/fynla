@@ -358,20 +358,20 @@ export default {
   justify-content: space-between;
   align-items: center;
   padding: 24px;
-  border-bottom: 1px solid #e5e7eb;
+  @apply border-b border-gray-200;
 }
 
 .modal-title {
   font-size: 20px;
   font-weight: 700;
-  color: #111827;
+  @apply text-gray-900;
   margin: 0;
 }
 
 .close-button {
   background: none;
   border: none;
-  color: #6b7280;
+  @apply text-gray-500;
   cursor: pointer;
   padding: 4px;
   border-radius: 6px;
@@ -379,8 +379,8 @@ export default {
 }
 
 .close-button:hover {
-  background: #f3f4f6;
-  color: #111827;
+  @apply bg-gray-100;
+  @apply text-gray-900;
 }
 
 .modal-body {
@@ -395,7 +395,7 @@ export default {
   display: block;
   font-size: 14px;
   font-weight: 600;
-  color: #374151;
+  @apply text-gray-700;
   margin-bottom: 6px;
 }
 
@@ -404,10 +404,10 @@ export default {
 .form-textarea {
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid #d1d5db;
+  @apply border border-gray-300;
   border-radius: 8px;
   font-size: 14px;
-  color: #111827;
+  @apply text-gray-900;
   transition: all 0.2s;
 }
 
@@ -415,8 +415,8 @@ export default {
 .input-field:focus,
 .form-textarea:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  @apply border-primary-500;
+  @apply ring-2 ring-primary-500/20;
 }
 
 .form-textarea {
@@ -426,7 +426,7 @@ export default {
 
 .error-message {
   display: block;
-  color: #ef4444;
+  @apply text-red-500;
   font-size: 12px;
   margin-top: 4px;
 }
@@ -437,7 +437,7 @@ export default {
   gap: 12px;
   margin-top: 24px;
   padding-top: 20px;
-  border-top: 1px solid #e5e7eb;
+  @apply border-t border-gray-200;
 }
 
 .btn-primary,
@@ -452,28 +452,28 @@ export default {
 }
 
 .btn-primary {
-  background: #3b82f6;
+  @apply bg-primary-500;
   color: white;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #2563eb;
+  @apply bg-blue-600;
 }
 
 .btn-primary:disabled {
-  background: #9ca3af;
+  @apply bg-gray-400;
   cursor: not-allowed;
 }
 
 .btn-secondary {
   background: white;
-  color: #374151;
-  border: 1px solid #d1d5db;
+  @apply text-gray-700;
+  @apply border border-gray-300;
 }
 
 .btn-secondary:hover {
-  background: #f9fafb;
-  border-color: #9ca3af;
+  @apply bg-gray-50;
+  @apply border-gray-400;
 }
 
 @media (max-width: 640px) {

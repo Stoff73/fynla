@@ -490,7 +490,7 @@ input[type="range"]::-webkit-slider-thumb {
   appearance: none;
   width: 20px;
   height: 20px;
-  background: #2563eb;
+  @apply bg-blue-600;
   cursor: pointer;
   border-radius: 50%;
 }
@@ -498,7 +498,7 @@ input[type="range"]::-webkit-slider-thumb {
 input[type="range"]::-moz-range-thumb {
   width: 20px;
   height: 20px;
-  background: #2563eb;
+  @apply bg-blue-600;
   cursor: pointer;
   border-radius: 50%;
   border: none;

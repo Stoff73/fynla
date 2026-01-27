@@ -713,7 +713,7 @@ export default {
 .list-title {
   font-size: 24px;
   font-weight: 700;
-  color: #111827;
+  @apply text-gray-900;
   margin: 0;
 }
 
@@ -722,8 +722,8 @@ export default {
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
-  background: #eff6ff;
-  color: #2563eb;
+  @apply bg-blue-50;
+  @apply text-blue-600;
   border-radius: 8px;
   font-size: 13px;
   font-weight: 500;
@@ -732,7 +732,7 @@ export default {
 }
 
 .risk-profile-link:hover {
-  background: #dbeafe;
+  @apply bg-blue-100;
 }
 
 .risk-icon {
@@ -750,7 +750,7 @@ export default {
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
-  background: #3b82f6;
+  @apply bg-primary-500;
   color: white;
   border: none;
   border-radius: 8px;
@@ -761,7 +761,7 @@ export default {
 }
 
 .add-pension-button:hover {
-  background: #2563eb;
+  @apply bg-blue-600;
 }
 
 .upload-button {
@@ -770,8 +770,8 @@ export default {
   gap: 8px;
   padding: 10px 16px;
   background: white;
-  color: #3b82f6;
-  border: 2px solid #3b82f6;
+  @apply text-primary-500;
+  @apply border-2 border-primary-500;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 600;
@@ -780,7 +780,7 @@ export default {
 }
 
 .upload-button:hover {
-  background: #eff6ff;
+  @apply bg-blue-50;
 }
 
 .button-icon {
@@ -799,7 +799,7 @@ export default {
 .pension-card-standalone {
   position: relative;
   background: white;
-  border: 1px solid #e5e7eb;
+  @apply border border-gray-200;
   border-radius: 8px;
   padding: 12px;
   cursor: pointer;
@@ -816,20 +816,20 @@ export default {
 
 .pension-card-standalone:hover {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-  border-color: #3b82f6;
+  @apply border-primary-500;
 }
 
 /* Empty Standalone State */
 .empty-standalone {
   background: white;
-  border: 2px dashed #d1d5db;
+  @apply border-2 border-dashed border-gray-300;
   border-radius: 12px;
   padding: 32px 20px;
   text-align: center;
 }
 
 .empty-standalone p {
-  color: #6b7280;
+  @apply text-gray-500;
   font-size: 14px;
   margin: 0 0 12px 0;
 }
@@ -850,18 +850,18 @@ export default {
 }
 
 .income-card-standalone.target {
-  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-  border: 1px solid #bfdbfe;
+  background: linear-gradient(135deg, theme('colors.blue.50') 0%, theme('colors.blue.100') 100%);
+  @apply border border-blue-200;
 }
 
 .income-card-standalone.surplus {
-  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
-  border: 1px solid #a7f3d0;
+  background: linear-gradient(135deg, theme('colors.green.50') 0%, theme('colors.green.100') 100%);
+  @apply border border-green-200;
 }
 
 .income-card-standalone.shortfall {
-  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
-  border: 1px solid #fecaca;
+  background: linear-gradient(135deg, theme('colors.red.50') 0%, theme('colors.red.100') 100%);
+  @apply border border-red-200;
 }
 
 .income-card-divider {
@@ -873,7 +873,7 @@ export default {
 .income-card-value-secondary {
   font-size: 20px;
   font-weight: 700;
-  color: #1e40af;
+  @apply text-blue-800;
 }
 
 .depletion-warning-standalone {
@@ -881,8 +881,8 @@ export default {
   align-items: center;
   gap: 10px;
   padding: 12px 16px;
-  background: #fef3c7;
-  border: 1px solid #fde68a;
+  @apply bg-amber-100;
+  @apply border border-amber-200;
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
@@ -890,13 +890,13 @@ export default {
 .depletion-warning-standalone svg {
   width: 20px;
   height: 20px;
-  color: #b45309;
+  @apply text-amber-700;
   flex-shrink: 0;
 }
 
 .depletion-warning-standalone span {
   font-size: 13px;
-  color: #92400e;
+  @apply text-amber-800;
   font-weight: 500;
 }
 
@@ -919,18 +919,18 @@ export default {
 }
 
 .badge-dc {
-  background: #dbeafe;
-  color: #1e40af;
+  @apply bg-blue-100;
+  @apply text-blue-800;
 }
 
 .badge-db {
-  background: #e9d5ff;
-  color: #6b21a8;
+  @apply bg-purple-100;
+  @apply text-purple-800;
 }
 
 .badge-state {
-  background: #d1fae5;
-  color: #065f46;
+  @apply bg-green-100;
+  @apply text-green-800;
 }
 
 /* Card Content - matches investment cards */
@@ -943,7 +943,7 @@ export default {
 .pension-provider {
   font-size: 14px;
   font-weight: 600;
-  color: #111827;
+  @apply text-gray-900;
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -957,7 +957,7 @@ export default {
   gap: 4px;
   margin-top: 6px;
   padding-top: 8px;
-  border-top: 1px solid #e5e7eb;
+  @apply border-t border-gray-200;
 }
 
 .detail-row {
@@ -968,12 +968,12 @@ export default {
 
 .detail-label {
   font-size: 11px;
-  color: #6b7280;
+  @apply text-gray-500;
 }
 
 .detail-value {
   font-size: 13px;
-  color: #111827;
+  @apply text-gray-900;
   font-weight: 600;
 }
 
@@ -981,19 +981,19 @@ export default {
 .empty-compact {
   text-align: center;
   padding: 24px 16px;
-  background: #f9fafb;
+  @apply bg-gray-50;
   border-radius: 8px;
-  border: 2px dashed #d1d5db;
+  @apply border-2 border-dashed border-gray-300;
 }
 
 .empty-compact p {
-  color: #6b7280;
+  @apply text-gray-500;
   font-size: 14px;
   margin: 0 0 12px 0;
 }
 
 .add-first-btn {
-  background: #3b82f6;
+  @apply bg-primary-500;
   color: white;
   border: none;
   padding: 8px 16px;
@@ -1004,7 +1004,7 @@ export default {
 }
 
 .add-first-btn:hover {
-  background: #2563eb;
+  @apply bg-blue-600;
 }
 
 /* Center Panel - Projections */
@@ -1016,14 +1016,13 @@ export default {
   padding: 80px 20px;
   background: white;
   border-radius: 12px;
-  border: 1px solid #e5e7eb;
+  @apply border border-gray-200;
 }
 
 .spinner {
   width: 48px;
   height: 48px;
-  border: 3px solid #e5e7eb;
-  border-top-color: #3b82f6;
+  @apply border-3 border-gray-200 border-t-primary-500;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 16px;
@@ -1034,7 +1033,7 @@ export default {
 }
 
 .projection-loading p {
-  color: #6b7280;
+  @apply text-gray-500;
   font-size: 16px;
   margin: 0;
 }
@@ -1044,7 +1043,7 @@ export default {
   padding: 80px 40px;
   background: white;
   border-radius: 12px;
-  border: 2px dashed #d1d5db;
+  @apply border-2 border-dashed border-gray-300;
 }
 
 /* Full-width Empty State - matches investment list */
@@ -1053,11 +1052,11 @@ export default {
   padding: 80px 40px;
   background: white;
   border-radius: 12px;
-  border: 2px dashed #d1d5db;
+  @apply border-2 border-dashed border-gray-300;
 }
 
 .empty-state p {
-  color: #6b7280;
+  @apply text-gray-500;
   font-size: 18px;
   font-weight: 600;
   margin: 0 0 8px 0;
@@ -1066,19 +1065,19 @@ export default {
 .empty-icon {
   width: 64px;
   height: 64px;
-  color: #9ca3af;
+  @apply text-gray-400;
   margin: 0 auto 16px;
 }
 
 .empty-projections p {
-  color: #6b7280;
+  @apply text-gray-500;
   font-size: 18px;
   font-weight: 600;
   margin: 0 0 8px 0;
 }
 
 .empty-subtitle {
-  color: #9ca3af;
+  @apply text-gray-400;
   font-size: 14px;
   font-weight: 400;
 }
@@ -1099,7 +1098,7 @@ export default {
   background: white;
   border-radius: 12px;
   padding: 24px;
-  border: 1px solid #e5e7eb;
+  @apply border border-gray-200;
 }
 
 .chart-header {
@@ -1112,15 +1111,15 @@ export default {
 .chart-title {
   font-size: 18px;
   font-weight: 600;
-  color: #111827;
+  @apply text-gray-900;
   margin: 0;
 }
 
 .risk-badge-corner {
   display: inline-block;
   padding: 4px 10px;
-  background: #eff6ff;
-  color: #2563eb;
+  @apply bg-blue-50;
+  @apply text-blue-600;
   border-radius: 6px;
   font-size: 12px;
   font-weight: 600;
@@ -1128,7 +1127,7 @@ export default {
 
 .chart-footer {
   font-size: 13px;
-  color: #6b7280;
+  @apply text-gray-500;
   text-align: center;
   margin: 16px 0 0 0;
 }
@@ -1137,7 +1136,7 @@ export default {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: #3b82f6;
+  @apply text-primary-500;
   font-size: 14px;
   font-weight: 500;
 }
@@ -1148,7 +1147,7 @@ export default {
 }
 
 .view-more-small {
-  color: #9ca3af;
+  @apply text-gray-400;
 }
 
 .view-more-small svg {
@@ -1157,7 +1156,7 @@ export default {
 }
 
 .clickable:hover .view-more-small {
-  color: #3b82f6;
+  @apply text-primary-500;
 }
 
 /* Summary Row */
@@ -1174,36 +1173,36 @@ export default {
 }
 
 .summary-item.blue {
-  background: #eff6ff;
+  @apply bg-blue-50;
 }
 
 .summary-item.purple {
-  background: #f5f3ff;
+  @apply bg-purple-50;
 }
 
 .summary-item.green {
-  background: #ecfdf5;
+  @apply bg-green-50;
 }
 
 .summary-item.amber {
-  background: #fffbeb;
+  @apply bg-amber-50;
 }
 
 .summary-item.red {
-  background: #fef2f2;
+  @apply bg-red-50;
 }
 
 .summary-item-label {
   display: block;
   font-size: 12px;
-  color: #6b7280;
+  @apply text-gray-500;
   margin-bottom: 4px;
 }
 
 .summary-item-value {
   font-size: 18px;
   font-weight: 700;
-  color: #111827;
+  @apply text-gray-900;
 }
 
 /* Strategies Section - Full Width */
@@ -1211,7 +1210,7 @@ export default {
   background: white;
   border-radius: 12px;
   padding: 24px;
-  border: 1px solid #e5e7eb;
+  @apply border border-gray-200;
   margin-top: 24px;
 }
 
@@ -1229,13 +1228,13 @@ export default {
 .strategies-title {
   font-size: 18px;
   font-weight: 600;
-  color: #111827;
+  @apply text-gray-900;
   margin: 0 0 4px 0;
 }
 
 .strategies-subtitle {
   font-size: 14px;
-  color: #6b7280;
+  @apply text-gray-500;
   margin: 0;
 }
 
@@ -1243,7 +1242,7 @@ export default {
   display: flex;
   align-items: center;
   gap: 12px;
-  color: #6b7280;
+  @apply text-gray-500;
   font-size: 14px;
   padding: 20px;
 }
@@ -1251,8 +1250,7 @@ export default {
 .spinner-small {
   width: 20px;
   height: 20px;
-  border: 2px solid #e5e7eb;
-  border-top-color: #3b82f6;
+  @apply border-2 border-gray-200 border-t-primary-500;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -1263,20 +1261,13 @@ export default {
   align-items: center;
   gap: 16px;
   padding: 20px;
-  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
-  border: 1px solid #fde68a;
+  background: linear-gradient(135deg, theme('colors.amber.50') 0%, theme('colors.amber.100') 100%);
+  @apply border border-amber-200;
   border-radius: 10px;
 }
 
 .dob-required-icon {
-  width: 48px;
-  height: 48px;
-  background: #f59e0b;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
+  @apply w-12 h-12 bg-amber-500 rounded-full flex items-center justify-center flex-shrink-0;
 }
 
 .dob-required-icon svg {
@@ -1288,13 +1279,13 @@ export default {
 .dob-required-text h4 {
   font-size: 16px;
   font-weight: 700;
-  color: #92400e;
+  @apply text-amber-800;
   margin: 0 0 4px 0;
 }
 
 .dob-required-text p {
   font-size: 14px;
-  color: #b45309;
+  @apply text-amber-700;
   margin: 0;
 }
 
@@ -1303,20 +1294,13 @@ export default {
   align-items: center;
   gap: 16px;
   padding: 20px;
-  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
-  border: 1px solid #a7f3d0;
+  background: linear-gradient(135deg, theme('colors.green.50') 0%, theme('colors.green.100') 100%);
+  @apply border border-green-200;
   border-radius: 10px;
 }
 
 .on-track-icon {
-  width: 48px;
-  height: 48px;
-  background: #10b981;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
+  @apply w-12 h-12 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0;
 }
 
 .on-track-icon svg {
@@ -1328,13 +1312,13 @@ export default {
 .on-track-text h4 {
   font-size: 16px;
   font-weight: 700;
-  color: #065f46;
+  @apply text-green-800;
   margin: 0 0 4px 0;
 }
 
 .on-track-text p {
   font-size: 14px;
-  color: #047857;
+  @apply text-green-700;
   margin: 0;
 }
 
@@ -1345,8 +1329,8 @@ export default {
   justify-content: space-between;
   gap: 20px;
   padding: 20px;
-  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-  border: 1px solid #bfdbfe;
+  background: linear-gradient(135deg, theme('colors.blue.50') 0%, theme('colors.blue.100') 100%);
+  @apply border border-blue-200;
   border-radius: 10px;
 }
 
@@ -1360,7 +1344,7 @@ export default {
 .strategy-summary-icon {
   width: 48px;
   height: 48px;
-  background: #3b82f6;
+  @apply bg-primary-500;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -1377,31 +1361,31 @@ export default {
 .strategy-summary-text h4 {
   font-size: 16px;
   font-weight: 600;
-  color: #1e40af;
+  @apply text-blue-800;
   margin: 0 0 6px 0;
 }
 
 .strategy-probability {
   font-size: 14px;
-  color: #3b82f6;
+  @apply text-primary-500;
   margin: 0;
 }
 
 .prob-current {
   font-weight: 600;
-  color: #dc2626;
+  @apply text-red-500;
 }
 
 .prob-projected {
   font-weight: 600;
-  color: #059669;
+  @apply text-green-500;
 }
 
 .strategy-cta {
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #2563eb;
+  @apply text-blue-600;
   font-size: 14px;
   font-weight: 600;
   flex-shrink: 0;
@@ -1428,7 +1412,7 @@ export default {
 .income-sidebar {
   background: white;
   border-radius: 12px;
-  border: 1px solid #e5e7eb;
+  @apply border border-gray-200;
   padding: 20px;
   position: sticky;
   top: 100px;
@@ -1439,7 +1423,7 @@ export default {
   align-items: center;
   justify-content: flex-end;
   gap: 4px;
-  color: #3b82f6;
+  @apply text-primary-500;
   font-size: 13px;
   font-weight: 500;
   margin-bottom: 12px;
@@ -1457,40 +1441,40 @@ export default {
 }
 
 .income-card.target {
-  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-  border: 1px solid #bfdbfe;
+  background: linear-gradient(135deg, theme('colors.blue.50') 0%, theme('colors.blue.100') 100%);
+  @apply border border-blue-200;
 }
 
 .income-card.guaranteed {
-  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
-  border: 1px solid #a7f3d0;
+  background: linear-gradient(135deg, theme('colors.green.50') 0%, theme('colors.green.100') 100%);
+  @apply border border-green-200;
 }
 
 .income-card.surplus {
-  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
-  border: 1px solid #a7f3d0;
+  background: linear-gradient(135deg, theme('colors.green.50') 0%, theme('colors.green.100') 100%);
+  @apply border border-green-200;
 }
 
 .income-card.shortfall {
-  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
-  border: 1px solid #fecaca;
+  background: linear-gradient(135deg, theme('colors.red.50') 0%, theme('colors.red.100') 100%);
+  @apply border border-red-200;
 }
 
 .income-card-label {
   font-size: 13px;
-  color: #6b7280;
+  @apply text-gray-500;
   margin-bottom: 4px;
 }
 
 .income-card-value {
   font-size: 22px;
   font-weight: 700;
-  color: #111827;
+  @apply text-gray-900;
 }
 
 .income-card-sublabel {
   font-size: 12px;
-  color: #6b7280;
+  @apply text-gray-500;
   margin-top: 4px;
 }
 
@@ -1504,7 +1488,7 @@ export default {
   display: flex;
   justify-content: space-between;
   font-size: 13px;
-  color: #374151;
+  @apply text-gray-700;
   margin-bottom: 4px;
 }
 
@@ -1518,21 +1502,21 @@ export default {
   align-items: center;
   gap: 10px;
   padding: 12px;
-  background: #fef3c7;
-  border: 1px solid #fde68a;
+  @apply bg-amber-100;
+  @apply border border-amber-200;
   border-radius: 8px;
 }
 
 .depletion-warning svg {
   width: 20px;
   height: 20px;
-  color: #b45309;
+  @apply text-amber-700;
   flex-shrink: 0;
 }
 
 .depletion-warning span {
   font-size: 13px;
-  color: #92400e;
+  @apply text-amber-800;
   font-weight: 500;
 }
 
@@ -1551,13 +1535,11 @@ export default {
 }
 
 .notification.success {
-  background: #10b981;
-  color: white;
+  @apply bg-green-500 text-white;
 }
 
 .notification.error {
-  background: #ef4444;
-  color: white;
+  @apply bg-red-500 text-white;
 }
 
 @keyframes slideIn {

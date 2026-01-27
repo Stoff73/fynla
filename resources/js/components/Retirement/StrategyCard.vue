@@ -133,6 +133,7 @@
 import retirementService from '../../services/retirementService';
 import VueApexCharts from 'vue3-apexcharts';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { SUCCESS_COLORS, TEXT_COLORS, BORDER_COLORS, SECONDARY_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'StrategyCard',
@@ -226,7 +227,7 @@ export default {
           zoom: { enabled: false },
           animations: { enabled: true, speed: 500 },
         },
-        colors: ['#10b981', '#9ca3af'],
+        colors: [SUCCESS_COLORS[500], SECONDARY_COLORS[500]],
         fill: {
           type: 'gradient',
           gradient: {
@@ -244,7 +245,7 @@ export default {
         xaxis: {
           categories: years,
           labels: {
-            style: { colors: '#6b7280', fontSize: '11px' },
+            style: { colors: TEXT_COLORS.muted, fontSize: '11px' },
             rotate: 0,
             formatter: (val) => val % 5 === 0 ? val : '',
           },
@@ -253,12 +254,12 @@ export default {
         },
         yaxis: {
           labels: {
-            style: { colors: '#6b7280', fontSize: '11px' },
+            style: { colors: TEXT_COLORS.muted, fontSize: '11px' },
             formatter: (val) => '£' + (val / 1000).toFixed(0) + 'k',
           },
         },
         grid: {
-          borderColor: '#e5e7eb',
+          borderColor: BORDER_COLORS.default,
           strokeDashArray: 4,
         },
         legend: {
@@ -407,7 +408,7 @@ export default {
   background: white;
   border-radius: 12px;
   padding: 24px;
-  border: 1px solid #e5e7eb;
+  @apply border border-gray-200;
   margin-bottom: 16px;
   transition: box-shadow 0.2s, border-color 0.2s;
 }
@@ -417,24 +418,24 @@ export default {
 }
 
 .strategy-card.at-target {
-  border-color: #a7f3d0;
-  background: linear-gradient(135deg, white 0%, #f0fdf4 100%);
+  @apply border-green-200;
+  background: linear-gradient(135deg, white 0%, theme('colors.green.50') 100%);
 }
 
 .strategy-card.priority-1 .priority-badge {
-  background: #10b981;
+  @apply bg-green-600;
 }
 
 .strategy-card.priority-2 .priority-badge {
-  background: #3b82f6;
+  @apply bg-primary-500;
 }
 
 .strategy-card.priority-3 .priority-badge {
-  background: #f59e0b;
+  @apply bg-amber-500;
 }
 
 .strategy-card.priority-4 .priority-badge {
-  background: #6b7280;
+  @apply bg-gray-500;
 }
 
 .card-header {
@@ -467,13 +468,13 @@ export default {
 .strategy-title {
   font-size: 18px;
   font-weight: 600;
-  color: #111827;
+  @apply text-gray-900;
   margin: 0 0 4px 0;
 }
 
 .pension-name {
   font-size: 14px;
-  color: #6b7280;
+  @apply text-gray-500;
   margin: 0;
 }
 
@@ -481,8 +482,8 @@ export default {
   display: flex;
   align-items: center;
   gap: 4px;
-  background: #d1fae5;
-  color: #059669;
+  @apply bg-green-100;
+  @apply text-green-600;
   padding: 4px 12px;
   border-radius: 20px;
   font-size: 12px;
@@ -496,7 +497,7 @@ export default {
 
 .description {
   font-size: 14px;
-  color: #6b7280;
+  @apply text-gray-500;
   margin: 0 0 12px 0;
   line-height: 1.5;
 }
@@ -506,7 +507,7 @@ export default {
   align-items: center;
   gap: 6px;
   font-size: 13px;
-  color: #15803d;
+  @apply text-green-700;
   margin: 0 0 20px 0;
 }
 
@@ -529,13 +530,13 @@ export default {
 
 .current-label {
   font-size: 12px;
-  color: #9ca3af;
+  @apply text-gray-400;
 }
 
 .new-label {
   font-size: 14px;
   font-weight: 600;
-  color: #3b82f6;
+  @apply text-primary-500;
 }
 
 .slider-wrapper {
@@ -560,7 +561,7 @@ export default {
   appearance: none;
   width: 20px;
   height: 20px;
-  background: #3b82f6;
+  @apply bg-primary-500;
   border-radius: 50%;
   cursor: pointer;
   border: 2px solid white;
@@ -570,7 +571,7 @@ export default {
 .slider::-moz-range-thumb {
   width: 20px;
   height: 20px;
-  background: #3b82f6;
+  @apply bg-primary-500;
   border-radius: 50%;
   cursor: pointer;
   border: 2px solid white;
@@ -584,7 +585,7 @@ export default {
   left: 0;
   right: 0;
   height: 8px;
-  background: #e5e7eb;
+  @apply bg-gray-200;
   border-radius: 4px;
   z-index: 0;
 }
@@ -595,7 +596,7 @@ export default {
   transform: translateY(-50%);
   left: 0;
   height: 8px;
-  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+  @apply bg-gradient-to-r from-primary-500 to-primary-400;
   border-radius: 4px;
   z-index: 1;
   pointer-events: none;
@@ -605,7 +606,7 @@ export default {
   display: flex;
   justify-content: space-between;
   font-size: 11px;
-  color: #9ca3af;
+  @apply text-gray-400;
 }
 
 /* Impact Section */
@@ -613,7 +614,7 @@ export default {
   display: flex;
   gap: 24px;
   padding: 16px;
-  background: #f9fafb;
+  @apply bg-gray-50;
   border-radius: 8px;
   margin-bottom: 16px;
   transition: opacity 0.2s;
@@ -630,43 +631,43 @@ export default {
 .impact-label {
   display: block;
   font-size: 12px;
-  color: #6b7280;
+  @apply text-gray-500;
   margin-bottom: 4px;
 }
 
 .impact-value {
   font-size: 18px;
   font-weight: 700;
-  color: #111827;
+  @apply text-gray-900;
 }
 
 .impact-value.positive {
-  color: #059669;
+  @apply text-green-600;
 }
 
 .impact-value.green {
-  color: #059669;
+  @apply text-green-600;
 }
 
 .impact-value.amber {
-  color: #d97706;
+  @apply text-amber-600;
 }
 
 .impact-value.red {
-  color: #dc2626;
+  @apply text-red-600;
 }
 
 /* Constraints Info */
 .constraints-info {
   padding: 12px 16px;
-  background: #fef3c7;
+  @apply bg-amber-100;
   border-radius: 8px;
-  border: 1px solid #fde68a;
+  @apply border border-amber-200;
 }
 
 .constraints-info p {
   font-size: 12px;
-  color: #92400e;
+  @apply text-amber-800;
   margin: 0;
 }
 
@@ -678,13 +679,13 @@ export default {
 .projection-section {
   margin-top: 24px;
   padding-top: 24px;
-  border-top: 1px solid #e5e7eb;
+  @apply border-t border-gray-200;
 }
 
 .projection-title {
   font-size: 16px;
   font-weight: 600;
-  color: #111827;
+  @apply text-gray-900;
   margin: 0 0 16px 0;
 }
 
@@ -699,7 +700,7 @@ export default {
   align-items: center;
   gap: 16px;
   padding: 16px;
-  background: #f9fafb;
+  @apply bg-gray-50;
   border-radius: 12px;
 }
 
@@ -710,20 +711,20 @@ export default {
 }
 
 .comparison-item.without {
-  background: #fef2f2;
-  border: 1px solid #fecaca;
+  @apply bg-red-50;
+  @apply border border-red-200;
 }
 
 .comparison-item.with {
-  background: #ecfdf5;
-  border: 1px solid #a7f3d0;
+  @apply bg-green-50;
+  @apply border border-green-200;
 }
 
 .comparison-label {
   display: block;
   font-size: 12px;
   font-weight: 600;
-  color: #6b7280;
+  @apply text-gray-500;
   margin-bottom: 8px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -738,12 +739,12 @@ export default {
 .pot-value {
   font-size: 14px;
   font-weight: 600;
-  color: #111827;
+  @apply text-gray-900;
 }
 
 .income-value {
   font-size: 13px;
-  color: #6b7280;
+  @apply text-gray-500;
 }
 
 .coverage-badge {
@@ -756,23 +757,23 @@ export default {
 }
 
 .coverage-excellent {
-  background: #d1fae5;
-  color: #065f46;
+  @apply bg-green-100;
+  @apply text-green-800;
 }
 
 .coverage-good {
-  background: #fef3c7;
-  color: #92400e;
+  @apply bg-amber-100;
+  @apply text-amber-800;
 }
 
 .coverage-fair {
-  background: #fed7aa;
-  color: #9a3412;
+  @apply bg-orange-200;
+  @apply text-orange-800;
 }
 
 .coverage-poor {
-  background: #fecaca;
-  color: #991b1b;
+  @apply bg-red-200;
+  @apply text-red-800;
 }
 
 .comparison-arrow {
@@ -780,9 +781,7 @@ export default {
 }
 
 .comparison-arrow svg {
-  width: 24px;
-  height: 24px;
-  color: #10b981;
+  @apply w-6 h-6 text-green-600;
 }
 
 @media (max-width: 640px) {

@@ -311,6 +311,7 @@
 
 <script>
 import api from '@/services/api';
+import { PRIMARY_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'PerformanceAttribution',
@@ -361,7 +362,7 @@ export default {
             formatter: (val) => this.formatPercent(val),
           },
         },
-        colours: ['#3B82F6'],
+        colors: [PRIMARY_COLORS[500]],
         tooltip: {
           y: {
             formatter: (val) => this.formatPercent(val),

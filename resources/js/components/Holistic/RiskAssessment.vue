@@ -119,6 +119,8 @@
 </template>
 
 <script>
+import { SUCCESS_COLORS, WARNING_COLORS, ERROR_COLORS } from '@/constants/designSystem';
+
 export default {
   name: 'RiskAssessment',
 
@@ -186,10 +188,10 @@ export default {
     },
 
     getGaugeColour(score) {
-      if (score >= 70) return ['#DC2626']; // red
-      if (score >= 50) return ['#F59E0B']; // orange
-      if (score >= 30) return ['#EAB308']; // yellow
-      return ['#10B981']; // green
+      if (score >= 70) return [ERROR_COLORS[600]]; // red
+      if (score >= 50) return [WARNING_COLORS[500]]; // orange
+      if (score >= 30) return [WARNING_COLORS[500]]; // yellow
+      return [SUCCESS_COLORS[500]]; // green
     },
 
     getSeverityBadgeClass(severity) {

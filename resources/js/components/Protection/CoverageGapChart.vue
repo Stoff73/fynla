@@ -11,6 +11,8 @@
 </template>
 
 <script>
+import { SUCCESS_COLORS, WARNING_COLORS, ERROR_COLORS } from '@/constants/designSystem';
+
 export default {
   name: 'CoverageGapChart',
 
@@ -61,7 +63,7 @@ export default {
         dataLabels: {
           enabled: false,
         },
-        colours: ['#EF4444'],
+        colours: [ERROR_COLORS[500]],
         plotOptions: {
           heatmap: {
             shadeIntensity: 0.5,
@@ -72,25 +74,25 @@ export default {
                 {
                   from: 0,
                   to: 50000,
-                  color: '#10B981',
+                  color: SUCCESS_COLORS[500],
                   name: 'Low Gap',
                 },
                 {
                   from: 50001,
                   to: 150000,
-                  color: '#F59E0B',
+                  color: WARNING_COLORS[500],
                   name: 'Medium Gap',
                 },
                 {
                   from: 150001,
                   to: 500000,
-                  color: '#EF4444',
+                  color: ERROR_COLORS[500],
                   name: 'High Gap',
                 },
                 {
                   from: 500001,
                   to: 10000000,
-                  color: '#991B1B',
+                  color: ERROR_COLORS[700],
                   name: 'Critical Gap',
                 },
               ],

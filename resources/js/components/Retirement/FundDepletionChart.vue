@@ -59,6 +59,7 @@
 <script>
 import VueApexCharts from 'vue3-apexcharts';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { CHART_COLORS, TEXT_COLORS, BORDER_COLORS, SUCCESS_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'FundDepletionChart',
@@ -174,7 +175,7 @@ export default {
           zoom: { enabled: false },
           animations: { enabled: true, speed: 500 },
         },
-        colors: ['#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#6366f1'],
+        colors: CHART_COLORS.slice(0, 5),
         fill: {
           type: 'gradient',
           gradient: {
@@ -191,7 +192,7 @@ export default {
         xaxis: {
           categories: ages,
           labels: {
-            style: { colors: '#6b7280', fontSize: '11px' },
+            style: { colors: TEXT_COLORS.muted, fontSize: '11px' },
             rotate: 0,
             formatter: (val) => {
               // Show every 5th age
@@ -203,21 +204,21 @@ export default {
           axisTicks: { show: false },
           title: {
             text: 'Age',
-            style: { color: '#6b7280', fontSize: '12px', fontWeight: 500 },
+            style: { color: TEXT_COLORS.muted, fontSize: '12px', fontWeight: 500 },
           },
         },
         yaxis: {
           labels: {
-            style: { colors: '#6b7280', fontSize: '11px' },
+            style: { colors: TEXT_COLORS.muted, fontSize: '11px' },
             formatter: (val) => '£' + (val / 1000).toFixed(0) + 'k',
           },
           title: {
             text: 'Fund Value',
-            style: { color: '#6b7280', fontSize: '12px', fontWeight: 500 },
+            style: { color: TEXT_COLORS.muted, fontSize: '12px', fontWeight: 500 },
           },
         },
         grid: {
-          borderColor: '#e5e7eb',
+          borderColor: BORDER_COLORS.default,
           strokeDashArray: 4,
         },
         legend: {
@@ -240,12 +241,12 @@ export default {
           xaxis: [
             {
               x: 67,
-              borderColor: '#10b981',
+              borderColor: SUCCESS_COLORS[500],
               label: {
-                borderColor: '#10b981',
+                borderColor: SUCCESS_COLORS[500],
                 style: {
                   color: '#fff',
-                  background: '#10b981',
+                  background: SUCCESS_COLORS[500],
                   fontSize: '10px',
                 },
                 text: 'State Pension Age',
@@ -277,151 +278,99 @@ export default {
 
 <style scoped>
 .fund-depletion-chart {
-  background: white;
-  border-radius: 12px;
-  padding: 24px;
-  border: 1px solid #e5e7eb;
+  @apply bg-white rounded-card p-6 border border-gray-200 transition-all duration-200;
 }
 
 .chart-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 20px;
-  gap: 16px;
-  flex-wrap: wrap;
+  @apply flex justify-between items-start mb-5 gap-4 flex-wrap;
 }
 
 .header-left {
-  flex: 1;
+  @apply flex-1;
 }
 
 .chart-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #111827;
-  margin: 0 0 4px 0;
+  @apply text-lg font-semibold text-gray-900 mb-1;
 }
 
 .chart-subtitle {
-  font-size: 14px;
-  color: #6b7280;
-  margin: 0;
+  @apply text-sm text-gray-500 m-0;
 }
 
 .warning-badge {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: #fef3c7;
-  color: #92400e;
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
+  @apply flex items-center gap-1.5 bg-amber-100 text-amber-800 px-3 py-1.5 rounded-full text-xs font-semibold;
 }
 
 .warning-badge svg {
-  width: 16px;
-  height: 16px;
+  @apply w-4 h-4;
 }
 
 .chart-container {
-  margin-bottom: 24px;
+  @apply mb-6;
 }
 
 /* Depletion Ages */
 .depletion-ages {
-  margin-bottom: 20px;
+  @apply mb-5;
 }
 
 .section-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: #374151;
-  margin: 0 0 12px 0;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  @apply text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide;
 }
 
 .ages-grid {
-  display: grid;
+  @apply grid gap-3;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 12px;
 }
 
 .age-item {
-  background: #f9fafb;
-  border-radius: 8px;
-  padding: 12px 16px;
-  border: 1px solid #e5e7eb;
+  @apply bg-gray-50 rounded-lg py-3 px-4 border border-gray-200;
 }
 
 .age-item.warning {
-  background: #fef3c7;
-  border-color: #fde68a;
+  @apply bg-amber-100 border-amber-200;
 }
 
 .fund-name {
-  display: block;
-  font-size: 12px;
-  color: #6b7280;
-  margin-bottom: 4px;
+  @apply block text-xs text-gray-500 mb-1;
 }
 
 .depletion-age {
-  display: block;
-  font-size: 18px;
-  font-weight: 700;
-  color: #111827;
+  @apply block text-lg font-bold text-gray-900;
 }
 
 .age-item.warning .depletion-age {
-  color: #92400e;
+  @apply text-amber-800;
 }
 
 .warning-text {
-  display: block;
-  font-size: 11px;
-  color: #d97706;
-  margin-top: 4px;
+  @apply block text-xs text-amber-600 mt-1;
 }
 
 /* Tax Impact Note */
 .tax-impact-note {
-  display: flex;
-  gap: 12px;
-  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-  border: 1px solid #bfdbfe;
-  border-radius: 8px;
-  padding: 16px;
+  @apply flex gap-3 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-lg p-4;
 }
 
 .note-icon {
-  width: 20px;
-  height: 20px;
-  color: #3b82f6;
-  flex-shrink: 0;
-  margin-top: 2px;
+  @apply w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5;
 }
 
 .note-content {
-  font-size: 13px;
-  color: #1e40af;
-  line-height: 1.5;
+  @apply text-sm text-blue-800 leading-relaxed;
 }
 
 .note-content strong {
-  font-weight: 600;
+  @apply font-semibold;
 }
 
 @media (max-width: 640px) {
   .chart-header {
-    flex-direction: column;
+    @apply flex-col;
   }
 
   .ages-grid {
-    grid-template-columns: 1fr 1fr;
+    @apply grid-cols-2;
   }
 }
 </style>

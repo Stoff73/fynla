@@ -757,7 +757,7 @@ export default {
 .list-title {
   font-size: 24px;
   font-weight: 700;
-  color: #111827;
+  @apply text-gray-900;
   margin: 0;
 }
 
@@ -766,8 +766,8 @@ export default {
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
-  background: #eff6ff;
-  color: #2563eb;
+  @apply bg-blue-50;
+  @apply text-blue-600;
   border-radius: 8px;
   font-size: 13px;
   font-weight: 500;
@@ -776,7 +776,7 @@ export default {
 }
 
 .risk-profile-link:hover {
-  background: #dbeafe;
+  @apply bg-blue-100;
 }
 
 .risk-icon {
@@ -794,7 +794,7 @@ export default {
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
-  background: #3b82f6;
+  @apply bg-primary-500;
   color: white;
   border: none;
   border-radius: 8px;
@@ -805,7 +805,7 @@ export default {
 }
 
 .add-account-button:hover {
-  background: #2563eb;
+  @apply bg-blue-600;
 }
 
 .upload-button {
@@ -814,8 +814,8 @@ export default {
   gap: 8px;
   padding: 10px 16px;
   background: white;
-  color: #3b82f6;
-  border: 2px solid #3b82f6;
+  @apply text-primary-500;
+  @apply border-2 border-primary-500;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 600;
@@ -824,7 +824,7 @@ export default {
 }
 
 .upload-button:hover {
-  background: #eff6ff;
+  @apply bg-blue-50;
 }
 
 .button-icon {
@@ -849,7 +849,7 @@ export default {
 .compact-account-card {
   background: white;
   border-radius: 8px;
-  border: 1px solid #e5e7eb;
+  @apply border border-gray-200;
   padding: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -865,7 +865,7 @@ export default {
 
 .compact-account-card:hover {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-  border-color: #3b82f6;
+  @apply border-primary-500;
 }
 
 .performance-section {
@@ -875,7 +875,7 @@ export default {
 .investment-card {
   background: white;
   border-radius: 12px;
-  border: 1px solid #e5e7eb;
+  @apply border border-gray-200;
   padding: 16px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -884,7 +884,7 @@ export default {
 .investment-card:hover {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   transform: translateY(-2px);
-  border-color: #3b82f6;
+  @apply border-primary-500;
 }
 
 .card-header {
@@ -914,53 +914,53 @@ export default {
 }
 
 .badge-individual {
-  background: #f3f4f6;
-  color: #374151;
+  @apply bg-gray-100;
+  @apply text-gray-700;
 }
 
 .badge-joint {
-  background: #f3e8ff;
-  color: #7c3aed;
+  @apply bg-purple-100;
+  @apply text-purple-500;
 }
 
 .badge-trust {
-  background: #fef3c7;
-  color: #92400e;
+  @apply bg-amber-100;
+  @apply text-amber-800;
 }
 
 .badge-isa {
-  background: #d1fae5;
-  color: #065f46;
+  @apply bg-green-100;
+  @apply text-green-800;
 }
 
 .badge-gia {
-  background: #dbeafe;
-  color: #1e40af;
+  @apply bg-blue-100;
+  @apply text-blue-800;
 }
 
 .badge-sipp {
-  background: #e9d5ff;
-  color: #6b21a8;
+  @apply bg-purple-100;
+  @apply text-purple-800;
 }
 
 .badge-nsi {
-  background: #e0e7ff;
-  color: #3730a3;
+  @apply bg-indigo-100;
+  @apply text-indigo-800;
 }
 
 .badge-bond {
-  background: #ffedd5;
-  color: #9a3412;
+  @apply bg-orange-100;
+  @apply text-orange-800;
 }
 
 .badge-vct {
-  background: #fce7f3;
-  color: #9d174d;
+  @apply bg-pink-100;
+  @apply text-pink-800;
 }
 
 .badge-other {
-  background: #f3f4f6;
-  color: #374151;
+  @apply bg-gray-100;
+  @apply text-gray-700;
 }
 
 .card-content {
@@ -976,7 +976,7 @@ export default {
 .account-provider {
   font-size: 18px;
   font-weight: 700;
-  color: #111827;
+  @apply text-gray-900;
   margin: 0;
 }
 
@@ -987,7 +987,7 @@ export default {
 
 .account-name-text {
   font-size: 14px;
-  color: #6b7280;
+  @apply text-gray-500;
   margin: 0;
   min-height: 20px;
 }
@@ -1003,7 +1003,7 @@ export default {
   gap: 8px;
   margin-top: 8px;
   padding-top: 12px;
-  border-top: 1px solid #e5e7eb;
+  @apply border-t border-gray-200;
 }
 
 .compact-account-card .account-details {
@@ -1020,12 +1020,12 @@ export default {
 
 .detail-label {
   font-size: 14px;
-  color: #6b7280;
+  @apply text-gray-500;
 }
 
 .detail-value {
   font-size: 16px;
-  color: #111827;
+  @apply text-gray-900;
   font-weight: 700;
 }
 
@@ -1039,7 +1039,7 @@ export default {
 }
 
 .isa-info {
-  background: #f0fdf4;
+  @apply bg-green-50;
   border-radius: 6px;
   padding: 8px;
   margin: 4px 0;
@@ -1059,38 +1059,38 @@ export default {
 
 .loading-state p,
 .error-state p {
-  color: #6b7280;
+  @apply text-gray-500;
   font-size: 16px;
   margin: 0;
 }
 
 .error-state p {
-  color: #ef4444;
+  @apply text-red-500;
 }
 
 .empty-state {
   background: white;
   border-radius: 12px;
   padding: 80px 40px;
-  border: 2px dashed #d1d5db;
+  @apply border-2 border-dashed border-gray-300;
 }
 
 .empty-icon {
   width: 64px;
   height: 64px;
-  color: #9ca3af;
+  @apply text-gray-400;
   margin: 0 auto 16px;
 }
 
 .empty-state p {
-  color: #6b7280;
+  @apply text-gray-500;
   font-size: 18px;
   font-weight: 600;
   margin: 0 0 8px 0;
 }
 
 .empty-subtitle {
-  color: #9ca3af;
+  @apply text-gray-400;
   font-size: 14px;
   font-weight: 400;
 }
@@ -1101,14 +1101,14 @@ export default {
   border-radius: 12px;
   padding: 24px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e5e7eb;
+  @apply border border-gray-200;
 }
 
 
 .summary-title {
   font-size: 18px;
   font-weight: 600;
-  color: #111827;
+  @apply text-gray-900;
   margin: 0 0 20px 0;
 }
 
@@ -1124,37 +1124,37 @@ export default {
 }
 
 .summary-item.portfolio {
-  border-left-color: #3b82f6;
+  border-left-@apply text-primary-500;
 }
 
 .summary-item.returns.positive {
-  border-left-color: #10b981;
+  @apply border-l-green-500;
 }
 
 .summary-item.returns.negative {
-  border-left-color: #ef4444;
+  @apply border-l-red-500;
 }
 
 .summary-item.diversification {
-  border-left-color: #8b5cf6;
+  @apply border-l-purple-500;
 }
 
 .summary-label {
   font-size: 14px;
-  color: #6b7280;
+  @apply text-gray-500;
   margin: 0 0 4px 0;
 }
 
 .summary-value {
   font-size: 24px;
   font-weight: 700;
-  color: #111827;
+  @apply text-gray-900;
   margin: 0;
 }
 
 .summary-count {
   font-size: 13px;
-  color: #9ca3af;
+  @apply text-gray-400;
   margin: 4px 0 0 0;
 }
 
@@ -1172,7 +1172,7 @@ export default {
 
 .return-label {
   font-size: 13px;
-  color: #6b7280;
+  @apply text-gray-500;
 }
 
 .return-value {
@@ -1186,13 +1186,13 @@ export default {
   border-radius: 12px;
   padding: 24px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e5e7eb;
+  @apply border border-gray-200;
 }
 
 .features-title {
   font-size: 18px;
   font-weight: 600;
-  color: #111827;
+  @apply text-gray-900;
   margin: 0 0 16px 0;
 }
 
@@ -1202,28 +1202,28 @@ export default {
   flex-wrap: wrap;
   margin-bottom: 20px;
   padding-bottom: 16px;
-  border-bottom: 1px solid #e5e7eb;
+  @apply border-b border-gray-200;
 }
 
 .feature-tab {
   padding: 8px 16px;
-  background: #f3f4f6;
+  @apply bg-gray-100;
   border: none;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 500;
-  color: #6b7280;
+  @apply text-gray-500;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .feature-tab:hover {
-  background: #e5e7eb;
-  color: #374151;
+  @apply bg-gray-200;
+  @apply text-gray-700;
 }
 
 .feature-tab.active {
-  background: #3b82f6;
+  @apply bg-primary-500;
   color: white;
 }
 
@@ -1240,8 +1240,8 @@ export default {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%) rotate(-12deg);
-  background: #fef3c7;
-  border: 2px solid #f59e0b;
+  @apply bg-amber-100;
+  @apply border-2 border-amber-500;
   border-radius: 8px;
   padding: 16px 32px;
   z-index: 10;
@@ -1262,13 +1262,11 @@ export default {
 }
 
 .notification.success {
-  background: #10b981;
-  color: white;
+  @apply bg-green-500 text-white;
 }
 
 .notification.error {
-  background: #ef4444;
-  color: white;
+  @apply bg-red-500 text-white;
 }
 
 @keyframes slideIn {

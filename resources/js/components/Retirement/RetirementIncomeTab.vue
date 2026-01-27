@@ -357,17 +357,17 @@ export default {
   margin-bottom: 16px;
   font-size: 14px;
   font-weight: 500;
-  color: #374151;
+  @apply text-gray-700;
   background: white;
-  border: 1px solid #d1d5db;
+  @apply border border-gray-300;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.15s;
 }
 
 .back-button:hover {
-  background: #f9fafb;
-  border-color: #9ca3af;
+  @apply bg-gray-50;
+  @apply border-gray-400;
 }
 
 .back-button svg {
@@ -397,13 +397,8 @@ export default {
 }
 
 .spinner {
-  width: 48px;
-  height: 48px;
-  border: 3px solid #e5e7eb;
-  border-top-color: #3b82f6;
-  border-radius: 50%;
+  @apply w-12 h-12 border-3 border-gray-200 border-t-primary-500 rounded-full mb-4;
   animation: spin 1s linear infinite;
-  margin-bottom: 16px;
 }
 
 @keyframes spin {
@@ -413,7 +408,7 @@ export default {
 }
 
 .loading-state p {
-  color: #6b7280;
+  @apply text-gray-500;
   font-size: 16px;
   margin: 0;
 }
@@ -424,24 +419,24 @@ export default {
   padding: 60px 40px;
   background: white;
   border-radius: 12px;
-  border: 1px solid #fecaca;
+  @apply border border-red-200;
 }
 
 .error-icon {
   width: 48px;
   height: 48px;
-  color: #ef4444;
+  @apply text-red-500;
   margin: 0 auto 16px;
 }
 
 .error-state p {
-  color: #6b7280;
+  @apply text-gray-500;
   font-size: 16px;
   margin: 0 0 16px 0;
 }
 
 .retry-button {
-  background: #3b82f6;
+  @apply bg-primary-500;
   color: white;
   border: none;
   padding: 10px 24px;
@@ -453,7 +448,7 @@ export default {
 }
 
 .retry-button:hover {
-  background: #2563eb;
+  @apply bg-blue-600;
 }
 
 /* Empty State */
@@ -462,25 +457,25 @@ export default {
   padding: 80px 40px;
   background: white;
   border-radius: 12px;
-  border: 2px dashed #d1d5db;
+  @apply border-2 border-dashed border-gray-300;
 }
 
 .empty-icon {
   width: 64px;
   height: 64px;
-  color: #9ca3af;
+  @apply text-gray-400;
   margin: 0 auto 16px;
 }
 
 .empty-state p {
-  color: #6b7280;
+  @apply text-gray-500;
   font-size: 18px;
   font-weight: 600;
   margin: 0 0 8px 0;
 }
 
 .empty-subtitle {
-  color: #9ca3af;
+  @apply text-gray-400;
   font-size: 14px;
   font-weight: 400;
 }
@@ -502,13 +497,13 @@ export default {
 .section-title {
   font-size: 20px;
   font-weight: 700;
-  color: #111827;
+  @apply text-gray-900;
   margin: 0 0 4px 0;
 }
 
 .section-subtitle {
   font-size: 14px;
-  color: #6b7280;
+  @apply text-gray-500;
   margin: 0;
 }
 
@@ -522,7 +517,7 @@ export default {
 
 .toggle-label {
   font-size: 14px;
-  color: #374151;
+  @apply text-gray-700;
   font-weight: 500;
 }
 
@@ -530,7 +525,7 @@ export default {
   position: relative;
   width: 48px;
   height: 26px;
-  background: #d1d5db;
+  @apply bg-gray-300;
   border: none;
   border-radius: 13px;
   cursor: pointer;
@@ -539,7 +534,7 @@ export default {
 }
 
 .toggle-switch.active {
-  background: #3b82f6;
+  @apply bg-primary-500;
 }
 
 .toggle-slider {
@@ -570,32 +565,32 @@ export default {
   background: white;
   border-radius: 12px;
   padding: 20px;
-  border: 1px solid #e5e7eb;
+  @apply border border-gray-200;
 }
 
 .summary-card.target {
-  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-  border-color: #bfdbfe;
+  background: linear-gradient(135deg, theme('colors.blue.50') 0%, theme('colors.blue.100') 100%);
+  @apply border-blue-200;
 }
 
 .summary-card.green {
-  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
-  border-color: #a7f3d0;
+  background: linear-gradient(135deg, theme('colors.green.50') 0%, theme('colors.green.100') 100%);
+  @apply border-green-200;
 }
 
 .summary-card.amber {
-  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
-  border-color: #fde68a;
+  background: linear-gradient(135deg, theme('colors.amber.50') 0%, theme('colors.amber.100') 100%);
+  @apply border-amber-200;
 }
 
 .summary-card.red {
-  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
-  border-color: #fecaca;
+  background: linear-gradient(135deg, theme('colors.red.50') 0%, theme('colors.red.100') 100%);
+  @apply border-red-200;
 }
 
 .summary-card.tax {
-  background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
-  border-color: #e9d5ff;
+  background: linear-gradient(135deg, theme('colors.purple.50') 0%, theme('colors.purple.100') 100%);
+  @apply border-purple-100;
 }
 
 .card-header-row {
@@ -609,12 +604,12 @@ export default {
   border: none;
   padding: 4px;
   cursor: pointer;
-  color: #6b7280;
+  @apply text-gray-500;
   transition: color 0.2s;
 }
 
 .edit-btn:hover {
-  color: #3b82f6;
+  @apply text-primary-500;
 }
 
 .edit-btn svg {
@@ -624,7 +619,7 @@ export default {
 
 .summary-label {
   font-size: 14px;
-  color: #6b7280;
+  @apply text-gray-500;
   margin: 0 0 8px 0;
   font-weight: 500;
 }
@@ -632,13 +627,13 @@ export default {
 .summary-value {
   font-size: 28px;
   font-weight: 700;
-  color: #111827;
+  @apply text-gray-900;
   margin: 0;
 }
 
 .summary-subtitle {
   font-size: 13px;
-  color: #6b7280;
+  @apply text-gray-500;
   margin: 8px 0 0 0;
 }
 
@@ -647,7 +642,7 @@ export default {
   background: white;
   border-radius: 12px;
   padding: 24px;
-  border: 1px solid #e5e7eb;
+  @apply border border-gray-200;
   margin-bottom: 24px;
 }
 
@@ -658,13 +653,13 @@ export default {
 .sources-title {
   font-size: 18px;
   font-weight: 600;
-  color: #111827;
+  @apply text-gray-900;
   margin: 0 0 4px 0;
 }
 
 .sources-subtitle {
   font-size: 14px;
-  color: #6b7280;
+  @apply text-gray-500;
   margin: 0;
 }
 
@@ -677,12 +672,12 @@ export default {
 .no-allocations {
   text-align: center;
   padding: 40px;
-  background: #f9fafb;
+  @apply bg-gray-50;
   border-radius: 8px;
 }
 
 .no-allocations p {
-  color: #6b7280;
+  @apply text-gray-500;
   font-size: 14px;
   margin: 0;
 }
@@ -713,21 +708,21 @@ export default {
 .modal-title {
   font-size: 20px;
   font-weight: 700;
-  color: #111827;
+  @apply text-gray-900;
   margin: 0 0 8px 0;
 }
 
 .modal-description {
   font-size: 14px;
-  color: #6b7280;
+  @apply text-gray-500;
   margin: 0 0 24px 0;
 }
 
 .input-group {
   display: flex;
   align-items: center;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
+  @apply bg-gray-50;
+  @apply border border-gray-200;
   border-radius: 8px;
   padding: 4px 12px;
   margin-bottom: 24px;
@@ -736,7 +731,7 @@ export default {
 .input-prefix {
   font-size: 18px;
   font-weight: 600;
-  color: #6b7280;
+  @apply text-gray-500;
 }
 
 .target-input {
@@ -745,7 +740,7 @@ export default {
   background: transparent;
   font-size: 24px;
   font-weight: 700;
-  color: #111827;
+  @apply text-gray-900;
   padding: 12px;
   text-align: center;
 }
@@ -756,7 +751,7 @@ export default {
 
 .input-suffix {
   font-size: 14px;
-  color: #6b7280;
+  @apply text-gray-500;
 }
 
 .modal-actions {
@@ -767,8 +762,8 @@ export default {
 .btn-secondary {
   flex: 1;
   padding: 12px 20px;
-  background: #f3f4f6;
-  color: #374151;
+  @apply bg-gray-100;
+  @apply text-gray-700;
   border: none;
   border-radius: 8px;
   font-size: 14px;
@@ -778,13 +773,13 @@ export default {
 }
 
 .btn-secondary:hover {
-  background: #e5e7eb;
+  @apply bg-gray-200;
 }
 
 .btn-primary {
   flex: 1;
   padding: 12px 20px;
-  background: #3b82f6;
+  @apply bg-primary-500;
   color: white;
   border: none;
   border-radius: 8px;
@@ -795,7 +790,7 @@ export default {
 }
 
 .btn-primary:hover {
-  background: #2563eb;
+  @apply bg-blue-600;
 }
 
 @media (max-width: 768px) {

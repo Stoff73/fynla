@@ -308,6 +308,8 @@
 </template>
 
 <script>
+import { ERROR_COLORS, SUCCESS_COLORS } from '@/constants/designSystem';
+
 export default {
   name: 'FeeSavingsCalculator',
 
@@ -353,7 +355,7 @@ export default {
             formatter: (val) => '£' + this.formatNumber(val),
           },
         },
-        colours: ['#EF4444', '#10B981'],
+        colors: [ERROR_COLORS[500], SUCCESS_COLORS[500]],
         fill: {
           type: 'gradient',
           gradient: {

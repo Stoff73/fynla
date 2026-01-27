@@ -195,7 +195,7 @@ export default {
 }
 
 .account-header {
-  border-left: 4px solid #3b82f6;
+  @apply border-l-4 border-primary-500;
 }
 
 .account-type-badge {

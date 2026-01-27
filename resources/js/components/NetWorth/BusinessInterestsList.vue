@@ -228,7 +228,7 @@ export default {
 .list-title {
   font-size: 24px;
   font-weight: 700;
-  color: #111827;
+  @apply text-gray-900;
   margin: 0;
 }
 
@@ -243,7 +243,7 @@ export default {
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
-  background: #a21caf;
+  @apply bg-fuchsia-700;
   color: white;
   border: none;
   border-radius: 8px;
@@ -254,7 +254,7 @@ export default {
 }
 
 .add-button:hover {
-  background: #86198f;
+  @apply bg-fuchsia-800;
 }
 
 .businesses-grid {
@@ -269,7 +269,7 @@ export default {
 }
 
 .loading-state p {
-  color: #6b7280;
+  @apply text-gray-500;
   font-size: 16px;
   margin-top: 16px;
 }
@@ -280,49 +280,49 @@ export default {
 }
 
 .error-state p {
-  color: #ef4444;
+  @apply text-red-500;
   font-size: 16px;
   margin-bottom: 16px;
 }
 
 .retry-button {
   padding: 8px 16px;
-  background: #f3f4f6;
-  color: #374151;
-  border: 1px solid #d1d5db;
+  @apply bg-gray-100;
+  @apply text-gray-700;
+  @apply border border-gray-300;
   border-radius: 8px;
   font-size: 14px;
   cursor: pointer;
 }
 
 .retry-button:hover {
-  background: #e5e7eb;
+  @apply bg-gray-200;
 }
 
 .empty-state {
   background: white;
   border-radius: 12px;
   padding: 80px 40px;
-  border: 2px dashed #d1d5db;
+  @apply border-2 border-dashed border-gray-300;
   text-align: center;
 }
 
 .empty-icon {
   width: 64px;
   height: 64px;
-  color: #9ca3af;
+  @apply text-gray-400;
   margin: 0 auto 16px;
 }
 
 .empty-title {
   font-size: 20px;
   font-weight: 700;
-  color: #374151;
+  @apply text-gray-700;
   margin-bottom: 8px;
 }
 
 .empty-subtitle {
-  color: #6b7280;
+  @apply text-gray-500;
   font-size: 14px;
   font-weight: 400;
   max-width: 400px;
@@ -334,7 +334,7 @@ export default {
   align-items: center;
   gap: 8px;
   padding: 12px 24px;
-  background: #a21caf;
+  @apply bg-fuchsia-700;
   color: white;
   border: none;
   border-radius: 8px;
@@ -345,7 +345,7 @@ export default {
 }
 
 .add-first-button:hover {
-  background: #86198f;
+  @apply bg-fuchsia-800;
 }
 
 .summary-bar {
@@ -366,7 +366,7 @@ export default {
 
 .summary-label {
   font-size: 12px;
-  color: #6b7280;
+  @apply text-gray-500;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -374,7 +374,7 @@ export default {
 .summary-value {
   font-size: 20px;
   font-weight: 700;
-  color: #111827;
+  @apply text-gray-900;
 }
 
 @media (max-width: 768px) {

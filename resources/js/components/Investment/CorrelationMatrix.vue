@@ -222,6 +222,7 @@
 <script>
 import VueApexCharts from 'vue3-apexcharts';
 import portfolioOptimizationService from '@/services/portfolioOptimizationService';
+import { SUCCESS_COLORS, WARNING_COLORS, ERROR_COLORS, PRIMARY_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'CorrelationMatrix',
@@ -278,18 +279,18 @@ export default {
           enabled: true,
           formatter: (val) => val.toFixed(0),
         },
-        colours: ['#3B82F6'],
+        colours: [PRIMARY_COLORS[500]],
         plotOptions: {
           heatmap: {
             shadeIntensity: 0.5,
             radius: 0,
             colourScale: {
               ranges: [
-                { from: -100, to: 0, color: '#10B981', name: 'Negative' },
-                { from: 0, to: 30, color: '#34D399', name: 'Low (0-0.3)' },
-                { from: 30, to: 70, color: '#FBBF24', name: 'Moderate (0.3-0.7)' },
-                { from: 70, to: 90, color: '#FB923C', name: 'High (0.7-0.9)' },
-                { from: 90, to: 100, color: '#EF4444', name: 'Very High (>0.9)' },
+                { from: -100, to: 0, color: SUCCESS_COLORS[500], name: 'Negative' },
+                { from: 0, to: 30, color: SUCCESS_COLORS[600], name: 'Low (0-0.3)' },
+                { from: 30, to: 70, color: WARNING_COLORS[500], name: 'Moderate (0.3-0.7)' },
+                { from: 70, to: 90, color: WARNING_COLORS[600], name: 'High (0.7-0.9)' },
+                { from: 90, to: 100, color: ERROR_COLORS[500], name: 'Very High (>0.9)' },
               ],
             },
           },

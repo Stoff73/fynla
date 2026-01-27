@@ -39,6 +39,7 @@
 <script>
 import VueApexCharts from 'vue3-apexcharts';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { CHART_COLORS, TEXT_COLORS, BORDER_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'GeographicAllocationMap',
@@ -121,14 +122,7 @@ export default {
             },
           },
         },
-        colours: [
-          '#3b82f6', // UK - blue
-          '#8b5cf6', // US - violet
-          '#ec4899', // Europe - pink
-          '#10b981', // Asia - green
-          '#f59e0b', // Emerging Markets - amber
-          '#14b8a6', // Other - teal
-        ],
+        colors: CHART_COLORS,
         dataLabels: {
           enabled: true,
           formatter: (val) => `${val.toFixed(1)}%`,
@@ -136,7 +130,7 @@ export default {
           style: {
             fontSize: '12px',
             fontWeight: 600,
-            colours: ['#374151'],
+            colors: [TEXT_COLORS.secondary],
           },
         },
         xaxis: {
@@ -144,7 +138,7 @@ export default {
           labels: {
             formatter: (val) => `${val}%`,
             style: {
-              colours: '#6b7280',
+              colors: TEXT_COLORS.muted,
               fontSize: '12px',
             },
           },
@@ -153,7 +147,7 @@ export default {
         yaxis: {
           labels: {
             style: {
-              colours: '#374151',
+              colors: TEXT_COLORS.secondary,
               fontSize: '13px',
               fontWeight: 500,
             },
@@ -172,7 +166,7 @@ export default {
           show: false,
         },
         grid: {
-          borderColour: '#e5e7eb',
+          borderColor: BORDER_COLORS.default,
           strokeDashArray: 3,
           xaxis: {
             lines: {

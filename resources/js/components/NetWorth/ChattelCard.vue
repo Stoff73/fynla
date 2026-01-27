@@ -98,7 +98,7 @@ export default {
   border-radius: 12px;
   padding: 20px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e5e7eb;
+  @apply border border-gray-200;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -106,7 +106,7 @@ export default {
 .chattel-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  border-color: #ec4899;
+  @apply border-pink-500;
 }
 
 .card-header {
@@ -136,38 +136,38 @@ export default {
   border-radius: 6px;
   font-size: 11px;
   font-weight: 600;
-  background: #d1fae5;
-  color: #065f46;
+  @apply bg-green-100;
+  @apply text-green-800;
 }
 
 .type-vehicle {
-  background: #dbeafe;
-  color: #1e40af;
+  @apply bg-blue-100;
+  @apply text-blue-800;
 }
 
 .type-art {
-  background: #fce7f3;
-  color: #9f1239;
+  @apply bg-pink-100;
+  @apply text-rose-800;
 }
 
 .type-antique {
-  background: #fef3c7;
-  color: #92400e;
+  @apply bg-amber-100;
+  @apply text-amber-800;
 }
 
 .type-jewelry {
-  background: #f3e8ff;
-  color: #6b21a8;
+  @apply bg-purple-50;
+  @apply text-purple-800;
 }
 
 .type-collectible {
-  background: #d1fae5;
-  color: #065f46;
+  @apply bg-green-100;
+  @apply text-green-800;
 }
 
 .type-other {
-  background: #f3f4f6;
-  color: #374151;
+  @apply bg-gray-100;
+  @apply text-gray-700;
 }
 
 .ownership-badge {
@@ -175,8 +175,8 @@ export default {
   border-radius: 6px;
   font-size: 12px;
   font-weight: 600;
-  background: #e0e7ff;
-  color: #3730a3;
+  @apply bg-indigo-100;
+  @apply text-indigo-800;
 }
 
 .card-content {
@@ -188,18 +188,18 @@ export default {
 .chattel-name {
   font-size: 18px;
   font-weight: 600;
-  color: #111827;
+  @apply text-gray-900;
   margin: 0;
 }
 
 .vehicle-details {
   padding-bottom: 8px;
-  border-bottom: 1px solid #e5e7eb;
+  @apply border-b border-gray-200;
 }
 
 .vehicle-info {
   font-size: 14px;
-  color: #6b7280;
+  @apply text-gray-500;
   margin: 0;
 }
 
@@ -208,7 +208,7 @@ export default {
   flex-direction: column;
   gap: 8px;
   padding-top: 12px;
-  border-top: 1px solid #e5e7eb;
+  @apply border-t border-gray-200;
 }
 
 .detail-row {
@@ -219,16 +219,16 @@ export default {
 }
 
 .detail-label {
-  color: #6b7280;
+  @apply text-gray-500;
 }
 
 .detail-value {
-  color: #111827;
+  @apply text-gray-900;
   font-weight: 600;
 }
 
 .text-gray-500 {
-  color: #6b7280;
+  @apply text-gray-500;
   font-weight: 400;
 }
 

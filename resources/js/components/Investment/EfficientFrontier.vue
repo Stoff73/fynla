@@ -202,6 +202,7 @@
 <script>
 import VueApexCharts from 'vue3-apexcharts';
 import portfolioOptimizationService from '@/services/portfolioOptimizationService';
+import { CHART_COLORS, BORDER_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'EfficientFrontier',
@@ -319,7 +320,7 @@ export default {
             },
           },
         },
-        colours: ['#3B82F6', '#6B7280', '#10B981', '#F59E0B', '#8B5CF6'],
+        colors: CHART_COLORS.slice(0, 5),
         xaxis: {
           title: {
             text: 'Expected Risk (Standard Deviation %)',
@@ -381,7 +382,7 @@ export default {
           },
         },
         grid: {
-          borderColour: '#E5E7EB',
+          borderColor: BORDER_COLORS.default,
           strokeDashArray: 4,
         },
       };
@@ -450,7 +451,7 @@ export default {
 /* Custom tooltip styles */
 :deep(.apexcharts-tooltip-custom) {
   background: white;
-  border: 1px solid #E5E7EB;
+  @apply border border-gray-200;
   border-radius: 0.5rem;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }

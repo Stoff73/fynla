@@ -115,7 +115,7 @@ export default {
   border-radius: 12px;
   padding: 20px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e5e7eb;
+  @apply border border-gray-200;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -123,7 +123,7 @@ export default {
 .trust-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border-color: #7c3aed;
+  @apply border-purple-600;
 }
 
 .card-header {
@@ -132,7 +132,7 @@ export default {
   gap: 12px;
   margin-bottom: 16px;
   padding-bottom: 16px;
-  border-bottom: 1px solid #e5e7eb;
+  @apply border-b border-gray-200;
 }
 
 .card-icon {
@@ -151,8 +151,8 @@ export default {
 }
 
 .card-icon.trusts {
-  background: #ede9fe;
-  color: #7c3aed;
+  @apply bg-purple-100;
+  @apply text-purple-600;
 }
 
 .card-title-section {
@@ -163,7 +163,7 @@ export default {
 .card-title {
   font-size: 16px;
   font-weight: 600;
-  color: #374151;
+  @apply text-gray-700;
   margin: 0 0 4px 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -173,14 +173,14 @@ export default {
 .card-total {
   font-size: 24px;
   font-weight: 700;
-  color: #111827;
+  @apply text-gray-900;
   margin: 0;
 }
 
 .card-arrow {
   width: 24px;
   height: 24px;
-  color: #9ca3af;
+  @apply text-gray-400;
   flex-shrink: 0;
 }
 
@@ -198,7 +198,7 @@ export default {
   justify-content: space-between;
   align-items: flex-start;
   padding: 8px 0;
-  border-bottom: 1px solid #f3f4f6;
+  @apply border-b border-gray-100;
   gap: 12px;
 }
 
@@ -208,7 +208,7 @@ export default {
 
 .item-name {
   font-size: 14px;
-  color: #4b5563;
+  @apply text-gray-600;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -218,7 +218,7 @@ export default {
 .item-value {
   font-size: 14px;
   font-weight: 600;
-  color: #111827;
+  @apply text-gray-900;
   text-align: right;
   word-break: break-word;
 }
@@ -232,18 +232,18 @@ export default {
 }
 
 .badge.rpt {
-  background: #fef3c7;
-  color: #b45309;
+  @apply bg-amber-100;
+  @apply text-amber-700;
 }
 
 .badge.active {
-  background: #d1fae5;
-  color: #065f46;
+  @apply bg-green-100;
+  @apply text-green-800;
 }
 
 .badge.inactive {
-  background: #f3f4f6;
-  color: #6b7280;
+  @apply bg-gray-100;
+  @apply text-gray-500;
 }
 
 @media (max-width: 768px) {

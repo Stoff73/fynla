@@ -286,7 +286,7 @@ export default {
 .chart-title {
   font-size: 18px;
   font-weight: 600;
-  color: #111827;
+  @apply text-gray-900;
   margin: 0;
 }
 
@@ -299,8 +299,8 @@ export default {
 .risk-badge-corner {
   display: inline-block;
   padding: 4px 10px;
-  background: #eff6ff;
-  color: #2563eb;
+  @apply bg-blue-50;
+  @apply text-blue-600;
   border-radius: 6px;
   font-size: 12px;
   font-weight: 600;
@@ -308,17 +308,17 @@ export default {
 
 .period-selector {
   padding: 6px 12px;
-  border: 1px solid #d1d5db;
+  @apply border border-gray-300;
   border-radius: 6px;
   font-size: 13px;
-  color: #374151;
+  @apply text-gray-700;
   background: white;
   cursor: pointer;
 }
 
 .period-selector:focus {
   outline: none;
-  border-color: #3b82f6;
+  @apply border-primary-500;
 }
 
 /* Summary Row - matching pension chart style exactly */
@@ -335,24 +335,24 @@ export default {
 }
 
 .summary-item.blue {
-  background: #eff6ff;
+  @apply bg-blue-50;
 }
 
 .summary-item.purple {
-  background: #f5f3ff;
+  @apply bg-purple-50;
 }
 
 .summary-item-label {
   display: block;
   font-size: 12px;
-  color: #6b7280;
+  @apply text-gray-500;
   margin-bottom: 4px;
 }
 
 .summary-item-value {
   font-size: 18px;
   font-weight: 700;
-  color: #111827;
+  @apply text-gray-900;
 }
 
 @media (max-width: 640px) {

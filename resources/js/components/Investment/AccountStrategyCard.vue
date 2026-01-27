@@ -283,7 +283,7 @@ export default {
 <style scoped>
 .strategy-section {
   background: white;
-  border: 1px solid #e5e7eb;
+  @apply border border-gray-200;
   border-radius: 12px;
   padding: 20px;
   margin-top: 24px;
@@ -297,7 +297,7 @@ export default {
 
 .strategy-card {
   background: white;
-  border: 1px solid #e5e7eb;
+  @apply border border-gray-200;
   border-radius: 12px;
   padding: 16px;
 }

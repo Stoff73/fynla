@@ -65,6 +65,7 @@
 
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { PRIMARY_COLORS, SUCCESS_COLORS, BORDER_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'NetWorthProjectionChart',
@@ -119,7 +120,7 @@ export default {
             enabled: true,
           },
         },
-        colours: ['#3B82F6', '#10B981'],
+        colours: [PRIMARY_COLORS[500], SUCCESS_COLORS[500]],
         dataLabels: {
           enabled: false,
         },
@@ -160,7 +161,7 @@ export default {
           },
         },
         grid: {
-          borderColour: '#e5e7eb',
+          borderColour: BORDER_COLORS.default,
         },
       };
     },

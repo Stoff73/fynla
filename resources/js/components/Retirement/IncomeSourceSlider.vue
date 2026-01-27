@@ -223,15 +223,15 @@ export default {
 
 <style scoped>
 .income-source-slider {
-  background: #f9fafb;
+  @apply bg-gray-50;
   border-radius: 12px;
   padding: 20px;
-  border: 1px solid #e5e7eb;
+  @apply border border-gray-200;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .income-source-slider:hover {
-  border-color: #d1d5db;
+  @apply border-gray-300;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
@@ -264,45 +264,45 @@ export default {
 }
 
 .badge-pcls {
-  background: #d1fae5;
-  color: #065f46;
+  @apply bg-green-100;
+  @apply text-green-800;
 }
 
 .badge-pension {
-  background: #dbeafe;
-  color: #1e40af;
+  @apply bg-blue-100;
+  @apply text-blue-800;
 }
 
 .badge-isa {
-  background: #fef3c7;
-  color: #92400e;
+  @apply bg-amber-100;
+  @apply text-amber-800;
 }
 
 .badge-gia {
-  background: #e9d5ff;
-  color: #6b21a8;
+  @apply bg-purple-100;
+  @apply text-purple-800;
 }
 
 .badge-bond {
-  background: #fce7f3;
-  color: #9d174d;
+  @apply bg-pink-100;
+  @apply text-pink-800;
 }
 
 .badge-default {
-  background: #f3f4f6;
-  color: #374151;
+  @apply bg-gray-100;
+  @apply text-gray-700;
 }
 
 .source-name {
   font-size: 16px;
   font-weight: 600;
-  color: #111827;
+  @apply text-gray-900;
   margin: 0;
 }
 
 .source-balance {
   font-size: 13px;
-  color: #6b7280;
+  @apply text-gray-500;
   margin: 0;
 }
 
@@ -320,34 +320,34 @@ export default {
 }
 
 .tax-badge.tax-free {
-  background: #d1fae5;
-  color: #065f46;
+  @apply bg-green-100;
+  @apply text-green-800;
 }
 
 .tax-badge.tax-basic {
-  background: #fef3c7;
-  color: #92400e;
+  @apply bg-amber-100;
+  @apply text-amber-800;
 }
 
 .tax-badge.tax-higher {
-  background: #fed7aa;
-  color: #9a3412;
+  @apply bg-orange-200;
+  @apply text-orange-800;
 }
 
 .tax-badge.tax-additional {
-  background: #fecaca;
-  color: #991b1b;
+  @apply bg-red-200;
+  @apply text-red-800;
 }
 
 .tax-badge.tax-marginal {
-  background: #e0e7ff;
-  color: #3730a3;
+  @apply bg-indigo-100;
+  @apply text-indigo-800;
 }
 
 .tax-label {
   display: block;
   font-size: 11px;
-  color: #6b7280;
+  @apply text-gray-500;
 }
 
 /* Slider Section */
@@ -364,13 +364,13 @@ export default {
 
 .amount-label {
   font-size: 12px;
-  color: #6b7280;
+  @apply text-gray-500;
 }
 
 .amount-value {
   font-size: 18px;
   font-weight: 700;
-  color: #3b82f6;
+  @apply text-primary-500;
 }
 
 .slider-wrapper {
@@ -395,17 +395,17 @@ export default {
   appearance: none;
   width: 24px;
   height: 24px;
-  background: #3b82f6;
+  @apply bg-primary-500;
   border-radius: 50%;
   cursor: pointer;
   border: 3px solid white;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+  @apply shadow-md;
   transition: transform 0.1s, box-shadow 0.1s;
 }
 
 .slider::-webkit-slider-thumb:hover {
   transform: scale(1.1);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.5);
+  @apply shadow-lg;
 }
 
 .slider::-webkit-slider-thumb:active {
@@ -415,11 +415,11 @@ export default {
 .slider::-moz-range-thumb {
   width: 24px;
   height: 24px;
-  background: #3b82f6;
+  @apply bg-primary-500;
   border-radius: 50%;
   cursor: pointer;
   border: 3px solid white;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+  @apply shadow-md;
 }
 
 .slider-track-bg {
@@ -429,7 +429,7 @@ export default {
   left: 0;
   right: 0;
   height: 8px;
-  background: #e5e7eb;
+  @apply bg-gray-200;
   border-radius: 4px;
   z-index: 0;
 }
@@ -440,7 +440,7 @@ export default {
   transform: translateY(-50%);
   left: 0;
   height: 8px;
-  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+  @apply bg-gradient-to-r from-primary-500 to-primary-400;
   border-radius: 4px;
   z-index: 1;
   pointer-events: none;
@@ -451,7 +451,7 @@ export default {
   display: flex;
   justify-content: space-between;
   font-size: 11px;
-  color: #9ca3af;
+  @apply text-gray-400;
 }
 
 /* Tax Info */
@@ -460,10 +460,10 @@ export default {
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  background: #fef3c7;
+  @apply bg-amber-100;
   border-radius: 6px;
   font-size: 12px;
-  color: #92400e;
+  @apply text-amber-800;
 }
 
 .tax-icon {

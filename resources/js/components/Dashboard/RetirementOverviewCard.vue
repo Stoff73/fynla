@@ -292,7 +292,7 @@ export default {
   justify-content: space-between;
   align-items: flex-start;
   padding-bottom: 12px;
-  border-bottom: 1px solid #f3f4f6;
+  @apply border-b border-gray-100;
 }
 
 .trust-item:last-of-type {
@@ -316,18 +316,18 @@ export default {
 .trust-name {
   font-weight: 600;
   font-size: 14px;
-  color: #111827;
+  @apply text-gray-900;
 }
 
 .trust-details {
   font-size: 12px;
-  color: #6b7280;
+  @apply text-gray-500;
 }
 
 .trust-value {
   font-weight: 600;
   font-size: 14px;
-  color: #7c3aed;
+  @apply text-purple-600;
   white-space: nowrap;
   margin-left: 12px;
 }
@@ -337,8 +337,8 @@ export default {
   margin-top: 20px;
   padding: 12px;
   border-radius: 8px;
-  background-color: #ffffff;
-  border: 2px solid #f59e0b;
+  @apply bg-white;
+  @apply border-2 border-amber-500;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -347,13 +347,13 @@ export default {
 .info-icon {
   width: 20px;
   height: 20px;
-  color: #92400e;
+  @apply text-amber-800;
   flex-shrink: 0;
 }
 
 .info-text {
   font-size: 13px;
   font-weight: 500;
-  color: #92400e;
+  @apply text-amber-800;
 }
 </style>

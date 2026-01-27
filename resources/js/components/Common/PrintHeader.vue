@@ -38,7 +38,7 @@ export default {
     justify-content: space-between;
     padding-bottom: 1rem;
     margin-bottom: 1.5rem;
-    border-bottom: 2px solid #e5e7eb;
+    @apply border-b-2 border-gray-200;
   }
 
   .print-logo {
@@ -49,7 +49,7 @@ export default {
   .print-title {
     font-size: 1.25rem;
     font-weight: 600;
-    color: #374151;
+    @apply text-gray-700;
   }
 }
 </style>

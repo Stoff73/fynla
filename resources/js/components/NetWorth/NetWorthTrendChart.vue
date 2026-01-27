@@ -15,6 +15,7 @@
 
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { PRIMARY_COLORS, TEXT_COLORS, BORDER_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'NetWorthTrendChart',
@@ -71,7 +72,7 @@ export default {
           curve: 'smooth',
           width: 3,
         },
-        colours: ['#3B82F6'],
+        colours: [PRIMARY_COLORS.base],
         fill: {
           type: 'gradient',
           gradient: {
@@ -86,7 +87,7 @@ export default {
           labels: {
             style: {
               fontSize: '12px',
-              colours: '#6b7280',
+              colours: TEXT_COLORS.muted,
             },
           },
         },
@@ -94,7 +95,7 @@ export default {
           labels: {
             style: {
               fontSize: '12px',
-              colours: '#6b7280',
+              colours: TEXT_COLORS.muted,
             },
             formatter: (val) => {
               return this.formatCurrency(val);
@@ -109,7 +110,7 @@ export default {
           },
         },
         grid: {
-          borderColour: '#e5e7eb',
+          borderColour: BORDER_COLORS.default,
           strokeDashArray: 4,
         },
         responsive: [
@@ -140,25 +141,25 @@ export default {
   border-radius: 12px;
   padding: 24px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e5e7eb;
+  @apply border border-gray-200;
   position: relative;
 }
 
 .net-worth-trend-chart.disabled {
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
+  @apply bg-gray-50;
+  @apply border border-gray-200;
   opacity: 0.6;
 }
 
 .chart-title {
   font-size: 18px;
   font-weight: 600;
-  color: #111827;
+  @apply text-gray-900;
   margin: 0 0 20px 0;
 }
 
 .net-worth-trend-chart.disabled .chart-title {
-  color: #9ca3af;
+  @apply text-gray-400;
 }
 
 .coming-soon-overlay {
@@ -177,20 +178,20 @@ export default {
 .coming-soon-icon {
   width: 64px;
   height: 64px;
-  color: #d1d5db;
+  @apply text-gray-300;
   margin: 0 auto 16px;
 }
 
 .coming-soon-text {
   font-size: 20px;
   font-weight: 600;
-  color: #9ca3af;
+  @apply text-gray-400;
   margin: 0 0 8px 0;
 }
 
 .coming-soon-description {
   font-size: 14px;
-  color: #9ca3af;
+  @apply text-gray-400;
   margin: 0;
   line-height: 1.5;
 }
@@ -202,7 +203,7 @@ export default {
 .no-data {
   text-align: center;
   padding: 60px 20px;
-  color: #9ca3af;
+  @apply text-gray-400;
 }
 
 .no-data p {

@@ -16,6 +16,7 @@
 <script>
 import VueApexCharts from 'vue3-apexcharts';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { SUCCESS_COLORS, WARNING_COLORS, ERROR_COLORS, BORDER_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'IncomeDrawdownChart',
@@ -141,14 +142,14 @@ export default {
           yaxis: [
             {
               y: this.targetIncome,
-              borderColor: '#f59e0b',
+              borderColor: WARNING_COLORS[500],
               strokeDashArray: 5,
               borderWidth: 2,
               label: {
-                borderColor: '#f59e0b',
+                borderColor: WARNING_COLORS[500],
                 style: {
                   color: '#fff',
-                  background: '#f59e0b',
+                  background: WARNING_COLORS[500],
                   fontSize: '11px',
                   fontWeight: 600,
                 },
@@ -207,7 +208,7 @@ export default {
           show: false,
         },
         grid: {
-          borderColor: '#e5e7eb',
+          borderColor: BORDER_COLORS.default,
           strokeDashArray: 4,
         },
         dataLabels: {
@@ -229,12 +230,12 @@ export default {
     getBarColor(yearData) {
       // Red when fund is depleted
       if (yearData.remaining_fund <= 0) {
-        return '#ef4444';
+        return ERROR_COLORS[500];
       }
 
       // Dark green when on or above target
       if (yearData.above_target) {
-        return '#059669';
+        return SUCCESS_COLORS[600];
       }
 
       // Calculate how far below target
@@ -242,11 +243,11 @@ export default {
 
       // Green when less than 25% below target
       if (percentBelow < 0.25) {
-        return '#10b981';
+        return SUCCESS_COLORS[500];
       }
 
       // Light green when more than 25% below target
-      return '#6ee7b7';
+      return SUCCESS_COLORS[600];
     },
 
     formatCurrencyShort(value) {
@@ -273,13 +274,13 @@ export default {
   align-items: center;
   justify-content: center;
   height: 400px;
-  background: #f9fafb;
+  @apply bg-gray-50;
   border-radius: 8px;
-  border: 1px dashed #d1d5db;
+  @apply border border-dashed border-gray-300;
 }
 
 .chart-placeholder p {
-  color: #6b7280;
+  @apply text-gray-500;
   font-size: 14px;
   margin: 0;
 }
@@ -287,7 +288,7 @@ export default {
 /* Custom tooltip styles - need to be global for ApexCharts */
 :deep(.custom-tooltip) {
   background: white;
-  border: 1px solid #e5e7eb;
+  @apply border border-gray-200;
   border-radius: 8px;
   padding: 12px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -297,42 +298,42 @@ export default {
 :deep(.tooltip-header) {
   font-size: 14px;
   font-weight: 700;
-  color: #111827;
+  @apply text-gray-900;
   margin-bottom: 8px;
   padding-bottom: 8px;
-  border-bottom: 1px solid #e5e7eb;
+  @apply border-b border-gray-200;
 }
 
 :deep(.tooltip-row) {
   display: flex;
   justify-content: space-between;
   font-size: 12px;
-  color: #6b7280;
+  @apply text-gray-500;
   margin-bottom: 4px;
 }
 
 :deep(.tooltip-row strong) {
-  color: #111827;
+  @apply text-gray-900;
 }
 
 :deep(.tooltip-row.total) {
   font-weight: 600;
-  color: #111827;
+  @apply text-gray-900;
 }
 
 :deep(.tooltip-row.target) {
-  color: #f59e0b;
+  @apply text-amber-500;
 }
 
 :deep(.tooltip-row.fund) {
   margin-top: 4px;
   padding-top: 4px;
-  border-top: 1px solid #e5e7eb;
+  @apply border-t border-gray-200;
 }
 
 :deep(.tooltip-divider) {
   height: 1px;
-  background: #e5e7eb;
+  @apply bg-gray-200;
   margin: 8px 0;
 }
 
@@ -346,12 +347,12 @@ export default {
 }
 
 :deep(.status-above) {
-  background: #d1fae5;
-  color: #065f46;
+  @apply bg-green-100;
+  @apply text-green-800;
 }
 
 :deep(.status-below) {
-  background: #fee2e2;
-  color: #991b1b;
+  @apply bg-red-100;
+  @apply text-red-800;
 }
 </style>

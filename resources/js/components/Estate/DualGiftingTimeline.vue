@@ -123,6 +123,7 @@
 
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { PRIMARY_COLORS, CHART_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'DualGiftingTimeline',
@@ -159,7 +160,7 @@ export default {
         xaxis: {
           type: 'datetime',
         },
-        colours: ['#3B82F6'], // Blue for user
+        colours: [PRIMARY_COLORS[500]], // Blue for user
         dataLabels: {
           enabled: true,
           formatter: (val) => {
@@ -197,7 +198,7 @@ export default {
     getSpouseChartOptions() {
       return {
         ...this.getUserChartOptions(),
-        colours: ['#8B5CF6'], // Purple for spouse
+        colours: [CHART_COLORS[5]], // Purple for spouse
       };
     },
 

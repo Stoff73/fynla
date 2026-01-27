@@ -160,7 +160,7 @@ export default {
 .group-title {
   font-size: 14px;
   font-weight: 600;
-  color: #374151;
+  @apply text-gray-700;
   margin: 0 0 12px 0;
 }
 
@@ -175,7 +175,7 @@ export default {
   align-items: center;
   padding: 8px 0;
   cursor: pointer;
-  border-bottom: 1px solid #f3f4f6;
+  @apply border-b border-gray-100;
   transition: all 0.2s;
 }
 
@@ -188,7 +188,7 @@ export default {
 }
 
 .account-item:hover .account-name {
-  color: #7c3aed;
+  @apply text-purple-600;
 }
 
 .account-info {
@@ -208,7 +208,7 @@ export default {
 .account-name {
   font-size: 14px;
   font-weight: 600;
-  color: #111827;
+  @apply text-gray-900;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -220,14 +220,14 @@ export default {
   border-radius: 4px;
   font-size: 10px;
   font-weight: 600;
-  background: #f3e8ff;
-  color: #6b21a8;
+  @apply bg-purple-50;
+  @apply text-purple-800;
   white-space: nowrap;
 }
 
 .account-provider {
   font-size: 12px;
-  color: #9ca3af;
+  @apply text-gray-400;
 }
 
 .account-balance-col {
@@ -246,7 +246,7 @@ export default {
 
 .full-balance {
   font-size: 11px;
-  color: #9ca3af;
+  @apply text-gray-400;
 }
 
 .empty-state {
@@ -259,7 +259,7 @@ export default {
 
 .empty-message {
   font-size: 13px;
-  color: #9ca3af;
+  @apply text-gray-400;
   text-align: center;
   margin: 0;
 }
@@ -271,16 +271,16 @@ export default {
   padding: 8px 16px;
   font-size: 13px;
   font-weight: 500;
-  color: #7c3aed;
-  background: #f5f3ff;
-  border: 1px solid #ddd6fe;
+  @apply text-purple-600;
+  @apply bg-purple-50;
+  @apply border border-purple-200;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .add-account-btn:hover {
-  background: #ede9fe;
-  border-color: #c4b5fd;
+  @apply bg-purple-100;
+  @apply border-purple-300;
 }
 </style>

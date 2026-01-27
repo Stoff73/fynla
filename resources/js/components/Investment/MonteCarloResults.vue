@@ -172,6 +172,10 @@
 <script>
 import VueApexCharts from 'vue3-apexcharts';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { SUCCESS_COLORS, PRIMARY_COLORS, ERROR_COLORS, TEXT_COLORS, BORDER_COLORS, CHART_COLORS } from '@/constants/designSystem';
+
+// Target annotation color (violet-500)
+const TARGET_COLOR = '#8b5cf6';
 
 export default {
   name: 'MonteCarloResults',
@@ -271,7 +275,7 @@ export default {
             },
           },
         },
-        colours: ['#10b981', '#3b82f6', '#ef4444'],
+        colors: [SUCCESS_COLORS[500], PRIMARY_COLORS[500], ERROR_COLORS[500]],
         stroke: {
           width: 2,
           curve: 'smooth',
@@ -290,12 +294,12 @@ export default {
             style: {
               fontSize: '12px',
               fontWeight: 600,
-              color: '#6b7280',
+              color: TEXT_COLORS.muted,
             },
           },
           labels: {
             style: {
-              colours: '#6b7280',
+              colors: TEXT_COLORS.muted,
               fontSize: '12px',
             },
           },
@@ -306,13 +310,13 @@ export default {
             style: {
               fontSize: '12px',
               fontWeight: 600,
-              color: '#6b7280',
+              color: TEXT_COLORS.muted,
             },
           },
           labels: {
             formatter: (val) => this.formatCurrencyShort(val),
             style: {
-              colours: '#6b7280',
+              colors: TEXT_COLORS.muted,
               fontSize: '12px',
             },
           },
@@ -330,11 +334,11 @@ export default {
           fontSize: '14px',
           fontWeight: 500,
           labels: {
-            colours: '#374151',
+            colors: TEXT_COLORS.secondary,
           },
         },
         grid: {
-          borderColour: '#e5e7eb',
+          borderColor: BORDER_COLORS.default,
           strokeDashArray: 3,
         },
         dataLabels: {
@@ -344,13 +348,13 @@ export default {
           yaxis: [
             {
               y: this.targetAmount,
-              borderColour: '#8b5cf6',
+              borderColor: TARGET_COLOR,
               strokeDashArray: 5,
               label: {
-                borderColour: '#8b5cf6',
+                borderColor: TARGET_COLOR,
                 style: {
                   color: '#fff',
-                  background: '#8b5cf6',
+                  background: TARGET_COLOR,
                 },
                 text: `Target: ${this.formatCurrencyShort(this.targetAmount)}`,
               },

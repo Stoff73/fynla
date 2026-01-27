@@ -402,6 +402,7 @@
 
 <script>
 import api from '@/services/api';
+import { PRIMARY_COLORS, SUCCESS_COLORS, BORDER_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'ContributionPlanner',
@@ -443,7 +444,7 @@ export default {
               size: '60%',
             },
             track: {
-              background: '#e7e7e7',
+              background: BORDER_COLORS.default,
               strokeWidth: '100%',
             },
             dataLabels: {
@@ -467,14 +468,14 @@ export default {
             shade: 'dark',
             type: 'horizontal',
             shadeIntensity: 0.5,
-            gradientToColours: ['#10B981'],
-            inverseColours: false,
+            gradientToColors: [SUCCESS_COLORS[500]],
+            inverseColors: false,
             opacityFrom: 1,
             opacityTo: 1,
             stops: [0, 100],
           },
         },
-        colours: ['#3B82F6'],
+        colors: [PRIMARY_COLORS[500]],
       };
     },
   },

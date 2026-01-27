@@ -14,6 +14,8 @@
 </template>
 
 <script>
+import { CHART_COLORS, SUCCESS_COLORS, WARNING_COLORS, ERROR_COLORS, TEXT_COLORS } from '@/constants/designSystem';
+
 export default {
   name: 'CoverageTimelineChart',
 
@@ -44,11 +46,11 @@ export default {
 
     series() {
       const policyTypeColours = {
-        life: '#3B82F6',
-        criticalIllness: '#8B5CF6',
-        incomeProtection: '#10B981',
-        disability: '#F59E0B',
-        sicknessIllness: '#EF4444',
+        life: CHART_COLORS[0],
+        criticalIllness: CHART_COLORS[5],
+        incomeProtection: SUCCESS_COLORS[500],
+        disability: WARNING_COLORS[500],
+        sicknessIllness: ERROR_COLORS[500],
       };
 
       const seriesData = this.policies.map((policy) => {
@@ -73,7 +75,7 @@ export default {
         return {
           x: policyLabel,
           y: [startDate.getTime(), endDate.getTime()],
-          fillColour: policyTypeColours[policyType] || '#6B7280',
+          fillColour: policyTypeColours[policyType] || TEXT_COLORS.muted,
         };
       });
 
