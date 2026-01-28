@@ -1373,6 +1373,122 @@ resources/js/components/Onboarding/steps/ExpenditureStep.vue
 
 ---
 
+---
+
+## Employment Status & Retirement Age Save Fix
+
+**Date:** 28 January 2026
+
+**Branch:** main
+
+**Status:** Ready for deployment
+
+### Description
+
+Fixed bug where changing employment status (e.g., self-employed to employed) and target retirement age wasn't saving correctly through the Personal Information form.
+
+### Root Cause
+
+The `UpdateIncomeOccupationRequest` validation was missing several fields, causing them to be filtered out before reaching the service:
+- `target_retirement_age`
+- `retirement_date`
+- `part_time` employment status
+- `annual_interest_income`
+- `annual_trust_income`
+
+### Files Changed
+
+**Backend:**
+```text
+app/Http/Requests/UpdateIncomeOccupationRequest.php
+```
+
+### Rebuild Required: NO (PHP only)
+
+### Verification
+
+1. Log in and go to Valuable Info > Personal Information
+2. Change employment status from self-employed to employed
+3. Change target retirement age
+4. Save changes
+5. Refresh the page and verify changes persisted
+
+---
+
+## SOC 2020 Occupation Autocomplete
+
+**Date:** 28 January 2026
+
+**Branch:** main
+
+**Status:** Ready for deployment
+
+### Description
+
+Implemented occupation autocomplete using ONS Standard Occupational Classification (SOC) 2020 codes. When users type 3+ characters in the occupation field, they see matching job titles from the official UK classification system.
+
+### Source
+
+[ONS SOC 2020](https://www.ons.gov.uk/methodology/classificationsandstandards/standardoccupationalclassificationsoc/soc2020)
+
+### Database Changes
+
+New table: `occupation_codes`
+- `id` - Primary key
+- `soc_code` - SOC 2020 4-digit unit group code
+- `title` - Job title/occupation name
+- `unit_group` - SOC 2020 unit group description
+- `minor_group` - SOC 2020 minor group (3-digit)
+- `sub_major_group` - SOC 2020 sub-major group (2-digit)
+- `major_group` - SOC 2020 major group (1-digit)
+- `is_primary` - Is this the primary title for the SOC code
+
+### Files Changed
+
+**Backend:**
+```text
+database/migrations/2026_01_28_000001_create_occupation_codes_table.php
+database/seeders/OccupationCodeSeeder.php
+app/Models/OccupationCode.php
+app/Http/Controllers/Api/OccupationController.php
+routes/api.php
+```
+
+**Frontend (Included in Build):**
+```text
+resources/js/services/occupationService.js
+resources/js/components/Shared/OccupationAutocomplete.vue
+resources/js/components/Onboarding/steps/IncomeStep.vue
+resources/js/components/UserProfile/PersonalInformation.vue
+```
+
+### Server Commands Required
+
+```bash
+# Run migration
+php artisan migrate
+
+# Seed occupation codes
+php artisan db:seed --class=OccupationCodeSeeder
+```
+
+### Rebuild Required: YES
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+### Verification
+
+1. Start onboarding and go to Employment & Income step
+2. In the Occupation field, type "soft" (3 characters)
+3. Verify autocomplete dropdown appears with matching occupations
+4. Select "Software Developer" from the list
+5. Verify field is populated
+6. Test in Personal Information tab as well
+
+---
+
 ## Rollback
 
 If issues occur, restore previous `public/build/` directory from backup.

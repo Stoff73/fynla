@@ -64,13 +64,12 @@
               <label for="occupation" class="label">
                 Occupation
               </label>
-              <input
+              <OccupationAutocomplete
                 id="occupation"
                 v-model="formData.occupation"
-                type="text"
-                class="input-field"
-                placeholder="Software Developer"
-              >
+                placeholder="Start typing your job title..."
+                :show-hint="true"
+              />
             </div>
 
             <div>
@@ -326,6 +325,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useStore } from 'vuex';
 import OnboardingStep from '../OnboardingStep.vue';
+import OccupationAutocomplete from '@/components/Shared/OccupationAutocomplete.vue';
 import propertyService from '@/services/propertyService';
 
 export default {
@@ -333,6 +333,7 @@ export default {
 
   components: {
     OnboardingStep,
+    OccupationAutocomplete,
   },
 
   emits: ['next', 'back', 'skip'],

@@ -39,6 +39,7 @@ use App\Http\Controllers\Api\MortgageController;
 use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\PostcodeLookupController;
 use App\Http\Controllers\Api\NetWorthController;
+use App\Http\Controllers\Api\OccupationController;
 use App\Http\Controllers\Api\OnboardingController;
 use App\Http\Controllers\Api\PersonalAccountsController;
 use App\Http\Controllers\Api\Plans\InvestmentSavingsPlanController;
@@ -967,3 +968,7 @@ Route::middleware(['auth:sanctum', 'throttle:30,1'])->prefix('documents')->group
 // Postcode Lookup routes (UK address lookup via GetAddress.io)
 Route::middleware(['auth:sanctum', 'throttle:30,1'])
     ->get('/postcode-lookup/{postcode}', [PostcodeLookupController::class, 'lookup']);
+
+// Occupation search (SOC 2020)
+Route::middleware('auth:sanctum')
+    ->get('/occupations/search', [OccupationController::class, 'search']);

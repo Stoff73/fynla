@@ -383,12 +383,10 @@
               <label class="block text-body-sm font-medium text-gray-700 mb-1">
                 Job Title
               </label>
-              <input
+              <OccupationAutocomplete
                 id="occupation"
                 v-model="form.occupation"
-                type="text"
-                class="input-field"
-                placeholder="e.g., Software Engineer"
+                placeholder="Start typing your job title..."
               />
             </div>
 
@@ -558,6 +556,7 @@ import { ref, computed, watch } from 'vue';
 import { useStore } from 'vuex';
 import PostcodeLookup from '@/components/Shared/PostcodeLookup.vue';
 import CountrySelector from '@/components/Shared/CountrySelector.vue';
+import OccupationAutocomplete from '@/components/Shared/OccupationAutocomplete.vue';
 
 // Preview mode message
 const PREVIEW_SUCCESS_MESSAGE = 'Changes saved for this session only (preview mode).';
@@ -568,6 +567,7 @@ export default {
   components: {
     PostcodeLookup,
     CountrySelector,
+    OccupationAutocomplete,
   },
 
   setup() {
