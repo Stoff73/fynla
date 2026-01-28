@@ -304,7 +304,7 @@ export default {
 }
 
 .spinner {
-  @apply w-12 h-12 border-3 border-gray-200 border-t-primary-500 rounded-full mb-4;
+  @apply w-12 h-12 border-4 border-gray-200 border-t-primary-500 rounded-full mb-4;
   animation: spin 1s linear infinite;
 }
 

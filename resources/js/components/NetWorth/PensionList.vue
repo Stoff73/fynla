@@ -1022,7 +1022,7 @@ export default {
 .spinner {
   width: 48px;
   height: 48px;
-  @apply border-3 border-gray-200 border-t-primary-500;
+  @apply border-4 border-gray-200 border-t-primary-500;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 16px;
