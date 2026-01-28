@@ -4,10 +4,17 @@ declare(strict_types=1);
 
 namespace App\Services\Investment;
 
+use Illuminate\Support\Facades\DB;
+
 class MonteCarloSimulator
 {
     /**
-     * Run Monte Carlo simulation
+     * Cache TTL in hours (24 hours)
+     */
+    private const CACHE_TTL_HOURS = 24;
+
+    /**
+     * Run Monte Carlo simulation with optional caching
      *
      * @param  float  $startValue  Initial portfolio value
      * @param  float  $monthlyContribution  Monthly contribution amount
@@ -15,6 +22,7 @@ class MonteCarloSimulator
      * @param  float  $volatility  Annual volatility/std deviation (e.g., 0.15 for 15%)
      * @param  int  $years  Number of years to simulate
      * @param  int  $iterations  Number of simulation runs (default 1000)
+     * @param  string|null  $cacheKey  Optional cache key for 24-hour caching
      * @return array Simulation results with percentiles
      */
     public function simulate(
@@ -23,7 +31,120 @@ class MonteCarloSimulator
         float $expectedReturn,
         float $volatility,
         int $years,
-        int $iterations = 1000
+        int $iterations = 1000,
+        ?string $cacheKey = null
+    ): array {
+        // Check cache if key provided
+        if ($cacheKey !== null) {
+            $cached = $this->getCachedResult($cacheKey);
+            if ($cached !== null) {
+                return $cached;
+            }
+        }
+
+        // Run the actual simulation
+        $results = $this->runSimulation(
+            $startValue,
+            $monthlyContribution,
+            $expectedReturn,
+            $volatility,
+            $years,
+            $iterations
+        );
+
+        // Store in cache if key provided
+        if ($cacheKey !== null) {
+            $this->cacheResult($cacheKey, $results);
+        }
+
+        return $results;
+    }
+
+    /**
+     * Get cached result if valid (not expired)
+     */
+    private function getCachedResult(string $cacheKey): ?array
+    {
+        try {
+            $cached = DB::table('monte_carlo_cache')
+                ->where('cache_key', $cacheKey)
+                ->where('expires_at', '>', now())
+                ->first();
+
+            if ($cached) {
+                return json_decode($cached->results, true);
+            }
+        } catch (\Throwable $e) {
+            // Log but don't fail if cache table doesn't exist yet
+            \Log::warning("Monte Carlo cache read failed: " . $e->getMessage());
+        }
+
+        return null;
+    }
+
+    /**
+     * Store result in cache
+     */
+    private function cacheResult(string $cacheKey, array $results): void
+    {
+        try {
+            DB::table('monte_carlo_cache')->updateOrInsert(
+                ['cache_key' => $cacheKey],
+                [
+                    'results' => json_encode($results),
+                    'calculated_at' => now(),
+                    'expires_at' => now()->addHours(self::CACHE_TTL_HOURS),
+                    'updated_at' => now(),
+                    'created_at' => now(),
+                ]
+            );
+        } catch (\Throwable $e) {
+            // Log but don't fail if cache table doesn't exist yet
+            \Log::warning("Monte Carlo cache write failed: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Clear cache for a specific key or all expired entries
+     */
+    public function clearCache(?string $cacheKey = null): void
+    {
+        try {
+            if ($cacheKey !== null) {
+                DB::table('monte_carlo_cache')->where('cache_key', $cacheKey)->delete();
+            } else {
+                // Clear all expired entries
+                DB::table('monte_carlo_cache')->where('expires_at', '<', now())->delete();
+            }
+        } catch (\Throwable $e) {
+            \Log::warning("Monte Carlo cache clear failed: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Clear all cache entries for a user (e.g., when data changes)
+     */
+    public function clearUserCache(int $userId): void
+    {
+        try {
+            DB::table('monte_carlo_cache')
+                ->where('cache_key', 'like', "user_{$userId}_%")
+                ->delete();
+        } catch (\Throwable $e) {
+            \Log::warning("Monte Carlo user cache clear failed: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Run the actual Monte Carlo simulation (internal method)
+     */
+    private function runSimulation(
+        float $startValue,
+        float $monthlyContribution,
+        float $expectedReturn,
+        float $volatility,
+        int $years,
+        int $iterations
     ): array {
         $results = [];
         $monthlyReturn = $expectedReturn / 12;
@@ -95,33 +216,19 @@ class MonteCarloSimulator
 
     /**
      * Generate random number from normal distribution using Box-Muller transform
-     *
-     * @param  float  $mean  Mean of the distribution
-     * @param  float  $stdDev  Standard deviation
-     * @return float Random value from normal distribution
      */
     public function generateNormalDistribution(float $mean, float $stdDev): float
     {
-        // Box-Muller transform
-        // Generate two independent uniform random numbers between 0 and 1
         $u1 = mt_rand() / mt_getrandmax();
         $u2 = mt_rand() / mt_getrandmax();
-
-        // Ensure u1 is not zero to avoid log(0)
         $u1 = max($u1, 1e-10);
-
-        // Apply Box-Muller transform
         $z0 = sqrt(-2.0 * log($u1)) * cos(2.0 * M_PI * $u2);
 
-        // Transform to desired mean and standard deviation
         return $mean + ($z0 * $stdDev);
     }
 
     /**
      * Calculate percentiles from sorted array of values
-     *
-     * @param  array  $sortedValues  Array of values (must be sorted)
-     * @return array Percentiles (10th, 25th, 50th, 75th, 90th)
      */
     public function calculatePercentiles(array $sortedValues): array
     {
@@ -145,7 +252,7 @@ class MonteCarloSimulator
             $percentiles[] = [
                 'percentile' => "{$p}th",
                 'value' => $value,
-                'final_value' => $value, // For compatibility
+                'final_value' => $value,
             ];
         }
 
@@ -154,10 +261,6 @@ class MonteCarloSimulator
 
     /**
      * Calculate probability of reaching a goal
-     *
-     * @param  array  $finalValues  Array of final portfolio values from simulation
-     * @param  float  $goalAmount  Target amount
-     * @return float Probability as percentage (0-100)
      */
     public function calculateGoalProbability(array $finalValues, float $goalAmount): float
     {

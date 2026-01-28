@@ -1,7 +1,7 @@
 # Fynla Design System
 
-**Version:** 1.0.0
-**Last Updated:** January 2026
+**Version:** 1.1.0
+**Last Updated:** 28 January 2026
 **Framework:** Vue.js 3 + Tailwind CSS
 
 This document is the single source of truth for all design decisions in the Fynla financial planning application. Every component must adhere to these specifications to ensure visual consistency, professional quality, and user trust.
@@ -19,20 +19,21 @@ This document is the single source of truth for all design decisions in the Fynl
 7. [Buttons](#buttons)
 8. [Forms & Inputs](#forms--inputs)
 9. [Cards](#cards)
-10. [Tables](#tables)
-11. [Modals & Overlays](#modals--overlays)
-12. [Navigation](#navigation)
-13. [Badges & Tags](#badges--tags)
-14. [Alerts & Notifications](#alerts--notifications)
-15. [Loading States](#loading-states)
-16. [Empty States](#empty-states)
-17. [Error States](#error-states)
-18. [Charts & Data Visualization](#charts--data-visualization)
-19. [Icons](#icons)
-20. [Animation & Motion](#animation--motion)
-21. [Responsive Breakpoints](#responsive-breakpoints)
-22. [Accessibility](#accessibility)
-23. [Do's and Don'ts](#dos-and-donts)
+10. [Profile & Information Tabs](#profile--information-tabs)
+11. [Tables](#tables)
+12. [Modals & Overlays](#modals--overlays)
+13. [Navigation](#navigation)
+14. [Badges & Tags](#badges--tags)
+15. [Alerts & Notifications](#alerts--notifications)
+16. [Loading States](#loading-states)
+17. [Empty States](#empty-states)
+18. [Error States](#error-states)
+19. [Charts & Data Visualization](#charts--data-visualization)
+20. [Icons](#icons)
+21. [Animation & Motion](#animation--motion)
+22. [Responsive Breakpoints](#responsive-breakpoints)
+23. [Accessibility](#accessibility)
+24. [Do's and Don'ts](#dos-and-donts)
 
 ---
 
@@ -525,6 +526,238 @@ All buttons must implement:
 |  px-6 py-4 border-t bg-gray-50   |
 +----------------------------------+
 ```
+
+---
+
+## Profile & Information Tabs
+
+This section defines the design patterns for User Profile, Valuable Info, and similar tabbed information displays. These patterns ensure consistency when displaying and editing user data.
+
+### View Mode Layout
+
+Profile tabs use a **clean two-column layout** in view mode with labels on the left and values right-aligned. This creates a professional, scannable format.
+
+#### Card Wrapper Structure
+
+All profile tab content is wrapped in a card with a header row:
+
+```html
+<div class="bg-white rounded-lg border border-gray-200 p-6">
+  <div class="flex justify-between items-start mb-6">
+    <div>
+      <h3 class="text-h4 font-semibold text-gray-900">Section Title</h3>
+      <p class="mt-1 text-body-sm text-gray-600">
+        Section description text
+      </p>
+    </div>
+    <button class="btn-secondary">
+      Edit
+    </button>
+  </div>
+
+  <!-- Content goes here -->
+</div>
+```
+
+#### Two-Column View Mode
+
+For displaying data in view mode, use a two-column grid with label-value rows:
+
+```html
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-8">
+  <!-- Left Column -->
+  <div class="space-y-8">
+    <div>
+      <h3 class="text-body-base font-semibold text-gray-900 mb-4">Section Name</h3>
+      <div class="space-y-3">
+        <div class="flex justify-between">
+          <span class="text-body-sm text-gray-600">Label:</span>
+          <span class="text-body-sm text-gray-900 text-right">Value</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-body-sm text-gray-600">Another Label:</span>
+          <span class="text-body-sm text-gray-900 text-right">Another Value</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Column -->
+  <div class="space-y-8">
+    <!-- Similar structure -->
+  </div>
+</div>
+```
+
+#### Label-Value Row Specifications
+
+| Element | Class | Notes |
+|---------|-------|-------|
+| Row container | `flex justify-between` | Spreads label and value |
+| Label | `text-body-sm text-gray-600` | Left-aligned, muted |
+| Value | `text-body-sm text-gray-900 text-right` | Right-aligned, emphasis |
+| Missing value | Display `—` (em dash) | Never leave blank |
+| Section header | `text-body-base font-semibold text-gray-900 mb-4` | Bold, above rows |
+| Row spacing | `space-y-3` | 12px between rows |
+| Section spacing | `space-y-8` | 32px between sections |
+| Column gap | `gap-x-12 gap-y-8` | 48px horizontal, 32px vertical |
+
+### Edit Mode Layout
+
+When user clicks "Edit", the view mode is replaced with form inputs:
+
+```html
+<!-- EDIT MODE -->
+<div v-else class="bg-white rounded-lg border border-gray-200 p-6">
+  <h3 class="text-h4 font-semibold text-gray-900 mb-6">Edit Section Title</h3>
+
+  <div class="space-y-6">
+    <!-- Form sections with border-t dividers -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+      <!-- Form fields -->
+    </div>
+
+    <!-- Additional sections -->
+    <div class="border-t border-gray-200 pt-6">
+      <h3 class="text-h5 font-semibold text-gray-900 mb-4">Subsection</h3>
+      <!-- More fields -->
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+      <button class="btn-secondary" @click="handleCancel">
+        Cancel
+      </button>
+      <button class="btn-primary" type="submit">
+        Save Changes
+      </button>
+    </div>
+  </div>
+</div>
+```
+
+### Button Patterns
+
+| Button | Style | Location | Action |
+|--------|-------|----------|--------|
+| Edit | `btn-secondary` | Header row, right side | Toggles to edit mode |
+| Add | `btn-secondary` | Header row, right side | Opens add modal |
+| Cancel | `btn-secondary` | Footer, left of Save | Reverts and exits edit mode |
+| Save Changes | `btn-primary` | Footer, rightmost | Submits form |
+
+### Complete Tab Pattern
+
+```vue
+<template>
+  <div class="space-y-6">
+    <!-- Success/Error Messages -->
+    <div v-if="successMessage" class="rounded-md bg-success-50 p-4">
+      <p class="text-body-sm font-medium text-success-800">{{ successMessage }}</p>
+    </div>
+
+    <div v-if="errorMessage" class="rounded-md bg-error-50 p-4">
+      <h3 class="text-body-sm font-medium text-error-800">Error</h3>
+      <p class="mt-2 text-body-sm text-error-700">{{ errorMessage }}</p>
+    </div>
+
+    <form @submit.prevent="handleSubmit">
+      <!-- VIEW MODE -->
+      <div v-if="!isEditing" class="bg-white rounded-lg border border-gray-200 p-6">
+        <div class="flex justify-between items-start mb-6">
+          <div>
+            <h3 class="text-h4 font-semibold text-gray-900">Section Title</h3>
+            <p class="mt-1 text-body-sm text-gray-600">Description</p>
+          </div>
+          <button type="button" @click="isEditing = true" class="btn-secondary">
+            Edit
+          </button>
+        </div>
+
+        <!-- Two-column label-value layout -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-6">
+          <div class="space-y-3">
+            <div class="flex justify-between">
+              <span class="text-body-sm text-gray-600">Field:</span>
+              <span class="text-body-sm text-gray-900 text-right">{{ value || '—' }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- EDIT MODE -->
+      <div v-else class="bg-white rounded-lg border border-gray-200 p-6">
+        <h3 class="text-h4 font-semibold text-gray-900 mb-6">Edit Section Title</h3>
+
+        <div class="space-y-6">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+            <!-- Form fields with input-field class -->
+          </div>
+
+          <div class="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+            <button type="button" @click="handleCancel" class="btn-secondary">
+              Cancel
+            </button>
+            <button type="submit" class="btn-primary">
+              Save Changes
+            </button>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+</template>
+```
+
+### Value Formatting
+
+| Data Type | Format | Example |
+|-----------|--------|---------|
+| Currency | `formatCurrency()` | £45,000 |
+| Date | `toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })` | 15 January 2024 |
+| Percentage | Number + `%` | 50% |
+| Status/Enum | Title case | Employed |
+| Boolean | Yes/No | Yes |
+| Empty | Em dash | — |
+| Uppercase fields | Add `uppercase` class | AB123456C |
+| Capitalised fields | Add `capitalize` class | Male |
+
+### Info Boxes
+
+For contextual information within profile sections:
+
+```html
+<!-- Info box (blue) -->
+<div class="mt-4 p-3 bg-blue-50 rounded-lg">
+  <p class="text-body-xs text-blue-700">
+    Informational text explaining something to the user.
+  </p>
+</div>
+
+<!-- Warning box (amber) -->
+<div class="mt-4 p-3 bg-amber-50 rounded-lg">
+  <p class="text-body-xs text-amber-700">
+    Warning or important notice for the user.
+  </p>
+</div>
+```
+
+### Checklist for Profile/Info Tabs
+
+When creating new profile or information tabs:
+
+- [ ] Use `space-y-6` wrapper for overall tab content
+- [ ] Place success/error messages at top, outside the card
+- [ ] Wrap content in `bg-white rounded-lg border border-gray-200 p-6`
+- [ ] Header row with title, description, and `btn-secondary` Edit/Add button
+- [ ] View mode uses two-column grid with label-value rows
+- [ ] Labels are `text-body-sm text-gray-600`
+- [ ] Values are `text-body-sm text-gray-900 text-right`
+- [ ] Use `—` (em dash) for empty values
+- [ ] Edit mode shows form inputs with `input-field` class
+- [ ] Form sections divided by `border-t border-gray-200 pt-6`
+- [ ] Action buttons at bottom: Cancel (secondary) and Save (primary)
+- [ ] Cancel button reverts form and exits edit mode
+- [ ] Save button submits and shows success message
 
 ---
 

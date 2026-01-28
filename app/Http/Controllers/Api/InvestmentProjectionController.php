@@ -30,11 +30,12 @@ class InvestmentProjectionController extends Controller
         ]);
 
         $user = $request->user();
+        $contributionOverrides = $validated['contribution_overrides'] ?? null;
 
         $projections = $this->investmentAgent->getPortfolioProjections(
             $user->id,
             $validated['projection_periods'] ?? [5, 10, 20, 30],
-            $validated['contribution_overrides'] ?? null,
+            $contributionOverrides,
             $validated['selected_period'] ?? null
         );
 
