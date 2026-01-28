@@ -227,7 +227,8 @@ export default {
   font-weight: 600;
 }
 
-.text-gray-500 {
+/* Font weight override for muted text */
+.chattel-muted-text {
   @apply text-gray-500;
   font-weight: 400;
 }
