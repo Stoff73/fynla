@@ -505,7 +505,7 @@ export default {
   width: 40px;
   height: 40px;
   border: 3px solid #e5e7eb;
-  border-top-@apply text-primary-500;
+  @apply border-t-primary-500;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 16px;

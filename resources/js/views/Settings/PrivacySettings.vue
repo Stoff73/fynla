@@ -1054,12 +1054,12 @@ export default {
 }
 
 .deletion-option:hover {
-  border-@apply text-primary-500;
+  @apply border-primary-500;
   background-color: #f0f9ff;
 }
 
 .deletion-option.selected {
-  border-@apply text-primary-500;
+  @apply border-primary-500;
   background-color: #eff6ff;
 }
 
@@ -1151,7 +1151,7 @@ export default {
 }
 
 .code-input:focus {
-  border-@apply text-primary-500;
+  @apply border-primary-500;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
@@ -1238,7 +1238,7 @@ export default {
 
 .form-input:focus {
   outline: none;
-  border-@apply text-primary-500;
+  @apply border-primary-500;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
@@ -1275,7 +1275,7 @@ export default {
   width: 20px;
   height: 20px;
   border: 2px solid #e5e7eb;
-  border-top-@apply text-primary-500;
+  @apply border-t-primary-500;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
