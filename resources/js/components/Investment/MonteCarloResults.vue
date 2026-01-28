@@ -172,10 +172,18 @@
 <script>
 import VueApexCharts from 'vue3-apexcharts';
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { SUCCESS_COLORS, PRIMARY_COLORS, ERROR_COLORS, TEXT_COLORS, BORDER_COLORS, CHART_COLORS } from '@/constants/designSystem';
+import { TEXT_COLORS, BORDER_COLORS } from '@/constants/designSystem';
 
 // Target annotation color (violet-500)
 const TARGET_COLOR = '#8b5cf6';
+
+// Monte Carlo probability band colors (dark blue to light teal)
+const PROBABILITY_COLORS = {
+  p90: '#1e3a5f',  // Dark navy - 90% probability
+  p85: '#3b82f6',  // Blue - 85% probability
+  p80: '#14b8a6',  // Teal - 80% probability
+  p75: '#a7f3d0',  // Light mint - 75% probability
+};
 
 export default {
   name: 'MonteCarloResults',
@@ -242,18 +250,28 @@ export default {
 
       const projections = this.results.projections;
 
+      // Create probability bands - each band shows the range for that confidence level
+      // 90% probability: 10th percentile
+      // 85% probability: 15th percentile (interpolated)
+      // 80% probability: 20th percentile (interpolated)
+      // 75% probability: 25th percentile
+
       return [
         {
-          name: '90th Percentile',
-          data: projections.map(p => ({ x: p.year, y: p.percentile_90 })),
-        },
-        {
-          name: 'Median (50th)',
-          data: projections.map(p => ({ x: p.year, y: p.percentile_50 })),
-        },
-        {
-          name: '10th Percentile',
+          name: '90% Probability',
           data: projections.map(p => ({ x: p.year, y: p.percentile_10 })),
+        },
+        {
+          name: '85% Probability',
+          data: projections.map(p => ({ x: p.year, y: p.percentile_15 || (p.percentile_10 + (p.percentile_25 - p.percentile_10) * 0.33) })),
+        },
+        {
+          name: '80% Probability',
+          data: projections.map(p => ({ x: p.year, y: p.percentile_20 || (p.percentile_10 + (p.percentile_25 - p.percentile_10) * 0.67) })),
+        },
+        {
+          name: '75% Probability',
+          data: projections.map(p => ({ x: p.year, y: p.percentile_25 })),
         },
       ];
     },
@@ -267,25 +285,23 @@ export default {
             show: true,
             tools: {
               download: true,
-              zoom: true,
-              zoomin: true,
-              zoomout: true,
-              pan: true,
-              reset: true,
+              zoom: false,
+              zoomin: false,
+              zoomout: false,
+              pan: false,
+              reset: false,
             },
           },
+          stacked: false,
         },
-        colors: [SUCCESS_COLORS[500], PRIMARY_COLORS[500], ERROR_COLORS[500]],
+        colors: [PROBABILITY_COLORS.p95, PROBABILITY_COLORS.p90, PROBABILITY_COLORS.p85, PROBABILITY_COLORS.p80],
         stroke: {
           width: 2,
           curve: 'smooth',
         },
         fill: {
-          type: 'gradient',
-          gradient: {
-            opacityFrom: 0.6,
-            opacityTo: 0.1,
-          },
+          type: 'solid',
+          opacity: 0.6,
         },
         xaxis: {
           type: 'numeric',
@@ -302,11 +318,12 @@ export default {
               colors: TEXT_COLORS.muted,
               fontSize: '12px',
             },
+            formatter: (val) => Math.round(val),
           },
         },
         yaxis: {
           title: {
-            text: 'Portfolio Value (£)',
+            text: 'Investment Value',
             style: {
               fontSize: '12px',
               fontWeight: 600,
@@ -330,11 +347,19 @@ export default {
         },
         legend: {
           position: 'top',
-          horizontalAlign: 'centre',
-          fontSize: '14px',
+          horizontalAlign: 'center',
+          fontSize: '12px',
           fontWeight: 500,
           labels: {
             colors: TEXT_COLORS.secondary,
+          },
+          markers: {
+            width: 10,
+            height: 10,
+            radius: 10,
+          },
+          itemMargin: {
+            horizontal: 12,
           },
         },
         grid: {

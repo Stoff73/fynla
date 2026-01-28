@@ -183,6 +183,7 @@ export default {
   padding: 24px;
   max-width: 1400px;
   margin: 0 auto;
+  overflow: visible;
 }
 
 .net-worth-dashboard.with-sidebar {
@@ -302,7 +303,7 @@ export default {
 .main-content {
   min-height: 500px;
   min-width: 0; /* Prevents grid item from overflowing container */
-  overflow-x: auto; /* Allow horizontal scroll if needed instead of clipping */
+  overflow: visible;
 }
 
 /* Mobile responsive */

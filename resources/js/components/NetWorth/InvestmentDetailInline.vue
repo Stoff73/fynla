@@ -290,8 +290,24 @@ export default {
       return this.account.holdings?.length || 0;
     },
 
-    // Estimate monthly contribution from YTD (UK tax year starts April 6)
+    // Get monthly contribution - use actual value if set, otherwise estimate from YTD
     estimatedMonthlyContribution() {
+      // Use actual monthly contribution amount if set
+      if (this.account.monthly_contribution_amount > 0) {
+        // Convert to monthly based on frequency
+        const amount = this.account.monthly_contribution_amount;
+        const frequency = this.account.contribution_frequency || 'monthly';
+        switch (frequency) {
+          case 'quarterly':
+            return amount / 3;
+          case 'annually':
+            return amount / 12;
+          default:
+            return amount;
+        }
+      }
+
+      // Fallback: estimate from YTD (UK tax year starts April 6)
       const ytd = this.account.contributions_ytd || 0;
       if (ytd <= 0) return 0;
 

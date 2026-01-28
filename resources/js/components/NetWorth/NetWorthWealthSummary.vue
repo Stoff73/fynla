@@ -1,43 +1,5 @@
 <template>
   <div class="net-worth-wealth-summary">
-    <div class="summary-cards">
-      <div class="summary-card assets-card clickable" @click="navigateToAssets">
-        <div class="card-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
-          </svg>
-        </div>
-        <div class="card-content">
-          <p class="card-label">Total Assets</p>
-          <p class="card-value">{{ formattedAssets }}</p>
-        </div>
-      </div>
-
-      <div class="summary-card liabilities-card clickable" @click="navigateToLiabilities">
-        <div class="card-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6L9 12.75l4.286-4.286a11.948 11.948 0 014.306 6.43l.776 2.898m0 0l3.182-5.511m-3.182 5.51l-5.511-3.181" />
-          </svg>
-        </div>
-        <div class="card-content">
-          <p class="card-label">Total Liabilities</p>
-          <p class="card-value">{{ formattedLiabilities }}</p>
-        </div>
-      </div>
-
-      <div class="summary-card net-worth-card highlighted clickable" @click="navigateToBalanceSheet">
-        <div class="card-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        </div>
-        <div class="card-content">
-          <p class="card-label">Net Worth</p>
-          <p class="card-value" :class="netWorthClass">{{ formattedNetWorth }}</p>
-        </div>
-      </div>
-    </div>
-
     <div class="chart-full-width">
       <WealthSummary
         :breakdown="overview.breakdown"
@@ -50,12 +12,25 @@
       />
     </div>
 
-    <div class="charts-grid">
+    <!-- Asset Allocation Cards - 3 inline -->
+    <div class="allocation-cards-grid">
       <div class="chart-item">
-        <AssetAllocationDonut :breakdown="overview.breakdown" />
+        <AssetAllocationDonut
+          :breakdown="overview.breakdown"
+          :title="`${currentUserName}'s Asset Allocation`"
+        />
       </div>
-      <div class="chart-item">
-        <NetWorthTrendChart :trend="trend" />
+      <div v-if="filteredSpouseOverview" class="chart-item chart-item-center">
+        <AssetAllocationDonut
+          :breakdown="filteredSpouseOverview.breakdown || {}"
+          :title="`${filteredSpouseName}'s Asset Allocation`"
+        />
+      </div>
+      <div v-if="filteredSpouseOverview" class="chart-item">
+        <AssetAllocationDonut
+          :breakdown="combinedBreakdown"
+          title="Combined Wealth Allocation"
+        />
       </div>
     </div>
 
@@ -68,7 +43,6 @@
 <script>
 import { mapState, mapGetters, mapActions } from 'vuex';
 import AssetAllocationDonut from './AssetAllocationDonut.vue';
-import NetWorthTrendChart from './NetWorthTrendChart.vue';
 import WealthSummary from './WealthSummary.vue';
 
 export default {
@@ -76,12 +50,11 @@ export default {
 
   components: {
     AssetAllocationDonut,
-    NetWorthTrendChart,
     WealthSummary,
   },
 
   computed: {
-    ...mapState('netWorth', ['overview', 'trend', 'loading', 'spouseOverview']),
+    ...mapState('netWorth', ['overview', 'loading', 'spouseOverview']),
     ...mapGetters('netWorth', [
       'formattedNetWorth',
       'formattedAssets',
@@ -118,24 +91,32 @@ export default {
       return this.shouldShowSpouseData ? this.spouseUserName : null;
     },
 
-    netWorthClass() {
-      if (this.netWorth < 0) {
-        return 'negative';
-      } else if (this.netWorth > 0) {
-        return 'positive';
-      }
-      return '';
-    },
-
     currentUserName() {
       const user = this.$store.getters['auth/currentUser'];
-      return user?.name || 'Your Wealth';
+      return user?.name || 'You';
     },
 
     spouseUserName() {
       const user = this.$store.getters['auth/currentUser'];
       const spouseName = user?.spouse?.name;
-      return spouseName || 'Spouse';
+      return spouseName || 'Partner';
+    },
+
+    /**
+     * Combined breakdown of user and spouse assets for total allocation chart.
+     */
+    combinedBreakdown() {
+      const userBreakdown = this.overview.breakdown || {};
+      const spouseBreakdown = this.filteredSpouseOverview?.breakdown || {};
+
+      return {
+        property: (userBreakdown.property || 0) + (spouseBreakdown.property || 0),
+        investments: (userBreakdown.investments || 0) + (spouseBreakdown.investments || 0),
+        cash: (userBreakdown.cash || 0) + (spouseBreakdown.cash || 0),
+        pensions: (userBreakdown.pensions || 0) + (spouseBreakdown.pensions || 0),
+        business: (userBreakdown.business || 0) + (spouseBreakdown.business || 0),
+        chattels: (userBreakdown.chattels || 0) + (spouseBreakdown.chattels || 0),
+      };
     },
   },
 
@@ -149,18 +130,6 @@ export default {
         month: 'long',
         day: 'numeric',
       });
-    },
-
-    navigateToAssets() {
-      this.$router.push('/profile?section=assets');
-    },
-
-    navigateToLiabilities() {
-      this.$router.push('/profile?section=liabilities');
-    },
-
-    navigateToBalanceSheet() {
-      this.$router.push('/profile?section=accounts');
     },
   },
 
@@ -179,108 +148,23 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 24px;
-}
-
-.summary-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 20px;
-}
-
-.summary-card {
-  background: white;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  @apply border border-gray-200;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  transition: all 0.2s;
-}
-
-.summary-card.clickable {
-  cursor: pointer;
-}
-
-.summary-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.summary-card.highlighted {
-  @apply border-2 border-primary-500;
-  background: linear-gradient(135deg, theme('colors.sky.50') 0%, white 100%);
-}
-
-.card-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.assets-card .card-icon {
-  @apply bg-green-100;
-  @apply text-green-500;
-}
-
-.liabilities-card .card-icon {
-  @apply bg-red-100;
-  @apply text-red-500;
-}
-
-.net-worth-card .card-icon {
-  @apply bg-blue-100;
-  @apply text-primary-500;
-}
-
-.card-icon svg {
-  width: 24px;
-  height: 24px;
-}
-
-.card-content {
-  flex: 1;
-}
-
-.card-label {
-  font-size: 14px;
-  @apply text-gray-500;
-  font-weight: 500;
-  margin: 0 0 8px 0;
-}
-
-.card-value {
-  font-size: 28px;
-  font-weight: 700;
-  @apply text-gray-900;
-  margin: 0;
-}
-
-.card-value.positive {
-  @apply text-green-500;
-}
-
-.card-value.negative {
-  @apply text-red-500;
-}
-
-.charts-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-  gap: 24px;
-}
-
-.chart-item {
-  min-width: 0;
+  overflow: visible;
 }
 
 .chart-full-width {
   width: 100%;
+}
+
+.allocation-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  padding: 0 8px;
+}
+
+.chart-item {
+  min-width: 0;
+  overflow: visible;
 }
 
 .last-updated {
@@ -297,31 +181,15 @@ export default {
 }
 
 /* Mobile responsive */
+@media (max-width: 1200px) {
+  .allocation-cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (max-width: 768px) {
-  .summary-cards {
+  .allocation-cards-grid {
     grid-template-columns: 1fr;
-  }
-
-  .charts-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .summary-card {
-    padding: 16px;
-  }
-
-  .card-value {
-    font-size: 24px;
-  }
-
-  .card-icon {
-    width: 40px;
-    height: 40px;
-  }
-
-  .card-icon svg {
-    width: 20px;
-    height: 20px;
   }
 }
 </style>

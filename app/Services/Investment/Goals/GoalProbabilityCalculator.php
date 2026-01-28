@@ -219,6 +219,7 @@ class GoalProbabilityCalculator
 
         return [
             'p10' => $values[(int) ($count * 0.10)],
+            'p20' => $values[(int) ($count * 0.20)],
             'p25' => $values[(int) ($count * 0.25)],
             'p50' => $values[(int) ($count * 0.50)], // Median
             'p75' => $values[(int) ($count * 0.75)],

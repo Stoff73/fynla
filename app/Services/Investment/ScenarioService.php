@@ -205,8 +205,8 @@ class ScenarioService
                     'success_rate' => $results['success_rate'] ?? null,
                     'expected_return' => $results['expected_return'] ?? null,
                     'risk_volatility' => $results['volatility'] ?? null,
-                    'best_case' => $results['percentiles']['p95'] ?? null,
-                    'worst_case' => $results['percentiles']['p5'] ?? null,
+                    'best_case' => $results['percentiles']['p90'] ?? null,
+                    'worst_case' => $results['percentiles']['p20'] ?? null,
                 ];
             }
         }

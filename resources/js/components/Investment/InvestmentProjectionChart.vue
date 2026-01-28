@@ -69,13 +69,9 @@ export default {
     series() {
       if (!this.data?.year_by_year || this.data.year_by_year.length === 0) return [];
 
-      // Create stacked areas for probability bands (4 bands to match retirement chart)
-      // Order from bottom to top: 95% (darkest) -> 80% (lightest)
+      // Create stacked areas for probability bands (4 bands)
+      // Order from bottom to top: 90% (darkest) -> 75% (lightest)
       return [
-        {
-          name: '95% Probability',
-          data: this.data.year_by_year.map(y => y.percentile_5),
-        },
         {
           name: '90% Probability',
           data: this.data.year_by_year.map(y => y.percentile_10),
@@ -87,6 +83,10 @@ export default {
         {
           name: '80% Probability',
           data: this.data.year_by_year.map(y => y.percentile_20),
+        },
+        {
+          name: '75% Probability',
+          data: this.data.year_by_year.map(y => y.percentile_25),
         },
       ];
     },

@@ -161,40 +161,28 @@ class TaxEfficiencyCalculator
 
     /**
      * Calculate tax efficiency score (0-100)
+     * Score directly reflects the percentage of assets in tax-sheltered accounts
+     * 100% tax-sheltered = 100% efficiency
+     * 0% tax-sheltered = 0% efficiency
      */
     public function calculateTaxEfficiencyScore(Collection $accounts, Collection $holdings): int
     {
-        $score = 100;
-
-        // Check ISA usage
         $totalValue = $accounts->sum('current_value');
-        $isaValue = $accounts->where('account_type', 'isa')->sum('current_value');
 
-        if ($totalValue > 0) {
-            $isaPercent = ($isaValue / $totalValue) * 100;
-
-            if ($isaPercent < 30) {
-                $score -= 20; // Should use more ISA
-            } elseif ($isaPercent < 50) {
-                $score -= 10;
-            } else {
-                $score += 10; // Bonus for good ISA usage
-            }
+        if ($totalValue <= 0) {
+            return 0;
         }
 
-        // Check for holdings with large unrealized gains (tax inefficient to sell)
-        $largeGainHoldings = $holdings->filter(function ($holding) {
-            $gain = $holding->current_value - $holding->cost_basis;
-            $gainPercent = $holding->cost_basis > 0 ? ($gain / $holding->cost_basis) * 100 : 0;
+        // Tax-sheltered account types
+        $taxShelteredTypes = ['isa', 'stocks_shares_isa', 'lifetime_isa', 'sipp', 'pension'];
 
-            return $gainPercent > 50;
-        })->count();
+        $taxShelteredValue = $accounts->filter(function ($account) use ($taxShelteredTypes) {
+            return in_array($account->account_type, $taxShelteredTypes);
+        })->sum('current_value');
 
-        if ($largeGainHoldings > 3) {
-            $score -= 20; // Many holdings with large gains
-        } elseif ($largeGainHoldings > 1) {
-            $score -= 10; // Some holdings with large gains
-        }
+        // Base score is simply the tax-sheltered percentage
+        $taxShelteredPercent = ($taxShelteredValue / $totalValue) * 100;
+        $score = (int) round($taxShelteredPercent);
 
         return max(0, min(100, $score));
     }

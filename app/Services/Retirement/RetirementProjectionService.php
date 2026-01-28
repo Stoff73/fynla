@@ -14,6 +14,7 @@ use App\Services\UserProfile\UserProfileService;
  * Retirement Projection Service
  *
  * Provides Monte Carlo projections for DC pensions and income drawdown analysis.
+ * Results are cached for 24 hours via MonteCarloSimulator.
  */
 class RetirementProjectionService
 {
@@ -37,6 +38,7 @@ class RetirementProjectionService
 
     /**
      * Get complete retirement projections including pot growth and income drawdown.
+     * Monte Carlo results are cached for 24 hours via the simulator.
      */
     public function getProjections(int $userId): array
     {
@@ -83,25 +85,30 @@ class RetirementProjectionService
         $riskSource = $riskResult['source'];
         $riskParams = $this->riskService->getReturnParameters($riskLevel);
 
-        $expectedReturn = $riskParams['expected_return_typical'] / 100; // Convert percentage to decimal
+        $expectedReturn = $riskParams['expected_return_typical'] / 100;
         $volatility = $riskParams['volatility'] / 100;
 
-        // Run Monte Carlo simulation
+        // Cache key for aggregated pension pot projection
+        $cacheKey = "user_{$user->id}_pension_pot_{$yearsToRetirement}y";
+
+        // Run Monte Carlo simulation (cached)
         $simulation = $this->simulator->simulate(
             $totalCurrentValue,
             $totalMonthlyContribution,
             $expectedReturn,
             $volatility,
             $yearsToRetirement,
-            self::MONTE_CARLO_ITERATIONS
+            self::MONTE_CARLO_ITERATIONS,
+            $cacheKey
         );
 
         // Extract year-by-year data with custom percentiles for probability bands
         $yearByYear = $this->extractProbabilityBands($simulation, $yearsToRetirement);
 
         // Get values at retirement (last year's percentiles)
+        // Using 80% probability (20th percentile) for conservative projections
         $lastYear = $yearByYear[count($yearByYear) - 1] ?? [];
-        $percentile5AtRetirement = $lastYear['percentile_5'] ?? $totalCurrentValue;
+        $percentile20AtRetirement = $lastYear['percentile_20'] ?? $totalCurrentValue;
         $medianAtRetirement = $lastYear['percentile_50'] ?? $totalCurrentValue;
 
         return [
@@ -114,7 +121,7 @@ class RetirementProjectionService
             'years_to_retirement' => $yearsToRetirement,
             'retirement_age' => $retirementAge,
             'current_age' => $currentAge,
-            'percentile_5_at_retirement' => round($percentile5AtRetirement, 2),
+            'percentile_20_at_retirement' => round($percentile20AtRetirement, 2),
             'median_at_retirement' => round($medianAtRetirement, 2),
             'year_by_year' => $yearByYear,
             'dc_pension_count' => $user->dcPensions->count(),
@@ -123,6 +130,7 @@ class RetirementProjectionService
 
     /**
      * Project individual DC pension pot growth using Monte Carlo simulation.
+     * Results are cached for 24 hours via MonteCarloSimulator.
      */
     public function projectIndividualDCPension(int $pensionId, int $userId): array
     {
@@ -151,14 +159,18 @@ class RetirementProjectionService
         $expectedReturn = $riskParams['expected_return_typical'] / 100;
         $volatility = $riskParams['volatility'] / 100;
 
-        // Run Monte Carlo simulation
+        // Cache key for individual pension projection
+        $cacheKey = "user_{$userId}_pension_{$pensionId}_{$yearsToRetirement}y";
+
+        // Run Monte Carlo simulation (cached)
         $simulation = $this->simulator->simulate(
             $currentValue,
             $monthlyContribution,
             $expectedReturn,
             $volatility,
             $yearsToRetirement,
-            self::MONTE_CARLO_ITERATIONS
+            self::MONTE_CARLO_ITERATIONS,
+            $cacheKey
         );
 
         $yearByYear = $this->extractProbabilityBands($simulation, $yearsToRetirement);
@@ -176,10 +188,26 @@ class RetirementProjectionService
             'years_to_retirement' => $yearsToRetirement,
             'retirement_age' => $retirementAge,
             'current_age' => $currentAge,
-            'percentile_5_at_retirement' => round($lastYear['percentile_5'] ?? $currentValue, 2),
+            'percentile_20_at_retirement' => round($lastYear['percentile_20'] ?? $currentValue, 2),
             'median_at_retirement' => round($lastYear['percentile_50'] ?? $currentValue, 2),
             'year_by_year' => $yearByYear,
         ];
+    }
+
+    /**
+     * Invalidate cached retirement projections for a user.
+     */
+    public function invalidateRetirementProjections(int $userId): void
+    {
+        $this->simulator->clearUserCache($userId);
+    }
+
+    /**
+     * Invalidate cached DC pension projection.
+     */
+    public function invalidateDCPensionProjection(int $pensionId): void
+    {
+        // Handled by clearUserCache when user updates pension
     }
 
     /**
@@ -188,8 +216,8 @@ class RetirementProjectionService
     public function projectIncomeDrawdown(User $user, array $potProjection): array
     {
         $retirementAge = $potProjection['retirement_age'];
-        // Use 95% probability (5th percentile) for conservative drawdown projection
-        $potAtRetirement = $potProjection['percentile_5_at_retirement'];
+        // Use 80% probability (20th percentile) for conservative drawdown projection
+        $potAtRetirement = $potProjection['percentile_20_at_retirement'];
 
         // Get conservative growth rate during drawdown (use minimum expected return for risk level)
         $riskLevel = $potProjection['risk_level'];
@@ -258,7 +286,6 @@ class RetirementProjectionService
         }
 
         // Calculate on-track status and probability
-        // Probability is based primarily on income coverage (can you meet your target?)
         $firstYearIncome = $yearlyIncome[0]['total_income'] ?? 0;
         $probability = $this->calculateRetirementProbability(
             $firstYearIncome,
@@ -295,7 +322,7 @@ class RetirementProjectionService
     public function projectTargetIncomeDrawdown(User $user, array $potProjection): array
     {
         $retirementAge = $potProjection['retirement_age'];
-        $potAtRetirement = $potProjection['percentile_5_at_retirement'];
+        $potAtRetirement = $potProjection['percentile_20_at_retirement'];
 
         // Get conservative growth rate during drawdown
         $riskLevel = $potProjection['risk_level'];
@@ -380,7 +407,6 @@ class RetirementProjectionService
 
     /**
      * Extract probability bands from Monte Carlo results.
-     * Returns 5th, 10th, 15th, 20th, 50th percentiles for each year.
      */
     private function extractProbabilityBands(array $simulation, int $years): array
     {
@@ -388,14 +414,14 @@ class RetirementProjectionService
         $currentYear = (int) date('Y');
         $startValue = $simulation['summary']['start_value'] ?? 0;
 
-        // Add year 0 (current year) with current value - all bands start at the same point
+        // Add year 0 (current year) with current value
         $result[] = [
             'year' => $currentYear,
             'year_number' => 0,
-            'percentile_5' => round($startValue, 2),
             'percentile_10' => round($startValue, 2),
             'percentile_15' => round($startValue, 2),
             'percentile_20' => round($startValue, 2),
+            'percentile_25' => round($startValue, 2),
             'percentile_50' => round($startValue, 2),
             'percentile_75' => round($startValue, 2),
             'percentile_90' => round($startValue, 2),
@@ -405,24 +431,18 @@ class RetirementProjectionService
             $yearIndex = $yearData['year'];
             $percentiles = $yearData['percentiles'];
 
-            // Map the standard percentiles and interpolate for 5th/15th
             $p10 = $this->getPercentileValue($percentiles, '10th');
             $p25 = $this->getPercentileValue($percentiles, '25th');
             $p50 = $this->getPercentileValue($percentiles, '50th');
             $p75 = $this->getPercentileValue($percentiles, '75th');
             $p90 = $this->getPercentileValue($percentiles, '90th');
 
-            // Estimate 5th and 15th/20th percentiles by interpolation
-            // For p5, extrapolate below p10 using the spread between p10 and p25
+            // Interpolate 15th and 20th percentiles between 10th and 25th
             $spread = $p25 - $p10;
-            $p5 = $p10 - ($spread * 0.33);
             $p15 = $p10 + ($spread * 0.33);
             $p20 = $p10 + ($spread * 0.67);
 
-            // Smooth transition for early years - blend with start value
-            // Year 1: 70% Monte Carlo, 30% start value
-            // Year 2: 90% Monte Carlo, 10% start value
-            // Year 3+: 100% Monte Carlo
+            // Smooth transition for early years
             $blendFactor = 1.0;
             if ($yearIndex === 1) {
                 $blendFactor = 0.7;
@@ -430,10 +450,10 @@ class RetirementProjectionService
                 $blendFactor = 0.9;
             }
 
-            $p5 = $this->blendValue($p5, $startValue, $blendFactor);
             $p10 = $this->blendValue($p10, $startValue, $blendFactor);
             $p15 = $this->blendValue($p15, $startValue, $blendFactor);
             $p20 = $this->blendValue($p20, $startValue, $blendFactor);
+            $p25 = $this->blendValue($p25, $startValue, $blendFactor);
             $p50 = $this->blendValue($p50, $startValue, $blendFactor);
             $p75 = $this->blendValue($p75, $startValue, $blendFactor);
             $p90 = $this->blendValue($p90, $startValue, $blendFactor);
@@ -441,10 +461,10 @@ class RetirementProjectionService
             $result[] = [
                 'year' => $currentYear + $yearIndex,
                 'year_number' => $yearIndex,
-                'percentile_5' => round(max(0, $p5), 2),
                 'percentile_10' => round($p10, 2),
                 'percentile_15' => round($p15, 2),
                 'percentile_20' => round($p20, 2),
+                'percentile_25' => round($p25, 2),
                 'percentile_50' => round($p50, 2),
                 'percentile_75' => round($p75, 2),
                 'percentile_90' => round($p90, 2),
@@ -454,17 +474,11 @@ class RetirementProjectionService
         return $result;
     }
 
-    /**
-     * Blend a Monte Carlo value with the start value for smooth transitions.
-     */
     private function blendValue(float $monteCarloValue, float $startValue, float $blendFactor): float
     {
         return ($monteCarloValue * $blendFactor) + ($startValue * (1 - $blendFactor));
     }
 
-    /**
-     * Get percentile value from array by percentile key.
-     */
     private function getPercentileValue(array $percentiles, string $key): float
     {
         foreach ($percentiles as $p) {
@@ -476,17 +490,12 @@ class RetirementProjectionService
         return 0.0;
     }
 
-    /**
-     * Get user's retirement age from profile or DC pensions.
-     */
     private function getRetirementAge(User $user): int
     {
-        // Check user's target retirement age field
         if ($user->target_retirement_age) {
             return $user->target_retirement_age;
         }
 
-        // Check DC pensions for retirement age
         foreach ($user->dcPensions as $pension) {
             if ($pension->retirement_age) {
                 return $pension->retirement_age;
@@ -496,37 +505,23 @@ class RetirementProjectionService
         return self::DEFAULT_RETIREMENT_AGE;
     }
 
-    /**
-     * Get target retirement income from profile, or calculate from current income.
-     */
     private function getTargetRetirementIncome(User $user, float $currentNetIncome): float
     {
-        // Check for target_retirement_income in RetirementProfile
         $profile = RetirementProfile::where('user_id', $user->id)->first();
         if ($profile && $profile->target_retirement_income) {
             return (float) $profile->target_retirement_income;
         }
 
-        // Fallback to 75% of current after-tax income
         return $currentNetIncome * self::TARGET_INCOME_PERCENT;
     }
 
-    /**
-     * Get user's risk level, defaulting to medium if not set.
-     */
     private function getUserRiskLevel(User $user): string
     {
         return $this->getUserRiskLevelWithSource($user)['level'];
     }
 
-    /**
-     * Get user's risk level with source tracking.
-     *
-     * @return array{level: string, source: string}
-     */
     private function getUserRiskLevelWithSource(User $user): array
     {
-        // Check risk profile via service
         $riskProfile = $this->riskService->getRiskProfile($user->id);
         if ($riskProfile && isset($riskProfile['risk_level'])) {
             return [
@@ -535,7 +530,6 @@ class RetirementProjectionService
             ];
         }
 
-        // Check DC pensions for custom risk
         foreach ($user->dcPensions as $pension) {
             if ($pension->risk_preference) {
                 return [
@@ -551,12 +545,8 @@ class RetirementProjectionService
         ];
     }
 
-    /**
-     * Calculate monthly contribution for a DC pension.
-     */
     private function calculateMonthlyContribution($pension): float
     {
-        // For occupational pensions with percentage-based contributions
         if ($pension->employee_contribution_percent && $pension->annual_salary) {
             $employeeMonthly = ($pension->annual_salary * $pension->employee_contribution_percent / 100) / 12;
             $employerMonthly = $pension->employer_contribution_percent
@@ -566,13 +556,9 @@ class RetirementProjectionService
             return $employeeMonthly + $employerMonthly;
         }
 
-        // For SIPPs and personal pensions with fixed monthly amounts
         return (float) ($pension->monthly_contribution_amount ?? 0);
     }
 
-    /**
-     * Get total annual income from DB pensions.
-     */
     private function getTotalDBIncome(User $user): float
     {
         $total = 0.0;
@@ -583,9 +569,6 @@ class RetirementProjectionService
         return $total;
     }
 
-    /**
-     * Get state pension annual income.
-     */
     private function getStatePensionIncome(User $user, int $retirementAge): float
     {
         if (! $user->statePension) {
@@ -595,9 +578,6 @@ class RetirementProjectionService
         return (float) ($user->statePension->state_pension_forecast_annual ?? 0);
     }
 
-    /**
-     * Get user's current after-tax income.
-     */
     private function getCurrentNetIncome(User $user): float
     {
         $profile = $this->userProfileService->getCompleteProfile($user);
@@ -605,50 +585,28 @@ class RetirementProjectionService
         return (float) ($profile['income_occupation']['net_income'] ?? 0);
     }
 
-    /**
-     * Calculate retirement probability based on income coverage.
-     *
-     * The probability is primarily based on whether projected income meets
-     * the target income. A user who can only draw 30% of their target income
-     * is NOT on track, regardless of how long the fund lasts.
-     *
-     * Income Coverage Scoring:
-     * - 100%+ of target: 95% probability (Excellent)
-     * - 90-99% of target: 85% probability (On Track)
-     * - 75-89% of target: 65% probability (Needs Attention)
-     * - 50-74% of target: 40% probability (Off Track)
-     * - 25-49% of target: 20% probability (Significantly Off Track)
-     * - Below 25%: 10% probability (Critical)
-     *
-     * Fund longevity adjustment: +5% if fund lasts to age 90+
-     */
     private function calculateRetirementProbability(
         float $projectedIncome,
         float $targetIncome,
         int $yearsBeforeDepletion,
         int $totalYears
     ): float {
-        // Primary metric: Income coverage ratio
-        // If no target income set but projected income exists, consider fully covered
         $incomeRatio = $targetIncome > 0 ? $projectedIncome / $targetIncome : ($projectedIncome > 0 ? 1.0 : 0);
 
-        // Base probability from income coverage
         if ($incomeRatio >= 1.0) {
-            $baseProbability = 95;  // Meeting or exceeding target
+            $baseProbability = 95;
         } elseif ($incomeRatio >= 0.90) {
-            $baseProbability = 85;  // Within 10% of target
+            $baseProbability = 85;
         } elseif ($incomeRatio >= 0.75) {
-            $baseProbability = 65;  // 75-90% of target
+            $baseProbability = 65;
         } elseif ($incomeRatio >= 0.50) {
-            $baseProbability = 40;  // 50-75% of target
+            $baseProbability = 40;
         } elseif ($incomeRatio >= 0.25) {
-            $baseProbability = 20;  // 25-50% of target
+            $baseProbability = 20;
         } else {
-            $baseProbability = 10;  // Less than 25% of target
+            $baseProbability = 10;
         }
 
-        // Small bonus for fund longevity (max 5%)
-        // Fund lasting 25+ years adds confidence
         $longevityBonus = 0;
         if ($yearsBeforeDepletion >= 35) {
             $longevityBonus = 5;
@@ -659,28 +617,24 @@ class RetirementProjectionService
         return min(100, round($baseProbability + $longevityBonus, 0));
     }
 
-    /**
-     * Determine on-track status based on probability.
-     * Thresholds aligned with income coverage ratios.
-     */
     private function determineOnTrackStatus(float $probability): string
     {
         if ($probability >= 90) {
-            return 'Excellent';        // 100%+ of target income
+            return 'Excellent';
         }
         if ($probability >= 80) {
-            return 'On Track';         // 90%+ of target income
+            return 'On Track';
         }
         if ($probability >= 60) {
-            return 'Needs Attention';  // 75-90% of target income
+            return 'Needs Attention';
         }
         if ($probability >= 35) {
-            return 'Off Track';        // 50-75% of target income
+            return 'Off Track';
         }
         if ($probability >= 15) {
-            return 'Significantly Off Track';  // 25-50% of target income
+            return 'Significantly Off Track';
         }
 
-        return 'Critical';  // Less than 25% of target income
+        return 'Critical';
     }
 }

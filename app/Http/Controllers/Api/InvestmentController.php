@@ -274,7 +274,7 @@ class InvestmentController extends Controller
             'platform' => 'nullable|string|max:255',
             'current_value' => 'required|numeric|min:0',
             'contributions_ytd' => 'nullable|numeric|min:0',
-            'tax_year' => 'required|string|max:10',
+            'tax_year' => 'nullable|string|max:10',
             'platform_fee_percent' => 'nullable|numeric|min:0',
             'platform_fee_amount' => 'nullable|numeric|min:0',
             'platform_fee_type' => ['nullable', Rule::in(['percentage', 'fixed'])],
@@ -285,6 +285,13 @@ class InvestmentController extends Controller
             'ownership_percentage' => 'nullable|numeric|min:0|max:100',
             'joint_owner_id' => 'nullable|exists:users,id',
             'trust_id' => 'nullable|exists:trusts,id',
+            // Contribution fields
+            'monthly_contribution_amount' => 'nullable|numeric|min:0',
+            'contribution_frequency' => ['nullable', Rule::in(['monthly', 'quarterly', 'annually'])],
+            'planned_lump_sum_amount' => 'nullable|numeric|min:0',
+            'planned_lump_sum_date' => 'nullable|date',
+            'country' => 'nullable|string|max:255',
+            'risk_preference' => 'nullable|string|max:50',
         ]);
 
         $user = $request->user();
@@ -378,6 +385,13 @@ class InvestmentController extends Controller
             'joint_owner_id' => 'nullable|exists:users,id',
             'isa_type' => ['nullable', Rule::in(['stocks_and_shares', 'lifetime', 'innovative_finance'])],
             'isa_subscription_current_year' => 'nullable|numeric|min:0|max:20000',
+            // Contribution fields
+            'monthly_contribution_amount' => 'nullable|numeric|min:0',
+            'contribution_frequency' => ['nullable', Rule::in(['monthly', 'quarterly', 'annually'])],
+            'planned_lump_sum_amount' => 'nullable|numeric|min:0',
+            'planned_lump_sum_date' => 'nullable|date',
+            'country' => 'nullable|string|max:255',
+            'risk_preference' => 'nullable|string|max:50',
         ]);
 
         // Log joint account update if applicable

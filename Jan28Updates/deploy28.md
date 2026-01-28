@@ -1687,6 +1687,515 @@ resources/js/components/Onboarding/steps/IncomeStep.vue
 
 ---
 
+## Net Worth Wealth Summary - UI Redesign
+
+**Date:** 28 January 2026
+
+**Branch:** main
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Redesigned the Net Worth Wealth Summary view with cleaner layout, personalised column headers, and inline asset allocation charts.
+
+### Changes Made
+
+| Change | Description |
+|--------|-------------|
+| Removed top summary cards | Total Assets, Total Liabilities, Net Worth cards removed from top |
+| Added Total column | Wealth Summary table now shows Total column when linked account exists |
+| Personalised headers | Column headers now show user's name and linked account name instead of generic "Spouse" |
+| Removed trend chart | Net Worth Trend chart removed from bottom of view |
+| Added allocation charts | Three inline Asset Allocation donut charts: User's, Partner's, Combined |
+| Fixed tooltip clipping | Tooltips now appear above card edges instead of being hidden |
+
+### Asset Allocation Charts
+
+Three donut charts now display inline:
+
+1. **User's Asset Allocation** - Individual breakdown for primary user
+2. **Partner's Asset Allocation** - Individual breakdown for linked account (if exists)
+3. **Combined Wealth Allocation** - Total of both users' assets
+
+Charts include:
+- Personalised titles with user names
+- Total value displayed in centre
+- Percentage shown on hover tooltip
+- Hover z-index ensures tooltips appear above adjacent cards
+
+### Files Changed
+
+**Frontend (Included in Build):**
+```text
+resources/js/components/NetWorth/NetWorthWealthSummary.vue
+resources/js/components/NetWorth/WealthSummary.vue
+resources/js/components/NetWorth/AssetAllocationDonut.vue
+resources/js/views/NetWorth/NetWorthDashboard.vue
+```
+
+### Rebuild Required: YES
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+### Verification
+
+1. Navigate to Net Worth → Wealth Summary
+2. Verify top summary cards are no longer present
+3. Verify Wealth Summary table shows user name and partner name as column headers
+4. Verify Total column appears when linked account exists
+5. Verify Net Worth Trend chart is no longer present
+6. Verify three Asset Allocation cards appear inline:
+   - Left: User's Asset Allocation
+   - Centre: Partner's Asset Allocation
+   - Right: Combined Wealth Allocation
+7. Hover over chart segments and verify tooltips appear fully (not clipped at card edges)
+8. For single users, verify only one allocation card appears
+
+---
+
+## Investment Account Form - Remove Tax Year
+
+**Date:** 28 January 2026
+
+**Branch:** main
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Removed unnecessary Tax Year dropdown from Investment account add/edit forms.
+
+### Files Changed
+
+**Frontend (Included in Build):**
+```text
+resources/js/components/Investment/AccountForm.vue
+```
+
+### Rebuild Required: YES
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+### Verification
+
+1. Navigate to Net Worth → Investments tab
+2. Click "Add Account" - verify no Tax Year dropdown appears
+3. Edit an existing account - verify no Tax Year dropdown appears
+
+---
+
+## Investment Account Contributions - Save Fix
+
+**Date:** 28 January 2026
+
+**Branch:** main
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Fixed bug where monthly contributions and planned lump sums were not saving when adding or editing investment accounts. The controller validation was missing these fields, causing them to be filtered out before saving.
+
+### Fields Added to Validation
+
+- `monthly_contribution_amount` - Regular contribution amount
+- `contribution_frequency` - monthly/quarterly/annually
+- `planned_lump_sum_amount` - One-off planned contribution
+- `planned_lump_sum_date` - Date for lump sum
+- `country` - Account country
+- `risk_preference` - Account risk level
+
+Also changed `tax_year` from required to nullable.
+
+### Files Changed
+
+**Backend (Manual Upload Required):**
+```text
+app/Http/Controllers/Api/InvestmentController.php
+```
+
+### Rebuild Required: NO (PHP only)
+
+### Verification
+
+1. Navigate to Net Worth → Investments tab
+2. Edit an existing account
+3. Add a monthly contribution (e.g., £500 monthly)
+4. Add a planned lump sum (e.g., £5,000 on a future date)
+5. Save the account
+6. Re-open the account and verify contributions are saved
+7. Check Valuable Info → Expenditure → Financial Commitments to verify investment contributions appear
+
+---
+
+## Investment Detail View - Monthly Contribution Display
+
+**Date:** 28 January 2026
+
+**Branch:** main
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Fixed the Monthly Contribution card in the investment detail view to show the actual contribution amount instead of estimating from YTD contributions.
+
+### Changes
+
+- Now uses `monthly_contribution_amount` if set
+- Converts to monthly based on frequency (quarterly ÷ 3, annually ÷ 12)
+- Falls back to YTD estimate only if no contribution is configured
+
+### Files Changed
+
+**Frontend (Included in Build):**
+```text
+resources/js/components/NetWorth/InvestmentDetailInline.vue
+```
+
+### Rebuild Required: YES
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+### Verification
+
+1. Edit an investment account and set monthly contribution to £500
+2. Save and view the account detail
+3. Verify "Monthly Contribution" card shows £500
+
+---
+
+## Investment Projections - Total Fees Label
+
+**Date:** 28 January 2026
+
+**Branch:** main
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Updated the fees card in Investment Projections view:
+- Removed "TER" badge from fees display
+- Changed heading from "Fees" to "Total Fees"
+
+### Files Changed
+
+**Frontend (Included in Build):**
+```text
+resources/js/components/NetWorth/InvestmentProjections.vue
+```
+
+### Rebuild Required: YES
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+### Verification
+
+1. Navigate to Net Worth → Investments → click on Portfolio tab
+2. Verify fees card shows "Total Fees" heading (not "Fees")
+3. Verify no "TER" badge appears
+
+---
+
+## Tax Efficiency Calculation Fix
+
+**Date:** 28 January 2026
+
+**Branch:** main
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Fixed the Tax Efficiency score calculation in Investment Projections. Previously, the score was showing 90%+ even when users had 50%+ of their portfolio in taxable accounts. The calculation now properly penalises high taxable proportions.
+
+### Root Cause
+
+The `TaxEfficiencyCalculator.php` only checked ISA percentage and gave a bonus for >50% ISA usage. It didn't properly reflect having significant assets in taxable accounts (GIA).
+
+### Changes
+
+Simplified the scoring to be intuitive and meaningful:
+- **Tax Efficiency = Percentage of assets in tax-sheltered accounts**
+- Tax-sheltered types: ISA, Stocks & Shares ISA, LISA, SIPP, Pension
+- 100% in ISA/SIPP = 100% tax efficiency
+- 0% in tax-sheltered = 0% tax efficiency
+
+### Example Scores
+
+| Tax-Sheltered | Taxable (GIA) | Score |
+|---------------|---------------|-------|
+| £150,000 (45%) | £185,000 (55%) | 45% |
+| £300,000 (90%) | £35,000 (10%) | 90% |
+| £0 (0%) | £100,000 (100%) | 0% |
+
+### Files Changed
+
+**Backend (Manual Upload Required):**
+```text
+app/Services/Investment/TaxEfficiencyCalculator.php
+```
+
+### Rebuild Required: NO (PHP only)
+
+### Verification
+
+1. Navigate to Net Worth → Investments → Portfolio tab
+2. View Tax Efficiency card
+3. Score should equal the percentage of assets in tax-sheltered accounts
+4. With £150k ISA and £185k GIA (total £335k), score should be 45% (150k/335k)
+
+---
+
+## Cash Account Detail View - UI Improvements
+
+**Date:** 28 January 2026
+
+**Branch:** main
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Streamlined the Cash account detail view by consolidating information and removing unnecessary tabs.
+
+### Changes Made
+
+| Change | Description |
+|--------|-------------|
+| Added owner names | Joint accounts now show both owner names in the Overview tab |
+| Added interest rate to Overview | Interest rate and annual interest now shown in Overview tab |
+| Removed Balance & Interest tab | Consolidated into Overview tab |
+| Conditional Access & Terms tab | Tab only appears for notice/fixed accounts, hidden for immediate access |
+| Compact balance display | Replaced 3-card metrics grid with compact inline balance display |
+| Removed header metrics | Interest rate and annual interest cards removed from header (now in Overview only) |
+
+### Files Changed
+
+**Backend (Manual Upload Required):**
+```text
+app/Http/Controllers/Api/SavingsController.php
+app/Models/SavingsAccount.php
+```
+
+**Frontend (Included in Build):**
+```text
+resources/js/views/Savings/SavingsAccountDetailInline.vue
+```
+
+### Backend Changes
+
+1. Added `jointOwner` relationship to SavingsAccount model
+2. Controller now loads owner and joint_owner relationships when fetching account
+3. Response includes `owner_name` and `joint_owner_name` fields
+
+### Rebuild Required: YES
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+### Verification
+
+1. Navigate to Net Worth → Cash tab
+2. Click on any account to view details
+3. Verify Overview tab shows:
+   - Interest Rate (with blue styling)
+   - Annual Interest (with green styling)
+   - For joint accounts: "Owners: [Name] & [Partner Name]"
+4. Verify Balance & Interest tab no longer exists
+5. For immediate access accounts, verify Access & Terms tab is hidden
+6. For notice/fixed term accounts, verify Access & Terms tab is visible
+
+---
+
+## Monte Carlo Projection Caching (24 Hours) - Database-Backed
+
+**Date:** 28 January 2026
+
+**Branch:** main
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Added centralised 24-hour caching to ALL Monte Carlo projection calculations using a dedicated database table. Previously, these calculations ran on every page load (1000 iterations each), causing slow loading times. Now projections are cached at the MonteCarloSimulator level and only recalculate after 24 hours.
+
+### Database Changes
+
+New table: `monte_carlo_cache`
+- `id` - Primary key
+- `cache_key` - Unique identifier for the cached result
+- `results` - JSON-encoded simulation results
+- `calculated_at` - When the calculation was performed
+- `expires_at` - When the cache expires (24 hours after calculation)
+
+### Cache Key Patterns
+
+| Data Type | Cache Key Pattern | Example |
+|-----------|-------------------|---------|
+| Investment Portfolio | `user_{userId}_portfolio_{years}y` | `user_123_portfolio_10y` |
+| Investment Account | `user_{userId}_account_{accountId}_{years}y` | `user_123_account_456_10y` |
+| Retirement Pension Pot | `user_{userId}_pension_pot_{years}y` | `user_123_pension_pot_20y` |
+| DC Pension | `user_{userId}_pension_{pensionId}_{years}y` | `user_123_pension_789_25y` |
+
+### Behaviour
+
+- First visit: Monte Carlo runs (1000 iterations) and stores results in database
+- Subsequent visits within 24 hours: Results returned instantly from database
+- After 24 hours: Cache expires, fresh calculation on next visit
+- What-if scenarios (contribution/risk overrides): Always bypass cache (no cache key passed)
+
+### Cache Invalidation
+
+The `MonteCarloSimulator` class provides a static method to clear all cache entries for a user:
+
+```php
+MonteCarloSimulator::clearUserCache($userId);
+```
+
+This can be called when a user's financial data changes significantly (e.g., adding holdings, changing contributions).
+
+### Files Changed
+
+**Database Migration (Run on Server):**
+```text
+database/migrations/2026_01_28_163920_create_monte_carlo_cache_table.php
+```
+
+**Backend (Manual Upload Required):**
+```text
+app/Services/Investment/MonteCarloSimulator.php
+app/Services/Investment/InvestmentProjectionService.php
+app/Services/Retirement/RetirementProjectionService.php
+app/Http/Controllers/Api/InvestmentProjectionController.php
+```
+
+### Server Commands Required
+
+```bash
+# Run migration to create cache table
+php artisan migrate
+```
+
+### Rebuild Required: NO (PHP only)
+
+### Verification
+
+1. Navigate to Net Worth → Investments → Portfolio tab
+2. Check database: `SELECT COUNT(*) FROM monte_carlo_cache;` (should be 0 initially)
+3. Load the page and wait for projections
+4. Check database again (should show entries with `calculated_at` timestamps)
+5. Refresh the page - projections should load instantly
+6. Check database - `calculated_at` timestamps should be UNCHANGED (cache hit)
+7. Test same behaviour for:
+   - Individual investment account detail views
+   - Retirement module projections
+   - Individual DC pension detail views
+
+---
+
+## Monte Carlo Probability Bands Update (90/85/80/75)
+
+**Date:** 28 January 2026
+
+**Branch:** main
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Changed Monte Carlo projection probability bands from 95/90/85/80% to 90/85/80/75%. Also changed forecast returns to use 80% probability (20th percentile) instead of 95% probability (5th percentile) for conservative projections.
+
+### Changes Made
+
+**Probability bands shown on charts:**
+| Before | After |
+|--------|-------|
+| 95% Probability (p5) | 90% Probability (p10) |
+| 90% Probability (p10) | 85% Probability (p15) |
+| 85% Probability (p15) | 80% Probability (p20) |
+| 80% Probability (p20) | 75% Probability (p25) |
+
+**Conservative forecast value:**
+| Before | After |
+|--------|-------|
+| 95% probability (5th percentile) | 80% probability (20th percentile) |
+
+### Why This Change
+
+- The 95% probability band was too conservative for typical financial planning
+- 80% probability provides a more balanced conservative estimate
+- Industry standard for retirement planning typically uses 75-85% probability bands
+
+### Files Changed
+
+**Backend (Manual Upload Required):**
+```text
+app/Services/Investment/InvestmentProjectionService.php
+app/Services/Investment/MonteCarloSimulator.php
+app/Services/Investment/Goals/GoalProbabilityCalculator.php
+app/Services/Investment/ScenarioService.php
+app/Services/Retirement/RetirementProjectionService.php
+app/Services/Retirement/RetirementStrategyService.php
+```
+
+**Frontend (Rebuild Required):**
+```text
+resources/js/components/Investment/InvestmentProjectionChart.vue
+resources/js/components/Investment/Performance.vue
+resources/js/components/Investment/GoalProjection.vue
+resources/js/components/Investment/MonteCarloResults.vue
+resources/js/components/Retirement/PensionPotProjectionChart.vue
+resources/js/components/Retirement/FutureValueTab.vue
+resources/js/components/NetWorth/InvestmentProjections.vue
+resources/js/components/NetWorth/PensionList.vue
+resources/js/components/NetWorth/PensionDetailInline.vue
+resources/js/views/Investment/AccountPerformancePanel.vue
+resources/js/views/Retirement/PensionDetail.vue
+```
+
+**Tests:**
+```text
+tests/Unit/Services/Retirement/RetirementProjectionServiceTest.php
+```
+
+### Server Commands Required
+
+```bash
+# Clear Monte Carlo cache to regenerate with new percentiles
+php artisan tinker --execute="DB::table('monte_carlo_cache')->truncate();"
+```
+
+### Rebuild Required: YES
+
+Frontend Vue components changed. Full rebuild required.
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+### Verification
+
+1. Navigate to Net Worth → Investments → Portfolio tab
+2. Verify chart legend shows: "90% Probability", "85% Probability", "80% Probability", "75% Probability"
+3. Verify "Projected Value (80%)" label appears (not 95%)
+4. Navigate to Retirement → Future Value
+5. Verify "Projected Pot at Retirement" shows "(80% probability)" label
+6. Verify pension pot chart shows same 90/85/80/75% probability bands
+
+---
+
 ## Rollback
 
 If issues occur, restore previous `public/build/` directory from backup.

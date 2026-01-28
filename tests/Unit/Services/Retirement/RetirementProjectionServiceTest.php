@@ -93,7 +93,7 @@ describe('projectPensionPot', function () {
             'years_to_retirement',
             'retirement_age',
             'current_age',
-            'percentile_5_at_retirement',
+            'percentile_20_at_retirement',
             'median_at_retirement',
             'year_by_year',
             'dc_pension_count',
@@ -177,7 +177,7 @@ describe('projectIncomeDrawdown', function () {
 
         $potProjection = [
             'retirement_age' => 65,
-            'percentile_5_at_retirement' => 500000,
+            'percentile_20_at_retirement' => 500000,
             'risk_level' => 'medium',
         ];
 
@@ -221,7 +221,7 @@ describe('projectIncomeDrawdown', function () {
 
         $potProjection = [
             'retirement_age' => 65,
-            'percentile_5_at_retirement' => 200000,
+            'percentile_20_at_retirement' => 200000,
             'risk_level' => 'medium',
         ];
 
@@ -247,7 +247,7 @@ describe('projectIncomeDrawdown', function () {
 
         $potProjection = [
             'retirement_age' => 65,
-            'percentile_5_at_retirement' => 200000,
+            'percentile_20_at_retirement' => 200000,
             'risk_level' => 'medium',
         ];
 
@@ -275,7 +275,7 @@ describe('on-track status calculation', function () {
 
         $potProjection = [
             'retirement_age' => 65,
-            'percentile_5_at_retirement' => 1000000,
+            'percentile_20_at_retirement' => 1000000,
             'risk_level' => 'medium',
         ];
 
@@ -299,7 +299,7 @@ describe('on-track status calculation', function () {
 
         $potProjection = [
             'retirement_age' => 65,
-            'percentile_5_at_retirement' => 50000,
+            'percentile_20_at_retirement' => 50000,
             'risk_level' => 'medium',
         ];
 
@@ -325,7 +325,7 @@ describe('projectTargetIncomeDrawdown', function () {
 
         $potProjection = [
             'retirement_age' => 65,
-            'percentile_5_at_retirement' => 300000,
+            'percentile_20_at_retirement' => 300000,
             'risk_level' => 'medium',
         ];
 
@@ -357,7 +357,7 @@ describe('projectTargetIncomeDrawdown', function () {
 
         $potProjection = [
             'retirement_age' => 65,
-            'percentile_5_at_retirement' => 100000,
+            'percentile_20_at_retirement' => 100000,
             'risk_level' => 'medium',
         ];
 

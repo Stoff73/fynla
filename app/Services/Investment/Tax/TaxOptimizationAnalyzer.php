@@ -112,15 +112,28 @@ class TaxOptimizationAnalyzer
         $isaUsed = $this->calculateISAUsage($investmentAccounts, $savingsAccounts, $taxYear);
         $isaRemaining = max(0, $isaAllowance - $isaUsed);
 
-        // Calculate unrealized gains/losses
+        // Calculate unrealized gains/losses and taxable vs tax-sheltered split
         $unrealizedGains = 0;
         $unrealizedLosses = 0;
         $totalCostBasis = 0;
         $totalCurrentValue = 0;
+        $taxShelteredValue = 0;
+        $taxableValue = 0;
+        $totalPortfolioValue = 0;
 
         foreach ($investmentAccounts as $account) {
-            // Skip ISA accounts (no CGT on gains)
-            if (in_array($account->account_type, ['isa', 'stocks_shares_isa'])) {
+            $accountValue = (float) ($account->current_value ?? 0);
+            $totalPortfolioValue += $accountValue;
+
+            // Categorize by tax treatment
+            if (in_array($account->account_type, ['isa', 'stocks_shares_isa', 'lifetime_isa', 'sipp', 'pension'])) {
+                $taxShelteredValue += $accountValue;
+            } else {
+                $taxableValue += $accountValue;
+            }
+
+            // Skip ISA/pension accounts for CGT calculations (no CGT on gains)
+            if (in_array($account->account_type, ['isa', 'stocks_shares_isa', 'lifetime_isa', 'sipp', 'pension'])) {
                 continue;
             }
 
@@ -138,6 +151,11 @@ class TaxOptimizationAnalyzer
                 }
             }
         }
+
+        // Calculate taxable percentage of total portfolio
+        $taxablePercentage = $totalPortfolioValue > 0
+            ? ($taxableValue / $totalPortfolioValue) * 100
+            : 0;
 
         // Calculate annual dividend income
         $dividendIncome = $this->calculateDividendIncome($investmentAccounts);
@@ -160,6 +178,10 @@ class TaxOptimizationAnalyzer
             'dividend_allowance' => $dividendAllowance,
             'annual_dividend_income' => round($dividendIncome, 2),
             'dividend_excess' => round(max(0, $dividendIncome - $dividendAllowance), 2),
+            'tax_sheltered_value' => round($taxShelteredValue, 2),
+            'taxable_value' => round($taxableValue, 2),
+            'total_portfolio_value' => round($totalPortfolioValue, 2),
+            'taxable_percentage' => round($taxablePercentage, 1),
         ];
     }
 
@@ -561,6 +583,19 @@ class TaxOptimizationAnalyzer
             $score -= $deduction;
             $deductions[] = [
                 'reason' => 'Missed Bed & ISA opportunities',
+                'points' => round($deduction, 1),
+            ];
+        }
+
+        // High proportion in taxable accounts (max 40 points deduction)
+        // Penalize having significant assets in GIA when ISA space may be available
+        $taxablePercentage = $currentPosition['taxable_percentage'] ?? 0;
+        if ($taxablePercentage > 10) {
+            // Deduct 1 point for each 2.5% above 10% in taxable accounts
+            $deduction = min(40, (($taxablePercentage - 10) / 2.5) * 1);
+            $score -= $deduction;
+            $deductions[] = [
+                'reason' => sprintf('%.0f%% of portfolio in taxable accounts', $taxablePercentage),
                 'points' => round($deduction, 1),
             ];
         }
