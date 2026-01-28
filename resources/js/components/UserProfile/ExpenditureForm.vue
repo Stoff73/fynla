@@ -101,84 +101,109 @@
           <div class="col-total font-semibold text-body-sm text-gray-700 pb-2 border-b border-gray-200">{{ isMarried ? 'Household' : 'Total' }}</div>
 
           <!-- Essential Living Expenses -->
-          <div class="col-span-full pt-4 pb-2">
-            <h4 class="text-body-base font-semibold text-gray-900">Essential Living</h4>
+          <div class="col-label pt-4 pb-2 cursor-pointer select-none" @click="toggleSection('current', 'essential')">
+            <div class="flex items-center gap-2">
+              <svg :class="['h-5 w-5 text-gray-400 transition-transform', isSectionExpanded('current', 'essential') ? 'rotate-90' : '']" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+              <span class="text-body-base font-semibold text-gray-900">Essential Living</span>
+            </div>
           </div>
-          <template v-for="field in essentialFields" :key="field.key">
-            <div class="col-label text-body-sm text-gray-600 py-1">{{ field.label }}</div>
-            <div class="col-value text-body-sm text-gray-900 py-1">{{ formatCurrency(formData[field.key]) }}</div>
-            <div v-if="isMarried" class="col-value-mid text-body-sm text-gray-900 py-1">{{ formatCurrency(spouseFormData[field.key]) }}</div>
-            <div class="col-total text-body-sm text-gray-900 py-1 font-medium">{{ formatCurrency(getHouseholdValue(field.key)) }}</div>
+          <div class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(essentialTotal) }}</div>
+          <div v-if="isMarried" class="col-value-mid pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(spouseEssentialTotal) }}</div>
+          <div class="col-total pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(householdEssentialTotal) }}</div>
+          <template v-if="isSectionExpanded('current', 'essential')">
+            <template v-for="field in essentialFields" :key="field.key">
+              <div class="col-label text-body-sm text-gray-600 py-1 pl-7">{{ field.label }}</div>
+              <div class="col-value text-body-sm text-gray-900 py-1">{{ formatCurrency(formData[field.key]) }}</div>
+              <div v-if="isMarried" class="col-value-mid text-body-sm text-gray-900 py-1">{{ formatCurrency(spouseFormData[field.key]) }}</div>
+              <div class="col-total text-body-sm text-gray-900 py-1 font-medium">{{ formatCurrency(getHouseholdValue(field.key)) }}</div>
+            </template>
           </template>
-          <!-- Essential Sub-total -->
-          <div class="col-label text-body-sm font-semibold text-gray-700 py-2 border-t border-gray-100">Sub-total</div>
-          <div class="col-value text-body-sm text-gray-900 py-2 border-t border-gray-100 font-semibold">{{ formatCurrency(essentialTotal) }}</div>
-          <div v-if="isMarried" class="col-value-mid text-body-sm text-gray-900 py-2 border-t border-gray-100 font-semibold">{{ formatCurrency(spouseEssentialTotal) }}</div>
-          <div class="col-total text-body-sm text-gray-900 py-2 border-t border-gray-100 font-semibold">{{ formatCurrency(householdEssentialTotal) }}</div>
 
           <!-- Communication & Technology -->
-          <div class="col-span-full pt-4 pb-2">
-            <h4 class="text-body-base font-semibold text-gray-900">Communication & Technology</h4>
+          <div class="col-label pt-4 pb-2 cursor-pointer select-none" @click="toggleSection('current', 'communication')">
+            <div class="flex items-center gap-2">
+              <svg :class="['h-5 w-5 text-gray-400 transition-transform', isSectionExpanded('current', 'communication') ? 'rotate-90' : '']" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+              <span class="text-body-base font-semibold text-gray-900">Communication & Technology</span>
+            </div>
           </div>
-          <template v-for="field in communicationFields" :key="field.key">
-            <div class="col-label text-body-sm text-gray-600 py-1">{{ field.label }}</div>
-            <div class="col-value text-body-sm text-gray-900 py-1">{{ formatCurrency(formData[field.key]) }}</div>
-            <div v-if="isMarried" class="col-value-mid text-body-sm text-gray-900 py-1">{{ formatCurrency(spouseFormData[field.key]) }}</div>
-            <div class="col-total text-body-sm text-gray-900 py-1 font-medium">{{ formatCurrency(getHouseholdValue(field.key)) }}</div>
+          <div class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(communicationTotal) }}</div>
+          <div v-if="isMarried" class="col-value-mid pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(spouseCommunicationTotal) }}</div>
+          <div class="col-total pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(householdCommunicationTotal) }}</div>
+          <template v-if="isSectionExpanded('current', 'communication')">
+            <template v-for="field in communicationFields" :key="field.key">
+              <div class="col-label text-body-sm text-gray-600 py-1 pl-7">{{ field.label }}</div>
+              <div class="col-value text-body-sm text-gray-900 py-1">{{ formatCurrency(formData[field.key]) }}</div>
+              <div v-if="isMarried" class="col-value-mid text-body-sm text-gray-900 py-1">{{ formatCurrency(spouseFormData[field.key]) }}</div>
+              <div class="col-total text-body-sm text-gray-900 py-1 font-medium">{{ formatCurrency(getHouseholdValue(field.key)) }}</div>
+            </template>
           </template>
-          <!-- Communication Sub-total -->
-          <div class="col-label text-body-sm font-semibold text-gray-700 py-2 border-t border-gray-100">Sub-total</div>
-          <div class="col-value text-body-sm text-gray-900 py-2 border-t border-gray-100 font-semibold">{{ formatCurrency(communicationTotal) }}</div>
-          <div v-if="isMarried" class="col-value-mid text-body-sm text-gray-900 py-2 border-t border-gray-100 font-semibold">{{ formatCurrency(spouseCommunicationTotal) }}</div>
-          <div class="col-total text-body-sm text-gray-900 py-2 border-t border-gray-100 font-semibold">{{ formatCurrency(householdCommunicationTotal) }}</div>
 
           <!-- Personal & Lifestyle -->
-          <div class="col-span-full pt-4 pb-2">
-            <h4 class="text-body-base font-semibold text-gray-900">Personal & Lifestyle</h4>
+          <div class="col-label pt-4 pb-2 cursor-pointer select-none" @click="toggleSection('current', 'lifestyle')">
+            <div class="flex items-center gap-2">
+              <svg :class="['h-5 w-5 text-gray-400 transition-transform', isSectionExpanded('current', 'lifestyle') ? 'rotate-90' : '']" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+              <span class="text-body-base font-semibold text-gray-900">Personal & Lifestyle</span>
+            </div>
           </div>
-          <template v-for="field in lifestyleFields" :key="field.key">
-            <div class="col-label text-body-sm text-gray-600 py-1">{{ field.label }}</div>
-            <div class="col-value text-body-sm text-gray-900 py-1">{{ formatCurrency(formData[field.key]) }}</div>
-            <div v-if="isMarried" class="col-value-mid text-body-sm text-gray-900 py-1">{{ formatCurrency(spouseFormData[field.key]) }}</div>
-            <div class="col-total text-body-sm text-gray-900 py-1 font-medium">{{ formatCurrency(getHouseholdValue(field.key)) }}</div>
+          <div class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(lifestyleTotal) }}</div>
+          <div v-if="isMarried" class="col-value-mid pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(spouseLifestyleTotal) }}</div>
+          <div class="col-total pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(householdLifestyleTotal) }}</div>
+          <template v-if="isSectionExpanded('current', 'lifestyle')">
+            <template v-for="field in lifestyleFields" :key="field.key">
+              <div class="col-label text-body-sm text-gray-600 py-1 pl-7">{{ field.label }}</div>
+              <div class="col-value text-body-sm text-gray-900 py-1">{{ formatCurrency(formData[field.key]) }}</div>
+              <div v-if="isMarried" class="col-value-mid text-body-sm text-gray-900 py-1">{{ formatCurrency(spouseFormData[field.key]) }}</div>
+              <div class="col-total text-body-sm text-gray-900 py-1 font-medium">{{ formatCurrency(getHouseholdValue(field.key)) }}</div>
+            </template>
           </template>
-          <!-- Lifestyle Sub-total -->
-          <div class="col-label text-body-sm font-semibold text-gray-700 py-2 border-t border-gray-100">Sub-total</div>
-          <div class="col-value text-body-sm text-gray-900 py-2 border-t border-gray-100 font-semibold">{{ formatCurrency(lifestyleTotal) }}</div>
-          <div v-if="isMarried" class="col-value-mid text-body-sm text-gray-900 py-2 border-t border-gray-100 font-semibold">{{ formatCurrency(spouseLifestyleTotal) }}</div>
-          <div class="col-total text-body-sm text-gray-900 py-2 border-t border-gray-100 font-semibold">{{ formatCurrency(householdLifestyleTotal) }}</div>
 
           <!-- Children & Dependents -->
-          <div class="col-span-full pt-4 pb-2">
-            <h4 class="text-body-base font-semibold text-gray-900">Children & Dependents</h4>
+          <div class="col-label pt-4 pb-2 cursor-pointer select-none" @click="toggleSection('current', 'children')">
+            <div class="flex items-center gap-2">
+              <svg :class="['h-5 w-5 text-gray-400 transition-transform', isSectionExpanded('current', 'children') ? 'rotate-90' : '']" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+              <span class="text-body-base font-semibold text-gray-900">Children & Dependents</span>
+            </div>
           </div>
-          <template v-for="field in childrenFields" :key="field.key">
-            <div class="col-label text-body-sm text-gray-600 py-1">{{ field.label }}</div>
-            <div class="col-value text-body-sm text-gray-900 py-1">{{ formatCurrency(formData[field.key]) }}</div>
-            <div v-if="isMarried" class="col-value-mid text-body-sm text-gray-900 py-1">{{ formatCurrency(spouseFormData[field.key]) }}</div>
-            <div class="col-total text-body-sm text-gray-900 py-1 font-medium">{{ formatCurrency(getHouseholdValue(field.key)) }}</div>
+          <div class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(childrenTotal) }}</div>
+          <div v-if="isMarried" class="col-value-mid pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(spouseChildrenTotal) }}</div>
+          <div class="col-total pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(householdChildrenTotal) }}</div>
+          <template v-if="isSectionExpanded('current', 'children')">
+            <template v-for="field in childrenFields" :key="field.key">
+              <div class="col-label text-body-sm text-gray-600 py-1 pl-7">{{ field.label }}</div>
+              <div class="col-value text-body-sm text-gray-900 py-1">{{ formatCurrency(formData[field.key]) }}</div>
+              <div v-if="isMarried" class="col-value-mid text-body-sm text-gray-900 py-1">{{ formatCurrency(spouseFormData[field.key]) }}</div>
+              <div class="col-total text-body-sm text-gray-900 py-1 font-medium">{{ formatCurrency(getHouseholdValue(field.key)) }}</div>
+            </template>
           </template>
-          <!-- Children Sub-total -->
-          <div class="col-label text-body-sm font-semibold text-gray-700 py-2 border-t border-gray-100">Sub-total</div>
-          <div class="col-value text-body-sm text-gray-900 py-2 border-t border-gray-100 font-semibold">{{ formatCurrency(childrenTotal) }}</div>
-          <div v-if="isMarried" class="col-value-mid text-body-sm text-gray-900 py-2 border-t border-gray-100 font-semibold">{{ formatCurrency(spouseChildrenTotal) }}</div>
-          <div class="col-total text-body-sm text-gray-900 py-2 border-t border-gray-100 font-semibold">{{ formatCurrency(householdChildrenTotal) }}</div>
 
           <!-- Other Expenses -->
-          <div class="col-span-full pt-4 pb-2">
-            <h4 class="text-body-base font-semibold text-gray-900">Other Expenses</h4>
+          <div class="col-label pt-4 pb-2 cursor-pointer select-none" @click="toggleSection('current', 'other')">
+            <div class="flex items-center gap-2">
+              <svg :class="['h-5 w-5 text-gray-400 transition-transform', isSectionExpanded('current', 'other') ? 'rotate-90' : '']" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+              <span class="text-body-base font-semibold text-gray-900">Other Expenses</span>
+            </div>
           </div>
-          <template v-for="field in otherFields" :key="field.key">
-            <div class="col-label text-body-sm text-gray-600 py-1">{{ field.label }}</div>
-            <div class="col-value text-body-sm text-gray-900 py-1">{{ formatCurrency(formData[field.key]) }}</div>
-            <div v-if="isMarried" class="col-value-mid text-body-sm text-gray-900 py-1">{{ formatCurrency(spouseFormData[field.key]) }}</div>
-            <div class="col-total text-body-sm text-gray-900 py-1 font-medium">{{ formatCurrency(getHouseholdValue(field.key)) }}</div>
+          <div class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(otherTotal) }}</div>
+          <div v-if="isMarried" class="col-value-mid pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(spouseOtherTotal) }}</div>
+          <div class="col-total pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(householdOtherTotal) }}</div>
+          <template v-if="isSectionExpanded('current', 'other')">
+            <template v-for="field in otherFields" :key="field.key">
+              <div class="col-label text-body-sm text-gray-600 py-1 pl-7">{{ field.label }}</div>
+              <div class="col-value text-body-sm text-gray-900 py-1">{{ formatCurrency(formData[field.key]) }}</div>
+              <div v-if="isMarried" class="col-value-mid text-body-sm text-gray-900 py-1">{{ formatCurrency(spouseFormData[field.key]) }}</div>
+              <div class="col-total text-body-sm text-gray-900 py-1 font-medium">{{ formatCurrency(getHouseholdValue(field.key)) }}</div>
+            </template>
           </template>
-          <!-- Other Sub-total -->
-          <div class="col-label text-body-sm font-semibold text-gray-700 py-2 border-t border-gray-100">Sub-total</div>
-          <div class="col-value text-body-sm text-gray-900 py-2 border-t border-gray-100 font-semibold">{{ formatCurrency(otherTotal) }}</div>
-          <div v-if="isMarried" class="col-value-mid text-body-sm text-gray-900 py-2 border-t border-gray-100 font-semibold">{{ formatCurrency(spouseOtherTotal) }}</div>
-          <div class="col-total text-body-sm text-gray-900 py-2 border-t border-gray-100 font-semibold">{{ formatCurrency(householdOtherTotal) }}</div>
 
           <!-- Manual Expenditure Total -->
           <div class="col-span-full border-t-2 border-gray-300 mt-4"></div>
@@ -191,14 +216,17 @@
 
       <!-- Financial Commitments (Auto-pulled) - View Mode -->
       <div v-if="hasAnyCommitments" class="mt-6 border-t border-gray-200 pt-6">
-        <div class="flex items-center gap-2 mb-4">
-          <h4 class="text-body-base font-semibold text-gray-900">Financial Commitments</h4>
+        <div class="flex items-center gap-2 cursor-pointer select-none" @click="toggleSection('current', 'commitments')">
+          <svg :class="['h-5 w-5 text-gray-400 transition-transform', isSectionExpanded('current', 'commitments') ? 'rotate-90' : '']" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          </svg>
+          <span class="text-body-base font-semibold text-gray-900">Financial Commitments</span>
           <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
             Auto-calculated
           </span>
         </div>
 
-        <div :class="isMarried ? 'expenditure-grid-married' : 'expenditure-grid-single'">
+        <div v-if="isSectionExpanded('current', 'commitments')" :class="isMarried ? 'expenditure-grid-married' : 'expenditure-grid-single'" class="mt-4">
           <!-- Column Headers -->
           <div class="col-label font-semibold text-body-sm text-gray-700 pb-2 border-b border-gray-200">Source</div>
           <div class="col-value font-semibold text-body-sm text-gray-700 pb-2 border-b border-gray-200">{{ userName }}</div>
@@ -793,115 +821,181 @@
           <div v-if="isMarried" class="col-header font-semibold text-body-sm text-gray-700 pb-2 border-b border-gray-200">Household</div>
 
           <!-- Essential Living -->
-          <div class="col-span-full pt-4 pb-2">
-            <h4 class="text-body-base font-semibold text-gray-900">Essential Living</h4>
+          <div class="col-label pt-4 pb-2 cursor-pointer select-none" @click="toggleSection('retired', 'essential')">
+            <div class="flex items-center gap-2">
+              <svg :class="['h-5 w-5 text-gray-400 transition-transform', isSectionExpanded('retired', 'essential') ? 'rotate-90' : '']" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+              <span class="text-body-base font-semibold text-gray-900">Essential Living</span>
+            </div>
           </div>
-          <template v-for="field in retiredBudgetFields.essential" :key="field.key">
-            <div class="col-label text-body-sm text-gray-600 py-1">
-              {{ field.label }}
-              <span v-if="retiredBudgetData[field.key]?.adjusted && !retiredBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-700">Auto</span>
-              <span v-if="retiredBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-success-100 text-success-700">Custom</span>
-            </div>
-            <div class="col-value text-body-sm text-gray-900 py-1 font-medium">
-              {{ formatCurrency(getRetiredUserValue(field.key)) }}<span v-if="getRetiredChange(field.key, false) !== 0" :class="getRetiredChange(field.key, false) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getRetiredChange(field.key, false) < 0 ? '' : '+' }}{{ formatCurrency(getRetiredChange(field.key, false)) }})</span>
-            </div>
-            <div v-if="isMarried" class="col-value text-body-sm text-gray-900 py-1 font-medium">
-              {{ formatCurrency(getRetiredSpouseValue(field.key)) }}<span v-if="getRetiredChange(field.key, true) !== 0" :class="getRetiredChange(field.key, true) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getRetiredChange(field.key, true) < 0 ? '' : '+' }}{{ formatCurrency(getRetiredChange(field.key, true)) }})</span>
-            </div>
-            <div v-if="isMarried" class="col-total text-body-sm text-gray-900 py-1 font-medium">
-              {{ formatCurrency(getRetiredUserValue(field.key) + getRetiredSpouseValue(field.key)) }}
-            </div>
+          <div class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(getRetiredSectionTotal('essential')) }}</div>
+          <div v-if="isMarried" class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold"></div>
+          <div v-if="isMarried" class="col-total pt-4 pb-2 text-body-sm text-gray-900 font-semibold"></div>
+          <template v-if="isSectionExpanded('retired', 'essential')">
+            <template v-for="field in retiredBudgetFields.essential" :key="field.key">
+              <div class="col-label text-body-sm text-gray-600 py-1 pl-7">
+                {{ field.label }}
+                <span v-if="retiredBudgetData[field.key]?.adjusted && !retiredBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-700">Auto</span>
+                <span v-if="retiredBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-success-100 text-success-700">Custom</span>
+              </div>
+              <div class="col-value text-body-sm text-gray-900 py-1 font-medium">
+                {{ formatCurrency(getRetiredUserValue(field.key)) }}<span v-if="getRetiredChange(field.key, false) !== 0" :class="getRetiredChange(field.key, false) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getRetiredChange(field.key, false) < 0 ? '' : '+' }}{{ formatCurrency(getRetiredChange(field.key, false)) }})</span>
+              </div>
+              <div v-if="isMarried" class="col-value text-body-sm text-gray-900 py-1 font-medium">
+                {{ formatCurrency(getRetiredSpouseValue(field.key)) }}<span v-if="getRetiredChange(field.key, true) !== 0" :class="getRetiredChange(field.key, true) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getRetiredChange(field.key, true) < 0 ? '' : '+' }}{{ formatCurrency(getRetiredChange(field.key, true)) }})</span>
+              </div>
+              <div v-if="isMarried" class="col-total text-body-sm text-gray-900 py-1 font-medium">
+                {{ formatCurrency(getRetiredUserValue(field.key) + getRetiredSpouseValue(field.key)) }}
+              </div>
+            </template>
           </template>
 
           <!-- Communication & Technology -->
-          <div class="col-span-full pt-4 pb-2">
-            <h4 class="text-body-base font-semibold text-gray-900">Communication & Technology</h4>
+          <div class="col-label pt-4 pb-2 cursor-pointer select-none" @click="toggleSection('retired', 'communication')">
+            <div class="flex items-center gap-2">
+              <svg :class="['h-5 w-5 text-gray-400 transition-transform', isSectionExpanded('retired', 'communication') ? 'rotate-90' : '']" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+              <span class="text-body-base font-semibold text-gray-900">Communication & Technology</span>
+            </div>
           </div>
-          <template v-for="field in retiredBudgetFields.communication" :key="field.key">
-            <div class="col-label text-body-sm text-gray-600 py-1">
-              {{ field.label }}
-              <span v-if="retiredBudgetData[field.key]?.adjusted && !retiredBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-700">Auto</span>
-              <span v-if="retiredBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-success-100 text-success-700">Custom</span>
-            </div>
-            <div class="col-value text-body-sm text-gray-900 py-1 font-medium">
-              {{ formatCurrency(getRetiredUserValue(field.key)) }}<span v-if="getRetiredChange(field.key, false) !== 0" :class="getRetiredChange(field.key, false) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getRetiredChange(field.key, false) < 0 ? '' : '+' }}{{ formatCurrency(getRetiredChange(field.key, false)) }})</span>
-            </div>
-            <div v-if="isMarried" class="col-value text-body-sm text-gray-900 py-1 font-medium">
-              {{ formatCurrency(getRetiredSpouseValue(field.key)) }}<span v-if="getRetiredChange(field.key, true) !== 0" :class="getRetiredChange(field.key, true) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getRetiredChange(field.key, true) < 0 ? '' : '+' }}{{ formatCurrency(getRetiredChange(field.key, true)) }})</span>
-            </div>
-            <div v-if="isMarried" class="col-total text-body-sm text-gray-900 py-1 font-medium">
-              {{ formatCurrency(getRetiredUserValue(field.key) + getRetiredSpouseValue(field.key)) }}
-            </div>
+          <div class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(getRetiredSectionTotal('communication')) }}</div>
+          <div v-if="isMarried" class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold"></div>
+          <div v-if="isMarried" class="col-total pt-4 pb-2 text-body-sm text-gray-900 font-semibold"></div>
+          <template v-if="isSectionExpanded('retired', 'communication')">
+            <template v-for="field in retiredBudgetFields.communication" :key="field.key">
+              <div class="col-label text-body-sm text-gray-600 py-1 pl-7">
+                {{ field.label }}
+                <span v-if="retiredBudgetData[field.key]?.adjusted && !retiredBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-700">Auto</span>
+                <span v-if="retiredBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-success-100 text-success-700">Custom</span>
+              </div>
+              <div class="col-value text-body-sm text-gray-900 py-1 font-medium">
+                {{ formatCurrency(getRetiredUserValue(field.key)) }}<span v-if="getRetiredChange(field.key, false) !== 0" :class="getRetiredChange(field.key, false) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getRetiredChange(field.key, false) < 0 ? '' : '+' }}{{ formatCurrency(getRetiredChange(field.key, false)) }})</span>
+              </div>
+              <div v-if="isMarried" class="col-value text-body-sm text-gray-900 py-1 font-medium">
+                {{ formatCurrency(getRetiredSpouseValue(field.key)) }}<span v-if="getRetiredChange(field.key, true) !== 0" :class="getRetiredChange(field.key, true) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getRetiredChange(field.key, true) < 0 ? '' : '+' }}{{ formatCurrency(getRetiredChange(field.key, true)) }})</span>
+              </div>
+              <div v-if="isMarried" class="col-total text-body-sm text-gray-900 py-1 font-medium">
+                {{ formatCurrency(getRetiredUserValue(field.key) + getRetiredSpouseValue(field.key)) }}
+              </div>
+            </template>
           </template>
 
           <!-- Personal & Lifestyle -->
-          <div class="col-span-full pt-4 pb-2">
-            <h4 class="text-body-base font-semibold text-gray-900">Personal & Lifestyle</h4>
+          <div class="col-label pt-4 pb-2 cursor-pointer select-none" @click="toggleSection('retired', 'lifestyle')">
+            <div class="flex items-center gap-2">
+              <svg :class="['h-5 w-5 text-gray-400 transition-transform', isSectionExpanded('retired', 'lifestyle') ? 'rotate-90' : '']" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+              <span class="text-body-base font-semibold text-gray-900">Personal & Lifestyle</span>
+            </div>
           </div>
-          <template v-for="field in retiredBudgetFields.lifestyle" :key="field.key">
-            <div class="col-label text-body-sm text-gray-600 py-1">
-              {{ field.label }}
-              <span v-if="retiredBudgetData[field.key]?.adjusted && !retiredBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-700">Auto</span>
-              <span v-if="retiredBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-success-100 text-success-700">Custom</span>
-            </div>
-            <div class="col-value text-body-sm text-gray-900 py-1 font-medium">
-              {{ formatCurrency(getRetiredUserValue(field.key)) }}<span v-if="getRetiredChange(field.key, false) !== 0" :class="getRetiredChange(field.key, false) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getRetiredChange(field.key, false) < 0 ? '' : '+' }}{{ formatCurrency(getRetiredChange(field.key, false)) }})</span>
-            </div>
-            <div v-if="isMarried" class="col-value text-body-sm text-gray-900 py-1 font-medium">
-              {{ formatCurrency(getRetiredSpouseValue(field.key)) }}<span v-if="getRetiredChange(field.key, true) !== 0" :class="getRetiredChange(field.key, true) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getRetiredChange(field.key, true) < 0 ? '' : '+' }}{{ formatCurrency(getRetiredChange(field.key, true)) }})</span>
-            </div>
-            <div v-if="isMarried" class="col-total text-body-sm text-gray-900 py-1 font-medium">
-              {{ formatCurrency(getRetiredUserValue(field.key) + getRetiredSpouseValue(field.key)) }}
-            </div>
+          <div class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(getRetiredSectionTotal('lifestyle')) }}</div>
+          <div v-if="isMarried" class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold"></div>
+          <div v-if="isMarried" class="col-total pt-4 pb-2 text-body-sm text-gray-900 font-semibold"></div>
+          <template v-if="isSectionExpanded('retired', 'lifestyle')">
+            <template v-for="field in retiredBudgetFields.lifestyle" :key="field.key">
+              <div class="col-label text-body-sm text-gray-600 py-1 pl-7">
+                {{ field.label }}
+                <span v-if="retiredBudgetData[field.key]?.adjusted && !retiredBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-700">Auto</span>
+                <span v-if="retiredBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-success-100 text-success-700">Custom</span>
+              </div>
+              <div class="col-value text-body-sm text-gray-900 py-1 font-medium">
+                {{ formatCurrency(getRetiredUserValue(field.key)) }}<span v-if="getRetiredChange(field.key, false) !== 0" :class="getRetiredChange(field.key, false) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getRetiredChange(field.key, false) < 0 ? '' : '+' }}{{ formatCurrency(getRetiredChange(field.key, false)) }})</span>
+              </div>
+              <div v-if="isMarried" class="col-value text-body-sm text-gray-900 py-1 font-medium">
+                {{ formatCurrency(getRetiredSpouseValue(field.key)) }}<span v-if="getRetiredChange(field.key, true) !== 0" :class="getRetiredChange(field.key, true) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getRetiredChange(field.key, true) < 0 ? '' : '+' }}{{ formatCurrency(getRetiredChange(field.key, true)) }})</span>
+              </div>
+              <div v-if="isMarried" class="col-total text-body-sm text-gray-900 py-1 font-medium">
+                {{ formatCurrency(getRetiredUserValue(field.key) + getRetiredSpouseValue(field.key)) }}
+              </div>
+            </template>
           </template>
 
           <!-- Children & Dependents -->
-          <div class="col-span-full pt-4 pb-2">
-            <h4 class="text-body-base font-semibold text-gray-900">Children & Dependents</h4>
+          <div class="col-label pt-4 pb-2 cursor-pointer select-none" @click="toggleSection('retired', 'children')">
+            <div class="flex items-center gap-2">
+              <svg :class="['h-5 w-5 text-gray-400 transition-transform', isSectionExpanded('retired', 'children') ? 'rotate-90' : '']" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+              <span class="text-body-base font-semibold text-gray-900">Children & Dependents</span>
+            </div>
           </div>
-          <template v-for="field in retiredBudgetFields.children" :key="field.key">
-            <div class="col-label text-body-sm text-gray-600 py-1">
-              {{ field.label }}
-              <span v-if="retiredBudgetData[field.key]?.adjusted && !retiredBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-700">Auto</span>
-              <span v-if="retiredBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-success-100 text-success-700">Custom</span>
-            </div>
-            <div class="col-value text-body-sm text-gray-900 py-1 font-medium">
-              {{ formatCurrency(getRetiredUserValue(field.key)) }}<span v-if="getRetiredChange(field.key, false) !== 0" :class="getRetiredChange(field.key, false) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getRetiredChange(field.key, false) < 0 ? '' : '+' }}{{ formatCurrency(getRetiredChange(field.key, false)) }})</span>
-            </div>
-            <div v-if="isMarried" class="col-value text-body-sm text-gray-900 py-1 font-medium">
-              {{ formatCurrency(getRetiredSpouseValue(field.key)) }}<span v-if="getRetiredChange(field.key, true) !== 0" :class="getRetiredChange(field.key, true) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getRetiredChange(field.key, true) < 0 ? '' : '+' }}{{ formatCurrency(getRetiredChange(field.key, true)) }})</span>
-            </div>
-            <div v-if="isMarried" class="col-total text-body-sm text-gray-900 py-1 font-medium">
-              {{ formatCurrency(getRetiredUserValue(field.key) + getRetiredSpouseValue(field.key)) }}
-            </div>
+          <div class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(getRetiredSectionTotal('children')) }}</div>
+          <div v-if="isMarried" class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold"></div>
+          <div v-if="isMarried" class="col-total pt-4 pb-2 text-body-sm text-gray-900 font-semibold"></div>
+          <template v-if="isSectionExpanded('retired', 'children')">
+            <template v-for="field in retiredBudgetFields.children" :key="field.key">
+              <div class="col-label text-body-sm text-gray-600 py-1 pl-7">
+                {{ field.label }}
+                <span v-if="retiredBudgetData[field.key]?.adjusted && !retiredBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-700">Auto</span>
+                <span v-if="retiredBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-success-100 text-success-700">Custom</span>
+              </div>
+              <div class="col-value text-body-sm text-gray-900 py-1 font-medium">
+                {{ formatCurrency(getRetiredUserValue(field.key)) }}<span v-if="getRetiredChange(field.key, false) !== 0" :class="getRetiredChange(field.key, false) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getRetiredChange(field.key, false) < 0 ? '' : '+' }}{{ formatCurrency(getRetiredChange(field.key, false)) }})</span>
+              </div>
+              <div v-if="isMarried" class="col-value text-body-sm text-gray-900 py-1 font-medium">
+                {{ formatCurrency(getRetiredSpouseValue(field.key)) }}<span v-if="getRetiredChange(field.key, true) !== 0" :class="getRetiredChange(field.key, true) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getRetiredChange(field.key, true) < 0 ? '' : '+' }}{{ formatCurrency(getRetiredChange(field.key, true)) }})</span>
+              </div>
+              <div v-if="isMarried" class="col-total text-body-sm text-gray-900 py-1 font-medium">
+                {{ formatCurrency(getRetiredUserValue(field.key) + getRetiredSpouseValue(field.key)) }}
+              </div>
+            </template>
           </template>
 
           <!-- Other Expenses -->
-          <div class="col-span-full pt-4 pb-2">
-            <h4 class="text-body-base font-semibold text-gray-900">Other Expenses</h4>
+          <div class="col-label pt-4 pb-2 cursor-pointer select-none" @click="toggleSection('retired', 'other')">
+            <div class="flex items-center gap-2">
+              <svg :class="['h-5 w-5 text-gray-400 transition-transform', isSectionExpanded('retired', 'other') ? 'rotate-90' : '']" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+              <span class="text-body-base font-semibold text-gray-900">Other Expenses</span>
+            </div>
           </div>
-          <template v-for="field in retiredBudgetFields.other" :key="field.key">
-            <div class="col-label text-body-sm text-gray-600 py-1">
-              {{ field.label }}
-              <span v-if="retiredBudgetData[field.key]?.adjusted && !retiredBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-700">Auto</span>
-              <span v-if="retiredBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-success-100 text-success-700">Custom</span>
-            </div>
-            <div class="col-value text-body-sm text-gray-900 py-1 font-medium">
-              {{ formatCurrency(getRetiredUserValue(field.key)) }}<span v-if="getRetiredChange(field.key, false) !== 0" :class="getRetiredChange(field.key, false) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getRetiredChange(field.key, false) < 0 ? '' : '+' }}{{ formatCurrency(getRetiredChange(field.key, false)) }})</span>
-            </div>
-            <div v-if="isMarried" class="col-value text-body-sm text-gray-900 py-1 font-medium">
-              {{ formatCurrency(getRetiredSpouseValue(field.key)) }}<span v-if="getRetiredChange(field.key, true) !== 0" :class="getRetiredChange(field.key, true) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getRetiredChange(field.key, true) < 0 ? '' : '+' }}{{ formatCurrency(getRetiredChange(field.key, true)) }})</span>
-            </div>
-            <div v-if="isMarried" class="col-total text-body-sm text-gray-900 py-1 font-medium">
-              {{ formatCurrency(getRetiredUserValue(field.key) + getRetiredSpouseValue(field.key)) }}
-            </div>
+          <div class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(getRetiredSectionTotal('other')) }}</div>
+          <div v-if="isMarried" class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold"></div>
+          <div v-if="isMarried" class="col-total pt-4 pb-2 text-body-sm text-gray-900 font-semibold"></div>
+          <template v-if="isSectionExpanded('retired', 'other')">
+            <template v-for="field in retiredBudgetFields.other" :key="field.key">
+              <div class="col-label text-body-sm text-gray-600 py-1 pl-7">
+                {{ field.label }}
+                <span v-if="retiredBudgetData[field.key]?.adjusted && !retiredBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-700">Auto</span>
+                <span v-if="retiredBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-success-100 text-success-700">Custom</span>
+              </div>
+              <div class="col-value text-body-sm text-gray-900 py-1 font-medium">
+                {{ formatCurrency(getRetiredUserValue(field.key)) }}<span v-if="getRetiredChange(field.key, false) !== 0" :class="getRetiredChange(field.key, false) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getRetiredChange(field.key, false) < 0 ? '' : '+' }}{{ formatCurrency(getRetiredChange(field.key, false)) }})</span>
+              </div>
+              <div v-if="isMarried" class="col-value text-body-sm text-gray-900 py-1 font-medium">
+                {{ formatCurrency(getRetiredSpouseValue(field.key)) }}<span v-if="getRetiredChange(field.key, true) !== 0" :class="getRetiredChange(field.key, true) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getRetiredChange(field.key, true) < 0 ? '' : '+' }}{{ formatCurrency(getRetiredChange(field.key, true)) }})</span>
+              </div>
+              <div v-if="isMarried" class="col-total text-body-sm text-gray-900 py-1 font-medium">
+                {{ formatCurrency(getRetiredUserValue(field.key) + getRetiredSpouseValue(field.key)) }}
+              </div>
+            </template>
           </template>
 
+          <!-- Manual Expenditure Total -->
+          <div class="col-span-full border-t-2 border-gray-300 mt-4"></div>
+          <div class="col-label text-body font-semibold text-gray-900 py-3">Manual Expenditure Total</div>
+          <div class="col-value text-body text-gray-900 py-3 font-semibold">{{ formatCurrency(retiredManualExpenditureTotal) }}</div>
+          <div v-if="isMarried" class="col-value text-body text-gray-900 py-3 font-semibold">{{ formatCurrency(retiredSpouseManualExpenditureTotal) }}</div>
+          <div v-if="isMarried" class="col-total text-body text-gray-900 py-3 font-semibold">{{ formatCurrency(retiredHouseholdManualExpenditureTotal) }}</div>
+
           <!-- Financial Commitments -->
-          <div class="col-span-full pt-4 pb-2">
-            <h4 class="text-body-base font-semibold text-gray-900">Financial Commitments</h4>
+          <div class="col-label pt-4 pb-2 cursor-pointer select-none" @click="toggleSection('retired', 'commitments')">
+            <div class="flex items-center gap-2">
+              <svg :class="['h-5 w-5 text-gray-400 transition-transform', isSectionExpanded('retired', 'commitments') ? 'rotate-90' : '']" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+              <span class="text-body-base font-semibold text-gray-900">Financial Commitments</span>
+            </div>
           </div>
-          <div class="col-label text-body-sm text-gray-600 py-1">
+          <div class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(financialCommitments?.totals?.protection || 0) }}</div>
+          <div v-if="isMarried" class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(spouseFinancialCommitments?.totals?.protection || 0) }}</div>
+          <div v-if="isMarried" class="col-total pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency((financialCommitments?.totals?.protection || 0) + (spouseFinancialCommitments?.totals?.protection || 0)) }}</div>
+          <template v-if="isSectionExpanded('retired', 'commitments')">
+          <div class="col-label text-body-sm text-gray-600 py-1 pl-7">
             Pension Contributions
             <span class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-700">Auto</span>
           </div>
@@ -913,7 +1007,7 @@
           </div>
           <div v-if="isMarried" class="col-total text-body-sm text-gray-900 py-1 font-medium">{{ formatCurrency(0) }}</div>
 
-          <div class="col-label text-body-sm text-gray-600 py-1">
+          <div class="col-label text-body-sm text-gray-600 py-1 pl-7">
             Mortgage Payments
             <span v-if="retiredCommitments.mortgageAdjusted" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-700">Auto</span>
           </div>
@@ -925,7 +1019,7 @@
           </div>
           <div v-if="isMarried" class="col-total text-body-sm text-gray-900 py-1 font-medium">{{ formatCurrency(0) }}</div>
 
-          <div class="col-label text-body-sm text-gray-600 py-1">Protection Premiums</div>
+          <div class="col-label text-body-sm text-gray-600 py-1 pl-7">Protection Premiums</div>
           <div class="col-value text-body-sm text-gray-900 py-1 font-medium">
             {{ formatCurrency(financialCommitments?.totals?.protection || 0) }}
           </div>
@@ -934,7 +1028,7 @@
           </div>
           <div v-if="isMarried" class="col-total text-body-sm text-gray-900 py-1 font-medium">{{ formatCurrency((financialCommitments?.totals?.protection || 0) + (spouseFinancialCommitments?.totals?.protection || 0)) }}</div>
 
-          <div class="col-label text-body-sm text-gray-600 py-1">
+          <div class="col-label text-body-sm text-gray-600 py-1 pl-7">
             Loan Repayments
             <span class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-700">Auto</span>
           </div>
@@ -945,6 +1039,7 @@
             {{ formatCurrency(0) }}<span v-if="(spouseFinancialCommitments?.totals?.liabilities || 0) > 0" class="text-success-600 text-xs ml-1">(-{{ formatCurrency(spouseFinancialCommitments?.totals?.liabilities || 0) }})</span>
           </div>
           <div v-if="isMarried" class="col-total text-body-sm text-gray-900 py-1 font-medium">{{ formatCurrency(0) }}</div>
+          </template>
 
           <!-- Total -->
           <div class="col-span-full border-t-2 border-gray-300 mt-4"></div>
@@ -1084,98 +1179,151 @@
           <div class="col-header font-semibold text-body-sm text-gray-700 pb-2 border-b border-gray-200">{{ userName }}</div>
 
           <!-- Essential Living -->
-          <div class="col-span-full pt-4 pb-2">
-            <h4 class="text-body-base font-semibold text-gray-900">Essential Living</h4>
+          <div class="col-label pt-4 pb-2 cursor-pointer select-none" @click="toggleSection('widowed', 'essential')">
+            <div class="flex items-center gap-2">
+              <svg :class="['h-5 w-5 text-gray-400 transition-transform', isSectionExpanded('widowed', 'essential') ? 'rotate-90' : '']" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+              <span class="text-body-base font-semibold text-gray-900">Essential Living</span>
+            </div>
           </div>
-          <template v-for="field in widowedBudgetFields.essential" :key="field.key">
-            <div class="col-label text-body-sm text-gray-600 py-1">
-              {{ field.label }}
-              <span v-if="widowedBudgetData[field.key]?.adjusted && !widowedBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-700">Auto</span>
-              <span v-if="widowedBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-success-100 text-success-700">Custom</span>
-            </div>
-            <div class="col-value text-body-sm text-gray-900 py-1 font-medium">
-              {{ formatCurrency(getWidowedValue(field.key)) }}<span v-if="getWidowedChange(field.key) !== 0" :class="getWidowedChange(field.key) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getWidowedChange(field.key) < 0 ? '' : '+' }}{{ formatCurrency(getWidowedChange(field.key)) }})</span>
-            </div>
+          <div class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(getWidowedSectionTotal('essential')) }}</div>
+          <template v-if="isSectionExpanded('widowed', 'essential')">
+            <template v-for="field in widowedBudgetFields.essential" :key="field.key">
+              <div class="col-label text-body-sm text-gray-600 py-1 pl-7">
+                {{ field.label }}
+                <span v-if="widowedBudgetData[field.key]?.adjusted && !widowedBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-700">Auto</span>
+                <span v-if="widowedBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-success-100 text-success-700">Custom</span>
+              </div>
+              <div class="col-value text-body-sm text-gray-900 py-1 font-medium">
+                {{ formatCurrency(getWidowedValue(field.key)) }}<span v-if="getWidowedChange(field.key) !== 0" :class="getWidowedChange(field.key) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getWidowedChange(field.key) < 0 ? '' : '+' }}{{ formatCurrency(getWidowedChange(field.key)) }})</span>
+              </div>
+            </template>
           </template>
 
           <!-- Communication & Technology -->
-          <div class="col-span-full pt-4 pb-2">
-            <h4 class="text-body-base font-semibold text-gray-900">Communication & Technology</h4>
+          <div class="col-label pt-4 pb-2 cursor-pointer select-none" @click="toggleSection('widowed', 'communication')">
+            <div class="flex items-center gap-2">
+              <svg :class="['h-5 w-5 text-gray-400 transition-transform', isSectionExpanded('widowed', 'communication') ? 'rotate-90' : '']" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+              <span class="text-body-base font-semibold text-gray-900">Communication & Technology</span>
+            </div>
           </div>
-          <template v-for="field in widowedBudgetFields.communication" :key="field.key">
-            <div class="col-label text-body-sm text-gray-600 py-1">
-              {{ field.label }}
-              <span v-if="widowedBudgetData[field.key]?.adjusted && !widowedBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-700">Auto</span>
-              <span v-if="widowedBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-success-100 text-success-700">Custom</span>
-            </div>
-            <div class="col-value text-body-sm text-gray-900 py-1 font-medium">
-              {{ formatCurrency(getWidowedValue(field.key)) }}<span v-if="getWidowedChange(field.key) !== 0" :class="getWidowedChange(field.key) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getWidowedChange(field.key) < 0 ? '' : '+' }}{{ formatCurrency(getWidowedChange(field.key)) }})</span>
-            </div>
+          <div class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(getWidowedSectionTotal('communication')) }}</div>
+          <template v-if="isSectionExpanded('widowed', 'communication')">
+            <template v-for="field in widowedBudgetFields.communication" :key="field.key">
+              <div class="col-label text-body-sm text-gray-600 py-1 pl-7">
+                {{ field.label }}
+                <span v-if="widowedBudgetData[field.key]?.adjusted && !widowedBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-700">Auto</span>
+                <span v-if="widowedBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-success-100 text-success-700">Custom</span>
+              </div>
+              <div class="col-value text-body-sm text-gray-900 py-1 font-medium">
+                {{ formatCurrency(getWidowedValue(field.key)) }}<span v-if="getWidowedChange(field.key) !== 0" :class="getWidowedChange(field.key) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getWidowedChange(field.key) < 0 ? '' : '+' }}{{ formatCurrency(getWidowedChange(field.key)) }})</span>
+              </div>
+            </template>
           </template>
 
           <!-- Personal & Lifestyle -->
-          <div class="col-span-full pt-4 pb-2">
-            <h4 class="text-body-base font-semibold text-gray-900">Personal & Lifestyle</h4>
+          <div class="col-label pt-4 pb-2 cursor-pointer select-none" @click="toggleSection('widowed', 'lifestyle')">
+            <div class="flex items-center gap-2">
+              <svg :class="['h-5 w-5 text-gray-400 transition-transform', isSectionExpanded('widowed', 'lifestyle') ? 'rotate-90' : '']" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+              <span class="text-body-base font-semibold text-gray-900">Personal & Lifestyle</span>
+            </div>
           </div>
-          <template v-for="field in widowedBudgetFields.lifestyle" :key="field.key">
-            <div class="col-label text-body-sm text-gray-600 py-1">
-              {{ field.label }}
-              <span v-if="widowedBudgetData[field.key]?.adjusted && !widowedBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-700">Auto</span>
-              <span v-if="widowedBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-success-100 text-success-700">Custom</span>
-            </div>
-            <div class="col-value text-body-sm text-gray-900 py-1 font-medium">
-              {{ formatCurrency(getWidowedValue(field.key)) }}<span v-if="getWidowedChange(field.key) !== 0" :class="getWidowedChange(field.key) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getWidowedChange(field.key) < 0 ? '' : '+' }}{{ formatCurrency(getWidowedChange(field.key)) }})</span>
-            </div>
+          <div class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(getWidowedSectionTotal('lifestyle')) }}</div>
+          <template v-if="isSectionExpanded('widowed', 'lifestyle')">
+            <template v-for="field in widowedBudgetFields.lifestyle" :key="field.key">
+              <div class="col-label text-body-sm text-gray-600 py-1 pl-7">
+                {{ field.label }}
+                <span v-if="widowedBudgetData[field.key]?.adjusted && !widowedBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-700">Auto</span>
+                <span v-if="widowedBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-success-100 text-success-700">Custom</span>
+              </div>
+              <div class="col-value text-body-sm text-gray-900 py-1 font-medium">
+                {{ formatCurrency(getWidowedValue(field.key)) }}<span v-if="getWidowedChange(field.key) !== 0" :class="getWidowedChange(field.key) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getWidowedChange(field.key) < 0 ? '' : '+' }}{{ formatCurrency(getWidowedChange(field.key)) }})</span>
+              </div>
+            </template>
           </template>
 
           <!-- Children & Dependents -->
-          <div class="col-span-full pt-4 pb-2">
-            <h4 class="text-body-base font-semibold text-gray-900">Children & Dependents</h4>
+          <div class="col-label pt-4 pb-2 cursor-pointer select-none" @click="toggleSection('widowed', 'children')">
+            <div class="flex items-center gap-2">
+              <svg :class="['h-5 w-5 text-gray-400 transition-transform', isSectionExpanded('widowed', 'children') ? 'rotate-90' : '']" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+              <span class="text-body-base font-semibold text-gray-900">Children & Dependents</span>
+            </div>
           </div>
-          <template v-for="field in widowedBudgetFields.children" :key="field.key">
-            <div class="col-label text-body-sm text-gray-600 py-1">
-              {{ field.label }}
-              <span v-if="widowedBudgetData[field.key]?.adjusted && !widowedBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-700">Auto</span>
-              <span v-if="widowedBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-success-100 text-success-700">Custom</span>
-            </div>
-            <div class="col-value text-body-sm text-gray-900 py-1 font-medium">
-              {{ formatCurrency(getWidowedValue(field.key)) }}<span v-if="getWidowedChange(field.key) !== 0" :class="getWidowedChange(field.key) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getWidowedChange(field.key) < 0 ? '' : '+' }}{{ formatCurrency(getWidowedChange(field.key)) }})</span>
-            </div>
+          <div class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(getWidowedSectionTotal('children')) }}</div>
+          <template v-if="isSectionExpanded('widowed', 'children')">
+            <template v-for="field in widowedBudgetFields.children" :key="field.key">
+              <div class="col-label text-body-sm text-gray-600 py-1 pl-7">
+                {{ field.label }}
+                <span v-if="widowedBudgetData[field.key]?.adjusted && !widowedBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-700">Auto</span>
+                <span v-if="widowedBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-success-100 text-success-700">Custom</span>
+              </div>
+              <div class="col-value text-body-sm text-gray-900 py-1 font-medium">
+                {{ formatCurrency(getWidowedValue(field.key)) }}<span v-if="getWidowedChange(field.key) !== 0" :class="getWidowedChange(field.key) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getWidowedChange(field.key) < 0 ? '' : '+' }}{{ formatCurrency(getWidowedChange(field.key)) }})</span>
+              </div>
+            </template>
           </template>
 
           <!-- Other Expenses -->
-          <div class="col-span-full pt-4 pb-2">
-            <h4 class="text-body-base font-semibold text-gray-900">Other Expenses</h4>
+          <div class="col-label pt-4 pb-2 cursor-pointer select-none" @click="toggleSection('widowed', 'other')">
+            <div class="flex items-center gap-2">
+              <svg :class="['h-5 w-5 text-gray-400 transition-transform', isSectionExpanded('widowed', 'other') ? 'rotate-90' : '']" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+              <span class="text-body-base font-semibold text-gray-900">Other Expenses</span>
+            </div>
           </div>
-          <template v-for="field in widowedBudgetFields.other" :key="field.key">
-            <div class="col-label text-body-sm text-gray-600 py-1">
-              {{ field.label }}
-              <span v-if="widowedBudgetData[field.key]?.adjusted && !widowedBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-700">Auto</span>
-              <span v-if="widowedBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-success-100 text-success-700">Custom</span>
-            </div>
-            <div class="col-value text-body-sm text-gray-900 py-1 font-medium">
-              {{ formatCurrency(getWidowedValue(field.key)) }}<span v-if="getWidowedChange(field.key) !== 0" :class="getWidowedChange(field.key) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getWidowedChange(field.key) < 0 ? '' : '+' }}{{ formatCurrency(getWidowedChange(field.key)) }})</span>
-            </div>
+          <div class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(getWidowedSectionTotal('other')) }}</div>
+          <template v-if="isSectionExpanded('widowed', 'other')">
+            <template v-for="field in widowedBudgetFields.other" :key="field.key">
+              <div class="col-label text-body-sm text-gray-600 py-1 pl-7">
+                {{ field.label }}
+                <span v-if="widowedBudgetData[field.key]?.adjusted && !widowedBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-700">Auto</span>
+                <span v-if="widowedBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-success-100 text-success-700">Custom</span>
+              </div>
+              <div class="col-value text-body-sm text-gray-900 py-1 font-medium">
+                {{ formatCurrency(getWidowedValue(field.key)) }}<span v-if="getWidowedChange(field.key) !== 0" :class="getWidowedChange(field.key) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getWidowedChange(field.key) < 0 ? '' : '+' }}{{ formatCurrency(getWidowedChange(field.key)) }})</span>
+              </div>
+            </template>
           </template>
 
+          <!-- Manual Expenditure Total -->
+          <div class="col-span-full border-t-2 border-gray-300 mt-4"></div>
+          <div class="col-label text-body font-semibold text-gray-900 py-3">Manual Expenditure Total</div>
+          <div class="col-value text-body text-gray-900 py-3 font-semibold">{{ formatCurrency(widowedManualExpenditureTotal) }}</div>
+
           <!-- Financial Commitments -->
-          <div class="col-span-full pt-4 pb-2">
-            <h4 class="text-body-base font-semibold text-gray-900">Financial Commitments</h4>
+          <div class="col-label pt-4 pb-2 cursor-pointer select-none" @click="toggleSection('widowed', 'commitments')">
+            <div class="flex items-center gap-2">
+              <svg :class="['h-5 w-5 text-gray-400 transition-transform', isSectionExpanded('widowed', 'commitments') ? 'rotate-90' : '']" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+              <span class="text-body-base font-semibold text-gray-900">Financial Commitments</span>
+            </div>
           </div>
-          <div class="col-label text-body-sm text-gray-600 py-1">Property Expenses</div>
+          <div class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(widowedCommitments.propertyAmount + widowedCommitments.protectionAmount + widowedCommitments.loansAmount) }}</div>
+          <template v-if="isSectionExpanded('widowed', 'commitments')">
+          <div class="col-label text-body-sm text-gray-600 py-1 pl-7">Property Expenses</div>
           <div class="col-value text-body-sm text-gray-900 py-1 font-medium">
             {{ formatCurrency(widowedCommitments.propertyAmount) }}
           </div>
 
-          <div class="col-label text-body-sm text-gray-600 py-1">Protection Premiums</div>
+          <div class="col-label text-body-sm text-gray-600 py-1 pl-7">Protection Premiums</div>
           <div class="col-value text-body-sm text-gray-900 py-1 font-medium">
             {{ formatCurrency(widowedCommitments.protectionAmount) }}<span v-if="(spouseFinancialCommitments?.totals?.protection || 0) > 0" class="text-success-600 text-xs ml-1">(-{{ formatCurrency(spouseFinancialCommitments?.totals?.protection || 0) }})</span>
           </div>
 
-          <div class="col-label text-body-sm text-gray-600 py-1">Loan Repayments</div>
+          <div class="col-label text-body-sm text-gray-600 py-1 pl-7">Loan Repayments</div>
           <div class="col-value text-body-sm text-gray-900 py-1 font-medium">
             {{ formatCurrency(widowedCommitments.loansAmount) }}
           </div>
+          </template>
 
           <!-- Total -->
           <div class="col-span-full border-t-2 border-gray-300 mt-4"></div>
@@ -1308,6 +1456,21 @@ export default {
     const financialCommitments = ref(null);
     const spouseFinancialCommitments = ref(null);
     const loadingCommitments = ref(false);
+
+    // Collapsible sections state - track expanded sections per budget tab
+    const expandedSections = ref({
+      current: { essential: false, communication: false, lifestyle: false, children: false, other: false, commitments: false },
+      retired: { essential: false, communication: false, lifestyle: false, children: false, other: false, commitments: false },
+      widowed: { essential: false, communication: false, lifestyle: false, children: false, other: false, commitments: false },
+    });
+
+    const toggleSection = (tab, section) => {
+      expandedSections.value[tab][section] = !expandedSections.value[tab][section];
+    };
+
+    const isSectionExpanded = (tab, section) => {
+      return expandedSections.value[tab]?.[section] ?? true;
+    };
 
     const user = computed(() => store.getters['auth/currentUser']);
     const userName = computed(() => user.value?.name?.split(' ')[0] || 'You');
@@ -1725,6 +1888,41 @@ export default {
       return retired - current;
     };
 
+    // Get section total for retired budget (household total)
+    const getRetiredSectionTotal = (section) => {
+      const fields = retiredBudgetFields.value[section] || [];
+      return fields.reduce((total, field) => {
+        const userVal = getRetiredUserValue(field.key);
+        const spouseVal = props.isMarried ? getRetiredSpouseValue(field.key) : 0;
+        return total + userVal + spouseVal;
+      }, 0);
+    };
+
+    // Retired manual expenditure total (excluding financial commitments)
+    const retiredManualExpenditureTotal = computed(() => {
+      const sections = ['essential', 'communication', 'lifestyle', 'children', 'other'];
+      return sections.reduce((total, section) => {
+        const fields = retiredBudgetFields.value[section] || [];
+        return total + fields.reduce((sectionTotal, field) => {
+          return sectionTotal + getRetiredUserValue(field.key);
+        }, 0);
+      }, 0);
+    });
+
+    const retiredSpouseManualExpenditureTotal = computed(() => {
+      const sections = ['essential', 'communication', 'lifestyle', 'children', 'other'];
+      return sections.reduce((total, section) => {
+        const fields = retiredBudgetFields.value[section] || [];
+        return total + fields.reduce((sectionTotal, field) => {
+          return sectionTotal + getRetiredSpouseValue(field.key);
+        }, 0);
+      }, 0);
+    });
+
+    const retiredHouseholdManualExpenditureTotal = computed(() => {
+      return retiredManualExpenditureTotal.value + retiredSpouseManualExpenditureTotal.value;
+    });
+
     // Mark field as user-modified
     const markRetiredFieldModified = (key) => {
       if (retiredBudgetData.value[key]) {
@@ -1919,6 +2117,20 @@ export default {
       const widowed = getWidowedValue(key);
       return widowed - currentHousehold;
     };
+
+    // Get section total for widowed budget
+    const getWidowedSectionTotal = (section) => {
+      const fields = widowedBudgetFields.value[section] || [];
+      return fields.reduce((total, field) => {
+        return total + getWidowedValue(field.key);
+      }, 0);
+    };
+
+    // Widowed manual expenditure total (excluding financial commitments)
+    const widowedManualExpenditureTotal = computed(() => {
+      const sections = ['essential', 'communication', 'lifestyle', 'children', 'other'];
+      return sections.reduce((total, section) => total + getWidowedSectionTotal(section), 0);
+    });
 
     // Mark field as user-modified
     const markWidowedFieldModified = (key) => {
@@ -2154,6 +2366,9 @@ export default {
       getRetiredChange,
       retiredTotalMonthly,
       retiredHouseholdTotalMonthly,
+      retiredManualExpenditureTotal,
+      retiredSpouseManualExpenditureTotal,
+      retiredHouseholdManualExpenditureTotal,
       markRetiredFieldModified,
       resetRetiredField,
       cancelRetiredEdit,
@@ -2166,12 +2381,19 @@ export default {
       widowedAutoAdjustments,
       widowedCommitments,
       widowedTotalMonthly,
+      widowedManualExpenditureTotal,
       getWidowedValue,
       getWidowedChange,
+      getWidowedSectionTotal,
       markWidowedFieldModified,
       resetWidowedField,
       cancelWidowedEdit,
       saveWidowedBudget,
+      // Collapsible sections
+      expandedSections,
+      toggleSection,
+      isSectionExpanded,
+      getRetiredSectionTotal,
     };
   },
 };
