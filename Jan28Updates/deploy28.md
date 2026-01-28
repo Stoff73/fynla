@@ -1756,6 +1756,39 @@ resources/js/views/NetWorth/NetWorthDashboard.vue
 
 ---
 
+## Investment Account Form - Remove Tax Year
+
+**Date:** 28 January 2026
+
+**Branch:** main
+
+**Status:** ✅ Ready for deployment
+
+### Description
+
+Removed unnecessary Tax Year dropdown from Investment account add/edit forms.
+
+### Files Changed
+
+**Frontend (Included in Build):**
+```text
+resources/js/components/Investment/AccountForm.vue
+```
+
+### Rebuild Required: YES
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+### Verification
+
+1. Navigate to Net Worth → Investments tab
+2. Click "Add Account" - verify no Tax Year dropdown appears
+3. Edit an existing account - verify no Tax Year dropdown appears
+
+---
+
 ## Cash Account Detail View - UI Improvements
 
 **Date:** 28 January 2026

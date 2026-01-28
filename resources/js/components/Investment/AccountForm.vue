@@ -196,24 +196,6 @@
               </div>
             </div>
 
-            <!-- Tax Year -->
-            <div>
-              <label for="tax_year" class="block text-sm font-medium text-gray-700 mb-1">
-                Tax Year
-              </label>
-              <select
-                id="tax_year"
-                v-model="formData.tax_year"
-                class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                :class="{ 'border-red-500': errors.tax_year }"
-              >
-                <option value="2025/26">2025/26</option>
-                <option value="2024/25">2024/25</option>
-                <option value="2023/24">2023/24</option>
-              </select>
-              <p v-if="errors.tax_year" class="mt-1 text-sm text-red-600">{{ errors.tax_year }}</p>
-            </div>
-
             <!-- Platform Fee Section (not shown for NS&I) -->
             <div v-if="!isNSIType">
               <label class="block text-sm font-medium text-gray-700 mb-1">
@@ -616,7 +598,6 @@ export default {
         platform: '',
         country: 'United Kingdom',
         current_value: null,
-        tax_year: '2025/26',
         contributions_ytd: null,
         monthly_contribution_amount: null,
         contribution_frequency: 'monthly',
@@ -995,11 +976,6 @@ export default {
         isValid = false;
       }
 
-      if (!this.formData.tax_year) {
-        this.errors.tax_year = 'Tax year is required';
-        isValid = false;
-      }
-
       // Platform fee validation
       if (this.formData.platform_fee_type === 'percentage') {
         if (this.formData.platform_fee_percent !== null && this.formData.platform_fee_percent < 0) {
@@ -1053,7 +1029,6 @@ export default {
         platform: '',
         country: 'United Kingdom',
         current_value: null,
-        tax_year: '2025/26',
         contributions_ytd: null,
         monthly_contribution_amount: null,
         contribution_frequency: 'monthly',
