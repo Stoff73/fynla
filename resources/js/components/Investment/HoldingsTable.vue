@@ -76,7 +76,7 @@
             <div class="flex items-center gap-3 flex-1 min-w-0">
               <div
                 class="w-4 h-4 rounded-full flex-shrink-0"
-                :style="{ backgroundColour: chartColours[index % chartColours.length] }"
+                :style="{ backgroundColor: chartColours[index % chartColours.length] }"
               ></div>
               <div class="min-w-0 flex-1">
                 <p class="text-sm font-medium text-gray-900 truncate">{{ holding.security_name }}</p>
@@ -313,6 +313,7 @@
 
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { CHART_COLORS, TEXT_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'HoldingsTable',
@@ -341,18 +342,7 @@ export default {
       sortField: 'security_name',
       sortDirection: 'asc',
       expandedRow: null,
-      chartColours: [
-        '#3B82F6', // blue
-        '#10B981', // green
-        '#F59E0B', // amber
-        '#EF4444', // red
-        '#8B5CF6', // purple
-        '#EC4899', // pink
-        '#14B8A6', // teal
-        '#F97316', // orange
-        '#6366F1', // indigo
-        '#84CC16', // lime
-      ],
+      chartColours: CHART_COLORS,
     };
   },
 
@@ -426,7 +416,7 @@ export default {
           fontFamily: 'Inter, system-ui, sans-serif',
         },
         labels: this.sortedByValue.map(h => h.security_name),
-        colours: this.chartColours,
+        colors: this.chartColours,
         legend: {
           show: false, // We'll use custom legend in separate card
         },
@@ -453,13 +443,13 @@ export default {
                   show: true,
                   fontSize: '16px',
                   fontWeight: 600,
-                  color: '#111827',
+                  color: TEXT_COLORS.primary,
                 },
                 value: {
                   show: true,
                   fontSize: '28px',
                   fontWeight: 700,
-                  color: '#111827',
+                  color: TEXT_COLORS.primary,
                   formatter: function(val) {
                     return new Intl.NumberFormat('en-GB', {
                       style: 'currency',
@@ -474,7 +464,7 @@ export default {
                   label: 'Total Value',
                   fontSize: '16px',
                   fontWeight: 600,
-                  color: '#6B7280',
+                  color: TEXT_COLORS.muted,
                   formatter: function(w) {
                     const total = w.globals.seriesTotals.reduce((a, b) => a + b, 0);
                     return new Intl.NumberFormat('en-GB', {

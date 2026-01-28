@@ -15,6 +15,8 @@
 </template>
 
 <script>
+import { SUCCESS_COLORS, ERROR_COLORS, PRIMARY_COLORS, TEXT_COLORS } from '@/constants/designSystem';
+
 export default {
   name: 'NetWorthWaterfallChart',
 
@@ -76,17 +78,17 @@ export default {
             {
               x: 'Total Assets',
               y: this.totalAssets,
-              fillColour: '#10b981',
+              fillColor: SUCCESS_COLORS[500],
             },
             {
               x: 'Total Liabilities',
               y: -this.totalLiabilities,
-              fillColour: '#ef4444',
+              fillColor: ERROR_COLORS[500],
             },
             {
               x: 'Net Worth',
               y: this.netWorth,
-              fillColour: '#3b82f6',
+              fillColor: PRIMARY_COLORS[500],
             },
           ],
         },
@@ -131,7 +133,7 @@ export default {
           offsetY: -20,
           style: {
             fontSize: '12px',
-            colours: ['#304758'],
+            colours: [TEXT_COLORS.secondary],
           },
         },
         xaxis: {

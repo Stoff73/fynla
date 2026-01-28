@@ -441,6 +441,8 @@
 </template>
 
 <script>
+import { SUCCESS_COLORS, WARNING_COLORS, PRIMARY_COLORS, TEXT_COLORS } from '@/constants/designSystem';
+
 export default {
   name: 'WrapperOptimiser',
 
@@ -484,7 +486,7 @@ export default {
           style: {
             fontSize: '11px',
             fontWeight: 'bold',
-            colours: ['#333'],
+            colors: [TEXT_COLORS.primary],
           },
         },
         xaxis: {
@@ -495,7 +497,7 @@ export default {
             formatter: (val) => '£' + Math.round(val).toLocaleString('en-GB'),
           },
         },
-        colours: ['#10B981', '#F59E0B', '#3B82F6'],
+        colors: [SUCCESS_COLORS[500], WARNING_COLORS[500], PRIMARY_COLORS[500]],
         tooltip: {
           y: {
             formatter: (val) => '£' + Math.round(val).toLocaleString('en-GB'),

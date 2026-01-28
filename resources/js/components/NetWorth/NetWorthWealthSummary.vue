@@ -192,7 +192,7 @@ export default {
   border-radius: 12px;
   padding: 24px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e5e7eb;
+  @apply border border-gray-200;
   display: flex;
   align-items: center;
   gap: 16px;
@@ -209,8 +209,8 @@ export default {
 }
 
 .summary-card.highlighted {
-  border: 2px solid #3b82f6;
-  background: linear-gradient(135deg, #f0f9ff 0%, #ffffff 100%);
+  @apply border-2 border-primary-500;
+  background: linear-gradient(135deg, theme('colors.sky.50') 0%, white 100%);
 }
 
 .card-icon {
@@ -224,18 +224,18 @@ export default {
 }
 
 .assets-card .card-icon {
-  background: #d1fae5;
-  color: #10b981;
+  @apply bg-green-100;
+  @apply text-green-500;
 }
 
 .liabilities-card .card-icon {
-  background: #fee2e2;
-  color: #ef4444;
+  @apply bg-red-100;
+  @apply text-red-500;
 }
 
 .net-worth-card .card-icon {
-  background: #dbeafe;
-  color: #3b82f6;
+  @apply bg-blue-100;
+  @apply text-primary-500;
 }
 
 .card-icon svg {
@@ -249,7 +249,7 @@ export default {
 
 .card-label {
   font-size: 14px;
-  color: #6b7280;
+  @apply text-gray-500;
   font-weight: 500;
   margin: 0 0 8px 0;
 }
@@ -257,16 +257,16 @@ export default {
 .card-value {
   font-size: 28px;
   font-weight: 700;
-  color: #111827;
+  @apply text-gray-900;
   margin: 0;
 }
 
 .card-value.positive {
-  color: #10b981;
+  @apply text-green-500;
 }
 
 .card-value.negative {
-  color: #ef4444;
+  @apply text-red-500;
 }
 
 .charts-grid {
@@ -286,14 +286,14 @@ export default {
 .last-updated {
   text-align: center;
   padding: 12px;
-  background: #f9fafb;
+  @apply bg-gray-50;
   border-radius: 8px;
 }
 
 .last-updated p {
   margin: 0;
   font-size: 14px;
-  color: #6b7280;
+  @apply text-gray-500;
 }
 
 /* Mobile responsive */

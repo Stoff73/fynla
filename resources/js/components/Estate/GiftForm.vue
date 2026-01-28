@@ -321,19 +321,19 @@ export default {
 .form-header {
   margin-bottom: 24px;
   padding-bottom: 16px;
-  border-bottom: 2px solid #e5e7eb;
+  @apply border-b-2 border-gray-200;
 }
 
 .form-header h3 {
   font-size: 20px;
   font-weight: 600;
-  color: #1f2937;
+  @apply text-gray-900;
   margin: 0 0 8px 0;
 }
 
 .subtitle {
   font-size: 14px;
-  color: #6b7280;
+  @apply text-gray-500;
   margin: 0;
 }
 
@@ -345,32 +345,32 @@ label {
   display: block;
   font-size: 14px;
   font-weight: 500;
-  color: #374151;
+  @apply text-gray-700;
   margin-bottom: 6px;
 }
 
 label.required::after {
   content: ' *';
-  color: #ef4444;
+  @apply text-red-500;
 }
 
 .form-control {
   width: 100%;
   padding: 10px 12px;
   font-size: 14px;
-  border: 1px solid #d1d5db;
+  @apply border border-gray-300;
   border-radius: 6px;
   transition: border-colour 0.2s;
 }
 
 .form-control:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  @apply border-primary-500;
+  @apply ring-2 ring-primary-500/20;
 }
 
 .form-control.is-invalid {
-  border-color: #ef4444;
+  @apply border-red-500;
 }
 
 .form-control.is-invalid:focus {
@@ -386,7 +386,7 @@ label.required::after {
   left: 12px;
   top: 50%;
   transform: translateY(-50%);
-  color: #6b7280;
+  @apply text-gray-500;
   font-weight: 500;
   pointer-events: none;
 }
@@ -399,14 +399,14 @@ label.required::after {
   display: block;
   margin-top: 6px;
   font-size: 13px;
-  color: #ef4444;
+  @apply text-red-500;
 }
 
 .form-text {
   display: block;
   margin-top: 6px;
   font-size: 12px;
-  color: #6b7280;
+  @apply text-gray-500;
   line-height: 1.4;
 }
 
@@ -422,8 +422,8 @@ textarea.form-control {
 .exemption-info {
   margin: 20px 0;
   padding: 16px;
-  background-color: #eff6ff;
-  border-left: 4px solid #3b82f6;
+  @apply bg-blue-50;
+  @apply border-l-4 border-primary-500;
   border-radius: 4px;
 }
 
@@ -432,7 +432,7 @@ textarea.form-control {
   align-items: center;
   gap: 8px;
   font-weight: 600;
-  color: #1e40af;
+  @apply text-blue-800;
   margin-bottom: 12px;
   font-size: 14px;
 }
@@ -445,7 +445,7 @@ textarea.form-control {
 
 .exemption-info li {
   font-size: 13px;
-  color: #1e3a8a;
+  @apply text-blue-900;
   margin-bottom: 8px;
   line-height: 1.5;
   padding-left: 4px;
@@ -461,7 +461,7 @@ textarea.form-control {
   gap: 12px;
   margin-top: 32px;
   padding-top: 20px;
-  border-top: 1px solid #e5e7eb;
+  @apply border-t border-gray-200;
 }
 
 .btn {
@@ -488,20 +488,20 @@ textarea.form-control {
 }
 
 .btn-primary {
-  background-color: #3b82f6;
+  @apply bg-primary-500;
   color: white;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: #2563eb;
+  @apply bg-blue-600;
 }
 
 .btn-secondary {
-  background-color: #e5e7eb;
-  color: #374151;
+  @apply bg-gray-200;
+  @apply text-gray-700;
 }
 
 .btn-secondary:hover {
-  background-color: #d1d5db;
+  @apply bg-gray-300;
 }
 </style>

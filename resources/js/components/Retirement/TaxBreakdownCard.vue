@@ -256,7 +256,7 @@ export default {
   background: white;
   border-radius: 12px;
   padding: 24px;
-  border: 1px solid #e5e7eb;
+  @apply border border-gray-200;
   margin-bottom: 24px;
 }
 
@@ -270,15 +270,15 @@ export default {
 .card-title {
   font-size: 18px;
   font-weight: 600;
-  color: #111827;
+  @apply text-gray-900;
   margin: 0;
 }
 
 .effective-rate {
   font-size: 14px;
   font-weight: 600;
-  color: #6b7280;
-  background: #f3f4f6;
+  @apply text-gray-500;
+  @apply bg-gray-100;
   padding: 4px 12px;
   border-radius: 20px;
 }
@@ -289,11 +289,11 @@ export default {
 }
 
 .source-item {
-  background: #f9fafb;
+  @apply bg-gray-50;
   border-radius: 8px;
   padding: 12px 16px;
   margin-bottom: 8px;
-  border: 1px solid #e5e7eb;
+  @apply border border-gray-200;
 }
 
 .source-item:last-child {
@@ -301,8 +301,8 @@ export default {
 }
 
 .source-item.taxable {
-  background: #fefce8;
-  border-color: #fef08a;
+  @apply bg-yellow-50;
+  @apply border-yellow-200;
 }
 
 .source-row {
@@ -330,39 +330,39 @@ export default {
 }
 
 .badge-pcls {
-  background: #d1fae5;
-  color: #065f46;
+  @apply bg-green-100;
+  @apply text-green-800;
 }
 
 .badge-pension {
-  background: #dbeafe;
-  color: #1e40af;
+  @apply bg-blue-100;
+  @apply text-blue-800;
 }
 
 .badge-isa {
-  background: #fef3c7;
-  color: #92400e;
+  @apply bg-amber-100;
+  @apply text-amber-800;
 }
 
 .badge-gia {
-  background: #e9d5ff;
-  color: #6b21a8;
+  @apply bg-purple-100;
+  @apply text-purple-800;
 }
 
 .badge-savings {
-  background: #e0e7ff;
-  color: #3730a3;
+  @apply bg-indigo-100;
+  @apply text-indigo-800;
 }
 
 .badge-default {
-  background: #f3f4f6;
-  color: #374151;
+  @apply bg-gray-100;
+  @apply text-gray-700;
 }
 
 .source-name {
   font-size: 14px;
   font-weight: 500;
-  color: #374151;
+  @apply text-gray-700;
 }
 
 .source-amount {
@@ -373,7 +373,7 @@ export default {
   display: block;
   font-size: 15px;
   font-weight: 600;
-  color: #111827;
+  @apply text-gray-900;
 }
 
 .source-amount .tax-status {
@@ -383,18 +383,18 @@ export default {
 }
 
 .source-amount .tax-status.tax-free {
-  color: #059669;
+  @apply text-green-600;
 }
 
 .source-amount .tax-status.has-tax {
-  color: #dc2626;
+  @apply text-red-600;
 }
 
 /* Band breakdown within source */
 .band-breakdown {
   margin-top: 12px;
   padding-top: 12px;
-  border-top: 1px dashed #e5e7eb;
+  @apply border-t border-dashed border-gray-200;
 }
 
 .band-row {
@@ -409,7 +409,7 @@ export default {
   align-items: center;
   gap: 8px;
   flex: 1;
-  color: #6b7280;
+  @apply text-gray-500;
 }
 
 .band-dot {
@@ -420,42 +420,42 @@ export default {
 }
 
 .band-dot.pa {
-  background: #10b981;
+  @apply bg-green-500;
 }
 
 .band-dot.basic {
-  background: #f59e0b;
+  @apply bg-amber-500;
 }
 
 .band-dot.higher {
-  background: #f97316;
+  @apply bg-orange-500;
 }
 
 .band-dot.additional {
-  background: #ef4444;
+  @apply bg-red-500;
 }
 
 .band-amount {
   width: 100px;
   text-align: right;
   font-weight: 500;
-  color: #374151;
+  @apply text-gray-700;
 }
 
 .band-tax {
   width: 80px;
   text-align: right;
   font-weight: 600;
-  color: #dc2626;
+  @apply text-red-600;
 }
 
 .band-tax.tax-free {
-  color: #059669;
+  @apply text-green-600;
 }
 
 /* Summary Section */
 .summary-section {
-  background: #f3f4f6;
+  @apply bg-gray-100;
   border-radius: 8px;
   padding: 16px;
   margin-bottom: 24px;
@@ -469,28 +469,28 @@ export default {
 }
 
 .summary-row:not(:last-child) {
-  border-bottom: 1px solid #e5e7eb;
+  @apply border-b border-gray-200;
 }
 
 .summary-row.total {
-  border-top: 2px solid #d1d5db;
+  @apply border-t-2 border-gray-300;
   margin-top: 8px;
   padding-top: 16px;
 }
 
 .summary-label {
   font-size: 14px;
-  color: #6b7280;
+  @apply text-gray-500;
 }
 
 .summary-value {
   font-size: 14px;
   font-weight: 600;
-  color: #111827;
+  @apply text-gray-900;
 }
 
 .summary-value.tax-amount {
-  color: #dc2626;
+  @apply text-red-600;
 }
 
 .summary-row.total .summary-label,
@@ -510,7 +510,7 @@ export default {
   gap: 8px;
   font-size: 14px;
   font-weight: 600;
-  color: #374151;
+  @apply text-gray-700;
   margin: 0 0 16px 0;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -534,21 +534,21 @@ export default {
 .band-name {
   font-size: 13px;
   font-weight: 500;
-  color: #374151;
+  @apply text-gray-700;
 }
 
 .band-rate {
   font-size: 12px;
   font-weight: 700;
-  color: #6b7280;
-  background: #f3f4f6;
+  @apply text-gray-500;
+  @apply bg-gray-100;
   padding: 2px 8px;
   border-radius: 4px;
 }
 
 .band-bar {
   height: 8px;
-  background: #e5e7eb;
+  @apply bg-gray-200;
   border-radius: 4px;
   overflow: hidden;
   margin-bottom: 4px;
@@ -561,44 +561,44 @@ export default {
 }
 
 .band-fill.pa {
-  background: linear-gradient(90deg, #10b981, #34d399);
+  @apply bg-gradient-to-r from-green-500 to-green-400;
 }
 
 .band-fill.basic {
-  background: linear-gradient(90deg, #f59e0b, #fbbf24);
+  @apply bg-gradient-to-r from-amber-500 to-amber-400;
 }
 
 .band-fill.higher {
-  background: linear-gradient(90deg, #f97316, #fb923c);
+  @apply bg-gradient-to-r from-orange-500 to-orange-400;
 }
 
 .band-fill.additional {
-  background: linear-gradient(90deg, #ef4444, #f87171);
+  @apply bg-gradient-to-r from-red-500 to-red-400;
 }
 
 .band-values {
   display: flex;
   justify-content: space-between;
   font-size: 11px;
-  color: #9ca3af;
+  @apply text-gray-400;
 }
 
 /* Optimisation Tips */
 .optimisation-tips {
-  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  @apply bg-gradient-to-br from-blue-50 to-blue-100;
   border-radius: 8px;
   padding: 16px;
-  border: 1px solid #bfdbfe;
+  @apply border border-blue-200;
 }
 
 .tip-icon {
   width: 16px;
   height: 16px;
-  color: #3b82f6;
+  @apply text-primary-500;
 }
 
 .optimisation-tips .section-title {
-  color: #1e40af;
+  @apply text-blue-800;
   margin-bottom: 12px;
 }
 
@@ -609,7 +609,7 @@ export default {
 
 .tips-list li {
   font-size: 13px;
-  color: #1e40af;
+  @apply text-blue-800;
   margin-bottom: 8px;
   line-height: 1.5;
 }

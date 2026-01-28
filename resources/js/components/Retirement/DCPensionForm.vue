@@ -590,7 +590,7 @@ export default {
 }
 
 .overflow-y-auto::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  @apply bg-gray-100;
 }
 
 .overflow-y-auto::-webkit-scrollbar-thumb {

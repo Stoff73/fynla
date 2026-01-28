@@ -310,6 +310,7 @@
 
 <script>
 import api from '@/services/api';
+import { SUCCESS_COLORS, BORDER_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'AssetLocationOptimiser',
@@ -344,7 +345,7 @@ export default {
               size: '60%',
             },
             track: {
-              background: '#e7e7e7',
+              background: BORDER_COLORS.default,
               strokeWidth: '100%',
             },
             dataLabels: {
@@ -368,14 +369,14 @@ export default {
             shade: 'dark',
             type: 'horizontal',
             shadeIntensity: 0.5,
-            gradientToColours: ['#10B981'],
-            inverseColours: false,
+            gradientToColors: [SUCCESS_COLORS[500]],
+            inverseColors: false,
             opacityFrom: 1,
             opacityTo: 1,
             stops: [0, 100],
           },
         },
-        colours: ['#8B5CF6'],
+        colors: [CHART_COLORS[5]], // Purple
       };
     },
   },

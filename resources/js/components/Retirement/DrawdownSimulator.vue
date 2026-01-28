@@ -172,6 +172,8 @@
 </template>
 
 <script>
+import { SUCCESS_COLORS, ERROR_COLORS, BORDER_COLORS, PRIMARY_COLORS } from '@/constants/designSystem';
+
 export default {
   name: 'DrawdownSimulator',
 
@@ -215,7 +217,7 @@ export default {
           curve: 'smooth',
           width: 3,
         },
-        colours: [this.simulationResults?.depletes ? '#ef4444' : '#10b981'],
+        colours: [this.simulationResults?.depletes ? ERROR_COLORS[500] : SUCCESS_COLORS[500]],
         xaxis: {
           categories: this.simulationResults?.ages || [],
           title: {
@@ -250,7 +252,7 @@ export default {
           },
         },
         grid: {
-          borderColour: '#e5e7eb',
+          borderColour: BORDER_COLORS.default,
         },
       };
     },
@@ -316,22 +318,12 @@ export default {
 </script>
 
 <style scoped>
-/* Slider styling */
+/* Slider styling - using primary brand color */
 input[type="range"]::-webkit-slider-thumb {
-  appearance: none;
-  width: 20px;
-  height: 20px;
-  background: #4f46e5;
-  cursor: pointer;
-  border-radius: 50%;
+  @apply appearance-none w-5 h-5 bg-primary-600 cursor-pointer rounded-full;
 }
 
 input[type="range"]::-moz-range-thumb {
-  width: 20px;
-  height: 20px;
-  background: #4f46e5;
-  cursor: pointer;
-  border-radius: 50%;
-  border: none;
+  @apply w-5 h-5 bg-primary-600 cursor-pointer rounded-full border-none;
 }
 </style>

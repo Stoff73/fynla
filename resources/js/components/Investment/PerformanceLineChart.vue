@@ -51,6 +51,7 @@
 <script>
 import VueApexCharts from 'vue3-apexcharts';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { CHART_COLORS, TEXT_COLORS, BORDER_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'PerformanceLineChart',
@@ -178,7 +179,7 @@ export default {
             },
           },
         },
-        colours: ['#3b82f6', '#10b981', '#8b5cf6'],
+        colours: CHART_COLORS.slice(0, 3),
         stroke: {
           width: [3, 2, 2],
           curve: 'smooth',
@@ -188,7 +189,7 @@ export default {
           labels: {
             format: 'MMM yyyy',
             style: {
-              colours: '#6b7280',
+              colours: TEXT_COLORS.muted,
               fontSize: '12px',
             },
           },
@@ -197,7 +198,7 @@ export default {
           labels: {
             formatter: (val) => this.formatCurrency(val),
             style: {
-              colours: '#6b7280',
+              colours: TEXT_COLORS.muted,
               fontSize: '12px',
             },
           },
@@ -219,7 +220,7 @@ export default {
           fontSize: '14px',
           fontWeight: 500,
           labels: {
-            colours: '#374151',
+            colours: TEXT_COLORS.secondary,
           },
           markers: {
             width: 12,
@@ -228,7 +229,7 @@ export default {
           },
         },
         grid: {
-          borderColour: '#e5e7eb',
+          borderColour: BORDER_COLORS.default,
           strokeDashArray: 3,
           xaxis: {
             lines: {

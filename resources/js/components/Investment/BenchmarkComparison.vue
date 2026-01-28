@@ -266,6 +266,7 @@
 
 <script>
 import api from '@/services/api';
+import { CHART_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'BenchmarkComparison',
@@ -321,7 +322,7 @@ export default {
         legend: {
           position: 'top',
         },
-        colours: ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'],
+        colors: CHART_COLORS.slice(0, 5),
         tooltip: {
           y: {
             formatter: (val) => this.formatPercent(val / 100),
@@ -374,7 +375,7 @@ export default {
             formatter: (val) => this.formatPercent(val / 100),
           },
         },
-        colours: ['#3B82F6', '#10B981', '#F59E0B', '#EF4444'],
+        colors: CHART_COLORS.slice(0, 4),
         markers: {
           size: 8,
         },

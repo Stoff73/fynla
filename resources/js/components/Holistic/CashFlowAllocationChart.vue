@@ -95,6 +95,7 @@
 
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { SUCCESS_COLORS, ERROR_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'CashFlowAllocationChart',
@@ -152,7 +153,7 @@ export default {
             columnWidth: '55%',
           },
         },
-        colours: ['#10B981', '#EF4444'],
+        colours: [SUCCESS_COLORS[500], ERROR_COLORS[500]],
         dataLabels: {
           enabled: false,
         },

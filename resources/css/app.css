@@ -152,6 +152,96 @@
   .btn:disabled {
     @apply opacity-50 cursor-not-allowed;
   }
+
+  /* ==========================================================================
+     STANDARDIZED CARD VARIANTS (per designStyle.md)
+     ========================================================================== */
+
+  /* Large Card Container - for page sections */
+  .card-lg {
+    @apply bg-white rounded-xl border border-gray-200 shadow-sm p-8 transition-all duration-200;
+  }
+
+  /* Small Card - for badges, compact elements */
+  .card-sm {
+    @apply bg-white rounded-lg border border-gray-200 shadow-sm p-4 transition-all duration-200;
+  }
+
+  /* Highlighted Card Variants */
+  .card-highlighted {
+    @apply bg-primary-50 rounded-card border border-primary-200 shadow-sm p-6 transition-all duration-200;
+  }
+
+  .card-success {
+    @apply bg-green-50 rounded-card border border-green-200 shadow-sm p-6 transition-all duration-200;
+  }
+
+  .card-warning {
+    @apply bg-amber-50 rounded-card border border-amber-200 shadow-sm p-6 transition-all duration-200;
+  }
+
+  .card-error {
+    @apply bg-red-50 rounded-card border border-red-200 shadow-sm p-6 transition-all duration-200;
+  }
+
+  /* ==========================================================================
+     CHART CONTAINER STYLES
+     ========================================================================== */
+
+  .chart-card {
+    @apply bg-white rounded-card border border-gray-200 shadow-sm p-6 transition-all duration-200;
+  }
+
+  .chart-title {
+    @apply text-lg font-semibold text-gray-900 mb-1;
+  }
+
+  .chart-subtitle {
+    @apply text-sm text-gray-500 mb-4;
+  }
+
+  /* ==========================================================================
+     DROPDOWN & OVERLAY STYLES (per shadow hierarchy)
+     ========================================================================== */
+
+  .dropdown-menu {
+    @apply bg-white rounded-lg border border-gray-200 shadow-lg py-1;
+  }
+
+  .modal-content {
+    @apply bg-white rounded-card shadow-modal;
+  }
+
+  /* ==========================================================================
+     TRANSITION UTILITIES (per designStyle.md)
+     ========================================================================== */
+
+  /* Standard transition - 200ms for most UI elements */
+  .transition-standard {
+    @apply transition-all duration-200 ease-out;
+  }
+
+  /* Fast transition - 150ms for micro-interactions */
+  .transition-fast {
+    @apply transition-all duration-150 ease-out;
+  }
+
+  /* Slow transition - 300ms for panels and modals */
+  .transition-slow {
+    @apply transition-all duration-300 ease-out;
+  }
+
+  /* ==========================================================================
+     FOCUS STATES (accessibility)
+     ========================================================================== */
+
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-opacity-20 focus:border-primary-600;
+  }
+
+  .focus-ring-visible {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2;
+  }
 }
 
 /* Custom Utility Classes */

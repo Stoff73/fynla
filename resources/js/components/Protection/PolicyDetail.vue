@@ -616,9 +616,9 @@ export default {
   gap: 8px;
   padding: 8px 16px;
   background: white;
-  border: 1px solid #e5e7eb;
+  @apply border border-gray-200;
   border-radius: 8px;
-  color: #4b5563;
+  @apply text-gray-600;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -626,7 +626,7 @@ export default {
 }
 
 .back-button:hover {
-  background: #f3f4f6;
-  border-color: #d1d5db;
+  @apply bg-gray-100;
+  @apply border-gray-300;
 }
 </style>

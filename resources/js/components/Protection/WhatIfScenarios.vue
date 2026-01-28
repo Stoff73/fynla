@@ -110,6 +110,7 @@
 <script>
 import ScenarioBuilder from './ScenarioBuilder.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { SUCCESS_COLORS, WARNING_COLORS, PRIMARY_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'WhatIfScenarios',
@@ -153,7 +154,7 @@ export default {
             columnWidth: '50%',
           },
         },
-        colours: ['#3B82F6'],
+        colours: [PRIMARY_COLORS[500]],
         xaxis: {
           categories: ['Current', 'With Scenario'],
         },
@@ -197,7 +198,7 @@ export default {
             columnWidth: '50%',
           },
         },
-        colours: ['#10B981'],
+        colours: [SUCCESS_COLORS[500]],
         xaxis: {
           categories: ['Current', 'With Scenario'],
         },
@@ -247,7 +248,7 @@ export default {
           fontFamily: 'Inter, sans-serif',
           toolbar: { show: false },
         },
-        colours: ['#F59E0B', '#10B981'],
+        colours: [WARNING_COLORS[500], SUCCESS_COLORS[500]],
         fill: {
           type: 'gradient',
           gradient: {

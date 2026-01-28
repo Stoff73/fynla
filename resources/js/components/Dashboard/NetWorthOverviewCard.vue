@@ -148,7 +148,7 @@ export default {
 }
 
 .net-worth-overview-card:hover {
-  background: rgba(59, 130, 246, 0.04);
+  @apply bg-primary-500/[0.04];
 }
 
 .card-header {
@@ -161,12 +161,12 @@ export default {
 .card-title {
   font-size: 18px;
   font-weight: 600;
-  color: #111827;
+  @apply text-gray-900;
   margin: 0;
 }
 
 .card-icon {
-  color: #3b82f6;
+  @apply text-primary-500;
 }
 
 .card-icon svg {
@@ -185,27 +185,27 @@ export default {
   flex-direction: column;
   gap: 8px;
   padding-bottom: 16px;
-  border-bottom: 1px solid #e5e7eb;
+  @apply border-b border-gray-200;
 }
 
 .value-label {
   font-size: 14px;
-  color: #6b7280;
+  @apply text-gray-500;
   font-weight: 500;
 }
 
 .value-amount {
   font-size: 32px;
   font-weight: 700;
-  color: #111827;
+  @apply text-gray-900;
 }
 
 .value-amount.positive {
-  color: #10b981;
+  @apply text-green-600;
 }
 
 .value-amount.negative {
-  color: #ef4444;
+  @apply text-red-600;
 }
 
 .section-breakdown {
@@ -217,13 +217,13 @@ export default {
 .section-breakdown + .section-breakdown {
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid #e5e7eb;
+  @apply border-t border-gray-200;
 }
 
 .section-header {
   font-size: 14px;
   font-weight: 600;
-  color: #374151;
+  @apply text-gray-700;
   margin-bottom: 4px;
 }
 
@@ -241,21 +241,21 @@ export default {
 }
 
 .breakdown-label {
-  color: #6b7280;
+  @apply text-gray-500;
   font-weight: 500;
 }
 
 .breakdown-value {
-  color: #111827;
+  @apply text-gray-900;
   font-weight: 600;
 }
 
 .breakdown-value-asset {
-  color: #2563eb;
+  @apply text-blue-600;
 }
 
 .breakdown-value-liability {
-  color: #dc2626;
+  @apply text-red-600;
 }
 
 .loading-skeleton {
@@ -297,25 +297,11 @@ export default {
 }
 
 .error-message {
-  color: #ef4444;
-  font-size: 14px;
-  margin-bottom: 12px;
+  @apply text-red-500 text-sm mb-3;
 }
 
 .retry-button {
-  background: #3b82f6;
-  color: white;
-  padding: 8px 16px;
-  border-radius: 6px;
-  border: none;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
-  transition: background 0.2s;
-}
-
-.retry-button:hover {
-  background: #2563eb;
+  @apply bg-primary-500 text-white px-4 py-2 rounded-md border-none cursor-pointer text-sm font-semibold transition-all duration-200 hover:bg-primary-600;
 }
 
 /* Mobile responsive */

@@ -173,6 +173,7 @@
 
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { PRIMARY_COLORS, SUCCESS_COLORS, WARNING_COLORS, SECONDARY_COLORS, CHART_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'AccountHoldingsPanel',
@@ -319,12 +320,13 @@ export default {
     },
 
     getAssetColor(type) {
+      // Use design system colors for asset class charts
       const colors = {
-        equity: '#3b82f6',
-        fixed_income: '#10b981',
-        property: '#f59e0b',
-        commodities: '#8b5cf6',
-        cash: '#6b7280',
+        equity: PRIMARY_COLORS[500],
+        fixed_income: SUCCESS_COLORS[500],
+        property: WARNING_COLORS[500],
+        commodities: CHART_COLORS[5], // Purple
+        cash: SECONDARY_COLORS[500],
         alternatives: '#ec4899',
         other: '#94a3b8',
       };
@@ -377,7 +379,7 @@ export default {
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
-  background: #3b82f6;
+  @apply bg-primary-500;
   color: white;
   border: none;
   border-radius: 8px;
@@ -485,7 +487,7 @@ export default {
 
 .holding-ticker {
   font-size: 12px;
-  color: #3b82f6;
+  @apply text-primary-500;
   font-weight: 500;
 }
 
@@ -609,7 +611,7 @@ export default {
 
 .add-first-btn {
   padding: 12px 24px;
-  background: #3b82f6;
+  @apply bg-primary-500;
   color: white;
   border: none;
   border-radius: 8px;

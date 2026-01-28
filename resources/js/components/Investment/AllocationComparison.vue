@@ -107,6 +107,7 @@
 <script>
 import VueApexCharts from 'vue3-apexcharts';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { PRIMARY_COLORS, SUCCESS_COLORS, TEXT_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'AllocationComparison',
@@ -212,13 +213,13 @@ export default {
           offsetY: -20,
           style: {
             fontSize: '10px',
-            colours: ['#304758'],
+            colors: [TEXT_COLORS.secondary],
           },
         },
         stroke: {
           show: true,
           width: 2,
-          colours: ['transparent'],
+          colors: ['transparent'],
         },
         xaxis: {
           categories: this.chartData.labels,
@@ -241,7 +242,7 @@ export default {
         fill: {
           opacity: 1,
         },
-        colours: ['#3B82F6', '#10B981'],
+        colors: [PRIMARY_COLORS[500], SUCCESS_COLORS[500]],
         legend: {
           position: 'top',
           horizontalAlign: 'left',
@@ -271,7 +272,7 @@ export default {
 }
 
 .overflow-x-auto::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  @apply bg-gray-100;
   border-radius: 4px;
 }
 

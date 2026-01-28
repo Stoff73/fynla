@@ -458,6 +458,7 @@ import { mapState, mapGetters, mapActions } from 'vuex';
 import GiftForm from './GiftForm.vue';
 import estateService from '@/services/estateService';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { PRIMARY_COLORS, SUCCESS_COLORS, WARNING_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'GiftingStrategy',
@@ -763,9 +764,9 @@ export default {
     getTimelineColour(gift) {
       const percentage = this.getTaperReliefPercentage(gift);
 
-      if (percentage >= 32) return '#f59e0b'; // Amber (high Inheritance Tax rate)
-      if (percentage >= 16) return '#3b82f6'; // Blue (moderate Inheritance Tax rate)
-      return '#10b981'; // Green (low Inheritance Tax rate)
+      if (percentage >= 32) return WARNING_COLORS[600]; // Warning - Amber (high Inheritance Tax rate)
+      if (percentage >= 16) return PRIMARY_COLORS[600]; // Primary - Blue (moderate Inheritance Tax rate)
+      return SUCCESS_COLORS[600]; // Success - Green (low Inheritance Tax rate)
     },
 
     getYearLabelClass(gift, year) {

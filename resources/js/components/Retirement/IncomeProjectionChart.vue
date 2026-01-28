@@ -11,6 +11,7 @@
 
 <script>
 import { mapState } from 'vuex';
+import { CHART_COLORS, BORDER_COLORS, WARNING_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'IncomeProjectionChart',
@@ -148,7 +149,7 @@ export default {
             stops: [0, 90, 100],
           },
         },
-        colours: ['#3b82f6', '#8b5cf6', '#10b981'], // Blue, Purple, Green
+        colours: CHART_COLORS.slice(0, 3),
         xaxis: {
           categories: this.ages,
           title: {
@@ -204,20 +205,20 @@ export default {
           },
         },
         grid: {
-          borderColour: '#e5e7eb',
+          borderColour: BORDER_COLORS.default,
           strokeDashArray: 4,
         },
         annotations: {
           yaxis: [
             {
               y: this.targetIncome,
-              borderColour: '#f59e0b',
+              borderColour: WARNING_COLORS[500],
               strokeDashArray: 5,
               label: {
-                borderColour: '#f59e0b',
+                borderColour: WARNING_COLORS[500],
                 style: {
                   color: '#fff',
-                  background: '#f59e0b',
+                  background: WARNING_COLORS[500],
                   fontFamily: 'Inter, sans-serif',
                 },
                 text: 'Target Income: £' + this.targetIncome.toLocaleString(),

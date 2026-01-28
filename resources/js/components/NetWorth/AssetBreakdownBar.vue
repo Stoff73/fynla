@@ -17,6 +17,7 @@
 
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { ASSET_COLORS, TEXT_COLORS, BORDER_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
 
 export default {
   name: 'AssetBreakdownBar',
@@ -69,7 +70,7 @@ export default {
             },
           },
         },
-        colours: ['#10B981', '#3B82F6', '#F59E0B', '#8B5CF6', '#EC4899'],
+        colours: [ASSET_COLORS.property, ASSET_COLORS.investments, ASSET_COLORS.cash, ASSET_COLORS.business, ASSET_COLORS.chattels],
         dataLabels: {
           enabled: true,
           formatter: (val) => {
@@ -79,7 +80,7 @@ export default {
           style: {
             fontSize: '12px',
             fontWeight: 600,
-            colours: ['#111827'],
+            colours: [TEXT_COLORS.primary],
           },
         },
         xaxis: {
@@ -90,7 +91,7 @@ export default {
             },
             style: {
               fontSize: '12px',
-              colours: '#6b7280',
+              colours: TEXT_COLORS.muted,
             },
           },
         },
@@ -99,7 +100,7 @@ export default {
             style: {
               fontSize: '14px',
               fontWeight: 600,
-              colours: '#111827',
+              colours: TEXT_COLORS.primary,
             },
           },
         },
@@ -111,7 +112,7 @@ export default {
           },
         },
         grid: {
-          borderColour: '#e5e7eb',
+          borderColour: BORDER_COLORS.default,
           strokeDashArray: 4,
         },
         legend: {
@@ -146,42 +147,32 @@ export default {
 
 <style scoped>
 .asset-breakdown-bar {
-  background: white;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e5e7eb;
+  @apply bg-white rounded-card p-6 shadow-sm border border-gray-200 transition-all duration-200;
 }
 
 .chart-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #111827;
-  margin: 0 0 20px 0;
+  @apply text-lg font-semibold text-gray-900 mb-5;
 }
 
 .chart-container {
-  width: 100%;
+  @apply w-full;
 }
 
 .no-data {
-  text-align: center;
-  padding: 60px 20px;
-  color: #9ca3af;
+  @apply text-center py-12 px-5 text-gray-400;
 }
 
 .no-data p {
-  margin: 0;
-  font-size: 14px;
+  @apply m-0 text-sm;
 }
 
 @media (max-width: 768px) {
   .asset-breakdown-bar {
-    padding: 16px;
+    @apply p-4;
   }
 
   .chart-title {
-    font-size: 16px;
+    @apply text-base;
   }
 }
 </style>

@@ -107,3 +107,119 @@ background: linear-gradient(180deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0
 | Uniform spacing | Intentional whitespace rhythm |
 
 You transform functional interfaces into experiences that feel valuable, trustworthy, and delightful. Every enhancement you make should answer: 'Does this make the product feel more premium?'
+
+## CRITICAL: Tailwind CSS Implementation Rules
+
+When using `@apply` directives in Vue scoped CSS, you MUST follow these rules to avoid build errors:
+
+### 1. NEVER Create Circular Class Definitions
+
+**WRONG - Creates circular dependency error:**
+```css
+.text-gray-500 {
+  @apply text-gray-500;
+  font-weight: 400;
+}
+```
+
+**CORRECT - Use a custom class name:**
+```css
+.muted-text {
+  @apply text-gray-500;
+  font-weight: 400;
+}
+```
+
+**Rule:** Never define a CSS class with the same name as a Tailwind utility you're applying inside it.
+
+### 2. Valid Tailwind Border Width Classes
+
+Tailwind ONLY supports these border widths:
+- `border` (1px)
+- `border-0` (0px)
+- `border-2` (2px)
+- `border-4` (4px)
+- `border-8` (8px)
+
+**WRONG:**
+```css
+@apply border-3 border-gray-200;  /* border-3 does NOT exist */
+```
+
+**CORRECT:**
+```css
+@apply border-4 border-gray-200;  /* Use border-2 or border-4 */
+```
+
+### 3. Correct @apply Syntax
+
+The `@apply` directive must be a complete statement, not part of a property name.
+
+**WRONG - Malformed syntax:**
+```css
+.card:hover {
+  border-@apply text-primary-500;  /* INVALID */
+  border-top-@apply text-primary-500;  /* INVALID */
+}
+```
+
+**CORRECT:**
+```css
+.card:hover {
+  @apply border-primary-500;
+  @apply border-t-primary-500;
+}
+```
+
+### 4. Use Design System Constants for Chart Colors
+
+For ApexCharts and other JavaScript color configurations, import from the design system:
+
+**WRONG - Hardcoded hex values:**
+```javascript
+colors: ['#3b82f6', '#10b981', '#f59e0b']
+```
+
+**CORRECT - Import from design system:**
+```javascript
+import { CHART_COLORS, PRIMARY_COLORS, SUCCESS_COLORS } from '@/constants/designSystem';
+
+colors: CHART_COLORS.slice(0, 3)
+// or for semantic colors:
+colors: [PRIMARY_COLORS[500], SUCCESS_COLORS[500], WARNING_COLORS[500]]
+```
+
+### 5. Converting Hex Colors to Tailwind @apply
+
+When replacing hardcoded hex colors in scoped CSS:
+
+| Hex Code | Tailwind Class |
+|----------|----------------|
+| `#111827` | `text-gray-900` or `bg-gray-900` |
+| `#374151` | `text-gray-700` or `bg-gray-700` |
+| `#6b7280` | `text-gray-500` or `bg-gray-500` |
+| `#9ca3af` | `text-gray-400` or `bg-gray-400` |
+| `#e5e7eb` | `border-gray-200` or `bg-gray-200` |
+| `#f3f4f6` | `bg-gray-100` |
+| `#f9fafb` | `bg-gray-50` |
+| `#3b82f6` | `text-primary-500` or `bg-primary-500` |
+| `#2563eb` | `text-blue-600` or `bg-blue-600` |
+| `#10b981` | `text-green-500` or `bg-green-500` |
+| `#f59e0b` | `text-amber-500` or `bg-amber-500` |
+| `#ef4444` | `text-red-500` or `bg-red-500` |
+
+### 6. Forbidden Colors (Fynla Project)
+
+For this financial planning application, NEVER use:
+- **Mustard/pastel yellows** - Use solid amber/orange instead
+- **Pastel/washed-out colors** - Use solid, professional colors
+- **Neon/bright colors** - Use muted, trust-conveying tones
+
+### Pre-Implementation Checklist
+
+Before writing CSS with `@apply`:
+- [ ] Class name doesn't match any Tailwind utility being applied
+- [ ] Border widths use only `border`, `border-0`, `border-2`, `border-4`, `border-8`
+- [ ] `@apply` is a standalone directive, not attached to a property name
+- [ ] Chart colors imported from `@/constants/designSystem.js`
+- [ ] No hardcoded hex values - use Tailwind classes or design system constants

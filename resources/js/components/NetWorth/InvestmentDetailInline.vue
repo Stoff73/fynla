@@ -627,9 +627,9 @@ export default {
   gap: 8px;
   padding: 8px 16px;
   background: white;
-  border: 1px solid #e5e7eb;
+  @apply border border-gray-200;
   border-radius: 8px;
-  color: #374151;
+  @apply text-gray-700;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -637,8 +637,8 @@ export default {
 }
 
 .back-button:hover {
-  background: #f3f4f6;
-  border-color: #d1d5db;
+  @apply bg-gray-100;
+  @apply border-gray-300;
 }
 
 .badge {
@@ -650,52 +650,52 @@ export default {
 }
 
 .badge-individual {
-  background: #f3f4f6;
-  color: #374151;
+  @apply bg-gray-100;
+  @apply text-gray-700;
 }
 
 .badge-joint {
-  background: #f3e8ff;
-  color: #7c3aed;
+  @apply bg-purple-50;
+  @apply text-purple-600;
 }
 
 .badge-trust {
-  background: #fef3c7;
-  color: #92400e;
+  @apply bg-amber-100;
+  @apply text-amber-800;
 }
 
 .badge-isa {
-  background: #d1fae5;
-  color: #065f46;
+  @apply bg-green-100;
+  @apply text-green-800;
 }
 
 .badge-gia {
-  background: #dbeafe;
-  color: #1e40af;
+  @apply bg-blue-100;
+  @apply text-blue-800;
 }
 
 .badge-sipp {
-  background: #e9d5ff;
-  color: #6b21a8;
+  @apply bg-purple-100;
+  @apply text-purple-800;
 }
 
 .badge-nsi {
-  background: #e0e7ff;
-  color: #3730a3;
+  @apply bg-indigo-100;
+  @apply text-indigo-800;
 }
 
 .badge-bond {
-  background: #ffedd5;
-  color: #9a3412;
+  @apply bg-orange-100;
+  @apply text-orange-800;
 }
 
 .badge-vct {
-  background: #fce7f3;
-  color: #9d174d;
+  @apply bg-pink-100;
+  @apply text-pink-800;
 }
 
 .badge-other {
-  background: #f3f4f6;
-  color: #374151;
+  @apply bg-gray-100;
+  @apply text-gray-700;
 }
 </style>

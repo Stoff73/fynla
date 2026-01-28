@@ -264,17 +264,17 @@ export default {
   margin-bottom: 16px;
   font-size: 14px;
   font-weight: 500;
-  color: #374151;
+  @apply text-gray-700;
   background: white;
-  border: 1px solid #d1d5db;
+  @apply border border-gray-300;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.15s;
 }
 
 .back-button:hover {
-  background: #f9fafb;
-  border-color: #9ca3af;
+  @apply bg-gray-50;
+  @apply border-gray-400;
 }
 
 .back-button svg {
@@ -304,13 +304,8 @@ export default {
 }
 
 .spinner {
-  width: 48px;
-  height: 48px;
-  border: 3px solid #e5e7eb;
-  border-top-color: #3b82f6;
-  border-radius: 50%;
+  @apply w-12 h-12 border-4 border-gray-200 border-t-primary-500 rounded-full mb-4;
   animation: spin 1s linear infinite;
-  margin-bottom: 16px;
 }
 
 @keyframes spin {
@@ -320,7 +315,7 @@ export default {
 }
 
 .loading-state p {
-  color: #6b7280;
+  @apply text-gray-500;
   font-size: 16px;
   margin: 0;
 }
@@ -331,24 +326,24 @@ export default {
   padding: 60px 40px;
   background: white;
   border-radius: 12px;
-  border: 1px solid #fecaca;
+  @apply border border-red-200;
 }
 
 .error-icon {
   width: 48px;
   height: 48px;
-  color: #ef4444;
+  @apply text-red-500;
   margin: 0 auto 16px;
 }
 
 .error-state p {
-  color: #6b7280;
+  @apply text-gray-500;
   font-size: 16px;
   margin: 0 0 16px 0;
 }
 
 .retry-button {
-  background: #3b82f6;
+  @apply bg-primary-500;
   color: white;
   border: none;
   padding: 10px 24px;
@@ -360,22 +355,22 @@ export default {
 }
 
 .retry-button:hover {
-  background: #2563eb;
+  @apply bg-blue-600;
 }
 
 /* On Track Banner */
 .on-track-banner {
   text-align: center;
   padding: 60px 40px;
-  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  background: linear-gradient(135deg, theme('colors.green.50') 0%, theme('colors.green.100') 100%);
   border-radius: 16px;
-  border: 2px solid #a7f3d0;
+  @apply border-2 border-green-200;
 }
 
 .on-track-icon {
   width: 72px;
   height: 72px;
-  background: #10b981;
+  @apply bg-green-500;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -392,20 +387,20 @@ export default {
 .on-track-banner h3 {
   font-size: 28px;
   font-weight: 700;
-  color: #065f46;
+  @apply text-green-800;
   margin: 0 0 12px 0;
 }
 
 .on-track-banner .probability {
   font-size: 20px;
   font-weight: 600;
-  color: #059669;
+  @apply text-green-500;
   margin: 0 0 16px 0;
 }
 
 .on-track-banner .subtitle {
   font-size: 16px;
-  color: #047857;
+  @apply text-green-700;
   margin: 0;
   max-width: 500px;
   margin-left: auto;
@@ -416,15 +411,15 @@ export default {
 .dob-required {
   text-align: center;
   padding: 60px 40px;
-  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  background: linear-gradient(135deg, theme('colors.amber.50') 0%, theme('colors.amber.100') 100%);
   border-radius: 16px;
-  border: 2px solid #fde68a;
+  @apply border-2 border-amber-200;
 }
 
 .dob-icon {
   width: 72px;
   height: 72px;
-  background: #f59e0b;
+  @apply bg-amber-500;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -441,20 +436,20 @@ export default {
 .dob-required h3 {
   font-size: 22px;
   font-weight: 700;
-  color: #92400e;
+  @apply text-amber-800;
   margin: 0 0 12px 0;
 }
 
 .dob-message {
   font-size: 16px;
-  color: #b45309;
+  @apply text-amber-700;
   margin: 0 0 8px 0;
   font-weight: 500;
 }
 
 .dob-subtitle {
   font-size: 14px;
-  color: #d97706;
+  @apply text-amber-500;
   margin: 0;
   max-width: 400px;
   margin-left: auto;
@@ -467,8 +462,8 @@ export default {
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
+  @apply bg-green-50;
+  @apply border border-green-200;
   border-radius: 8px;
   margin-bottom: 20px;
 }
@@ -480,7 +475,7 @@ export default {
 .context-icon svg {
   width: 20px;
   height: 20px;
-  color: #16a34a;
+  @apply text-green-500;
 }
 
 .context-text {
@@ -492,15 +487,15 @@ export default {
 
 .context-label {
   font-weight: 600;
-  color: #166534;
+  @apply text-green-800;
 }
 
 .context-separator {
-  color: #86efac;
+  @apply text-green-200;
 }
 
 .context-detail {
-  color: #15803d;
+  @apply text-green-700;
 }
 
 /* Summary Cards */
@@ -522,32 +517,32 @@ export default {
   background: white;
   border-radius: 12px;
   padding: 20px;
-  border: 1px solid #e5e7eb;
+  @apply border border-gray-200;
 }
 
 .summary-card.blue {
-  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-  border-color: #bfdbfe;
+  background: linear-gradient(135deg, theme('colors.blue.50') 0%, theme('colors.blue.100') 100%);
+  @apply border-blue-200;
 }
 
 .summary-card.green {
-  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
-  border-color: #a7f3d0;
+  background: linear-gradient(135deg, theme('colors.green.50') 0%, theme('colors.green.100') 100%);
+  @apply border-green-200;
 }
 
 .summary-card.amber {
-  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
-  border-color: #fde68a;
+  background: linear-gradient(135deg, theme('colors.amber.50') 0%, theme('colors.amber.100') 100%);
+  @apply border-amber-200;
 }
 
 .summary-card.red {
-  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
-  border-color: #fecaca;
+  background: linear-gradient(135deg, theme('colors.red.50') 0%, theme('colors.red.100') 100%);
+  @apply border-red-200;
 }
 
 .summary-label {
   font-size: 14px;
-  color: #6b7280;
+  @apply text-gray-500;
   margin: 0 0 8px 0;
   font-weight: 500;
 }
@@ -555,13 +550,13 @@ export default {
 .summary-value {
   font-size: 28px;
   font-weight: 700;
-  color: #111827;
+  @apply text-gray-900;
   margin: 0;
 }
 
 .summary-subtitle {
   font-size: 13px;
-  color: #6b7280;
+  @apply text-gray-500;
   margin: 8px 0 0 0;
 }
 
@@ -569,13 +564,13 @@ export default {
 .no-strategies {
   text-align: center;
   padding: 40px;
-  background: #f9fafb;
+  @apply bg-gray-50;
   border-radius: 12px;
-  border: 1px solid #e5e7eb;
+  @apply border border-gray-200;
 }
 
 .no-strategies p {
-  color: #6b7280;
+  @apply text-gray-500;
   font-size: 16px;
   margin: 0;
 }
@@ -588,20 +583,20 @@ export default {
 .section-title {
   font-size: 20px;
   font-weight: 700;
-  color: #111827;
+  @apply text-gray-900;
   margin: 0 0 8px 0;
 }
 
 .section-subtitle {
   font-size: 14px;
-  color: #6b7280;
+  @apply text-gray-500;
   margin: 0 0 24px 0;
 }
 
 /* Combined Impact */
 .combined-impact {
-  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-  border: 1px solid #bfdbfe;
+  background: linear-gradient(135deg, theme('colors.blue.50') 0%, theme('colors.blue.100') 100%);
+  @apply border border-blue-200;
   border-radius: 12px;
   padding: 24px;
   margin-top: 24px;
@@ -615,13 +610,13 @@ export default {
 .impact-header h4 {
   font-size: 16px;
   font-weight: 600;
-  color: #1e40af;
+  @apply text-blue-800;
   margin: 0 0 4px 0;
 }
 
 .impact-header p {
   font-size: 14px;
-  color: #3b82f6;
+  @apply text-primary-500;
   margin: 0;
 }
 
@@ -639,7 +634,7 @@ export default {
 .prob-label {
   display: block;
   font-size: 12px;
-  color: #6b7280;
+  @apply text-gray-500;
   margin-bottom: 4px;
 }
 
@@ -649,21 +644,21 @@ export default {
 }
 
 .prob-value.green {
-  color: #059669;
+  @apply text-green-500;
 }
 
 .prob-value.amber {
-  color: #d97706;
+  @apply text-amber-500;
 }
 
 .prob-value.red {
-  color: #dc2626;
+  @apply text-red-500;
 }
 
 .prob-arrow svg {
   width: 32px;
   height: 32px;
-  color: #3b82f6;
+  @apply text-primary-500;
 }
 
 @media (max-width: 768px) {

@@ -23,6 +23,7 @@
 import { mapState } from 'vuex';
 import VueApexCharts from 'vue3-apexcharts';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { TEXT_COLORS, SPENDING_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'SpendingDonutChart',
@@ -185,24 +186,7 @@ export default {
           toolbar: { show: false },
         },
         labels: this.labels,
-        colors: [
-          '#7c3aed', // Purple - Mortgage Payments
-          '#2563eb', // Blue - Loan Payments
-          '#0891b2', // Cyan - Pension Contributions
-          '#dc2626', // Red - Protection Premiums
-          '#16a34a', // Green - Food & Groceries
-          '#f59e0b', // Amber - Transport
-          '#ec4899', // Pink - Healthcare
-          '#6366f1', // Indigo - Insurance
-          '#8b5cf6', // Violet - Clothing & Personal
-          '#f97316', // Orange - Entertainment
-          '#14b8a6', // Teal - Childcare
-          '#84cc16', // Lime - School Fees
-          '#06b6d4', // Sky - Holidays
-          '#64748b', // Slate - Other
-          '#059669', // Emerald - Savings Deposits
-          '#be123c', // Rose - Credit Card Spending
-        ],
+        colors: SPENDING_COLORS,
         plotOptions: {
           pie: {
             donut: {
@@ -213,14 +197,14 @@ export default {
                   show: true,
                   fontSize: '14px',
                   fontWeight: 500,
-                  color: '#6b7280',
+                  color: TEXT_COLORS.muted,
                   offsetY: -10,
                 },
                 value: {
                   show: true,
                   fontSize: '24px',
                   fontWeight: 700,
-                  color: '#111827',
+                  color: TEXT_COLORS.primary,
                   offsetY: 5,
                   formatter: (val) => `£${parseFloat(val).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
                 },
@@ -230,7 +214,7 @@ export default {
                   label: 'Total Spent',
                   fontSize: '14px',
                   fontWeight: 500,
-                  color: '#6b7280',
+                  color: TEXT_COLORS.muted,
                   formatter: () => `£${total.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
                 },
               },
@@ -278,7 +262,7 @@ export default {
 .chart-title {
   font-size: 16px;
   font-weight: 600;
-  color: #111827;
+  @apply text-gray-900;
   margin: 0 0 16px 0;
 }
 
@@ -288,14 +272,14 @@ export default {
 
 .empty-prompt {
   font-size: 13px;
-  color: #6b7280;
+  @apply text-gray-500;
   line-height: 1.5;
   margin: 0 0 12px 0;
 }
 
 .add-info-link {
   font-size: 13px;
-  color: #7c3aed;
+  @apply text-purple-600;
   font-weight: 500;
   text-decoration: none;
 }

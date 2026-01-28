@@ -525,14 +525,14 @@ export default {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: #6b7280;
+  @apply text-gray-500;
   font-size: 14px;
   font-weight: 500;
   transition: color 0.2s;
 }
 
 .back-button:hover {
-  color: #ec4899;
+  @apply text-pink-500;
 }
 
 .badge {
@@ -544,37 +544,37 @@ export default {
 }
 
 .badge-blue {
-  background: #dbeafe;
-  color: #1e40af;
+  @apply bg-blue-100;
+  @apply text-blue-800;
 }
 
 .badge-pink {
-  background: #fce7f3;
-  color: #9f1239;
+  @apply bg-pink-100;
+  @apply text-rose-800;
 }
 
 .badge-amber {
-  background: #fef3c7;
-  color: #92400e;
+  @apply bg-amber-100;
+  @apply text-amber-800;
 }
 
 .badge-purple {
-  background: #f3e8ff;
-  color: #6b21a8;
+  @apply bg-purple-50;
+  @apply text-purple-800;
 }
 
 .badge-green {
-  background: #d1fae5;
-  color: #065f46;
+  @apply bg-green-100;
+  @apply text-green-800;
 }
 
 .badge-gray {
-  background: #f3f4f6;
-  color: #374151;
+  @apply bg-gray-100;
+  @apply text-gray-700;
 }
 
 .badge-indigo {
-  background: #e0e7ff;
-  color: #3730a3;
+  @apply bg-indigo-100;
+  @apply text-indigo-800;
 }
 </style>

@@ -232,7 +232,7 @@ input[type="range"] {
   appearance: none;
   height: 6px;
   border-radius: 3px;
-  background: #E5E7EB;
+  @apply bg-gray-200;
   outline: none;
 }
 
@@ -242,7 +242,7 @@ input[type="range"]::-webkit-slider-thumb {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: #3B82F6;
+  @apply bg-blue-500;
   cursor: pointer;
 }
 
@@ -250,7 +250,7 @@ input[type="range"]::-moz-range-thumb {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: #3B82F6;
+  @apply bg-blue-500;
   cursor: pointer;
   border: none;
 }

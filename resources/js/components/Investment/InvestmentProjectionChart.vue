@@ -17,6 +17,7 @@
 <script>
 import VueApexCharts from 'vue3-apexcharts';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { CHART_COLORS, PRIMARY_COLORS, SUCCESS_COLORS, BORDER_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'InvestmentProjectionChart',
@@ -127,7 +128,7 @@ export default {
           },
         },
         // Blue and green gradient for more contrast
-        colors: ['#1e3a5f', '#2563eb', '#059669', '#34d399'],
+        colors: [PRIMARY_COLORS[900], PRIMARY_COLORS[600], SUCCESS_COLORS[500], SUCCESS_COLORS[400]],
         stroke: {
           curve: 'smooth',
           width: [1, 1, 1, 1],
@@ -178,7 +179,7 @@ export default {
           markers: { width: 12, height: 12, radius: 2 },
         },
         grid: {
-          borderColor: '#e5e7eb',
+          borderColor: BORDER_COLORS.default,
           strokeDashArray: 4,
         },
         dataLabels: { enabled: false },
@@ -226,13 +227,13 @@ export default {
   align-items: center;
   justify-content: center;
   height: 350px;
-  background: #f9fafb;
+  @apply bg-gray-50;
   border-radius: 8px;
-  border: 1px dashed #d1d5db;
+  @apply border border-dashed border-gray-300;
 }
 
 .chart-placeholder p {
-  color: #6b7280;
+  @apply text-gray-500;
   font-size: 14px;
   margin: 0;
 }
@@ -240,7 +241,7 @@ export default {
 .chart-footer {
   text-align: center;
   font-size: 12px;
-  color: #6b7280;
+  @apply text-gray-500;
   margin: 8px 0 0 0;
   font-style: italic;
 }

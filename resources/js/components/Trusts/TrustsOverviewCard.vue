@@ -197,13 +197,13 @@ export default {
 .card-title {
   font-size: 20px;
   font-weight: 600;
-  color: #1f2937;
+  @apply text-gray-800;
 }
 
 .card-icon {
   display: flex;
   align-items: center;
-  color: #9ca3af;
+  @apply text-gray-400;
 }
 
 /* Primary Value Section */
@@ -212,12 +212,12 @@ export default {
   flex-direction: column;
   gap: 4px;
   padding-bottom: 16px;
-  border-bottom: 1px solid #e5e7eb;
+  @apply border-b border-gray-200;
 }
 
 .value-label {
   font-size: 14px;
-  color: #6b7280;
+  @apply text-gray-500;
   font-weight: 500;
 }
 
@@ -239,7 +239,7 @@ export default {
   justify-content: space-between;
   align-items: flex-start;
   padding-bottom: 12px;
-  border-bottom: 1px solid #f3f4f6;
+  @apply border-b border-gray-100;
 }
 
 .trust-item:last-of-type {
@@ -263,7 +263,7 @@ export default {
 .trust-name {
   font-weight: 600;
   font-size: 14px;
-  color: #111827;
+  @apply text-gray-900;
 }
 
 .rpt-badge {
@@ -273,20 +273,20 @@ export default {
   border-radius: 9999px;
   font-size: 10px;
   font-weight: 600;
-  background-color: #ffffff;
-  color: #92400e;
-  border: 2px solid #f59e0b;
+  @apply bg-white;
+  @apply text-amber-800;
+  @apply border-2 border-amber-500;
 }
 
 .trust-details {
   font-size: 12px;
-  color: #6b7280;
+  @apply text-gray-500;
 }
 
 .trust-value {
   font-weight: 600;
   font-size: 14px;
-  color: #7c3aed;
+  @apply text-purple-600;
   white-space: nowrap;
   margin-left: 12px;
 }
@@ -303,8 +303,8 @@ export default {
   margin-top: 16px;
   padding: 12px;
   border-radius: 8px;
-  background-color: #ffffff;
-  border: 2px solid #f59e0b;
+  @apply bg-white;
+  @apply border-2 border-amber-500;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -313,14 +313,14 @@ export default {
 .info-icon {
   width: 20px;
   height: 20px;
-  color: #92400e;
+  @apply text-amber-800;
   flex-shrink: 0;
 }
 
 .info-text {
   font-size: 13px;
   font-weight: 500;
-  color: #92400e;
+  @apply text-amber-800;
 }
 
 @media (min-width: 640px) {

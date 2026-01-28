@@ -453,7 +453,7 @@ export default {
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
-  background: #3b82f6;
+  @apply bg-primary-500;
   color: white;
   border: none;
   border-radius: 8px;
@@ -473,8 +473,8 @@ export default {
   gap: 8px;
   padding: 10px 16px;
   background: white;
-  color: #3b82f6;
-  border: 2px solid #3b82f6;
+  @apply text-primary-500;
+  @apply border-2 border-primary-500;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 600;
@@ -505,7 +505,7 @@ export default {
   width: 40px;
   height: 40px;
   border: 3px solid #e5e7eb;
-  border-top-color: #3b82f6;
+  @apply border-t-primary-500;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 16px;

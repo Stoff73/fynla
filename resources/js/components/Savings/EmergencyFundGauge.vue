@@ -10,6 +10,8 @@
 </template>
 
 <script>
+import { SUCCESS_COLORS, WARNING_COLORS, ERROR_COLORS, TEXT_COLORS, BORDER_COLORS } from '@/constants/designSystem';
+
 export default {
   name: 'EmergencyFundGauge',
 
@@ -31,9 +33,10 @@ export default {
     },
 
     runwayColour() {
-      if (this.runwayMonths >= 6) return '#10B981'; // green
-      if (this.runwayMonths >= 3) return '#F59E0B'; // amber
-      return '#EF4444'; // red
+      // Use design system semantic colors for threshold-based coloring
+      if (this.runwayMonths >= 6) return SUCCESS_COLORS[500];
+      if (this.runwayMonths >= 3) return WARNING_COLORS[500];
+      return ERROR_COLORS[500];
     },
 
     chartOptions() {
@@ -60,7 +63,7 @@ export default {
               },
             },
             track: {
-              background: '#E5E7EB',
+              background: BORDER_COLORS.default,
               strokeWidth: '100%',
               margin: 0,
             },
@@ -69,14 +72,14 @@ export default {
               name: {
                 offsetY: -10,
                 show: true,
-                color: '#6B7280',
+                color: TEXT_COLORS.muted,
                 fontSize: '14px',
               },
               value: {
                 formatter: () => {
                   return this.runwayMonths.toFixed(1);
                 },
-                color: '#111827',
+                color: TEXT_COLORS.primary,
                 fontSize: '36px',
                 fontWeight: 700,
                 show: true,

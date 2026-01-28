@@ -370,14 +370,14 @@ export default {
   align-items: center;
   justify-content: center;
   padding: 48px;
-  color: #6b7280;
+  @apply text-gray-500;
 }
 
 .spinner {
   width: 40px;
   height: 40px;
-  border: 3px solid #e5e7eb;
-  border-top-color: #3b82f6;
+  @apply border-[3px] border-gray-200;
+  @apply border-t-primary-500;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 16px;
@@ -401,7 +401,7 @@ export default {
   border-radius: 12px;
   padding: 20px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e5e7eb;
+  @apply border border-gray-200;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -409,15 +409,15 @@ export default {
 .asset-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border-color: #3b82f6;
+  @apply border-primary-500;
 }
 
 .asset-card.business-card:hover {
-  border-color: #a855f7;
+  @apply border-purple-500;
 }
 
 .asset-card.chattels-card:hover {
-  border-color: #ec4899;
+  @apply border-pink-500;
 }
 
 .card-header {
@@ -426,7 +426,7 @@ export default {
   gap: 12px;
   margin-bottom: 16px;
   padding-bottom: 16px;
-  border-bottom: 1px solid #e5e7eb;
+  @apply border-b border-gray-200;
 }
 
 .card-icon {
@@ -445,33 +445,33 @@ export default {
 }
 
 .card-icon.retirement {
-  background: #fef3c7;
-  color: #d97706;
+  @apply bg-amber-100;
+  @apply text-amber-600;
 }
 
 .card-icon.property {
-  background: #dbeafe;
-  color: #2563eb;
+  @apply bg-blue-100;
+  @apply text-blue-600;
 }
 
 .card-icon.investments {
-  background: #d1fae5;
-  color: #059669;
+  @apply bg-green-100;
+  @apply text-green-600;
 }
 
 .card-icon.cash {
-  background: #ede9fe;
-  color: #7c3aed;
+  @apply bg-violet-100;
+  @apply text-purple-600;
 }
 
 .card-icon.business {
-  background: #fae8ff;
-  color: #a21caf;
+  @apply bg-fuchsia-100;
+  @apply text-fuchsia-700;
 }
 
 .card-icon.chattels {
-  background: #fce7f3;
-  color: #db2777;
+  @apply bg-pink-100;
+  @apply text-pink-600;
 }
 
 .card-title-section {
@@ -481,21 +481,21 @@ export default {
 .card-title {
   font-size: 16px;
   font-weight: 600;
-  color: #374151;
+  @apply text-gray-700;
   margin: 0 0 4px 0;
 }
 
 .card-total {
   font-size: 24px;
   font-weight: 700;
-  color: #111827;
+  @apply text-gray-900;
   margin: 0;
 }
 
 .card-arrow {
   width: 24px;
   height: 24px;
-  color: #9ca3af;
+  @apply text-gray-400;
   flex-shrink: 0;
 }
 
@@ -509,7 +509,7 @@ export default {
 }
 
 .empty-state {
-  color: #9ca3af;
+  @apply text-gray-400;
   font-size: 14px;
   text-align: center;
   padding: 16px 0;
@@ -524,7 +524,7 @@ export default {
   justify-content: space-between;
   align-items: center;
   padding: 8px 0;
-  border-bottom: 1px solid #f3f4f6;
+  @apply border-b border-gray-100;
 }
 
 .item-row:last-child {
@@ -533,7 +533,7 @@ export default {
 
 .item-name {
   font-size: 14px;
-  color: #4b5563;
+  @apply text-gray-600;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -553,36 +553,36 @@ export default {
 }
 
 .badge.isa {
-  background: #dbeafe;
-  color: #1d4ed8;
+  @apply bg-blue-100;
+  @apply text-blue-700;
 }
 
 .badge.emergency {
-  background: #fef3c7;
-  color: #b45309;
+  @apply bg-amber-100;
+  @apply text-amber-700;
 }
 
 .badge.business-type {
-  background: #fae8ff;
-  color: #86198f;
+  @apply bg-fuchsia-100;
+  @apply text-fuchsia-800;
 }
 
 .badge.chattel-type {
-  background: #fce7f3;
-  color: #9d174d;
+  @apply bg-pink-100;
+  @apply text-pink-800;
 }
 
 .item-value {
   font-size: 14px;
   font-weight: 600;
-  color: #111827;
+  @apply text-gray-900;
   flex-shrink: 0;
   margin-left: 12px;
 }
 
 .view-all {
   font-size: 13px;
-  color: #3b82f6;
+  @apply text-primary-500;
   text-align: center;
   padding: 8px 0 0 0;
   font-weight: 500;

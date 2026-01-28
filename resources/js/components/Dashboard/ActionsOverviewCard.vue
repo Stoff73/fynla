@@ -270,22 +270,22 @@ export default {
 
 <style scoped>
 .action-card {
-  background-color: #f9fafb;
-  border: 1px solid #e5e7eb;
+  @apply bg-gray-50;
+  @apply border border-gray-200;
   border-radius: 8px;
   padding: 16px;
   transition: all 0.2s ease;
 }
 
 .action-card:hover {
-  background-color: #f3f4f6;
-  border-color: #d1d5db;
+  @apply bg-gray-100;
+  @apply border-gray-300;
   transform: translateY(-1px);
 }
 
 .action-text {
   font-size: 13px;
-  color: #374151;
+  @apply text-gray-700;
   line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -302,27 +302,27 @@ export default {
 }
 
 .priority-critical {
-  background-color: #fef2f2;
-  color: #dc2626;
-  border: 1px solid #fecaca;
+  @apply bg-red-50;
+  @apply text-red-600;
+  @apply border border-red-200;
 }
 
 .priority-high {
-  background-color: #fffbeb;
-  color: #d97706;
-  border: 1px solid #fde68a;
+  @apply bg-amber-50;
+  @apply text-amber-600;
+  @apply border border-amber-200;
 }
 
 .priority-medium {
-  background-color: #f0f9ff;
-  color: #0284c7;
-  border: 1px solid #bae6fd;
+  @apply bg-sky-50;
+  @apply text-sky-600;
+  @apply border border-sky-200;
 }
 
 .priority-low {
-  background-color: #f0fdf4;
-  color: #16a34a;
-  border: 1px solid #bbf7d0;
+  @apply bg-green-50;
+  @apply text-green-600;
+  @apply border border-green-200;
 }
 
 .module-badge {
@@ -333,17 +333,17 @@ export default {
 }
 
 .module-investment {
-  background-color: #eff6ff;
-  color: #2563eb;
+  @apply bg-blue-50;
+  @apply text-blue-600;
 }
 
 .module-estate {
-  background-color: #faf5ff;
-  color: #7c3aed;
+  @apply bg-purple-50;
+  @apply text-purple-600;
 }
 
 .module-protection {
-  background-color: #ecfdf5;
-  color: #059669;
+  @apply bg-green-50;
+  @apply text-green-600;
 }
 </style>

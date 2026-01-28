@@ -57,6 +57,7 @@
 
 <script>
 import VueApexCharts from 'vue3-apexcharts';
+import { CHART_COLORS, TEXT_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'AssetAllocationChart',
@@ -117,15 +118,7 @@ export default {
           },
         },
         labels: labels,
-        colours: [
-          '#3b82f6', // UK Equities - blue
-          '#8b5cf6', // US Equities - violet
-          '#ec4899', // International Equities - pink
-          '#10b981', // Bonds - green
-          '#f59e0b', // Cash - amber
-          '#6366f1', // Alternatives - indigo
-          '#14b8a6', // Property - teal
-        ],
+        colors: CHART_COLORS,
         plotOptions: {
           pie: {
             donut: {
@@ -136,13 +129,13 @@ export default {
                   show: true,
                   fontSize: '14px',
                   fontWeight: 600,
-                  color: '#1f2937',
+                  color: TEXT_COLORS.secondary,
                 },
                 value: {
                   show: true,
                   fontSize: '24px',
                   fontWeight: 700,
-                  color: '#111827',
+                  color: TEXT_COLORS.primary,
                   formatter: (val) => `${val.toFixed(1)}%`,
                 },
                 total: {
@@ -150,7 +143,7 @@ export default {
                   label: 'Total Value',
                   fontSize: '14px',
                   fontWeight: 500,
-                  color: '#6b7280',
+                  color: TEXT_COLORS.muted,
                   formatter: () => {
                     const total = this.series.reduce((sum, val) => sum + val, 0);
                     return `${total.toFixed(1)}%`;
@@ -168,7 +161,7 @@ export default {
           fontSize: '14px',
           fontWeight: 500,
           labels: {
-            colours: '#374151',
+            colors: TEXT_COLORS.secondary,
           },
           markers: {
             width: 12,

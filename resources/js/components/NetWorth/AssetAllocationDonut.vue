@@ -17,6 +17,7 @@
 
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { ASSET_COLORS, TEXT_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
 
 export default {
   name: 'AssetAllocationDonut',
@@ -36,14 +37,14 @@ export default {
     },
 
     allCategories() {
-      // All possible categories with their values and labels
+      // All possible categories with their values and labels - using design system colors
       return [
-        { label: 'Pensions', value: this.breakdown.pensions || 0, color: '#6366F1' },
-        { label: 'Property', value: this.breakdown.property || 0, color: '#10B981' },
-        { label: 'Investments', value: this.breakdown.investments || 0, color: '#3B82F6' },
-        { label: 'Cash & Savings', value: this.breakdown.cash || 0, color: '#F59E0B' },
-        { label: 'Business', value: this.breakdown.business || 0, color: '#8B5CF6' },
-        { label: 'Chattels', value: this.breakdown.chattels || 0, color: '#EC4899' },
+        { label: 'Pensions', value: this.breakdown.pensions || 0, color: ASSET_COLORS.pensions },
+        { label: 'Property', value: this.breakdown.property || 0, color: ASSET_COLORS.property },
+        { label: 'Investments', value: this.breakdown.investments || 0, color: ASSET_COLORS.investments },
+        { label: 'Cash & Savings', value: this.breakdown.cash || 0, color: ASSET_COLORS.cash },
+        { label: 'Business', value: this.breakdown.business || 0, color: ASSET_COLORS.business },
+        { label: 'Chattels', value: this.breakdown.chattels || 0, color: ASSET_COLORS.chattels },
       ];
     },
 
@@ -109,7 +110,7 @@ export default {
                   label: 'Total Wealth',
                   fontSize: '14px',
                   fontWeight: 600,
-                  color: '#6b7280',
+                  color: TEXT_COLORS.muted,
                   formatter: () => {
                     const total = this.filteredSeries.reduce((sum, val) => sum + val, 0);
                     return this.formatCurrency(total);
@@ -148,42 +149,32 @@ export default {
 
 <style scoped>
 .asset-allocation-donut {
-  background: white;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e5e7eb;
+  @apply bg-white rounded-card p-6 shadow-sm border border-gray-200 transition-all duration-200;
 }
 
 .chart-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #111827;
-  margin: 0 0 20px 0;
+  @apply text-lg font-semibold text-gray-900 mb-5;
 }
 
 .chart-container {
-  width: 100%;
+  @apply w-full;
 }
 
 .no-data {
-  text-align: center;
-  padding: 60px 20px;
-  color: #9ca3af;
+  @apply text-center py-12 px-5 text-gray-400;
 }
 
 .no-data p {
-  margin: 0;
-  font-size: 14px;
+  @apply m-0 text-sm;
 }
 
 @media (max-width: 768px) {
   .asset-allocation-donut {
-    padding: 16px;
+    @apply p-4;
   }
 
   .chart-title {
-    font-size: 16px;
+    @apply text-base;
   }
 }
 </style>

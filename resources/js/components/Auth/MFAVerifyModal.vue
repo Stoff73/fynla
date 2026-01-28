@@ -252,7 +252,7 @@ export default {
 }
 
 .description {
-  color: #6b7280;
+  @apply text-gray-500;
   font-size: 0.875rem;
   margin-bottom: 1.5rem;
 }
@@ -275,14 +275,14 @@ export default {
   font-size: 1rem;
   text-align: center;
   letter-spacing: 0.1em;
-  border: 2px solid #e5e7eb;
+  @apply border-2 border-gray-200;
   border-radius: 0.5rem;
   font-family: monospace;
 }
 
 .recovery-input:focus {
   outline: none;
-  border-color: #3b82f6;
+  @apply border-primary-500;
 }
 
 .actions {
@@ -296,13 +296,13 @@ export default {
 .text-link {
   background: none;
   border: none;
-  color: #3b82f6;
+  @apply text-primary-500;
   font-size: 0.875rem;
   cursor: pointer;
   text-decoration: underline;
 }
 
 .text-link:hover {
-  color: #2563eb;
+  @apply text-blue-600;
 }
 </style>

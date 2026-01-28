@@ -224,13 +224,13 @@ export default {
 .card-title {
   font-size: 20px;
   font-weight: 600;
-  color: #1f2937;
+  @apply text-gray-800;
 }
 
 .card-icon {
   display: flex;
   align-items: center;
-  color: #9ca3af;
+  @apply text-gray-400;
 }
 
 /* Primary Value Section (with border) */
@@ -239,23 +239,23 @@ export default {
   flex-direction: column;
   gap: 8px;
   padding-bottom: 16px;
-  border-bottom: 1px solid #e5e7eb;
+  @apply border-b border-gray-200;
 }
 
 .value-label {
   font-size: 14px;
-  color: #6b7280;
+  @apply text-gray-500;
   font-weight: 500;
 }
 
 .value-amount {
   font-size: 32px;
   font-weight: 700;
-  color: #111827;
+  @apply text-gray-900;
 }
 
 .value-amount-primary {
-  color: #2563eb;
+  @apply text-blue-600;
 }
 
 /* Section Breakdown (with grey dividers) */
@@ -269,13 +269,13 @@ export default {
 /* Subsequent sections - padding AND border */
 .section-breakdown + .section-breakdown {
   padding-top: 16px;
-  border-top: 1px solid #e5e7eb;
+  @apply border-t border-gray-200;
 }
 
 .section-header {
   font-size: 14px;
   font-weight: 600;
-  color: #374151;
+  @apply text-gray-700;
   margin-bottom: 4px;
 }
 
@@ -287,24 +287,24 @@ export default {
 }
 
 .breakdown-label {
-  color: #6b7280;
+  @apply text-gray-500;
   font-weight: 500;
 }
 
 .breakdown-value {
-  color: #111827;
+  @apply text-gray-900;
   font-weight: 600;
 }
 
 .breakdown-value-asset {
-  color: #2563eb;
+  @apply text-blue-600;
 }
 
 /* Status Banner */
 .status-banner {
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid #e5e7eb;
+  @apply border-t border-gray-200;
   display: flex;
   align-items: center;
   padding: 12px;
@@ -312,11 +312,11 @@ export default {
 }
 
 .status-banner-warning {
-  background-color: #f59e0b;
+  @apply bg-amber-500;
 }
 
 .status-banner-success {
-  background-color: #10b981;
+  @apply bg-green-500;
 }
 
 .status-icon {
@@ -333,18 +333,7 @@ export default {
   color: white;
 }
 
-/* Inheritance Tax Liability Color Classes */
-.text-green-600 {
-  color: #10b981;
-}
-
-.text-amber-600 {
-  color: #f59e0b;
-}
-
-.text-red-600 {
-  color: #dc2626;
-}
+/* Inheritance Tax Liability Color Classes - using Tailwind utilities directly in template */
 
 @media (min-width: 640px) {
   .estate-overview-card {

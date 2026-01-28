@@ -178,17 +178,17 @@ export default {
   margin-bottom: 16px;
   font-size: 14px;
   font-weight: 500;
-  color: #374151;
+  @apply text-gray-700;
   background: white;
-  border: 1px solid #d1d5db;
+  @apply border border-gray-300;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.15s;
 }
 
 .back-button:hover {
-  background: #f9fafb;
-  border-color: #9ca3af;
+  @apply bg-gray-50;
+  @apply border-gray-400;
 }
 
 .back-button svg {
@@ -220,8 +220,8 @@ export default {
 .spinner {
   width: 48px;
   height: 48px;
-  border: 3px solid #e5e7eb;
-  border-top-color: #3b82f6;
+  @apply border-[3px] border-gray-200;
+  @apply border-t-primary-500;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 16px;
@@ -234,7 +234,7 @@ export default {
 }
 
 .loading-state p {
-  color: #6b7280;
+  @apply text-gray-500;
   font-size: 16px;
   margin: 0;
 }
@@ -245,25 +245,25 @@ export default {
   padding: 80px 40px;
   background: white;
   border-radius: 12px;
-  border: 2px dashed #d1d5db;
+  @apply border-2 border-dashed border-gray-300;
 }
 
 .empty-icon {
   width: 64px;
   height: 64px;
-  color: #9ca3af;
+  @apply text-gray-400;
   margin: 0 auto 16px;
 }
 
 .empty-state p {
-  color: #6b7280;
+  @apply text-gray-500;
   font-size: 18px;
   font-weight: 600;
   margin: 0 0 8px 0;
 }
 
 .empty-subtitle {
-  color: #9ca3af;
+  @apply text-gray-400;
   font-size: 14px;
   font-weight: 400;
 }
@@ -280,37 +280,37 @@ export default {
   background: white;
   border-radius: 12px;
   padding: 20px;
-  border: 1px solid #e5e7eb;
+  @apply border border-gray-200;
 }
 
 .summary-card.blue {
-  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-  border-color: #bfdbfe;
+  @apply bg-gradient-to-br from-blue-50 to-blue-100;
+  @apply border-blue-200;
 }
 
 .summary-card.purple {
-  background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
-  border-color: #c4b5fd;
+  @apply bg-gradient-to-br from-purple-50 to-purple-100;
+  @apply border-purple-300;
 }
 
 .summary-card.green {
-  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
-  border-color: #a7f3d0;
+  @apply bg-gradient-to-br from-green-50 to-green-100;
+  @apply border-green-200;
 }
 
 .summary-card.amber {
-  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
-  border-color: #fde68a;
+  @apply bg-gradient-to-br from-amber-50 to-amber-100;
+  @apply border-amber-200;
 }
 
 .summary-card.red {
-  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
-  border-color: #fecaca;
+  @apply bg-gradient-to-br from-red-50 to-red-100;
+  @apply border-red-200;
 }
 
 .summary-label {
   font-size: 14px;
-  color: #6b7280;
+  @apply text-gray-500;
   margin: 0 0 8px 0;
   font-weight: 500;
 }
@@ -318,19 +318,19 @@ export default {
 .summary-value {
   font-size: 28px;
   font-weight: 700;
-  color: #111827;
+  @apply text-gray-900;
   margin: 0;
 }
 
 .per-year {
   font-size: 14px;
   font-weight: 500;
-  color: #6b7280;
+  @apply text-gray-500;
 }
 
 .summary-subtitle {
   font-size: 13px;
-  color: #6b7280;
+  @apply text-gray-500;
   margin: 8px 0 0 0;
 }
 
@@ -339,7 +339,7 @@ export default {
   background: white;
   border-radius: 12px;
   padding: 24px;
-  border: 1px solid #e5e7eb;
+  @apply border border-gray-200;
   margin-bottom: 24px;
 }
 
@@ -350,21 +350,21 @@ export default {
 .chart-title {
   font-size: 18px;
   font-weight: 600;
-  color: #111827;
+  @apply text-gray-900;
   margin: 0 0 8px 0;
 }
 
 .chart-subtitle {
   font-size: 14px;
-  color: #6b7280;
+  @apply text-gray-500;
   margin: 0;
 }
 
 .risk-badge {
   display: inline-block;
   padding: 2px 8px;
-  background: #eff6ff;
-  color: #2563eb;
+  @apply bg-blue-50;
+  @apply text-blue-600;
   border-radius: 4px;
   font-size: 12px;
   font-weight: 600;
@@ -374,8 +374,8 @@ export default {
 .depletion-badge {
   display: inline-block;
   padding: 2px 8px;
-  background: #fef3c7;
-  color: #b45309;
+  @apply bg-amber-100;
+  @apply text-amber-700;
   border-radius: 4px;
   font-size: 12px;
   font-weight: 600;
@@ -385,8 +385,8 @@ export default {
 .success-badge {
   display: inline-block;
   padding: 2px 8px;
-  background: #d1fae5;
-  color: #065f46;
+  @apply bg-green-100;
+  @apply text-green-800;
   border-radius: 4px;
   font-size: 12px;
   font-weight: 600;
@@ -397,8 +397,8 @@ export default {
 .info-panel {
   display: flex;
   gap: 16px;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
+  @apply bg-blue-50;
+  @apply border border-blue-200;
   border-radius: 12px;
   padding: 20px;
 }
@@ -410,7 +410,7 @@ export default {
 .info-icon {
   width: 24px;
   height: 24px;
-  color: #2563eb;
+  @apply text-blue-600;
 }
 
 .info-content {
@@ -420,7 +420,7 @@ export default {
 .info-title {
   font-size: 14px;
   font-weight: 600;
-  color: #1e40af;
+  @apply text-blue-800;
   margin: 0 0 12px 0;
 }
 
@@ -432,18 +432,18 @@ export default {
 
 .info-list li {
   font-size: 14px;
-  color: #1e3a8a;
+  @apply text-blue-900;
   margin-bottom: 6px;
 }
 
 .info-list li strong {
-  color: #1e40af;
+  @apply text-blue-800;
 }
 
 .info-warning {
   font-size: 13px;
-  color: #92400e;
-  background: #fef3c7;
+  @apply text-amber-800;
+  @apply bg-amber-100;
   padding: 8px 12px;
   border-radius: 6px;
   margin: 12px 0 0 0;

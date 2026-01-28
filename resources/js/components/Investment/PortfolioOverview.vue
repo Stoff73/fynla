@@ -469,7 +469,7 @@ export default {
 .section-title {
   font-size: 20px;
   font-weight: 600;
-  color: #111827;
+  @apply text-gray-900;
   margin: 0;
 }
 
@@ -478,7 +478,7 @@ export default {
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
-  background: #3b82f6;
+  @apply bg-primary-500;
   color: white;
   border: none;
   border-radius: 8px;
@@ -489,7 +489,7 @@ export default {
 }
 
 .add-account-btn:hover {
-  background: #2563eb;
+  @apply bg-blue-600;
 }
 
 .upload-btn {
@@ -498,8 +498,8 @@ export default {
   gap: 8px;
   padding: 10px 16px;
   background: white;
-  color: #3b82f6;
-  border: 2px solid #3b82f6;
+  @apply text-primary-500;
+  @apply border-2 border-primary-500;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 600;
@@ -508,7 +508,7 @@ export default {
 }
 
 .upload-btn:hover {
-  background: #eff6ff;
+  @apply bg-blue-50;
 }
 
 .btn-icon {
@@ -525,7 +525,7 @@ export default {
 .account-card {
   background: white;
   border-radius: 12px;
-  border: 1px solid #e5e7eb;
+  @apply border border-gray-200;
   padding: 20px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -534,7 +534,7 @@ export default {
 .account-card:hover {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   transform: translateY(-2px);
-  border-color: #3b82f6;
+  @apply border-primary-500;
 }
 
 .card-header {
@@ -571,13 +571,13 @@ export default {
 .account-institution {
   font-size: 18px;
   font-weight: 700;
-  color: #111827;
+  @apply text-gray-900;
   margin: 0;
 }
 
 .account-type {
   font-size: 14px;
-  color: #6b7280;
+  @apply text-gray-500;
   margin: 0;
 }
 
@@ -587,7 +587,7 @@ export default {
   gap: 10px;
   margin-top: 4px;
   padding-top: 12px;
-  border-top: 1px solid #e5e7eb;
+  @apply border-t border-gray-200;
 }
 
 .detail-row {
@@ -598,18 +598,18 @@ export default {
 
 .detail-label {
   font-size: 14px;
-  color: #6b7280;
+  @apply text-gray-500;
   font-weight: 500;
 }
 
 .detail-value {
   font-size: 16px;
-  color: #111827;
+  @apply text-gray-900;
   font-weight: 700;
 }
 
 .isa-allowance-info {
-  background: #f0fdf4;
+  @apply bg-green-50;
   border-radius: 6px;
   padding: 8px;
   margin: 4px 0;
@@ -620,18 +620,18 @@ export default {
   padding: 60px 20px;
   background: white;
   border-radius: 12px;
-  border: 2px dashed #d1d5db;
+  @apply border-2 border-dashed border-gray-300;
 }
 
 .empty-message {
-  color: #6b7280;
+  @apply text-gray-500;
   font-size: 16px;
   margin-bottom: 20px;
 }
 
 .add-account-button {
   padding: 12px 24px;
-  background: #3b82f6;
+  @apply bg-primary-500;
   color: white;
   border: none;
   border-radius: 8px;
@@ -642,7 +642,7 @@ export default {
 }
 
 .add-account-button:hover {
-  background: #2563eb;
+  @apply bg-blue-600;
 }
 
 @media (max-width: 768px) {

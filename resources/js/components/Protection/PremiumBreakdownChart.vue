@@ -14,6 +14,8 @@
 </template>
 
 <script>
+import { CHART_COLORS } from '@/constants/designSystem';
+
 export default {
   name: 'PremiumBreakdownChart',
 
@@ -80,7 +82,7 @@ export default {
           'Disability',
           'Sickness/Illness',
         ],
-        colours: ['#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444'],
+        colours: CHART_COLORS.slice(0, 5),
         dataLabels: {
           enabled: true,
           formatter: (val, opts) => {

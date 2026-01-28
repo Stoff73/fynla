@@ -16,6 +16,7 @@
 <script>
 import VueApexCharts from 'vue3-apexcharts';
 import { generateMockBalanceTrend } from './mockData';
+import { CHART_COLORS, TEXT_COLORS, BORDER_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'BalanceTrendChart',
@@ -54,7 +55,7 @@ export default {
           zoom: { enabled: false },
           sparkline: { enabled: false },
         },
-        colors: ['#7c3aed'],
+        colors: [CHART_COLORS[5]], // Purple
         fill: {
           type: 'gradient',
           gradient: {
@@ -74,7 +75,7 @@ export default {
           labels: {
             show: true,
             rotate: 0,
-            style: { fontSize: '10px', colors: '#9ca3af' },
+            style: { fontSize: '10px', colors: TEXT_COLORS.muted },
             formatter: (value) => {
               if (!value) return '';
               const date = new Date(value);
@@ -87,7 +88,7 @@ export default {
         },
         yaxis: {
           labels: {
-            style: { fontSize: '11px', colors: '#9ca3af' },
+            style: { fontSize: '11px', colors: TEXT_COLORS.muted },
             formatter: (val) => {
               if (val >= 1000) {
                 return `£${(val / 1000).toFixed(1)}k`;
@@ -97,7 +98,7 @@ export default {
           },
         },
         grid: {
-          borderColor: '#e5e7eb',
+          borderColor: BORDER_COLORS.default,
           strokeDashArray: 4,
           xaxis: { lines: { show: false } },
           yaxis: { lines: { show: true } },
@@ -152,7 +153,7 @@ export default {
 .chart-title {
   font-size: 16px;
   font-weight: 600;
-  color: #111827;
+  @apply text-gray-900;
   margin: 0 0 16px 0;
 }
 
