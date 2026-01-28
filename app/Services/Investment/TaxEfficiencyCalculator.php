@@ -161,17 +161,16 @@ class TaxEfficiencyCalculator
 
     /**
      * Calculate tax efficiency score (0-100)
-     * Penalizes having significant assets in taxable accounts (GIA)
+     * Score directly reflects the percentage of assets in tax-sheltered accounts
+     * 100% tax-sheltered = 100% efficiency
+     * 0% tax-sheltered = 0% efficiency
      */
     public function calculateTaxEfficiencyScore(Collection $accounts, Collection $holdings): int
     {
-        $score = 100;
-
-        // Calculate tax-sheltered vs taxable split
         $totalValue = $accounts->sum('current_value');
 
         if ($totalValue <= 0) {
-            return $score;
+            return 0;
         }
 
         // Tax-sheltered account types
@@ -181,48 +180,9 @@ class TaxEfficiencyCalculator
             return in_array($account->account_type, $taxShelteredTypes);
         })->sum('current_value');
 
-        $taxableValue = $totalValue - $taxShelteredValue;
-        $taxablePercent = ($taxableValue / $totalValue) * 100;
+        // Base score is simply the tax-sheltered percentage
         $taxShelteredPercent = ($taxShelteredValue / $totalValue) * 100;
-
-        // Penalize high proportion in taxable accounts (GIA)
-        // 0-10% taxable = no penalty
-        // 10-25% taxable = -5 points
-        // 25-50% taxable = -15 points
-        // 50-75% taxable = -30 points
-        // 75-100% taxable = -50 points
-        if ($taxablePercent > 75) {
-            $score -= 50;
-        } elseif ($taxablePercent > 50) {
-            $score -= 30;
-        } elseif ($taxablePercent > 25) {
-            $score -= 15;
-        } elseif ($taxablePercent > 10) {
-            $score -= 5;
-        }
-
-        // Small bonus for excellent tax efficiency (>90% tax-sheltered)
-        if ($taxShelteredPercent >= 90) {
-            $score += 5;
-        }
-
-        // Check for holdings with large unrealized gains in taxable accounts
-        // (tax inefficient as selling would trigger CGT)
-        $largeGainHoldings = $holdings->filter(function ($holding) {
-            if ($holding->cost_basis === null || $holding->cost_basis <= 0) {
-                return false;
-            }
-            $gain = $holding->current_value - $holding->cost_basis;
-            $gainPercent = ($gain / $holding->cost_basis) * 100;
-
-            return $gainPercent > 50;
-        })->count();
-
-        if ($largeGainHoldings > 3) {
-            $score -= 15; // Many holdings with large gains
-        } elseif ($largeGainHoldings > 1) {
-            $score -= 5; // Some holdings with large gains
-        }
+        $score = (int) round($taxShelteredPercent);
 
         return max(0, min(100, $score));
     }
