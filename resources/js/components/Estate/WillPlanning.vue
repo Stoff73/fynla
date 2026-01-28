@@ -36,64 +36,17 @@
 
     <!-- Main Content -->
     <div v-else>
-      <!-- Has Will Question -->
-      <div class="bg-white rounded-lg border border-gray-200 p-6 mb-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">Do you have a will?</h3>
-
-        <div class="space-y-3">
-          <label class="flex items-start cursor-pointer">
-            <input
-              type="radio"
-              v-model="form.has_will"
-              :value="true"
-              class="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-              @change="handleWillStatusChange"
-            />
-            <div class="ml-3">
-              <span class="block text-sm font-medium text-gray-900">Yes, I have a will</span>
-              <span class="block text-xs text-gray-500">Configure your existing will details</span>
-            </div>
-          </label>
-          <label class="flex items-start cursor-pointer">
-            <input
-              type="radio"
-              v-model="form.has_will"
-              :value="false"
-              class="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-              @change="handleWillStatusChange"
-            />
-            <div class="ml-3">
-              <span class="block text-sm font-medium text-gray-900">No, I don't have a will</span>
-              <span class="block text-xs text-gray-500">See how your estate would be distributed under intestacy rules</span>
-            </div>
-          </label>
-          <label class="flex items-start cursor-pointer">
-            <input
-              type="radio"
-              v-model="form.has_will"
-              :value="null"
-              class="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-              @change="handleWillStatusChange"
-            />
-            <div class="ml-3">
-              <span class="block text-sm font-medium text-gray-900">I'm not sure / I prefer not to say</span>
-              <span class="block text-xs text-gray-500">View intestacy information</span>
-            </div>
-          </label>
-        </div>
-      </div>
-
-      <!-- Intestacy Rules Display (shown when has_will is false or null) -->
+      <!-- Intestacy Rules Display (shown when has_will is false or null AND not editing) -->
       <IntestacyRules
-        v-if="form.has_will === false || form.has_will === null"
+        v-if="(form.has_will === false || form.has_will === null) && !isEditing"
         :estate-value="netEstateValue"
         @create-will="createWill"
       />
 
-      <!-- Will Configuration Card (only shown when has_will is true) -->
-      <div v-if="form.has_will === true" class="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+      <!-- Will Planning Card -->
+      <div class="bg-white rounded-lg border border-gray-200 p-6 mb-6">
         <div class="flex justify-between items-start mb-4">
-          <h3 class="text-lg font-semibold text-gray-900">Will Configuration</h3>
+          <h3 class="text-lg font-semibold text-gray-900">Will Planning</h3>
           <div class="flex gap-3">
             <template v-if="!isEditing">
               <button
@@ -124,140 +77,182 @@
         </div>
 
         <!-- VIEW MODE -->
-        <div v-if="!isEditing" class="space-y-4">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <div class="text-sm font-medium text-gray-700 mb-1">Will Last Updated</div>
-              <p class="text-sm text-gray-900">{{ form.will_last_updated ? formatDate(form.will_last_updated) : 'Not specified' }}</p>
+        <div v-if="!isEditing">
+          <!-- Show will details if user has a will -->
+          <div v-if="form.has_will === true" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <div class="text-sm font-medium text-gray-700 mb-1">Will Last Updated</div>
+                <p class="text-sm text-gray-900">{{ form.will_last_updated ? formatDate(form.will_last_updated) : 'Not specified' }}</p>
+              </div>
+              <div>
+                <div class="text-sm font-medium text-gray-700 mb-1">Executor</div>
+                <p class="text-sm text-gray-900">{{ form.executor_name || 'Not specified' }}</p>
+              </div>
             </div>
-            <div>
-              <div class="text-sm font-medium text-gray-700 mb-1">Executor</div>
-              <p class="text-sm text-gray-900">{{ form.executor_name || 'Not specified' }}</p>
+
+            <div v-if="isMarried" class="border-t border-gray-200 pt-4">
+              <div class="text-sm font-medium text-gray-700 mb-1">Spouse as Primary Beneficiary</div>
+              <p class="text-sm text-gray-900">{{ form.spouse_primary_beneficiary ? 'Yes' : 'No' }}</p>
+              <p v-if="form.spouse_primary_beneficiary" class="text-sm text-gray-600 mt-1">
+                {{ form.spouse_bequest_percentage }}% to spouse ({{ formatCurrency(spouseAmount) }})
+              </p>
+            </div>
+
+            <div v-if="form.executor_notes" class="border-t border-gray-200 pt-4">
+              <div class="text-sm font-medium text-gray-700 mb-1">Executor Notes</div>
+              <p class="text-sm text-gray-900 whitespace-pre-line">{{ form.executor_notes }}</p>
             </div>
           </div>
 
-          <div v-if="isMarried" class="border-t border-gray-200 pt-4">
-            <div class="text-sm font-medium text-gray-700 mb-1">Spouse as Primary Beneficiary</div>
-            <p class="text-sm text-gray-900">{{ form.spouse_primary_beneficiary ? 'Yes' : 'No' }}</p>
-            <p v-if="form.spouse_primary_beneficiary" class="text-sm text-gray-600 mt-1">
-              {{ form.spouse_bequest_percentage }}% to spouse ({{ formatCurrency(spouseAmount) }})
-            </p>
-          </div>
-
-          <div v-if="form.executor_notes" class="border-t border-gray-200 pt-4">
-            <div class="text-sm font-medium text-gray-700 mb-1">Executor Notes</div>
-            <p class="text-sm text-gray-900 whitespace-pre-line">{{ form.executor_notes }}</p>
+          <!-- Show message if no will -->
+          <div v-else class="text-sm text-gray-600">
+            <p v-if="form.has_will === false">You have indicated that you don't have a will. Click Edit to update this.</p>
+            <p v-else>Will status not specified. Click Edit to configure your will details.</p>
           </div>
         </div>
 
         <!-- EDIT MODE -->
         <div v-else class="space-y-6">
-          <!-- Will Last Updated -->
+          <!-- Has Will Question -->
           <div>
-            <label for="will_last_updated" class="block text-sm font-medium text-gray-700 mb-2">
-              When was your will last updated?
-            </label>
-            <input
-              id="will_last_updated"
-              v-model="form.will_last_updated"
-              type="date"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-              :max="today"
-            />
-            <p class="mt-1 text-xs text-gray-500">
-              It's recommended to review your will every 5 years or after major life events
-            </p>
-          </div>
-
-          <!-- Executor Name -->
-          <div>
-            <label for="executor_name" class="block text-sm font-medium text-gray-700 mb-2">
-              Who is your executor?
-            </label>
-            <input
-              id="executor_name"
-              v-model="form.executor_name"
-              type="text"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Executor name"
-            />
-            <p class="mt-1 text-xs text-gray-500">
-              The person responsible for administering your estate
-            </p>
-          </div>
-
-          <!-- Spouse Bequest (only show if married) -->
-          <div v-if="isMarried" class="border-t border-gray-200 pt-6">
-            <div class="flex items-center justify-between mb-4">
-              <label class="block text-sm font-medium text-gray-700">
-                Spouse as Primary Beneficiary
-              </label>
-              <button
-                type="button"
-                @click="form.spouse_primary_beneficiary = !form.spouse_primary_beneficiary"
-                :class="[
-                  form.spouse_primary_beneficiary ? 'bg-blue-600' : 'bg-gray-200',
-                  'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
-                ]"
-              >
-                <span
-                  :class="[
-                    form.spouse_primary_beneficiary ? 'translate-x-5' : 'translate-x-0',
-                    'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out'
-                  ]"
+            <label class="block text-sm font-medium text-gray-700 mb-3">Do you have a will?</label>
+            <div class="space-y-2">
+              <label class="inline-flex items-center">
+                <input
+                  type="radio"
+                  v-model="form.has_will"
+                  :value="true"
+                  class="form-radio text-primary-600"
+                  @change="handleWillStatusChange"
                 />
-              </button>
+                <span class="ml-2 text-sm text-gray-700">Yes</span>
+              </label>
+              <label class="inline-flex items-center ml-6">
+                <input
+                  type="radio"
+                  v-model="form.has_will"
+                  :value="false"
+                  class="form-radio text-primary-600"
+                  @change="handleWillStatusChange"
+                />
+                <span class="ml-2 text-sm text-gray-700">No</span>
+              </label>
             </div>
+          </div>
 
-            <div v-if="form.spouse_primary_beneficiary" class="mt-4">
-              <label class="block text-sm font-medium text-gray-700 mb-2">
-                Percentage to Spouse ({{ form.spouse_bequest_percentage }}%)
+          <!-- Will Details (shown when has_will is true) -->
+          <template v-if="form.has_will === true">
+            <!-- Will Last Updated -->
+            <div>
+              <label for="will_last_updated" class="block text-sm font-medium text-gray-700 mb-2">
+                When was your will last updated?
               </label>
               <input
-                type="range"
-                v-model.number="form.spouse_bequest_percentage"
-                min="0"
-                max="100"
-                step="1"
-                class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                id="will_last_updated"
+                v-model="form.will_last_updated"
+                type="date"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                :max="today"
               />
-              <div class="flex justify-between text-xs text-gray-500 mt-1">
-                <span>0%</span>
-                <span>50%</span>
-                <span>100%</span>
+              <p class="mt-1 text-xs text-gray-500">
+                It's recommended to review your will every 5 years or after major life events
+              </p>
+            </div>
+
+            <!-- Executor Name -->
+            <div>
+              <label for="executor_name" class="block text-sm font-medium text-gray-700 mb-2">
+                Who is your executor?
+              </label>
+              <input
+                id="executor_name"
+                v-model="form.executor_name"
+                type="text"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter executor name"
+              />
+            </div>
+
+            <!-- Spouse Bequest (only show if married) -->
+            <div v-if="isMarried" class="border-t border-gray-200 pt-6">
+              <div class="flex items-center justify-between mb-4">
+                <label class="block text-sm font-medium text-gray-700">
+                  Spouse as Primary Beneficiary
+                </label>
+                <button
+                  type="button"
+                  @click="form.spouse_primary_beneficiary = !form.spouse_primary_beneficiary"
+                  :class="[
+                    form.spouse_primary_beneficiary ? 'bg-blue-600' : 'bg-gray-200',
+                    'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
+                  ]"
+                >
+                  <span
+                    :class="[
+                      form.spouse_primary_beneficiary ? 'translate-x-5' : 'translate-x-0',
+                      'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out'
+                    ]"
+                  />
+                </button>
               </div>
-              <p class="text-xs text-gray-600 mt-2">
-                <strong>{{ formatCurrency(spouseAmount) }}</strong> will pass to your spouse tax-free (unlimited spouse exemption)
-              </p>
-              <p v-if="form.spouse_bequest_percentage < 100" class="text-xs text-amber-600 mt-1">
-                <strong>{{ formatCurrency(nonSpouseAmount) }}</strong> will be subject to Inheritance Tax calculation (distributed to other beneficiaries)
-              </p>
+
+              <div v-if="form.spouse_primary_beneficiary" class="mt-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  Percentage to Spouse ({{ form.spouse_bequest_percentage }}%)
+                </label>
+                <input
+                  type="range"
+                  v-model.number="form.spouse_bequest_percentage"
+                  min="0"
+                  max="100"
+                  step="1"
+                  class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                />
+                <div class="flex justify-between text-xs text-gray-500 mt-1">
+                  <span>0%</span>
+                  <span>50%</span>
+                  <span>100%</span>
+                </div>
+                <p class="text-xs text-gray-600 mt-2">
+                  <strong>{{ formatCurrency(spouseAmount) }}</strong> will pass to your spouse tax-free (unlimited spouse exemption)
+                </p>
+                <p v-if="form.spouse_bequest_percentage < 100" class="text-xs text-amber-600 mt-1">
+                  <strong>{{ formatCurrency(nonSpouseAmount) }}</strong> will be subject to Inheritance Tax calculation (distributed to other beneficiaries)
+                </p>
+              </div>
+
+              <div v-else class="mt-4 bg-amber-50 border border-amber-200 rounded-lg p-3">
+                <p class="text-sm text-amber-800">
+                  Your spouse is not set as the primary beneficiary. The entire estate will be subject to Inheritance Tax calculation.
+                </p>
+              </div>
             </div>
 
-            <div v-else class="mt-4 bg-amber-50 border border-amber-200 rounded-lg p-3">
-              <p class="text-sm text-amber-800">
-                Your spouse is not set as the primary beneficiary. The entire estate will be subject to Inheritance Tax calculation.
-              </p>
+            <!-- Executor Notes -->
+            <div class="border-t border-gray-200 pt-6">
+              <label class="block text-sm font-medium text-gray-700 mb-2">
+                Executor Notes (Optional)
+              </label>
+              <textarea
+                v-model="form.executor_notes"
+                rows="3"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Any special instructions or notes for your executor..."
+              ></textarea>
             </div>
-          </div>
+          </template>
 
-          <!-- Executor Notes -->
-          <div class="border-t border-gray-200 pt-6">
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              Executor Notes (Optional)
-            </label>
-            <textarea
-              v-model="form.executor_notes"
-              rows="3"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Any special instructions or notes for your executor..."
-            ></textarea>
+          <!-- No Will Message (shown when has_will is false in edit mode) -->
+          <div v-if="form.has_will === false" class="bg-green-50 p-4 rounded-lg border border-green-200">
+            <p class="text-sm text-green-800">
+              <strong>Important:</strong> Without a will, your estate will be distributed according to intestacy rules, which may not reflect your wishes.
+            </p>
           </div>
         </div>
-      </div>
 
-      <!-- Bequests Section (only shown when has_will is true) -->
-      <div v-if="form.has_will === true" class="bg-white rounded-lg border border-gray-200 p-6">
+        <!-- Bequests Section (inside card, shown when has_will is true and not editing) -->
+        <div v-if="form.has_will === true && !isEditing" class="border-t border-gray-200 mt-6 pt-6">
         <div class="flex justify-between items-center mb-4">
           <h3 class="text-lg font-semibold text-gray-900">Specific Bequests</h3>
           <button
@@ -323,6 +318,7 @@
           <p class="text-xs mt-1">Click "Add Bequest" to specify gifts to beneficiaries.</p>
         </div>
       </div>
+      </div>
     </div>
 
     <!-- Success Message -->
@@ -351,11 +347,18 @@ export default {
     IntestacyRules,
   },
 
+  props: {
+    startInEditMode: {
+      type: Boolean,
+      default: false,
+    },
+  },
+
   data() {
     return {
       loading: true,
       saving: false,
-      isEditing: false,
+      isEditing: this.startInEditMode,
       will: null,
       form: {
         has_will: null,

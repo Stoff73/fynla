@@ -239,6 +239,50 @@
             </p>
           </div>
 
+          <!-- Dividend Income (always shown when status is selected) -->
+          <div v-if="formData.employment_status">
+            <label for="annual_dividend_income" class="label">
+              Annual Dividend Income
+            </label>
+            <div class="relative">
+              <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">£</span>
+              <input
+                id="annual_dividend_income"
+                v-model.number="formData.annual_dividend_income"
+                type="number"
+                min="0"
+                step="100"
+                class="input-field pl-8"
+                placeholder="0"
+              >
+            </div>
+            <p class="mt-1 text-body-sm text-gray-500">
+              Income from shares and investments
+            </p>
+          </div>
+
+          <!-- Interest Income (always shown when status is selected) -->
+          <div v-if="formData.employment_status">
+            <label for="annual_interest_income" class="label">
+              Annual Interest Income
+            </label>
+            <div class="relative">
+              <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">£</span>
+              <input
+                id="annual_interest_income"
+                v-model.number="formData.annual_interest_income"
+                type="number"
+                min="0"
+                step="100"
+                class="input-field pl-8"
+                placeholder="0"
+              >
+            </div>
+            <p class="mt-1 text-body-sm text-gray-500">
+              Interest from savings accounts and bonds
+            </p>
+          </div>
+
           <!-- Other Income (always shown when status is selected) -->
           <div v-if="formData.employment_status">
             <label for="annual_other_income" class="label">
@@ -306,6 +350,8 @@ export default {
       annual_employment_income: 0,
       annual_self_employment_income: 0,
       annual_benefit_income: 0,
+      annual_dividend_income: 0,
+      annual_interest_income: 0,
       annual_other_income: 0,
     });
 
@@ -331,6 +377,8 @@ export default {
         (formData.value.annual_employment_income || 0) +
         (formData.value.annual_self_employment_income || 0) +
         (formData.value.annual_benefit_income || 0) +
+        (formData.value.annual_dividend_income || 0) +
+        (formData.value.annual_interest_income || 0) +
         (formData.value.annual_other_income || 0) +
         (annualRentalIncome.value || 0)
       );

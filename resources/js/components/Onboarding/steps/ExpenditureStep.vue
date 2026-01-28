@@ -18,6 +18,8 @@
       :is-married="isMarried"
       :always-show-tabs="false"
       :show-buttons="false"
+      :start-in-edit-mode="true"
+      :show-budget-tabs="false"
       @save="handleFormSave"
     />
   </OnboardingStep>

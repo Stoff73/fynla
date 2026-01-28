@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-6">
-    <!-- Budget Type Tabs -->
-    <div class="border-b border-gray-200">
+    <!-- Budget Type Tabs (only shown when showBudgetTabs is true) -->
+    <div v-if="showBudgetTabs" class="border-b border-gray-200">
       <nav class="-mb-px flex space-x-8" aria-label="Budget tabs">
         <button
           type="button"
@@ -829,9 +829,9 @@
               <span class="text-body-base font-semibold text-gray-900">Essential Living</span>
             </div>
           </div>
-          <div class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(getRetiredSectionTotal('essential')) }}</div>
-          <div v-if="isMarried" class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold"></div>
-          <div v-if="isMarried" class="col-total pt-4 pb-2 text-body-sm text-gray-900 font-semibold"></div>
+          <div class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(getRetiredUserSectionTotal('essential')) }}</div>
+          <div v-if="isMarried" class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(getRetiredSpouseSectionTotal('essential')) }}</div>
+          <div v-if="isMarried" class="col-total pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(getRetiredSectionTotal('essential')) }}</div>
           <template v-if="isSectionExpanded('retired', 'essential')">
             <template v-for="field in retiredBudgetFields.essential" :key="field.key">
               <div class="col-label text-body-sm text-gray-600 py-1 pl-7">
@@ -860,9 +860,9 @@
               <span class="text-body-base font-semibold text-gray-900">Communication & Technology</span>
             </div>
           </div>
-          <div class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(getRetiredSectionTotal('communication')) }}</div>
-          <div v-if="isMarried" class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold"></div>
-          <div v-if="isMarried" class="col-total pt-4 pb-2 text-body-sm text-gray-900 font-semibold"></div>
+          <div class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(getRetiredUserSectionTotal('communication')) }}</div>
+          <div v-if="isMarried" class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(getRetiredSpouseSectionTotal('communication')) }}</div>
+          <div v-if="isMarried" class="col-total pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(getRetiredSectionTotal('communication')) }}</div>
           <template v-if="isSectionExpanded('retired', 'communication')">
             <template v-for="field in retiredBudgetFields.communication" :key="field.key">
               <div class="col-label text-body-sm text-gray-600 py-1 pl-7">
@@ -891,9 +891,9 @@
               <span class="text-body-base font-semibold text-gray-900">Personal & Lifestyle</span>
             </div>
           </div>
-          <div class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(getRetiredSectionTotal('lifestyle')) }}</div>
-          <div v-if="isMarried" class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold"></div>
-          <div v-if="isMarried" class="col-total pt-4 pb-2 text-body-sm text-gray-900 font-semibold"></div>
+          <div class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(getRetiredUserSectionTotal('lifestyle')) }}</div>
+          <div v-if="isMarried" class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(getRetiredSpouseSectionTotal('lifestyle')) }}</div>
+          <div v-if="isMarried" class="col-total pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(getRetiredSectionTotal('lifestyle')) }}</div>
           <template v-if="isSectionExpanded('retired', 'lifestyle')">
             <template v-for="field in retiredBudgetFields.lifestyle" :key="field.key">
               <div class="col-label text-body-sm text-gray-600 py-1 pl-7">
@@ -922,9 +922,9 @@
               <span class="text-body-base font-semibold text-gray-900">Children & Dependents</span>
             </div>
           </div>
-          <div class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(getRetiredSectionTotal('children')) }}</div>
-          <div v-if="isMarried" class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold"></div>
-          <div v-if="isMarried" class="col-total pt-4 pb-2 text-body-sm text-gray-900 font-semibold"></div>
+          <div class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(getRetiredUserSectionTotal('children')) }}</div>
+          <div v-if="isMarried" class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(getRetiredSpouseSectionTotal('children')) }}</div>
+          <div v-if="isMarried" class="col-total pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(getRetiredSectionTotal('children')) }}</div>
           <template v-if="isSectionExpanded('retired', 'children')">
             <template v-for="field in retiredBudgetFields.children" :key="field.key">
               <div class="col-label text-body-sm text-gray-600 py-1 pl-7">
@@ -953,9 +953,9 @@
               <span class="text-body-base font-semibold text-gray-900">Other Expenses</span>
             </div>
           </div>
-          <div class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(getRetiredSectionTotal('other')) }}</div>
-          <div v-if="isMarried" class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold"></div>
-          <div v-if="isMarried" class="col-total pt-4 pb-2 text-body-sm text-gray-900 font-semibold"></div>
+          <div class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(getRetiredUserSectionTotal('other')) }}</div>
+          <div v-if="isMarried" class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(getRetiredSpouseSectionTotal('other')) }}</div>
+          <div v-if="isMarried" class="col-total pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(getRetiredSectionTotal('other')) }}</div>
           <template v-if="isSectionExpanded('retired', 'other')">
             <template v-for="field in retiredBudgetFields.other" :key="field.key">
               <div class="col-label text-body-sm text-gray-600 py-1 pl-7">
@@ -1441,6 +1441,14 @@ export default {
       type: String,
       default: 'Save Changes',
     },
+    startInEditMode: {
+      type: Boolean,
+      default: false,
+    },
+    showBudgetTabs: {
+      type: Boolean,
+      default: true,
+    },
   },
 
   emits: ['save', 'cancel'],
@@ -1448,7 +1456,7 @@ export default {
   setup(props, { emit }) {
     const store = useStore();
     const activeBudgetTab = ref('current');
-    const isEditing = ref(false);
+    const isEditing = ref(props.startInEditMode);
     const useSimpleEntry = ref(false);
     const useSeparateExpenditure = ref(false);
     const simpleMonthlyExpenditure = ref(0);
@@ -1718,8 +1726,8 @@ export default {
 
     // Auto-adjustment rules for retired budget
     const retiredAdjustmentRules = {
-      transport_fuel: { factor: 0.4, reason: 'Reduced to 40% - no commuting' },
-      clothing_personal_care: { factor: 0.7, reason: 'Reduced to 70% - no work wardrobe needed' },
+      transport_fuel: { factor: 0.4, reason: 'Reduced by 60% - no commuting' },
+      clothing_personal_care: { factor: 0.7, reason: 'Reduced by 30% - no work wardrobe needed' },
       childcare: { factor: 0, reason: 'Set to £0 - children typically independent by retirement' },
       school_fees: { factor: 0, reason: 'Set to £0 - children typically finished education' },
       school_lunches: { factor: 0, reason: 'Set to £0 - children typically finished school' },
@@ -1888,14 +1896,25 @@ export default {
       return retired - current;
     };
 
-    // Get section total for retired budget (household total)
-    const getRetiredSectionTotal = (section) => {
+    // Get user section total for retired budget
+    const getRetiredUserSectionTotal = (section) => {
       const fields = retiredBudgetFields.value[section] || [];
       return fields.reduce((total, field) => {
-        const userVal = getRetiredUserValue(field.key);
-        const spouseVal = props.isMarried ? getRetiredSpouseValue(field.key) : 0;
-        return total + userVal + spouseVal;
+        return total + getRetiredUserValue(field.key);
       }, 0);
+    };
+
+    // Get spouse section total for retired budget
+    const getRetiredSpouseSectionTotal = (section) => {
+      const fields = retiredBudgetFields.value[section] || [];
+      return fields.reduce((total, field) => {
+        return total + getRetiredSpouseValue(field.key);
+      }, 0);
+    };
+
+    // Get section total for retired budget (household total)
+    const getRetiredSectionTotal = (section) => {
+      return getRetiredUserSectionTotal(section) + (props.isMarried ? getRetiredSpouseSectionTotal(section) : 0);
     };
 
     // Retired manual expenditure total (excluding financial commitments)
@@ -2013,13 +2032,13 @@ export default {
 
     // Auto-adjustment rules for widowed budget (single person household)
     const widowedAdjustmentRules = {
-      food_groceries: { factor: 0.6, reason: 'Reduced to 60% - single person household' },
-      transport_fuel: { factor: 0.6, reason: 'Reduced to 60% - one car/person' },
-      mobile_phones: { factor: 0.5, reason: 'Reduced to 50% - one phone contract' },
-      subscriptions: { factor: 0.7, reason: 'Reduced to 70% - fewer shared subscriptions' },
-      clothing_personal_care: { factor: 0.5, reason: 'Reduced to 50% - single person' },
-      entertainment_dining: { factor: 0.6, reason: 'Reduced to 60% - single person' },
-      holidays_travel: { factor: 0.7, reason: 'Reduced to 70% - single traveller' },
+      food_groceries: { factor: 0.6, reason: 'Reduced by 40% - single person household' },
+      transport_fuel: { factor: 0.6, reason: 'Reduced by 40% - one car/person' },
+      mobile_phones: { factor: 0.5, reason: 'Reduced by 50% - one phone contract' },
+      subscriptions: { factor: 0.7, reason: 'Reduced by 30% - fewer shared subscriptions' },
+      clothing_personal_care: { factor: 0.5, reason: 'Reduced by 50% - single person' },
+      entertainment_dining: { factor: 0.6, reason: 'Reduced by 40% - single person' },
+      holidays_travel: { factor: 0.7, reason: 'Reduced by 30% - single traveller' },
       childcare: { factor: 1.3, reason: 'Increased by 30% - may need additional childcare' },
     };
 
@@ -2394,6 +2413,8 @@ export default {
       toggleSection,
       isSectionExpanded,
       getRetiredSectionTotal,
+      getRetiredUserSectionTotal,
+      getRetiredSpouseSectionTotal,
     };
   },
 };

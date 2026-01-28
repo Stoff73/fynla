@@ -335,7 +335,7 @@ After deployment, verify:
 
 **Branch:** userProReformat
 
-**Status:** Ready for deployment
+**Status:** ✅ Deployed to production
 
 ### Description
 
@@ -384,7 +384,7 @@ Test form modals across all modules:
 
 **Branch:** userProReformat
 
-**Status:** Ready for deployment
+**Status:** ✅ Deployed to production
 
 ### Description
 
@@ -469,7 +469,7 @@ Test all User Profile tabs:
 
 **Branch:** userProReformat
 
-**Status:** Ready for deployment
+**Status:** ✅ Deployed to production
 
 ### Description
 
@@ -533,7 +533,7 @@ The controller now:
 
 **Branch:** userProReformat
 
-**Status:** Ready for deployment
+**Status:** ✅ Deployed to production
 
 ### Description
 
@@ -645,7 +645,7 @@ resources/js/components/UserProfile/ExpenditureForm.vue
 
 **Branch:** userProReformat
 
-**Status:** Ready for deployment
+**Status:** ✅ Deployed to production
 
 ### Description
 
@@ -730,7 +730,7 @@ resources/js/components/UserProfile/ExpenditureForm.vue
 
 **Branch:** main
 
-**Status:** Ready for deployment
+**Status:** ✅ Deployed to production
 
 ### Description
 
@@ -780,6 +780,532 @@ resources/js/components/UserProfile/ExpenditureForm.vue
 5. Verify "Automatic Adjustments Applied" box has green background
 6. Verify TOTAL MONTHLY row shows only the value (no bracketed change indicator)
 7. Verify "Monthly Reduction from Current" row shows the savings amount
+
+---
+
+## Expenditure Tab - Collapsible Sections & Budget Consistency
+
+**Date:** 28 January 2026
+
+**Branch:** userProReformat
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Added collapsible/accordion sections to all budget tabs and ensured consistent structure across Current, Retired, and Widowed budgets.
+
+### Changes Made
+
+| Change | Description |
+|--------|-------------|
+| Collapsible sections | Each category (Essential, Communication, Lifestyle, Children, Other) now has an arrow that expands/collapses the items |
+| Sections start collapsed | All sections collapsed by default, user clicks to expand |
+| Category totals always visible | Even when collapsed, the category totals show in the header row |
+| Manual Expenditure Total | Added to Retired and Widowed budgets (was only in Current) |
+| Financial Commitments header | Changed from h4 to span for consistent sizing across all tabs |
+
+### Collapsible Section Behaviour
+
+- Arrow next to category heading (rotates 90° when expanded)
+- Category totals always visible in the grid columns
+- Items indented when expanded (pl-7)
+- Clicking header row toggles expansion
+
+### Files Changed
+
+**Frontend (Included in Build):**
+```text
+resources/js/components/UserProfile/ExpenditureForm.vue
+```
+
+### Computed Properties Added
+
+```javascript
+retiredManualExpenditureTotal    // User's retired manual expenditure (excluding commitments)
+retiredSpouseManualExpenditureTotal  // Spouse's retired manual expenditure
+retiredHouseholdManualExpenditureTotal  // Household total
+widowedManualExpenditureTotal    // Widowed manual expenditure (excluding commitments)
+```
+
+### Bug Fix
+
+Fixed `isMarried.value` reference error in `getRetiredSectionTotal` - changed to `props.isMarried`.
+
+### Rebuild Required: YES
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+### Verification
+
+1. Navigate to User Profile → Expenditure tab → Current Budget
+2. Verify all category sections are collapsed by default
+3. Click arrow next to "Essential Living" - verify items expand below
+4. Verify category totals remain visible in header row when collapsed
+5. Navigate to Retired Budget tab
+6. Verify "Manual Expenditure Total" row appears before Financial Commitments
+7. Verify same collapsible behaviour as Current Budget
+8. Navigate to Widowed Budget tab
+9. Verify "Manual Expenditure Total" row appears before Financial Commitments
+10. Verify Financial Commitments header is same size as other category headers
+
+---
+
+## Income Tab - Side-by-Side Layout & Inline Disposable Income
+
+**Date:** 28 January 2026
+
+**Branch:** userProReformat
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Redesigned the Income tab to display Income and Tax & NI calculations side-by-side, and moved disposable income to be inline with income totals.
+
+### Changes Made
+
+| Change | Description |
+|--------|-------------|
+| Side-by-side layout | Income card and Tax & NI card now display in two columns on larger screens |
+| Inline disposable income | Net Income, Annual Expenditure, and Disposable Income shown as line items below Total Annual Income |
+| Removed separate card | Disposable Income card section removed (content moved inline) |
+| Simplified view mode | Income list changed from two-column to single-column layout (fits narrower card) |
+
+### Layout Structure
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  ┌─────────────────────┐  ┌─────────────────────────┐   │
+│  │ Income              │  │ Tax & NI                │   │
+│  │ ─────────────────── │  │ ─────────────────────── │   │
+│  │ Employment: £X      │  │ [TaxIncomeCard]         │   │
+│  │ Self-Employment: £X │  │ [TaxIncomeCard]         │   │
+│  │ ...                 │  │                         │   │
+│  │ ─────────────────── │  │ Note: Tax calculations  │   │
+│  │ Total Income: £X    │  │ use 2025/26 rates...    │   │
+│  │ ─────────────────── │  └─────────────────────────┘   │
+│  │ Net Income: £X      │                                │
+│  │ Expenditure: £X     │                                │
+│  │ Disposable: £X      │                                │
+│  └─────────────────────┘                                │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Files Changed
+
+**Frontend (Included in Build):**
+```text
+resources/js/components/UserProfile/IncomeOccupation.vue
+```
+
+### Rebuild Required: YES
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+### Verification
+
+1. Navigate to User Profile → Income tab
+2. Verify Income card and Tax & NI card are side-by-side on desktop
+3. Verify Tax & NI card stacks below on mobile
+4. Below "Total Annual Income", verify these line items appear:
+   - Net Income (after tax)
+   - Annual Expenditure
+   - Disposable Income (green if positive, red if negative)
+5. Verify no separate "Disposable Income" card exists below
+
+---
+
+## Tab Reorganisation - User Profile & Valuable Info
+
+**Date:** 28 January 2026
+
+**Branch:** userProReformat
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Reorganised tabs between User Profile and Valuable Information pages for better information architecture.
+
+### Changes Made
+
+| Change | From | To |
+|--------|------|-----|
+| Income tab | User Profile | Valuable Info |
+| Expenditure tab | User Profile | Valuable Info |
+| Balance Sheet tab | Valuable Info | **Removed** |
+| Income Statement/Cash Flow tab | Valuable Info | **Removed** |
+
+### Final Tab Structure
+
+**User Profile:**
+- Personal Info
+- Health
+- Family
+
+**Valuable Information:**
+- Letter to Spouse / Expression of Wishes
+- Will
+- Income
+- Expenditure
+- Risk Profile
+
+### Files Changed
+
+**Frontend (Included in Build):**
+```text
+resources/js/views/UserProfile.vue
+resources/js/views/ValuableInfo.vue
+```
+
+### Rebuild Required: YES
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+### Verification
+
+1. Navigate to User Profile
+2. Verify only 3 tabs: Personal Info, Health, Family
+3. Navigate to Valuable Information
+4. Verify 5 tabs: Letter to Spouse, Will, Income, Expenditure, Risk Profile
+5. Verify Balance Sheet and Income Statement tabs no longer exist
+6. Test Income and Expenditure tabs function correctly in new location
+
+---
+
+## View/Edit Mode for Letter to Spouse & Will Planning
+
+**Date:** 28 January 2026
+
+**Branch:** userProReformat
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Applied the same view/edit mode pattern used in User Profile to the Letter to Spouse and Will Planning tabs in Valuable Information.
+
+### Letter to Spouse Changes
+
+| Section | View Mode | Edit Mode |
+|---------|-----------|-----------|
+| Part 1: What to Do Immediately | Plain text display of contacts and checklists | Input fields for all editable data |
+| Part 2: Financial Overview | Auto-populated (unchanged) | Auto-populated (unchanged) |
+| Part 3: Additional Information | Plain text display | Input fields |
+| Part 4: Funeral and Final Wishes | Plain text display | Input fields |
+
+**Features:**
+- Edit button in header to enter edit mode
+- Cancel button to revert unsaved changes
+- Save button commits changes
+- Spouse view toggle remains functional (read-only when viewing spouse's letter)
+
+### Will Planning Changes
+
+| Section | View Mode | Edit Mode |
+|---------|-----------|-----------|
+| Has Will question | Radio buttons (always interactive) | Radio buttons (always interactive) |
+| Will Configuration | Formatted display (date, executor, spouse %) | Form inputs |
+| Bequests | List with Add/Edit/Delete (unchanged) | List with Add/Edit/Delete (unchanged) |
+
+**Features:**
+- Edit button in Will Configuration header
+- Cancel button to revert unsaved changes
+- Formatted date display (e.g., "28 January 2026")
+- Spouse percentage shown as summary text
+
+### Files Changed
+
+**Frontend (Included in Build):**
+```text
+resources/js/components/UserProfile/LetterToSpouse.vue
+resources/js/components/Estate/WillPlanning.vue
+resources/js/views/UserProfile.vue
+resources/js/views/ValuableInfo.vue
+```
+
+### Rebuild Required: YES
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+### Verification
+
+**Letter to Spouse:**
+1. Navigate to Valuable Information → Letter to Spouse tab
+2. Verify all sections display as plain text (no input boxes)
+3. Click Edit button
+4. Verify input fields appear for Parts 1, 3, 4
+5. Make a change, click Cancel - verify change is reverted
+6. Make a change, click Save - verify change is persisted
+7. If married, test spouse view toggle still works
+
+**Will Planning:**
+1. Navigate to Valuable Information → Will tab
+2. Select "Yes, I have a will"
+3. Verify Will Configuration shows plain text (date, executor name)
+4. Click Edit button
+5. Verify form inputs appear
+6. Make a change, click Cancel - verify change is reverted
+7. Make a change, click Save - verify change is persisted
+
+---
+
+## Expenditure Form - Conditional Edit Mode & Budget Tabs
+
+**Date:** 28 January 2026
+
+**Branch:** main
+
+**Status:** Ready for deployment
+
+### Description
+
+Added props to ExpenditureForm component to control behaviour based on context:
+
+1. **`startInEditMode`** - Controls whether the form loads in edit mode or view mode
+2. **`showBudgetTabs`** - Controls whether Retired and Widowed budget tabs are shown
+
+| Context | Edit Mode | Budget Tabs |
+|---------|-----------|-------------|
+| Onboarding | Yes (edit immediately) | No (Current only) |
+| Valuable Info | No (view mode) | Yes (all tabs) |
+
+### Files Changed
+
+**Frontend (Included in Build):**
+```text
+resources/js/components/UserProfile/ExpenditureForm.vue
+resources/js/components/Onboarding/steps/ExpenditureStep.vue
+```
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| ExpenditureForm.vue | Added `startInEditMode` prop (default: `false`), `showBudgetTabs` prop (default: `true`) |
+| ExpenditureStep.vue | Added `:start-in-edit-mode="true"` and `:show-budget-tabs="false"` props |
+
+### Rebuild Required: YES
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+### Verification
+
+**Onboarding:**
+1. Start new onboarding flow
+2. Navigate to Household Expenditure step
+3. Verify form loads in edit mode (input fields visible immediately)
+4. Verify NO budget tabs shown (no Current/Retired/Widowed tabs)
+
+**Valuable Info:**
+1. Navigate to Valuable Information → Expenditure tab
+2. Verify form loads in view mode (values displayed as text)
+3. Verify budget tabs ARE shown (Current, Retired, Widowed for married users)
+4. Click Edit button and verify form switches to edit mode
+
+---
+
+## Retired Budget - Section Totals Fix
+
+**Date:** 28 January 2026
+
+**Branch:** main
+
+**Status:** Ready for deployment
+
+### Description
+
+Fixed the Retired Budget tab where the Angela (spouse) and Household columns were showing blank values for category section totals (Essential Living, Communication, etc.).
+
+### Issue
+
+The section header rows were only showing the user's total in the Chris column. The Angela and Household columns were empty because the template was using `getRetiredSectionTotal()` (which returned the household total) in the wrong column.
+
+### Fix
+
+Added separate functions for calculating section totals:
+
+| Function | Returns |
+|----------|---------|
+| `getRetiredUserSectionTotal(section)` | User's section total only |
+| `getRetiredSpouseSectionTotal(section)` | Spouse's section total only |
+| `getRetiredSectionTotal(section)` | Household total (user + spouse) |
+
+Updated all 5 section headers (Essential, Communication, Lifestyle, Children, Other) to use the correct function for each column.
+
+### Files Changed
+
+**Frontend (Included in Build):**
+```text
+resources/js/components/UserProfile/ExpenditureForm.vue
+```
+
+### Rebuild Required: YES
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+### Verification
+
+1. Navigate to Valuable Information → Expenditure → Retired Budget tab
+2. Verify all three columns (Chris, Angela, Household) show values for each category section
+3. Verify the totals add up correctly (Chris + Angela = Household)
+
+---
+
+## Budget Adjustments - Wording Change
+
+**Date:** 28 January 2026
+
+**Branch:** main
+
+**Status:** Ready for deployment
+
+### Description
+
+Changed the wording in the "Automatic Adjustments Applied" info box from "Reduced to X%" to "Reduced by Y%".
+
+### Changes
+
+**Retired Budget adjustments:**
+| Category | Old Wording | New Wording |
+|----------|-------------|-------------|
+| Transport & Fuel | Reduced to 40% | Reduced by 60% |
+| Clothing & Personal Care | Reduced to 70% | Reduced by 30% |
+
+**Widowed Budget adjustments:**
+| Category | Old Wording | New Wording |
+|----------|-------------|-------------|
+| Food & Groceries | Reduced to 60% | Reduced by 40% |
+| Transport & Fuel | Reduced to 60% | Reduced by 40% |
+| Mobile Phones | Reduced to 50% | Reduced by 50% |
+| Subscriptions | Reduced to 70% | Reduced by 30% |
+| Clothing & Personal Care | Reduced to 50% | Reduced by 50% |
+| Entertainment & Dining | Reduced to 60% | Reduced by 40% |
+| Holidays & Travel | Reduced to 70% | Reduced by 30% |
+
+### Files Changed
+
+**Frontend (Included in Build):**
+```text
+resources/js/components/UserProfile/ExpenditureForm.vue
+```
+
+### Rebuild Required: YES
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+### Verification
+
+1. Navigate to Valuable Information → Expenditure → Retired Budget tab
+2. Check "Automatic Adjustments Applied" box shows "Reduced by X%" wording
+3. Navigate to Widowed Budget tab
+4. Check "Automatic Adjustments Applied" box shows "Reduced by X%" wording
+
+---
+
+## Will Planning - Unified Card & View/Edit Mode
+
+**Date:** 28 January 2026
+
+**Branch:** main
+
+**Status:** Ready for deployment
+
+### Description
+
+Redesigned the Will Planning tab in Valuable Info to use a single unified card with proper view/edit mode separation.
+
+### Changes
+
+- Removed separate "Will Status" and "Will Configuration" cards
+- Combined everything into one "Will Planning" card
+- **View mode**: Shows will last updated, executor, spouse beneficiary info, and bequests section
+- **Edit mode**: Shows "Do you have a will?" Yes/No question plus all form fields
+- Added `startInEditMode` prop for potential onboarding use
+
+### Files Changed
+
+**Frontend (Included in Build):**
+```text
+resources/js/components/Estate/WillPlanning.vue
+```
+
+### Rebuild Required: YES
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+### Verification
+
+1. Navigate to Valuable Information → Will tab
+2. Verify single "Will Planning" card is shown
+3. In view mode, verify last updated date, executor, and bequests are visible
+4. Click Edit, verify "Do you have a will?" question appears with form fields
+5. Save changes and verify view mode returns
+
+---
+
+## Income Step - Dividend & Interest Income Fields
+
+**Date:** 28 January 2026
+
+**Branch:** main
+
+**Status:** Ready for deployment
+
+### Description
+
+Added Dividend Income and Interest Income fields to the onboarding Income step, making these always visible so users can enter them during onboarding or through the Valuable Info Income tab.
+
+### Changes
+
+- Added `annual_dividend_income` field with description "Income from shares and investments"
+- Added `annual_interest_income` field with description "Interest from savings accounts and bonds"
+- Both fields included in total income calculation
+- Fields visible when employment status is selected
+
+### Files Changed
+
+**Frontend (Included in Build):**
+```text
+resources/js/components/Onboarding/steps/IncomeStep.vue
+```
+
+### Rebuild Required: YES
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+### Verification
+
+**Onboarding:**
+1. Start onboarding flow
+2. Navigate to Employment & Income step
+3. Select any employment status
+4. Verify Dividend Income and Interest Income fields are visible
+5. Enter values and verify they're included in Total Annual Income
+
+**Valuable Info:**
+1. Navigate to Valuable Information → Income tab
+2. Click Edit
+3. Verify Dividend Income and Interest Income fields are visible and editable
 
 ---
 
