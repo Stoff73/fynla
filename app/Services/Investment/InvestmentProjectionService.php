@@ -74,7 +74,8 @@ class InvestmentProjectionService
         }
 
         // Generate cache key based on user ID (contribution overrides bypass cache)
-        if ($contributionOverrides === null) {
+        // Check empty() instead of === null since frontend may send empty array
+        if (empty($contributionOverrides)) {
             $cacheKey = "investment_portfolio_projections_{$user->id}";
 
             return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($user, $accounts, $projectionPeriods, $selectedPeriod) {
