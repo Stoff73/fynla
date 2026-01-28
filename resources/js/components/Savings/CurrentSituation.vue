@@ -419,7 +419,7 @@ export default {
 .account-card:hover {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   transform: translateY(-2px);
-  border-@apply text-primary-500;
+  @apply border-primary-500;
 }
 
 .card-header {

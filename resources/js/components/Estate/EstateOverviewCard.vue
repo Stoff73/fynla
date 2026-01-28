@@ -333,18 +333,7 @@ export default {
   color: white;
 }
 
-/* Inheritance Tax Liability Color Classes */
-.text-green-600 {
-  @apply text-green-500;
-}
-
-.text-amber-600 {
-  @apply text-amber-500;
-}
-
-.text-red-600 {
-  @apply text-red-600;
-}
+/* Inheritance Tax Liability Color Classes - using Tailwind utilities directly in template */
 
 @media (min-width: 640px) {
   .estate-overview-card {

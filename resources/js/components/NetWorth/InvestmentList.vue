@@ -1124,7 +1124,7 @@ export default {
 }
 
 .summary-item.portfolio {
-  border-left-@apply text-primary-500;
+  @apply border-l-primary-500;
 }
 
 .summary-item.returns.positive {
