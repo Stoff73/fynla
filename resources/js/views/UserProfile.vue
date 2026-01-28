@@ -64,8 +64,6 @@
             <PersonalInformation v-show="activeTab === 'personal'" />
             <HealthInformation v-show="activeTab === 'health'" />
             <FamilyMembers v-show="activeTab === 'family'" />
-            <IncomeOccupation v-show="activeTab === 'income'" />
-            <ExpenditureOverview v-show="activeTab === 'expenditure'" />
           </div>
         </div>
       </div>
@@ -80,8 +78,6 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import PersonalInformation from '@/components/UserProfile/PersonalInformation.vue';
 import HealthInformation from '@/components/UserProfile/HealthInformation.vue';
 import FamilyMembers from '@/components/UserProfile/FamilyMembers.vue';
-import IncomeOccupation from '@/components/UserProfile/IncomeOccupation.vue';
-import ExpenditureOverview from '@/components/UserProfile/ExpenditureOverview.vue';
 
 export default {
   name: 'UserProfile',
@@ -91,8 +87,6 @@ export default {
     PersonalInformation,
     HealthInformation,
     FamilyMembers,
-    IncomeOccupation,
-    ExpenditureOverview,
   },
 
   setup() {
@@ -107,8 +101,6 @@ export default {
       { id: 'personal', label: 'Personal Info' },
       { id: 'health', label: 'Health' },
       { id: 'family', label: 'Family' },
-      { id: 'income', label: 'Income' },
-      { id: 'expenditure', label: 'Expenditure' },
     ];
 
     const tabs = computed(() => allTabs);

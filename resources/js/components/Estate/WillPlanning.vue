@@ -92,9 +92,66 @@
 
       <!-- Will Configuration Card (only shown when has_will is true) -->
       <div v-if="form.has_will === true" class="bg-white rounded-lg border border-gray-200 p-6 mb-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">Will Configuration</h3>
+        <div class="flex justify-between items-start mb-4">
+          <h3 class="text-lg font-semibold text-gray-900">Will Configuration</h3>
+          <div class="flex gap-3">
+            <template v-if="!isEditing">
+              <button
+                @click="startEditing"
+                class="btn-secondary"
+              >
+                Edit
+              </button>
+            </template>
+            <template v-else>
+              <button
+                @click="cancelEditing"
+                class="btn-secondary"
+                :disabled="saving"
+              >
+                Cancel
+              </button>
+              <button
+                v-preview-disabled="'save'"
+                @click="saveWill"
+                :disabled="saving"
+                class="btn-primary"
+              >
+                {{ saving ? 'Saving...' : 'Save' }}
+              </button>
+            </template>
+          </div>
+        </div>
 
-        <div class="space-y-6">
+        <!-- VIEW MODE -->
+        <div v-if="!isEditing" class="space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <div class="text-sm font-medium text-gray-700 mb-1">Will Last Updated</div>
+              <p class="text-sm text-gray-900">{{ form.will_last_updated ? formatDate(form.will_last_updated) : 'Not specified' }}</p>
+            </div>
+            <div>
+              <div class="text-sm font-medium text-gray-700 mb-1">Executor</div>
+              <p class="text-sm text-gray-900">{{ form.executor_name || 'Not specified' }}</p>
+            </div>
+          </div>
+
+          <div v-if="isMarried" class="border-t border-gray-200 pt-4">
+            <div class="text-sm font-medium text-gray-700 mb-1">Spouse as Primary Beneficiary</div>
+            <p class="text-sm text-gray-900">{{ form.spouse_primary_beneficiary ? 'Yes' : 'No' }}</p>
+            <p v-if="form.spouse_primary_beneficiary" class="text-sm text-gray-600 mt-1">
+              {{ form.spouse_bequest_percentage }}% to spouse ({{ formatCurrency(spouseAmount) }})
+            </p>
+          </div>
+
+          <div v-if="form.executor_notes" class="border-t border-gray-200 pt-4">
+            <div class="text-sm font-medium text-gray-700 mb-1">Executor Notes</div>
+            <p class="text-sm text-gray-900 whitespace-pre-line">{{ form.executor_notes }}</p>
+          </div>
+        </div>
+
+        <!-- EDIT MODE -->
+        <div v-else class="space-y-6">
           <!-- Will Last Updated -->
           <div>
             <label for="will_last_updated" class="block text-sm font-medium text-gray-700 mb-2">
@@ -195,18 +252,6 @@
               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
               placeholder="Any special instructions or notes for your executor..."
             ></textarea>
-          </div>
-
-          <!-- Save Button -->
-          <div class="flex justify-end pt-4">
-            <button
-              v-preview-disabled="'save'"
-              @click="saveWill"
-              :disabled="saving"
-              class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
-            >
-              {{ saving ? 'Saving...' : 'Save Will Configuration' }}
-            </button>
           </div>
         </div>
       </div>
@@ -310,6 +355,7 @@ export default {
     return {
       loading: true,
       saving: false,
+      isEditing: false,
       will: null,
       form: {
         has_will: null,
@@ -319,6 +365,7 @@ export default {
         spouse_bequest_percentage: 100,
         executor_notes: '',
       },
+      originalForm: null,
       bequests: [],
       showBequestModal: false,
       successMessage: '',
@@ -390,6 +437,7 @@ export default {
           spouse_bequest_percentage: parseFloat(this.will.spouse_bequest_percentage),
           executor_notes: this.will.executor_notes || '',
         };
+        this.originalForm = JSON.parse(JSON.stringify(this.form));
       } catch (error) {
         console.error('Failed to load will:', error);
         this.errorMessage = 'Failed to load will details';
@@ -428,6 +476,28 @@ export default {
       }
     },
 
+    startEditing() {
+      this.originalForm = JSON.parse(JSON.stringify(this.form));
+      this.isEditing = true;
+    },
+
+    cancelEditing() {
+      if (this.originalForm) {
+        this.form = JSON.parse(JSON.stringify(this.originalForm));
+      }
+      this.isEditing = false;
+    },
+
+    formatDate(dateString) {
+      if (!dateString) return '';
+      try {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+      } catch (e) {
+        return dateString;
+      }
+    },
+
     async saveWill() {
       if (this.isPreviewMode) {
         return;
@@ -438,6 +508,8 @@ export default {
       try {
         await api.post('/estate/will', this.form);
         this.successMessage = 'Will saved successfully';
+        this.isEditing = false;
+        this.originalForm = JSON.parse(JSON.stringify(this.form));
         setTimeout(() => this.successMessage = '', 3000);
 
         await this.loadWill();

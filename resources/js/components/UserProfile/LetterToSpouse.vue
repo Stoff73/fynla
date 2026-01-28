@@ -7,14 +7,33 @@
           {{ pageDescription }}
         </p>
       </div>
-      <button
-        v-if="!isReadOnly"
-        @click="saveLetter"
-        :disabled="saving"
-        class="btn-primary"
-      >
-        {{ saving ? 'Saving...' : 'Save Letter' }}
-      </button>
+      <div class="flex gap-3">
+        <template v-if="!isReadOnly">
+          <button
+            v-if="!isEditing"
+            @click="isEditing = true"
+            class="btn-secondary"
+          >
+            Edit
+          </button>
+          <template v-else>
+            <button
+              @click="cancelEditing"
+              class="btn-secondary"
+              :disabled="saving"
+            >
+              Cancel
+            </button>
+            <button
+              @click="saveLetter"
+              :disabled="saving"
+              class="btn-primary"
+            >
+              {{ saving ? 'Saving...' : 'Save' }}
+            </button>
+          </template>
+        </template>
+      </div>
     </div>
 
     <!-- Info Banner -->
@@ -75,137 +94,165 @@
           <h3 class="text-lg font-semibold text-gray-900">Part 1: What to Do Immediately</h3>
         </div>
         <div class="p-6 space-y-6">
-          <!-- Immediate Actions -->
-          <div>
-            <label class="block text-body-sm font-medium text-gray-700 mb-2">
-              Immediate Actions Checklist
-            </label>
-            <textarea
-              v-model="formData.immediate_actions"
-              :readonly="isReadOnly"
-              rows="5"
-              class="input-field"
-              :class="isReadOnly ? 'bg-gray-50' : ''"
-              placeholder="1. Contact executor immediately&#10;2. Notify employer HR&#10;3. Access joint bank accounts for immediate expenses..."
-            ></textarea>
-          </div>
+          <!-- VIEW MODE -->
+          <template v-if="!isEditing || isReadOnly">
+            <!-- Immediate Actions -->
+            <div>
+              <div class="text-body-sm font-medium text-gray-700 mb-2">Immediate Actions Checklist</div>
+              <p class="text-body-sm text-gray-900 whitespace-pre-line">{{ formData.immediate_actions || 'Not specified' }}</p>
+            </div>
 
-          <!-- Key Contacts Grid -->
-          <div>
-            <h4 class="text-body font-semibold text-gray-800 mb-4">Key Contacts</h4>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                <div class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Executor</div>
-                <input
-                  v-model="formData.executor_name"
-                  :readonly="isReadOnly"
-                  type="text"
-                  class="input-field mb-2"
-                  :class="isReadOnly ? 'bg-white' : ''"
-                  placeholder="Name"
-                />
-                <input
-                  v-model="formData.executor_contact"
-                  :readonly="isReadOnly"
-                  type="text"
-                  class="input-field"
-                  :class="isReadOnly ? 'bg-white' : ''"
-                  placeholder="Phone / Email"
-                />
-              </div>
-              <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                <div class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Solicitor</div>
-                <input
-                  v-model="formData.attorney_name"
-                  :readonly="isReadOnly"
-                  type="text"
-                  class="input-field mb-2"
-                  :class="isReadOnly ? 'bg-white' : ''"
-                  placeholder="Name"
-                />
-                <input
-                  v-model="formData.attorney_contact"
-                  :readonly="isReadOnly"
-                  type="text"
-                  class="input-field"
-                  :class="isReadOnly ? 'bg-white' : ''"
-                  placeholder="Phone / Email"
-                />
-              </div>
-              <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                <div class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Financial Adviser</div>
-                <input
-                  v-model="formData.financial_advisor_name"
-                  :readonly="isReadOnly"
-                  type="text"
-                  class="input-field mb-2"
-                  :class="isReadOnly ? 'bg-white' : ''"
-                  placeholder="Name"
-                />
-                <input
-                  v-model="formData.financial_advisor_contact"
-                  :readonly="isReadOnly"
-                  type="text"
-                  class="input-field"
-                  :class="isReadOnly ? 'bg-white' : ''"
-                  placeholder="Phone / Email"
-                />
-              </div>
-              <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                <div class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Accountant</div>
-                <input
-                  v-model="formData.accountant_name"
-                  :readonly="isReadOnly"
-                  type="text"
-                  class="input-field mb-2"
-                  :class="isReadOnly ? 'bg-white' : ''"
-                  placeholder="Name"
-                />
-                <input
-                  v-model="formData.accountant_contact"
-                  :readonly="isReadOnly"
-                  type="text"
-                  class="input-field"
-                  :class="isReadOnly ? 'bg-white' : ''"
-                  placeholder="Phone / Email"
-                />
+            <!-- Key Contacts Grid -->
+            <div>
+              <h4 class="text-body font-semibold text-gray-800 mb-4">Key Contacts</h4>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <div class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Executor</div>
+                  <p class="text-body-sm text-gray-900">{{ formData.executor_name || 'Not specified' }}</p>
+                  <p class="text-body-sm text-gray-600">{{ formData.executor_contact || '-' }}</p>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <div class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Solicitor</div>
+                  <p class="text-body-sm text-gray-900">{{ formData.attorney_name || 'Not specified' }}</p>
+                  <p class="text-body-sm text-gray-600">{{ formData.attorney_contact || '-' }}</p>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <div class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Financial Adviser</div>
+                  <p class="text-body-sm text-gray-900">{{ formData.financial_advisor_name || 'Not specified' }}</p>
+                  <p class="text-body-sm text-gray-600">{{ formData.financial_advisor_contact || '-' }}</p>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <div class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Accountant</div>
+                  <p class="text-body-sm text-gray-900">{{ formData.accountant_name || 'Not specified' }}</p>
+                  <p class="text-body-sm text-gray-600">{{ formData.accountant_contact || '-' }}</p>
+                </div>
               </div>
             </div>
-          </div>
 
-          <!-- Immediate Funds & Employer -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Immediate Funds & Employer -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <div class="text-body-sm font-medium text-gray-700 mb-2">Accessing Immediate Funds</div>
+                <p class="text-body-sm text-gray-900 whitespace-pre-line">{{ formData.immediate_funds_access || 'Not specified' }}</p>
+              </div>
+              <div>
+                <div class="text-body-sm font-medium text-gray-700 mb-2">Employer HR Contact</div>
+                <p class="text-body-sm text-gray-900">{{ formData.employer_hr_contact || 'Not specified' }}</p>
+                <p class="text-body-sm text-gray-600">{{ formData.employer_benefits_info || '-' }}</p>
+              </div>
+            </div>
+          </template>
+
+          <!-- EDIT MODE -->
+          <template v-else>
+            <!-- Immediate Actions -->
             <div>
-              <label class="block text-body-sm font-medium text-gray-700 mb-2">Accessing Immediate Funds</label>
+              <label class="block text-body-sm font-medium text-gray-700 mb-2">
+                Immediate Actions Checklist
+              </label>
               <textarea
-                v-model="formData.immediate_funds_access"
-                :readonly="isReadOnly"
-                rows="3"
+                v-model="formData.immediate_actions"
+                rows="5"
                 class="input-field"
-                :class="isReadOnly ? 'bg-gray-50' : ''"
-                placeholder="Which accounts can be accessed immediately..."
+                placeholder="1. Contact executor immediately&#10;2. Notify employer HR&#10;3. Access joint bank accounts for immediate expenses..."
               ></textarea>
             </div>
+
+            <!-- Key Contacts Grid -->
             <div>
-              <label class="block text-body-sm font-medium text-gray-700 mb-2">Employer HR Contact</label>
-              <input
-                v-model="formData.employer_hr_contact"
-                :readonly="isReadOnly"
-                type="text"
-                class="input-field mb-2"
-                :class="isReadOnly ? 'bg-gray-50' : ''"
-                placeholder="HR phone / email"
-              />
-              <input
-                v-model="formData.employer_benefits_info"
-                :readonly="isReadOnly"
-                type="text"
-                class="input-field"
-                :class="isReadOnly ? 'bg-gray-50' : ''"
-                placeholder="Benefits info (life insurance, pension)"
-              />
+              <h4 class="text-body font-semibold text-gray-800 mb-4">Key Contacts</h4>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <div class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Executor</div>
+                  <input
+                    v-model="formData.executor_name"
+                    type="text"
+                    class="input-field mb-2"
+                    placeholder="Name"
+                  />
+                  <input
+                    v-model="formData.executor_contact"
+                    type="text"
+                    class="input-field"
+                    placeholder="Phone / Email"
+                  />
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <div class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Solicitor</div>
+                  <input
+                    v-model="formData.attorney_name"
+                    type="text"
+                    class="input-field mb-2"
+                    placeholder="Name"
+                  />
+                  <input
+                    v-model="formData.attorney_contact"
+                    type="text"
+                    class="input-field"
+                    placeholder="Phone / Email"
+                  />
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <div class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Financial Adviser</div>
+                  <input
+                    v-model="formData.financial_advisor_name"
+                    type="text"
+                    class="input-field mb-2"
+                    placeholder="Name"
+                  />
+                  <input
+                    v-model="formData.financial_advisor_contact"
+                    type="text"
+                    class="input-field"
+                    placeholder="Phone / Email"
+                  />
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <div class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Accountant</div>
+                  <input
+                    v-model="formData.accountant_name"
+                    type="text"
+                    class="input-field mb-2"
+                    placeholder="Name"
+                  />
+                  <input
+                    v-model="formData.accountant_contact"
+                    type="text"
+                    class="input-field"
+                    placeholder="Phone / Email"
+                  />
+                </div>
+              </div>
             </div>
-          </div>
+
+            <!-- Immediate Funds & Employer -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-body-sm font-medium text-gray-700 mb-2">Accessing Immediate Funds</label>
+                <textarea
+                  v-model="formData.immediate_funds_access"
+                  rows="3"
+                  class="input-field"
+                  placeholder="Which accounts can be accessed immediately..."
+                ></textarea>
+              </div>
+              <div>
+                <label class="block text-body-sm font-medium text-gray-700 mb-2">Employer HR Contact</label>
+                <input
+                  v-model="formData.employer_hr_contact"
+                  type="text"
+                  class="input-field mb-2"
+                  placeholder="HR phone / email"
+                />
+                <input
+                  v-model="formData.employer_benefits_info"
+                  type="text"
+                  class="input-field"
+                  placeholder="Benefits info (life insurance, pension)"
+                />
+              </div>
+            </div>
+          </template>
         </div>
       </div>
 
@@ -358,74 +405,95 @@
           <h3 class="text-lg font-semibold text-gray-900">Part 3: Additional Information</h3>
         </div>
         <div class="p-6 space-y-4">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-body-sm font-medium text-gray-700 mb-2">Password Manager / Online Access</label>
-              <textarea
-                v-model="formData.password_manager_info"
-                :readonly="isReadOnly"
-                rows="3"
-                class="input-field"
-                :class="isReadOnly ? 'bg-gray-50' : ''"
-                placeholder="1Password details, emergency access..."
-              ></textarea>
+          <!-- VIEW MODE -->
+          <template v-if="!isEditing || isReadOnly">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <div class="text-body-sm font-medium text-gray-700 mb-2">Password Manager / Online Access</div>
+                <p class="text-body-sm text-gray-900 whitespace-pre-line">{{ formData.password_manager_info || 'Not specified' }}</p>
+              </div>
+              <div>
+                <div class="text-body-sm font-medium text-gray-700 mb-2">Estate Documents Location</div>
+                <p class="text-body-sm text-gray-900 whitespace-pre-line">{{ formData.estate_documents_location || 'Not specified' }}</p>
+              </div>
+              <div>
+                <div class="text-body-sm font-medium text-gray-700 mb-2">Vehicles</div>
+                <p class="text-body-sm text-gray-900 whitespace-pre-line">{{ formData.vehicles_info || 'Not specified' }}</p>
+              </div>
+              <div>
+                <div class="text-body-sm font-medium text-gray-700 mb-2">Valuable Items</div>
+                <p class="text-body-sm text-gray-900 whitespace-pre-line">{{ formData.valuable_items_info || 'Not specified' }}</p>
+              </div>
+              <div>
+                <div class="text-body-sm font-medium text-gray-700 mb-2">Cryptocurrency</div>
+                <p class="text-body-sm text-gray-900 whitespace-pre-line">{{ formData.cryptocurrency_info || 'Not specified' }}</p>
+              </div>
+              <div>
+                <div class="text-body-sm font-medium text-gray-700 mb-2">Recurring Bills</div>
+                <p class="text-body-sm text-gray-900 whitespace-pre-line">{{ formData.recurring_bills_info || 'Not specified' }}</p>
+              </div>
             </div>
-            <div>
-              <label class="block text-body-sm font-medium text-gray-700 mb-2">Estate Documents Location</label>
-              <textarea
-                v-model="formData.estate_documents_location"
-                :readonly="isReadOnly"
-                rows="3"
-                class="input-field"
-                :class="isReadOnly ? 'bg-gray-50' : ''"
-                placeholder="Will, trust documents, power of attorney..."
-              ></textarea>
+          </template>
+
+          <!-- EDIT MODE -->
+          <template v-else>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-body-sm font-medium text-gray-700 mb-2">Password Manager / Online Access</label>
+                <textarea
+                  v-model="formData.password_manager_info"
+                  rows="3"
+                  class="input-field"
+                  placeholder="1Password details, emergency access..."
+                ></textarea>
+              </div>
+              <div>
+                <label class="block text-body-sm font-medium text-gray-700 mb-2">Estate Documents Location</label>
+                <textarea
+                  v-model="formData.estate_documents_location"
+                  rows="3"
+                  class="input-field"
+                  placeholder="Will, trust documents, power of attorney..."
+                ></textarea>
+              </div>
+              <div>
+                <label class="block text-body-sm font-medium text-gray-700 mb-2">Vehicles</label>
+                <textarea
+                  v-model="formData.vehicles_info"
+                  rows="2"
+                  class="input-field"
+                  placeholder="Car details, V5C location..."
+                ></textarea>
+              </div>
+              <div>
+                <label class="block text-body-sm font-medium text-gray-700 mb-2">Valuable Items</label>
+                <textarea
+                  v-model="formData.valuable_items_info"
+                  rows="2"
+                  class="input-field"
+                  placeholder="Jewellery, art, antiques..."
+                ></textarea>
+              </div>
+              <div>
+                <label class="block text-body-sm font-medium text-gray-700 mb-2">Cryptocurrency</label>
+                <textarea
+                  v-model="formData.cryptocurrency_info"
+                  rows="2"
+                  class="input-field"
+                  placeholder="Wallet addresses, recovery seeds..."
+                ></textarea>
+              </div>
+              <div>
+                <label class="block text-body-sm font-medium text-gray-700 mb-2">Recurring Bills</label>
+                <textarea
+                  v-model="formData.recurring_bills_info"
+                  rows="2"
+                  class="input-field"
+                  placeholder="Council tax, utilities, subscriptions..."
+                ></textarea>
+              </div>
             </div>
-            <div>
-              <label class="block text-body-sm font-medium text-gray-700 mb-2">Vehicles</label>
-              <textarea
-                v-model="formData.vehicles_info"
-                :readonly="isReadOnly"
-                rows="2"
-                class="input-field"
-                :class="isReadOnly ? 'bg-gray-50' : ''"
-                placeholder="Car details, V5C location..."
-              ></textarea>
-            </div>
-            <div>
-              <label class="block text-body-sm font-medium text-gray-700 mb-2">Valuable Items</label>
-              <textarea
-                v-model="formData.valuable_items_info"
-                :readonly="isReadOnly"
-                rows="2"
-                class="input-field"
-                :class="isReadOnly ? 'bg-gray-50' : ''"
-                placeholder="Jewellery, art, antiques..."
-              ></textarea>
-            </div>
-            <div>
-              <label class="block text-body-sm font-medium text-gray-700 mb-2">Cryptocurrency</label>
-              <textarea
-                v-model="formData.cryptocurrency_info"
-                :readonly="isReadOnly"
-                rows="2"
-                class="input-field"
-                :class="isReadOnly ? 'bg-gray-50' : ''"
-                placeholder="Wallet addresses, recovery seeds..."
-              ></textarea>
-            </div>
-            <div>
-              <label class="block text-body-sm font-medium text-gray-700 mb-2">Recurring Bills</label>
-              <textarea
-                v-model="formData.recurring_bills_info"
-                :readonly="isReadOnly"
-                rows="2"
-                class="input-field"
-                :class="isReadOnly ? 'bg-gray-50' : ''"
-                placeholder="Council tax, utilities, subscriptions..."
-              ></textarea>
-            </div>
-          </div>
+          </template>
         </div>
       </div>
 
@@ -435,66 +503,72 @@
           <h3 class="text-lg font-semibold text-gray-900">Part 4: Funeral and Final Wishes</h3>
         </div>
         <div class="p-6 space-y-4">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-body-sm font-medium text-gray-700 mb-2">Funeral Preference</label>
-              <select
-                v-model="formData.funeral_preference"
-                :disabled="isReadOnly"
-                class="input-field"
-                :class="isReadOnly ? 'bg-gray-50' : ''"
-              >
-                <option value="not_specified">Not Specified</option>
-                <option value="burial">Burial</option>
-                <option value="cremation">Cremation</option>
-              </select>
+          <!-- VIEW MODE -->
+          <template v-if="!isEditing || isReadOnly">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <div class="text-body-sm font-medium text-gray-700 mb-2">Funeral Preference</div>
+                <p class="text-body-sm text-gray-900">{{ formatFuneralPreference(formData.funeral_preference) }}</p>
+              </div>
+              <div>
+                <div class="text-body-sm font-medium text-gray-700 mb-2">Funeral Service Details</div>
+                <p class="text-body-sm text-gray-900 whitespace-pre-line">{{ formData.funeral_service_details || 'Not specified' }}</p>
+              </div>
+              <div>
+                <div class="text-body-sm font-medium text-gray-700 mb-2">Obituary Wishes</div>
+                <p class="text-body-sm text-gray-900 whitespace-pre-line">{{ formData.obituary_wishes || 'Not specified' }}</p>
+              </div>
+              <div>
+                <div class="text-body-sm font-medium text-gray-700 mb-2">Additional Wishes</div>
+                <p class="text-body-sm text-gray-900 whitespace-pre-line">{{ formData.additional_wishes || 'Not specified' }}</p>
+              </div>
             </div>
-            <div>
-              <label class="block text-body-sm font-medium text-gray-700 mb-2">Funeral Service Details</label>
-              <textarea
-                v-model="formData.funeral_service_details"
-                :readonly="isReadOnly"
-                rows="2"
-                class="input-field"
-                :class="isReadOnly ? 'bg-gray-50' : ''"
-                placeholder="Service preferences, music, location..."
-              ></textarea>
-            </div>
-            <div>
-              <label class="block text-body-sm font-medium text-gray-700 mb-2">Obituary Wishes</label>
-              <textarea
-                v-model="formData.obituary_wishes"
-                :readonly="isReadOnly"
-                rows="2"
-                class="input-field"
-                :class="isReadOnly ? 'bg-gray-50' : ''"
-                placeholder="Key accomplishments, charities..."
-              ></textarea>
-            </div>
-            <div>
-              <label class="block text-body-sm font-medium text-gray-700 mb-2">Additional Wishes</label>
-              <textarea
-                v-model="formData.additional_wishes"
-                :readonly="isReadOnly"
-                rows="2"
-                class="input-field"
-                :class="isReadOnly ? 'bg-gray-50' : ''"
-                placeholder="Messages to loved ones..."
-              ></textarea>
-            </div>
-          </div>
-        </div>
-      </div>
+          </template>
 
-      <!-- Bottom Save Button -->
-      <div v-if="!isReadOnly" class="flex justify-end">
-        <button
-          @click="saveLetter"
-          :disabled="saving"
-          class="btn-primary"
-        >
-          {{ saving ? 'Saving...' : 'Save Letter' }}
-        </button>
+          <!-- EDIT MODE -->
+          <template v-else>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-body-sm font-medium text-gray-700 mb-2">Funeral Preference</label>
+                <select
+                  v-model="formData.funeral_preference"
+                  class="input-field"
+                >
+                  <option value="not_specified">Not Specified</option>
+                  <option value="burial">Burial</option>
+                  <option value="cremation">Cremation</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-body-sm font-medium text-gray-700 mb-2">Funeral Service Details</label>
+                <textarea
+                  v-model="formData.funeral_service_details"
+                  rows="2"
+                  class="input-field"
+                  placeholder="Service preferences, music, location..."
+                ></textarea>
+              </div>
+              <div>
+                <label class="block text-body-sm font-medium text-gray-700 mb-2">Obituary Wishes</label>
+                <textarea
+                  v-model="formData.obituary_wishes"
+                  rows="2"
+                  class="input-field"
+                  placeholder="Key accomplishments, charities..."
+                ></textarea>
+              </div>
+              <div>
+                <label class="block text-body-sm font-medium text-gray-700 mb-2">Additional Wishes</label>
+                <textarea
+                  v-model="formData.additional_wishes"
+                  rows="2"
+                  class="input-field"
+                  placeholder="Messages to loved ones..."
+                ></textarea>
+              </div>
+            </div>
+          </template>
+        </div>
       </div>
     </div>
   </div>
@@ -512,10 +586,12 @@ export default {
     return {
       loading: true,
       saving: false,
+      isEditing: false,
       viewMode: 'my',
       hasSpouse: false,
       spouseName: '',
       isExpressionOfWishes: false,
+      originalFormData: null,
       formData: {
         immediate_actions: '',
         executor_name: '',
@@ -698,6 +774,7 @@ export default {
           this.formData[key] = data[key];
         }
       });
+      this.originalFormData = JSON.parse(JSON.stringify(this.formData));
     },
 
     async saveLetter() {
@@ -707,6 +784,8 @@ export default {
       try {
         const response = await api.put('/user/letter-to-spouse', this.formData);
         this.myLetterData = response.data.data;
+        this.originalFormData = JSON.parse(JSON.stringify(this.formData));
+        this.isEditing = false;
         this.$emit('success', 'Letter saved successfully');
       } catch (error) {
         console.error('Error saving letter:', error);
@@ -714,6 +793,22 @@ export default {
       } finally {
         this.saving = false;
       }
+    },
+
+    cancelEditing() {
+      if (this.originalFormData) {
+        this.formData = JSON.parse(JSON.stringify(this.originalFormData));
+      }
+      this.isEditing = false;
+    },
+
+    formatFuneralPreference(value) {
+      const options = {
+        not_specified: 'Not Specified',
+        burial: 'Burial',
+        cremation: 'Cremation',
+      };
+      return options[value] || 'Not Specified';
     },
 
     formatPropertyType(type) {

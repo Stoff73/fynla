@@ -43,8 +43,8 @@
           <div v-else>
             <LetterToSpouse v-if="activeTab === 'letter'" />
             <WillPlanning v-if="activeTab === 'will'" />
-            <BalanceSheetTab v-if="activeTab === 'balance_sheet'" />
-            <IncomeStatementTab v-if="activeTab === 'income_statement'" />
+            <IncomeOccupation v-if="activeTab === 'income'" />
+            <ExpenditureOverview v-if="activeTab === 'expenditure'" />
             <RiskProfileSummary v-if="activeTab === 'risk'" />
           </div>
         </div>
@@ -60,9 +60,9 @@ import { useRouter, useRoute } from 'vue-router';
 import AppLayout from '@/layouts/AppLayout.vue';
 import LetterToSpouse from '@/components/UserProfile/LetterToSpouse.vue';
 import WillPlanning from '@/components/Estate/WillPlanning.vue';
-import BalanceSheetTab from '@/components/UserProfile/BalanceSheetTab.vue';
-import IncomeStatementTab from '@/components/UserProfile/IncomeStatementTab.vue';
 import RiskProfileSummary from '@/components/Risk/RiskProfileSummary.vue';
+import IncomeOccupation from '@/components/UserProfile/IncomeOccupation.vue';
+import ExpenditureOverview from '@/components/UserProfile/ExpenditureOverview.vue';
 
 export default {
   name: 'ValuableInfo',
@@ -71,9 +71,9 @@ export default {
     AppLayout,
     LetterToSpouse,
     WillPlanning,
-    BalanceSheetTab,
-    IncomeStatementTab,
     RiskProfileSummary,
+    IncomeOccupation,
+    ExpenditureOverview,
   },
 
   setup() {
@@ -104,8 +104,8 @@ export default {
       return [
         { id: 'letter', label: isExpressionOfWishes ? 'Expression of Wishes' : 'Letter to Spouse' },
         { id: 'will', label: 'Will' },
-        { id: 'balance_sheet', label: 'Balance Sheet' },
-        { id: 'income_statement', label: 'Income Statement/Cash Flow' },
+        { id: 'income', label: 'Income' },
+        { id: 'expenditure', label: 'Expenditure' },
         { id: 'risk', label: 'Risk Profile' },
       ];
     });
@@ -127,7 +127,7 @@ export default {
       // Check for section query parameter and set active tab
       const section = route.query.section;
       if (section) {
-        const validTabIds = ['letter', 'will', 'balance_sheet', 'income_statement', 'risk'];
+        const validTabIds = ['letter', 'will', 'income', 'expenditure', 'risk'];
         if (validTabIds.includes(section)) {
           activeTab.value = section;
         }
