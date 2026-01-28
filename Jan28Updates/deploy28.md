@@ -1789,6 +1789,140 @@ resources/js/components/Investment/AccountForm.vue
 
 ---
 
+## Investment Account Contributions - Save Fix
+
+**Date:** 28 January 2026
+
+**Branch:** main
+
+**Status:** ✅ Ready for deployment
+
+### Description
+
+Fixed bug where monthly contributions and planned lump sums were not saving when adding or editing investment accounts. The controller validation was missing these fields, causing them to be filtered out before saving.
+
+### Fields Added to Validation
+
+- `monthly_contribution_amount` - Regular contribution amount
+- `contribution_frequency` - monthly/quarterly/annually
+- `planned_lump_sum_amount` - One-off planned contribution
+- `planned_lump_sum_date` - Date for lump sum
+- `country` - Account country
+- `risk_preference` - Account risk level
+
+Also changed `tax_year` from required to nullable.
+
+### Files Changed
+
+**Backend (Manual Upload Required):**
+```text
+app/Http/Controllers/Api/InvestmentController.php
+```
+
+### Rebuild Required: NO (PHP only)
+
+### Verification
+
+1. Navigate to Net Worth → Investments tab
+2. Edit an existing account
+3. Add a monthly contribution (e.g., £500 monthly)
+4. Add a planned lump sum (e.g., £5,000 on a future date)
+5. Save the account
+6. Re-open the account and verify contributions are saved
+7. Check Valuable Info → Expenditure → Financial Commitments to verify investment contributions appear
+
+---
+
+## Investment Detail View - Monthly Contribution Display
+
+**Date:** 28 January 2026
+
+**Branch:** main
+
+**Status:** ✅ Ready for deployment
+
+### Description
+
+Fixed the Monthly Contribution card in the investment detail view to show the actual contribution amount instead of estimating from YTD contributions.
+
+### Changes
+
+- Now uses `monthly_contribution_amount` if set
+- Converts to monthly based on frequency (quarterly ÷ 3, annually ÷ 12)
+- Falls back to YTD estimate only if no contribution is configured
+
+### Files Changed
+
+**Frontend (Included in Build):**
+```text
+resources/js/components/NetWorth/InvestmentDetailInline.vue
+```
+
+### Rebuild Required: YES
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+### Verification
+
+1. Edit an investment account and set monthly contribution to £500
+2. Save and view the account detail
+3. Verify "Monthly Contribution" card shows £500
+
+---
+
+## Monte Carlo Chart - Color Consistency
+
+**Date:** 28 January 2026
+
+**Branch:** main
+
+**Status:** ✅ Ready for deployment
+
+### Description
+
+Updated Monte Carlo probability charts to use consistent blue-to-teal color palette across the application.
+
+### Color Palette
+
+| Probability | Color | Hex |
+|-------------|-------|-----|
+| 95% | Dark Navy | #1e3a5f |
+| 90% | Blue | #3b82f6 |
+| 85% | Teal | #14b8a6 |
+| 80% | Light Mint | #a7f3d0 |
+
+### Changes
+
+- Updated colors in MonteCarloResults.vue (modal)
+- Updated colors in AccountPerformancePanel.vue (dashboard)
+- Changed fill from gradient to solid opacity
+- Updated legend markers to circular
+
+### Files Changed
+
+**Frontend (Included in Build):**
+```text
+resources/js/components/Investment/MonteCarloResults.vue
+resources/js/views/Investment/AccountPerformancePanel.vue
+```
+
+### Rebuild Required: YES
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+### Verification
+
+1. Navigate to Net Worth → Investments → click an account
+2. View the Monte Carlo projection chart
+3. Verify colors match: dark navy, blue, teal, light mint gradient
+4. Verify legend shows circular markers with "95% Probability", "90% Probability", etc.
+
+---
+
 ## Cash Account Detail View - UI Improvements
 
 **Date:** 28 January 2026

@@ -406,18 +406,14 @@ export default {
             speed: 800,
           },
         },
-        colors: ['#1e3a5f', '#2563eb', '#059669', '#34d399'],
+        colors: ['#1e3a5f', '#3b82f6', '#14b8a6', '#a7f3d0'],
         stroke: {
           curve: 'smooth',
           width: [1, 1, 1, 1],
         },
         fill: {
-          type: 'gradient',
-          gradient: {
-            opacityFrom: 0.5,
-            opacityTo: 0.1,
-            stops: [0, 90, 100],
-          },
+          type: 'solid',
+          opacity: 0.5,
         },
         xaxis: {
           categories: this.years,
@@ -464,9 +460,12 @@ export default {
           horizontalAlign: 'center',
           fontSize: '12px',
           markers: {
-            width: 12,
-            height: 12,
-            radius: 2,
+            width: 10,
+            height: 10,
+            radius: 10,
+          },
+          itemMargin: {
+            horizontal: 12,
           },
         },
         grid: {
