@@ -221,6 +221,9 @@ const actions = {
             (user.annual_dividend_income || 0) +
             (user.annual_other_income || 0)
           ),
+          // Include income update flags
+          income_needs_update: user.income_needs_update || false,
+          previous_employment_status: user.previous_employment_status || null,
         };
 
         commit('setIncomeOccupation', incomeOccupation);

@@ -55,6 +55,11 @@ class ModuleDataRequirementsService
         'protection' => [
             'description' => 'Protection analysis calculates how much cover you need to protect your family and income.',
             'fields' => [
+                'income_needs_update' => [
+                    'label' => 'Income needs updating',
+                    'why' => 'Your employment status has changed - update your income for accurate protection calculations',
+                    'link' => '/profile',
+                ],
                 'date_of_birth' => [
                     'label' => 'Your date of birth',
                     'why' => 'Used to calculate life expectancy and insurance term lengths',
@@ -370,6 +375,11 @@ class ModuleDataRequirementsService
         'profile' => [
             'description' => 'Your personal and financial profile provides the foundation for all planning calculations.',
             'fields' => [
+                'income_needs_update' => [
+                    'label' => 'Income needs updating',
+                    'why' => 'Your employment status has changed - please update your income to reflect your current earnings',
+                    'link' => '/profile',
+                ],
                 'date_of_birth' => [
                     'label' => 'Your date of birth',
                     'why' => 'Essential for retirement planning, life expectancy, and insurance calculations',
@@ -519,6 +529,11 @@ class ModuleDataRequirementsService
     private function isFieldFilled(User $user, string $fieldKey): bool
     {
         $value = $user->getAttribute($fieldKey);
+
+        // Special handling for income_needs_update - returns false (missing) if true
+        if ($fieldKey === 'income_needs_update') {
+            return ! $user->income_needs_update;
+        }
 
         // For numeric fields, 0 is valid
         if (in_array($fieldKey, ['annual_employment_income', 'monthly_expenditure', 'target_retirement_age'])) {

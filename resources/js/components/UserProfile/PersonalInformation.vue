@@ -42,10 +42,8 @@
           </button>
         </div>
 
-        <!-- Clean two-column layout -->
+        <!-- Row 1: Personal Details & Address -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-8">
-        <!-- Left Column -->
-        <div class="space-y-8">
           <!-- Personal Details Section -->
           <div>
             <h3 class="text-body-base font-semibold text-gray-900 mb-4">Personal Details</h3>
@@ -81,40 +79,6 @@
             </div>
           </div>
 
-          <!-- Occupation Section -->
-          <div>
-            <h3 class="text-body-base font-semibold text-gray-900 mb-4">Occupation</h3>
-            <div class="space-y-3">
-              <div class="flex justify-between">
-                <span class="text-body-sm text-gray-600">Job Title:</span>
-                <span class="text-body-sm text-gray-900 text-right">{{ form.occupation || '—' }}</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-body-sm text-gray-600">Employer:</span>
-                <span class="text-body-sm text-gray-900 text-right">{{ form.employer || '—' }}</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-body-sm text-gray-600">Industry:</span>
-                <span class="text-body-sm text-gray-900 text-right">{{ form.industry || '—' }}</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-body-sm text-gray-600">Status:</span>
-                <span class="text-body-sm text-gray-900 text-right">{{ formatEmploymentStatus(form.employment_status) }}</span>
-              </div>
-              <div v-if="form.employment_status && form.employment_status !== 'retired'" class="flex justify-between">
-                <span class="text-body-sm text-gray-600">Target Retirement Age:</span>
-                <span class="text-body-sm text-gray-900 text-right">{{ form.target_retirement_age || '—' }}</span>
-              </div>
-              <div v-if="form.employment_status === 'retired'" class="flex justify-between">
-                <span class="text-body-sm text-gray-600">Retirement Date:</span>
-                <span class="text-body-sm text-gray-900 text-right">{{ formatDisplayDate(form.retirement_date) }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Right Column -->
-        <div class="space-y-8">
           <!-- Address Section -->
           <div>
             <h3 class="text-body-base font-semibold text-gray-900 mb-4">Address</h3>
@@ -138,6 +102,36 @@
               <div class="flex justify-between">
                 <span class="text-body-sm text-gray-600">Postcode:</span>
                 <span class="text-body-sm text-gray-900 text-right uppercase">{{ form.postcode || '—' }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Row 2: Occupation & Domicile Status (aligned) -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-8 mt-8">
+          <!-- Occupation Section -->
+          <div>
+            <h3 class="text-body-base font-semibold text-gray-900 mb-4">Occupation</h3>
+            <div class="space-y-3">
+              <div class="flex justify-between">
+                <span class="text-body-sm text-gray-600">Job Title:</span>
+                <span class="text-body-sm text-gray-900 text-right">{{ form.occupation || '—' }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-body-sm text-gray-600">Employer:</span>
+                <span class="text-body-sm text-gray-900 text-right">{{ form.employer || '—' }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-body-sm text-gray-600">Industry:</span>
+                <span class="text-body-sm text-gray-900 text-right">{{ form.industry || '—' }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-body-sm text-gray-600">Status:</span>
+                <span class="text-body-sm text-gray-900 text-right">{{ formatEmploymentStatus(form.employment_status) }}</span>
+              </div>
+              <div v-if="form.employment_status && form.employment_status !== 'retired'" class="flex justify-between">
+                <span class="text-body-sm text-gray-600">Target Retirement Age:</span>
+                <span class="text-body-sm text-gray-900 text-right">{{ form.target_retirement_age || '—' }}</span>
               </div>
             </div>
           </div>
@@ -176,7 +170,6 @@
             </div>
           </div>
         </div>
-      </div>
     </div>
 
       <!-- EDIT MODE - Form inputs -->
@@ -453,20 +446,6 @@
                 placeholder="65"
               />
             </div>
-
-            <!-- Retirement Date (for retired users) -->
-            <div v-if="form.employment_status === 'retired'">
-              <label class="block text-body-sm font-medium text-gray-700 mb-1">
-                Retirement Date
-              </label>
-              <input
-                id="retirement_date"
-                v-model="form.retirement_date"
-                type="date"
-                :max="today"
-                class="input-field"
-              />
-            </div>
           </div>
         </div>
 
@@ -577,6 +556,7 @@ export default {
     const successMessage = ref('');
     const errorMessage = ref('');
     const yearsResident = ref(null);
+    const originalEmploymentStatus = ref(null); // Track original status for change detection
 
     const profile = computed(() => store.getters['userProfile/profile']);
     const personalInfo = computed(() => store.getters['userProfile/personalInfo']);
@@ -751,6 +731,8 @@ export default {
         form.value.employment_status = incomeOccupation.value.employment_status || '';
         form.value.target_retirement_age = incomeOccupation.value.target_retirement_age || null;
         form.value.retirement_date = incomeOccupation.value.retirement_date || '';
+        // Store original employment status for change detection
+        originalEmploymentStatus.value = incomeOccupation.value.employment_status || '';
       }
 
       if (user.value) {
@@ -771,6 +753,39 @@ export default {
         initializeForm();
       }
     }, { immediate: true });
+
+    /**
+     * Determine if employment status has changed in a way that requires income update.
+     * Returns object with flags for what changed and what income to reset.
+     */
+    const detectEmploymentStatusChange = (oldStatus, newStatus) => {
+      // Status groups that have distinct income types
+      const employedStatuses = ['employed', 'part_time'];
+      const selfEmployedStatuses = ['self_employed'];
+      const retiredStatuses = ['retired'];
+
+      const wasEmployed = employedStatuses.includes(oldStatus);
+      const wasSelfEmployed = selfEmployedStatuses.includes(oldStatus);
+      const wasRetired = retiredStatuses.includes(oldStatus);
+
+      const isNowEmployed = employedStatuses.includes(newStatus);
+      const isNowSelfEmployed = selfEmployedStatuses.includes(newStatus);
+      const isNowRetired = retiredStatuses.includes(newStatus);
+
+      // Detect significant status changes
+      const changedFromEmployedToSelfEmployed = wasEmployed && isNowSelfEmployed;
+      const changedFromSelfEmployedToEmployed = wasSelfEmployed && isNowEmployed;
+      const changedToRetired = !wasRetired && isNowRetired;
+      const changedFromRetired = wasRetired && !isNowRetired;
+
+      return {
+        hasSignificantChange: changedFromEmployedToSelfEmployed || changedFromSelfEmployedToEmployed || changedToRetired || changedFromRetired,
+        resetEmploymentIncome: changedFromEmployedToSelfEmployed || changedToRetired,
+        resetSelfEmploymentIncome: changedFromSelfEmployedToEmployed || changedToRetired,
+        newStatus,
+        previousStatus: oldStatus,
+      };
+    };
 
     const handleSubmit = async () => {
       submitting.value = true;
@@ -794,6 +809,23 @@ export default {
           postcode: form.value.postcode || null,
         };
 
+        // Detect employment status change
+        const statusChange = detectEmploymentStatusChange(
+          originalEmploymentStatus.value,
+          form.value.employment_status
+        );
+
+        // Prepare income values - reset if status changed significantly
+        let employmentIncome = incomeOccupation.value?.annual_employment_income || 0;
+        let selfEmploymentIncome = incomeOccupation.value?.annual_self_employment_income || 0;
+
+        if (statusChange.resetEmploymentIncome) {
+          employmentIncome = 0;
+        }
+        if (statusChange.resetSelfEmploymentIncome) {
+          selfEmploymentIncome = 0;
+        }
+
         // Prepare occupation data
         const occupationData = {
           occupation: form.value.occupation || null,
@@ -802,6 +834,9 @@ export default {
           employment_status: form.value.employment_status || null,
           target_retirement_age: form.value.target_retirement_age || null,
           retirement_date: form.value.retirement_date || null,
+          // Flag to indicate income needs updating if status changed
+          income_needs_update: statusChange.hasSignificantChange,
+          previous_employment_status: statusChange.hasSignificantChange ? statusChange.previousStatus : null,
         };
 
         // Prepare domicile data
@@ -816,9 +851,9 @@ export default {
           store.dispatch('userProfile/updatePersonalInfo', personalData),
           store.dispatch('userProfile/updateIncomeOccupation', {
             ...occupationData,
-            // Preserve existing income values
-            annual_employment_income: incomeOccupation.value?.annual_employment_income || 0,
-            annual_self_employment_income: incomeOccupation.value?.annual_self_employment_income || 0,
+            // Use potentially reset income values
+            annual_employment_income: employmentIncome,
+            annual_self_employment_income: selfEmploymentIncome,
             annual_dividend_income: incomeOccupation.value?.annual_dividend_income || 0,
             annual_interest_income: incomeOccupation.value?.annual_interest_income || 0,
             annual_trust_income: incomeOccupation.value?.annual_trust_income || 0,
@@ -828,15 +863,26 @@ export default {
 
         // Check if we're in preview mode
         const isPreviewMode = store.getters['preview/isPreviewMode'];
-        successMessage.value = isPreviewMode
+
+        // Build success message - include note about income update if status changed
+        let message = isPreviewMode
           ? PREVIEW_SUCCESS_MESSAGE
           : 'Personal information updated successfully!';
+
+        if (statusChange.hasSignificantChange) {
+          message += ' Your employment status has changed - please update your income in the Valuable Info tab.';
+        }
+
+        successMessage.value = message;
         isEditing.value = false;
 
-        // Clear success message after delay
+        // Update original status to reflect the new saved value
+        originalEmploymentStatus.value = form.value.employment_status;
+
+        // Clear success message after delay (longer if status changed)
         setTimeout(() => {
           successMessage.value = '';
-        }, isPreviewMode ? 5000 : 3000);
+        }, statusChange.hasSignificantChange ? 8000 : (isPreviewMode ? 5000 : 3000));
       } catch (error) {
         console.error('Update error:', error);
         if (error.errors) {

@@ -23,6 +23,35 @@
       </div>
     </div>
 
+    <!-- Income Needs Update Banner -->
+    <div v-if="incomeNeedsUpdate" class="rounded-md bg-amber-50 border border-amber-200 p-4">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-amber-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <h3 class="text-body-sm font-medium text-amber-800">Employment Status Changed</h3>
+          <div class="mt-1 text-body-sm text-amber-700">
+            <p>
+              You recently changed your employment status{{ previousStatusLabel ? ` from ${previousStatusLabel}` : '' }}.
+              Please update your income below to reflect your current earnings.
+            </p>
+          </div>
+          <div class="mt-2">
+            <button
+              type="button"
+              @click="isEditing = true"
+              class="text-body-sm font-medium text-amber-800 underline hover:text-amber-900"
+            >
+              Update income now
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Income and Tax Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <!-- Income Information Card -->
@@ -314,6 +343,23 @@ export default {
     const detailedTaxBreakdown = computed(() => incomeOccupation.value?.detailed_tax_breakdown || null);
     const rentalBreakdown = computed(() => incomeOccupation.value?.rental_breakdown || null);
 
+    // Check if income needs updating due to employment status change
+    const incomeNeedsUpdate = computed(() => incomeOccupation.value?.income_needs_update || false);
+    const previousEmploymentStatus = computed(() => incomeOccupation.value?.previous_employment_status || null);
+
+    // Format previous status for display
+    const previousStatusLabel = computed(() => {
+      const statusMap = {
+        'employed': 'Employed',
+        'part_time': 'Part-Time',
+        'self_employed': 'Self-Employed',
+        'retired': 'Retired',
+        'unemployed': 'Unemployed',
+        'other': 'Other',
+      };
+      return previousEmploymentStatus.value ? statusMap[previousEmploymentStatus.value] || previousEmploymentStatus.value : null;
+    });
+
     const form = ref({
       annual_employment_income: 0,
       annual_self_employment_income: 0,
@@ -401,9 +447,16 @@ export default {
           annual_dividend_income: form.value.annual_dividend_income || 0,
           annual_interest_income: form.value.annual_interest_income || 0,
           annual_trust_income: form.value.annual_trust_income || 0,
+          // Clear the income needs update flag since user is updating their income
+          income_needs_update: false,
+          previous_employment_status: null,
         };
 
         await store.dispatch('userProfile/updateIncomeOccupation', updateData);
+
+        // Refresh profile data to get updated tax calculations
+        await store.dispatch('userProfile/fetchProfile');
+
         successMessage.value = 'Income information updated successfully!';
         isEditing.value = false;
 
@@ -461,6 +514,8 @@ export default {
       disposableIncome,
       monthlyDisposable,
       disposableIncomeClass,
+      incomeNeedsUpdate,
+      previousStatusLabel,
       handleSubmit,
       handleCancel,
       formatCurrency,

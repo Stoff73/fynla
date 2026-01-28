@@ -1489,6 +1489,204 @@ php artisan db:seed --class=OccupationCodeSeeder
 
 ---
 
+## Employment Status Change - Income Update Notification
+
+**Date:** 28 January 2026
+
+**Branch:** main
+
+**Status:** Ready for deployment
+
+### Description
+
+When users change their employment status (e.g., from self-employed to employed, or to retired), the system now:
+1. Resets the relevant income field to £0
+2. Shows a notification banner in the Income tab
+3. Displays a warning in the "What Powers This View" panel
+4. Stores the previous employment status for reference
+
+### Behaviour
+
+| Status Change | Action |
+|---------------|--------|
+| Employed → Self-Employed | Reset employment income to £0 |
+| Self-Employed → Employed | Reset self-employment income to £0 |
+| Employed/Self-Employed → Retired | Reset both employment and self-employment income to £0 |
+| Retired → Employed/Self-Employed | No automatic reset (user starts fresh) |
+
+### Notification Banner
+
+An amber notification banner appears in the Income tab when `income_needs_update` is true:
+- Shows previous employment status
+- Links directly to edit mode
+- Clears automatically when user saves income changes
+
+### Info Guide Integration
+
+The "What Powers This View" panel now includes "Income needs updating" as a requirement that shows as "missing" when employment status has changed and income hasn't been updated.
+
+### Database Changes
+
+New columns in `users` table:
+- `income_needs_update` (boolean, default: false) - Flag indicating income needs updating
+- `previous_employment_status` (string, nullable) - Previous status before change
+
+### Files Changed
+
+**Backend:**
+```text
+database/migrations/2026_01_28_100000_add_income_needs_update_to_users_table.php
+app/Http/Requests/UpdateIncomeOccupationRequest.php
+app/Services/UserProfile/ModuleDataRequirementsService.php
+```
+
+**Frontend (Included in Build):**
+```text
+resources/js/components/UserProfile/PersonalInformation.vue
+resources/js/components/UserProfile/IncomeOccupation.vue
+resources/js/store/modules/userProfile.js
+```
+
+### Server Commands Required
+
+```bash
+# Run migration
+php artisan migrate
+```
+
+### Rebuild Required: YES
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+### Verification
+
+1. Go to User Profile > Personal Information
+2. Note current employment status (e.g., "Self-Employed")
+3. Change to "Employed" and save
+4. Verify success message mentions updating income
+5. Navigate to Valuable Info > Income tab
+6. Verify amber notification banner appears
+7. Verify previous status shows in banner
+8. Click "Update income now" link
+9. Enter new income value and save
+10. Verify notification banner disappears
+11. Click the info guide (?) button
+12. Verify "Income needs updating" no longer appears as missing
+
+---
+
+## Personal Information - Layout Alignment Fix
+
+**Date:** 28 January 2026
+
+**Branch:** main
+
+**Status:** Ready for deployment
+
+### Description
+
+Fixed layout alignment in Personal Information view mode so that Occupation and Domicile Status headings are aligned on the same row.
+
+### Layout Change
+
+**Before:**
+- Left column: Personal Details, Occupation (stacked)
+- Right column: Address, Domicile Status (stacked)
+- Domicile Status appeared higher than Occupation due to Address having fewer fields
+
+**After:**
+- Row 1: Personal Details | Address
+- Row 2: Occupation | Domicile Status (aligned)
+
+### Files Changed
+
+**Frontend (Included in Build):**
+```text
+resources/js/components/UserProfile/PersonalInformation.vue
+```
+
+### Rebuild Required: YES
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+---
+
+## Income Tab - Tax Calculation Refresh Fix
+
+**Date:** 28 January 2026
+
+**Branch:** main
+
+**Status:** Ready for deployment
+
+### Description
+
+Fixed bug where the Tax & NI calculation card would disappear after saving income changes and only reappear on page reload.
+
+### Root Cause
+
+The `updateIncomeOccupation` store action only returned basic user data, not the recalculated `detailed_tax_breakdown`. The tax breakdown is computed server-side and only included when the full profile is fetched.
+
+### Fix
+
+Added a call to `fetchProfile` after saving income changes to retrieve the complete profile data including the recalculated tax breakdown.
+
+### Files Changed
+
+**Frontend (Included in Build):**
+```text
+resources/js/components/UserProfile/IncomeOccupation.vue
+```
+
+### Rebuild Required: YES
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+### Verification
+
+1. Navigate to Valuable Info → Income tab
+2. Click Edit and change an income value
+3. Click Save Changes
+4. Verify Tax & NI card remains visible with updated calculations
+
+---
+
+## Employment Status "Retired" - Remove Retirement Date Field
+
+**Date:** 28 January 2026
+
+**Branch:** main
+
+**Status:** Ready for deployment
+
+### Description
+
+Removed the Retirement Date field that appeared when selecting "Retired" as employment status. Now when "Retired" is selected:
+- Target Retirement Age field is hidden (existing behaviour)
+- Retirement Date field no longer appears (removed)
+
+### Files Changed
+
+**Frontend (Included in Build):**
+```text
+resources/js/components/UserProfile/PersonalInformation.vue
+resources/js/components/Onboarding/steps/IncomeStep.vue
+```
+
+### Rebuild Required: YES
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+---
+
 ## Rollback
 
 If issues occur, restore previous `public/build/` directory from backup.

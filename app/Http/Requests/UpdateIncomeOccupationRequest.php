@@ -36,6 +36,8 @@ class UpdateIncomeOccupationRequest extends FormRequest
             'annual_interest_income' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:9999999999.99'],
             'annual_trust_income' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:9999999999.99'],
             'annual_other_income' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:9999999999.99'],
+            'income_needs_update' => ['sometimes', 'nullable', 'boolean'],
+            'previous_employment_status' => ['sometimes', 'nullable', 'string', 'max:50'],
         ];
     }
 

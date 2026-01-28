@@ -42,23 +42,6 @@
             </select>
           </div>
 
-          <!-- Retirement Date (for retired users) -->
-          <div v-if="formData.employment_status === 'retired'">
-            <label for="retirement_date" class="label">
-              When did you retire?
-            </label>
-            <input
-              id="retirement_date"
-              v-model="formData.retirement_date"
-              type="date"
-              :max="today"
-              class="input-field"
-            >
-            <p class="mt-1 text-body-sm text-gray-500">
-              The date you retired from work
-            </p>
-          </div>
-
           <template v-if="showEmploymentFields">
             <div>
               <label for="occupation" class="label">
