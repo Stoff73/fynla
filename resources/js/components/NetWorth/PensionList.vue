@@ -207,8 +207,8 @@
                     <span class="summary-item-value">{{ formatCurrency(dcPensionValue) }}</span>
                   </div>
                   <div class="summary-item purple">
-                    <span class="summary-item-label">Projected Value (95%)</span>
-                    <span class="summary-item-value">{{ formatCurrency(projections.pension_pot_projection?.percentile_5_at_retirement) }}</span>
+                    <span class="summary-item-label">Projected Value (80%)</span>
+                    <span class="summary-item-value">{{ formatCurrency(projections.pension_pot_projection?.percentile_20_at_retirement) }}</span>
                   </div>
                 </div>
                 <PensionPotProjectionChart

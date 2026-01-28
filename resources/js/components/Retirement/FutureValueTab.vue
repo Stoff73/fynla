@@ -32,8 +32,8 @@
       <div class="summary-grid">
         <div class="summary-card blue">
           <p class="summary-label">Projected Pot at Retirement</p>
-          <p class="summary-value">{{ formatCurrency(projections.pension_pot_projection?.percentile_5_at_retirement) }}</p>
-          <p class="summary-subtitle">Age {{ projections.pension_pot_projection?.retirement_age }} (95% probability)</p>
+          <p class="summary-value">{{ formatCurrency(projections.pension_pot_projection?.percentile_20_at_retirement) }}</p>
+          <p class="summary-subtitle">Age {{ projections.pension_pot_projection?.retirement_age }} (80% probability)</p>
         </div>
         <div class="summary-card purple">
           <p class="summary-label">Required Capital</p>

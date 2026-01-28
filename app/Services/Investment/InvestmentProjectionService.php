@@ -8,18 +8,12 @@ use App\Models\Investment\InvestmentAccount;
 use App\Models\User;
 use App\Services\Risk\RiskPreferenceService;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Cache;
 
 class InvestmentProjectionService
 {
     private const DEFAULT_PROJECTION_PERIODS = [5, 10, 20, 30];
 
     private const MONTE_CARLO_ITERATIONS = 1000;
-
-    /**
-     * Cache TTL in seconds (24 hours)
-     */
-    private const CACHE_TTL = 86400;
 
     public function __construct(
         private MonteCarloSimulator $simulator,
@@ -53,7 +47,7 @@ class InvestmentProjectionService
 
     /**
      * Get complete portfolio projections with account breakdowns.
-     * Results are cached for 24 hours per user.
+     * Results are cached for 24 hours via MonteCarloSimulator.
      */
     public function getPortfolioProjections(
         User $user,
@@ -73,22 +67,18 @@ class InvestmentProjectionService
             ];
         }
 
-        // Generate cache key based on user ID (contribution overrides bypass cache)
-        // Check empty() instead of === null since frontend may send empty array
-        if (empty($contributionOverrides)) {
-            $cacheKey = "investment_portfolio_projections_{$user->id}";
-
-            return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($user, $accounts, $projectionPeriods, $selectedPeriod) {
-                return $this->buildPortfolioProjections($user, $accounts, $projectionPeriods, $selectedPeriod);
-            });
-        }
-
-        // If contribution overrides provided, don't cache (what-if scenario)
-        return $this->buildPortfolioProjections($user, $accounts, $projectionPeriods, $selectedPeriod, $contributionOverrides);
+        // Build projections - caching is handled by MonteCarloSimulator
+        return $this->buildPortfolioProjections(
+            $user,
+            $accounts,
+            $projectionPeriods,
+            $selectedPeriod,
+            $contributionOverrides
+        );
     }
 
     /**
-     * Build portfolio projections (internal method for caching).
+     * Build portfolio projections.
      */
     private function buildPortfolioProjections(
         User $user,
@@ -144,13 +134,19 @@ class InvestmentProjectionService
 
         $projections = [];
         foreach ($periods as $years) {
+            // Build cache key for portfolio projection (only if no overrides)
+            $cacheKey = empty($contributionOverrides)
+                ? "user_{$user->id}_portfolio_{$years}y"
+                : null;
+
             $simulation = $this->simulator->simulate(
                 $totalValue,
                 $monthlyContribution,
                 $riskParams['expected_return_typical'] / 100,
                 $riskParams['volatility'] / 100,
                 $years,
-                self::MONTE_CARLO_ITERATIONS
+                self::MONTE_CARLO_ITERATIONS,
+                $cacheKey
             );
 
             $yearByYear = $this->extractProbabilityBands($simulation);
@@ -160,10 +156,10 @@ class InvestmentProjectionService
                 'years' => $years,
                 'median_value' => $finalYear['percentile_50'] ?? $totalValue,
                 'percentiles' => [
-                    'p5' => $finalYear['percentile_5'] ?? $totalValue,
                     'p10' => $finalYear['percentile_10'] ?? $totalValue,
                     'p15' => $finalYear['percentile_15'] ?? $totalValue,
                     'p20' => $finalYear['percentile_20'] ?? $totalValue,
+                    'p25' => $finalYear['percentile_25'] ?? $totalValue,
                     'p50' => $finalYear['percentile_50'] ?? $totalValue,
                     'p75' => $finalYear['percentile_75'] ?? $totalValue,
                     'p90' => $finalYear['percentile_90'] ?? $totalValue,
@@ -214,13 +210,19 @@ class InvestmentProjectionService
 
         $projections = [];
         foreach ($periods as $years) {
+            // Build cache key for account projection (only if no override)
+            $cacheKey = ($contributionOverride === null)
+                ? "user_{$user->id}_account_{$account->id}_{$years}y"
+                : null;
+
             $simulation = $this->simulator->simulate(
                 $value,
                 $monthlyContribution,
                 $riskParams['expected_return_typical'] / 100,
                 $riskParams['volatility'] / 100,
                 $years,
-                self::MONTE_CARLO_ITERATIONS
+                self::MONTE_CARLO_ITERATIONS,
+                $cacheKey
             );
 
             $yearByYear = $this->extractProbabilityBands($simulation);
@@ -230,10 +232,10 @@ class InvestmentProjectionService
                 'years' => $years,
                 'median_value' => $finalYear['percentile_50'] ?? $value,
                 'percentiles' => [
-                    'p5' => $finalYear['percentile_5'] ?? $value,
                     'p10' => $finalYear['percentile_10'] ?? $value,
                     'p15' => $finalYear['percentile_15'] ?? $value,
                     'p20' => $finalYear['percentile_20'] ?? $value,
+                    'p25' => $finalYear['percentile_25'] ?? $value,
                     'p50' => $finalYear['percentile_50'] ?? $value,
                     'p75' => $finalYear['percentile_75'] ?? $value,
                     'p90' => $finalYear['percentile_90'] ?? $value,
@@ -258,23 +260,21 @@ class InvestmentProjectionService
 
     /**
      * Extract probability bands from Monte Carlo results.
-     * Matches RetirementProjectionService pattern.
      */
     private function extractProbabilityBands(array $simulation): array
     {
         $result = [];
         $currentYear = (int) date('Y');
         $startValue = $simulation['summary']['start_value'] ?? 0;
-        $totalYears = count($simulation['year_by_year']);
 
-        // Add year 0 (current year) with current value - all bands start at the same point
+        // Add year 0 (current year) with current value
         $result[] = [
             'year' => $currentYear,
             'year_number' => 0,
-            'percentile_5' => round($startValue, 2),
             'percentile_10' => round($startValue, 2),
             'percentile_15' => round($startValue, 2),
             'percentile_20' => round($startValue, 2),
+            'percentile_25' => round($startValue, 2),
             'percentile_50' => round($startValue, 2),
             'percentile_75' => round($startValue, 2),
             'percentile_90' => round($startValue, 2),
@@ -290,16 +290,12 @@ class InvestmentProjectionService
             $p75 = $this->getPercentileValue($percentiles, '75th');
             $p90 = $this->getPercentileValue($percentiles, '90th');
 
-            // Interpolate 5th, 15th, 20th (same as Retirement)
+            // Interpolate 15th and 20th percentiles between 10th and 25th
             $spread = $p25 - $p10;
-            $p5 = $p10 - ($spread * 0.33);
             $p15 = $p10 + ($spread * 0.33);
             $p20 = $p10 + ($spread * 0.67);
 
-            // Smooth transition for early years - blend with start value
-            // Year 1: 70% Monte Carlo, 30% start value
-            // Year 2: 90% Monte Carlo, 10% start value
-            // Year 3+: 100% Monte Carlo
+            // Smooth transition for early years
             $blendFactor = 1.0;
             if ($yearIndex === 1) {
                 $blendFactor = 0.7;
@@ -307,10 +303,10 @@ class InvestmentProjectionService
                 $blendFactor = 0.9;
             }
 
-            $p5 = $this->blendValue($p5, $startValue, $blendFactor);
             $p10 = $this->blendValue($p10, $startValue, $blendFactor);
             $p15 = $this->blendValue($p15, $startValue, $blendFactor);
             $p20 = $this->blendValue($p20, $startValue, $blendFactor);
+            $p25 = $this->blendValue($p25, $startValue, $blendFactor);
             $p50 = $this->blendValue($p50, $startValue, $blendFactor);
             $p75 = $this->blendValue($p75, $startValue, $blendFactor);
             $p90 = $this->blendValue($p90, $startValue, $blendFactor);
@@ -318,10 +314,10 @@ class InvestmentProjectionService
             $result[] = [
                 'year' => $currentYear + $yearIndex,
                 'year_number' => $yearIndex,
-                'percentile_5' => round(max(0, $p5), 2),
                 'percentile_10' => round($p10, 2),
                 'percentile_15' => round($p15, 2),
                 'percentile_20' => round($p20, 2),
+                'percentile_25' => round($p25, 2),
                 'percentile_50' => round($p50, 2),
                 'percentile_75' => round($p75, 2),
                 'percentile_90' => round($p90, 2),
@@ -331,9 +327,6 @@ class InvestmentProjectionService
         return $result;
     }
 
-    /**
-     * Blend a Monte Carlo value with the start value for smooth transitions.
-     */
     private function blendValue(float $monteCarloValue, float $startValue, float $blendFactor): float
     {
         return ($monteCarloValue * $blendFactor) + ($startValue * (1 - $blendFactor));
@@ -365,7 +358,6 @@ class InvestmentProjectionService
         $weightedVolatility = 0.0;
         $hasProfileRisk = false;
 
-        // Check if user has a risk profile
         $mainRiskLevel = $this->riskService->getMainRiskLevel($user->id);
         if ($mainRiskLevel !== null) {
             $hasProfileRisk = true;
@@ -377,7 +369,6 @@ class InvestmentProjectionService
                 ?? $mainRiskLevel
                 ?? 'medium';
 
-            // If account has explicit risk preference, it counts as profile-based
             if ($account->risk_preference !== null) {
                 $hasProfileRisk = true;
             }
@@ -428,8 +419,6 @@ class InvestmentProjectionService
 
     /**
      * Calculate projections for a single account with optional risk level override.
-     * Used for "what-if" scenarios to show how projections change with different risk levels.
-     * Results are cached for 24 hours per account (unless risk override is provided).
      */
     public function getAccountProjectionWithRiskOverride(
         InvestmentAccount $account,
@@ -437,21 +426,11 @@ class InvestmentProjectionService
         ?string $riskLevelOverride = null,
         array $periods = self::DEFAULT_PROJECTION_PERIODS
     ): array {
-        // If risk override is provided, don't cache (what-if scenario)
-        if ($riskLevelOverride !== null) {
-            return $this->buildAccountProjection($account, $user, $riskLevelOverride, $periods);
-        }
-
-        // Cache normal projections for 24 hours
-        $cacheKey = "investment_account_projections_{$account->id}";
-
-        return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($account, $user, $periods) {
-            return $this->buildAccountProjection($account, $user, null, $periods);
-        });
+        return $this->buildAccountProjection($account, $user, $riskLevelOverride, $periods);
     }
 
     /**
-     * Build account projection (internal method for caching).
+     * Build account projection.
      */
     private function buildAccountProjection(
         InvestmentAccount $account,
@@ -462,7 +441,6 @@ class InvestmentProjectionService
         $value = $this->getUserShareValue($account);
         $monthlyContribution = $this->contributionEstimator->estimateMonthlyContribution($account);
 
-        // Use override risk level if provided, otherwise use account's or user's
         $mainRiskLevel = $this->riskService->getMainRiskLevel($user->id);
         $riskSource = 'default';
 
@@ -483,13 +461,19 @@ class InvestmentProjectionService
 
         $projections = [];
         foreach ($periods as $years) {
+            // Cache key - null if there's an override (what-if scenario)
+            $cacheKey = ($riskLevelOverride === null)
+                ? "user_{$user->id}_account_{$account->id}_{$years}y"
+                : null;
+
             $simulation = $this->simulator->simulate(
                 $value,
                 $monthlyContribution,
                 $riskParams['expected_return_typical'] / 100,
                 $riskParams['volatility'] / 100,
                 $years,
-                self::MONTE_CARLO_ITERATIONS
+                self::MONTE_CARLO_ITERATIONS,
+                $cacheKey
             );
 
             $yearByYear = $this->extractProbabilityBands($simulation);
@@ -499,10 +483,10 @@ class InvestmentProjectionService
                 'years' => $years,
                 'median_value' => $finalYear['percentile_50'] ?? $value,
                 'percentiles' => [
-                    'p5' => $finalYear['percentile_5'] ?? $value,
                     'p10' => $finalYear['percentile_10'] ?? $value,
                     'p15' => $finalYear['percentile_15'] ?? $value,
                     'p20' => $finalYear['percentile_20'] ?? $value,
+                    'p25' => $finalYear['percentile_25'] ?? $value,
                     'p50' => $finalYear['percentile_50'] ?? $value,
                     'p75' => $finalYear['percentile_75'] ?? $value,
                     'p90' => $finalYear['percentile_90'] ?? $value,
@@ -530,7 +514,7 @@ class InvestmentProjectionService
      */
     public function invalidateUserProjections(int $userId): void
     {
-        Cache::forget("investment_portfolio_projections_{$userId}");
+        $this->simulator->clearUserCache($userId);
     }
 
     /**
@@ -538,6 +522,6 @@ class InvestmentProjectionService
      */
     public function invalidateAccountProjections(int $accountId): void
     {
-        Cache::forget("investment_account_projections_{$accountId}");
+        // This will be handled by clearUserCache when user updates account
     }
 }

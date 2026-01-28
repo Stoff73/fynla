@@ -460,7 +460,7 @@ class RetirementStrategyService
      * Check for employer match optimization opportunities.
      *
      * @param  array  $affordability  User's affordability data including disposable_income
-     * @return array  Contains 'strategies' array and 'skipped_for_affordability' bool
+     * @return array Contains 'strategies' array and 'skipped_for_affordability' bool
      */
     private function checkEmployerMatchStrategies(User $user, array $currentStatus, float $cumulativeAdditionalIncome, array $affordability): array
     {
@@ -1217,9 +1217,9 @@ class RetirementStrategyService
      * Relief at Source: User pays net (80%), HMRC adds 20% automatically.
      * Higher/Additional rate taxpayers get additional relief via self-assessment.
      *
-     * @param float $netAffordable Maximum net amount user can afford upfront
-     * @param float $remainingAllowance Remaining Annual Allowance
-     * @param float $marginalRate User's marginal tax rate (0, 0.20, 0.40, or 0.45)
+     * @param  float  $netAffordable  Maximum net amount user can afford upfront
+     * @param  float  $remainingAllowance  Remaining Annual Allowance
+     * @param  float  $marginalRate  User's marginal tax rate (0, 0.20, 0.40, or 0.45)
      * @return array Contribution breakdown with gross, net, HMRC addition, and refund
      */
     private function calculateContributionWithRelief(
@@ -1283,9 +1283,9 @@ class RetirementStrategyService
      *
      * Priority order: Pension → ISA → Bond Wrapper → GIA
      *
-     * @param float $refundAmount The self-assessment refund to reinvest
-     * @param float $remainingPensionAllowance Remaining pension Annual Allowance
-     * @param float $remainingIsaAllowance Remaining ISA allowance (£20,000 standard)
+     * @param  float  $refundAmount  The self-assessment refund to reinvest
+     * @param  float  $remainingPensionAllowance  Remaining pension Annual Allowance
+     * @param  float  $remainingIsaAllowance  Remaining ISA allowance (£20,000 standard)
      * @return array Recommended destination and breakdown
      */
     private function calculateRefundReinvestmentStrategy(
@@ -1374,10 +1374,10 @@ class RetirementStrategyService
      * For higher/additional rate taxpayers, reinvesting the self-assessment refund
      * back into pension creates a compounding cycle: refund → pension → more refund.
      *
-     * @param float $annualGrossContribution Annual gross contribution to pension
-     * @param float $marginalRate User's marginal tax rate
-     * @param int $yearsToRetirement Years until target retirement
-     * @param float $growthRate Expected annual growth rate (default 5%)
+     * @param  float  $annualGrossContribution  Annual gross contribution to pension
+     * @param  float  $marginalRate  User's marginal tax rate
+     * @param  int  $yearsToRetirement  Years until target retirement
+     * @param  float  $growthRate  Expected annual growth rate (default 5%)
      * @return array Projection with yearly breakdown and totals
      */
     private function projectCompoundBenefitToRetirement(
@@ -1539,12 +1539,12 @@ class RetirementStrategyService
                 // Monte Carlo projection - array is 0-indexed, so year 1 is index 0
                 $mcIndex = $year - 1;
                 if ($mcIndex < $monteCarloCount) {
-                    $potWithoutStrategy = $monteCarloData[$mcIndex]['percentile_5'] ?? $currentPot;
+                    $potWithoutStrategy = $monteCarloData[$mcIndex]['percentile_20'] ?? $currentPot;
                     $displayYear = $monteCarloData[$mcIndex]['year'] ?? ($currentYear + $year);
                 } else {
                     // Fall back to last available Monte Carlo value
                     $lastMcIndex = $monteCarloCount - 1;
-                    $potWithoutStrategy = $monteCarloData[$lastMcIndex]['percentile_5'] ?? $currentPot;
+                    $potWithoutStrategy = $monteCarloData[$lastMcIndex]['percentile_20'] ?? $currentPot;
                     $displayYear = $currentYear + $year;
                 }
             }
@@ -1569,7 +1569,7 @@ class RetirementStrategyService
             ];
         }
 
-        // Get final values at retirement (last Monte Carlo year = percentile_5_at_retirement)
+        // Get final values at retirement (last Monte Carlo year = percentile_20_at_retirement)
         $lastYear = $yearByYear[count($yearByYear) - 1] ?? [];
         $potAtRetirementWith = $lastYear['pot_with_strategy'] ?? 0;
         $potAtRetirementWithout = $lastYear['pot_without_strategy'] ?? 0;
@@ -1633,11 +1633,11 @@ class RetirementStrategyService
             } else {
                 $mcIndex = $year - 1;
                 if ($mcIndex < $monteCarloCount) {
-                    $potValue = $monteCarloData[$mcIndex]['percentile_5'] ?? $currentPot;
+                    $potValue = $monteCarloData[$mcIndex]['percentile_20'] ?? $currentPot;
                     $displayYear = $monteCarloData[$mcIndex]['year'] ?? ($currentYear + $year);
                 } else {
                     $lastMcIndex = $monteCarloCount - 1;
-                    $potValue = $monteCarloData[$lastMcIndex]['percentile_5'] ?? $currentPot;
+                    $potValue = $monteCarloData[$lastMcIndex]['percentile_20'] ?? $currentPot;
                     $displayYear = $currentYear + $year;
                 }
             }
@@ -1728,11 +1728,11 @@ class RetirementStrategyService
             } else {
                 $mcIndex = $year - 1;
                 if ($mcIndex < $monteCarloCount) {
-                    $mcBaseline = $monteCarloData[$mcIndex]['percentile_5'] ?? $currentPot;
+                    $mcBaseline = $monteCarloData[$mcIndex]['percentile_20'] ?? $currentPot;
                     $displayYear = $monteCarloData[$mcIndex]['year'] ?? ($currentYear + $year);
                 } else {
                     $lastMcIndex = max(0, $monteCarloCount - 1);
-                    $mcBaseline = $monteCarloData[$lastMcIndex]['percentile_5'] ?? $currentPot;
+                    $mcBaseline = $monteCarloData[$lastMcIndex]['percentile_20'] ?? $currentPot;
                     $displayYear = $currentYear + $year;
                 }
             }
@@ -1783,12 +1783,12 @@ class RetirementStrategyService
             }
 
             if ($mcIndex < $monteCarloCount) {
-                $mcBaseline = $monteCarloData[$mcIndex]['percentile_5'] ?? $potAtOriginalRetirement;
+                $mcBaseline = $monteCarloData[$mcIndex]['percentile_20'] ?? $potAtOriginalRetirement;
                 $potWithStrategy = $mcBaseline + $additionalPotFromPriorStrategies;
             } else {
                 // Project forward from last Monte Carlo value + prior strategies' pot
                 $lastMcValue = $monteCarloCount > 0
-                    ? ($monteCarloData[$monteCarloCount - 1]['percentile_5'] ?? ($potAtOriginalRetirement - $additionalPotFromPriorStrategies))
+                    ? ($monteCarloData[$monteCarloCount - 1]['percentile_20'] ?? ($potAtOriginalRetirement - $additionalPotFromPriorStrategies))
                     : ($potAtOriginalRetirement - $additionalPotFromPriorStrategies);
 
                 // Add prior strategies' pot at that point
@@ -1899,7 +1899,7 @@ class RetirementStrategyService
         $potAtOriginalRetirement = $currentPot;
         if ($monteCarloCount >= $yearsToRetirement && $yearsToRetirement > 0) {
             $mcIndex = $yearsToRetirement - 1;
-            $potAtOriginalRetirement = $monteCarloData[$mcIndex]['percentile_5'] ?? $currentPot;
+            $potAtOriginalRetirement = $monteCarloData[$mcIndex]['percentile_20'] ?? $currentPot;
         }
 
         // Add pot from prior strategies' additional contributions
@@ -1924,7 +1924,7 @@ class RetirementStrategyService
 
         if ($mcIndexDelayed < $monteCarloCount) {
             // Monte Carlo data available for delayed retirement
-            $mcBaseline = $monteCarloData[$mcIndexDelayed]['percentile_5'] ?? $potAtOriginalRetirement;
+            $mcBaseline = $monteCarloData[$mcIndexDelayed]['percentile_20'] ?? $potAtOriginalRetirement;
 
             // Add prior strategies' pot accumulated to that point
             if ($monthlyRate > 0 && $priorAdditionalMonthly > 0) {
@@ -1940,7 +1940,7 @@ class RetirementStrategyService
 
         // Project forward from end of Monte Carlo data
         $lastMcIndex = max(0, $monteCarloCount - 1);
-        $lastMcPot = $monteCarloData[$lastMcIndex]['percentile_5'] ?? $potWithPriorStrategies;
+        $lastMcPot = $monteCarloData[$lastMcIndex]['percentile_20'] ?? $potWithPriorStrategies;
 
         // Add prior strategies' pot at last MC point
         if ($monthlyRate > 0 && $priorAdditionalMonthly > 0 && $monteCarloCount > 0) {

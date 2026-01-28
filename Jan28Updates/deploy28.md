@@ -2019,7 +2019,7 @@ resources/js/views/Savings/SavingsAccountDetailInline.vue
 
 ---
 
-## Monte Carlo Projection Caching (24 Hours)
+## Monte Carlo Projection Caching (24 Hours) - Database-Backed
 
 **Date:** 28 January 2026
 
@@ -2029,38 +2029,63 @@ resources/js/views/Savings/SavingsAccountDetailInline.vue
 
 ### Description
 
-Added 24-hour caching to all Monte Carlo projection calculations for investments and pensions. Previously, these calculations ran on every page load, causing slow loading times. Now projections are cached per user/account and only recalculate after 24 hours.
+Added centralised 24-hour caching to ALL Monte Carlo projection calculations using a dedicated database table. Previously, these calculations ran on every page load (1000 iterations each), causing slow loading times. Now projections are cached at the MonteCarloSimulator level and only recalculate after 24 hours.
 
-### What's Cached
+### Database Changes
 
-| Data Type | Cache Key Pattern | TTL |
-|-----------|-------------------|-----|
-| Investment Portfolio Projections | `investment_portfolio_projections_{userId}` | 24 hours |
-| Investment Account Projections | `investment_account_projections_{accountId}` | 24 hours |
-| Retirement Projections | `retirement_projections_{userId}` | 24 hours |
-| DC Pension Projections | `dc_pension_projection_{pensionId}` | 24 hours |
+New table: `monte_carlo_cache`
+- `id` - Primary key
+- `cache_key` - Unique identifier for the cached result
+- `results` - JSON-encoded simulation results
+- `calculated_at` - When the calculation was performed
+- `expires_at` - When the cache expires (24 hours after calculation)
+
+### Cache Key Patterns
+
+| Data Type | Cache Key Pattern | Example |
+|-----------|-------------------|---------|
+| Investment Portfolio | `user_{userId}_portfolio_{years}y` | `user_123_portfolio_10y` |
+| Investment Account | `user_{userId}_account_{accountId}_{years}y` | `user_123_account_456_10y` |
+| Retirement Pension Pot | `user_{userId}_pension_pot_{years}y` | `user_123_pension_pot_20y` |
+| DC Pension | `user_{userId}_pension_{pensionId}_{years}y` | `user_123_pension_789_25y` |
 
 ### Behaviour
 
-- First visit: Monte Carlo runs and caches results
-- Subsequent visits within 24 hours: Cached results returned instantly
+- First visit: Monte Carlo runs (1000 iterations) and stores results in database
+- Subsequent visits within 24 hours: Results returned instantly from database
 - After 24 hours: Cache expires, fresh calculation on next visit
-- What-if scenarios (risk overrides): Always bypass cache
+- What-if scenarios (contribution/risk overrides): Always bypass cache (no cache key passed)
 
-### Cache Invalidation Methods
+### Cache Invalidation
 
-Added helper methods to invalidate cache when data changes:
-- `InvestmentProjectionService::invalidateUserProjections($userId)`
-- `InvestmentProjectionService::invalidateAccountProjections($accountId)`
-- `RetirementProjectionService::invalidateRetirementProjections($userId)`
-- `RetirementProjectionService::invalidateDCPensionProjection($pensionId)`
+The `MonteCarloSimulator` class provides a static method to clear all cache entries for a user:
+
+```php
+MonteCarloSimulator::clearUserCache($userId);
+```
+
+This can be called when a user's financial data changes significantly (e.g., adding holdings, changing contributions).
 
 ### Files Changed
 
+**Database Migration (Run on Server):**
+```text
+database/migrations/2026_01_28_163920_create_monte_carlo_cache_table.php
+```
+
 **Backend (Manual Upload Required):**
 ```text
+app/Services/Investment/MonteCarloSimulator.php
 app/Services/Investment/InvestmentProjectionService.php
 app/Services/Retirement/RetirementProjectionService.php
+app/Http/Controllers/Api/InvestmentProjectionController.php
+```
+
+### Server Commands Required
+
+```bash
+# Run migration to create cache table
+php artisan migrate
 ```
 
 ### Rebuild Required: NO (PHP only)
@@ -2068,13 +2093,106 @@ app/Services/Retirement/RetirementProjectionService.php
 ### Verification
 
 1. Navigate to Net Worth → Investments → Portfolio tab
-2. Note the projection values displayed
-3. Refresh the page - projections should load instantly (cached)
-4. Values should remain identical for 24 hours
-5. Test same behaviour for:
+2. Check database: `SELECT COUNT(*) FROM monte_carlo_cache;` (should be 0 initially)
+3. Load the page and wait for projections
+4. Check database again (should show entries with `calculated_at` timestamps)
+5. Refresh the page - projections should load instantly
+6. Check database - `calculated_at` timestamps should be UNCHANGED (cache hit)
+7. Test same behaviour for:
    - Individual investment account detail views
    - Retirement module projections
    - Individual DC pension detail views
+
+---
+
+## Monte Carlo Probability Bands Update (90/85/80/75)
+
+**Date:** 28 January 2026
+
+**Branch:** main
+
+**Status:** ✅ Ready for deployment
+
+### Description
+
+Changed Monte Carlo projection probability bands from 95/90/85/80% to 90/85/80/75%. Also changed forecast returns to use 80% probability (20th percentile) instead of 95% probability (5th percentile) for conservative projections.
+
+### Changes Made
+
+**Probability bands shown on charts:**
+| Before | After |
+|--------|-------|
+| 95% Probability (p5) | 90% Probability (p10) |
+| 90% Probability (p10) | 85% Probability (p15) |
+| 85% Probability (p15) | 80% Probability (p20) |
+| 80% Probability (p20) | 75% Probability (p25) |
+
+**Conservative forecast value:**
+| Before | After |
+|--------|-------|
+| 95% probability (5th percentile) | 80% probability (20th percentile) |
+
+### Why This Change
+
+- The 95% probability band was too conservative for typical financial planning
+- 80% probability provides a more balanced conservative estimate
+- Industry standard for retirement planning typically uses 75-85% probability bands
+
+### Files Changed
+
+**Backend (Manual Upload Required):**
+```text
+app/Services/Investment/InvestmentProjectionService.php
+app/Services/Investment/MonteCarloSimulator.php
+app/Services/Investment/Goals/GoalProbabilityCalculator.php
+app/Services/Investment/ScenarioService.php
+app/Services/Retirement/RetirementProjectionService.php
+app/Services/Retirement/RetirementStrategyService.php
+```
+
+**Frontend (Rebuild Required):**
+```text
+resources/js/components/Investment/InvestmentProjectionChart.vue
+resources/js/components/Investment/Performance.vue
+resources/js/components/Investment/GoalProjection.vue
+resources/js/components/Investment/MonteCarloResults.vue
+resources/js/components/Retirement/PensionPotProjectionChart.vue
+resources/js/components/Retirement/FutureValueTab.vue
+resources/js/components/NetWorth/InvestmentProjections.vue
+resources/js/components/NetWorth/PensionList.vue
+resources/js/components/NetWorth/PensionDetailInline.vue
+resources/js/views/Investment/AccountPerformancePanel.vue
+resources/js/views/Retirement/PensionDetail.vue
+```
+
+**Tests:**
+```text
+tests/Unit/Services/Retirement/RetirementProjectionServiceTest.php
+```
+
+### Server Commands Required
+
+```bash
+# Clear Monte Carlo cache to regenerate with new percentiles
+php artisan tinker --execute="DB::table('monte_carlo_cache')->truncate();"
+```
+
+### Rebuild Required: YES
+
+Frontend Vue components changed. Full rebuild required.
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+### Verification
+
+1. Navigate to Net Worth → Investments → Portfolio tab
+2. Verify chart legend shows: "90% Probability", "85% Probability", "80% Probability", "75% Probability"
+3. Verify "Projected Value (80%)" label appears (not 95%)
+4. Navigate to Retirement → Future Value
+5. Verify "Projected Pot at Retirement" shows "(80% probability)" label
+6. Verify pension pot chart shows same 90/85/80/75% probability bands
 
 ---
 

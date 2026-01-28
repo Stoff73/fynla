@@ -179,10 +179,10 @@ const TARGET_COLOR = '#8b5cf6';
 
 // Monte Carlo probability band colors (dark blue to light teal)
 const PROBABILITY_COLORS = {
-  p95: '#1e3a5f',  // Dark navy - 95% probability
-  p90: '#3b82f6',  // Blue - 90% probability
-  p85: '#14b8a6',  // Teal - 85% probability
-  p80: '#a7f3d0',  // Light mint - 80% probability
+  p90: '#1e3a5f',  // Dark navy - 90% probability
+  p85: '#3b82f6',  // Blue - 85% probability
+  p80: '#14b8a6',  // Teal - 80% probability
+  p75: '#a7f3d0',  // Light mint - 75% probability
 };
 
 export default {
@@ -251,27 +251,27 @@ export default {
       const projections = this.results.projections;
 
       // Create probability bands - each band shows the range for that confidence level
-      // 95% probability: between 2.5th and 97.5th percentile (approximated using 10th/90th)
-      // 90% probability: between 5th and 95th percentile (approximated)
-      // 85% probability: between 7.5th and 92.5th percentile (approximated)
-      // 80% probability: between 10th and 90th percentile (using actual data)
+      // 90% probability: 10th percentile
+      // 85% probability: 15th percentile (interpolated)
+      // 80% probability: 20th percentile (interpolated)
+      // 75% probability: 25th percentile
 
       return [
         {
-          name: '95% Probability',
-          data: projections.map(p => ({ x: p.year, y: p.percentile_90 * 1.15 })), // Approximate 97.5th
-        },
-        {
           name: '90% Probability',
-          data: projections.map(p => ({ x: p.year, y: p.percentile_90 * 1.05 })), // Approximate 95th
+          data: projections.map(p => ({ x: p.year, y: p.percentile_10 })),
         },
         {
           name: '85% Probability',
-          data: projections.map(p => ({ x: p.year, y: p.percentile_90 })), // 90th percentile
+          data: projections.map(p => ({ x: p.year, y: p.percentile_15 || (p.percentile_10 + (p.percentile_25 - p.percentile_10) * 0.33) })),
         },
         {
           name: '80% Probability',
-          data: projections.map(p => ({ x: p.year, y: p.percentile_50 + (p.percentile_90 - p.percentile_50) * 0.6 })), // Between median and 90th
+          data: projections.map(p => ({ x: p.year, y: p.percentile_20 || (p.percentile_10 + (p.percentile_25 - p.percentile_10) * 0.67) })),
+        },
+        {
+          name: '75% Probability',
+          data: projections.map(p => ({ x: p.year, y: p.percentile_25 })),
         },
       ];
     },

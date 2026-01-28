@@ -151,7 +151,7 @@
           <!-- Projected Value Card -->
           <div class="bg-blue-50 rounded-lg p-4 mb-4">
             <div class="flex items-center justify-between mb-1">
-              <p class="text-xs text-blue-600 uppercase tracking-wide">Projected Value (95%)</p>
+              <p class="text-xs text-blue-600 uppercase tracking-wide">Projected Value (80%)</p>
               <select
                 v-model="selectedProjectionYears"
                 @change="updateProjectionData"
@@ -163,7 +163,7 @@
                 <option :value="30">30 Years</option>
               </select>
             </div>
-            <p class="text-2xl font-bold text-blue-900">{{ formatProjectedValue95 }}</p>
+            <p class="text-2xl font-bold text-blue-900">{{ formatProjectedValue80 }}</p>
             <p class="text-sm text-blue-600 mt-1">
               in {{ selectedProjectionYears }} years
             </p>
@@ -345,10 +345,10 @@ export default {
       return this.account.current_value;
     },
 
-    formatProjectedValue95() {
+    formatProjectedValue80() {
       if (!this.hasProjectionData) return '--';
       const lastYear = this.projectionData.year_by_year[this.projectionData.year_by_year.length - 1];
-      return this.formatCurrency(lastYear?.percentile_5);
+      return this.formatCurrency(lastYear?.percentile_20);
     },
 
     years() {
@@ -361,10 +361,6 @@ export default {
 
       return [
         {
-          name: '95% Probability',
-          data: this.projectionData.year_by_year.map(y => Math.round(y.percentile_5)),
-        },
-        {
           name: '90% Probability',
           data: this.projectionData.year_by_year.map(y => Math.round(y.percentile_10)),
         },
@@ -375,6 +371,10 @@ export default {
         {
           name: '80% Probability',
           data: this.projectionData.year_by_year.map(y => Math.round(y.percentile_20)),
+        },
+        {
+          name: '75% Probability',
+          data: this.projectionData.year_by_year.map(y => Math.round(y.percentile_25)),
         },
       ];
     },

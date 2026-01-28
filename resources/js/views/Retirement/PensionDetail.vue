@@ -265,8 +265,8 @@
                 <p class="text-xl font-bold text-blue-600">{{ formatCurrency(projectionData.current_value) }}</p>
               </div>
               <div class="bg-green-50 rounded-lg p-4 border border-green-200">
-                <p class="text-sm text-gray-600">95% Probability at Retirement</p>
-                <p class="text-xl font-bold text-green-600">{{ formatCurrency(projectionData.percentile_5_at_retirement) }}</p>
+                <p class="text-sm text-gray-600">80% Probability at Retirement</p>
+                <p class="text-xl font-bold text-green-600">{{ formatCurrency(projectionData.percentile_20_at_retirement) }}</p>
               </div>
             </div>
 

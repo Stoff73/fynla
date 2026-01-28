@@ -119,12 +119,12 @@
 
             <div class="bg-gray-50 rounded-lg p-4">
               <div class="flex justify-between items-center mb-2">
-                <span class="text-sm font-medium text-gray-700">Worst Case (5th percentile)</span>
+                <span class="text-sm font-medium text-gray-700">Conservative (20th percentile)</span>
                 <span class="text-xl font-bold text-red-600">
-                  £{{ formatNumber(projectionData.monte_carlo?.percentile_5 || 0) }}
+                  £{{ formatNumber(projectionData.monte_carlo?.percentile_20 || 0) }}
                 </span>
               </div>
-              <p class="text-xs text-gray-600">95% chance of beating this</p>
+              <p class="text-xs text-gray-600">80% chance of beating this</p>
             </div>
 
             <div class="bg-gray-50 p-4 rounded-lg">

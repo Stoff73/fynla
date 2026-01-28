@@ -54,8 +54,8 @@
               <span class="summary-item-value">{{ formatCurrency(totalPortfolioValue) }}</span>
             </div>
             <div class="summary-item purple">
-              <span class="summary-item-label">Projected Value (95%)</span>
-              <span class="summary-item-value">{{ formatCurrency(selectedProjectionData?.percentiles?.p5) }}</span>
+              <span class="summary-item-label">Projected Value (80%)</span>
+              <span class="summary-item-value">{{ formatCurrency(selectedProjectionData?.percentiles?.p20) }}</span>
             </div>
           </div>
           <InvestmentProjectionChart
