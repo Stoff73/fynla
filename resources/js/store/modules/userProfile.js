@@ -268,6 +268,39 @@ const actions = {
   },
 
   /**
+   * Update domicile information
+   */
+  async updateDomicile({ commit }, data) {
+    commit('setLoading', true);
+    commit('setError', null);
+
+    try {
+      const response = await userProfileService.updateDomicile(data);
+
+      if (response.success) {
+        const user = response.data.user;
+
+        // Update auth store user with new domicile data
+        commit('auth/setUser', user, { root: true });
+
+        // Refresh the profile to get updated domicile_info
+        const profileResponse = await userProfileService.getProfile();
+        if (profileResponse.success) {
+          commit('setProfile', profileResponse.data);
+        }
+      }
+
+      return response;
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to update domicile information';
+      commit('setError', errorMessage);
+      throw error;
+    } finally {
+      commit('setLoading', false);
+    }
+  },
+
+  /**
    * Update spouse expenditure information
    */
   async updateSpouseExpenditure({ commit }, { spouseId, expenditureData }) {

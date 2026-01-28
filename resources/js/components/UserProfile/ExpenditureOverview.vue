@@ -1,24 +1,26 @@
 <template>
-  <div>
-    <div class="mb-6">
-      <h2 class="text-h4 font-semibold text-gray-900">Household Expenditure</h2>
-      <p class="mt-1 text-body-sm text-gray-600">
-        Manage your spending patterns for accurate financial planning
-      </p>
-    </div>
-
+  <div class="space-y-6">
     <!-- Error Message -->
-    <div v-if="error" class="rounded-md bg-error-50 p-4 mb-6">
+    <div v-if="error" class="rounded-md bg-error-50 p-4">
       <p class="text-body-sm text-error-800">{{ error }}</p>
     </div>
 
     <!-- Success Message -->
-    <div v-if="successMessage" class="rounded-md bg-success-50 p-4 mb-6">
+    <div v-if="successMessage" class="rounded-md bg-success-50 p-4">
       <p class="text-body-sm text-success-800">{{ successMessage }}</p>
     </div>
 
-    <!-- Shared Expenditure Form -->
-    <ExpenditureForm
+    <!-- Expenditure Card -->
+    <div class="bg-white rounded-lg border border-gray-200 p-6">
+      <div class="mb-6">
+        <h3 class="text-h4 font-semibold text-gray-900">Household Expenditure</h3>
+        <p class="mt-1 text-body-sm text-gray-600">
+          Manage your spending patterns for accurate financial planning
+        </p>
+      </div>
+
+      <!-- Shared Expenditure Form -->
+      <ExpenditureForm
       :initial-data="user"
       :spouse-data="spouse"
       :spouse-name="spouseName"
@@ -27,9 +29,10 @@
       :show-cancel="true"
       cancel-text="Reset"
       save-text="Save Changes"
-      @save="handleSave"
-      @cancel="handleReset"
-    />
+        @save="handleSave"
+        @cancel="handleReset"
+      />
+    </div>
   </div>
 </template>
 

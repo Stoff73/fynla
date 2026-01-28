@@ -62,12 +62,6 @@
           <!-- Tab Content Components -->
           <div v-else>
             <PersonalInformation v-show="activeTab === 'personal'" />
-            <DomicileInformation
-              v-show="activeTab === 'domicile'"
-              :user="user"
-              :domicile-info="domicileInfo"
-              @updated="handleDomicileUpdated"
-            />
             <HealthInformation v-show="activeTab === 'health'" />
             <FamilyMembers v-show="activeTab === 'family'" />
             <IncomeOccupation v-show="activeTab === 'income'" />
@@ -84,7 +78,6 @@ import { ref, computed, onMounted } from 'vue';
 import { useStore } from 'vuex';
 import AppLayout from '@/layouts/AppLayout.vue';
 import PersonalInformation from '@/components/UserProfile/PersonalInformation.vue';
-import DomicileInformation from '@/components/UserProfile/DomicileInformation.vue';
 import HealthInformation from '@/components/UserProfile/HealthInformation.vue';
 import FamilyMembers from '@/components/UserProfile/FamilyMembers.vue';
 import IncomeOccupation from '@/components/UserProfile/IncomeOccupation.vue';
@@ -96,7 +89,6 @@ export default {
   components: {
     AppLayout,
     PersonalInformation,
-    DomicileInformation,
     HealthInformation,
     FamilyMembers,
     IncomeOccupation,
@@ -109,16 +101,13 @@ export default {
 
     const loading = computed(() => store.getters['userProfile/loading']);
     const error = computed(() => store.getters['userProfile/error']);
-    const user = computed(() => store.getters['userProfile/user']);
-    const domicileInfo = computed(() => store.getters['userProfile/domicileInfo']);
 
     // Define all tabs
     const allTabs = [
       { id: 'personal', label: 'Personal Info' },
-      { id: 'domicile', label: 'Domicile Status' },
       { id: 'health', label: 'Health' },
       { id: 'family', label: 'Family' },
-      { id: 'income', label: 'Income & Occupation' },
+      { id: 'income', label: 'Income' },
       { id: 'expenditure', label: 'Expenditure' },
     ];
 
@@ -130,11 +119,6 @@ export default {
       } catch (err) {
         console.error('Failed to load profile:', err);
       }
-    };
-
-    const handleDomicileUpdated = (updatedUser) => {
-      // Reload the full profile to get updated domicile info
-      loadProfile();
     };
 
     onMounted(() => {
@@ -158,10 +142,7 @@ export default {
       tabs,
       loading,
       error,
-      user,
-      domicileInfo,
       loadProfile,
-      handleDomicileUpdated,
     };
   },
 };

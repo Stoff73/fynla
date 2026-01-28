@@ -41,13 +41,23 @@ const userProfileService = {
   },
 
   /**
+   * Update domicile information
+   * @param {Object} data - Domicile data (country_of_birth, uk_arrival_date)
+   * @returns {Promise}
+   */
+  async updateDomicile(data) {
+    const response = await api.put('/user/profile/domicile', data);
+    return response.data;
+  },
+
+  /**
    * Update spouse expenditure information
    * @param {number} spouseId - Spouse user ID
    * @param {Object} data - Expenditure data (monthly_expenditure, annual_expenditure)
    * @returns {Promise}
    */
   async updateSpouseExpenditure(spouseId, data) {
-    const response = await api.put(`/api/users/${spouseId}/expenditure`, data);
+    const response = await api.put(`/users/${spouseId}/expenditure`, data);
     return response.data;
   },
 

@@ -18,26 +18,26 @@
         </button>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-        <div>
-          <dt class="text-body-sm font-medium text-gray-500">Health Status</dt>
-          <dd class="mt-1 text-body-base text-gray-900">
-            {{ formatHealthStatus(displayData.health_status) }}
-          </dd>
+      <!-- Clean two-column layout -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-6">
+        <!-- Left Column -->
+        <div class="space-y-3">
+          <div class="flex justify-between">
+            <span class="text-body-sm text-gray-600">Health Status:</span>
+            <span class="text-body-sm text-gray-900 text-right">{{ formatHealthStatus(displayData.health_status) }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-body-sm text-gray-600">Smoking Status:</span>
+            <span class="text-body-sm text-gray-900 text-right">{{ formatSmokingStatus(displayData.smoking_status) }}</span>
+          </div>
         </div>
 
-        <div>
-          <dt class="text-body-sm font-medium text-gray-500">Smoking Status</dt>
-          <dd class="mt-1 text-body-base text-gray-900">
-            {{ formatSmokingStatus(displayData.smoking_status) }}
-          </dd>
-        </div>
-
-        <div>
-          <dt class="text-body-sm font-medium text-gray-500">Education Level</dt>
-          <dd class="mt-1 text-body-base text-gray-900">
-            {{ formatEducationLevel(displayData.education_level) }}
-          </dd>
+        <!-- Right Column -->
+        <div class="space-y-3">
+          <div class="flex justify-between">
+            <span class="text-body-sm text-gray-600">Education Level:</span>
+            <span class="text-body-sm text-gray-900 text-right">{{ formatEducationLevel(displayData.education_level) }}</span>
+          </div>
         </div>
       </div>
     </div>

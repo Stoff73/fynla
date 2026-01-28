@@ -112,6 +112,8 @@ class UserProfileController extends Controller
         $validated = $request->validate([
             'monthly_expenditure' => 'nullable|numeric|min:0',
             'annual_expenditure' => 'nullable|numeric|min:0',
+            'use_simple_entry' => 'nullable|boolean',
+            'use_separate_expenditure' => 'nullable|boolean',
             'food_groceries' => 'nullable|numeric|min:0',
             'transport_fuel' => 'nullable|numeric|min:0',
             'healthcare_medical' => 'nullable|numeric|min:0',
@@ -125,13 +127,29 @@ class UserProfileController extends Controller
             'pets' => 'nullable|numeric|min:0',
             'childcare' => 'nullable|numeric|min:0',
             'school_fees' => 'nullable|numeric|min:0',
+            'school_lunches' => 'nullable|numeric|min:0',
+            'school_extras' => 'nullable|numeric|min:0',
+            'university_fees' => 'nullable|numeric|min:0',
             'children_activities' => 'nullable|numeric|min:0',
             'gifts_charity' => 'nullable|numeric|min:0',
             'regular_savings' => 'nullable|numeric|min:0',
             'other_expenditure' => 'nullable|numeric|min:0',
         ]);
 
-        $user->update($validated);
+        // Map frontend field names to database column names
+        // expenditure_entry_mode: enum('simple', 'category')
+        // expenditure_sharing_mode: enum('joint', 'separate')
+        $updateData = $validated;
+        if (isset($validated['use_simple_entry'])) {
+            $updateData['expenditure_entry_mode'] = $validated['use_simple_entry'] ? 'simple' : 'category';
+            unset($updateData['use_simple_entry']);
+        }
+        if (isset($validated['use_separate_expenditure'])) {
+            $updateData['expenditure_sharing_mode'] = $validated['use_separate_expenditure'] ? 'separate' : 'joint';
+            unset($updateData['use_separate_expenditure']);
+        }
+
+        $user->update($updateData);
 
         // Create/update expenditure profile with the total
         if ($validated['monthly_expenditure'] ?? null) {
@@ -339,6 +357,7 @@ class UserProfileController extends Controller
         $validated = $request->validate([
             'monthly_expenditure' => 'nullable|numeric|min:0',
             'annual_expenditure' => 'nullable|numeric|min:0',
+            'use_simple_entry' => 'nullable|boolean',
             'food_groceries' => 'nullable|numeric|min:0',
             'transport_fuel' => 'nullable|numeric|min:0',
             'healthcare_medical' => 'nullable|numeric|min:0',
@@ -352,13 +371,24 @@ class UserProfileController extends Controller
             'pets' => 'nullable|numeric|min:0',
             'childcare' => 'nullable|numeric|min:0',
             'school_fees' => 'nullable|numeric|min:0',
+            'school_lunches' => 'nullable|numeric|min:0',
+            'school_extras' => 'nullable|numeric|min:0',
+            'university_fees' => 'nullable|numeric|min:0',
             'children_activities' => 'nullable|numeric|min:0',
             'gifts_charity' => 'nullable|numeric|min:0',
             'regular_savings' => 'nullable|numeric|min:0',
             'other_expenditure' => 'nullable|numeric|min:0',
         ]);
 
-        $spouse->update($validated);
+        // Map frontend field names to database column names
+        // expenditure_entry_mode: enum('simple', 'category')
+        $updateData = $validated;
+        if (isset($validated['use_simple_entry'])) {
+            $updateData['expenditure_entry_mode'] = $validated['use_simple_entry'] ? 'simple' : 'category';
+            unset($updateData['use_simple_entry']);
+        }
+
+        $spouse->update($updateData);
 
         // Create/update expenditure profile with the total
         if ($validated['monthly_expenditure'] ?? null) {

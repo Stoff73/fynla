@@ -9,7 +9,6 @@
     <!-- Backdrop -->
     <div
       class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
-      @click="handleClose"
     ></div>
 
     <!-- Modal Dialog -->

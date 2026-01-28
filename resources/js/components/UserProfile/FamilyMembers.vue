@@ -1,21 +1,5 @@
 <template>
-  <div>
-    <div class="mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
-      <div>
-        <h2 class="text-h4 font-semibold text-gray-900">Family Members</h2>
-        <p class="mt-1 text-body-sm text-gray-600">
-          Manage your family members and dependents
-        </p>
-      </div>
-      <button
-        v-preview-disabled="'add'"
-        @click="openAddModal"
-        class="btn-primary w-full sm:w-auto flex-shrink-0"
-      >
-        Add Family Member
-      </button>
-    </div>
-
+  <div class="space-y-6">
     <!-- Success Message -->
     <div v-if="successMessage" class="rounded-md bg-success-50 p-4 mb-6">
       <div class="flex">
@@ -43,8 +27,26 @@
       </div>
     </div>
 
-    <!-- Family Members List -->
-    <div v-if="familyMembers.length > 0" class="space-y-4">
+    <!-- Family Members Card -->
+    <div class="bg-white rounded-lg border border-gray-200 p-6">
+      <div class="flex justify-between items-start mb-6">
+        <div>
+          <h3 class="text-h4 font-semibold text-gray-900">Family Members</h3>
+          <p class="mt-1 text-body-sm text-gray-600">
+            Manage your family members and dependents
+          </p>
+        </div>
+        <button
+          v-preview-disabled="'add'"
+          @click="openAddModal"
+          class="btn-secondary flex-shrink-0"
+        >
+          Add
+        </button>
+      </div>
+
+      <!-- Family Members List -->
+      <div v-if="familyMembers.length > 0" class="space-y-4">
       <div
         v-for="member in familyMembers"
         :key="member.id"
@@ -145,18 +147,19 @@
           </div>
         </div>
       </div>
-    </div>
+      </div>
 
-    <!-- Empty State -->
-    <div v-else class="card p-8 text-center">
-      <p class="text-body-base text-gray-500">No family members added yet</p>
-      <button
-        v-preview-disabled="'add'"
-        @click="openAddModal"
-        class="btn-primary mt-4"
-      >
-        Add Your First Family Member
-      </button>
+      <!-- Empty State -->
+      <div v-else class="text-center py-8">
+        <p class="text-body-base text-gray-500">No family members added yet</p>
+        <button
+          v-preview-disabled="'add'"
+          @click="openAddModal"
+          class="btn-primary mt-4"
+        >
+          Add Your First Family Member
+        </button>
+      </div>
     </div>
 
     <!-- Charitable Bequest -->
