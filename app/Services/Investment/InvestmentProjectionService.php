@@ -8,12 +8,18 @@ use App\Models\Investment\InvestmentAccount;
 use App\Models\User;
 use App\Services\Risk\RiskPreferenceService;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 
 class InvestmentProjectionService
 {
     private const DEFAULT_PROJECTION_PERIODS = [5, 10, 20, 30];
 
     private const MONTE_CARLO_ITERATIONS = 1000;
+
+    /**
+     * Cache TTL in seconds (24 hours)
+     */
+    private const CACHE_TTL = 86400;
 
     public function __construct(
         private MonteCarloSimulator $simulator,
@@ -47,6 +53,7 @@ class InvestmentProjectionService
 
     /**
      * Get complete portfolio projections with account breakdowns.
+     * Results are cached for 24 hours per user.
      */
     public function getPortfolioProjections(
         User $user,
@@ -66,6 +73,29 @@ class InvestmentProjectionService
             ];
         }
 
+        // Generate cache key based on user ID (contribution overrides bypass cache)
+        if ($contributionOverrides === null) {
+            $cacheKey = "investment_portfolio_projections_{$user->id}";
+
+            return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($user, $accounts, $projectionPeriods, $selectedPeriod) {
+                return $this->buildPortfolioProjections($user, $accounts, $projectionPeriods, $selectedPeriod);
+            });
+        }
+
+        // If contribution overrides provided, don't cache (what-if scenario)
+        return $this->buildPortfolioProjections($user, $accounts, $projectionPeriods, $selectedPeriod, $contributionOverrides);
+    }
+
+    /**
+     * Build portfolio projections (internal method for caching).
+     */
+    private function buildPortfolioProjections(
+        User $user,
+        Collection $accounts,
+        array $projectionPeriods,
+        ?int $selectedPeriod,
+        ?array $contributionOverrides = null
+    ): array {
         // Calculate portfolio-level projection
         $portfolioProjection = $this->calculatePortfolioProjection(
             $user,
@@ -398,12 +428,35 @@ class InvestmentProjectionService
     /**
      * Calculate projections for a single account with optional risk level override.
      * Used for "what-if" scenarios to show how projections change with different risk levels.
+     * Results are cached for 24 hours per account (unless risk override is provided).
      */
     public function getAccountProjectionWithRiskOverride(
         InvestmentAccount $account,
         User $user,
         ?string $riskLevelOverride = null,
         array $periods = self::DEFAULT_PROJECTION_PERIODS
+    ): array {
+        // If risk override is provided, don't cache (what-if scenario)
+        if ($riskLevelOverride !== null) {
+            return $this->buildAccountProjection($account, $user, $riskLevelOverride, $periods);
+        }
+
+        // Cache normal projections for 24 hours
+        $cacheKey = "investment_account_projections_{$account->id}";
+
+        return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($account, $user, $periods) {
+            return $this->buildAccountProjection($account, $user, null, $periods);
+        });
+    }
+
+    /**
+     * Build account projection (internal method for caching).
+     */
+    private function buildAccountProjection(
+        InvestmentAccount $account,
+        User $user,
+        ?string $riskLevelOverride,
+        array $periods
     ): array {
         $value = $this->getUserShareValue($account);
         $monthlyContribution = $this->contributionEstimator->estimateMonthlyContribution($account);
@@ -469,5 +522,21 @@ class InvestmentProjectionService
             'volatility' => $riskParams['volatility'],
             'projections' => $projections,
         ];
+    }
+
+    /**
+     * Invalidate cached projections for a user (call when accounts change).
+     */
+    public function invalidateUserProjections(int $userId): void
+    {
+        Cache::forget("investment_portfolio_projections_{$userId}");
+    }
+
+    /**
+     * Invalidate cached projections for an account (call when account is updated).
+     */
+    public function invalidateAccountProjections(int $accountId): void
+    {
+        Cache::forget("investment_account_projections_{$accountId}");
     }
 }

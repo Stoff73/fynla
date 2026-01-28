@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\Investment\MonteCarloSimulator;
 use App\Services\Risk\RiskPreferenceService;
 use App\Services\UserProfile\UserProfileService;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * Retirement Projection Service
@@ -29,6 +30,11 @@ class RetirementProjectionService
 
     private const MONTE_CARLO_ITERATIONS = 1000;
 
+    /**
+     * Cache TTL in seconds (24 hours)
+     */
+    private const CACHE_TTL = 86400;
+
     public function __construct(
         private MonteCarloSimulator $simulator,
         private RiskPreferenceService $riskService,
@@ -37,21 +43,26 @@ class RetirementProjectionService
 
     /**
      * Get complete retirement projections including pot growth and income drawdown.
+     * Results are cached for 24 hours per user.
      */
     public function getProjections(int $userId): array
     {
-        $user = User::with(['dcPensions', 'dbPensions', 'statePension'])
-            ->findOrFail($userId);
+        $cacheKey = "retirement_projections_{$userId}";
 
-        $potProjection = $this->projectPensionPot($user);
-        $incomeDrawdown = $this->projectIncomeDrawdown($user, $potProjection);
-        $targetIncomeDrawdown = $this->projectTargetIncomeDrawdown($user, $potProjection);
+        return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($userId) {
+            $user = User::with(['dcPensions', 'dbPensions', 'statePension'])
+                ->findOrFail($userId);
 
-        return [
-            'pension_pot_projection' => $potProjection,
-            'income_drawdown' => $incomeDrawdown,
-            'target_income_drawdown' => $targetIncomeDrawdown,
-        ];
+            $potProjection = $this->projectPensionPot($user);
+            $incomeDrawdown = $this->projectIncomeDrawdown($user, $potProjection);
+            $targetIncomeDrawdown = $this->projectTargetIncomeDrawdown($user, $potProjection);
+
+            return [
+                'pension_pot_projection' => $potProjection,
+                'income_drawdown' => $incomeDrawdown,
+                'target_income_drawdown' => $targetIncomeDrawdown,
+            ];
+        });
     }
 
     /**
@@ -123,63 +134,84 @@ class RetirementProjectionService
 
     /**
      * Project individual DC pension pot growth using Monte Carlo simulation.
+     * Results are cached for 24 hours per pension.
      */
     public function projectIndividualDCPension(int $pensionId, int $userId): array
     {
-        $user = User::findOrFail($userId);
-        $pension = $user->dcPensions()->findOrFail($pensionId);
+        $cacheKey = "dc_pension_projection_{$pensionId}";
 
-        $currentAge = $user->date_of_birth?->age ?? 40;
-        $retirementAge = $pension->retirement_age ?? $this->getRetirementAge($user);
-        $yearsToRetirement = max(1, $retirementAge - $currentAge);
+        return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($pensionId, $userId) {
+            $user = User::findOrFail($userId);
+            $pension = $user->dcPensions()->findOrFail($pensionId);
 
-        $currentValue = (float) ($pension->current_fund_value ?? 0);
-        $monthlyContribution = $this->calculateMonthlyContribution($pension);
+            $currentAge = $user->date_of_birth?->age ?? 40;
+            $retirementAge = $pension->retirement_age ?? $this->getRetirementAge($user);
+            $yearsToRetirement = max(1, $retirementAge - $currentAge);
 
-        // Get risk parameters - use pension's risk preference if set, otherwise user's
-        $riskSource = 'default';
-        if ($pension->risk_preference !== null) {
-            $riskLevel = $pension->risk_preference;
-            $riskSource = 'profile';
-        } else {
-            $riskResult = $this->getUserRiskLevelWithSource($user);
-            $riskLevel = $riskResult['level'];
-            $riskSource = $riskResult['source'];
-        }
-        $riskParams = $this->riskService->getReturnParameters($riskLevel);
+            $currentValue = (float) ($pension->current_fund_value ?? 0);
+            $monthlyContribution = $this->calculateMonthlyContribution($pension);
 
-        $expectedReturn = $riskParams['expected_return_typical'] / 100;
-        $volatility = $riskParams['volatility'] / 100;
+            // Get risk parameters - use pension's risk preference if set, otherwise user's
+            $riskSource = 'default';
+            if ($pension->risk_preference !== null) {
+                $riskLevel = $pension->risk_preference;
+                $riskSource = 'profile';
+            } else {
+                $riskResult = $this->getUserRiskLevelWithSource($user);
+                $riskLevel = $riskResult['level'];
+                $riskSource = $riskResult['source'];
+            }
+            $riskParams = $this->riskService->getReturnParameters($riskLevel);
 
-        // Run Monte Carlo simulation
-        $simulation = $this->simulator->simulate(
-            $currentValue,
-            $monthlyContribution,
-            $expectedReturn,
-            $volatility,
-            $yearsToRetirement,
-            self::MONTE_CARLO_ITERATIONS
-        );
+            $expectedReturn = $riskParams['expected_return_typical'] / 100;
+            $volatility = $riskParams['volatility'] / 100;
 
-        $yearByYear = $this->extractProbabilityBands($simulation, $yearsToRetirement);
-        $lastYear = $yearByYear[count($yearByYear) - 1] ?? [];
+            // Run Monte Carlo simulation
+            $simulation = $this->simulator->simulate(
+                $currentValue,
+                $monthlyContribution,
+                $expectedReturn,
+                $volatility,
+                $yearsToRetirement,
+                self::MONTE_CARLO_ITERATIONS
+            );
 
-        return [
-            'pension_id' => $pensionId,
-            'scheme_name' => $pension->scheme_name,
-            'current_value' => round($currentValue, 2),
-            'monthly_contribution' => round($monthlyContribution, 2),
-            'risk_level' => $riskLevel,
-            'risk_source' => $riskSource,
-            'expected_return' => $riskParams['expected_return_typical'],
-            'volatility' => $riskParams['volatility'],
-            'years_to_retirement' => $yearsToRetirement,
-            'retirement_age' => $retirementAge,
-            'current_age' => $currentAge,
-            'percentile_5_at_retirement' => round($lastYear['percentile_5'] ?? $currentValue, 2),
-            'median_at_retirement' => round($lastYear['percentile_50'] ?? $currentValue, 2),
-            'year_by_year' => $yearByYear,
-        ];
+            $yearByYear = $this->extractProbabilityBands($simulation, $yearsToRetirement);
+            $lastYear = $yearByYear[count($yearByYear) - 1] ?? [];
+
+            return [
+                'pension_id' => $pensionId,
+                'scheme_name' => $pension->scheme_name,
+                'current_value' => round($currentValue, 2),
+                'monthly_contribution' => round($monthlyContribution, 2),
+                'risk_level' => $riskLevel,
+                'risk_source' => $riskSource,
+                'expected_return' => $riskParams['expected_return_typical'],
+                'volatility' => $riskParams['volatility'],
+                'years_to_retirement' => $yearsToRetirement,
+                'retirement_age' => $retirementAge,
+                'current_age' => $currentAge,
+                'percentile_5_at_retirement' => round($lastYear['percentile_5'] ?? $currentValue, 2),
+                'median_at_retirement' => round($lastYear['percentile_50'] ?? $currentValue, 2),
+                'year_by_year' => $yearByYear,
+            ];
+        });
+    }
+
+    /**
+     * Invalidate cached retirement projections for a user.
+     */
+    public function invalidateRetirementProjections(int $userId): void
+    {
+        Cache::forget("retirement_projections_{$userId}");
+    }
+
+    /**
+     * Invalidate cached DC pension projection.
+     */
+    public function invalidateDCPensionProjection(int $pensionId): void
+    {
+        Cache::forget("dc_pension_projection_{$pensionId}");
     }
 
     /**

@@ -2019,6 +2019,65 @@ resources/js/views/Savings/SavingsAccountDetailInline.vue
 
 ---
 
+## Monte Carlo Projection Caching (24 Hours)
+
+**Date:** 28 January 2026
+
+**Branch:** main
+
+**Status:** ✅ Ready for deployment
+
+### Description
+
+Added 24-hour caching to all Monte Carlo projection calculations for investments and pensions. Previously, these calculations ran on every page load, causing slow loading times. Now projections are cached per user/account and only recalculate after 24 hours.
+
+### What's Cached
+
+| Data Type | Cache Key Pattern | TTL |
+|-----------|-------------------|-----|
+| Investment Portfolio Projections | `investment_portfolio_projections_{userId}` | 24 hours |
+| Investment Account Projections | `investment_account_projections_{accountId}` | 24 hours |
+| Retirement Projections | `retirement_projections_{userId}` | 24 hours |
+| DC Pension Projections | `dc_pension_projection_{pensionId}` | 24 hours |
+
+### Behaviour
+
+- First visit: Monte Carlo runs and caches results
+- Subsequent visits within 24 hours: Cached results returned instantly
+- After 24 hours: Cache expires, fresh calculation on next visit
+- What-if scenarios (risk overrides): Always bypass cache
+
+### Cache Invalidation Methods
+
+Added helper methods to invalidate cache when data changes:
+- `InvestmentProjectionService::invalidateUserProjections($userId)`
+- `InvestmentProjectionService::invalidateAccountProjections($accountId)`
+- `RetirementProjectionService::invalidateRetirementProjections($userId)`
+- `RetirementProjectionService::invalidateDCPensionProjection($pensionId)`
+
+### Files Changed
+
+**Backend (Manual Upload Required):**
+```text
+app/Services/Investment/InvestmentProjectionService.php
+app/Services/Retirement/RetirementProjectionService.php
+```
+
+### Rebuild Required: NO (PHP only)
+
+### Verification
+
+1. Navigate to Net Worth → Investments → Portfolio tab
+2. Note the projection values displayed
+3. Refresh the page - projections should load instantly (cached)
+4. Values should remain identical for 24 hours
+5. Test same behaviour for:
+   - Individual investment account detail views
+   - Retirement module projections
+   - Individual DC pension detail views
+
+---
+
 ## Rollback
 
 If issues occur, restore previous `public/build/` directory from backup.
