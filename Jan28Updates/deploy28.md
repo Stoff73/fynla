@@ -16,18 +16,18 @@ Comprehensive UI audit and fix of the entire Fynla application. Created a centra
 
 ### Summary
 
-| Metric | Before | After |
-|--------|--------|-------|
-| Hardcoded hex colors | 1,334 | 2 |
-| Files with issues | 90 | 2 |
-| Reduction | - | **99.85%** |
+| Metric           | Before | After      |
+|------------------|--------|------------|
+| Hardcoded colors | 1,334  | 2          |
+| Files with issues| 90     | 2          |
+| Reduction        | -      | **99.85%** |
 
 ### New Files Created
 
-| File | Lines | Description |
-|------|-------|-------------|
-| `designStyle.md` | 1,198 | Comprehensive design system document - single source of truth |
-| `resources/js/constants/designSystem.js` | 319 | JavaScript design tokens for charts, colors, helper functions |
+| File                                      | Lines | Description                                              |
+|-------------------------------------------|-------|----------------------------------------------------------|
+| `designStyle.md`                          | 1,198 | Comprehensive design system document - single source of truth |
+| `resources/js/constants/designSystem.js`  | 319   | JavaScript design tokens for charts, colors, helper functions |
 
 ### Bug Fixes Included
 
@@ -47,37 +47,51 @@ All frontend Vue components changed. Full rebuild required.
 
 ---
 
-## Files Changed (121 files)
+## Files to Upload (Manual - Not in Build)
 
-### New Files to Upload
+These files are NOT compiled into the build and must be uploaded manually:
 
+```text
+designStyle.md                           → ~/www/fynla.org/public_html/designStyle.md
+.claude/agents/premium-ui-designer.md    → ~/www/fynla.org/public_html/.claude/agents/premium-ui-designer.md
 ```
-designStyle.md
-resources/js/constants/designSystem.js
-```
 
-### CSS Files
+**Note:** The `designStyle.md` file is documentation only and not required for the application to function. Upload is optional.
 
-```
+---
+
+## Files Changed (Included in Build)
+
+All files below are compiled into `public/build/` during the build process. No manual upload required for these - just upload the built assets.
+
+### CSS (1 file)
+
+```text
 resources/css/app.css
 ```
 
-### Vue Components - Actions
+### JavaScript Constants (1 file)
 
+```text
+resources/js/constants/designSystem.js
 ```
+
+### Vue Components - Actions (1 file)
+
+```text
 resources/js/components/Actions/RecommendationFilters.vue
 ```
 
-### Vue Components - Auth
+### Vue Components - Auth (2 files)
 
-```
+```text
 resources/js/components/Auth/MFASetupModal.vue
 resources/js/components/Auth/MFAVerifyModal.vue
 ```
 
-### Vue Components - Cash
+### Vue Components - Cash (5 files)
 
-```
+```text
 resources/js/components/Cash/AccountGroupList.vue
 resources/js/components/Cash/AccountSummaryPanel.vue
 resources/js/components/Cash/BalanceTrendChart.vue
@@ -85,24 +99,24 @@ resources/js/components/Cash/CashActionsPanel.vue
 resources/js/components/Cash/SpendingDonutChart.vue
 ```
 
-### Vue Components - Common
+### Vue Components - Common (1 file)
 
-```
+```text
 resources/js/components/Common/PrintHeader.vue
 ```
 
-### Vue Components - Dashboard
+### Vue Components - Dashboard (4 files)
 
-```
+```text
 resources/js/components/Dashboard/ActionsOverviewCard.vue
 resources/js/components/Dashboard/FinancialHealthScore.vue
 resources/js/components/Dashboard/NetWorthOverviewCard.vue
 resources/js/components/Dashboard/RetirementOverviewCard.vue
 ```
 
-### Vue Components - Estate
+### Vue Components - Estate (13 files)
 
-```
+```text
 resources/js/components/Estate/AssetForm.vue
 resources/js/components/Estate/CashFlowProjectionChart.vue
 resources/js/components/Estate/DualGiftingTimeline.vue
@@ -118,17 +132,17 @@ resources/js/components/Estate/NetWorthWaterfallChart.vue
 resources/js/components/Estate/WillPlanning.vue
 ```
 
-### Vue Components - Holistic
+### Vue Components - Holistic (3 files)
 
-```
+```text
 resources/js/components/Holistic/CashFlowAllocationChart.vue
 resources/js/components/Holistic/NetWorthProjectionChart.vue
 resources/js/components/Holistic/RiskAssessment.vue
 ```
 
-### Vue Components - Investment
+### Vue Components - Investment (21 files)
 
-```
+```text
 resources/js/components/Investment/AccountStrategyCard.vue
 resources/js/components/Investment/AllocationComparison.vue
 resources/js/components/Investment/AssetAllocationChart.vue
@@ -152,15 +166,15 @@ resources/js/components/Investment/PortfolioOverview.vue
 resources/js/components/Investment/WrapperOptimizer.vue
 ```
 
-### Vue Components - Legal
+### Vue Components - Legal (1 file)
 
-```
+```text
 resources/js/components/Legal/StrategyDisclaimer.vue
 ```
 
-### Vue Components - NetWorth
+### Vue Components - NetWorth (25 files)
 
-```
+```text
 resources/js/components/NetWorth/AssetAllocationDonut.vue
 resources/js/components/NetWorth/AssetBreakdownBar.vue
 resources/js/components/NetWorth/BusinessInterestCard.vue
@@ -188,15 +202,15 @@ resources/js/components/NetWorth/TaxEfficiencyDetail.vue
 resources/js/components/NetWorth/WealthSummary.vue
 ```
 
-### Vue Components - Onboarding
+### Vue Components - Onboarding (1 file)
 
-```
+```text
 resources/js/components/Onboarding/steps/AssetsStep.vue
 ```
 
-### Vue Components - Protection
+### Vue Components - Protection (9 files)
 
-```
+```text
 resources/js/components/Protection/CoverageAdequacyGauge.vue
 resources/js/components/Protection/CoverageGapChart.vue
 resources/js/components/Protection/CoverageTimelineChart.vue
@@ -208,9 +222,9 @@ resources/js/components/Protection/ScenarioBuilder.vue
 resources/js/components/Protection/WhatIfScenarios.vue
 ```
 
-### Vue Components - Retirement
+### Vue Components - Retirement (15 files)
 
-```
+```text
 resources/js/components/Retirement/AccumulationChart.vue
 resources/js/components/Retirement/DBPensionForm.vue
 resources/js/components/Retirement/DCPensionForm.vue
@@ -228,9 +242,9 @@ resources/js/components/Retirement/TargetIncomeDrawdownChart.vue
 resources/js/components/Retirement/TaxBreakdownCard.vue
 ```
 
-### Vue Components - Savings
+### Vue Components - Savings (6 files)
 
-```
+```text
 resources/js/components/Savings/CurrentSituation.vue
 resources/js/components/Savings/EmergencyFund.vue
 resources/js/components/Savings/EmergencyFundGauge.vue
@@ -239,35 +253,28 @@ resources/js/components/Savings/SaveAccountModal.vue
 resources/js/components/Savings/SaveGoalModal.vue
 ```
 
-### Vue Components - Shared
+### Vue Components - Shared (2 files)
 
-```
+```text
 resources/js/components/Shared/CountrySelector.vue
 resources/js/components/Shared/RiskLevelSelector.vue
 ```
 
-### Vue Components - Trusts
+### Vue Components - Trusts (2 files)
 
-```
+```text
 resources/js/components/Trusts/TrustCard.vue
 resources/js/components/Trusts/TrustsOverviewCard.vue
 ```
 
-### Vue Views
+### Vue Views (5 files)
 
-```
+```text
 resources/js/views/Investment/AccountDetailView.vue
 resources/js/views/Investment/AccountHoldingsPanel.vue
 resources/js/views/Retirement/RetirementReadiness.vue
 resources/js/views/Settings/PrivacySettings.vue
 resources/js/views/Trusts/TrustsDashboard.vue
-```
-
-### Documentation/Config
-
-```
-.claude/agents/premium-ui-designer.md
-Jan27Updates/deploy27.md
 ```
 
 ---
@@ -285,11 +292,17 @@ cd /Users/Chris/Desktop/fynla
 
 Upload the entire `public/build/` directory to:
 
-```
+```text
 ~/www/fynla.org/public_html/public/build/
 ```
 
-### Step 3: Clear Cache (SSH)
+### Step 3: Upload Manual Files (Optional)
+
+```text
+designStyle.md → ~/www/fynla.org/public_html/designStyle.md
+```
+
+### Step 4: Clear Cache (SSH)
 
 ```bash
 ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
