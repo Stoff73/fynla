@@ -1687,6 +1687,137 @@ resources/js/components/Onboarding/steps/IncomeStep.vue
 
 ---
 
+## Net Worth Wealth Summary - UI Redesign
+
+**Date:** 28 January 2026
+
+**Branch:** main
+
+**Status:** ✅ Ready for deployment
+
+### Description
+
+Redesigned the Net Worth Wealth Summary view with cleaner layout, personalised column headers, and inline asset allocation charts.
+
+### Changes Made
+
+| Change | Description |
+|--------|-------------|
+| Removed top summary cards | Total Assets, Total Liabilities, Net Worth cards removed from top |
+| Added Total column | Wealth Summary table now shows Total column when linked account exists |
+| Personalised headers | Column headers now show user's name and linked account name instead of generic "Spouse" |
+| Removed trend chart | Net Worth Trend chart removed from bottom of view |
+| Added allocation charts | Three inline Asset Allocation donut charts: User's, Partner's, Combined |
+| Fixed tooltip clipping | Tooltips now appear above card edges instead of being hidden |
+
+### Asset Allocation Charts
+
+Three donut charts now display inline:
+
+1. **User's Asset Allocation** - Individual breakdown for primary user
+2. **Partner's Asset Allocation** - Individual breakdown for linked account (if exists)
+3. **Combined Wealth Allocation** - Total of both users' assets
+
+Charts include:
+- Personalised titles with user names
+- Total value displayed in centre
+- Percentage shown on hover tooltip
+- Hover z-index ensures tooltips appear above adjacent cards
+
+### Files Changed
+
+**Frontend (Included in Build):**
+```text
+resources/js/components/NetWorth/NetWorthWealthSummary.vue
+resources/js/components/NetWorth/WealthSummary.vue
+resources/js/components/NetWorth/AssetAllocationDonut.vue
+resources/js/views/NetWorth/NetWorthDashboard.vue
+```
+
+### Rebuild Required: YES
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+### Verification
+
+1. Navigate to Net Worth → Wealth Summary
+2. Verify top summary cards are no longer present
+3. Verify Wealth Summary table shows user name and partner name as column headers
+4. Verify Total column appears when linked account exists
+5. Verify Net Worth Trend chart is no longer present
+6. Verify three Asset Allocation cards appear inline:
+   - Left: User's Asset Allocation
+   - Centre: Partner's Asset Allocation
+   - Right: Combined Wealth Allocation
+7. Hover over chart segments and verify tooltips appear fully (not clipped at card edges)
+8. For single users, verify only one allocation card appears
+
+---
+
+## Cash Account Detail View - UI Improvements
+
+**Date:** 28 January 2026
+
+**Branch:** main
+
+**Status:** ✅ Ready for deployment
+
+### Description
+
+Streamlined the Cash account detail view by consolidating information and removing unnecessary tabs.
+
+### Changes Made
+
+| Change | Description |
+|--------|-------------|
+| Added owner names | Joint accounts now show both owner names in the Overview tab |
+| Added interest rate to Overview | Interest rate and annual interest now shown in Overview tab |
+| Removed Balance & Interest tab | Consolidated into Overview tab |
+| Conditional Access & Terms tab | Tab only appears for notice/fixed accounts, hidden for immediate access |
+| Compact balance display | Replaced 3-card metrics grid with compact inline balance display |
+| Removed header metrics | Interest rate and annual interest cards removed from header (now in Overview only) |
+
+### Files Changed
+
+**Backend (Manual Upload Required):**
+```text
+app/Http/Controllers/Api/SavingsController.php
+app/Models/SavingsAccount.php
+```
+
+**Frontend (Included in Build):**
+```text
+resources/js/views/Savings/SavingsAccountDetailInline.vue
+```
+
+### Backend Changes
+
+1. Added `jointOwner` relationship to SavingsAccount model
+2. Controller now loads owner and joint_owner relationships when fetching account
+3. Response includes `owner_name` and `joint_owner_name` fields
+
+### Rebuild Required: YES
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+### Verification
+
+1. Navigate to Net Worth → Cash tab
+2. Click on any account to view details
+3. Verify Overview tab shows:
+   - Interest Rate (with blue styling)
+   - Annual Interest (with green styling)
+   - For joint accounts: "Owners: [Name] & [Partner Name]"
+4. Verify Balance & Interest tab no longer exists
+5. For immediate access accounts, verify Access & Terms tab is hidden
+6. For notice/fixed term accounts, verify Access & Terms tab is visible
+
+---
+
 ## Rollback
 
 If issues occur, restore previous `public/build/` directory from backup.

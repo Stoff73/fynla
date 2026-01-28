@@ -1,12 +1,12 @@
 <template>
   <div class="asset-allocation-donut">
-    <h3 class="chart-title">Wealth Allocation</h3>
+    <h3 class="chart-title">{{ title }}</h3>
     <div v-if="hasData" class="chart-container">
       <apexchart
         type="donut"
         :options="chartOptions"
         :series="filteredSeries"
-        height="350"
+        height="260"
       ></apexchart>
     </div>
     <div v-else class="no-data">
@@ -28,6 +28,10 @@ export default {
       type: Object,
       required: true,
       default: () => ({}),
+    },
+    title: {
+      type: String,
+      default: 'Wealth Allocation',
     },
   },
 
@@ -77,14 +81,10 @@ export default {
         labels: this.filteredLabels,
         colors: this.filteredColors,
         legend: {
-          position: 'bottom',
-          fontSize: '14px',
+          show: false,
         },
         dataLabels: {
-          enabled: true,
-          formatter: (val) => {
-            return val.toFixed(1) + '%';
-          },
+          enabled: false,
         },
         plotOptions: {
           pie: {
@@ -94,21 +94,24 @@ export default {
                 show: true,
                 name: {
                   show: true,
-                  fontSize: '16px',
+                  fontSize: '12px',
                   fontWeight: 600,
+                  formatter: () => 'Total',
                 },
                 value: {
                   show: true,
-                  fontSize: '24px',
+                  fontSize: '16px',
                   fontWeight: 700,
-                  formatter: (val) => {
-                    return this.formatCurrency(val);
+                  formatter: () => {
+                    const total = this.filteredSeries.reduce((sum, val) => sum + val, 0);
+                    return this.formatCurrency(total);
                   },
                 },
                 total: {
                   show: true,
-                  label: 'Total Wealth',
-                  fontSize: '14px',
+                  showAlways: true,
+                  label: 'Total',
+                  fontSize: '11px',
                   fontWeight: 600,
                   color: TEXT_COLORS.muted,
                   formatter: () => {
@@ -123,7 +126,9 @@ export default {
         tooltip: {
           y: {
             formatter: (val) => {
-              return this.formatCurrency(val);
+              const total = this.filteredSeries.reduce((a, b) => a + b, 0);
+              const percent = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
+              return `${this.formatCurrency(val)} (${percent}%)`;
             },
           },
         },
@@ -132,10 +137,7 @@ export default {
             breakpoint: 768,
             options: {
               chart: {
-                height: 300,
-              },
-              legend: {
-                position: 'bottom',
+                height: 240,
               },
             },
           },
@@ -149,16 +151,34 @@ export default {
 
 <style scoped>
 .asset-allocation-donut {
-  @apply bg-white rounded-card p-6 shadow-sm border border-gray-200 transition-all duration-200;
+  @apply bg-white rounded-card p-4 shadow-sm border border-gray-200 transition-all duration-200;
+  height: 340px;
+  display: flex;
+  flex-direction: column;
+  overflow: visible;
+  position: relative;
+  z-index: 1;
 }
 
-.chart-title {
-  @apply text-lg font-semibold text-gray-900 mb-5;
+.asset-allocation-donut:hover {
+  z-index: 100;
 }
 
 .chart-container {
-  @apply w-full;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
 }
+
+.chart-title {
+  @apply text-xs font-semibold text-gray-900 mb-2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 
 .no-data {
   @apply text-center py-12 px-5 text-gray-400;

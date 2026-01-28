@@ -71,6 +71,14 @@ class SavingsAccount extends Model
     }
 
     /**
+     * Joint owner relationship
+     */
+    public function jointOwner(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'joint_owner_id');
+    }
+
+    /**
      * Beneficiary relationship (for Junior ISAs)
      */
     public function beneficiary(): BelongsTo

@@ -8,6 +8,7 @@
         <div class="row-label"></div>
         <div class="column-header">{{ userName }}</div>
         <div v-if="hasSpouse" class="column-header">{{ spouseName }}</div>
+        <div v-if="hasSpouse" class="column-header total-header">Total</div>
       </div>
 
       <!-- Assets Section Header -->
@@ -20,6 +21,7 @@
         </div>
         <div class="column-value"></div>
         <div v-if="hasSpouse" class="column-value"></div>
+        <div v-if="hasSpouse" class="column-value"></div>
       </div>
 
       <!-- Asset Breakdown Rows -->
@@ -27,31 +29,37 @@
         <div class="row-label">Property</div>
         <div class="column-value">{{ formatCurrency(userBreakdown.property) }}</div>
         <div v-if="hasSpouse" class="column-value">{{ formatCurrency(spouseBreakdown.property) }}</div>
+        <div v-if="hasSpouse" class="column-value total-column">{{ formatCurrency(userBreakdown.property + (spouseBreakdown.property || 0)) }}</div>
       </router-link>
       <router-link v-if="showAssetRow('investments')" :to="getAssetLink('investments')" class="summary-row breakdown-row clickable-row">
         <div class="row-label">Investments</div>
         <div class="column-value">{{ formatCurrency(userBreakdown.investments) }}</div>
         <div v-if="hasSpouse" class="column-value">{{ formatCurrency(spouseBreakdown.investments) }}</div>
+        <div v-if="hasSpouse" class="column-value total-column">{{ formatCurrency(userBreakdown.investments + (spouseBreakdown.investments || 0)) }}</div>
       </router-link>
       <router-link v-if="showAssetRow('cash')" :to="getAssetLink('cash')" class="summary-row breakdown-row clickable-row">
         <div class="row-label">Cash & Savings</div>
         <div class="column-value">{{ formatCurrency(userBreakdown.cash) }}</div>
         <div v-if="hasSpouse" class="column-value">{{ formatCurrency(spouseBreakdown.cash) }}</div>
+        <div v-if="hasSpouse" class="column-value total-column">{{ formatCurrency(userBreakdown.cash + (spouseBreakdown.cash || 0)) }}</div>
       </router-link>
       <router-link v-if="showAssetRow('pensions')" :to="getAssetLink('pensions')" class="summary-row breakdown-row clickable-row">
         <div class="row-label">Pensions</div>
         <div class="column-value">{{ formatCurrency(userBreakdown.pensions) }}</div>
         <div v-if="hasSpouse" class="column-value">{{ formatCurrency(spouseBreakdown.pensions) }}</div>
+        <div v-if="hasSpouse" class="column-value total-column">{{ formatCurrency(userBreakdown.pensions + (spouseBreakdown.pensions || 0)) }}</div>
       </router-link>
       <router-link v-if="showAssetRow('business')" :to="getAssetLink('business')" class="summary-row breakdown-row clickable-row">
         <div class="row-label">Business</div>
         <div class="column-value">{{ formatCurrency(userBreakdown.business) }}</div>
         <div v-if="hasSpouse" class="column-value">{{ formatCurrency(spouseBreakdown.business) }}</div>
+        <div v-if="hasSpouse" class="column-value total-column">{{ formatCurrency(userBreakdown.business + (spouseBreakdown.business || 0)) }}</div>
       </router-link>
       <router-link v-if="showAssetRow('chattels')" :to="getAssetLink('chattels')" class="summary-row breakdown-row clickable-row">
         <div class="row-label">Personal Valuables</div>
         <div class="column-value">{{ formatCurrency(userBreakdown.chattels) }}</div>
         <div v-if="hasSpouse" class="column-value">{{ formatCurrency(spouseBreakdown.chattels) }}</div>
+        <div v-if="hasSpouse" class="column-value total-column">{{ formatCurrency(userBreakdown.chattels + (spouseBreakdown.chattels || 0)) }}</div>
       </router-link>
 
       <!-- Total Assets Row -->
@@ -59,6 +67,7 @@
         <div class="row-label total-label">Total Assets</div>
         <div class="column-value total-value">{{ formatCurrency(userTotalAssets) }}</div>
         <div v-if="hasSpouse" class="column-value total-value">{{ formatCurrency(spouseTotalAssets) }}</div>
+        <div v-if="hasSpouse" class="column-value total-value total-column">{{ formatCurrency(combinedTotalAssets) }}</div>
       </div>
 
       <!-- Liabilities Section Header -->
@@ -71,6 +80,7 @@
         </div>
         <div class="column-value"></div>
         <div v-if="hasSpouse" class="column-value"></div>
+        <div v-if="hasSpouse" class="column-value"></div>
       </div>
 
       <!-- Liability Breakdown Rows -->
@@ -78,21 +88,25 @@
         <div class="row-label">Mortgages</div>
         <div class="column-value">{{ formatCurrency(userLiabilitiesBreakdown.mortgages) }}</div>
         <div v-if="hasSpouse" class="column-value">{{ formatCurrency(spouseLiabilitiesBreakdown.mortgages) }}</div>
+        <div v-if="hasSpouse" class="column-value total-column">{{ formatCurrency(userLiabilitiesBreakdown.mortgages + (spouseLiabilitiesBreakdown.mortgages || 0)) }}</div>
       </router-link>
       <router-link v-if="showLiabilityRow('loans')" :to="getLiabilityLink('loans')" class="summary-row breakdown-row clickable-row">
         <div class="row-label">Loans</div>
         <div class="column-value">{{ formatCurrency(userLiabilitiesBreakdown.loans) }}</div>
         <div v-if="hasSpouse" class="column-value">{{ formatCurrency(spouseLiabilitiesBreakdown.loans) }}</div>
+        <div v-if="hasSpouse" class="column-value total-column">{{ formatCurrency(userLiabilitiesBreakdown.loans + (spouseLiabilitiesBreakdown.loans || 0)) }}</div>
       </router-link>
       <router-link v-if="showLiabilityRow('credit_cards')" :to="getLiabilityLink('credit_cards')" class="summary-row breakdown-row clickable-row">
         <div class="row-label">Credit Cards</div>
         <div class="column-value">{{ formatCurrency(userLiabilitiesBreakdown.credit_cards) }}</div>
         <div v-if="hasSpouse" class="column-value">{{ formatCurrency(spouseLiabilitiesBreakdown.credit_cards) }}</div>
+        <div v-if="hasSpouse" class="column-value total-column">{{ formatCurrency(userLiabilitiesBreakdown.credit_cards + (spouseLiabilitiesBreakdown.credit_cards || 0)) }}</div>
       </router-link>
       <router-link v-if="showLiabilityRow('other')" :to="getLiabilityLink('other')" class="summary-row breakdown-row clickable-row">
         <div class="row-label">Other</div>
         <div class="column-value">{{ formatCurrency(userLiabilitiesBreakdown.other) }}</div>
         <div v-if="hasSpouse" class="column-value">{{ formatCurrency(spouseLiabilitiesBreakdown.other) }}</div>
+        <div v-if="hasSpouse" class="column-value total-column">{{ formatCurrency(userLiabilitiesBreakdown.other + (spouseLiabilitiesBreakdown.other || 0)) }}</div>
       </router-link>
 
       <!-- Total Liabilities Row -->
@@ -100,6 +114,7 @@
         <div class="row-label total-label">Total Liabilities</div>
         <div class="column-value total-value">{{ formatCurrency(userTotalLiabilities) }}</div>
         <div v-if="hasSpouse" class="column-value total-value">{{ formatCurrency(spouseTotalLiabilities) }}</div>
+        <div v-if="hasSpouse" class="column-value total-value total-column">{{ formatCurrency(combinedTotalLiabilities) }}</div>
       </div>
 
       <!-- Net Worth Row -->
@@ -107,6 +122,7 @@
         <div class="row-label total-label net-worth-label">Net Worth</div>
         <div class="column-value total-value net-worth-value" :class="userNetWorthClass">{{ formatCurrency(userNetWorth) }}</div>
         <div v-if="hasSpouse" class="column-value total-value net-worth-value" :class="spouseNetWorthClass">{{ formatCurrency(spouseNetWorth) }}</div>
+        <div v-if="hasSpouse" class="column-value total-value net-worth-value total-column" :class="combinedNetWorthClass">{{ formatCurrency(combinedNetWorth) }}</div>
       </div>
     </div>
 
@@ -247,6 +263,27 @@ export default {
       }
       return '';
     },
+
+    combinedTotalAssets() {
+      return this.userTotalAssets + this.spouseTotalAssets;
+    },
+
+    combinedTotalLiabilities() {
+      return this.userTotalLiabilities + this.spouseTotalLiabilities;
+    },
+
+    combinedNetWorth() {
+      return this.combinedTotalAssets - this.combinedTotalLiabilities;
+    },
+
+    combinedNetWorthClass() {
+      if (this.combinedNetWorth < 0) {
+        return 'negative';
+      } else if (this.combinedNetWorth > 0) {
+        return 'positive';
+      }
+      return '';
+    },
   },
 
   methods: {
@@ -327,7 +364,7 @@ export default {
 }
 
 .summary-content.has-spouse .summary-row {
-  grid-template-columns: 200px 1fr 1fr;
+  grid-template-columns: 200px 1fr 1fr 1fr;
 }
 
 /* Header row */
@@ -490,6 +527,15 @@ export default {
   font-size: 14px;
 }
 
+/* Total column styling */
+.column-header.total-header {
+  @apply font-bold;
+}
+
+.column-value.total-column {
+  @apply bg-blue-50;
+}
+
 /* Mobile responsive */
 @media (max-width: 768px) {
   .wealth-summary {
@@ -507,53 +553,62 @@ export default {
   }
 
   .summary-content.has-spouse .summary-row {
-    grid-template-columns: 120px 1fr 1fr;
+    grid-template-columns: 100px 1fr 1fr 1fr;
   }
 
   .column-header {
-    font-size: 14px;
-    padding-right: 8px;
+    font-size: 12px;
+    padding-right: 4px;
   }
 
   .row-label {
-    font-size: 13px;
-  }
-
-  .section-header-row .section-label {
     font-size: 12px;
   }
 
+  .section-header-row .section-label {
+    font-size: 11px;
+  }
+
   .section-icon {
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
   }
 
   .breakdown-row .column-value {
-    padding: 6px 10px;
-    font-size: 13px;
+    padding: 4px 6px;
+    font-size: 11px;
   }
 
   .total-row .column-value.total-value {
-    padding: 10px 12px;
-    font-size: 14px;
+    padding: 8px 6px;
+    font-size: 12px;
   }
 
   .net-worth-row .column-value.net-worth-value {
-    font-size: 16px;
+    font-size: 14px;
   }
 
   .net-worth-row .row-label.net-worth-label {
-    font-size: 14px;
+    font-size: 12px;
   }
 }
 
 @media (max-width: 480px) {
   .summary-row {
-    grid-template-columns: 100px 1fr;
+    grid-template-columns: 80px 1fr;
   }
 
   .summary-content.has-spouse .summary-row {
-    grid-template-columns: 100px 1fr 1fr;
+    grid-template-columns: 80px 1fr 1fr 1fr;
+  }
+
+  .column-header {
+    font-size: 10px;
+  }
+
+  .breakdown-row .column-value {
+    padding: 3px 4px;
+    font-size: 10px;
   }
 }
 </style>

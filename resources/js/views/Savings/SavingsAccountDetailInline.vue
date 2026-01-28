@@ -61,23 +61,13 @@
           </div>
         </div>
 
-        <!-- Key Metrics -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-          <div class="bg-gray-50 rounded-lg p-4">
-            <p class="text-sm text-gray-600">Full Balance</p>
-            <p class="text-2xl font-bold text-gray-900">{{ formatCurrency(fullBalance) }}</p>
-            <p v-if="account.ownership_type === 'joint'" class="text-xs text-gray-600 mt-1">
-              Your Share ({{ account.ownership_percentage }}%): {{ formatCurrency(userShare) }}
-            </p>
-          </div>
-          <div class="bg-gray-50 rounded-lg p-4">
-            <p class="text-sm text-gray-600">Interest Rate</p>
-            <p class="text-2xl font-bold text-blue-600">{{ formatInterestRate(account.interest_rate) }}</p>
-          </div>
-          <div class="bg-gray-50 rounded-lg p-4">
-            <p class="text-sm text-gray-600">Annual Interest</p>
-            <p class="text-2xl font-bold text-green-600">{{ formatCurrency(annualInterest) }}</p>
-          </div>
+        <!-- Balance Display -->
+        <div class="mt-4 inline-block bg-gray-50 rounded-lg px-4 py-2">
+          <span class="text-sm text-gray-600">Balance: </span>
+          <span class="text-lg font-bold text-gray-900">{{ formatCurrency(fullBalance) }}</span>
+          <span v-if="isJointAccount" class="text-sm text-gray-500 ml-2">
+            (Your Share: {{ formatCurrency(userShare) }})
+          </span>
         </div>
       </div>
 
@@ -127,8 +117,24 @@
                 <dt class="text-sm text-gray-600">Ownership:</dt>
                 <dd class="text-sm font-medium text-gray-900 capitalize">{{ account.ownership_type || 'Individual' }}</dd>
               </div>
+              <!-- Joint account owners -->
+              <div v-if="isJointAccount" class="flex justify-between">
+                <dt class="text-sm text-gray-600">Owners:</dt>
+                <dd class="text-sm font-medium text-gray-900">
+                  {{ account.owner_name || 'Primary' }} &amp; {{ account.joint_owner_name || 'Partner' }}
+                </dd>
+              </div>
             </dl>
             <dl class="space-y-3">
+              <!-- Interest Rate -->
+              <div class="flex justify-between">
+                <dt class="text-sm text-gray-600">Interest Rate:</dt>
+                <dd class="text-sm font-medium text-blue-600">{{ formatInterestRate(account.interest_rate) }}</dd>
+              </div>
+              <div class="flex justify-between">
+                <dt class="text-sm text-gray-600">Annual Interest:</dt>
+                <dd class="text-sm font-medium text-green-600">{{ formatCurrency(annualInterest) }}</dd>
+              </div>
               <div class="flex justify-between">
                 <dt class="text-sm text-gray-600">Emergency Fund:</dt>
                 <dd class="text-sm font-medium" :class="account.is_emergency_fund ? 'text-green-600' : 'text-gray-500'">
@@ -143,37 +149,6 @@
               </div>
             </dl>
           </div>
-        </div>
-
-        <!-- Balance & Interest Tab -->
-        <div v-else-if="activeTab === 'balance'" class="bg-white rounded-lg shadow-md p-6" :key="'balance'">
-          <h3 class="text-lg font-semibold text-gray-800 mb-6">Balance & Interest</h3>
-          <dl class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="space-y-3">
-              <div class="flex justify-between">
-                <dt class="text-sm text-gray-600">Full Balance:</dt>
-                <dd class="text-sm font-medium text-gray-900 font-semibold">{{ formatCurrency(fullBalance) }}</dd>
-              </div>
-              <div v-if="account.ownership_type === 'joint'" class="flex justify-between">
-                <dt class="text-sm text-gray-600">Your Share ({{ account.ownership_percentage }}%):</dt>
-                <dd class="text-sm font-medium text-blue-600">{{ formatCurrency(userShare) }}</dd>
-              </div>
-              <div class="flex justify-between">
-                <dt class="text-sm text-gray-600">Interest Rate:</dt>
-                <dd class="text-sm font-medium text-gray-900">{{ formatInterestRate(account.interest_rate) }}</dd>
-              </div>
-            </div>
-            <div class="space-y-3">
-              <div class="flex justify-between">
-                <dt class="text-sm text-gray-600">Monthly Interest:</dt>
-                <dd class="text-sm font-medium text-green-600">{{ formatCurrency(monthlyInterest) }}</dd>
-              </div>
-              <div class="flex justify-between">
-                <dt class="text-sm text-gray-600">Annual Interest:</dt>
-                <dd class="text-sm font-medium text-green-600">{{ formatCurrency(annualInterest) }}</dd>
-              </div>
-            </div>
-          </dl>
         </div>
 
         <!-- Access & Terms Tab -->
@@ -297,9 +272,12 @@ export default {
     tabs() {
       const baseTabs = [
         { id: 'overview', label: 'Overview' },
-        { id: 'balance', label: 'Balance & Interest' },
-        { id: 'access', label: 'Access & Terms' },
       ];
+
+      // Only show Access & Terms tab if NOT immediate access
+      if (this.account?.access_type && this.account.access_type !== 'immediate') {
+        baseTabs.push({ id: 'access', label: 'Access & Terms' });
+      }
 
       // Conditionally add ISA tab
       if (this.account?.is_isa) {
@@ -310,6 +288,13 @@ export default {
       baseTabs.push({ id: 'tax-status', label: 'Tax Status' });
 
       return baseTabs;
+    },
+
+    /**
+     * Check if this is a joint account
+     */
+    isJointAccount() {
+      return this.account?.ownership_type === 'joint' || this.account?.ownership_type === 'tenants_in_common';
     },
 
     /**

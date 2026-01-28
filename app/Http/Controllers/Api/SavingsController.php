@@ -260,7 +260,9 @@ class SavingsController extends Controller
 
         try {
             // Single-record pattern: Allow access if user is owner OR joint_owner
-            $account = SavingsAccount::where('id', $id)
+            // Load owner and joint_owner relationships
+            $account = SavingsAccount::with(['user:id,first_name,surname', 'jointOwner:id,first_name,surname'])
+                ->where('id', $id)
                 ->where(function ($query) use ($user) {
                     $query->where('user_id', $user->id)
                         ->orWhere('joint_owner_id', $user->id);
@@ -272,6 +274,11 @@ class SavingsController extends Controller
             $accountData['full_balance'] = (float) $account->current_balance;
             $accountData['is_primary_owner'] = $this->isPrimaryOwner($account, $user->id);
             $accountData['is_shared'] = $this->isSharedOwnership($account);
+            // Build names from first_name and surname
+            $owner = $account->user;
+            $jointOwner = $account->jointOwner;
+            $accountData['owner_name'] = $owner ? trim(($owner->first_name ?? '').' '.($owner->surname ?? '')) : null;
+            $accountData['joint_owner_name'] = $jointOwner ? trim(($jointOwner->first_name ?? '').' '.($jointOwner->surname ?? '')) : null;
 
             return response()->json([
                 'success' => true,
