@@ -1919,20 +1919,38 @@ resources/js/components/NetWorth/InvestmentProjections.vue
 
 Fixed the Tax Efficiency score calculation in Investment Projections. Previously, the score was showing 90%+ even when users had 50%+ of their portfolio in taxable accounts. The calculation now properly penalises high taxable proportions.
 
+### Root Cause
+
+The `TaxEfficiencyCalculator.php` only checked ISA percentage and gave a bonus for >50% ISA usage. It didn't properly penalize having significant assets in taxable accounts (GIA).
+
 ### Changes
 
-Added taxable percentage tracking and scoring deduction:
-- Tracks percentage of portfolio in taxable accounts
-- Deducts up to 40 points for high taxable proportions
-- 10% taxable = no penalty
-- 50% taxable = ~16 point deduction
-- 100% taxable = 40 point deduction
+Rewrote the scoring algorithm:
+- Now considers all tax-sheltered types: ISA, Stocks & Shares ISA, LISA, SIPP, Pension
+- Penalises based on taxable percentage:
+  - 0-10% taxable = no penalty
+  - 10-25% taxable = -5 points
+  - 25-50% taxable = -15 points
+  - 50-75% taxable = -30 points
+  - 75-100% taxable = -50 points
+- Small bonus (+5) for excellent efficiency (>90% tax-sheltered)
+- Reduced penalty for large unrealised gains
+
+### Example Scores
+
+| Tax-Sheltered | Taxable | Expected Score |
+|---------------|---------|----------------|
+| 90%+ | <10% | ~100% |
+| 75% | 25% | ~85% |
+| 50% | 50% | ~70% |
+| 25% | 75% | ~50% |
+| 0% | 100% | ~50% |
 
 ### Files Changed
 
 **Backend (Manual Upload Required):**
 ```text
-app/Services/Investment/Tax/TaxOptimizationAnalyzer.php
+app/Services/Investment/TaxEfficiencyCalculator.php
 ```
 
 ### Rebuild Required: NO (PHP only)
@@ -1943,6 +1961,7 @@ app/Services/Investment/Tax/TaxOptimizationAnalyzer.php
 2. View Tax Efficiency card
 3. If you have significant taxable investments (GIA), verify score is appropriately lower
 4. Score should reflect the mix of tax-sheltered vs taxable accounts
+5. With 55% taxable (£185k GIA vs £150k ISA), score should be ~70% not 90%
 
 ---
 
