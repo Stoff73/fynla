@@ -1872,7 +1872,7 @@ resources/js/components/NetWorth/InvestmentDetailInline.vue
 
 ---
 
-## Monte Carlo Chart - Color Consistency
+## Investment Projections - Total Fees Label
 
 **Date:** 28 January 2026
 
@@ -1882,30 +1882,15 @@ resources/js/components/NetWorth/InvestmentDetailInline.vue
 
 ### Description
 
-Updated Monte Carlo probability charts to use consistent blue-to-teal color palette across the application.
-
-### Color Palette
-
-| Probability | Color | Hex |
-|-------------|-------|-----|
-| 95% | Dark Navy | #1e3a5f |
-| 90% | Blue | #3b82f6 |
-| 85% | Teal | #14b8a6 |
-| 80% | Light Mint | #a7f3d0 |
-
-### Changes
-
-- Updated colors in MonteCarloResults.vue (modal)
-- Updated colors in AccountPerformancePanel.vue (dashboard)
-- Changed fill from gradient to solid opacity
-- Updated legend markers to circular
+Updated the fees card in Investment Projections view:
+- Removed "TER" badge from fees display
+- Changed heading from "Fees" to "Total Fees"
 
 ### Files Changed
 
 **Frontend (Included in Build):**
 ```text
-resources/js/components/Investment/MonteCarloResults.vue
-resources/js/views/Investment/AccountPerformancePanel.vue
+resources/js/components/NetWorth/InvestmentProjections.vue
 ```
 
 ### Rebuild Required: YES
@@ -1916,10 +1901,48 @@ resources/js/views/Investment/AccountPerformancePanel.vue
 
 ### Verification
 
-1. Navigate to Net Worth → Investments → click an account
-2. View the Monte Carlo projection chart
-3. Verify colors match: dark navy, blue, teal, light mint gradient
-4. Verify legend shows circular markers with "95% Probability", "90% Probability", etc.
+1. Navigate to Net Worth → Investments → click on Portfolio tab
+2. Verify fees card shows "Total Fees" heading (not "Fees")
+3. Verify no "TER" badge appears
+
+---
+
+## Tax Efficiency Calculation Fix
+
+**Date:** 28 January 2026
+
+**Branch:** main
+
+**Status:** ✅ Ready for deployment
+
+### Description
+
+Fixed the Tax Efficiency score calculation in Investment Projections. Previously, the score was showing 90%+ even when users had 50%+ of their portfolio in taxable accounts. The calculation now properly penalises high taxable proportions.
+
+### Changes
+
+Added taxable percentage tracking and scoring deduction:
+- Tracks percentage of portfolio in taxable accounts
+- Deducts up to 40 points for high taxable proportions
+- 10% taxable = no penalty
+- 50% taxable = ~16 point deduction
+- 100% taxable = 40 point deduction
+
+### Files Changed
+
+**Backend (Manual Upload Required):**
+```text
+app/Services/Investment/Tax/TaxOptimizationAnalyzer.php
+```
+
+### Rebuild Required: NO (PHP only)
+
+### Verification
+
+1. Navigate to Net Worth → Investments → Portfolio tab
+2. View Tax Efficiency card
+3. If you have significant taxable investments (GIA), verify score is appropriately lower
+4. Score should reflect the mix of tax-sheltered vs taxable accounts
 
 ---
 

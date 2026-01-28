@@ -122,8 +122,8 @@
           <!-- Fees Summary -->
           <div class="analysis-card clickable-card" @click="goToDetailPage('fees-detail')">
             <div class="analysis-header">
-              <h3 class="analysis-title">Fees</h3>
-              <span class="fee-badge">{{ totalFeePercent.toFixed(2) }}% TER</span>
+              <h3 class="analysis-title">Total Fees</h3>
+              <span class="fee-badge">{{ totalFeePercent.toFixed(2) }}%</span>
             </div>
             <div class="analysis-content">
               <div class="analysis-row">
