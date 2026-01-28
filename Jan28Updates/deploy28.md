@@ -1065,7 +1065,7 @@ resources/js/views/ValuableInfo.vue
 
 **Branch:** main
 
-**Status:** Ready for deployment
+**Status:** ✅ Deployed to production
 
 ### Description
 
@@ -1122,7 +1122,7 @@ resources/js/components/Onboarding/steps/ExpenditureStep.vue
 
 **Branch:** main
 
-**Status:** Ready for deployment
+**Status:** ✅ Deployed to production
 
 ### Description
 
@@ -1171,7 +1171,7 @@ resources/js/components/UserProfile/ExpenditureForm.vue
 
 **Branch:** main
 
-**Status:** Ready for deployment
+**Status:** ✅ Deployed to production
 
 ### Description
 
@@ -1224,7 +1224,7 @@ resources/js/components/UserProfile/ExpenditureForm.vue
 
 **Branch:** main
 
-**Status:** Ready for deployment
+**Status:** ✅ Deployed to production
 
 ### Description
 
@@ -1267,7 +1267,7 @@ resources/js/components/Estate/WillPlanning.vue
 
 **Branch:** main
 
-**Status:** Ready for deployment
+**Status:** ✅ Deployed to production
 
 ### Description
 
@@ -1306,6 +1306,70 @@ resources/js/components/Onboarding/steps/IncomeStep.vue
 1. Navigate to Valuable Information → Income tab
 2. Click Edit
 3. Verify Dividend Income and Interest Income fields are visible and editable
+
+---
+
+## Expenditure Onboarding - Skip Modal & UX Improvements
+
+**Date:** 28 January 2026
+
+**Branch:** main
+
+**Status:** Ready for deployment
+
+### Description
+
+Fixed bug where the expenditure form reverted to view mode when clicking continue without data, and improved the UX for skipping the expenditure section during onboarding.
+
+### Issues Fixed
+
+| Issue | Fix |
+|-------|-----|
+| Form reverts to view mode when continue clicked without data | Added `isOnboarding` prop that prevents `isEditing` from being set to false during onboarding |
+| Cancel/Save buttons shown during onboarding | Buttons now hidden when `isOnboarding` prop is true |
+| Red error message when no data entered | Replaced with informative modal explaining what expenditure data is used for |
+
+### Skip Modal Content
+
+When user clicks Continue without entering any expenditure data, a modal now appears explaining:
+
+- Expenditure data is used for affordability assessments and budget planning
+- Risk tolerance evaluation
+- Investment, retirement and savings strategies
+- Inheritance tax planning
+- Protection needs analysis
+- User can add this information later through Valuable Info section
+
+### Props Added
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `isOnboarding` | Boolean | false | Controls onboarding-specific behaviour |
+
+### Files Changed
+
+**Frontend (Included in Build):**
+```text
+resources/js/components/UserProfile/ExpenditureForm.vue
+resources/js/components/Onboarding/steps/ExpenditureStep.vue
+```
+
+### Rebuild Required: YES
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+### Verification
+
+1. Start new onboarding flow
+2. Navigate to Household Expenditure step
+3. Without entering any data, click Continue
+4. Verify modal appears explaining what expenditure data is used for
+5. Click "Go Back" and verify form remains in edit mode
+6. Click Continue again, then click "Skip & Continue"
+7. Verify onboarding proceeds to next step
+8. Verify no Cancel/Save buttons at bottom of expenditure form during onboarding
 
 ---
 

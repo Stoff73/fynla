@@ -755,8 +755,8 @@
         </div>
       </div>
 
-      <!-- Action Buttons -->
-      <div class="flex justify-end space-x-4 pt-4 border-t border-gray-200">
+      <!-- Action Buttons (hidden during onboarding - continue button handles save) -->
+      <div v-if="!isOnboarding" class="flex justify-end space-x-4 pt-4 border-t border-gray-200">
         <button
           type="button"
           @click="handleCancel"
@@ -1448,6 +1448,10 @@ export default {
     showBudgetTabs: {
       type: Boolean,
       default: true,
+    },
+    isOnboarding: {
+      type: Boolean,
+      default: false,
     },
   },
 
@@ -2285,7 +2289,10 @@ export default {
         emit('save', saveData);
       }
 
-      isEditing.value = false;
+      // Don't exit edit mode during onboarding - parent controls flow
+      if (!props.isOnboarding) {
+        isEditing.value = false;
+      }
     };
 
     const handleCancel = () => {
