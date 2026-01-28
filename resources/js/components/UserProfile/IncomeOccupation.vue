@@ -23,30 +23,30 @@
       </div>
     </div>
 
-    <form @submit.prevent="handleSubmit">
+    <!-- Income and Tax Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <!-- Income Information Card -->
-      <div class="bg-white rounded-lg border border-gray-200 p-6">
-        <div class="flex justify-between items-start mb-6">
-          <div>
-            <h3 class="text-h4 font-semibold text-gray-900">Income</h3>
-            <p class="mt-1 text-body-sm text-gray-600">
-              Your annual income from all sources
-            </p>
+      <form @submit.prevent="handleSubmit">
+        <div class="bg-white rounded-lg border border-gray-200 p-6 h-full">
+          <div class="flex justify-between items-start mb-6">
+            <div>
+              <h3 class="text-h4 font-semibold text-gray-900">Income</h3>
+              <p class="mt-1 text-body-sm text-gray-600">
+                Your annual income from all sources
+              </p>
+            </div>
+            <button
+              v-if="!isEditing"
+              type="button"
+              @click="isEditing = true"
+              class="btn-secondary"
+            >
+              Edit
+            </button>
           </div>
-          <button
-            v-if="!isEditing"
-            type="button"
-            @click="isEditing = true"
-            class="btn-secondary"
-          >
-            Edit
-          </button>
-        </div>
 
-        <!-- VIEW MODE - Clean two-column layout -->
-        <div v-if="!isEditing">
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-6">
-            <!-- Left Column -->
+          <!-- VIEW MODE -->
+          <div v-if="!isEditing">
             <div class="space-y-3">
               <div class="flex justify-between">
                 <span class="text-body-sm text-gray-600">Employment Income:</span>
@@ -64,10 +64,6 @@
                 <span class="text-body-sm text-gray-600">Dividend Income:</span>
                 <span class="text-body-sm text-gray-900 text-right">{{ formatCurrency(form.annual_dividend_income) }}</span>
               </div>
-            </div>
-
-            <!-- Right Column -->
-            <div class="space-y-3">
               <div class="flex justify-between">
                 <span class="text-body-sm text-gray-600">Interest Income:</span>
                 <span class="text-body-sm text-gray-900 text-right">{{ formatCurrency(form.annual_interest_income) }}</span>
@@ -81,20 +77,34 @@
                 <span class="text-body-sm text-gray-900 text-right">{{ formatCurrency(form.annual_trust_income) }}</span>
               </div>
             </div>
-          </div>
 
-          <!-- Total Annual Income -->
-          <div class="mt-6 pt-4 border-t border-gray-200">
-            <div class="flex justify-between items-center">
-              <span class="text-body-sm font-semibold text-gray-900">Total Annual Income:</span>
-              <span class="text-h4 font-semibold text-gray-900">{{ formatCurrency(totalIncomeValue) }}</span>
+            <!-- Total Annual Income -->
+            <div class="mt-6 pt-4 border-t border-gray-200">
+              <div class="flex justify-between items-center">
+                <span class="text-body-sm font-semibold text-gray-900">Total Annual Income:</span>
+                <span class="text-h4 font-semibold text-gray-900">{{ formatCurrency(totalIncomeValue) }}</span>
+              </div>
+            </div>
+
+            <!-- Disposable Income Section -->
+            <div v-if="incomeOccupation?.net_income" class="mt-4 pt-4 border-t border-gray-200 space-y-3">
+              <div class="flex justify-between">
+                <span class="text-body-sm text-gray-600">Net Income (after tax):</span>
+                <span class="text-body-sm text-gray-900 text-right">{{ formatCurrency(incomeOccupation.net_income) }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-body-sm text-gray-600">Annual Expenditure:</span>
+                <span class="text-body-sm text-gray-900 text-right">{{ formatCurrency(totalAnnualExpenditure) }}</span>
+              </div>
+              <div class="flex justify-between items-center pt-2 border-t border-gray-100">
+                <span class="text-body-sm font-semibold" :class="disposableIncome >= 0 ? 'text-green-700' : 'text-red-700'">Disposable Income:</span>
+                <span class="text-body font-semibold" :class="disposableIncome >= 0 ? 'text-green-700' : 'text-red-700'">{{ formatCurrency(disposableIncome) }}</span>
+              </div>
             </div>
           </div>
-        </div>
 
-        <!-- EDIT MODE -->
-        <div v-else class="space-y-6">
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+          <!-- EDIT MODE -->
+          <div v-else class="space-y-4">
             <!-- Annual Employment Income -->
             <div>
               <label class="block text-body-sm font-medium text-gray-700 mb-1">
@@ -218,103 +228,64 @@
               </div>
               <p class="text-body-xs text-gray-500">Income received from trusts (taxable)</p>
             </div>
-          </div>
 
-          <!-- Total Annual Income -->
-          <div class="pt-4 border-t border-gray-200">
-            <div class="flex justify-between items-center">
-              <span class="text-body-sm font-semibold text-gray-900">Total Annual Income:</span>
-              <span class="text-h4 font-semibold text-gray-900">{{ formatCurrency(totalIncomeValue) }}</span>
+            <!-- Total Annual Income -->
+            <div class="pt-4 border-t border-gray-200">
+              <div class="flex justify-between items-center">
+                <span class="text-body-sm font-semibold text-gray-900">Total Annual Income:</span>
+                <span class="text-h4 font-semibold text-gray-900">{{ formatCurrency(totalIncomeValue) }}</span>
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex justify-end space-x-4 pt-4 border-t border-gray-200">
+              <button
+                type="button"
+                @click="handleCancel"
+                class="btn-secondary"
+                :disabled="submitting"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                class="btn-primary"
+                :disabled="submitting"
+              >
+                <span v-if="!submitting">Save Changes</span>
+                <span v-else>Saving...</span>
+              </button>
             </div>
           </div>
-
-          <!-- Action Buttons -->
-          <div class="flex justify-end space-x-4 pt-4 border-t border-gray-200">
-            <button
-              type="button"
-              @click="handleCancel"
-              class="btn-secondary"
-              :disabled="submitting"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              class="btn-primary"
-              :disabled="submitting"
-            >
-              <span v-if="!submitting">Save Changes</span>
-              <span v-else>Saving...</span>
-            </button>
-          </div>
         </div>
-      </div>
-    </form>
+      </form>
 
-    <!-- Tax Calculations -->
-    <div v-if="detailedTaxBreakdown?.summary" class="bg-white rounded-lg border border-gray-200 p-6">
-      <h3 class="text-h5 font-semibold text-gray-900 mb-4">UK Tax & NI Calculations</h3>
+      <!-- Tax Calculations Card -->
+      <div v-if="detailedTaxBreakdown?.summary" class="bg-white rounded-lg border border-gray-200 p-6 h-full">
+        <h3 class="text-h4 font-semibold text-gray-900 mb-4">Tax & NI</h3>
 
-      <!-- Income Type Cards -->
-      <div
-        v-if="detailedTaxBreakdown.income_breakdowns?.length > 0"
-        class="grid grid-cols-1 sm:grid-cols-2 gap-4"
-      >
-        <TaxIncomeCard
-          v-for="(breakdown, index) in detailedTaxBreakdown.income_breakdowns"
-          :key="breakdown.income_type + '-' + index"
-          :breakdown="breakdown"
-          :rental-breakdown="breakdown.income_type === 'earned' ? rentalBreakdown : null"
-          :section24="breakdown.income_type === 'earned' ? detailedTaxBreakdown.section_24 : null"
-        />
-      </div>
-
-      <!-- Info Note -->
-      <div class="mt-4 p-3 bg-blue-100 rounded-lg">
-        <p class="text-body-xs text-blue-800">
-          <strong>Note:</strong> Tax calculations use {{ detailedTaxBreakdown.tax_year }} UK tax rates.
-          Income is taxed in priority order: employment income uses the Personal Allowance first,
-          with other income types taxed at remaining band positions.
-        </p>
-      </div>
-    </div>
-
-    <!-- Disposable Income Section -->
-    <div v-if="incomeOccupation?.net_income" class="bg-white rounded-lg border border-gray-200 p-6">
-      <h3 class="text-h5 font-semibold text-gray-900 mb-4">Disposable Income</h3>
-
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-        <!-- Net Income -->
-        <div class="bg-gray-50 rounded-lg p-4">
-          <p class="text-body-sm text-gray-600 mb-1">Net Income (after tax)</p>
-          <p class="text-h4 font-semibold text-gray-900">{{ formatCurrency(incomeOccupation.net_income) }}</p>
-          <p class="text-body-xs text-gray-500">per year</p>
+        <!-- Income Type Cards -->
+        <div
+          v-if="detailedTaxBreakdown.income_breakdowns?.length > 0"
+          class="space-y-4"
+        >
+          <TaxIncomeCard
+            v-for="(breakdown, index) in detailedTaxBreakdown.income_breakdowns"
+            :key="breakdown.income_type + '-' + index"
+            :breakdown="breakdown"
+            :rental-breakdown="breakdown.income_type === 'earned' ? rentalBreakdown : null"
+            :section24="breakdown.income_type === 'earned' ? detailedTaxBreakdown.section_24 : null"
+          />
         </div>
 
-        <!-- Annual Expenditure (includes financial commitments) -->
-        <div class="bg-gray-50 rounded-lg p-4">
-          <p class="text-body-sm text-gray-600 mb-1">Annual Expenditure</p>
-          <p class="text-h4 font-semibold text-gray-900">{{ formatCurrency(totalAnnualExpenditure) }}</p>
-          <p class="text-body-xs text-gray-500">{{ formatCurrency(totalMonthlyExpenditure) }}/month</p>
-        </div>
-
-        <!-- Disposable Income -->
-        <div :class="['rounded-lg p-4', disposableIncomeClass]">
-          <p class="text-body-sm mb-1" :class="disposableIncome >= 0 ? 'text-green-700' : 'text-red-700'">Disposable Income</p>
-          <p class="text-h4 font-semibold" :class="disposableIncome >= 0 ? 'text-green-800' : 'text-red-800'">
-            {{ formatCurrency(disposableIncome) }}
-          </p>
-          <p class="text-body-xs" :class="disposableIncome >= 0 ? 'text-green-600' : 'text-red-600'">
-            {{ formatCurrency(monthlyDisposable) }}/month
+        <!-- Info Note -->
+        <div class="mt-4 p-3 bg-blue-100 rounded-lg">
+          <p class="text-body-xs text-blue-800">
+            <strong>Note:</strong> Tax calculations use {{ detailedTaxBreakdown.tax_year }} UK tax rates.
+            Income is taxed in priority order: employment income uses the Personal Allowance first,
+            with other income types taxed at remaining band positions.
           </p>
         </div>
-      </div>
-
-      <div v-if="!incomeOccupation.monthly_expenditure && !incomeOccupation.annual_expenditure" class="mt-4 p-3 bg-amber-50 rounded-lg border border-amber-200">
-        <p class="text-body-xs text-amber-800">
-          <strong>Note:</strong> To see your disposable income, please update your expenditure in the
-          <router-link to="/profile?section=expenditure" class="text-amber-900 underline hover:text-amber-700">Expenditure tab</router-link>.
-        </p>
       </div>
     </div>
   </div>
