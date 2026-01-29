@@ -6,115 +6,142 @@ This file tracks technical debt items that should be addressed in future develop
 
 ## High Priority
 
-### 1. IHTPlanning.vue - Duplicate Tables
-
-**File:** `resources/js/components/Estate/IHTPlanning.vue`
-
-**Lines:** ~2500 lines total
-
-**Issue:** The component contains two nearly identical IHT calculation tables:
-- Table 1 (lines 324-1101): For married users WITH spouse data linked
-- Table 2 (lines 1130-1898): For non-married users OR married without spouse link
-
-Each table is ~770 lines, meaning ~1500 lines of near-duplicate code.
-
-**Impact:**
-- Maintenance burden: Changes must be made in two places (easy to miss one)
-- Bug risk: Inconsistent updates between tables (as seen with color changes)
-- File size: Component is difficult to navigate and understand
-- Build size: Unnecessary code duplication
-
-**Recommended Fix:**
-Extract the table into a reusable `IHTCalculationTable.vue` component that accepts props for:
-- `data` - The calculation data (either secondDeathData or ihtData)
-- `isMarried` - Boolean for married-specific rendering
-- `hasSpouseLink` - Boolean for spouse link status
-- `projections` - Projection data object
-
-**Estimated Effort:** 4-6 hours
-
-**Date Added:** 2026-01-29
+*No high priority items at this time.*
 
 ---
 
 ## Medium Priority
 
-### 2. Investment AccountForm.vue - Large Component
-
-**File:** `resources/js/components/Investment/AccountForm.vue`
-
-**Issue:** The account form component handles too many account types with extensive conditional rendering. Adding Employee Share Schemes and Private Investments made it even larger.
-
-**Recommended Fix:**
-- Extract account-type-specific form sections into separate components
-- Use a factory pattern or composition to load relevant sections
-- Consider separate form components for major account type categories
-
-**Estimated Effort:** 6-8 hours
-
-**Date Added:** 2026-01-29
-
----
-
-### 3. Expenditure Form - Complex State Management
-
-**File:** `resources/js/components/UserProfile/ExpenditureForm.vue`
-
-**Issue:** Complex state management for handling joint vs separate expenditure, detailed vs simple entry, and person tabs. The form has grown organically and could benefit from refactoring.
-
-**Recommended Fix:**
-- Extract tab content into separate components
-- Use Vuex or composables for form state
-- Simplify conditional rendering logic
-
-**Estimated Effort:** 4-6 hours
-
-**Date Added:** 2026-01-29
+*No medium priority items at this time.*
 
 ---
 
 ## Low Priority
 
-### 4. Risk Color Constants - Multiple Sources
-
-**Files:**
-- `resources/js/services/riskService.js`
-- `resources/js/constants/designSystem.js`
-- `resources/js/components/Shared/RiskBadge.vue`
-
-**Issue:** Risk level colors are defined in multiple places. While they're now consistent, future changes require updating multiple files.
-
-**Recommended Fix:**
-- Consolidate all risk color definitions into `designSystem.js`
-- Import from single source in all components
-- Consider CSS custom properties for Tailwind classes
-
-**Estimated Effort:** 2-3 hours
-
-**Date Added:** 2026-01-29
-
----
-
-### 5. Preview Persona Data - JSON Files
-
-**Files:** `resources/js/data/personas/*.json`
-
-**Issue:** Persona data is duplicated between JSON files (for frontend preview) and PHP seeders (for database). Changes must be made in both places.
-
-**Recommended Fix:**
-- Single source of truth for persona data
-- Either generate JSON from PHP or vice versa
-- Consider a build step to sync data
-
-**Estimated Effort:** 3-4 hours
-
-**Date Added:** 2026-01-29
+*No low priority items at this time.*
 
 ---
 
 ## Completed
 
-*Move items here when resolved, with date and brief resolution notes.*
+### 5. Preview Persona Data - Consolidated ✅
+
+**Resolved:** 2026-01-29
+
+**Resolution:** The JSON files were already the single source of truth for the PHP seeder (PreviewUserSeeder reads from JSON). The duplication was in `preview.js` which had a separate `PERSONA_METADATA` object.
+
+**Changes Made:**
+- Added `netWorthRange` and `focus` fields to all 6 persona JSON files
+- Removed duplicate `PERSONA_METADATA` from preview.js
+- Created `getPersonaMetadata()` helper to derive metadata from imported JSON
+- Added `PERSONA_ORDER` array to control display order in selector
+
+**Files Changed:**
+- `resources/js/data/personas/*.json` (6 files) - Added netWorthRange and focus
+- `resources/js/store/modules/preview.js` - Removed duplicate metadata
+
+**Results:**
+- JSON files are now the single source of truth for ALL persona data
+- No more duplicate name/tagline/description between JSON and preview.js
+- Future persona changes only need to update JSON files
+
+---
+
+### 4. Risk Color Constants - Consolidated ✅
+
+**Resolved:** 2026-01-29
+
+**Resolution:** Consolidated all risk level color definitions into `designSystem.js` as single source of truth:
+
+**Added to designSystem.js:**
+- `RISK_TAILWIND_CLASSES` - Tailwind classes for bg, text, border, and combined
+- `RISK_DISPLAY_NAMES` - Display names for all risk levels including legacy
+- `RISK_ABBREVIATED_LABELS` - Short labels (Low, L-Med, Med, U-Med, High)
+- `RISK_DESCRIPTIONS` - Tooltip descriptions for each level
+- `RISK_LEGACY_MAP` - Maps cautious/balanced/adventurous to new system
+- `getRiskClasses(level)` - Helper to get Tailwind classes
+- `getRiskDisplayName(level)` - Helper to get display name
+- `normalizeRiskLevel(level)` - Helper to normalize legacy values
+
+**Updated Files:**
+- `riskService.js` - Now delegates to designSystem.js helpers
+- `RiskBadge.vue` - Now imports and uses centralized constants
+
+**Results:**
+- Single source of truth for risk level styling
+- Future color changes only require updating designSystem.js
+- Consistent behavior across all components
+
+---
+
+### 3. ExpenditureForm.vue - Component Extraction ✅
+
+**Resolved:** 2026-01-29
+
+**Resolution:** Extracted repeated UI patterns into reusable child components:
+- `ExpenditureSection.vue` (~80 lines) - Collapsible section with header and totals
+- `ExpenditureGridRow.vue` (~90 lines) - Multi-column grid row for values
+- `ExpenditureCategoryCard.vue` (~115 lines) - Edit mode card with fields
+- `CurrencyInputField.vue` (~60 lines) - Standardized £ input
+
+**Results:**
+- ExpenditureForm.vue reduced from ~2,519 to ~2,100 lines
+- Used `:deep()` selectors for centralized value alignment styling
+- Financial Commitments section now uses ExpenditureSection component
+
+**Bug Fixed:** Retired budget spouse total was always showing zero due to incorrect calculation. `retiredHouseholdTotalMonthly` was set equal to `retiredTotalMonthly` instead of summing user + spouse.
+
+**Files Created:**
+- `resources/js/components/Shared/CurrencyInputField.vue`
+- `resources/js/components/UserProfile/ExpenditureSection.vue`
+- `resources/js/components/UserProfile/ExpenditureGridRow.vue`
+- `resources/js/components/UserProfile/ExpenditureCategoryCard.vue`
+
+---
+
+### 2. Investment AccountForm.vue - Large Component ✅
+
+**Resolved:** 2026-01-29
+
+**Resolution:** Extracted the three major account-type-specific sections into separate child components:
+- `PrivateInvestmentFields.vue` (~650 lines) - Private Company, Crowdfunding
+- `EmployeeShareSchemeFields.vue` (~600 lines) - SAYE, CSOP, EMI, Unapproved Options, RSU
+- `StandardInvestmentFields.vue` (~400 lines) - ISA, GIA, Bonds, VCT, EIS, NS&I, Other
+
+**Results:**
+- AccountForm.vue reduced from ~2,643 to ~1,007 lines (62% reduction)
+- Each child component uses v-model pattern for two-way data binding
+- Adding new account types is now simpler
+- Changes to one account type category won't affect others
+
+**Files Created:**
+- `resources/js/components/Investment/PrivateInvestmentFields.vue`
+- `resources/js/components/Investment/EmployeeShareSchemeFields.vue`
+- `resources/js/components/Investment/StandardInvestmentFields.vue`
+
+---
+
+### 1. IHTPlanning.vue - Duplicate Tables ✅
+
+**Resolved:** 2026-01-29
+
+**Resolution:** Extracted the duplicate IHT calculation tables into three reusable components:
+- `IHTCalculationTable.vue` (~550 lines) - Main table component with all calculation rows
+- `IHTAssetBreakdown.vue` (~213 lines) - Expandable asset section for user/spouse
+- `IHTLiabilityBreakdown.vue` (~213 lines) - Expandable liability section for user/spouse
+
+**Results:**
+- IHTPlanning.vue reduced from ~3,146 to 1,558 lines (50% reduction)
+- Eliminated ~787 lines × 2 of duplicate table code
+- Single source of truth for IHT table rendering
+- Both married/non-married scenarios now use the same component with normalized props
+
+**Files Created:**
+- `resources/js/components/Estate/IHTCalculationTable.vue`
+- `resources/js/components/Estate/IHTAssetBreakdown.vue`
+- `resources/js/components/Estate/IHTLiabilityBreakdown.vue`
+
+---
 
 ---
 

@@ -22,6 +22,7 @@ import youngSaverData from '../../data/personas/young_saver.json';
 import retiredCoupleData from '../../data/personas/retired_couple.json';
 
 // Full persona data for use in components that need detailed info
+// JSON files are the single source of truth for all persona data
 const PERSONA_DATA = {
     young_family: youngFamilyData,
     peak_earners: peakEarnersData,
@@ -31,57 +32,32 @@ const PERSONA_DATA = {
     retired_couple: retiredCoupleData,
 };
 
-// Persona metadata for the selector UI (order determines display order)
-const PERSONA_METADATA = {
-    young_saver: {
-        id: 'young_saver',
-        name: 'John Morgan',
-        tagline: 'Young professional building savings',
-        netWorthRange: '-£35k to -£30k',
-        focus: 'First home, emergency fund',
-        description: 'A 24-year-old junior data analyst, renting and saving for a house deposit with a Lifetime ISA.',
-    },
-    young_family: {
-        id: 'young_family',
-        name: 'Emily & James Carter',
-        tagline: 'Young family building their future',
-        netWorthRange: '£80k - £120k',
-        focus: 'Protection gaps, emergency fund',
-        description: 'A young married couple in their early 30s with two children, mortgage, and workplace pensions.',
-    },
-    entrepreneur: {
-        id: 'entrepreneur',
-        name: 'Alex Chen',
-        tagline: 'Self-made tech entrepreneur',
-        netWorthRange: '£800k - £1m',
-        focus: 'Business protection, single estate',
-        description: 'A 38-year-old single tech consultancy owner with business interests and SIPP.',
-    },
-    peak_earners: {
-        id: 'peak_earners',
-        name: 'David & Sarah Mitchell',
-        tagline: 'High earners approaching retirement',
-        netWorthRange: '£1.5m - £2m',
-        focus: 'Tax efficiency, pension allowances',
-        description: 'A couple in their late 40s with high incomes, BTL property, and complex pension arrangements.',
-    },
-    retired_couple: {
-        id: 'retired_couple',
-        name: 'Patricia & Harold Bennett',
-        tagline: 'Retired couple with estate focus',
-        netWorthRange: '£800k - £900k',
-        focus: 'IHT planning, gifting strategy',
-        description: 'A retired couple in their early 70s drawing DB pensions, focusing on IHT planning and gifting.',
-    },
-    widow: {
-        id: 'widow',
-        name: 'Margaret Thompson',
-        tagline: 'Retired widow with estate concerns',
-        netWorthRange: '£1.4m - £1.6m',
-        focus: 'IHT planning, gifting strategy',
-        description: 'A 68-year-old retired headteacher who was widowed, with complex estate planning needs.',
-    },
-};
+// Persona display order for the selector UI
+const PERSONA_ORDER = [
+    'young_saver',
+    'young_family',
+    'entrepreneur',
+    'peak_earners',
+    'retired_couple',
+    'widow',
+];
+
+/**
+ * Get persona metadata from JSON data
+ * Single source of truth - no duplicate data
+ */
+function getPersonaMetadata(personaId) {
+    const data = PERSONA_DATA[personaId];
+    if (!data) return null;
+    return {
+        id: data.id,
+        name: data.name,
+        tagline: data.tagline,
+        description: data.description,
+        netWorthRange: data.netWorthRange,
+        focus: data.focus,
+    };
+}
 
 const state = {
     loading: false,
@@ -108,13 +84,14 @@ const getters = {
      */
     currentPersona: (state, getters) => {
         const personaId = getters.currentPersonaId;
-        return personaId ? PERSONA_METADATA[personaId] : null;
+        return personaId ? getPersonaMetadata(personaId) : null;
     },
 
     /**
      * Get all available personas for the selector
+     * Uses PERSONA_ORDER for consistent display order
      */
-    availablePersonas: () => Object.values(PERSONA_METADATA),
+    availablePersonas: () => PERSONA_ORDER.map(id => getPersonaMetadata(id)).filter(Boolean),
 
     /**
      * Get the full persona data (properties, savings, pensions, etc.)

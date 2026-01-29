@@ -101,109 +101,114 @@
           <div v-if="isMarried" class="col-total font-semibold text-body-sm text-gray-700 pb-2 border-b border-gray-200">Household</div>
 
           <!-- Essential Living Expenses -->
-          <div class="col-label pt-4 pb-2 cursor-pointer select-none" @click="toggleSection('current', 'essential')">
-            <div class="flex items-center gap-2">
-              <svg :class="['h-5 w-5 text-gray-400 transition-transform', isSectionExpanded('current', 'essential') ? 'rotate-90' : '']" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-              </svg>
-              <span class="text-body-base font-semibold text-gray-900">Essential Living</span>
-            </div>
-          </div>
-          <div class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(essentialTotal) }}</div>
-          <div v-if="isMarried" class="col-value-mid pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(spouseEssentialTotal) }}</div>
-          <div v-if="isMarried" class="col-total pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(householdEssentialTotal) }}</div>
-          <template v-if="isSectionExpanded('current', 'essential')">
-            <template v-for="field in essentialFields" :key="field.key">
-              <div class="col-label text-body-sm text-gray-600 py-1 pl-7">{{ field.label }}</div>
-              <div class="col-value text-body-sm text-gray-900 py-1">{{ formatCurrency(formData[field.key]) }}</div>
-              <div v-if="isMarried" class="col-value-mid text-body-sm text-gray-900 py-1">{{ formatCurrency(spouseFormData[field.key]) }}</div>
-              <div v-if="isMarried" class="col-total text-body-sm text-gray-900 py-1 font-medium">{{ formatCurrency(getHouseholdValue(field.key)) }}</div>
-            </template>
-          </template>
+          <ExpenditureSection
+            title="Essential Living"
+            :is-expanded="isSectionExpanded('current', 'essential')"
+            :user-total="essentialTotal"
+            :spouse-total="spouseEssentialTotal"
+            :household-total="householdEssentialTotal"
+            :is-married="isMarried"
+            @toggle="toggleSection('current', 'essential')"
+          >
+            <ExpenditureGridRow
+              v-for="field in essentialFields"
+              :key="field.key"
+              :label="field.label"
+              :value="formData[field.key]"
+              :spouse-value="spouseFormData[field.key]"
+              :household-value="getHouseholdValue(field.key)"
+              :is-married="isMarried"
+              indent
+            />
+          </ExpenditureSection>
 
           <!-- Communication & Technology -->
-          <div class="col-label pt-4 pb-2 cursor-pointer select-none" @click="toggleSection('current', 'communication')">
-            <div class="flex items-center gap-2">
-              <svg :class="['h-5 w-5 text-gray-400 transition-transform', isSectionExpanded('current', 'communication') ? 'rotate-90' : '']" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-              </svg>
-              <span class="text-body-base font-semibold text-gray-900">Communication & Technology</span>
-            </div>
-          </div>
-          <div class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(communicationTotal) }}</div>
-          <div v-if="isMarried" class="col-value-mid pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(spouseCommunicationTotal) }}</div>
-          <div v-if="isMarried" class="col-total pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(householdCommunicationTotal) }}</div>
-          <template v-if="isSectionExpanded('current', 'communication')">
-            <template v-for="field in communicationFields" :key="field.key">
-              <div class="col-label text-body-sm text-gray-600 py-1 pl-7">{{ field.label }}</div>
-              <div class="col-value text-body-sm text-gray-900 py-1">{{ formatCurrency(formData[field.key]) }}</div>
-              <div v-if="isMarried" class="col-value-mid text-body-sm text-gray-900 py-1">{{ formatCurrency(spouseFormData[field.key]) }}</div>
-              <div v-if="isMarried" class="col-total text-body-sm text-gray-900 py-1 font-medium">{{ formatCurrency(getHouseholdValue(field.key)) }}</div>
-            </template>
-          </template>
+          <ExpenditureSection
+            title="Communication & Technology"
+            :is-expanded="isSectionExpanded('current', 'communication')"
+            :user-total="communicationTotal"
+            :spouse-total="spouseCommunicationTotal"
+            :household-total="householdCommunicationTotal"
+            :is-married="isMarried"
+            @toggle="toggleSection('current', 'communication')"
+          >
+            <ExpenditureGridRow
+              v-for="field in communicationFields"
+              :key="field.key"
+              :label="field.label"
+              :value="formData[field.key]"
+              :spouse-value="spouseFormData[field.key]"
+              :household-value="getHouseholdValue(field.key)"
+              :is-married="isMarried"
+              indent
+            />
+          </ExpenditureSection>
 
           <!-- Personal & Lifestyle -->
-          <div class="col-label pt-4 pb-2 cursor-pointer select-none" @click="toggleSection('current', 'lifestyle')">
-            <div class="flex items-center gap-2">
-              <svg :class="['h-5 w-5 text-gray-400 transition-transform', isSectionExpanded('current', 'lifestyle') ? 'rotate-90' : '']" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-              </svg>
-              <span class="text-body-base font-semibold text-gray-900">Personal & Lifestyle</span>
-            </div>
-          </div>
-          <div class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(lifestyleTotal) }}</div>
-          <div v-if="isMarried" class="col-value-mid pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(spouseLifestyleTotal) }}</div>
-          <div v-if="isMarried" class="col-total pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(householdLifestyleTotal) }}</div>
-          <template v-if="isSectionExpanded('current', 'lifestyle')">
-            <template v-for="field in lifestyleFields" :key="field.key">
-              <div class="col-label text-body-sm text-gray-600 py-1 pl-7">{{ field.label }}</div>
-              <div class="col-value text-body-sm text-gray-900 py-1">{{ formatCurrency(formData[field.key]) }}</div>
-              <div v-if="isMarried" class="col-value-mid text-body-sm text-gray-900 py-1">{{ formatCurrency(spouseFormData[field.key]) }}</div>
-              <div v-if="isMarried" class="col-total text-body-sm text-gray-900 py-1 font-medium">{{ formatCurrency(getHouseholdValue(field.key)) }}</div>
-            </template>
-          </template>
+          <ExpenditureSection
+            title="Personal & Lifestyle"
+            :is-expanded="isSectionExpanded('current', 'lifestyle')"
+            :user-total="lifestyleTotal"
+            :spouse-total="spouseLifestyleTotal"
+            :household-total="householdLifestyleTotal"
+            :is-married="isMarried"
+            @toggle="toggleSection('current', 'lifestyle')"
+          >
+            <ExpenditureGridRow
+              v-for="field in lifestyleFields"
+              :key="field.key"
+              :label="field.label"
+              :value="formData[field.key]"
+              :spouse-value="spouseFormData[field.key]"
+              :household-value="getHouseholdValue(field.key)"
+              :is-married="isMarried"
+              indent
+            />
+          </ExpenditureSection>
 
           <!-- Children & Dependents -->
-          <div class="col-label pt-4 pb-2 cursor-pointer select-none" @click="toggleSection('current', 'children')">
-            <div class="flex items-center gap-2">
-              <svg :class="['h-5 w-5 text-gray-400 transition-transform', isSectionExpanded('current', 'children') ? 'rotate-90' : '']" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-              </svg>
-              <span class="text-body-base font-semibold text-gray-900">Children & Dependents</span>
-            </div>
-          </div>
-          <div class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(childrenTotal) }}</div>
-          <div v-if="isMarried" class="col-value-mid pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(spouseChildrenTotal) }}</div>
-          <div v-if="isMarried" class="col-total pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(householdChildrenTotal) }}</div>
-          <template v-if="isSectionExpanded('current', 'children')">
-            <template v-for="field in childrenFields" :key="field.key">
-              <div class="col-label text-body-sm text-gray-600 py-1 pl-7">{{ field.label }}</div>
-              <div class="col-value text-body-sm text-gray-900 py-1">{{ formatCurrency(formData[field.key]) }}</div>
-              <div v-if="isMarried" class="col-value-mid text-body-sm text-gray-900 py-1">{{ formatCurrency(spouseFormData[field.key]) }}</div>
-              <div v-if="isMarried" class="col-total text-body-sm text-gray-900 py-1 font-medium">{{ formatCurrency(getHouseholdValue(field.key)) }}</div>
-            </template>
-          </template>
+          <ExpenditureSection
+            title="Children & Dependents"
+            :is-expanded="isSectionExpanded('current', 'children')"
+            :user-total="childrenTotal"
+            :spouse-total="spouseChildrenTotal"
+            :household-total="householdChildrenTotal"
+            :is-married="isMarried"
+            @toggle="toggleSection('current', 'children')"
+          >
+            <ExpenditureGridRow
+              v-for="field in childrenFields"
+              :key="field.key"
+              :label="field.label"
+              :value="formData[field.key]"
+              :spouse-value="spouseFormData[field.key]"
+              :household-value="getHouseholdValue(field.key)"
+              :is-married="isMarried"
+              indent
+            />
+          </ExpenditureSection>
 
           <!-- Other Expenses -->
-          <div class="col-label pt-4 pb-2 cursor-pointer select-none" @click="toggleSection('current', 'other')">
-            <div class="flex items-center gap-2">
-              <svg :class="['h-5 w-5 text-gray-400 transition-transform', isSectionExpanded('current', 'other') ? 'rotate-90' : '']" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-              </svg>
-              <span class="text-body-base font-semibold text-gray-900">Other Expenses</span>
-            </div>
-          </div>
-          <div class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(otherTotal) }}</div>
-          <div v-if="isMarried" class="col-value-mid pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(spouseOtherTotal) }}</div>
-          <div v-if="isMarried" class="col-total pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(householdOtherTotal) }}</div>
-          <template v-if="isSectionExpanded('current', 'other')">
-            <template v-for="field in otherFields" :key="field.key">
-              <div class="col-label text-body-sm text-gray-600 py-1 pl-7">{{ field.label }}</div>
-              <div class="col-value text-body-sm text-gray-900 py-1">{{ formatCurrency(formData[field.key]) }}</div>
-              <div v-if="isMarried" class="col-value-mid text-body-sm text-gray-900 py-1">{{ formatCurrency(spouseFormData[field.key]) }}</div>
-              <div v-if="isMarried" class="col-total text-body-sm text-gray-900 py-1 font-medium">{{ formatCurrency(getHouseholdValue(field.key)) }}</div>
-            </template>
-          </template>
+          <ExpenditureSection
+            title="Other Expenses"
+            :is-expanded="isSectionExpanded('current', 'other')"
+            :user-total="otherTotal"
+            :spouse-total="spouseOtherTotal"
+            :household-total="householdOtherTotal"
+            :is-married="isMarried"
+            @toggle="toggleSection('current', 'other')"
+          >
+            <ExpenditureGridRow
+              v-for="field in otherFields"
+              :key="field.key"
+              :label="field.label"
+              :value="formData[field.key]"
+              :spouse-value="spouseFormData[field.key]"
+              :household-value="getHouseholdValue(field.key)"
+              :is-married="isMarried"
+              indent
+            />
+          </ExpenditureSection>
 
           <!-- Manual Expenditure Total -->
           <div class="col-span-full border-t-2 border-gray-300 mt-4"></div>
@@ -216,68 +221,79 @@
 
       <!-- Financial Commitments (Auto-pulled) - View Mode -->
       <div v-if="hasAnyCommitments" class="mt-6 border-t border-gray-200 pt-6">
-        <div class="flex items-center gap-2 cursor-pointer select-none" @click="toggleSection('current', 'commitments')">
-          <svg :class="['h-5 w-5 text-gray-400 transition-transform', isSectionExpanded('current', 'commitments') ? 'rotate-90' : '']" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-          </svg>
-          <span class="text-body-base font-semibold text-gray-900">Financial Commitments</span>
-          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-            Auto-calculated
-          </span>
-        </div>
+        <div :class="isMarried ? 'expenditure-grid-married' : 'expenditure-grid-single'">
+          <!-- Financial Commitments Section Header -->
+          <ExpenditureSection
+            title="Financial Commitments"
+            :is-expanded="isSectionExpanded('current', 'commitments')"
+            :user-total="financialCommitments?.totals?.total || 0"
+            :spouse-total="spouseFinancialCommitments?.totals?.total || 0"
+            :household-total="(financialCommitments?.totals?.total || 0) + (spouseFinancialCommitments?.totals?.total || 0)"
+            :is-married="isMarried"
+            @toggle="toggleSection('current', 'commitments')"
+          >
+            <template #badge>
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                Auto-calculated
+              </span>
+            </template>
 
-        <div v-if="isSectionExpanded('current', 'commitments')" :class="isMarried ? 'expenditure-grid-married' : 'expenditure-grid-single'" class="mt-4">
-          <!-- Column Headers -->
-          <div class="col-label font-semibold text-body-sm text-gray-700 pb-2 border-b border-gray-200">Source</div>
-          <div class="col-value font-semibold text-body-sm text-gray-700 pb-2 border-b border-gray-200">{{ userName }}</div>
-          <div v-if="isMarried" class="col-value-mid font-semibold text-body-sm text-gray-700 pb-2 border-b border-gray-200">{{ spouseName }}</div>
-          <div v-if="isMarried" class="col-total font-semibold text-body-sm text-gray-700 pb-2 border-b border-gray-200">Household</div>
+            <!-- Commitment Rows -->
+            <template v-if="hasRetirementCommitments || spouseHasRetirementCommitments">
+              <ExpenditureGridRow
+                label="Pension Contributions"
+                :value="financialCommitments?.totals?.retirement || 0"
+                :spouse-value="spouseFinancialCommitments?.totals?.retirement || 0"
+                :household-value="(financialCommitments?.totals?.retirement || 0) + (spouseFinancialCommitments?.totals?.retirement || 0)"
+                :is-married="isMarried"
+                indent
+              />
+            </template>
 
-          <!-- Retirement -->
-          <template v-if="hasRetirementCommitments || spouseHasRetirementCommitments">
-            <div class="col-label text-body-sm text-gray-600 py-1">Pension Contributions</div>
-            <div class="col-value text-body-sm text-gray-900 py-1">{{ formatCurrency(financialCommitments?.totals?.retirement || 0) }}</div>
-            <div v-if="isMarried" class="col-value-mid text-body-sm text-gray-900 py-1">{{ formatCurrency(spouseFinancialCommitments?.totals?.retirement || 0) }}</div>
-            <div v-if="isMarried" class="col-total text-body-sm text-gray-900 py-1 font-medium">{{ formatCurrency((financialCommitments?.totals?.retirement || 0) + (spouseFinancialCommitments?.totals?.retirement || 0)) }}</div>
-          </template>
+            <template v-if="hasPropertyCommitments || spouseHasPropertyCommitments">
+              <ExpenditureGridRow
+                label="Property Expenses"
+                :value="financialCommitments?.totals?.properties || 0"
+                :spouse-value="spouseFinancialCommitments?.totals?.properties || 0"
+                :household-value="(financialCommitments?.totals?.properties || 0) + (spouseFinancialCommitments?.totals?.properties || 0)"
+                :is-married="isMarried"
+                indent
+              />
+            </template>
 
-          <!-- Property -->
-          <template v-if="hasPropertyCommitments || spouseHasPropertyCommitments">
-            <div class="col-label text-body-sm text-gray-600 py-1">Property Expenses</div>
-            <div class="col-value text-body-sm text-gray-900 py-1">{{ formatCurrency(financialCommitments?.totals?.properties || 0) }}</div>
-            <div v-if="isMarried" class="col-value-mid text-body-sm text-gray-900 py-1">{{ formatCurrency(spouseFinancialCommitments?.totals?.properties || 0) }}</div>
-            <div v-if="isMarried" class="col-total text-body-sm text-gray-900 py-1 font-medium">{{ formatCurrency((financialCommitments?.totals?.properties || 0) + (spouseFinancialCommitments?.totals?.properties || 0)) }}</div>
-          </template>
+            <template v-if="hasInvestmentCommitments || spouseHasInvestmentCommitments">
+              <ExpenditureGridRow
+                label="Investment Contributions"
+                :value="financialCommitments?.totals?.investments || 0"
+                :spouse-value="spouseFinancialCommitments?.totals?.investments || 0"
+                :household-value="(financialCommitments?.totals?.investments || 0) + (spouseFinancialCommitments?.totals?.investments || 0)"
+                :is-married="isMarried"
+                indent
+              />
+            </template>
 
-          <!-- Investment -->
-          <template v-if="hasInvestmentCommitments || spouseHasInvestmentCommitments">
-            <div class="col-label text-body-sm text-gray-600 py-1">Investment Contributions</div>
-            <div class="col-value text-body-sm text-gray-900 py-1">{{ formatCurrency(financialCommitments?.totals?.investments || 0) }}</div>
-            <div v-if="isMarried" class="col-value-mid text-body-sm text-gray-900 py-1">{{ formatCurrency(spouseFinancialCommitments?.totals?.investments || 0) }}</div>
-            <div v-if="isMarried" class="col-total text-body-sm text-gray-900 py-1 font-medium">{{ formatCurrency((financialCommitments?.totals?.investments || 0) + (spouseFinancialCommitments?.totals?.investments || 0)) }}</div>
-          </template>
+            <template v-if="hasProtectionCommitments || spouseHasProtectionCommitments">
+              <ExpenditureGridRow
+                label="Protection Premiums"
+                :value="financialCommitments?.totals?.protection || 0"
+                :spouse-value="spouseFinancialCommitments?.totals?.protection || 0"
+                :household-value="(financialCommitments?.totals?.protection || 0) + (spouseFinancialCommitments?.totals?.protection || 0)"
+                :is-married="isMarried"
+                indent
+              />
+            </template>
 
-          <!-- Protection -->
-          <template v-if="hasProtectionCommitments || spouseHasProtectionCommitments">
-            <div class="col-label text-body-sm text-gray-600 py-1">Protection Premiums</div>
-            <div class="col-value text-body-sm text-gray-900 py-1">{{ formatCurrency(financialCommitments?.totals?.protection || 0) }}</div>
-            <div v-if="isMarried" class="col-value-mid text-body-sm text-gray-900 py-1">{{ formatCurrency(spouseFinancialCommitments?.totals?.protection || 0) }}</div>
-            <div v-if="isMarried" class="col-total text-body-sm text-gray-900 py-1 font-medium">{{ formatCurrency((financialCommitments?.totals?.protection || 0) + (spouseFinancialCommitments?.totals?.protection || 0)) }}</div>
-          </template>
-
-          <!-- Liabilities -->
-          <template v-if="hasLiabilityCommitments || spouseHasLiabilityCommitments">
-            <div class="col-label text-body-sm text-gray-600 py-1">Loan Repayments</div>
-            <div class="col-value text-body-sm text-gray-900 py-1">{{ formatCurrency(financialCommitments?.totals?.liabilities || 0) }}</div>
-            <div v-if="isMarried" class="col-value-mid text-body-sm text-gray-900 py-1">{{ formatCurrency(spouseFinancialCommitments?.totals?.liabilities || 0) }}</div>
-            <div v-if="isMarried" class="col-total text-body-sm text-gray-900 py-1 font-medium">{{ formatCurrency((financialCommitments?.totals?.liabilities || 0) + (spouseFinancialCommitments?.totals?.liabilities || 0)) }}</div>
-          </template>
-
-          <!-- Commitments Sub-total -->
-          <div class="col-label text-body-sm font-semibold text-gray-700 py-2 border-t border-gray-100">Commitments Total</div>
-          <div class="col-value text-body-sm text-gray-900 py-2 border-t border-gray-100 font-semibold">{{ formatCurrency(financialCommitments?.totals?.total || 0) }}</div>
-          <div v-if="isMarried" class="col-value-mid text-body-sm text-gray-900 py-2 border-t border-gray-100 font-semibold">{{ formatCurrency(spouseFinancialCommitments?.totals?.total || 0) }}</div>
-          <div v-if="isMarried" class="col-total text-body-sm text-gray-900 py-2 border-t border-gray-100 font-semibold">{{ formatCurrency((financialCommitments?.totals?.total || 0) + (spouseFinancialCommitments?.totals?.total || 0)) }}</div>
+            <template v-if="hasLiabilityCommitments || spouseHasLiabilityCommitments">
+              <ExpenditureGridRow
+                label="Loan Repayments"
+                :value="financialCommitments?.totals?.liabilities || 0"
+                :spouse-value="spouseFinancialCommitments?.totals?.liabilities || 0"
+                :household-value="(financialCommitments?.totals?.liabilities || 0) + (spouseFinancialCommitments?.totals?.liabilities || 0)"
+                :is-married="isMarried"
+                indent
+              />
+            </template>
+          </ExpenditureSection>
         </div>
       </div>
 
@@ -317,7 +333,6 @@
         <!-- Separate Expenditure Option (Married Users Only) -->
         <div v-if="isMarried" class="bg-white border border-gray-200 rounded-lg p-4 flex-1">
           <span class="text-body font-medium text-gray-900 block mb-3">Spouse Expenditure</span>
-          <!-- Segmented Control -->
           <div class="inline-flex rounded-lg border border-gray-200 p-1 bg-white">
             <button
               type="button"
@@ -352,7 +367,6 @@
         <!-- Entry Mode Toggle -->
         <div class="bg-white border border-gray-200 rounded-lg p-4 flex-1">
           <span class="text-body font-medium text-gray-900 block mb-3">Entry Method</span>
-          <!-- Segmented Control -->
           <div class="inline-flex rounded-lg border border-gray-200 p-1 bg-white">
             <button
               type="button"
@@ -388,42 +402,28 @@
       <!-- Simple Entry Mode -->
       <div v-if="useSimpleEntry" class="card p-6 mt-6">
         <h3 class="text-h5 font-semibold text-gray-900 mb-4">Total Monthly Expenditure</h3>
-
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div>
             <label for="simple_monthly_expenditure" class="label">
               {{ isMarried && useSeparateExpenditure ? 'Your Monthly Expenditure' : 'Monthly Expenditure' }}
             </label>
-            <div class="relative">
-              <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">£</span>
-              <input
-                id="simple_monthly_expenditure"
-                v-model.number="simpleMonthlyExpenditure"
-                type="number"
-                min="0"
-                step="100"
-                class="input-field pl-8"
-                placeholder="3000"
-              >
-            </div>
+            <CurrencyInputField
+              id="simple_monthly_expenditure"
+              v-model="simpleMonthlyExpenditure"
+              placeholder="3000"
+              :step="100"
+            />
           </div>
-
           <div v-if="isMarried && useSeparateExpenditure">
             <label for="spouse_simple_monthly_expenditure" class="label">
               {{ spouseName }}'s Monthly Expenditure
             </label>
-            <div class="relative">
-              <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">£</span>
-              <input
-                id="spouse_simple_monthly_expenditure"
-                v-model.number="spouseSimpleMonthlyExpenditure"
-                type="number"
-                min="0"
-                step="100"
-                class="input-field pl-8"
-                placeholder="3000"
-              >
-            </div>
+            <CurrencyInputField
+              id="spouse_simple_monthly_expenditure"
+              v-model="spouseSimpleMonthlyExpenditure"
+              placeholder="3000"
+              :step="100"
+            />
           </div>
         </div>
       </div>
@@ -460,185 +460,57 @@
           </nav>
         </div>
 
-        <!-- Essential Living Expenses -->
-        <div class="card p-6">
-          <h4 class="text-h5 font-semibold text-gray-900 mb-4">Essential Living Expenses (Monthly)</h4>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <template v-for="field in essentialFields" :key="field.key">
-              <div>
-                <label :for="field.key" class="label">{{ field.label }}</label>
-                <div class="relative">
-                  <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">£</span>
-                  <input
-                    v-if="!isMarried || !useSeparateExpenditure || activePersonTab === 'user'"
-                    :id="field.key"
-                    v-model.number="formData[field.key]"
-                    type="number"
-                    min="0"
-                    step="25"
-                    class="input-field pl-8"
-                    :placeholder="field.placeholder"
-                  >
-                  <input
-                    v-else
-                    :id="'spouse_' + field.key"
-                    v-model.number="spouseFormData[field.key]"
-                    type="number"
-                    min="0"
-                    step="25"
-                    class="input-field pl-8"
-                    :placeholder="field.placeholder"
-                  >
-                </div>
-                <p v-if="field.hint" class="mt-1 text-body-sm text-gray-500">{{ field.hint }}</p>
-              </div>
-            </template>
-          </div>
-        </div>
+        <!-- Category Cards -->
+        <ExpenditureCategoryCard
+          title="Essential Living Expenses (Monthly)"
+          :fields="essentialFields"
+          v-model="formData"
+          v-model:spouse-model-value="spouseFormData"
+          :is-married="isMarried"
+          :use-separate-expenditure="useSeparateExpenditure"
+          :active-person-tab="activePersonTab"
+        />
 
-        <!-- Communication & Technology -->
-        <div class="card p-6">
-          <h4 class="text-h5 font-semibold text-gray-900 mb-4">Communication & Technology (Monthly)</h4>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <template v-for="field in communicationFields" :key="field.key">
-              <div>
-                <label :for="field.key" class="label">{{ field.label }}</label>
-                <div class="relative">
-                  <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">£</span>
-                  <input
-                    v-if="!isMarried || !useSeparateExpenditure || activePersonTab === 'user'"
-                    :id="field.key"
-                    v-model.number="formData[field.key]"
-                    type="number"
-                    min="0"
-                    step="10"
-                    class="input-field pl-8"
-                    :placeholder="field.placeholder"
-                  >
-                  <input
-                    v-else
-                    :id="'spouse_' + field.key"
-                    v-model.number="spouseFormData[field.key]"
-                    type="number"
-                    min="0"
-                    step="10"
-                    class="input-field pl-8"
-                    :placeholder="field.placeholder"
-                  >
-                </div>
-                <p v-if="field.hint" class="mt-1 text-body-sm text-gray-500">{{ field.hint }}</p>
-              </div>
-            </template>
-          </div>
-        </div>
+        <ExpenditureCategoryCard
+          title="Communication & Technology (Monthly)"
+          :fields="communicationFields"
+          v-model="formData"
+          v-model:spouse-model-value="spouseFormData"
+          :is-married="isMarried"
+          :use-separate-expenditure="useSeparateExpenditure"
+          :active-person-tab="activePersonTab"
+          :step="10"
+        />
 
-        <!-- Personal & Lifestyle -->
-        <div class="card p-6">
-          <h4 class="text-h5 font-semibold text-gray-900 mb-4">Personal & Lifestyle (Monthly)</h4>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <template v-for="field in lifestyleFields" :key="field.key">
-              <div>
-                <label :for="field.key" class="label">{{ field.label }}</label>
-                <div class="relative">
-                  <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">£</span>
-                  <input
-                    v-if="!isMarried || !useSeparateExpenditure || activePersonTab === 'user'"
-                    :id="field.key"
-                    v-model.number="formData[field.key]"
-                    type="number"
-                    min="0"
-                    step="25"
-                    class="input-field pl-8"
-                    :placeholder="field.placeholder"
-                  >
-                  <input
-                    v-else
-                    :id="'spouse_' + field.key"
-                    v-model.number="spouseFormData[field.key]"
-                    type="number"
-                    min="0"
-                    step="25"
-                    class="input-field pl-8"
-                    :placeholder="field.placeholder"
-                  >
-                </div>
-                <p v-if="field.hint" class="mt-1 text-body-sm text-gray-500">{{ field.hint }}</p>
-              </div>
-            </template>
-          </div>
-        </div>
+        <ExpenditureCategoryCard
+          title="Personal & Lifestyle (Monthly)"
+          :fields="lifestyleFields"
+          v-model="formData"
+          v-model:spouse-model-value="spouseFormData"
+          :is-married="isMarried"
+          :use-separate-expenditure="useSeparateExpenditure"
+          :active-person-tab="activePersonTab"
+        />
 
-        <!-- Children & Dependents -->
-        <div class="card p-6">
-          <h4 class="text-h5 font-semibold text-gray-900 mb-4">Children & Dependents (Monthly)</h4>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <template v-for="field in childrenFields" :key="field.key">
-              <div>
-                <label :for="field.key" class="label">{{ field.label }}</label>
-                <div class="relative">
-                  <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">£</span>
-                  <input
-                    v-if="!isMarried || !useSeparateExpenditure || activePersonTab === 'user'"
-                    :id="field.key"
-                    v-model.number="formData[field.key]"
-                    type="number"
-                    min="0"
-                    step="25"
-                    class="input-field pl-8"
-                    :placeholder="field.placeholder"
-                  >
-                  <input
-                    v-else
-                    :id="'spouse_' + field.key"
-                    v-model.number="spouseFormData[field.key]"
-                    type="number"
-                    min="0"
-                    step="25"
-                    class="input-field pl-8"
-                    :placeholder="field.placeholder"
-                  >
-                </div>
-                <p v-if="field.hint" class="mt-1 text-body-sm text-gray-500">{{ field.hint }}</p>
-              </div>
-            </template>
-          </div>
-        </div>
+        <ExpenditureCategoryCard
+          title="Children & Dependents (Monthly)"
+          :fields="childrenFields"
+          v-model="formData"
+          v-model:spouse-model-value="spouseFormData"
+          :is-married="isMarried"
+          :use-separate-expenditure="useSeparateExpenditure"
+          :active-person-tab="activePersonTab"
+        />
 
-        <!-- Other Expenses -->
-        <div class="card p-6">
-          <h4 class="text-h5 font-semibold text-gray-900 mb-4">Other Expenses (Monthly)</h4>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <template v-for="field in otherFields" :key="field.key">
-              <div>
-                <label :for="field.key" class="label">{{ field.label }}</label>
-                <div class="relative">
-                  <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">£</span>
-                  <input
-                    v-if="!isMarried || !useSeparateExpenditure || activePersonTab === 'user'"
-                    :id="field.key"
-                    v-model.number="formData[field.key]"
-                    type="number"
-                    min="0"
-                    step="25"
-                    class="input-field pl-8"
-                    :placeholder="field.placeholder"
-                  >
-                  <input
-                    v-else
-                    :id="'spouse_' + field.key"
-                    v-model.number="spouseFormData[field.key]"
-                    type="number"
-                    min="0"
-                    step="25"
-                    class="input-field pl-8"
-                    :placeholder="field.placeholder"
-                  >
-                </div>
-                <p v-if="field.hint" class="mt-1 text-body-sm text-gray-500">{{ field.hint }}</p>
-              </div>
-            </template>
-          </div>
-        </div>
+        <ExpenditureCategoryCard
+          title="Other Expenses (Monthly)"
+          :fields="otherFields"
+          v-model="formData"
+          v-model:spouse-model-value="spouseFormData"
+          :is-married="isMarried"
+          :use-separate-expenditure="useSeparateExpenditure"
+          :active-person-tab="activePersonTab"
+        />
 
         <!-- Financial Commitments (Read-Only) - Edit Mode -->
         <div v-if="hasAnyCommitments" class="card p-6 bg-blue-50 border-2 border-blue-200">
@@ -839,159 +711,34 @@
           <div v-if="isMarried" class="col-header font-semibold text-body-sm text-gray-700 pb-2 border-b border-gray-200">{{ spouseName }}</div>
           <div v-if="isMarried" class="col-header font-semibold text-body-sm text-gray-700 pb-2 border-b border-gray-200">Household</div>
 
-          <!-- Essential Living -->
-          <div class="col-label pt-4 pb-2 cursor-pointer select-none" @click="toggleSection('retired', 'essential')">
-            <div class="flex items-center gap-2">
-              <svg :class="['h-5 w-5 text-gray-400 transition-transform', isSectionExpanded('retired', 'essential') ? 'rotate-90' : '']" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-              </svg>
-              <span class="text-body-base font-semibold text-gray-900">Essential Living</span>
-            </div>
-          </div>
-          <div class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(getRetiredUserSectionTotal('essential')) }}</div>
-          <div v-if="isMarried" class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(getRetiredSpouseSectionTotal('essential')) }}</div>
-          <div v-if="isMarried" class="col-total pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(getRetiredSectionTotal('essential')) }}</div>
-          <template v-if="isSectionExpanded('retired', 'essential')">
-            <template v-for="field in retiredBudgetFields.essential" :key="field.key">
-              <div class="col-label text-body-sm text-gray-600 py-1 pl-7">
-                {{ field.label }}
-                <span v-if="retiredBudgetData[field.key]?.adjusted && !retiredBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-700">Auto</span>
-                <span v-if="retiredBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-success-100 text-success-700">Custom</span>
-              </div>
-              <div class="col-value text-body-sm text-gray-900 py-1 font-medium">
-                {{ formatCurrency(getRetiredUserValue(field.key)) }}<span v-if="getRetiredChange(field.key, false) !== 0" :class="getRetiredChange(field.key, false) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getRetiredChange(field.key, false) < 0 ? '' : '+' }}{{ formatCurrency(getRetiredChange(field.key, false)) }})</span>
-              </div>
-              <div v-if="isMarried" class="col-value text-body-sm text-gray-900 py-1 font-medium">
-                {{ formatCurrency(getRetiredSpouseValue(field.key)) }}<span v-if="getRetiredChange(field.key, true) !== 0" :class="getRetiredChange(field.key, true) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getRetiredChange(field.key, true) < 0 ? '' : '+' }}{{ formatCurrency(getRetiredChange(field.key, true)) }})</span>
-              </div>
-              <div v-if="isMarried" class="col-total text-body-sm text-gray-900 py-1 font-medium">
-                {{ formatCurrency(getRetiredUserValue(field.key) + getRetiredSpouseValue(field.key)) }}
-              </div>
-            </template>
-          </template>
-
-          <!-- Communication & Technology -->
-          <div class="col-label pt-4 pb-2 cursor-pointer select-none" @click="toggleSection('retired', 'communication')">
-            <div class="flex items-center gap-2">
-              <svg :class="['h-5 w-5 text-gray-400 transition-transform', isSectionExpanded('retired', 'communication') ? 'rotate-90' : '']" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-              </svg>
-              <span class="text-body-base font-semibold text-gray-900">Communication & Technology</span>
-            </div>
-          </div>
-          <div class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(getRetiredUserSectionTotal('communication')) }}</div>
-          <div v-if="isMarried" class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(getRetiredSpouseSectionTotal('communication')) }}</div>
-          <div v-if="isMarried" class="col-total pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(getRetiredSectionTotal('communication')) }}</div>
-          <template v-if="isSectionExpanded('retired', 'communication')">
-            <template v-for="field in retiredBudgetFields.communication" :key="field.key">
-              <div class="col-label text-body-sm text-gray-600 py-1 pl-7">
-                {{ field.label }}
-                <span v-if="retiredBudgetData[field.key]?.adjusted && !retiredBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-700">Auto</span>
-                <span v-if="retiredBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-success-100 text-success-700">Custom</span>
-              </div>
-              <div class="col-value text-body-sm text-gray-900 py-1 font-medium">
-                {{ formatCurrency(getRetiredUserValue(field.key)) }}<span v-if="getRetiredChange(field.key, false) !== 0" :class="getRetiredChange(field.key, false) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getRetiredChange(field.key, false) < 0 ? '' : '+' }}{{ formatCurrency(getRetiredChange(field.key, false)) }})</span>
-              </div>
-              <div v-if="isMarried" class="col-value text-body-sm text-gray-900 py-1 font-medium">
-                {{ formatCurrency(getRetiredSpouseValue(field.key)) }}<span v-if="getRetiredChange(field.key, true) !== 0" :class="getRetiredChange(field.key, true) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getRetiredChange(field.key, true) < 0 ? '' : '+' }}{{ formatCurrency(getRetiredChange(field.key, true)) }})</span>
-              </div>
-              <div v-if="isMarried" class="col-total text-body-sm text-gray-900 py-1 font-medium">
-                {{ formatCurrency(getRetiredUserValue(field.key) + getRetiredSpouseValue(field.key)) }}
-              </div>
-            </template>
-          </template>
-
-          <!-- Personal & Lifestyle -->
-          <div class="col-label pt-4 pb-2 cursor-pointer select-none" @click="toggleSection('retired', 'lifestyle')">
-            <div class="flex items-center gap-2">
-              <svg :class="['h-5 w-5 text-gray-400 transition-transform', isSectionExpanded('retired', 'lifestyle') ? 'rotate-90' : '']" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-              </svg>
-              <span class="text-body-base font-semibold text-gray-900">Personal & Lifestyle</span>
-            </div>
-          </div>
-          <div class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(getRetiredUserSectionTotal('lifestyle')) }}</div>
-          <div v-if="isMarried" class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(getRetiredSpouseSectionTotal('lifestyle')) }}</div>
-          <div v-if="isMarried" class="col-total pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(getRetiredSectionTotal('lifestyle')) }}</div>
-          <template v-if="isSectionExpanded('retired', 'lifestyle')">
-            <template v-for="field in retiredBudgetFields.lifestyle" :key="field.key">
-              <div class="col-label text-body-sm text-gray-600 py-1 pl-7">
-                {{ field.label }}
-                <span v-if="retiredBudgetData[field.key]?.adjusted && !retiredBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-700">Auto</span>
-                <span v-if="retiredBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-success-100 text-success-700">Custom</span>
-              </div>
-              <div class="col-value text-body-sm text-gray-900 py-1 font-medium">
-                {{ formatCurrency(getRetiredUserValue(field.key)) }}<span v-if="getRetiredChange(field.key, false) !== 0" :class="getRetiredChange(field.key, false) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getRetiredChange(field.key, false) < 0 ? '' : '+' }}{{ formatCurrency(getRetiredChange(field.key, false)) }})</span>
-              </div>
-              <div v-if="isMarried" class="col-value text-body-sm text-gray-900 py-1 font-medium">
-                {{ formatCurrency(getRetiredSpouseValue(field.key)) }}<span v-if="getRetiredChange(field.key, true) !== 0" :class="getRetiredChange(field.key, true) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getRetiredChange(field.key, true) < 0 ? '' : '+' }}{{ formatCurrency(getRetiredChange(field.key, true)) }})</span>
-              </div>
-              <div v-if="isMarried" class="col-total text-body-sm text-gray-900 py-1 font-medium">
-                {{ formatCurrency(getRetiredUserValue(field.key) + getRetiredSpouseValue(field.key)) }}
-              </div>
-            </template>
-          </template>
-
-          <!-- Children & Dependents -->
-          <div class="col-label pt-4 pb-2 cursor-pointer select-none" @click="toggleSection('retired', 'children')">
-            <div class="flex items-center gap-2">
-              <svg :class="['h-5 w-5 text-gray-400 transition-transform', isSectionExpanded('retired', 'children') ? 'rotate-90' : '']" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-              </svg>
-              <span class="text-body-base font-semibold text-gray-900">Children & Dependents</span>
-            </div>
-          </div>
-          <div class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(getRetiredUserSectionTotal('children')) }}</div>
-          <div v-if="isMarried" class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(getRetiredSpouseSectionTotal('children')) }}</div>
-          <div v-if="isMarried" class="col-total pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(getRetiredSectionTotal('children')) }}</div>
-          <template v-if="isSectionExpanded('retired', 'children')">
-            <template v-for="field in retiredBudgetFields.children" :key="field.key">
-              <div class="col-label text-body-sm text-gray-600 py-1 pl-7">
-                {{ field.label }}
-                <span v-if="retiredBudgetData[field.key]?.adjusted && !retiredBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-700">Auto</span>
-                <span v-if="retiredBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-success-100 text-success-700">Custom</span>
-              </div>
-              <div class="col-value text-body-sm text-gray-900 py-1 font-medium">
-                {{ formatCurrency(getRetiredUserValue(field.key)) }}<span v-if="getRetiredChange(field.key, false) !== 0" :class="getRetiredChange(field.key, false) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getRetiredChange(field.key, false) < 0 ? '' : '+' }}{{ formatCurrency(getRetiredChange(field.key, false)) }})</span>
-              </div>
-              <div v-if="isMarried" class="col-value text-body-sm text-gray-900 py-1 font-medium">
-                {{ formatCurrency(getRetiredSpouseValue(field.key)) }}<span v-if="getRetiredChange(field.key, true) !== 0" :class="getRetiredChange(field.key, true) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getRetiredChange(field.key, true) < 0 ? '' : '+' }}{{ formatCurrency(getRetiredChange(field.key, true)) }})</span>
-              </div>
-              <div v-if="isMarried" class="col-total text-body-sm text-gray-900 py-1 font-medium">
-                {{ formatCurrency(getRetiredUserValue(field.key) + getRetiredSpouseValue(field.key)) }}
-              </div>
-            </template>
-          </template>
-
-          <!-- Other Expenses -->
-          <div class="col-label pt-4 pb-2 cursor-pointer select-none" @click="toggleSection('retired', 'other')">
-            <div class="flex items-center gap-2">
-              <svg :class="['h-5 w-5 text-gray-400 transition-transform', isSectionExpanded('retired', 'other') ? 'rotate-90' : '']" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-              </svg>
-              <span class="text-body-base font-semibold text-gray-900">Other Expenses</span>
-            </div>
-          </div>
-          <div class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(getRetiredUserSectionTotal('other')) }}</div>
-          <div v-if="isMarried" class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(getRetiredSpouseSectionTotal('other')) }}</div>
-          <div v-if="isMarried" class="col-total pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(getRetiredSectionTotal('other')) }}</div>
-          <template v-if="isSectionExpanded('retired', 'other')">
-            <template v-for="field in retiredBudgetFields.other" :key="field.key">
-              <div class="col-label text-body-sm text-gray-600 py-1 pl-7">
-                {{ field.label }}
-                <span v-if="retiredBudgetData[field.key]?.adjusted && !retiredBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-700">Auto</span>
-                <span v-if="retiredBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-success-100 text-success-700">Custom</span>
-              </div>
-              <div class="col-value text-body-sm text-gray-900 py-1 font-medium">
-                {{ formatCurrency(getRetiredUserValue(field.key)) }}<span v-if="getRetiredChange(field.key, false) !== 0" :class="getRetiredChange(field.key, false) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getRetiredChange(field.key, false) < 0 ? '' : '+' }}{{ formatCurrency(getRetiredChange(field.key, false)) }})</span>
-              </div>
-              <div v-if="isMarried" class="col-value text-body-sm text-gray-900 py-1 font-medium">
-                {{ formatCurrency(getRetiredSpouseValue(field.key)) }}<span v-if="getRetiredChange(field.key, true) !== 0" :class="getRetiredChange(field.key, true) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getRetiredChange(field.key, true) < 0 ? '' : '+' }}{{ formatCurrency(getRetiredChange(field.key, true)) }})</span>
-              </div>
-              <div v-if="isMarried" class="col-total text-body-sm text-gray-900 py-1 font-medium">
-                {{ formatCurrency(getRetiredUserValue(field.key) + getRetiredSpouseValue(field.key)) }}
-              </div>
-            </template>
+          <!-- Retired Budget Sections -->
+          <template v-for="(sectionConfig, sectionKey) in retiredSectionConfigs" :key="sectionKey">
+            <ExpenditureSection
+              :title="sectionConfig.title"
+              :is-expanded="isSectionExpanded('retired', sectionKey)"
+              :user-total="getRetiredUserSectionTotal(sectionKey)"
+              :spouse-total="getRetiredSpouseSectionTotal(sectionKey)"
+              :household-total="getRetiredSectionTotal(sectionKey)"
+              :is-married="isMarried"
+              @toggle="toggleSection('retired', sectionKey)"
+            >
+              <template v-for="field in retiredBudgetFields[sectionKey]" :key="field.key">
+                <div class="col-label text-body-sm text-gray-600 py-1 pl-7">
+                  {{ field.label }}
+                  <span v-if="retiredBudgetData[field.key]?.adjusted && !retiredBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-700">Auto</span>
+                  <span v-if="retiredBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-success-100 text-success-700">Custom</span>
+                </div>
+                <div class="col-value text-body-sm text-gray-900 py-1 font-medium">
+                  {{ formatCurrency(getRetiredUserValue(field.key)) }}<span v-if="getRetiredChange(field.key, false) !== 0" :class="getRetiredChange(field.key, false) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getRetiredChange(field.key, false) < 0 ? '' : '+' }}{{ formatCurrency(getRetiredChange(field.key, false)) }})</span>
+                </div>
+                <div v-if="isMarried" class="col-value text-body-sm text-gray-900 py-1 font-medium">
+                  {{ formatCurrency(getRetiredSpouseValue(field.key)) }}<span v-if="getRetiredChange(field.key, true) !== 0" :class="getRetiredChange(field.key, true) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getRetiredChange(field.key, true) < 0 ? '' : '+' }}{{ formatCurrency(getRetiredChange(field.key, true)) }})</span>
+                </div>
+                <div v-if="isMarried" class="col-total text-body-sm text-gray-900 py-1 font-medium">
+                  {{ formatCurrency(getRetiredUserValue(field.key) + getRetiredSpouseValue(field.key)) }}
+                </div>
+              </template>
+            </ExpenditureSection>
           </template>
 
           <!-- Manual Expenditure Total -->
@@ -1014,62 +761,62 @@
           <div v-if="isMarried" class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(spouseFinancialCommitments?.totals?.protection || 0) }}</div>
           <div v-if="isMarried" class="col-total pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency((financialCommitments?.totals?.protection || 0) + (spouseFinancialCommitments?.totals?.protection || 0)) }}</div>
           <template v-if="isSectionExpanded('retired', 'commitments')">
-          <div class="col-label text-body-sm text-gray-600 py-1 pl-7">
-            Pension Contributions
-            <span class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-700">Auto</span>
-          </div>
-          <div class="col-value text-body-sm text-gray-900 py-1 font-medium">
-            {{ formatCurrency(0) }}<span v-if="(financialCommitments?.totals?.retirement || 0) > 0" class="text-success-600 text-xs ml-1">(-{{ formatCurrency(financialCommitments?.totals?.retirement || 0) }})</span>
-          </div>
-          <div v-if="isMarried" class="col-value text-body-sm text-gray-900 py-1 font-medium">
-            {{ formatCurrency(0) }}<span v-if="(spouseFinancialCommitments?.totals?.retirement || 0) > 0" class="text-success-600 text-xs ml-1">(-{{ formatCurrency(spouseFinancialCommitments?.totals?.retirement || 0) }})</span>
-          </div>
-          <div v-if="isMarried" class="col-total text-body-sm text-gray-900 py-1 font-medium">{{ formatCurrency(0) }}</div>
+            <div class="col-label text-body-sm text-gray-600 py-1 pl-7">
+              Pension Contributions
+              <span class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-700">Auto</span>
+            </div>
+            <div class="col-value text-body-sm text-gray-900 py-1 font-medium">
+              {{ formatCurrency(0) }}<span v-if="(financialCommitments?.totals?.retirement || 0) > 0" class="text-success-600 text-xs ml-1">(-{{ formatCurrency(financialCommitments?.totals?.retirement || 0) }})</span>
+            </div>
+            <div v-if="isMarried" class="col-value text-body-sm text-gray-900 py-1 font-medium">
+              {{ formatCurrency(0) }}<span v-if="(spouseFinancialCommitments?.totals?.retirement || 0) > 0" class="text-success-600 text-xs ml-1">(-{{ formatCurrency(spouseFinancialCommitments?.totals?.retirement || 0) }})</span>
+            </div>
+            <div v-if="isMarried" class="col-total text-body-sm text-gray-900 py-1 font-medium">{{ formatCurrency(0) }}</div>
 
-          <div class="col-label text-body-sm text-gray-600 py-1 pl-7">
-            Mortgage Payments
-            <span v-if="retiredCommitments.mortgageAdjusted" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-700">Auto</span>
-          </div>
-          <div class="col-value text-body-sm text-gray-900 py-1 font-medium">
-            {{ formatCurrency(0) }}<span v-if="(financialCommitments?.totals?.properties || 0) > 0" class="text-success-600 text-xs ml-1">(-{{ formatCurrency(financialCommitments?.totals?.properties || 0) }})</span>
-          </div>
-          <div v-if="isMarried" class="col-value text-body-sm text-gray-900 py-1 font-medium">
-            {{ formatCurrency(0) }}<span v-if="(spouseFinancialCommitments?.totals?.properties || 0) > 0" class="text-success-600 text-xs ml-1">(-{{ formatCurrency(spouseFinancialCommitments?.totals?.properties || 0) }})</span>
-          </div>
-          <div v-if="isMarried" class="col-total text-body-sm text-gray-900 py-1 font-medium">{{ formatCurrency(0) }}</div>
+            <div class="col-label text-body-sm text-gray-600 py-1 pl-7">
+              Mortgage Payments
+              <span v-if="retiredCommitments.mortgageAdjusted" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-700">Auto</span>
+            </div>
+            <div class="col-value text-body-sm text-gray-900 py-1 font-medium">
+              {{ formatCurrency(0) }}<span v-if="(financialCommitments?.totals?.properties || 0) > 0" class="text-success-600 text-xs ml-1">(-{{ formatCurrency(financialCommitments?.totals?.properties || 0) }})</span>
+            </div>
+            <div v-if="isMarried" class="col-value text-body-sm text-gray-900 py-1 font-medium">
+              {{ formatCurrency(0) }}<span v-if="(spouseFinancialCommitments?.totals?.properties || 0) > 0" class="text-success-600 text-xs ml-1">(-{{ formatCurrency(spouseFinancialCommitments?.totals?.properties || 0) }})</span>
+            </div>
+            <div v-if="isMarried" class="col-total text-body-sm text-gray-900 py-1 font-medium">{{ formatCurrency(0) }}</div>
 
-          <div class="col-label text-body-sm text-gray-600 py-1 pl-7">Protection Premiums</div>
-          <div class="col-value text-body-sm text-gray-900 py-1 font-medium">
-            {{ formatCurrency(financialCommitments?.totals?.protection || 0) }}
-          </div>
-          <div v-if="isMarried" class="col-value text-body-sm text-gray-900 py-1 font-medium">
-            {{ formatCurrency(spouseFinancialCommitments?.totals?.protection || 0) }}
-          </div>
-          <div v-if="isMarried" class="col-total text-body-sm text-gray-900 py-1 font-medium">{{ formatCurrency((financialCommitments?.totals?.protection || 0) + (spouseFinancialCommitments?.totals?.protection || 0)) }}</div>
+            <div class="col-label text-body-sm text-gray-600 py-1 pl-7">Protection Premiums</div>
+            <div class="col-value text-body-sm text-gray-900 py-1 font-medium">
+              {{ formatCurrency(financialCommitments?.totals?.protection || 0) }}
+            </div>
+            <div v-if="isMarried" class="col-value text-body-sm text-gray-900 py-1 font-medium">
+              {{ formatCurrency(spouseFinancialCommitments?.totals?.protection || 0) }}
+            </div>
+            <div v-if="isMarried" class="col-total text-body-sm text-gray-900 py-1 font-medium">{{ formatCurrency((financialCommitments?.totals?.protection || 0) + (spouseFinancialCommitments?.totals?.protection || 0)) }}</div>
 
-          <div class="col-label text-body-sm text-gray-600 py-1 pl-7">
-            Loan Repayments
-            <span class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-700">Auto</span>
-          </div>
-          <div class="col-value text-body-sm text-gray-900 py-1 font-medium">
-            {{ formatCurrency(0) }}<span v-if="(financialCommitments?.totals?.liabilities || 0) > 0" class="text-success-600 text-xs ml-1">(-{{ formatCurrency(financialCommitments?.totals?.liabilities || 0) }})</span>
-          </div>
-          <div v-if="isMarried" class="col-value text-body-sm text-gray-900 py-1 font-medium">
-            {{ formatCurrency(0) }}<span v-if="(spouseFinancialCommitments?.totals?.liabilities || 0) > 0" class="text-success-600 text-xs ml-1">(-{{ formatCurrency(spouseFinancialCommitments?.totals?.liabilities || 0) }})</span>
-          </div>
-          <div v-if="isMarried" class="col-total text-body-sm text-gray-900 py-1 font-medium">{{ formatCurrency(0) }}</div>
+            <div class="col-label text-body-sm text-gray-600 py-1 pl-7">
+              Loan Repayments
+              <span class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-700">Auto</span>
+            </div>
+            <div class="col-value text-body-sm text-gray-900 py-1 font-medium">
+              {{ formatCurrency(0) }}<span v-if="(financialCommitments?.totals?.liabilities || 0) > 0" class="text-success-600 text-xs ml-1">(-{{ formatCurrency(financialCommitments?.totals?.liabilities || 0) }})</span>
+            </div>
+            <div v-if="isMarried" class="col-value text-body-sm text-gray-900 py-1 font-medium">
+              {{ formatCurrency(0) }}<span v-if="(spouseFinancialCommitments?.totals?.liabilities || 0) > 0" class="text-success-600 text-xs ml-1">(-{{ formatCurrency(spouseFinancialCommitments?.totals?.liabilities || 0) }})</span>
+            </div>
+            <div v-if="isMarried" class="col-total text-body-sm text-gray-900 py-1 font-medium">{{ formatCurrency(0) }}</div>
           </template>
 
           <!-- Total -->
           <div class="col-span-full border-t-2 border-gray-300 mt-4"></div>
           <div class="col-label text-body font-semibold text-gray-900 py-3">Total Monthly Expenditure</div>
           <div class="col-value text-body font-semibold text-primary-600 py-3">{{ formatCurrency(retiredTotalMonthly) }}</div>
-          <div v-if="isMarried" class="col-value text-body font-semibold text-primary-600 py-3">{{ formatCurrency(retiredHouseholdTotalMonthly - retiredTotalMonthly) }}</div>
+          <div v-if="isMarried" class="col-value text-body font-semibold text-primary-600 py-3">{{ formatCurrency(retiredSpouseTotalMonthly) }}</div>
           <div v-if="isMarried" class="col-total text-body font-semibold text-primary-600 py-3">{{ formatCurrency(retiredHouseholdTotalMonthly) }}</div>
 
           <div class="col-label text-body-sm text-gray-600">Annual Equivalent</div>
           <div class="col-value text-body-sm text-primary-600 font-medium">{{ formatCurrency(retiredTotalMonthly * 12) }}</div>
-          <div v-if="isMarried" class="col-value text-body-sm text-primary-600 font-medium">{{ formatCurrency((retiredHouseholdTotalMonthly - retiredTotalMonthly) * 12) }}</div>
+          <div v-if="isMarried" class="col-value text-body-sm text-primary-600 font-medium">{{ formatCurrency(retiredSpouseTotalMonthly * 12) }}</div>
           <div v-if="isMarried" class="col-total text-body-sm text-primary-600 font-medium">{{ formatCurrency(retiredHouseholdTotalMonthly * 12) }}</div>
 
           <!-- Monthly Savings Row -->
@@ -1118,18 +865,12 @@
                   <span v-if="retiredBudgetData[field.key]?.adjusted && !retiredBudgetData[field.key]?.userModified" class="text-primary-600 text-xs ml-1">(Auto-adjusted)</span>
                 </label>
                 <div class="flex gap-2 items-center">
-                  <div class="relative flex-1">
-                    <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">£</span>
-                    <input
-                      :id="'retired_' + field.key"
-                      v-model.number="retiredBudgetData[field.key].value"
-                      @input="markRetiredFieldModified(field.key)"
-                      type="number"
-                      min="0"
-                      step="25"
-                      class="input-field pl-8"
-                    >
-                  </div>
+                  <CurrencyInputField
+                    :id="'retired_' + field.key"
+                    v-model="retiredBudgetData[field.key].value"
+                    @update:model-value="markRetiredFieldModified(field.key)"
+                    class="flex-1"
+                  />
                   <button
                     v-if="retiredBudgetData[field.key]?.userModified"
                     type="button"
@@ -1197,118 +938,28 @@
           <div class="col-label font-semibold text-body-sm text-gray-700 pb-2 border-b border-gray-200">Category</div>
           <div class="col-header font-semibold text-body-sm text-gray-700 pb-2 border-b border-gray-200">{{ userName }}</div>
 
-          <!-- Essential Living -->
-          <div class="col-label pt-4 pb-2 cursor-pointer select-none" @click="toggleSection('widowed', 'essential')">
-            <div class="flex items-center gap-2">
-              <svg :class="['h-5 w-5 text-gray-400 transition-transform', isSectionExpanded('widowed', 'essential') ? 'rotate-90' : '']" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-              </svg>
-              <span class="text-body-base font-semibold text-gray-900">Essential Living</span>
+          <!-- Widowed Budget Sections -->
+          <template v-for="(sectionConfig, sectionKey) in widowedSectionConfigs" :key="sectionKey">
+            <div class="col-label pt-4 pb-2 cursor-pointer select-none" @click="toggleSection('widowed', sectionKey)">
+              <div class="flex items-center gap-2">
+                <svg :class="['h-5 w-5 text-gray-400 transition-transform', isSectionExpanded('widowed', sectionKey) ? 'rotate-90' : '']" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+                <span class="text-body-base font-semibold text-gray-900">{{ sectionConfig.title }}</span>
+              </div>
             </div>
-          </div>
-          <div class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(getWidowedSectionTotal('essential')) }}</div>
-          <template v-if="isSectionExpanded('widowed', 'essential')">
-            <template v-for="field in widowedBudgetFields.essential" :key="field.key">
-              <div class="col-label text-body-sm text-gray-600 py-1 pl-7">
-                {{ field.label }}
-                <span v-if="widowedBudgetData[field.key]?.adjusted && !widowedBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-700">Auto</span>
-                <span v-if="widowedBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-success-100 text-success-700">Custom</span>
-              </div>
-              <div class="col-value text-body-sm text-gray-900 py-1 font-medium">
-                {{ formatCurrency(getWidowedValue(field.key)) }}<span v-if="getWidowedChange(field.key) !== 0" :class="getWidowedChange(field.key) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getWidowedChange(field.key) < 0 ? '' : '+' }}{{ formatCurrency(getWidowedChange(field.key)) }})</span>
-              </div>
-            </template>
-          </template>
-
-          <!-- Communication & Technology -->
-          <div class="col-label pt-4 pb-2 cursor-pointer select-none" @click="toggleSection('widowed', 'communication')">
-            <div class="flex items-center gap-2">
-              <svg :class="['h-5 w-5 text-gray-400 transition-transform', isSectionExpanded('widowed', 'communication') ? 'rotate-90' : '']" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-              </svg>
-              <span class="text-body-base font-semibold text-gray-900">Communication & Technology</span>
-            </div>
-          </div>
-          <div class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(getWidowedSectionTotal('communication')) }}</div>
-          <template v-if="isSectionExpanded('widowed', 'communication')">
-            <template v-for="field in widowedBudgetFields.communication" :key="field.key">
-              <div class="col-label text-body-sm text-gray-600 py-1 pl-7">
-                {{ field.label }}
-                <span v-if="widowedBudgetData[field.key]?.adjusted && !widowedBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-700">Auto</span>
-                <span v-if="widowedBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-success-100 text-success-700">Custom</span>
-              </div>
-              <div class="col-value text-body-sm text-gray-900 py-1 font-medium">
-                {{ formatCurrency(getWidowedValue(field.key)) }}<span v-if="getWidowedChange(field.key) !== 0" :class="getWidowedChange(field.key) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getWidowedChange(field.key) < 0 ? '' : '+' }}{{ formatCurrency(getWidowedChange(field.key)) }})</span>
-              </div>
-            </template>
-          </template>
-
-          <!-- Personal & Lifestyle -->
-          <div class="col-label pt-4 pb-2 cursor-pointer select-none" @click="toggleSection('widowed', 'lifestyle')">
-            <div class="flex items-center gap-2">
-              <svg :class="['h-5 w-5 text-gray-400 transition-transform', isSectionExpanded('widowed', 'lifestyle') ? 'rotate-90' : '']" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-              </svg>
-              <span class="text-body-base font-semibold text-gray-900">Personal & Lifestyle</span>
-            </div>
-          </div>
-          <div class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(getWidowedSectionTotal('lifestyle')) }}</div>
-          <template v-if="isSectionExpanded('widowed', 'lifestyle')">
-            <template v-for="field in widowedBudgetFields.lifestyle" :key="field.key">
-              <div class="col-label text-body-sm text-gray-600 py-1 pl-7">
-                {{ field.label }}
-                <span v-if="widowedBudgetData[field.key]?.adjusted && !widowedBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-700">Auto</span>
-                <span v-if="widowedBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-success-100 text-success-700">Custom</span>
-              </div>
-              <div class="col-value text-body-sm text-gray-900 py-1 font-medium">
-                {{ formatCurrency(getWidowedValue(field.key)) }}<span v-if="getWidowedChange(field.key) !== 0" :class="getWidowedChange(field.key) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getWidowedChange(field.key) < 0 ? '' : '+' }}{{ formatCurrency(getWidowedChange(field.key)) }})</span>
-              </div>
-            </template>
-          </template>
-
-          <!-- Children & Dependents -->
-          <div class="col-label pt-4 pb-2 cursor-pointer select-none" @click="toggleSection('widowed', 'children')">
-            <div class="flex items-center gap-2">
-              <svg :class="['h-5 w-5 text-gray-400 transition-transform', isSectionExpanded('widowed', 'children') ? 'rotate-90' : '']" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-              </svg>
-              <span class="text-body-base font-semibold text-gray-900">Children & Dependents</span>
-            </div>
-          </div>
-          <div class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(getWidowedSectionTotal('children')) }}</div>
-          <template v-if="isSectionExpanded('widowed', 'children')">
-            <template v-for="field in widowedBudgetFields.children" :key="field.key">
-              <div class="col-label text-body-sm text-gray-600 py-1 pl-7">
-                {{ field.label }}
-                <span v-if="widowedBudgetData[field.key]?.adjusted && !widowedBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-700">Auto</span>
-                <span v-if="widowedBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-success-100 text-success-700">Custom</span>
-              </div>
-              <div class="col-value text-body-sm text-gray-900 py-1 font-medium">
-                {{ formatCurrency(getWidowedValue(field.key)) }}<span v-if="getWidowedChange(field.key) !== 0" :class="getWidowedChange(field.key) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getWidowedChange(field.key) < 0 ? '' : '+' }}{{ formatCurrency(getWidowedChange(field.key)) }})</span>
-              </div>
-            </template>
-          </template>
-
-          <!-- Other Expenses -->
-          <div class="col-label pt-4 pb-2 cursor-pointer select-none" @click="toggleSection('widowed', 'other')">
-            <div class="flex items-center gap-2">
-              <svg :class="['h-5 w-5 text-gray-400 transition-transform', isSectionExpanded('widowed', 'other') ? 'rotate-90' : '']" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-              </svg>
-              <span class="text-body-base font-semibold text-gray-900">Other Expenses</span>
-            </div>
-          </div>
-          <div class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(getWidowedSectionTotal('other')) }}</div>
-          <template v-if="isSectionExpanded('widowed', 'other')">
-            <template v-for="field in widowedBudgetFields.other" :key="field.key">
-              <div class="col-label text-body-sm text-gray-600 py-1 pl-7">
-                {{ field.label }}
-                <span v-if="widowedBudgetData[field.key]?.adjusted && !widowedBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-700">Auto</span>
-                <span v-if="widowedBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-success-100 text-success-700">Custom</span>
-              </div>
-              <div class="col-value text-body-sm text-gray-900 py-1 font-medium">
-                {{ formatCurrency(getWidowedValue(field.key)) }}<span v-if="getWidowedChange(field.key) !== 0" :class="getWidowedChange(field.key) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getWidowedChange(field.key) < 0 ? '' : '+' }}{{ formatCurrency(getWidowedChange(field.key)) }})</span>
-              </div>
+            <div class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(getWidowedSectionTotal(sectionKey)) }}</div>
+            <template v-if="isSectionExpanded('widowed', sectionKey)">
+              <template v-for="field in widowedBudgetFields[sectionKey]" :key="field.key">
+                <div class="col-label text-body-sm text-gray-600 py-1 pl-7">
+                  {{ field.label }}
+                  <span v-if="widowedBudgetData[field.key]?.adjusted && !widowedBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-700">Auto</span>
+                  <span v-if="widowedBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-success-100 text-success-700">Custom</span>
+                </div>
+                <div class="col-value text-body-sm text-gray-900 py-1 font-medium">
+                  {{ formatCurrency(getWidowedValue(field.key)) }}<span v-if="getWidowedChange(field.key) !== 0" :class="getWidowedChange(field.key) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getWidowedChange(field.key) < 0 ? '' : '+' }}{{ formatCurrency(getWidowedChange(field.key)) }})</span>
+                </div>
+              </template>
             </template>
           </template>
 
@@ -1328,20 +979,20 @@
           </div>
           <div class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(widowedCommitments.propertyAmount + widowedCommitments.protectionAmount + widowedCommitments.loansAmount) }}</div>
           <template v-if="isSectionExpanded('widowed', 'commitments')">
-          <div class="col-label text-body-sm text-gray-600 py-1 pl-7">Property Expenses</div>
-          <div class="col-value text-body-sm text-gray-900 py-1 font-medium">
-            {{ formatCurrency(widowedCommitments.propertyAmount) }}
-          </div>
+            <div class="col-label text-body-sm text-gray-600 py-1 pl-7">Property Expenses</div>
+            <div class="col-value text-body-sm text-gray-900 py-1 font-medium">
+              {{ formatCurrency(widowedCommitments.propertyAmount) }}
+            </div>
 
-          <div class="col-label text-body-sm text-gray-600 py-1 pl-7">Protection Premiums</div>
-          <div class="col-value text-body-sm text-gray-900 py-1 font-medium">
-            {{ formatCurrency(widowedCommitments.protectionAmount) }}<span v-if="(spouseFinancialCommitments?.totals?.protection || 0) > 0" class="text-success-600 text-xs ml-1">(-{{ formatCurrency(spouseFinancialCommitments?.totals?.protection || 0) }})</span>
-          </div>
+            <div class="col-label text-body-sm text-gray-600 py-1 pl-7">Protection Premiums</div>
+            <div class="col-value text-body-sm text-gray-900 py-1 font-medium">
+              {{ formatCurrency(widowedCommitments.protectionAmount) }}<span v-if="(spouseFinancialCommitments?.totals?.protection || 0) > 0" class="text-success-600 text-xs ml-1">(-{{ formatCurrency(spouseFinancialCommitments?.totals?.protection || 0) }})</span>
+            </div>
 
-          <div class="col-label text-body-sm text-gray-600 py-1 pl-7">Loan Repayments</div>
-          <div class="col-value text-body-sm text-gray-900 py-1 font-medium">
-            {{ formatCurrency(widowedCommitments.loansAmount) }}
-          </div>
+            <div class="col-label text-body-sm text-gray-600 py-1 pl-7">Loan Repayments</div>
+            <div class="col-value text-body-sm text-gray-900 py-1 font-medium">
+              {{ formatCurrency(widowedCommitments.loansAmount) }}
+            </div>
           </template>
 
           <!-- Total -->
@@ -1379,18 +1030,12 @@
                   <span v-if="widowedBudgetData[field.key]?.adjusted && !widowedBudgetData[field.key]?.userModified" class="text-primary-600 text-xs ml-1">(Auto-adjusted)</span>
                 </label>
                 <div class="flex gap-2 items-center">
-                  <div class="relative flex-1">
-                    <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">£</span>
-                    <input
-                      :id="'widowed_' + field.key"
-                      v-model.number="widowedBudgetData[field.key].value"
-                      @input="markWidowedFieldModified(field.key)"
-                      type="number"
-                      min="0"
-                      step="25"
-                      class="input-field pl-8"
-                    >
-                  </div>
+                  <CurrencyInputField
+                    :id="'widowed_' + field.key"
+                    v-model="widowedBudgetData[field.key].value"
+                    @update:model-value="markWidowedFieldModified(field.key)"
+                    class="flex-1"
+                  />
                   <button
                     v-if="widowedBudgetData[field.key]?.userModified"
                     type="button"
@@ -1423,9 +1068,20 @@
 import { ref, computed, watch, onMounted } from 'vue';
 import { useStore } from 'vuex';
 import api from '@/services/api';
+import CurrencyInputField from '@/components/Shared/CurrencyInputField.vue';
+import ExpenditureSection from './ExpenditureSection.vue';
+import ExpenditureGridRow from './ExpenditureGridRow.vue';
+import ExpenditureCategoryCard from './ExpenditureCategoryCard.vue';
 
 export default {
   name: 'ExpenditureForm',
+
+  components: {
+    CurrencyInputField,
+    ExpenditureSection,
+    ExpenditureGridRow,
+    ExpenditureCategoryCard,
+  },
 
   props: {
     initialData: {
@@ -1482,14 +1138,14 @@ export default {
     const isEditing = ref(props.startInEditMode);
     const useSimpleEntry = ref(false);
     const useSeparateExpenditure = ref(false);
-    const activePersonTab = ref('user'); // 'user' or 'spouse' - for separate expenditure entry
+    const activePersonTab = ref('user');
     const simpleMonthlyExpenditure = ref(0);
     const spouseSimpleMonthlyExpenditure = ref(0);
     const financialCommitments = ref(null);
     const spouseFinancialCommitments = ref(null);
     const loadingCommitments = ref(false);
 
-    // Collapsible sections state - track expanded sections per budget tab
+    // Collapsible sections state
     const expandedSections = ref({
       current: { essential: false, communication: false, lifestyle: false, children: false, other: false, commitments: false },
       retired: { essential: false, communication: false, lifestyle: false, children: false, other: false, commitments: false },
@@ -1586,19 +1242,30 @@ export default {
       other_expenditure: 0,
     });
 
-    // ============================================
-    // RETIRED BUDGET STATE
-    // ============================================
+    // Retired/Widowed budget state
     const isEditingRetired = ref(false);
     const retiredBudgetData = ref({});
-    const retiredBudgetOverrides = ref({}); // User-modified values
-
-    // ============================================
-    // WIDOWED BUDGET STATE
-    // ============================================
+    const retiredBudgetOverrides = ref({});
     const isEditingWidowed = ref(false);
     const widowedBudgetData = ref({});
-    const widowedBudgetOverrides = ref({}); // User-modified values
+    const widowedBudgetOverrides = ref({});
+
+    // Section configs for loops
+    const retiredSectionConfigs = {
+      essential: { title: 'Essential Living' },
+      communication: { title: 'Communication & Technology' },
+      lifestyle: { title: 'Personal & Lifestyle' },
+      children: { title: 'Children & Dependents' },
+      other: { title: 'Other Expenses' },
+    };
+
+    const widowedSectionConfigs = {
+      essential: { title: 'Essential Living' },
+      communication: { title: 'Communication & Technology' },
+      lifestyle: { title: 'Personal & Lifestyle' },
+      children: { title: 'Children & Dependents' },
+      other: { title: 'Other Expenses' },
+    };
 
     // Calculate sub-totals
     const calculateSubtotal = (fields, data) => {
@@ -1653,7 +1320,6 @@ export default {
     });
     const householdTotalAnnualWithCommitments = computed(() => householdTotalMonthlyWithCommitments.value * 12);
 
-    // Helper for household values
     const getHouseholdValue = (key) => {
       const userVal = formData.value[key] || 0;
       const spouseVal = props.isMarried ? (spouseFormData.value[key] || 0) : 0;
@@ -1674,24 +1340,19 @@ export default {
     const spouseHasProtectionCommitments = computed(() => spouseFinancialCommitments.value?.commitments?.protection?.length > 0);
     const spouseHasLiabilityCommitments = computed(() => spouseFinancialCommitments.value?.commitments?.liabilities?.length > 0);
 
-    // ============================================
-    // RETIRED BUDGET LOGIC
-    // ============================================
-
-    // Retirement info from user data
+    // Retired Budget Logic
     const retirementInfo = computed(() => {
       const userData = props.initialData || {};
       const spouseUserData = props.spouseData || {};
 
-      // Calculate ages from date_of_birth and retirement_date
       const calculateRetirementAge = (dob, retirementDate) => {
-        if (!dob) return 65; // Default
+        if (!dob) return 65;
         if (retirementDate) {
           const birth = new Date(dob);
           const retire = new Date(retirementDate);
           return Math.floor((retire - birth) / (365.25 * 24 * 60 * 60 * 1000));
         }
-        return 65; // Default retirement age
+        return 65;
       };
 
       return {
@@ -1706,7 +1367,6 @@ export default {
       };
     });
 
-    // Field definitions for retired budget (with hints about retirement adjustments)
     const retiredBudgetFields = computed(() => ({
       essential: [
         { key: 'food_groceries', label: 'Food & Groceries', hint: 'May reduce slightly - more time to cook at home' },
@@ -1739,7 +1399,6 @@ export default {
       ],
     }));
 
-    // All retired fields flattened
     const allRetiredFields = computed(() => [
       ...retiredBudgetFields.value.essential,
       ...retiredBudgetFields.value.communication,
@@ -1748,7 +1407,6 @@ export default {
       ...retiredBudgetFields.value.other,
     ]);
 
-    // Auto-adjustment rules for retired budget
     const retiredAdjustmentRules = {
       transport_fuel: { factor: 0.4, reason: 'Reduced by 60% - no commuting' },
       clothing_personal_care: { factor: 0.7, reason: 'Reduced by 30% - no work wardrobe needed' },
@@ -1762,14 +1420,12 @@ export default {
       holidays_travel: { factor: 1.2, reason: 'Increased by 20% - more leisure time' },
     };
 
-    // Get current budget value (household total)
     const getCurrentBudgetValue = (key) => {
       const userVal = formData.value[key] || 0;
       const spouseVal = props.isMarried ? (spouseFormData.value[key] || 0) : 0;
       return userVal + spouseVal;
     };
 
-    // Initialize retired budget data with auto-calculations
     const initializeRetiredBudget = () => {
       const allFields = allRetiredFields.value;
       const newData = {};
@@ -1780,7 +1436,6 @@ export default {
         const savedOverride = retiredBudgetOverrides.value[field.key];
 
         if (savedOverride !== undefined) {
-          // User has previously modified this field
           newData[field.key] = {
             value: savedOverride,
             originalValue: currentValue,
@@ -1789,7 +1444,6 @@ export default {
             reason: rule?.reason || null,
           };
         } else if (rule) {
-          // Apply auto-adjustment
           newData[field.key] = {
             value: Math.round(currentValue * rule.factor),
             originalValue: currentValue,
@@ -1798,7 +1452,6 @@ export default {
             reason: rule.reason,
           };
         } else {
-          // No adjustment - keep current value
           newData[field.key] = {
             value: currentValue,
             originalValue: currentValue,
@@ -1812,18 +1465,15 @@ export default {
       retiredBudgetData.value = newData;
     };
 
-    // Retired auto-adjustments list for display
     const retiredAutoAdjustments = computed(() => {
       const adjustments = [];
 
-      // Pension contributions stop
       if ((financialCommitments.value?.totals?.retirement || 0) > 0) {
         adjustments.push({
           description: `Pension contributions stopped (was £${Math.round(financialCommitments.value.totals.retirement)}/month)`,
         });
       }
 
-      // List field adjustments
       Object.entries(retiredBudgetData.value).forEach(([key, data]) => {
         if (data.adjusted && !data.userModified && data.value !== data.originalValue) {
           const field = allRetiredFields.value.find(f => f.key === key);
@@ -1838,48 +1488,43 @@ export default {
       return adjustments;
     });
 
-    // Retired commitments calculations
     const retiredCommitments = computed(() => {
-      // Assume mortgages end by retirement (age 65 or earlier)
       const currentMortgage = financialCommitments.value?.totals?.properties || 0;
       const mortgageAdjusted = currentMortgage > 0;
 
       return {
-        mortgageAmount: 0, // Assume paid off by retirement
+        mortgageAmount: 0,
         mortgageAdjusted,
         protectionAmount: financialCommitments.value?.totals?.protection || 0,
-        loansAmount: 0, // Assume loans paid off
-        investmentsAmount: 0, // No more contributions
+        loansAmount: 0,
+        investmentsAmount: 0,
       };
     });
 
-    // Get retired household value
     const getRetiredHouseholdValue = (key) => {
       return retiredBudgetData.value[key]?.value || 0;
     };
 
-    // Retired total monthly
+    // User's retired total: manual expenditure + protection premiums (only commitment in retirement)
     const retiredTotalMonthly = computed(() => {
-      let total = 0;
-      Object.values(retiredBudgetData.value).forEach(data => {
-        total += data.value || 0;
-      });
-      // Add remaining commitments
-      total += retiredCommitments.value.mortgageAmount;
-      total += retiredCommitments.value.protectionAmount;
-      total += retiredCommitments.value.loansAmount;
-      return total;
+      return retiredManualExpenditureTotal.value + (financialCommitments.value?.totals?.protection || 0);
     });
 
-    const retiredHouseholdTotalMonthly = computed(() => retiredTotalMonthly.value);
+    // Spouse's retired total: spouse's manual expenditure + spouse's protection premiums
+    const retiredSpouseTotalMonthly = computed(() => {
+      if (!props.isMarried) return 0;
+      return retiredSpouseManualExpenditureTotal.value + (spouseFinancialCommitments.value?.totals?.protection || 0);
+    });
 
-    // Get retired value for user (applies adjustment to user's portion)
+    // Household total is user + spouse
+    const retiredHouseholdTotalMonthly = computed(() => {
+      return retiredTotalMonthly.value + retiredSpouseTotalMonthly.value;
+    });
+
     const getRetiredUserValue = (key) => {
       const currentValue = formData.value[key] || 0;
       const rule = retiredAdjustmentRules[key];
-      // Check if user has overridden this field
       if (retiredBudgetOverrides.value[key] !== undefined) {
-        // Proportionally split the override between user and spouse
         const householdCurrent = getCurrentBudgetValue(key);
         if (householdCurrent > 0) {
           const userProportion = currentValue / householdCurrent;
@@ -1890,14 +1535,11 @@ export default {
       return rule ? Math.round(currentValue * rule.factor) : currentValue;
     };
 
-    // Get retired value for spouse (applies adjustment to spouse's portion)
     const getRetiredSpouseValue = (key) => {
       if (!props.isMarried) return 0;
       const currentValue = spouseFormData.value[key] || 0;
       const rule = retiredAdjustmentRules[key];
-      // Check if user has overridden this field
       if (retiredBudgetOverrides.value[key] !== undefined) {
-        // Proportionally split the override between user and spouse
         const householdCurrent = getCurrentBudgetValue(key);
         if (householdCurrent > 0) {
           const spouseProportion = currentValue / householdCurrent;
@@ -1908,7 +1550,6 @@ export default {
       return rule ? Math.round(currentValue * rule.factor) : currentValue;
     };
 
-    // Get change from current to retired (negative = savings, positive = increase)
     const getRetiredChange = (key, isSpouse = false) => {
       if (isSpouse) {
         const current = spouseFormData.value[key] || 0;
@@ -1920,7 +1561,6 @@ export default {
       return retired - current;
     };
 
-    // Get user section total for retired budget
     const getRetiredUserSectionTotal = (section) => {
       const fields = retiredBudgetFields.value[section] || [];
       return fields.reduce((total, field) => {
@@ -1928,7 +1568,6 @@ export default {
       }, 0);
     };
 
-    // Get spouse section total for retired budget
     const getRetiredSpouseSectionTotal = (section) => {
       const fields = retiredBudgetFields.value[section] || [];
       return fields.reduce((total, field) => {
@@ -1936,12 +1575,10 @@ export default {
       }, 0);
     };
 
-    // Get section total for retired budget (household total)
     const getRetiredSectionTotal = (section) => {
       return getRetiredUserSectionTotal(section) + (props.isMarried ? getRetiredSpouseSectionTotal(section) : 0);
     };
 
-    // Retired manual expenditure total (excluding financial commitments)
     const retiredManualExpenditureTotal = computed(() => {
       const sections = ['essential', 'communication', 'lifestyle', 'children', 'other'];
       return sections.reduce((total, section) => {
@@ -1966,7 +1603,6 @@ export default {
       return retiredManualExpenditureTotal.value + retiredSpouseManualExpenditureTotal.value;
     });
 
-    // Mark field as user-modified
     const markRetiredFieldModified = (key) => {
       if (retiredBudgetData.value[key]) {
         retiredBudgetData.value[key].userModified = true;
@@ -1974,7 +1610,6 @@ export default {
       }
     };
 
-    // Reset field to auto-calculated value
     const resetRetiredField = (key) => {
       const currentValue = getCurrentBudgetValue(key);
       const rule = retiredAdjustmentRules[key];
@@ -1990,16 +1625,12 @@ export default {
       };
     };
 
-    // Cancel retired edit
     const cancelRetiredEdit = () => {
       initializeRetiredBudget();
       isEditingRetired.value = false;
     };
 
-    // Save retired budget
     const saveRetiredBudget = () => {
-      // Save overrides to local storage or backend
-      // For now, just update the overrides ref
       Object.entries(retiredBudgetData.value).forEach(([key, data]) => {
         if (data.userModified) {
           retiredBudgetOverrides.value[key] = data.value;
@@ -2008,11 +1639,7 @@ export default {
       isEditingRetired.value = false;
     };
 
-    // ============================================
-    // WIDOWED BUDGET LOGIC
-    // ============================================
-
-    // Field definitions for widowed budget
+    // Widowed Budget Logic
     const widowedBudgetFields = computed(() => ({
       essential: [
         { key: 'food_groceries', label: 'Food & Groceries', hint: 'Typically reduces to ~60% for single person' },
@@ -2045,7 +1672,6 @@ export default {
       ],
     }));
 
-    // All widowed fields flattened
     const allWidowedFields = computed(() => [
       ...widowedBudgetFields.value.essential,
       ...widowedBudgetFields.value.communication,
@@ -2054,7 +1680,6 @@ export default {
       ...widowedBudgetFields.value.other,
     ]);
 
-    // Auto-adjustment rules for widowed budget (single person household)
     const widowedAdjustmentRules = {
       food_groceries: { factor: 0.6, reason: 'Reduced by 40% - single person household' },
       transport_fuel: { factor: 0.6, reason: 'Reduced by 40% - one car/person' },
@@ -2066,7 +1691,6 @@ export default {
       childcare: { factor: 1.3, reason: 'Increased by 30% - may need additional childcare' },
     };
 
-    // Initialize widowed budget data
     const initializeWidowedBudget = () => {
       const allFields = allWidowedFields.value;
       const newData = {};
@@ -2093,7 +1717,6 @@ export default {
             reason: rule.reason,
           };
         } else {
-          // Keep same value for non-adjusted fields
           newData[field.key] = {
             value: householdValue,
             originalValue: householdValue,
@@ -2107,7 +1730,6 @@ export default {
       widowedBudgetData.value = newData;
     };
 
-    // Widowed auto-adjustments list for display
     const widowedAutoAdjustments = computed(() => {
       const adjustments = [];
 
@@ -2125,19 +1747,17 @@ export default {
       return adjustments;
     });
 
-    // Widowed commitments - assume surviving spouse takes on full property costs
     const widowedCommitments = computed(() => {
       const userProperty = financialCommitments.value?.totals?.properties || 0;
       const spouseProperty = spouseFinancialCommitments.value?.totals?.properties || 0;
 
       return {
-        propertyAmount: userProperty + spouseProperty, // Full property costs continue
-        protectionAmount: financialCommitments.value?.totals?.protection || 0, // Only user's protection
+        propertyAmount: userProperty + spouseProperty,
+        protectionAmount: financialCommitments.value?.totals?.protection || 0,
         loansAmount: (financialCommitments.value?.totals?.liabilities || 0) + (spouseFinancialCommitments.value?.totals?.liabilities || 0),
       };
     });
 
-    // Widowed total monthly
     const widowedTotalMonthly = computed(() => {
       let total = 0;
       Object.values(widowedBudgetData.value).forEach(data => {
@@ -2149,19 +1769,16 @@ export default {
       return total;
     });
 
-    // Get widowed value for a field
     const getWidowedValue = (key) => {
       return widowedBudgetData.value[key]?.value || 0;
     };
 
-    // Get change from current household to widowed (negative = savings, positive = increase)
     const getWidowedChange = (key) => {
       const currentHousehold = getHouseholdValue(key);
       const widowed = getWidowedValue(key);
       return widowed - currentHousehold;
     };
 
-    // Get section total for widowed budget
     const getWidowedSectionTotal = (section) => {
       const fields = widowedBudgetFields.value[section] || [];
       return fields.reduce((total, field) => {
@@ -2169,13 +1786,11 @@ export default {
       }, 0);
     };
 
-    // Widowed manual expenditure total (excluding financial commitments)
     const widowedManualExpenditureTotal = computed(() => {
       const sections = ['essential', 'communication', 'lifestyle', 'children', 'other'];
       return sections.reduce((total, section) => total + getWidowedSectionTotal(section), 0);
     });
 
-    // Mark field as user-modified
     const markWidowedFieldModified = (key) => {
       if (widowedBudgetData.value[key]) {
         widowedBudgetData.value[key].userModified = true;
@@ -2183,7 +1798,6 @@ export default {
       }
     };
 
-    // Reset field to auto-calculated value
     const resetWidowedField = (key) => {
       const householdValue = getHouseholdValue(key);
       const rule = widowedAdjustmentRules[key];
@@ -2199,13 +1813,11 @@ export default {
       };
     };
 
-    // Cancel widowed edit
     const cancelWidowedEdit = () => {
       initializeWidowedBudget();
       isEditingWidowed.value = false;
     };
 
-    // Save widowed budget
     const saveWidowedBudget = () => {
       Object.entries(widowedBudgetData.value).forEach(([key, data]) => {
         if (data.userModified) {
@@ -2228,10 +1840,8 @@ export default {
       loadingCommitments.value = true;
       try {
         const response = await api.get('/user/financial-commitments');
-        // API returns { success: true, data: { commitments: {...}, totals: {...} } }
         financialCommitments.value = response.data.data;
 
-        // Fetch spouse commitments if married
         if (props.isMarried && user.value?.spouse_id) {
           try {
             const spouseResponse = await api.get('/user/spouse/financial-commitments');
@@ -2249,14 +1859,10 @@ export default {
 
     const initializeFromProps = () => {
       if (props.initialData) {
-        // Map database column names to frontend boolean values
-        // expenditure_sharing_mode: 'separate' or 'joint' (default)
-        // expenditure_entry_mode: 'simple' or 'category' (default)
         useSeparateExpenditure.value = props.initialData.expenditure_sharing_mode === 'separate';
         useSimpleEntry.value = props.initialData.expenditure_entry_mode === 'simple';
         simpleMonthlyExpenditure.value = props.initialData.monthly_expenditure || 0;
 
-        // Map saved expenditure fields directly from user data
         const allFields = [...essentialFields, ...communicationFields, ...lifestyleFields, ...childrenFields, ...otherFields];
         allFields.forEach(field => {
           formData.value[field.key] = props.initialData[field.key] || 0;
@@ -2265,7 +1871,6 @@ export default {
 
       if (props.spouseData) {
         spouseSimpleMonthlyExpenditure.value = props.spouseData.monthly_expenditure || 0;
-        // Map saved expenditure fields directly from spouse data
         const allFields = [...essentialFields, ...communicationFields, ...lifestyleFields, ...childrenFields, ...otherFields];
         allFields.forEach(field => {
           spouseFormData.value[field.key] = props.spouseData[field.key] || 0;
@@ -2276,7 +1881,6 @@ export default {
     const handleSave = () => {
       const allFields = [...essentialFields, ...communicationFields, ...lifestyleFields, ...childrenFields, ...otherFields];
 
-      // Build save data with expenditure fields at top level (not nested)
       const saveData = {
         use_simple_entry: useSimpleEntry.value,
         use_separate_expenditure: useSeparateExpenditure.value,
@@ -2284,7 +1888,6 @@ export default {
         annual_expenditure: useSimpleEntry.value ? simpleMonthlyExpenditure.value * 12 : totalMonthlyExpenditure.value * 12,
       };
 
-      // Add individual expenditure fields at top level
       allFields.forEach(field => {
         saveData[field.key] = formData.value[field.key] || 0;
       });
@@ -2296,7 +1899,6 @@ export default {
           annual_expenditure: useSimpleEntry.value ? spouseSimpleMonthlyExpenditure.value * 12 : spouseTotalMonthlyExpenditure.value * 12,
         };
 
-        // Add individual expenditure fields for spouse
         allFields.forEach(field => {
           spouseData[field.key] = spouseFormData.value[field.key] || 0;
         });
@@ -2309,7 +1911,6 @@ export default {
         emit('save', saveData);
       }
 
-      // Don't exit edit mode during onboarding - parent controls flow
       if (!props.isOnboarding) {
         isEditing.value = false;
       }
@@ -2324,7 +1925,6 @@ export default {
     watch(() => props.initialData, initializeFromProps, { deep: true });
     watch(() => props.spouseData, initializeFromProps, { deep: true });
 
-    // Watch for changes to form data to re-initialize budgets
     watch([formData, spouseFormData], () => {
       initializeRetiredBudget();
       initializeWidowedBudget();
@@ -2333,7 +1933,6 @@ export default {
     onMounted(() => {
       initializeFromProps();
       fetchCommitments();
-      // Initialize budgets after a short delay to ensure formData is populated
       setTimeout(() => {
         initializeRetiredBudget();
         initializeWidowedBudget();
@@ -2406,12 +2005,14 @@ export default {
       allRetiredFields,
       retiredAutoAdjustments,
       retiredCommitments,
+      retiredSectionConfigs,
       getCurrentBudgetValue,
       getRetiredHouseholdValue,
       getRetiredUserValue,
       getRetiredSpouseValue,
       getRetiredChange,
       retiredTotalMonthly,
+      retiredSpouseTotalMonthly,
       retiredHouseholdTotalMonthly,
       retiredManualExpenditureTotal,
       retiredSpouseManualExpenditureTotal,
@@ -2427,6 +2028,7 @@ export default {
       allWidowedFields,
       widowedAutoAdjustments,
       widowedCommitments,
+      widowedSectionConfigs,
       widowedTotalMonthly,
       widowedManualExpenditureTotal,
       getWidowedValue,
@@ -2461,25 +2063,22 @@ export default {
   gap: 0 1rem;
 }
 
-/* Column styling using classes */
-.col-label {
+:deep(.col-label) {
   text-align: left;
 }
 
-/* Values - right aligned for currency */
-.col-value {
+:deep(.col-value) {
   text-align: right;
 }
 
-.col-value-mid {
+:deep(.col-value-mid) {
   text-align: right;
 }
 
-.col-total {
+:deep(.col-total) {
   text-align: right;
 }
 
-/* Retired Budget Grids */
 .retired-grid-single {
   display: grid;
   grid-template-columns: 1fr minmax(140px, max-content);
@@ -2492,7 +2091,6 @@ export default {
   gap: 0 1rem;
 }
 
-/* Widowed Budget Grid - single column for user only */
 .widowed-grid-single {
   display: grid;
   grid-template-columns: 1fr minmax(120px, max-content);
@@ -2508,10 +2106,10 @@ export default {
     grid-template-columns: 1fr;
   }
 
-  .col-label,
-  .col-value,
-  .col-value-mid,
-  .col-total {
+  :deep(.col-label),
+  :deep(.col-value),
+  :deep(.col-value-mid),
+  :deep(.col-total) {
     text-align: left !important;
     padding-left: 0 !important;
   }

@@ -1261,6 +1261,54 @@ resources/js/components/Estate/IHTPlanning.vue
 
 ---
 
+## IHT Calculation Table - Collapsible Allowances & Conditional Baseline Row
+
+**Branch:** techDebt
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Enhanced the IHT calculation table with collapsible allowances section and made the "Estate after Tax-Free Allowances" row conditional on charitable bequest being enabled.
+
+### Changes Made
+
+| Change | Description |
+|--------|-------------|
+| Collapsible allowances | NRB and RNRB rows now collapse into a single "Tax-Free Allowances" header row |
+| Allowances header shows total | Combined total of NRB + RNRB displayed in header when collapsed |
+| Chevron toggle | Click the allowances header row to expand/collapse individual NRB and RNRB rows |
+| RNRB details inside collapsed section | Taper warning and not-available messages now appear within expanded section |
+| Conditional baseline row | "Estate after Tax-Free Allowances" row only shows when charitable bequest is enabled |
+
+### Visual Behaviour
+
+**Collapsed State (default):**
+```
+Tax-Free Allowances          ▶  £500,000
+```
+
+**Expanded State:**
+```
+Tax-Free Allowances          ▼  £500,000
+  Tax-Free Allowance (NRB)      £325,000
+  Home Allowance (RNRB)         £175,000
+```
+
+### Conditional Row Logic
+
+- **Charitable bequest OFF:** "Estate after Tax-Free Allowances" row is hidden (not needed for reconciliation)
+- **Charitable bequest ON:** Row appears with blue styling, showing the baseline used for 10% charitable donation calculation
+
+### Files Changed (1 file)
+
+**Frontend (included in build):**
+```text
+resources/js/components/Estate/IHTCalculationTable.vue
+```
+
+---
+
 ## IHT Calculation Table - Restructured for Charitable Bequest Reconciliation
 
 **Branch:** investUpdate
@@ -1304,6 +1352,104 @@ resources/js/components/Estate/IHTPlanning.vue
 
 ---
 
+## AccountForm.vue Refactoring - Extract Account Type Sections
+
+**Branch:** techDebt
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Refactored `AccountForm.vue` (2,643 lines) by extracting the three major account-type-specific sections into separate child components. This follows the same pattern used successfully for IHTPlanning.vue.
+
+### Problem Solved
+
+- One component previously handled 14 different account types
+- 56 conditional rendering statements (`v-if`/`v-show`)
+- Three distinct form "modes" with completely different fields mixed together
+- High risk of breaking other account types when making changes
+- Difficult to navigate and maintain
+
+### Component Architecture
+
+```
+AccountForm.vue (Parent - refactored from ~2,643 to ~1,007 lines)
+  │
+  ├── PrivateInvestmentFields.vue (NEW - ~650 lines)
+  │     └── Company Details, Investment Details, Ownership, Tax Relief, Exit
+  │
+  ├── EmployeeShareSchemeFields.vue (NEW - ~600 lines)
+  │     └── Employer Details, Grant Details, SAYE/CSOP-specific, Vesting, Exercise
+  │
+  └── StandardInvestmentFields.vue (NEW - ~400 lines)
+        └── Provider, Platform, Current Value, Contributions, Platform Fee, Risk Level
+```
+
+### Files Created (3 files)
+
+**Frontend:**
+```text
+resources/js/components/Investment/PrivateInvestmentFields.vue
+resources/js/components/Investment/EmployeeShareSchemeFields.vue
+resources/js/components/Investment/StandardInvestmentFields.vue
+```
+
+### Files Changed (1 file)
+
+**Frontend:**
+```text
+resources/js/components/Investment/AccountForm.vue
+```
+
+### Line Count Changes
+
+| File | Before | After |
+|------|--------|-------|
+| AccountForm.vue | ~2,643 | ~1,007 |
+| PrivateInvestmentFields.vue | - | ~650 |
+| EmployeeShareSchemeFields.vue | - | ~600 |
+| StandardInvestmentFields.vue | - | ~400 |
+| **Total** | ~2,643 | ~2,657 |
+
+*Note: Total lines increase slightly due to component boilerplate, but each file is now focused and manageable.*
+
+### v-model Pattern
+
+Each child component uses the Vue 3 v-model pattern for two-way binding:
+
+```vue
+<!-- Parent -->
+<PrivateInvestmentFields v-model="formData" :errors="errors" />
+
+<!-- Child -->
+props: {
+  modelValue: { type: Object, required: true },
+  errors: { type: Object, default: () => ({}) }
+},
+emits: ['update:modelValue'],
+computed: {
+  localData: {
+    get() { return this.modelValue; },
+    set(value) { this.$emit('update:modelValue', value); }
+  }
+}
+```
+
+### Account Type Routing
+
+| Account Types | Component |
+|---------------|-----------|
+| `private_company`, `crowdfunding` | PrivateInvestmentFields |
+| `saye`, `csop`, `emi`, `unapproved_options`, `rsu` | EmployeeShareSchemeFields |
+| `isa`, `gia`, `onshore_bond`, `offshore_bond`, `vct`, `eis`, `nsi`, `other` | StandardInvestmentFields |
+
+### Other Changes
+
+- Changed amber color classes to orange in fee warning (StandardInvestmentFields.vue) per design standards
+- Changed amber color in ISA allowance tracker to orange (StandardInvestmentFields.vue)
+
+---
+
 ## Rebuild Required: YES
 
 Frontend Vue components changed. Full rebuild required:
@@ -1338,6 +1484,15 @@ Upload the new detail view components:
 ```text
 resources/js/views/Investment/EmployeeShareSchemeDetail.vue
 resources/js/views/Investment/PrivateInvestmentDetail.vue
+```
+
+Upload the new ExpenditureForm child components:
+
+```text
+resources/js/components/Shared/CurrencyInputField.vue
+resources/js/components/UserProfile/ExpenditureSection.vue
+resources/js/components/UserProfile/ExpenditureGridRow.vue
+resources/js/components/UserProfile/ExpenditureCategoryCard.vue
 ```
 
 *Note: These are included in the build, so only the built assets need uploading for frontend changes.*
@@ -1527,7 +1682,16 @@ After deployment, verify:
     - Verify it still shows the standard tabbed view (Overview, Holdings, Diversification, Performance, Rebalancing, Fees, Tax Status, Documents)
     - Verify standard Key Metrics header (Current Value, Annualised Return, Monthly Contribution, Holdings/ISA Allowance)
 
-22. **IHT Summary & Strategies - Inline Layout** (Estate Planning):
+22. **ExpenditureForm Refactoring** (Valuable Info > Expenses):
+    - Navigate to Dashboard > Valuable Info > Expenses tab
+    - Verify all value columns are right-aligned (user, spouse, household)
+    - Verify Financial Commitments section header shows subtotals
+    - Verify Financial Commitments section has "Auto-calculated" badge
+    - Click to expand/collapse sections - verify all work correctly
+    - For married users: Verify household column displays correctly
+    - For single users: Verify only user column is displayed (no household column)
+
+23. **IHT Summary & Strategies - Inline Layout** (Estate Planning):
     - Navigate to Estate Planning as a non-married user (e.g., Margaret Thompson - widow persona)
     - Verify single "IHT Summary" card with two columns (Taxable Estate, IHT Liability)
     - Verify strategies cards (Will, Gifting, Life Policy, Charitable Bequest) are inline on same row
@@ -1551,6 +1715,343 @@ After deployment, verify:
     - Click "No" on charitable bequest card
     - Verify pink charitable bequest row disappears
     - Verify IHT rate returns to 40% and liability increases back to original
+
+---
+
+## Charitable Bequest - Correct IHT Calculation with Split Allowances
+
+**Branch:** techDebt
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Fixed the IHT calculation table to correctly handle charitable bequest. When charitable bequest is enabled, the allowances are now split so the charitable donation is deducted from the estate (reducing the taxable estate), not just applied as a reduced rate.
+
+### Before (Incorrect)
+
+When charitable bequest was enabled:
+- Showed combined allowances (NRB + RNRB)
+- Then showed "Estate after Tax-Free Allowances"
+- Charitable bequest row appeared but didn't actually reduce the taxable estate
+- Only the rate changed from 40% to 36%
+
+### After (Correct)
+
+When charitable bequest is enabled:
+1. Net Estate
+2. Less: NRB (Tax-Free Allowance) - collapsible
+3. **= Estate after Tax-Free Allowances** (blue row - charitable baseline)
+4. **Less: Charitable Bequest (10% minimum)** (green row - deducted from estate)
+5. Less: RNRB (Home Allowance) - collapsible
+6. = Taxable Estate (now reduced by charitable donation)
+7. × 36% = IHT Liability (reduced rate)
+
+When charitable bequest is OFF:
+- Combined "Less: Tax-Free Allowances" (NRB + RNRB together, collapsible)
+- Taxable Estate
+- × 40% = IHT Liability
+
+### Calculation Change
+
+**Without charitable bequest:**
+```
+Taxable Estate = Net Estate - NRB - RNRB
+IHT = Taxable Estate × 40%
+```
+
+**With charitable bequest:**
+```
+Baseline = Net Estate - NRB
+Charitable Donation = Baseline × 10%
+Taxable Estate = Net Estate - NRB - Charitable Donation - RNRB
+IHT = Taxable Estate × 36%
+```
+
+### Files Changed (2 files)
+
+**Frontend (included in build):**
+```text
+resources/js/components/Estate/IHTCalculationTable.vue
+resources/js/components/Estate/IHTPlanning.vue
+```
+
+### Verification
+
+1. Navigate to Estate Planning > IHT tab
+2. With charitable bequest OFF:
+   - Verify combined "Less: Tax-Free Allowances" row with total
+   - Click chevron to expand and see NRB + RNRB breakdown
+   - Verify Taxable Estate = Net Estate - All Allowances
+   - Verify IHT rate shows 40%
+3. Enable charitable bequest (click "Yes"):
+   - Verify NRB section appears separately (collapsible)
+   - Verify blue "Estate after Tax-Free Allowances" row appears
+   - Verify green "Less: Charitable Bequest" row shows 10% of baseline
+   - Verify RNRB section appears separately (collapsible, if eligible)
+   - Verify Taxable Estate is reduced by the charitable donation amount
+   - Verify IHT rate shows 36%
+4. Verify the maths:
+   - Charitable Donation = Estate after NRB × 10%
+   - Taxable Estate (with charitable) = Taxable Estate (without) - Charitable Donation
+   - IHT = Taxable Estate × 36%
+
+---
+
+## ExpenditureForm.vue Refactoring - Extract Repeated Patterns
+
+**Branch:** techDebt
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Refactored `ExpenditureForm.vue` (2,519 lines) by extracting repeated UI patterns into reusable child components. This reduces template duplication while preserving existing state management.
+
+### Problem Solved
+
+- 2,519 lines with complex nested conditional rendering
+- 3 budget tabs (Current, Retired, Widowed) with similar structure
+- 5 collapsible sections repeated across tabs (~75 similar blocks)
+- 100+ grid row patterns for displaying values
+- ~40 currency input fields with identical markup
+
+### Component Architecture
+
+```
+ExpenditureForm.vue (Parent - refactored from ~2,519 to ~2,100 lines)
+  │
+  ├── ExpenditureSection.vue (NEW - ~80 lines)
+  │     └── Collapsible section with header, toggle, and content slot
+  │
+  ├── ExpenditureGridRow.vue (NEW - ~90 lines)
+  │     └── Multi-column grid row for label + values (user/spouse/household)
+  │
+  ├── ExpenditureCategoryCard.vue (NEW - ~115 lines)
+  │     └── Edit mode card with fields loop for a category
+  │
+  └── CurrencyInputField.vue (NEW - ~60 lines)
+        └── Standardized £ input with optional hint text
+```
+
+### Files Created (4 files)
+
+**Shared:**
+```text
+resources/js/components/Shared/CurrencyInputField.vue
+```
+
+**User Profile:**
+```text
+resources/js/components/UserProfile/ExpenditureSection.vue
+resources/js/components/UserProfile/ExpenditureGridRow.vue
+resources/js/components/UserProfile/ExpenditureCategoryCard.vue
+```
+
+### Files Changed (1 file)
+
+```text
+resources/js/components/UserProfile/ExpenditureForm.vue
+```
+
+### Additional Fixes
+
+| Change | Description |
+|--------|-------------|
+| Right-aligned values | All value columns use centralized `:deep()` selectors in parent scoped styles |
+| Financial Commitments header | Now shows subtotals like other categories using ExpenditureSection component |
+| Auto-calculated badge | Financial Commitments section shows "Auto-calculated" badge in header |
+
+### CSS Pattern for Child Component Styling
+
+Used `:deep()` selector in parent's scoped styles to maintain alignment centrally:
+
+```css
+:deep(.col-value),
+:deep(.col-value-mid),
+:deep(.col-total) {
+  text-align: right;
+}
+```
+
+---
+
+## Joint Liability Percentage Display Fix
+
+**Branch:** techDebt
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Fixed joint ownership percentage display in the IHT Liabilities breakdown. The percentage was showing as "50.00%" instead of being hidden for 50/50 splits. The issue was caused by comparing `ownership_percentage !== 50` which failed when the value was stored as `50.00` (float) or `"50.00"` (string).
+
+### Before
+
+- Mortgages showed "(Joint - 50.00%)" instead of "(Joint)"
+- Comparison `!== 50` failed for values like `50.00`
+
+### After
+
+- Added `formatJointLabel()` helper method that:
+  - Parses percentage as float (handles strings and numbers)
+  - Rounds to nearest integer (handles `50.00` → `50`)
+  - Returns "(Joint)" for 50% splits
+  - Returns "(Joint - X%)" for non-50% splits
+
+### Files Changed (1 file)
+
+**Frontend (included in build):**
+```text
+resources/js/components/Estate/IHTLiabilityBreakdown.vue
+```
+
+---
+
+## Retired Budget Spouse Total Calculation Fix
+
+**Branch:** techDebt
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Fixed the Retired Budget tab showing £0 for spouse's total monthly expenditure even when the spouse had manual expenditure values entered.
+
+### Root Cause
+
+The `retiredHouseholdTotalMonthly` computed property was incorrectly set to just `retiredTotalMonthly` (user's total), instead of summing user + spouse:
+
+```javascript
+// BEFORE (incorrect)
+const retiredHouseholdTotalMonthly = computed(() => retiredTotalMonthly.value);
+
+// Template calculated spouse as: household - user = user - user = 0!
+{{ formatCurrency(retiredHouseholdTotalMonthly - retiredTotalMonthly) }}
+```
+
+### Fix
+
+Created proper separate computed properties for user, spouse, and household totals:
+
+```javascript
+// User's retired total: manual expenditure + protection premiums
+const retiredTotalMonthly = computed(() => {
+  return retiredManualExpenditureTotal.value + (financialCommitments.value?.totals?.protection || 0);
+});
+
+// Spouse's retired total: spouse's manual expenditure + spouse's protection
+const retiredSpouseTotalMonthly = computed(() => {
+  if (!props.isMarried) return 0;
+  return retiredSpouseManualExpenditureTotal.value + (spouseFinancialCommitments.value?.totals?.protection || 0);
+});
+
+// Household total is user + spouse
+const retiredHouseholdTotalMonthly = computed(() => {
+  return retiredTotalMonthly.value + retiredSpouseTotalMonthly.value;
+});
+```
+
+### Files Changed (1 file)
+
+**Frontend (included in build):**
+```text
+resources/js/components/UserProfile/ExpenditureForm.vue
+```
+
+### Verification
+
+1. Log in as a married user (e.g., James Carter from young_family persona)
+2. Navigate to Dashboard > Valuable Info > Expenses > Budget at Retirement tab
+3. Verify spouse column shows correct totals (not £0)
+4. Verify household column shows user + spouse sum
+5. Log in as the spouse account and verify the same
+
+---
+
+## Risk Color Constants - Consolidation
+
+**Branch:** techDebt
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Consolidated all risk level color definitions into `designSystem.js` as single source of truth. Previously risk colors were defined in three places requiring updates in multiple files for any color change.
+
+### Changes Made
+
+**Added to designSystem.js:**
+
+| Export | Description |
+|--------|-------------|
+| `RISK_TAILWIND_CLASSES` | Tailwind classes for bg, text, border, and combined |
+| `RISK_DISPLAY_NAMES` | Display names for all risk levels including legacy |
+| `RISK_ABBREVIATED_LABELS` | Short labels (Low, L-Med, Med, U-Med, High) |
+| `RISK_DESCRIPTIONS` | Tooltip descriptions for each level |
+| `RISK_LEGACY_MAP` | Maps cautious/balanced/adventurous to new system |
+| `getRiskClasses(level)` | Helper to get Tailwind classes |
+| `getRiskDisplayName(level)` | Helper to get display name |
+| `normalizeRiskLevel(level)` | Helper to normalize legacy values |
+
+### Files Changed (3 files)
+
+**Frontend (included in build):**
+```text
+resources/js/constants/designSystem.js
+resources/js/services/riskService.js
+resources/js/components/Shared/RiskBadge.vue
+```
+
+---
+
+## Preview Persona Data - Consolidation
+
+**Branch:** techDebt
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Consolidated all preview persona metadata into JSON files as the single source of truth. Previously persona metadata (name, tagline, description) was duplicated in both the JSON files and `preview.js` Vuex store module.
+
+### Changes Made
+
+**Added to persona JSON files (6 files):**
+
+| Field | Description |
+|-------|-------------|
+| `netWorthRange` | Net worth range string (e.g., "£80k - £120k") |
+| `focus` | Primary planning focus areas (e.g., "Protection gaps, emergency fund") |
+
+**Updated preview.js:**
+
+| Change | Description |
+|--------|-------------|
+| Removed `PERSONA_METADATA` | Eliminated ~50 lines of duplicate name/tagline/description data |
+| Added `PERSONA_ORDER` array | Controls display order in persona selector UI |
+| Added `getPersonaMetadata()` | Helper function to derive metadata from imported JSON data |
+| Updated getters | `currentPersona` and `availablePersonas` now use helper function |
+
+### Files Changed (7 files)
+
+**Frontend (included in build):**
+```text
+resources/js/data/personas/young_family.json
+resources/js/data/personas/peak_earners.json
+resources/js/data/personas/widow.json
+resources/js/data/personas/entrepreneur.json
+resources/js/data/personas/young_saver.json
+resources/js/data/personas/retired_couple.json
+resources/js/store/modules/preview.js
+```
+
+### Benefits
+
+- JSON files are now the single source of truth for ALL persona data
+- No more duplicate name/tagline/description between JSON and preview.js
+- Future persona changes only need to update JSON files
+- PHP seeder already reads from JSON (no backend changes needed)
 
 ---
 

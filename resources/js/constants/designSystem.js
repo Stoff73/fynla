@@ -128,7 +128,7 @@ export const SPENDING_COLORS = [
 ];
 
 /**
- * Risk Level Colors
+ * Risk Level Colors - Hex values for charts and programmatic use
  */
 export const RISK_COLORS = {
   low: {
@@ -167,6 +167,122 @@ export const RISK_COLORS = {
     text: '#1E3A8A',
   },
 };
+
+/**
+ * Risk Level Tailwind Classes - For use in Vue components
+ * Single source of truth for risk badge/indicator styling
+ */
+export const RISK_TAILWIND_CLASSES = {
+  low: {
+    bg: 'bg-yellow-100',
+    text: 'text-yellow-800',
+    border: 'border-yellow-200',
+    combined: 'bg-yellow-100 text-yellow-800',
+  },
+  lower_medium: {
+    bg: 'bg-pink-100',
+    text: 'text-pink-800',
+    border: 'border-pink-200',
+    combined: 'bg-pink-100 text-pink-800',
+  },
+  medium: {
+    bg: 'bg-green-100',
+    text: 'text-green-800',
+    border: 'border-green-200',
+    combined: 'bg-green-100 text-green-800',
+  },
+  upper_medium: {
+    bg: 'bg-teal-100',
+    text: 'text-teal-800',
+    border: 'border-teal-200',
+    combined: 'bg-teal-100 text-teal-800',
+  },
+  high: {
+    bg: 'bg-blue-100',
+    text: 'text-blue-800',
+    border: 'border-blue-200',
+    combined: 'bg-blue-100 text-blue-800',
+  },
+};
+
+/**
+ * Risk Level Display Names
+ */
+export const RISK_DISPLAY_NAMES = {
+  low: 'Low',
+  lower_medium: 'Lower-Medium',
+  medium: 'Medium',
+  upper_medium: 'Upper-Medium',
+  high: 'High',
+  // Legacy values
+  cautious: 'Cautious',
+  balanced: 'Balanced',
+  adventurous: 'Adventurous',
+};
+
+/**
+ * Risk Level Abbreviated Labels
+ */
+export const RISK_ABBREVIATED_LABELS = {
+  low: 'Low',
+  lower_medium: 'L-Med',
+  medium: 'Med',
+  upper_medium: 'U-Med',
+  high: 'High',
+};
+
+/**
+ * Risk Level Descriptions for tooltips
+ */
+export const RISK_DESCRIPTIONS = {
+  low: 'Low Risk - Capital preservation focus',
+  lower_medium: 'Lower-Medium Risk - Stability with modest growth',
+  medium: 'Medium Risk - Balanced approach',
+  upper_medium: 'Upper-Medium Risk - Growth focus',
+  high: 'High Risk - Maximum growth potential',
+};
+
+/**
+ * Legacy risk tolerance to new system mapping
+ */
+export const RISK_LEGACY_MAP = {
+  cautious: 'lower_medium',
+  balanced: 'medium',
+  adventurous: 'upper_medium',
+};
+
+/**
+ * Helper: Get risk level Tailwind classes
+ * @param {string} level - The risk level value
+ * @returns {Object} Object with bg, text, border, and combined classes
+ */
+export function getRiskClasses(level) {
+  const normalizedLevel = RISK_LEGACY_MAP[level] || level;
+  return RISK_TAILWIND_CLASSES[normalizedLevel] || {
+    bg: 'bg-gray-100',
+    text: 'text-gray-800',
+    border: 'border-gray-200',
+    combined: 'bg-gray-100 text-gray-800',
+  };
+}
+
+/**
+ * Helper: Get risk level display name
+ * @param {string} level - The risk level value
+ * @returns {string} Display name for the risk level
+ */
+export function getRiskDisplayName(level) {
+  return RISK_DISPLAY_NAMES[level] || 'Medium';
+}
+
+/**
+ * Helper: Normalize legacy risk tolerance to new system
+ * @param {string} tolerance - Legacy tolerance value (cautious, balanced, adventurous)
+ * @returns {string} Normalized risk level
+ */
+export function normalizeRiskLevel(level) {
+  return RISK_LEGACY_MAP[level] || level;
+}
 
 /**
  * Text Colors
