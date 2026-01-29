@@ -706,6 +706,41 @@ app/Http/Controllers/Api/PreviewController.php
 
 ---
 
+## Expenditure Form - Hide Totals Column for Single Users
+
+**Branch:** genBits
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+For single users (no spouse), the "Total/Household" column in the expenditure form is now hidden as it would just duplicate the user's values.
+
+### Before
+
+- Single users saw 3 columns: Category, User Name, Total
+- The Total column just showed the same values as the user column
+
+### After
+
+- Single users see 2 columns: Category, User Name
+- Married users still see 4 columns: Category, User, Spouse, Household
+
+### Changes Made
+
+- Updated CSS grid for single users from 3 columns to 2 columns
+- Added `v-if="isMarried"` to all col-total elements in view mode
+- Applies to all expenditure categories and financial commitments
+
+### Files Changed (1 file)
+
+**Frontend (included in build):**
+```text
+resources/js/components/UserProfile/ExpenditureForm.vue
+```
+
+---
+
 ## Rebuild Required: YES
 
 Frontend Vue components changed. Full rebuild required:
