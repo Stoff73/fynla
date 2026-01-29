@@ -18,26 +18,6 @@ This file tracks technical debt items that should be addressed in future develop
 
 ## Low Priority
 
-### 4. Risk Color Constants - Multiple Sources
-
-**Files:**
-- `resources/js/services/riskService.js`
-- `resources/js/constants/designSystem.js`
-- `resources/js/components/Shared/RiskBadge.vue`
-
-**Issue:** Risk level colors are defined in multiple places. While they're now consistent, future changes require updating multiple files.
-
-**Recommended Fix:**
-- Consolidate all risk color definitions into `designSystem.js`
-- Import from single source in all components
-- Consider CSS custom properties for Tailwind classes
-
-**Estimated Effort:** 2-3 hours
-
-**Date Added:** 2026-01-29
-
----
-
 ### 5. Preview Persona Data - JSON Files
 
 **Files:** `resources/js/data/personas/*.json`
@@ -56,6 +36,33 @@ This file tracks technical debt items that should be addressed in future develop
 ---
 
 ## Completed
+
+### 4. Risk Color Constants - Consolidated ✅
+
+**Resolved:** 2026-01-29
+
+**Resolution:** Consolidated all risk level color definitions into `designSystem.js` as single source of truth:
+
+**Added to designSystem.js:**
+- `RISK_TAILWIND_CLASSES` - Tailwind classes for bg, text, border, and combined
+- `RISK_DISPLAY_NAMES` - Display names for all risk levels including legacy
+- `RISK_ABBREVIATED_LABELS` - Short labels (Low, L-Med, Med, U-Med, High)
+- `RISK_DESCRIPTIONS` - Tooltip descriptions for each level
+- `RISK_LEGACY_MAP` - Maps cautious/balanced/adventurous to new system
+- `getRiskClasses(level)` - Helper to get Tailwind classes
+- `getRiskDisplayName(level)` - Helper to get display name
+- `normalizeRiskLevel(level)` - Helper to normalize legacy values
+
+**Updated Files:**
+- `riskService.js` - Now delegates to designSystem.js helpers
+- `RiskBadge.vue` - Now imports and uses centralized constants
+
+**Results:**
+- Single source of truth for risk level styling
+- Future color changes only require updating designSystem.js
+- Consistent behavior across all components
+
+---
 
 ### 3. ExpenditureForm.vue - Component Extraction ✅
 

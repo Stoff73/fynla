@@ -1969,6 +1969,42 @@ resources/js/components/UserProfile/ExpenditureForm.vue
 
 ---
 
+## Risk Color Constants - Consolidation
+
+**Branch:** techDebt
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Consolidated all risk level color definitions into `designSystem.js` as single source of truth. Previously risk colors were defined in three places requiring updates in multiple files for any color change.
+
+### Changes Made
+
+**Added to designSystem.js:**
+
+| Export | Description |
+|--------|-------------|
+| `RISK_TAILWIND_CLASSES` | Tailwind classes for bg, text, border, and combined |
+| `RISK_DISPLAY_NAMES` | Display names for all risk levels including legacy |
+| `RISK_ABBREVIATED_LABELS` | Short labels (Low, L-Med, Med, U-Med, High) |
+| `RISK_DESCRIPTIONS` | Tooltip descriptions for each level |
+| `RISK_LEGACY_MAP` | Maps cautious/balanced/adventurous to new system |
+| `getRiskClasses(level)` | Helper to get Tailwind classes |
+| `getRiskDisplayName(level)` | Helper to get display name |
+| `normalizeRiskLevel(level)` | Helper to normalize legacy values |
+
+### Files Changed (3 files)
+
+**Frontend (included in build):**
+```text
+resources/js/constants/designSystem.js
+resources/js/services/riskService.js
+resources/js/components/Shared/RiskBadge.vue
+```
+
+---
+
 ## Rollback
 
 If issues occur:
