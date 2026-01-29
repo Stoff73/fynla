@@ -1265,7 +1265,7 @@ resources/js/components/Estate/IHTPlanning.vue
 
 **Branch:** investUpdate
 
-**Status:** 🔄 Ready to deploy
+**Status:** ✅ Deployed to production
 
 ### Description
 
