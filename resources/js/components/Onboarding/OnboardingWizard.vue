@@ -1,18 +1,47 @@
 <template>
   <div class="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
-    <!-- Progress Bar -->
-    <div v-if="focusArea" class="max-w-5xl mx-auto mb-8">
+    <!-- Progress Indicator -->
+    <div v-if="focusArea && steps.length > 0" class="max-w-5xl mx-auto mb-8">
       <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-        <div class="mb-2">
-          <span class="text-body-sm font-medium text-gray-700">
-            Step {{ currentStepIndex + 1 }} of {{ totalSteps }}
-          </span>
-        </div>
-        <div class="w-full bg-gray-200 rounded-full h-2">
-          <div
-            class="bg-primary-600 h-2 rounded-full transition-all duration-300"
-            :style="{ width: `${progressPercentage}%` }"
-          ></div>
+        <div class="overflow-x-auto">
+          <div class="flex items-start justify-between min-w-max px-2">
+            <div
+              v-for="(step, index) in steps"
+              :key="step.name"
+              class="flex-1 flex flex-col items-center relative min-w-[80px]"
+            >
+              <!-- Step Circle -->
+              <div
+                class="w-9 h-9 rounded-full flex items-center justify-center border-2 transition-all"
+                :class="getStepCircleClass(step, index)"
+              >
+                <!-- Checkmark for completed -->
+                <svg v-if="isStepCompleted(step, index)" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+                <!-- Skip icon for skipped -->
+                <svg v-else-if="isStepSkipped(step)" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                </svg>
+                <!-- Step number for current/pending -->
+                <span v-else class="text-sm font-semibold">{{ index + 1 }}</span>
+              </div>
+              <!-- Step Label -->
+              <span
+                class="text-xs mt-1.5 text-center leading-tight max-w-[70px]"
+                :class="getStepLabelClass(step, index)"
+              >
+                {{ getStepShortLabel(step) }}
+              </span>
+              <!-- Connecting Line -->
+              <div
+                v-if="index < steps.length - 1"
+                class="absolute h-0.5 top-[18px] left-1/2 -z-10"
+                :style="{ width: 'calc(100% - 20px)' }"
+                :class="getConnectingLineClass(step, index)"
+              ></div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -98,6 +127,73 @@ export default {
     const currentStepIndex = computed(() => store.state.onboarding.currentStepIndex);
     const totalSteps = computed(() => store.state.onboarding.totalSteps);
     const progressPercentage = computed(() => store.state.onboarding.progressPercentage);
+    const steps = computed(() => store.state.onboarding.steps || []);
+    const skippedSteps = computed(() => store.state.onboarding.skippedSteps || []);
+
+    const isStepCompleted = (step, index) => {
+      // Step is completed if we're past it and it wasn't skipped
+      return index < currentStepIndex.value && !skippedSteps.value.includes(step.name);
+    };
+
+    const isStepSkipped = (step) => {
+      return skippedSteps.value.includes(step.name);
+    };
+
+    const isCurrentStep = (index) => {
+      return index === currentStepIndex.value;
+    };
+
+    const getStepCircleClass = (step, index) => {
+      if (isCurrentStep(index)) {
+        return 'bg-blue-600 border-blue-600 text-white';
+      }
+      if (isStepSkipped(step)) {
+        return 'bg-orange-500 border-orange-500 text-white';
+      }
+      if (isStepCompleted(step, index)) {
+        return 'bg-green-600 border-green-600 text-white';
+      }
+      return 'bg-white border-gray-300 text-gray-400';
+    };
+
+    const getStepLabelClass = (step, index) => {
+      if (isCurrentStep(index)) {
+        return 'text-blue-600 font-semibold';
+      }
+      if (isStepSkipped(step)) {
+        return 'text-orange-600';
+      }
+      if (isStepCompleted(step, index)) {
+        return 'text-green-600';
+      }
+      return 'text-gray-500';
+    };
+
+    const getConnectingLineClass = (step, index) => {
+      // Line is green if the next step is completed or current
+      if (index < currentStepIndex.value) {
+        return 'bg-green-600';
+      }
+      return 'bg-gray-300';
+    };
+
+    const getStepShortLabel = (step) => {
+      // Shorten labels for mobile/display
+      const labelMap = {
+        'personal_info': 'Personal',
+        'family_info': 'Family',
+        'domicile_info': 'Domicile',
+        'income': 'Income',
+        'expenditure': 'Expenses',
+        'assets': 'Assets',
+        'liabilities': 'Debts',
+        'protection_policies': 'Protection',
+        'will_info': 'Will',
+        'trust_info': 'Trusts',
+        'completion': 'Complete',
+      };
+      return labelMap[step.name] || step.title || step.name;
+    };
 
     const currentStepComponent = computed(() => {
       if (!currentStep.value) return null;
@@ -175,6 +271,8 @@ export default {
       currentStepIndex,
       totalSteps,
       progressPercentage,
+      steps,
+      skippedSteps,
       currentStepComponent,
       showSkipModal,
       skipReason,
@@ -184,6 +282,13 @@ export default {
       handleSkipRequest,
       hideSkipModal,
       confirmSkip,
+      isStepCompleted,
+      isStepSkipped,
+      isCurrentStep,
+      getStepCircleClass,
+      getStepLabelClass,
+      getConnectingLineClass,
+      getStepShortLabel,
     };
   },
 };

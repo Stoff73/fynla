@@ -583,6 +583,58 @@ app/Services/Protection/ComprehensiveProtectionPlanService.php
 
 ---
 
+## Onboarding Progress Indicator Redesign
+
+**Branch:** genBits
+
+**Status:** 🔄 Ready for testing
+
+### Description
+
+Replaced the basic progress bar in onboarding with a step-based progress indicator similar to the Add Property form. Shows all sections with visual indicators for completed, skipped, current, and pending steps.
+
+### Before
+
+- Simple progress bar with percentage
+- "Step X of Y" text
+- No visibility into which steps were completed or skipped
+
+### After
+
+- Circle indicators for each step with step number or icon
+- Short labels below each circle
+- Connecting lines between steps
+- **Green** circles with checkmark for completed steps
+- **Orange** circles with X for skipped steps
+- **Blue** circles for current step
+- **Gray** circles for pending steps
+- Horizontally scrollable on mobile
+
+### Step Labels
+
+| Internal Name | Display Label |
+|---------------|---------------|
+| personal_info | Personal |
+| family_info | Family |
+| domicile_info | Domicile |
+| income | Income |
+| expenditure | Expenses |
+| assets | Assets |
+| liabilities | Debts |
+| protection_policies | Protection |
+| will_info | Will |
+| trust_info | Trusts |
+| completion | Complete |
+
+### Files Changed (1 file)
+
+**Frontend (included in build):**
+```text
+resources/js/components/Onboarding/OnboardingWizard.vue
+```
+
+---
+
 ## Rebuild Required: YES
 
 Frontend Vue components changed. Full rebuild required:
