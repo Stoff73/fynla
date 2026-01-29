@@ -1352,6 +1352,104 @@ resources/js/components/Estate/IHTPlanning.vue
 
 ---
 
+## AccountForm.vue Refactoring - Extract Account Type Sections
+
+**Branch:** techDebt
+
+**Status:** ⏳ Awaiting deployment
+
+### Description
+
+Refactored `AccountForm.vue` (2,643 lines) by extracting the three major account-type-specific sections into separate child components. This follows the same pattern used successfully for IHTPlanning.vue.
+
+### Problem Solved
+
+- One component previously handled 14 different account types
+- 56 conditional rendering statements (`v-if`/`v-show`)
+- Three distinct form "modes" with completely different fields mixed together
+- High risk of breaking other account types when making changes
+- Difficult to navigate and maintain
+
+### Component Architecture
+
+```
+AccountForm.vue (Parent - refactored from ~2,643 to ~1,007 lines)
+  │
+  ├── PrivateInvestmentFields.vue (NEW - ~650 lines)
+  │     └── Company Details, Investment Details, Ownership, Tax Relief, Exit
+  │
+  ├── EmployeeShareSchemeFields.vue (NEW - ~600 lines)
+  │     └── Employer Details, Grant Details, SAYE/CSOP-specific, Vesting, Exercise
+  │
+  └── StandardInvestmentFields.vue (NEW - ~400 lines)
+        └── Provider, Platform, Current Value, Contributions, Platform Fee, Risk Level
+```
+
+### Files Created (3 files)
+
+**Frontend:**
+```text
+resources/js/components/Investment/PrivateInvestmentFields.vue
+resources/js/components/Investment/EmployeeShareSchemeFields.vue
+resources/js/components/Investment/StandardInvestmentFields.vue
+```
+
+### Files Changed (1 file)
+
+**Frontend:**
+```text
+resources/js/components/Investment/AccountForm.vue
+```
+
+### Line Count Changes
+
+| File | Before | After |
+|------|--------|-------|
+| AccountForm.vue | ~2,643 | ~1,007 |
+| PrivateInvestmentFields.vue | - | ~650 |
+| EmployeeShareSchemeFields.vue | - | ~600 |
+| StandardInvestmentFields.vue | - | ~400 |
+| **Total** | ~2,643 | ~2,657 |
+
+*Note: Total lines increase slightly due to component boilerplate, but each file is now focused and manageable.*
+
+### v-model Pattern
+
+Each child component uses the Vue 3 v-model pattern for two-way binding:
+
+```vue
+<!-- Parent -->
+<PrivateInvestmentFields v-model="formData" :errors="errors" />
+
+<!-- Child -->
+props: {
+  modelValue: { type: Object, required: true },
+  errors: { type: Object, default: () => ({}) }
+},
+emits: ['update:modelValue'],
+computed: {
+  localData: {
+    get() { return this.modelValue; },
+    set(value) { this.$emit('update:modelValue', value); }
+  }
+}
+```
+
+### Account Type Routing
+
+| Account Types | Component |
+|---------------|-----------|
+| `private_company`, `crowdfunding` | PrivateInvestmentFields |
+| `saye`, `csop`, `emi`, `unapproved_options`, `rsu` | EmployeeShareSchemeFields |
+| `isa`, `gia`, `onshore_bond`, `offshore_bond`, `vct`, `eis`, `nsi`, `other` | StandardInvestmentFields |
+
+### Other Changes
+
+- Changed amber color classes to orange in fee warning (StandardInvestmentFields.vue) per design standards
+- Changed amber color in ISA allowance tracker to orange (StandardInvestmentFields.vue)
+
+---
+
 ## Rebuild Required: YES
 
 Frontend Vue components changed. Full rebuild required:
