@@ -46,6 +46,11 @@
                 <option value="eis">Enterprise Investment Scheme (EIS)</option>
                 <option value="private_company">Private Company</option>
                 <option value="crowdfunding">Crowdfunding Investment</option>
+                <option value="saye">SAYE / Sharesave</option>
+                <option value="csop">CSOP (Company Share Option Plan)</option>
+                <option value="emi">EMI (Enterprise Management Incentives)</option>
+                <option value="unapproved_options">Unapproved Share Options</option>
+                <option value="rsu">RSUs (Restricted Stock Units)</option>
                 <option value="other">Other</option>
               </select>
               <p v-if="errors.account_type" class="mt-1 text-sm text-red-600">{{ errors.account_type }}</p>
@@ -704,8 +709,596 @@
               </div>
             </template>
 
-            <!-- Provider (hidden for private investments) -->
-            <div v-if="!isPrivateInvestmentType">
+            <!-- Employee Share Scheme Sections -->
+            <template v-if="isEmployeeShareScheme">
+              <!-- Employer Details Section -->
+              <div class="border-t border-gray-200 pt-4 mt-4">
+                <h4 class="text-sm font-semibold text-gray-900 mb-3">Employer Details</h4>
+                <div class="space-y-4">
+                  <div>
+                    <label for="employer_name" class="block text-sm font-medium text-gray-700 mb-1">
+                      Employer Name <span class="text-red-500">*</span>
+                    </label>
+                    <input
+                      id="employer_name"
+                      v-model="formData.employer_name"
+                      type="text"
+                      class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      :class="{ 'border-red-500': errors.employer_name }"
+                      placeholder="e.g., Acme plc"
+                    />
+                    <p v-if="errors.employer_name" class="mt-1 text-sm text-red-600">{{ errors.employer_name }}</p>
+                  </div>
+                  <div class="grid grid-cols-2 gap-4">
+                    <div>
+                      <label for="employer_registration" class="block text-sm font-medium text-gray-700 mb-1">
+                        Company Registration
+                      </label>
+                      <input
+                        id="employer_registration"
+                        v-model="formData.employer_registration"
+                        type="text"
+                        class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="e.g., 12345678"
+                      />
+                    </div>
+                    <div>
+                      <label for="employer_ticker" class="block text-sm font-medium text-gray-700 mb-1">
+                        Ticker Symbol
+                      </label>
+                      <input
+                        id="employer_ticker"
+                        v-model="formData.employer_ticker"
+                        type="text"
+                        class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="e.g., ACME.L"
+                      />
+                    </div>
+                  </div>
+                  <div class="flex items-center">
+                    <input
+                      id="employer_is_listed"
+                      v-model="formData.employer_is_listed"
+                      type="checkbox"
+                      class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <label for="employer_is_listed" class="ml-2 block text-sm text-gray-700">
+                      Shares are listed/publicly traded
+                    </label>
+                  </div>
+                  <div class="grid grid-cols-2 gap-4">
+                    <div>
+                      <label for="parent_company_name" class="block text-sm font-medium text-gray-700 mb-1">
+                        Parent Company
+                      </label>
+                      <input
+                        id="parent_company_name"
+                        v-model="formData.parent_company_name"
+                        type="text"
+                        class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="If US/overseas parent"
+                      />
+                    </div>
+                    <div>
+                      <label for="parent_company_country" class="block text-sm font-medium text-gray-700 mb-1">
+                        Parent Country
+                      </label>
+                      <input
+                        id="parent_company_country"
+                        v-model="formData.parent_company_country"
+                        type="text"
+                        class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="e.g., United States"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Grant Details Section -->
+              <div class="border-t border-gray-200 pt-4 mt-4">
+                <h4 class="text-sm font-semibold text-gray-900 mb-3">Grant Details</h4>
+                <div class="space-y-4">
+                  <div class="grid grid-cols-2 gap-4">
+                    <div>
+                      <label for="grant_date" class="block text-sm font-medium text-gray-700 mb-1">
+                        Grant Date <span class="text-red-500">*</span>
+                      </label>
+                      <input
+                        id="grant_date"
+                        v-model="formData.grant_date"
+                        type="date"
+                        class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        :class="{ 'border-red-500': errors.grant_date }"
+                      />
+                      <p v-if="errors.grant_date" class="mt-1 text-sm text-red-600">{{ errors.grant_date }}</p>
+                    </div>
+                    <div>
+                      <label for="grant_reference" class="block text-sm font-medium text-gray-700 mb-1">
+                        Grant Reference
+                      </label>
+                      <input
+                        id="grant_reference"
+                        v-model="formData.grant_reference"
+                        type="text"
+                        class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="e.g., GRANT-2024-001"
+                      />
+                    </div>
+                  </div>
+                  <div class="grid grid-cols-2 gap-4">
+                    <div>
+                      <label for="units_granted" class="block text-sm font-medium text-gray-700 mb-1">
+                        Units Granted <span class="text-red-500">*</span>
+                      </label>
+                      <input
+                        id="units_granted"
+                        v-model.number="formData.units_granted"
+                        type="number"
+                        min="0"
+                        class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        :class="{ 'border-red-500': errors.units_granted }"
+                        placeholder="1000"
+                      />
+                      <p v-if="errors.units_granted" class="mt-1 text-sm text-red-600">{{ errors.units_granted }}</p>
+                    </div>
+                    <div v-if="isOptionsScheme">
+                      <label for="exercise_price" class="block text-sm font-medium text-gray-700 mb-1">
+                        Exercise Price <span class="text-red-500">*</span>
+                      </label>
+                      <div class="relative">
+                        <span class="absolute left-3 top-2.5 text-gray-500">£</span>
+                        <input
+                          id="exercise_price"
+                          v-model.number="formData.exercise_price"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          class="w-full border border-gray-300 rounded-md pl-8 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          :class="{ 'border-red-500': errors.exercise_price }"
+                          placeholder="1.50"
+                        />
+                      </div>
+                      <p v-if="errors.exercise_price" class="mt-1 text-sm text-red-600">{{ errors.exercise_price }}</p>
+                    </div>
+                  </div>
+                  <div class="grid grid-cols-2 gap-4">
+                    <div>
+                      <label for="market_value_at_grant" class="block text-sm font-medium text-gray-700 mb-1">
+                        Market Value at Grant
+                      </label>
+                      <div class="relative">
+                        <span class="absolute left-3 top-2.5 text-gray-500">£</span>
+                        <input
+                          id="market_value_at_grant"
+                          v-model.number="formData.market_value_at_grant"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          class="w-full border border-gray-300 rounded-md pl-8 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="2.00"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label for="share_class_scheme" class="block text-sm font-medium text-gray-700 mb-1">
+                        Share Class
+                      </label>
+                      <input
+                        id="share_class_scheme"
+                        v-model="formData.share_class_scheme"
+                        type="text"
+                        class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="e.g., Ordinary"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- SAYE Savings Details (only for SAYE) -->
+              <div v-if="isSAYEScheme" class="border-t border-gray-200 pt-4 mt-4">
+                <div class="bg-green-50 border border-green-200 rounded-md p-4">
+                  <h4 class="text-sm font-semibold text-green-900 mb-3">SAYE Savings Details</h4>
+                  <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                      <div>
+                        <label for="saye_monthly_savings" class="block text-sm font-medium text-gray-700 mb-1">
+                          Monthly Savings (max £500)
+                        </label>
+                        <div class="relative">
+                          <span class="absolute left-3 top-2.5 text-gray-500">£</span>
+                          <input
+                            id="saye_monthly_savings"
+                            v-model.number="formData.saye_monthly_savings"
+                            type="number"
+                            min="0"
+                            max="500"
+                            class="w-full border border-gray-300 rounded-md pl-8 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="500"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label for="saye_current_savings_balance" class="block text-sm font-medium text-gray-700 mb-1">
+                          Current Savings Balance
+                        </label>
+                        <div class="relative">
+                          <span class="absolute left-3 top-2.5 text-gray-500">£</span>
+                          <input
+                            id="saye_current_savings_balance"
+                            v-model.number="formData.saye_current_savings_balance"
+                            type="number"
+                            min="0"
+                            class="w-full border border-gray-300 rounded-md pl-8 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="0"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                      <div>
+                        <label for="scheme_start_date" class="block text-sm font-medium text-gray-700 mb-1">
+                          Contract Start Date
+                        </label>
+                        <input
+                          id="scheme_start_date"
+                          v-model="formData.scheme_start_date"
+                          type="date"
+                          class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label for="scheme_duration_months" class="block text-sm font-medium text-gray-700 mb-1">
+                          Contract Duration
+                        </label>
+                        <select
+                          id="scheme_duration_months"
+                          v-model.number="formData.scheme_duration_months"
+                          class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="">Select duration</option>
+                          <option :value="36">3 Years</option>
+                          <option :value="60">5 Years</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div v-if="formData.saye_maturity_date" class="text-sm text-green-700">
+                      <strong>Maturity Date:</strong> {{ formatDate(formData.saye_maturity_date) }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- CSOP Info (only for CSOP) -->
+              <div v-if="isCSOPScheme" class="border-t border-gray-200 pt-4 mt-4">
+                <div class="bg-orange-50 border border-orange-200 rounded-md p-4">
+                  <h4 class="text-sm font-semibold text-orange-900 mb-2">CSOP Tax Advantage Window</h4>
+                  <p class="text-sm text-orange-800 mb-3">
+                    To benefit from tax-advantaged treatment, options must be exercised between 3 and 10 years from grant date.
+                  </p>
+                  <div v-if="formData.csop_three_year_date" class="text-sm text-orange-700">
+                    <strong>Earliest Tax-Advantaged Exercise:</strong> {{ formatDate(formData.csop_three_year_date) }}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Vesting Schedule Section -->
+              <div class="border-t border-gray-200 pt-4 mt-4">
+                <h4 class="text-sm font-semibold text-gray-900 mb-3">Vesting Schedule</h4>
+                <div class="space-y-4">
+                  <div class="grid grid-cols-2 gap-4">
+                    <div>
+                      <label for="vesting_type" class="block text-sm font-medium text-gray-700 mb-1">
+                        Vesting Type
+                      </label>
+                      <select
+                        id="vesting_type"
+                        v-model="formData.vesting_type"
+                        class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="">Select type</option>
+                        <option value="cliff">Cliff</option>
+                        <option value="monthly">Monthly</option>
+                        <option value="quarterly">Quarterly</option>
+                        <option value="annual">Annual</option>
+                        <option value="performance">Performance-based</option>
+                        <option value="immediate">Immediate</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label for="full_vest_date" class="block text-sm font-medium text-gray-700 mb-1">
+                        Full Vest Date
+                      </label>
+                      <input
+                        id="full_vest_date"
+                        v-model="formData.full_vest_date"
+                        type="date"
+                        class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+                  <div class="grid grid-cols-2 gap-4">
+                    <div>
+                      <label for="cliff_date" class="block text-sm font-medium text-gray-700 mb-1">
+                        Cliff Date
+                      </label>
+                      <input
+                        id="cliff_date"
+                        v-model="formData.cliff_date"
+                        type="date"
+                        class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label for="cliff_percentage" class="block text-sm font-medium text-gray-700 mb-1">
+                        Cliff Percentage
+                      </label>
+                      <input
+                        id="cliff_percentage"
+                        v-model.number="formData.cliff_percentage"
+                        type="number"
+                        min="0"
+                        max="100"
+                        class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="25"
+                      />
+                    </div>
+                  </div>
+                  <div class="flex items-center">
+                    <input
+                      id="has_performance_conditions"
+                      v-model="formData.has_performance_conditions"
+                      type="checkbox"
+                      class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <label for="has_performance_conditions" class="ml-2 block text-sm text-gray-700">
+                      Has performance conditions
+                    </label>
+                  </div>
+                  <div v-if="formData.has_performance_conditions">
+                    <label for="performance_conditions_description" class="block text-sm font-medium text-gray-700 mb-1">
+                      Performance Conditions
+                    </label>
+                    <textarea
+                      id="performance_conditions_description"
+                      v-model="formData.performance_conditions_description"
+                      rows="3"
+                      class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Describe performance targets..."
+                    ></textarea>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Current Status Section -->
+              <div class="border-t border-gray-200 pt-4 mt-4">
+                <h4 class="text-sm font-semibold text-gray-900 mb-3">Current Status</h4>
+                <div class="space-y-4">
+                  <div class="grid grid-cols-3 gap-4">
+                    <div>
+                      <label for="units_vested" class="block text-sm font-medium text-gray-700 mb-1">
+                        Units Vested
+                      </label>
+                      <input
+                        id="units_vested"
+                        v-model.number="formData.units_vested"
+                        type="number"
+                        min="0"
+                        class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="0"
+                      />
+                    </div>
+                    <div>
+                      <label for="units_unvested" class="block text-sm font-medium text-gray-700 mb-1">
+                        Units Unvested
+                      </label>
+                      <input
+                        id="units_unvested"
+                        v-model.number="formData.units_unvested"
+                        type="number"
+                        min="0"
+                        class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="0"
+                      />
+                    </div>
+                    <div>
+                      <label for="units_exercised" class="block text-sm font-medium text-gray-700 mb-1">
+                        Units Exercised
+                      </label>
+                      <input
+                        id="units_exercised"
+                        v-model.number="formData.units_exercised"
+                        type="number"
+                        min="0"
+                        class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="0"
+                      />
+                    </div>
+                  </div>
+                  <div class="grid grid-cols-2 gap-4">
+                    <div>
+                      <label for="current_share_price" class="block text-sm font-medium text-gray-700 mb-1">
+                        Current Share Price
+                      </label>
+                      <div class="relative">
+                        <span class="absolute left-3 top-2.5 text-gray-500">£</span>
+                        <input
+                          id="current_share_price"
+                          v-model.number="formData.current_share_price"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          class="w-full border border-gray-300 rounded-md pl-8 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="2.50"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label for="scheme_status" class="block text-sm font-medium text-gray-700 mb-1">
+                        Scheme Status
+                      </label>
+                      <select
+                        id="scheme_status"
+                        v-model="formData.scheme_status"
+                        class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="active">Active</option>
+                        <option value="vesting">Vesting</option>
+                        <option value="exercisable">Exercisable</option>
+                        <option value="exercised">Fully Exercised</option>
+                        <option value="expired">Expired</option>
+                        <option value="forfeited">Forfeited</option>
+                        <option value="cancelled">Cancelled</option>
+                      </select>
+                    </div>
+                  </div>
+                  <!-- Intrinsic Value Display -->
+                  <div v-if="isOptionsScheme && intrinsicValue !== null" class="bg-blue-50 border border-blue-200 rounded-md p-3">
+                    <div class="text-sm text-blue-800">
+                      <strong>Intrinsic Value (Vested):</strong> {{ formatCurrency(intrinsicValue) }}
+                    </div>
+                    <div v-if="unvestedValue !== null" class="text-sm text-blue-700 mt-1">
+                      <strong>Potential Value (Unvested):</strong> {{ formatCurrency(unvestedValue) }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Exercise & Expiry Section (options only, not RSUs) -->
+              <div v-if="isOptionsScheme" class="border-t border-gray-200 pt-4 mt-4">
+                <h4 class="text-sm font-semibold text-gray-900 mb-3">Exercise & Expiry</h4>
+                <div class="space-y-4">
+                  <div class="grid grid-cols-2 gap-4">
+                    <div>
+                      <label for="exercise_window_start" class="block text-sm font-medium text-gray-700 mb-1">
+                        Exercise Window Start
+                      </label>
+                      <input
+                        id="exercise_window_start"
+                        v-model="formData.exercise_window_start"
+                        type="date"
+                        class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label for="exercise_window_end" class="block text-sm font-medium text-gray-700 mb-1">
+                        Exercise Window End / Expiry
+                      </label>
+                      <input
+                        id="exercise_window_end"
+                        v-model="formData.exercise_window_end"
+                        type="date"
+                        class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Tax Treatment Section -->
+              <div class="border-t border-gray-200 pt-4 mt-4">
+                <h4 class="text-sm font-semibold text-gray-900 mb-3">Tax Treatment</h4>
+                <div class="space-y-4">
+                  <div class="grid grid-cols-2 gap-4">
+                    <div>
+                      <label for="tax_treatment" class="block text-sm font-medium text-gray-700 mb-1">
+                        Tax Treatment
+                      </label>
+                      <select
+                        id="tax_treatment"
+                        v-model="formData.tax_treatment"
+                        class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="">Select treatment</option>
+                        <option value="tax_advantaged">Tax Advantaged</option>
+                        <option value="unapproved">Unapproved</option>
+                        <option value="mixed">Mixed</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label class="block text-sm font-medium text-gray-700 mb-1">Tax Flags</label>
+                      <div class="space-y-2">
+                        <div class="flex items-center">
+                          <input
+                            id="is_readily_convertible_asset"
+                            v-model="formData.is_readily_convertible_asset"
+                            type="checkbox"
+                            class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                          />
+                          <label for="is_readily_convertible_asset" class="ml-2 block text-sm text-gray-700">
+                            Readily Convertible Asset (RCA)
+                          </label>
+                        </div>
+                        <div class="flex items-center">
+                          <input
+                            id="paye_via_payroll"
+                            v-model="formData.paye_via_payroll"
+                            type="checkbox"
+                            class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                          />
+                          <label for="paye_via_payroll" class="ml-2 block text-sm text-gray-700">
+                            PAYE via Payroll
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Leaver Terms Section -->
+              <div class="border-t border-gray-200 pt-4 mt-4">
+                <h4 class="text-sm font-semibold text-gray-900 mb-3">Leaver Terms</h4>
+                <div class="space-y-4">
+                  <div class="grid grid-cols-2 gap-4">
+                    <div>
+                      <label for="leaver_category" class="block text-sm font-medium text-gray-700 mb-1">
+                        Leaver Category
+                      </label>
+                      <select
+                        id="leaver_category"
+                        v-model="formData.leaver_category"
+                        class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="">Not applicable</option>
+                        <option value="good_leaver">Good Leaver</option>
+                        <option value="bad_leaver">Bad Leaver</option>
+                        <option value="death">Death</option>
+                        <option value="redundancy">Redundancy</option>
+                        <option value="retirement">Retirement</option>
+                      </select>
+                    </div>
+                    <div v-if="formData.leaver_category">
+                      <label for="termination_date" class="block text-sm font-medium text-gray-700 mb-1">
+                        Termination Date
+                      </label>
+                      <input
+                        id="termination_date"
+                        v-model="formData.termination_date"
+                        type="date"
+                        class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+                  <div v-if="formData.leaver_category">
+                    <label for="leaver_notes" class="block text-sm font-medium text-gray-700 mb-1">
+                      Leaver Notes
+                    </label>
+                    <textarea
+                      id="leaver_notes"
+                      v-model="formData.leaver_notes"
+                      rows="2"
+                      class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Any notes about leaver treatment..."
+                    ></textarea>
+                  </div>
+                </div>
+              </div>
+            </template>
+
+            <!-- Provider (hidden for private investments and employee share schemes) -->
+            <div v-if="!isPrivateInvestmentType && !isEmployeeShareScheme">
               <label for="provider" class="block text-sm font-medium text-gray-700 mb-1">
                 Provider
               </label>
@@ -720,8 +1313,8 @@
               <p v-if="errors.provider" class="mt-1 text-sm text-red-600">{{ errors.provider }}</p>
             </div>
 
-            <!-- Country Selector (hidden for private investments) -->
-            <div v-if="!isPrivateInvestmentType">
+            <!-- Country Selector (hidden for private investments and employee share schemes) -->
+            <div v-if="!isPrivateInvestmentType && !isEmployeeShareScheme">
               <CountrySelector
                 v-model="formData.country"
                 label="Country"
@@ -730,8 +1323,8 @@
               />
             </div>
 
-            <!-- Platform (hidden for private investments) -->
-            <div v-if="!isPrivateInvestmentType">
+            <!-- Platform (hidden for private investments and employee share schemes) -->
+            <div v-if="!isPrivateInvestmentType && !isEmployeeShareScheme">
               <label for="platform" class="block text-sm font-medium text-gray-700 mb-1">
                 Platform/Product Name
               </label>
@@ -745,8 +1338,8 @@
               <p class="mt-1 text-xs text-gray-500">Optional: Specific platform or product name</p>
             </div>
 
-            <!-- Current Value -->
-            <div>
+            <!-- Current Value (hidden for private investments and employee share schemes) -->
+            <div v-if="!isPrivateInvestmentType && !isEmployeeShareScheme">
               <label for="current_value" class="block text-sm font-medium text-gray-700 mb-1">
                 Current Value (£)
               </label>
@@ -764,8 +1357,8 @@
               <p class="mt-1 text-xs text-gray-500">Current total value of the account</p>
             </div>
 
-            <!-- Contributions Section (only for non-ISA and non-private accounts) -->
-            <div v-if="!isISAType && !isPrivateInvestmentType" class="space-y-4 pt-4 border-t border-gray-200">
+            <!-- Contributions Section (only for non-ISA, non-private, non-employee share scheme accounts) -->
+            <div v-if="!isISAType && !isPrivateInvestmentType && !isEmployeeShareScheme" class="space-y-4 pt-4 border-t border-gray-200">
               <h4 class="text-sm font-semibold text-gray-900">Regular Contributions</h4>
 
               <!-- Monthly Contribution Amount and Frequency -->
@@ -834,8 +1427,8 @@
               </div>
             </div>
 
-            <!-- Platform Fee Section (not shown for NS&I or private investments) -->
-            <div v-if="!isNSIType && !isPrivateInvestmentType">
+            <!-- Platform Fee Section (not shown for NS&I, private investments, or employee share schemes) -->
+            <div v-if="!isNSIType && !isPrivateInvestmentType && !isEmployeeShareScheme">
               <label class="block text-sm font-medium text-gray-700 mb-1">
                 Platform Fee
               </label>
@@ -1283,6 +1876,75 @@ export default {
         loss_relief_eligible: false,
         capital_loss_amount: null,
         negligible_value_claim: false,
+        // Employee Share Scheme fields
+        // Group 1: Employer Details
+        employer_name: '',
+        employer_registration: '',
+        employer_ticker: '',
+        employer_is_listed: false,
+        parent_company_name: '',
+        parent_company_country: '',
+        ers_scheme_reference: '',
+        ers_registered: false,
+        // Group 2: Grant Details
+        grant_date: null,
+        grant_reference: '',
+        units_granted: null,
+        exercise_price: null,
+        market_value_at_grant: null,
+        share_class_scheme: '',
+        grant_currency: 'GBP',
+        option_price_paid: null,
+        scheme_start_date: null,
+        scheme_duration_months: null,
+        // Group 3: Vesting Schedule
+        vesting_type: '',
+        cliff_date: null,
+        cliff_percentage: null,
+        vesting_period_months: null,
+        vesting_frequency_months: null,
+        has_performance_conditions: false,
+        performance_conditions_description: '',
+        performance_period_end: null,
+        performance_vesting_min_percent: null,
+        performance_vesting_max_percent: null,
+        full_vest_date: null,
+        accelerated_vesting_allowed: false,
+        // Group 4: Current Status
+        units_vested: 0,
+        units_unvested: 0,
+        units_exercised: 0,
+        units_forfeited: 0,
+        units_expired: 0,
+        scheme_status: 'active',
+        current_share_price: null,
+        share_price_date: null,
+        // Group 5: Exercise & Expiry
+        exercise_window_start: null,
+        exercise_window_end: null,
+        last_exercise_date: null,
+        total_exercise_proceeds: null,
+        total_exercise_cost: null,
+        // Group 6: Tax Treatment
+        tax_treatment: '',
+        is_readily_convertible_asset: null,
+        paye_via_payroll: true,
+        income_tax_at_vest_exercise: null,
+        ni_at_vest_exercise: null,
+        csop_disqualifying_event: false,
+        csop_three_year_date: null,
+        cost_basis_for_cgt: null,
+        // Group 7: SAYE-Specific
+        saye_monthly_savings: null,
+        saye_current_savings_balance: null,
+        saye_maturity_date: null,
+        saye_option_discount_percent: null,
+        saye_bonus_amount: null,
+        // Group 8: Leaver Terms
+        leaver_category: '',
+        post_termination_exercise_days: null,
+        termination_date: null,
+        leaver_notes: '',
       },
       errors: {},
       submitting: false,
@@ -1321,6 +1983,45 @@ export default {
 
     isPrivateInvestmentType() {
       return ['private_company', 'crowdfunding'].includes(this.formData.account_type);
+    },
+
+    isEmployeeShareScheme() {
+      return ['saye', 'csop', 'emi', 'unapproved_options', 'rsu'].includes(this.formData.account_type);
+    },
+
+    isOptionsScheme() {
+      return ['saye', 'csop', 'emi', 'unapproved_options'].includes(this.formData.account_type);
+    },
+
+    isSAYEScheme() {
+      return this.formData.account_type === 'saye';
+    },
+
+    isCSOPScheme() {
+      return this.formData.account_type === 'csop';
+    },
+
+    isRSUScheme() {
+      return this.formData.account_type === 'rsu';
+    },
+
+    // Calculate intrinsic value for options
+    intrinsicValue() {
+      if (!this.isOptionsScheme || !this.formData.current_share_price || !this.formData.exercise_price) {
+        return null;
+      }
+      const gain = Math.max(0, this.formData.current_share_price - this.formData.exercise_price);
+      return gain * (this.formData.units_vested || 0);
+    },
+
+    // Calculate unvested value
+    unvestedValue() {
+      if (!this.formData.current_share_price) return null;
+      if (this.isOptionsScheme) {
+        const gain = Math.max(0, this.formData.current_share_price - (this.formData.exercise_price || 0));
+        return gain * (this.formData.units_unvested || 0);
+      }
+      return this.formData.current_share_price * (this.formData.units_unvested || 0);
     },
 
     isCrowdfundingType() {
@@ -1658,6 +2359,12 @@ export default {
       }
     },
 
+    formatDate(dateString) {
+      if (!dateString) return '';
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+    },
+
     submitForm() {
       this.errors = {};
 
@@ -1710,14 +2417,20 @@ export default {
         }
       }
 
-      if (!this.formData.provider || this.formData.provider.trim().length === 0) {
-        this.errors.provider = 'Provider is required';
-        isValid = false;
+      // Provider not required for private investments or employee share schemes
+      if (!this.isPrivateInvestmentType && !this.isEmployeeShareScheme) {
+        if (!this.formData.provider || this.formData.provider.trim().length === 0) {
+          this.errors.provider = 'Provider is required';
+          isValid = false;
+        }
       }
 
-      if (this.formData.current_value === null || this.formData.current_value < 0) {
-        this.errors.current_value = 'Current value is required and must be 0 or greater';
-        isValid = false;
+      // Current value not required for private investments or employee share schemes
+      if (!this.isPrivateInvestmentType && !this.isEmployeeShareScheme) {
+        if (this.formData.current_value === null || this.formData.current_value < 0) {
+          this.errors.current_value = 'Current value is required and must be 0 or greater';
+          isValid = false;
+        }
       }
 
       // Platform fee validation
@@ -1744,6 +2457,27 @@ export default {
         if (this.totalWithPlanned > this.ISA_ALLOWANCE) {
           const excess = this.totalWithPlanned - this.ISA_ALLOWANCE;
           this.errors.isa_contribution_exceeds = `Your planned ISA contributions would exceed the £20,000 allowance by ${this.formatCurrency(excess)}. Consider reducing your regular contributions or lump sum.`;
+          isValid = false;
+        }
+      }
+
+      // Employee Share Scheme validation
+      if (this.isEmployeeShareScheme) {
+        if (!this.formData.employer_name || this.formData.employer_name.trim() === '') {
+          this.errors.employer_name = 'Employer name is required';
+          isValid = false;
+        }
+        if (!this.formData.grant_date) {
+          this.errors.grant_date = 'Grant date is required';
+          isValid = false;
+        }
+        if (!this.formData.units_granted || this.formData.units_granted <= 0) {
+          this.errors.units_granted = 'Units granted is required';
+          isValid = false;
+        }
+        // Exercise price required for options (not RSUs)
+        if (this.isOptionsScheme && (!this.formData.exercise_price || this.formData.exercise_price < 0)) {
+          this.errors.exercise_price = 'Exercise price is required for options';
           isValid = false;
         }
       }
@@ -1788,6 +2522,115 @@ export default {
         joint_owner_id: null,
         trust_id: null,
         risk_preference: null,
+        // Private Company / Crowdfunding fields
+        company_legal_name: '',
+        company_registration_number: '',
+        company_country: 'United Kingdom',
+        company_website: '',
+        company_trading_name: '',
+        company_sector: '',
+        crowdfunding_platform: '',
+        investment_date: null,
+        investment_amount: null,
+        investment_currency: 'GBP',
+        funding_round: '',
+        pre_money_valuation: null,
+        post_money_valuation: null,
+        price_per_share: null,
+        number_of_shares: null,
+        instrument_type: '',
+        share_class: '',
+        has_voting_rights: true,
+        has_dividend_rights: true,
+        liquidation_preference: '',
+        has_anti_dilution: false,
+        holding_structure: 'direct',
+        nominee_name: '',
+        conversion_terms: '',
+        interest_rate: null,
+        maturity_date: null,
+        tax_relief_type: '',
+        eis3_certificate_number: '',
+        hmrc_reference: '',
+        relief_claimed_date: null,
+        relief_amount_claimed: null,
+        clawback_risk: false,
+        clawback_notes: '',
+        latest_valuation: null,
+        latest_valuation_date: null,
+        current_ownership_percent: null,
+        company_status: 'active',
+        status_notes: '',
+        exit_type: '',
+        exit_date: null,
+        exit_gross_proceeds: null,
+        exit_fees: null,
+        exit_net_proceeds: null,
+        exit_moic: null,
+        loss_relief_eligible: false,
+        capital_loss_amount: null,
+        negligible_value_claim: false,
+        // Employee Share Scheme fields
+        employer_name: '',
+        employer_registration: '',
+        employer_ticker: '',
+        employer_is_listed: false,
+        parent_company_name: '',
+        parent_company_country: '',
+        ers_scheme_reference: '',
+        ers_registered: false,
+        grant_date: null,
+        grant_reference: '',
+        units_granted: null,
+        exercise_price: null,
+        market_value_at_grant: null,
+        share_class_scheme: '',
+        grant_currency: 'GBP',
+        option_price_paid: null,
+        scheme_start_date: null,
+        scheme_duration_months: null,
+        vesting_type: '',
+        cliff_date: null,
+        cliff_percentage: null,
+        vesting_period_months: null,
+        vesting_frequency_months: null,
+        has_performance_conditions: false,
+        performance_conditions_description: '',
+        performance_period_end: null,
+        performance_vesting_min_percent: null,
+        performance_vesting_max_percent: null,
+        full_vest_date: null,
+        accelerated_vesting_allowed: false,
+        units_vested: 0,
+        units_unvested: 0,
+        units_exercised: 0,
+        units_forfeited: 0,
+        units_expired: 0,
+        scheme_status: 'active',
+        current_share_price: null,
+        share_price_date: null,
+        exercise_window_start: null,
+        exercise_window_end: null,
+        last_exercise_date: null,
+        total_exercise_proceeds: null,
+        total_exercise_cost: null,
+        tax_treatment: '',
+        is_readily_convertible_asset: null,
+        paye_via_payroll: true,
+        income_tax_at_vest_exercise: null,
+        ni_at_vest_exercise: null,
+        csop_disqualifying_event: false,
+        csop_three_year_date: null,
+        cost_basis_for_cgt: null,
+        saye_monthly_savings: null,
+        saye_current_savings_balance: null,
+        saye_maturity_date: null,
+        saye_option_discount_percent: null,
+        saye_bonus_amount: null,
+        leaver_category: '',
+        post_termination_exercise_days: null,
+        termination_date: null,
+        leaver_notes: '',
       };
       this.errors = {};
       this.feePercentageWarning = false;

@@ -86,7 +86,7 @@
                 </span>
               </div>
               <div class="card-content">
-                <h4 class="account-provider">{{ account.provider }}</h4>
+                <h4 class="account-provider">{{ getAccountDisplayName(account) }}</h4>
                 <p class="account-name-text">{{ account.account_name }}</p>
                 <div class="account-details">
                   <!-- Joint account display -->
@@ -544,11 +544,33 @@ export default {
         'nsi': 'NS&I',
         'onshore_bond': 'Onshore Bond',
         'offshore_bond': 'Offshore Bond',
-        'vct': 'Venture Capital Trust',
-        'eis': 'Enterprise Scheme',
+        'vct': 'VCT',
+        'eis': 'EIS',
+        'private_company': 'Private Co',
+        'crowdfunding': 'Crowdfunding',
+        'saye': 'SAYE',
+        'csop': 'CSOP',
+        'emi': 'EMI',
+        'unapproved_options': 'Options',
+        'rsu': 'RSUs',
         'other': 'Other',
       };
       return types[type] || type;
+    },
+
+    getAccountDisplayName(account) {
+      // For employee share schemes, show employer name
+      const employeeShareSchemes = ['saye', 'csop', 'emi', 'unapproved_options', 'rsu'];
+      if (employeeShareSchemes.includes(account.account_type)) {
+        return account.employer_name || account.provider || 'Unnamed Scheme';
+      }
+      // For private investments, show company trading name or legal name
+      const privateTypes = ['private_company', 'crowdfunding'];
+      if (privateTypes.includes(account.account_type)) {
+        return account.company_trading_name || account.company_legal_name || account.provider || 'Unnamed Investment';
+      }
+      // For regular investments, show provider
+      return account.provider || 'Unnamed Account';
     },
 
     formatOwnershipType(type) {
@@ -580,6 +602,13 @@ export default {
         offshore_bond: 'badge-bond',
         vct: 'badge-vct',
         eis: 'badge-vct',
+        private_company: 'badge-alternative',
+        crowdfunding: 'badge-alternative',
+        saye: 'badge-employee',
+        csop: 'badge-employee',
+        emi: 'badge-employee',
+        unapproved_options: 'badge-employee',
+        rsu: 'badge-employee',
         other: 'badge-other',
       };
       return classes[type] || 'badge-other';
@@ -961,6 +990,16 @@ export default {
 .badge-other {
   @apply bg-gray-100;
   @apply text-gray-700;
+}
+
+.badge-alternative {
+  @apply bg-rose-100;
+  @apply text-rose-800;
+}
+
+.badge-employee {
+  @apply bg-teal-100;
+  @apply text-teal-800;
 }
 
 .card-content {

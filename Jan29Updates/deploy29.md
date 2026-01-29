@@ -137,9 +137,205 @@ resources/js/components/Investment/AccountForm.vue
 
 ---
 
+## Validation Fix - Private Investments & Employee Share Schemes
+
+**Branch:** investUpdate
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Fixed validation errors when creating Private Company, Crowdfunding, and Employee Share Scheme accounts. Two issues fixed:
+
+1. **Backend:** The `current_value` field was required for all account types, but these new account types don't display that field in the form.
+2. **Frontend:** The `provider` field validation was required unconditionally, but this field is hidden for private investments and employee share schemes.
+
+### Changes Made
+
+| Change | Description |
+|--------|-------------|
+| `current_value` validation (backend) | Changed from `required` to `required_unless` for private investments and employee share schemes |
+| `provider` validation (frontend) | Added conditional validation - only required when not a private investment or employee share scheme |
+
+### Files Changed (2 files)
+
+**Backend:**
+```text
+app/Http/Controllers/Api/InvestmentController.php
+```
+
+**Frontend:**
+```text
+resources/js/components/Investment/AccountForm.vue
+```
+
+---
+
+## Employee Share Scheme Tracking
+
+**Branch:** investUpdate
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Added comprehensive UK employee share scheme tracking to the Investment module with support for 5 scheme types: SAYE (Sharesave), CSOP (Company Share Option Plan), EMI (Enterprise Management Incentives), Unapproved Options, and RSUs (Restricted Stock Units).
+
+### New Account Types
+
+| Type | Description | Tax Treatment |
+|------|-------------|---------------|
+| `saye` | SAYE / Sharesave | Tax-advantaged (no IT/NIC on exercise) |
+| `csop` | Company Share Option Plan | Tax-advantaged (3-10 year window) |
+| `emi` | Enterprise Management Incentives | Tax-advantaged (startup options) |
+| `unapproved_options` | Non-tax-advantaged Options | IT/NIC on exercise gain |
+| `rsu` | RSUs (Restricted Stock Units) | IT/NIC at vesting |
+
+### Changes Made
+
+| Change | Description |
+|--------|-------------|
+| 5 new account types | SAYE, CSOP, EMI, Unapproved Options, RSU added to account type dropdown |
+| Employer details section | Employer name, registration, ticker, listed status, parent company, ERS reference |
+| Grant details section | Grant date, reference, units granted, exercise price, market value at grant |
+| SAYE-specific section | Monthly savings (max £500), savings balance, contract duration (3/5 years), maturity date |
+| Vesting schedule section | Vesting type (cliff/monthly/quarterly/annual/performance), dates, performance conditions |
+| Current status section | Units vested/unvested/exercised/forfeited/expired, scheme status, current share price |
+| Exercise & expiry section | Exercise window dates, proceeds, cost (options only) |
+| Tax treatment section | Tax-advantaged/unapproved, RCA status, PAYE via payroll, CSOP 3-year date |
+| Leaver terms section | Leaver category, post-termination exercise period, termination date |
+| Auto-calculated fields | CSOP 3-year date, SAYE maturity date, intrinsic value, unvested value |
+| Model helper methods | `isEmployeeShareScheme()`, `isOptionsScheme()`, `isTaxAdvantagedScheme()`, `isInCsopTaxAdvantageWindow()` |
+
+### Database Migration
+
+New migration: `2026_01_29_140000_add_employee_share_scheme_fields_to_investment_accounts_table.php`
+
+Adds 61 new columns to `investment_accounts` table organised into 8 groups:
+- Group 1: Employer Details (8 columns)
+- Group 2: Grant Details (10 columns)
+- Group 3: Vesting Schedule (12 columns)
+- Group 4: Current Status (8 columns)
+- Group 5: Exercise & Expiry (6 columns)
+- Group 6: Tax Treatment (8 columns)
+- Group 7: SAYE-Specific (5 columns)
+- Group 8: Leaver Terms (4 columns)
+
+### Files Changed (4 files)
+
+**Database:**
+```text
+database/migrations/2026_01_29_140000_add_employee_share_scheme_fields_to_investment_accounts_table.php
+```
+
+**Backend:**
+```text
+app/Models/Investment/InvestmentAccount.php
+app/Http/Controllers/Api/InvestmentController.php
+```
+
+**Frontend:**
+```text
+resources/js/components/Investment/AccountForm.vue
+resources/js/components/NetWorth/InvestmentList.vue
+```
+
+---
+
+## Form UI Improvements
+
+**Branch:** investUpdate
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Added red asterisks (*) to all required fields in investment account forms, and updated the investment dashboard cards to display company/employer names for new account types.
+
+### Changes Made
+
+| Change | Description |
+|--------|-------------|
+| Required field asterisks | Added red asterisks to: Account Type, Specify Account Type (other), Provider, Current Value |
+| Hide fields for new types | Current Value field now hidden for private investments and employee share schemes |
+| Dashboard card display | Cards now show company name (private investments) or employer name (share schemes) instead of provider |
+| Value display | Cards show "Latest Valuation" or "Intrinsic Value" with appropriate calculated values |
+| Hide risk badge | Risk badge hidden for VCT, EIS, Private Company, Crowdfunding, SAYE, CSOP, EMI, Unapproved Options, RSUs, Other |
+| Rose badge | Private Company and Crowdfunding use rose-colored badge |
+| Teal badge | Employee share schemes (SAYE, CSOP, EMI, Unapproved, RSUs) use teal-colored badge |
+| Slate badge | "Other" account type uses slate instead of gray |
+
+### Files Changed (2 files)
+
+**Frontend:**
+```text
+resources/js/components/Investment/AccountForm.vue
+resources/js/components/NetWorth/InvestmentList.vue
+```
+
+---
+
+## Amber → Orange Color Replacement
+
+**Branch:** investUpdate
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Replaced all instances of the amber color (`amber-*`) with orange (`orange-*`) throughout the entire application. This includes Tailwind CSS classes, hex color codes, and status level names.
+
+### Changes Made
+
+| Change | Description |
+|--------|-------------|
+| CSS files | Updated `app.css` and `badges.css` to use orange classes |
+| Tailwind config | Updated safelist and warning colors to use orange |
+| Vue components | Replaced amber with orange in 140+ component files |
+| Vue views | Updated 13 view files |
+| PHP services | Updated `RiskPreferenceService`, `GoalProgressAnalyzer`, `AdequacyScorer` |
+| JS services | Updated `riskService.js` |
+| Test files | Updated 14 test files |
+| Agent configs | Updated `premium-ui-designer.md` |
+| Design docs | Updated `designStyle.md` and `CLAUDE.md` |
+
+### Color Mapping
+
+| Old (Amber) | New (Orange) |
+|-------------|--------------|
+| `amber-50` | `orange-50` |
+| `amber-100` | `orange-100` |
+| `amber-200` | `orange-200` |
+| `amber-500` | `orange-500` |
+| `amber-600` | `orange-600` |
+| `amber-700` | `orange-700` |
+| `amber-800` | `orange-800` |
+| `#F59E0B` | `#F97316` |
+| `#D97706` | `#EA580C` |
+
+### Files Changed (150+ files)
+
+Key files include:
+```text
+resources/css/app.css
+resources/css/badges.css
+tailwind.config.js
+resources/js/services/riskService.js
+app/Services/Risk/RiskPreferenceService.php
+app/Services/Investment/Goals/GoalProgressAnalyzer.php
+app/Services/Protection/AdequacyScorer.php
+.claude/agents/premium-ui-designer.md
+designStyle.md
+CLAUDE.md
+```
+
+Plus 140+ Vue component and view files, and 14 test files.
+
+---
+
 ## Rebuild Required: YES
 
-Frontend Vue components changed. Full rebuild required.
+Frontend Vue components changed. Full rebuild required:
 
 ```bash
 ./deploy/fynla-org/build.sh
@@ -164,7 +360,15 @@ Upload the entire `public/build/` directory to:
 ~/www/fynla.org/public_html/public/build/
 ```
 
-### Step 3: Clear Cache (SSH)
+### Step 3: Upload PHP Files
+
+Upload the updated controller:
+
+```text
+app/Http/Controllers/Api/InvestmentController.php
+```
+
+### Step 4: Clear Cache (SSH)
 
 ```bash
 ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
@@ -256,6 +460,53 @@ After deployment, verify:
     - Verify Exit Type, Date, Gross Proceeds, Fees, Net Proceeds fields
     - Verify Loss Relief Eligible and Negligible Value Claim checkboxes
 
+12. **SAYE / Sharesave** (Investment module):
+    - Click "Add Account" and select "SAYE / Sharesave"
+    - Verify Provider, Country, Platform fields are hidden
+    - Verify Employer Details section with Name (required), Registration, Ticker, Listed checkbox
+    - Verify Grant Details section with Date (required), Reference, Units Granted (required), Exercise Price (required)
+    - Verify SAYE Savings Details section (green box) with Monthly Savings (max £500), Balance, Contract Duration (3/5 years)
+    - Verify Vesting Schedule section
+    - Verify Current Status section with vested/unvested/exercised counts, share price
+    - Set scheme_start_date and scheme_duration_months, verify saye_maturity_date auto-calculates
+    - Enter current share price and verify intrinsic value displays
+
+13. **CSOP** (Investment module):
+    - Click "Add Account" and select "CSOP (Company Share Option Plan)"
+    - Verify all employee share scheme sections appear (no SAYE-specific green box)
+    - Verify Tax Treatment section shows CSOP-specific fields
+    - Enter grant_date and verify csop_three_year_date auto-calculates (grant + 3 years)
+    - Verify yellow info box explaining 3-10 year tax advantage window
+
+14. **EMI** (Investment module):
+    - Click "Add Account" and select "EMI (Enterprise Management Incentives)"
+    - Verify tax_treatment defaults to "Tax Advantaged"
+    - Verify all option scheme sections appear
+
+15. **Unapproved Options** (Investment module):
+    - Click "Add Account" and select "Unapproved Share Options"
+    - Verify tax_treatment defaults to "Unapproved"
+    - Verify all option scheme sections appear
+
+16. **RSUs** (Investment module):
+    - Click "Add Account" and select "RSUs (Restricted Stock Units)"
+    - Verify Exercise Price field is NOT shown (RSUs don't have exercise price)
+    - Verify Exercise & Expiry section is NOT shown (RSUs vest directly)
+    - Verify tax_treatment defaults to "Unapproved"
+
+17. **Performance Vesting** (Investment module):
+    - Edit any employee share scheme
+    - Check "Has performance conditions" checkbox
+    - Verify Performance Conditions textarea appears
+    - Verify Performance Period End date field appears
+    - Verify Min/Max Vesting % fields appear
+
+18. **Leaver Terms** (Investment module):
+    - Edit any employee share scheme
+    - Select a Leaver Category (e.g., "Good Leaver")
+    - Verify Termination Date field appears
+    - Verify Leaver Notes textarea appears
+
 ---
 
 ## Rollback
@@ -264,9 +515,13 @@ If issues occur:
 
 1. Restore previous `public/build/` directory from backup
 2. Restore previous PHP files from backup
-3. If database migration was run, rollback with:
+3. If database migrations were run, rollback with:
    ```bash
+   # Rollback Employee Share Scheme migration (61 columns)
    php artisan migrate:rollback --step=1
+
+   # If also rolling back Private Company migration (40 columns)
+   php artisan migrate:rollback --step=2
    ```
 
 ---

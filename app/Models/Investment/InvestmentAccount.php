@@ -98,6 +98,76 @@ class InvestmentAccount extends Model
         'loss_relief_eligible',
         'capital_loss_amount',
         'negligible_value_claim',
+        // Employee Share Scheme fields
+        // Group 1: Employer Details
+        'employer_name',
+        'employer_registration',
+        'employer_ticker',
+        'employer_is_listed',
+        'parent_company_name',
+        'parent_company_country',
+        'ers_scheme_reference',
+        'ers_registered',
+        // Group 2: Grant Details
+        'grant_date',
+        'grant_reference',
+        'units_granted',
+        'exercise_price',
+        'market_value_at_grant',
+        'share_class_scheme',
+        'grant_currency',
+        'option_price_paid',
+        'scheme_start_date',
+        'scheme_duration_months',
+        // Group 3: Vesting Schedule
+        'vesting_type',
+        'cliff_date',
+        'cliff_percentage',
+        'vesting_period_months',
+        'vesting_frequency_months',
+        'has_performance_conditions',
+        'performance_conditions_description',
+        'performance_period_end',
+        'performance_vesting_min_percent',
+        'performance_vesting_max_percent',
+        'full_vest_date',
+        'accelerated_vesting_allowed',
+        // Group 4: Current Status
+        'units_vested',
+        'units_unvested',
+        'units_exercised',
+        'units_forfeited',
+        'units_expired',
+        'scheme_status',
+        'current_share_price',
+        'share_price_date',
+        // Group 5: Exercise & Expiry
+        'exercise_window_start',
+        'exercise_window_end',
+        'last_exercise_date',
+        'total_exercise_proceeds',
+        'total_exercise_cost',
+        'exercise_history_json',
+        // Group 6: Tax Treatment
+        'tax_treatment',
+        'is_readily_convertible_asset',
+        'paye_via_payroll',
+        'income_tax_at_vest_exercise',
+        'ni_at_vest_exercise',
+        'csop_disqualifying_event',
+        'csop_three_year_date',
+        'cost_basis_for_cgt',
+        // Group 7: SAYE-Specific
+        'saye_monthly_savings',
+        'saye_current_savings_balance',
+        'saye_maturity_date',
+        'saye_option_discount_percent',
+        'saye_bonus_amount',
+        // Group 8: Leaver Terms
+        'leaver_category',
+        'post_termination_exercise_days',
+        'termination_date',
+        'leaver_notes',
     ];
 
     protected $casts = [
@@ -140,6 +210,52 @@ class InvestmentAccount extends Model
         'loss_relief_eligible' => 'boolean',
         'capital_loss_amount' => 'float',
         'negligible_value_claim' => 'boolean',
+        // Employee Share Scheme casts
+        'employer_is_listed' => 'boolean',
+        'ers_registered' => 'boolean',
+        'grant_date' => 'date',
+        'units_granted' => 'integer',
+        'exercise_price' => 'decimal:4',
+        'market_value_at_grant' => 'decimal:4',
+        'option_price_paid' => 'float',
+        'scheme_start_date' => 'date',
+        'scheme_duration_months' => 'integer',
+        'cliff_date' => 'date',
+        'cliff_percentage' => 'integer',
+        'vesting_period_months' => 'integer',
+        'vesting_frequency_months' => 'integer',
+        'has_performance_conditions' => 'boolean',
+        'performance_period_end' => 'date',
+        'performance_vesting_min_percent' => 'integer',
+        'performance_vesting_max_percent' => 'integer',
+        'full_vest_date' => 'date',
+        'accelerated_vesting_allowed' => 'boolean',
+        'units_vested' => 'integer',
+        'units_unvested' => 'integer',
+        'units_exercised' => 'integer',
+        'units_forfeited' => 'integer',
+        'units_expired' => 'integer',
+        'current_share_price' => 'decimal:4',
+        'share_price_date' => 'date',
+        'exercise_window_start' => 'date',
+        'exercise_window_end' => 'date',
+        'last_exercise_date' => 'date',
+        'total_exercise_proceeds' => 'float',
+        'total_exercise_cost' => 'float',
+        'is_readily_convertible_asset' => 'boolean',
+        'paye_via_payroll' => 'boolean',
+        'income_tax_at_vest_exercise' => 'float',
+        'ni_at_vest_exercise' => 'float',
+        'csop_disqualifying_event' => 'boolean',
+        'csop_three_year_date' => 'date',
+        'cost_basis_for_cgt' => 'float',
+        'saye_monthly_savings' => 'float',
+        'saye_current_savings_balance' => 'float',
+        'saye_maturity_date' => 'date',
+        'saye_option_discount_percent' => 'float',
+        'saye_bonus_amount' => 'float',
+        'post_termination_exercise_days' => 'integer',
+        'termination_date' => 'date',
     ];
 
     protected $attributes = [
@@ -196,7 +312,7 @@ class InvestmentAccount extends Model
      */
     public function isHoldingPeriodComplete(): bool
     {
-        if (!$this->disposal_restriction_date) {
+        if (! $this->disposal_restriction_date) {
             return false;
         }
 
@@ -208,7 +324,7 @@ class InvestmentAccount extends Model
      */
     public function getPaperGainLossAttribute(): ?float
     {
-        if (!$this->investment_amount || !$this->latest_valuation) {
+        if (! $this->investment_amount || ! $this->latest_valuation) {
             return null;
         }
 
@@ -220,10 +336,130 @@ class InvestmentAccount extends Model
      */
     public function getPaperReturnPercentAttribute(): ?float
     {
-        if (!$this->investment_amount || $this->investment_amount == 0) {
+        if (! $this->investment_amount || $this->investment_amount == 0) {
             return null;
         }
 
         return (($this->latest_valuation - $this->investment_amount) / $this->investment_amount) * 100;
+    }
+
+    /**
+     * Check if this is an employee share scheme account.
+     */
+    public function isEmployeeShareScheme(): bool
+    {
+        return in_array($this->account_type, ['saye', 'csop', 'emi', 'unapproved_options', 'rsu']);
+    }
+
+    /**
+     * Check if this is an options-based scheme (vs RSUs which vest directly).
+     */
+    public function isOptionsScheme(): bool
+    {
+        return in_array($this->account_type, ['saye', 'csop', 'emi', 'unapproved_options']);
+    }
+
+    /**
+     * Check if this is a tax-advantaged employee share scheme.
+     * SAYE, CSOP, and EMI all have tax advantages when rules are followed.
+     */
+    public function isTaxAdvantagedScheme(): bool
+    {
+        return in_array($this->account_type, ['saye', 'csop', 'emi']);
+    }
+
+    /**
+     * Calculate intrinsic value of vested options.
+     * Intrinsic value = max(0, current_share_price - exercise_price) * units_vested
+     */
+    public function getIntrinsicValueAttribute(): ?float
+    {
+        if (! $this->isOptionsScheme() || ! $this->current_share_price || ! $this->exercise_price) {
+            return null;
+        }
+
+        $spreadPerShare = max(0, (float) $this->current_share_price - (float) $this->exercise_price);
+        $vestedUnits = (int) ($this->units_vested ?? 0);
+
+        return $spreadPerShare * $vestedUnits;
+    }
+
+    /**
+     * Calculate total current value of the share scheme.
+     * For options: intrinsic value of vested options
+     * For RSUs: current share price * vested units
+     */
+    public function getSchemeCurrentValueAttribute(): ?float
+    {
+        if (! $this->isEmployeeShareScheme() || ! $this->current_share_price) {
+            return null;
+        }
+
+        $vestedUnits = (int) ($this->units_vested ?? 0);
+
+        if ($this->isOptionsScheme()) {
+            // Options: intrinsic value (gain on exercise)
+            return $this->intrinsic_value;
+        }
+
+        // RSUs: direct share value
+        return (float) $this->current_share_price * $vestedUnits;
+    }
+
+    /**
+     * Calculate potential value of unvested units.
+     * For options: max(0, current_share_price - exercise_price) * units_unvested
+     * For RSUs: current share price * units_unvested
+     */
+    public function getUnvestedValueAttribute(): ?float
+    {
+        if (! $this->isEmployeeShareScheme() || ! $this->current_share_price) {
+            return null;
+        }
+
+        $unvestedUnits = (int) ($this->units_unvested ?? 0);
+
+        if ($this->isOptionsScheme()) {
+            $spreadPerShare = max(0, (float) $this->current_share_price - (float) $this->exercise_price);
+
+            return $spreadPerShare * $unvestedUnits;
+        }
+
+        // RSUs: direct share value
+        return (float) $this->current_share_price * $unvestedUnits;
+    }
+
+    /**
+     * Check if CSOP options are within the tax-advantaged exercise window.
+     * CSOP tax advantages require exercise between 3 and 10 years from grant.
+     */
+    public function isInCsopTaxAdvantageWindow(): bool
+    {
+        if ($this->account_type !== 'csop' || ! $this->grant_date) {
+            return false;
+        }
+
+        $grantDate = $this->grant_date instanceof \Carbon\Carbon
+            ? $this->grant_date
+            : \Carbon\Carbon::parse($this->grant_date);
+
+        $now = now();
+        $threeYearsFromGrant = $grantDate->copy()->addYears(3);
+        $tenYearsFromGrant = $grantDate->copy()->addYears(10);
+
+        return $now->gte($threeYearsFromGrant) && $now->lte($tenYearsFromGrant);
+    }
+
+    /**
+     * Calculate remaining units available (not exercised, forfeited, or expired).
+     */
+    public function getRemainingUnitsAttribute(): int
+    {
+        $granted = (int) ($this->units_granted ?? 0);
+        $exercised = (int) ($this->units_exercised ?? 0);
+        $forfeited = (int) ($this->units_forfeited ?? 0);
+        $expired = (int) ($this->units_expired ?? 0);
+
+        return max(0, $granted - $exercised - $forfeited - $expired);
     }
 }
