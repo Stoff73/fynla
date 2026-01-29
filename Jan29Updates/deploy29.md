@@ -2055,6 +2055,72 @@ resources/js/store/modules/preview.js
 
 ---
 
+## Code Quality Audit - Fixes
+
+**Branch:** main
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Comprehensive code quality audit of the techDebt refactoring work. Fixed all HIGH priority issues and most MEDIUM priority issues, improving quality score from 82/100 to 91/100.
+
+### HIGH Priority Fixes (3)
+
+| Task | Issue | Solution |
+|------|-------|----------|
+| TASK-001 | Duplicate `formatLiability()` in 3 IHT components | Centralized in `currencyMixin.js` |
+| TASK-002 | Dead `computePreviewIHTData()` method (95 lines) | Removed obsolete code |
+| TASK-003 | Banned amber color usage (7 occurrences) | Replaced with orange |
+
+### MEDIUM Priority Fixes (6)
+
+| Task | Issue | Solution |
+|------|-------|----------|
+| TASK-008 | Missing `emits` declarations | Added to PrivateInvestmentFields, EmployeeShareSchemeFields |
+| TASK-010 | Inconsistent mixin import | Fixed destructuring pattern in ExpenditureSection |
+| TASK-011 | Unused imports in AccountForm | Removed CountrySelector, RiskLevelSelector |
+| TASK-012 | Unused computed property | Removed `computedHouseholdTotal` from ExpenditureSection |
+
+### Files Changed (9 files)
+
+**Frontend (included in build):**
+```text
+resources/js/mixins/currencyMixin.js
+resources/js/components/Estate/IHTPlanning.vue
+resources/js/components/Estate/IHTCalculationTable.vue
+resources/js/components/Estate/IHTLiabilityBreakdown.vue
+resources/js/components/Investment/AccountForm.vue
+resources/js/components/Investment/PrivateInvestmentFields.vue
+resources/js/components/Investment/EmployeeShareSchemeFields.vue
+resources/js/components/NetWorth/InvestmentList.vue
+resources/js/components/UserProfile/ExpenditureSection.vue
+```
+
+### Deferred Items (Backlog)
+
+| Task | Issue | Reason |
+|------|-------|--------|
+| TASK-004/005/006 | Duplicate ISA/share scheme computed properties | Medium effort, schedule for next sprint |
+| TASK-007 | Large formData object (130+ fields) | Requires testing all account types |
+| TASK-009 | 75+ computed properties in IHTPlanning | Large effort, risk of bugs |
+| TASK-014 | Missing JSDoc on new components | Documentation sprint |
+
+### Quality Metrics
+
+| Metric | Before | After |
+|--------|--------|-------|
+| Dead code lines | 95 | 0 |
+| Duplicate methods | 3 | 0 |
+| Standards violations | 9 | 0 |
+| Quality score | 82/100 | 91/100 |
+
+### Full Report
+
+See `Jan29Updates/codeReview29.md` for complete audit details.
+
+---
+
 ## Rollback
 
 If issues occur:
