@@ -690,7 +690,16 @@ Renamed the young_saver persona from "Alex Morgan" to "John Morgan" to avoid con
 | alex.morgan@example.com | john.morgan@example.com |
 | Alex's Current Account | John's Current Account |
 
-### Files Changed (4 files)
+### Seeder Update
+
+The PreviewUserSeeder was also updated to **delete and recreate** existing preview users instead of skipping them. This ensures persona data changes are reflected in the database when re-seeding.
+
+After deployment, run:
+```bash
+php artisan db:seed --class=PreviewUserSeeder --force
+```
+
+### Files Changed (5 files)
 
 **Frontend (included in build):**
 ```text
@@ -702,6 +711,7 @@ resources/js/views/Version.vue
 **Backend (upload separately):**
 ```text
 app/Http/Controllers/Api/PreviewController.php
+database/seeders/PreviewUserSeeder.php
 ```
 
 ---
@@ -737,6 +747,43 @@ For single users (no spouse), the "Total/Household" column in the expenditure fo
 **Frontend (included in build):**
 ```text
 resources/js/components/UserProfile/ExpenditureForm.vue
+```
+
+---
+
+## Preview Banner - Missing Persona Colors
+
+**Branch:** genBits
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Added missing persona colors to the preview banner. Previously only 4 of 6 personas had color mappings, causing young_saver and retired_couple to fall back to orange.
+
+### Before
+
+- young_saver showed orange banner (same as entrepreneur)
+- retired_couple showed orange banner (same as entrepreneur)
+
+### After
+
+Each persona now has a unique banner color:
+
+| Persona | Color |
+|---------|-------|
+| young_family | Blue |
+| peak_earners | Green |
+| widow | Purple |
+| entrepreneur | Orange |
+| young_saver | Cyan |
+| retired_couple | Rose |
+
+### Files Changed (1 file)
+
+**Frontend (included in build):**
+```text
+resources/js/components/Preview/PreviewBanner.vue
 ```
 
 ---
@@ -786,9 +833,16 @@ Upload the updated PHP files:
 ```text
 app/Http/Controllers/Api/InvestmentController.php
 app/Services/Risk/RiskPreferenceService.php
+database/seeders/PreviewUserSeeder.php
 ```
 
-### Step 5: Clear Cache (SSH)
+### Step 5: Re-seed Preview Users
+
+```bash
+php artisan db:seed --class=PreviewUserSeeder --force
+```
+
+### Step 6: Clear Cache (SSH)
 
 ```bash
 ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
