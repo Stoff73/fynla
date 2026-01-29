@@ -2005,6 +2005,56 @@ resources/js/components/Shared/RiskBadge.vue
 
 ---
 
+## Preview Persona Data - Consolidation
+
+**Branch:** techDebt
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Consolidated all preview persona metadata into JSON files as the single source of truth. Previously persona metadata (name, tagline, description) was duplicated in both the JSON files and `preview.js` Vuex store module.
+
+### Changes Made
+
+**Added to persona JSON files (6 files):**
+
+| Field | Description |
+|-------|-------------|
+| `netWorthRange` | Net worth range string (e.g., "£80k - £120k") |
+| `focus` | Primary planning focus areas (e.g., "Protection gaps, emergency fund") |
+
+**Updated preview.js:**
+
+| Change | Description |
+|--------|-------------|
+| Removed `PERSONA_METADATA` | Eliminated ~50 lines of duplicate name/tagline/description data |
+| Added `PERSONA_ORDER` array | Controls display order in persona selector UI |
+| Added `getPersonaMetadata()` | Helper function to derive metadata from imported JSON data |
+| Updated getters | `currentPersona` and `availablePersonas` now use helper function |
+
+### Files Changed (7 files)
+
+**Frontend (included in build):**
+```text
+resources/js/data/personas/young_family.json
+resources/js/data/personas/peak_earners.json
+resources/js/data/personas/widow.json
+resources/js/data/personas/entrepreneur.json
+resources/js/data/personas/young_saver.json
+resources/js/data/personas/retired_couple.json
+resources/js/store/modules/preview.js
+```
+
+### Benefits
+
+- JSON files are now the single source of truth for ALL persona data
+- No more duplicate name/tagline/description between JSON and preview.js
+- Future persona changes only need to update JSON files
+- PHP seeder already reads from JSON (no backend changes needed)
+
+---
+
 ## Rollback
 
 If issues occur:

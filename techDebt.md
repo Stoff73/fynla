@@ -18,24 +18,34 @@ This file tracks technical debt items that should be addressed in future develop
 
 ## Low Priority
 
-### 5. Preview Persona Data - JSON Files
-
-**Files:** `resources/js/data/personas/*.json`
-
-**Issue:** Persona data is duplicated between JSON files (for frontend preview) and PHP seeders (for database). Changes must be made in both places.
-
-**Recommended Fix:**
-- Single source of truth for persona data
-- Either generate JSON from PHP or vice versa
-- Consider a build step to sync data
-
-**Estimated Effort:** 3-4 hours
-
-**Date Added:** 2026-01-29
+*No low priority items at this time.*
 
 ---
 
 ## Completed
+
+### 5. Preview Persona Data - Consolidated ✅
+
+**Resolved:** 2026-01-29
+
+**Resolution:** The JSON files were already the single source of truth for the PHP seeder (PreviewUserSeeder reads from JSON). The duplication was in `preview.js` which had a separate `PERSONA_METADATA` object.
+
+**Changes Made:**
+- Added `netWorthRange` and `focus` fields to all 6 persona JSON files
+- Removed duplicate `PERSONA_METADATA` from preview.js
+- Created `getPersonaMetadata()` helper to derive metadata from imported JSON
+- Added `PERSONA_ORDER` array to control display order in selector
+
+**Files Changed:**
+- `resources/js/data/personas/*.json` (6 files) - Added netWorthRange and focus
+- `resources/js/store/modules/preview.js` - Removed duplicate metadata
+
+**Results:**
+- JSON files are now the single source of truth for ALL persona data
+- No more duplicate name/tagline/description between JSON and preview.js
+- Future persona changes only need to update JSON files
+
+---
 
 ### 4. Risk Color Constants - Consolidated ✅
 
