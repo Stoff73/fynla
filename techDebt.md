@@ -6,34 +6,7 @@ This file tracks technical debt items that should be addressed in future develop
 
 ## High Priority
 
-### 1. IHTPlanning.vue - Duplicate Tables
-
-**File:** `resources/js/components/Estate/IHTPlanning.vue`
-
-**Lines:** ~2500 lines total
-
-**Issue:** The component contains two nearly identical IHT calculation tables:
-- Table 1 (lines 324-1101): For married users WITH spouse data linked
-- Table 2 (lines 1130-1898): For non-married users OR married without spouse link
-
-Each table is ~770 lines, meaning ~1500 lines of near-duplicate code.
-
-**Impact:**
-- Maintenance burden: Changes must be made in two places (easy to miss one)
-- Bug risk: Inconsistent updates between tables (as seen with color changes)
-- File size: Component is difficult to navigate and understand
-- Build size: Unnecessary code duplication
-
-**Recommended Fix:**
-Extract the table into a reusable `IHTCalculationTable.vue` component that accepts props for:
-- `data` - The calculation data (either secondDeathData or ihtData)
-- `isMarried` - Boolean for married-specific rendering
-- `hasSpouseLink` - Boolean for spouse link status
-- `projections` - Projection data object
-
-**Estimated Effort:** 4-6 hours
-
-**Date Added:** 2026-01-29
+*No high priority items at this time.*
 
 ---
 
@@ -114,7 +87,27 @@ Extract the table into a reusable `IHTCalculationTable.vue` component that accep
 
 ## Completed
 
-*Move items here when resolved, with date and brief resolution notes.*
+### 1. IHTPlanning.vue - Duplicate Tables ✅
+
+**Resolved:** 2026-01-29
+
+**Resolution:** Extracted the duplicate IHT calculation tables into three reusable components:
+- `IHTCalculationTable.vue` (~550 lines) - Main table component with all calculation rows
+- `IHTAssetBreakdown.vue` (~213 lines) - Expandable asset section for user/spouse
+- `IHTLiabilityBreakdown.vue` (~213 lines) - Expandable liability section for user/spouse
+
+**Results:**
+- IHTPlanning.vue reduced from ~3,146 to 1,558 lines (50% reduction)
+- Eliminated ~787 lines × 2 of duplicate table code
+- Single source of truth for IHT table rendering
+- Both married/non-married scenarios now use the same component with normalized props
+
+**Files Created:**
+- `resources/js/components/Estate/IHTCalculationTable.vue`
+- `resources/js/components/Estate/IHTAssetBreakdown.vue`
+- `resources/js/components/Estate/IHTLiabilityBreakdown.vue`
+
+---
 
 ---
 

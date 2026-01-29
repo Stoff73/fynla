@@ -119,148 +119,311 @@
           <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-bold text-gray-900">{{ formatCurrency(totals.netEstate.plus5) }}</td>
         </tr>
 
-        <!-- Allowances Section -->
-        <template v-if="showSpouse">
-          <!-- Married couple - show both NRB allowances -->
-          <template v-if="allowances.showSeparateSpouseAllowances">
-            <tr>
-              <td class="px-4 py-3 text-sm font-semibold text-gray-700">Less: Tax-Free Allowance (Individual)</td>
-              <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(allowances.nrb) }}</td>
-              <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(allowances.nrb) }}</td>
-              <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(allowances.nrb) }}</td>
-              <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(allowances.nrb) }}</td>
-            </tr>
-            <tr v-if="allowances.nrbFromSpouse > 0">
-              <td class="px-4 py-3 text-sm font-semibold text-gray-700">
-                Less: Tax-Free Allowance from Spouse
-                <span v-if="!hasSpouseLinked" class="ml-2 text-xs text-gray-600 font-normal">(Default - verify by linking spouse)</span>
+        <!-- ============================================== -->
+        <!-- CHARITABLE BEQUEST OFF: Combined Allowances   -->
+        <!-- ============================================== -->
+        <template v-if="!charitableBequest">
+          <!-- Allowances Section Header (Collapsible) -->
+          <tr class="bg-white border-l-4 border-gray-400 cursor-pointer hover:bg-gray-50 select-none" @click="toggleAllowances">
+            <td class="px-4 py-3 text-sm font-semibold text-gray-900">
+              <span class="inline-flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-gray-400 transition-transform mr-1" :class="{ 'rotate-90': expandedAllowances }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+                Less: Tax-Free Allowances
+              </span>
+            </td>
+            <td class="px-4 py-3 text-sm text-right font-semibold text-gray-900">-{{ formatCurrency(totalAllowances) }}</td>
+            <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-semibold text-gray-900">-{{ formatCurrency(totalAllowances) }}</td>
+            <td class="px-4 py-3 text-sm text-right font-semibold text-gray-900">-{{ formatCurrency(totalAllowances) }}</td>
+            <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-semibold text-gray-900">-{{ formatCurrency(totalAllowances) }}</td>
+          </tr>
+
+          <!-- Allowances Detail (Expanded) - Combined NRB + RNRB -->
+          <template v-if="expandedAllowances">
+            <!-- NRB Allowances -->
+            <template v-if="showSpouse">
+              <template v-if="allowances.showSeparateSpouseAllowances">
+                <tr class="bg-gray-50">
+                  <td class="px-4 py-2 text-sm text-gray-700 pl-8">Tax-Free Allowance (Individual)</td>
+                  <td class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.nrb) }}</td>
+                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.nrb) }}</td>
+                  <td class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.nrb) }}</td>
+                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.nrb) }}</td>
+                </tr>
+                <tr v-if="allowances.nrbFromSpouse > 0" class="bg-gray-50">
+                  <td class="px-4 py-2 text-sm text-gray-700 pl-8">
+                    Tax-Free Allowance from Spouse
+                    <span v-if="!hasSpouseLinked" class="ml-2 text-xs text-gray-500 font-normal">(Default)</span>
+                  </td>
+                  <td class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.nrbFromSpouse) }}</td>
+                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.nrbFromSpouse) }}</td>
+                  <td class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.nrbFromSpouse) }}</td>
+                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.nrbFromSpouse) }}</td>
+                </tr>
+              </template>
+              <template v-else>
+                <tr class="bg-gray-50">
+                  <td class="px-4 py-2 text-sm text-gray-700 pl-8">{{ assetsBreakdown.user?.name }}'s Tax-Free Allowance</td>
+                  <td class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(325000) }}</td>
+                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(325000) }}</td>
+                  <td class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(325000) }}</td>
+                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(325000) }}</td>
+                </tr>
+                <tr class="bg-gray-50">
+                  <td class="px-4 py-2 text-sm text-gray-700 pl-8">{{ assetsBreakdown.spouse?.name }}'s Tax-Free Allowance</td>
+                  <td class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(325000) }}</td>
+                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(325000) }}</td>
+                  <td class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(325000) }}</td>
+                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(325000) }}</td>
+                </tr>
+              </template>
+            </template>
+            <template v-else>
+              <tr class="bg-gray-50">
+                <td class="px-4 py-2 text-sm text-gray-700 pl-8">Tax-Free Allowance (NRB)</td>
+                <td class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.totalNrb) }}</td>
+                <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.totalNrb) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.totalNrb) }}</td>
+                <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.totalNrb) }}</td>
+              </tr>
+            </template>
+
+            <!-- RNRB Allowances -->
+            <template v-if="allowances.rnrbEligible && allowances.totalRnrb > 0">
+              <template v-if="showSpouse && allowances.showSeparateSpouseAllowances">
+                <tr v-if="allowances.rnrbIndividual > 0" class="bg-gray-50">
+                  <td class="px-4 py-2 text-sm text-gray-700 pl-8">Home Allowance (Individual)</td>
+                  <td class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.rnrbIndividual) }}</td>
+                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.rnrbIndividual) }}</td>
+                  <td class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.rnrbIndividual) }}</td>
+                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.rnrbIndividual) }}</td>
+                </tr>
+                <tr v-if="allowances.rnrbFromSpouse > 0" class="bg-gray-50">
+                  <td class="px-4 py-2 text-sm text-gray-700 pl-8">
+                    Home Allowance from Spouse
+                    <span v-if="!hasSpouseLinked" class="ml-2 text-xs text-gray-500 font-normal">(Default)</span>
+                  </td>
+                  <td class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.rnrbFromSpouse) }}</td>
+                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.rnrbFromSpouse) }}</td>
+                  <td class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.rnrbFromSpouse) }}</td>
+                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.rnrbFromSpouse) }}</td>
+                </tr>
+              </template>
+              <template v-else-if="showSpouse">
+                <tr class="bg-gray-50">
+                  <td class="px-4 py-2 text-sm text-gray-700 pl-8">{{ assetsBreakdown.user?.name }}'s Home Allowance</td>
+                  <td class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.totalRnrb / 2) }}</td>
+                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.totalRnrb / 2) }}</td>
+                  <td class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.totalRnrb / 2) }}</td>
+                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.totalRnrb / 2) }}</td>
+                </tr>
+                <tr class="bg-gray-50">
+                  <td class="px-4 py-2 text-sm text-gray-700 pl-8">{{ assetsBreakdown.spouse?.name }}'s Home Allowance</td>
+                  <td class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.totalRnrb / 2) }}</td>
+                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.totalRnrb / 2) }}</td>
+                  <td class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.totalRnrb / 2) }}</td>
+                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.totalRnrb / 2) }}</td>
+                </tr>
+              </template>
+              <template v-else>
+                <tr class="bg-gray-50">
+                  <td class="px-4 py-2 text-sm text-gray-700 pl-8">Home Allowance (RNRB)</td>
+                  <td class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.totalRnrb) }}</td>
+                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.totalRnrb) }}</td>
+                  <td class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.totalRnrb) }}</td>
+                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.totalRnrb) }}</td>
+                </tr>
+              </template>
+            </template>
+
+            <!-- RNRB Not Available Message -->
+            <tr v-if="!allowances.rnrbEligible" class="bg-gray-50">
+              <td :colspan="columnCount" class="px-4 py-2 text-xs text-gray-600 pl-8">
+                <strong>Note:</strong> Home allowance not available - no main residence identified or not left to direct descendants
               </td>
-              <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(allowances.nrbFromSpouse) }}</td>
-              <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(allowances.nrbFromSpouse) }}</td>
-              <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(allowances.nrbFromSpouse) }}</td>
-              <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(allowances.nrbFromSpouse) }}</td>
             </tr>
-          </template>
-          <template v-else>
-            <!-- Married but showing combined view -->
-            <tr class="bg-gray-50">
-              <td class="px-4 py-3 text-sm font-semibold text-gray-700 pl-8">Less: {{ assetsBreakdown.user?.name }}'s Tax-Free Allowance</td>
-              <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
-              <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
-              <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
-              <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
+
+            <!-- RNRB Taper Warning -->
+            <tr v-if="allowances.rnrbTapered" class="bg-gray-50">
+              <td :colspan="columnCount" class="px-4 py-2 text-xs text-gray-600 pl-8">
+                <strong>Home Allowance Reduced:</strong> Estate value exceeds {{ formatCurrency(allowances.rnrbTaperThreshold || 2000000) }} threshold.
+                <span v-if="allowances.totalRnrb === 0">Allowance completely removed.</span>
+                <span v-else>Reduced by {{ formatCurrency(allowances.rnrbTaperAmount || 0) }}.</span>
+              </td>
             </tr>
-            <tr class="bg-gray-50">
-              <td class="px-4 py-3 text-sm font-semibold text-gray-700 pl-8">Less: {{ assetsBreakdown.spouse?.name }}'s Tax-Free Allowance</td>
-              <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
-              <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
-              <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
-              <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
+
+            <!-- Allowances Subtotal -->
+            <tr class="bg-white border-l-4 border-gray-400">
+              <td class="px-4 py-2 text-sm font-semibold text-gray-900 pl-8">Subtotal</td>
+              <td class="px-4 py-2 text-sm text-right font-semibold text-gray-900">-{{ formatCurrency(totalAllowances) }}</td>
+              <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right font-semibold text-gray-900">-{{ formatCurrency(totalAllowances) }}</td>
+              <td class="px-4 py-2 text-sm text-right font-semibold text-gray-900">-{{ formatCurrency(totalAllowances) }}</td>
+              <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right font-semibold text-gray-900">-{{ formatCurrency(totalAllowances) }}</td>
             </tr>
           </template>
         </template>
+
+        <!-- ============================================== -->
+        <!-- CHARITABLE BEQUEST ON: Split Allowances       -->
+        <!-- Order: NRB -> Baseline -> Charitable -> RNRB  -->
+        <!-- ============================================== -->
         <template v-else>
-          <!-- Single person - show combined NRB -->
-          <tr class="bg-gray-50">
-            <td class="px-4 py-3 text-sm font-semibold text-gray-700">Less: Tax-Free Allowance</td>
-            <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(allowances.totalNrb) }}</td>
-            <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(allowances.totalNrb) }}</td>
-            <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(allowances.totalNrb) }}</td>
-            <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(allowances.totalNrb) }}</td>
+          <!-- NRB Section Header (Collapsible) -->
+          <tr class="bg-white border-l-4 border-gray-400 cursor-pointer hover:bg-gray-50 select-none" @click="toggleNRB">
+            <td class="px-4 py-3 text-sm font-semibold text-gray-900">
+              <span class="inline-flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-gray-400 transition-transform mr-1" :class="{ 'rotate-90': expandedNRB }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+                Less: Tax-Free Allowance (NRB)
+              </span>
+            </td>
+            <td class="px-4 py-3 text-sm text-right font-semibold text-gray-900">-{{ formatCurrency(allowances.totalNrb) }}</td>
+            <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-semibold text-gray-900">-{{ formatCurrency(allowances.totalNrb) }}</td>
+            <td class="px-4 py-3 text-sm text-right font-semibold text-gray-900">-{{ formatCurrency(allowances.totalNrb) }}</td>
+            <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-semibold text-gray-900">-{{ formatCurrency(allowances.totalNrb) }}</td>
+          </tr>
+
+          <!-- NRB Detail (Expanded) -->
+          <template v-if="expandedNRB">
+            <template v-if="showSpouse && allowances.showSeparateSpouseAllowances">
+              <tr class="bg-gray-50">
+                <td class="px-4 py-2 text-sm text-gray-700 pl-8">Tax-Free Allowance (Individual)</td>
+                <td class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.nrb) }}</td>
+                <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.nrb) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.nrb) }}</td>
+                <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.nrb) }}</td>
+              </tr>
+              <tr v-if="allowances.nrbFromSpouse > 0" class="bg-gray-50">
+                <td class="px-4 py-2 text-sm text-gray-700 pl-8">
+                  Tax-Free Allowance from Spouse
+                  <span v-if="!hasSpouseLinked" class="ml-2 text-xs text-gray-500 font-normal">(Default)</span>
+                </td>
+                <td class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.nrbFromSpouse) }}</td>
+                <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.nrbFromSpouse) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.nrbFromSpouse) }}</td>
+                <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.nrbFromSpouse) }}</td>
+              </tr>
+            </template>
+            <template v-else-if="showSpouse">
+              <tr class="bg-gray-50">
+                <td class="px-4 py-2 text-sm text-gray-700 pl-8">{{ assetsBreakdown.user?.name }}'s Tax-Free Allowance</td>
+                <td class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(325000) }}</td>
+                <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(325000) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(325000) }}</td>
+                <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(325000) }}</td>
+              </tr>
+              <tr class="bg-gray-50">
+                <td class="px-4 py-2 text-sm text-gray-700 pl-8">{{ assetsBreakdown.spouse?.name }}'s Tax-Free Allowance</td>
+                <td class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(325000) }}</td>
+                <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(325000) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(325000) }}</td>
+                <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(325000) }}</td>
+              </tr>
+            </template>
+          </template>
+
+          <!-- Estate after NRB (charitable bequest baseline) -->
+          <tr class="bg-blue-50 border-l-4 border-blue-400">
+            <td class="px-4 py-3 text-sm font-semibold text-blue-800">
+              Estate after Tax-Free Allowance{{ showSpouse ? 's' : '' }}
+              <span class="block text-xs font-normal text-blue-600 mt-0.5">Charitable bequest baseline (10% calculated from this)</span>
+            </td>
+            <td class="px-4 py-3 text-sm text-right font-bold text-blue-800">{{ formatCurrency(estateAfterNRB.now) }}</td>
+            <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-bold text-blue-800">{{ formatCurrency(estateAfterNRB.minus5) }}</td>
+            <td class="px-4 py-3 text-sm text-right font-bold text-blue-800">{{ formatCurrency(estateAfterNRB.projected) }}</td>
+            <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-bold text-blue-800">{{ formatCurrency(estateAfterNRB.plus5) }}</td>
+          </tr>
+
+          <!-- Charitable Bequest (deducted from estate) -->
+          <tr class="bg-green-50 border-l-4 border-green-400">
+            <td class="px-4 py-3 text-sm font-semibold text-green-800">
+              Less: Charitable Bequest (10% minimum)
+              <span class="block text-xs font-normal text-green-600 mt-0.5">Deducted from estate, qualifies for 36% rate</span>
+            </td>
+            <td class="px-4 py-3 text-sm text-right font-semibold text-green-800">-{{ formatCurrency(charitableDonation.now) }}</td>
+            <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-semibold text-green-800">-{{ formatCurrency(charitableDonation.minus5) }}</td>
+            <td class="px-4 py-3 text-sm text-right font-semibold text-green-800">-{{ formatCurrency(charitableDonation.projected) }}</td>
+            <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-semibold text-green-800">-{{ formatCurrency(charitableDonation.plus5) }}</td>
+          </tr>
+
+          <!-- RNRB Section Header (Collapsible) - only if eligible -->
+          <template v-if="allowances.rnrbEligible && allowances.totalRnrb > 0">
+            <tr class="bg-white border-l-4 border-gray-400 cursor-pointer hover:bg-gray-50 select-none" @click="toggleRNRB">
+              <td class="px-4 py-3 text-sm font-semibold text-gray-900">
+                <span class="inline-flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-gray-400 transition-transform mr-1" :class="{ 'rotate-90': expandedRNRB }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+                  Less: Home Allowance (RNRB)
+                </span>
+              </td>
+              <td class="px-4 py-3 text-sm text-right font-semibold text-gray-900">-{{ formatCurrency(allowances.totalRnrb) }}</td>
+              <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-semibold text-gray-900">-{{ formatCurrency(allowances.totalRnrb) }}</td>
+              <td class="px-4 py-3 text-sm text-right font-semibold text-gray-900">-{{ formatCurrency(allowances.totalRnrb) }}</td>
+              <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-semibold text-gray-900">-{{ formatCurrency(allowances.totalRnrb) }}</td>
+            </tr>
+
+            <!-- RNRB Detail (Expanded) -->
+            <template v-if="expandedRNRB">
+              <template v-if="showSpouse && allowances.showSeparateSpouseAllowances">
+                <tr v-if="allowances.rnrbIndividual > 0" class="bg-gray-50">
+                  <td class="px-4 py-2 text-sm text-gray-700 pl-8">Home Allowance (Individual)</td>
+                  <td class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.rnrbIndividual) }}</td>
+                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.rnrbIndividual) }}</td>
+                  <td class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.rnrbIndividual) }}</td>
+                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.rnrbIndividual) }}</td>
+                </tr>
+                <tr v-if="allowances.rnrbFromSpouse > 0" class="bg-gray-50">
+                  <td class="px-4 py-2 text-sm text-gray-700 pl-8">
+                    Home Allowance from Spouse
+                    <span v-if="!hasSpouseLinked" class="ml-2 text-xs text-gray-500 font-normal">(Default)</span>
+                  </td>
+                  <td class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.rnrbFromSpouse) }}</td>
+                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.rnrbFromSpouse) }}</td>
+                  <td class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.rnrbFromSpouse) }}</td>
+                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.rnrbFromSpouse) }}</td>
+                </tr>
+              </template>
+              <template v-else-if="showSpouse">
+                <tr class="bg-gray-50">
+                  <td class="px-4 py-2 text-sm text-gray-700 pl-8">{{ assetsBreakdown.user?.name }}'s Home Allowance</td>
+                  <td class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.totalRnrb / 2) }}</td>
+                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.totalRnrb / 2) }}</td>
+                  <td class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.totalRnrb / 2) }}</td>
+                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.totalRnrb / 2) }}</td>
+                </tr>
+                <tr class="bg-gray-50">
+                  <td class="px-4 py-2 text-sm text-gray-700 pl-8">{{ assetsBreakdown.spouse?.name }}'s Home Allowance</td>
+                  <td class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.totalRnrb / 2) }}</td>
+                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.totalRnrb / 2) }}</td>
+                  <td class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.totalRnrb / 2) }}</td>
+                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.totalRnrb / 2) }}</td>
+                </tr>
+              </template>
+              <template v-else>
+                <tr class="bg-gray-50">
+                  <td class="px-4 py-2 text-sm text-gray-700 pl-8">Home Allowance</td>
+                  <td class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.totalRnrb) }}</td>
+                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.totalRnrb) }}</td>
+                  <td class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.totalRnrb) }}</td>
+                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.totalRnrb) }}</td>
+                </tr>
+              </template>
+
+              <!-- RNRB Taper Warning -->
+              <tr v-if="allowances.rnrbTapered" class="bg-gray-50">
+                <td :colspan="columnCount" class="px-4 py-2 text-xs text-gray-600 pl-8">
+                  <strong>Home Allowance Reduced:</strong> Estate value exceeds {{ formatCurrency(allowances.rnrbTaperThreshold || 2000000) }} threshold.
+                  <span v-if="allowances.totalRnrb === 0">Allowance completely removed.</span>
+                  <span v-else>Reduced by {{ formatCurrency(allowances.rnrbTaperAmount || 0) }}.</span>
+                </td>
+              </tr>
+            </template>
+          </template>
+
+          <!-- RNRB Not Available Message -->
+          <tr v-else class="bg-gray-50">
+            <td :colspan="columnCount" class="px-4 py-2 text-xs text-gray-600">
+              <strong>Note:</strong> Home allowance not available - no main residence identified or not left to direct descendants
+            </td>
           </tr>
         </template>
-
-        <!-- Estate after NRB (charitable bequest baseline) -->
-        <tr class="bg-blue-50 border-l-4 border-blue-400">
-          <td class="px-4 py-3 text-sm font-semibold text-blue-800">
-            Estate after Tax-Free Allowance{{ showSpouse ? 's' : '' }}
-            <span class="block text-xs font-normal text-blue-600 mt-0.5">Charitable bequest baseline (before home allowance)</span>
-          </td>
-          <td class="px-4 py-3 text-sm text-right font-bold text-blue-800">{{ formatCurrency(estateAfterNRB.now) }}</td>
-          <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-bold text-blue-800">{{ formatCurrency(estateAfterNRB.minus5) }}</td>
-          <td class="px-4 py-3 text-sm text-right font-bold text-blue-800">{{ formatCurrency(estateAfterNRB.projected) }}</td>
-          <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-bold text-blue-800">{{ formatCurrency(estateAfterNRB.plus5) }}</td>
-        </tr>
-
-        <!-- Charitable Bequest (if enabled) - positioned after NRB, before RNRB -->
-        <tr v-if="charitableBequest" class="bg-green-50 border-l-4 border-green-400">
-          <td class="px-4 py-3 text-sm font-semibold text-green-800">
-            Less: Charitable Bequest (10% minimum)
-            <span class="block text-xs font-normal text-green-600 mt-0.5">Qualifies estate for reduced 36% rate</span>
-          </td>
-          <td class="px-4 py-3 text-sm text-right font-semibold text-green-800">-{{ formatCurrency(charitableDonation.now) }}</td>
-          <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-semibold text-green-800">-{{ formatCurrency(charitableDonation.minus5) }}</td>
-          <td class="px-4 py-3 text-sm text-right font-semibold text-green-800">-{{ formatCurrency(charitableDonation.projected) }}</td>
-          <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-semibold text-green-800">-{{ formatCurrency(charitableDonation.plus5) }}</td>
-        </tr>
-
-        <!-- RNRB Allowances -->
-        <template v-if="allowances.rnrbEligible && allowances.totalRnrb > 0">
-          <template v-if="showSpouse && allowances.showSeparateSpouseAllowances">
-            <tr v-if="allowances.rnrbIndividual > 0">
-              <td class="px-4 py-3 text-sm font-semibold text-gray-700">Less: Home Allowance (Individual)</td>
-              <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(allowances.rnrbIndividual) }}</td>
-              <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(allowances.rnrbIndividual) }}</td>
-              <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(allowances.rnrbIndividual) }}</td>
-              <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(allowances.rnrbIndividual) }}</td>
-            </tr>
-            <tr v-if="allowances.rnrbFromSpouse > 0">
-              <td class="px-4 py-3 text-sm font-semibold text-gray-700">
-                Less: Home Allowance from Spouse
-                <span v-if="!hasSpouseLinked" class="ml-2 text-xs text-gray-600 font-normal">(Default - verify by linking spouse)</span>
-              </td>
-              <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(allowances.rnrbFromSpouse) }}</td>
-              <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(allowances.rnrbFromSpouse) }}</td>
-              <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(allowances.rnrbFromSpouse) }}</td>
-              <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(allowances.rnrbFromSpouse) }}</td>
-            </tr>
-          </template>
-          <template v-else-if="showSpouse">
-            <!-- Married showing combined RNRB -->
-            <tr class="bg-gray-50">
-              <td class="px-4 py-3 text-sm font-semibold text-gray-700 pl-8">Less: {{ assetsBreakdown.user?.name }}'s Home Allowance</td>
-              <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(allowances.totalRnrb / 2) }}</td>
-              <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(allowances.totalRnrb / 2) }}</td>
-              <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(allowances.totalRnrb / 2) }}</td>
-              <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(allowances.totalRnrb / 2) }}</td>
-            </tr>
-            <tr class="bg-gray-50">
-              <td class="px-4 py-3 text-sm font-semibold text-gray-700 pl-8">Less: {{ assetsBreakdown.spouse?.name }}'s Home Allowance</td>
-              <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(allowances.totalRnrb / 2) }}</td>
-              <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(allowances.totalRnrb / 2) }}</td>
-              <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(allowances.totalRnrb / 2) }}</td>
-              <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(allowances.totalRnrb / 2) }}</td>
-            </tr>
-          </template>
-          <template v-else>
-            <!-- Single person RNRB -->
-            <tr class="bg-gray-50">
-              <td class="px-4 py-3 text-sm font-semibold text-gray-700">Less: Home Allowance</td>
-              <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(allowances.totalRnrb) }}</td>
-              <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(allowances.totalRnrb) }}</td>
-              <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(allowances.totalRnrb) }}</td>
-              <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(allowances.totalRnrb) }}</td>
-            </tr>
-          </template>
-        </template>
-
-        <!-- RNRB Taper Warning -->
-        <tr v-if="allowances.rnrbTapered" class="bg-white border-l-4 border-gray-400">
-          <td :colspan="columnCount" class="px-4 py-2 text-xs">
-            <span class="text-gray-900">
-              <strong>Home Allowance Reduced:</strong> Estate value {{ formatCurrency(totals.netEstate.now) }} exceeds {{ formatCurrency(allowances.rnrbTaperThreshold || 2000000) }} threshold.
-              <span v-if="allowances.totalRnrb === 0">Home allowance completely removed (reduced by {{ formatCurrency(allowances.rnrbTaperAmount || 0) }}).</span>
-              <span v-else>Home allowance reduced by {{ formatCurrency(allowances.rnrbTaperAmount || 0) }} (£1 reduction for every £2 over threshold).</span>
-            </span>
-          </td>
-        </tr>
-
-        <!-- RNRB Not Available Message -->
-        <tr v-if="!allowances.rnrbEligible" class="bg-white border-l-4 border-gray-400">
-          <td :colspan="columnCount" class="px-4 py-2 text-xs text-gray-900">
-            <strong>Note:</strong> Home allowance (residence nil rate band) not available - no main residence identified or property not left to direct descendants
-          </td>
-        </tr>
 
         <!-- Taxable Estate -->
         <tr class="bg-gray-50">
@@ -423,12 +586,18 @@ export default {
     return {
       expandedAssets: {},
       expandedLiabilities: {},
+      expandedAllowances: false,
+      expandedNRB: false,
+      expandedRNRB: false,
     };
   },
 
   computed: {
     columnCount() {
       return 2 + (this.showMinus5Years ? 1 : 0) + (this.showPlus5Years ? 1 : 0);
+    },
+    totalAllowances() {
+      return this.allowances.totalNrb + this.allowances.totalRnrb;
     },
   },
 
@@ -439,6 +608,18 @@ export default {
 
     toggleLiabilityGroup(key) {
       this.expandedLiabilities = { ...this.expandedLiabilities, [key]: !this.expandedLiabilities[key] };
+    },
+
+    toggleAllowances() {
+      this.expandedAllowances = !this.expandedAllowances;
+    },
+
+    toggleNRB() {
+      this.expandedNRB = !this.expandedNRB;
+    },
+
+    toggleRNRB() {
+      this.expandedRNRB = !this.expandedRNRB;
     },
 
     formatLiability(value) {

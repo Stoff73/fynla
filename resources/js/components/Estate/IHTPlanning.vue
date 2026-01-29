@@ -1112,16 +1112,32 @@ export default {
           plus5: this.secondDeathEstateAfterNRBPlus5,
         },
         taxableEstate: {
-          now: currentCalc.taxable_estate || 0,
-          minus5: this.secondDeathProjectionMinus5.taxable_estate,
-          projected: this.taxableEstateProjected,
-          plus5: this.secondDeathProjectionPlus5.taxable_estate,
+          now: this.charitableBequest
+            ? Math.max(0, (currentCalc.taxable_estate || 0) - this.charitableDonationSecondDeath)
+            : (currentCalc.taxable_estate || 0),
+          minus5: this.charitableBequest
+            ? Math.max(0, this.secondDeathProjectionMinus5.taxable_estate - this.charitableDonationSecondDeathMinus5)
+            : this.secondDeathProjectionMinus5.taxable_estate,
+          projected: this.charitableBequest
+            ? Math.max(0, this.taxableEstateProjected - this.charitableDonationSecondDeathProjected)
+            : this.taxableEstateProjected,
+          plus5: this.charitableBequest
+            ? Math.max(0, this.secondDeathProjectionPlus5.taxable_estate - this.charitableDonationSecondDeathPlus5)
+            : this.secondDeathProjectionPlus5.taxable_estate,
         },
         ihtLiability: {
-          now: this.charitableBequest ? this.adjustedSecondDeathIHTLiabilityNow : (currentCalc.iht_liability || 0),
-          minus5: this.charitableBequest ? this.adjustedSecondDeathIHTLiabilityMinus5 : this.secondDeathProjectionMinus5.iht_liability,
-          projected: this.charitableBequest ? this.adjustedSecondDeathIHTLiabilityProjected : this.ihtLiabilityProjected,
-          plus5: this.charitableBequest ? this.adjustedSecondDeathIHTLiabilityPlus5 : this.secondDeathProjectionPlus5.iht_liability,
+          now: this.charitableBequest
+            ? Math.max(0, (currentCalc.taxable_estate || 0) - this.charitableDonationSecondDeath) * 0.36
+            : (currentCalc.iht_liability || 0),
+          minus5: this.charitableBequest
+            ? Math.max(0, this.secondDeathProjectionMinus5.taxable_estate - this.charitableDonationSecondDeathMinus5) * 0.36
+            : this.secondDeathProjectionMinus5.iht_liability,
+          projected: this.charitableBequest
+            ? Math.max(0, this.taxableEstateProjected - this.charitableDonationSecondDeathProjected) * 0.36
+            : this.ihtLiabilityProjected,
+          plus5: this.charitableBequest
+            ? Math.max(0, this.secondDeathProjectionPlus5.taxable_estate - this.charitableDonationSecondDeathPlus5) * 0.36
+            : this.secondDeathProjectionPlus5.iht_liability,
         },
         charitableDonation: {
           now: this.charitableDonationSecondDeath,
@@ -1184,16 +1200,32 @@ export default {
           plus5: this.estateAfterNRBPlus5,
         },
         taxableEstate: {
-          now: this.ihtData?.taxable_estate || 0,
-          minus5: this.projectionMinus5?.taxable_estate || 0,
-          projected: this.projection?.at_death?.taxable_estate || 0,
-          plus5: this.projectionPlus5?.taxable_estate || 0,
+          now: this.charitableBequest
+            ? Math.max(0, (this.ihtData?.taxable_estate || 0) - this.charitableDonationAmount)
+            : (this.ihtData?.taxable_estate || 0),
+          minus5: this.charitableBequest
+            ? Math.max(0, (this.projectionMinus5?.taxable_estate || 0) - this.charitableDonationAmount)
+            : (this.projectionMinus5?.taxable_estate || 0),
+          projected: this.charitableBequest
+            ? Math.max(0, (this.projection?.at_death?.taxable_estate || 0) - this.charitableDonationProjected)
+            : (this.projection?.at_death?.taxable_estate || 0),
+          plus5: this.charitableBequest
+            ? Math.max(0, (this.projectionPlus5?.taxable_estate || 0) - this.charitableDonationProjected)
+            : (this.projectionPlus5?.taxable_estate || 0),
         },
         ihtLiability: {
-          now: this.charitableBequest ? this.adjustedIHTLiability : (this.ihtData?.estate_iht_liability || 0),
-          minus5: this.charitableBequest ? this.adjustedIHTLiabilityMinus5 : (this.projectionMinus5?.iht_liability || 0),
-          projected: this.charitableBequest ? this.adjustedIHTLiabilityProjected : (this.projection?.at_death?.iht_liability || 0),
-          plus5: this.charitableBequest ? this.adjustedIHTLiabilityPlus5 : (this.projectionPlus5?.iht_liability || 0),
+          now: this.charitableBequest
+            ? Math.max(0, (this.ihtData?.taxable_estate || 0) - this.charitableDonationAmount) * 0.36
+            : (this.ihtData?.estate_iht_liability || 0),
+          minus5: this.charitableBequest
+            ? Math.max(0, (this.projectionMinus5?.taxable_estate || 0) - this.charitableDonationAmount) * 0.36
+            : (this.projectionMinus5?.iht_liability || 0),
+          projected: this.charitableBequest
+            ? Math.max(0, (this.projection?.at_death?.taxable_estate || 0) - this.charitableDonationProjected) * 0.36
+            : (this.projection?.at_death?.iht_liability || 0),
+          plus5: this.charitableBequest
+            ? Math.max(0, (this.projectionPlus5?.taxable_estate || 0) - this.charitableDonationProjected) * 0.36
+            : (this.projectionPlus5?.iht_liability || 0),
         },
         charitableDonation: {
           now: this.charitableDonationAmount,

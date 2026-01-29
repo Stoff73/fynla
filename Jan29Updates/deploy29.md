@@ -1261,6 +1261,54 @@ resources/js/components/Estate/IHTPlanning.vue
 
 ---
 
+## IHT Calculation Table - Collapsible Allowances & Conditional Baseline Row
+
+**Branch:** techDebt
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Enhanced the IHT calculation table with collapsible allowances section and made the "Estate after Tax-Free Allowances" row conditional on charitable bequest being enabled.
+
+### Changes Made
+
+| Change | Description |
+|--------|-------------|
+| Collapsible allowances | NRB and RNRB rows now collapse into a single "Tax-Free Allowances" header row |
+| Allowances header shows total | Combined total of NRB + RNRB displayed in header when collapsed |
+| Chevron toggle | Click the allowances header row to expand/collapse individual NRB and RNRB rows |
+| RNRB details inside collapsed section | Taper warning and not-available messages now appear within expanded section |
+| Conditional baseline row | "Estate after Tax-Free Allowances" row only shows when charitable bequest is enabled |
+
+### Visual Behaviour
+
+**Collapsed State (default):**
+```
+Tax-Free Allowances          ▶  £500,000
+```
+
+**Expanded State:**
+```
+Tax-Free Allowances          ▼  £500,000
+  Tax-Free Allowance (NRB)      £325,000
+  Home Allowance (RNRB)         £175,000
+```
+
+### Conditional Row Logic
+
+- **Charitable bequest OFF:** "Estate after Tax-Free Allowances" row is hidden (not needed for reconciliation)
+- **Charitable bequest ON:** Row appears with blue styling, showing the baseline used for 10% charitable donation calculation
+
+### Files Changed (1 file)
+
+**Frontend (included in build):**
+```text
+resources/js/components/Estate/IHTCalculationTable.vue
+```
+
+---
+
 ## IHT Calculation Table - Restructured for Charitable Bequest Reconciliation
 
 **Branch:** investUpdate
@@ -1551,6 +1599,118 @@ After deployment, verify:
     - Click "No" on charitable bequest card
     - Verify pink charitable bequest row disappears
     - Verify IHT rate returns to 40% and liability increases back to original
+
+---
+
+## Charitable Bequest - Correct IHT Calculation with Split Allowances
+
+**Branch:** techDebt
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Fixed the IHT calculation table to correctly handle charitable bequest. When charitable bequest is enabled, the allowances are now split so the charitable donation is deducted from the estate (reducing the taxable estate), not just applied as a reduced rate.
+
+### Before (Incorrect)
+
+When charitable bequest was enabled:
+- Showed combined allowances (NRB + RNRB)
+- Then showed "Estate after Tax-Free Allowances"
+- Charitable bequest row appeared but didn't actually reduce the taxable estate
+- Only the rate changed from 40% to 36%
+
+### After (Correct)
+
+When charitable bequest is enabled:
+1. Net Estate
+2. Less: NRB (Tax-Free Allowance) - collapsible
+3. **= Estate after Tax-Free Allowances** (blue row - charitable baseline)
+4. **Less: Charitable Bequest (10% minimum)** (green row - deducted from estate)
+5. Less: RNRB (Home Allowance) - collapsible
+6. = Taxable Estate (now reduced by charitable donation)
+7. × 36% = IHT Liability (reduced rate)
+
+When charitable bequest is OFF:
+- Combined "Less: Tax-Free Allowances" (NRB + RNRB together, collapsible)
+- Taxable Estate
+- × 40% = IHT Liability
+
+### Calculation Change
+
+**Without charitable bequest:**
+```
+Taxable Estate = Net Estate - NRB - RNRB
+IHT = Taxable Estate × 40%
+```
+
+**With charitable bequest:**
+```
+Baseline = Net Estate - NRB
+Charitable Donation = Baseline × 10%
+Taxable Estate = Net Estate - NRB - Charitable Donation - RNRB
+IHT = Taxable Estate × 36%
+```
+
+### Files Changed (2 files)
+
+**Frontend (included in build):**
+```text
+resources/js/components/Estate/IHTCalculationTable.vue
+resources/js/components/Estate/IHTPlanning.vue
+```
+
+### Verification
+
+1. Navigate to Estate Planning > IHT tab
+2. With charitable bequest OFF:
+   - Verify combined "Less: Tax-Free Allowances" row with total
+   - Click chevron to expand and see NRB + RNRB breakdown
+   - Verify Taxable Estate = Net Estate - All Allowances
+   - Verify IHT rate shows 40%
+3. Enable charitable bequest (click "Yes"):
+   - Verify NRB section appears separately (collapsible)
+   - Verify blue "Estate after Tax-Free Allowances" row appears
+   - Verify green "Less: Charitable Bequest" row shows 10% of baseline
+   - Verify RNRB section appears separately (collapsible, if eligible)
+   - Verify Taxable Estate is reduced by the charitable donation amount
+   - Verify IHT rate shows 36%
+4. Verify the maths:
+   - Charitable Donation = Estate after NRB × 10%
+   - Taxable Estate (with charitable) = Taxable Estate (without) - Charitable Donation
+   - IHT = Taxable Estate × 36%
+
+---
+
+## Joint Liability Percentage Display Fix
+
+**Branch:** techDebt
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Fixed joint ownership percentage display in the IHT Liabilities breakdown. The percentage was showing as "50.00%" instead of being hidden for 50/50 splits. The issue was caused by comparing `ownership_percentage !== 50` which failed when the value was stored as `50.00` (float) or `"50.00"` (string).
+
+### Before
+
+- Mortgages showed "(Joint - 50.00%)" instead of "(Joint)"
+- Comparison `!== 50` failed for values like `50.00`
+
+### After
+
+- Added `formatJointLabel()` helper method that:
+  - Parses percentage as float (handles strings and numbers)
+  - Rounds to nearest integer (handles `50.00` → `50`)
+  - Returns "(Joint)" for 50% splits
+  - Returns "(Joint - X%)" for non-50% splits
+
+### Files Changed (1 file)
+
+**Frontend (included in build):**
+```text
+resources/js/components/Estate/IHTLiabilityBreakdown.vue
+```
 
 ---
 

@@ -36,7 +36,7 @@
             <td class="px-4 py-2 text-sm text-gray-700 pl-12">
               {{ mortgage.property_address }}
               <span class="text-sm text-gray-500 ml-2">{{ mortgage.mortgage_type }}</span>
-              <span v-if="mortgage.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint{{ (mortgage.ownership_percentage && mortgage.ownership_percentage !== 50) ? ' - ' + mortgage.ownership_percentage + '%' : '' }})</span>
+              <span v-if="mortgage.is_joint" class="ml-2 text-xs text-gray-600 font-medium">{{ formatJointLabel(mortgage) }}</span>
             </td>
             <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(mortgage.outstanding_balance) }}</td>
             <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(mortgage.outstanding_balance) }}</td>
@@ -50,7 +50,7 @@
           <td class="px-4 py-2 text-sm text-gray-700 pl-8">
             <span class="text-sm text-gray-600">Mortgage:</span> {{ mortgage.property_address }}
             <span class="text-sm text-gray-500 ml-2">{{ mortgage.mortgage_type }}</span>
-            <span v-if="mortgage.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint{{ (mortgage.ownership_percentage && mortgage.ownership_percentage !== 50) ? ' - ' + mortgage.ownership_percentage + '%' : '' }})</span>
+            <span v-if="mortgage.is_joint" class="ml-2 text-xs text-gray-600 font-medium">{{ formatJointLabel(mortgage) }}</span>
           </td>
           <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(mortgage.outstanding_balance) }}</td>
           <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(mortgage.outstanding_balance) }}</td>
@@ -78,7 +78,7 @@
           <tr v-for="(liability, index) in ownerData.liabilities.other_liabilities" :key="ownerKey + '-liability-' + index">
             <td class="px-4 py-2 text-sm text-gray-700 pl-12">
               <span class="text-sm text-gray-600">{{ liability.type }}:</span> {{ liability.institution }}
-              <span v-if="liability.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint - 50%)</span>
+              <span v-if="liability.is_joint" class="ml-2 text-xs text-gray-600 font-medium">{{ formatJointLabel(liability) }}</span>
             </td>
             <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liability.current_balance) }}</td>
             <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liability.current_balance) }}</td>
@@ -91,7 +91,7 @@
         <tr v-for="(liability, index) in ownerData.liabilities.other_liabilities" :key="ownerKey + '-liability-' + index">
           <td class="px-4 py-2 text-sm text-gray-700 pl-8">
             <span class="text-sm text-gray-600">{{ liability.type }}:</span> {{ liability.institution }}
-            <span v-if="liability.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint - 50%)</span>
+            <span v-if="liability.is_joint" class="ml-2 text-xs text-gray-600 font-medium">{{ formatJointLabel(liability) }}</span>
           </td>
           <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liability.current_balance) }}</td>
           <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liability.current_balance) }}</td>
@@ -206,6 +206,16 @@ export default {
       return liability.projected_balance !== undefined && liability.projected_balance !== null
         ? liability.projected_balance
         : (liability.current_balance || 0);
+    },
+
+    formatJointLabel(item) {
+      // Returns "(Joint)" for 50/50 split, "(Joint - X%)" for non-50/50
+      const pct = parseFloat(item.ownership_percentage) || 50;
+      const rounded = Math.round(pct);
+      if (rounded === 50) {
+        return '(Joint)';
+      }
+      return `(Joint - ${rounded}%)`;
     },
   },
 };
