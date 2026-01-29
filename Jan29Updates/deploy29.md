@@ -1146,7 +1146,7 @@ resources/js/components/NetWorth/InvestmentList.vue
 
 **Branch:** investUpdate
 
-**Status:** Pending
+**Status:** ✅ Deployed to production
 
 ### Description
 
@@ -1199,7 +1199,7 @@ resources/js/components/Estate/IHTPlanning.vue
 
 **Branch:** investUpdate
 
-**Status:** Pending
+**Status:** ✅ Deployed to production
 
 ### Description
 
