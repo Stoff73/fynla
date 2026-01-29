@@ -555,6 +555,34 @@ resources/js/components/NetWorth/PropertyList.vue
 
 ---
 
+## British Spelling Fix - Optimise
+
+**Branch:** genBits
+
+**Status:** 🔄 Ready for testing
+
+### Description
+
+Fixed American spelling "Optimize" to British spelling "Optimise" in protection recommendation text displayed on the dashboard.
+
+### Changes Made
+
+| Before | After |
+|--------|-------|
+| Policy Optimization | Policy Optimisation |
+| Review and optimize existing policies | Review and optimise existing policies |
+| Optimized Protection Strategy | Optimised Protection Strategy |
+
+### Files Changed (2 files)
+
+**Backend (upload separately):**
+```text
+app/Services/Protection/RecommendationEngine.php
+app/Services/Protection/ComprehensiveProtectionPlanService.php
+```
+
+---
+
 ## Rebuild Required: YES
 
 Frontend Vue components changed. Full rebuild required:
