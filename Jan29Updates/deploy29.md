@@ -1486,6 +1486,15 @@ resources/js/views/Investment/EmployeeShareSchemeDetail.vue
 resources/js/views/Investment/PrivateInvestmentDetail.vue
 ```
 
+Upload the new ExpenditureForm child components:
+
+```text
+resources/js/components/Shared/CurrencyInputField.vue
+resources/js/components/UserProfile/ExpenditureSection.vue
+resources/js/components/UserProfile/ExpenditureGridRow.vue
+resources/js/components/UserProfile/ExpenditureCategoryCard.vue
+```
+
 *Note: These are included in the build, so only the built assets need uploading for frontend changes.*
 
 ### Step 4: Upload PHP Files
@@ -1673,7 +1682,16 @@ After deployment, verify:
     - Verify it still shows the standard tabbed view (Overview, Holdings, Diversification, Performance, Rebalancing, Fees, Tax Status, Documents)
     - Verify standard Key Metrics header (Current Value, Annualised Return, Monthly Contribution, Holdings/ISA Allowance)
 
-22. **IHT Summary & Strategies - Inline Layout** (Estate Planning):
+22. **ExpenditureForm Refactoring** (Valuable Info > Expenses):
+    - Navigate to Dashboard > Valuable Info > Expenses tab
+    - Verify all value columns are right-aligned (user, spouse, household)
+    - Verify Financial Commitments section header shows subtotals
+    - Verify Financial Commitments section has "Auto-calculated" badge
+    - Click to expand/collapse sections - verify all work correctly
+    - For married users: Verify household column displays correctly
+    - For single users: Verify only user column is displayed (no household column)
+
+23. **IHT Summary & Strategies - Inline Layout** (Estate Planning):
     - Navigate to Estate Planning as a non-married user (e.g., Margaret Thompson - widow persona)
     - Verify single "IHT Summary" card with two columns (Taxable Estate, IHT Liability)
     - Verify strategies cards (Will, Gifting, Life Policy, Charitable Bequest) are inline on same row
@@ -1777,6 +1795,84 @@ resources/js/components/Estate/IHTPlanning.vue
    - Charitable Donation = Estate after NRB × 10%
    - Taxable Estate (with charitable) = Taxable Estate (without) - Charitable Donation
    - IHT = Taxable Estate × 36%
+
+---
+
+## ExpenditureForm.vue Refactoring - Extract Repeated Patterns
+
+**Branch:** techDebt
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Refactored `ExpenditureForm.vue` (2,519 lines) by extracting repeated UI patterns into reusable child components. This reduces template duplication while preserving existing state management.
+
+### Problem Solved
+
+- 2,519 lines with complex nested conditional rendering
+- 3 budget tabs (Current, Retired, Widowed) with similar structure
+- 5 collapsible sections repeated across tabs (~75 similar blocks)
+- 100+ grid row patterns for displaying values
+- ~40 currency input fields with identical markup
+
+### Component Architecture
+
+```
+ExpenditureForm.vue (Parent - refactored from ~2,519 to ~2,100 lines)
+  │
+  ├── ExpenditureSection.vue (NEW - ~80 lines)
+  │     └── Collapsible section with header, toggle, and content slot
+  │
+  ├── ExpenditureGridRow.vue (NEW - ~90 lines)
+  │     └── Multi-column grid row for label + values (user/spouse/household)
+  │
+  ├── ExpenditureCategoryCard.vue (NEW - ~115 lines)
+  │     └── Edit mode card with fields loop for a category
+  │
+  └── CurrencyInputField.vue (NEW - ~60 lines)
+        └── Standardized £ input with optional hint text
+```
+
+### Files Created (4 files)
+
+**Shared:**
+```text
+resources/js/components/Shared/CurrencyInputField.vue
+```
+
+**User Profile:**
+```text
+resources/js/components/UserProfile/ExpenditureSection.vue
+resources/js/components/UserProfile/ExpenditureGridRow.vue
+resources/js/components/UserProfile/ExpenditureCategoryCard.vue
+```
+
+### Files Changed (1 file)
+
+```text
+resources/js/components/UserProfile/ExpenditureForm.vue
+```
+
+### Additional Fixes
+
+| Change | Description |
+|--------|-------------|
+| Right-aligned values | All value columns use centralized `:deep()` selectors in parent scoped styles |
+| Financial Commitments header | Now shows subtotals like other categories using ExpenditureSection component |
+| Auto-calculated badge | Financial Commitments section shows "Auto-calculated" badge in header |
+
+### CSS Pattern for Child Component Styling
+
+Used `:deep()` selector in parent's scoped styles to maintain alignment centrally:
+
+```css
+:deep(.col-value),
+:deep(.col-value-mid),
+:deep(.col-total) {
+  text-align: right;
+}
+```
 
 ---
 
