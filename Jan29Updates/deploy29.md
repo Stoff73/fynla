@@ -672,6 +672,40 @@ resources/js/views/Risk/RiskFactorDetailPage.vue
 
 ---
 
+## Persona Name Change - Young Saver
+
+**Branch:** genBits
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Renamed the young_saver persona from "Alex Morgan" to "John Morgan" to avoid confusion with the entrepreneur persona "Alex Chen".
+
+### Changes Made
+
+| Before | After |
+|--------|-------|
+| Alex Morgan | John Morgan |
+| alex.morgan@example.com | john.morgan@example.com |
+| Alex's Current Account | John's Current Account |
+
+### Files Changed (4 files)
+
+**Frontend (included in build):**
+```text
+resources/js/data/personas/young_saver.json
+resources/js/store/modules/preview.js
+resources/js/views/Version.vue
+```
+
+**Backend (upload separately):**
+```text
+app/Http/Controllers/Api/PreviewController.php
+```
+
+---
+
 ## Rebuild Required: YES
 
 Frontend Vue components changed. Full rebuild required:
