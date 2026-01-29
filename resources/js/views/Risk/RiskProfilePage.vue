@@ -140,16 +140,16 @@
         </div>
 
         <!-- Section 4: Override Notice -->
-        <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+        <div class="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
           <div class="flex items-start gap-3">
-            <svg class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg class="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <div>
-              <p class="text-sm font-medium text-amber-800">Product-Level Overrides</p>
-              <p class="text-sm text-amber-700 mt-1">
-                When adding investments or pensions, you can adjust the risk level by one step up or down from your profile.
-                This allows flexibility for individual products while staying within a reasonable range.
+              <p class="text-sm font-medium text-orange-800">Product-Level Overrides</p>
+              <p class="text-sm text-orange-700 mt-1">
+                When adding investments or pensions, you can choose any risk level for that specific product.
+                This allows flexibility for individual products based on their purpose and time horizon.
               </p>
             </div>
           </div>
@@ -245,7 +245,7 @@ export default {
         low: 'bg-green-100',
         lower_medium: 'bg-teal-100',
         medium: 'bg-blue-100',
-        upper_medium: 'bg-amber-100',
+        upper_medium: 'bg-orange-100',
         high: 'bg-red-100',
       };
       return classes[this.riskLevel] || 'bg-gray-100';
@@ -256,7 +256,7 @@ export default {
         low: 'text-green-600',
         lower_medium: 'text-teal-600',
         medium: 'text-blue-600',
-        upper_medium: 'text-amber-600',
+        upper_medium: 'text-orange-600',
         high: 'text-red-600',
       };
       return classes[this.riskLevel] || 'text-gray-600';
@@ -360,7 +360,7 @@ export default {
         low: 'bg-green-100 text-green-800',
         lower_medium: 'bg-teal-100 text-teal-800',
         medium: 'bg-blue-100 text-blue-800',
-        upper_medium: 'bg-amber-100 text-amber-800',
+        upper_medium: 'bg-orange-100 text-orange-800',
         high: 'bg-red-100 text-red-800',
       };
       return classes[level] || 'bg-gray-100 text-gray-800';

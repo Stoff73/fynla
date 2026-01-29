@@ -254,7 +254,7 @@
               />
               <p class="mt-2 text-xs text-gray-500">
                 Your main risk profile is <strong>{{ mainRiskLevelDisplay }}</strong>.
-                You can adjust this pension within one level of your main preference.
+                You can choose a different risk level for this pension if needed.
               </p>
             </div>
             <div v-else class="pt-4 border-t border-gray-200">

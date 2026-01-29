@@ -70,7 +70,7 @@ class RiskPreferenceService
             'asset_allocation' => ['equities' => 75, 'bonds' => 20, 'cash' => 0, 'alternatives' => 5],
             'expected_returns' => ['min' => 5.0, 'max' => 8.5, 'typical' => 6.5],
             'volatility_percent' => 15.0,
-            'colour_class' => 'amber',
+            'colour_class' => 'orange',
         ],
         'high' => [
             'level_numeric' => 5,
@@ -216,30 +216,14 @@ class RiskPreferenceService
     }
 
     /**
-     * Get allowed risk levels for a product (main level +/- 1)
+     * Get allowed risk levels for a product.
      *
-     * Users can only set product-level risk within one level of their main preference.
+     * Users can select any risk level for their products, regardless of their main profile.
      */
     public function getAllowedProductRiskLevels(int $userId): array
     {
-        $mainLevel = $this->getMainRiskLevel($userId);
-
-        if (! $mainLevel) {
-            // If no main profile set, return all levels
-            return array_keys($this->riskLevelOrder);
-        }
-
-        $currentIndex = $this->riskLevelOrder[$mainLevel];
-        $allowed = [];
-
-        // Include current level and +/- 1
-        foreach ($this->riskLevelOrder as $level => $index) {
-            if (abs($index - $currentIndex) <= 1) {
-                $allowed[] = $level;
-            }
-        }
-
-        return $allowed;
+        // Allow all risk levels - no restriction to adjacent levels
+        return array_keys($this->riskLevelOrder);
     }
 
     /**
