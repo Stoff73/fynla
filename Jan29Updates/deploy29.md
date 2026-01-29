@@ -998,6 +998,46 @@ resources/js/constants/designSystem.js
 
 ---
 
+## Investment Cards - Remove Risk Badges, Fix Joint Badge Position
+
+**Branch:** genBits
+
+**Status:** Ready for deployment
+
+### Description
+
+Removed risk badges from all investment account cards and moved the Joint ownership badge to the top-right corner for a cleaner layout.
+
+### Before
+
+- Risk badges (High, U-Med, etc.) displayed in top-right corner
+- Joint badge displayed inline with account type badge in header
+- Cards looked cluttered with multiple badges
+
+### After
+
+- No risk badges on investment cards
+- Joint badge positioned in top-right corner (where risk badge was)
+- Cleaner card layout with only account type badge in header
+
+### Changes Made
+
+| Change | Description |
+|--------|-------------|
+| Removed RiskBadge | Removed RiskBadge component from investment cards |
+| Joint badge position | Moved Joint badge to absolute top-right corner |
+| Removed unused code | Removed `shouldShowRiskBadge`, `formatOwnershipType`, `getOwnershipBadgeClass` methods |
+| New CSS class | Added `.joint-badge-corner` for purple badge styling in corner |
+
+### Files Changed (1 file)
+
+**Frontend (included in build):**
+```text
+resources/js/components/NetWorth/InvestmentList.vue
+```
+
+---
+
 ## Rebuild Required: YES
 
 Frontend Vue components changed. Full rebuild required:
