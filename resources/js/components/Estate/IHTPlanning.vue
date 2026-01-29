@@ -227,6 +227,54 @@
           </div>
         </div>
 
+        <!-- Charitable Bequest Card -->
+        <div class="bg-white rounded-lg border border-gray-200 p-5">
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center">
+              <svg class="h-6 w-6 text-pink-600 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+              </svg>
+              <h4 class="text-sm font-semibold text-gray-900">Charitable Bequest</h4>
+            </div>
+            <div v-if="savingCharitableBequest" class="animate-spin h-4 w-4 border-2 border-pink-600 border-t-transparent rounded-full"></div>
+          </div>
+          <div class="space-y-3">
+            <div class="text-xs">
+              <p class="text-gray-600 mb-2">Leave 10%+ to charity?</p>
+              <div class="flex items-center space-x-4">
+                <label class="inline-flex items-center cursor-pointer">
+                  <input
+                    type="radio"
+                    :checked="charitableBequest === true"
+                    :disabled="savingCharitableBequest"
+                    class="form-radio text-pink-600 h-4 w-4"
+                    @change="toggleCharitableBequest(true)"
+                  >
+                  <span class="ml-1.5 text-sm text-gray-700">Yes</span>
+                </label>
+                <label class="inline-flex items-center cursor-pointer">
+                  <input
+                    type="radio"
+                    :checked="charitableBequest === false"
+                    :disabled="savingCharitableBequest"
+                    class="form-radio text-pink-600 h-4 w-4"
+                    @change="toggleCharitableBequest(false)"
+                  >
+                  <span class="ml-1.5 text-sm text-gray-700">No</span>
+                </label>
+              </div>
+            </div>
+            <div v-if="charitableBequest" class="text-xs">
+              <p class="text-gray-600">Potential IHT Savings:</p>
+              <p class="text-lg font-bold text-pink-700">{{ formatCurrency(charitableBequestSavings) }}</p>
+              <p class="text-xs text-gray-500 mt-1">Rate reduces from 40% to 36%</p>
+            </div>
+            <div v-else class="text-xs text-gray-500">
+              <p>Leaving 10%+ to charity reduces the IHT rate from 40% to 36%</p>
+            </div>
+          </div>
+        </div>
+
         <!-- Trust Card (only show if taxable estate > £2m) -->
         <div v-if="(ihtData?.taxable_estate || 0) > 2000000" class="bg-white rounded-lg border border-gray-200 p-5 hover:shadow-md transition-shadow cursor-pointer" @click="navigateToTrustsTab">
           <div class="flex items-center justify-between mb-3">
@@ -2159,6 +2207,7 @@ import MissingDataAlert from './MissingDataAlert.vue';
 import DualGiftingTimeline from './DualGiftingTimeline.vue';
 import LifeCoverRecommendations from './LifeCoverRecommendations.vue';
 import estateService from '../../services/estateService';
+import userProfileService from '../../services/userProfileService';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
@@ -2189,6 +2238,8 @@ export default {
       expandedAssets: {},
       expandedLiabilities: {},
       expandedAllowances: false,
+      charitableBequest: null,
+      savingCharitableBequest: false,
     };
   },
 
@@ -2284,6 +2335,14 @@ export default {
       // Estimate liquid assets as a percentage of net worth (simplified)
       // In a real scenario, this would come from the backend with actual liquid asset calculations
       return netWorth * 0.3; // Assume 30% of assets are liquid and giftable
+    },
+
+    charitableBequestSavings() {
+      // Calculate potential IHT savings if 10%+ is left to charity (rate drops from 40% to 36%)
+      const taxableEstate = this.ihtData?.taxable_estate || 0;
+      const currentIHT = taxableEstate * 0.40;
+      const reducedIHT = taxableEstate * 0.36;
+      return currentIHT - reducedIHT;
     },
 
     // Projected subtotals for second death breakdown
@@ -2566,6 +2625,7 @@ export default {
 
   mounted() {
     this.checkUserMaritalStatus();
+    this.loadCharitableBequest();
     this.loadIHTCalculation();
   },
 
@@ -2668,6 +2728,29 @@ export default {
     navigateToTrustsTab() {
       // Emit event to parent EstateDashboard to switch to Trusts tab
       this.$emit('switch-tab', 'trusts');
+    },
+
+    loadCharitableBequest() {
+      const user = this.$store.state.auth?.user;
+      if (user) {
+        this.charitableBequest = user.charitable_bequest;
+      }
+    },
+
+    async toggleCharitableBequest(value) {
+      this.savingCharitableBequest = true;
+      try {
+        await userProfileService.updateCharitableBequest(value);
+        this.charitableBequest = value;
+        // Refresh user data in store
+        await this.$store.dispatch('auth/fetchUser');
+      } catch (error) {
+        console.error('Failed to update charitable bequest:', error);
+        // Revert to previous value on error
+        this.charitableBequest = !value;
+      } finally {
+        this.savingCharitableBequest = false;
+      }
     },
 
     async loadIHTCalculation() {

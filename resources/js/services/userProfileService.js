@@ -207,6 +207,16 @@ const userProfileService = {
     const response = await api.put(`/users/${spouseId}`, data);
     return response.data;
   },
+
+  /**
+   * Update charitable bequest preference
+   * @param {boolean} value - Whether user wishes to leave anything to charity
+   * @returns {Promise}
+   */
+  async updateCharitableBequest(value) {
+    const response = await api.put('/user/profile/personal', { charitable_bequest: value });
+    return response.data;
+  },
 };
 
 export default userProfileService;

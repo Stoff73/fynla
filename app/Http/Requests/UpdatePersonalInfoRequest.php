@@ -44,6 +44,7 @@ class UpdatePersonalInfoRequest extends FormRequest
             'good_health' => ['sometimes', 'nullable', 'boolean'],
             'smoker' => ['sometimes', 'nullable', 'boolean'],
             'education_level' => ['sometimes', 'nullable', Rule::in(['secondary', 'a_level', 'undergraduate', 'postgraduate', 'professional', 'other'])],
+            'charitable_bequest' => ['sometimes', 'nullable', 'boolean'],
         ];
     }
 

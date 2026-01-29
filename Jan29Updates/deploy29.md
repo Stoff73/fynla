@@ -467,6 +467,58 @@ resources/js/components/Risk/RiskProfileSummary.vue
 
 ---
 
+## Move Charitable Bequest to Estate Planning
+
+**Branch:** genBits
+
+**Status:** 🔄 Ready for testing
+
+### Description
+
+Moved the charitable bequest toggle from the onboarding Family Info step to the Estate Planning IHT Planning dashboard. This makes more sense contextually as charitable bequests directly relate to inheritance tax planning.
+
+### Before
+
+- Charitable bequest toggle was in the Family & Dependents step of onboarding
+- Users had to complete onboarding to set this preference
+
+### After
+
+- Charitable bequest toggle is now a card in the "IHT Mitigation Strategies" section of Estate Planning
+- Users can toggle this at any time from the Estate Planning module
+- Shows potential IHT savings when enabled (rate reduces from 40% to 36%)
+- Value saved via the existing user profile API
+
+### Changes Made
+
+| Change | Description |
+|--------|-------------|
+| New strategy card | Added "Charitable Bequest" card to IHT Planning strategies section with Yes/No radio toggle |
+| IHT savings display | Shows potential savings calculation when "Yes" is selected |
+| Loading indicator | Spinner shown while saving preference |
+| Auto-save | Changes saved immediately on toggle via API |
+| Removed from onboarding | Charitable bequest toggle removed from FamilyInfoStep.vue |
+
+### API Changes
+
+Added `charitable_bequest` to `UpdatePersonalInfoRequest` validation rules to allow updating via the `/user/profile/personal` endpoint.
+
+### Files Changed (4 files)
+
+**Backend (upload separately):**
+```text
+app/Http/Requests/UpdatePersonalInfoRequest.php
+```
+
+**Frontend (included in build):**
+```text
+resources/js/services/userProfileService.js
+resources/js/components/Estate/IHTPlanning.vue
+resources/js/components/Onboarding/steps/FamilyInfoStep.vue
+```
+
+---
+
 ## Rebuild Required: YES
 
 Frontend Vue components changed. Full rebuild required:

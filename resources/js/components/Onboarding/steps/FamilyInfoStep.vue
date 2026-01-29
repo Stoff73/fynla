@@ -95,36 +95,6 @@
       >
         + Add Family Member
       </button>
-
-      <!-- Charitable Bequest -->
-      <div class="border-t pt-6">
-        <label class="label">
-          Do you wish to leave anything to charity?
-        </label>
-        <div class="mt-2 space-x-4">
-          <label class="inline-flex items-center">
-            <input
-              v-model="charitableBequest"
-              type="radio"
-              :value="true"
-              class="form-radio text-primary-600"
-            >
-            <span class="ml-2 text-body text-gray-700">Yes</span>
-          </label>
-          <label class="inline-flex items-center">
-            <input
-              v-model="charitableBequest"
-              type="radio"
-              :value="false"
-              class="form-radio text-primary-600"
-            >
-            <span class="ml-2 text-body text-gray-700">No</span>
-          </label>
-        </div>
-        <p class="mt-1 text-body-sm text-gray-500">
-          Leaving 10% or more to charity can reduce your IHT rate from 40% to 36%
-        </p>
-      </div>
     </div>
 
     <!-- Family Member Form Modal -->
@@ -169,7 +139,6 @@ export default {
     const store = useStore();
 
     const familyMembers = ref([]);
-    const charitableBequest = ref(null);
     const showModal = ref(false);
     const selectedMember = ref(null);
     const successMessage = ref('');
@@ -313,28 +282,8 @@ export default {
       }
     };
 
-    const handleNext = async () => {
-      loading.value = true;
-      error.value = null;
-
-      try {
-        // Save charitable bequest preference
-        await store.dispatch('onboarding/saveStepData', {
-          stepName: 'family_info',
-          data: {
-            charitable_bequest: charitableBequest.value,
-          },
-        });
-
-        // Refresh user data to ensure it's available when navigating back
-        await store.dispatch('auth/fetchUser');
-
-        emit('next');
-      } catch (err) {
-        error.value = 'Failed to save family information. Please try again.';
-      } finally {
-        loading.value = false;
-      }
+    const handleNext = () => {
+      emit('next');
     };
 
     const handleBack = () => {
@@ -354,17 +303,10 @@ export default {
       }
 
       await loadFamilyMembers();
-
-      // Load existing charitable bequest value from user profile
-      const user = store.state.auth.user;
-      if (user && user.charitable_bequest !== undefined) {
-        charitableBequest.value = user.charitable_bequest;
-      }
     });
 
     return {
       familyMembers,
-      charitableBequest,
       showModal,
       selectedMember,
       successMessage,
