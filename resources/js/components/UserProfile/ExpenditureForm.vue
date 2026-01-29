@@ -221,79 +221,79 @@
 
       <!-- Financial Commitments (Auto-pulled) - View Mode -->
       <div v-if="hasAnyCommitments" class="mt-6 border-t border-gray-200 pt-6">
-        <div class="flex items-center gap-2 cursor-pointer select-none" @click="toggleSection('current', 'commitments')">
-          <svg :class="['h-5 w-5 text-gray-400 transition-transform', isSectionExpanded('current', 'commitments') ? 'rotate-90' : '']" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-          </svg>
-          <span class="text-body-base font-semibold text-gray-900">Financial Commitments</span>
-          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-            Auto-calculated
-          </span>
-        </div>
+        <div :class="isMarried ? 'expenditure-grid-married' : 'expenditure-grid-single'">
+          <!-- Financial Commitments Section Header -->
+          <ExpenditureSection
+            title="Financial Commitments"
+            :is-expanded="isSectionExpanded('current', 'commitments')"
+            :user-total="financialCommitments?.totals?.total || 0"
+            :spouse-total="spouseFinancialCommitments?.totals?.total || 0"
+            :household-total="(financialCommitments?.totals?.total || 0) + (spouseFinancialCommitments?.totals?.total || 0)"
+            :is-married="isMarried"
+            @toggle="toggleSection('current', 'commitments')"
+          >
+            <template #badge>
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                Auto-calculated
+              </span>
+            </template>
 
-        <div v-if="isSectionExpanded('current', 'commitments')" :class="isMarried ? 'expenditure-grid-married' : 'expenditure-grid-single'" class="mt-4">
-          <!-- Column Headers -->
-          <div class="col-label font-semibold text-body-sm text-gray-700 pb-2 border-b border-gray-200">Source</div>
-          <div class="col-value font-semibold text-body-sm text-gray-700 pb-2 border-b border-gray-200">{{ userName }}</div>
-          <div v-if="isMarried" class="col-value-mid font-semibold text-body-sm text-gray-700 pb-2 border-b border-gray-200">{{ spouseName }}</div>
-          <div v-if="isMarried" class="col-total font-semibold text-body-sm text-gray-700 pb-2 border-b border-gray-200">Household</div>
+            <!-- Commitment Rows -->
+            <template v-if="hasRetirementCommitments || spouseHasRetirementCommitments">
+              <ExpenditureGridRow
+                label="Pension Contributions"
+                :value="financialCommitments?.totals?.retirement || 0"
+                :spouse-value="spouseFinancialCommitments?.totals?.retirement || 0"
+                :household-value="(financialCommitments?.totals?.retirement || 0) + (spouseFinancialCommitments?.totals?.retirement || 0)"
+                :is-married="isMarried"
+                indent
+              />
+            </template>
 
-          <!-- Commitment Rows -->
-          <template v-if="hasRetirementCommitments || spouseHasRetirementCommitments">
-            <ExpenditureGridRow
-              label="Pension Contributions"
-              :value="financialCommitments?.totals?.retirement || 0"
-              :spouse-value="spouseFinancialCommitments?.totals?.retirement || 0"
-              :household-value="(financialCommitments?.totals?.retirement || 0) + (spouseFinancialCommitments?.totals?.retirement || 0)"
-              :is-married="isMarried"
-            />
-          </template>
+            <template v-if="hasPropertyCommitments || spouseHasPropertyCommitments">
+              <ExpenditureGridRow
+                label="Property Expenses"
+                :value="financialCommitments?.totals?.properties || 0"
+                :spouse-value="spouseFinancialCommitments?.totals?.properties || 0"
+                :household-value="(financialCommitments?.totals?.properties || 0) + (spouseFinancialCommitments?.totals?.properties || 0)"
+                :is-married="isMarried"
+                indent
+              />
+            </template>
 
-          <template v-if="hasPropertyCommitments || spouseHasPropertyCommitments">
-            <ExpenditureGridRow
-              label="Property Expenses"
-              :value="financialCommitments?.totals?.properties || 0"
-              :spouse-value="spouseFinancialCommitments?.totals?.properties || 0"
-              :household-value="(financialCommitments?.totals?.properties || 0) + (spouseFinancialCommitments?.totals?.properties || 0)"
-              :is-married="isMarried"
-            />
-          </template>
+            <template v-if="hasInvestmentCommitments || spouseHasInvestmentCommitments">
+              <ExpenditureGridRow
+                label="Investment Contributions"
+                :value="financialCommitments?.totals?.investments || 0"
+                :spouse-value="spouseFinancialCommitments?.totals?.investments || 0"
+                :household-value="(financialCommitments?.totals?.investments || 0) + (spouseFinancialCommitments?.totals?.investments || 0)"
+                :is-married="isMarried"
+                indent
+              />
+            </template>
 
-          <template v-if="hasInvestmentCommitments || spouseHasInvestmentCommitments">
-            <ExpenditureGridRow
-              label="Investment Contributions"
-              :value="financialCommitments?.totals?.investments || 0"
-              :spouse-value="spouseFinancialCommitments?.totals?.investments || 0"
-              :household-value="(financialCommitments?.totals?.investments || 0) + (spouseFinancialCommitments?.totals?.investments || 0)"
-              :is-married="isMarried"
-            />
-          </template>
+            <template v-if="hasProtectionCommitments || spouseHasProtectionCommitments">
+              <ExpenditureGridRow
+                label="Protection Premiums"
+                :value="financialCommitments?.totals?.protection || 0"
+                :spouse-value="spouseFinancialCommitments?.totals?.protection || 0"
+                :household-value="(financialCommitments?.totals?.protection || 0) + (spouseFinancialCommitments?.totals?.protection || 0)"
+                :is-married="isMarried"
+                indent
+              />
+            </template>
 
-          <template v-if="hasProtectionCommitments || spouseHasProtectionCommitments">
-            <ExpenditureGridRow
-              label="Protection Premiums"
-              :value="financialCommitments?.totals?.protection || 0"
-              :spouse-value="spouseFinancialCommitments?.totals?.protection || 0"
-              :household-value="(financialCommitments?.totals?.protection || 0) + (spouseFinancialCommitments?.totals?.protection || 0)"
-              :is-married="isMarried"
-            />
-          </template>
-
-          <template v-if="hasLiabilityCommitments || spouseHasLiabilityCommitments">
-            <ExpenditureGridRow
-              label="Loan Repayments"
-              :value="financialCommitments?.totals?.liabilities || 0"
-              :spouse-value="spouseFinancialCommitments?.totals?.liabilities || 0"
-              :household-value="(financialCommitments?.totals?.liabilities || 0) + (spouseFinancialCommitments?.totals?.liabilities || 0)"
-              :is-married="isMarried"
-            />
-          </template>
-
-          <!-- Commitments Sub-total -->
-          <div class="col-label text-body-sm font-semibold text-gray-700 py-2 border-t border-gray-100">Commitments Total</div>
-          <div class="col-value text-body-sm text-gray-900 py-2 border-t border-gray-100 font-semibold">{{ formatCurrency(financialCommitments?.totals?.total || 0) }}</div>
-          <div v-if="isMarried" class="col-value-mid text-body-sm text-gray-900 py-2 border-t border-gray-100 font-semibold">{{ formatCurrency(spouseFinancialCommitments?.totals?.total || 0) }}</div>
-          <div v-if="isMarried" class="col-total text-body-sm text-gray-900 py-2 border-t border-gray-100 font-semibold">{{ formatCurrency((financialCommitments?.totals?.total || 0) + (spouseFinancialCommitments?.totals?.total || 0)) }}</div>
+            <template v-if="hasLiabilityCommitments || spouseHasLiabilityCommitments">
+              <ExpenditureGridRow
+                label="Loan Repayments"
+                :value="financialCommitments?.totals?.liabilities || 0"
+                :spouse-value="spouseFinancialCommitments?.totals?.liabilities || 0"
+                :household-value="(financialCommitments?.totals?.liabilities || 0) + (spouseFinancialCommitments?.totals?.liabilities || 0)"
+                :is-married="isMarried"
+                indent
+              />
+            </template>
+          </ExpenditureSection>
         </div>
       </div>
 
@@ -2059,19 +2059,19 @@ export default {
   gap: 0 1rem;
 }
 
-.col-label {
+:deep(.col-label) {
   text-align: left;
 }
 
-.col-value {
+:deep(.col-value) {
   text-align: right;
 }
 
-.col-value-mid {
+:deep(.col-value-mid) {
   text-align: right;
 }
 
-.col-total {
+:deep(.col-total) {
   text-align: right;
 }
 
@@ -2102,10 +2102,10 @@ export default {
     grid-template-columns: 1fr;
   }
 
-  .col-label,
-  .col-value,
-  .col-value-mid,
-  .col-total {
+  :deep(.col-label),
+  :deep(.col-value),
+  :deep(.col-value-mid),
+  :deep(.col-total) {
     text-align: left !important;
     padding-left: 0 !important;
   }
