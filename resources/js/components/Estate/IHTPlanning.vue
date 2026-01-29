@@ -281,818 +281,25 @@
         </p>
       </div>
 
-      <!-- Estate Calculation Table -->
-      <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-gray-50">
-            <tr>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Line Item</th>
-              <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Now</th>
-              <th v-if="showMinus5Years" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                <div>Age {{ projectionMinus5?.estimated_age_at_death || '...' }}</div>
-                <div class="text-[10px] font-normal text-gray-400 normal-case mt-0.5">-5 years</div>
-              </th>
-              <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                <div class="flex items-center justify-end">
-                  <button
-                    @click="showMinus5Years = !showMinus5Years"
-                    class="p-1 hover:bg-gray-100 rounded transition-colors"
-                    :title="showMinus5Years ? 'Hide -5 years' : 'Show -5 years'"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4 text-gray-500">
-                      <path stroke-linecap="round" stroke-linejoin="round" :d="showMinus5Years ? 'M8.25 4.5l7.5 7.5-7.5 7.5' : 'M15.75 19.5L8.25 12l7.5-7.5'" />
-                    </svg>
-                  </button>
-                  <span class="mx-1">Age {{ secondDeathData.second_death_analysis.second_death.estimated_age_at_death }}</span>
-                  <button
-                    @click="showPlus5Years = !showPlus5Years"
-                    class="p-1 hover:bg-gray-100 rounded transition-colors"
-                    :title="showPlus5Years ? 'Hide +5 years' : 'Show +5 years'"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4 text-gray-500">
-                      <path stroke-linecap="round" stroke-linejoin="round" :d="showPlus5Years ? 'M15.75 19.5L8.25 12l7.5-7.5' : 'M8.25 4.5l7.5 7.5-7.5 7.5'" />
-                    </svg>
-                  </button>
-                </div>
-                <div class="text-[10px] font-normal text-gray-400 normal-case mt-0.5 text-right">Life expectancy</div>
-              </th>
-              <th v-if="showPlus5Years" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                <div>Age {{ projectionPlus5?.estimated_age_at_death || '...' }}</div>
-                <div class="text-[10px] font-normal text-gray-400 normal-case mt-0.5">+5 years</div>
-              </th>
-            </tr>
-          </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
-            <!-- User Assets Section -->
-            <template v-if="secondDeathData.assets_breakdown && secondDeathData.assets_breakdown.user">
-              <!-- User Assets Header -->
-              <tr class="bg-white border-l-4 border-gray-400 cursor-pointer hover:bg-gray-50 select-none" @click="toggleAssetGroup('user-all')">
-                <td class="px-4 py-3 text-sm font-semibold text-gray-900">
-                  <span class="inline-flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-gray-400 transition-transform mr-1" :class="{ 'rotate-90': isAssetExpanded('user-all') }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-                    {{ secondDeathData.assets_breakdown.user.name }}'s Assets
-                  </span>
-                </td>
-                <td class="px-4 py-3 text-sm text-right font-semibold text-gray-900">{{ formatCurrency(secondDeathData.assets_breakdown.user.total) }}</td>
-                <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-semibold text-gray-900">{{ formatCurrency(getProjectedValueMinus5(secondDeathData.assets_breakdown.user.total)) }}</td>
-                <td class="px-4 py-3 text-sm text-right font-semibold text-gray-900">{{ formatCurrency(secondDeathData.assets_breakdown.user.projected_total) }}</td>
-                <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-semibold text-gray-900">{{ formatCurrency(getProjectedValuePlus5(secondDeathData.assets_breakdown.user.total)) }}</td>
-              </tr>
-
-              <template v-if="isAssetExpanded('user-all')">
-              <!-- User Property Assets -->
-              <template v-if="secondDeathData.assets_breakdown.user.assets.property?.length > 1">
-                <tr class="bg-gray-50 cursor-pointer hover:bg-gray-100 select-none" @click="toggleAssetGroup('user-property')">
-                  <td class="px-4 py-2 text-sm text-gray-700 pl-8">
-                    <span class="inline-flex items-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-gray-400 transition-transform mr-1" :class="{ 'rotate-90': isAssetExpanded('user-property') }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-                      <span class="text-sm text-gray-700">Property</span>
-                      <span class="ml-1 text-xs text-gray-400">({{ secondDeathData.assets_breakdown.user.assets.property.length }})</span>
-                    </span>
-                  </td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(assetGroupTotal(secondDeathData.assets_breakdown.user.assets.property)) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(assetGroupTotal(secondDeathData.assets_breakdown.user.assets.property))) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(assetGroupProjectedTotal(secondDeathData.assets_breakdown.user.assets.property)) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(assetGroupTotal(secondDeathData.assets_breakdown.user.assets.property))) }}</td>
-                </tr>
-                <template v-if="isAssetExpanded('user-property')">
-                  <tr v-for="(asset, index) in secondDeathData.assets_breakdown.user.assets.property" :key="'user-property-' + index" class="bg-gray-50">
-                    <td class="px-4 py-2 text-sm text-gray-700 pl-12">
-                      {{ asset.name }}
-                      <span v-if="asset.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint)</span><span v-else-if="asset.ownership_type === 'tenants_in_common'" class="ml-2 text-xs text-gray-600 font-medium">(Tenancy in Common{{ asset.ownership_percentage ? ' - ' + asset.ownership_percentage + '%' : '' }})</span>
-                    </td>
-                    <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                    <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
-                    <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(asset.projected_value) }}</td>
-                    <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
-                  </tr>
-                </template>
-              </template>
-              <template v-else>
-                <tr v-for="(asset, index) in secondDeathData.assets_breakdown.user.assets.property" :key="'user-property-' + index" class="bg-gray-50">
-                  <td class="px-4 py-2 text-sm text-gray-700 pl-8">
-                    <span class="text-sm text-gray-700">Property:</span> {{ asset.name }}
-                    <span v-if="asset.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint)</span><span v-else-if="asset.ownership_type === 'tenants_in_common'" class="ml-2 text-xs text-gray-600 font-medium">(Tenancy in Common{{ asset.ownership_percentage ? ' - ' + asset.ownership_percentage + '%' : '' }})</span>
-                  </td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(asset.projected_value) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
-                </tr>
-              </template>
-
-              <!-- User Investment Assets -->
-              <template v-if="secondDeathData.assets_breakdown.user.assets.investment?.length > 1">
-                <tr class="bg-gray-50 cursor-pointer hover:bg-gray-100 select-none" @click="toggleAssetGroup('user-investment')">
-                  <td class="px-4 py-2 text-sm text-gray-700 pl-8">
-                    <span class="inline-flex items-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-gray-400 transition-transform mr-1" :class="{ 'rotate-90': isAssetExpanded('user-investment') }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-                      <span class="text-sm text-gray-700">Investment</span>
-                      <span class="ml-1 text-xs text-gray-400">({{ secondDeathData.assets_breakdown.user.assets.investment.length }})</span>
-                    </span>
-                  </td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(assetGroupTotal(secondDeathData.assets_breakdown.user.assets.investment)) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(assetGroupTotal(secondDeathData.assets_breakdown.user.assets.investment))) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(assetGroupProjectedTotal(secondDeathData.assets_breakdown.user.assets.investment)) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(assetGroupTotal(secondDeathData.assets_breakdown.user.assets.investment))) }}</td>
-                </tr>
-                <template v-if="isAssetExpanded('user-investment')">
-                  <tr v-for="(asset, index) in secondDeathData.assets_breakdown.user.assets.investment" :key="'user-investment-' + index" class="bg-gray-50">
-                    <td class="px-4 py-2 text-sm text-gray-700 pl-12">
-                      {{ asset.name }}
-                      <span v-if="asset.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint)</span><span v-else-if="asset.ownership_type === 'tenants_in_common'" class="ml-2 text-xs text-gray-600 font-medium">(Tenancy in Common{{ asset.ownership_percentage ? ' - ' + asset.ownership_percentage + '%' : '' }})</span>
-                    </td>
-                    <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                    <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
-                    <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(asset.projected_value) }}</td>
-                    <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
-                  </tr>
-                </template>
-              </template>
-              <template v-else>
-                <tr v-for="(asset, index) in secondDeathData.assets_breakdown.user.assets.investment" :key="'user-investment-' + index" class="bg-gray-50">
-                  <td class="px-4 py-2 text-sm text-gray-700 pl-8">
-                    <span class="text-sm text-gray-700">Investment:</span> {{ asset.name }}
-                    <span v-if="asset.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint)</span><span v-else-if="asset.ownership_type === 'tenants_in_common'" class="ml-2 text-xs text-gray-600 font-medium">(Tenancy in Common{{ asset.ownership_percentage ? ' - ' + asset.ownership_percentage + '%' : '' }})</span>
-                  </td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(asset.projected_value) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
-                </tr>
-              </template>
-
-              <!-- User Cash/Savings Assets -->
-              <template v-if="secondDeathData.assets_breakdown.user.assets.cash?.length > 1">
-                <tr class="bg-gray-50 cursor-pointer hover:bg-gray-100 select-none" @click="toggleAssetGroup('user-cash')">
-                  <td class="px-4 py-2 text-sm text-gray-700 pl-8">
-                    <span class="inline-flex items-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-gray-400 transition-transform mr-1" :class="{ 'rotate-90': isAssetExpanded('user-cash') }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-                      <span class="text-sm text-gray-700">Cash/Savings</span>
-                      <span class="ml-1 text-xs text-gray-400">({{ secondDeathData.assets_breakdown.user.assets.cash.length }})</span>
-                    </span>
-                  </td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(assetGroupTotal(secondDeathData.assets_breakdown.user.assets.cash)) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(assetGroupTotal(secondDeathData.assets_breakdown.user.assets.cash))) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(assetGroupProjectedTotal(secondDeathData.assets_breakdown.user.assets.cash)) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(assetGroupTotal(secondDeathData.assets_breakdown.user.assets.cash))) }}</td>
-                </tr>
-                <template v-if="isAssetExpanded('user-cash')">
-                  <tr v-for="(asset, index) in secondDeathData.assets_breakdown.user.assets.cash" :key="'user-cash-' + index" class="bg-gray-50">
-                    <td class="px-4 py-2 text-sm text-gray-700 pl-12">
-                      {{ asset.name }}
-                      <span v-if="asset.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint)</span><span v-else-if="asset.ownership_type === 'tenants_in_common'" class="ml-2 text-xs text-gray-600 font-medium">(Tenancy in Common{{ asset.ownership_percentage ? ' - ' + asset.ownership_percentage + '%' : '' }})</span>
-                    </td>
-                    <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                    <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
-                    <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(asset.projected_value) }}</td>
-                    <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
-                  </tr>
-                </template>
-              </template>
-              <template v-else>
-                <tr v-for="(asset, index) in secondDeathData.assets_breakdown.user.assets.cash" :key="'user-cash-' + index" class="bg-gray-50">
-                  <td class="px-4 py-2 text-sm text-gray-700 pl-8">
-                    <span class="text-sm text-gray-700">Cash/Savings:</span> {{ asset.name }}
-                    <span v-if="asset.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint)</span><span v-else-if="asset.ownership_type === 'tenants_in_common'" class="ml-2 text-xs text-gray-600 font-medium">(Tenancy in Common{{ asset.ownership_percentage ? ' - ' + asset.ownership_percentage + '%' : '' }})</span>
-                  </td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(asset.projected_value) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
-                </tr>
-              </template>
-
-              <!-- User Business Assets -->
-              <template v-if="secondDeathData.assets_breakdown.user.assets.business?.length > 1">
-                <tr class="bg-gray-50 cursor-pointer hover:bg-gray-100 select-none" @click="toggleAssetGroup('user-business')">
-                  <td class="px-4 py-2 text-sm text-gray-700 pl-8">
-                    <span class="inline-flex items-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-gray-400 transition-transform mr-1" :class="{ 'rotate-90': isAssetExpanded('user-business') }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-                      <span class="text-sm text-gray-700">Business</span>
-                      <span class="ml-1 text-xs text-gray-400">({{ secondDeathData.assets_breakdown.user.assets.business.length }})</span>
-                    </span>
-                  </td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(assetGroupTotal(secondDeathData.assets_breakdown.user.assets.business)) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(assetGroupTotal(secondDeathData.assets_breakdown.user.assets.business))) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(assetGroupProjectedTotal(secondDeathData.assets_breakdown.user.assets.business)) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(assetGroupTotal(secondDeathData.assets_breakdown.user.assets.business))) }}</td>
-                </tr>
-                <template v-if="isAssetExpanded('user-business')">
-                  <tr v-for="(asset, index) in secondDeathData.assets_breakdown.user.assets.business" :key="'user-business-' + index" class="bg-gray-50">
-                    <td class="px-4 py-2 text-sm text-gray-700 pl-12">
-                      {{ asset.name }}
-                      <span v-if="asset.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint)</span><span v-else-if="asset.ownership_type === 'tenants_in_common'" class="ml-2 text-xs text-gray-600 font-medium">(Tenancy in Common{{ asset.ownership_percentage ? ' - ' + asset.ownership_percentage + '%' : '' }})</span>
-                    </td>
-                    <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                    <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
-                    <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(asset.projected_value) }}</td>
-                    <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
-                  </tr>
-                </template>
-              </template>
-              <template v-else>
-                <tr v-for="(asset, index) in secondDeathData.assets_breakdown.user.assets.business" :key="'user-business-' + index" class="bg-gray-50">
-                  <td class="px-4 py-2 text-sm text-gray-700 pl-8">
-                    <span class="text-sm text-gray-700">Business:</span> {{ asset.name }}
-                    <span v-if="asset.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint)</span><span v-else-if="asset.ownership_type === 'tenants_in_common'" class="ml-2 text-xs text-gray-600 font-medium">(Tenancy in Common{{ asset.ownership_percentage ? ' - ' + asset.ownership_percentage + '%' : '' }})</span>
-                  </td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(asset.projected_value) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
-                </tr>
-              </template>
-
-              <!-- User Chattel Assets -->
-              <template v-if="secondDeathData.assets_breakdown.user.assets.chattel?.length > 1">
-                <tr class="bg-gray-50 cursor-pointer hover:bg-gray-100 select-none" @click="toggleAssetGroup('user-chattel')">
-                  <td class="px-4 py-2 text-sm text-gray-700 pl-8">
-                    <span class="inline-flex items-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-gray-400 transition-transform mr-1" :class="{ 'rotate-90': isAssetExpanded('user-chattel') }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-                      <span class="text-sm text-gray-700">Personal Valuables</span>
-                      <span class="ml-1 text-xs text-gray-400">({{ secondDeathData.assets_breakdown.user.assets.chattel.length }})</span>
-                    </span>
-                  </td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(assetGroupTotal(secondDeathData.assets_breakdown.user.assets.chattel)) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(assetGroupTotal(secondDeathData.assets_breakdown.user.assets.chattel))) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(assetGroupProjectedTotal(secondDeathData.assets_breakdown.user.assets.chattel)) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(assetGroupTotal(secondDeathData.assets_breakdown.user.assets.chattel))) }}</td>
-                </tr>
-                <template v-if="isAssetExpanded('user-chattel')">
-                  <tr v-for="(asset, index) in secondDeathData.assets_breakdown.user.assets.chattel" :key="'user-chattel-' + index" class="bg-gray-50">
-                    <td class="px-4 py-2 text-sm text-gray-700 pl-12">
-                      {{ asset.name }}
-                      <span v-if="asset.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint)</span><span v-else-if="asset.ownership_type === 'tenants_in_common'" class="ml-2 text-xs text-gray-600 font-medium">(Tenancy in Common{{ asset.ownership_percentage ? ' - ' + asset.ownership_percentage + '%' : '' }})</span>
-                    </td>
-                    <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                    <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
-                    <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(asset.projected_value) }}</td>
-                    <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
-                  </tr>
-                </template>
-              </template>
-              <template v-else>
-                <tr v-for="(asset, index) in secondDeathData.assets_breakdown.user.assets.chattel" :key="'user-chattel-' + index" class="bg-gray-50">
-                  <td class="px-4 py-2 text-sm text-gray-700 pl-8">
-                    <span class="text-sm text-gray-700">Valuable:</span> {{ asset.name }}
-                    <span v-if="asset.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint)</span><span v-else-if="asset.ownership_type === 'tenants_in_common'" class="ml-2 text-xs text-gray-600 font-medium">(Tenancy in Common{{ asset.ownership_percentage ? ' - ' + asset.ownership_percentage + '%' : '' }})</span>
-                  </td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(asset.projected_value) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
-                </tr>
-              </template>
-
-              <!-- User Assets Subtotal -->
-              <tr class="bg-white border-l-4 border-gray-400">
-                <td class="px-4 py-2 text-sm font-semibold text-gray-900 pl-8">Subtotal</td>
-                <td class="px-4 py-2 text-sm text-right font-semibold text-gray-900">{{ formatCurrency(secondDeathData.assets_breakdown.user.total) }}</td>
-                <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right font-semibold text-gray-900">{{ formatCurrency(getProjectedValueMinus5(secondDeathData.assets_breakdown.user.total)) }}</td>
-                <td class="px-4 py-2 text-sm text-right font-semibold text-gray-900">{{ formatCurrency(secondDeathData.assets_breakdown.user.projected_total) }}</td>
-                <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right font-semibold text-gray-900">{{ formatCurrency(getProjectedValuePlus5(secondDeathData.assets_breakdown.user.total)) }}</td>
-              </tr>
-              </template>
-            </template>
-
-            <!-- Spouse Assets Section -->
-            <template v-if="secondDeathData.data_sharing_enabled && secondDeathData.assets_breakdown.spouse">
-              <!-- Spouse Assets Header -->
-              <tr class="bg-white border-l-4 border-gray-400 cursor-pointer hover:bg-gray-50 select-none" @click="toggleAssetGroup('spouse-all')">
-                <td class="px-4 py-3 text-sm font-semibold text-gray-900">
-                  <span class="inline-flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-gray-400 transition-transform mr-1" :class="{ 'rotate-90': isAssetExpanded('spouse-all') }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-                    {{ secondDeathData.assets_breakdown.spouse.name }}'s Assets
-                  </span>
-                </td>
-                <td class="px-4 py-3 text-sm text-right font-semibold text-gray-900">{{ formatCurrency(secondDeathData.assets_breakdown.spouse.total) }}</td>
-                <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-semibold text-gray-900">{{ formatCurrency(getProjectedValueMinus5(secondDeathData.assets_breakdown.spouse.total)) }}</td>
-                <td class="px-4 py-3 text-sm text-right font-semibold text-gray-900">{{ formatCurrency(secondDeathData.assets_breakdown.spouse.projected_total) }}</td>
-                <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-semibold text-gray-900">{{ formatCurrency(getProjectedValuePlus5(secondDeathData.assets_breakdown.spouse.total)) }}</td>
-              </tr>
-
-              <template v-if="isAssetExpanded('spouse-all')">
-              <!-- Spouse Property Assets -->
-              <template v-if="secondDeathData.assets_breakdown.spouse.assets.property?.length > 1">
-                <tr class="bg-gray-50 cursor-pointer hover:bg-gray-100 select-none" @click="toggleAssetGroup('spouse-property')">
-                  <td class="px-4 py-2 text-sm text-gray-700 pl-8">
-                    <span class="inline-flex items-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-gray-400 transition-transform mr-1" :class="{ 'rotate-90': isAssetExpanded('spouse-property') }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-                      <span class="text-sm text-gray-700">Property</span>
-                      <span class="ml-1 text-xs text-gray-400">({{ secondDeathData.assets_breakdown.spouse.assets.property.length }})</span>
-                    </span>
-                  </td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(assetGroupTotal(secondDeathData.assets_breakdown.spouse.assets.property)) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(assetGroupTotal(secondDeathData.assets_breakdown.spouse.assets.property))) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(assetGroupProjectedTotal(secondDeathData.assets_breakdown.spouse.assets.property)) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(assetGroupTotal(secondDeathData.assets_breakdown.spouse.assets.property))) }}</td>
-                </tr>
-                <template v-if="isAssetExpanded('spouse-property')">
-                  <tr v-for="(asset, index) in secondDeathData.assets_breakdown.spouse.assets.property" :key="'spouse-property-' + index" class="bg-gray-50">
-                    <td class="px-4 py-2 text-sm text-gray-700 pl-12">{{ asset.name }}<span v-if="asset.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint)</span><span v-else-if="asset.ownership_type === 'tenants_in_common'" class="ml-2 text-xs text-gray-600 font-medium">(Tenancy in Common{{ asset.ownership_percentage ? ' - ' + asset.ownership_percentage + '%' : '' }})</span></td>
-                    <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                    <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
-                    <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(asset.projected_value) }}</td>
-                    <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
-                  </tr>
-                </template>
-              </template>
-              <template v-else>
-                <tr v-for="(asset, index) in secondDeathData.assets_breakdown.spouse.assets.property" :key="'spouse-property-' + index" class="bg-gray-50">
-                  <td class="px-4 py-2 text-sm text-gray-700 pl-8"><span class="text-sm text-gray-700">Property:</span> {{ asset.name }}<span v-if="asset.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint)</span><span v-else-if="asset.ownership_type === 'tenants_in_common'" class="ml-2 text-xs text-gray-600 font-medium">(Tenancy in Common{{ asset.ownership_percentage ? ' - ' + asset.ownership_percentage + '%' : '' }})</span></td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(asset.projected_value) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
-                </tr>
-              </template>
-
-              <!-- Spouse Investment Assets -->
-              <template v-if="secondDeathData.assets_breakdown.spouse.assets.investment?.length > 1">
-                <tr class="bg-gray-50 cursor-pointer hover:bg-gray-100 select-none" @click="toggleAssetGroup('spouse-investment')">
-                  <td class="px-4 py-2 text-sm text-gray-700 pl-8">
-                    <span class="inline-flex items-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-gray-400 transition-transform mr-1" :class="{ 'rotate-90': isAssetExpanded('spouse-investment') }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-                      <span class="text-sm text-gray-700">Investment</span>
-                      <span class="ml-1 text-xs text-gray-400">({{ secondDeathData.assets_breakdown.spouse.assets.investment.length }})</span>
-                    </span>
-                  </td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(assetGroupTotal(secondDeathData.assets_breakdown.spouse.assets.investment)) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(assetGroupTotal(secondDeathData.assets_breakdown.spouse.assets.investment))) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(assetGroupProjectedTotal(secondDeathData.assets_breakdown.spouse.assets.investment)) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(assetGroupTotal(secondDeathData.assets_breakdown.spouse.assets.investment))) }}</td>
-                </tr>
-                <template v-if="isAssetExpanded('spouse-investment')">
-                  <tr v-for="(asset, index) in secondDeathData.assets_breakdown.spouse.assets.investment" :key="'spouse-investment-' + index" class="bg-gray-50">
-                    <td class="px-4 py-2 text-sm text-gray-700 pl-12">{{ asset.name }}<span v-if="asset.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint)</span><span v-else-if="asset.ownership_type === 'tenants_in_common'" class="ml-2 text-xs text-gray-600 font-medium">(Tenancy in Common{{ asset.ownership_percentage ? ' - ' + asset.ownership_percentage + '%' : '' }})</span></td>
-                    <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                    <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
-                    <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(asset.projected_value) }}</td>
-                    <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
-                  </tr>
-                </template>
-              </template>
-              <template v-else>
-                <tr v-for="(asset, index) in secondDeathData.assets_breakdown.spouse.assets.investment" :key="'spouse-investment-' + index" class="bg-gray-50">
-                  <td class="px-4 py-2 text-sm text-gray-700 pl-8"><span class="text-sm text-gray-700">Investment:</span> {{ asset.name }}<span v-if="asset.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint)</span><span v-else-if="asset.ownership_type === 'tenants_in_common'" class="ml-2 text-xs text-gray-600 font-medium">(Tenancy in Common{{ asset.ownership_percentage ? ' - ' + asset.ownership_percentage + '%' : '' }})</span></td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(asset.projected_value) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
-                </tr>
-              </template>
-
-              <!-- Spouse Cash/Savings Assets -->
-              <template v-if="secondDeathData.assets_breakdown.spouse.assets.cash?.length > 1">
-                <tr class="bg-gray-50 cursor-pointer hover:bg-gray-100 select-none" @click="toggleAssetGroup('spouse-cash')">
-                  <td class="px-4 py-2 text-sm text-gray-700 pl-8">
-                    <span class="inline-flex items-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-gray-400 transition-transform mr-1" :class="{ 'rotate-90': isAssetExpanded('spouse-cash') }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-                      <span class="text-sm text-gray-700">Cash/Savings</span>
-                      <span class="ml-1 text-xs text-gray-400">({{ secondDeathData.assets_breakdown.spouse.assets.cash.length }})</span>
-                    </span>
-                  </td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(assetGroupTotal(secondDeathData.assets_breakdown.spouse.assets.cash)) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(assetGroupTotal(secondDeathData.assets_breakdown.spouse.assets.cash))) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(assetGroupProjectedTotal(secondDeathData.assets_breakdown.spouse.assets.cash)) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(assetGroupTotal(secondDeathData.assets_breakdown.spouse.assets.cash))) }}</td>
-                </tr>
-                <template v-if="isAssetExpanded('spouse-cash')">
-                  <tr v-for="(asset, index) in secondDeathData.assets_breakdown.spouse.assets.cash" :key="'spouse-cash-' + index" class="bg-gray-50">
-                    <td class="px-4 py-2 text-sm text-gray-700 pl-12">{{ asset.name }}<span v-if="asset.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint)</span><span v-else-if="asset.ownership_type === 'tenants_in_common'" class="ml-2 text-xs text-gray-600 font-medium">(Tenancy in Common{{ asset.ownership_percentage ? ' - ' + asset.ownership_percentage + '%' : '' }})</span></td>
-                    <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                    <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
-                    <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(asset.projected_value) }}</td>
-                    <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
-                  </tr>
-                </template>
-              </template>
-              <template v-else>
-                <tr v-for="(asset, index) in secondDeathData.assets_breakdown.spouse.assets.cash" :key="'spouse-cash-' + index" class="bg-gray-50">
-                  <td class="px-4 py-2 text-sm text-gray-700 pl-8"><span class="text-sm text-gray-700">Cash/Savings:</span> {{ asset.name }}<span v-if="asset.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint)</span><span v-else-if="asset.ownership_type === 'tenants_in_common'" class="ml-2 text-xs text-gray-600 font-medium">(Tenancy in Common{{ asset.ownership_percentage ? ' - ' + asset.ownership_percentage + '%' : '' }})</span></td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(asset.projected_value) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
-                </tr>
-              </template>
-
-              <!-- Spouse Business Assets -->
-              <template v-if="secondDeathData.assets_breakdown.spouse.assets.business?.length > 1">
-                <tr class="bg-gray-50 cursor-pointer hover:bg-gray-100 select-none" @click="toggleAssetGroup('spouse-business')">
-                  <td class="px-4 py-2 text-sm text-gray-700 pl-8">
-                    <span class="inline-flex items-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-gray-400 transition-transform mr-1" :class="{ 'rotate-90': isAssetExpanded('spouse-business') }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-                      <span class="text-sm text-gray-700">Business</span>
-                      <span class="ml-1 text-xs text-gray-400">({{ secondDeathData.assets_breakdown.spouse.assets.business.length }})</span>
-                    </span>
-                  </td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(assetGroupTotal(secondDeathData.assets_breakdown.spouse.assets.business)) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(assetGroupTotal(secondDeathData.assets_breakdown.spouse.assets.business))) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(assetGroupProjectedTotal(secondDeathData.assets_breakdown.spouse.assets.business)) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(assetGroupTotal(secondDeathData.assets_breakdown.spouse.assets.business))) }}</td>
-                </tr>
-                <template v-if="isAssetExpanded('spouse-business')">
-                  <tr v-for="(asset, index) in secondDeathData.assets_breakdown.spouse.assets.business" :key="'spouse-business-' + index" class="bg-gray-50">
-                    <td class="px-4 py-2 text-sm text-gray-700 pl-12">{{ asset.name }}<span v-if="asset.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint)</span><span v-else-if="asset.ownership_type === 'tenants_in_common'" class="ml-2 text-xs text-gray-600 font-medium">(Tenancy in Common{{ asset.ownership_percentage ? ' - ' + asset.ownership_percentage + '%' : '' }})</span></td>
-                    <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                    <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
-                    <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(asset.projected_value) }}</td>
-                    <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
-                  </tr>
-                </template>
-              </template>
-              <template v-else>
-                <tr v-for="(asset, index) in secondDeathData.assets_breakdown.spouse.assets.business" :key="'spouse-business-' + index" class="bg-gray-50">
-                  <td class="px-4 py-2 text-sm text-gray-700 pl-8"><span class="text-sm text-gray-700">Business:</span> {{ asset.name }}<span v-if="asset.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint)</span><span v-else-if="asset.ownership_type === 'tenants_in_common'" class="ml-2 text-xs text-gray-600 font-medium">(Tenancy in Common{{ asset.ownership_percentage ? ' - ' + asset.ownership_percentage + '%' : '' }})</span></td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(asset.projected_value) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
-                </tr>
-              </template>
-
-              <!-- Spouse Chattel Assets -->
-              <template v-if="secondDeathData.assets_breakdown.spouse.assets.chattel?.length > 1">
-                <tr class="bg-gray-50 cursor-pointer hover:bg-gray-100 select-none" @click="toggleAssetGroup('spouse-chattel')">
-                  <td class="px-4 py-2 text-sm text-gray-700 pl-8">
-                    <span class="inline-flex items-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-gray-400 transition-transform mr-1" :class="{ 'rotate-90': isAssetExpanded('spouse-chattel') }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-                      <span class="text-sm text-gray-700">Personal Valuables</span>
-                      <span class="ml-1 text-xs text-gray-400">({{ secondDeathData.assets_breakdown.spouse.assets.chattel.length }})</span>
-                    </span>
-                  </td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(assetGroupTotal(secondDeathData.assets_breakdown.spouse.assets.chattel)) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(assetGroupTotal(secondDeathData.assets_breakdown.spouse.assets.chattel))) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(assetGroupProjectedTotal(secondDeathData.assets_breakdown.spouse.assets.chattel)) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(assetGroupTotal(secondDeathData.assets_breakdown.spouse.assets.chattel))) }}</td>
-                </tr>
-                <template v-if="isAssetExpanded('spouse-chattel')">
-                  <tr v-for="(asset, index) in secondDeathData.assets_breakdown.spouse.assets.chattel" :key="'spouse-chattel-' + index" class="bg-gray-50">
-                    <td class="px-4 py-2 text-sm text-gray-700 pl-12">{{ asset.name }}<span v-if="asset.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint)</span><span v-else-if="asset.ownership_type === 'tenants_in_common'" class="ml-2 text-xs text-gray-600 font-medium">(Tenancy in Common{{ asset.ownership_percentage ? ' - ' + asset.ownership_percentage + '%' : '' }})</span></td>
-                    <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                    <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
-                    <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(asset.projected_value) }}</td>
-                    <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
-                  </tr>
-                </template>
-              </template>
-              <template v-else>
-                <tr v-for="(asset, index) in secondDeathData.assets_breakdown.spouse.assets.chattel" :key="'spouse-chattel-' + index" class="bg-gray-50">
-                  <td class="px-4 py-2 text-sm text-gray-700 pl-8"><span class="text-sm text-gray-700">Valuable:</span> {{ asset.name }}<span v-if="asset.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint)</span><span v-else-if="asset.ownership_type === 'tenants_in_common'" class="ml-2 text-xs text-gray-600 font-medium">(Tenancy in Common{{ asset.ownership_percentage ? ' - ' + asset.ownership_percentage + '%' : '' }})</span></td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(asset.projected_value) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
-                </tr>
-              </template>
-
-              <!-- Spouse Assets Subtotal -->
-              <tr class="bg-white border-l-4 border-gray-400">
-                <td class="px-4 py-2 text-sm font-semibold text-gray-900 pl-8">Subtotal</td>
-                <td class="px-4 py-2 text-sm text-right font-semibold text-gray-900">{{ formatCurrency(secondDeathData.assets_breakdown.spouse.total) }}</td>
-                <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right font-semibold text-gray-900">{{ formatCurrency(getProjectedValueMinus5(secondDeathData.assets_breakdown.spouse.total)) }}</td>
-                <td class="px-4 py-2 text-sm text-right font-semibold text-gray-900">{{ formatCurrency(secondDeathData.assets_breakdown.spouse.projected_total) }}</td>
-                <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right font-semibold text-gray-900">{{ formatCurrency(getProjectedValuePlus5(secondDeathData.assets_breakdown.spouse.total)) }}</td>
-              </tr>
-              </template>
-            </template>
-
-            <!-- Total Gross Assets -->
-            <tr class="bg-white border-l-4 border-gray-400">
-              <td class="px-4 py-3 text-sm font-semibold text-gray-900">Total Gross Assets</td>
-              <td class="px-4 py-3 text-sm text-right font-semibold text-gray-900">{{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.gross_estate_value || 0) }}</td>
-              <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-semibold text-gray-900">{{ formatCurrency(getProjectedValueMinus5(secondDeathData.second_death_analysis.current_iht_calculation?.gross_estate_value || 0)) }}</td>
-              <td class="px-4 py-3 text-sm text-right font-semibold text-gray-900">{{ formatCurrency(totalGrossAssetsProjected) }}</td>
-              <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-semibold text-gray-900">{{ formatCurrency(getProjectedValuePlus5(secondDeathData.second_death_analysis.current_iht_calculation?.gross_estate_value || 0)) }}</td>
-            </tr>
-
-            <!-- User Liabilities Section -->
-            <template v-if="secondDeathData.liabilities_breakdown && secondDeathData.liabilities_breakdown.user">
-              <!-- User Liabilities Header -->
-              <tr class="bg-white border-l-4 border-gray-400 cursor-pointer hover:bg-gray-50 select-none" @click="toggleLiabilityGroup('user-all')">
-                <td class="px-4 py-3 text-sm font-semibold text-gray-900">
-                  <span class="inline-flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-gray-400 transition-transform mr-1" :class="{ 'rotate-90': isLiabilityExpanded('user-all') }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-                    {{ secondDeathData.liabilities_breakdown.user.name }}'s Liabilities
-                  </span>
-                </td>
-                <td class="px-4 py-3 text-sm text-right font-semibold text-gray-900">{{ formatLiability(secondDeathData.liabilities_breakdown.user.total) }}</td>
-                <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-semibold text-gray-900">{{ formatLiability(secondDeathData.liabilities_breakdown.user.total) }}</td>
-                <td class="px-4 py-3 text-sm text-right font-semibold text-gray-900">{{ formatLiability(userLiabilitiesProjectedTotal) }}</td>
-                <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-semibold text-gray-900">{{ formatLiability(userLiabilitiesProjectedTotal) }}</td>
-              </tr>
-
-              <template v-if="isLiabilityExpanded('user-all')">
-              <!-- User Mortgages -->
-              <template v-if="secondDeathData.liabilities_breakdown.user.liabilities.mortgages?.length > 1">
-                <tr class="cursor-pointer hover:bg-gray-100 select-none" @click="toggleLiabilityGroup('user-mortgages')">
-                  <td class="px-4 py-2 text-sm text-gray-700 pl-8">
-                    <span class="inline-flex items-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-gray-400 transition-transform mr-1" :class="{ 'rotate-90': isLiabilityExpanded('user-mortgages') }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-                      <span class="text-sm text-gray-600">Mortgages</span>
-                      <span class="ml-1 text-xs text-gray-400">({{ secondDeathData.liabilities_breakdown.user.liabilities.mortgages.length }})</span>
-                    </span>
-                  </td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liabilityGroupTotal(secondDeathData.liabilities_breakdown.user.liabilities.mortgages, 'outstanding_balance')) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liabilityGroupTotal(secondDeathData.liabilities_breakdown.user.liabilities.mortgages, 'outstanding_balance')) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liabilityGroupProjectedTotal(secondDeathData.liabilities_breakdown.user.liabilities.mortgages, 'outstanding_balance', 'projected_balance')) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liabilityGroupProjectedTotal(secondDeathData.liabilities_breakdown.user.liabilities.mortgages, 'outstanding_balance', 'projected_balance')) }}</td>
-                </tr>
-                <template v-if="isLiabilityExpanded('user-mortgages')">
-                  <tr v-for="(mortgage, index) in secondDeathData.liabilities_breakdown.user.liabilities.mortgages" :key="'user-mortgage-' + index">
-                    <td class="px-4 py-2 text-sm text-gray-700 pl-12">{{ mortgage.property_address }}<span class="text-sm text-gray-500 ml-2">{{ mortgage.mortgage_type }}</span><span v-if="mortgage.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint{{ (mortgage.ownership_percentage && mortgage.ownership_percentage !== 50) ? ' - ' + mortgage.ownership_percentage + '%' : '' }})</span></td>
-                    <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(mortgage.outstanding_balance) }}</td>
-                    <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(mortgage.outstanding_balance) }}</td>
-                    <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(mortgage.projected_balance !== undefined && mortgage.projected_balance !== null ? mortgage.projected_balance : mortgage.outstanding_balance) }}</td>
-                    <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(mortgage.projected_balance !== undefined && mortgage.projected_balance !== null ? mortgage.projected_balance : mortgage.outstanding_balance) }}</td>
-                  </tr>
-                </template>
-              </template>
-              <template v-else>
-                <tr v-for="(mortgage, index) in secondDeathData.liabilities_breakdown.user.liabilities.mortgages" :key="'user-mortgage-' + index">
-                  <td class="px-4 py-2 text-sm text-gray-700 pl-8"><span class="text-sm text-gray-600">Mortgage:</span> {{ mortgage.property_address }}<span class="text-sm text-gray-500 ml-2">{{ mortgage.mortgage_type }}</span><span v-if="mortgage.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint{{ (mortgage.ownership_percentage && mortgage.ownership_percentage !== 50) ? ' - ' + mortgage.ownership_percentage + '%' : '' }})</span></td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(mortgage.outstanding_balance) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(mortgage.outstanding_balance) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(mortgage.projected_balance !== undefined && mortgage.projected_balance !== null ? mortgage.projected_balance : mortgage.outstanding_balance) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(mortgage.projected_balance !== undefined && mortgage.projected_balance !== null ? mortgage.projected_balance : mortgage.outstanding_balance) }}</td>
-                </tr>
-              </template>
-
-              <!-- User Other Liabilities -->
-              <template v-if="secondDeathData.liabilities_breakdown.user.liabilities.other_liabilities?.length > 1">
-                <tr class="cursor-pointer hover:bg-gray-100 select-none" @click="toggleLiabilityGroup('user-other')">
-                  <td class="px-4 py-2 text-sm text-gray-700 pl-8">
-                    <span class="inline-flex items-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-gray-400 transition-transform mr-1" :class="{ 'rotate-90': isLiabilityExpanded('user-other') }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-                      <span class="text-sm text-gray-600">Other Liabilities</span>
-                      <span class="ml-1 text-xs text-gray-400">({{ secondDeathData.liabilities_breakdown.user.liabilities.other_liabilities.length }})</span>
-                    </span>
-                  </td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liabilityGroupTotal(secondDeathData.liabilities_breakdown.user.liabilities.other_liabilities, 'current_balance')) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liabilityGroupTotal(secondDeathData.liabilities_breakdown.user.liabilities.other_liabilities, 'current_balance')) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liabilityGroupProjectedTotal(secondDeathData.liabilities_breakdown.user.liabilities.other_liabilities, 'current_balance', 'projected_balance')) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liabilityGroupProjectedTotal(secondDeathData.liabilities_breakdown.user.liabilities.other_liabilities, 'current_balance', 'projected_balance')) }}</td>
-                </tr>
-                <template v-if="isLiabilityExpanded('user-other')">
-                  <tr v-for="(liability, index) in secondDeathData.liabilities_breakdown.user.liabilities.other_liabilities" :key="'user-liability-' + index">
-                    <td class="px-4 py-2 text-sm text-gray-700 pl-12"><span class="text-sm text-gray-600">{{ liability.type }}:</span> {{ liability.institution }}<span v-if="liability.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint - 50%)</span></td>
-                    <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liability.current_balance) }}</td>
-                    <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liability.current_balance) }}</td>
-                    <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liability.projected_balance !== undefined && liability.projected_balance !== null ? liability.projected_balance : liability.current_balance) }}</td>
-                    <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liability.projected_balance !== undefined && liability.projected_balance !== null ? liability.projected_balance : liability.current_balance) }}</td>
-                  </tr>
-                </template>
-              </template>
-              <template v-else>
-                <tr v-for="(liability, index) in secondDeathData.liabilities_breakdown.user.liabilities.other_liabilities" :key="'user-liability-' + index">
-                  <td class="px-4 py-2 text-sm text-gray-700 pl-8"><span class="text-sm text-gray-600">{{ liability.type }}:</span> {{ liability.institution }}<span v-if="liability.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint - 50%)</span></td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liability.current_balance) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liability.current_balance) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liability.projected_balance !== undefined && liability.projected_balance !== null ? liability.projected_balance : liability.current_balance) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liability.projected_balance !== undefined && liability.projected_balance !== null ? liability.projected_balance : liability.current_balance) }}</td>
-                </tr>
-              </template>
-
-              <!-- User Liabilities Subtotal (only if > 0) -->
-              <tr v-if="secondDeathData.liabilities_breakdown.user.total > 0" class="bg-white border-l-4 border-gray-400">
-                <td class="px-4 py-2 text-sm font-semibold text-gray-900 pl-8">Subtotal</td>
-                <td class="px-4 py-2 text-sm text-right font-semibold text-gray-900">{{ formatLiability(secondDeathData.liabilities_breakdown.user.total) }}</td>
-                <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right font-semibold text-gray-900">{{ formatLiability(secondDeathData.liabilities_breakdown.user.total) }}</td>
-                <td class="px-4 py-2 text-sm text-right font-semibold text-gray-900">{{ formatLiability(userLiabilitiesProjectedTotal) }}</td>
-                <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right font-semibold text-gray-900">{{ formatLiability(userLiabilitiesProjectedTotal) }}</td>
-              </tr>
-              </template>
-            </template>
-
-            <!-- Spouse Liabilities Section -->
-            <template v-if="secondDeathData.liabilities_breakdown && secondDeathData.liabilities_breakdown.spouse">
-              <!-- Spouse Liabilities Header -->
-              <tr class="bg-white border-l-4 border-gray-400 cursor-pointer hover:bg-gray-50 select-none" @click="toggleLiabilityGroup('spouse-all')">
-                <td class="px-4 py-3 text-sm font-semibold text-gray-900">
-                  <span class="inline-flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-gray-400 transition-transform mr-1" :class="{ 'rotate-90': isLiabilityExpanded('spouse-all') }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-                    {{ secondDeathData.liabilities_breakdown.spouse.name }}'s Liabilities
-                  </span>
-                </td>
-                <td class="px-4 py-3 text-sm text-right font-semibold text-gray-900">{{ formatLiability(secondDeathData.liabilities_breakdown.spouse.total) }}</td>
-                <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-semibold text-gray-900">{{ formatLiability(secondDeathData.liabilities_breakdown.spouse.total) }}</td>
-                <td class="px-4 py-3 text-sm text-right font-semibold text-gray-900">{{ formatLiability(spouseLiabilitiesProjectedTotal) }}</td>
-                <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-semibold text-gray-900">{{ formatLiability(spouseLiabilitiesProjectedTotal) }}</td>
-              </tr>
-
-              <template v-if="isLiabilityExpanded('spouse-all')">
-              <!-- Spouse Mortgages -->
-              <template v-if="secondDeathData.liabilities_breakdown.spouse.liabilities.mortgages?.length > 1">
-                <tr class="cursor-pointer hover:bg-gray-100 select-none" @click="toggleLiabilityGroup('spouse-mortgages')">
-                  <td class="px-4 py-2 text-sm text-gray-700 pl-8">
-                    <span class="inline-flex items-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-gray-400 transition-transform mr-1" :class="{ 'rotate-90': isLiabilityExpanded('spouse-mortgages') }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-                      <span class="text-sm text-gray-600">Mortgages</span>
-                      <span class="ml-1 text-xs text-gray-400">({{ secondDeathData.liabilities_breakdown.spouse.liabilities.mortgages.length }})</span>
-                    </span>
-                  </td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liabilityGroupTotal(secondDeathData.liabilities_breakdown.spouse.liabilities.mortgages, 'outstanding_balance')) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liabilityGroupTotal(secondDeathData.liabilities_breakdown.spouse.liabilities.mortgages, 'outstanding_balance')) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liabilityGroupProjectedTotal(secondDeathData.liabilities_breakdown.spouse.liabilities.mortgages, 'outstanding_balance', 'projected_balance')) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liabilityGroupProjectedTotal(secondDeathData.liabilities_breakdown.spouse.liabilities.mortgages, 'outstanding_balance', 'projected_balance')) }}</td>
-                </tr>
-                <template v-if="isLiabilityExpanded('spouse-mortgages')">
-                  <tr v-for="(mortgage, index) in secondDeathData.liabilities_breakdown.spouse.liabilities.mortgages" :key="'spouse-mortgage-' + index">
-                    <td class="px-4 py-2 text-sm text-gray-700 pl-12">{{ mortgage.property_address }}<span class="text-sm text-gray-500 ml-2">{{ mortgage.mortgage_type }}</span><span v-if="mortgage.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint{{ (mortgage.ownership_percentage && mortgage.ownership_percentage !== 50) ? ' - ' + mortgage.ownership_percentage + '%' : '' }})</span></td>
-                    <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(mortgage.outstanding_balance) }}</td>
-                    <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(mortgage.outstanding_balance) }}</td>
-                    <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(mortgage.projected_balance !== undefined && mortgage.projected_balance !== null ? mortgage.projected_balance : mortgage.outstanding_balance) }}</td>
-                    <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(mortgage.projected_balance !== undefined && mortgage.projected_balance !== null ? mortgage.projected_balance : mortgage.outstanding_balance) }}</td>
-                  </tr>
-                </template>
-              </template>
-              <template v-else>
-                <tr v-for="(mortgage, index) in secondDeathData.liabilities_breakdown.spouse.liabilities.mortgages" :key="'spouse-mortgage-' + index">
-                  <td class="px-4 py-2 text-sm text-gray-700 pl-8"><span class="text-sm text-gray-600">Mortgage:</span> {{ mortgage.property_address }}<span class="text-sm text-gray-500 ml-2">{{ mortgage.mortgage_type }}</span><span v-if="mortgage.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint{{ (mortgage.ownership_percentage && mortgage.ownership_percentage !== 50) ? ' - ' + mortgage.ownership_percentage + '%' : '' }})</span></td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(mortgage.outstanding_balance) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(mortgage.outstanding_balance) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(mortgage.projected_balance !== undefined && mortgage.projected_balance !== null ? mortgage.projected_balance : mortgage.outstanding_balance) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(mortgage.projected_balance !== undefined && mortgage.projected_balance !== null ? mortgage.projected_balance : mortgage.outstanding_balance) }}</td>
-                </tr>
-              </template>
-
-              <!-- Spouse Other Liabilities -->
-              <template v-if="secondDeathData.liabilities_breakdown.spouse.liabilities.other_liabilities?.length > 1">
-                <tr class="cursor-pointer hover:bg-gray-100 select-none" @click="toggleLiabilityGroup('spouse-other')">
-                  <td class="px-4 py-2 text-sm text-gray-700 pl-8">
-                    <span class="inline-flex items-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-gray-400 transition-transform mr-1" :class="{ 'rotate-90': isLiabilityExpanded('spouse-other') }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-                      <span class="text-sm text-gray-600">Other Liabilities</span>
-                      <span class="ml-1 text-xs text-gray-400">({{ secondDeathData.liabilities_breakdown.spouse.liabilities.other_liabilities.length }})</span>
-                    </span>
-                  </td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liabilityGroupTotal(secondDeathData.liabilities_breakdown.spouse.liabilities.other_liabilities, 'current_balance')) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liabilityGroupTotal(secondDeathData.liabilities_breakdown.spouse.liabilities.other_liabilities, 'current_balance')) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liabilityGroupProjectedTotal(secondDeathData.liabilities_breakdown.spouse.liabilities.other_liabilities, 'current_balance', 'projected_balance')) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liabilityGroupProjectedTotal(secondDeathData.liabilities_breakdown.spouse.liabilities.other_liabilities, 'current_balance', 'projected_balance')) }}</td>
-                </tr>
-                <template v-if="isLiabilityExpanded('spouse-other')">
-                  <tr v-for="(liability, index) in secondDeathData.liabilities_breakdown.spouse.liabilities.other_liabilities" :key="'spouse-liability-' + index">
-                    <td class="px-4 py-2 text-sm text-gray-700 pl-12"><span class="text-sm text-gray-600">{{ liability.type }}:</span> {{ liability.institution }}<span v-if="liability.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint - 50%)</span></td>
-                    <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liability.current_balance) }}</td>
-                    <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liability.current_balance) }}</td>
-                    <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liability.projected_balance !== undefined && liability.projected_balance !== null ? liability.projected_balance : liability.current_balance) }}</td>
-                    <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liability.projected_balance !== undefined && liability.projected_balance !== null ? liability.projected_balance : liability.current_balance) }}</td>
-                  </tr>
-                </template>
-              </template>
-              <template v-else>
-                <tr v-for="(liability, index) in secondDeathData.liabilities_breakdown.spouse.liabilities.other_liabilities" :key="'spouse-liability-' + index">
-                  <td class="px-4 py-2 text-sm text-gray-700 pl-8"><span class="text-sm text-gray-600">{{ liability.type }}:</span> {{ liability.institution }}<span v-if="liability.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint - 50%)</span></td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liability.current_balance) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liability.current_balance) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liability.projected_balance !== undefined && liability.projected_balance !== null ? liability.projected_balance : liability.current_balance) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liability.projected_balance !== undefined && liability.projected_balance !== null ? liability.projected_balance : liability.current_balance) }}</td>
-                </tr>
-              </template>
-
-              <!-- Spouse Liabilities Subtotal (only if > 0) -->
-              <tr v-if="secondDeathData.liabilities_breakdown.spouse.total > 0" class="bg-white border-l-4 border-gray-400">
-                <td class="px-4 py-2 text-sm font-semibold text-gray-900 pl-8">Subtotal</td>
-                <td class="px-4 py-2 text-sm text-right font-semibold text-gray-900">{{ formatLiability(secondDeathData.liabilities_breakdown.spouse.total) }}</td>
-                <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right font-semibold text-gray-900">{{ formatLiability(secondDeathData.liabilities_breakdown.spouse.total) }}</td>
-                <td class="px-4 py-2 text-sm text-right font-semibold text-gray-900">{{ formatLiability(spouseLiabilitiesProjectedTotal) }}</td>
-                <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right font-semibold text-gray-900">{{ formatLiability(spouseLiabilitiesProjectedTotal) }}</td>
-              </tr>
-              </template>
-            </template>
-
-            <!-- Total Liabilities -->
-            <tr class="bg-white border-l-4 border-gray-400">
-              <td class="px-4 py-3 text-sm font-semibold text-gray-900">Less: Total Liabilities</td>
-              <td class="px-4 py-3 text-sm text-right font-semibold text-gray-900">{{ formatLiability(secondDeathData.second_death_analysis.current_iht_calculation?.liabilities || 0) }}</td>
-              <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-semibold text-gray-900">{{ formatLiability(secondDeathData.second_death_analysis.current_iht_calculation?.liabilities || 0) }}</td>
-              <td class="px-4 py-3 text-sm text-right font-semibold text-gray-900">{{ formatLiability(totalLiabilitiesProjected) }}</td>
-              <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-semibold text-gray-900">{{ formatLiability(totalLiabilitiesProjected) }}</td>
-            </tr>
-
-            <!-- Net Estate -->
-            <tr class="bg-white border-l-4 border-gray-400">
-              <td class="px-4 py-3 text-sm font-semibold text-gray-900">Net Estate</td>
-              <td class="px-4 py-3 text-sm text-right font-bold text-gray-900">{{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.net_estate_value || 0) }}</td>
-              <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-bold text-gray-900">{{ formatCurrency(secondDeathProjectionMinus5.net_estate) }}</td>
-              <td class="px-4 py-3 text-sm text-right font-bold text-gray-900">{{ formatCurrency(netEstateProjected) }}</td>
-              <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-bold text-gray-900">{{ formatCurrency(secondDeathProjectionPlus5.net_estate) }}</td>
-            </tr>
-
-            <!-- NRB (Individual) -->
-            <tr>
-              <td class="px-4 py-3 text-sm font-semibold text-gray-700">Less: Tax-Free Allowance (Individual)</td>
-              <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.nrb || 325000) }}</td>
-              <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.nrb || 325000) }}</td>
-              <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(secondDeathData.second_death_analysis.iht_calculation?.nrb || 325000) }}</td>
-              <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(secondDeathData.second_death_analysis.iht_calculation?.nrb || 325000) }}</td>
-            </tr>
-
-            <!-- NRB from Spouse -->
-            <tr v-if="(secondDeathData.second_death_analysis.current_iht_calculation?.nrb_from_spouse || 0) > 0 || (secondDeathData.second_death_analysis.iht_calculation?.nrb_from_spouse || 0) > 0">
-              <td class="px-4 py-3 text-sm font-semibold text-gray-700">
-                Less: Tax-Free Allowance from Spouse
-                <span v-if="!hasSpouseLinked" class="ml-2 text-xs text-gray-600 font-normal">(Default - verify by linking spouse)</span>
-              </td>
-              <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.nrb_from_spouse || 325000) }}</td>
-              <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.nrb_from_spouse || 325000) }}</td>
-              <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(secondDeathData.second_death_analysis.iht_calculation?.nrb_from_spouse || 325000) }}</td>
-              <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(secondDeathData.second_death_analysis.iht_calculation?.nrb_from_spouse || 325000) }}</td>
-            </tr>
-
-            <!-- Estate after NRB (charitable bequest baseline) -->
-            <tr class="bg-blue-50 border-l-4 border-blue-400">
-              <td class="px-4 py-3 text-sm font-semibold text-blue-800">
-                Estate after Tax-Free Allowances
-                <span class="block text-xs font-normal text-blue-600 mt-0.5">Charitable bequest baseline (before home allowance)</span>
-              </td>
-              <td class="px-4 py-3 text-sm text-right font-bold text-blue-800">{{ formatCurrency(secondDeathEstateAfterNRB) }}</td>
-              <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-bold text-blue-800">{{ formatCurrency(secondDeathEstateAfterNRBMinus5) }}</td>
-              <td class="px-4 py-3 text-sm text-right font-bold text-blue-800">{{ formatCurrency(secondDeathEstateAfterNRBProjected) }}</td>
-              <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-bold text-blue-800">{{ formatCurrency(secondDeathEstateAfterNRBPlus5) }}</td>
-            </tr>
-
-            <!-- Charitable Bequest (if enabled) - now positioned after NRB, before RNRB -->
-            <tr v-if="charitableBequest" class="bg-green-50 border-l-4 border-green-400">
-              <td class="px-4 py-3 text-sm font-semibold text-green-800">
-                Less: Charitable Bequest (10% minimum)
-                <span class="block text-xs font-normal text-green-600 mt-0.5">Qualifies estate for reduced 36% rate</span>
-              </td>
-              <td class="px-4 py-3 text-sm text-right font-semibold text-green-800">-{{ formatCurrency(charitableDonationSecondDeath) }}</td>
-              <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-semibold text-green-800">-{{ formatCurrency(charitableDonationSecondDeathMinus5) }}</td>
-              <td class="px-4 py-3 text-sm text-right font-semibold text-green-800">-{{ formatCurrency(charitableDonationSecondDeathProjected) }}</td>
-              <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-semibold text-green-800">-{{ formatCurrency(charitableDonationSecondDeathPlus5) }}</td>
-            </tr>
-
-            <!-- RNRB (Individual) -->
-            <tr v-if="secondDeathData.second_death_analysis.iht_calculation?.rnrb_eligible && ((secondDeathData.second_death_analysis.current_iht_calculation?.rnrb_individual || 0) > 0 || (secondDeathData.second_death_analysis.iht_calculation?.rnrb_individual || 0) > 0)">
-              <td class="px-4 py-3 text-sm font-semibold text-gray-700">Less: Home Allowance (Individual)</td>
-              <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.rnrb_individual || 0) }}</td>
-              <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.rnrb_individual || 0) }}</td>
-              <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(secondDeathData.second_death_analysis.iht_calculation?.rnrb_individual || 0) }}</td>
-              <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(secondDeathData.second_death_analysis.iht_calculation?.rnrb_individual || 0) }}</td>
-            </tr>
-
-            <!-- RNRB from Spouse -->
-            <tr v-if="secondDeathData.second_death_analysis.iht_calculation?.rnrb_eligible && ((secondDeathData.second_death_analysis.current_iht_calculation?.rnrb_from_spouse || 0) > 0 || (secondDeathData.second_death_analysis.iht_calculation?.rnrb_from_spouse || 0) > 0)">
-              <td class="px-4 py-3 text-sm font-semibold text-gray-700">
-                Less: Home Allowance from Spouse
-                <span v-if="!hasSpouseLinked" class="ml-2 text-xs text-gray-600 font-normal">(Default - verify by linking spouse)</span>
-              </td>
-              <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.rnrb_from_spouse || 0) }}</td>
-              <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.rnrb_from_spouse || 0) }}</td>
-              <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(secondDeathData.second_death_analysis.iht_calculation?.rnrb_from_spouse || 0) }}</td>
-              <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(secondDeathData.second_death_analysis.iht_calculation?.rnrb_from_spouse || 0) }}</td>
-            </tr>
-
-            <!-- RNRB Taper Warning (Current) -->
-            <tr v-if="secondDeathData.second_death_analysis.iht_calculation?.rnrb_eligible && secondDeathData.second_death_analysis.current_iht_calculation?.rnrb_tapered">
-              <td colspan="5" class="px-4 py-2 text-xs bg-white border-l-4 border-gray-400">
-                <span class="text-gray-900">
-                  <strong>Home Allowance Reduced:</strong> Estate value {{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.net_estate_value || 0) }} exceeds {{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.rnrb_taper_threshold || 2000000) }} threshold.
-                  <span v-if="(secondDeathData.second_death_analysis.current_iht_calculation?.rnrb || 0) === 0">Home allowance completely removed (reduced by {{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.rnrb_taper_amount || 0) }}).</span>
-                  <span v-else>Home allowance reduced by {{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.rnrb_taper_amount || 0) }} (£1 reduction for every £2 over threshold).</span>
-                </span>
-              </td>
-            </tr>
-
-            <!-- RNRB Not Available Message -->
-            <tr v-if="!secondDeathData.second_death_analysis.iht_calculation?.rnrb_eligible">
-              <td colspan="5" class="px-4 py-2 text-xs text-gray-900 bg-white border-l-4 border-gray-400">
-                <strong>Note:</strong> Home allowance (residence nil rate band) not available - no main residence identified or property not left to direct descendants
-              </td>
-            </tr>
-
-            <!-- Taxable Estate -->
-            <tr class="bg-gray-50">
-              <td class="px-4 py-3 text-sm font-semibold text-gray-900">Taxable Estate</td>
-              <td class="px-4 py-3 text-sm text-right font-bold text-gray-900">{{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.taxable_estate || 0) }}</td>
-              <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-bold text-gray-900">{{ formatCurrency(secondDeathProjectionMinus5.taxable_estate) }}</td>
-              <td class="px-4 py-3 text-sm text-right font-bold text-gray-900">{{ formatCurrency(taxableEstateProjected) }}</td>
-              <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-bold text-gray-900">{{ formatCurrency(secondDeathProjectionPlus5.taxable_estate) }}</td>
-            </tr>
-
-            <!-- Inheritance Tax Liability -->
-            <tr class="bg-white border-l-4 border-gray-400">
-              <td class="px-4 py-3 text-sm font-semibold text-gray-900">
-                Inheritance Tax Liability ({{ effectiveIHTRateLabel }})
-                <span v-if="charitableBequest" class="ml-2 text-xs font-normal text-green-600">(Reduced rate)</span>
-              </td>
-              <td class="px-4 py-3 text-sm text-right font-bold text-gray-900">{{ formatCurrency(charitableBequest ? adjustedSecondDeathIHTLiabilityNow : (secondDeathData.second_death_analysis.current_iht_calculation?.iht_liability || 0)) }}</td>
-              <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-bold text-gray-900">{{ formatCurrency(charitableBequest ? adjustedSecondDeathIHTLiabilityMinus5 : secondDeathProjectionMinus5.iht_liability) }}</td>
-              <td class="px-4 py-3 text-sm text-right font-bold text-gray-900">{{ formatCurrency(charitableBequest ? adjustedSecondDeathIHTLiabilityProjected : ihtLiabilityProjected) }}</td>
-              <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-bold text-gray-900">{{ formatCurrency(charitableBequest ? adjustedSecondDeathIHTLiabilityPlus5 : secondDeathProjectionPlus5.iht_liability) }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <!-- Estate Calculation Table (Refactored) -->
+      <IHTCalculationTable
+        v-if="secondDeathTableProps"
+        v-bind="secondDeathTableProps"
+        :charitable-bequest="charitableBequest"
+        :effective-i-h-t-rate-label="effectiveIHTRateLabel"
+        :has-spouse-linked="hasSpouseLinked"
+        :show-minus-5-years="showMinus5Years"
+        :show-plus-5-years="showPlus5Years"
+        :growth-rate="growthRate"
+        :years-to-death-minus-5="yearsToDeathMinus5"
+        :years-to-death-plus-5="yearsToDeathPlus5"
+        @toggle-minus-5="showMinus5Years = !showMinus5Years"
+        @toggle-plus-5="showPlus5Years = !showPlus5Years"
+      />
     </div>
 
     <!-- Inheritance Tax Breakdown - Standard (Non-Married Users OR Married without spouse link) -->
-    <div v-else-if="!loading && ihtData" class="bg-white rounded-lg border border-gray-200 p-6 mb-8">
+    <div v-else-if="!loading && ihtData && standardTableProps" class="bg-white rounded-lg border border-gray-200 p-6 mb-8">
       <h3 class="text-lg font-semibold text-gray-900 mb-4">
         {{ isMarried ? 'Inheritance Tax Calculation (Joint Death Scenario)' : 'Inheritance Tax Calculation Breakdown' }}
       </h3>
@@ -1114,933 +321,21 @@
       <!-- Simple description for non-married users -->
       <p v-else-if="projection" class="text-sm text-gray-600 mb-6">Comparison of Inheritance Tax liability if death occurs now vs. at projected life expectancy (Age {{ projection.at_death.estimated_age_at_death }})</p>
 
-      <!-- Detailed Asset & Liability Breakdown Table -->
-      <div v-if="secondDeathData?.assets_breakdown" class="overflow-x-auto mb-6">
-        <table class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-gray-50">
-            <tr>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Asset / Liability</th>
-              <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Current Value</th>
-              <th v-if="showMinus5Years" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                <div>Age {{ projectionMinus5?.estimated_age_at_death || '...' }}</div>
-                <div class="text-[10px] font-normal text-gray-400 normal-case mt-0.5">-5 years</div>
-              </th>
-              <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                <div class="flex items-center justify-end">
-                  <button
-                    @click="showMinus5Years = !showMinus5Years"
-                    class="p-1 hover:bg-gray-100 rounded transition-colors"
-                    :title="showMinus5Years ? 'Hide -5 years' : 'Show -5 years'"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4 text-gray-500">
-                      <path stroke-linecap="round" stroke-linejoin="round" :d="showMinus5Years ? 'M8.25 4.5l7.5 7.5-7.5 7.5' : 'M15.75 19.5L8.25 12l7.5-7.5'" />
-                    </svg>
-                  </button>
-                  <span class="mx-1">Age {{ projection?.at_death?.estimated_age_at_death || '...' }}</span>
-                  <button
-                    @click="showPlus5Years = !showPlus5Years"
-                    class="p-1 hover:bg-gray-100 rounded transition-colors"
-                    :title="showPlus5Years ? 'Hide +5 years' : 'Show +5 years'"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4 text-gray-500">
-                      <path stroke-linecap="round" stroke-linejoin="round" :d="showPlus5Years ? 'M15.75 19.5L8.25 12l7.5-7.5' : 'M8.25 4.5l7.5 7.5-7.5 7.5'" />
-                    </svg>
-                  </button>
-                </div>
-                <div class="text-[10px] font-normal text-gray-400 normal-case mt-0.5 text-right">Life expectancy</div>
-              </th>
-              <th v-if="showPlus5Years" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                <div>Age {{ projectionPlus5?.estimated_age_at_death || '...' }}</div>
-                <div class="text-[10px] font-normal text-gray-400 normal-case mt-0.5">+5 years</div>
-              </th>
-            </tr>
-          </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
-            <!-- User Assets Header -->
-            <tr class="bg-white border-l-4 border-gray-400 cursor-pointer hover:bg-gray-50 select-none" @click="toggleAssetGroup('user-all')">
-              <td class="px-4 py-3 text-sm font-semibold text-gray-900">
-                <span class="inline-flex items-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-gray-400 transition-transform mr-1" :class="{ 'rotate-90': isAssetExpanded('user-all') }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-                  {{ secondDeathData.assets_breakdown.user.name }}'s Assets
-                </span>
-              </td>
-              <td class="px-4 py-3 text-sm text-right font-semibold text-gray-900">{{ formatCurrency(secondDeathData.assets_breakdown.user.total) }}</td>
-              <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-semibold text-gray-900">{{ formatCurrency(getProjectedValueMinus5(secondDeathData.assets_breakdown.user.total)) }}</td>
-              <td class="px-4 py-3 text-sm text-right font-semibold text-gray-900">{{ formatCurrency(secondDeathData.assets_breakdown.user.projected_total) }}</td>
-              <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-semibold text-gray-900">{{ formatCurrency(getProjectedValuePlus5(secondDeathData.assets_breakdown.user.total)) }}</td>
-            </tr>
-
-            <template v-if="isAssetExpanded('user-all')">
-            <!-- User Property Assets -->
-            <template v-if="secondDeathData.assets_breakdown.user.assets.property?.length > 1">
-              <tr class="bg-gray-50 cursor-pointer hover:bg-gray-100 select-none" @click="toggleAssetGroup('user-property')">
-                <td class="px-4 py-2 text-sm text-gray-700 pl-8">
-                  <span class="inline-flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-gray-400 transition-transform mr-1" :class="{ 'rotate-90': isAssetExpanded('user-property') }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-                    <span class="text-sm text-gray-700">Property</span>
-                    <span class="ml-1 text-xs text-gray-400">({{ secondDeathData.assets_breakdown.user.assets.property.length }})</span>
-                  </span>
-                </td>
-                <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(assetGroupTotal(secondDeathData.assets_breakdown.user.assets.property)) }}</td>
-                <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(assetGroupTotal(secondDeathData.assets_breakdown.user.assets.property))) }}</td>
-                <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(assetGroupProjectedTotal(secondDeathData.assets_breakdown.user.assets.property)) }}</td>
-                <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(assetGroupTotal(secondDeathData.assets_breakdown.user.assets.property))) }}</td>
-              </tr>
-              <template v-if="isAssetExpanded('user-property')">
-                <tr v-for="(asset, index) in secondDeathData.assets_breakdown.user.assets.property" :key="'user-property-' + index" class="bg-gray-50">
-                  <td class="px-4 py-2 text-sm text-gray-700 pl-12">{{ asset.name }}<span v-if="asset.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint)</span><span v-else-if="asset.ownership_type === 'tenants_in_common'" class="ml-2 text-xs text-gray-600 font-medium">(Tenancy in Common{{ asset.ownership_percentage ? ' - ' + asset.ownership_percentage + '%' : '' }})</span></td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(asset.projected_value) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
-                </tr>
-              </template>
-            </template>
-            <template v-else>
-              <tr v-for="(asset, index) in secondDeathData.assets_breakdown.user.assets.property" :key="'user-property-' + index" class="bg-gray-50">
-                <td class="px-4 py-2 text-sm text-gray-700 pl-8"><span class="text-sm text-gray-700">Property:</span> {{ asset.name }}<span v-if="asset.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint)</span><span v-else-if="asset.ownership_type === 'tenants_in_common'" class="ml-2 text-xs text-gray-600 font-medium">(Tenancy in Common{{ asset.ownership_percentage ? ' - ' + asset.ownership_percentage + '%' : '' }})</span></td>
-                <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
-                <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(asset.projected_value) }}</td>
-                <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
-              </tr>
-            </template>
-
-            <!-- User Investment Assets -->
-            <template v-if="secondDeathData.assets_breakdown.user.assets.investment?.length > 1">
-              <tr class="bg-gray-50 cursor-pointer hover:bg-gray-100 select-none" @click="toggleAssetGroup('user-investment')">
-                <td class="px-4 py-2 text-sm text-gray-700 pl-8">
-                  <span class="inline-flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-gray-400 transition-transform mr-1" :class="{ 'rotate-90': isAssetExpanded('user-investment') }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-                    <span class="text-sm text-gray-700">Investment</span>
-                    <span class="ml-1 text-xs text-gray-400">({{ secondDeathData.assets_breakdown.user.assets.investment.length }})</span>
-                  </span>
-                </td>
-                <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(assetGroupTotal(secondDeathData.assets_breakdown.user.assets.investment)) }}</td>
-                <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(assetGroupTotal(secondDeathData.assets_breakdown.user.assets.investment))) }}</td>
-                <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(assetGroupProjectedTotal(secondDeathData.assets_breakdown.user.assets.investment)) }}</td>
-                <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(assetGroupTotal(secondDeathData.assets_breakdown.user.assets.investment))) }}</td>
-              </tr>
-              <template v-if="isAssetExpanded('user-investment')">
-                <tr v-for="(asset, index) in secondDeathData.assets_breakdown.user.assets.investment" :key="'user-investment-' + index" class="bg-gray-50">
-                  <td class="px-4 py-2 text-sm text-gray-700 pl-12">{{ asset.name }}<span v-if="asset.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint)</span><span v-else-if="asset.ownership_type === 'tenants_in_common'" class="ml-2 text-xs text-gray-600 font-medium">(Tenancy in Common{{ asset.ownership_percentage ? ' - ' + asset.ownership_percentage + '%' : '' }})</span></td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(asset.projected_value) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
-                </tr>
-              </template>
-            </template>
-            <template v-else>
-              <tr v-for="(asset, index) in secondDeathData.assets_breakdown.user.assets.investment" :key="'user-investment-' + index" class="bg-gray-50">
-                <td class="px-4 py-2 text-sm text-gray-700 pl-8"><span class="text-sm text-gray-700">Investment:</span> {{ asset.name }}<span v-if="asset.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint)</span><span v-else-if="asset.ownership_type === 'tenants_in_common'" class="ml-2 text-xs text-gray-600 font-medium">(Tenancy in Common{{ asset.ownership_percentage ? ' - ' + asset.ownership_percentage + '%' : '' }})</span></td>
-                <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
-                <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(asset.projected_value) }}</td>
-                <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
-              </tr>
-            </template>
-
-            <!-- User Cash/Savings Assets -->
-            <template v-if="secondDeathData.assets_breakdown.user.assets.cash?.length > 1">
-              <tr class="bg-gray-50 cursor-pointer hover:bg-gray-100 select-none" @click="toggleAssetGroup('user-cash')">
-                <td class="px-4 py-2 text-sm text-gray-700 pl-8">
-                  <span class="inline-flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-gray-400 transition-transform mr-1" :class="{ 'rotate-90': isAssetExpanded('user-cash') }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-                    <span class="text-sm text-gray-700">Cash/Savings</span>
-                    <span class="ml-1 text-xs text-gray-400">({{ secondDeathData.assets_breakdown.user.assets.cash.length }})</span>
-                  </span>
-                </td>
-                <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(assetGroupTotal(secondDeathData.assets_breakdown.user.assets.cash)) }}</td>
-                <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(assetGroupTotal(secondDeathData.assets_breakdown.user.assets.cash))) }}</td>
-                <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(assetGroupProjectedTotal(secondDeathData.assets_breakdown.user.assets.cash)) }}</td>
-                <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(assetGroupTotal(secondDeathData.assets_breakdown.user.assets.cash))) }}</td>
-              </tr>
-              <template v-if="isAssetExpanded('user-cash')">
-                <tr v-for="(asset, index) in secondDeathData.assets_breakdown.user.assets.cash" :key="'user-cash-' + index" class="bg-gray-50">
-                  <td class="px-4 py-2 text-sm text-gray-700 pl-12">{{ asset.name }}<span v-if="asset.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint)</span><span v-else-if="asset.ownership_type === 'tenants_in_common'" class="ml-2 text-xs text-gray-600 font-medium">(Tenancy in Common{{ asset.ownership_percentage ? ' - ' + asset.ownership_percentage + '%' : '' }})</span></td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(asset.projected_value) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
-                </tr>
-              </template>
-            </template>
-            <template v-else>
-              <tr v-for="(asset, index) in secondDeathData.assets_breakdown.user.assets.cash" :key="'user-cash-' + index" class="bg-gray-50">
-                <td class="px-4 py-2 text-sm text-gray-700 pl-8"><span class="text-sm text-gray-700">Cash/Savings:</span> {{ asset.name }}<span v-if="asset.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint)</span><span v-else-if="asset.ownership_type === 'tenants_in_common'" class="ml-2 text-xs text-gray-600 font-medium">(Tenancy in Common{{ asset.ownership_percentage ? ' - ' + asset.ownership_percentage + '%' : '' }})</span></td>
-                <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
-                <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(asset.projected_value) }}</td>
-                <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
-              </tr>
-            </template>
-
-            <!-- User Business Assets -->
-            <template v-if="secondDeathData.assets_breakdown.user.assets.business?.length > 1">
-              <tr class="bg-gray-50 cursor-pointer hover:bg-gray-100 select-none" @click="toggleAssetGroup('user-business')">
-                <td class="px-4 py-2 text-sm text-gray-700 pl-8">
-                  <span class="inline-flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-gray-400 transition-transform mr-1" :class="{ 'rotate-90': isAssetExpanded('user-business') }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-                    <span class="text-sm text-gray-700">Business</span>
-                    <span class="ml-1 text-xs text-gray-400">({{ secondDeathData.assets_breakdown.user.assets.business.length }})</span>
-                  </span>
-                </td>
-                <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(assetGroupTotal(secondDeathData.assets_breakdown.user.assets.business)) }}</td>
-                <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(assetGroupTotal(secondDeathData.assets_breakdown.user.assets.business))) }}</td>
-                <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(assetGroupProjectedTotal(secondDeathData.assets_breakdown.user.assets.business)) }}</td>
-                <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(assetGroupTotal(secondDeathData.assets_breakdown.user.assets.business))) }}</td>
-              </tr>
-              <template v-if="isAssetExpanded('user-business')">
-                <tr v-for="(asset, index) in secondDeathData.assets_breakdown.user.assets.business" :key="'user-business-' + index" class="bg-gray-50">
-                  <td class="px-4 py-2 text-sm text-gray-700 pl-12">{{ asset.name }}<span v-if="asset.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint)</span><span v-else-if="asset.ownership_type === 'tenants_in_common'" class="ml-2 text-xs text-gray-600 font-medium">(Tenancy in Common{{ asset.ownership_percentage ? ' - ' + asset.ownership_percentage + '%' : '' }})</span></td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(asset.projected_value) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
-                </tr>
-              </template>
-            </template>
-            <template v-else>
-              <tr v-for="(asset, index) in secondDeathData.assets_breakdown.user.assets.business" :key="'user-business-' + index" class="bg-gray-50">
-                <td class="px-4 py-2 text-sm text-gray-700 pl-8"><span class="text-sm text-gray-700">Business:</span> {{ asset.name }}<span v-if="asset.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint)</span><span v-else-if="asset.ownership_type === 'tenants_in_common'" class="ml-2 text-xs text-gray-600 font-medium">(Tenancy in Common{{ asset.ownership_percentage ? ' - ' + asset.ownership_percentage + '%' : '' }})</span></td>
-                <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
-                <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(asset.projected_value) }}</td>
-                <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
-              </tr>
-            </template>
-
-            <!-- User Chattel Assets -->
-            <template v-if="secondDeathData.assets_breakdown.user.assets.chattel?.length > 1">
-              <tr class="bg-gray-50 cursor-pointer hover:bg-gray-100 select-none" @click="toggleAssetGroup('user-chattel')">
-                <td class="px-4 py-2 text-sm text-gray-700 pl-8">
-                  <span class="inline-flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-gray-400 transition-transform mr-1" :class="{ 'rotate-90': isAssetExpanded('user-chattel') }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-                    <span class="text-sm text-gray-700">Personal Valuables</span>
-                    <span class="ml-1 text-xs text-gray-400">({{ secondDeathData.assets_breakdown.user.assets.chattel.length }})</span>
-                  </span>
-                </td>
-                <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(assetGroupTotal(secondDeathData.assets_breakdown.user.assets.chattel)) }}</td>
-                <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(assetGroupTotal(secondDeathData.assets_breakdown.user.assets.chattel))) }}</td>
-                <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(assetGroupProjectedTotal(secondDeathData.assets_breakdown.user.assets.chattel)) }}</td>
-                <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(assetGroupTotal(secondDeathData.assets_breakdown.user.assets.chattel))) }}</td>
-              </tr>
-              <template v-if="isAssetExpanded('user-chattel')">
-                <tr v-for="(asset, index) in secondDeathData.assets_breakdown.user.assets.chattel" :key="'user-chattel-' + index" class="bg-gray-50">
-                  <td class="px-4 py-2 text-sm text-gray-700 pl-12">{{ asset.name }}<span v-if="asset.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint)</span><span v-else-if="asset.ownership_type === 'tenants_in_common'" class="ml-2 text-xs text-gray-600 font-medium">(Tenancy in Common{{ asset.ownership_percentage ? ' - ' + asset.ownership_percentage + '%' : '' }})</span></td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(asset.projected_value) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
-                </tr>
-              </template>
-            </template>
-            <template v-else>
-              <tr v-for="(asset, index) in secondDeathData.assets_breakdown.user.assets.chattel" :key="'user-chattel-' + index" class="bg-gray-50">
-                <td class="px-4 py-2 text-sm text-gray-700 pl-8"><span class="text-sm text-gray-700">Valuable:</span> {{ asset.name }}<span v-if="asset.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint)</span><span v-else-if="asset.ownership_type === 'tenants_in_common'" class="ml-2 text-xs text-gray-600 font-medium">(Tenancy in Common{{ asset.ownership_percentage ? ' - ' + asset.ownership_percentage + '%' : '' }})</span></td>
-                <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
-                <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(asset.projected_value) }}</td>
-                <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
-              </tr>
-            </template>
-
-            <!-- User Assets Subtotal -->
-            <tr class="bg-white border-l-4 border-gray-400">
-              <td class="px-4 py-2 text-sm font-semibold text-gray-900 pl-8">Assets Subtotal</td>
-              <td class="px-4 py-2 text-sm text-right font-semibold text-gray-900">{{ formatCurrency(secondDeathData.assets_breakdown.user.total) }}</td>
-              <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right font-semibold text-gray-900">{{ formatCurrency(getProjectedValueMinus5(secondDeathData.assets_breakdown.user.total)) }}</td>
-              <td class="px-4 py-2 text-sm text-right font-semibold text-gray-900">{{ formatCurrency(secondDeathData.assets_breakdown.user.projected_total) }}</td>
-              <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right font-semibold text-gray-900">{{ formatCurrency(getProjectedValuePlus5(secondDeathData.assets_breakdown.user.total)) }}</td>
-            </tr>
-            </template>
-
-            <!-- Spouse Assets Section (if married with data sharing) -->
-            <template v-if="secondDeathData.assets_breakdown.spouse">
-              <!-- Spouse Assets Header -->
-              <tr class="bg-white border-l-4 border-gray-400 cursor-pointer hover:bg-gray-50 select-none" @click="toggleAssetGroup('spouse-all')">
-                <td class="px-4 py-3 text-sm font-semibold text-gray-900">
-                  <span class="inline-flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-gray-400 transition-transform mr-1" :class="{ 'rotate-90': isAssetExpanded('spouse-all') }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-                    {{ secondDeathData.assets_breakdown.spouse.name }}'s Assets
-                  </span>
-                </td>
-                <td class="px-4 py-3 text-sm text-right font-semibold text-gray-900">{{ formatCurrency(secondDeathData.assets_breakdown.spouse.total) }}</td>
-                <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-semibold text-gray-900">{{ formatCurrency(getProjectedValueMinus5(secondDeathData.assets_breakdown.spouse.total)) }}</td>
-                <td class="px-4 py-3 text-sm text-right font-semibold text-gray-900">{{ formatCurrency(secondDeathData.assets_breakdown.spouse.projected_total) }}</td>
-                <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-semibold text-gray-900">{{ formatCurrency(getProjectedValuePlus5(secondDeathData.assets_breakdown.spouse.total)) }}</td>
-              </tr>
-
-              <template v-if="isAssetExpanded('spouse-all')">
-              <!-- Spouse Property Assets -->
-              <template v-if="secondDeathData.assets_breakdown.spouse.assets.property?.length > 1">
-                <tr class="bg-gray-50 cursor-pointer hover:bg-gray-100 select-none" @click="toggleAssetGroup('spouse-property')">
-                  <td class="px-4 py-2 text-sm text-gray-700 pl-8">
-                    <span class="inline-flex items-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-gray-400 transition-transform mr-1" :class="{ 'rotate-90': isAssetExpanded('spouse-property') }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-                      <span class="text-sm text-gray-700">Property</span>
-                      <span class="ml-1 text-xs text-gray-400">({{ secondDeathData.assets_breakdown.spouse.assets.property.length }})</span>
-                    </span>
-                  </td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(assetGroupTotal(secondDeathData.assets_breakdown.spouse.assets.property)) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(assetGroupTotal(secondDeathData.assets_breakdown.spouse.assets.property))) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(assetGroupProjectedTotal(secondDeathData.assets_breakdown.spouse.assets.property)) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(assetGroupTotal(secondDeathData.assets_breakdown.spouse.assets.property))) }}</td>
-                </tr>
-                <template v-if="isAssetExpanded('spouse-property')">
-                  <tr v-for="(asset, index) in secondDeathData.assets_breakdown.spouse.assets.property" :key="'spouse-property-' + index" class="bg-gray-50">
-                    <td class="px-4 py-2 text-sm text-gray-700 pl-12">{{ asset.name }}<span v-if="asset.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint)</span><span v-else-if="asset.ownership_type === 'tenants_in_common'" class="ml-2 text-xs text-gray-600 font-medium">(Tenancy in Common{{ asset.ownership_percentage ? ' - ' + asset.ownership_percentage + '%' : '' }})</span></td>
-                    <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                    <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
-                    <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(asset.projected_value) }}</td>
-                    <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
-                  </tr>
-                </template>
-              </template>
-              <template v-else>
-                <tr v-for="(asset, index) in secondDeathData.assets_breakdown.spouse.assets.property" :key="'spouse-property-' + index" class="bg-gray-50">
-                  <td class="px-4 py-2 text-sm text-gray-700 pl-8"><span class="text-sm text-gray-700">Property:</span> {{ asset.name }}<span v-if="asset.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint)</span><span v-else-if="asset.ownership_type === 'tenants_in_common'" class="ml-2 text-xs text-gray-600 font-medium">(Tenancy in Common{{ asset.ownership_percentage ? ' - ' + asset.ownership_percentage + '%' : '' }})</span></td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(asset.projected_value) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
-                </tr>
-              </template>
-
-              <!-- Spouse Investment Assets -->
-              <template v-if="secondDeathData.assets_breakdown.spouse.assets.investment?.length > 1">
-                <tr class="bg-gray-50 cursor-pointer hover:bg-gray-100 select-none" @click="toggleAssetGroup('spouse-investment')">
-                  <td class="px-4 py-2 text-sm text-gray-700 pl-8">
-                    <span class="inline-flex items-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-gray-400 transition-transform mr-1" :class="{ 'rotate-90': isAssetExpanded('spouse-investment') }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-                      <span class="text-sm text-gray-700">Investment</span>
-                      <span class="ml-1 text-xs text-gray-400">({{ secondDeathData.assets_breakdown.spouse.assets.investment.length }})</span>
-                    </span>
-                  </td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(assetGroupTotal(secondDeathData.assets_breakdown.spouse.assets.investment)) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(assetGroupTotal(secondDeathData.assets_breakdown.spouse.assets.investment))) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(assetGroupProjectedTotal(secondDeathData.assets_breakdown.spouse.assets.investment)) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(assetGroupTotal(secondDeathData.assets_breakdown.spouse.assets.investment))) }}</td>
-                </tr>
-                <template v-if="isAssetExpanded('spouse-investment')">
-                  <tr v-for="(asset, index) in secondDeathData.assets_breakdown.spouse.assets.investment" :key="'spouse-investment-' + index" class="bg-gray-50">
-                    <td class="px-4 py-2 text-sm text-gray-700 pl-12">{{ asset.name }}<span v-if="asset.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint)</span><span v-else-if="asset.ownership_type === 'tenants_in_common'" class="ml-2 text-xs text-gray-600 font-medium">(Tenancy in Common{{ asset.ownership_percentage ? ' - ' + asset.ownership_percentage + '%' : '' }})</span></td>
-                    <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                    <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
-                    <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(asset.projected_value) }}</td>
-                    <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
-                  </tr>
-                </template>
-              </template>
-              <template v-else>
-                <tr v-for="(asset, index) in secondDeathData.assets_breakdown.spouse.assets.investment" :key="'spouse-investment-' + index" class="bg-gray-50">
-                  <td class="px-4 py-2 text-sm text-gray-700 pl-8"><span class="text-sm text-gray-700">Investment:</span> {{ asset.name }}<span v-if="asset.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint)</span><span v-else-if="asset.ownership_type === 'tenants_in_common'" class="ml-2 text-xs text-gray-600 font-medium">(Tenancy in Common{{ asset.ownership_percentage ? ' - ' + asset.ownership_percentage + '%' : '' }})</span></td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(asset.projected_value) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
-                </tr>
-              </template>
-
-              <!-- Spouse Cash/Savings Assets -->
-              <template v-if="secondDeathData.assets_breakdown.spouse.assets.cash?.length > 1">
-                <tr class="bg-gray-50 cursor-pointer hover:bg-gray-100 select-none" @click="toggleAssetGroup('spouse-cash')">
-                  <td class="px-4 py-2 text-sm text-gray-700 pl-8">
-                    <span class="inline-flex items-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-gray-400 transition-transform mr-1" :class="{ 'rotate-90': isAssetExpanded('spouse-cash') }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-                      <span class="text-sm text-gray-700">Cash/Savings</span>
-                      <span class="ml-1 text-xs text-gray-400">({{ secondDeathData.assets_breakdown.spouse.assets.cash.length }})</span>
-                    </span>
-                  </td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(assetGroupTotal(secondDeathData.assets_breakdown.spouse.assets.cash)) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(assetGroupTotal(secondDeathData.assets_breakdown.spouse.assets.cash))) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(assetGroupProjectedTotal(secondDeathData.assets_breakdown.spouse.assets.cash)) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(assetGroupTotal(secondDeathData.assets_breakdown.spouse.assets.cash))) }}</td>
-                </tr>
-                <template v-if="isAssetExpanded('spouse-cash')">
-                  <tr v-for="(asset, index) in secondDeathData.assets_breakdown.spouse.assets.cash" :key="'spouse-cash-' + index" class="bg-gray-50">
-                    <td class="px-4 py-2 text-sm text-gray-700 pl-12">{{ asset.name }}<span v-if="asset.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint)</span><span v-else-if="asset.ownership_type === 'tenants_in_common'" class="ml-2 text-xs text-gray-600 font-medium">(Tenancy in Common{{ asset.ownership_percentage ? ' - ' + asset.ownership_percentage + '%' : '' }})</span></td>
-                    <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                    <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
-                    <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(asset.projected_value) }}</td>
-                    <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
-                  </tr>
-                </template>
-              </template>
-              <template v-else>
-                <tr v-for="(asset, index) in secondDeathData.assets_breakdown.spouse.assets.cash" :key="'spouse-cash-' + index" class="bg-gray-50">
-                  <td class="px-4 py-2 text-sm text-gray-700 pl-8"><span class="text-sm text-gray-700">Cash/Savings:</span> {{ asset.name }}<span v-if="asset.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint)</span><span v-else-if="asset.ownership_type === 'tenants_in_common'" class="ml-2 text-xs text-gray-600 font-medium">(Tenancy in Common{{ asset.ownership_percentage ? ' - ' + asset.ownership_percentage + '%' : '' }})</span></td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(asset.projected_value) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
-                </tr>
-              </template>
-
-              <!-- Spouse Business Assets -->
-              <template v-if="secondDeathData.assets_breakdown.spouse.assets.business?.length > 1">
-                <tr class="bg-gray-50 cursor-pointer hover:bg-gray-100 select-none" @click="toggleAssetGroup('spouse-business')">
-                  <td class="px-4 py-2 text-sm text-gray-700 pl-8">
-                    <span class="inline-flex items-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-gray-400 transition-transform mr-1" :class="{ 'rotate-90': isAssetExpanded('spouse-business') }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-                      <span class="text-sm text-gray-700">Business</span>
-                      <span class="ml-1 text-xs text-gray-400">({{ secondDeathData.assets_breakdown.spouse.assets.business.length }})</span>
-                    </span>
-                  </td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(assetGroupTotal(secondDeathData.assets_breakdown.spouse.assets.business)) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(assetGroupTotal(secondDeathData.assets_breakdown.spouse.assets.business))) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(assetGroupProjectedTotal(secondDeathData.assets_breakdown.spouse.assets.business)) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(assetGroupTotal(secondDeathData.assets_breakdown.spouse.assets.business))) }}</td>
-                </tr>
-                <template v-if="isAssetExpanded('spouse-business')">
-                  <tr v-for="(asset, index) in secondDeathData.assets_breakdown.spouse.assets.business" :key="'spouse-business-' + index" class="bg-gray-50">
-                    <td class="px-4 py-2 text-sm text-gray-700 pl-12">{{ asset.name }}<span v-if="asset.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint)</span><span v-else-if="asset.ownership_type === 'tenants_in_common'" class="ml-2 text-xs text-gray-600 font-medium">(Tenancy in Common{{ asset.ownership_percentage ? ' - ' + asset.ownership_percentage + '%' : '' }})</span></td>
-                    <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                    <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
-                    <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(asset.projected_value) }}</td>
-                    <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
-                  </tr>
-                </template>
-              </template>
-              <template v-else>
-                <tr v-for="(asset, index) in secondDeathData.assets_breakdown.spouse.assets.business" :key="'spouse-business-' + index" class="bg-gray-50">
-                  <td class="px-4 py-2 text-sm text-gray-700 pl-8"><span class="text-sm text-gray-700">Business:</span> {{ asset.name }}<span v-if="asset.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint)</span><span v-else-if="asset.ownership_type === 'tenants_in_common'" class="ml-2 text-xs text-gray-600 font-medium">(Tenancy in Common{{ asset.ownership_percentage ? ' - ' + asset.ownership_percentage + '%' : '' }})</span></td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(asset.projected_value) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
-                </tr>
-              </template>
-
-              <!-- Spouse Chattel Assets -->
-              <template v-if="secondDeathData.assets_breakdown.spouse.assets.chattel?.length > 1">
-                <tr class="bg-gray-50 cursor-pointer hover:bg-gray-100 select-none" @click="toggleAssetGroup('spouse-chattel')">
-                  <td class="px-4 py-2 text-sm text-gray-700 pl-8">
-                    <span class="inline-flex items-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-gray-400 transition-transform mr-1" :class="{ 'rotate-90': isAssetExpanded('spouse-chattel') }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-                      <span class="text-sm text-gray-700">Personal Valuables</span>
-                      <span class="ml-1 text-xs text-gray-400">({{ secondDeathData.assets_breakdown.spouse.assets.chattel.length }})</span>
-                    </span>
-                  </td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(assetGroupTotal(secondDeathData.assets_breakdown.spouse.assets.chattel)) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(assetGroupTotal(secondDeathData.assets_breakdown.spouse.assets.chattel))) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(assetGroupProjectedTotal(secondDeathData.assets_breakdown.spouse.assets.chattel)) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(assetGroupTotal(secondDeathData.assets_breakdown.spouse.assets.chattel))) }}</td>
-                </tr>
-                <template v-if="isAssetExpanded('spouse-chattel')">
-                  <tr v-for="(asset, index) in secondDeathData.assets_breakdown.spouse.assets.chattel" :key="'spouse-chattel-' + index" class="bg-gray-50">
-                    <td class="px-4 py-2 text-sm text-gray-700 pl-12">{{ asset.name }}<span v-if="asset.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint)</span><span v-else-if="asset.ownership_type === 'tenants_in_common'" class="ml-2 text-xs text-gray-600 font-medium">(Tenancy in Common{{ asset.ownership_percentage ? ' - ' + asset.ownership_percentage + '%' : '' }})</span></td>
-                    <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                    <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
-                    <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(asset.projected_value) }}</td>
-                    <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
-                  </tr>
-                </template>
-              </template>
-              <template v-else>
-                <tr v-for="(asset, index) in secondDeathData.assets_breakdown.spouse.assets.chattel" :key="'spouse-chattel-' + index" class="bg-gray-50">
-                  <td class="px-4 py-2 text-sm text-gray-700 pl-8"><span class="text-sm text-gray-700">Valuable:</span> {{ asset.name }}<span v-if="asset.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint)</span><span v-else-if="asset.ownership_type === 'tenants_in_common'" class="ml-2 text-xs text-gray-600 font-medium">(Tenancy in Common{{ asset.ownership_percentage ? ' - ' + asset.ownership_percentage + '%' : '' }})</span></td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-700">{{ formatCurrency(asset.value) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValueMinus5(asset.value)) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(asset.projected_value) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-900">{{ formatCurrency(getProjectedValuePlus5(asset.value)) }}</td>
-                </tr>
-              </template>
-
-              <!-- Spouse Assets Subtotal -->
-              <tr class="bg-white border-l-4 border-gray-400">
-                <td class="px-4 py-2 text-sm font-semibold text-gray-900 pl-8">Assets Subtotal</td>
-                <td class="px-4 py-2 text-sm text-right font-semibold text-gray-900">{{ formatCurrency(secondDeathData.assets_breakdown.spouse.total) }}</td>
-                <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right font-semibold text-gray-900">{{ formatCurrency(getProjectedValueMinus5(secondDeathData.assets_breakdown.spouse.total)) }}</td>
-                <td class="px-4 py-2 text-sm text-right font-semibold text-gray-900">{{ formatCurrency(secondDeathData.assets_breakdown.spouse.projected_total) }}</td>
-                <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right font-semibold text-gray-900">{{ formatCurrency(getProjectedValuePlus5(secondDeathData.assets_breakdown.spouse.total)) }}</td>
-              </tr>
-              </template>
-            </template>
-
-            <!-- Total Gross Assets -->
-            <tr class="bg-white border-l-4 border-gray-400 border-t-2 border-gray-300">
-              <td class="px-4 py-3 text-sm font-bold text-gray-900">Total Gross Assets</td>
-              <td class="px-4 py-3 text-sm text-right font-bold text-gray-900">{{ formatCurrency(secondDeathData.calculation?.total_gross_assets || 0) }}</td>
-              <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-bold text-gray-900">{{ formatCurrency(getProjectedValueMinus5(secondDeathData.calculation?.total_gross_assets || 0)) }}</td>
-              <td class="px-4 py-3 text-sm text-right font-bold text-gray-900">{{ formatCurrency(secondDeathData.calculation?.projected_gross_assets || 0) }}</td>
-              <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-bold text-gray-900">{{ formatCurrency(getProjectedValuePlus5(secondDeathData.calculation?.total_gross_assets || 0)) }}</td>
-            </tr>
-
-            <!-- User Liabilities Section -->
-            <template v-if="secondDeathData.liabilities_breakdown && secondDeathData.liabilities_breakdown.user">
-              <!-- User Liabilities Header -->
-              <tr class="bg-white border-l-4 border-gray-400 cursor-pointer hover:bg-gray-50 select-none" @click="toggleLiabilityGroup('user-all')">
-                <td class="px-4 py-3 text-sm font-semibold text-gray-900">
-                  <span class="inline-flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-gray-400 transition-transform mr-1" :class="{ 'rotate-90': isLiabilityExpanded('user-all') }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-                    {{ secondDeathData.liabilities_breakdown.user.name }}'s Liabilities
-                  </span>
-                </td>
-                <td class="px-4 py-3 text-sm text-right font-semibold text-gray-900">{{ formatLiability(secondDeathData.liabilities_breakdown.user.total) }}</td>
-                <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-semibold text-gray-900">{{ formatLiability(secondDeathData.liabilities_breakdown.user.total) }}</td>
-                <td class="px-4 py-3 text-sm text-right font-semibold text-gray-900">{{ formatLiability(userLiabilitiesProjectedTotal) }}</td>
-                <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-semibold text-gray-900">{{ formatLiability(userLiabilitiesProjectedTotal) }}</td>
-              </tr>
-
-              <template v-if="isLiabilityExpanded('user-all')">
-              <!-- User Mortgages -->
-              <template v-if="secondDeathData.liabilities_breakdown.user.liabilities?.mortgages?.length > 1">
-                <tr class="cursor-pointer hover:bg-gray-100 select-none" @click="toggleLiabilityGroup('user-mortgages')">
-                  <td class="px-4 py-2 text-sm text-gray-700 pl-8">
-                    <span class="inline-flex items-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-gray-400 transition-transform mr-1" :class="{ 'rotate-90': isLiabilityExpanded('user-mortgages') }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-                      <span class="text-sm text-gray-600">Mortgages</span>
-                      <span class="ml-1 text-xs text-gray-400">({{ secondDeathData.liabilities_breakdown.user.liabilities.mortgages.length }})</span>
-                    </span>
-                  </td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liabilityGroupTotal(secondDeathData.liabilities_breakdown.user.liabilities.mortgages, 'outstanding_balance')) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liabilityGroupTotal(secondDeathData.liabilities_breakdown.user.liabilities.mortgages, 'outstanding_balance')) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liabilityGroupProjectedTotal(secondDeathData.liabilities_breakdown.user.liabilities.mortgages, 'outstanding_balance', 'projected_balance')) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liabilityGroupProjectedTotal(secondDeathData.liabilities_breakdown.user.liabilities.mortgages, 'outstanding_balance', 'projected_balance')) }}</td>
-                </tr>
-                <template v-if="isLiabilityExpanded('user-mortgages')">
-                  <tr v-for="(mortgage, index) in secondDeathData.liabilities_breakdown.user.liabilities.mortgages" :key="'user-mortgage-2-' + index">
-                    <td class="px-4 py-2 text-sm text-gray-700 pl-12">{{ mortgage.property_address }}<span v-if="mortgage.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint{{ (mortgage.ownership_percentage && mortgage.ownership_percentage !== 50) ? ' - ' + mortgage.ownership_percentage + '%' : '' }})</span></td>
-                    <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(mortgage.outstanding_balance) }}</td>
-                    <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(mortgage.outstanding_balance) }}</td>
-                    <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(mortgage.projected_balance) }}</td>
-                    <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(mortgage.projected_balance) }}</td>
-                  </tr>
-                </template>
-              </template>
-              <template v-else>
-                <tr v-for="(mortgage, index) in secondDeathData.liabilities_breakdown.user.liabilities?.mortgages" :key="'user-mortgage-2-' + index">
-                  <td class="px-4 py-2 text-sm text-gray-700 pl-8"><span class="text-sm text-gray-600">Mortgage:</span> {{ mortgage.property_address }}<span v-if="mortgage.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint{{ (mortgage.ownership_percentage && mortgage.ownership_percentage !== 50) ? ' - ' + mortgage.ownership_percentage + '%' : '' }})</span></td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(mortgage.outstanding_balance) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(mortgage.outstanding_balance) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(mortgage.projected_balance) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(mortgage.projected_balance) }}</td>
-                </tr>
-              </template>
-
-              <!-- User Other Liabilities -->
-              <template v-if="secondDeathData.liabilities_breakdown.user.liabilities?.other_liabilities?.length > 1">
-                <tr class="cursor-pointer hover:bg-gray-100 select-none" @click="toggleLiabilityGroup('user-other')">
-                  <td class="px-4 py-2 text-sm text-gray-700 pl-8">
-                    <span class="inline-flex items-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-gray-400 transition-transform mr-1" :class="{ 'rotate-90': isLiabilityExpanded('user-other') }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-                      <span class="text-sm text-gray-600">Other Liabilities</span>
-                      <span class="ml-1 text-xs text-gray-400">({{ secondDeathData.liabilities_breakdown.user.liabilities.other_liabilities.length }})</span>
-                    </span>
-                  </td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liabilityGroupTotal(secondDeathData.liabilities_breakdown.user.liabilities.other_liabilities, 'current_balance')) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liabilityGroupTotal(secondDeathData.liabilities_breakdown.user.liabilities.other_liabilities, 'current_balance')) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liabilityGroupProjectedTotal(secondDeathData.liabilities_breakdown.user.liabilities.other_liabilities, 'current_balance', 'projected_balance')) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liabilityGroupProjectedTotal(secondDeathData.liabilities_breakdown.user.liabilities.other_liabilities, 'current_balance', 'projected_balance')) }}</td>
-                </tr>
-                <template v-if="isLiabilityExpanded('user-other')">
-                  <tr v-for="(liability, index) in secondDeathData.liabilities_breakdown.user.liabilities.other_liabilities" :key="'user-liability-2-' + index">
-                    <td class="px-4 py-2 text-sm text-gray-700 pl-12"><span class="text-sm text-gray-600">{{ liability.type }}:</span> {{ liability.institution }}</td>
-                    <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liability.current_balance) }}</td>
-                    <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liability.current_balance) }}</td>
-                    <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liability.projected_balance) }}</td>
-                    <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liability.projected_balance) }}</td>
-                  </tr>
-                </template>
-              </template>
-              <template v-else>
-                <tr v-for="(liability, index) in secondDeathData.liabilities_breakdown.user.liabilities?.other_liabilities" :key="'user-liability-2-' + index">
-                  <td class="px-4 py-2 text-sm text-gray-700 pl-8"><span class="text-sm text-gray-600">{{ liability.type }}:</span> {{ liability.institution }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liability.current_balance) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liability.current_balance) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liability.projected_balance) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liability.projected_balance) }}</td>
-                </tr>
-              </template>
-
-              <!-- User Liabilities Subtotal -->
-              <tr v-if="secondDeathData.liabilities_breakdown.user.total > 0" class="bg-white border-l-4 border-gray-400">
-                <td class="px-4 py-2 text-sm font-semibold text-gray-900 pl-8">Liabilities Subtotal</td>
-                <td class="px-4 py-2 text-sm text-right font-semibold text-gray-900">{{ formatLiability(secondDeathData.liabilities_breakdown.user.total) }}</td>
-                <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right font-semibold text-gray-900">{{ formatLiability(secondDeathData.liabilities_breakdown.user.total) }}</td>
-                <td class="px-4 py-2 text-sm text-right font-semibold text-gray-900">{{ formatLiability(secondDeathData.liabilities_breakdown.user.projected_total) }}</td>
-                <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right font-semibold text-gray-900">{{ formatLiability(secondDeathData.liabilities_breakdown.user.projected_total) }}</td>
-              </tr>
-              </template>
-            </template>
-
-            <!-- Spouse Liabilities Section -->
-            <template v-if="secondDeathData.assets_breakdown.spouse && secondDeathData.liabilities_breakdown && secondDeathData.liabilities_breakdown.spouse">
-              <!-- Spouse Liabilities Header -->
-              <tr class="bg-white border-l-4 border-gray-400 cursor-pointer hover:bg-gray-50 select-none" @click="toggleLiabilityGroup('spouse-all')">
-                <td class="px-4 py-3 text-sm font-semibold text-gray-900">
-                  <span class="inline-flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-gray-400 transition-transform mr-1" :class="{ 'rotate-90': isLiabilityExpanded('spouse-all') }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-                    {{ secondDeathData.liabilities_breakdown.spouse.name }}'s Liabilities
-                  </span>
-                </td>
-                <td class="px-4 py-3 text-sm text-right font-semibold text-gray-900">{{ formatLiability(secondDeathData.liabilities_breakdown.spouse.total) }}</td>
-                <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-semibold text-gray-900">{{ formatLiability(secondDeathData.liabilities_breakdown.spouse.total) }}</td>
-                <td class="px-4 py-3 text-sm text-right font-semibold text-gray-900">{{ formatLiability(spouseLiabilitiesProjectedTotal) }}</td>
-                <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-semibold text-gray-900">{{ formatLiability(spouseLiabilitiesProjectedTotal) }}</td>
-              </tr>
-
-              <template v-if="isLiabilityExpanded('spouse-all')">
-              <!-- Spouse Mortgages -->
-              <template v-if="secondDeathData.liabilities_breakdown.spouse.liabilities?.mortgages?.length > 1">
-                <tr class="cursor-pointer hover:bg-gray-100 select-none" @click="toggleLiabilityGroup('spouse-mortgages')">
-                  <td class="px-4 py-2 text-sm text-gray-700 pl-8">
-                    <span class="inline-flex items-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-gray-400 transition-transform mr-1" :class="{ 'rotate-90': isLiabilityExpanded('spouse-mortgages') }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-                      <span class="text-xs text-gray-500">Mortgages</span>
-                      <span class="ml-1 text-xs text-gray-400">({{ secondDeathData.liabilities_breakdown.spouse.liabilities.mortgages.length }})</span>
-                    </span>
-                  </td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liabilityGroupTotal(secondDeathData.liabilities_breakdown.spouse.liabilities.mortgages, 'outstanding_balance')) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liabilityGroupTotal(secondDeathData.liabilities_breakdown.spouse.liabilities.mortgages, 'outstanding_balance')) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liabilityGroupProjectedTotal(secondDeathData.liabilities_breakdown.spouse.liabilities.mortgages, 'outstanding_balance', 'projected_balance')) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liabilityGroupProjectedTotal(secondDeathData.liabilities_breakdown.spouse.liabilities.mortgages, 'outstanding_balance', 'projected_balance')) }}</td>
-                </tr>
-                <template v-if="isLiabilityExpanded('spouse-mortgages')">
-                  <tr v-for="(mortgage, index) in secondDeathData.liabilities_breakdown.spouse.liabilities.mortgages" :key="'spouse-mortgage-2-' + index">
-                    <td class="px-4 py-2 text-sm text-gray-700 pl-12">{{ mortgage.property_address }}<span v-if="mortgage.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint{{ (mortgage.ownership_percentage && mortgage.ownership_percentage !== 50) ? ' - ' + mortgage.ownership_percentage + '%' : '' }})</span></td>
-                    <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(mortgage.outstanding_balance) }}</td>
-                    <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(mortgage.outstanding_balance) }}</td>
-                    <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(mortgage.projected_balance) }}</td>
-                    <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(mortgage.projected_balance) }}</td>
-                  </tr>
-                </template>
-              </template>
-              <template v-else>
-                <tr v-for="(mortgage, index) in secondDeathData.liabilities_breakdown.spouse.liabilities?.mortgages" :key="'spouse-mortgage-2-' + index">
-                  <td class="px-4 py-2 text-sm text-gray-700 pl-8"><span class="text-xs text-gray-500">Mortgage:</span> {{ mortgage.property_address }}<span v-if="mortgage.is_joint" class="ml-2 text-xs text-gray-600 font-medium">(Joint{{ (mortgage.ownership_percentage && mortgage.ownership_percentage !== 50) ? ' - ' + mortgage.ownership_percentage + '%' : '' }})</span></td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(mortgage.outstanding_balance) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(mortgage.outstanding_balance) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(mortgage.projected_balance) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(mortgage.projected_balance) }}</td>
-                </tr>
-              </template>
-
-              <!-- Spouse Other Liabilities -->
-              <template v-if="secondDeathData.liabilities_breakdown.spouse.liabilities?.other_liabilities?.length > 1">
-                <tr class="cursor-pointer hover:bg-gray-100 select-none" @click="toggleLiabilityGroup('spouse-other')">
-                  <td class="px-4 py-2 text-sm text-gray-700 pl-8">
-                    <span class="inline-flex items-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-gray-400 transition-transform mr-1" :class="{ 'rotate-90': isLiabilityExpanded('spouse-other') }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-                      <span class="text-xs text-gray-500">Other Liabilities</span>
-                      <span class="ml-1 text-xs text-gray-400">({{ secondDeathData.liabilities_breakdown.spouse.liabilities.other_liabilities.length }})</span>
-                    </span>
-                  </td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liabilityGroupTotal(secondDeathData.liabilities_breakdown.spouse.liabilities.other_liabilities, 'current_balance')) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liabilityGroupTotal(secondDeathData.liabilities_breakdown.spouse.liabilities.other_liabilities, 'current_balance')) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liabilityGroupProjectedTotal(secondDeathData.liabilities_breakdown.spouse.liabilities.other_liabilities, 'current_balance', 'projected_balance')) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liabilityGroupProjectedTotal(secondDeathData.liabilities_breakdown.spouse.liabilities.other_liabilities, 'current_balance', 'projected_balance')) }}</td>
-                </tr>
-                <template v-if="isLiabilityExpanded('spouse-other')">
-                  <tr v-for="(liability, index) in secondDeathData.liabilities_breakdown.spouse.liabilities.other_liabilities" :key="'spouse-liability-2-' + index">
-                    <td class="px-4 py-2 text-sm text-gray-700 pl-12"><span class="text-xs text-gray-500">{{ liability.type }}:</span> {{ liability.institution }}</td>
-                    <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liability.current_balance) }}</td>
-                    <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liability.current_balance) }}</td>
-                    <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liability.projected_balance) }}</td>
-                    <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liability.projected_balance) }}</td>
-                  </tr>
-                </template>
-              </template>
-              <template v-else>
-                <tr v-for="(liability, index) in secondDeathData.liabilities_breakdown.spouse.liabilities?.other_liabilities" :key="'spouse-liability-2-' + index">
-                  <td class="px-4 py-2 text-sm text-gray-700 pl-8"><span class="text-xs text-gray-500">{{ liability.type }}:</span> {{ liability.institution }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liability.current_balance) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liability.current_balance) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liability.projected_balance) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liability.projected_balance) }}</td>
-                </tr>
-              </template>
-
-              <!-- Spouse Liabilities Subtotal -->
-              <tr v-if="secondDeathData.liabilities_breakdown.spouse.total > 0" class="bg-white border-l-4 border-gray-400">
-                <td class="px-4 py-2 text-sm font-semibold text-gray-900 pl-8">Liabilities Subtotal</td>
-                <td class="px-4 py-2 text-sm text-right font-semibold text-gray-900">{{ formatLiability(secondDeathData.liabilities_breakdown.spouse.total) }}</td>
-                <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right font-semibold text-gray-900">{{ formatLiability(secondDeathData.liabilities_breakdown.spouse.total) }}</td>
-                <td class="px-4 py-2 text-sm text-right font-semibold text-gray-900">{{ formatLiability(secondDeathData.liabilities_breakdown.spouse.projected_total) }}</td>
-                <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right font-semibold text-gray-900">{{ formatLiability(secondDeathData.liabilities_breakdown.spouse.projected_total) }}</td>
-              </tr>
-              </template>
-            </template>
-
-            <!-- Total Liabilities -->
-            <tr class="bg-white border-l-4 border-gray-400 border-t-2 border-gray-300">
-              <td class="px-4 py-3 text-sm font-bold text-gray-900">Total Liabilities</td>
-              <td class="px-4 py-3 text-sm text-right font-bold text-gray-900">{{ formatLiability(secondDeathData.calculation?.total_liabilities || 0) }}</td>
-              <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-bold text-gray-900">{{ formatLiability(secondDeathData.calculation?.total_liabilities || 0) }}</td>
-              <td class="px-4 py-3 text-sm text-right font-bold text-gray-900">{{ formatLiability(secondDeathData.calculation?.projected_liabilities || 0) }}</td>
-              <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-bold text-gray-900">{{ formatLiability(secondDeathData.calculation?.projected_liabilities || 0) }}</td>
-            </tr>
-
-            <!-- Net Estate Total -->
-            <tr class="bg-white border-l-4 border-gray-400">
-              <td class="px-4 py-3 text-sm font-semibold text-gray-900">Net Estate</td>
-              <td class="px-4 py-3 text-sm text-right font-bold text-gray-900">{{ formatCurrency(ihtData?.net_estate_value || 0) }}</td>
-              <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-bold text-gray-900">{{ formatCurrency(projectionMinus5?.net_estate || 0) }}</td>
-              <td class="px-4 py-3 text-sm text-right font-bold text-gray-900">{{ formatCurrency(projection?.at_death?.net_estate || 0) }}</td>
-              <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-bold text-gray-900">{{ formatCurrency(projectionPlus5?.net_estate || 0) }}</td>
-            </tr>
-
-            <!-- Allowances Section -->
-            <template v-if="secondDeathData?.assets_breakdown?.spouse">
-              <!-- Married couple - NRB allowances first -->
-              <tr class="bg-gray-50">
-                <td class="px-4 py-3 text-sm font-semibold text-gray-700 pl-8">Less: {{ secondDeathData.assets_breakdown.user.name }}'s Tax-Free Allowance</td>
-                <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
-                <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
-                <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
-                <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
-              </tr>
-              <tr class="bg-gray-50">
-                <td class="px-4 py-3 text-sm font-semibold text-gray-700 pl-8">Less: {{ secondDeathData.assets_breakdown.spouse.name }}'s Tax-Free Allowance</td>
-                <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
-                <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
-                <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
-                <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
-              </tr>
-
-              <!-- Estate after NRB (charitable bequest baseline) for married couples -->
-              <tr class="bg-blue-50 border-l-4 border-blue-400">
-                <td class="px-4 py-3 text-sm font-semibold text-blue-800">
-                  Estate after Tax-Free Allowances
-                  <span class="block text-xs font-normal text-blue-600 mt-0.5">Charitable bequest baseline (before home allowance)</span>
-                </td>
-                <td class="px-4 py-3 text-sm text-right font-bold text-blue-800">{{ formatCurrency(estateAfterNRB) }}</td>
-                <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-bold text-blue-800">{{ formatCurrency(estateAfterNRBMinus5) }}</td>
-                <td class="px-4 py-3 text-sm text-right font-bold text-blue-800">{{ formatCurrency(estateAfterNRBProjected) }}</td>
-                <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-bold text-blue-800">{{ formatCurrency(estateAfterNRBPlus5) }}</td>
-              </tr>
-
-              <!-- Charitable Bequest for married couples (if enabled) -->
-              <tr v-if="charitableBequest" class="bg-green-50 border-l-4 border-green-400">
-                <td class="px-4 py-3 text-sm font-semibold text-green-800">
-                  Less: Charitable Bequest (10% minimum)
-                  <span class="block text-xs font-normal text-green-600 mt-0.5">Qualifies estate for reduced 36% rate</span>
-                </td>
-                <td class="px-4 py-3 text-sm text-right font-semibold text-green-800">-{{ formatCurrency(charitableDonationAmount) }}</td>
-                <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-semibold text-green-800">-{{ formatCurrency(charitableDonationAmount) }}</td>
-                <td class="px-4 py-3 text-sm text-right font-semibold text-green-800">-{{ formatCurrency(charitableDonationProjected) }}</td>
-                <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-semibold text-green-800">-{{ formatCurrency(charitableDonationProjected) }}</td>
-              </tr>
-
-              <!-- Married couple with RNRB - Home Allowances -->
-              <template v-if="ihtData?.rnrb_available > 0">
-                <tr class="bg-gray-50">
-                  <td class="px-4 py-3 text-sm font-semibold text-gray-700 pl-8">Less: {{ secondDeathData.assets_breakdown.user.name }}'s Home Allowance</td>
-                  <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency((ihtData?.rnrb_available || 0) / 2) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency((ihtData?.rnrb_available || 0) / 2) }}</td>
-                  <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency((ihtData?.rnrb_available || 0) / 2) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency((ihtData?.rnrb_available || 0) / 2) }}</td>
-                </tr>
-                <tr class="bg-gray-50">
-                  <td class="px-4 py-3 text-sm font-semibold text-gray-700 pl-8">Less: {{ secondDeathData.assets_breakdown.spouse.name }}'s Home Allowance</td>
-                  <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency((ihtData?.rnrb_available || 0) / 2) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency((ihtData?.rnrb_available || 0) / 2) }}</td>
-                  <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency((ihtData?.rnrb_available || 0) / 2) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency((ihtData?.rnrb_available || 0) / 2) }}</td>
-                </tr>
-              </template>
-            </template>
-            <template v-else>
-              <!-- Single person - show combined NRB -->
-              <tr class="bg-gray-50">
-                <td class="px-4 py-3 text-sm font-semibold text-gray-700">Less: Tax-Free Allowance</td>
-                <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(ihtData?.nrb_available || 0) }}</td>
-                <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(ihtData?.nrb_available || 0) }}</td>
-                <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(ihtData?.nrb_available || 0) }}</td>
-                <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(ihtData?.nrb_available || 0) }}</td>
-              </tr>
-
-              <!-- Estate after NRB (charitable bequest baseline) -->
-              <tr class="bg-blue-50 border-l-4 border-blue-400">
-                <td class="px-4 py-3 text-sm font-semibold text-blue-800">
-                  Estate after Tax-Free Allowance
-                  <span class="block text-xs font-normal text-blue-600 mt-0.5">Charitable bequest baseline (before home allowance)</span>
-                </td>
-                <td class="px-4 py-3 text-sm text-right font-bold text-blue-800">{{ formatCurrency(estateAfterNRB) }}</td>
-                <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-bold text-blue-800">{{ formatCurrency(estateAfterNRBMinus5) }}</td>
-                <td class="px-4 py-3 text-sm text-right font-bold text-blue-800">{{ formatCurrency(estateAfterNRBProjected) }}</td>
-                <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-bold text-blue-800">{{ formatCurrency(estateAfterNRBPlus5) }}</td>
-              </tr>
-
-              <!-- Charitable Bequest (if enabled) - now positioned after NRB, before RNRB -->
-              <tr v-if="charitableBequest" class="bg-green-50 border-l-4 border-green-400">
-                <td class="px-4 py-3 text-sm font-semibold text-green-800">
-                  Less: Charitable Bequest (10% minimum)
-                  <span class="block text-xs font-normal text-green-600 mt-0.5">Qualifies estate for reduced 36% rate</span>
-                </td>
-                <td class="px-4 py-3 text-sm text-right font-semibold text-green-800">-{{ formatCurrency(charitableDonationAmount) }}</td>
-                <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-semibold text-green-800">-{{ formatCurrency(charitableDonationAmount) }}</td>
-                <td class="px-4 py-3 text-sm text-right font-semibold text-green-800">-{{ formatCurrency(charitableDonationProjected) }}</td>
-                <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-semibold text-green-800">-{{ formatCurrency(charitableDonationProjected) }}</td>
-              </tr>
-
-              <tr class="bg-gray-50" v-if="ihtData?.rnrb_available > 0">
-                <td class="px-4 py-3 text-sm font-semibold text-gray-700">Less: Home Allowance</td>
-                <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(ihtData?.rnrb_available || 0) }}</td>
-                <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(ihtData?.rnrb_available || 0) }}</td>
-                <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(ihtData?.rnrb_available || 0) }}</td>
-                <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(ihtData?.rnrb_available || 0) }}</td>
-              </tr>
-            </template>
-
-            <!-- Taxable Estate -->
-            <tr class="bg-gray-50">
-              <td class="px-4 py-3 text-sm font-semibold text-gray-900">Taxable Estate</td>
-              <td class="px-4 py-3 text-sm text-right font-bold text-gray-900">{{ formatCurrency(ihtData?.taxable_estate || 0) }}</td>
-              <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-bold text-gray-900">{{ formatCurrency(projectionMinus5?.taxable_estate || 0) }}</td>
-              <td class="px-4 py-3 text-sm text-right font-bold text-gray-900">{{ formatCurrency(projection?.at_death?.taxable_estate || 0) }}</td>
-              <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-bold text-gray-900">{{ formatCurrency(projectionPlus5?.taxable_estate || 0) }}</td>
-            </tr>
-
-            <!-- Inheritance Tax Liability -->
-            <tr class="bg-white border-l-4 border-gray-400">
-              <td class="px-4 py-3 text-sm font-semibold text-gray-900">
-                Inheritance Tax Liability ({{ effectiveIHTRateLabel }})
-                <span v-if="charitableBequest" class="ml-2 text-xs font-normal text-green-600">(Reduced rate)</span>
-              </td>
-              <td class="px-4 py-3 text-sm text-right font-bold text-gray-900">{{ formatCurrency(charitableBequest ? adjustedIHTLiability : (ihtData?.estate_iht_liability || 0)) }}</td>
-              <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-bold text-gray-900">{{ formatCurrency(charitableBequest ? adjustedIHTLiabilityMinus5 : (projectionMinus5?.iht_liability || 0)) }}</td>
-              <td class="px-4 py-3 text-sm text-right font-bold text-gray-900">{{ formatCurrency(charitableBequest ? adjustedIHTLiabilityProjected : (projection?.at_death?.iht_liability || 0)) }}</td>
-              <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-bold text-gray-900">{{ formatCurrency(charitableBequest ? adjustedIHTLiabilityPlus5 : (projectionPlus5?.iht_liability || 0)) }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Fallback: Old list style if no projection data -->
-      <div v-else class="space-y-3 mb-6">
-        <h4 class="text-sm font-semibold text-gray-700 mb-3">Estate Calculation</h4>
-
-        <div class="flex justify-between items-center py-2 border-b border-gray-200">
-          <span class="text-sm text-gray-600">Total Estate Value</span>
-          <span class="text-sm font-medium text-gray-900">{{ formatCurrency(ihtData?.gross_estate_value || 0) }}</span>
-        </div>
-
-        <div v-if="ihtData?.liabilities > 0" class="flex justify-between items-center py-2 border-b border-gray-200">
-          <span class="text-sm font-semibold text-gray-700">Less: Liabilities</span>
-          <span class="text-sm font-medium text-gray-900">-{{ formatCurrency(ihtData?.liabilities || 0) }}</span>
-        </div>
-
-        <div class="flex justify-between items-center py-2 border-b border-gray-200 bg-gray-50 rounded-lg">
-          <span class="text-sm font-semibold text-gray-900">Gross Estate</span>
-          <span class="text-sm font-bold text-gray-900">{{ formatCurrency(ihtData?.net_estate_value || 0) }}</span>
-        </div>
-
-        <div class="flex justify-between items-center py-2 border-b border-gray-200">
-          <span class="text-sm font-semibold text-gray-700">Less: Tax-Free Allowance (Individual)</span>
-          <span class="text-sm font-medium text-gray-900">-{{ formatCurrency(ihtData?.nrb || 325000) }}</span>
-        </div>
-
-        <div v-if="ihtData?.nrb_from_spouse > 0" class="flex justify-between items-center py-2 border-b border-gray-200">
-          <span class="text-sm font-semibold text-gray-700">
-            Less: Tax-Free Allowance from Spouse
-            <span v-if="!hasSpouseLinked" class="ml-2 text-xs text-gray-600 font-normal">(Default - verify by linking spouse)</span>
-          </span>
-          <span class="text-sm font-medium text-gray-900">-{{ formatCurrency(ihtData.nrb_from_spouse) }}</span>
-        </div>
-
-        <!-- Estate after NRB (charitable bequest baseline) -->
-        <div class="flex justify-between items-center py-3 bg-blue-50 rounded border-l-4 border-blue-400">
-          <span class="text-sm font-semibold text-blue-800">
-            Estate after Tax-Free Allowances
-            <span class="block text-xs font-normal text-blue-600">Charitable bequest baseline (before home allowance)</span>
-          </span>
-          <span class="text-sm font-bold text-blue-800">{{ formatCurrency(estateAfterNRB) }}</span>
-        </div>
-
-        <!-- Charitable Bequest - now positioned after NRB, before RNRB -->
-        <div v-if="charitableBequest" class="flex justify-between items-center py-2 border-b border-green-200 bg-green-50 rounded border-l-4 border-green-400">
-          <span class="text-sm font-semibold text-green-800">
-            Less: Charitable Bequest (10% minimum)
-            <span class="block text-xs font-normal text-green-600">Qualifies estate for reduced 36% rate</span>
-          </span>
-          <span class="text-sm font-medium text-green-800">-{{ formatCurrency(charitableDonationAmount) }}</span>
-        </div>
-
-        <div v-if="ihtData?.rnrb_eligible && ihtData?.rnrb_individual > 0" class="flex justify-between items-center py-2 border-b border-gray-200">
-          <span class="text-sm font-semibold text-gray-700">Less: Home Allowance (Individual)</span>
-          <span class="text-sm font-medium text-gray-900">-{{ formatCurrency(ihtData?.rnrb_individual || 0) }}</span>
-        </div>
-
-        <div v-if="ihtData?.rnrb_eligible && ihtData?.rnrb_from_spouse > 0" class="flex justify-between items-center py-2 border-b border-gray-200">
-          <span class="text-sm font-semibold text-gray-700">
-            Less: Home Allowance from Spouse
-            <span v-if="!hasSpouseLinked" class="ml-2 text-xs text-gray-600 font-normal">(Default - verify by linking spouse)</span>
-          </span>
-          <span class="text-sm font-medium text-gray-900">-{{ formatCurrency(ihtData?.rnrb_from_spouse || 0) }}</span>
-        </div>
-
-        <div class="flex justify-between items-center py-3 bg-gray-50 rounded">
-          <span class="text-base font-semibold text-gray-900">Taxable Estate</span>
-          <span class="text-base font-bold text-gray-900">{{ formatCurrency(ihtData?.taxable_estate || 0) }}</span>
-        </div>
-
-        <div class="flex justify-between items-center py-3 bg-gray-50 rounded-lg">
-          <span class="text-base font-semibold text-gray-900">
-            Inheritance Tax Liability ({{ charitableBequest ? '36%' : formatPercent(ihtData?.iht_rate || 0.4) }})
-            <span v-if="charitableBequest" class="ml-2 text-xs font-normal text-green-600">(Reduced rate)</span>
-          </span>
-          <span class="text-base font-bold text-gray-900">{{ formatCurrency(charitableBequest ? adjustedIHTLiability : (ihtData?.estate_iht_liability || 0)) }}</span>
-        </div>
-      </div>
-
-      <!-- Gift Calculation -->
-      <div v-if="hasGifts" class="space-y-3 pt-6 border-t border-gray-300">
-        <h4 class="text-sm font-semibold text-gray-700 mb-3">Gift Liability (7-Year Rule with Taper Relief)</h4>
-
-        <!-- PET Gifts -->
-        <div v-if="hasPETGifts" class="mb-4">
-          <p class="text-xs font-medium text-gray-600 mb-2">Potentially Exempt Transfers (PETs)</p>
-          <div v-for="gift in petGifts" :key="gift.gift_id" class="mb-3 pl-4 py-2 bg-gray-50 rounded-lg">
-            <div class="flex justify-between items-center mb-1">
-              <div class="flex-1">
-                <span class="text-sm font-medium text-gray-800">{{ gift.recipient }}</span>
-                <span class="ml-2 text-xs text-gray-500">({{ formatDate(gift.gift_date) }})</span>
-              </div>
-              <span class="text-sm font-bold text-gray-900">{{ formatCurrency(gift.tax_liability) }}</span>
-            </div>
-            <div class="text-xs text-gray-600 space-y-1 mt-2">
-              <div class="flex justify-between">
-                <span>Gift value:</span>
-                <span class="font-medium">{{ formatCurrency(gift.gift_value) }}</span>
-              </div>
-              <div class="flex justify-between text-green-700">
-                <span>Less: Tax-Free Allowance covered</span>
-                <span class="font-medium">-{{ formatCurrency(gift.nrb_covered) }}</span>
-              </div>
-              <div class="flex justify-between border-t border-orange-200 pt-1">
-                <span>Taxable amount:</span>
-                <span class="font-medium">{{ formatCurrency(gift.taxable_amount) }}</span>
-              </div>
-              <div class="flex justify-between">
-                <span>Taper relief rate ({{ gift.years_ago }} years):</span>
-                <span class="font-medium">{{ formatPercent(gift.taper_rate) }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- CLT Gifts -->
-        <div v-if="hasCLTGifts" class="mb-4">
-          <p class="text-xs font-medium text-gray-600 mb-2">Chargeable Lifetime Transfers (CLTs)</p>
-          <div v-for="clt in cltGifts" :key="clt.gift_id" class="flex justify-between items-center py-2 pl-4 border-l-2 border-blue-400">
-            <div class="flex-1">
-              <span class="text-sm text-gray-700">{{ clt.recipient }} ({{ formatDate(clt.gift_date) }})</span>
-              <span class="ml-2 text-xs text-gray-500">{{ clt.years_ago }} years ago</span>
-            </div>
-            <span class="text-sm font-medium text-gray-900">{{ formatCurrency(clt.tax_liability) }}</span>
-          </div>
-        </div>
-
-        <div class="flex justify-between items-center py-3 bg-gray-50 rounded-lg">
-          <span class="text-base font-semibold text-gray-900">Total Gift Inheritance Tax Liability</span>
-          <span class="text-base font-bold text-gray-900">{{ formatCurrency(ihtData?.gift_iht_liability || 0) }}</span>
-        </div>
-      </div>
+      <!-- IHT Calculation Table Component -->
+      <IHTCalculationTable
+        v-bind="standardTableProps"
+        :charitable-bequest="charitableBequest"
+        :effective-i-h-t-rate-label="effectiveIHTRateLabel"
+        :has-spouse-linked="false"
+        :show-minus-5-years="showMinus5Years"
+        :show-plus-5-years="showPlus5Years"
+        :growth-rate="growthRate"
+        :years-to-death-minus-5="yearsToDeathMinus5"
+        :years-to-death-plus-5="yearsToDeathPlus5"
+        @toggle-minus-5="showMinus5Years = !showMinus5Years"
+        @toggle-plus-5="showPlus5Years = !showPlus5Years"
+      />
     </div>
-
     <!-- Tax Allowances Information (NRB & RNRB Messages) -->
     <div v-if="!loading && ihtData" class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
       <!-- NRB Message -->
@@ -2202,6 +497,7 @@ import SpouseExemptionNotice from './SpouseExemptionNotice.vue';
 import MissingDataAlert from './MissingDataAlert.vue';
 import DualGiftingTimeline from './DualGiftingTimeline.vue';
 import LifeCoverRecommendations from './LifeCoverRecommendations.vue';
+import IHTCalculationTable from './IHTCalculationTable.vue';
 import estateService from '../../services/estateService';
 import userProfileService from '../../services/userProfileService';
 import { currencyMixin } from '@/mixins/currencyMixin';
@@ -2216,6 +512,7 @@ export default {
     MissingDataAlert,
     DualGiftingTimeline,
     LifeCoverRecommendations,
+    IHTCalculationTable,
   },
 
   data() {
@@ -2231,8 +528,6 @@ export default {
       error: null,
       showMinus5Years: false,
       showPlus5Years: false,
-      expandedAssets: {},
-      expandedLiabilities: {},
       expandedAllowances: false,
       charitableBequest: null,
       savingCharitableBequest: false,
@@ -2761,6 +1056,158 @@ export default {
         return currentValue * Math.pow(1 + this.growthRate, years);
       };
     },
+
+    // ========================================
+    // Normalized data for IHTCalculationTable
+    // ========================================
+
+    // Normalized table data for married users WITH spouse link (second death scenario)
+    secondDeathTableProps() {
+      if (!this.secondDeathData?.second_death_analysis) return null;
+
+      const analysis = this.secondDeathData.second_death_analysis;
+      const currentCalc = analysis.current_iht_calculation || {};
+      const projectedCalc = analysis.iht_calculation || {};
+
+      return {
+        assetsBreakdown: this.secondDeathData.assets_breakdown || {},
+        liabilitiesBreakdown: this.secondDeathData.liabilities_breakdown || {},
+        totals: {
+          grossAssets: {
+            now: currentCalc.gross_estate_value || 0,
+            minus5: this.getProjectedValueMinus5(currentCalc.gross_estate_value || 0),
+            projected: this.totalGrossAssetsProjected,
+            plus5: this.getProjectedValuePlus5(currentCalc.gross_estate_value || 0),
+          },
+          liabilities: {
+            now: currentCalc.liabilities || 0,
+            minus5: currentCalc.liabilities || 0,
+            projected: this.totalLiabilitiesProjected,
+            plus5: this.totalLiabilitiesProjected,
+          },
+          netEstate: {
+            now: currentCalc.net_estate_value || 0,
+            minus5: this.secondDeathProjectionMinus5.net_estate,
+            projected: this.netEstateProjected,
+            plus5: this.secondDeathProjectionPlus5.net_estate,
+          },
+        },
+        allowances: {
+          nrb: currentCalc.nrb || 325000,
+          nrbFromSpouse: currentCalc.nrb_from_spouse || 325000,
+          totalNrb: (currentCalc.nrb || 325000) + (currentCalc.nrb_from_spouse || 325000),
+          rnrbIndividual: currentCalc.rnrb_individual || 0,
+          rnrbFromSpouse: currentCalc.rnrb_from_spouse || 0,
+          totalRnrb: (currentCalc.rnrb_individual || 0) + (currentCalc.rnrb_from_spouse || 0),
+          rnrbEligible: projectedCalc.rnrb_eligible || false,
+          rnrbTapered: currentCalc.rnrb_tapered || false,
+          rnrbTaperThreshold: currentCalc.rnrb_taper_threshold || 2000000,
+          rnrbTaperAmount: currentCalc.rnrb_taper_amount || 0,
+          showSeparateSpouseAllowances: true,
+        },
+        estateAfterNRB: {
+          now: this.secondDeathEstateAfterNRB,
+          minus5: this.secondDeathEstateAfterNRBMinus5,
+          projected: this.secondDeathEstateAfterNRBProjected,
+          plus5: this.secondDeathEstateAfterNRBPlus5,
+        },
+        taxableEstate: {
+          now: currentCalc.taxable_estate || 0,
+          minus5: this.secondDeathProjectionMinus5.taxable_estate,
+          projected: this.taxableEstateProjected,
+          plus5: this.secondDeathProjectionPlus5.taxable_estate,
+        },
+        ihtLiability: {
+          now: this.charitableBequest ? this.adjustedSecondDeathIHTLiabilityNow : (currentCalc.iht_liability || 0),
+          minus5: this.charitableBequest ? this.adjustedSecondDeathIHTLiabilityMinus5 : this.secondDeathProjectionMinus5.iht_liability,
+          projected: this.charitableBequest ? this.adjustedSecondDeathIHTLiabilityProjected : this.ihtLiabilityProjected,
+          plus5: this.charitableBequest ? this.adjustedSecondDeathIHTLiabilityPlus5 : this.secondDeathProjectionPlus5.iht_liability,
+        },
+        charitableDonation: {
+          now: this.charitableDonationSecondDeath,
+          minus5: this.charitableDonationSecondDeathMinus5,
+          projected: this.charitableDonationSecondDeathProjected,
+          plus5: this.charitableDonationSecondDeathPlus5,
+        },
+        showSpouse: this.secondDeathData.data_sharing_enabled && !!this.secondDeathData.assets_breakdown?.spouse,
+        estimatedAge: analysis.second_death?.estimated_age_at_death || 0,
+        projectionMinus5Age: this.projectionMinus5?.estimated_age_at_death || 0,
+        projectionPlus5Age: this.projectionPlus5?.estimated_age_at_death || 0,
+        firstColumnHeader: 'Line Item',
+      };
+    },
+
+    // Normalized table data for non-married OR married without spouse link (standard scenario)
+    standardTableProps() {
+      if (!this.ihtData || !this.secondDeathData?.assets_breakdown) return null;
+
+      return {
+        assetsBreakdown: this.secondDeathData.assets_breakdown || {},
+        liabilitiesBreakdown: this.secondDeathData.liabilities_breakdown || {},
+        totals: {
+          grossAssets: {
+            now: this.secondDeathData.calculation?.total_gross_assets || 0,
+            minus5: this.getProjectedValueMinus5(this.secondDeathData.calculation?.total_gross_assets || 0),
+            projected: this.secondDeathData.calculation?.projected_gross_assets || 0,
+            plus5: this.getProjectedValuePlus5(this.secondDeathData.calculation?.total_gross_assets || 0),
+          },
+          liabilities: {
+            now: this.secondDeathData.calculation?.total_liabilities || 0,
+            minus5: this.secondDeathData.calculation?.total_liabilities || 0,
+            projected: this.secondDeathData.calculation?.projected_liabilities || 0,
+            plus5: this.secondDeathData.calculation?.projected_liabilities || 0,
+          },
+          netEstate: {
+            now: this.ihtData?.net_estate_value || 0,
+            minus5: this.projectionMinus5?.net_estate || 0,
+            projected: this.projection?.at_death?.net_estate || 0,
+            plus5: this.projectionPlus5?.net_estate || 0,
+          },
+        },
+        allowances: {
+          nrb: this.ihtData?.nrb_available || 325000,
+          nrbFromSpouse: 0,
+          totalNrb: this.ihtData?.nrb_available || 325000,
+          rnrbIndividual: this.ihtData?.rnrb_available || 0,
+          rnrbFromSpouse: 0,
+          totalRnrb: this.ihtData?.rnrb_available || 0,
+          rnrbEligible: (this.ihtData?.rnrb_available || 0) > 0,
+          rnrbTapered: false,
+          rnrbTaperThreshold: 2000000,
+          rnrbTaperAmount: 0,
+          showSeparateSpouseAllowances: false,
+        },
+        estateAfterNRB: {
+          now: this.estateAfterNRB,
+          minus5: this.estateAfterNRBMinus5,
+          projected: this.estateAfterNRBProjected,
+          plus5: this.estateAfterNRBPlus5,
+        },
+        taxableEstate: {
+          now: this.ihtData?.taxable_estate || 0,
+          minus5: this.projectionMinus5?.taxable_estate || 0,
+          projected: this.projection?.at_death?.taxable_estate || 0,
+          plus5: this.projectionPlus5?.taxable_estate || 0,
+        },
+        ihtLiability: {
+          now: this.charitableBequest ? this.adjustedIHTLiability : (this.ihtData?.estate_iht_liability || 0),
+          minus5: this.charitableBequest ? this.adjustedIHTLiabilityMinus5 : (this.projectionMinus5?.iht_liability || 0),
+          projected: this.charitableBequest ? this.adjustedIHTLiabilityProjected : (this.projection?.at_death?.iht_liability || 0),
+          plus5: this.charitableBequest ? this.adjustedIHTLiabilityPlus5 : (this.projectionPlus5?.iht_liability || 0),
+        },
+        charitableDonation: {
+          now: this.charitableDonationAmount,
+          minus5: this.charitableDonationAmount, // Same as now for this scenario
+          projected: this.charitableDonationProjected,
+          plus5: this.charitableDonationProjected, // Same as projected for this scenario
+        },
+        showSpouse: !!this.secondDeathData?.assets_breakdown?.spouse,
+        estimatedAge: this.projection?.at_death?.estimated_age_at_death || 0,
+        projectionMinus5Age: this.projectionMinus5?.estimated_age_at_death || 0,
+        projectionPlus5Age: this.projectionPlus5?.estimated_age_at_death || 0,
+        firstColumnHeader: 'Asset / Liability',
+      };
+    },
   },
 
   mounted() {
@@ -2785,43 +1232,8 @@ export default {
       return `-${this.formatCurrency(num)}`;
     },
 
-    toggleAssetGroup(key) {
-      this.expandedAssets = { ...this.expandedAssets, [key]: !this.expandedAssets[key] };
-    },
-
-    toggleLiabilityGroup(key) {
-      this.expandedLiabilities = { ...this.expandedLiabilities, [key]: !this.expandedLiabilities[key] };
-    },
-
     toggleAllowances() {
       this.expandedAllowances = !this.expandedAllowances;
-    },
-
-    isAssetExpanded(key) {
-      return !!this.expandedAssets[key];
-    },
-
-    isLiabilityExpanded(key) {
-      return !!this.expandedLiabilities[key];
-    },
-
-    assetGroupTotal(assets) {
-      return (assets || []).reduce((sum, a) => sum + (a.value || 0), 0);
-    },
-
-    assetGroupProjectedTotal(assets) {
-      return (assets || []).reduce((sum, a) => sum + (a.projected_value || a.value || 0), 0);
-    },
-
-    liabilityGroupTotal(liabilities, field) {
-      return (liabilities || []).reduce((sum, l) => sum + (parseFloat(l[field]) || 0), 0);
-    },
-
-    liabilityGroupProjectedTotal(liabilities, currentField, projectedField) {
-      return (liabilities || []).reduce((sum, l) => {
-        const projected = l[projectedField] !== undefined && l[projectedField] !== null ? l[projectedField] : l[currentField];
-        return sum + (parseFloat(projected) || 0);
-      }, 0);
     },
 
     checkUserMaritalStatus() {
