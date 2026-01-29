@@ -1261,6 +1261,49 @@ resources/js/components/Estate/IHTPlanning.vue
 
 ---
 
+## IHT Calculation Table - Restructured for Charitable Bequest Reconciliation
+
+**Branch:** investUpdate
+
+**Status:** 🔄 Ready to deploy
+
+### Description
+
+Restructured the IHT calculation table to clearly show the charitable bequest baseline. The new structure separates NRB (Tax-Free Allowance) from RNRB (Home Allowance), with a new "Estate after Tax-Free Allowances" row that shows the baseline used for calculating the 10% charitable bequest requirement.
+
+### New Table Structure
+
+**Previous Flow:**
+1. Net Estate → 2. Less NRB → 3. Less RNRB → 4. Taxable Estate → 5. Charitable Bequest → 6. IHT Liability
+
+**New Flow:**
+1. Net Estate → 2. Less NRB → 3. **Estate after Tax-Free Allowances** (charitable baseline) → 4. Charitable Bequest → 5. Less RNRB → 6. Taxable Estate → 7. IHT Liability
+
+### Changes Made
+
+| Change | Description |
+|--------|-------------|
+| New "Estate after Tax-Free Allowances" row | Blue highlighted row showing the baseline for charitable bequest calculation |
+| Charitable bequest moved before RNRB | Now sits logically after NRB deduction, before home allowance |
+| Separate NRB and RNRB sections | Married couples: NRB first, then charitable baseline, then RNRB |
+| New computed properties | `estateAfterNRB`, `estateAfterNRBProjected`, `secondDeathEstateAfterNRB`, etc. |
+| Updated fallback list view | Old list-style view also follows new structure |
+
+### Visual Styling
+
+- Estate after NRB row: Blue background (`bg-blue-50`), blue border (`border-blue-400`), blue text (`text-blue-800`)
+- Shows subtitle: "Charitable bequest baseline (before home allowance)"
+- Users can now reconcile: Charitable Donation = Estate after Tax-Free Allowances × 10%
+
+### Files Changed (1 file)
+
+**Frontend (included in build):**
+```text
+resources/js/components/Estate/IHTPlanning.vue
+```
+
+---
+
 ## Rebuild Required: YES
 
 Frontend Vue components changed. Full rebuild required:

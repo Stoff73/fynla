@@ -1003,6 +1003,30 @@
               <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(secondDeathData.second_death_analysis.iht_calculation?.nrb_from_spouse || 325000) }}</td>
             </tr>
 
+            <!-- Estate after NRB (charitable bequest baseline) -->
+            <tr class="bg-blue-50 border-l-4 border-blue-400">
+              <td class="px-4 py-3 text-sm font-semibold text-blue-800">
+                Estate after Tax-Free Allowances
+                <span class="block text-xs font-normal text-blue-600 mt-0.5">Charitable bequest baseline (before home allowance)</span>
+              </td>
+              <td class="px-4 py-3 text-sm text-right font-bold text-blue-800">{{ formatCurrency(secondDeathEstateAfterNRB) }}</td>
+              <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-bold text-blue-800">{{ formatCurrency(secondDeathEstateAfterNRBMinus5) }}</td>
+              <td class="px-4 py-3 text-sm text-right font-bold text-blue-800">{{ formatCurrency(secondDeathEstateAfterNRBProjected) }}</td>
+              <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-bold text-blue-800">{{ formatCurrency(secondDeathEstateAfterNRBPlus5) }}</td>
+            </tr>
+
+            <!-- Charitable Bequest (if enabled) - now positioned after NRB, before RNRB -->
+            <tr v-if="charitableBequest" class="bg-green-50 border-l-4 border-green-400">
+              <td class="px-4 py-3 text-sm font-semibold text-green-800">
+                Less: Charitable Bequest (10% minimum)
+                <span class="block text-xs font-normal text-green-600 mt-0.5">Qualifies estate for reduced 36% rate</span>
+              </td>
+              <td class="px-4 py-3 text-sm text-right font-semibold text-green-800">-{{ formatCurrency(charitableDonationSecondDeath) }}</td>
+              <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-semibold text-green-800">-{{ formatCurrency(charitableDonationSecondDeathMinus5) }}</td>
+              <td class="px-4 py-3 text-sm text-right font-semibold text-green-800">-{{ formatCurrency(charitableDonationSecondDeathProjected) }}</td>
+              <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-semibold text-green-800">-{{ formatCurrency(charitableDonationSecondDeathPlus5) }}</td>
+            </tr>
+
             <!-- RNRB (Individual) -->
             <tr v-if="secondDeathData.second_death_analysis.iht_calculation?.rnrb_eligible && ((secondDeathData.second_death_analysis.current_iht_calculation?.rnrb_individual || 0) > 0 || (secondDeathData.second_death_analysis.iht_calculation?.rnrb_individual || 0) > 0)">
               <td class="px-4 py-3 text-sm font-semibold text-gray-700">Less: Home Allowance (Individual)</td>
@@ -1049,18 +1073,6 @@
               <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-bold text-gray-900">{{ formatCurrency(secondDeathProjectionMinus5.taxable_estate) }}</td>
               <td class="px-4 py-3 text-sm text-right font-bold text-gray-900">{{ formatCurrency(taxableEstateProjected) }}</td>
               <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-bold text-gray-900">{{ formatCurrency(secondDeathProjectionPlus5.taxable_estate) }}</td>
-            </tr>
-
-            <!-- Charitable Bequest (if enabled) -->
-            <tr v-if="charitableBequest" class="bg-green-50 border-l-4 border-green-400">
-              <td class="px-4 py-3 text-sm font-semibold text-green-800">
-                Less: Charitable Bequest (10% minimum)
-                <span class="block text-xs font-normal text-green-600 mt-0.5">Qualifies estate for reduced 36% rate</span>
-              </td>
-              <td class="px-4 py-3 text-sm text-right font-semibold text-green-800">-{{ formatCurrency(charitableDonationAmount) }}</td>
-              <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-semibold text-green-800">-{{ formatCurrency(charitableDonationAmount) }}</td>
-              <td class="px-4 py-3 text-sm text-right font-semibold text-green-800">-{{ formatCurrency(charitableDonationProjected) }}</td>
-              <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-semibold text-green-800">-{{ formatCurrency(charitableDonationProjected) }}</td>
             </tr>
 
             <!-- Inheritance Tax Liability -->
@@ -1772,67 +1784,61 @@
 
             <!-- Allowances Section -->
             <template v-if="secondDeathData?.assets_breakdown?.spouse">
-              <!-- Married couple with RNRB (4 rows) - collapsible -->
+              <!-- Married couple - NRB allowances first -->
+              <tr class="bg-gray-50">
+                <td class="px-4 py-3 text-sm font-semibold text-gray-700 pl-8">Less: {{ secondDeathData.assets_breakdown.user.name }}'s Tax-Free Allowance</td>
+                <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
+                <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
+                <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
+                <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
+              </tr>
+              <tr class="bg-gray-50">
+                <td class="px-4 py-3 text-sm font-semibold text-gray-700 pl-8">Less: {{ secondDeathData.assets_breakdown.spouse.name }}'s Tax-Free Allowance</td>
+                <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
+                <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
+                <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
+                <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
+              </tr>
+
+              <!-- Estate after NRB (charitable bequest baseline) for married couples -->
+              <tr class="bg-blue-50 border-l-4 border-blue-400">
+                <td class="px-4 py-3 text-sm font-semibold text-blue-800">
+                  Estate after Tax-Free Allowances
+                  <span class="block text-xs font-normal text-blue-600 mt-0.5">Charitable bequest baseline (before home allowance)</span>
+                </td>
+                <td class="px-4 py-3 text-sm text-right font-bold text-blue-800">{{ formatCurrency(estateAfterNRB) }}</td>
+                <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-bold text-blue-800">{{ formatCurrency(estateAfterNRBMinus5) }}</td>
+                <td class="px-4 py-3 text-sm text-right font-bold text-blue-800">{{ formatCurrency(estateAfterNRBProjected) }}</td>
+                <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-bold text-blue-800">{{ formatCurrency(estateAfterNRBPlus5) }}</td>
+              </tr>
+
+              <!-- Charitable Bequest for married couples (if enabled) -->
+              <tr v-if="charitableBequest" class="bg-green-50 border-l-4 border-green-400">
+                <td class="px-4 py-3 text-sm font-semibold text-green-800">
+                  Less: Charitable Bequest (10% minimum)
+                  <span class="block text-xs font-normal text-green-600 mt-0.5">Qualifies estate for reduced 36% rate</span>
+                </td>
+                <td class="px-4 py-3 text-sm text-right font-semibold text-green-800">-{{ formatCurrency(charitableDonationAmount) }}</td>
+                <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-semibold text-green-800">-{{ formatCurrency(charitableDonationAmount) }}</td>
+                <td class="px-4 py-3 text-sm text-right font-semibold text-green-800">-{{ formatCurrency(charitableDonationProjected) }}</td>
+                <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-semibold text-green-800">-{{ formatCurrency(charitableDonationProjected) }}</td>
+              </tr>
+
+              <!-- Married couple with RNRB - Home Allowances -->
               <template v-if="ihtData?.rnrb_available > 0">
-                <tr class="bg-gray-50 cursor-pointer hover:bg-gray-100 select-none" @click="toggleAllowances()">
-                  <td class="px-4 py-3 text-sm text-gray-600">
-                    <span class="inline-flex items-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-gray-400 transition-transform mr-1" :class="{ 'rotate-90': expandedAllowances }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-                      <span>Less: Allowances</span>
-                      <span class="ml-1 text-xs text-gray-400">(4)</span>
-                    </span>
-                  </td>
-                  <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(650000 + (ihtData?.rnrb_available || 0)) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(650000 + (ihtData?.rnrb_available || 0)) }}</td>
-                  <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(650000 + (ihtData?.rnrb_available || 0)) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(650000 + (ihtData?.rnrb_available || 0)) }}</td>
-                </tr>
-                <template v-if="expandedAllowances">
-                  <tr class="bg-gray-50">
-                    <td class="px-4 py-3 text-sm font-semibold text-gray-700 pl-12">{{ secondDeathData.assets_breakdown.user.name }}'s Tax-Free Allowance</td>
-                    <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
-                    <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
-                    <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
-                    <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
-                  </tr>
-                  <tr class="bg-gray-50">
-                    <td class="px-4 py-3 text-sm font-semibold text-gray-700 pl-12">{{ secondDeathData.assets_breakdown.spouse.name }}'s Tax-Free Allowance</td>
-                    <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
-                    <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
-                    <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
-                    <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
-                  </tr>
-                  <tr class="bg-gray-50">
-                    <td class="px-4 py-3 text-sm font-semibold text-gray-700 pl-12">{{ secondDeathData.assets_breakdown.user.name }}'s Home Allowance</td>
-                    <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency((ihtData?.rnrb_available || 0) / 2) }}</td>
-                    <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency((ihtData?.rnrb_available || 0) / 2) }}</td>
-                    <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency((ihtData?.rnrb_available || 0) / 2) }}</td>
-                    <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency((ihtData?.rnrb_available || 0) / 2) }}</td>
-                  </tr>
-                  <tr class="bg-gray-50">
-                    <td class="px-4 py-3 text-sm font-semibold text-gray-700 pl-12">{{ secondDeathData.assets_breakdown.spouse.name }}'s Home Allowance</td>
-                    <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency((ihtData?.rnrb_available || 0) / 2) }}</td>
-                    <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency((ihtData?.rnrb_available || 0) / 2) }}</td>
-                    <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency((ihtData?.rnrb_available || 0) / 2) }}</td>
-                    <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency((ihtData?.rnrb_available || 0) / 2) }}</td>
-                  </tr>
-                </template>
-              </template>
-              <!-- Married couple without RNRB (only 2 rows) - no concertina needed -->
-              <template v-else>
                 <tr class="bg-gray-50">
-                  <td class="px-4 py-3 text-sm font-semibold text-gray-700 pl-8">Less: {{ secondDeathData.assets_breakdown.user.name }}'s Tax-Free Allowance</td>
-                  <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
-                  <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
+                  <td class="px-4 py-3 text-sm font-semibold text-gray-700 pl-8">Less: {{ secondDeathData.assets_breakdown.user.name }}'s Home Allowance</td>
+                  <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency((ihtData?.rnrb_available || 0) / 2) }}</td>
+                  <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency((ihtData?.rnrb_available || 0) / 2) }}</td>
+                  <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency((ihtData?.rnrb_available || 0) / 2) }}</td>
+                  <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency((ihtData?.rnrb_available || 0) / 2) }}</td>
                 </tr>
                 <tr class="bg-gray-50">
-                  <td class="px-4 py-3 text-sm font-semibold text-gray-700 pl-8">Less: {{ secondDeathData.assets_breakdown.spouse.name }}'s Tax-Free Allowance</td>
-                  <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
-                  <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(325000) }}</td>
+                  <td class="px-4 py-3 text-sm font-semibold text-gray-700 pl-8">Less: {{ secondDeathData.assets_breakdown.spouse.name }}'s Home Allowance</td>
+                  <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency((ihtData?.rnrb_available || 0) / 2) }}</td>
+                  <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency((ihtData?.rnrb_available || 0) / 2) }}</td>
+                  <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency((ihtData?.rnrb_available || 0) / 2) }}</td>
+                  <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency((ihtData?.rnrb_available || 0) / 2) }}</td>
                 </tr>
               </template>
             </template>
@@ -1845,6 +1851,31 @@
                 <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(ihtData?.nrb_available || 0) }}</td>
                 <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(ihtData?.nrb_available || 0) }}</td>
               </tr>
+
+              <!-- Estate after NRB (charitable bequest baseline) -->
+              <tr class="bg-blue-50 border-l-4 border-blue-400">
+                <td class="px-4 py-3 text-sm font-semibold text-blue-800">
+                  Estate after Tax-Free Allowance
+                  <span class="block text-xs font-normal text-blue-600 mt-0.5">Charitable bequest baseline (before home allowance)</span>
+                </td>
+                <td class="px-4 py-3 text-sm text-right font-bold text-blue-800">{{ formatCurrency(estateAfterNRB) }}</td>
+                <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-bold text-blue-800">{{ formatCurrency(estateAfterNRBMinus5) }}</td>
+                <td class="px-4 py-3 text-sm text-right font-bold text-blue-800">{{ formatCurrency(estateAfterNRBProjected) }}</td>
+                <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-bold text-blue-800">{{ formatCurrency(estateAfterNRBPlus5) }}</td>
+              </tr>
+
+              <!-- Charitable Bequest (if enabled) - now positioned after NRB, before RNRB -->
+              <tr v-if="charitableBequest" class="bg-green-50 border-l-4 border-green-400">
+                <td class="px-4 py-3 text-sm font-semibold text-green-800">
+                  Less: Charitable Bequest (10% minimum)
+                  <span class="block text-xs font-normal text-green-600 mt-0.5">Qualifies estate for reduced 36% rate</span>
+                </td>
+                <td class="px-4 py-3 text-sm text-right font-semibold text-green-800">-{{ formatCurrency(charitableDonationAmount) }}</td>
+                <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-semibold text-green-800">-{{ formatCurrency(charitableDonationAmount) }}</td>
+                <td class="px-4 py-3 text-sm text-right font-semibold text-green-800">-{{ formatCurrency(charitableDonationProjected) }}</td>
+                <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-semibold text-green-800">-{{ formatCurrency(charitableDonationProjected) }}</td>
+              </tr>
+
               <tr class="bg-gray-50" v-if="ihtData?.rnrb_available > 0">
                 <td class="px-4 py-3 text-sm font-semibold text-gray-700">Less: Home Allowance</td>
                 <td class="px-4 py-3 text-sm text-right text-gray-900">-{{ formatCurrency(ihtData?.rnrb_available || 0) }}</td>
@@ -1861,18 +1892,6 @@
               <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-bold text-gray-900">{{ formatCurrency(projectionMinus5?.taxable_estate || 0) }}</td>
               <td class="px-4 py-3 text-sm text-right font-bold text-gray-900">{{ formatCurrency(projection?.at_death?.taxable_estate || 0) }}</td>
               <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-bold text-gray-900">{{ formatCurrency(projectionPlus5?.taxable_estate || 0) }}</td>
-            </tr>
-
-            <!-- Charitable Bequest (if enabled) -->
-            <tr v-if="charitableBequest" class="bg-green-50 border-l-4 border-green-400">
-              <td class="px-4 py-3 text-sm font-semibold text-green-800">
-                Less: Charitable Bequest (10% minimum)
-                <span class="block text-xs font-normal text-green-600 mt-0.5">Qualifies estate for reduced 36% rate</span>
-              </td>
-              <td class="px-4 py-3 text-sm text-right font-semibold text-green-800">-{{ formatCurrency(charitableDonationAmount) }}</td>
-              <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-semibold text-green-800">-{{ formatCurrency(charitableDonationAmount) }}</td>
-              <td class="px-4 py-3 text-sm text-right font-semibold text-green-800">-{{ formatCurrency(charitableDonationProjected) }}</td>
-              <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-semibold text-green-800">-{{ formatCurrency(charitableDonationProjected) }}</td>
             </tr>
 
             <!-- Inheritance Tax Liability -->
@@ -1922,6 +1941,24 @@
           <span class="text-sm font-medium text-gray-900">-{{ formatCurrency(ihtData.nrb_from_spouse) }}</span>
         </div>
 
+        <!-- Estate after NRB (charitable bequest baseline) -->
+        <div class="flex justify-between items-center py-3 bg-blue-50 rounded border-l-4 border-blue-400">
+          <span class="text-sm font-semibold text-blue-800">
+            Estate after Tax-Free Allowances
+            <span class="block text-xs font-normal text-blue-600">Charitable bequest baseline (before home allowance)</span>
+          </span>
+          <span class="text-sm font-bold text-blue-800">{{ formatCurrency(estateAfterNRB) }}</span>
+        </div>
+
+        <!-- Charitable Bequest - now positioned after NRB, before RNRB -->
+        <div v-if="charitableBequest" class="flex justify-between items-center py-2 border-b border-green-200 bg-green-50 rounded border-l-4 border-green-400">
+          <span class="text-sm font-semibold text-green-800">
+            Less: Charitable Bequest (10% minimum)
+            <span class="block text-xs font-normal text-green-600">Qualifies estate for reduced 36% rate</span>
+          </span>
+          <span class="text-sm font-medium text-green-800">-{{ formatCurrency(charitableDonationAmount) }}</span>
+        </div>
+
         <div v-if="ihtData?.rnrb_eligible && ihtData?.rnrb_individual > 0" class="flex justify-between items-center py-2 border-b border-gray-200">
           <span class="text-sm font-semibold text-gray-700">Less: Home Allowance (Individual)</span>
           <span class="text-sm font-medium text-gray-900">-{{ formatCurrency(ihtData?.rnrb_individual || 0) }}</span>
@@ -1938,14 +1975,6 @@
         <div class="flex justify-between items-center py-3 bg-gray-50 rounded">
           <span class="text-base font-semibold text-gray-900">Taxable Estate</span>
           <span class="text-base font-bold text-gray-900">{{ formatCurrency(ihtData?.taxable_estate || 0) }}</span>
-        </div>
-
-        <div v-if="charitableBequest" class="flex justify-between items-center py-2 border-b border-green-200 bg-green-50 rounded">
-          <span class="text-sm font-semibold text-green-800">
-            Less: Charitable Bequest (10% minimum)
-            <span class="block text-xs font-normal text-green-600">Qualifies estate for reduced 36% rate</span>
-          </span>
-          <span class="text-sm font-medium text-green-800">-{{ formatCurrency(charitableDonationAmount) }}</span>
         </div>
 
         <div class="flex justify-between items-center py-3 bg-gray-50 rounded-lg">
@@ -2384,6 +2413,76 @@ export default {
       const nrb = this.ihtData?.nrb_available || 325000;
       const baseline = Math.max(0, netEstate - nrb);
       return baseline * 0.10;
+    },
+
+    // Estate after NRB (baseline for charitable bequest) - for non-married users
+    estateAfterNRB() {
+      const netEstate = this.ihtData?.net_estate_value || 0;
+      const nrb = this.ihtData?.nrb_available || 325000;
+      return Math.max(0, netEstate - nrb);
+    },
+
+    estateAfterNRBProjected() {
+      const netEstate = this.projection?.at_death?.net_estate || 0;
+      const nrb = this.ihtData?.nrb_available || 325000;
+      return Math.max(0, netEstate - nrb);
+    },
+
+    estateAfterNRBMinus5() {
+      const netEstate = this.projectionMinus5?.net_estate || 0;
+      const nrb = this.ihtData?.nrb_available || 325000;
+      return Math.max(0, netEstate - nrb);
+    },
+
+    estateAfterNRBPlus5() {
+      const netEstate = this.projectionPlus5?.net_estate || 0;
+      const nrb = this.ihtData?.nrb_available || 325000;
+      return Math.max(0, netEstate - nrb);
+    },
+
+    // Estate after NRB for married users (second death scenario)
+    secondDeathEstateAfterNRB() {
+      const netEstate = this.secondDeathData?.second_death_analysis?.current_iht_calculation?.net_estate_value || 0;
+      const totalNRB = (this.secondDeathData?.second_death_analysis?.current_iht_calculation?.nrb || 325000) +
+                       (this.secondDeathData?.second_death_analysis?.current_iht_calculation?.nrb_from_spouse || 325000);
+      return Math.max(0, netEstate - totalNRB);
+    },
+
+    secondDeathEstateAfterNRBProjected() {
+      const totalNRB = (this.secondDeathData?.second_death_analysis?.iht_calculation?.nrb || 325000) +
+                       (this.secondDeathData?.second_death_analysis?.iht_calculation?.nrb_from_spouse || 325000);
+      return Math.max(0, this.netEstateProjected - totalNRB);
+    },
+
+    secondDeathEstateAfterNRBMinus5() {
+      const netEstate = this.secondDeathProjectionMinus5?.net_estate || 0;
+      const totalNRB = (this.secondDeathData?.second_death_analysis?.current_iht_calculation?.nrb || 325000) +
+                       (this.secondDeathData?.second_death_analysis?.current_iht_calculation?.nrb_from_spouse || 325000);
+      return Math.max(0, netEstate - totalNRB);
+    },
+
+    secondDeathEstateAfterNRBPlus5() {
+      const netEstate = this.secondDeathProjectionPlus5?.net_estate || 0;
+      const totalNRB = (this.secondDeathData?.second_death_analysis?.iht_calculation?.nrb || 325000) +
+                       (this.secondDeathData?.second_death_analysis?.iht_calculation?.nrb_from_spouse || 325000);
+      return Math.max(0, netEstate - totalNRB);
+    },
+
+    // Charitable donation amounts for second death scenario
+    charitableDonationSecondDeath() {
+      return this.secondDeathEstateAfterNRB * 0.10;
+    },
+
+    charitableDonationSecondDeathProjected() {
+      return this.secondDeathEstateAfterNRBProjected * 0.10;
+    },
+
+    charitableDonationSecondDeathMinus5() {
+      return this.secondDeathEstateAfterNRBMinus5 * 0.10;
+    },
+
+    charitableDonationSecondDeathPlus5() {
+      return this.secondDeathEstateAfterNRBPlus5 * 0.10;
     },
 
     // Projected subtotals for second death breakdown
