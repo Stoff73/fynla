@@ -1,4 +1,9 @@
 import api from './api';
+import {
+  getRiskClasses,
+  getRiskDisplayName,
+  normalizeRiskLevel,
+} from '@/constants/designSystem';
 
 /**
  * Risk Profile API Service
@@ -83,53 +88,33 @@ const riskService = {
 
   /**
    * Helper: Get risk level display name
+   * Delegates to designSystem.js for single source of truth
    * @param {string} level - The risk level value
    * @returns {string} Display name for the risk level
    */
   getDisplayName(level) {
     if (!level) return 'Medium';
-    const names = {
-      low: 'Low',
-      lower_medium: 'Lower-Medium',
-      medium: 'Medium',
-      upper_medium: 'Upper-Medium',
-      high: 'High',
-      // Legacy values
-      cautious: 'Cautious',
-      balanced: 'Balanced',
-      adventurous: 'Adventurous',
-    };
-    return names[level] || 'Medium';
+    return getRiskDisplayName(level);
   },
 
   /**
    * Helper: Get risk level color class for Tailwind
+   * Delegates to designSystem.js for single source of truth
    * @param {string} level - The risk level value
-   * @returns {Object} Color classes for bg and text
+   * @returns {Object} Color classes for bg, text, and border
    */
   getRiskColor(level) {
-    const colors = {
-      low: { bg: 'bg-yellow-100', text: 'text-yellow-800', border: 'border-yellow-200' },
-      lower_medium: { bg: 'bg-pink-100', text: 'text-pink-800', border: 'border-pink-200' },
-      medium: { bg: 'bg-green-100', text: 'text-green-800', border: 'border-green-200' },
-      upper_medium: { bg: 'bg-teal-100', text: 'text-teal-800', border: 'border-teal-200' },
-      high: { bg: 'bg-blue-100', text: 'text-blue-800', border: 'border-blue-200' },
-    };
-    return colors[level] || { bg: 'bg-gray-100', text: 'text-gray-800', border: 'border-gray-200' };
+    return getRiskClasses(level);
   },
 
   /**
    * Helper: Normalize legacy risk tolerance to new system
+   * Delegates to designSystem.js for single source of truth
    * @param {string} tolerance - Legacy tolerance value (cautious, balanced, adventurous)
    * @returns {string} Normalized risk level
    */
   normalizeLegacyTolerance(tolerance) {
-    const mapping = {
-      cautious: 'lower_medium',
-      balanced: 'medium',
-      adventurous: 'upper_medium',
-    };
-    return mapping[tolerance] || tolerance;
+    return normalizeRiskLevel(tolerance);
   },
 };
 

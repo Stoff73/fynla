@@ -28,6 +28,14 @@
 </template>
 
 <script>
+import {
+  RISK_ABBREVIATED_LABELS,
+  RISK_DESCRIPTIONS,
+  RISK_LEGACY_MAP,
+  getRiskClasses,
+  getRiskDisplayName,
+} from '@/constants/designSystem';
+
 export default {
   name: 'RiskBadge',
 
@@ -68,35 +76,24 @@ export default {
 
   computed: {
     normalizedLevel() {
-      // Map legacy values to new system
-      const legacyMap = {
-        cautious: 'lower_medium',
-        balanced: 'medium',
-        adventurous: 'upper_medium',
-      };
-      return legacyMap[this.level] || this.level;
+      // Map legacy values to new system using centralized constant
+      return RISK_LEGACY_MAP[this.level] || this.level;
     },
 
     displayLabel() {
-      const labels = {
-        low: this.abbreviated ? 'Low' : 'Low Risk',
-        lower_medium: this.abbreviated ? 'L-Med' : 'Lower-Medium',
-        medium: this.abbreviated ? 'Med' : 'Medium',
-        upper_medium: this.abbreviated ? 'U-Med' : 'Upper-Medium',
-        high: this.abbreviated ? 'High' : 'High Risk',
-      };
-      return labels[this.normalizedLevel] || this.level;
+      if (this.abbreviated) {
+        return RISK_ABBREVIATED_LABELS[this.normalizedLevel] || this.level;
+      }
+      // For non-abbreviated, append "Risk" to low and high levels
+      const name = getRiskDisplayName(this.normalizedLevel);
+      if (this.normalizedLevel === 'low' || this.normalizedLevel === 'high') {
+        return `${name} Risk`;
+      }
+      return name;
     },
 
     tooltipText() {
-      const descriptions = {
-        low: 'Low Risk - Capital preservation focus',
-        lower_medium: 'Lower-Medium Risk - Stability with modest growth',
-        medium: 'Medium Risk - Balanced approach',
-        upper_medium: 'Upper-Medium Risk - Growth focus',
-        high: 'High Risk - Maximum growth potential',
-      };
-      let text = descriptions[this.normalizedLevel] || '';
+      let text = RISK_DESCRIPTIONS[this.normalizedLevel] || '';
       if (this.hasCustomRisk) {
         text += ' (Custom setting)';
       }
@@ -122,14 +119,7 @@ export default {
     },
 
     colorClasses() {
-      const colors = {
-        low: 'bg-yellow-100 text-yellow-800',
-        lower_medium: 'bg-pink-100 text-pink-800',
-        medium: 'bg-green-100 text-green-800',
-        upper_medium: 'bg-teal-100 text-teal-800',
-        high: 'bg-blue-100 text-blue-800',
-      };
-      return colors[this.normalizedLevel] || 'bg-gray-100 text-gray-800';
+      return getRiskClasses(this.normalizedLevel).combined;
     },
   },
 };
