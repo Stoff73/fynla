@@ -377,7 +377,7 @@ resources/js/components/NetWorth/InvestmentList.vue
 
 **Branch:** investUpdate
 
-**Status:** 🔄 Ready for deployment
+**Status:** ✅ Deployed to production
 
 ### Description
 
