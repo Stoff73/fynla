@@ -1205,7 +1205,7 @@ resources/js/components/Estate/IHTPlanning.vue
 
 When the charitable bequest toggle is changed, the IHT calculation table now dynamically updates to show:
 1. The reduced IHT rate (36% instead of 40%)
-2. The charitable donation amount (minimum 10% of net estate)
+2. The charitable donation amount (minimum 10% of baseline)
 3. The recalculated IHT liability
 
 ### Before
@@ -1218,7 +1218,7 @@ When the charitable bequest toggle is changed, the IHT calculation table now dyn
 
 - Toggle now reloads IHT calculation to reflect changes
 - IHT rate dynamically shows "36%" or "40%" based on charitable bequest setting
-- New row appears showing "Less: Charitable Bequest (10% minimum)" with pink styling
+- New row appears showing "Less: Charitable Bequest (10% minimum)" with green styling
 - IHT liability is recalculated using the appropriate rate
 - Summary card also updates to show adjusted liability
 
@@ -1227,28 +1227,30 @@ When the charitable bequest toggle is changed, the IHT calculation table now dyn
 | Change | Description |
 |--------|-------------|
 | `toggleCharitableBequest` | Now calls `loadIHTCalculation()` after saving preference |
-| New computed properties | `charitableDonationAmount`, `effectiveIHTRate`, `effectiveIHTRateLabel`, `adjustedIHTLiability` (multiple variants for projections) |
-| Charitable Bequest row | New pink-styled row showing minimum 10% donation amount when enabled |
+| New computed properties | `charitableBaseline`, `charitableDonationAmount`, `effectiveIHTRate`, `effectiveIHTRateLabel`, `adjustedIHTLiability` (multiple variants for projections) |
+| Charitable Bequest row | New green-styled row showing minimum 10% donation amount when enabled |
 | IHT Liability row | Now shows dynamic rate (36%/40%) and uses adjusted calculation when charitable bequest enabled |
-| Summary card | Shows adjusted liability with pink styling when charitable bequest enabled |
+| Summary card | Shows adjusted liability with green styling when charitable bequest enabled |
 | Fallback list view | Also updated to show charitable bequest impact |
 
 ### IHT Calculation With Charitable Bequest
 
 ```
+Baseline = Net Estate - NRB (excluding RNRB)
+Charitable Donation = Baseline × 10% (minimum)
+
 Standard (40% rate):
 Taxable Estate × 40% = IHT Liability
 
 With Charitable Bequest (36% rate):
-Charitable Donation = Net Estate × 10% (minimum)
 Taxable Estate × 36% = Reduced IHT Liability
 ```
 
 ### Visual Changes
 
-- Charitable bequest row: Pink background (`bg-pink-50`), pink border (`border-pink-400`), pink text (`text-pink-800`)
-- IHT rate label: "(Reduced rate)" note in pink when charitable bequest enabled
-- Summary card: Pink IHT liability value when charitable bequest enabled
+- Charitable bequest row: Green background (`bg-green-50`), green border (`border-green-400`), green text (`text-green-800`)
+- IHT rate label: "(Reduced rate)" note in green when charitable bequest enabled
+- Summary card: Green IHT liability value when charitable bequest enabled
 
 ### Files Changed (1 file)
 

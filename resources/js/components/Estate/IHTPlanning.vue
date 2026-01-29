@@ -97,7 +97,7 @@
         <div class="bg-white rounded-lg p-5 border border-gray-200">
           <p class="text-sm text-gray-600 font-medium mb-3">
             IHT Summary
-            <span v-if="charitableBequest" class="ml-1 text-xs text-pink-600">({{ effectiveIHTRateLabel }} rate)</span>
+            <span v-if="charitableBequest" class="ml-1 text-xs text-green-600">({{ effectiveIHTRateLabel }} rate)</span>
           </p>
           <div class="grid grid-cols-2 gap-4">
             <!-- Taxable Estate -->
@@ -109,7 +109,7 @@
             <!-- Tax Liability -->
             <div>
               <p class="text-xs text-gray-500 mb-1">IHT Liability</p>
-              <p class="text-sm font-bold" :class="charitableBequest ? 'text-pink-700' : 'text-gray-900'">{{ formatCurrency(charitableBequest ? adjustedIHTLiability : projection.now.iht_liability) }}</p>
+              <p class="text-sm font-bold" :class="charitableBequest ? 'text-green-700' : 'text-gray-900'">{{ formatCurrency(charitableBequest ? adjustedIHTLiability : projection.now.iht_liability) }}</p>
               <p class="text-xs text-gray-400 mt-1">Age {{ ihtData.estimated_age_at_death }}: {{ formatCurrency(charitableBequest ? adjustedIHTLiabilityProjected : projection.at_death.iht_liability) }}</p>
             </div>
           </div>
@@ -1052,22 +1052,22 @@
             </tr>
 
             <!-- Charitable Bequest (if enabled) -->
-            <tr v-if="charitableBequest" class="bg-pink-50 border-l-4 border-pink-400">
-              <td class="px-4 py-3 text-sm font-semibold text-pink-800">
+            <tr v-if="charitableBequest" class="bg-green-50 border-l-4 border-green-400">
+              <td class="px-4 py-3 text-sm font-semibold text-green-800">
                 Less: Charitable Bequest (10% minimum)
-                <span class="block text-xs font-normal text-pink-600 mt-0.5">Qualifies estate for reduced 36% rate</span>
+                <span class="block text-xs font-normal text-green-600 mt-0.5">Qualifies estate for reduced 36% rate</span>
               </td>
-              <td class="px-4 py-3 text-sm text-right font-semibold text-pink-800">-{{ formatCurrency(charitableDonationAmount) }}</td>
-              <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-semibold text-pink-800">-{{ formatCurrency(charitableDonationAmount) }}</td>
-              <td class="px-4 py-3 text-sm text-right font-semibold text-pink-800">-{{ formatCurrency(charitableDonationProjected) }}</td>
-              <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-semibold text-pink-800">-{{ formatCurrency(charitableDonationProjected) }}</td>
+              <td class="px-4 py-3 text-sm text-right font-semibold text-green-800">-{{ formatCurrency(charitableDonationAmount) }}</td>
+              <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-semibold text-green-800">-{{ formatCurrency(charitableDonationAmount) }}</td>
+              <td class="px-4 py-3 text-sm text-right font-semibold text-green-800">-{{ formatCurrency(charitableDonationProjected) }}</td>
+              <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-semibold text-green-800">-{{ formatCurrency(charitableDonationProjected) }}</td>
             </tr>
 
             <!-- Inheritance Tax Liability -->
             <tr class="bg-white border-l-4 border-gray-400">
               <td class="px-4 py-3 text-sm font-semibold text-gray-900">
                 Inheritance Tax Liability ({{ effectiveIHTRateLabel }})
-                <span v-if="charitableBequest" class="ml-2 text-xs font-normal text-pink-600">(Reduced rate)</span>
+                <span v-if="charitableBequest" class="ml-2 text-xs font-normal text-green-600">(Reduced rate)</span>
               </td>
               <td class="px-4 py-3 text-sm text-right font-bold text-gray-900">{{ formatCurrency(charitableBequest ? adjustedSecondDeathIHTLiabilityNow : (secondDeathData.second_death_analysis.current_iht_calculation?.iht_liability || 0)) }}</td>
               <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-bold text-gray-900">{{ formatCurrency(charitableBequest ? adjustedSecondDeathIHTLiabilityMinus5 : secondDeathProjectionMinus5.iht_liability) }}</td>
@@ -1864,22 +1864,22 @@
             </tr>
 
             <!-- Charitable Bequest (if enabled) -->
-            <tr v-if="charitableBequest" class="bg-pink-50 border-l-4 border-pink-400">
-              <td class="px-4 py-3 text-sm font-semibold text-pink-800">
+            <tr v-if="charitableBequest" class="bg-green-50 border-l-4 border-green-400">
+              <td class="px-4 py-3 text-sm font-semibold text-green-800">
                 Less: Charitable Bequest (10% minimum)
-                <span class="block text-xs font-normal text-pink-600 mt-0.5">Qualifies estate for reduced 36% rate</span>
+                <span class="block text-xs font-normal text-green-600 mt-0.5">Qualifies estate for reduced 36% rate</span>
               </td>
-              <td class="px-4 py-3 text-sm text-right font-semibold text-pink-800">-{{ formatCurrency(charitableDonationAmount) }}</td>
-              <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-semibold text-pink-800">-{{ formatCurrency(charitableDonationAmount) }}</td>
-              <td class="px-4 py-3 text-sm text-right font-semibold text-pink-800">-{{ formatCurrency(charitableDonationProjected) }}</td>
-              <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-semibold text-pink-800">-{{ formatCurrency(charitableDonationProjected) }}</td>
+              <td class="px-4 py-3 text-sm text-right font-semibold text-green-800">-{{ formatCurrency(charitableDonationAmount) }}</td>
+              <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-semibold text-green-800">-{{ formatCurrency(charitableDonationAmount) }}</td>
+              <td class="px-4 py-3 text-sm text-right font-semibold text-green-800">-{{ formatCurrency(charitableDonationProjected) }}</td>
+              <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-semibold text-green-800">-{{ formatCurrency(charitableDonationProjected) }}</td>
             </tr>
 
             <!-- Inheritance Tax Liability -->
             <tr class="bg-white border-l-4 border-gray-400">
               <td class="px-4 py-3 text-sm font-semibold text-gray-900">
                 Inheritance Tax Liability ({{ effectiveIHTRateLabel }})
-                <span v-if="charitableBequest" class="ml-2 text-xs font-normal text-pink-600">(Reduced rate)</span>
+                <span v-if="charitableBequest" class="ml-2 text-xs font-normal text-green-600">(Reduced rate)</span>
               </td>
               <td class="px-4 py-3 text-sm text-right font-bold text-gray-900">{{ formatCurrency(charitableBequest ? adjustedIHTLiability : (ihtData?.estate_iht_liability || 0)) }}</td>
               <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-bold text-gray-900">{{ formatCurrency(charitableBequest ? adjustedIHTLiabilityMinus5 : (projectionMinus5?.iht_liability || 0)) }}</td>
@@ -1940,18 +1940,18 @@
           <span class="text-base font-bold text-gray-900">{{ formatCurrency(ihtData?.taxable_estate || 0) }}</span>
         </div>
 
-        <div v-if="charitableBequest" class="flex justify-between items-center py-2 border-b border-pink-200 bg-pink-50 rounded">
-          <span class="text-sm font-semibold text-pink-800">
+        <div v-if="charitableBequest" class="flex justify-between items-center py-2 border-b border-green-200 bg-green-50 rounded">
+          <span class="text-sm font-semibold text-green-800">
             Less: Charitable Bequest (10% minimum)
-            <span class="block text-xs font-normal text-pink-600">Qualifies estate for reduced 36% rate</span>
+            <span class="block text-xs font-normal text-green-600">Qualifies estate for reduced 36% rate</span>
           </span>
-          <span class="text-sm font-medium text-pink-800">-{{ formatCurrency(charitableDonationAmount) }}</span>
+          <span class="text-sm font-medium text-green-800">-{{ formatCurrency(charitableDonationAmount) }}</span>
         </div>
 
         <div class="flex justify-between items-center py-3 bg-gray-50 rounded-lg">
           <span class="text-base font-semibold text-gray-900">
             Inheritance Tax Liability ({{ charitableBequest ? '36%' : formatPercent(ihtData?.iht_rate || 0.4) }})
-            <span v-if="charitableBequest" class="ml-2 text-xs font-normal text-pink-600">(Reduced rate)</span>
+            <span v-if="charitableBequest" class="ml-2 text-xs font-normal text-green-600">(Reduced rate)</span>
           </span>
           <span class="text-base font-bold text-gray-900">{{ formatCurrency(charitableBequest ? adjustedIHTLiability : (ihtData?.estate_iht_liability || 0)) }}</span>
         </div>
@@ -2313,10 +2313,17 @@ export default {
     },
 
     // Charitable bequest calculations for IHT table
-    charitableDonationAmount() {
-      // Minimum 10% of net estate required for reduced rate
+    // Baseline = Net Estate - NRB - other exemptions (NOT including RNRB)
+    charitableBaseline() {
       const netEstate = this.ihtData?.net_estate_value || 0;
-      return netEstate * 0.10;
+      const nrb = this.ihtData?.nrb_available || 325000;
+      // Baseline excludes RNRB - only NRB and other exemptions (like spouse exemption)
+      return Math.max(0, netEstate - nrb);
+    },
+
+    charitableDonationAmount() {
+      // Minimum 10% of baseline required for reduced 36% rate
+      return this.charitableBaseline * 0.10;
     },
 
     effectiveIHTRate() {
@@ -2371,9 +2378,12 @@ export default {
     },
 
     // Charitable donation for projected values
+    // Baseline = Net Estate - NRB (excluding RNRB)
     charitableDonationProjected() {
       const netEstate = this.projection?.at_death?.net_estate || this.secondDeathData?.second_death_analysis?.iht_calculation?.net_estate_value || 0;
-      return netEstate * 0.10;
+      const nrb = this.ihtData?.nrb_available || 325000;
+      const baseline = Math.max(0, netEstate - nrb);
+      return baseline * 0.10;
     },
 
     // Projected subtotals for second death breakdown
