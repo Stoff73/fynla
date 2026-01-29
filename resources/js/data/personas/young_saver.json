@@ -1,13 +1,13 @@
 {
   "id": "young_saver",
-  "name": "Alex Morgan",
+  "name": "John Morgan",
   "tagline": "Young professional building first-time buyer savings",
   "description": "A 24-year-old junior data analyst in Manchester, renting and saving for a house deposit. Building emergency fund and using a Lifetime ISA for first home. Student loan from university, workplace pension with NEST.",
 
   "user": {
-    "first_name": "Alex",
+    "first_name": "John",
     "last_name": "Morgan",
-    "email": "alex.morgan@example.com",
+    "email": "john.morgan@example.com",
     "date_of_birth": "2000-09-15",
     "age": 24,
     "gender": "male",
@@ -42,7 +42,7 @@
   "savings_accounts": [
     {
       "id": 1,
-      "account_name": "Alex's Current Account",
+      "account_name": "John's Current Account",
       "provider_name": "Monzo",
       "account_type": "current_account",
       "current_balance": 850,

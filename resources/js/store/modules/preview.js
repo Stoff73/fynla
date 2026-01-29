@@ -35,7 +35,7 @@ const PERSONA_DATA = {
 const PERSONA_METADATA = {
     young_saver: {
         id: 'young_saver',
-        name: 'Alex Morgan',
+        name: 'John Morgan',
         tagline: 'Young professional building savings',
         netWorthRange: '-£35k to -£30k',
         focus: 'First home, emergency fund',

@@ -70,7 +70,7 @@ class PreviewController extends Controller
         ],
         'young_saver' => [
             'id' => 'young_saver',
-            'name' => 'Alex Morgan',
+            'name' => 'John Morgan',
             'tagline' => 'Young professional building first-time buyer savings',
             'description' => 'A 24-year-old junior data analyst, renting and saving for a house deposit with a Lifetime ISA.',
         ],
