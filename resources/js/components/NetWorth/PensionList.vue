@@ -1093,14 +1093,6 @@ export default {
   transform: translateY(-1px);
 }
 
-/* Chart Card */
-.chart-card {
-  background: white;
-  border-radius: 12px;
-  padding: 24px;
-  @apply border border-gray-200;
-}
-
 .chart-header {
   display: flex;
   justify-content: space-between;

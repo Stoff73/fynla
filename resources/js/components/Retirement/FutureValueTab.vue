@@ -334,15 +334,6 @@ export default {
   margin: 8px 0 0 0;
 }
 
-/* Chart Cards */
-.chart-card {
-  background: white;
-  border-radius: 12px;
-  padding: 24px;
-  @apply border border-gray-200;
-  margin-bottom: 24px;
-}
-
 .chart-header {
   margin-bottom: 20px;
 }

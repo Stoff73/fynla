@@ -998,6 +998,110 @@ resources/js/constants/designSystem.js
 
 ---
 
+## IHT Calculation Table - Gray Color Scheme & UI Cleanup
+
+**Branch:** investUpdate
+
+**Status:** Ready for deployment
+
+### Description
+
+Updated the IHT calculation table in Estate Planning to use a consistent gray color scheme matching the expenditure tab. Previously the table used multiple colors (blue, purple, green, orange, red, indigo) to differentiate sections, making it visually cluttered.
+
+Also cleaned up the Tax Allowances info boxes at the bottom by removing icons and making heading/text colors consistent.
+
+### Before
+
+- David's Assets: Blue border and text
+- Sarah's Assets: Green/Purple border and text
+- Total Gross Assets: Indigo border and text
+- Liabilities: Red/Orange border and text
+- Net Estate/IHT Liability: Various colored text
+
+### After
+
+- All table rows: Gray border (`border-gray-400`)
+- All text: Gray variants (`text-gray-600`, `text-gray-700`, `text-gray-900`)
+- Hover states: Gray (`hover:bg-gray-50`, `hover:bg-gray-100`)
+- Toggle buttons: Gray hover (`hover:bg-gray-100`)
+
+### Colors Changed
+
+| Element | Old Colors | New Color |
+|---------|------------|-----------|
+| Left borders | `blue-500`, `purple-500`, `green-500`, `orange-500`, `red-500`, `indigo-500` | `gray-400` |
+| Section headers | `blue-900`, `purple-900`, `green-900`, `orange-900`, `red-900`, `indigo-900` | `gray-900` |
+| Row values | `blue-600`, `purple-600`, `green-600`, `orange-600`, `red-600` | `gray-600` |
+| Bold totals | `blue-700`, `purple-700`, `orange-700`, `red-700` | `gray-900` |
+| Subtitles | `blue-500`, `purple-500`, `green-500`, `orange-500`, `red-500` | `gray-500` |
+| Hover states | `blue-50`, `purple-50`, `green-50`, `orange-50`, `red-50` | `gray-50` |
+
+### Tax Allowances Info Boxes
+
+| Change | Description |
+|--------|-------------|
+| Tax-Free Allowance | Removed icon, heading and text both `text-blue-800` |
+| Home Allowance | Removed icon, heading and text both conditional (`text-green-800` when full, `text-gray-800` otherwise) |
+
+### Note
+
+The summary cards at the top of the page (headline figures) retain their colored borders to provide visual distinction. Only the calculation table itself was changed.
+
+### Files Changed (1 file)
+
+**Frontend (included in build):**
+```text
+resources/js/components/Estate/IHTPlanning.vue
+```
+
+---
+
+## Monte Carlo Charts - Centralized Styling
+
+**Branch:** investUpdate
+
+**Status:** Ready for deployment
+
+### Description
+
+Centralized the chart card styling for Monte Carlo graphs in `app.css` instead of having duplicate scoped styles in multiple components.
+
+### Changes Made
+
+| Change | Description |
+|--------|-------------|
+| Updated `.chart-card` in app.css | Added hover animation with border color change |
+| Removed scoped styles | Removed duplicate `.chart-card` styles from 3 components |
+
+### CSS in app.css
+
+```css
+.chart-card {
+  @apply bg-white rounded-lg border border-gray-200 p-6 cursor-pointer transition-all duration-200;
+}
+
+.chart-card:hover {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  @apply border-primary-500;
+}
+```
+
+### Files Changed (4 files)
+
+**CSS:**
+```text
+resources/css/app.css
+```
+
+**Frontend (removed scoped styles):**
+```text
+resources/js/components/Retirement/FutureValueTab.vue
+resources/js/components/NetWorth/PensionList.vue
+resources/js/components/NetWorth/InvestmentProjections.vue
+```
+
+---
+
 ## Investment Cards - Remove Risk Badges, Fix Joint Badge Position
 
 **Branch:** genBits
