@@ -118,7 +118,7 @@
             <!-- Disposable Income Section -->
             <div v-if="incomeOccupation?.net_income" class="mt-4 pt-4 border-t border-gray-200 space-y-3">
               <div class="flex justify-between">
-                <span class="text-body-sm text-gray-600">Net Income (after tax):</span>
+                <span class="text-body-sm text-gray-600">{{ netIncomeLabel }}</span>
                 <span class="text-body-sm text-gray-900 text-right">{{ formatCurrency(incomeOccupation.net_income) }}</span>
               </div>
               <div class="flex justify-between">
@@ -291,7 +291,7 @@
 
       <!-- Tax Calculations Card -->
       <div v-if="detailedTaxBreakdown?.summary" class="bg-white rounded-lg border border-gray-200 p-6 h-full">
-        <h3 class="text-h4 font-semibold text-gray-900 mb-4">Tax & NI</h3>
+        <h3 class="text-h4 font-semibold text-gray-900 mb-4">Estimated Tax and NI</h3>
 
         <!-- Income Type Cards -->
         <div
@@ -394,6 +394,21 @@ export default {
       if (!incomeOccupation.value) return 0;
       const netIncome = incomeOccupation.value.net_income || 0;
       return netIncome - totalAnnualExpenditure.value;
+    });
+
+    // Dynamic label for net income based on what deductions apply
+    const netIncomeLabel = computed(() => {
+      const hasPensionContributions = (incomeOccupation.value?.annual_pension_contributions || 0) > 0;
+      const hasTaxCredits = (incomeOccupation.value?.detailed_tax_breakdown?.summary?.section_24_credit || 0) > 0;
+
+      if (hasPensionContributions && hasTaxCredits) {
+        return 'Net Income (after tax, pension contributions and tax credits):';
+      } else if (hasPensionContributions) {
+        return 'Net Income (after tax and pension contributions):';
+      } else if (hasTaxCredits) {
+        return 'Net Income (after tax and tax credits):';
+      }
+      return 'Net Income (after tax):';
     });
 
     const monthlyDisposable = computed(() => {
@@ -516,6 +531,7 @@ export default {
       disposableIncomeClass,
       incomeNeedsUpdate,
       previousStatusLabel,
+      netIncomeLabel,
       handleSubmit,
       handleCancel,
       formatCurrency,

@@ -788,6 +788,154 @@ resources/js/components/Preview/PreviewBanner.vue
 
 ---
 
+## Expenditure Form - UI Polish
+
+**Branch:** genBits
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Multiple UI improvements to the expenditure form for better visual consistency and readability.
+
+### Changes Made
+
+| Change | Description |
+|--------|-------------|
+| Right-aligned values | All value columns (user, spouse, household) are now right-aligned for currency |
+| Tab label changes | "Retired Budget" → "Budget at Retirement", "Widowed Budget" → "Widowed" |
+| Consistent total sizing | "Total Monthly Expenditure" row now uses same `text-body font-semibold` across all tabs |
+| Consistent savings sizing | "Monthly Savings in Retirement" and "Monthly Reduction from Current" rows match total sizing |
+
+### Files Changed (1 file)
+
+**Frontend (included in build):**
+```text
+resources/js/components/UserProfile/ExpenditureForm.vue
+```
+
+---
+
+## Income Tab - Dynamic Net Income Label
+
+**Branch:** genBits
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Made the Net Income label in Valuable Info > Income dynamically describe what deductions are included based on the user's actual situation.
+
+### Before
+
+- Static label: "Net Income (after tax)"
+
+### After
+
+- Dynamic label based on which deductions apply:
+  - "Net Income (after tax)" - if only tax deducted
+  - "Net Income (after tax and pension contributions)" - if has pension contributions
+  - "Net Income (after tax and tax credits)" - if has tax credits (e.g., Section 24 BTL relief)
+  - "Net Income (after tax, pension contributions and tax credits)" - if has both
+
+### Files Changed (1 file)
+
+**Frontend (included in build):**
+```text
+resources/js/components/UserProfile/IncomeOccupation.vue
+```
+
+---
+
+## Income Tab - Tax & NI Heading Update
+
+**Branch:** genBits
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Changed the Tax & NI section heading to indicate these are estimated values.
+
+### Before
+
+- Heading: "Tax & NI"
+
+### After
+
+- Heading: "Estimated Tax and NI"
+
+### Files Changed (1 file)
+
+**Frontend (included in build):**
+```text
+resources/js/components/UserProfile/IncomeOccupation.vue
+```
+
+---
+
+## Peak Earners Persona - Positive Disposable Income
+
+**Branch:** genBits
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Fixed the Mitchell's (peak_earners) persona data to ensure positive disposable income. The Annual Expenditure was exceeding Net Income because discretionary savings contributions were too high.
+
+### Changes Made
+
+| Field | Before | After |
+|-------|--------|-------|
+| Monthly expenditure | £4,300 | £2,500 |
+| SIPP monthly contribution | £2,000 | £0 |
+| David's ISA monthly | £833 | £0 |
+| Sarah's ISA monthly | £833 | £0 |
+| Joint GIA monthly | £1,000 | £0 |
+
+### Expenditure Category Adjustments
+
+| Category | Before | After |
+|----------|--------|-------|
+| food_groceries | £550 | £450 |
+| transport_fuel | £200 | £150 |
+| healthcare_medical | £60 | £50 |
+| insurance | £120 | £100 |
+| mobile_phones | £60 | £50 |
+| internet_tv | £50 | £40 |
+| subscriptions | £35 | £30 |
+| clothing_personal_care | £150 | £100 |
+| entertainment_dining | £200 | £100 |
+| holidays_travel | £250 | £100 |
+| school_fees | £1,800 | £1,000 |
+| school_lunches | £70 | £50 |
+| school_extras | £100 | £80 |
+| children_activities | £120 | £100 |
+| gifts_charity | £100 | £50 |
+| regular_savings | £300 | £0 |
+| other_expenditure | £135 | £0 |
+
+### Result
+
+- Removed ~£56,000/year in discretionary savings (SIPP + ISAs + GIA)
+- Reduced manual expenditure by ~£22,000/year (£4,300 → £2,500)
+- Total annual savings: ~£78,000
+
+### Files Changed (1 file)
+
+**Frontend (included in build):**
+```text
+resources/js/data/personas/peak_earners.json
+```
+
+After deployment, re-seed:
+```bash
+php artisan db:seed --class=PreviewUserSeeder --force
+```
+
+---
+
 ## Rebuild Required: YES
 
 Frontend Vue components changed. Full rebuild required:

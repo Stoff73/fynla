@@ -25,7 +25,7 @@
             'whitespace-nowrap py-3 px-1 border-b-2 font-medium text-body-sm'
           ]"
         >
-          Retired Budget
+          Budget at Retirement
         </button>
         <button
           v-if="isMarried"
@@ -38,7 +38,7 @@
             'whitespace-nowrap py-3 px-1 border-b-2 font-medium text-body-sm'
           ]"
         >
-          Widowed Budget
+          Widowed
         </button>
       </nav>
     </div>
@@ -284,10 +284,10 @@
       <!-- Grand Total -->
       <div class="mt-6 pt-4 border-t-2 border-gray-300">
         <div :class="isMarried ? 'expenditure-grid-married' : 'expenditure-grid-single'">
-          <div class="col-label text-body font-bold text-gray-900">TOTAL MONTHLY EXPENDITURE</div>
-          <div class="col-value text-h4 font-semibold text-gray-900">{{ formatCurrency(totalMonthlyWithCommitments) }}</div>
-          <div v-if="isMarried" class="col-value-mid text-h4 font-semibold text-gray-900">{{ formatCurrency(spouseTotalMonthlyWithCommitments) }}</div>
-          <div v-if="isMarried" class="col-total text-h4 font-semibold text-primary-600">{{ formatCurrency(householdTotalMonthlyWithCommitments) }}</div>
+          <div class="col-label text-body font-semibold text-gray-900">Total Monthly Expenditure</div>
+          <div class="col-value text-body font-semibold text-gray-900">{{ formatCurrency(totalMonthlyWithCommitments) }}</div>
+          <div v-if="isMarried" class="col-value-mid text-body font-semibold text-gray-900">{{ formatCurrency(spouseTotalMonthlyWithCommitments) }}</div>
+          <div v-if="isMarried" class="col-total text-body font-semibold text-primary-600">{{ formatCurrency(householdTotalMonthlyWithCommitments) }}</div>
 
           <div class="col-label text-body-sm text-gray-600 mt-2">Annual Equivalent</div>
           <div class="col-value text-body-sm text-gray-900 mt-2">{{ formatCurrency(totalAnnualWithCommitments) }}</div>
@@ -1062,10 +1062,10 @@
 
           <!-- Total -->
           <div class="col-span-full border-t-2 border-gray-300 mt-4"></div>
-          <div class="col-label text-body font-bold text-gray-900 py-3">TOTAL MONTHLY</div>
-          <div class="col-value text-h4 font-semibold text-primary-600 py-3">{{ formatCurrency(retiredTotalMonthly) }}</div>
-          <div v-if="isMarried" class="col-value text-h4 font-semibold text-primary-600 py-3">{{ formatCurrency(retiredHouseholdTotalMonthly - retiredTotalMonthly) }}</div>
-          <div v-if="isMarried" class="col-total text-h4 font-semibold text-primary-600 py-3">{{ formatCurrency(retiredHouseholdTotalMonthly) }}</div>
+          <div class="col-label text-body font-semibold text-gray-900 py-3">Total Monthly Expenditure</div>
+          <div class="col-value text-body font-semibold text-primary-600 py-3">{{ formatCurrency(retiredTotalMonthly) }}</div>
+          <div v-if="isMarried" class="col-value text-body font-semibold text-primary-600 py-3">{{ formatCurrency(retiredHouseholdTotalMonthly - retiredTotalMonthly) }}</div>
+          <div v-if="isMarried" class="col-total text-body font-semibold text-primary-600 py-3">{{ formatCurrency(retiredHouseholdTotalMonthly) }}</div>
 
           <div class="col-label text-body-sm text-gray-600">Annual Equivalent</div>
           <div class="col-value text-body-sm text-primary-600 font-medium">{{ formatCurrency(retiredTotalMonthly * 12) }}</div>
@@ -1073,13 +1073,13 @@
           <div v-if="isMarried" class="col-total text-body-sm text-primary-600 font-medium">{{ formatCurrency(retiredHouseholdTotalMonthly * 12) }}</div>
 
           <!-- Monthly Savings Row -->
-          <div class="col-label text-body font-medium text-success-800 py-3">Monthly Savings in Retirement</div>
+          <div class="col-label text-body font-semibold text-success-800 py-3">Monthly Savings in Retirement</div>
           <template v-if="isMarried">
             <div class="col-value py-3"></div>
             <div class="col-value py-3"></div>
-            <div class="col-total text-h4 font-semibold text-success-600 py-3">{{ formatCurrency(householdTotalMonthlyWithCommitments - retiredHouseholdTotalMonthly) }}</div>
+            <div class="col-total text-body font-semibold text-success-600 py-3">{{ formatCurrency(householdTotalMonthlyWithCommitments - retiredHouseholdTotalMonthly) }}</div>
           </template>
-          <div v-else class="col-value text-h4 font-semibold text-success-600 py-3">{{ formatCurrency(householdTotalMonthlyWithCommitments - retiredHouseholdTotalMonthly) }}</div>
+          <div v-else class="col-value text-body font-semibold text-success-600 py-3">{{ formatCurrency(householdTotalMonthlyWithCommitments - retiredHouseholdTotalMonthly) }}</div>
           <div class="col-span-full text-body-sm text-success-700 -mt-2 mb-2">This is how much less you'll need per month after retirement</div>
         </div>
       </div>
@@ -1346,15 +1346,15 @@
 
           <!-- Total -->
           <div class="col-span-full border-t-2 border-gray-300 mt-4"></div>
-          <div class="col-label text-body font-bold text-gray-900 py-3">TOTAL MONTHLY</div>
-          <div class="col-value text-h4 font-semibold text-primary-600 py-3">{{ formatCurrency(widowedTotalMonthly) }}</div>
+          <div class="col-label text-body font-semibold text-gray-900 py-3">Total Monthly Expenditure</div>
+          <div class="col-value text-body font-semibold text-primary-600 py-3">{{ formatCurrency(widowedTotalMonthly) }}</div>
 
           <div class="col-label text-body-sm text-gray-600">Annual Equivalent</div>
           <div class="col-value text-body-sm text-primary-600 font-medium">{{ formatCurrency(widowedTotalMonthly * 12) }}</div>
 
           <!-- Monthly Reduction Row -->
-          <div class="col-label text-body font-medium text-success-800 py-3">Monthly Reduction from Current</div>
-          <div class="col-value text-h4 font-semibold text-success-600 py-3">{{ formatCurrency(householdTotalMonthlyWithCommitments - widowedTotalMonthly) }}</div>
+          <div class="col-label text-body font-semibold text-success-800 py-3">Monthly Reduction from Current</div>
+          <div class="col-value text-body font-semibold text-success-600 py-3">{{ formatCurrency(householdTotalMonthlyWithCommitments - widowedTotalMonthly) }}</div>
           <div class="col-span-full text-body-sm text-success-700 -mt-2 mb-2">This is how much less {{ userName }} would need per month as a single-person household</div>
         </div>
       </div>
@@ -2466,22 +2466,17 @@ export default {
   text-align: left;
 }
 
-/* Headers - left aligned to match values */
-.col-header {
-  text-align: left;
-}
-
-/* Values - left aligned so change indicators follow naturally */
+/* Values - right aligned for currency */
 .col-value {
-  text-align: left;
+  text-align: right;
 }
 
 .col-value-mid {
-  text-align: left;
+  text-align: right;
 }
 
 .col-total {
-  text-align: left;
+  text-align: right;
 }
 
 /* Retired Budget Grids */
