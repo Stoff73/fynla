@@ -333,6 +333,47 @@ Plus 140+ Vue component and view files, and 14 test files.
 
 ---
 
+## Bug Fixes - Employee Share Schemes & Form Reset
+
+**Branch:** investUpdate
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Fixed two bugs in the Investment module:
+
+1. **Value display bug**: Employee share scheme cards showed "£0" instead of calculated intrinsic value
+2. **Form data retention bug**: When opening Add Account form after previously adding an account, old data persisted
+
+### Changes Made
+
+| Change | Description |
+|--------|-------------|
+| `getDisplayValue()` method | Calculates intrinsic value for options/RSUs from units × (share price - exercise price) |
+| `getValueLabel()` method | Returns "Intrinsic Value" for share schemes, "Latest Valuation" for private investments |
+| Form reset on open | Added `resetForm()` call in `show` watcher when opening in add mode (no account) |
+| RSU special case | RSUs don't have exercise price, so value = shares × current share price |
+| Private investments | Uses latest_valuation, then current_value, then investment_amount as fallback |
+
+### Intrinsic Value Calculation
+
+For employee share schemes:
+- **Options (SAYE, CSOP, EMI, Unapproved)**: `(current_share_price - exercise_price) × units_vested`
+  - If share price ≤ exercise price, value is £0 (out of the money)
+- **RSUs**: `current_share_price × units_vested` (no exercise price)
+- Falls back to `current_value` if manually entered
+
+### Files Changed (2 files)
+
+**Frontend:**
+```text
+resources/js/components/Investment/AccountForm.vue
+resources/js/components/NetWorth/InvestmentList.vue
+```
+
+---
+
 ## Rebuild Required: YES
 
 Frontend Vue components changed. Full rebuild required:

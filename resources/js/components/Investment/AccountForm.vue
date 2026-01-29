@@ -2283,6 +2283,9 @@ export default {
             planned_lump_sum_amount: this.account.planned_lump_sum_amount || null,
             planned_lump_sum_date: this.account.planned_lump_sum_date || null,
           };
+        } else {
+          // Reset form when opening in "add" mode (no account)
+          this.resetForm();
         }
         this.errors = {};
         this.submitting = false;

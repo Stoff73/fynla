@@ -93,18 +93,18 @@
                   <template v-if="account.ownership_type === 'joint'">
                     <div class="detail-row">
                       <span class="detail-label">Full Value</span>
-                      <span class="detail-value">{{ formatCurrency(account.current_value) }}</span>
+                      <span class="detail-value">{{ formatCurrency(getDisplayValue(account)) }}</span>
                     </div>
                     <div class="detail-row">
                       <span class="detail-label">Your Share ({{ account.ownership_percentage || 50 }}%)</span>
-                      <span class="detail-value text-purple-600">{{ formatCurrency(account.current_value * ((account.ownership_percentage || 50) / 100)) }}</span>
+                      <span class="detail-value text-purple-600">{{ formatCurrency(getDisplayValue(account) * ((account.ownership_percentage || 50) / 100)) }}</span>
                     </div>
                   </template>
                   <!-- Individual account -->
                   <template v-else>
                     <div class="detail-row">
-                      <span class="detail-label">Current Value</span>
-                      <span class="detail-value">{{ formatCurrency(account.current_value) }}</span>
+                      <span class="detail-label">{{ getValueLabel(account) }}</span>
+                      <span class="detail-value">{{ formatCurrency(getDisplayValue(account)) }}</span>
                     </div>
                   </template>
 
@@ -634,6 +634,69 @@ export default {
         'other',
       ];
       return !noRiskBadgeTypes.includes(accountType);
+    },
+
+    getValueLabel(account) {
+      const employeeShareSchemes = ['saye', 'csop', 'emi', 'unapproved_options', 'rsu'];
+      const privateTypes = ['private_company', 'crowdfunding'];
+
+      if (employeeShareSchemes.includes(account.account_type)) {
+        return 'Intrinsic Value';
+      }
+      if (privateTypes.includes(account.account_type)) {
+        return 'Latest Valuation';
+      }
+      return 'Current Value';
+    },
+
+    getDisplayValue(account) {
+      const employeeShareSchemes = ['saye', 'csop', 'emi', 'unapproved_options', 'rsu'];
+      const privateTypes = ['private_company', 'crowdfunding'];
+
+      // Employee share schemes - calculate intrinsic value
+      if (employeeShareSchemes.includes(account.account_type)) {
+        // If current_value is manually set, use it
+        if (account.current_value && parseFloat(account.current_value) > 0) {
+          return parseFloat(account.current_value);
+        }
+
+        const currentSharePrice = parseFloat(account.current_share_price) || 0;
+        const exercisePrice = parseFloat(account.exercise_price) || 0;
+        const unitsVested = parseFloat(account.units_vested) || 0;
+        const unitsGranted = parseFloat(account.units_granted) || 0;
+
+        // RSUs don't have exercise price - value is shares × price
+        if (account.account_type === 'rsu') {
+          const units = unitsVested > 0 ? unitsVested : unitsGranted;
+          return currentSharePrice * units;
+        }
+
+        // Options - intrinsic value is (share price - exercise price) × vested units
+        // Only positive if share price > exercise price (in the money)
+        if (currentSharePrice > exercisePrice) {
+          const units = unitsVested > 0 ? unitsVested : unitsGranted;
+          return (currentSharePrice - exercisePrice) * units;
+        }
+        return 0;
+      }
+
+      // Private investments - use latest valuation or current_value
+      if (privateTypes.includes(account.account_type)) {
+        if (account.latest_valuation && parseFloat(account.latest_valuation) > 0) {
+          return parseFloat(account.latest_valuation);
+        }
+        if (account.current_value && parseFloat(account.current_value) > 0) {
+          return parseFloat(account.current_value);
+        }
+        // Fall back to investment amount if no valuation
+        if (account.investment_amount && parseFloat(account.investment_amount) > 0) {
+          return parseFloat(account.investment_amount);
+        }
+        return 0;
+      }
+
+      // Standard accounts - use current_value
+      return parseFloat(account.current_value) || 0;
     },
 
     calculateAccountGrossReturn(account) {
