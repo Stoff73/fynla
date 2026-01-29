@@ -68,9 +68,9 @@
             @click="selectAccount(account)"
             class="compact-account-card"
           >
-              <!-- Risk Badge - Top Right Corner -->
+              <!-- Risk Badge - Top Right Corner (hidden for alternative investments and employee share schemes) -->
               <RiskBadge
-                v-if="account.risk_preference"
+                v-if="account.risk_preference && shouldShowRiskBadge(account.account_type)"
                 :level="account.risk_preference"
                 size="sm"
                 :abbreviated="true"
@@ -86,25 +86,25 @@
                 </span>
               </div>
               <div class="card-content">
-                <h4 class="account-provider">{{ account.provider }}</h4>
+                <h4 class="account-provider">{{ getAccountDisplayName(account) }}</h4>
                 <p class="account-name-text">{{ account.account_name }}</p>
                 <div class="account-details">
                   <!-- Joint account display -->
                   <template v-if="account.ownership_type === 'joint'">
                     <div class="detail-row">
                       <span class="detail-label">Full Value</span>
-                      <span class="detail-value">{{ formatCurrency(account.current_value) }}</span>
+                      <span class="detail-value">{{ formatCurrency(getDisplayValue(account)) }}</span>
                     </div>
                     <div class="detail-row">
                       <span class="detail-label">Your Share ({{ account.ownership_percentage || 50 }}%)</span>
-                      <span class="detail-value text-purple-600">{{ formatCurrency(account.current_value * ((account.ownership_percentage || 50) / 100)) }}</span>
+                      <span class="detail-value text-purple-600">{{ formatCurrency(getDisplayValue(account) * ((account.ownership_percentage || 50) / 100)) }}</span>
                     </div>
                   </template>
                   <!-- Individual account -->
                   <template v-else>
                     <div class="detail-row">
-                      <span class="detail-label">Current Value</span>
-                      <span class="detail-value">{{ formatCurrency(account.current_value) }}</span>
+                      <span class="detail-label">{{ getValueLabel(account) }}</span>
+                      <span class="detail-value">{{ formatCurrency(getDisplayValue(account)) }}</span>
                     </div>
                   </template>
 
@@ -544,11 +544,33 @@ export default {
         'nsi': 'NS&I',
         'onshore_bond': 'Onshore Bond',
         'offshore_bond': 'Offshore Bond',
-        'vct': 'Venture Capital Trust',
-        'eis': 'Enterprise Scheme',
+        'vct': 'VCT',
+        'eis': 'EIS',
+        'private_company': 'Private Co',
+        'crowdfunding': 'Crowdfunding',
+        'saye': 'SAYE',
+        'csop': 'CSOP',
+        'emi': 'EMI',
+        'unapproved_options': 'Options',
+        'rsu': 'RSUs',
         'other': 'Other',
       };
       return types[type] || type;
+    },
+
+    getAccountDisplayName(account) {
+      // For employee share schemes, show employer name
+      const employeeShareSchemes = ['saye', 'csop', 'emi', 'unapproved_options', 'rsu'];
+      if (employeeShareSchemes.includes(account.account_type)) {
+        return account.employer_name || account.provider || 'Unnamed Scheme';
+      }
+      // For private investments, show company trading name or legal name
+      const privateTypes = ['private_company', 'crowdfunding'];
+      if (privateTypes.includes(account.account_type)) {
+        return account.company_trading_name || account.company_legal_name || account.provider || 'Unnamed Investment';
+      }
+      // For regular investments, show provider
+      return account.provider || 'Unnamed Account';
     },
 
     formatOwnershipType(type) {
@@ -580,6 +602,13 @@ export default {
         offshore_bond: 'badge-bond',
         vct: 'badge-vct',
         eis: 'badge-vct',
+        private_company: 'badge-alternative',
+        crowdfunding: 'badge-alternative',
+        saye: 'badge-employee',
+        csop: 'badge-employee',
+        emi: 'badge-employee',
+        unapproved_options: 'badge-employee',
+        rsu: 'badge-employee',
         other: 'badge-other',
       };
       return classes[type] || 'badge-other';
@@ -588,6 +617,70 @@ export default {
     getReturnColorClass(value) {
       if (!value && value !== 0) return 'text-gray-600';
       return value >= 0 ? 'text-green-600' : 'text-red-600';
+    },
+
+    shouldShowRiskBadge(accountType) {
+      // Don't show risk badge for alternative investments and employee share schemes
+      const noRiskBadgeTypes = [
+        'vct',
+        'eis',
+        'private_company',
+        'crowdfunding',
+        'saye',
+        'csop',
+        'emi',
+        'unapproved_options',
+        'rsu',
+        'other',
+      ];
+      return !noRiskBadgeTypes.includes(accountType);
+    },
+
+    getValueLabel(account) {
+      const employeeShareSchemes = ['saye', 'csop', 'emi', 'unapproved_options', 'rsu'];
+      const privateTypes = ['private_company', 'crowdfunding'];
+
+      if (employeeShareSchemes.includes(account.account_type)) {
+        return account.account_type === 'rsu' ? 'Grant Value' : 'Exercise Value';
+      }
+      if (privateTypes.includes(account.account_type)) {
+        return 'Valuation';
+      }
+      return 'Current Value';
+    },
+
+    getDisplayValue(account) {
+      const employeeShareSchemes = ['saye', 'csop', 'emi', 'unapproved_options', 'rsu'];
+      const privateTypes = ['private_company', 'crowdfunding'];
+
+      // Employee share schemes - calculate from units × price
+      if (employeeShareSchemes.includes(account.account_type)) {
+        const unitsGranted = parseFloat(account.units_granted) || 0;
+        const exercisePrice = parseFloat(account.exercise_price) || 0;
+        const marketValueAtGrant = parseFloat(account.market_value_at_grant) || 0;
+
+        // RSUs: units × market value at grant
+        if (account.account_type === 'rsu') {
+          return unitsGranted * marketValueAtGrant;
+        }
+
+        // Options (SAYE, CSOP, EMI, Unapproved): units × exercise price
+        return unitsGranted * exercisePrice;
+      }
+
+      // Private investments - use latest valuation or investment amount
+      if (privateTypes.includes(account.account_type)) {
+        if (account.latest_valuation && parseFloat(account.latest_valuation) > 0) {
+          return parseFloat(account.latest_valuation);
+        }
+        if (account.investment_amount && parseFloat(account.investment_amount) > 0) {
+          return parseFloat(account.investment_amount);
+        }
+        return 0;
+      }
+
+      // Standard accounts - use current_value
+      return parseFloat(account.current_value) || 0;
     },
 
     calculateAccountGrossReturn(account) {
@@ -961,6 +1054,16 @@ export default {
 .badge-other {
   @apply bg-gray-100;
   @apply text-gray-700;
+}
+
+.badge-alternative {
+  @apply bg-rose-100;
+  @apply text-rose-800;
+}
+
+.badge-employee {
+  @apply bg-teal-100;
+  @apply text-teal-800;
 }
 
 .card-content {
