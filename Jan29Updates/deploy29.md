@@ -755,7 +755,7 @@ resources/js/components/UserProfile/ExpenditureForm.vue
 
 **Branch:** genBits
 
-**Status:** ✅ Deployed to production
+**Status:** Ready for deployment
 
 ### Description
 
@@ -792,7 +792,7 @@ resources/js/components/Preview/PreviewBanner.vue
 
 **Branch:** genBits
 
-**Status:** ✅ Deployed to production
+**Status:** Ready for deployment
 
 ### Description
 
@@ -820,7 +820,7 @@ resources/js/components/UserProfile/ExpenditureForm.vue
 
 **Branch:** genBits
 
-**Status:** ✅ Deployed to production
+**Status:** Ready for deployment
 
 ### Description
 
@@ -851,7 +851,7 @@ resources/js/components/UserProfile/IncomeOccupation.vue
 
 **Branch:** genBits
 
-**Status:** ✅ Deployed to production
+**Status:** Ready for deployment
 
 ### Description
 
@@ -878,7 +878,7 @@ resources/js/components/UserProfile/IncomeOccupation.vue
 
 **Branch:** genBits
 
-**Status:** ✅ Deployed to production
+**Status:** Ready for deployment
 
 ### Description
 
