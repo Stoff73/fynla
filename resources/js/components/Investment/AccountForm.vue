@@ -305,22 +305,6 @@
                 </div>
               </div>
 
-              <!-- ISA Type -->
-              <div>
-                <label for="isa_type" class="block text-sm font-medium text-blue-900 mb-1">
-                  ISA Type
-                </label>
-                <select
-                  id="isa_type"
-                  v-model="formData.isa_type"
-                  class="w-full border border-blue-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                >
-                  <option value="stocks_and_shares">Stocks & Shares ISA</option>
-                  <option value="lifetime">Lifetime ISA</option>
-                  <option value="innovative_finance">Innovative Finance ISA</option>
-                </select>
-              </div>
-
               <!-- Tax Year Subscription -->
               <div>
                 <label for="isa_subscription_current_year" class="block text-sm font-medium text-blue-900 mb-1">
@@ -337,7 +321,7 @@
                   placeholder="0.00"
                 />
                 <p class="mt-1 text-xs text-blue-700">
-                  Amount already contributed to this account in {{ currentTaxYear }}
+                  Amount already contributed to this account for {{ currentTaxYear }} tax year, including {{ paymentsMadeThisTaxYear }} regular payments.
                 </p>
               </div>
 
@@ -372,7 +356,7 @@
                   </div>
                 </div>
                 <p class="mt-1 text-xs text-blue-700">
-                  Regular contributions you make to this ISA (counts towards allowance)
+                  As of {{ todaysDate }}, you have {{ paymentsRemainingThisTaxYear }} remaining for the {{ currentTaxYear }} tax year.
                 </p>
               </div>
 
@@ -662,6 +646,69 @@ export default {
       }
     },
 
+    todaysDate() {
+      const now = new Date();
+      return now.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+    },
+
+    // Calculate months elapsed since start of tax year (April 6)
+    monthsElapsedInTaxYear() {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth(); // 0-indexed
+
+      // Tax year starts April 6
+      // If we're Jan-March, tax year started previous April
+      // If we're April-Dec, tax year started this April
+      let taxYearStart;
+      if (month < 3) { // Jan (0), Feb (1), Mar (2)
+        taxYearStart = new Date(year - 1, 3, 6); // April 6 of previous year
+      } else {
+        taxYearStart = new Date(year, 3, 6); // April 6 of this year
+      }
+
+      // Calculate months difference
+      const monthsDiff = (now.getFullYear() - taxYearStart.getFullYear()) * 12 +
+                         (now.getMonth() - taxYearStart.getMonth());
+
+      return Math.max(0, monthsDiff);
+    },
+
+    // Calculate payments made and remaining based on frequency
+    paymentsMadeThisTaxYear() {
+      const frequency = this.formData.contribution_frequency || 'monthly';
+      const monthsElapsed = this.monthsElapsedInTaxYear;
+
+      if (frequency === 'monthly') {
+        return monthsElapsed;
+      } else if (frequency === 'quarterly') {
+        return Math.floor(monthsElapsed / 3);
+      } else { // annually
+        return monthsElapsed >= 12 ? 1 : 0;
+      }
+    },
+
+    paymentsRemainingThisTaxYear() {
+      const frequency = this.formData.contribution_frequency || 'monthly';
+      let paymentsPerYear;
+
+      if (frequency === 'monthly') {
+        paymentsPerYear = 12;
+      } else if (frequency === 'quarterly') {
+        paymentsPerYear = 4;
+      } else { // annually
+        paymentsPerYear = 1;
+      }
+
+      return Math.max(0, paymentsPerYear - this.paymentsMadeThisTaxYear);
+    },
+
+    // Calculate remaining contributions for the rest of the tax year
+    remainingContributionsForYear() {
+      const amount = this.formData.monthly_contribution_amount || 0;
+      return this.paymentsRemainingThisTaxYear * amount;
+    },
+
     // Get Cash ISA usage from savings store
     cashISAUsed() {
       return this.$store.getters['savings/currentYearISASubscription'] || 0;
@@ -687,25 +734,16 @@ export default {
       return this.formData.isa_subscription_current_year || 0;
     },
 
-    // Calculate planned annual contribution (regular + lump sum)
+    // Calculate planned contribution for remainder of tax year (regular + lump sum)
+    // Only counts remaining contributions to avoid double-counting with "Already Subscribed"
     plannedAnnualContribution() {
-      let annual = 0;
-      const amount = this.formData.monthly_contribution_amount || 0;
-      const frequency = this.formData.contribution_frequency || 'monthly';
-
-      // Convert to annual based on frequency
-      if (frequency === 'monthly') {
-        annual = amount * 12;
-      } else if (frequency === 'quarterly') {
-        annual = amount * 4;
-      } else {
-        annual = amount; // annually
-      }
+      // Get remaining contributions for the rest of the tax year
+      let planned = this.remainingContributionsForYear;
 
       // Add planned lump sum
-      annual += this.formData.planned_lump_sum_amount || 0;
+      planned += this.formData.planned_lump_sum_amount || 0;
 
-      return annual;
+      return planned;
     },
 
     // Total ISA usage across all ISAs
