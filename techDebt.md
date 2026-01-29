@@ -12,20 +12,7 @@ This file tracks technical debt items that should be addressed in future develop
 
 ## Medium Priority
 
-### 3. Expenditure Form - Complex State Management
-
-**File:** `resources/js/components/UserProfile/ExpenditureForm.vue`
-
-**Issue:** Complex state management for handling joint vs separate expenditure, detailed vs simple entry, and person tabs. The form has grown organically and could benefit from refactoring.
-
-**Recommended Fix:**
-- Extract tab content into separate components
-- Use Vuex or composables for form state
-- Simplify conditional rendering logic
-
-**Estimated Effort:** 4-6 hours
-
-**Date Added:** 2026-01-29
+*No medium priority items at this time.*
 
 ---
 
@@ -69,6 +56,31 @@ This file tracks technical debt items that should be addressed in future develop
 ---
 
 ## Completed
+
+### 3. ExpenditureForm.vue - Component Extraction ✅
+
+**Resolved:** 2026-01-29
+
+**Resolution:** Extracted repeated UI patterns into reusable child components:
+- `ExpenditureSection.vue` (~80 lines) - Collapsible section with header and totals
+- `ExpenditureGridRow.vue` (~90 lines) - Multi-column grid row for values
+- `ExpenditureCategoryCard.vue` (~115 lines) - Edit mode card with fields
+- `CurrencyInputField.vue` (~60 lines) - Standardized £ input
+
+**Results:**
+- ExpenditureForm.vue reduced from ~2,519 to ~2,100 lines
+- Used `:deep()` selectors for centralized value alignment styling
+- Financial Commitments section now uses ExpenditureSection component
+
+**Bug Fixed:** Retired budget spouse total was always showing zero due to incorrect calculation. `retiredHouseholdTotalMonthly` was set equal to `retiredTotalMonthly` instead of summing user + spouse.
+
+**Files Created:**
+- `resources/js/components/Shared/CurrencyInputField.vue`
+- `resources/js/components/UserProfile/ExpenditureSection.vue`
+- `resources/js/components/UserProfile/ExpenditureGridRow.vue`
+- `resources/js/components/UserProfile/ExpenditureCategoryCard.vue`
+
+---
 
 ### 2. Investment AccountForm.vue - Large Component ✅
 

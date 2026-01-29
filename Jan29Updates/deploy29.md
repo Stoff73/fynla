@@ -1908,6 +1908,67 @@ resources/js/components/Estate/IHTLiabilityBreakdown.vue
 
 ---
 
+## Retired Budget Spouse Total Calculation Fix
+
+**Branch:** techDebt
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Fixed the Retired Budget tab showing £0 for spouse's total monthly expenditure even when the spouse had manual expenditure values entered.
+
+### Root Cause
+
+The `retiredHouseholdTotalMonthly` computed property was incorrectly set to just `retiredTotalMonthly` (user's total), instead of summing user + spouse:
+
+```javascript
+// BEFORE (incorrect)
+const retiredHouseholdTotalMonthly = computed(() => retiredTotalMonthly.value);
+
+// Template calculated spouse as: household - user = user - user = 0!
+{{ formatCurrency(retiredHouseholdTotalMonthly - retiredTotalMonthly) }}
+```
+
+### Fix
+
+Created proper separate computed properties for user, spouse, and household totals:
+
+```javascript
+// User's retired total: manual expenditure + protection premiums
+const retiredTotalMonthly = computed(() => {
+  return retiredManualExpenditureTotal.value + (financialCommitments.value?.totals?.protection || 0);
+});
+
+// Spouse's retired total: spouse's manual expenditure + spouse's protection
+const retiredSpouseTotalMonthly = computed(() => {
+  if (!props.isMarried) return 0;
+  return retiredSpouseManualExpenditureTotal.value + (spouseFinancialCommitments.value?.totals?.protection || 0);
+});
+
+// Household total is user + spouse
+const retiredHouseholdTotalMonthly = computed(() => {
+  return retiredTotalMonthly.value + retiredSpouseTotalMonthly.value;
+});
+```
+
+### Files Changed (1 file)
+
+**Frontend (included in build):**
+```text
+resources/js/components/UserProfile/ExpenditureForm.vue
+```
+
+### Verification
+
+1. Log in as a married user (e.g., James Carter from young_family persona)
+2. Navigate to Dashboard > Valuable Info > Expenses > Budget at Retirement tab
+3. Verify spouse column shows correct totals (not £0)
+4. Verify household column shows user + spouse sum
+5. Log in as the spouse account and verify the same
+
+---
+
 ## Rollback
 
 If issues occur:
