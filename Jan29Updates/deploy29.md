@@ -626,11 +626,18 @@ Replaced the basic progress bar in onboarding with a step-based progress indicat
 | trust_info | Trusts |
 | completion | Complete |
 
-### Files Changed (1 file)
+### State Transitions
+
+- When a step is skipped, it's added to `skippedSteps` array and shows orange X
+- When user goes back and completes a previously skipped step, it's removed from `skippedSteps` and shows green tick
+- The `saveStepData` action now calls `REMOVE_SKIPPED_STEP` mutation to handle this transition
+
+### Files Changed (2 files)
 
 **Frontend (included in build):**
 ```text
 resources/js/components/Onboarding/OnboardingWizard.vue
+resources/js/store/modules/onboarding.js
 ```
 
 ---
