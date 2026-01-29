@@ -356,7 +356,7 @@
                   </div>
                 </div>
                 <p class="mt-1 text-xs text-blue-700">
-                  As of {{ todaysDate }}, you have {{ paymentsRemainingThisTaxYear }} remaining for the {{ currentTaxYear }} tax year.
+                  As of {{ todaysDate }}, you have {{ paymentsRemainingThisTaxYear }} contributions remaining for the {{ currentTaxYear }} tax year.
                 </p>
               </div>
 

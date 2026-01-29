@@ -18,7 +18,7 @@ Simplified the ISA subscription section in both Cash ISA (Savings) and Stocks & 
 |--------|-------------|
 | Removed ISA Type dropdown | ISA Type selector removed from blue ISA Subscription box (both forms) |
 | Already Subscribed helper text | Added "This includes regular contributions." to clarify what the subscription amount covers |
-| Regular Contribution helper text | Changed to "As of {date}, you have {no} remaining for the {tax year} tax year." |
+| Regular Contribution helper text | Changed to "As of {date}, you have {no} contributions remaining for the {tax year} tax year." |
 | Added `todaysDate` computed property | Displays current date in UK format (e.g., "29 January 2026") |
 | Added `paymentsMadeThisTaxYear` computed | Calculates number of regular payments made since April 6 |
 | Added `paymentsRemainingThisTaxYear` computed | Calculates remaining payments for the tax year |
@@ -52,6 +52,38 @@ resources/js/components/Savings/SaveAccountModal.vue
 **Investment Module:**
 ```text
 resources/js/components/Investment/AccountForm.vue
+```
+
+---
+
+## Expenditure Form - UI Improvements
+
+**Branch:** investUpdate
+
+**Status:** Ready for deployment
+
+### Description
+
+Redesigned the expenditure form with improved layout, new segmented control toggles, and separate tabs for user/spouse entry. This applies to both onboarding and the Valuable Info edit mode.
+
+### Changes Made
+
+| Change | Description |
+|--------|-------------|
+| Inline options cards | "Spouse Expenditure" and "Entry Method" cards now display side by side |
+| Improved spacing | Added consistent gaps between info boxes and options cards |
+| Segmented control toggles | Replaced checkbox with "Joint/Separate" toggle for spouse expenditure |
+| Entry method toggle | Replaced buttons with "Detailed/Simple" segmented control |
+| Green active state | Toggle buttons use green background on white container when active |
+| Person tabs | When "Separate" is selected, shows tabs for user and spouse instead of side-by-side inputs |
+| Tab displays name | Each tab shows the person's name (or linked account name if available) |
+| Single input per field | Only one input field shown at a time based on active tab selection |
+
+### Files Changed (1 file - Included in Build)
+
+**User Profile Module:**
+```text
+resources/js/components/UserProfile/ExpenditureForm.vue
 ```
 
 ---
@@ -102,14 +134,14 @@ After deployment, verify:
    - Click "Add Account" and select "Cash ISA"
    - Verify ISA Type dropdown is NOT present in the blue ISA Subscription box
    - Verify "Already Subscribed" helper text shows: "Amount already contributed to this account for 2025/26 tax year, including 9 regular payments."
-   - Verify "Regular Contribution" helper text shows: "As of 29 January 2026, you have 3 remaining for the 2025/26 tax year."
+   - Verify "Regular Contribution" helper text shows: "As of 29 January 2026, you have 3 contributions remaining for the 2025/26 tax year."
 
 2. **Stocks & Shares ISA Form** (Investment module):
    - Navigate to Net Worth > Investments tab
    - Click "Add Account" and select "ISA (Stocks & Shares)"
    - Verify ISA Type dropdown is NOT present in the blue ISA Subscription box
    - Verify "Already Subscribed" helper text shows: "Amount already contributed to this account for 2025/26 tax year, including 9 regular payments."
-   - Verify "Regular Contribution" helper text shows: "As of 29 January 2026, you have 3 remaining for the 2025/26 tax year."
+   - Verify "Regular Contribution" helper text shows: "As of 29 January 2026, you have 3 contributions remaining for the 2025/26 tax year."
 
 3. **ISA Allowance Calculation** (both forms):
    - Enter £500 monthly regular contribution
@@ -117,6 +149,33 @@ After deployment, verify:
    - NOT £6,000 (full year × £500) - this would be double-counting
    - Add a £2,000 planned lump sum
    - Verify "Planned" amount increases to ~£3,500 (£1,500 + £2,000)
+
+4. **Expenditure Form - UI Layout** (Onboarding):
+   - Start onboarding as a married user (e.g., James Carter persona)
+   - Navigate to the expenditure step
+   - Verify spacing between "Why this matters" and "Note" info boxes
+   - Verify "Spouse Expenditure" and "Entry Method" cards display side by side
+   - Verify both cards have segmented control toggles (not checkboxes/buttons)
+   - Verify active toggle option shows green background on white container
+
+5. **Expenditure Form - Toggles** (Onboarding):
+   - Toggle "Spouse Expenditure" between Joint and Separate
+   - Verify Joint mode shows single inputs, Separate mode shows person tabs
+   - Toggle "Entry Method" between Detailed and Simple
+   - Verify Detailed shows category breakdown, Simple shows single total input
+   - Verify spacing is maintained when toggling between modes
+
+6. **Expenditure Form - Person Tabs** (Onboarding):
+   - Set "Spouse Expenditure" to Separate
+   - Verify tabs appear showing user name and spouse name
+   - Click between tabs to verify each shows different input fields
+   - Enter values for user, switch to spouse tab, enter values for spouse
+   - Verify values are retained when switching between tabs
+
+7. **Expenditure Form** (Valuable Info Edit):
+   - Go to Dashboard > Valuable Info > Expenses
+   - Click Edit
+   - Verify same UI layout and behaviour as onboarding
 
 ---
 

@@ -306,83 +306,87 @@
         </p>
       </div>
 
-      <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+      <div class="bg-green-50 border border-green-200 rounded-lg p-4 mt-4">
         <p class="text-body-sm text-green-800">
           <strong>Note:</strong> Household expenditure such as Council Tax, utilities, and maintenance are entered in the Properties tab. Car loans/repayments, other loans, credit cards, and hire purchase are entered in the Liabilities section.
         </p>
       </div>
 
-      <!-- Separate Expenditure Option (Married Users Only) -->
-      <div v-if="isMarried" class="bg-white border border-gray-200 rounded-lg p-4">
-        <label class="flex items-start cursor-pointer">
-          <div class="flex items-center h-5">
-            <div
-              class="w-5 h-5 border-2 rounded flex items-center justify-center transition-colors"
-              :class="useSeparateExpenditure ? 'bg-primary-600 border-primary-600' : 'border-gray-300 bg-white'"
+      <!-- Options Cards (inline) -->
+      <div class="flex flex-col sm:flex-row gap-4 mt-4">
+        <!-- Separate Expenditure Option (Married Users Only) -->
+        <div v-if="isMarried" class="bg-white border border-gray-200 rounded-lg p-4 flex-1">
+          <span class="text-body font-medium text-gray-900 block mb-3">Spouse Expenditure</span>
+          <!-- Segmented Control -->
+          <div class="inline-flex rounded-lg border border-gray-200 p-1 bg-white">
+            <button
+              type="button"
+              @click="useSeparateExpenditure = false"
+              :class="[
+                'px-4 py-2 text-body-sm font-medium rounded-md transition-all duration-200',
+                !useSeparateExpenditure
+                  ? 'bg-green-600 text-white'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              ]"
             >
-              <svg v-if="useSeparateExpenditure" class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-              </svg>
-            </div>
-            <input
-              v-model="useSeparateExpenditure"
-              type="checkbox"
-              class="sr-only"
+              Joint
+            </button>
+            <button
+              type="button"
+              @click="useSeparateExpenditure = true"
+              :class="[
+                'px-4 py-2 text-body-sm font-medium rounded-md transition-all duration-200',
+                useSeparateExpenditure
+                  ? 'bg-green-600 text-white'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              ]"
             >
+              Separate
+            </button>
           </div>
-          <div class="ml-3">
-            <span class="text-body font-medium text-gray-900">
-              Enter separate expenditure for each spouse
-            </span>
-            <p class="text-body-sm text-gray-600 mt-1">
-              Enable this if you and your spouse have significantly different spending patterns. Otherwise, expenditure is assumed to be split 50/50.
-            </p>
-          </div>
-        </label>
-      </div>
+          <p class="text-body-sm text-gray-600 mt-2">
+            {{ useSeparateExpenditure ? 'Enter expenditure for each spouse separately.' : 'Expenditure is assumed to be split 50/50.' }}
+          </p>
+        </div>
 
-      <!-- Entry Mode Toggle -->
-      <div class="bg-white border border-gray-200 rounded-lg p-4">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h4 class="text-body font-medium text-gray-900">Entry Method</h4>
-            <p class="text-body-sm text-gray-600 mt-1">
-              Choose how you'd like to enter your expenditure
-            </p>
-          </div>
-          <div class="flex items-center space-x-2 sm:space-x-3">
+        <!-- Entry Mode Toggle -->
+        <div class="bg-white border border-gray-200 rounded-lg p-4 flex-1">
+          <span class="text-body font-medium text-gray-900 block mb-3">Entry Method</span>
+          <!-- Segmented Control -->
+          <div class="inline-flex rounded-lg border border-gray-200 p-1 bg-white">
             <button
               type="button"
-              :class="[
-                'px-3 sm:px-4 py-2 rounded-md text-xs sm:text-body-sm font-medium transition-colors flex-1 sm:flex-none',
-                !useSimpleEntry
-                  ? 'bg-primary-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              ]"
               @click="useSimpleEntry = false"
+              :class="[
+                'px-4 py-2 text-body-sm font-medium rounded-md transition-all duration-200',
+                !useSimpleEntry
+                  ? 'bg-green-600 text-white'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              ]"
             >
-              <span class="hidden sm:inline">Detailed Breakdown</span>
-              <span class="sm:hidden">Detailed</span>
+              Detailed
             </button>
             <button
               type="button"
-              :class="[
-                'px-3 sm:px-4 py-2 rounded-md text-xs sm:text-body-sm font-medium transition-colors flex-1 sm:flex-none',
-                useSimpleEntry
-                  ? 'bg-primary-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              ]"
               @click="useSimpleEntry = true"
+              :class="[
+                'px-4 py-2 text-body-sm font-medium rounded-md transition-all duration-200',
+                useSimpleEntry
+                  ? 'bg-green-600 text-white'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              ]"
             >
-              <span class="hidden sm:inline">Simple Total</span>
-              <span class="sm:hidden">Simple</span>
+              Simple
             </button>
           </div>
+          <p class="text-body-sm text-gray-600 mt-2">
+            {{ useSimpleEntry ? 'Enter a single monthly total.' : 'Break down by category.' }}
+          </p>
         </div>
       </div>
 
       <!-- Simple Entry Mode -->
-      <div v-if="useSimpleEntry" class="card p-6">
+      <div v-if="useSimpleEntry" class="card p-6 mt-6">
         <h3 class="text-h5 font-semibold text-gray-900 mb-4">Total Monthly Expenditure</h3>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -425,7 +429,37 @@
       </div>
 
       <!-- Detailed Entry Mode -->
-      <div v-else class="space-y-6">
+      <div v-else class="space-y-6 mt-6">
+        <!-- Person Tabs (only shown when separate expenditure is enabled for married users) -->
+        <div v-if="isMarried && useSeparateExpenditure" class="border-b border-gray-200">
+          <nav class="-mb-px flex space-x-8" aria-label="Person tabs">
+            <button
+              type="button"
+              @click="activePersonTab = 'user'"
+              :class="[
+                activePersonTab === 'user'
+                  ? 'border-primary-500 text-primary-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+                'whitespace-nowrap py-3 px-1 border-b-2 font-medium text-body-sm'
+              ]"
+            >
+              {{ userName }}
+            </button>
+            <button
+              type="button"
+              @click="activePersonTab = 'spouse'"
+              :class="[
+                activePersonTab === 'spouse'
+                  ? 'border-primary-500 text-primary-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+                'whitespace-nowrap py-3 px-1 border-b-2 font-medium text-body-sm'
+              ]"
+            >
+              {{ spouseName }}
+            </button>
+          </nav>
+        </div>
+
         <!-- Essential Living Expenses -->
         <div class="card p-6">
           <h4 class="text-h5 font-semibold text-gray-900 mb-4">Essential Living Expenses (Monthly)</h4>
@@ -433,31 +467,28 @@
             <template v-for="field in essentialFields" :key="field.key">
               <div>
                 <label :for="field.key" class="label">{{ field.label }}</label>
-                <div class="flex gap-2">
-                  <div class="relative flex-1">
-                    <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">£</span>
-                    <input
-                      :id="field.key"
-                      v-model.number="formData[field.key]"
-                      type="number"
-                      min="0"
-                      step="25"
-                      class="input-field pl-8"
-                      :placeholder="field.placeholder"
-                    >
-                  </div>
-                  <div v-if="isMarried && useSeparateExpenditure" class="relative flex-1">
-                    <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">£</span>
-                    <input
-                      :id="'spouse_' + field.key"
-                      v-model.number="spouseFormData[field.key]"
-                      type="number"
-                      min="0"
-                      step="25"
-                      class="input-field pl-8"
-                      :placeholder="field.placeholder"
-                    >
-                  </div>
+                <div class="relative">
+                  <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">£</span>
+                  <input
+                    v-if="!isMarried || !useSeparateExpenditure || activePersonTab === 'user'"
+                    :id="field.key"
+                    v-model.number="formData[field.key]"
+                    type="number"
+                    min="0"
+                    step="25"
+                    class="input-field pl-8"
+                    :placeholder="field.placeholder"
+                  >
+                  <input
+                    v-else
+                    :id="'spouse_' + field.key"
+                    v-model.number="spouseFormData[field.key]"
+                    type="number"
+                    min="0"
+                    step="25"
+                    class="input-field pl-8"
+                    :placeholder="field.placeholder"
+                  >
                 </div>
                 <p v-if="field.hint" class="mt-1 text-body-sm text-gray-500">{{ field.hint }}</p>
               </div>
@@ -472,31 +503,28 @@
             <template v-for="field in communicationFields" :key="field.key">
               <div>
                 <label :for="field.key" class="label">{{ field.label }}</label>
-                <div class="flex gap-2">
-                  <div class="relative flex-1">
-                    <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">£</span>
-                    <input
-                      :id="field.key"
-                      v-model.number="formData[field.key]"
-                      type="number"
-                      min="0"
-                      step="10"
-                      class="input-field pl-8"
-                      :placeholder="field.placeholder"
-                    >
-                  </div>
-                  <div v-if="isMarried && useSeparateExpenditure" class="relative flex-1">
-                    <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">£</span>
-                    <input
-                      :id="'spouse_' + field.key"
-                      v-model.number="spouseFormData[field.key]"
-                      type="number"
-                      min="0"
-                      step="10"
-                      class="input-field pl-8"
-                      :placeholder="field.placeholder"
-                    >
-                  </div>
+                <div class="relative">
+                  <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">£</span>
+                  <input
+                    v-if="!isMarried || !useSeparateExpenditure || activePersonTab === 'user'"
+                    :id="field.key"
+                    v-model.number="formData[field.key]"
+                    type="number"
+                    min="0"
+                    step="10"
+                    class="input-field pl-8"
+                    :placeholder="field.placeholder"
+                  >
+                  <input
+                    v-else
+                    :id="'spouse_' + field.key"
+                    v-model.number="spouseFormData[field.key]"
+                    type="number"
+                    min="0"
+                    step="10"
+                    class="input-field pl-8"
+                    :placeholder="field.placeholder"
+                  >
                 </div>
                 <p v-if="field.hint" class="mt-1 text-body-sm text-gray-500">{{ field.hint }}</p>
               </div>
@@ -511,31 +539,28 @@
             <template v-for="field in lifestyleFields" :key="field.key">
               <div>
                 <label :for="field.key" class="label">{{ field.label }}</label>
-                <div class="flex gap-2">
-                  <div class="relative flex-1">
-                    <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">£</span>
-                    <input
-                      :id="field.key"
-                      v-model.number="formData[field.key]"
-                      type="number"
-                      min="0"
-                      step="25"
-                      class="input-field pl-8"
-                      :placeholder="field.placeholder"
-                    >
-                  </div>
-                  <div v-if="isMarried && useSeparateExpenditure" class="relative flex-1">
-                    <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">£</span>
-                    <input
-                      :id="'spouse_' + field.key"
-                      v-model.number="spouseFormData[field.key]"
-                      type="number"
-                      min="0"
-                      step="25"
-                      class="input-field pl-8"
-                      :placeholder="field.placeholder"
-                    >
-                  </div>
+                <div class="relative">
+                  <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">£</span>
+                  <input
+                    v-if="!isMarried || !useSeparateExpenditure || activePersonTab === 'user'"
+                    :id="field.key"
+                    v-model.number="formData[field.key]"
+                    type="number"
+                    min="0"
+                    step="25"
+                    class="input-field pl-8"
+                    :placeholder="field.placeholder"
+                  >
+                  <input
+                    v-else
+                    :id="'spouse_' + field.key"
+                    v-model.number="spouseFormData[field.key]"
+                    type="number"
+                    min="0"
+                    step="25"
+                    class="input-field pl-8"
+                    :placeholder="field.placeholder"
+                  >
                 </div>
                 <p v-if="field.hint" class="mt-1 text-body-sm text-gray-500">{{ field.hint }}</p>
               </div>
@@ -550,31 +575,28 @@
             <template v-for="field in childrenFields" :key="field.key">
               <div>
                 <label :for="field.key" class="label">{{ field.label }}</label>
-                <div class="flex gap-2">
-                  <div class="relative flex-1">
-                    <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">£</span>
-                    <input
-                      :id="field.key"
-                      v-model.number="formData[field.key]"
-                      type="number"
-                      min="0"
-                      step="25"
-                      class="input-field pl-8"
-                      :placeholder="field.placeholder"
-                    >
-                  </div>
-                  <div v-if="isMarried && useSeparateExpenditure" class="relative flex-1">
-                    <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">£</span>
-                    <input
-                      :id="'spouse_' + field.key"
-                      v-model.number="spouseFormData[field.key]"
-                      type="number"
-                      min="0"
-                      step="25"
-                      class="input-field pl-8"
-                      :placeholder="field.placeholder"
-                    >
-                  </div>
+                <div class="relative">
+                  <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">£</span>
+                  <input
+                    v-if="!isMarried || !useSeparateExpenditure || activePersonTab === 'user'"
+                    :id="field.key"
+                    v-model.number="formData[field.key]"
+                    type="number"
+                    min="0"
+                    step="25"
+                    class="input-field pl-8"
+                    :placeholder="field.placeholder"
+                  >
+                  <input
+                    v-else
+                    :id="'spouse_' + field.key"
+                    v-model.number="spouseFormData[field.key]"
+                    type="number"
+                    min="0"
+                    step="25"
+                    class="input-field pl-8"
+                    :placeholder="field.placeholder"
+                  >
                 </div>
                 <p v-if="field.hint" class="mt-1 text-body-sm text-gray-500">{{ field.hint }}</p>
               </div>
@@ -589,31 +611,28 @@
             <template v-for="field in otherFields" :key="field.key">
               <div>
                 <label :for="field.key" class="label">{{ field.label }}</label>
-                <div class="flex gap-2">
-                  <div class="relative flex-1">
-                    <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">£</span>
-                    <input
-                      :id="field.key"
-                      v-model.number="formData[field.key]"
-                      type="number"
-                      min="0"
-                      step="25"
-                      class="input-field pl-8"
-                      :placeholder="field.placeholder"
-                    >
-                  </div>
-                  <div v-if="isMarried && useSeparateExpenditure" class="relative flex-1">
-                    <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">£</span>
-                    <input
-                      :id="'spouse_' + field.key"
-                      v-model.number="spouseFormData[field.key]"
-                      type="number"
-                      min="0"
-                      step="25"
-                      class="input-field pl-8"
-                      :placeholder="field.placeholder"
-                    >
-                  </div>
+                <div class="relative">
+                  <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">£</span>
+                  <input
+                    v-if="!isMarried || !useSeparateExpenditure || activePersonTab === 'user'"
+                    :id="field.key"
+                    v-model.number="formData[field.key]"
+                    type="number"
+                    min="0"
+                    step="25"
+                    class="input-field pl-8"
+                    :placeholder="field.placeholder"
+                  >
+                  <input
+                    v-else
+                    :id="'spouse_' + field.key"
+                    v-model.number="spouseFormData[field.key]"
+                    type="number"
+                    min="0"
+                    step="25"
+                    class="input-field pl-8"
+                    :placeholder="field.placeholder"
+                  >
                 </div>
                 <p v-if="field.hint" class="mt-1 text-body-sm text-gray-500">{{ field.hint }}</p>
               </div>
@@ -1463,6 +1482,7 @@ export default {
     const isEditing = ref(props.startInEditMode);
     const useSimpleEntry = ref(false);
     const useSeparateExpenditure = ref(false);
+    const activePersonTab = ref('user'); // 'user' or 'spouse' - for separate expenditure entry
     const simpleMonthlyExpenditure = ref(0);
     const spouseSimpleMonthlyExpenditure = ref(0);
     const financialCommitments = ref(null);
@@ -2322,6 +2342,7 @@ export default {
 
     return {
       activeBudgetTab,
+      activePersonTab,
       isEditing,
       useSimpleEntry,
       useSeparateExpenditure,
