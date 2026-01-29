@@ -68,9 +68,9 @@
             @click="selectAccount(account)"
             class="compact-account-card"
           >
-              <!-- Risk Badge - Top Right Corner -->
+              <!-- Risk Badge - Top Right Corner (hidden for alternative investments and employee share schemes) -->
               <RiskBadge
-                v-if="account.risk_preference"
+                v-if="account.risk_preference && shouldShowRiskBadge(account.account_type)"
                 :level="account.risk_preference"
                 size="sm"
                 :abbreviated="true"
@@ -617,6 +617,23 @@ export default {
     getReturnColorClass(value) {
       if (!value && value !== 0) return 'text-gray-600';
       return value >= 0 ? 'text-green-600' : 'text-red-600';
+    },
+
+    shouldShowRiskBadge(accountType) {
+      // Don't show risk badge for alternative investments and employee share schemes
+      const noRiskBadgeTypes = [
+        'vct',
+        'eis',
+        'private_company',
+        'crowdfunding',
+        'saye',
+        'csop',
+        'emi',
+        'unapproved_options',
+        'rsu',
+        'other',
+      ];
+      return !noRiskBadgeTypes.includes(accountType);
     },
 
     calculateAccountGrossReturn(account) {
