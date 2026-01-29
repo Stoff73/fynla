@@ -49,65 +49,78 @@
           </div>
         </div>
 
-        <!-- Key Metrics - Fee metrics when on fees tab, otherwise standard metrics -->
-        <div v-if="activeTab === 'fees'" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mt-6">
-          <div class="bg-amber-50 rounded-lg p-4 border border-amber-200">
-            <p class="text-sm text-gray-600">Platform Fee</p>
-            <p class="text-2xl font-bold text-amber-600">{{ platformFeeDisplay }}</p>
+        <!-- Key Metrics - Only show for standard accounts -->
+        <template v-if="detailComponentType === 'standard'">
+          <div v-if="activeTab === 'fees'" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mt-6">
+            <div class="bg-orange-50 rounded-lg p-4 border border-orange-200">
+              <p class="text-sm text-gray-600">Platform Fee</p>
+              <p class="text-2xl font-bold text-orange-600">{{ platformFeeDisplay }}</p>
+            </div>
+            <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
+              <p class="text-sm text-gray-600">Average Fund Fee (OCF)</p>
+              <p class="text-2xl font-bold text-blue-600">{{ weightedAverageOCF.toFixed(2) }}%</p>
+            </div>
+            <div class="bg-purple-50 rounded-lg p-4 border border-purple-200">
+              <p class="text-sm text-gray-600">Advisor Fee</p>
+              <p class="text-2xl font-bold text-purple-600">{{ (advisorFeePercent || 0).toFixed(2) }}%</p>
+            </div>
+            <div class="bg-red-50 rounded-lg p-4 border border-red-200">
+              <p class="text-sm text-gray-600">Total Annual Cost</p>
+              <p class="text-2xl font-bold text-red-600">{{ totalFeePercent.toFixed(2) }}%</p>
+              <p class="text-xs text-gray-500 mt-1">{{ formatCurrency(totalAnnualFeeCost) }}/year</p>
+            </div>
           </div>
-          <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
-            <p class="text-sm text-gray-600">Average Fund Fee (OCF)</p>
-            <p class="text-2xl font-bold text-blue-600">{{ weightedAverageOCF.toFixed(2) }}%</p>
+          <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mt-6">
+            <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
+              <p class="text-sm text-gray-600">Current Value</p>
+              <p class="text-2xl font-bold text-blue-600">{{ formatCurrency(account.current_value) }}</p>
+              <p v-if="account.ownership_type === 'joint'" class="text-xs text-violet-600 mt-1">
+                Your {{ account.ownership_percentage ?? 50 }}%: {{ formatCurrency(userShareValue) }}
+              </p>
+            </div>
+            <div class="bg-gray-50 rounded-lg p-4">
+              <p class="text-sm text-gray-600">Annualised Return</p>
+              <p class="text-2xl font-bold" :class="getReturnColorClass(grossReturnPercent)">
+                {{ formatReturnPercent(grossReturnPercent) }}
+              </p>
+              <p v-if="grossReturnPercent !== null" class="text-xs text-gray-500 mt-1">
+                {{ formatReturnPercent(netReturnPercent) }} net of fees
+              </p>
+            </div>
+            <div class="bg-gray-50 rounded-lg p-4">
+              <p class="text-sm text-gray-600">Monthly Contribution</p>
+              <p class="text-2xl font-bold" :class="estimatedMonthlyContribution > 0 ? 'text-green-600' : 'text-gray-900'">
+                {{ estimatedMonthlyContribution > 0 ? formatCurrency(estimatedMonthlyContribution) : '—' }}
+              </p>
+            </div>
+            <!-- ISA Allowance Card (for ISA accounts) -->
+            <div v-if="account.account_type === 'isa'" class="bg-green-50 rounded-lg p-4 border border-green-200">
+              <p class="text-sm text-gray-600">ISA Allowance Used</p>
+              <p class="text-2xl font-bold text-green-600">{{ formatCurrency(account.isa_subscription_current_year || 0) }}</p>
+              <p class="text-xs text-gray-500 mt-1">{{ formatCurrency(isaRemaining) }} remaining</p>
+            </div>
+            <!-- Holdings Card (for non-ISA accounts) -->
+            <div v-else class="bg-gray-50 rounded-lg p-4">
+              <p class="text-sm text-gray-600">Holdings</p>
+              <p class="text-2xl font-bold text-gray-900">{{ holdingsCount }}</p>
+            </div>
           </div>
-          <div class="bg-purple-50 rounded-lg p-4 border border-purple-200">
-            <p class="text-sm text-gray-600">Advisor Fee</p>
-            <p class="text-2xl font-bold text-purple-600">{{ (advisorFeePercent || 0).toFixed(2) }}%</p>
-          </div>
-          <div class="bg-red-50 rounded-lg p-4 border border-red-200">
-            <p class="text-sm text-gray-600">Total Annual Cost</p>
-            <p class="text-2xl font-bold text-red-600">{{ totalFeePercent.toFixed(2) }}%</p>
-            <p class="text-xs text-gray-500 mt-1">{{ formatCurrency(totalAnnualFeeCost) }}/year</p>
-          </div>
-        </div>
-        <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mt-6">
-          <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
-            <p class="text-sm text-gray-600">Current Value</p>
-            <p class="text-2xl font-bold text-blue-600">{{ formatCurrency(account.current_value) }}</p>
-            <p v-if="account.ownership_type === 'joint'" class="text-xs text-violet-600 mt-1">
-              Your {{ account.ownership_percentage ?? 50 }}%: {{ formatCurrency(userShareValue) }}
-            </p>
-          </div>
-          <div class="bg-gray-50 rounded-lg p-4">
-            <p class="text-sm text-gray-600">Annualised Return</p>
-            <p class="text-2xl font-bold" :class="getReturnColorClass(grossReturnPercent)">
-              {{ formatReturnPercent(grossReturnPercent) }}
-            </p>
-            <p v-if="grossReturnPercent !== null" class="text-xs text-gray-500 mt-1">
-              {{ formatReturnPercent(netReturnPercent) }} net of fees
-            </p>
-          </div>
-          <div class="bg-gray-50 rounded-lg p-4">
-            <p class="text-sm text-gray-600">Monthly Contribution</p>
-            <p class="text-2xl font-bold" :class="estimatedMonthlyContribution > 0 ? 'text-green-600' : 'text-gray-900'">
-              {{ estimatedMonthlyContribution > 0 ? formatCurrency(estimatedMonthlyContribution) : '—' }}
-            </p>
-          </div>
-          <!-- ISA Allowance Card (for ISA accounts) -->
-          <div v-if="account.account_type === 'isa'" class="bg-green-50 rounded-lg p-4 border border-green-200">
-            <p class="text-sm text-gray-600">ISA Allowance Used</p>
-            <p class="text-2xl font-bold text-green-600">{{ formatCurrency(account.isa_subscription_current_year || 0) }}</p>
-            <p class="text-xs text-gray-500 mt-1">{{ formatCurrency(isaRemaining) }} remaining</p>
-          </div>
-          <!-- Holdings Card (for non-ISA accounts) -->
-          <div v-else class="bg-gray-50 rounded-lg p-4">
-            <p class="text-sm text-gray-600">Holdings</p>
-            <p class="text-2xl font-bold text-gray-900">{{ holdingsCount }}</p>
-          </div>
-        </div>
+        </template>
       </div>
 
-      <!-- Tab Content (navigation removed - use sidebar cards to navigate) -->
-      <div class="bg-white rounded-lg shadow-md">
+      <!-- Specialized Detail Views for Employee Share Schemes and Private Investments -->
+      <EmployeeShareSchemeDetail
+        v-if="detailComponentType === 'employee-share-scheme'"
+        :account="account"
+      />
+
+      <PrivateInvestmentDetail
+        v-else-if="detailComponentType === 'private-investment'"
+        :account="account"
+      />
+
+      <!-- Standard Tab Content (for ISA, GIA, SIPP, etc.) -->
+      <div v-else class="bg-white rounded-lg shadow-md">
         <div class="p-6">
           <!-- Overview Tab -->
           <AccountSummaryPanel
@@ -213,6 +226,8 @@ import AccountRebalancingPanel from '@/views/Investment/AccountRebalancingPanel.
 import HoldingForm from '@/components/Investment/HoldingForm.vue';
 import TaxStatusPanel from '@/components/Common/TaxStatusPanel.vue';
 import DiversificationTab from '@/components/Investment/DiversificationTab.vue';
+import EmployeeShareSchemeDetail from '@/views/Investment/EmployeeShareSchemeDetail.vue';
+import PrivateInvestmentDetail from '@/views/Investment/PrivateInvestmentDetail.vue';
 import { TAX_CONFIG } from '@/constants/taxConfig';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
@@ -231,6 +246,8 @@ export default {
     HoldingForm,
     TaxStatusPanel,
     DiversificationTab,
+    EmployeeShareSchemeDetail,
+    PrivateInvestmentDetail,
   },
 
   props: {
@@ -254,6 +271,21 @@ export default {
   },
 
   computed: {
+    // Determine which detail component to render based on account type
+    detailComponentType() {
+      const type = this.account.account_type;
+      const employeeShareSchemes = ['saye', 'csop', 'emi', 'unapproved_options', 'rsu'];
+      const privateInvestments = ['private_company', 'crowdfunding'];
+
+      if (employeeShareSchemes.includes(type)) {
+        return 'employee-share-scheme';
+      }
+      if (privateInvestments.includes(type)) {
+        return 'private-investment';
+      }
+      return 'standard';
+    },
+
     tabs() {
       return [
         { id: 'overview', label: 'Overview' },
@@ -267,9 +299,13 @@ export default {
       ];
     },
 
-    // Back button text - contextual based on current tab
+    // Back button text - contextual based on current tab and view type
     backButtonText() {
-      // If on a sub-tab (not performance), show "Back to {account}"
+      // Specialized views (employee share schemes, private investments) always go back to list
+      if (this.detailComponentType !== 'standard') {
+        return 'Back to Investments';
+      }
+      // Standard view: If on a sub-tab (not performance), show "Back to {account}"
       if (this.activeTab !== 'performance') {
         return `Back to ${this.account.provider || this.account.account_name || 'Account'}`;
       }
@@ -477,7 +513,12 @@ export default {
     ...mapActions('investment', ['updateAccount', 'deleteAccount', 'fetchInvestmentData', 'createHolding', 'updateHolding']),
 
     handleBackClick() {
-      // If on a sub-tab, go back to performance tab
+      // Specialized views (employee share schemes, private investments) always go back to list
+      if (this.detailComponentType !== 'standard') {
+        this.$emit('back');
+        return;
+      }
+      // Standard view: If on a sub-tab, go back to performance tab
       if (this.activeTab !== 'performance') {
         this.activeTab = 'performance';
       } else {
@@ -503,6 +544,13 @@ export default {
         'offshore_bond': 'Offshore Bond',
         'vct': 'Venture Capital Trust',
         'eis': 'Enterprise Scheme',
+        'saye': 'SAYE',
+        'csop': 'CSOP',
+        'emi': 'EMI Options',
+        'unapproved_options': 'Unapproved Options',
+        'rsu': 'RSUs',
+        'private_company': 'Private Company',
+        'crowdfunding': 'Crowdfunding',
         'other': 'Other',
       };
       return types[type] || type;
@@ -537,6 +585,13 @@ export default {
         offshore_bond: 'badge-bond',
         vct: 'badge-vct',
         eis: 'badge-vct',
+        saye: 'badge-employee-scheme',
+        csop: 'badge-employee-scheme',
+        emi: 'badge-employee-scheme',
+        unapproved_options: 'badge-employee-scheme',
+        rsu: 'badge-employee-scheme',
+        private_company: 'badge-private',
+        crowdfunding: 'badge-private',
         other: 'badge-other',
       };
       return classes[type] || 'badge-other';
@@ -676,8 +731,8 @@ export default {
 }
 
 .badge-trust {
-  @apply bg-amber-100;
-  @apply text-amber-800;
+  @apply bg-orange-100;
+  @apply text-orange-800;
 }
 
 .badge-isa {
@@ -713,5 +768,15 @@ export default {
 .badge-other {
   @apply bg-gray-100;
   @apply text-gray-700;
+}
+
+.badge-employee-scheme {
+  @apply bg-teal-100;
+  @apply text-teal-800;
+}
+
+.badge-private {
+  @apply bg-slate-100;
+  @apply text-slate-800;
 }
 </style>

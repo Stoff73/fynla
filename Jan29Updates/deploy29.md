@@ -373,6 +373,63 @@ resources/js/components/NetWorth/InvestmentList.vue
 
 ---
 
+## Account-Type-Specific Detail Views
+
+**Branch:** investUpdate
+
+**Status:** 🔄 Ready for deployment
+
+### Description
+
+Created separate detail panel components for Employee Share Schemes and Private Investments that display relevant information for each account type, replacing the generic tabbed view (Holdings, Performance, Fees, etc.) which doesn't apply to these account types.
+
+### Routing Logic
+
+| Account Types | Detail Component |
+|---------------|------------------|
+| `saye`, `csop`, `emi`, `unapproved_options`, `rsu` | EmployeeShareSchemeDetail |
+| `private_company`, `crowdfunding` | PrivateInvestmentDetail |
+| `isa`, `gia`, `sipp`, `pension`, `nsi`, `vct`, `eis`, bonds | Existing tabbed view |
+
+### EmployeeShareSchemeDetail.vue
+
+**Sections:**
+1. **Key Metrics Header** (4 cards) - Exercise/Grant Value, Vested Value, Vesting Progress %, Days to Exercise Window
+2. **Employer Details** - Employer name, ticker, listed status, ERS reference
+3. **Grant Details** - Grant date, units granted, exercise price, market value at grant
+4. **Vesting Schedule** - Vesting type, progress bar, cliff date, full vest date
+5. **Current Status** - Scheme status, units vested/unvested/exercised, current share price
+6. **Exercise & Expiry** (options only) - Window dates, exercise window status alert
+7. **Tax Treatment** - Tax-advantaged badge, CSOP 3-year date, PAYE info
+8. **SAYE Savings** (SAYE only) - Monthly savings, balance, maturity date
+9. **Leaver Terms** - Leaver category, post-termination exercise period
+
+### PrivateInvestmentDetail.vue
+
+**Sections:**
+1. **Key Metrics Header** (4 cards) - Latest Valuation, Return Multiple (MOIC), Tax Relief Status, Disposal Countdown
+2. **Company Details** - Legal name, trading name, registration, sector, website, platform
+3. **Investment Details** - Date, amount, funding round, instrument type, shares, valuations
+4. **Ownership & Legal** - Share class, voting/dividend rights, holding structure
+5. **UK Tax Relief** (if applicable) - Relief type, certificate, holding period countdown, clawback warning
+6. **Status & Valuation** - Company status, latest valuation, MOIC, unrealised gain/loss
+7. **Exit Details** (if exited) - Exit type, date, proceeds, fees, exit MOIC
+
+### Files Created (2 files)
+
+```text
+resources/js/views/Investment/EmployeeShareSchemeDetail.vue
+resources/js/views/Investment/PrivateInvestmentDetail.vue
+```
+
+### Files Changed (1 file)
+
+```text
+resources/js/components/NetWorth/InvestmentDetailInline.vue
+```
+
+---
+
 ## Rebuild Required: YES
 
 Frontend Vue components changed. Full rebuild required:
@@ -400,7 +457,18 @@ Upload the entire `public/build/` directory to:
 ~/www/fynla.org/public_html/public/build/
 ```
 
-### Step 3: Upload PHP Files
+### Step 3: Upload New Vue Components
+
+Upload the new detail view components:
+
+```text
+resources/js/views/Investment/EmployeeShareSchemeDetail.vue
+resources/js/views/Investment/PrivateInvestmentDetail.vue
+```
+
+*Note: These are included in the build, so only the built assets need uploading for frontend changes.*
+
+### Step 4: Upload PHP Files
 
 Upload the updated controller:
 
@@ -546,6 +614,36 @@ After deployment, verify:
     - Select a Leaver Category (e.g., "Good Leaver")
     - Verify Termination Date field appears
     - Verify Leaver Notes textarea appears
+
+19. **Employee Share Scheme Detail View** (Investment module):
+    - Add a SAYE or CSOP account with sample data
+    - Click on the account card to open detail view
+    - Verify it does NOT show Holdings/Performance/Fees tabs
+    - Verify it shows Key Metrics header with 4 cards (Exercise/Grant Value, Vested Value, Vesting %, Days to window)
+    - Verify it shows Employer Details section
+    - Verify it shows Grant Details section
+    - Verify it shows Vesting Schedule with progress bar
+    - Verify it shows Current Status section
+    - For SAYE: Verify SAYE Savings section appears
+    - For options: Verify Exercise & Expiry section appears
+    - Verify Tax Treatment section with relevant badges
+
+20. **Private Investment Detail View** (Investment module):
+    - Add a Private Company or Crowdfunding account with sample data
+    - Click on the account card to open detail view
+    - Verify it does NOT show Holdings/Performance/Fees tabs
+    - Verify it shows Key Metrics header with 4 cards (Valuation, MOIC, Tax Relief, Disposal Countdown)
+    - Verify it shows Company Details section
+    - Verify it shows Investment Details section
+    - Verify it shows Ownership & Legal section
+    - If EIS/SEIS: Verify UK Tax Relief section with countdown timer
+    - Verify Status & Valuation section with MOIC calculation
+    - If exited: Verify Exit Details section appears
+
+21. **Standard Account Detail View** (Investment module):
+    - Click on an ISA or GIA account
+    - Verify it still shows the standard tabbed view (Overview, Holdings, Diversification, Performance, Rebalancing, Fees, Tax Status, Documents)
+    - Verify standard Key Metrics header (Current Value, Annualised Return, Monthly Contribution, Holdings/ISA Allowance)
 
 ---
 
