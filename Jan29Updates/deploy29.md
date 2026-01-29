@@ -6,7 +6,7 @@
 
 **Branch:** investUpdate
 
-**Status:** Ready for deployment
+**Status:** ✅ Deployed to production
 
 ### Description
 
@@ -60,7 +60,7 @@ resources/js/components/Investment/AccountForm.vue
 
 **Branch:** investUpdate
 
-**Status:** Ready for deployment
+**Status:** ✅ Deployed to production
 
 ### Description
 
@@ -92,7 +92,7 @@ resources/js/components/UserProfile/ExpenditureForm.vue
 
 **Branch:** investUpdate
 
-**Status:** Ready for deployment
+**Status:** ✅ Deployed to production
 
 ### Description
 
