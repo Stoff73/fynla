@@ -96,7 +96,7 @@
           <p class="mt-2 text-body-sm font-medium text-gray-900">
             <strong>Domicile Status:</strong> {{ domicileStatusLabel }}
           </p>
-          <p v-if="isDeemedDomiciled" class="mt-2 text-body-sm text-amber-700">
+          <p v-if="isDeemedDomiciled" class="mt-2 text-body-sm text-orange-700">
             You are considered deemed domiciled in the UK because you have been resident for at least 15 of the last 20 tax years. This means you are subject to UK inheritance tax on your worldwide assets.
           </p>
           <p v-else class="mt-2 text-body-sm text-blue-700">

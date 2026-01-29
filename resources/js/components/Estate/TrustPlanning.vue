@@ -114,7 +114,7 @@
 
           <!-- Type-specific details -->
           <div v-if="trust.trust_type === 'discounted_gift' && trust.discount_amount" class="mt-3 pt-3 border-t border-gray-200">
-            <p class="text-xs text-amber-700">
+            <p class="text-xs text-orange-700">
               <strong>Discount:</strong> {{ formatCurrency(trust.discount_amount) }}
               | <strong>Annual Income:</strong> {{ formatCurrency(trust.retained_income_annual) }}
             </p>
@@ -348,7 +348,7 @@ export default {
         discretionary: 'bg-purple-100 text-purple-800',
         accumulation_maintenance: 'bg-indigo-100 text-indigo-800',
         life_insurance: 'bg-red-100 text-red-800',
-        discounted_gift: 'bg-amber-100 text-amber-800',
+        discounted_gift: 'bg-orange-100 text-orange-800',
         loan: 'bg-teal-100 text-teal-800',
         mixed: 'bg-gray-100 text-gray-800',
         settlor_interested: 'bg-pink-100 text-pink-800',
@@ -359,7 +359,7 @@ export default {
     getPriorityBadgeClass(priority) {
       const classes = {
         high: 'bg-red-100 text-red-800',
-        medium: 'bg-amber-100 text-amber-800',
+        medium: 'bg-orange-100 text-orange-800',
         low: 'bg-blue-100 text-blue-800',
       };
       return classes[priority] || 'bg-gray-100 text-gray-800';
@@ -368,7 +368,7 @@ export default {
     getPriorityBorderClass(priority) {
       const classes = {
         high: 'border-red-300 bg-red-50',
-        medium: 'border-amber-300 bg-amber-50',
+        medium: 'border-orange-300 bg-orange-50',
         low: 'border-blue-300 bg-blue-50',
       };
       return classes[priority] || 'border-gray-300';

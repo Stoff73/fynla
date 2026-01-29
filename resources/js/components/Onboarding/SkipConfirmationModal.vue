@@ -21,9 +21,9 @@
         class="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6"
       >
         <div>
-          <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-amber-100">
+          <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-orange-100">
             <svg
-              class="h-6 w-6 text-amber-600"
+              class="h-6 w-6 text-orange-600"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"

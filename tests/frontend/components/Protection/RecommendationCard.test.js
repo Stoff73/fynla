@@ -37,7 +37,7 @@ describe('RecommendationCard', () => {
     expect(html).toMatch(/bg-red|text-red/);
   });
 
-  it('displays priority badge with correct color (medium = amber)', () => {
+  it('displays priority badge with correct color (medium = orange)', () => {
     const wrapper = mount(RecommendationCard, {
       props: {
         recommendation: { ...mockRecommendation, priority: 'medium' },
@@ -46,7 +46,7 @@ describe('RecommendationCard', () => {
 
     const html = wrapper.html();
     expect(html).toMatch(/medium/i);
-    expect(html).toMatch(/bg-amber|bg-yellow|text-amber|text-yellow/);
+    expect(html).toMatch(/bg-orange|bg-yellow|text-orange|text-yellow/);
   });
 
   it('displays priority badge with correct color (low = blue)', () => {

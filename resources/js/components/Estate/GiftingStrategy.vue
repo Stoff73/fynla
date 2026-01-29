@@ -47,10 +47,10 @@
           <p class="text-lg sm:text-xl lg:text-2xl font-bold text-blue-900">{{ formatCurrency(personalizedStrategy.giftable_amounts.giftable_with_planning) }}</p>
           <p class="text-xs text-blue-600">{{ personalizedStrategy.giftable_amounts.semi_liquid_asset_count }} semi-liquid assets</p>
         </div>
-        <div class="bg-white rounded-lg p-4 border-2 border-amber-500">
-          <p class="text-sm text-amber-700 mb-1 font-medium">Not Giftable</p>
-          <p class="text-lg sm:text-xl lg:text-2xl font-bold text-amber-900">{{ formatCurrency(personalizedStrategy.giftable_amounts.not_giftable) }}</p>
-          <p class="text-xs text-amber-600">{{ personalizedStrategy.giftable_amounts.illiquid_asset_count }} illiquid assets</p>
+        <div class="bg-white rounded-lg p-4 border-2 border-orange-500">
+          <p class="text-sm text-orange-700 mb-1 font-medium">Not Giftable</p>
+          <p class="text-lg sm:text-xl lg:text-2xl font-bold text-orange-900">{{ formatCurrency(personalizedStrategy.giftable_amounts.not_giftable) }}</p>
+          <p class="text-xs text-orange-600">{{ personalizedStrategy.giftable_amounts.illiquid_asset_count }} illiquid assets</p>
         </div>
       </div>
 
@@ -115,11 +115,11 @@
           </div>
 
           <!-- Main Residence Info -->
-          <div v-if="strategy.main_residence" class="mb-3 p-3 bg-white rounded border-2 border-amber-500">
-            <p class="text-xs font-medium text-amber-600 mb-1">Main Residence:</p>
+          <div v-if="strategy.main_residence" class="mb-3 p-3 bg-white rounded border-2 border-orange-500">
+            <p class="text-xs font-medium text-orange-600 mb-1">Main Residence:</p>
             <p class="text-sm text-gray-900 font-medium">{{ strategy.main_residence }}</p>
             <p class="text-sm text-gray-700 mt-1">Value: {{ formatCurrency(strategy.current_value) }}</p>
-            <p class="text-xs text-amber-600 mt-2 italic">{{ strategy.not_giftable_reason }}</p>
+            <p class="text-xs text-orange-600 mt-2 italic">{{ strategy.not_giftable_reason }}</p>
           </div>
 
           <!-- Gift Schedule (for PET strategies) -->
@@ -616,7 +616,7 @@ export default {
     getRiskLevelClass(riskLevel) {
       const riskLower = (riskLevel || '').toLowerCase();
       if (riskLower === 'low') return 'bg-green-500 text-white';
-      if (riskLower === 'medium') return 'bg-amber-500 text-white';
+      if (riskLower === 'medium') return 'bg-orange-500 text-white';
       if (riskLower === 'high') return 'bg-red-500 text-white';
       return 'bg-gray-500 text-white';
     },
@@ -696,7 +696,7 @@ export default {
       if (now >= sevenYearsLater) {
         return 'bg-green-500 text-white';
       } else {
-        return 'bg-amber-500 text-white';
+        return 'bg-orange-500 text-white';
       }
     },
 

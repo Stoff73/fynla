@@ -152,7 +152,7 @@ describe('FinancialHealthScore', () => {
     const score = wrapper.vm.compositeScore;
     if (score >= 60 && score < 80) {
       expect(wrapper.vm.scoreLabel).toBe('Good Financial Health');
-      expect(wrapper.vm.scoreTextClass).toBe('text-amber-600');
+      expect(wrapper.vm.scoreTextClass).toBe('text-orange-600');
     }
   });
 

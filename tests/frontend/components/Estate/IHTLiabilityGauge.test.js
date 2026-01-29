@@ -49,7 +49,7 @@ describe('IHTLiabilityGauge', () => {
     expect(color).toMatch(/#10b981/i); // Green
   });
 
-  it('uses amber color for moderate IHT (10-20%)', () => {
+  it('uses orange color for moderate IHT (10-20%)', () => {
     const wrapper = mount(IHTLiabilityGauge, {
       props: {
         estateValue: 1000000,
@@ -58,7 +58,7 @@ describe('IHTLiabilityGauge', () => {
     });
 
     const color = wrapper.vm.gaugeColor;
-    expect(color).toMatch(/#f59e0b/i); // Amber
+    expect(color).toMatch(/#f97316/i); // Orange
   });
 
   it('uses red color for high IHT (>20%)', () => {
@@ -94,7 +94,7 @@ describe('IHTLiabilityGauge', () => {
 
     expect(wrapper.vm.ihtPercentage).toBe(10);
     const color = wrapper.vm.gaugeColor;
-    expect(color).toMatch(/#f59e0b/i); // Should be amber at 10%
+    expect(color).toMatch(/#f97316/i); // Should be orange at 10%
   });
 
   it('handles edge case at exactly 20% threshold', () => {

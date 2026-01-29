@@ -142,8 +142,8 @@ describe('ISAAllowanceSummary', () => {
       },
     });
 
-    // 17,000 / 20,000 = 85% - should be amber (>=75%)
-    expect(wrapper.vm.progressBarClass).toBe('bg-amber-500');
+    // 17,000 / 20,000 = 85% - should be orange (>=75%)
+    expect(wrapper.vm.progressBarClass).toBe('bg-orange-500');
   });
 
   it('displays correct progress bar color for very high usage (>=90%)', () => {

@@ -47,7 +47,7 @@ describe('EmergencyFundGauge', () => {
     expect(color).toMatch(/#10b981|#22c55e|#16a34a/i);
   });
 
-  it('uses amber color for moderate runway (3-6 months)', () => {
+  it('uses orange color for moderate runway (3-6 months)', () => {
     const wrapper = mount(EmergencyFundGauge, {
       props: {
         runwayMonths: 4.5,
@@ -55,8 +55,8 @@ describe('EmergencyFundGauge', () => {
     });
 
     const color = wrapper.vm.runwayColor;
-    // Amber/yellow color hex variations
-    expect(color).toMatch(/#f59e0b|#eab308|#fbbf24/i);
+    // Orange/yellow color hex variations
+    expect(color).toMatch(/#f97316|#ea580c|#fb923c/i);
   });
 
   it('uses red color for critical runway (<3 months)', () => {
@@ -105,8 +105,8 @@ describe('EmergencyFundGauge', () => {
 
     expect(wrapper.vm.runwayMonths).toBe(3);
     const color = wrapper.vm.runwayColor;
-    // At exactly 3 months, should be amber
-    expect(color).toMatch(/#f59e0b|#eab308|#fbbf24/i);
+    // At exactly 3 months, should be orange
+    expect(color).toMatch(/#f97316|#ea580c|#fb923c/i);
   });
 
   it('displays label text for emergency fund', () => {

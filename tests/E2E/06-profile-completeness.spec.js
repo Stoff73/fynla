@@ -85,7 +85,7 @@ test.describe('Profile Completeness Validation', () => {
       await page.waitForTimeout(3000);
 
       // Check for completeness warning in plan
-      const planWarning = page.locator('[data-testid="completeness-warning"], .completeness-warning, .border-amber-500, .border-red-500');
+      const planWarning = page.locator('[data-testid="completeness-warning"], .completeness-warning, .border-orange-500, .border-red-500');
 
       if (await planWarning.count() > 0) {
         await expect(planWarning.first()).toBeVisible();
@@ -113,7 +113,7 @@ test.describe('Profile Completeness Validation', () => {
       await page.waitForTimeout(3000);
 
       // Check for completeness warning in plan
-      const planWarning = page.locator('[data-testid="completeness-warning"], .completeness-warning, .border-amber-500, .border-red-500');
+      const planWarning = page.locator('[data-testid="completeness-warning"], .completeness-warning, .border-orange-500, .border-red-500');
 
       if (await planWarning.count() > 0) {
         await expect(planWarning.first()).toBeVisible();

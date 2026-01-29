@@ -158,8 +158,8 @@
               </div>
             </div>
             <!-- Domicile Info Box -->
-            <div v-if="isDeemedDomiciled" class="mt-4 p-3 bg-amber-50 rounded-lg">
-              <p class="text-body-xs text-amber-700">
+            <div v-if="isDeemedDomiciled" class="mt-4 p-3 bg-orange-50 rounded-lg">
+              <p class="text-body-xs text-orange-700">
                 You are considered deemed domiciled in the UK because you have been resident for at least 15 of the last 20 tax years.
               </p>
             </div>
@@ -494,7 +494,7 @@
                 <p v-if="yearsResident !== null" class="text-body-sm text-gray-600 mt-1">
                   <strong>Years UK Resident:</strong> {{ yearsResident }} years
                 </p>
-                <p v-if="isDeemedDomiciled" class="mt-2 text-body-sm text-amber-700">
+                <p v-if="isDeemedDomiciled" class="mt-2 text-body-sm text-orange-700">
                   You are considered deemed domiciled in the UK because you have been resident for at least 15 of the last 20 tax years.
                 </p>
                 <p v-else-if="yearsResident !== null && yearsResident < 15" class="mt-2 text-body-sm text-blue-700">

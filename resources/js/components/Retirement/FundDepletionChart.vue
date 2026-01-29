@@ -298,7 +298,7 @@ export default {
 }
 
 .warning-badge {
-  @apply flex items-center gap-1.5 bg-amber-100 text-amber-800 px-3 py-1.5 rounded-full text-xs font-semibold;
+  @apply flex items-center gap-1.5 bg-orange-100 text-orange-800 px-3 py-1.5 rounded-full text-xs font-semibold;
 }
 
 .warning-badge svg {
@@ -328,7 +328,7 @@ export default {
 }
 
 .age-item.warning {
-  @apply bg-amber-100 border-amber-200;
+  @apply bg-orange-100 border-orange-200;
 }
 
 .fund-name {
@@ -340,11 +340,11 @@ export default {
 }
 
 .age-item.warning .depletion-age {
-  @apply text-amber-800;
+  @apply text-orange-800;
 }
 
 .warning-text {
-  @apply block text-xs text-amber-600 mt-1;
+  @apply block text-xs text-orange-600 mt-1;
 }
 
 /* Tax Impact Note */

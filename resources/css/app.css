@@ -77,7 +77,7 @@
   }
 
   .badge-warning {
-    @apply inline-flex items-center px-3 py-1 rounded-full text-body-sm font-medium bg-amber-100 text-amber-700;
+    @apply inline-flex items-center px-3 py-1 rounded-full text-body-sm font-medium bg-orange-100 text-orange-700;
   }
 
   .badge-error {
@@ -177,7 +177,7 @@
   }
 
   .card-warning {
-    @apply bg-amber-50 rounded-card border border-amber-200 shadow-sm p-6 transition-all duration-200;
+    @apply bg-orange-50 rounded-card border border-orange-200 shadow-sm p-6 transition-all duration-200;
   }
 
   .card-error {
@@ -316,7 +316,7 @@
   .bg-blue-50,
   .bg-green-50,
   .bg-red-50,
-  .bg-amber-50,
+  .bg-orange-50,
   .bg-purple-50,
   .bg-indigo-50,
   .bg-emerald-50 {

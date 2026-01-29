@@ -140,15 +140,15 @@
       </div>
 
       <!-- Option 2: Self-Insurance -->
-      <div class="bg-white rounded-lg border-2 border-amber-300 shadow-lg">
-        <div class="bg-white border-b-2 border-amber-500 px-6 py-4 border-b border-amber-200">
+      <div class="bg-white rounded-lg border-2 border-orange-300 shadow-lg">
+        <div class="bg-white border-b-2 border-orange-500 px-6 py-4 border-b border-orange-200">
           <div class="flex items-center justify-between">
             <div>
-              <h3 class="text-xl font-bold text-amber-900">Option 2: {{ selfInsurance.strategy_name }}</h3>
-              <p class="text-sm text-amber-700 mt-1">{{ selfInsurance.description }}</p>
+              <h3 class="text-xl font-bold text-orange-900">Option 2: {{ selfInsurance.strategy_name }}</h3>
+              <p class="text-sm text-orange-700 mt-1">{{ selfInsurance.description }}</p>
             </div>
             <div class="text-right">
-              <p class="text-sm text-amber-600">Coverage at Death</p>
+              <p class="text-sm text-orange-600">Coverage at Death</p>
               <p class="text-3xl font-bold" :class="selfInsurance.is_sufficient ? 'text-green-600' : 'text-red-600'">
                 {{ selfInsurance.coverage_percentage }}%
               </p>
@@ -162,10 +162,10 @@
         <div class="p-4 sm:p-6">
           <!-- Key Metrics -->
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
-            <div class="bg-white rounded-lg p-3 sm:p-4 border-2 border-amber-500">
-              <p class="text-xs sm:text-sm text-amber-700 font-medium mb-1">Monthly Investment</p>
-              <p class="text-lg sm:text-xl lg:text-2xl font-bold text-amber-900">{{ formatCurrency(selfInsurance.monthly_investment) }}</p>
-              <p class="text-xs text-amber-600 mt-1">Same as premium</p>
+            <div class="bg-white rounded-lg p-3 sm:p-4 border-2 border-orange-500">
+              <p class="text-xs sm:text-sm text-orange-700 font-medium mb-1">Monthly Investment</p>
+              <p class="text-lg sm:text-xl lg:text-2xl font-bold text-orange-900">{{ formatCurrency(selfInsurance.monthly_investment) }}</p>
+              <p class="text-xs text-orange-600 mt-1">Same as premium</p>
             </div>
             <div class="bg-white rounded-lg p-3 sm:p-4 border-2 border-blue-500">
               <p class="text-xs sm:text-sm text-blue-700 font-medium mb-1">Total Invested</p>
@@ -224,11 +224,11 @@
           </div>
 
           <!-- Recommended Investment Approach -->
-          <div class="bg-white border-2 border-amber-500 rounded-lg p-4 mb-6">
-            <h4 class="text-md font-semibold text-amber-900 mb-3">Recommended Investment Approach</h4>
+          <div class="bg-white border-2 border-orange-500 rounded-lg p-4 mb-6">
+            <h4 class="text-md font-semibold text-orange-900 mb-3">Recommended Investment Approach</h4>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div v-for="(value, key) in selfInsurance.recommended_investment_approach" :key="key">
-                <p class="text-sm font-medium text-amber-800">{{ key }}</p>
+                <p class="text-sm font-medium text-orange-800">{{ key }}</p>
                 <p class="text-sm text-gray-700 mt-1">{{ value }}</p>
               </div>
             </div>
@@ -239,7 +239,7 @@
             <h4 class="text-md font-semibold text-gray-900 mb-3">Implementation Steps</h4>
             <ol class="space-y-2">
               <li v-for="(step, index) in selfInsurance.implementation_steps" :key="index" class="flex items-start">
-                <span class="flex-shrink-0 w-6 h-6 bg-white border-b-2 border-amber-500 text-amber-700 rounded-full flex items-center justify-center text-sm font-semibold mr-3">
+                <span class="flex-shrink-0 w-6 h-6 bg-white border-b-2 border-orange-500 text-orange-700 rounded-full flex items-center justify-center text-sm font-semibold mr-3">
                   {{ index + 1 }}
                 </span>
                 <span class="text-gray-700 pt-0.5">{{ step }}</span>
@@ -260,7 +260,7 @@
               <tr>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aspect</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-indigo-600 uppercase tracking-wider">Whole of Life Insurance</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-amber-600 uppercase tracking-wider">Self-Insurance</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-orange-600 uppercase tracking-wider">Self-Insurance</th>
               </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
@@ -285,14 +285,14 @@
             <div v-for="(items, decision) in strategy.comparison.decision_framework" :key="decision">
               <h4 class="text-md font-semibold mb-3" :class="{
                 'text-indigo-900': decision.includes('Insurance'),
-                'text-amber-900': decision.includes('Self-Insurance'),
+                'text-orange-900': decision.includes('Self-Insurance'),
                 'text-purple-900': decision.includes('Hybrid')
               }">{{ decision }}</h4>
               <ul class="space-y-2">
                 <li v-for="(item, index) in items" :key="index" class="flex items-start text-sm">
                   <span class="mr-2" :class="{
                     'text-indigo-600': decision.includes('Insurance'),
-                    'text-amber-600': decision.includes('Self-Insurance'),
+                    'text-orange-600': decision.includes('Self-Insurance'),
                     'text-purple-600': decision.includes('Hybrid')
                   }">•</span>
                   <span class="text-gray-700">{{ item }}</span>

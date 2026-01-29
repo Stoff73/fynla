@@ -13,15 +13,15 @@ class HouseholdSeeder extends Seeder
     public function run(): void
     {
         // Create test household for spouse linking
-        Household::create([
-            'household_name' => 'Smith Family',
-            'notes' => 'Test household for development - married couple with joint assets',
-        ]);
+        Household::firstOrCreate(
+            ['household_name' => 'Smith Family'],
+            ['notes' => 'Test household for development - married couple with joint assets']
+        );
 
         // Create another test household
-        Household::create([
-            'household_name' => 'Jones Family',
-            'notes' => 'Test household for development - second family',
-        ]);
+        Household::firstOrCreate(
+            ['household_name' => 'Jones Family'],
+            ['notes' => 'Test household for development - second family']
+        );
     }
 }

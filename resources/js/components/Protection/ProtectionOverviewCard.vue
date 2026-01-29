@@ -102,7 +102,7 @@
       <div v-if="disabilityPolicies.length > 0" class="section-breakdown">
         <div class="section-header-with-badge">
           <span class="section-header">Disability Insurance</span>
-          <span class="policy-count-badge policy-count-badge-amber">
+          <span class="policy-count-badge policy-count-badge-orange">
             {{ disabilityPolicies.length }} {{ disabilityPolicies.length === 1 ? 'policy' : 'policies' }}
           </span>
         </div>
@@ -117,14 +117,14 @@
                 <span class="provider-name">{{ policy.provider_name }}</span>
                 <span
                   v-if="policy.is_joint"
-                  class="joint-badge joint-badge-amber"
+                  class="joint-badge joint-badge-orange"
                 >
                   Joint
                 </span>
               </div>
               <p class="policy-details">Disability coverage</p>
             </div>
-            <span class="policy-premium policy-premium-amber">{{ formatCurrency(policy.premium_amount) }}/mo</span>
+            <span class="policy-premium policy-premium-orange">{{ formatCurrency(policy.premium_amount) }}/mo</span>
           </div>
         </div>
       </div>
@@ -537,8 +537,8 @@ export default {
   @apply bg-white text-teal-800 border-2 border-teal-500;
 }
 
-.policy-count-badge-amber {
-  @apply bg-white text-amber-800 border-2 border-amber-500;
+.policy-count-badge-orange {
+  @apply bg-white text-orange-800 border-2 border-orange-500;
 }
 
 /* Policy List */
@@ -595,8 +595,8 @@ export default {
   @apply bg-teal-500;
 }
 
-.joint-badge-amber {
-  @apply bg-amber-500;
+.joint-badge-orange {
+  @apply bg-orange-500;
 }
 
 .policy-details {
@@ -622,8 +622,8 @@ export default {
   @apply text-teal-800;
 }
 
-.policy-premium-amber {
-  @apply text-amber-800;
+.policy-premium-orange {
+  @apply text-orange-800;
 }
 
 /* Shortfalls Section */
@@ -708,7 +708,7 @@ export default {
 }
 
 .status-banner-warning {
-  @apply bg-amber-500;
+  @apply bg-orange-500;
 }
 
 .status-banner-success {

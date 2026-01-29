@@ -181,7 +181,7 @@ export default {
     progressBarClass() {
       if (this.isOverLimit) return 'bg-red-600';
       if (this.usagePercent >= 90) return 'bg-orange-500';
-      if (this.usagePercent >= 75) return 'bg-amber-500';
+      if (this.usagePercent >= 75) return 'bg-orange-500';
       return 'bg-green-600';
     },
 

@@ -110,7 +110,7 @@ describe('InvestmentOverviewCard', () => {
     const text = wrapper.text();
     // Should show rebalancing alert
     expect(text).toMatch(/rebalanc/i);
-    expect(html).toMatch(/text-amber|text-yellow|text-orange/);
+    expect(html).toMatch(/text-orange|text-yellow/);
   });
 
   it('displays balanced status when not needing rebalancing', () => {

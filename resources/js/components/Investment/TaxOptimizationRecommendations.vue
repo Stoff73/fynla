@@ -104,7 +104,7 @@
 
       <!-- Medium Priority Recommendations -->
       <div v-if="mediumPriorityRecs.length > 0" class="mb-6">
-        <h4 class="text-md font-semibold text-amber-800 mb-3 flex items-center">
+        <h4 class="text-md font-semibold text-orange-800 mb-3 flex items-center">
           <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
             <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
           </svg>
@@ -121,7 +121,7 @@
                 <p class="text-md font-semibold text-gray-800 mb-1">{{ rec.action }}</p>
                 <p class="text-sm text-gray-700">{{ rec.reason }}</p>
               </div>
-              <span class="px-3 py-1 text-xs font-bold bg-amber-600 text-white rounded-full ml-3">MEDIUM</span>
+              <span class="px-3 py-1 text-xs font-bold bg-orange-600 text-white rounded-full ml-3">MEDIUM</span>
             </div>
             <div v-if="rec.potential_saving || rec.tax_saving" class="mt-3 flex items-center">
               <svg class="w-4 h-4 text-green-600 mr-1" fill="currentColor" viewBox="0 0 20 20">

@@ -80,12 +80,12 @@
           </p>
         </div>
 
-        <div class="bg-amber-50 rounded-lg p-4">
-          <p class="text-xs text-amber-600 font-medium">Total {{ activeScenario === 'self_insurance' ? 'Invested' : 'Premiums' }}</p>
-          <p class="text-2xl font-bold text-amber-900 mt-1">
+        <div class="bg-orange-50 rounded-lg p-4">
+          <p class="text-xs text-orange-600 font-medium">Total {{ activeScenario === 'self_insurance' ? 'Invested' : 'Premiums' }}</p>
+          <p class="text-2xl font-bold text-orange-900 mt-1">
             {{ formatCurrency(currentScenario.total_premiums_paid || currentScenario.total_invested) }}
           </p>
-          <p class="text-xs text-amber-500 mt-1">
+          <p class="text-xs text-orange-500 mt-1">
             Over {{ currentScenario.term_years || currentScenario.investment_term_years }} years
           </p>
         </div>
@@ -126,13 +126,13 @@
               <span class="text-sm text-blue-700">Coverage of Inheritance Tax liability:</span>
               <span
                 class="font-bold text-lg"
-                :class="currentScenario.coverage_percentage >= 100 ? 'text-green-600' : 'text-amber-600'"
+                :class="currentScenario.coverage_percentage >= 100 ? 'text-green-600' : 'text-orange-600'"
               >
                 {{ currentScenario.coverage_percentage.toFixed(1) }}%
               </span>
             </div>
 
-            <div v-if="currentScenario.shortfall > 0" class="mt-2 text-xs text-amber-700">
+            <div v-if="currentScenario.shortfall > 0" class="mt-2 text-xs text-orange-700">
               <strong>Note:</strong> Shortfall of {{ formatCurrency(currentScenario.shortfall) }} - consider hybrid approach
             </div>
             <div v-else class="mt-2 text-xs text-green-700">
@@ -210,7 +210,7 @@
                 {{ formatCurrency(scenario.total_premiums_paid || scenario.total_invested) }}
               </td>
               <td class="px-4 py-3 text-sm text-right font-medium">
-                <span :class="(scenario.cost_benefit_ratio || 0) >= 2 ? 'text-green-600' : 'text-amber-600'">
+                <span :class="(scenario.cost_benefit_ratio || 0) >= 2 ? 'text-green-600' : 'text-orange-600'">
                   {{ (scenario.cost_benefit_ratio || 0).toFixed(1) }}:1
                 </span>
               </td>

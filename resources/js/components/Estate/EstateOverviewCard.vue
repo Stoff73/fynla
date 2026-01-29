@@ -42,12 +42,12 @@
       v-if="ihtLiability > 0"
       class="mt-4 pt-4 border-t border-gray-200"
     >
-      <div class="p-3 bg-white border-2 border-amber-500 rounded-lg">
+      <div class="p-3 bg-white border-2 border-orange-500 rounded-lg">
         <div class="flex items-center gap-2">
-          <svg class="w-5 h-5 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-5 h-5 text-orange-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
-          <span class="text-sm font-medium text-amber-700">Inheritance Tax planning recommended</span>
+          <span class="text-sm font-medium text-orange-700">Inheritance Tax planning recommended</span>
         </div>
       </div>
     </div>
@@ -135,7 +135,7 @@ export default {
       if (this.ihtLiability === 0) {
         return 'text-green-600';
       } else if (this.ihtLiability < 100000) {
-        return 'text-amber-600';
+        return 'text-orange-600';
       } else {
         return 'text-red-600';
       }
@@ -145,7 +145,7 @@ export default {
       if (this.probateReadiness >= 80) {
         return 'text-green-600';
       } else if (this.probateReadiness >= 50) {
-        return 'text-amber-600';
+        return 'text-orange-600';
       } else {
         return 'text-red-600';
       }
@@ -189,7 +189,7 @@ export default {
       if (ihtValue === null || ihtValue === 0) {
         return 'text-green-600';
       } else if (ihtValue < 100000) {
-        return 'text-amber-600';
+        return 'text-orange-600';
       } else {
         return 'text-red-600';
       }
@@ -312,7 +312,7 @@ export default {
 }
 
 .status-banner-warning {
-  @apply bg-amber-500;
+  @apply bg-orange-500;
 }
 
 .status-banner-success {

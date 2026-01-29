@@ -308,9 +308,9 @@ export default {
 }
 
 .priority-high {
-  @apply bg-amber-50;
-  @apply text-amber-600;
-  @apply border border-amber-200;
+  @apply bg-orange-50;
+  @apply text-orange-600;
+  @apply border border-orange-200;
 }
 
 .priority-medium {

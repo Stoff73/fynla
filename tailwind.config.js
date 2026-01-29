@@ -10,7 +10,7 @@ export default {
     'bg-green-50', 'bg-green-100', 'bg-green-600', 'text-green-700', 'text-green-800', 'border-green-200', 'ring-green-400',
     'bg-teal-50', 'bg-teal-100', 'bg-teal-600', 'text-teal-700', 'text-teal-800', 'border-teal-200', 'ring-teal-400',
     'bg-blue-50', 'bg-blue-100', 'bg-blue-600', 'text-blue-700', 'text-blue-800', 'border-blue-200', 'ring-blue-400',
-    'bg-amber-50', 'bg-amber-100', 'bg-amber-600', 'text-amber-700', 'text-amber-800', 'border-amber-200', 'ring-amber-400',
+    'bg-orange-50', 'bg-orange-100', 'bg-orange-600', 'text-orange-700', 'text-orange-800', 'border-orange-200', 'ring-orange-400',
     'bg-red-50', 'bg-red-100', 'bg-red-600', 'text-red-700', 'text-red-800', 'border-red-200', 'ring-red-400',
   ],
   theme: {
@@ -62,12 +62,12 @@ export default {
         },
         warning: {
           50: '#FFFFFF',
-          100: '#FFFBEB',
-          500: '#F59E0B',     // Solid Amber
-          600: '#D97706',
-          700: '#B45309',
-          800: '#92400E',
-          900: '#78350F',
+          100: '#FFF7ED',
+          500: '#F97316',     // Solid Orange
+          600: '#EA580C',
+          700: '#C2410C',
+          800: '#9A3412',
+          900: '#7C2D12',
         },
         info: {
           50: '#FFFFFF',
@@ -83,7 +83,7 @@ export default {
           1: '#1257A0', // Trust Blue
           2: '#475569', // Slate
           3: '#15803D', // Green
-          4: '#D97706', // Amber
+          4: '#EA580C', // Orange
           5: '#B91C1C', // Red
           6: '#7C3AED', // Purple (kept only for charts)
           7: '#C2410C', // Orange

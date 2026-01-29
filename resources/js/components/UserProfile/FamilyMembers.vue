@@ -316,7 +316,7 @@ export default {
         child: 'bg-blue-100 text-blue-800',
         step_child: 'bg-blue-100 text-blue-800',
         parent: 'bg-green-100 text-green-800',
-        other_dependent: 'bg-amber-100 text-amber-800',
+        other_dependent: 'bg-orange-100 text-orange-800',
       };
       return classes[relationship] || 'bg-gray-100 text-gray-800';
     };

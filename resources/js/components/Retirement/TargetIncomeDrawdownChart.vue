@@ -317,7 +317,7 @@ export default {
 }
 
 :deep(.tooltip-row.target) {
-  @apply text-amber-500;
+  @apply text-orange-500;
 }
 
 :deep(.tooltip-row.fund) {

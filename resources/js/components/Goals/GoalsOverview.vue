@@ -161,18 +161,18 @@
         <!-- Needs Attention Status -->
         <div
           v-else-if="summary.on_track_count < summary.total_goals"
-          class="p-4 bg-white border-2 border-amber-500 rounded-lg"
+          class="p-4 bg-white border-2 border-orange-500 rounded-lg"
         >
           <div class="flex items-center gap-3">
-            <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
             <div>
-              <p class="font-semibold text-amber-700">
+              <p class="font-semibold text-orange-700">
                 {{ summary.total_goals - summary.on_track_count }}
                 {{ (summary.total_goals - summary.on_track_count) === 1 ? 'goal needs' : 'goals need' }} attention
               </p>
-              <p class="text-sm text-amber-600">Consider increasing contributions</p>
+              <p class="text-sm text-orange-600">Consider increasing contributions</p>
             </div>
           </div>
         </div>
@@ -223,13 +223,13 @@ export default {
     progressTextClass() {
       if (this.overallProgress >= 75) return 'text-green-600';
       if (this.overallProgress >= 50) return 'text-blue-600';
-      return 'text-amber-600';
+      return 'text-orange-600';
     },
 
     progressBarClass() {
       if (this.overallProgress >= 75) return 'bg-green-500';
       if (this.overallProgress >= 50) return 'bg-blue-500';
-      return 'bg-amber-500';
+      return 'bg-orange-500';
     },
   },
 
@@ -266,7 +266,7 @@ export default {
         savings: 'bg-emerald-100 text-emerald-700',
         investment: 'bg-blue-100 text-blue-700',
         property: 'bg-purple-100 text-purple-700',
-        retirement: 'bg-amber-100 text-amber-700',
+        retirement: 'bg-orange-100 text-orange-700',
       };
       return classes[module] || 'bg-gray-100 text-gray-700';
     },

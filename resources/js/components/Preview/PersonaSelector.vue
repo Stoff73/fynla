@@ -84,8 +84,8 @@
                 </div>
 
                 <!-- Footer with edit indicator -->
-                <div v-if="hasEdits" class="px-4 py-3 bg-amber-50 border-t border-amber-200">
-                    <div class="flex items-center gap-2 text-sm text-amber-700">
+                <div v-if="hasEdits" class="px-4 py-3 bg-orange-50 border-t border-orange-200">
+                    <div class="flex items-center gap-2 text-sm text-orange-700">
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                         </svg>
@@ -186,7 +186,7 @@ export default {
                     young_saver: 'bg-cyan-600 hover:bg-cyan-700 text-white',
                     retired_couple: 'bg-rose-600 hover:bg-rose-700 text-white',
                 };
-                base = darkColors[this.currentPersonaId] || 'bg-amber-600 hover:bg-amber-700 text-white';
+                base = darkColors[this.currentPersonaId] || 'bg-orange-600 hover:bg-orange-700 text-white';
             } else {
                 base = 'bg-white hover:bg-gray-50 text-gray-700 border border-gray-200';
             }

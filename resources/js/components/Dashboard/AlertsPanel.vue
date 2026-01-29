@@ -37,7 +37,7 @@
           <svg
             v-else-if="alert.severity === 'important'"
             xmlns="http://www.w3.org/2000/svg"
-            class="h-5 w-5 text-amber-600"
+            class="h-5 w-5 text-orange-600"
             viewBox="0 0 20 20"
             fill="currentColor"
           >
@@ -167,7 +167,7 @@ export default {
     alertBorderClass(severity) {
       const classes = {
         critical: 'border-red-300 bg-red-50',
-        important: 'border-amber-300 bg-amber-50',
+        important: 'border-orange-300 bg-orange-50',
         info: 'border-blue-300 bg-blue-50',
       };
       return classes[severity] || 'border-gray-300 bg-gray-50';
@@ -176,7 +176,7 @@ export default {
     alertTextClass(severity) {
       const classes = {
         critical: 'text-red-800',
-        important: 'text-amber-800',
+        important: 'text-orange-800',
         info: 'text-blue-800',
       };
       return classes[severity] || 'text-gray-800';
@@ -188,7 +188,7 @@ export default {
         Savings: 'bg-blue-100 text-blue-700',
         Investment: 'bg-green-100 text-green-700',
         Retirement: 'bg-purple-100 text-purple-700',
-        Estate: 'bg-amber-100 text-amber-700',
+        Estate: 'bg-orange-100 text-orange-700',
       };
       return classes[module] || 'bg-gray-100 text-gray-700';
     },

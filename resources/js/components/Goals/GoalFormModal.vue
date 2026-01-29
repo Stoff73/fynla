@@ -335,7 +335,7 @@ export default {
         savings: 'bg-emerald-100 text-emerald-700',
         investment: 'bg-blue-100 text-blue-700',
         property: 'bg-purple-100 text-purple-700',
-        retirement: 'bg-amber-100 text-amber-700',
+        retirement: 'bg-orange-100 text-orange-700',
       };
       return classes[this.assignedModule] || 'bg-gray-100 text-gray-700';
     },

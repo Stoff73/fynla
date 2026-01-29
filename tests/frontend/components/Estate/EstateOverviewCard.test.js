@@ -75,7 +75,7 @@ describe('EstateOverviewCard', () => {
       },
     });
 
-    expect(mediumReadiness.vm.probateReadinessColor).toMatch(/amber/);
+    expect(mediumReadiness.vm.probateReadinessColor).toMatch(/orange/);
 
     const lowReadiness = mount(EstateOverviewCard, {
       props: {

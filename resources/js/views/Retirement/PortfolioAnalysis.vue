@@ -2,8 +2,8 @@
   <div class="portfolio-analysis relative">
     <!-- Coming Soon Watermark -->
     <div class="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-      <div class="bg-amber-100 border-2 border-amber-400 rounded-lg px-8 py-4 transform -rotate-12 shadow-lg">
-        <p class="text-2xl font-bold text-amber-700">Coming Soon</p>
+      <div class="bg-orange-100 border-2 border-orange-400 rounded-lg px-8 py-4 transform -rotate-12 shadow-lg">
+        <p class="text-2xl font-bold text-orange-700">Coming Soon</p>
       </div>
     </div>
 
@@ -136,7 +136,7 @@
       <!-- Fee Analysis -->
       <div v-if="feeAnalysis" class="bg-white rounded-lg shadow-md p-6">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">Fee Analysis</h3>
-        <div class="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-lg p-6">
+        <div class="bg-gradient-to-br from-orange-50 to-orange-50 border border-orange-200 rounded-lg p-6">
           <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
             <div class="bg-white rounded-lg p-4 shadow-sm">
               <p class="text-xs text-gray-600 mb-1">Total Annual Fees</p>

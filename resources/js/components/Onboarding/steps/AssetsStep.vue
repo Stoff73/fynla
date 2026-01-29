@@ -1012,7 +1012,7 @@ export default {
       const classes = {
         individual: 'bg-gray-100 text-gray-800',
         joint: 'bg-purple-100 text-purple-800',
-        trust: 'bg-amber-100 text-amber-800',
+        trust: 'bg-orange-100 text-orange-800',
       };
       return classes[type] || 'bg-gray-100 text-gray-800';
     };

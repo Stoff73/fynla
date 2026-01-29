@@ -156,7 +156,7 @@
                 <span class="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded">Property funds</span>
                 <span class="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded">Direct property</span>
               </div>
-              <div class="mt-3 p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-800">
+              <div class="mt-3 p-2 bg-orange-50 border border-orange-200 rounded text-xs text-orange-800">
                 Note: Property funds may suspend redemptions during market stress.
               </div>
             </div>
@@ -172,9 +172,9 @@
           @click="toggleSection('equities')"
         >
           <div class="flex items-center gap-3">
-            <span class="w-3 h-3 rounded-full bg-amber-500"></span>
+            <span class="w-3 h-3 rounded-full bg-orange-500"></span>
             <span class="font-medium text-gray-900">Equities (Shares)</span>
-            <span class="px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-800 rounded-full">
+            <span class="px-2 py-0.5 text-xs font-medium bg-orange-100 text-orange-800 rounded-full">
               Medium-High Risk
             </span>
           </div>

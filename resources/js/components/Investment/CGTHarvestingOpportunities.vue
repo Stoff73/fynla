@@ -15,7 +15,7 @@
     <div v-else>
       <!-- Summary Cards -->
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div class="bg-white rounded-lg p-4 border-l-4 border-amber-500">
+        <div class="bg-white rounded-lg p-4 border-l-4 border-orange-500">
           <p class="text-sm text-gray-600 mb-1">CGT Allowance</p>
           <p class="text-2xl font-bold text-gray-800">£{{ formatNumber(opportunities.cgt_allowance) }}</p>
         </div>
@@ -145,7 +145,7 @@
       </div>
 
       <!-- Important Notes -->
-      <div class="mt-6 p-4 bg-white rounded-lg border-l-4 border-amber-500">
+      <div class="mt-6 p-4 bg-white rounded-lg border-l-4 border-orange-500">
         <h5 class="text-sm font-semibold text-gray-800 mb-2">Important Considerations:</h5>
         <ul class="text-sm text-gray-700 space-y-1">
           <li>• <strong>30-Day Rule:</strong> You cannot repurchase the same security within 30 days</li>
@@ -188,7 +188,7 @@ export default {
     getPriorityClass(priority) {
       const classes = {
         high: 'bg-red-500 text-white',
-        medium: 'bg-amber-500 text-white',
+        medium: 'bg-orange-500 text-white',
         low: 'bg-blue-500 text-white',
       };
       return classes[priority] || 'bg-gray-500 text-white';

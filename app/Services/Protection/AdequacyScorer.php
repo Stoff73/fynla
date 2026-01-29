@@ -45,7 +45,7 @@ class AdequacyScorer
         return match (true) {
             $score >= 80 => 'green',
             $score >= 60 => 'blue',
-            $score >= 40 => 'amber',
+            $score >= 40 => 'orange',
             default => 'red',
         };
     }

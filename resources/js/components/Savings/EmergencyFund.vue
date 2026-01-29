@@ -200,7 +200,7 @@ export default {
 
     currentAmountBarColour() {
       if (this.currentAmountPercentage >= 100) return 'bg-green-600';
-      if (this.currentAmountPercentage >= 50) return 'bg-amber-600';
+      if (this.currentAmountPercentage >= 50) return 'bg-orange-600';
       return 'bg-red-600';
     },
 

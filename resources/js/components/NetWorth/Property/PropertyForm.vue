@@ -277,7 +277,7 @@
 
             <!-- Leasehold Details (conditional) -->
             <div v-if="form.tenure_type === 'leasehold'" class="p-4 bg-gray-50 rounded-md space-y-4">
-              <p class="text-sm text-amber-800 font-medium">Leasehold Property Details</p>
+              <p class="text-sm text-orange-800 font-medium">Leasehold Property Details</p>
 
               <div>
                 <label for="lease_remaining_years" class="block text-sm font-medium text-gray-700 mb-1">
@@ -291,7 +291,7 @@
                   max="999"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
-                <p v-if="form.lease_remaining_years && form.lease_remaining_years < 80" class="text-xs text-amber-600 mt-1">
+                <p v-if="form.lease_remaining_years && form.lease_remaining_years < 80" class="text-xs text-orange-600 mt-1">
                   ⚠️ Properties with less than 80 years remaining may be difficult to mortgage
                 </p>
                 <p v-if="form.lease_remaining_years && form.lease_remaining_years < 60" class="text-xs text-red-600 mt-1">

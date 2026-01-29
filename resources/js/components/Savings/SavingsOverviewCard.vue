@@ -125,7 +125,7 @@ export default {
       if (this.emergencyFundRunway >= 6) {
         return 'text-green-600';
       } else if (this.emergencyFundRunway >= 3) {
-        return 'text-amber-600';
+        return 'text-orange-600';
       } else {
         return 'text-red-600';
       }
@@ -135,7 +135,7 @@ export default {
       if (this.emergencyFundRunway >= 6) {
         return 'bg-green-600';
       } else if (this.emergencyFundRunway >= 3) {
-        return 'bg-amber-600';
+        return 'bg-orange-600';
       } else {
         return 'bg-red-600';
       }
@@ -147,7 +147,7 @@ export default {
       } else if (this.goalsStatus.onTrack === this.goalsStatus.total) {
         return 'bg-green-50';
       } else if (this.goalsStatus.onTrack > 0) {
-        return 'bg-amber-50';
+        return 'bg-orange-50';
       } else {
         return 'bg-red-50';
       }
@@ -159,7 +159,7 @@ export default {
       } else if (this.goalsStatus.onTrack === this.goalsStatus.total) {
         return 'text-green-600';
       } else if (this.goalsStatus.onTrack > 0) {
-        return 'text-amber-600';
+        return 'text-orange-600';
       } else {
         return 'text-red-600';
       }
@@ -171,7 +171,7 @@ export default {
       } else if (this.goalsStatus.onTrack === this.goalsStatus.total) {
         return 'text-green-800';
       } else if (this.goalsStatus.onTrack > 0) {
-        return 'text-amber-800';
+        return 'text-orange-800';
       } else {
         return 'text-red-800';
       }

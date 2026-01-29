@@ -36,7 +36,7 @@
               <p v-if="form.relationship === 'spouse'" class="mt-1 text-body-xs text-primary-600">
                 A user account will be created for your spouse if they don't have one yet. If they already have an account, it will be linked.
               </p>
-              <p v-if="form.relationship === 'spouse'" class="mt-1 text-body-xs text-amber-600">
+              <p v-if="form.relationship === 'spouse'" class="mt-1 text-body-xs text-orange-600">
                 Please ensure details are correct — once added, this linked account can only be edited or deleted by logging into the spouse's account.
               </p>
             </div>

@@ -138,7 +138,7 @@ export default {
     priorityBadgeClass() {
       const classes = {
         high: 'bg-red-500 text-white',
-        medium: 'bg-amber-500 text-white',
+        medium: 'bg-orange-500 text-white',
         low: 'bg-green-500 text-white',
       };
       return classes[this.recommendation.priority] || 'bg-gray-500 text-white';
@@ -147,7 +147,7 @@ export default {
     borderColourClass() {
       const classes = {
         high: 'border-red-300',
-        medium: 'border-amber-300',
+        medium: 'border-orange-300',
         low: 'border-green-300',
       };
       return classes[this.recommendation.priority] || 'border-gray-200';

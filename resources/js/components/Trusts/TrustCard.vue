@@ -232,8 +232,8 @@ export default {
 }
 
 .badge.rpt {
-  @apply bg-amber-100;
-  @apply text-amber-700;
+  @apply bg-orange-100;
+  @apply text-orange-700;
 }
 
 .badge.active {

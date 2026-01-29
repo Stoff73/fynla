@@ -131,12 +131,12 @@
                     <td class="px-6 py-4 text-sm text-gray-600">Higher/Additional Rate Taxpayer</td>
                     <td class="px-6 py-4 text-sm font-semibold text-gray-900">{{ (taxConfig.capital_gains_tax.rates.higher_rate_taxpayer * 100).toFixed(0) }}%</td>
                   </tr>
-                  <tr class="bg-amber-50">
+                  <tr class="bg-orange-50">
                     <td class="px-6 py-4 text-sm text-gray-900">Residential Property</td>
                     <td class="px-6 py-4 text-sm text-gray-600">Basic Rate Taxpayer</td>
                     <td class="px-6 py-4 text-sm font-semibold text-gray-900">{{ (taxConfig.capital_gains_tax.rates.residential_property_basic * 100).toFixed(0) }}%</td>
                   </tr>
-                  <tr class="bg-amber-50">
+                  <tr class="bg-orange-50">
                     <td class="px-6 py-4 text-sm text-gray-900">Residential Property</td>
                     <td class="px-6 py-4 text-sm text-gray-600">Higher/Additional Rate Taxpayer</td>
                     <td class="px-6 py-4 text-sm font-semibold text-gray-900">{{ (taxConfig.capital_gains_tax.rates.residential_property_higher * 100).toFixed(0) }}%</td>
@@ -214,8 +214,8 @@
             </div>
 
             <h3 class="text-h3 text-gray-900 mb-3">RNRB Taper</h3>
-            <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
-              <p class="text-sm text-amber-900">
+            <div class="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
+              <p class="text-sm text-orange-900">
                 RNRB tapers by £1 for every £2 the estate exceeds £{{ formatNumber(taxConfig.inheritance_tax.rnrb_taper_threshold) }}
                 <br>
                 <em class="text-xs">RNRB is fully lost when estate reaches £{{ formatNumber(taxConfig.inheritance_tax.rnrb_taper_threshold + taxConfig.inheritance_tax.residence_nil_rate_band * 2) }}</em>
@@ -318,8 +318,8 @@
                   <em class="text-xs">Maximum tax-relieved contributions per year</em>
                 </p>
               </div>
-              <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                <p class="text-sm text-amber-900">
+              <div class="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                <p class="text-sm text-orange-900">
                   <strong>MPAA (Money Purchase Annual Allowance):</strong> £{{ formatNumber(taxConfig.pension.money_purchase_annual_allowance) }}
                   <br>
                   <em class="text-xs">After accessing pension flexibly</em>

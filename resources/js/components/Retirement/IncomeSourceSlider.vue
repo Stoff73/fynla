@@ -274,8 +274,8 @@ export default {
 }
 
 .badge-isa {
-  @apply bg-amber-100;
-  @apply text-amber-800;
+  @apply bg-orange-100;
+  @apply text-orange-800;
 }
 
 .badge-gia {
@@ -325,8 +325,8 @@ export default {
 }
 
 .tax-badge.tax-basic {
-  @apply bg-amber-100;
-  @apply text-amber-800;
+  @apply bg-orange-100;
+  @apply text-orange-800;
 }
 
 .tax-badge.tax-higher {
@@ -460,10 +460,10 @@ export default {
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  @apply bg-amber-100;
+  @apply bg-orange-100;
   border-radius: 6px;
   font-size: 12px;
-  @apply text-amber-800;
+  @apply text-orange-800;
 }
 
 .tax-icon {

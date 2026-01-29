@@ -152,7 +152,7 @@ describe('AlertsPanel', () => {
     });
 
     const importantBorder = wrapper.vm.alertBorderClass('important');
-    expect(importantBorder).toContain('border-amber');
+    expect(importantBorder).toContain('border-orange');
   });
 
   it('displays correct border color for info alerts', () => {

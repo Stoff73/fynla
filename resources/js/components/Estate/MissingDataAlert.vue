@@ -1,9 +1,9 @@
 <template>
-  <div class="bg-amber-50 border-l-4 border-amber-500 p-4">
+  <div class="bg-orange-50 border-l-4 border-orange-500 p-4">
     <div class="flex">
       <div class="flex-shrink-0">
         <svg
-          class="h-5 w-5 text-amber-400"
+          class="h-5 w-5 text-orange-400"
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 20 20"
           fill="currentColor"
@@ -16,8 +16,8 @@
         </svg>
       </div>
       <div class="ml-3 flex-1">
-        <h3 class="text-sm font-medium text-amber-800">Missing Information</h3>
-        <div class="mt-2 text-sm text-amber-700">
+        <h3 class="text-sm font-medium text-orange-800">Missing Information</h3>
+        <div class="mt-2 text-sm text-orange-700">
           <p>{{ message }}</p>
 
           <ul class="list-disc list-inside mt-2 space-y-1">
@@ -29,7 +29,7 @@
           <div class="mt-3">
             <router-link
               :to="getNavigationLink()"
-              class="text-sm font-medium text-amber-800 underline hover:text-amber-900"
+              class="text-sm font-medium text-orange-800 underline hover:text-orange-900"
             >
               Add missing information →
             </router-link>

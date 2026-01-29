@@ -14,7 +14,7 @@ use App\Models\Investment\InvestmentGoal;
  * Analyzes:
  * - Current value vs target value
  * - Progress percentage and trajectory
- * - On-track status (Green/Amber/Red)
+ * - On-track status (Green/Orange/Red)
  * - Success probability using Monte Carlo
  * - Time remaining and milestones
  * - Monthly contribution adequacy
@@ -154,7 +154,7 @@ class GoalProgressAnalyzer
 
                 match ($analysis['status']['level']) {
                     'green' => $summary['on_track']++,
-                    'amber' => $summary['needs_attention']++,
+                    'orange' => $summary['needs_attention']++,
                     'red' => $summary['critical']++,
                     default => null,
                 };
@@ -272,12 +272,12 @@ class GoalProgressAnalyzer
             ];
         }
 
-        // Amber: Moderate probability or needs attention
+        // Orange: Moderate probability or needs attention
         if ($probability >= 60 || ($progressPercent >= 40 && $probability >= 50)) {
             return [
-                'level' => 'amber',
+                'level' => 'orange',
                 'label' => 'Needs Attention',
-                'color' => '#F59E0B',
+                'color' => '#F97316',
                 'message' => sprintf('Moderate progress - %.0f%% probability. Consider increasing contributions.', $probability),
             ];
         }
@@ -478,7 +478,7 @@ class GoalProgressAnalyzer
         }
 
         return [
-            'level' => 'amber',
+            'level' => 'orange',
             'label' => 'Some Goals Need Attention',
             'message' => sprintf('%d goals on track, %d need attention', $summary['on_track'], $summary['needs_attention'] + $summary['critical']),
         ];

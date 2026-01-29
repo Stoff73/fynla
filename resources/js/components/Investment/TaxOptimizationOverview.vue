@@ -25,10 +25,10 @@
         </div>
 
         <!-- CGT Harvesting -->
-        <div class="bg-white rounded-lg p-4 border-l-4 border-amber-500">
+        <div class="bg-white rounded-lg p-4 border-l-4 border-orange-500">
           <div class="flex items-center justify-between mb-2">
             <h4 class="text-sm font-medium text-gray-700">CGT Harvesting</h4>
-            <svg class="w-5 h-5 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
+            <svg class="w-5 h-5 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
             </svg>
           </div>
@@ -127,7 +127,7 @@
               </div>
               <div class="w-full bg-gray-200 rounded-full h-2">
                 <div
-                  class="bg-amber-600 h-2 rounded-full"
+                  class="bg-orange-600 h-2 rounded-full"
                   :style="{ width: getComponentScore('cgt') + '%' }"
                 ></div>
               </div>
@@ -241,7 +241,7 @@ export default {
     getPriorityClass(priority) {
       const classes = {
         high: 'bg-red-600',
-        medium: 'bg-amber-600',
+        medium: 'bg-orange-600',
         low: 'bg-blue-600',
       };
       return classes[priority] || 'bg-gray-600';
@@ -250,7 +250,7 @@ export default {
     getPriorityBgClass(priority) {
       const classes = {
         high: 'bg-white border-l-4 border-red-500',
-        medium: 'bg-white border-l-4 border-amber-500',
+        medium: 'bg-white border-l-4 border-orange-500',
         low: 'bg-white border-l-4 border-blue-500',
       };
       return classes[priority] || 'bg-white border-l-4 border-gray-500';

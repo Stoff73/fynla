@@ -177,7 +177,7 @@ For ApexCharts and other JavaScript color configurations, import from the design
 
 **WRONG - Hardcoded hex values:**
 ```javascript
-colors: ['#3b82f6', '#10b981', '#f59e0b']
+colors: ['#3b82f6', '#10b981', '#f97316']
 ```
 
 **CORRECT - Import from design system:**
@@ -205,13 +205,13 @@ When replacing hardcoded hex colors in scoped CSS:
 | `#3b82f6` | `text-primary-500` or `bg-primary-500` |
 | `#2563eb` | `text-blue-600` or `bg-blue-600` |
 | `#10b981` | `text-green-500` or `bg-green-500` |
-| `#f59e0b` | `text-amber-500` or `bg-amber-500` |
+| `#f97316` | `text-orange-500` or `bg-orange-500` |
 | `#ef4444` | `text-red-500` or `bg-red-500` |
 
 ### 6. Forbidden Colors (Fynla Project)
 
 For this financial planning application, NEVER use:
-- **Mustard/pastel yellows** - Use solid amber/orange instead
+- **Mustard/pastel yellows** - Use solid orange/orange instead
 - **Pastel/washed-out colors** - Use solid, professional colors
 - **Neon/bright colors** - Use muted, trust-conveying tones
 

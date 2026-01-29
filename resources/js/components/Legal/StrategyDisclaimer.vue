@@ -149,7 +149,7 @@ export default {
 
 .strategy-disclaimer.warning {
   @apply bg-yellow-50;
-  @apply border border-amber-300;
+  @apply border border-orange-300;
 }
 
 .strategy-disclaimer.important {
@@ -171,7 +171,7 @@ export default {
 }
 
 .strategy-disclaimer.warning .disclaimer-icon {
-  @apply text-amber-500;
+  @apply text-orange-500;
 }
 
 .strategy-disclaimer.important .disclaimer-icon {
@@ -193,7 +193,7 @@ export default {
 }
 
 .strategy-disclaimer.warning .disclaimer-title {
-  @apply text-amber-800;
+  @apply text-orange-800;
 }
 
 .strategy-disclaimer.important .disclaimer-title {
@@ -210,7 +210,7 @@ export default {
 }
 
 .strategy-disclaimer.warning .disclaimer-body {
-  @apply text-amber-900;
+  @apply text-orange-900;
 }
 
 .strategy-disclaimer.important .disclaimer-body {
@@ -237,7 +237,7 @@ export default {
 }
 
 .strategy-disclaimer.warning .dismiss-button {
-  @apply text-amber-500;
+  @apply text-orange-500;
 }
 
 .strategy-disclaimer.important .dismiss-button {

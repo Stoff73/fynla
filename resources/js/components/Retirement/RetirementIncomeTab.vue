@@ -257,7 +257,7 @@ export default {
       const netIncome = this.taxBreakdown.net_income || 0;
       const target = this.displayTargetIncome;
       if (netIncome >= target) return 'green';
-      if (netIncome >= target * 0.9) return 'amber';
+      if (netIncome >= target * 0.9) return 'orange';
       return 'red';
     },
   },
@@ -578,9 +578,9 @@ export default {
   @apply border-green-200;
 }
 
-.summary-card.amber {
-  background: linear-gradient(135deg, theme('colors.amber.50') 0%, theme('colors.amber.100') 100%);
-  @apply border-amber-200;
+.summary-card.orange {
+  background: linear-gradient(135deg, theme('colors.orange.50') 0%, theme('colors.orange.100') 100%);
+  @apply border-orange-200;
 }
 
 .summary-card.red {

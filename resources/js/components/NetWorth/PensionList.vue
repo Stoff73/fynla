@@ -465,7 +465,7 @@ export default {
     onTrackClass() {
       const status = this.projections?.income_drawdown?.on_track_status;
       if (status === 'Excellent' || status === 'On Track') return 'green';
-      if (status === 'Needs Attention') return 'amber';
+      if (status === 'Needs Attention') return 'orange';
       return 'red';
     },
 
@@ -881,8 +881,8 @@ export default {
   align-items: center;
   gap: 10px;
   padding: 12px 16px;
-  @apply bg-amber-100;
-  @apply border border-amber-200;
+  @apply bg-orange-100;
+  @apply border border-orange-200;
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
@@ -890,13 +890,13 @@ export default {
 .depletion-warning-standalone svg {
   width: 20px;
   height: 20px;
-  @apply text-amber-700;
+  @apply text-orange-700;
   flex-shrink: 0;
 }
 
 .depletion-warning-standalone span {
   font-size: 13px;
-  @apply text-amber-800;
+  @apply text-orange-800;
   font-weight: 500;
 }
 
@@ -1184,8 +1184,8 @@ export default {
   @apply bg-green-50;
 }
 
-.summary-item.amber {
-  @apply bg-amber-50;
+.summary-item.orange {
+  @apply bg-orange-50;
 }
 
 .summary-item.red {
@@ -1261,13 +1261,13 @@ export default {
   align-items: center;
   gap: 16px;
   padding: 20px;
-  background: linear-gradient(135deg, theme('colors.amber.50') 0%, theme('colors.amber.100') 100%);
-  @apply border border-amber-200;
+  background: linear-gradient(135deg, theme('colors.orange.50') 0%, theme('colors.orange.100') 100%);
+  @apply border border-orange-200;
   border-radius: 10px;
 }
 
 .dob-required-icon {
-  @apply w-12 h-12 bg-amber-500 rounded-full flex items-center justify-center flex-shrink-0;
+  @apply w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center flex-shrink-0;
 }
 
 .dob-required-icon svg {
@@ -1279,13 +1279,13 @@ export default {
 .dob-required-text h4 {
   font-size: 16px;
   font-weight: 700;
-  @apply text-amber-800;
+  @apply text-orange-800;
   margin: 0 0 4px 0;
 }
 
 .dob-required-text p {
   font-size: 14px;
-  @apply text-amber-700;
+  @apply text-orange-700;
   margin: 0;
 }
 
@@ -1502,21 +1502,21 @@ export default {
   align-items: center;
   gap: 10px;
   padding: 12px;
-  @apply bg-amber-100;
-  @apply border border-amber-200;
+  @apply bg-orange-100;
+  @apply border border-orange-200;
   border-radius: 8px;
 }
 
 .depletion-warning svg {
   width: 20px;
   height: 20px;
-  @apply text-amber-700;
+  @apply text-orange-700;
   flex-shrink: 0;
 }
 
 .depletion-warning span {
   font-size: 13px;
-  @apply text-amber-800;
+  @apply text-orange-800;
   font-weight: 500;
 }
 

@@ -122,8 +122,8 @@
 
           <!-- Will Strategy - Show Implementation Notice -->
           <div v-if="strategy.strategy_name && strategy.strategy_name.toLowerCase().includes('will')" class="mt-3">
-            <div class="bg-amber-50 border border-amber-200 rounded-lg p-3">
-              <p class="text-sm text-amber-800">
+            <div class="bg-orange-50 border border-orange-200 rounded-lg p-3">
+              <p class="text-sm text-orange-800">
                 <span class="font-medium">⚠️ Note:</span> Full will functionality has not been implemented.
               </p>
             </div>
@@ -291,7 +291,7 @@ export default {
       const classes = {
         1: 'border-green-300',
         2: 'border-blue-300',
-        3: 'border-amber-300',
+        3: 'border-orange-300',
         4: 'border-gray-300',
       };
       return classes[priority] || 'border-gray-300';
@@ -301,7 +301,7 @@ export default {
       const classes = {
         1: 'bg-green-100 text-green-800',
         2: 'bg-blue-100 text-blue-800',
-        3: 'bg-amber-100 text-amber-800',
+        3: 'bg-orange-100 text-orange-800',
         4: 'bg-gray-100 text-gray-800',
       };
       return classes[priority] || 'bg-gray-100 text-gray-800';

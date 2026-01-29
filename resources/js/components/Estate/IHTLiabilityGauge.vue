@@ -100,7 +100,7 @@ export default {
 
     liabilityColourClass() {
       if (this.ihtPercentage >= 20) return 'text-red-600';
-      if (this.ihtPercentage >= 10) return 'text-amber-600';
+      if (this.ihtPercentage >= 10) return 'text-orange-600';
       return 'text-green-600';
     },
 
@@ -281,7 +281,7 @@ export default {
 }
 
 .status-warning {
-  @apply bg-amber-100 text-amber-800 border border-amber-500;
+  @apply bg-orange-100 text-orange-800 border border-orange-500;
 }
 
 .status-critical {

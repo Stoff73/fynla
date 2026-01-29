@@ -141,7 +141,7 @@ export default {
         retirement: {
           label: 'Retirement',
           icon: '☀️',
-          tagClass: 'bg-amber-100 text-amber-700',
+          tagClass: 'bg-orange-100 text-orange-700',
         },
       },
     };

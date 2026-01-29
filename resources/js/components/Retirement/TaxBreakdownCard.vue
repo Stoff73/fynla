@@ -340,8 +340,8 @@ export default {
 }
 
 .badge-isa {
-  @apply bg-amber-100;
-  @apply text-amber-800;
+  @apply bg-orange-100;
+  @apply text-orange-800;
 }
 
 .badge-gia {
@@ -424,7 +424,7 @@ export default {
 }
 
 .band-dot.basic {
-  @apply bg-amber-500;
+  @apply bg-orange-500;
 }
 
 .band-dot.higher {
@@ -565,7 +565,7 @@ export default {
 }
 
 .band-fill.basic {
-  @apply bg-gradient-to-r from-amber-500 to-amber-400;
+  @apply bg-gradient-to-r from-orange-500 to-orange-400;
 }
 
 .band-fill.higher {

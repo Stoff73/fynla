@@ -60,7 +60,7 @@
           <span class="text-gray-600">Tax-Free</span>
         </div>
         <div class="flex items-center gap-1">
-          <span class="w-4 h-4 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 text-xs font-bold">!</span>
+          <span class="w-4 h-4 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 text-xs font-bold">!</span>
           <span class="text-gray-600">Taxable</span>
         </div>
         <div class="flex items-center gap-1">
@@ -74,8 +74,8 @@
       </div>
 
       <!-- Disclaimer -->
-      <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
-        <p class="text-xs text-amber-800">
+      <div class="bg-orange-50 border border-orange-200 rounded-lg p-4">
+        <p class="text-xs text-orange-800">
           <strong>Important:</strong> Tax treatment depends on individual circumstances and may change.
           This is general information only and should not be considered tax advice.
           Please consult a qualified tax adviser for advice specific to your situation.
@@ -170,7 +170,7 @@ export default {
     getStatusBorderClass(status) {
       const classes = {
         exempt: 'border-green-200 bg-green-50',
-        taxable: 'border-amber-200 bg-amber-50',
+        taxable: 'border-orange-200 bg-orange-50',
         deferred: 'border-blue-200 bg-blue-50',
         relief: 'border-purple-200 bg-purple-50',
         limit: 'border-gray-200 bg-gray-50',
@@ -181,7 +181,7 @@ export default {
     getStatusIconClass(status) {
       const classes = {
         exempt: 'bg-green-100 text-green-600',
-        taxable: 'bg-amber-100 text-amber-600',
+        taxable: 'bg-orange-100 text-orange-600',
         deferred: 'bg-blue-100 text-blue-600',
         relief: 'bg-purple-100 text-purple-600',
         limit: 'bg-gray-100 text-gray-600',

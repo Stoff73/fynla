@@ -19,9 +19,9 @@
           <button
             type="button"
             @click="enterPreviewMode"
-            class="inline-flex items-center px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-amber-200 text-sm font-medium mb-6 hover:bg-white/20 transition-all cursor-pointer"
+            class="inline-flex items-center px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-orange-200 text-sm font-medium mb-6 hover:bg-white/20 transition-all cursor-pointer"
           >
-            <span class="w-2 h-2 bg-amber-400 rounded-full mr-2 animate-pulse"></span>
+            <span class="w-2 h-2 bg-orange-400 rounded-full mr-2 animate-pulse"></span>
             Interactive Demo - No Sign-up Required
           </button>
 
@@ -47,7 +47,7 @@
               type="button"
               @click="enterPreviewMode"
               :disabled="enteringPreview"
-              class="group px-8 py-4 bg-amber-500 text-slate-900 rounded-xl font-semibold text-lg hover:bg-amber-400 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-wait"
+              class="group px-8 py-4 bg-orange-500 text-slate-900 rounded-xl font-semibold text-lg hover:bg-orange-400 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-wait"
             >
               <span class="flex items-center justify-center">
                 <svg v-if="enteringPreview" class="w-5 h-5 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -91,7 +91,7 @@
               href="https://docs.google.com/forms/d/e/1FAIpQLSds1-zixuMDTjkBCZ3lEl-q5NzA0pwXyvb8cJIuNrz2fwjSXg/viewform?usp=publish-editor"
               target="_blank"
               rel="noopener noreferrer"
-              class="inline-flex items-center gap-2 px-5 py-2.5 bg-white/10 backdrop-blur-md text-amber-200 rounded-full font-medium text-sm hover:bg-white/20 transition-all border border-white/20"
+              class="inline-flex items-center gap-2 px-5 py-2.5 bg-white/10 backdrop-blur-md text-orange-200 rounded-full font-medium text-sm hover:bg-white/20 transition-all border border-white/20"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
@@ -193,9 +193,9 @@
           </div>
 
           <!-- Investment Module -->
-          <div class="group bg-white/5 backdrop-blur-md rounded-2xl p-6 border border-white/10 hover:border-amber-500/50 hover:bg-white/10 transition-all">
-            <div class="w-14 h-14 bg-amber-500/20 rounded-xl flex items-center justify-center mb-4">
-              <svg class="w-7 h-7 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div class="group bg-white/5 backdrop-blur-md rounded-2xl p-6 border border-white/10 hover:border-orange-500/50 hover:bg-white/10 transition-all">
+            <div class="w-14 h-14 bg-orange-500/20 rounded-xl flex items-center justify-center mb-4">
+              <svg class="w-7 h-7 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
               </svg>
             </div>
@@ -326,7 +326,7 @@
               type="button"
               @click="enterPreviewMode"
               :disabled="enteringPreview"
-              class="group px-8 py-4 bg-amber-500 text-slate-900 rounded-xl font-semibold text-lg hover:bg-amber-400 transition-all shadow-lg hover:shadow-xl disabled:opacity-50"
+              class="group px-8 py-4 bg-orange-500 text-slate-900 rounded-xl font-semibold text-lg hover:bg-orange-400 transition-all shadow-lg hover:shadow-xl disabled:opacity-50"
             >
               <span class="flex items-center justify-center">
                 Try the Demo
@@ -384,7 +384,7 @@ export default {
       heroWords: [
         { word: 'Financial', color: 'text-primary-400' },
         { word: 'Retirement', color: 'text-emerald-400' },
-        { word: 'Investment', color: 'text-amber-400' },
+        { word: 'Investment', color: 'text-orange-400' },
         { word: 'Estate', color: 'text-rose-400' },
       ],
       currentWordIndex: 0,

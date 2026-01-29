@@ -445,8 +445,8 @@ export default {
 }
 
 .card-icon.retirement {
-  @apply bg-amber-100;
-  @apply text-amber-600;
+  @apply bg-orange-100;
+  @apply text-orange-600;
 }
 
 .card-icon.property {
@@ -558,8 +558,8 @@ export default {
 }
 
 .badge.emergency {
-  @apply bg-amber-100;
-  @apply text-amber-700;
+  @apply bg-orange-100;
+  @apply text-orange-700;
 }
 
 .badge.business-type {

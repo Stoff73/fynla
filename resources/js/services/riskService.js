@@ -112,7 +112,7 @@ const riskService = {
       low: { bg: 'bg-green-100', text: 'text-green-800', border: 'border-green-200' },
       lower_medium: { bg: 'bg-teal-100', text: 'text-teal-800', border: 'border-teal-200' },
       medium: { bg: 'bg-blue-100', text: 'text-blue-800', border: 'border-blue-200' },
-      upper_medium: { bg: 'bg-amber-100', text: 'text-amber-800', border: 'border-amber-200' },
+      upper_medium: { bg: 'bg-orange-100', text: 'text-orange-800', border: 'border-orange-200' },
       high: { bg: 'bg-red-100', text: 'text-red-800', border: 'border-red-200' },
     };
     return colors[level] || { bg: 'bg-gray-100', text: 'text-gray-800', border: 'border-gray-200' };

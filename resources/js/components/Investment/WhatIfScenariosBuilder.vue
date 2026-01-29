@@ -34,8 +34,8 @@
           <div class="text-2xl font-bold text-green-900">{{ scenarioStats.completed }}</div>
         </div>
         <div class="bg-gray-50 rounded-lg p-4">
-          <div class="text-sm font-medium text-amber-600 mb-1">Saved</div>
-          <div class="text-2xl font-bold text-amber-900">{{ scenarioStats.saved }}</div>
+          <div class="text-sm font-medium text-orange-600 mb-1">Saved</div>
+          <div class="text-2xl font-bold text-orange-900">{{ scenarioStats.saved }}</div>
         </div>
       </div>
 
@@ -151,7 +151,7 @@
                 <button
                   v-if="scenario.is_saved"
                   @click="unsaveScenario(scenario.id)"
-                  class="text-amber-500 hover:text-amber-600"
+                  class="text-orange-500 hover:text-orange-600"
                   title="Remove bookmark"
                 >
                   <svg class="w-5 h-5 fill-current" viewBox="0 0 20 20">
@@ -161,7 +161,7 @@
                 <button
                   v-else
                   @click="saveScenario(scenario.id)"
-                  class="text-gray-400 hover:text-amber-500"
+                  class="text-gray-400 hover:text-orange-500"
                   title="Bookmark scenario"
                 >
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

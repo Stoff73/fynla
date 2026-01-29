@@ -110,12 +110,12 @@
 
             <div v-else class="p-4 bg-gray-50 rounded-lg">
               <div class="flex items-start">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-amber-600 mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-orange-600 mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
                 <div>
-                  <p class="font-semibold text-amber-800">Partial Transfer Only</p>
-                  <p class="text-sm text-amber-700">
+                  <p class="font-semibold text-orange-800">Partial Transfer Only</p>
+                  <p class="text-sm text-orange-700">
                     You can only transfer up to {{ formatCurrency(isaRemaining) }} this tax year.
                     Consider transferring the rest in the next tax year.
                   </p>
@@ -183,8 +183,8 @@
             </div>
 
             <div class="mt-6 p-4 bg-gray-50 rounded-lg">
-              <h5 class="font-semibold text-amber-800 mb-2">Important Reminders</h5>
-              <ul class="text-sm text-amber-700 space-y-1 list-disc list-inside">
+              <h5 class="font-semibold text-orange-800 mb-2">Important Reminders</h5>
+              <ul class="text-sm text-orange-700 space-y-1 list-disc list-inside">
                 <li>Unlike Bed & Breakfast, the 30-day rule does NOT apply to Bed & ISA</li>
                 <li>You can repurchase the same securities immediately in your ISA</li>
                 <li>Keep records of the transactions for your tax return</li>

@@ -23,8 +23,8 @@
 
         <!-- Pending -->
         <div class="bg-gray-50 rounded-lg p-4">
-          <div class="text-sm font-medium text-amber-600 mb-1">Pending</div>
-          <div class="text-2xl font-bold text-amber-900">{{ effectiveStats.pending }}</div>
+          <div class="text-sm font-medium text-orange-600 mb-1">Pending</div>
+          <div class="text-2xl font-bold text-orange-900">{{ effectiveStats.pending }}</div>
         </div>
 
         <!-- In Progress -->
@@ -140,7 +140,7 @@
                 <button
                   v-if="recommendation.status !== 'dismissed'"
                   @click="openDismissModal(recommendation)"
-                  class="block w-full text-left px-4 py-2 text-sm text-amber-700 hover:bg-amber-50"
+                  class="block w-full text-left px-4 py-2 text-sm text-orange-700 hover:bg-orange-50"
                 >
                   Dismiss
                 </button>
@@ -183,7 +183,7 @@
           <div v-if="recommendation.completed_at" class="mt-3 text-sm text-green-600">
             ✓ Completed {{ formatDate(recommendation.completed_at) }}
           </div>
-          <div v-if="recommendation.dismissed_at" class="mt-3 text-sm text-amber-600">
+          <div v-if="recommendation.dismissed_at" class="mt-3 text-sm text-orange-600">
             Dismissed {{ formatDate(recommendation.dismissed_at) }}
             <span v-if="recommendation.dismissal_reason"> - {{ recommendation.dismissal_reason }}</span>
           </div>
@@ -216,7 +216,7 @@
             </button>
             <button
               @click="confirmDismiss"
-              class="px-4 py-2 text-sm font-medium text-white bg-amber-600 hover:bg-amber-700 rounded-lg transition-colors duration-200"
+              class="px-4 py-2 text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 rounded-lg transition-colors duration-200"
               :disabled="!dismissalReason"
             >
               Dismiss
@@ -394,13 +394,13 @@ export default {
       if (recommendation.status === 'completed') return 'border-l-4 border-green-500 bg-white';
       if (recommendation.status === 'dismissed') return 'border-gray-200 bg-gray-50';
       if (recommendation.priority <= 3) return 'border-l-4 border-red-500 bg-white';
-      if (recommendation.priority <= 7) return 'border-l-4 border-amber-500 bg-white';
+      if (recommendation.priority <= 7) return 'border-l-4 border-orange-500 bg-white';
       return 'border-l-4 border-blue-500 bg-white';
     },
 
     getPriorityClass(priority) {
       if (priority <= 3) return 'bg-red-500 text-white';
-      if (priority <= 7) return 'bg-amber-500 text-white';
+      if (priority <= 7) return 'bg-orange-500 text-white';
       return 'bg-blue-500 text-white';
     },
 
@@ -418,7 +418,7 @@ export default {
 
     getStatusClass(status) {
       const classes = {
-        pending: 'bg-amber-500 text-white',
+        pending: 'bg-orange-500 text-white',
         in_progress: 'bg-purple-500 text-white',
         completed: 'bg-green-500 text-white',
         dismissed: 'bg-gray-500 text-white',
@@ -429,7 +429,7 @@ export default {
     getImpactClass(impact) {
       const classes = {
         low: 'text-blue-600',
-        medium: 'text-amber-600',
+        medium: 'text-orange-600',
         high: 'text-red-600',
       };
       return classes[impact] || 'text-gray-600';

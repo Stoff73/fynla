@@ -389,7 +389,7 @@ export default {
 
     getProbabilityClass(probability) {
       if (probability >= 95) return 'green';
-      if (probability >= 80) return 'amber';
+      if (probability >= 80) return 'orange';
       return 'red';
     },
 
@@ -431,7 +431,7 @@ export default {
 }
 
 .strategy-card.priority-3 .priority-badge {
-  @apply bg-amber-500;
+  @apply bg-orange-500;
 }
 
 .strategy-card.priority-4 .priority-badge {
@@ -649,8 +649,8 @@ export default {
   @apply text-green-600;
 }
 
-.impact-value.amber {
-  @apply text-amber-600;
+.impact-value.orange {
+  @apply text-orange-600;
 }
 
 .impact-value.red {
@@ -660,14 +660,14 @@ export default {
 /* Constraints Info */
 .constraints-info {
   padding: 12px 16px;
-  @apply bg-amber-100;
+  @apply bg-orange-100;
   border-radius: 8px;
-  @apply border border-amber-200;
+  @apply border border-orange-200;
 }
 
 .constraints-info p {
   font-size: 12px;
-  @apply text-amber-800;
+  @apply text-orange-800;
   margin: 0;
 }
 
@@ -762,8 +762,8 @@ export default {
 }
 
 .coverage-good {
-  @apply bg-amber-100;
-  @apply text-amber-800;
+  @apply bg-orange-100;
+  @apply text-orange-800;
 }
 
 .coverage-fair {

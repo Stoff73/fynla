@@ -146,7 +146,7 @@ export default {
                 widow: 'bg-gradient-to-r from-purple-500 to-purple-600',
                 entrepreneur: 'bg-gradient-to-r from-orange-500 to-orange-600',
             };
-            return colors[this.currentPersonaId] || 'bg-gradient-to-r from-amber-500 to-amber-600';
+            return colors[this.currentPersonaId] || 'bg-gradient-to-r from-orange-500 to-orange-600';
         },
 
         buttonColorClass() {
@@ -156,7 +156,7 @@ export default {
                 widow: 'text-purple-100 hover:text-white',
                 entrepreneur: 'text-orange-100 hover:text-white',
             };
-            return colors[this.currentPersonaId] || 'text-amber-100 hover:text-white';
+            return colors[this.currentPersonaId] || 'text-orange-100 hover:text-white';
         },
 
         registerButtonClass() {
@@ -166,7 +166,7 @@ export default {
                 widow: 'bg-white text-purple-600 hover:bg-purple-50',
                 entrepreneur: 'bg-white text-orange-600 hover:bg-orange-50',
             };
-            return colors[this.currentPersonaId] || 'bg-white text-amber-600 hover:bg-amber-50';
+            return colors[this.currentPersonaId] || 'bg-white text-orange-600 hover:bg-orange-50';
         },
 
         loadingTextClass() {
@@ -176,7 +176,7 @@ export default {
                 widow: 'text-purple-100',
                 entrepreneur: 'text-orange-100',
             };
-            return colors[this.currentPersonaId] || 'text-amber-100';
+            return colors[this.currentPersonaId] || 'text-orange-100';
         },
     },
 

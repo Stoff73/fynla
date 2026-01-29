@@ -49,7 +49,7 @@
     <!-- IHT Calculation -->
     <div class="card">
       <h3 class="text-h3 text-gray-900 mb-3 flex items-center">
-        <svg class="w-5 h-5 mr-2 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-5 h-5 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
         </svg>
         Inheritance Tax (IHT) Calculation
@@ -296,7 +296,7 @@
         <p><strong>Score Interpretation:</strong></p>
         <code class="block bg-gray-50 p-3 rounded text-xs font-mono">
           90-100%: On track (green)
-          <br>70-89%: Nearly there (amber)
+          <br>70-89%: Nearly there (orange)
           <br>Below 70%: Action needed (red)
         </code>
 

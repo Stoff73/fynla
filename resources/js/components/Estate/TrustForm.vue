@@ -99,8 +99,8 @@
         </div>
 
         <!-- Discounted Gift Trust Fields -->
-        <div v-if="form.trust_type === 'discounted_gift'" class="border border-amber-200 rounded-md p-4 bg-amber-50">
-          <h4 class="text-sm font-semibold text-amber-900 mb-3">Discounted Gift Trust Details</h4>
+        <div v-if="form.trust_type === 'discounted_gift'" class="border border-orange-200 rounded-md p-4 bg-orange-50">
+          <h4 class="text-sm font-semibold text-orange-900 mb-3">Discounted Gift Trust Details</h4>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label for="discount_amount" class="block text-sm font-medium text-gray-700">Discount Amount (£)</label>

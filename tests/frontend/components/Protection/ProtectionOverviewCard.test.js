@@ -35,7 +35,7 @@ describe('ProtectionOverviewCard', () => {
     expect(wrapper.html()).toMatch(/text-green|bg-green/);
   });
 
-  it('displays adequacy score with amber color (60-79)', () => {
+  it('displays adequacy score with orange color (60-79)', () => {
     const wrapper = mount(ProtectionOverviewCard, {
       props: {
         adequacyScore: 70,
@@ -47,8 +47,8 @@ describe('ProtectionOverviewCard', () => {
 
     const scoreElement = wrapper.find('[data-testid="adequacy-score"]');
     expect(scoreElement.text()).toContain('70');
-    // Check for amber/yellow color class
-    expect(wrapper.html()).toMatch(/text-amber|text-yellow|bg-amber|bg-yellow/);
+    // Check for orange/yellow color class
+    expect(wrapper.html()).toMatch(/text-orange|text-yellow|bg-orange|bg-yellow/);
   });
 
   it('displays adequacy score with red color (<60)', () => {

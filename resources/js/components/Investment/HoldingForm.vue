@@ -44,7 +44,7 @@
                 </option>
               </select>
               <p v-if="errors.investment_account_id" class="mt-1 text-sm text-red-600">{{ errors.investment_account_id }}</p>
-              <p v-if="accounts.length === 0" class="mt-2 text-sm text-amber-600 bg-gray-50 rounded-md p-2">
+              <p v-if="accounts.length === 0" class="mt-2 text-sm text-orange-600 bg-gray-50 rounded-md p-2">
                 ⚠️ You need to create an investment account first before adding holdings. Please go to the Accounts tab to add an account.
               </p>
             </div>

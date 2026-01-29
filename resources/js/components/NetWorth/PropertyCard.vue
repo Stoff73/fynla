@@ -208,8 +208,8 @@ export default {
 }
 
 .type-secondary_residence {
-  @apply bg-amber-100;
-  @apply text-amber-800;
+  @apply bg-orange-100;
+  @apply text-orange-800;
 }
 
 .type-buy_to_let {

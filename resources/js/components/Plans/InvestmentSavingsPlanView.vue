@@ -24,14 +24,14 @@
     <!-- Plan Content -->
     <div v-else-if="plan" class="space-y-8">
       <!-- Scaffold Warning Banner -->
-      <div class="bg-amber-50 border-2 border-amber-400 rounded-lg p-4">
+      <div class="bg-orange-50 border-2 border-orange-400 rounded-lg p-4">
         <div class="flex items-start">
-          <svg class="h-6 w-6 text-amber-600 mr-3 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg class="h-6 w-6 text-orange-600 mr-3 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
           <div>
-            <h3 class="text-lg font-semibold text-amber-800">Work in Progress</h3>
-            <p class="text-sm text-amber-700 mt-1">
+            <h3 class="text-lg font-semibold text-orange-800">Work in Progress</h3>
+            <p class="text-sm text-orange-700 mt-1">
               This Investment & Savings Plan is currently a scaffold and not fully implemented.
               Some data may be incomplete or calculations may not reflect your full financial picture.
               Full functionality is coming soon.

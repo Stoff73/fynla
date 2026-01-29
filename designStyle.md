@@ -110,14 +110,14 @@ These colors communicate meaning and should be used consistently.
 | Error 600 | `#B91C1C` | `error-600` | Error text, borders |
 | Error 700 | `#991B1B` | `error-700` | Hover states |
 
-#### Warning (Solid Amber)
+#### Warning (Orange)
 | Name | Hex | Tailwind | Usage |
 |------|-----|----------|-------|
-| Warning 50 | `#FFFFFF` | `warning-50` | - |
-| Warning 100 | `#FFFBEB` | `warning-100` | Warning background (very subtle) |
-| Warning 500 | `#F59E0B` | `warning-500` | Warning icons, text |
-| Warning 600 | `#D97706` | `warning-600` | Warning borders |
-| Warning 700 | `#B45309` | `warning-700` | Hover states |
+| Warning 50 | `#FFF7ED` | `orange-50` | Warning background (very subtle) |
+| Warning 100 | `#FFEDD5` | `orange-100` | Warning background |
+| Warning 500 | `#F97316` | `orange-500` | Warning icons, text |
+| Warning 600 | `#EA580C` | `orange-600` | Warning borders |
+| Warning 700 | `#C2410C` | `orange-700` | Hover states |
 
 #### Info (Sky Blue)
 | Name | Hex | Tailwind | Usage |
@@ -137,7 +137,7 @@ For data visualization consistency:
 | Chart 1 | `#1257A0` | Trust Blue - Primary data series |
 | Chart 2 | `#475569` | Slate - Secondary series |
 | Chart 3 | `#15803D` | Green - Positive values |
-| Chart 4 | `#D97706` | Amber - Neutral/caution |
+| Chart 4 | `#EA580C` | Orange - Neutral/caution |
 | Chart 5 | `#B91C1C` | Red - Negative values |
 | Chart 6 | `#7C3AED` | Purple - Alternative (charts only) |
 | Chart 7 | `#C2410C` | Orange - Tertiary |
@@ -167,6 +167,7 @@ For data visualization consistency:
 
 The following colors are **banned** from use. They create a cheap, unprofessional appearance:
 
+- **Amber:** All amber variants are banned (`amber-*`). Use orange instead for warnings and caution states.
 - **Mustard Yellow:** Any yellow leaning toward brown/gold (e.g., `#C9A000`, `#DAA520`, `#FFD700`)
 - **Pastel washes:** Overly desaturated colors with high lightness (any color at <20% saturation with >80% lightness)
 - **Pure black:** Use `gray-900` (`#111827`) instead of `#000000`
@@ -506,7 +507,7 @@ All buttons must implement:
 | Default | `border-gray-200` | `bg-white` | none |
 | Clickable | `border-gray-200` | `bg-white` | `border-primary-400`, lift |
 | Highlighted | `border-primary-200` | `bg-primary-50` | - |
-| Warning | `border-amber-200` | `bg-amber-50` | - |
+| Warning | `border-orange-200` | `bg-orange-50` | - |
 | Success | `border-green-200` | `bg-green-50` | - |
 | Error | `border-red-200` | `bg-red-50` | - |
 
@@ -733,9 +734,9 @@ For contextual information within profile sections:
   </p>
 </div>
 
-<!-- Warning box (amber) -->
-<div class="mt-4 p-3 bg-amber-50 rounded-lg">
-  <p class="text-body-xs text-amber-700">
+<!-- Warning box (orange) -->
+<div class="mt-4 p-3 bg-orange-50 rounded-lg">
+  <p class="text-body-xs text-orange-700">
     Warning or important notice for the user.
   </p>
 </div>
@@ -920,7 +921,7 @@ For high-visibility status indicators:
 <span class="badge bg-green-600 text-white">Active</span>
 
 <!-- Pending -->
-<span class="badge bg-amber-500 text-white">Pending</span>
+<span class="badge bg-orange-500 text-white">Pending</span>
 
 <!-- Completed -->
 <span class="badge bg-blue-600 text-white">Completed</span>
@@ -957,7 +958,7 @@ For account/wrapper types:
 | Low | `bg-green-100` | `text-green-800` | - |
 | Lower-Medium | `bg-teal-100` | `text-teal-800` | - |
 | Medium | `bg-blue-100` | `text-blue-800` | - |
-| Upper-Medium | `bg-amber-100` | `text-amber-800` | - |
+| Upper-Medium | `bg-orange-100` | `text-orange-800` | - |
 | High | `bg-red-100` | `text-red-800` | - |
 
 ### Badge Base Styles
@@ -1002,7 +1003,7 @@ For account/wrapper types:
 | Severity | Background | Border | Icon/Title Color |
 |----------|------------|--------|------------------|
 | Critical | `bg-red-50` | `border-red-300` | `text-red-600/800` |
-| Important | `bg-amber-50` | `border-amber-300` | `text-amber-600/800` |
+| Important | `bg-orange-50` | `border-orange-300` | `text-orange-600/800` |
 | Info | `bg-blue-50` | `border-blue-300` | `text-blue-600/800` |
 | Success | `bg-green-50` | `border-green-300` | `text-green-600/800` |
 
@@ -1051,7 +1052,7 @@ For account/wrapper types:
 |---------|-----------|
 | Default | `bg-primary-600` |
 | Success (>=80%) | `bg-green-500` |
-| Warning (50-79%) | `bg-amber-500` |
+| Warning (50-79%) | `bg-orange-500` |
 | Danger (<50%) | `bg-red-500` |
 
 ---
@@ -1130,7 +1131,7 @@ const chartDefaults = {
     '#1257A0', // chart-1: Trust Blue
     '#475569', // chart-2: Slate
     '#15803D', // chart-3: Green
-    '#D97706', // chart-4: Amber
+    '#EA580C', // chart-4: Orange
     '#B91C1C', // chart-5: Red
     '#7C3AED', // chart-6: Purple
     '#C2410C', // chart-7: Orange
@@ -1163,7 +1164,7 @@ For metrics like financial health score, emergency fund:
 - Start angle: -135, End angle: 135
 - Color by threshold:
   - Green (`#10B981`): >= 80% or >= 6 months
-  - Amber (`#F59E0B`): 60-79% or 3-5 months
+  - Orange (`#F97316`): 60-79% or 3-5 months
   - Red (`#EF4444`): < 60% or < 3 months
 
 ### Color Meaning in Charts
@@ -1173,7 +1174,7 @@ For metrics like financial health score, emergency fund:
 | Green | Positive, growth, success |
 | Red | Negative, loss, decline |
 | Blue | Neutral, primary data |
-| Amber | Warning, needs attention |
+| Orange | Warning, needs attention |
 | Gray | Baseline, comparison |
 
 ---
@@ -1215,7 +1216,7 @@ Use Heroicons (outline style preferred for UI, solid for status indicators):
 | Hover | `text-gray-600` |
 | Active | `text-primary-600` |
 | Success | `text-green-600` |
-| Warning | `text-amber-600` |
+| Warning | `text-orange-600` |
 | Error | `text-red-600` |
 
 ---

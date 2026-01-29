@@ -77,9 +77,9 @@
         </div>
 
         <!-- Days Remaining -->
-        <div class="bg-amber-50 rounded-lg p-4 border border-amber-200">
+        <div class="bg-orange-50 rounded-lg p-4 border border-orange-200">
           <p class="text-sm text-gray-600 mb-1">Tax Year Ends</p>
-          <p class="text-2xl font-bold text-amber-600">{{ daysRemaining }}</p>
+          <p class="text-2xl font-bold text-orange-600">{{ daysRemaining }}</p>
           <p class="text-xs text-gray-500 mt-1">days remaining</p>
         </div>
       </div>
@@ -160,15 +160,15 @@
 
         <!-- Fee Reduction (Priority 4) -->
         <div v-if="feeRecommendations.length > 0" class="bg-white rounded-lg border border-gray-200 overflow-hidden">
-          <div class="bg-amber-50 px-4 py-3 border-b border-amber-200">
+          <div class="bg-orange-50 px-4 py-3 border-b border-orange-200">
             <div class="flex items-center justify-between">
               <div class="flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-amber-600 mr-2">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-orange-600 mr-2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <h3 class="font-semibold text-amber-800">Fee Reduction</h3>
+                <h3 class="font-semibold text-orange-800">Fee Reduction</h3>
               </div>
-              <span class="bg-amber-200 text-amber-800 text-xs font-medium px-2 py-1 rounded-full">
+              <span class="bg-orange-200 text-orange-800 text-xs font-medium px-2 py-1 rounded-full">
                 {{ feeRecommendations.length }}
               </span>
             </div>
@@ -402,7 +402,7 @@ export default {
       if (!score) return 'text-gray-600';
       if (score >= 80) return 'text-green-600';
       if (score >= 60) return 'text-blue-600';
-      if (score >= 40) return 'text-amber-600';
+      if (score >= 40) return 'text-orange-600';
       return 'text-red-600';
     },
 
@@ -410,7 +410,7 @@ export default {
       switch (grade) {
         case 'A': return 'text-green-600';
         case 'B': return 'text-blue-600';
-        case 'C': return 'text-amber-600';
+        case 'C': return 'text-orange-600';
         default: return 'text-red-600';
       }
     },

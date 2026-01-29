@@ -31,7 +31,7 @@
       <div class="detail-list">
         <div class="detail-row">
           <span>Pending transactions</span>
-          <span class="text-amber-600">-{{ formatCurrency(clearCash.pendingTransactions) }}</span>
+          <span class="text-orange-600">-{{ formatCurrency(clearCash.pendingTransactions) }}</span>
         </div>
         <div class="detail-row">
           <span>Upcoming bills</span>
@@ -349,7 +349,7 @@ export default {
 }
 
 .alert-item.warning .alert-dot {
-  @apply bg-amber-500;
+  @apply bg-orange-500;
 }
 
 .alert-item.info .alert-dot {

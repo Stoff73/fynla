@@ -235,21 +235,21 @@ export default {
 
     getAllowanceStatusClass(utilization) {
       if (utilization > 100) return 'bg-red-500 text-white';
-      if (utilization > 80) return 'bg-amber-500 text-white';
+      if (utilization > 80) return 'bg-orange-500 text-white';
       if (utilization > 50) return 'bg-blue-500 text-white';
       return 'bg-gray-500 text-white';
     },
 
     getAllowanceBarClass(utilization) {
       if (utilization > 100) return 'bg-red-600';
-      if (utilization > 80) return 'bg-amber-600';
+      if (utilization > 80) return 'bg-orange-600';
       return 'bg-blue-600';
     },
 
     getPriorityClass(priority) {
       const classes = {
         high: 'bg-red-500 text-white',
-        medium: 'bg-amber-500 text-white',
+        medium: 'bg-orange-500 text-white',
         low: 'bg-blue-500 text-white',
       };
       return classes[priority] || 'bg-gray-500 text-white';

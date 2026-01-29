@@ -135,7 +135,7 @@ export default {
     getRiskScoreColour(score) {
       if (score <= 3) return 'text-green-600';
       if (score <= 5) return 'text-blue-600';
-      if (score <= 7) return 'text-amber-600';
+      if (score <= 7) return 'text-orange-600';
       return 'text-red-600';
     },
 
@@ -150,7 +150,7 @@ export default {
     getAlignmentColour(alignment) {
       if (alignment >= 90) return 'text-green-600';
       if (alignment >= 75) return 'text-blue-600';
-      if (alignment >= 60) return 'text-amber-600';
+      if (alignment >= 60) return 'text-orange-600';
       return 'text-red-600';
     },
 
@@ -173,7 +173,7 @@ export default {
     getRecommendationIconColour(priority) {
       const colours = {
         high: 'text-red-600',
-        medium: 'text-amber-600',
+        medium: 'text-orange-600',
         low: 'text-blue-600',
       };
       return colours[priority] || 'text-gray-600';

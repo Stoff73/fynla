@@ -111,7 +111,7 @@ export default {
   computed: {
     iconBgClass() {
       const classes = {
-        warning: 'bg-amber-100',
+        warning: 'bg-orange-100',
         danger: 'bg-red-100',
         info: 'bg-blue-100',
       };
@@ -120,7 +120,7 @@ export default {
 
     iconColourClass() {
       const classes = {
-        warning: 'text-amber-600',
+        warning: 'text-orange-600',
         danger: 'text-red-600',
         info: 'text-blue-600',
       };

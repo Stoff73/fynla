@@ -1400,7 +1400,7 @@ resources/js/components/NetWorth/InvestmentDetailInline.vue
 
 **Branch:** ihtBugs
 
-**Status:** READY FOR DEPLOYMENT
+**Status:** DEPLOYED ✓
 
 ### Description
 
@@ -1449,7 +1449,7 @@ Backend PHP file only.
 
 **Branch:** ihtBugs
 
-**Status:** READY FOR DEPLOYMENT
+**Status:** DEPLOYED ✓
 
 ### Issue
 

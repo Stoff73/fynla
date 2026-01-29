@@ -40,7 +40,7 @@
           <p class="summary-value">{{ formatCurrency(requiredCapital) }}</p>
           <p class="summary-subtitle">Based on 4.7% withdrawal rate</p>
         </div>
-        <div class="summary-card amber">
+        <div class="summary-card orange">
           <p class="summary-label">Target Retirement Income</p>
           <p class="summary-value">{{ formatCurrency(projections.income_drawdown?.target_income) }}<span class="per-year">/year</span></p>
           <p class="summary-subtitle">From retirement profile</p>
@@ -298,9 +298,9 @@ export default {
   @apply border-green-200;
 }
 
-.summary-card.amber {
-  @apply bg-gradient-to-br from-amber-50 to-amber-100;
-  @apply border-amber-200;
+.summary-card.orange {
+  @apply bg-gradient-to-br from-orange-50 to-orange-100;
+  @apply border-orange-200;
 }
 
 .summary-card.red {
@@ -374,8 +374,8 @@ export default {
 .depletion-badge {
   display: inline-block;
   padding: 2px 8px;
-  @apply bg-amber-100;
-  @apply text-amber-700;
+  @apply bg-orange-100;
+  @apply text-orange-700;
   border-radius: 4px;
   font-size: 12px;
   font-weight: 600;
@@ -442,8 +442,8 @@ export default {
 
 .info-warning {
   font-size: 13px;
-  @apply text-amber-800;
-  @apply bg-amber-100;
+  @apply text-orange-800;
+  @apply bg-orange-100;
   padding: 8px 12px;
   border-radius: 6px;
   margin: 12px 0 0 0;

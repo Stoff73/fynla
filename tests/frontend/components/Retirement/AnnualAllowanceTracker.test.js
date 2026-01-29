@@ -196,7 +196,7 @@ describe('AnnualAllowanceTracker', () => {
 
     const html = wrapper.html();
     // Should have warning styling
-    expect(html).toMatch(/warning|amber|orange/i);
+    expect(html).toMatch(/warning|orange/i);
   });
 
   it('highlights when exceeding limit', () => {

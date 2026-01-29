@@ -50,7 +50,7 @@
               <svg v-else-if="category.id === 'protection'" class="w-4 h-4 mr-2 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
               </svg>
-              <svg v-else-if="category.id === 'retirement'" class="w-4 h-4 mr-2 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg v-else-if="category.id === 'retirement'" class="w-4 h-4 mr-2 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <svg v-else-if="category.id === 'estate'" class="w-4 h-4 mr-2 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -124,7 +124,7 @@
                   </p>
                 </div>
 
-                <div class="group bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl p-6 border border-orange-200 hover:shadow-lg transition-all">
+                <div class="group bg-gradient-to-br from-orange-50 to-orange-50 rounded-2xl p-6 border border-orange-200 hover:shadow-lg transition-all">
                   <div class="w-12 h-12 bg-orange-600 rounded-xl flex items-center justify-center mb-4 shadow-lg shadow-orange-600/30">
                     <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -300,7 +300,7 @@
       <!-- Retirement Planning -->
       <div v-if="activeCategory === 'retirement'" class="space-y-8">
         <div class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
-          <div class="bg-gradient-to-r from-orange-600 to-amber-600 px-8 py-6">
+          <div class="bg-gradient-to-r from-orange-600 to-orange-600 px-8 py-6">
             <h2 class="text-2xl font-bold text-white">Retirement Planning in the UK</h2>
             <p class="text-orange-100 mt-1">Building your path to a comfortable retirement</p>
           </div>
@@ -356,23 +356,23 @@
 
               <h3 class="text-2xl font-bold text-slate-900 mt-10 mb-6">Key Allowances & Limits</h3>
 
-              <div class="bg-gradient-to-r from-amber-50 to-amber-100 border-l-4 border-amber-600 rounded-r-2xl p-6 my-6">
-                <h4 class="text-xl font-bold text-amber-900 mb-4">Annual Allowance: £60,000</h4>
-                <p class="text-amber-800 mb-4">
+              <div class="bg-gradient-to-r from-orange-50 to-orange-100 border-l-4 border-orange-600 rounded-r-2xl p-6 my-6">
+                <h4 class="text-xl font-bold text-orange-900 mb-4">Annual Allowance: £60,000</h4>
+                <p class="text-orange-800 mb-4">
                   The maximum you can contribute to pensions each year with tax relief. Includes employer contributions.
                 </p>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div class="bg-white/70 rounded-xl p-3">
-                    <p class="font-semibold text-amber-900 text-sm">Carry Forward</p>
-                    <p class="text-xs text-amber-800">Use unused allowance from previous 3 years</p>
+                    <p class="font-semibold text-orange-900 text-sm">Carry Forward</p>
+                    <p class="text-xs text-orange-800">Use unused allowance from previous 3 years</p>
                   </div>
                   <div class="bg-white/70 rounded-xl p-3">
-                    <p class="font-semibold text-amber-900 text-sm">Tapered</p>
-                    <p class="text-xs text-amber-800">Reduced for high earners (income over £260,000)</p>
+                    <p class="font-semibold text-orange-900 text-sm">Tapered</p>
+                    <p class="text-xs text-orange-800">Reduced for high earners (income over £260,000)</p>
                   </div>
                   <div class="bg-white/70 rounded-xl p-3">
-                    <p class="font-semibold text-amber-900 text-sm">MPAA</p>
-                    <p class="text-xs text-amber-800">£10,000 limit if you've accessed pension flexibly</p>
+                    <p class="font-semibold text-orange-900 text-sm">MPAA</p>
+                    <p class="text-xs text-orange-800">£10,000 limit if you've accessed pension flexibly</p>
                   </div>
                 </div>
               </div>
@@ -711,9 +711,9 @@
                 </table>
               </div>
 
-              <div class="bg-gradient-to-r from-amber-50 to-amber-100 border-l-4 border-amber-600 rounded-r-2xl p-6 my-6">
-                <h4 class="text-lg font-bold text-amber-900 mb-2">Personal Allowance Taper</h4>
-                <p class="text-amber-800 text-sm">
+              <div class="bg-gradient-to-r from-orange-50 to-orange-100 border-l-4 border-orange-600 rounded-r-2xl p-6 my-6">
+                <h4 class="text-lg font-bold text-orange-900 mb-2">Personal Allowance Taper</h4>
+                <p class="text-orange-800 text-sm">
                   For every £2 earned over £100,000, you lose £1 of personal allowance. Between £100k-£125k, the effective tax rate is <strong>60%</strong>.
                 </p>
               </div>
@@ -874,9 +874,9 @@
                 </table>
               </div>
 
-              <div class="bg-gradient-to-r from-amber-50 to-amber-100 border-l-4 border-amber-600 rounded-r-2xl p-6 mb-6">
-                <h4 class="text-lg font-bold text-amber-900 mb-2">Who Is Affected Most?</h4>
-                <p class="text-amber-800 text-sm mb-3">
+              <div class="bg-gradient-to-r from-orange-50 to-orange-100 border-l-4 border-orange-600 rounded-r-2xl p-6 mb-6">
+                <h4 class="text-lg font-bold text-orange-900 mb-2">Who Is Affected Most?</h4>
+                <p class="text-orange-800 text-sm mb-3">
                   Basic-rate taxpayers are largely unaffected (they get 20% relief, same as before). Higher-rate and additional-rate taxpayers lose out significantly:
                 </p>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3">

@@ -256,7 +256,7 @@
 
           <!-- Audit & Monitoring -->
           <div class="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
-            <div class="bg-gradient-to-r from-amber-600 to-orange-600 px-8 py-6">
+            <div class="bg-gradient-to-r from-orange-600 to-orange-600 px-8 py-6">
               <div class="flex items-center">
                 <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center mr-4">
                   <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -265,15 +265,15 @@
                 </div>
                 <div>
                   <h2 class="text-xl font-bold text-white">Auditability & Monitoring</h2>
-                  <p class="text-amber-100 text-sm">Comprehensive logging and alerting</p>
+                  <p class="text-orange-100 text-sm">Comprehensive logging and alerting</p>
                 </div>
               </div>
             </div>
             <div class="p-8">
               <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="flex items-start">
-                  <div class="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                    <svg class="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div class="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
+                    <svg class="w-4 h-4 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
@@ -283,8 +283,8 @@
                   </div>
                 </div>
                 <div class="flex items-start">
-                  <div class="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                    <svg class="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div class="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
+                    <svg class="w-4 h-4 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
@@ -294,8 +294,8 @@
                   </div>
                 </div>
                 <div class="flex items-start">
-                  <div class="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                    <svg class="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div class="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
+                    <svg class="w-4 h-4 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                     </svg>
                   </div>

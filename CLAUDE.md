@@ -73,8 +73,26 @@ Use `TaxConfigService` for all UK tax values:
 $nrb = $this->taxConfig->getInheritanceTax()['nil_rate_band'];
 ```
 
-### 4. Form Events
-Use `@save` not `@submit` on form modals (prevents double submission).
+### 4. Form Modal Events
+Form modals use a two-part pattern to prevent double submission:
+1. **Internal form element**: Uses `@submit.prevent="handleSubmit"` to prevent page reload
+2. **Emit to parent**: Handler calls `this.$emit('save', formData)` - always emit `save`, not `submit`
+3. **Parent listens**: Uses `@save="handleSave"` to receive the event
+
+```vue
+<!-- Inside form modal component -->
+<form @submit.prevent="handleSubmit">
+  ...
+</form>
+
+<!-- In methods -->
+handleSubmit() {
+  this.$emit('save', this.formData);  // Emit 'save', not 'submit'
+}
+
+<!-- Parent component using the modal -->
+<AccountForm @save="handleAccountSave" @close="closeModal" />
+```
 
 ### 5. Canonical Enums
 | Type | Values |
@@ -109,6 +127,9 @@ $ownershipMultiplier = $userIsOwner
 
 ### 8. PreviewWriteInterceptor Middleware
 When adding new auth-related POST routes, add them to `EXCLUDED_ROUTES` in `app/Http/Middleware/PreviewWriteInterceptor.php`. This middleware intercepts all write operations from preview users - any route that must work regardless of preview mode state (login, register, password reset) must be excluded.
+
+### 9. No Amber Color
+The amber color (`amber-*`) is banned from the application. Use orange (`orange-*`) instead for warnings and caution states. See `designStyle.md` for the full color system.
 
 ## Deployment
 

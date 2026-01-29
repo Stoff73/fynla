@@ -42,7 +42,7 @@
           <span class="text-sm text-gray-700">State Pension</span>
         </div>
         <div class="flex items-center">
-          <div class="w-3 h-0.5 bg-amber-500 mr-2"></div>
+          <div class="w-3 h-0.5 bg-orange-500 mr-2"></div>
           <span class="text-sm text-gray-700">Target Income</span>
         </div>
       </div>

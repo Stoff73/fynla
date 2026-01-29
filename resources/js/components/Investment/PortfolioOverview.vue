@@ -318,7 +318,7 @@ export default {
       const classes = {
         individual: 'bg-gray-100 text-gray-800',
         joint: 'bg-purple-500 text-white',
-        trust: 'bg-amber-500 text-white',
+        trust: 'bg-orange-500 text-white',
       };
       return classes[type] || 'bg-gray-100 text-gray-800';
     },
@@ -435,7 +435,7 @@ export default {
     getIsaRemainingClass(account) {
       const remaining = this.getIsaRemaining(account);
       if (remaining <= 0) return 'text-red-600';
-      if (remaining < 5000) return 'text-amber-600';
+      if (remaining < 5000) return 'text-orange-600';
       return 'text-green-600';
     },
 

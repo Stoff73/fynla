@@ -48,7 +48,7 @@ describe('CoverageAdequacyGauge', () => {
     expect(color).toMatch(/#10b981|#22c55e|#16a34a/i);
   });
 
-  it('uses amber color for good score (60-79)', () => {
+  it('uses orange color for good score (60-79)', () => {
     const wrapper = mount(CoverageAdequacyGauge, {
       props: {
         score: 70,
@@ -56,8 +56,8 @@ describe('CoverageAdequacyGauge', () => {
     });
 
     const color = wrapper.vm.gaugeColor;
-    // Amber/yellow color hex variations
-    expect(color).toMatch(/#f59e0b|#eab308|#fbbf24/i);
+    // Orange/yellow color hex variations
+    expect(color).toMatch(/#f97316|#ea580c|#fb923c/i);
   });
 
   it('uses red color for critical score (<60)', () => {

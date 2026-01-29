@@ -69,7 +69,7 @@
         <div class="bg-gray-50 rounded-lg p-4">
           <div class="flex items-center justify-between mb-2">
             <h6 class="text-sm font-semibold text-gray-700">Bed & ISA</h6>
-            <svg class="w-5 h-5 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
+            <svg class="w-5 h-5 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M7.707 3.293a1 1 0 010 1.414L5.414 7H11a7 7 0 017 7v2a1 1 0 11-2 0v-2a5 5 0 00-5-5H5.414l2.293 2.293a1 1 0 11-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
             </svg>
           </div>
@@ -172,7 +172,7 @@ export default {
     getEfficiencyColour(score) {
       if (score >= 80) return 'text-green-600';
       if (score >= 60) return 'text-blue-600';
-      if (score >= 40) return 'text-amber-600';
+      if (score >= 40) return 'text-orange-600';
       return 'text-red-600';
     },
 
@@ -185,14 +185,14 @@ export default {
 
     getIsaBarColour(utilization) {
       if (utilization > 100) return 'bg-red-600';
-      if (utilization > 80) return 'bg-amber-600';
+      if (utilization > 80) return 'bg-orange-600';
       return 'bg-blue-600';
     },
 
     getPriorityClass(priority) {
       const classes = {
         high: 'bg-red-600',
-        medium: 'bg-amber-600',
+        medium: 'bg-orange-600',
         low: 'bg-blue-600',
       };
       return classes[priority] || 'bg-gray-600';

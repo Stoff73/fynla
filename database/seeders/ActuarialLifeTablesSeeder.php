@@ -76,8 +76,12 @@ class ActuarialLifeTablesSeeder extends Seeder
             ];
         }
 
-        // Insert all records
-        DB::table('actuarial_life_tables')->insert($records);
+        // Upsert all records (handles re-seeding without duplicates)
+        DB::table('actuarial_life_tables')->upsert(
+            $records,
+            ['age', 'gender', 'table_year'], // Unique key columns
+            ['life_expectancy_years', 'probability_of_death', 'table_source', 'updated_at'] // Columns to update
+        );
 
         $this->command->info('✅ Seeded '.count($records).' actuarial life table records (UK ONS 2020-2022)');
     }

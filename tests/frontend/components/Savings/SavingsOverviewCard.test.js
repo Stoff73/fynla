@@ -40,7 +40,7 @@ describe('SavingsOverviewCard', () => {
     expect(html).toMatch(/text-green|bg-green/);
   });
 
-  it('displays emergency fund runway with amber color (3-6 months)', () => {
+  it('displays emergency fund runway with orange color (3-6 months)', () => {
     const wrapper = mount(SavingsOverviewCard, {
       props: {
         emergencyFundRunway: 4.5,
@@ -52,8 +52,8 @@ describe('SavingsOverviewCard', () => {
 
     const html = wrapper.html();
     expect(wrapper.text()).toContain('4.5');
-    // Should have amber/yellow color for 3-6 months
-    expect(html).toMatch(/text-amber|text-yellow|bg-amber|bg-yellow/);
+    // Should have orange/yellow color for 3-6 months
+    expect(html).toMatch(/text-orange|text-yellow|bg-orange|bg-yellow/);
   });
 
   it('displays emergency fund runway with red color (<3 months)', () => {

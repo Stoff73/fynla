@@ -4,7 +4,7 @@
       'inline-flex items-center gap-1 rounded-full font-medium',
       sizeClasses,
       colorClasses,
-      hasCustomRisk ? 'ring-2 ring-amber-300 ring-offset-1' : ''
+      hasCustomRisk ? 'ring-2 ring-orange-300 ring-offset-1' : ''
     ]"
     :title="tooltipText"
   >
@@ -126,7 +126,7 @@ export default {
         low: 'bg-green-100 text-green-800',
         lower_medium: 'bg-teal-100 text-teal-800',
         medium: 'bg-blue-100 text-blue-800',
-        upper_medium: 'bg-amber-100 text-amber-800',
+        upper_medium: 'bg-orange-100 text-orange-800',
         high: 'bg-red-100 text-red-800',
       };
       return colors[this.normalizedLevel] || 'bg-gray-100 text-gray-800';

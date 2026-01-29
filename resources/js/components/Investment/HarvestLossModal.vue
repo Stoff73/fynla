@@ -7,10 +7,10 @@
       <!-- Modal panel -->
       <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
         <!-- Header -->
-        <div class="bg-amber-500 px-6 py-4">
+        <div class="bg-orange-500 px-6 py-4">
           <div class="flex items-center justify-between">
             <h3 class="text-lg font-semibold text-white">Harvest Tax Loss</h3>
-            <button @click="$emit('close')" class="text-white hover:text-amber-200">
+            <button @click="$emit('close')" class="text-white hover:text-orange-200">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
               </svg>

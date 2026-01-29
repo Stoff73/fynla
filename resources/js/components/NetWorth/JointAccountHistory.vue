@@ -378,8 +378,8 @@ export default {
 }
 
 .log-type.type-mortgage {
-  @apply bg-amber-100;
-  @apply text-amber-700;
+  @apply bg-orange-100;
+  @apply text-orange-700;
 }
 
 .log-type.type-investment {
@@ -400,8 +400,8 @@ export default {
 }
 
 .log-action.update {
-  @apply bg-amber-100;
-  @apply text-amber-700;
+  @apply bg-orange-100;
+  @apply text-orange-700;
 }
 
 .log-action.create {

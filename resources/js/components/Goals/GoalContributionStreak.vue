@@ -114,7 +114,7 @@ export default {
 
     backgroundClass() {
       if (this.streak === 0) return 'bg-gray-50';
-      if (this.streak >= 12) return 'bg-amber-50';
+      if (this.streak >= 12) return 'bg-orange-50';
       if (this.streak >= 6) return 'bg-orange-50';
       if (this.streak >= 3) return 'bg-orange-50';
       return 'bg-yellow-50';
@@ -129,7 +129,7 @@ export default {
 
     numberClass() {
       if (this.streak === 0) return 'text-gray-400';
-      if (this.streak >= 12) return 'text-amber-600';
+      if (this.streak >= 12) return 'text-orange-600';
       if (this.streak >= 6) return 'text-orange-600';
       if (this.streak >= 3) return 'text-orange-500';
       return 'text-yellow-600';
@@ -182,7 +182,7 @@ export default {
     getMeterSegmentClass(position) {
       if (position <= this.streak) {
         // Filled segment
-        if (this.streak >= 12) return 'bg-amber-500';
+        if (this.streak >= 12) return 'bg-orange-500';
         if (this.streak >= 6) return 'bg-orange-500';
         if (this.streak >= 3) return 'bg-orange-400';
         return 'bg-yellow-400';

@@ -105,7 +105,7 @@
           </div>
           <div class="text-center p-4 bg-gray-50 rounded-lg">
             <p class="text-sm text-gray-600 mb-1">Fee Drag (Lost Growth)</p>
-            <p class="text-3xl font-bold text-amber-600">{{ formatCurrency(tenYearFeeDrag) }}</p>
+            <p class="text-3xl font-bold text-orange-600">{{ formatCurrency(tenYearFeeDrag) }}</p>
           </div>
           <div class="text-center p-4 bg-gray-100 rounded-lg border border-gray-300">
             <p class="text-sm text-gray-600 mb-1">Total Impact</p>
@@ -126,7 +126,7 @@
             <span class="text-gray-700">Low: &lt; 0.5%</span>
           </div>
           <div>
-            <span class="inline-block w-3 h-3 rounded-full bg-amber-500 mr-2"></span>
+            <span class="inline-block w-3 h-3 rounded-full bg-orange-500 mr-2"></span>
             <span class="text-gray-700">Medium: 0.5% - 1.5%</span>
           </div>
           <div>
@@ -285,7 +285,7 @@ export default {
 
     getFeeClass(percent) {
       if (percent < 0.5) return 'text-green-600';
-      if (percent < 1.5) return 'text-amber-600';
+      if (percent < 1.5) return 'text-orange-600';
       return 'text-red-600';
     },
   },
