@@ -50,6 +50,7 @@
     <PropertyForm
       v-if="showPropertyForm"
       :property="selectedProperty"
+      :user-address="userAddress"
       @save="handleSaveProperty"
       @close="closePropertyForm"
     />
@@ -103,6 +104,20 @@ export default {
     filteredProperties() {
       // Sort by value (high to low) by default
       return [...this.properties].sort((a, b) => b.current_value - a.current_value);
+    },
+
+    userAddress() {
+      const user = this.$store.state.auth?.user;
+      if (!user) return null;
+      // Only return address if at least one field is populated
+      if (!user.address_line_1 && !user.city && !user.postcode) return null;
+      return {
+        address_line_1: user.address_line_1 || '',
+        address_line_2: user.address_line_2 || '',
+        city: user.city || '',
+        county: user.county || '',
+        postcode: user.postcode || '',
+      };
     },
   },
 

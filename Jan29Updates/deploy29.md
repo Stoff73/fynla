@@ -519,6 +519,42 @@ resources/js/components/Onboarding/steps/FamilyInfoStep.vue
 
 ---
 
+## Auto-Fill Property Address from User Profile
+
+**Branch:** genBits
+
+**Status:** 🔄 Ready for testing
+
+### Description
+
+When adding a new property and selecting "Main Residence" as the property type, the address fields are now automatically populated from the user's profile address (entered during onboarding).
+
+### Behaviour
+
+- Only triggers when adding a **new** property (not when editing)
+- Only triggers when property type is "Main Residence"
+- Only fills if address fields are currently empty
+- Only fills if user has address data in their profile
+
+### Implementation
+
+The PropertyForm component already had the auto-fill logic, but the `userAddress` prop wasn't being passed from PropertyList.vue. Now:
+
+1. PropertyList.vue computes `userAddress` from the auth store
+2. Passes `userAddress` prop to PropertyForm
+3. PropertyForm watcher triggers auto-fill when main_residence is selected
+
+### Files Changed (1 file)
+
+**Frontend (included in build):**
+```text
+resources/js/components/NetWorth/PropertyList.vue
+```
+
+*Note: PropertyForm.vue already had the auto-fill logic. AssetsStep.vue (onboarding) was already passing userAddress correctly.*
+
+---
+
 ## Rebuild Required: YES
 
 Frontend Vue components changed. Full rebuild required:
