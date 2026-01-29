@@ -641,10 +641,10 @@ export default {
       const privateTypes = ['private_company', 'crowdfunding'];
 
       if (employeeShareSchemes.includes(account.account_type)) {
-        return 'Intrinsic Value';
+        return account.account_type === 'rsu' ? 'Grant Value' : 'Exercise Value';
       }
       if (privateTypes.includes(account.account_type)) {
-        return 'Latest Valuation';
+        return 'Valuation';
       }
       return 'Current Value';
     },
@@ -653,42 +653,26 @@ export default {
       const employeeShareSchemes = ['saye', 'csop', 'emi', 'unapproved_options', 'rsu'];
       const privateTypes = ['private_company', 'crowdfunding'];
 
-      // Employee share schemes - calculate intrinsic value
+      // Employee share schemes - calculate from units × price
       if (employeeShareSchemes.includes(account.account_type)) {
-        // If current_value is manually set, use it
-        if (account.current_value && parseFloat(account.current_value) > 0) {
-          return parseFloat(account.current_value);
-        }
-
-        const currentSharePrice = parseFloat(account.current_share_price) || 0;
-        const exercisePrice = parseFloat(account.exercise_price) || 0;
-        const unitsVested = parseFloat(account.units_vested) || 0;
         const unitsGranted = parseFloat(account.units_granted) || 0;
+        const exercisePrice = parseFloat(account.exercise_price) || 0;
+        const marketValueAtGrant = parseFloat(account.market_value_at_grant) || 0;
 
-        // RSUs don't have exercise price - value is shares × price
+        // RSUs: units × market value at grant
         if (account.account_type === 'rsu') {
-          const units = unitsVested > 0 ? unitsVested : unitsGranted;
-          return currentSharePrice * units;
+          return unitsGranted * marketValueAtGrant;
         }
 
-        // Options - intrinsic value is (share price - exercise price) × vested units
-        // Only positive if share price > exercise price (in the money)
-        if (currentSharePrice > exercisePrice) {
-          const units = unitsVested > 0 ? unitsVested : unitsGranted;
-          return (currentSharePrice - exercisePrice) * units;
-        }
-        return 0;
+        // Options (SAYE, CSOP, EMI, Unapproved): units × exercise price
+        return unitsGranted * exercisePrice;
       }
 
-      // Private investments - use latest valuation or current_value
+      // Private investments - use latest valuation or investment amount
       if (privateTypes.includes(account.account_type)) {
         if (account.latest_valuation && parseFloat(account.latest_valuation) > 0) {
           return parseFloat(account.latest_valuation);
         }
-        if (account.current_value && parseFloat(account.current_value) > 0) {
-          return parseFloat(account.current_value);
-        }
-        // Fall back to investment amount if no valuation
         if (account.investment_amount && parseFloat(account.investment_amount) > 0) {
           return parseFloat(account.investment_amount);
         }
