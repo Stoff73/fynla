@@ -434,7 +434,7 @@ resources/js/components/NetWorth/InvestmentDetailInline.vue
 
 **Branch:** investUpdate
 
-**Status:** 🔄 Ready for deployment
+**Status:** ✅ Deployed to production
 
 ### Description
 
