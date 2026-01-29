@@ -3,6 +3,8 @@
   "name": "John Morgan",
   "tagline": "Young professional building first-time buyer savings",
   "description": "A 24-year-old junior data analyst in Manchester, renting and saving for a house deposit. Building emergency fund and using a Lifetime ISA for first home. Student loan from university, workplace pension with NEST.",
+  "netWorthRange": "-£35k to -£30k",
+  "focus": "First home, emergency fund",
 
   "user": {
     "first_name": "John",
