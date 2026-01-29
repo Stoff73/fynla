@@ -132,8 +132,6 @@
 </template>
 
 <script>
-import CountrySelector from '@/components/Shared/CountrySelector.vue';
-import RiskLevelSelector from '@/components/Shared/RiskLevelSelector.vue';
 import PrivateInvestmentFields from './PrivateInvestmentFields.vue';
 import EmployeeShareSchemeFields from './EmployeeShareSchemeFields.vue';
 import StandardInvestmentFields from './StandardInvestmentFields.vue';
@@ -146,8 +144,6 @@ export default {
   mixins: [currencyMixin],
 
   components: {
-    CountrySelector,
-    RiskLevelSelector,
     PrivateInvestmentFields,
     EmployeeShareSchemeFields,
     StandardInvestmentFields,

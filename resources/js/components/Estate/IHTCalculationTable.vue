@@ -622,12 +622,6 @@ export default {
       this.expandedRNRB = !this.expandedRNRB;
     },
 
-    formatLiability(value) {
-      const num = parseFloat(value) || 0;
-      if (num === 0) return this.formatCurrency(0);
-      return `-${this.formatCurrency(num)}`;
-    },
-
     getProjectedValueMinus5(currentValue) {
       return currentValue * Math.pow(1 + this.growthRate, this.yearsToDeathMinus5);
     },

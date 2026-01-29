@@ -180,7 +180,7 @@
 
           <div v-else-if="activePortfolioTab === 'optimization'" class="coming-soon-wrapper">
             <div class="coming-soon-banner">
-              <p class="text-2xl font-bold text-amber-700">Coming Soon</p>
+              <p class="text-2xl font-bold text-orange-700">Coming Soon</p>
             </div>
             <div class="opacity-50">
               <PortfolioOptimization />
@@ -189,7 +189,7 @@
 
           <div v-else-if="activePortfolioTab === 'goals'" class="coming-soon-wrapper">
             <div class="coming-soon-banner">
-              <p class="text-2xl font-bold text-amber-700">Coming Soon</p>
+              <p class="text-2xl font-bold text-orange-700">Coming Soon</p>
             </div>
             <div class="opacity-50">
               <Goals />
@@ -417,7 +417,7 @@ export default {
 
     getPriorityBadgeClass(priority) {
       if (priority <= 2) return 'bg-red-500 text-white';
-      if (priority <= 3) return 'bg-amber-500 text-white';
+      if (priority <= 3) return 'bg-orange-500 text-white';
       return 'bg-blue-500 text-white';
     },
 
@@ -976,8 +976,8 @@ export default {
 }
 
 .badge-trust {
-  @apply bg-amber-100;
-  @apply text-amber-800;
+  @apply bg-orange-100;
+  @apply text-orange-800;
 }
 
 .badge-isa {
@@ -1302,8 +1302,8 @@ export default {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%) rotate(-12deg);
-  @apply bg-amber-100;
-  @apply border-2 border-amber-500;
+  @apply bg-orange-100;
+  @apply border-2 border-orange-500;
   border-radius: 8px;
   padding: 16px 32px;
   z-index: 10;

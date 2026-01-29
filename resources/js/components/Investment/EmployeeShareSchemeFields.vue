@@ -610,6 +610,8 @@ export default {
     },
   },
 
+  emits: ['update:modelValue'],
+
   computed: {
     isOptionsScheme() {
       return ['saye', 'csop', 'emi', 'unapproved_options'].includes(this.schemeType);

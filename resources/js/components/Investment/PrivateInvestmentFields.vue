@@ -654,6 +654,8 @@ export default {
     },
   },
 
+  emits: ['update:modelValue'],
+
   computed: {
     requiresTaxReliefTracking() {
       return ['eis', 'seis', 'sitr', 'vct'].includes(this.modelValue.tax_relief_type);

@@ -30,7 +30,7 @@
 </template>
 
 <script>
-import currencyMixin from '@/mixins/currencyMixin';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'ExpenditureSection',
@@ -65,14 +65,5 @@ export default {
   },
 
   emits: ['toggle'],
-
-  computed: {
-    computedHouseholdTotal() {
-      if (this.householdTotal !== null) {
-        return this.householdTotal;
-      }
-      return this.userTotal + (this.isMarried ? this.spouseTotal : 0);
-    },
-  },
 };
 </script>

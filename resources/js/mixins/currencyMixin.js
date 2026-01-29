@@ -186,6 +186,17 @@ export const currencyMixin = {
       if (value == null || isNaN(value)) return '0';
       return Number(value).toLocaleString('en-GB');
     },
+
+    /**
+     * Format a liability value with negative sign prefix
+     * @param {number|null|undefined} value - The liability amount to format
+     * @returns {string} Formatted liability string (e.g., "-£1,234")
+     */
+    formatLiability(value) {
+      const num = parseFloat(value) || 0;
+      if (num === 0) return this.formatCurrency(0);
+      return `-${this.formatCurrency(num)}`;
+    },
   },
 };
 

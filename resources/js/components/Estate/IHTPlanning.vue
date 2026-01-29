@@ -1258,12 +1258,6 @@ export default {
   methods: {
     ...mapActions('estate', ['calculateIHT', 'calculateSecondDeathIHTPlanning']),
 
-    formatLiability(value) {
-      const num = parseFloat(value) || 0;
-      if (num === 0) return this.formatCurrency(0);
-      return `-${this.formatCurrency(num)}`;
-    },
-
     toggleAllowances() {
       this.expandedAllowances = !this.expandedAllowances;
     },
@@ -1411,103 +1405,6 @@ export default {
         this.error = error.message || 'Failed to calculate Inheritance Tax liability';
       } finally {
         this.loading = false;
-      }
-    },
-
-    computePreviewIHTData() {
-      // Get preview data from estate store
-      const estateState = this.$store.state.estate;
-      const previewData = this.$store.state.preview?.personaData;
-
-      // Calculate total assets
-      const assetsValue = estateState.assets.reduce((sum, a) => sum + parseFloat(a.current_value || 0), 0);
-      const investmentsValue = estateState.investmentAccounts.reduce((sum, i) => sum + parseFloat(i.current_value || 0), 0);
-      const totalAssets = assetsValue + investmentsValue;
-
-      // Calculate total liabilities
-      const totalLiabilities = estateState.liabilities.reduce((sum, l) => sum + parseFloat(l.current_balance || 0), 0);
-
-      // Calculate net estate
-      const netEstate = totalAssets - totalLiabilities;
-
-      // IHT allowances (UK 2025/26)
-      const nrb = 325000; // Nil Rate Band
-      const hasMainResidence = estateState.assets.some(a => a.asset_type === 'property');
-      const rnrb = hasMainResidence ? 175000 : 0; // Residence Nil Rate Band
-      const totalAllowance = nrb + rnrb;
-
-      // Calculate taxable estate and IHT liability
-      const taxableEstate = Math.max(0, netEstate - totalAllowance);
-      const ihtLiability = taxableEstate * 0.40;
-
-      // Get user data for age calculations
-      const user = previewData?.user;
-      const userAge = user?.age || 40;
-      const estimatedDeathAge = user?.gender === 'female' ? 84 : 81;
-      const yearsToDeathVal = estimatedDeathAge - userAge;
-
-      // Calculate projected values (4.7% annual growth assumption)
-      const growthRate = 0.047;
-      const projectedNetEstate = netEstate * Math.pow(1 + growthRate, yearsToDeathVal);
-      const projectedTaxableEstate = Math.max(0, projectedNetEstate - totalAllowance);
-      const projectedIHTLiability = projectedTaxableEstate * 0.40;
-
-      // Set ihtData for display
-      this.ihtData = {
-        net_estate_value: netEstate,
-        gross_estate_value: totalAssets,
-        nrb_available: nrb,
-        nrb: nrb,
-        rnrb_available: rnrb,
-        rnrb_eligible: hasMainResidence,
-        total_allowance: totalAllowance,
-        taxable_estate: taxableEstate,
-        estate_iht_liability: ihtLiability,
-        iht_liability: ihtLiability,
-        iht_rate: 0.40,
-        liabilities: totalLiabilities,
-        estimated_age_at_death: estimatedDeathAge,
-        years_to_death: yearsToDeathVal,
-      };
-
-      // Set projection data for display
-      this.projection = {
-        now: {
-          net_estate: netEstate,
-          taxable_estate: taxableEstate,
-          iht_liability: ihtLiability,
-          assets: totalAssets,
-          liabilities: totalLiabilities,
-        },
-        at_death: {
-          net_estate: projectedNetEstate,
-          taxable_estate: projectedTaxableEstate,
-          iht_liability: projectedIHTLiability,
-          years_to_death: yearsToDeathVal,
-          estimated_age_at_death: estimatedDeathAge,
-          assets: totalAssets * Math.pow(1 + growthRate, yearsToDeathVal),
-          liabilities: 0, // Assume paid off
-        },
-      };
-
-      // Set isMarried based on preview data
-      this.isMarried = previewData?.user?.marital_status === 'married';
-      // Widowed and divorced users should not see spouse options
-      const excludedStatuses = ['widowed', 'divorced'];
-      const maritalStatus = previewData?.user?.marital_status;
-      this.hasSpouse = !!previewData?.spouse && !excludedStatuses.includes(maritalStatus);
-
-      // For married users in preview, set secondDeathData with basic structure
-      if (this.isMarried) {
-        this.secondDeathData = {
-          success: true,
-          spouse_exemption_message: 'In preview mode, assets passing to spouse are exempt from Inheritance Tax. Inheritance Tax would only apply on second death.',
-          data_sharing_enabled: true,
-          will_info: {
-            has_will: previewData?.user?.has_will || false,
-          },
-        };
-        this.showSpouseExemptionNotice = true;
       }
     },
 

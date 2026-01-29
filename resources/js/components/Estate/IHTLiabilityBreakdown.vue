@@ -179,12 +179,6 @@ export default {
       return !!this.expandedLiabilities[key];
     },
 
-    formatLiability(value) {
-      const num = parseFloat(value) || 0;
-      if (num === 0) return this.formatCurrency(0);
-      return `-${this.formatCurrency(num)}`;
-    },
-
     liabilityGroupTotal(liabilities, field) {
       return (liabilities || []).reduce((sum, l) => sum + (parseFloat(l[field]) || 0), 0);
     },
