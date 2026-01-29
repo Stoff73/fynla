@@ -471,7 +471,7 @@ resources/js/components/Risk/RiskProfileSummary.vue
 
 **Branch:** genBits
 
-**Status:** 🔄 Ready for testing
+**Status:** ✅ Deployed to production
 
 ### Description
 
@@ -523,7 +523,7 @@ resources/js/components/Onboarding/steps/FamilyInfoStep.vue
 
 **Branch:** genBits
 
-**Status:** 🔄 Ready for testing
+**Status:** ✅ Deployed to production
 
 ### Description
 
@@ -559,7 +559,7 @@ resources/js/components/NetWorth/PropertyList.vue
 
 **Branch:** genBits
 
-**Status:** 🔄 Ready for testing
+**Status:** ✅ Deployed to production
 
 ### Description
 
@@ -587,7 +587,7 @@ app/Services/Protection/ComprehensiveProtectionPlanService.php
 
 **Branch:** genBits
 
-**Status:** 🔄 Ready for testing
+**Status:** ✅ Deployed to production
 
 ### Description
 
@@ -646,7 +646,7 @@ resources/js/store/modules/onboarding.js
 
 **Branch:** genBits
 
-**Status:** 🔄 Ready for testing
+**Status:** ✅ Deployed to production
 
 ### Description
 
