@@ -187,6 +187,7 @@ const actions = {
       const result = response.data;
 
       commit('SET_PROGRESS_PERCENTAGE', result.progress_percentage);
+      commit('ADD_SKIPPED_STEP', stepName);
       commit('HIDE_SKIP_MODAL');
 
       return result;
@@ -350,6 +351,13 @@ const mutations = {
 
   SET_ERROR(state, error) {
     state.error = error;
+  },
+
+  ADD_SKIPPED_STEP(state, stepName) {
+    if (!state.skippedSteps.includes(stepName)) {
+      state.skippedSteps.push(stepName);
+      state.hasSkippedSteps = true;
+    }
   },
 
   SHOW_SKIP_MODAL(state, { stepName, reason }) {
