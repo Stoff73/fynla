@@ -1356,7 +1356,7 @@ resources/js/components/Estate/IHTPlanning.vue
 
 **Branch:** techDebt
 
-**Status:** ⏳ Awaiting deployment
+**Status:** ✅ Deployed to production
 
 ### Description
 

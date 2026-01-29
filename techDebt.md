@@ -12,23 +12,6 @@ This file tracks technical debt items that should be addressed in future develop
 
 ## Medium Priority
 
-### 2. Investment AccountForm.vue - Large Component
-
-**File:** `resources/js/components/Investment/AccountForm.vue`
-
-**Issue:** The account form component handles too many account types with extensive conditional rendering. Adding Employee Share Schemes and Private Investments made it even larger.
-
-**Recommended Fix:**
-- Extract account-type-specific form sections into separate components
-- Use a factory pattern or composition to load relevant sections
-- Consider separate form components for major account type categories
-
-**Estimated Effort:** 6-8 hours
-
-**Date Added:** 2026-01-29
-
----
-
 ### 3. Expenditure Form - Complex State Management
 
 **File:** `resources/js/components/UserProfile/ExpenditureForm.vue`
@@ -86,6 +69,28 @@ This file tracks technical debt items that should be addressed in future develop
 ---
 
 ## Completed
+
+### 2. Investment AccountForm.vue - Large Component ✅
+
+**Resolved:** 2026-01-29
+
+**Resolution:** Extracted the three major account-type-specific sections into separate child components:
+- `PrivateInvestmentFields.vue` (~650 lines) - Private Company, Crowdfunding
+- `EmployeeShareSchemeFields.vue` (~600 lines) - SAYE, CSOP, EMI, Unapproved Options, RSU
+- `StandardInvestmentFields.vue` (~400 lines) - ISA, GIA, Bonds, VCT, EIS, NS&I, Other
+
+**Results:**
+- AccountForm.vue reduced from ~2,643 to ~1,007 lines (62% reduction)
+- Each child component uses v-model pattern for two-way data binding
+- Adding new account types is now simpler
+- Changes to one account type category won't affect others
+
+**Files Created:**
+- `resources/js/components/Investment/PrivateInvestmentFields.vue`
+- `resources/js/components/Investment/EmployeeShareSchemeFields.vue`
+- `resources/js/components/Investment/StandardInvestmentFields.vue`
+
+---
 
 ### 1. IHTPlanning.vue - Duplicate Tables ✅
 
