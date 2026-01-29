@@ -88,6 +88,55 @@ resources/js/components/UserProfile/ExpenditureForm.vue
 
 ---
 
+## Private Company & Crowdfunding Investments
+
+**Branch:** investUpdate
+
+**Status:** Ready for deployment
+
+### Description
+
+Added Private Company and Crowdfunding investment types to the Investment module with comprehensive tracking for company details, investment terms, UK tax relief (EIS/SEIS/SITR/VCT), ownership structure, and exit tracking.
+
+### Changes Made
+
+| Change | Description |
+|--------|-------------|
+| New account types | Added "Private Company" and "Crowdfunding Investment" to account type dropdown |
+| Company details section | Legal name, trading name, registration number, sector, website, crowdfunding platform |
+| Investment details section | Investment date, amount, funding round, instrument type, shares, valuations |
+| Ownership & legal section | Share class, voting/dividend rights, nominee structure, anti-dilution |
+| UK tax relief section | EIS/SEIS/SITR/VCT tracking, certificate numbers, HMRC reference, relief claimed |
+| Status & valuation section | Company status, latest valuation, ownership percentage |
+| Exit details section | Exit type, date, proceeds, fees, loss relief tracking |
+| Auto-calculated fields | Disposal restriction date (3 years from investment for EIS/SEIS) |
+
+### Database Migration
+
+New migration: `2026_01_29_082107_add_private_investment_fields_to_investment_accounts_table.php`
+
+Adds 40+ new columns to `investment_accounts` table for private investment tracking.
+
+### Files Changed (4 files)
+
+**Database:**
+```text
+database/migrations/2026_01_29_082107_add_private_investment_fields_to_investment_accounts_table.php
+```
+
+**Backend:**
+```text
+app/Models/Investment/InvestmentAccount.php
+app/Http/Controllers/Api/InvestmentController.php
+```
+
+**Frontend:**
+```text
+resources/js/components/Investment/AccountForm.vue
+```
+
+---
+
 ## Rebuild Required: YES
 
 Frontend Vue components changed. Full rebuild required.
@@ -177,10 +226,47 @@ After deployment, verify:
    - Click Edit
    - Verify same UI layout and behaviour as onboarding
 
+8. **Private Company Investment** (Investment module):
+   - Navigate to Net Worth > Investments tab
+   - Click "Add Account" and select "Private Company"
+   - Verify Provider, Country, Platform fields are hidden
+   - Verify Company Details section appears with Legal Name, Trading Name, Registration Number, Sector, Website
+   - Verify Investment Details section with Date, Amount, Funding Round, Instrument Type, Shares, Valuations
+   - Verify Ownership & Legal section with Share Class, Holding Structure, Voting/Dividend Rights checkboxes
+   - Verify UK Tax Relief section (blue box) with Relief Type dropdown, Certificate fields
+   - Verify Status & Valuation section with Company Status, Latest Valuation
+
+9. **Crowdfunding Investment** (Investment module):
+   - Click "Add Account" and select "Crowdfunding Investment"
+   - Verify all Private Company sections appear
+   - Verify additional "Crowdfunding Platform" dropdown appears in Company Details section
+   - Submit with Seedrs as platform and verify it saves
+
+10. **EIS Tax Relief** (Investment module):
+    - Add a Private Company investment
+    - Select "EIS (30% relief)" as Tax Relief Type
+    - Enter investment date
+    - Save the investment
+    - Edit the investment and verify Disposal Restriction Date is auto-calculated (3 years from investment date)
+
+11. **Exit Tracking** (Investment module):
+    - Edit a Private Company investment
+    - Change Company Status to "Exited"
+    - Verify Exit Details section appears
+    - Verify Exit Type, Date, Gross Proceeds, Fees, Net Proceeds fields
+    - Verify Loss Relief Eligible and Negligible Value Claim checkboxes
+
 ---
 
 ## Rollback
 
-If issues occur, restore previous `public/build/` directory from backup.
+If issues occur:
+
+1. Restore previous `public/build/` directory from backup
+2. Restore previous PHP files from backup
+3. If database migration was run, rollback with:
+   ```bash
+   php artisan migrate:rollback --step=1
+   ```
 
 ---

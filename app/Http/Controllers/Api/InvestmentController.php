@@ -267,9 +267,9 @@ class InvestmentController extends Controller
     public function storeAccount(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'account_type' => ['required', Rule::in(['isa', 'gia', 'nsi', 'onshore_bond', 'offshore_bond', 'vct', 'eis', 'other'])],
+            'account_type' => ['required', Rule::in(['isa', 'gia', 'nsi', 'onshore_bond', 'offshore_bond', 'vct', 'eis', 'private_company', 'crowdfunding', 'other'])],
             'account_type_other' => 'required_if:account_type,other|nullable|string|max:255',
-            'provider' => 'required|string|max:255',
+            'provider' => 'required_unless:account_type,private_company,crowdfunding|nullable|string|max:255',
             'account_number' => 'nullable|string|max:255',
             'platform' => 'nullable|string|max:255',
             'current_value' => 'required|numeric|min:0',
@@ -292,6 +292,54 @@ class InvestmentController extends Controller
             'planned_lump_sum_date' => 'nullable|date',
             'country' => 'nullable|string|max:255',
             'risk_preference' => 'nullable|string|max:50',
+            // Private Company / Crowdfunding fields
+            'company_legal_name' => 'required_if:account_type,private_company,crowdfunding|nullable|string|max:255',
+            'company_registration_number' => 'nullable|string|max:50',
+            'company_country' => 'nullable|string|max:100',
+            'company_website' => 'nullable|url|max:255',
+            'company_trading_name' => 'nullable|string|max:255',
+            'company_sector' => 'nullable|string|max:100',
+            'crowdfunding_platform' => 'required_if:account_type,crowdfunding|nullable|string|max:255',
+            'investment_date' => 'required_if:account_type,private_company,crowdfunding|nullable|date',
+            'investment_amount' => 'required_if:account_type,private_company,crowdfunding|nullable|numeric|min:0',
+            'investment_currency' => 'nullable|string|size:3',
+            'funding_round' => ['nullable', Rule::in(['pre_seed', 'seed', 'series_a', 'series_b', 'series_c', 'bridge', 'safe', 'other'])],
+            'pre_money_valuation' => 'nullable|numeric|min:0',
+            'post_money_valuation' => 'nullable|numeric|min:0',
+            'price_per_share' => 'nullable|numeric|min:0',
+            'number_of_shares' => 'nullable|integer|min:0',
+            'instrument_type' => ['required_if:account_type,private_company,crowdfunding', 'nullable', Rule::in(['ordinary_shares', 'preference_shares', 'convertible_loan_note', 'safe', 'revenue_share', 'fund_nominee_interest'])],
+            'share_class' => 'nullable|string|max:100',
+            'has_voting_rights' => 'nullable|boolean',
+            'has_dividend_rights' => 'nullable|boolean',
+            'liquidation_preference' => 'nullable|string|max:100',
+            'has_anti_dilution' => 'nullable|boolean',
+            'holding_structure' => ['nullable', Rule::in(['direct', 'nominee'])],
+            'nominee_name' => 'required_if:holding_structure,nominee|nullable|string|max:255',
+            'conversion_terms' => 'nullable|string',
+            'interest_rate' => 'nullable|numeric|min:0|max:100',
+            'maturity_date' => 'nullable|date',
+            'tax_relief_type' => ['nullable', Rule::in(['eis', 'seis', 'sitr', 'vct', 'none'])],
+            'eis3_certificate_number' => 'nullable|string|max:50',
+            'hmrc_reference' => 'nullable|string|max:50',
+            'relief_claimed_date' => 'nullable|date',
+            'relief_amount_claimed' => 'nullable|numeric|min:0',
+            'clawback_risk' => 'nullable|boolean',
+            'clawback_notes' => 'nullable|string',
+            'latest_valuation' => 'nullable|numeric|min:0',
+            'latest_valuation_date' => 'nullable|date',
+            'current_ownership_percent' => 'nullable|numeric|min:0|max:100',
+            'company_status' => ['nullable', Rule::in(['active', 'distressed', 'dormant', 'failed', 'exited'])],
+            'status_notes' => 'nullable|string',
+            'exit_type' => ['nullable', Rule::in(['acquisition', 'secondary_sale', 'buyback', 'ipo', 'liquidation'])],
+            'exit_date' => 'nullable|date',
+            'exit_gross_proceeds' => 'nullable|numeric|min:0',
+            'exit_fees' => 'nullable|numeric|min:0',
+            'exit_net_proceeds' => 'nullable|numeric|min:0',
+            'exit_moic' => 'nullable|numeric|min:0',
+            'loss_relief_eligible' => 'nullable|boolean',
+            'capital_loss_amount' => 'nullable|numeric|min:0',
+            'negligible_value_claim' => 'nullable|boolean',
         ]);
 
         $user = $request->user();
@@ -320,6 +368,15 @@ class InvestmentController extends Controller
         $riskProfile = RiskProfile::where('user_id', $user->id)->first();
         if ($riskProfile && $riskProfile->risk_level) {
             $validated['risk_preference'] = $riskProfile->risk_level;
+        }
+
+        // Auto-calculate disposal restriction date for EIS/SEIS (3-year holding period)
+        if (in_array($validated['account_type'], ['private_company', 'crowdfunding'])
+            && isset($validated['tax_relief_type'])
+            && in_array($validated['tax_relief_type'], ['eis', 'seis', 'sitr'])
+            && isset($validated['investment_date'])) {
+            $investmentDate = \Carbon\Carbon::parse($validated['investment_date']);
+            $validated['disposal_restriction_date'] = $investmentDate->addYears(3)->format('Y-m-d');
         }
 
         $account = InvestmentAccount::create($validated);
@@ -368,7 +425,7 @@ class InvestmentController extends Controller
             ->firstOrFail();
 
         $validated = $request->validate([
-            'account_type' => ['nullable', Rule::in(['isa', 'gia', 'nsi', 'onshore_bond', 'offshore_bond', 'vct', 'eis', 'other'])],
+            'account_type' => ['nullable', Rule::in(['isa', 'gia', 'nsi', 'onshore_bond', 'offshore_bond', 'vct', 'eis', 'private_company', 'crowdfunding', 'other'])],
             'account_type_other' => 'required_if:account_type,other|nullable|string|max:255',
             'provider' => 'nullable|string|max:255',
             'account_number' => 'nullable|string|max:255',
@@ -392,6 +449,55 @@ class InvestmentController extends Controller
             'planned_lump_sum_date' => 'nullable|date',
             'country' => 'nullable|string|max:255',
             'risk_preference' => 'nullable|string|max:50',
+            // Private Company / Crowdfunding fields
+            'company_legal_name' => 'nullable|string|max:255',
+            'company_registration_number' => 'nullable|string|max:50',
+            'company_country' => 'nullable|string|max:100',
+            'company_website' => 'nullable|url|max:255',
+            'company_trading_name' => 'nullable|string|max:255',
+            'company_sector' => 'nullable|string|max:100',
+            'crowdfunding_platform' => 'nullable|string|max:255',
+            'investment_date' => 'nullable|date',
+            'investment_amount' => 'nullable|numeric|min:0',
+            'investment_currency' => 'nullable|string|size:3',
+            'funding_round' => ['nullable', Rule::in(['pre_seed', 'seed', 'series_a', 'series_b', 'series_c', 'bridge', 'safe', 'other'])],
+            'pre_money_valuation' => 'nullable|numeric|min:0',
+            'post_money_valuation' => 'nullable|numeric|min:0',
+            'price_per_share' => 'nullable|numeric|min:0',
+            'number_of_shares' => 'nullable|integer|min:0',
+            'instrument_type' => ['nullable', Rule::in(['ordinary_shares', 'preference_shares', 'convertible_loan_note', 'safe', 'revenue_share', 'fund_nominee_interest'])],
+            'share_class' => 'nullable|string|max:100',
+            'has_voting_rights' => 'nullable|boolean',
+            'has_dividend_rights' => 'nullable|boolean',
+            'liquidation_preference' => 'nullable|string|max:100',
+            'has_anti_dilution' => 'nullable|boolean',
+            'holding_structure' => ['nullable', Rule::in(['direct', 'nominee'])],
+            'nominee_name' => 'nullable|string|max:255',
+            'conversion_terms' => 'nullable|string',
+            'interest_rate' => 'nullable|numeric|min:0|max:100',
+            'maturity_date' => 'nullable|date',
+            'tax_relief_type' => ['nullable', Rule::in(['eis', 'seis', 'sitr', 'vct', 'none'])],
+            'eis3_certificate_number' => 'nullable|string|max:50',
+            'hmrc_reference' => 'nullable|string|max:50',
+            'relief_claimed_date' => 'nullable|date',
+            'relief_amount_claimed' => 'nullable|numeric|min:0',
+            'disposal_restriction_date' => 'nullable|date',
+            'clawback_risk' => 'nullable|boolean',
+            'clawback_notes' => 'nullable|string',
+            'latest_valuation' => 'nullable|numeric|min:0',
+            'latest_valuation_date' => 'nullable|date',
+            'current_ownership_percent' => 'nullable|numeric|min:0|max:100',
+            'company_status' => ['nullable', Rule::in(['active', 'distressed', 'dormant', 'failed', 'exited'])],
+            'status_notes' => 'nullable|string',
+            'exit_type' => ['nullable', Rule::in(['acquisition', 'secondary_sale', 'buyback', 'ipo', 'liquidation'])],
+            'exit_date' => 'nullable|date',
+            'exit_gross_proceeds' => 'nullable|numeric|min:0',
+            'exit_fees' => 'nullable|numeric|min:0',
+            'exit_net_proceeds' => 'nullable|numeric|min:0',
+            'exit_moic' => 'nullable|numeric|min:0',
+            'loss_relief_eligible' => 'nullable|boolean',
+            'capital_loss_amount' => 'nullable|numeric|min:0',
+            'negligible_value_claim' => 'nullable|boolean',
         ]);
 
         // Log joint account update if applicable
