@@ -642,6 +642,36 @@ resources/js/store/modules/onboarding.js
 
 ---
 
+## Risk Factor Detail Views - Remove Explanation Cards
+
+**Branch:** genBits
+
+**Status:** 🔄 Ready for testing
+
+### Description
+
+Removed the "What, Why and How" explanation cards from the bottom of all risk factor detail views in Valuable Info > Risk tab. These cards were redundant as the information is already conveyed in the threshold levels.
+
+### Before
+
+- Each risk factor detail page had a card at the bottom with "What", "Why", and "How" explanations
+- For capacity_for_loss, included formula in "How" section
+- For other factors, included "What" and "Why" sections
+
+### After
+
+- Explanation cards removed from all risk factor detail views
+- Pages now end with the "Threshold Levels" card
+
+### Files Changed (1 file)
+
+**Frontend (included in build):**
+```text
+resources/js/views/Risk/RiskFactorDetailPage.vue
+```
+
+---
+
 ## Rebuild Required: YES
 
 Frontend Vue components changed. Full rebuild required:
