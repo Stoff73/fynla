@@ -97,23 +97,6 @@
             </div>
           </div>
 
-          <!-- Concise Explanation -->
-          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <div class="space-y-4">
-              <div>
-                <h4 class="text-sm font-semibold text-gray-700 mb-1">What</h4>
-                <p class="text-sm text-gray-600">{{ factorExplanation.what }}</p>
-              </div>
-              <div>
-                <h4 class="text-sm font-semibold text-gray-700 mb-1">Why</h4>
-                <p class="text-sm text-gray-600">{{ factorExplanation.why }}</p>
-              </div>
-              <div>
-                <h4 class="text-sm font-semibold text-gray-700 mb-1">How</h4>
-                <p class="text-sm text-gray-600 font-mono text-xs">{{ factorExplanation.how }}</p>
-              </div>
-            </div>
-          </div>
         </template>
 
         <!-- ALL OTHER FACTORS: Custom concise views -->
@@ -322,19 +305,6 @@
             </div>
           </div>
 
-          <!-- Concise Explanation -->
-          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <div class="space-y-4">
-              <div>
-                <h4 class="text-sm font-semibold text-gray-700 mb-1">What</h4>
-                <p class="text-sm text-gray-600">{{ factorExplanation.what }}</p>
-              </div>
-              <div>
-                <h4 class="text-sm font-semibold text-gray-700 mb-1">Why</h4>
-                <p class="text-sm text-gray-600">{{ factorExplanation.why }}</p>
-              </div>
-            </div>
-          </div>
         </template>
       </template>
 
