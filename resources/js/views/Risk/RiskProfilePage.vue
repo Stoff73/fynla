@@ -140,14 +140,14 @@
         </div>
 
         <!-- Section 4: Override Notice -->
-        <div class="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
+        <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
           <div class="flex items-start gap-3">
-            <svg class="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg class="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <div>
-              <p class="text-sm font-medium text-orange-800">Product-Level Overrides</p>
-              <p class="text-sm text-orange-700 mt-1">
+              <p class="text-sm font-medium text-green-800">Product-Level Overrides</p>
+              <p class="text-sm text-green-700 mt-1">
                 When adding investments or pensions, you can choose any risk level for that specific product.
                 This allows flexibility for individual products based on their purpose and time horizon.
               </p>
@@ -242,22 +242,22 @@ export default {
 
     riskLevelBgClass() {
       const classes = {
-        low: 'bg-green-100',
-        lower_medium: 'bg-teal-100',
-        medium: 'bg-blue-100',
-        upper_medium: 'bg-orange-100',
-        high: 'bg-red-100',
+        low: 'bg-yellow-100',
+        lower_medium: 'bg-pink-100',
+        medium: 'bg-green-100',
+        upper_medium: 'bg-teal-100',
+        high: 'bg-blue-100',
       };
       return classes[this.riskLevel] || 'bg-gray-100';
     },
 
     riskLevelTextClass() {
       const classes = {
-        low: 'text-green-600',
-        lower_medium: 'text-teal-600',
-        medium: 'text-blue-600',
-        upper_medium: 'text-orange-600',
-        high: 'text-red-600',
+        low: 'text-yellow-600',
+        lower_medium: 'text-pink-600',
+        medium: 'text-green-600',
+        upper_medium: 'text-teal-600',
+        high: 'text-blue-600',
       };
       return classes[this.riskLevel] || 'text-gray-600';
     },
@@ -357,11 +357,11 @@ export default {
 
     getLevelBadgeClass(level) {
       const classes = {
-        low: 'bg-green-100 text-green-800',
-        lower_medium: 'bg-teal-100 text-teal-800',
-        medium: 'bg-blue-100 text-blue-800',
-        upper_medium: 'bg-orange-100 text-orange-800',
-        high: 'bg-red-100 text-red-800',
+        low: 'bg-yellow-100 text-yellow-800',
+        lower_medium: 'bg-pink-100 text-pink-800',
+        medium: 'bg-green-100 text-green-800',
+        upper_medium: 'bg-teal-100 text-teal-800',
+        high: 'bg-blue-100 text-blue-800',
       };
       return classes[level] || 'bg-gray-100 text-gray-800';
     },

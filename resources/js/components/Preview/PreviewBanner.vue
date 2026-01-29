@@ -145,8 +145,10 @@ export default {
                 peak_earners: 'bg-gradient-to-r from-green-500 to-green-600',
                 widow: 'bg-gradient-to-r from-purple-500 to-purple-600',
                 entrepreneur: 'bg-gradient-to-r from-orange-500 to-orange-600',
+                young_saver: 'bg-gradient-to-r from-cyan-500 to-cyan-600',
+                retired_couple: 'bg-gradient-to-r from-rose-500 to-rose-600',
             };
-            return colors[this.currentPersonaId] || 'bg-gradient-to-r from-orange-500 to-orange-600';
+            return colors[this.currentPersonaId] || 'bg-gradient-to-r from-gray-500 to-gray-600';
         },
 
         buttonColorClass() {
@@ -155,8 +157,10 @@ export default {
                 peak_earners: 'text-green-100 hover:text-white',
                 widow: 'text-purple-100 hover:text-white',
                 entrepreneur: 'text-orange-100 hover:text-white',
+                young_saver: 'text-cyan-100 hover:text-white',
+                retired_couple: 'text-rose-100 hover:text-white',
             };
-            return colors[this.currentPersonaId] || 'text-orange-100 hover:text-white';
+            return colors[this.currentPersonaId] || 'text-gray-100 hover:text-white';
         },
 
         registerButtonClass() {
@@ -165,8 +169,10 @@ export default {
                 peak_earners: 'bg-white text-green-600 hover:bg-green-50',
                 widow: 'bg-white text-purple-600 hover:bg-purple-50',
                 entrepreneur: 'bg-white text-orange-600 hover:bg-orange-50',
+                young_saver: 'bg-white text-cyan-600 hover:bg-cyan-50',
+                retired_couple: 'bg-white text-rose-600 hover:bg-rose-50',
             };
-            return colors[this.currentPersonaId] || 'bg-white text-orange-600 hover:bg-orange-50';
+            return colors[this.currentPersonaId] || 'bg-white text-gray-600 hover:bg-gray-50';
         },
 
         loadingTextClass() {
@@ -175,8 +181,10 @@ export default {
                 peak_earners: 'text-green-100',
                 widow: 'text-purple-100',
                 entrepreneur: 'text-orange-100',
+                young_saver: 'text-cyan-100',
+                retired_couple: 'text-rose-100',
             };
-            return colors[this.currentPersonaId] || 'text-orange-100';
+            return colors[this.currentPersonaId] || 'text-gray-100';
         },
     },
 

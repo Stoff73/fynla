@@ -4,7 +4,7 @@
       'inline-flex items-center gap-1 rounded-full font-medium',
       sizeClasses,
       colorClasses,
-      hasCustomRisk ? 'ring-2 ring-orange-300 ring-offset-1' : ''
+      hasCustomRisk ? 'ring-2 ring-blue-300 ring-offset-1' : ''
     ]"
     :title="tooltipText"
   >
@@ -123,11 +123,11 @@ export default {
 
     colorClasses() {
       const colors = {
-        low: 'bg-green-100 text-green-800',
-        lower_medium: 'bg-teal-100 text-teal-800',
-        medium: 'bg-blue-100 text-blue-800',
-        upper_medium: 'bg-orange-100 text-orange-800',
-        high: 'bg-red-100 text-red-800',
+        low: 'bg-yellow-100 text-yellow-800',
+        lower_medium: 'bg-pink-100 text-pink-800',
+        medium: 'bg-green-100 text-green-800',
+        upper_medium: 'bg-teal-100 text-teal-800',
+        high: 'bg-blue-100 text-blue-800',
       };
       return colors[this.normalizedLevel] || 'bg-gray-100 text-gray-800';
     },

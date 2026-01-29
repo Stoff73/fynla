@@ -167,6 +167,8 @@ const actions = {
 
       commit('UPDATE_STEP_DATA', { stepName, data });
       commit('SET_PROGRESS_PERCENTAGE', result.progress_percentage);
+      // If step was previously skipped, mark it as completed now
+      commit('REMOVE_SKIPPED_STEP', stepName);
 
       return result;
     } catch (error) {
@@ -187,6 +189,7 @@ const actions = {
       const result = response.data;
 
       commit('SET_PROGRESS_PERCENTAGE', result.progress_percentage);
+      commit('ADD_SKIPPED_STEP', stepName);
       commit('HIDE_SKIP_MODAL');
 
       return result;
@@ -350,6 +353,21 @@ const mutations = {
 
   SET_ERROR(state, error) {
     state.error = error;
+  },
+
+  ADD_SKIPPED_STEP(state, stepName) {
+    if (!state.skippedSteps.includes(stepName)) {
+      state.skippedSteps.push(stepName);
+      state.hasSkippedSteps = true;
+    }
+  },
+
+  REMOVE_SKIPPED_STEP(state, stepName) {
+    const index = state.skippedSteps.indexOf(stepName);
+    if (index > -1) {
+      state.skippedSteps.splice(index, 1);
+      state.hasSkippedSteps = state.skippedSteps.length > 0;
+    }
   },
 
   SHOW_SKIP_MODAL(state, { stepName, reason }) {

@@ -25,7 +25,7 @@
             'whitespace-nowrap py-3 px-1 border-b-2 font-medium text-body-sm'
           ]"
         >
-          Retired Budget
+          Budget at Retirement
         </button>
         <button
           v-if="isMarried"
@@ -38,7 +38,7 @@
             'whitespace-nowrap py-3 px-1 border-b-2 font-medium text-body-sm'
           ]"
         >
-          Widowed Budget
+          Widowed
         </button>
       </nav>
     </div>
@@ -98,7 +98,7 @@
           <div class="col-label font-semibold text-body-sm text-gray-700 pb-2 border-b border-gray-200">Category</div>
           <div class="col-value font-semibold text-body-sm text-gray-700 pb-2 border-b border-gray-200">{{ userName }}</div>
           <div v-if="isMarried" class="col-value-mid font-semibold text-body-sm text-gray-700 pb-2 border-b border-gray-200">{{ spouseName }}</div>
-          <div class="col-total font-semibold text-body-sm text-gray-700 pb-2 border-b border-gray-200">{{ isMarried ? 'Household' : 'Total' }}</div>
+          <div v-if="isMarried" class="col-total font-semibold text-body-sm text-gray-700 pb-2 border-b border-gray-200">Household</div>
 
           <!-- Essential Living Expenses -->
           <div class="col-label pt-4 pb-2 cursor-pointer select-none" @click="toggleSection('current', 'essential')">
@@ -111,13 +111,13 @@
           </div>
           <div class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(essentialTotal) }}</div>
           <div v-if="isMarried" class="col-value-mid pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(spouseEssentialTotal) }}</div>
-          <div class="col-total pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(householdEssentialTotal) }}</div>
+          <div v-if="isMarried" class="col-total pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(householdEssentialTotal) }}</div>
           <template v-if="isSectionExpanded('current', 'essential')">
             <template v-for="field in essentialFields" :key="field.key">
               <div class="col-label text-body-sm text-gray-600 py-1 pl-7">{{ field.label }}</div>
               <div class="col-value text-body-sm text-gray-900 py-1">{{ formatCurrency(formData[field.key]) }}</div>
               <div v-if="isMarried" class="col-value-mid text-body-sm text-gray-900 py-1">{{ formatCurrency(spouseFormData[field.key]) }}</div>
-              <div class="col-total text-body-sm text-gray-900 py-1 font-medium">{{ formatCurrency(getHouseholdValue(field.key)) }}</div>
+              <div v-if="isMarried" class="col-total text-body-sm text-gray-900 py-1 font-medium">{{ formatCurrency(getHouseholdValue(field.key)) }}</div>
             </template>
           </template>
 
@@ -132,13 +132,13 @@
           </div>
           <div class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(communicationTotal) }}</div>
           <div v-if="isMarried" class="col-value-mid pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(spouseCommunicationTotal) }}</div>
-          <div class="col-total pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(householdCommunicationTotal) }}</div>
+          <div v-if="isMarried" class="col-total pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(householdCommunicationTotal) }}</div>
           <template v-if="isSectionExpanded('current', 'communication')">
             <template v-for="field in communicationFields" :key="field.key">
               <div class="col-label text-body-sm text-gray-600 py-1 pl-7">{{ field.label }}</div>
               <div class="col-value text-body-sm text-gray-900 py-1">{{ formatCurrency(formData[field.key]) }}</div>
               <div v-if="isMarried" class="col-value-mid text-body-sm text-gray-900 py-1">{{ formatCurrency(spouseFormData[field.key]) }}</div>
-              <div class="col-total text-body-sm text-gray-900 py-1 font-medium">{{ formatCurrency(getHouseholdValue(field.key)) }}</div>
+              <div v-if="isMarried" class="col-total text-body-sm text-gray-900 py-1 font-medium">{{ formatCurrency(getHouseholdValue(field.key)) }}</div>
             </template>
           </template>
 
@@ -153,13 +153,13 @@
           </div>
           <div class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(lifestyleTotal) }}</div>
           <div v-if="isMarried" class="col-value-mid pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(spouseLifestyleTotal) }}</div>
-          <div class="col-total pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(householdLifestyleTotal) }}</div>
+          <div v-if="isMarried" class="col-total pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(householdLifestyleTotal) }}</div>
           <template v-if="isSectionExpanded('current', 'lifestyle')">
             <template v-for="field in lifestyleFields" :key="field.key">
               <div class="col-label text-body-sm text-gray-600 py-1 pl-7">{{ field.label }}</div>
               <div class="col-value text-body-sm text-gray-900 py-1">{{ formatCurrency(formData[field.key]) }}</div>
               <div v-if="isMarried" class="col-value-mid text-body-sm text-gray-900 py-1">{{ formatCurrency(spouseFormData[field.key]) }}</div>
-              <div class="col-total text-body-sm text-gray-900 py-1 font-medium">{{ formatCurrency(getHouseholdValue(field.key)) }}</div>
+              <div v-if="isMarried" class="col-total text-body-sm text-gray-900 py-1 font-medium">{{ formatCurrency(getHouseholdValue(field.key)) }}</div>
             </template>
           </template>
 
@@ -174,13 +174,13 @@
           </div>
           <div class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(childrenTotal) }}</div>
           <div v-if="isMarried" class="col-value-mid pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(spouseChildrenTotal) }}</div>
-          <div class="col-total pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(householdChildrenTotal) }}</div>
+          <div v-if="isMarried" class="col-total pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(householdChildrenTotal) }}</div>
           <template v-if="isSectionExpanded('current', 'children')">
             <template v-for="field in childrenFields" :key="field.key">
               <div class="col-label text-body-sm text-gray-600 py-1 pl-7">{{ field.label }}</div>
               <div class="col-value text-body-sm text-gray-900 py-1">{{ formatCurrency(formData[field.key]) }}</div>
               <div v-if="isMarried" class="col-value-mid text-body-sm text-gray-900 py-1">{{ formatCurrency(spouseFormData[field.key]) }}</div>
-              <div class="col-total text-body-sm text-gray-900 py-1 font-medium">{{ formatCurrency(getHouseholdValue(field.key)) }}</div>
+              <div v-if="isMarried" class="col-total text-body-sm text-gray-900 py-1 font-medium">{{ formatCurrency(getHouseholdValue(field.key)) }}</div>
             </template>
           </template>
 
@@ -195,13 +195,13 @@
           </div>
           <div class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(otherTotal) }}</div>
           <div v-if="isMarried" class="col-value-mid pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(spouseOtherTotal) }}</div>
-          <div class="col-total pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(householdOtherTotal) }}</div>
+          <div v-if="isMarried" class="col-total pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(householdOtherTotal) }}</div>
           <template v-if="isSectionExpanded('current', 'other')">
             <template v-for="field in otherFields" :key="field.key">
               <div class="col-label text-body-sm text-gray-600 py-1 pl-7">{{ field.label }}</div>
               <div class="col-value text-body-sm text-gray-900 py-1">{{ formatCurrency(formData[field.key]) }}</div>
               <div v-if="isMarried" class="col-value-mid text-body-sm text-gray-900 py-1">{{ formatCurrency(spouseFormData[field.key]) }}</div>
-              <div class="col-total text-body-sm text-gray-900 py-1 font-medium">{{ formatCurrency(getHouseholdValue(field.key)) }}</div>
+              <div v-if="isMarried" class="col-total text-body-sm text-gray-900 py-1 font-medium">{{ formatCurrency(getHouseholdValue(field.key)) }}</div>
             </template>
           </template>
 
@@ -210,7 +210,7 @@
           <div class="col-label text-body font-semibold text-gray-900 py-3">Manual Expenditure Total</div>
           <div class="col-value text-body text-gray-900 py-3 font-semibold">{{ formatCurrency(totalMonthlyExpenditure) }}</div>
           <div v-if="isMarried" class="col-value-mid text-body text-gray-900 py-3 font-semibold">{{ formatCurrency(spouseTotalMonthlyExpenditure) }}</div>
-          <div class="col-total text-body text-gray-900 py-3 font-semibold">{{ formatCurrency(householdTotalMonthlyExpenditure) }}</div>
+          <div v-if="isMarried" class="col-total text-body text-gray-900 py-3 font-semibold">{{ formatCurrency(householdTotalMonthlyExpenditure) }}</div>
         </div>
       </div>
 
@@ -231,14 +231,14 @@
           <div class="col-label font-semibold text-body-sm text-gray-700 pb-2 border-b border-gray-200">Source</div>
           <div class="col-value font-semibold text-body-sm text-gray-700 pb-2 border-b border-gray-200">{{ userName }}</div>
           <div v-if="isMarried" class="col-value-mid font-semibold text-body-sm text-gray-700 pb-2 border-b border-gray-200">{{ spouseName }}</div>
-          <div class="col-total font-semibold text-body-sm text-gray-700 pb-2 border-b border-gray-200">{{ isMarried ? 'Household' : 'Total' }}</div>
+          <div v-if="isMarried" class="col-total font-semibold text-body-sm text-gray-700 pb-2 border-b border-gray-200">Household</div>
 
           <!-- Retirement -->
           <template v-if="hasRetirementCommitments || spouseHasRetirementCommitments">
             <div class="col-label text-body-sm text-gray-600 py-1">Pension Contributions</div>
             <div class="col-value text-body-sm text-gray-900 py-1">{{ formatCurrency(financialCommitments?.totals?.retirement || 0) }}</div>
             <div v-if="isMarried" class="col-value-mid text-body-sm text-gray-900 py-1">{{ formatCurrency(spouseFinancialCommitments?.totals?.retirement || 0) }}</div>
-            <div class="col-total text-body-sm text-gray-900 py-1 font-medium">{{ formatCurrency((financialCommitments?.totals?.retirement || 0) + (spouseFinancialCommitments?.totals?.retirement || 0)) }}</div>
+            <div v-if="isMarried" class="col-total text-body-sm text-gray-900 py-1 font-medium">{{ formatCurrency((financialCommitments?.totals?.retirement || 0) + (spouseFinancialCommitments?.totals?.retirement || 0)) }}</div>
           </template>
 
           <!-- Property -->
@@ -246,7 +246,7 @@
             <div class="col-label text-body-sm text-gray-600 py-1">Property Expenses</div>
             <div class="col-value text-body-sm text-gray-900 py-1">{{ formatCurrency(financialCommitments?.totals?.properties || 0) }}</div>
             <div v-if="isMarried" class="col-value-mid text-body-sm text-gray-900 py-1">{{ formatCurrency(spouseFinancialCommitments?.totals?.properties || 0) }}</div>
-            <div class="col-total text-body-sm text-gray-900 py-1 font-medium">{{ formatCurrency((financialCommitments?.totals?.properties || 0) + (spouseFinancialCommitments?.totals?.properties || 0)) }}</div>
+            <div v-if="isMarried" class="col-total text-body-sm text-gray-900 py-1 font-medium">{{ formatCurrency((financialCommitments?.totals?.properties || 0) + (spouseFinancialCommitments?.totals?.properties || 0)) }}</div>
           </template>
 
           <!-- Investment -->
@@ -254,7 +254,7 @@
             <div class="col-label text-body-sm text-gray-600 py-1">Investment Contributions</div>
             <div class="col-value text-body-sm text-gray-900 py-1">{{ formatCurrency(financialCommitments?.totals?.investments || 0) }}</div>
             <div v-if="isMarried" class="col-value-mid text-body-sm text-gray-900 py-1">{{ formatCurrency(spouseFinancialCommitments?.totals?.investments || 0) }}</div>
-            <div class="col-total text-body-sm text-gray-900 py-1 font-medium">{{ formatCurrency((financialCommitments?.totals?.investments || 0) + (spouseFinancialCommitments?.totals?.investments || 0)) }}</div>
+            <div v-if="isMarried" class="col-total text-body-sm text-gray-900 py-1 font-medium">{{ formatCurrency((financialCommitments?.totals?.investments || 0) + (spouseFinancialCommitments?.totals?.investments || 0)) }}</div>
           </template>
 
           <!-- Protection -->
@@ -262,7 +262,7 @@
             <div class="col-label text-body-sm text-gray-600 py-1">Protection Premiums</div>
             <div class="col-value text-body-sm text-gray-900 py-1">{{ formatCurrency(financialCommitments?.totals?.protection || 0) }}</div>
             <div v-if="isMarried" class="col-value-mid text-body-sm text-gray-900 py-1">{{ formatCurrency(spouseFinancialCommitments?.totals?.protection || 0) }}</div>
-            <div class="col-total text-body-sm text-gray-900 py-1 font-medium">{{ formatCurrency((financialCommitments?.totals?.protection || 0) + (spouseFinancialCommitments?.totals?.protection || 0)) }}</div>
+            <div v-if="isMarried" class="col-total text-body-sm text-gray-900 py-1 font-medium">{{ formatCurrency((financialCommitments?.totals?.protection || 0) + (spouseFinancialCommitments?.totals?.protection || 0)) }}</div>
           </template>
 
           <!-- Liabilities -->
@@ -270,29 +270,29 @@
             <div class="col-label text-body-sm text-gray-600 py-1">Loan Repayments</div>
             <div class="col-value text-body-sm text-gray-900 py-1">{{ formatCurrency(financialCommitments?.totals?.liabilities || 0) }}</div>
             <div v-if="isMarried" class="col-value-mid text-body-sm text-gray-900 py-1">{{ formatCurrency(spouseFinancialCommitments?.totals?.liabilities || 0) }}</div>
-            <div class="col-total text-body-sm text-gray-900 py-1 font-medium">{{ formatCurrency((financialCommitments?.totals?.liabilities || 0) + (spouseFinancialCommitments?.totals?.liabilities || 0)) }}</div>
+            <div v-if="isMarried" class="col-total text-body-sm text-gray-900 py-1 font-medium">{{ formatCurrency((financialCommitments?.totals?.liabilities || 0) + (spouseFinancialCommitments?.totals?.liabilities || 0)) }}</div>
           </template>
 
           <!-- Commitments Sub-total -->
           <div class="col-label text-body-sm font-semibold text-gray-700 py-2 border-t border-gray-100">Commitments Total</div>
           <div class="col-value text-body-sm text-gray-900 py-2 border-t border-gray-100 font-semibold">{{ formatCurrency(financialCommitments?.totals?.total || 0) }}</div>
           <div v-if="isMarried" class="col-value-mid text-body-sm text-gray-900 py-2 border-t border-gray-100 font-semibold">{{ formatCurrency(spouseFinancialCommitments?.totals?.total || 0) }}</div>
-          <div class="col-total text-body-sm text-gray-900 py-2 border-t border-gray-100 font-semibold">{{ formatCurrency((financialCommitments?.totals?.total || 0) + (spouseFinancialCommitments?.totals?.total || 0)) }}</div>
+          <div v-if="isMarried" class="col-total text-body-sm text-gray-900 py-2 border-t border-gray-100 font-semibold">{{ formatCurrency((financialCommitments?.totals?.total || 0) + (spouseFinancialCommitments?.totals?.total || 0)) }}</div>
         </div>
       </div>
 
       <!-- Grand Total -->
       <div class="mt-6 pt-4 border-t-2 border-gray-300">
         <div :class="isMarried ? 'expenditure-grid-married' : 'expenditure-grid-single'">
-          <div class="col-label text-body font-bold text-gray-900">TOTAL MONTHLY EXPENDITURE</div>
-          <div class="col-value text-h4 font-semibold text-gray-900">{{ formatCurrency(totalMonthlyWithCommitments) }}</div>
-          <div v-if="isMarried" class="col-value-mid text-h4 font-semibold text-gray-900">{{ formatCurrency(spouseTotalMonthlyWithCommitments) }}</div>
-          <div class="col-total text-h4 font-semibold text-primary-600">{{ formatCurrency(householdTotalMonthlyWithCommitments) }}</div>
+          <div class="col-label text-body font-semibold text-gray-900">Total Monthly Expenditure</div>
+          <div class="col-value text-body font-semibold text-gray-900">{{ formatCurrency(totalMonthlyWithCommitments) }}</div>
+          <div v-if="isMarried" class="col-value-mid text-body font-semibold text-gray-900">{{ formatCurrency(spouseTotalMonthlyWithCommitments) }}</div>
+          <div v-if="isMarried" class="col-total text-body font-semibold text-primary-600">{{ formatCurrency(householdTotalMonthlyWithCommitments) }}</div>
 
           <div class="col-label text-body-sm text-gray-600 mt-2">Annual Equivalent</div>
           <div class="col-value text-body-sm text-gray-900 mt-2">{{ formatCurrency(totalAnnualWithCommitments) }}</div>
           <div v-if="isMarried" class="col-value-mid text-body-sm text-gray-900 mt-2">{{ formatCurrency(spouseTotalAnnualWithCommitments) }}</div>
-          <div class="col-total text-body-sm text-primary-600 mt-2 font-medium">{{ formatCurrency(householdTotalAnnualWithCommitments) }}</div>
+          <div v-if="isMarried" class="col-total text-body-sm text-primary-600 mt-2 font-medium">{{ formatCurrency(householdTotalAnnualWithCommitments) }}</div>
         </div>
       </div>
     </div>
@@ -1062,10 +1062,10 @@
 
           <!-- Total -->
           <div class="col-span-full border-t-2 border-gray-300 mt-4"></div>
-          <div class="col-label text-body font-bold text-gray-900 py-3">TOTAL MONTHLY</div>
-          <div class="col-value text-h4 font-semibold text-primary-600 py-3">{{ formatCurrency(retiredTotalMonthly) }}</div>
-          <div v-if="isMarried" class="col-value text-h4 font-semibold text-primary-600 py-3">{{ formatCurrency(retiredHouseholdTotalMonthly - retiredTotalMonthly) }}</div>
-          <div v-if="isMarried" class="col-total text-h4 font-semibold text-primary-600 py-3">{{ formatCurrency(retiredHouseholdTotalMonthly) }}</div>
+          <div class="col-label text-body font-semibold text-gray-900 py-3">Total Monthly Expenditure</div>
+          <div class="col-value text-body font-semibold text-primary-600 py-3">{{ formatCurrency(retiredTotalMonthly) }}</div>
+          <div v-if="isMarried" class="col-value text-body font-semibold text-primary-600 py-3">{{ formatCurrency(retiredHouseholdTotalMonthly - retiredTotalMonthly) }}</div>
+          <div v-if="isMarried" class="col-total text-body font-semibold text-primary-600 py-3">{{ formatCurrency(retiredHouseholdTotalMonthly) }}</div>
 
           <div class="col-label text-body-sm text-gray-600">Annual Equivalent</div>
           <div class="col-value text-body-sm text-primary-600 font-medium">{{ formatCurrency(retiredTotalMonthly * 12) }}</div>
@@ -1073,13 +1073,13 @@
           <div v-if="isMarried" class="col-total text-body-sm text-primary-600 font-medium">{{ formatCurrency(retiredHouseholdTotalMonthly * 12) }}</div>
 
           <!-- Monthly Savings Row -->
-          <div class="col-label text-body font-medium text-success-800 py-3">Monthly Savings in Retirement</div>
+          <div class="col-label text-body font-semibold text-success-800 py-3">Monthly Savings in Retirement</div>
           <template v-if="isMarried">
             <div class="col-value py-3"></div>
             <div class="col-value py-3"></div>
-            <div class="col-total text-h4 font-semibold text-success-600 py-3">{{ formatCurrency(householdTotalMonthlyWithCommitments - retiredHouseholdTotalMonthly) }}</div>
+            <div class="col-total text-body font-semibold text-success-600 py-3">{{ formatCurrency(householdTotalMonthlyWithCommitments - retiredHouseholdTotalMonthly) }}</div>
           </template>
-          <div v-else class="col-value text-h4 font-semibold text-success-600 py-3">{{ formatCurrency(householdTotalMonthlyWithCommitments - retiredHouseholdTotalMonthly) }}</div>
+          <div v-else class="col-value text-body font-semibold text-success-600 py-3">{{ formatCurrency(householdTotalMonthlyWithCommitments - retiredHouseholdTotalMonthly) }}</div>
           <div class="col-span-full text-body-sm text-success-700 -mt-2 mb-2">This is how much less you'll need per month after retirement</div>
         </div>
       </div>
@@ -1346,15 +1346,15 @@
 
           <!-- Total -->
           <div class="col-span-full border-t-2 border-gray-300 mt-4"></div>
-          <div class="col-label text-body font-bold text-gray-900 py-3">TOTAL MONTHLY</div>
-          <div class="col-value text-h4 font-semibold text-primary-600 py-3">{{ formatCurrency(widowedTotalMonthly) }}</div>
+          <div class="col-label text-body font-semibold text-gray-900 py-3">Total Monthly Expenditure</div>
+          <div class="col-value text-body font-semibold text-primary-600 py-3">{{ formatCurrency(widowedTotalMonthly) }}</div>
 
           <div class="col-label text-body-sm text-gray-600">Annual Equivalent</div>
           <div class="col-value text-body-sm text-primary-600 font-medium">{{ formatCurrency(widowedTotalMonthly * 12) }}</div>
 
           <!-- Monthly Reduction Row -->
-          <div class="col-label text-body font-medium text-success-800 py-3">Monthly Reduction from Current</div>
-          <div class="col-value text-h4 font-semibold text-success-600 py-3">{{ formatCurrency(householdTotalMonthlyWithCommitments - widowedTotalMonthly) }}</div>
+          <div class="col-label text-body font-semibold text-success-800 py-3">Monthly Reduction from Current</div>
+          <div class="col-value text-body font-semibold text-success-600 py-3">{{ formatCurrency(householdTotalMonthlyWithCommitments - widowedTotalMonthly) }}</div>
           <div class="col-span-full text-body-sm text-success-700 -mt-2 mb-2">This is how much less {{ userName }} would need per month as a single-person household</div>
         </div>
       </div>
@@ -2451,7 +2451,7 @@ export default {
 <style scoped>
 .expenditure-grid-single {
   display: grid;
-  grid-template-columns: 1fr minmax(90px, max-content) minmax(90px, max-content);
+  grid-template-columns: 1fr minmax(90px, max-content);
   gap: 0 1rem;
 }
 
@@ -2466,22 +2466,17 @@ export default {
   text-align: left;
 }
 
-/* Headers - left aligned to match values */
-.col-header {
-  text-align: left;
-}
-
-/* Values - left aligned so change indicators follow naturally */
+/* Values - right aligned for currency */
 .col-value {
-  text-align: left;
+  text-align: right;
 }
 
 .col-value-mid {
-  text-align: left;
+  text-align: right;
 }
 
 .col-total {
-  text-align: left;
+  text-align: right;
 }
 
 /* Retired Budget Grids */

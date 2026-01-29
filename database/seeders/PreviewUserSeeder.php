@@ -78,15 +78,14 @@ class PreviewUserSeeder extends Seeder
             return;
         }
 
-        // Check if preview user already exists
+        // Check if preview user already exists - if so, delete and recreate
         $existingUser = User::where('is_preview_user', true)
             ->where('preview_persona_id', $personaId)
             ->first();
 
         if ($existingUser) {
-            $this->command->info("Preview user for {$personaId} already exists, skipping.");
-
-            return;
+            $this->command->info("Deleting existing preview user for {$personaId} to recreate with fresh data...");
+            $this->deletePreviewUser($existingUser, $personaId);
         }
 
         $this->command->info("Seeding persona: {$personaId}");
@@ -154,6 +153,85 @@ class PreviewUserSeeder extends Seeder
         if ($spouse) {
             $this->command->info("  Created spouse: {$spouse->name} ({$spouse->email})");
         }
+    }
+
+    /**
+     * Delete a preview user and all their related data.
+     */
+    private function deletePreviewUser(User $user, string $personaId): void
+    {
+        // Also delete spouse if exists
+        $spousePersonaId = "{$personaId}_spouse";
+        $spouse = User::where('is_preview_user', true)
+            ->where('preview_persona_id', $spousePersonaId)
+            ->first();
+
+        // Delete all related data for the user
+        $this->deleteUserData($user);
+
+        // Delete spouse data if exists
+        if ($spouse) {
+            $this->deleteUserData($spouse);
+            $spouse->delete();
+        }
+
+        $user->delete();
+    }
+
+    /**
+     * Delete all data associated with a user.
+     */
+    private function deleteUserData(User $user): void
+    {
+        // Delete related records
+        FamilyMember::where('user_id', $user->id)->delete();
+        Property::where('user_id', $user->id)->delete();
+        Mortgage::where('user_id', $user->id)->delete();
+        SavingsAccount::where('user_id', $user->id)->delete();
+
+        // Delete investment accounts and their holdings
+        $investmentAccounts = InvestmentAccount::where('user_id', $user->id)->get();
+        foreach ($investmentAccounts as $account) {
+            Holding::where('holdable_type', InvestmentAccount::class)
+                ->where('holdable_id', $account->id)
+                ->delete();
+        }
+        InvestmentAccount::where('user_id', $user->id)->delete();
+
+        // Delete pensions and their holdings
+        $dcPensions = DCPension::where('user_id', $user->id)->get();
+        foreach ($dcPensions as $pension) {
+            Holding::where('holdable_type', DCPension::class)
+                ->where('holdable_id', $pension->id)
+                ->delete();
+        }
+        DCPension::where('user_id', $user->id)->delete();
+        DBPension::where('user_id', $user->id)->delete();
+        StatePension::where('user_id', $user->id)->delete();
+
+        // Delete insurance policies
+        LifeInsurancePolicy::where('user_id', $user->id)->delete();
+        CriticalIllnessPolicy::where('user_id', $user->id)->delete();
+        IncomeProtectionPolicy::where('user_id', $user->id)->delete();
+
+        // Delete estate data
+        Liability::where('user_id', $user->id)->delete();
+        Gift::where('user_id', $user->id)->delete();
+        Trust::where('user_id', $user->id)->delete();
+        BusinessInterest::where('user_id', $user->id)->delete();
+        Chattel::where('user_id', $user->id)->delete();
+        Goal::where('user_id', $user->id)->delete();
+
+        // Delete wills and bequests
+        $wills = Will::where('user_id', $user->id)->get();
+        foreach ($wills as $will) {
+            Bequest::where('will_id', $will->id)->delete();
+        }
+        Will::where('user_id', $user->id)->delete();
+
+        // Delete profiles
+        RiskProfile::where('user_id', $user->id)->delete();
+        RetirementProfile::where('user_id', $user->id)->delete();
     }
 
     /**

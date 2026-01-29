@@ -15,9 +15,9 @@
           @click="toggleSection('cash')"
         >
           <div class="flex items-center gap-3">
-            <span class="w-3 h-3 rounded-full bg-green-500"></span>
+            <span class="w-3 h-3 rounded-full bg-yellow-500"></span>
             <span class="font-medium text-gray-900">Cash & Cash Equivalents</span>
-            <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded-full">
+            <span class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
               Low Risk
             </span>
           </div>
@@ -66,9 +66,9 @@
           @click="toggleSection('bonds')"
         >
           <div class="flex items-center gap-3">
-            <span class="w-3 h-3 rounded-full bg-teal-500"></span>
+            <span class="w-3 h-3 rounded-full bg-pink-500"></span>
             <span class="font-medium text-gray-900">Bonds (Fixed Income)</span>
-            <span class="px-2 py-0.5 text-xs font-medium bg-teal-100 text-teal-800 rounded-full">
+            <span class="px-2 py-0.5 text-xs font-medium bg-pink-100 text-pink-800 rounded-full">
               Lower-Medium Risk
             </span>
           </div>
@@ -118,9 +118,9 @@
           @click="toggleSection('property')"
         >
           <div class="flex items-center gap-3">
-            <span class="w-3 h-3 rounded-full bg-blue-500"></span>
+            <span class="w-3 h-3 rounded-full bg-green-500"></span>
             <span class="font-medium text-gray-900">Commercial Property</span>
-            <span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+            <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded-full">
               Medium Risk
             </span>
           </div>
@@ -156,7 +156,7 @@
                 <span class="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded">Property funds</span>
                 <span class="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded">Direct property</span>
               </div>
-              <div class="mt-3 p-2 bg-orange-50 border border-orange-200 rounded text-xs text-orange-800">
+              <div class="mt-3 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-800">
                 Note: Property funds may suspend redemptions during market stress.
               </div>
             </div>
@@ -172,9 +172,9 @@
           @click="toggleSection('equities')"
         >
           <div class="flex items-center gap-3">
-            <span class="w-3 h-3 rounded-full bg-orange-500"></span>
+            <span class="w-3 h-3 rounded-full bg-teal-500"></span>
             <span class="font-medium text-gray-900">Equities (Shares)</span>
-            <span class="px-2 py-0.5 text-xs font-medium bg-orange-100 text-orange-800 rounded-full">
+            <span class="px-2 py-0.5 text-xs font-medium bg-teal-100 text-teal-800 rounded-full">
               Medium-High Risk
             </span>
           </div>
@@ -224,9 +224,9 @@
           @click="toggleSection('alternatives')"
         >
           <div class="flex items-center gap-3">
-            <span class="w-3 h-3 rounded-full bg-red-500"></span>
+            <span class="w-3 h-3 rounded-full bg-blue-500"></span>
             <span class="font-medium text-gray-900">Alternative Investments</span>
-            <span class="px-2 py-0.5 text-xs font-medium bg-red-100 text-red-800 rounded-full">
+            <span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
               High Risk
             </span>
           </div>
@@ -263,7 +263,7 @@
                 <span class="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded">VCT/EIS</span>
                 <span class="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded">Hedge funds</span>
               </div>
-              <div class="mt-3 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-800">
+              <div class="mt-3 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-800">
                 Higher risk investments are generally only suitable for sophisticated investors
                 with appropriate risk tolerance and investment knowledge.
               </div>

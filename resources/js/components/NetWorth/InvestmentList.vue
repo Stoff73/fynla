@@ -68,19 +68,14 @@
             @click="selectAccount(account)"
             class="compact-account-card"
           >
-              <!-- Risk Badge - Top Right Corner (hidden for alternative investments and employee share schemes) -->
-              <RiskBadge
-                v-if="account.risk_preference && shouldShowRiskBadge(account.account_type)"
-                :level="account.risk_preference"
-                size="sm"
-                :abbreviated="true"
-                :has-custom-risk="account.has_custom_risk"
-                class="risk-badge-corner"
-              />
+              <!-- Joint Badge - Top Right Corner -->
+              <span
+                v-if="account.ownership_type === 'joint'"
+                class="joint-badge-corner"
+              >
+                Joint
+              </span>
               <div class="card-header">
-                <span v-if="account.ownership_type === 'joint'" :class="['badge', getOwnershipBadgeClass(account.ownership_type)]">
-                  {{ formatOwnershipType(account.ownership_type) }}
-                </span>
                 <span :class="['badge', accountTypeBadgeClass(account.account_type)]">
                   {{ formatAccountType(account.account_type) }}
                 </span>
@@ -249,7 +244,6 @@ import { mapState, mapGetters, mapActions } from 'vuex';
 import InvestmentDetailInline from './InvestmentDetailInline.vue';
 import AccountForm from '@/components/Investment/AccountForm.vue';
 import DocumentUploadModal from '@/components/Shared/DocumentUploadModal.vue';
-import RiskBadge from '@/components/Shared/RiskBadge.vue';
 import Holdings from '@/components/Investment/Holdings.vue';
 import Performance from '@/components/Investment/Performance.vue';
 import PortfolioOptimization from '@/components/Investment/PortfolioOptimization.vue';
@@ -271,7 +265,6 @@ export default {
     InvestmentDetailInline,
     AccountForm,
     DocumentUploadModal,
-    RiskBadge,
     Holdings,
     Performance,
     PortfolioOptimization,
@@ -573,24 +566,6 @@ export default {
       return account.provider || 'Unnamed Account';
     },
 
-    formatOwnershipType(type) {
-      const types = {
-        individual: 'Individual',
-        joint: 'Joint',
-        trust: 'Trust',
-      };
-      return types[type] || 'Individual';
-    },
-
-    getOwnershipBadgeClass(type) {
-      const classes = {
-        individual: 'badge-individual',
-        joint: 'badge-joint',
-        trust: 'badge-trust',
-      };
-      return classes[type] || 'badge-individual';
-    },
-
     accountTypeBadgeClass(type) {
       const classes = {
         isa: 'badge-isa',
@@ -617,23 +592,6 @@ export default {
     getReturnColorClass(value) {
       if (!value && value !== 0) return 'text-gray-600';
       return value >= 0 ? 'text-green-600' : 'text-red-600';
-    },
-
-    shouldShowRiskBadge(accountType) {
-      // Don't show risk badge for alternative investments and employee share schemes
-      const noRiskBadgeTypes = [
-        'vct',
-        'eis',
-        'private_company',
-        'crowdfunding',
-        'saye',
-        'csop',
-        'emi',
-        'unapproved_options',
-        'rsu',
-        'other',
-      ];
-      return !noRiskBadgeTypes.includes(accountType);
     },
 
     getValueLabel(account) {
@@ -949,11 +907,12 @@ export default {
   position: relative;
 }
 
-.compact-account-card :deep(.risk-badge-corner) {
+.joint-badge-corner {
   position: absolute;
   top: 8px;
   right: 8px;
   z-index: 10;
+  @apply px-2 py-0.5 text-xs font-medium rounded-full bg-purple-100 text-purple-800;
 }
 
 .compact-account-card:hover {

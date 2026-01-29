@@ -99,13 +99,13 @@ class RecommendationEngine
             );
         }
 
-        // Policy optimization
+        // Policy optimisation
         $totalPremiums = $this->calculateTotalPremiums($profile);
         if ($totalPremiums > $profile->annual_income * 0.05) {
             $recommendations[] = $this->createRecommendation(
                 priority: 5,
-                category: 'Policy Optimization',
-                action: 'Review and optimize existing policies',
+                category: 'Policy Optimisation',
+                action: 'Review and optimise existing policies',
                 rationale: sprintf(
                     'Total premiums of £%s per year exceed 5%% of income. Consider reviewing for better value.',
                     number_format($totalPremiums, 2)

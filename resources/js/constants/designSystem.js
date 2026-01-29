@@ -132,39 +132,39 @@ export const SPENDING_COLORS = [
  */
 export const RISK_COLORS = {
   low: {
+    bg: '#CA8A04',
+    bgLight: '#FEF9C3',
+    border: '#EAB308',
+    borderLight: '#FDE047',
+    text: '#713F12',
+  },
+  lower_medium: {
+    bg: '#DB2777',
+    bgLight: '#FCE7F3',
+    border: '#EC4899',
+    borderLight: '#F9A8D4',
+    text: '#831843',
+  },
+  medium: {
     bg: '#15803D',
     bgLight: '#D1FAE5',
     border: '#16A34A',
     borderLight: '#86EFAC',
     text: '#14532D',
   },
-  lower_medium: {
+  upper_medium: {
     bg: '#0D9488',
-    bgLight: '#99F6E4',
+    bgLight: '#CCFBF1',
     border: '#14B8A6',
     borderLight: '#5EEAD4',
     text: '#134E4A',
   },
-  medium: {
-    bg: '#1257A0',
+  high: {
+    bg: '#2563EB',
     bgLight: '#DBEAFE',
     border: '#3B82F6',
     borderLight: '#93C5FD',
     text: '#1E3A8A',
-  },
-  upper_medium: {
-    bg: '#D97706',
-    bgLight: '#FDE68A',
-    border: '#F59E0B',
-    borderLight: '#FCD34D',
-    text: '#78350F',
-  },
-  high: {
-    bg: '#B91C1C',
-    bgLight: '#FECACA',
-    border: '#EF4444',
-    borderLight: '#FCA5A5',
-    text: '#7F1D1D',
   },
 };
 

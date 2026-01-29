@@ -467,6 +467,843 @@ resources/js/components/Risk/RiskProfileSummary.vue
 
 ---
 
+## Move Charitable Bequest to Estate Planning
+
+**Branch:** genBits
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Moved the charitable bequest toggle from the onboarding Family Info step to the Estate Planning IHT Planning dashboard. This makes more sense contextually as charitable bequests directly relate to inheritance tax planning.
+
+### Before
+
+- Charitable bequest toggle was in the Family & Dependents step of onboarding
+- Users had to complete onboarding to set this preference
+
+### After
+
+- Charitable bequest toggle is now a card in the "IHT Mitigation Strategies" section of Estate Planning
+- Users can toggle this at any time from the Estate Planning module
+- Shows potential IHT savings when enabled (rate reduces from 40% to 36%)
+- Value saved via the existing user profile API
+
+### Changes Made
+
+| Change | Description |
+|--------|-------------|
+| New strategy card | Added "Charitable Bequest" card to IHT Planning strategies section with Yes/No radio toggle |
+| IHT savings display | Shows potential savings calculation when "Yes" is selected |
+| Loading indicator | Spinner shown while saving preference |
+| Auto-save | Changes saved immediately on toggle via API |
+| Removed from onboarding | Charitable bequest toggle removed from FamilyInfoStep.vue |
+
+### API Changes
+
+Added `charitable_bequest` to `UpdatePersonalInfoRequest` validation rules to allow updating via the `/user/profile/personal` endpoint.
+
+### Files Changed (4 files)
+
+**Backend (upload separately):**
+```text
+app/Http/Requests/UpdatePersonalInfoRequest.php
+```
+
+**Frontend (included in build):**
+```text
+resources/js/services/userProfileService.js
+resources/js/components/Estate/IHTPlanning.vue
+resources/js/components/Onboarding/steps/FamilyInfoStep.vue
+```
+
+---
+
+## Auto-Fill Property Address from User Profile
+
+**Branch:** genBits
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+When adding a new property and selecting "Main Residence" as the property type, the address fields are now automatically populated from the user's profile address (entered during onboarding).
+
+### Behaviour
+
+- Only triggers when adding a **new** property (not when editing)
+- Only triggers when property type is "Main Residence"
+- Only fills if address fields are currently empty
+- Only fills if user has address data in their profile
+
+### Implementation
+
+The PropertyForm component already had the auto-fill logic, but the `userAddress` prop wasn't being passed from PropertyList.vue. Now:
+
+1. PropertyList.vue computes `userAddress` from the auth store
+2. Passes `userAddress` prop to PropertyForm
+3. PropertyForm watcher triggers auto-fill when main_residence is selected
+
+### Files Changed (1 file)
+
+**Frontend (included in build):**
+```text
+resources/js/components/NetWorth/PropertyList.vue
+```
+
+*Note: PropertyForm.vue already had the auto-fill logic. AssetsStep.vue (onboarding) was already passing userAddress correctly.*
+
+---
+
+## British Spelling Fix - Optimise
+
+**Branch:** genBits
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Fixed American spelling "Optimize" to British spelling "Optimise" in protection recommendation text displayed on the dashboard.
+
+### Changes Made
+
+| Before | After |
+|--------|-------|
+| Policy Optimization | Policy Optimisation |
+| Review and optimize existing policies | Review and optimise existing policies |
+| Optimized Protection Strategy | Optimised Protection Strategy |
+
+### Files Changed (2 files)
+
+**Backend (upload separately):**
+```text
+app/Services/Protection/RecommendationEngine.php
+app/Services/Protection/ComprehensiveProtectionPlanService.php
+```
+
+---
+
+## Onboarding Progress Indicator Redesign
+
+**Branch:** genBits
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Replaced the basic progress bar in onboarding with a step-based progress indicator similar to the Add Property form. Shows all sections with visual indicators for completed, skipped, current, and pending steps.
+
+### Before
+
+- Simple progress bar with percentage
+- "Step X of Y" text
+- No visibility into which steps were completed or skipped
+
+### After
+
+- Circle indicators for each step with step number or icon
+- Short labels below each circle
+- Connecting lines between steps
+- **Green** circles with checkmark for completed steps
+- **Orange** circles with X for skipped steps
+- **Blue** circles for current step
+- **Gray** circles for pending steps
+- Horizontally scrollable on mobile
+
+### Step Labels
+
+| Internal Name | Display Label |
+|---------------|---------------|
+| personal_info | Personal |
+| family_info | Family |
+| domicile_info | Domicile |
+| income | Income |
+| expenditure | Expenses |
+| assets | Assets |
+| liabilities | Debts |
+| protection_policies | Protection |
+| will_info | Will |
+| trust_info | Trusts |
+| completion | Complete |
+
+### State Transitions
+
+- When a step is skipped, it's added to `skippedSteps` array and shows orange X
+- When user goes back and completes a previously skipped step, it's removed from `skippedSteps` and shows green tick
+- The `saveStepData` action now calls `REMOVE_SKIPPED_STEP` mutation to handle this transition
+
+### Files Changed (2 files)
+
+**Frontend (included in build):**
+```text
+resources/js/components/Onboarding/OnboardingWizard.vue
+resources/js/store/modules/onboarding.js
+```
+
+---
+
+## Risk Factor Detail Views - Remove Explanation Cards
+
+**Branch:** genBits
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Removed the "What, Why and How" explanation cards from the bottom of all risk factor detail views in Valuable Info > Risk tab. These cards were redundant as the information is already conveyed in the threshold levels.
+
+### Before
+
+- Each risk factor detail page had a card at the bottom with "What", "Why", and "How" explanations
+- For capacity_for_loss, included formula in "How" section
+- For other factors, included "What" and "Why" sections
+
+### After
+
+- Explanation cards removed from all risk factor detail views
+- Pages now end with the "Threshold Levels" card
+
+### Files Changed (1 file)
+
+**Frontend (included in build):**
+```text
+resources/js/views/Risk/RiskFactorDetailPage.vue
+```
+
+---
+
+## Persona Name Change - Young Saver
+
+**Branch:** genBits
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Renamed the young_saver persona from "Alex Morgan" to "John Morgan" to avoid confusion with the entrepreneur persona "Alex Chen".
+
+### Changes Made
+
+| Before | After |
+|--------|-------|
+| Alex Morgan | John Morgan |
+| alex.morgan@example.com | john.morgan@example.com |
+| Alex's Current Account | John's Current Account |
+
+### Seeder Update
+
+The PreviewUserSeeder was also updated to **delete and recreate** existing preview users instead of skipping them. This ensures persona data changes are reflected in the database when re-seeding.
+
+After deployment, run:
+```bash
+php artisan db:seed --class=PreviewUserSeeder --force
+```
+
+### Files Changed (5 files)
+
+**Frontend (included in build):**
+```text
+resources/js/data/personas/young_saver.json
+resources/js/store/modules/preview.js
+resources/js/views/Version.vue
+```
+
+**Backend (upload separately):**
+```text
+app/Http/Controllers/Api/PreviewController.php
+database/seeders/PreviewUserSeeder.php
+```
+
+---
+
+## Expenditure Form - Hide Totals Column for Single Users
+
+**Branch:** genBits
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+For single users (no spouse), the "Total/Household" column in the expenditure form is now hidden as it would just duplicate the user's values.
+
+### Before
+
+- Single users saw 3 columns: Category, User Name, Total
+- The Total column just showed the same values as the user column
+
+### After
+
+- Single users see 2 columns: Category, User Name
+- Married users still see 4 columns: Category, User, Spouse, Household
+
+### Changes Made
+
+- Updated CSS grid for single users from 3 columns to 2 columns
+- Added `v-if="isMarried"` to all col-total elements in view mode
+- Applies to all expenditure categories and financial commitments
+
+### Files Changed (1 file)
+
+**Frontend (included in build):**
+```text
+resources/js/components/UserProfile/ExpenditureForm.vue
+```
+
+---
+
+## Preview Banner - Missing Persona Colors
+
+**Branch:** genBits
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Added missing persona colors to the preview banner. Previously only 4 of 6 personas had color mappings, causing young_saver and retired_couple to fall back to orange.
+
+### Before
+
+- young_saver showed orange banner (same as entrepreneur)
+- retired_couple showed orange banner (same as entrepreneur)
+
+### After
+
+Each persona now has a unique banner color:
+
+| Persona | Color |
+|---------|-------|
+| young_family | Blue |
+| peak_earners | Green |
+| widow | Purple |
+| entrepreneur | Orange |
+| young_saver | Cyan |
+| retired_couple | Rose |
+
+### Files Changed (1 file)
+
+**Frontend (included in build):**
+```text
+resources/js/components/Preview/PreviewBanner.vue
+```
+
+---
+
+## Expenditure Form - UI Polish
+
+**Branch:** genBits
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Multiple UI improvements to the expenditure form for better visual consistency and readability.
+
+### Changes Made
+
+| Change | Description |
+|--------|-------------|
+| Right-aligned values | All value columns (user, spouse, household) are now right-aligned for currency |
+| Tab label changes | "Retired Budget" → "Budget at Retirement", "Widowed Budget" → "Widowed" |
+| Consistent total sizing | "Total Monthly Expenditure" row now uses same `text-body font-semibold` across all tabs |
+| Consistent savings sizing | "Monthly Savings in Retirement" and "Monthly Reduction from Current" rows match total sizing |
+
+### Files Changed (1 file)
+
+**Frontend (included in build):**
+```text
+resources/js/components/UserProfile/ExpenditureForm.vue
+```
+
+---
+
+## Income Tab - Dynamic Net Income Label
+
+**Branch:** genBits
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Made the Net Income label in Valuable Info > Income dynamically describe what deductions are included based on the user's actual situation.
+
+### Before
+
+- Static label: "Net Income (after tax)"
+
+### After
+
+- Dynamic label based on which deductions apply:
+  - "Net Income (after tax)" - if only tax deducted
+  - "Net Income (after tax and pension contributions)" - if has pension contributions
+  - "Net Income (after tax and tax credits)" - if has tax credits (e.g., Section 24 BTL relief)
+  - "Net Income (after tax, pension contributions and tax credits)" - if has both
+
+### Files Changed (1 file)
+
+**Frontend (included in build):**
+```text
+resources/js/components/UserProfile/IncomeOccupation.vue
+```
+
+---
+
+## Income Tab - Tax & NI Heading Update
+
+**Branch:** genBits
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Changed the Tax & NI section heading to indicate these are estimated values.
+
+### Before
+
+- Heading: "Tax & NI"
+
+### After
+
+- Heading: "Estimated Tax and NI"
+
+### Files Changed (1 file)
+
+**Frontend (included in build):**
+```text
+resources/js/components/UserProfile/IncomeOccupation.vue
+```
+
+---
+
+## Peak Earners Persona - Positive Disposable Income
+
+**Branch:** genBits
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Fixed the Mitchell's (peak_earners) persona data to ensure positive disposable income. The Annual Expenditure was exceeding Net Income because discretionary savings contributions were too high.
+
+### Changes Made
+
+| Field | Before | After |
+|-------|--------|-------|
+| Monthly expenditure | £4,300 | £2,500 |
+| SIPP monthly contribution | £2,000 | £0 |
+| David's ISA monthly | £833 | £0 |
+| Sarah's ISA monthly | £833 | £0 |
+| Joint GIA monthly | £1,000 | £0 |
+
+### Expenditure Category Adjustments
+
+| Category | Before | After |
+|----------|--------|-------|
+| food_groceries | £550 | £450 |
+| transport_fuel | £200 | £150 |
+| healthcare_medical | £60 | £50 |
+| insurance | £120 | £100 |
+| mobile_phones | £60 | £50 |
+| internet_tv | £50 | £40 |
+| subscriptions | £35 | £30 |
+| clothing_personal_care | £150 | £100 |
+| entertainment_dining | £200 | £100 |
+| holidays_travel | £250 | £100 |
+| school_fees | £1,800 | £1,000 |
+| school_lunches | £70 | £50 |
+| school_extras | £100 | £80 |
+| children_activities | £120 | £100 |
+| gifts_charity | £100 | £50 |
+| regular_savings | £300 | £0 |
+| other_expenditure | £135 | £0 |
+
+### Result
+
+- Removed ~£56,000/year in discretionary savings (SIPP + ISAs + GIA)
+- Reduced manual expenditure by ~£22,000/year (£4,300 → £2,500)
+- Total annual savings: ~£78,000
+
+### Files Changed (1 file)
+
+**Frontend (included in build):**
+```text
+resources/js/data/personas/peak_earners.json
+```
+
+After deployment, re-seed:
+```bash
+php artisan db:seed --class=PreviewUserSeeder --force
+```
+
+---
+
+## Risk Level Color System Update
+
+**Branch:** investUpdate
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Updated the risk level color system to use a new consistent color scheme across all risk-related components. Removed all orange/amber colors from the risk module (amber is banned from the application).
+
+### New Risk Level Colors
+
+| Risk Level | Color | Tailwind Classes |
+|------------|-------|------------------|
+| Low | Yellow | `bg-yellow-100 text-yellow-800` |
+| Lower-Medium | Pink | `bg-pink-100 text-pink-800` |
+| Medium | Green | `bg-green-100 text-green-800` |
+| Upper-Medium | Teal | `bg-teal-100 text-teal-800` |
+| High | Blue | `bg-blue-100 text-blue-800` |
+
+### Investment Types Accordion Updates
+
+| Asset Type | Risk Level | Old Color | New Color |
+|------------|------------|-----------|-----------|
+| Cash & Cash Equivalents | Low | Green | Yellow |
+| Bonds (Fixed Income) | Lower-Medium | Teal | Pink |
+| Commercial Property | Medium | Blue | Green |
+| Equities (Shares) | Medium-High | Orange | Teal |
+| Alternative Investments | High | Red | Blue |
+
+### Other Changes
+
+| Component | Change |
+|-----------|--------|
+| RiskBadge.vue | Custom risk ring changed from orange/purple to blue (`ring-blue-300`) |
+| RiskProfilePage.vue | Product-Level Overrides box changed from orange to green |
+| RiskProfileSummary.vue | Product-Level Overrides box changed from orange to green |
+| TimeHorizonSection.vue | Important note box changed from orange to blue |
+| RiskLevelsExplainedPage.vue | Volatility stat color changed from orange to red |
+| RiskFactorsPanel.vue | "Cannot afford to withstand fall" card changed from orange to teal |
+| InvestmentTypesAccordion.vue | Warning boxes changed from orange/red to blue |
+
+### Files Changed (12 files)
+
+**Frontend (included in build):**
+```text
+resources/js/components/Shared/RiskBadge.vue
+resources/js/components/Shared/RiskLevelSelector.vue
+resources/js/components/Risk/RiskFactorsPanel.vue
+resources/js/components/Risk/InvestmentTypesAccordion.vue
+resources/js/components/Risk/RiskProfileSummary.vue
+resources/js/components/Risk/FactorBreakdownCard.vue
+resources/js/components/Risk/TimeHorizonSection.vue
+resources/js/views/Risk/RiskProfilePage.vue
+resources/js/views/Risk/RiskFactorDetailPage.vue
+resources/js/views/Risk/RiskLevelsExplainedPage.vue
+resources/js/services/riskService.js
+resources/js/constants/designSystem.js
+```
+
+---
+
+## IHT Calculation Table - Gray Color Scheme & UI Cleanup
+
+**Branch:** investUpdate
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Updated the IHT calculation table in Estate Planning to use a consistent gray color scheme matching the expenditure tab. Previously the table used multiple colors (blue, purple, green, orange, red, indigo) to differentiate sections, making it visually cluttered.
+
+Also cleaned up the Tax Allowances info boxes at the bottom by removing icons and making heading/text colors consistent.
+
+### Before
+
+- David's Assets: Blue border and text
+- Sarah's Assets: Green/Purple border and text
+- Total Gross Assets: Indigo border and text
+- Liabilities: Red/Orange border and text
+- Net Estate/IHT Liability: Various colored text
+
+### After
+
+- All table rows: Gray border (`border-gray-400`)
+- All text: Gray variants (`text-gray-600`, `text-gray-700`, `text-gray-900`)
+- Hover states: Gray (`hover:bg-gray-50`, `hover:bg-gray-100`)
+- Toggle buttons: Gray hover (`hover:bg-gray-100`)
+
+### Colors Changed
+
+| Element | Old Colors | New Color |
+|---------|------------|-----------|
+| Left borders | `blue-500`, `purple-500`, `green-500`, `orange-500`, `red-500`, `indigo-500` | `gray-400` |
+| Section headers | `blue-900`, `purple-900`, `green-900`, `orange-900`, `red-900`, `indigo-900` | `gray-900` |
+| Row values | `blue-600`, `purple-600`, `green-600`, `orange-600`, `red-600` | `gray-600` |
+| Bold totals | `blue-700`, `purple-700`, `orange-700`, `red-700` | `gray-900` |
+| Subtitles | `blue-500`, `purple-500`, `green-500`, `orange-500`, `red-500` | `gray-500` |
+| Hover states | `blue-50`, `purple-50`, `green-50`, `orange-50`, `red-50` | `gray-50` |
+
+### Tax Allowances Info Boxes
+
+| Change | Description |
+|--------|-------------|
+| Tax-Free Allowance | Removed icon, heading and text both `text-blue-800` |
+| Home Allowance | Removed icon, heading and text both conditional (`text-green-800` when full, `text-gray-800` otherwise) |
+
+### Note
+
+The summary cards at the top of the page (headline figures) retain their colored borders to provide visual distinction. Only the calculation table itself was changed.
+
+### Files Changed (1 file)
+
+**Frontend (included in build):**
+```text
+resources/js/components/Estate/IHTPlanning.vue
+```
+
+---
+
+## Monte Carlo Charts - Centralized Styling
+
+**Branch:** investUpdate
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Centralized the chart card styling for Monte Carlo graphs in `app.css` instead of having duplicate scoped styles in multiple components.
+
+### Changes Made
+
+| Change | Description |
+|--------|-------------|
+| Updated `.chart-card` in app.css | Added hover animation with border color change |
+| Removed scoped styles | Removed duplicate `.chart-card` styles from 3 components |
+
+### CSS in app.css
+
+```css
+.chart-card {
+  @apply bg-white rounded-lg border border-gray-200 p-6 cursor-pointer transition-all duration-200;
+}
+
+.chart-card:hover {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  @apply border-primary-500;
+}
+```
+
+### Files Changed (4 files)
+
+**CSS:**
+```text
+resources/css/app.css
+```
+
+**Frontend (removed scoped styles):**
+```text
+resources/js/components/Retirement/FutureValueTab.vue
+resources/js/components/NetWorth/PensionList.vue
+resources/js/components/NetWorth/InvestmentProjections.vue
+```
+
+---
+
+## Investment Cards - Remove Risk Badges, Fix Joint Badge Position
+
+**Branch:** genBits
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Removed risk badges from all investment account cards and moved the Joint ownership badge to the top-right corner for a cleaner layout.
+
+### Before
+
+- Risk badges (High, U-Med, etc.) displayed in top-right corner
+- Joint badge displayed inline with account type badge in header
+- Cards looked cluttered with multiple badges
+
+### After
+
+- No risk badges on investment cards
+- Joint badge positioned in top-right corner (where risk badge was)
+- Cleaner card layout with only account type badge in header
+
+### Changes Made
+
+| Change | Description |
+|--------|-------------|
+| Removed RiskBadge | Removed RiskBadge component from investment cards |
+| Joint badge position | Moved Joint badge to absolute top-right corner |
+| Removed unused code | Removed `shouldShowRiskBadge`, `formatOwnershipType`, `getOwnershipBadgeClass` methods |
+| New CSS class | Added `.joint-badge-corner` for purple badge styling in corner |
+
+### Files Changed (1 file)
+
+**Frontend (included in build):**
+```text
+resources/js/components/NetWorth/InvestmentList.vue
+```
+
+---
+
+## IHT Summary & Strategies - Inline Layout
+
+**Branch:** investUpdate
+
+**Status:** Pending
+
+### Description
+
+Combined the IHT summary cards (Taxable Estate and Inheritance Tax Liability) into a single compact card and formatted the strategies cards inline with it for a cleaner, more efficient layout. Removed the duplicate "Inheritance Tax Mitigation Strategies" section for married users.
+
+### Before
+
+- Two separate summary cards side by side (Taxable Estate, Total Inheritance Tax Liability)
+- Strategies section below with separate heading "Inheritance Tax Mitigation Strategies"
+- Duplicate strategies cards for married users
+
+### After
+
+- Single combined "IHT Summary" card with both metrics in a 2-column grid
+- Strategies cards (Will, Gifting, Life Policy, Charitable Bequest, Trust) displayed inline on same row as summary card
+- Grid layout: lg:grid-cols-5 (summary + 4 strategies on one row, Trust conditional)
+- Removed duplicate strategies section for married users (they only see summary cards at top)
+
+### Summary Card Structure
+
+```
+IHT Summary
+├── Taxable Estate
+│   ├── Now: £X
+│   └── Age Y: £X
+└── IHT Liability
+    ├── Now: £X
+    └── Age Y: £X
+```
+
+### Changes Made
+
+| Change | Description |
+|--------|-------------|
+| Combined summary cards | Single "IHT Summary" card with both metrics |
+| Inline strategies | Strategies display on same row as summary (lg:grid-cols-5) |
+| Compact layout | Reduced vertical space usage |
+| Removed duplicate section | Married users no longer see separate "Inheritance Tax Mitigation Strategies" section |
+
+### Files Changed (1 file)
+
+**Frontend (included in build):**
+```text
+resources/js/components/Estate/IHTPlanning.vue
+```
+
+---
+
+## Charitable Bequest - Dynamic IHT Calculation Update
+
+**Branch:** investUpdate
+
+**Status:** Pending
+
+### Description
+
+When the charitable bequest toggle is changed, the IHT calculation table now dynamically updates to show:
+1. The reduced IHT rate (36% instead of 40%)
+2. The charitable donation amount (minimum 10% of baseline)
+3. The recalculated IHT liability
+
+### Before
+
+- Clicking charitable bequest toggle saved preference but did not update IHT calculation table
+- Table always showed "40%" rate
+- No indication of how charitable bequest affects the calculation
+
+### After
+
+- Toggle now reloads IHT calculation to reflect changes
+- IHT rate dynamically shows "36%" or "40%" based on charitable bequest setting
+- New row appears showing "Less: Charitable Bequest (10% minimum)" with green styling
+- IHT liability is recalculated using the appropriate rate
+- Summary card also updates to show adjusted liability
+
+### Changes Made
+
+| Change | Description |
+|--------|-------------|
+| `toggleCharitableBequest` | Now calls `loadIHTCalculation()` after saving preference |
+| New computed properties | `charitableBaseline`, `charitableDonationAmount`, `effectiveIHTRate`, `effectiveIHTRateLabel`, `adjustedIHTLiability` (multiple variants for projections) |
+| Charitable Bequest row | New green-styled row showing minimum 10% donation amount when enabled |
+| IHT Liability row | Now shows dynamic rate (36%/40%) and uses adjusted calculation when charitable bequest enabled |
+| Summary card | Shows adjusted liability with green styling when charitable bequest enabled |
+| Fallback list view | Also updated to show charitable bequest impact |
+
+### IHT Calculation With Charitable Bequest
+
+```
+Baseline = Net Estate - NRB (excluding RNRB)
+Charitable Donation = Baseline × 10% (minimum)
+
+Standard (40% rate):
+Taxable Estate × 40% = IHT Liability
+
+With Charitable Bequest (36% rate):
+Taxable Estate × 36% = Reduced IHT Liability
+```
+
+### Visual Changes
+
+- Charitable bequest row: Green background (`bg-green-50`), green border (`border-green-400`), green text (`text-green-800`)
+- IHT rate label: "(Reduced rate)" note in green when charitable bequest enabled
+- Summary card: Green IHT liability value when charitable bequest enabled
+
+### Files Changed (1 file)
+
+**Frontend (included in build):**
+```text
+resources/js/components/Estate/IHTPlanning.vue
+```
+
+---
+
+## IHT Calculation Table - Restructured for Charitable Bequest Reconciliation
+
+**Branch:** investUpdate
+
+**Status:** ✅ Deployed to production
+
+### Description
+
+Restructured the IHT calculation table to clearly show the charitable bequest baseline. The new structure separates NRB (Tax-Free Allowance) from RNRB (Home Allowance), with a new "Estate after Tax-Free Allowances" row that shows the baseline used for calculating the 10% charitable bequest requirement.
+
+### New Table Structure
+
+**Previous Flow:**
+1. Net Estate → 2. Less NRB → 3. Less RNRB → 4. Taxable Estate → 5. Charitable Bequest → 6. IHT Liability
+
+**New Flow:**
+1. Net Estate → 2. Less NRB → 3. **Estate after Tax-Free Allowances** (charitable baseline) → 4. Charitable Bequest → 5. Less RNRB → 6. Taxable Estate → 7. IHT Liability
+
+### Changes Made
+
+| Change | Description |
+|--------|-------------|
+| New "Estate after Tax-Free Allowances" row | Blue highlighted row showing the baseline for charitable bequest calculation |
+| Charitable bequest moved before RNRB | Now sits logically after NRB deduction, before home allowance |
+| Separate NRB and RNRB sections | Married couples: NRB first, then charitable baseline, then RNRB |
+| New computed properties | `estateAfterNRB`, `estateAfterNRBProjected`, `secondDeathEstateAfterNRB`, etc. |
+| Updated fallback list view | Old list-style view also follows new structure |
+
+### Visual Styling
+
+- Estate after NRB row: Blue background (`bg-blue-50`), blue border (`border-blue-400`), blue text (`text-blue-800`)
+- Shows subtitle: "Charitable bequest baseline (before home allowance)"
+- Users can now reconcile: Charitable Donation = Estate after Tax-Free Allowances × 10%
+
+### Files Changed (1 file)
+
+**Frontend (included in build):**
+```text
+resources/js/components/Estate/IHTPlanning.vue
+```
+
+---
+
 ## Rebuild Required: YES
 
 Frontend Vue components changed. Full rebuild required:
@@ -512,9 +1349,16 @@ Upload the updated PHP files:
 ```text
 app/Http/Controllers/Api/InvestmentController.php
 app/Services/Risk/RiskPreferenceService.php
+database/seeders/PreviewUserSeeder.php
 ```
 
-### Step 5: Clear Cache (SSH)
+### Step 5: Re-seed Preview Users
+
+```bash
+php artisan db:seed --class=PreviewUserSeeder --force
+```
+
+### Step 6: Clear Cache (SSH)
 
 ```bash
 ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
@@ -682,6 +1526,31 @@ After deployment, verify:
     - Click on an ISA or GIA account
     - Verify it still shows the standard tabbed view (Overview, Holdings, Diversification, Performance, Rebalancing, Fees, Tax Status, Documents)
     - Verify standard Key Metrics header (Current Value, Annualised Return, Monthly Contribution, Holdings/ISA Allowance)
+
+22. **IHT Summary & Strategies - Inline Layout** (Estate Planning):
+    - Navigate to Estate Planning as a non-married user (e.g., Margaret Thompson - widow persona)
+    - Verify single "IHT Summary" card with two columns (Taxable Estate, IHT Liability)
+    - Verify strategies cards (Will, Gifting, Life Policy, Charitable Bequest) are inline on same row
+    - On large screens (lg+), verify all 5 cards fit on one horizontal row
+    - Navigate to Estate Planning as a married user (e.g., James Carter)
+    - Verify married summary cards still show separately (Joint Death Now, Projected, Tax Payable)
+    - Verify strategies section appears separately below summary with "Inheritance Tax Mitigation Strategies" heading
+
+23. **Charitable Bequest - Dynamic IHT Calculation** (Estate Planning):
+    - Navigate to Estate Planning IHT tab
+    - Scroll to Charitable Bequest card, click "No" to ensure it's disabled
+    - Note the IHT liability amount in the calculation table (should show 40% rate)
+    - Click "Yes" on the charitable bequest card
+    - Verify loading spinner appears briefly while saving
+    - Verify IHT calculation table updates:
+      - New pink row appears: "Less: Charitable Bequest (10% minimum)"
+      - IHT Liability row now shows "36%" instead of "40%"
+      - "(Reduced rate)" label appears next to the rate
+      - IHT liability amount decreases (should be 10% less than before)
+    - Verify summary card also updates to show adjusted liability with pink styling
+    - Click "No" on charitable bequest card
+    - Verify pink charitable bequest row disappears
+    - Verify IHT rate returns to 40% and liability increases back to original
 
 ---
 

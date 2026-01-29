@@ -563,7 +563,7 @@ class ComprehensiveProtectionPlanService
         }
 
         return [
-            'strategy_name' => 'Optimized Protection Strategy',
+            'strategy_name' => 'Optimised Protection Strategy',
             'recommendations' => $strategyRecommendations,
             'summary' => [
                 'total_coverage_increase' => $totalCoverageIncrease,

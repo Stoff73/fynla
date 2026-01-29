@@ -77,33 +77,33 @@ export default {
   computed: {
     iconBackgroundClass() {
       const classes = {
-        low: 'bg-green-100',
-        lower_medium: 'bg-teal-100',
-        medium: 'bg-blue-100',
-        upper_medium: 'bg-orange-100',
-        high: 'bg-red-100',
+        low: 'bg-yellow-100',
+        lower_medium: 'bg-pink-100',
+        medium: 'bg-green-100',
+        upper_medium: 'bg-teal-100',
+        high: 'bg-blue-100',
       };
       return classes[this.factor.level] || 'bg-gray-100';
     },
 
     iconColorClass() {
       const classes = {
-        low: 'text-green-600',
-        lower_medium: 'text-teal-600',
-        medium: 'text-blue-600',
-        upper_medium: 'text-orange-600',
-        high: 'text-red-600',
+        low: 'text-yellow-600',
+        lower_medium: 'text-pink-600',
+        medium: 'text-green-600',
+        upper_medium: 'text-teal-600',
+        high: 'text-blue-600',
       };
       return classes[this.factor.level] || 'text-gray-600';
     },
 
     levelBadgeClass() {
       const classes = {
-        low: 'bg-green-100 text-green-800',
-        lower_medium: 'bg-teal-100 text-teal-800',
-        medium: 'bg-blue-100 text-blue-800',
-        upper_medium: 'bg-orange-100 text-orange-800',
-        high: 'bg-red-100 text-red-800',
+        low: 'bg-yellow-100 text-yellow-800',
+        lower_medium: 'bg-pink-100 text-pink-800',
+        medium: 'bg-green-100 text-green-800',
+        upper_medium: 'bg-teal-100 text-teal-800',
+        high: 'bg-blue-100 text-blue-800',
       };
       return classes[this.factor.level] || 'bg-gray-100 text-gray-800';
     },
