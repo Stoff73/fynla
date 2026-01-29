@@ -936,6 +936,68 @@ php artisan db:seed --class=PreviewUserSeeder --force
 
 ---
 
+## Risk Level Color System Update
+
+**Branch:** investUpdate
+
+**Status:** Ready for deployment
+
+### Description
+
+Updated the risk level color system to use a new consistent color scheme across all risk-related components. Removed all orange/amber colors from the risk module (amber is banned from the application).
+
+### New Risk Level Colors
+
+| Risk Level | Color | Tailwind Classes |
+|------------|-------|------------------|
+| Low | Yellow | `bg-yellow-100 text-yellow-800` |
+| Lower-Medium | Pink | `bg-pink-100 text-pink-800` |
+| Medium | Green | `bg-green-100 text-green-800` |
+| Upper-Medium | Teal | `bg-teal-100 text-teal-800` |
+| High | Blue | `bg-blue-100 text-blue-800` |
+
+### Investment Types Accordion Updates
+
+| Asset Type | Risk Level | Old Color | New Color |
+|------------|------------|-----------|-----------|
+| Cash & Cash Equivalents | Low | Green | Yellow |
+| Bonds (Fixed Income) | Lower-Medium | Teal | Pink |
+| Commercial Property | Medium | Blue | Green |
+| Equities (Shares) | Medium-High | Orange | Teal |
+| Alternative Investments | High | Red | Blue |
+
+### Other Changes
+
+| Component | Change |
+|-----------|--------|
+| RiskBadge.vue | Custom risk ring changed from orange/purple to blue (`ring-blue-300`) |
+| RiskProfilePage.vue | Product-Level Overrides box changed from orange to green |
+| RiskProfileSummary.vue | Product-Level Overrides box changed from orange to green |
+| TimeHorizonSection.vue | Important note box changed from orange to blue |
+| RiskLevelsExplainedPage.vue | Volatility stat color changed from orange to red |
+| RiskFactorsPanel.vue | "Cannot afford to withstand fall" card changed from orange to teal |
+| InvestmentTypesAccordion.vue | Warning boxes changed from orange/red to blue |
+
+### Files Changed (12 files)
+
+**Frontend (included in build):**
+```text
+resources/js/components/Shared/RiskBadge.vue
+resources/js/components/Shared/RiskLevelSelector.vue
+resources/js/components/Risk/RiskFactorsPanel.vue
+resources/js/components/Risk/InvestmentTypesAccordion.vue
+resources/js/components/Risk/RiskProfileSummary.vue
+resources/js/components/Risk/FactorBreakdownCard.vue
+resources/js/components/Risk/TimeHorizonSection.vue
+resources/js/views/Risk/RiskProfilePage.vue
+resources/js/views/Risk/RiskFactorDetailPage.vue
+resources/js/views/Risk/RiskLevelsExplainedPage.vue
+resources/js/services/riskService.js
+resources/js/constants/designSystem.js
+```
+
+---
+
 ## Rebuild Required: YES
 
 Frontend Vue components changed. Full rebuild required:

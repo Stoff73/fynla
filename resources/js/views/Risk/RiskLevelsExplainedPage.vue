@@ -80,7 +80,7 @@
                     <p class="text-xs text-gray-500">Expected Returns</p>
                   </div>
                   <div class="text-center">
-                    <p class="text-lg font-bold text-orange-600">{{ level.volatility_percent }}%</p>
+                    <p class="text-lg font-bold text-red-600">{{ level.volatility_percent }}%</p>
                     <p class="text-xs text-gray-500">Volatility</p>
                   </div>
                   <div class="text-center">
@@ -232,11 +232,11 @@ export default {
 
     getRiskLevelCircleClass(level) {
       const classes = {
-        low: 'bg-green-100 text-green-700',
-        lower_medium: 'bg-teal-100 text-teal-700',
-        medium: 'bg-blue-100 text-blue-700',
-        upper_medium: 'bg-orange-100 text-orange-700',
-        high: 'bg-red-100 text-red-700',
+        low: 'bg-yellow-100 text-yellow-700',
+        lower_medium: 'bg-pink-100 text-pink-700',
+        medium: 'bg-green-100 text-green-700',
+        upper_medium: 'bg-teal-100 text-teal-700',
+        high: 'bg-blue-100 text-blue-700',
       };
       return classes[level] || 'bg-gray-100 text-gray-700';
     },
