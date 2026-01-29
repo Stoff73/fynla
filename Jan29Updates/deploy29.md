@@ -755,7 +755,7 @@ resources/js/components/UserProfile/ExpenditureForm.vue
 
 **Branch:** genBits
 
-**Status:** Ready for deployment
+**Status:** ✅ Deployed to production
 
 ### Description
 
@@ -792,7 +792,7 @@ resources/js/components/Preview/PreviewBanner.vue
 
 **Branch:** genBits
 
-**Status:** Ready for deployment
+**Status:** ✅ Deployed to production
 
 ### Description
 
@@ -820,7 +820,7 @@ resources/js/components/UserProfile/ExpenditureForm.vue
 
 **Branch:** genBits
 
-**Status:** Ready for deployment
+**Status:** ✅ Deployed to production
 
 ### Description
 
@@ -851,7 +851,7 @@ resources/js/components/UserProfile/IncomeOccupation.vue
 
 **Branch:** genBits
 
-**Status:** Ready for deployment
+**Status:** ✅ Deployed to production
 
 ### Description
 
@@ -878,7 +878,7 @@ resources/js/components/UserProfile/IncomeOccupation.vue
 
 **Branch:** genBits
 
-**Status:** Ready for deployment
+**Status:** ✅ Deployed to production
 
 ### Description
 
@@ -940,7 +940,7 @@ php artisan db:seed --class=PreviewUserSeeder --force
 
 **Branch:** investUpdate
 
-**Status:** Ready for deployment
+**Status:** ✅ Deployed to production
 
 ### Description
 
@@ -1002,7 +1002,7 @@ resources/js/constants/designSystem.js
 
 **Branch:** investUpdate
 
-**Status:** Ready for deployment
+**Status:** ✅ Deployed to production
 
 ### Description
 
@@ -1060,7 +1060,7 @@ resources/js/components/Estate/IHTPlanning.vue
 
 **Branch:** investUpdate
 
-**Status:** Ready for deployment
+**Status:** ✅ Deployed to production
 
 ### Description
 
@@ -1106,7 +1106,7 @@ resources/js/components/NetWorth/InvestmentProjections.vue
 
 **Branch:** genBits
 
-**Status:** Ready for deployment
+**Status:** ✅ Deployed to production
 
 ### Description
 
@@ -1138,6 +1138,123 @@ Removed risk badges from all investment account cards and moved the Joint owners
 **Frontend (included in build):**
 ```text
 resources/js/components/NetWorth/InvestmentList.vue
+```
+
+---
+
+## IHT Summary & Strategies - Inline Layout
+
+**Branch:** investUpdate
+
+**Status:** Pending
+
+### Description
+
+Combined the IHT summary cards (Taxable Estate and Inheritance Tax Liability) into a single compact card and formatted the strategies cards inline with it for a cleaner, more efficient layout. Removed the duplicate "Inheritance Tax Mitigation Strategies" section for married users.
+
+### Before
+
+- Two separate summary cards side by side (Taxable Estate, Total Inheritance Tax Liability)
+- Strategies section below with separate heading "Inheritance Tax Mitigation Strategies"
+- Duplicate strategies cards for married users
+
+### After
+
+- Single combined "IHT Summary" card with both metrics in a 2-column grid
+- Strategies cards (Will, Gifting, Life Policy, Charitable Bequest, Trust) displayed inline on same row as summary card
+- Grid layout: lg:grid-cols-5 (summary + 4 strategies on one row, Trust conditional)
+- Removed duplicate strategies section for married users (they only see summary cards at top)
+
+### Summary Card Structure
+
+```
+IHT Summary
+├── Taxable Estate
+│   ├── Now: £X
+│   └── Age Y: £X
+└── IHT Liability
+    ├── Now: £X
+    └── Age Y: £X
+```
+
+### Changes Made
+
+| Change | Description |
+|--------|-------------|
+| Combined summary cards | Single "IHT Summary" card with both metrics |
+| Inline strategies | Strategies display on same row as summary (lg:grid-cols-5) |
+| Compact layout | Reduced vertical space usage |
+| Removed duplicate section | Married users no longer see separate "Inheritance Tax Mitigation Strategies" section |
+
+### Files Changed (1 file)
+
+**Frontend (included in build):**
+```text
+resources/js/components/Estate/IHTPlanning.vue
+```
+
+---
+
+## Charitable Bequest - Dynamic IHT Calculation Update
+
+**Branch:** investUpdate
+
+**Status:** Pending
+
+### Description
+
+When the charitable bequest toggle is changed, the IHT calculation table now dynamically updates to show:
+1. The reduced IHT rate (36% instead of 40%)
+2. The charitable donation amount (minimum 10% of net estate)
+3. The recalculated IHT liability
+
+### Before
+
+- Clicking charitable bequest toggle saved preference but did not update IHT calculation table
+- Table always showed "40%" rate
+- No indication of how charitable bequest affects the calculation
+
+### After
+
+- Toggle now reloads IHT calculation to reflect changes
+- IHT rate dynamically shows "36%" or "40%" based on charitable bequest setting
+- New row appears showing "Less: Charitable Bequest (10% minimum)" with pink styling
+- IHT liability is recalculated using the appropriate rate
+- Summary card also updates to show adjusted liability
+
+### Changes Made
+
+| Change | Description |
+|--------|-------------|
+| `toggleCharitableBequest` | Now calls `loadIHTCalculation()` after saving preference |
+| New computed properties | `charitableDonationAmount`, `effectiveIHTRate`, `effectiveIHTRateLabel`, `adjustedIHTLiability` (multiple variants for projections) |
+| Charitable Bequest row | New pink-styled row showing minimum 10% donation amount when enabled |
+| IHT Liability row | Now shows dynamic rate (36%/40%) and uses adjusted calculation when charitable bequest enabled |
+| Summary card | Shows adjusted liability with pink styling when charitable bequest enabled |
+| Fallback list view | Also updated to show charitable bequest impact |
+
+### IHT Calculation With Charitable Bequest
+
+```
+Standard (40% rate):
+Taxable Estate × 40% = IHT Liability
+
+With Charitable Bequest (36% rate):
+Charitable Donation = Net Estate × 10% (minimum)
+Taxable Estate × 36% = Reduced IHT Liability
+```
+
+### Visual Changes
+
+- Charitable bequest row: Pink background (`bg-pink-50`), pink border (`border-pink-400`), pink text (`text-pink-800`)
+- IHT rate label: "(Reduced rate)" note in pink when charitable bequest enabled
+- Summary card: Pink IHT liability value when charitable bequest enabled
+
+### Files Changed (1 file)
+
+**Frontend (included in build):**
+```text
+resources/js/components/Estate/IHTPlanning.vue
 ```
 
 ---
@@ -1364,6 +1481,31 @@ After deployment, verify:
     - Click on an ISA or GIA account
     - Verify it still shows the standard tabbed view (Overview, Holdings, Diversification, Performance, Rebalancing, Fees, Tax Status, Documents)
     - Verify standard Key Metrics header (Current Value, Annualised Return, Monthly Contribution, Holdings/ISA Allowance)
+
+22. **IHT Summary & Strategies - Inline Layout** (Estate Planning):
+    - Navigate to Estate Planning as a non-married user (e.g., Margaret Thompson - widow persona)
+    - Verify single "IHT Summary" card with two columns (Taxable Estate, IHT Liability)
+    - Verify strategies cards (Will, Gifting, Life Policy, Charitable Bequest) are inline on same row
+    - On large screens (lg+), verify all 5 cards fit on one horizontal row
+    - Navigate to Estate Planning as a married user (e.g., James Carter)
+    - Verify married summary cards still show separately (Joint Death Now, Projected, Tax Payable)
+    - Verify strategies section appears separately below summary with "Inheritance Tax Mitigation Strategies" heading
+
+23. **Charitable Bequest - Dynamic IHT Calculation** (Estate Planning):
+    - Navigate to Estate Planning IHT tab
+    - Scroll to Charitable Bequest card, click "No" to ensure it's disabled
+    - Note the IHT liability amount in the calculation table (should show 40% rate)
+    - Click "Yes" on the charitable bequest card
+    - Verify loading spinner appears briefly while saving
+    - Verify IHT calculation table updates:
+      - New pink row appears: "Less: Charitable Bequest (10% minimum)"
+      - IHT Liability row now shows "36%" instead of "40%"
+      - "(Reduced rate)" label appears next to the rate
+      - IHT liability amount decreases (should be 10% less than before)
+    - Verify summary card also updates to show adjusted liability with pink styling
+    - Click "No" on charitable bequest card
+    - Verify pink charitable bequest row disappears
+    - Verify IHT rate returns to 40% and liability increases back to original
 
 ---
 
