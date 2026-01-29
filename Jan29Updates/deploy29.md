@@ -430,6 +430,43 @@ resources/js/components/NetWorth/InvestmentDetailInline.vue
 
 ---
 
+## Risk Level Flexibility - Remove One-Step Restriction
+
+**Branch:** investUpdate
+
+**Status:** 🔄 Ready for deployment
+
+### Description
+
+Removed the restriction that limited users to only adjusting their product risk level by one step from their main profile. Users can now choose any risk level for their investments and pensions.
+
+### Before
+
+- Users could only select adjacent risk levels (e.g., if main profile is "Medium", only "Lower-Medium", "Medium", and "Upper-Medium" were available)
+- Helper text: "You can adjust this account within one level of your main preference"
+
+### After
+
+- Users can select any of the 5 risk levels for any product
+- Helper text: "You can choose a different risk level for this account if needed"
+
+### Files Changed (5 files)
+
+**Backend:**
+```text
+app/Services/Risk/RiskPreferenceService.php
+```
+
+**Frontend:**
+```text
+resources/js/components/Investment/AccountForm.vue
+resources/js/components/Retirement/DCPensionForm.vue
+resources/js/views/Risk/RiskProfilePage.vue
+resources/js/components/Risk/RiskProfileSummary.vue
+```
+
+---
+
 ## Rebuild Required: YES
 
 Frontend Vue components changed. Full rebuild required:
@@ -470,13 +507,14 @@ resources/js/views/Investment/PrivateInvestmentDetail.vue
 
 ### Step 4: Upload PHP Files
 
-Upload the updated controller:
+Upload the updated PHP files:
 
 ```text
 app/Http/Controllers/Api/InvestmentController.php
+app/Services/Risk/RiskPreferenceService.php
 ```
 
-### Step 4: Clear Cache (SSH)
+### Step 5: Clear Cache (SSH)
 
 ```bash
 ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
