@@ -811,12 +811,12 @@
           <div class="col-span-full border-t-2 border-gray-300 mt-4"></div>
           <div class="col-label text-body font-semibold text-gray-900 py-3">Total Monthly Expenditure</div>
           <div class="col-value text-body font-semibold text-primary-600 py-3">{{ formatCurrency(retiredTotalMonthly) }}</div>
-          <div v-if="isMarried" class="col-value text-body font-semibold text-primary-600 py-3">{{ formatCurrency(retiredHouseholdTotalMonthly - retiredTotalMonthly) }}</div>
+          <div v-if="isMarried" class="col-value text-body font-semibold text-primary-600 py-3">{{ formatCurrency(retiredSpouseTotalMonthly) }}</div>
           <div v-if="isMarried" class="col-total text-body font-semibold text-primary-600 py-3">{{ formatCurrency(retiredHouseholdTotalMonthly) }}</div>
 
           <div class="col-label text-body-sm text-gray-600">Annual Equivalent</div>
           <div class="col-value text-body-sm text-primary-600 font-medium">{{ formatCurrency(retiredTotalMonthly * 12) }}</div>
-          <div v-if="isMarried" class="col-value text-body-sm text-primary-600 font-medium">{{ formatCurrency((retiredHouseholdTotalMonthly - retiredTotalMonthly) * 12) }}</div>
+          <div v-if="isMarried" class="col-value text-body-sm text-primary-600 font-medium">{{ formatCurrency(retiredSpouseTotalMonthly * 12) }}</div>
           <div v-if="isMarried" class="col-total text-body-sm text-primary-600 font-medium">{{ formatCurrency(retiredHouseholdTotalMonthly * 12) }}</div>
 
           <!-- Monthly Savings Row -->
@@ -1505,18 +1505,21 @@ export default {
       return retiredBudgetData.value[key]?.value || 0;
     };
 
+    // User's retired total: manual expenditure + protection premiums (only commitment in retirement)
     const retiredTotalMonthly = computed(() => {
-      let total = 0;
-      Object.values(retiredBudgetData.value).forEach(data => {
-        total += data.value || 0;
-      });
-      total += retiredCommitments.value.mortgageAmount;
-      total += retiredCommitments.value.protectionAmount;
-      total += retiredCommitments.value.loansAmount;
-      return total;
+      return retiredManualExpenditureTotal.value + (financialCommitments.value?.totals?.protection || 0);
     });
 
-    const retiredHouseholdTotalMonthly = computed(() => retiredTotalMonthly.value);
+    // Spouse's retired total: spouse's manual expenditure + spouse's protection premiums
+    const retiredSpouseTotalMonthly = computed(() => {
+      if (!props.isMarried) return 0;
+      return retiredSpouseManualExpenditureTotal.value + (spouseFinancialCommitments.value?.totals?.protection || 0);
+    });
+
+    // Household total is user + spouse
+    const retiredHouseholdTotalMonthly = computed(() => {
+      return retiredTotalMonthly.value + retiredSpouseTotalMonthly.value;
+    });
 
     const getRetiredUserValue = (key) => {
       const currentValue = formData.value[key] || 0;
@@ -2009,6 +2012,7 @@ export default {
       getRetiredSpouseValue,
       getRetiredChange,
       retiredTotalMonthly,
+      retiredSpouseTotalMonthly,
       retiredHouseholdTotalMonthly,
       retiredManualExpenditureTotal,
       retiredSpouseManualExpenditureTotal,
