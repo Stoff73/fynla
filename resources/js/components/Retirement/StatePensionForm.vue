@@ -68,26 +68,6 @@
             </p>
           </div>
 
-          <!-- State Pension Age -->
-          <div>
-            <label for="state_pension_age" class="block text-sm font-medium text-gray-700 mb-2">
-              Your State Pension Age
-            </label>
-            <input
-              id="state_pension_age"
-              v-model.number="formData.state_pension_age"
-              type="number"
-              min="60"
-              max="75"
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              placeholder="e.g., 67"
-            />
-            <p class="text-xs text-gray-500 mt-1">
-              Check your State Pension age at
-              <a href="https://www.gov.uk/state-pension-age" target="_blank" class="text-indigo-600 hover:underline">gov.uk/state-pension-age</a>
-            </p>
-          </div>
-
           <!-- Forecast Date -->
           <div>
             <label for="forecast_date" class="block text-sm font-medium text-gray-700 mb-2">
@@ -202,7 +182,6 @@ export default {
       formData: {
         forecast_weekly_amount: null,
         qualifying_years: null,
-        state_pension_age: 67,
         forecast_date: null,
         has_ni_gaps: false,
         gaps_years: null,
@@ -232,7 +211,6 @@ export default {
           forecast_weekly_amount: this.statePension.state_pension_forecast_annual ?
             Math.round((this.statePension.state_pension_forecast_annual / 52) * 100) / 100 : null,
           qualifying_years: this.statePension.ni_years_completed || null,
-          state_pension_age: this.statePension.state_pension_age || 67,
           forecast_date: null, // Not stored in backend
           has_ni_gaps: !!(this.statePension.ni_gaps && this.statePension.ni_gaps.length > 0),
           gaps_years: this.statePension.ni_gaps ? this.statePension.ni_gaps.length : null,
@@ -273,17 +251,11 @@ export default {
         return;
       }
 
-      if (!this.formData.state_pension_age || this.formData.state_pension_age < 60) {
-        alert('Please enter a valid State Pension age');
-        return;
-      }
-
       // Transform form data to match backend schema
       const dataToSend = {
         ni_years_completed: this.formData.qualifying_years,
         ni_years_required: 35, // New State Pension requires 35 qualifying years
         state_pension_forecast_annual: this.formData.forecast_weekly_amount ? this.formData.forecast_weekly_amount * 52 : null,
-        state_pension_age: this.formData.state_pension_age,
         ni_gaps: this.formData.has_ni_gaps && this.formData.gaps_years ?
           Array(this.formData.gaps_years).fill({ year: 'Unknown', cost: 0 }) : null,
         gap_fill_cost: this.formData.has_ni_gaps ? this.formData.estimated_gap_cost : null,

@@ -51,8 +51,20 @@
       <div class="chart-card">
         <div class="chart-header">
           <h3 class="chart-title">Pension Pot Projection</h3>
+          <!-- Retirement Age Info -->
+          <div class="retirement-age-info">
+            <div class="retirement-age-item">
+              <span class="retirement-age-label">Retirement Age</span>
+              <span class="retirement-age-value">{{ projections.pension_pot_projection?.retirement_age }}</span>
+            </div>
+            <div class="retirement-age-divider"></div>
+            <div class="retirement-age-item">
+              <span class="retirement-age-label">Years to Retirement</span>
+              <span class="retirement-age-value">{{ projections.pension_pot_projection?.years_to_retirement }}</span>
+            </div>
+          </div>
           <p class="chart-subtitle">
-            Monte Carlo simulation for {{ projections.pension_pot_projection?.dc_pension_count }} DC pension(s) to age {{ projections.pension_pot_projection?.retirement_age }}
+            Monte Carlo simulation for {{ projections.pension_pot_projection?.dc_pension_count }} DC pension(s)
             <span class="risk-badge">{{ formatRiskLevel(projections.pension_pot_projection?.risk_level) }} Risk</span>
           </p>
         </div>
@@ -342,7 +354,44 @@ export default {
   font-size: 18px;
   font-weight: 600;
   @apply text-gray-900;
-  margin: 0 0 8px 0;
+  margin: 0 0 12px 0;
+}
+
+.retirement-age-info {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 12px;
+  padding: 12px 16px;
+  @apply bg-teal-50;
+  @apply border border-teal-200;
+  border-radius: 8px;
+}
+
+.retirement-age-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.retirement-age-label {
+  font-size: 12px;
+  font-weight: 500;
+  @apply text-teal-600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.retirement-age-value {
+  font-size: 24px;
+  font-weight: 700;
+  @apply text-teal-800;
+}
+
+.retirement-age-divider {
+  width: 1px;
+  height: 40px;
+  @apply bg-teal-300;
 }
 
 .chart-subtitle {

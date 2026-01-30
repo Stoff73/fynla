@@ -127,36 +127,20 @@
             </div>
           </div>
 
-          <!-- Accrual Rate and Normal Retirement Age -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label for="accrual_rate" class="block text-sm font-medium text-gray-700 mb-2">
-                Accrual Rate (1/X)
-              </label>
-              <input
-                id="accrual_rate"
-                v-model.number="formData.accrual_rate"
-                type="number"
-                min="0"
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                placeholder="e.g., 60 (for 1/60th)"
-              />
-              <p class="text-xs text-gray-500 mt-1">Common: 60 (public sector), 80 (older schemes)</p>
-            </div>
-            <div>
-              <label for="normal_retirement_age" class="block text-sm font-medium text-gray-700 mb-2">
-                Normal Retirement Age
-              </label>
-              <input
-                id="normal_retirement_age"
-                v-model.number="formData.normal_retirement_age"
-                type="number"
-                min="50"
-                max="75"
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                placeholder="e.g., 65"
-              />
-            </div>
+          <!-- Accrual Rate -->
+          <div>
+            <label for="accrual_rate" class="block text-sm font-medium text-gray-700 mb-2">
+              Accrual Rate (1/X)
+            </label>
+            <input
+              id="accrual_rate"
+              v-model.number="formData.accrual_rate"
+              type="number"
+              min="0"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="e.g., 60 (for 1/60th)"
+            />
+            <p class="text-xs text-gray-500 mt-1">Common: 60 (public sector), 80 (older schemes)</p>
           </div>
 
           <!-- Revaluation Rate -->
@@ -253,7 +237,6 @@ export default {
         service_years: null,
         final_salary: null,
         accrual_rate: null,
-        normal_retirement_age: null, // Will be populated from user profile
         revaluation_rate: null,
         pcls_available: null,
         notes: '',
@@ -276,11 +259,6 @@ export default {
         if (newPension) {
           // Editing existing pension - populate form with pension data
           this.formData = { ...newPension };
-        } else {
-          // Adding new pension - populate retirement age from user profile
-          if (this.currentUser && this.currentUser.target_retirement_age) {
-            this.formData.normal_retirement_age = this.currentUser.target_retirement_age;
-          }
         }
       },
     },
@@ -320,7 +298,6 @@ export default {
         accrued_annual_pension: this.formData.annual_income,
         pensionable_service_years: this.formData.service_years,
         pensionable_salary: this.formData.final_salary,
-        normal_retirement_age: this.formData.normal_retirement_age,
         revaluation_method: this.formData.revaluation_rate ? `${this.formData.revaluation_rate}%` : null,
         lump_sum_entitlement: this.formData.pcls_available,
         // Map accrual_rate if needed by backend

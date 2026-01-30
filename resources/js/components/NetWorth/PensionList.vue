@@ -201,7 +201,7 @@
                   <h3 class="chart-title">Pension Pot Projection</h3>
                   <span class="risk-badge-corner">{{ formatRiskLevel(projections.pension_pot_projection?.risk_level) }} Risk</span>
                 </div>
-                <div class="summary-row">
+                <div class="summary-row three-col">
                   <div class="summary-item blue">
                     <span class="summary-item-label">Pension Pot Value</span>
                     <span class="summary-item-value">{{ formatCurrency(dcPensionValue) }}</span>
@@ -209,6 +209,19 @@
                   <div class="summary-item purple">
                     <span class="summary-item-label">Projected Value (80%)</span>
                     <span class="summary-item-value">{{ formatCurrency(projections.pension_pot_projection?.percentile_20_at_retirement) }}</span>
+                  </div>
+                  <div class="summary-item teal">
+                    <div class="retirement-age-inline">
+                      <div class="retirement-inline-item">
+                        <span class="summary-item-label">Retirement Age</span>
+                        <span class="summary-item-value">{{ projections.pension_pot_projection?.retirement_age }}</span>
+                      </div>
+                      <div class="retirement-inline-divider"></div>
+                      <div class="retirement-inline-item">
+                        <span class="summary-item-label">Years to Go</span>
+                        <span class="summary-item-value">{{ projections.pension_pot_projection?.years_to_retirement }}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
                 <PensionPotProjectionChart
@@ -1117,6 +1130,7 @@ export default {
   font-weight: 600;
 }
 
+
 .chart-footer {
   font-size: 13px;
   @apply text-gray-500;
@@ -1159,6 +1173,10 @@ export default {
   margin-bottom: 20px;
 }
 
+.summary-row.three-col {
+  grid-template-columns: repeat(3, 1fr);
+}
+
 .summary-item {
   padding: 12px 16px;
   border-radius: 8px;
@@ -1182,6 +1200,29 @@ export default {
 
 .summary-item.red {
   @apply bg-red-50;
+}
+
+.summary-item.teal {
+  @apply bg-teal-50;
+}
+
+/* Inline Retirement Age */
+.retirement-age-inline {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.retirement-inline-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.retirement-inline-divider {
+  width: 1px;
+  height: 32px;
+  @apply bg-teal-300;
 }
 
 .summary-item-label {
@@ -1574,7 +1615,8 @@ export default {
     justify-content: center;
   }
 
-  .summary-row {
+  .summary-row,
+  .summary-row.three-col {
     grid-template-columns: 1fr;
   }
 }

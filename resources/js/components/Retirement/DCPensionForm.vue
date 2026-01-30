@@ -199,44 +199,22 @@
             </p>
           </div>
 
-          <!-- Expected Return and Retirement Age -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label for="expected_return_percent" class="block text-sm font-medium text-gray-700 mb-2">
-                Expected Return (% p.a.)
-              </label>
-              <input
-                id="expected_return_percent"
-                v-model.number="formData.expected_return_percent"
-                type="number"
-                step="0.01"
-                min="0"
-                max="20"
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                placeholder="e.g., 5.00"
-              />
-              <p class="text-xs text-gray-500 mt-1">Typical: 4-6% for balanced funds</p>
-            </div>
-            <div>
-              <label for="retirement_age" class="block text-sm font-medium text-gray-700 mb-2">
-                Planned Retirement Age
-              </label>
-              <input
-                id="retirement_age"
-                v-model.number="formData.retirement_age"
-                type="number"
-                min="55"
-                max="75"
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                :class="{ 'border-red-500': validationErrors.retirement_age }"
-                placeholder="e.g., 67"
-                @blur="validateRetirementAge"
-              />
-              <p v-if="validationErrors.retirement_age" class="text-xs text-red-500 mt-1">
-                {{ validationErrors.retirement_age }}
-              </p>
-              <p v-else class="text-xs text-gray-500 mt-1">Pensions can usually be accessed from age 55</p>
-            </div>
+          <!-- Expected Return -->
+          <div>
+            <label for="expected_return_percent" class="block text-sm font-medium text-gray-700 mb-2">
+              Expected Return (% p.a.)
+            </label>
+            <input
+              id="expected_return_percent"
+              v-model.number="formData.expected_return_percent"
+              type="number"
+              step="0.01"
+              min="0"
+              max="20"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="e.g., 5.00"
+            />
+            <p class="text-xs text-gray-500 mt-1">Typical: 4-6% for balanced funds</p>
           </div>
 
           <!-- Risk Level Section (hidden during onboarding) -->
@@ -366,7 +344,6 @@ export default {
         monthly_contribution_amount: null,
         lump_sum_contribution: null,
         expected_return_percent: 5.0,
-        retirement_age: null, // Will be populated from user profile
         salary_sacrifice: false,
         notes: '',
         risk_preference: null,
@@ -374,7 +351,6 @@ export default {
       validationErrors: {
         employee_contribution_percent: '',
         employer_contribution_percent: '',
-        retirement_age: '',
       },
       // Risk profile state
       mainRiskLevel: null,
@@ -430,11 +406,6 @@ export default {
             ...newPension,
             risk_preference: newPension.risk_preference || null,
           };
-        } else {
-          // Adding new pension - populate retirement age from user profile
-          if (this.currentUser && this.currentUser.target_retirement_age) {
-            this.formData.retirement_age = this.currentUser.target_retirement_age;
-          }
         }
       },
     },
@@ -514,18 +485,7 @@ export default {
       }
     },
 
-    validateRetirementAge() {
-      this.validationErrors.retirement_age = '';
-      const age = this.formData.retirement_age;
-
-      if (age !== null && age !== '' && age < 55) {
-        this.validationErrors.retirement_age = 'Pensions can only be accessed from age 55, so this is the youngest age you can enter';
-      }
-    },
-
     handleSubmit() {
-      // Validate all fields before submitting
-      this.validateRetirementAge();
 
       if (this.isWorkplacePension) {
         this.validateEmployeeContribution();
@@ -535,11 +495,6 @@ export default {
         if (this.validationErrors.employee_contribution_percent || this.validationErrors.employer_contribution_percent) {
           return;
         }
-      }
-
-      // Check retirement age validation
-      if (this.validationErrors.retirement_age) {
-        return;
       }
 
       // Basic validation

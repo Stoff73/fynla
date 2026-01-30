@@ -130,7 +130,7 @@
                 <span class="text-body-sm text-gray-900 text-right">{{ formatEmploymentStatus(form.employment_status) }}</span>
               </div>
               <div v-if="form.employment_status && form.employment_status !== 'retired'" class="flex justify-between">
-                <span class="text-body-sm text-gray-600">Target Retirement Age:</span>
+                <span class="text-body-sm text-gray-600">Retirement Age:</span>
                 <span class="text-body-sm text-gray-900 text-right">{{ form.target_retirement_age || '—' }}</span>
               </div>
             </div>
@@ -431,10 +431,10 @@
               </select>
             </div>
 
-            <!-- Target Retirement Age (for non-retired) -->
+            <!-- Retirement Age (for non-retired) -->
             <div v-if="form.employment_status && form.employment_status !== 'retired'">
               <label class="block text-body-sm font-medium text-gray-700 mb-1">
-                Target Retirement Age
+                Retirement Age
               </label>
               <input
                 id="target_retirement_age"
@@ -445,6 +445,9 @@
                 class="input-field"
                 placeholder="65"
               />
+              <p class="mt-1 text-body-sm text-gray-500">
+                Planned retirement age, used for all pension forecast calculations.
+              </p>
             </div>
           </div>
         </div>
