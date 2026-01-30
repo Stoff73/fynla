@@ -86,14 +86,6 @@
               @click="selectPension(pension, 'dc')"
               class="pension-card-standalone"
             >
-              <!-- Risk Badge - Top Right Corner -->
-              <RiskBadge
-                v-if="pension.risk_preference"
-                :level="pension.risk_preference"
-                size="xs"
-                :abbreviated="true"
-                class="pension-risk-badge"
-              />
               <div class="card-header">
                 <span class="badge badge-dc">{{ formatDCPensionType(pension.pension_type) }}</span>
               </div>
@@ -827,13 +819,6 @@ export default {
   transition: all 0.2s ease;
 }
 
-/* Risk Badge - Top Right Corner */
-.pension-card-standalone :deep(.pension-risk-badge) {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  z-index: 10;
-}
 
 .pension-card-standalone:hover {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
