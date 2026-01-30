@@ -675,8 +675,8 @@ export default {
 }
 
 .sources-list {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
 }
 
@@ -804,12 +804,22 @@ export default {
   @apply bg-blue-600;
 }
 
+@media (max-width: 1024px) {
+  .sources-list {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (max-width: 768px) {
   .header-section {
     flex-direction: column;
   }
 
   .summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sources-list {
     grid-template-columns: 1fr;
   }
 

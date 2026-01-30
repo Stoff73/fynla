@@ -228,6 +228,9 @@ export default {
   padding: 20px;
   @apply border border-gray-200;
   transition: border-color 0.2s, box-shadow 0.2s;
+  display: flex;
+  flex-direction: column;
+  min-height: 200px;
 }
 
 .income-source-slider:hover {
@@ -240,6 +243,7 @@ export default {
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 16px;
+  gap: 8px;
 }
 
 .source-info {
@@ -294,10 +298,14 @@ export default {
 }
 
 .source-name {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
   @apply text-gray-900;
   margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px;
 }
 
 .source-balance {
@@ -353,6 +361,7 @@ export default {
 /* Slider Section */
 .slider-section {
   margin-bottom: 12px;
+  margin-top: auto;
 }
 
 .slider-header {

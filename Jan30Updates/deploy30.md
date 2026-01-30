@@ -658,8 +658,28 @@ Users can toggle this setting per account via the investment account edit form.
 
 | File | Change |
 |------|--------|
-| RetirementIncomeTab.vue | Hidden spouse assets toggle with `v-if="false"` |
+| RetirementIncomeTab.vue | Hidden spouse assets toggle; changed income sources to 3-column grid layout |
+| IncomeSourceSlider.vue | Updated styling for card-based 3-column grid (min-height, truncated names) |
 | FundDepletionChart.vue | Already supports `bond` category in chart series |
+
+### Income Sources Layout
+
+Changed from single-column stacked list to responsive 3-column grid:
+
+```text
+┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
+│ PCLS            │  │ Pension         │  │ ISA             │
+│ Workplace DC    │  │ Workplace DC    │  │ Vanguard        │
+│ Available: £25k │  │ Available: £50k │  │ Available: £45k │
+│ ────────●───    │  │ ─────●────────  │  │ ────●─────────  │
+│ £10,000/yr      │  │ £15,000/yr      │  │ £12,000/yr      │
+└─────────────────┘  └─────────────────┘  └─────────────────┘
+```
+
+Responsive breakpoints:
+- Desktop (>1024px): 3 columns
+- Tablet (768-1024px): 2 columns
+- Mobile (<768px): 1 column
 
 ### Files Changed
 
@@ -677,6 +697,7 @@ app/Services/Retirement/RetirementIncomeService.php
 **Frontend (Included in Build):**
 ```text
 resources/js/components/Retirement/RetirementIncomeTab.vue
+resources/js/components/Retirement/IncomeSourceSlider.vue
 ```
 
 ---
