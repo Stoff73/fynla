@@ -1,6 +1,6 @@
 # Deployment Notes - January 30, 2026
 
-**Deployment Status:** NOT DEPLOYED - All items pending
+**Deployment Status:** DEPLOYED - All items complete
 
 ---
 
@@ -8,7 +8,7 @@
 
 **Branch:** decumRetire
 
-**Status:** Ready to deploy
+**Status:** Deployed
 
 ### Description
 
@@ -67,7 +67,7 @@ resources/js/components/Retirement/StatePensionForm.vue
 
 **Branch:** decumRetire
 
-**Status:** Ready to deploy
+**Status:** Deployed
 
 ### Description
 
@@ -101,7 +101,7 @@ resources/js/components/UserProfile/PersonalInformation.vue
 
 **Branch:** decumRetire
 
-**Status:** Ready to deploy
+**Status:** Deployed
 
 ### Description
 
@@ -129,7 +129,7 @@ resources/js/components/Onboarding/steps/CompletionStep.vue
 
 **Branch:** decumRetire
 
-**Status:** Ready to deploy
+**Status:** Deployed
 
 ### Description
 
@@ -157,7 +157,7 @@ resources/js/components/Onboarding/OnboardingWizard.vue
 
 **Branch:** decumRetire
 
-**Status:** Ready to deploy
+**Status:** Deployed
 
 ### Description
 
@@ -218,7 +218,7 @@ resources/js/components/Retirement/FutureValueTab.vue
 
 **Branch:** decumRetire
 
-**Status:** Ready to deploy
+**Status:** Deployed
 
 ### Description
 
@@ -281,7 +281,7 @@ resources/js/components/NetWorth/PensionDetailInline.vue
 
 **Branch:** decumRetire
 
-**Status:** Ready to deploy
+**Status:** Deployed
 
 ### Description
 
@@ -347,7 +347,7 @@ resources/js/router/index.js
 
 **Branch:** decumRetire
 
-**Status:** Ready to deploy
+**Status:** Deployed
 
 ### Description
 
@@ -517,7 +517,7 @@ resources/js/components/NetWorth/PensionList.vue
 
 **Branch:** decumRetire
 
-**Status:** Ready to deploy
+**Status:** Deployed
 
 ### Description
 
@@ -565,7 +565,7 @@ resources/js/components/Retirement/RequiredCapitalDetail.vue
 
 **Branch:** decumRetire
 
-**Status:** Ready to deploy
+**Status:** Deployed
 
 ### Description
 
@@ -706,7 +706,7 @@ resources/js/components/Retirement/IncomeSourceSlider.vue
 
 **Branch:** decumRetire
 
-**Status:** Ready to deploy
+**Status:** Deployed
 
 ### Description
 
@@ -789,7 +789,7 @@ resources/js/components/NetWorth/InvestmentList.vue
 
 **Branch:** decumRetire
 
-**Status:** Ready to deploy
+**Status:** Deployed
 
 ### Description
 
@@ -827,7 +827,7 @@ app/Services/Retirement/RetirementIncomeService.php
 
 **Branch:** decumRetire
 
-**Status:** Ready to deploy
+**Status:** Deployed
 
 ### Description
 
@@ -1020,7 +1020,7 @@ resources/js/components/Retirement/FundDepletionChart.vue
 
 **Branch:** decumRetire
 
-**Status:** Ready to deploy
+**Status:** Deployed
 
 ### Description
 
@@ -1123,7 +1123,7 @@ app/Services/Retirement/RetirementIncomeService.php
 
 **Branch:** decumRetire
 
-**Status:** Ready to deploy
+**Status:** Deployed
 
 ### Description
 
@@ -1173,7 +1173,7 @@ resources/js/components/Retirement/IncomeSourceSlider.vue
 
 **Branch:** decumRetire
 
-**Status:** Ready to deploy
+**Status:** Deployed
 
 ### Description
 
@@ -1238,7 +1238,7 @@ resources/js/views/Investment/AccountPerformancePanel.vue
 
 **Branch:** decumRetire
 
-**Status:** Ready to deploy
+**Status:** Deployed
 
 ### Description
 
@@ -1283,7 +1283,7 @@ resources/js/components/Retirement/IncomeSourceSlider.vue
 
 **Branch:** decumRetire
 
-**Status:** Ready to deploy
+**Status:** Deployed
 
 ### Description
 
@@ -1364,7 +1364,7 @@ app/Services/Retirement/RetirementIncomeService.php
 
 **Branch:** decumRetire
 
-**Status:** Ready to deploy
+**Status:** Deployed
 
 ### Description
 
@@ -1417,7 +1417,7 @@ resources/js/components/Retirement/FundDepletionChart.vue
 
 **Branch:** decumRetire
 
-**Status:** Ready to deploy
+**Status:** Deployed
 
 ### Description
 
@@ -1542,7 +1542,7 @@ php artisan cache:clear && php artisan config:clear && php artisan view:clear &&
 
 **Branch:** decumRetire
 
-**Status:** Ready to deploy
+**Status:** Deployed
 
 ### Description
 
@@ -1643,7 +1643,7 @@ app/Services/Retirement/RetirementIncomeService.php
 
 **Branch:** decumRetire
 
-**Status:** Ready to deploy
+**Status:** Deployed
 
 ### Description
 
@@ -1685,7 +1685,7 @@ resources/js/components/Retirement/FundDepletionChart.vue
 
 **Branch:** decumRetire
 
-**Status:** Ready to deploy
+**Status:** Deployed
 
 ### Description
 
@@ -1792,7 +1792,7 @@ resources/js/components/Retirement/FundDepletionChart.vue
 
 **Branch:** decumRetire
 
-**Status:** Ready to deploy
+**Status:** Deployed
 
 ### Description
 
@@ -1880,7 +1880,7 @@ resources/js/components/Retirement/RetirementIncomeTab.vue
 
 **Branch:** decumRetire
 
-**Status:** Ready to deploy
+**Status:** Deployed
 
 ### Description
 
@@ -1941,7 +1941,7 @@ resources/js/components/NetWorth/PensionList.vue
 
 **Branch:** decumRetire
 
-**Status:** Ready to deploy
+**Status:** Deployed
 
 ### Description
 
@@ -2011,7 +2011,7 @@ resources/js/components/Retirement/StrategiesTab.vue
 
 **Branch:** decumRetire
 
-**Status:** Ready to deploy
+**Status:** Deployed
 
 ### Description
 
@@ -2143,6 +2143,15 @@ app/Services/Settings/
 **Total: 17 PHP files + 1 routes file**
 
 Upload to `~/www/fynla.org/public_html/` maintaining the same directory structure.
+
+### Run Migrations & Clear Cache (SSH)
+
+```bash
+ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
+cd ~/www/fynla.org/public_html
+php artisan migrate
+php artisan cache:clear && php artisan config:clear && php artisan view:clear && php artisan route:clear
+```
 
 ---
 
