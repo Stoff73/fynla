@@ -361,6 +361,8 @@ Added detailed "Required Capital" calculations to the Retirement module. Users c
 | Other Assets Added | Sum of investments + cash toggled on | Indigo |
 | Gap to Target / Surplus | Required Capital - (Projected Pot + Other Assets) | Red/Green |
 
+Card labels have fixed height (36px) with bottom-aligned text to ensure all values align horizontally across the row.
+
 ### Progress Bars
 
 | Bar | Calculation | Purpose |
