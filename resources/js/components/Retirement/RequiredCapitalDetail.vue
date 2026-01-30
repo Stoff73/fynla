@@ -47,10 +47,15 @@
           <p class="summary-value">{{ formatCurrency(projectedPotAtRetirement) }}</p>
           <p class="summary-subtitle">At age {{ data.retirement_info.retirement_age }} (80% confidence)</p>
         </div>
-        <div class="summary-card green">
-          <p class="summary-label">Required Capital Today</p>
-          <p class="summary-value">{{ formatCurrency(data.required_capital_today) }}</p>
-          <p class="summary-subtitle">Present Value (inflation-adjusted)</p>
+        <div class="summary-card indigo">
+          <p class="summary-label">Other Assets Added</p>
+          <p class="summary-value">{{ formatCurrency(totalOtherAssets) }}</p>
+          <p class="summary-subtitle">Investments &amp; cash included</p>
+        </div>
+        <div class="summary-card" :class="gapToTarget >= 0 ? 'red' : 'green'">
+          <p class="summary-label">{{ gapToTarget >= 0 ? 'Gap to Target' : 'Surplus' }}</p>
+          <p class="summary-value">{{ formatCurrency(Math.abs(gapToTarget)) }}</p>
+          <p class="summary-subtitle">{{ gapToTarget >= 0 ? 'Shortfall at retirement' : 'Exceeds target at retirement' }}</p>
         </div>
       </div>
 
@@ -130,18 +135,38 @@
 
       <!-- Progress and Assumptions Row -->
       <div class="progress-assumptions-row">
-        <!-- Current Pot vs Target -->
+        <!-- Progress Towards Target -->
         <div class="progress-section">
-          <div class="progress-header">
-            <h3>Progress Towards Target</h3>
-            <span class="progress-percentage" :class="progressColorClass">{{ progressPercentage }}%</span>
+          <h3 class="progress-title">Progress Towards Target</h3>
+
+          <!-- Current Progress -->
+          <div class="progress-row">
+            <div class="progress-label-row">
+              <span class="progress-type">Current</span>
+              <span class="progress-percentage" :class="progressColorClass">{{ progressPercentage }}%</span>
+            </div>
+            <div class="progress-bar-container">
+              <div class="progress-bar" :style="{ width: Math.min(progressPercentage, 100) + '%' }" :class="progressColorClass"></div>
+            </div>
+            <div class="progress-values">
+              <span>{{ formatCurrency(totalIncludedAssets) }}</span>
+              <span class="target-label">of {{ formatCurrency(data.required_capital_today) }}</span>
+            </div>
           </div>
-          <div class="progress-bar-container">
-            <div class="progress-bar" :style="{ width: Math.min(progressPercentage, 100) + '%' }" :class="progressColorClass"></div>
-          </div>
-          <div class="progress-labels">
-            <span>Current: {{ formatCurrency(totalIncludedAssets) }}</span>
-            <span>Target: {{ formatCurrency(data.required_capital_today) }}</span>
+
+          <!-- Forecasted Progress -->
+          <div class="progress-row">
+            <div class="progress-label-row">
+              <span class="progress-type">Forecasted at Retirement</span>
+              <span class="progress-percentage" :class="forecastedProgressColorClass">{{ forecastedProgressPercentage }}%</span>
+            </div>
+            <div class="progress-bar-container">
+              <div class="progress-bar" :style="{ width: Math.min(forecastedProgressPercentage, 100) + '%' }" :class="forecastedProgressColorClass"></div>
+            </div>
+            <div class="progress-values">
+              <span>{{ formatCurrency(projectedPotAtRetirement + totalOtherAssets) }}</span>
+              <span class="target-label">of {{ formatCurrency(data.required_capital_at_retirement) }}</span>
+            </div>
           </div>
         </div>
 
@@ -372,6 +397,32 @@ export default {
     displayFees() {
       const fees = this.data?.assumptions?.fees_total;
       return (!fees || fees === 0) ? 1 : fees;
+    },
+
+    totalOtherAssets() {
+      return this.totalIncludedInvestments + this.totalIncludedCash;
+    },
+
+    gapToTarget() {
+      // Gap = Required Capital at Retirement - (Projected Pot + Other Assets grown to retirement)
+      // For simplicity, compare projected pot vs required capital
+      const projectedTotal = this.projectedPotAtRetirement + this.totalOtherAssets;
+      return this.data?.required_capital_at_retirement - projectedTotal;
+    },
+
+    forecastedProgressPercentage() {
+      if (!this.data?.required_capital_at_retirement) {
+        return 0;
+      }
+      const projectedTotal = this.projectedPotAtRetirement + this.totalOtherAssets;
+      return Math.round((projectedTotal / this.data.required_capital_at_retirement) * 100);
+    },
+
+    forecastedProgressColorClass() {
+      const pct = this.forecastedProgressPercentage;
+      if (pct >= 80) return 'green';
+      if (pct >= 50) return 'orange';
+      return 'red';
     },
   },
 
@@ -615,7 +666,7 @@ export default {
 /* Summary Cards */
 .summary-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 16px;
   margin-bottom: 24px;
 }
@@ -645,6 +696,16 @@ export default {
 .summary-card.teal {
   @apply bg-gradient-to-br from-teal-50 to-teal-100;
   @apply border-teal-200;
+}
+
+.summary-card.indigo {
+  @apply bg-gradient-to-br from-indigo-50 to-indigo-100;
+  @apply border-indigo-200;
+}
+
+.summary-card.red {
+  @apply bg-gradient-to-br from-red-50 to-red-100;
+  @apply border-red-200;
 }
 
 .summary-label {
@@ -803,27 +864,53 @@ export default {
   background: white;
   border-radius: 12px;
   padding: 20px;
-  flex: 0 0 340px;
+  flex: 0 0 400px;
   @apply border border-gray-200;
 }
 
-.progress-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.progress-header h3 {
+.progress-title {
   font-size: 16px;
   font-weight: 600;
   @apply text-gray-900;
-  margin: 0;
+  margin: 0 0 16px 0;
+}
+
+.progress-row {
+  margin-bottom: 16px;
+}
+
+.progress-row:last-child {
+  margin-bottom: 0;
+}
+
+.progress-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.progress-type {
+  font-size: 13px;
+  font-weight: 500;
+  @apply text-gray-600;
 }
 
 .progress-percentage {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
+}
+
+.progress-values {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  @apply text-gray-500;
+  margin-top: 4px;
+}
+
+.target-label {
+  @apply text-gray-400;
 }
 
 .progress-percentage.green {
@@ -1070,6 +1157,12 @@ export default {
   font-size: 12px;
   @apply text-gray-400;
   margin: 0;
+}
+
+@media (max-width: 1280px) {
+  .summary-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 @media (max-width: 1024px) {

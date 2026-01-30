@@ -345,12 +345,12 @@ resources/js/router/index.js
 
 Added detailed "Required Capital" calculations to the Retirement module. Users can access this by clicking the pension pot projection chart in the Retirement dashboard. The breakdown includes:
 
-- 4 summary cards inline: Target Income, Required Capital, Projected Pension Pot (80% Monte Carlo), Required Capital Today
+- 5 summary cards inline: Target Income, Required Capital, Projected Pension Pot (80% Monte Carlo), Other Assets Added, Gap to Target/Surplus
 - "Assets included in calculation" section showing DC pensions plus any toggled investments/cash with total value
 - "Other assets" section with toggle switches to include investments and cash in retirement capital calculation
 - Toggle updates total included assets and recalculates progress bar in real-time
 - Toggle label shows "Exclude from retirement capital" when included, "Include in retirement capital" when excluded
-- Progress towards target with progress bar (inline with assumptions)
+- Dual progress bars: Current progress (assets vs target today) and Forecasted progress (projected pot vs required capital at retirement)
 - Calculation assumptions displayed inline
 - Default 1% fees if none entered (with helper text)
 - Year-by-year projection table with FV and PV columns
