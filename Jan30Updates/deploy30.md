@@ -345,16 +345,45 @@ resources/js/router/index.js
 
 Added detailed "Required Capital" calculations to the Retirement module. Users can access this by clicking the pension pot projection chart in the Retirement dashboard. The breakdown includes:
 
-- 5 summary cards inline: Target Income, Required Capital, Projected Pension Pot (80% Monte Carlo), Other Assets Added, Gap to Target/Surplus
+- 5 summary cards, "Assets included" section, "Other assets" section with toggles
+- Dual progress bars showing current and forecasted progress
+- Calculation assumptions inline with monthly contributions
+- Year-by-year projection table including contributions
+- Formula explanations
+
+### Summary Cards
+
+| Card | Description | Color |
+|------|-------------|-------|
+| Target Retirement Income | 75% of gross income (less pension contributions) or from profile | Blue |
+| Required Capital at Retirement | Target Income / 4.7% withdrawal rate | Purple |
+| Projected Pension Pot | Monte Carlo 80% confidence projection at retirement | Teal |
+| Other Assets Added | Sum of investments + cash toggled on | Indigo |
+| Gap to Target / Surplus | Required Capital - (Projected Pot + Other Assets) | Red/Green |
+
+### Progress Bars
+
+| Bar | Calculation | Purpose |
+|-----|-------------|---------|
+| Current | Total Included Assets / Required Capital Today | Shows current progress in today's money |
+| Forecasted at Retirement | (Projected Pot + Other Assets) / Required Capital at Retirement | Shows projected progress at retirement |
+
+### Asset Toggles
+
 - "Assets included in calculation" section showing DC pensions plus any toggled investments/cash with total value
 - "Other assets" section with toggle switches to include investments and cash in retirement capital calculation
-- Toggle updates total included assets and recalculates progress bar in real-time
+- Toggle updates total included assets and recalculates progress bars in real-time
 - Toggle label shows "Exclude from retirement capital" when included, "Include in retirement capital" when excluded
-- Dual progress bars: Current progress (assets vs target today) and Forecasted progress (projected pot vs required capital at retirement)
-- Calculation assumptions displayed inline
-- Default 1% fees if none entered (with helper text)
-- Year-by-year projection table with FV and PV columns
-- Formula explanations
+
+### Year-by-Year Table Columns
+
+| Column | Description |
+|--------|-------------|
+| Year | Calendar year |
+| Age | User's age |
+| Projected Pot Value | FV of pension pot with contributions |
+| Pot in Today's Money | Projected pot discounted by inflation |
+| Target in Today's Money | Required capital discounted by inflation |
 
 ### Investment Account Types
 
@@ -416,7 +445,8 @@ The 75% multiplier accounts for the lower tax burden in retirement. Pension cont
       "inflation_rate": 2.50,
       "compound_periods": 4,
       "fees_total": 1.00,
-      "withdrawal_rate": 4.70
+      "withdrawal_rate": 4.70,
+      "monthly_contributions": 500.00
     },
     "retirement_info": {
       "current_age": 45,
