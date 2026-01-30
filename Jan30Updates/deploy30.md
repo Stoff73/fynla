@@ -385,6 +385,17 @@ Added detailed "Required Capital" calculations to the Retirement module. Users c
 | Pot in Today's Money | Projected pot discounted by inflation |
 | Target in Today's Money | Required capital discounted by inflation |
 
+### Contributions Consistency
+
+Both projections include monthly pension contributions:
+
+| Projection | Source | Contributions |
+|------------|--------|---------------|
+| Monte Carlo (80% confidence) | `MonteCarloSimulator.simulate()` | ✅ Included monthly |
+| Year-by-Year Table | `RequiredCapitalCalculator` | ✅ Included per period |
+
+Contributions are calculated from `monthly_contribution_amount` on DC pensions, or derived from `employee_contribution_percent` + `employer_contribution_percent` × `annual_salary`.
+
 ### Investment Account Types
 
 Only liquid investment accounts are shown in the retirement capital calculation. The following illiquid and employee share scheme types are excluded:
