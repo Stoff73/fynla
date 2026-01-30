@@ -722,6 +722,39 @@ class InvestmentController extends Controller
     }
 
     /**
+     * Toggle include_in_retirement flag for an investment account.
+     *
+     * This flag determines whether the account appears in the Retirement
+     * Income Planner. Only primary owner can toggle.
+     *
+     * PATCH /api/investment/accounts/{id}/toggle-retirement
+     */
+    public function toggleRetirementInclusion(Request $request, int $id): JsonResponse
+    {
+        $user = $request->user();
+
+        // Only primary owner can toggle
+        $account = InvestmentAccount::where('user_id', $user->id)
+            ->where('id', $id)
+            ->firstOrFail();
+
+        // Toggle the flag
+        $account->include_in_retirement = ! $account->include_in_retirement;
+        $account->save();
+
+        // Clear caches
+        $this->investmentAgent->clearCache($user->id);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'id' => $account->id,
+                'include_in_retirement' => $account->include_in_retirement,
+            ],
+        ]);
+    }
+
+    /**
      * Delete an investment account
      *
      * Only primary owner (user_id) can delete.

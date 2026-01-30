@@ -455,6 +455,7 @@ export default {
       'fetchRequiredCapital',
       'toggleIncludedInvestment',
       'toggleIncludedCash',
+      'setIncludedInvestmentIds',
     ]),
     ...mapActions('investment', { fetchInvestmentAccounts: 'fetchAccounts' }),
     ...mapActions('savings', { fetchSavingsAccounts: 'fetchAccounts' }),
@@ -475,6 +476,12 @@ export default {
           promises.push(this.fetchRetirementData());
         }
         await Promise.all(promises);
+
+        // Initialize includedInvestmentIds from accounts with include_in_retirement = true
+        const includedIds = (this.accounts || [])
+          .filter(a => a.include_in_retirement)
+          .map(a => a.id);
+        this.setIncludedInvestmentIds(includedIds);
       } catch (err) {
         console.error('Error fetching required capital:', err);
         this.error = err.response?.data?.message || 'Failed to load required capital data';

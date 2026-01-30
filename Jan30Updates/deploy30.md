@@ -679,6 +679,89 @@ resources/js/components/Retirement/RetirementIncomeTab.vue
 
 ---
 
+## Investment Retirement Inclusion Toggle Persistence
+
+**Branch:** decumRetire
+
+**Status:** Ready to deploy
+
+### Description
+
+Made the investment account "include in retirement" toggle persist to the database. When users toggle an investment account in the Required Capital detail view, the `include_in_retirement` flag is now saved to the database. Additionally, investment cards in the Investments dashboard now show a "Retirement" badge when the account is marked for retirement planning.
+
+### Changes Overview
+
+| Change | Description |
+|--------|-------------|
+| API endpoint | New PATCH endpoint to toggle `include_in_retirement` flag |
+| Vuex action | Updated `toggleIncludedInvestment` to call API and persist |
+| Initialization | `includedInvestmentIds` now initialized from accounts with `include_in_retirement = true` |
+| Investment badge | New "Retirement" badge on investment cards when included in retirement planning |
+
+### API Endpoint
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| PATCH | `/api/investment/accounts/{id}/toggle-retirement` | Toggles `include_in_retirement` flag |
+
+### API Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": 123,
+    "include_in_retirement": true
+  }
+}
+```
+
+### Vuex Store Changes (retirement.js)
+
+| Change | Description |
+|--------|-------------|
+| Import | Added `investmentService` import |
+| `toggleIncludedInvestment()` | Now async, calls API to persist toggle |
+| Side effect | Updates account in investment store state after successful toggle |
+
+### Component Changes
+
+| File | Change |
+|------|--------|
+| RequiredCapitalDetail.vue | Added `setIncludedInvestmentIds` action, initializes IDs from accounts with `include_in_retirement = true` on load |
+| InvestmentList.vue | Added "Retirement" badge (teal) on investment cards when `include_in_retirement = true` |
+
+### Badge Display Logic
+
+```text
+┌────────────────────────────────┐
+│                    Joint       │  ← Purple badge (if joint ownership)
+│                 Retirement     │  ← Teal badge (if include_in_retirement = true)
+│  ┌─────┐                       │
+│  │ ISA │  Vanguard             │
+│  └─────┘                       │
+│  Current Value  £25,000        │
+└────────────────────────────────┘
+```
+
+### Files Changed
+
+**Backend:**
+```text
+app/Http/Controllers/Api/InvestmentController.php
+routes/api.php
+```
+
+**Frontend (Included in Build):**
+```text
+resources/js/services/investmentService.js
+resources/js/store/modules/retirement.js
+resources/js/components/Retirement/RequiredCapitalDetail.vue
+resources/js/components/NetWorth/InvestmentList.vue
+```
+
+---
+
 ## Rebuild Required: YES
 
 Frontend Vue components changed. Full rebuild required:
@@ -730,6 +813,7 @@ app/Services/Retirement/RetirementIncomeService.php → ~/www/fynla.org/public_h
 ```text
 app/Http/Controllers/Api/Settings/AssumptionsController.php → ~/www/fynla.org/public_html/app/Http/Controllers/Api/Settings/
 app/Http/Controllers/Api/RetirementController.php → ~/www/fynla.org/public_html/app/Http/Controllers/Api/
+app/Http/Controllers/Api/InvestmentController.php → ~/www/fynla.org/public_html/app/Http/Controllers/Api/
 ```
 (Create the `Settings` directory if it doesn't exist)
 

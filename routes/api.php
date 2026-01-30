@@ -447,6 +447,7 @@ Route::middleware('auth:sanctum')->prefix('investment')->group(function () {
         Route::get('/{id}/rebalancing', [RebalancingCalculationController::class, 'getAccountRebalancing']);
         Route::patch('/{id}/rebalancing-threshold', [RebalancingCalculationController::class, 'updateRebalancingThreshold']);
         Route::get('/{id}/diversification', [InvestmentController::class, 'getAccountDiversification']);
+        Route::patch('/{id}/toggle-retirement', [InvestmentController::class, 'toggleRetirementInclusion']);
     });
 
     // Holdings
