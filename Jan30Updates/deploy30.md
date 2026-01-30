@@ -269,6 +269,171 @@ resources/js/components/NetWorth/PensionDetailInline.vue
 
 ---
 
+## Planning Assumptions Settings Page
+
+**Branch:** decumRetire
+
+**Status:** Ready to deploy
+
+### Description
+
+Added a new Planning Assumptions page in Settings allowing users to configure and override the default assumptions used in pension and investment projections. Users can customise inflation rate, expected return rate, and compound periods for both Pensions and Investments sections independently.
+
+### Features
+
+| Feature | Description |
+|---------|-------------|
+| Two sections | Pensions and Investments with independent settings |
+| Editable fields | Inflation Rate (%), Expected Return (%), Compound Periods |
+| Read-only fields | Weighted Average Fees, Years to Retirement, Total Value |
+| Reset functionality | Reset button to clear overrides and use system defaults |
+| Change detection | Unsaved changes warning before navigation |
+| Status badges | Shows "Custom" or "Defaults" per section |
+
+### Database Migration
+
+New migration: `2026_01_30_120000_create_user_assumptions_table.php`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| user_id | bigint unsigned | Foreign key to users table |
+| assumption_type | enum | 'pensions' or 'investments' |
+| inflation_rate | decimal(5,2) nullable | User's custom inflation rate |
+| return_rate | decimal(5,2) nullable | User's custom return rate |
+| compound_periods | integer nullable | User's custom compound periods |
+
+### API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/settings/assumptions` | Get all assumptions with defaults |
+| PUT | `/api/settings/assumptions/{type}` | Update pensions or investments assumptions |
+
+### Files Changed
+
+**Database (Migration Required):**
+```text
+database/migrations/2026_01_30_120000_create_user_assumptions_table.php
+```
+
+**Backend:**
+```text
+app/Models/UserAssumption.php
+app/Models/User.php (added assumptions() relationship)
+app/Services/Settings/AssumptionsService.php
+app/Http/Controllers/Api/Settings/AssumptionsController.php
+routes/api.php
+```
+
+**Frontend (Included in Build):**
+```text
+resources/js/services/assumptionsService.js
+resources/js/views/Settings/AssumptionsSettings.vue
+resources/js/views/Settings.vue
+resources/js/router/index.js
+```
+
+---
+
+## Required Capital Calculations with Present Value
+
+**Branch:** decumRetire
+
+**Status:** Ready to deploy
+
+### Description
+
+Added detailed "Required Capital" calculations to the Retirement module. Users can access this by clicking the pension pot projection chart in the Retirement dashboard. The breakdown includes:
+
+- 4 summary cards inline: Target Income, Required Capital, Projected Pension Pot (80% Monte Carlo), Required Capital Today
+- Pensions included in calculation section (DC pensions with scheme name and value)
+- Other assets not included section (Investment and Cash accounts with values > £0)
+- Progress towards target with progress bar (inline with assumptions)
+- Calculation assumptions displayed inline
+- Default 1% fees if none entered (with helper text)
+- Year-by-year projection table with FV and PV columns
+- Formula explanations
+
+### Formulas Used
+
+| Formula | Description |
+|---------|-------------|
+| **Target Income (default)** | (Gross Income - Pension Contributions) × 75% |
+| **Required Capital** | Target Income / 4.7% withdrawal rate |
+| **Future Value** | FV = PV × (1 + r/m)^(m×n) - Quarterly compounding |
+| **Present Value** | PV = FV / (1 + inflation)^n - Discounting to today's money |
+
+The 75% multiplier accounts for the lower tax burden in retirement. Pension contributions are excluded since they won't be made in retirement.
+
+### API Endpoint
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/retirement/required-capital` | Returns full required capital breakdown |
+
+### API Response Structure
+
+```json
+{
+  "success": true,
+  "data": {
+    "required_income": 45000.00,
+    "required_capital_at_retirement": 957446.81,
+    "required_capital_today": 632456.23,
+    "current_pot_value": 321456.23,
+    "income_source": "profile|calculated",
+    "assumptions": {
+      "return_rate": 6.00,
+      "net_return_rate": 5.00,
+      "inflation_rate": 2.50,
+      "compound_periods": 4,
+      "fees_total": 1.00,
+      "withdrawal_rate": 4.70
+    },
+    "retirement_info": {
+      "current_age": 45,
+      "retirement_age": 67,
+      "years_to_retirement": 22
+    },
+    "year_by_year": [
+      {
+        "year_number": 0,
+        "calendar_year": 2026,
+        "age": 45,
+        "accumulated_value": 321456.23,
+        "present_value_today": 321456.23,
+        "target_in_today_money": 557842.15,
+        "is_retirement_year": false
+      }
+    ]
+  }
+}
+```
+
+### Files Changed
+
+**Backend (New Service):**
+```text
+app/Services/Retirement/RequiredCapitalCalculator.php (NEW)
+```
+
+**Backend (Modified):**
+```text
+app/Http/Controllers/Api/RetirementController.php
+app/Models/User.php (added retirementProfile() relationship)
+routes/api.php
+```
+
+**Frontend (Included in Build):**
+```text
+resources/js/services/retirementService.js
+resources/js/components/Retirement/RequiredCapitalDetail.vue (NEW)
+resources/js/components/Retirement/FutureValueTab.vue
+resources/js/components/NetWorth/PensionList.vue
+```
+
+---
+
 ## Rebuild Required: YES
 
 Frontend Vue components changed. Full rebuild required:
@@ -298,14 +463,53 @@ Upload the entire `public/build/` directory to:
 
 ### Step 3: Upload PHP Files
 
-No PHP files changed in this deployment.
+Upload the following PHP files to their corresponding paths on the server:
 
-### Step 4: Clear Cache (SSH)
+**Models:**
+```text
+app/Models/UserAssumption.php → ~/www/fynla.org/public_html/app/Models/
+app/Models/User.php → ~/www/fynla.org/public_html/app/Models/
+app/Models/DCPension.php → ~/www/fynla.org/public_html/app/Models/
+```
+
+**Services:**
+```text
+app/Services/Settings/AssumptionsService.php → ~/www/fynla.org/public_html/app/Services/Settings/
+app/Services/Retirement/RequiredCapitalCalculator.php → ~/www/fynla.org/public_html/app/Services/Retirement/
+```
+(Create the `Settings` directory if it doesn't exist)
+
+**Controllers:**
+```text
+app/Http/Controllers/Api/Settings/AssumptionsController.php → ~/www/fynla.org/public_html/app/Http/Controllers/Api/Settings/
+app/Http/Controllers/Api/RetirementController.php → ~/www/fynla.org/public_html/app/Http/Controllers/Api/
+```
+(Create the `Settings` directory if it doesn't exist)
+
+**Routes:**
+```text
+routes/api.php → ~/www/fynla.org/public_html/routes/
+```
+
+**Migrations:**
+```text
+database/migrations/2026_01_30_100000_add_beneficiary_to_dc_pensions_table.php → ~/www/fynla.org/public_html/database/migrations/
+database/migrations/2026_01_30_120000_create_user_assumptions_table.php → ~/www/fynla.org/public_html/database/migrations/
+```
+
+### Step 4: Run Migrations (SSH)
 
 ```bash
 ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
 cd ~/www/fynla.org/public_html
-php artisan cache:clear && php artisan config:clear && php artisan view:clear
+php artisan migrate
+```
+
+### Step 5: Clear Cache (SSH)
+
+```bash
+cd ~/www/fynla.org/public_html
+php artisan cache:clear && php artisan config:clear && php artisan view:clear && php artisan route:clear
 ```
 
 ---

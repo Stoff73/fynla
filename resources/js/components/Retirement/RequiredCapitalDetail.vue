@@ -1,0 +1,871 @@
+<template>
+  <div class="required-capital-detail">
+    <!-- Back Button -->
+    <button
+      @click="$emit('back')"
+      class="back-button"
+    >
+      <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+      </svg>
+      Back to Projections
+    </button>
+
+    <!-- Loading State -->
+    <div v-if="loading" class="loading-state">
+      <div class="spinner"></div>
+      <p>Calculating required capital...</p>
+    </div>
+
+    <!-- Error State -->
+    <div v-else-if="error" class="error-state">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="error-icon">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+      </svg>
+      <p>{{ error }}</p>
+      <button @click="fetchData" class="retry-button">Retry</button>
+    </div>
+
+    <!-- Content -->
+    <template v-else-if="data">
+      <!-- Summary Cards -->
+      <div class="summary-grid">
+        <div class="summary-card blue">
+          <p class="summary-label">Target Retirement Income</p>
+          <p class="summary-value">{{ formatCurrency(data.required_income) }}<span class="per-year">/year</span></p>
+          <p class="summary-subtitle">
+            {{ data.income_source === 'profile' ? 'From retirement profile' : '75% of gross income (less pension contributions)' }}
+          </p>
+        </div>
+        <div class="summary-card purple">
+          <p class="summary-label">Required Capital at Retirement</p>
+          <p class="summary-value">{{ formatCurrency(data.required_capital_at_retirement) }}</p>
+          <p class="summary-subtitle">At age {{ data.retirement_info.retirement_age }} (Future Value)</p>
+        </div>
+        <div class="summary-card teal">
+          <p class="summary-label">Projected Pension Pot</p>
+          <p class="summary-value">{{ formatCurrency(projectedPotAtRetirement) }}</p>
+          <p class="summary-subtitle">At age {{ data.retirement_info.retirement_age }} (80% confidence)</p>
+        </div>
+        <div class="summary-card green">
+          <p class="summary-label">Required Capital Today</p>
+          <p class="summary-value">{{ formatCurrency(data.required_capital_today) }}</p>
+          <p class="summary-subtitle">Present Value (inflation-adjusted)</p>
+        </div>
+      </div>
+
+      <!-- Pensions Included -->
+      <div class="assets-section">
+        <h3 class="section-label">Pensions included in calculation</h3>
+        <div class="asset-cards">
+          <div v-for="pension in dcPensions" :key="pension.id" class="asset-card pension">
+            <span class="asset-name">{{ pension.scheme_name || pension.provider || 'DC Pension' }}</span>
+            <span class="asset-value">{{ formatCurrency(pension.current_fund_value) }}</span>
+            <span class="asset-type">DC Pension</span>
+          </div>
+          <div v-if="!dcPensions || dcPensions.length === 0" class="no-items">No DC pensions found</div>
+        </div>
+      </div>
+
+      <!-- Other Assets Not Included -->
+      <div v-if="investmentAccounts.length > 0 || cashAccounts.length > 0" class="assets-section">
+        <h3 class="section-label">Other assets not included</h3>
+        <div class="asset-cards">
+          <div v-for="account in investmentAccounts" :key="'inv-' + account.id" class="asset-card investment">
+            <span class="asset-name">{{ account.name || account.provider }}</span>
+            <span class="asset-value">{{ formatCurrency(account.current_value) }}</span>
+            <span class="asset-type">Investment</span>
+          </div>
+          <div v-for="account in cashAccounts" :key="'cash-' + account.id" class="asset-card cash">
+            <span class="asset-name">{{ account.account_name || account.name }}</span>
+            <span class="asset-value">{{ formatCurrency(account.current_balance) }}</span>
+            <span class="asset-type">Cash</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Progress and Assumptions Row -->
+      <div class="progress-assumptions-row">
+        <!-- Current Pot vs Target -->
+        <div class="progress-section">
+          <div class="progress-header">
+            <h3>Progress Towards Target</h3>
+            <span class="progress-percentage" :class="progressColorClass">{{ progressPercentage }}%</span>
+          </div>
+          <div class="progress-bar-container">
+            <div class="progress-bar" :style="{ width: Math.min(progressPercentage, 100) + '%' }" :class="progressColorClass"></div>
+          </div>
+          <div class="progress-labels">
+            <span>Current: {{ formatCurrency(data.current_pot_value) }}</span>
+            <span>Target: {{ formatCurrency(data.required_capital_today) }}</span>
+          </div>
+        </div>
+
+        <!-- Assumptions Panel -->
+        <div class="assumptions-panel">
+          <div class="assumptions-header">
+            <h3>Calculation Assumptions</h3>
+            <router-link to="/settings?tab=assumptions" class="edit-link">
+              Edit Assumptions
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="link-icon">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+              </svg>
+            </router-link>
+          </div>
+          <div class="assumptions-list">
+            <span class="assumption-item"><span class="label">Return:</span> {{ data.assumptions.return_rate }}% <span class="note">(Net: {{ data.assumptions.net_return_rate }}%)</span></span>
+            <span class="assumption-item"><span class="label">Fees:</span> {{ displayFees }}%<span v-if="isDefaultFees" class="note"> (default estimate)</span></span>
+            <span class="assumption-item"><span class="label">Inflation:</span> {{ data.assumptions.inflation_rate }}%</span>
+            <span class="assumption-item"><span class="label">Compounding:</span> {{ compoundingLabel }}</span>
+            <span class="assumption-item"><span class="label">Withdrawal:</span> {{ data.assumptions.withdrawal_rate }}%</span>
+            <span class="assumption-item"><span class="label">Years to Retirement:</span> {{ data.retirement_info.years_to_retirement }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Year-by-Year Table -->
+      <div class="table-section">
+        <h3 class="section-title">Year-by-Year Projection</h3>
+        <div class="table-container">
+          <table class="projection-table">
+            <thead>
+              <tr>
+                <th>Year</th>
+                <th>Age</th>
+                <th class="text-right">Accumulated Value</th>
+                <th class="text-right">In Today's Money</th>
+                <th class="text-right">Target (Today's Money)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="row in data.year_by_year"
+                :key="row.year_number"
+                :class="{ 'retirement-row': row.is_retirement_year }"
+              >
+                <td>{{ row.calendar_year }}</td>
+                <td>{{ row.age }}</td>
+                <td class="text-right">{{ formatCurrency(row.accumulated_value) }}</td>
+                <td class="text-right">{{ formatCurrency(row.present_value_today) }}</td>
+                <td class="text-right">{{ formatCurrency(row.target_in_today_money) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Formula Explanation -->
+      <div class="formula-section">
+        <h3 class="section-title">How This Is Calculated</h3>
+        <div class="formula-grid">
+          <div class="formula-item">
+            <div class="formula-icon blue">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
+              </svg>
+            </div>
+            <div class="formula-content">
+              <h4>Required Capital</h4>
+              <p class="formula-text">Target Income / {{ data.assumptions.withdrawal_rate }}% withdrawal rate</p>
+              <p class="formula-example">{{ formatCurrency(data.required_income) }} / 0.047 = {{ formatCurrency(data.required_capital_at_retirement) }}</p>
+            </div>
+          </div>
+          <div class="formula-item">
+            <div class="formula-icon purple">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
+              </svg>
+            </div>
+            <div class="formula-content">
+              <h4>Accumulated Value (Future Value)</h4>
+              <p class="formula-text">FV = PV x (1 + r/m)^(m x n)</p>
+              <p class="formula-example">Compounds {{ compoundingLabel.toLowerCase() }} at {{ data.assumptions.net_return_rate }}% net return</p>
+            </div>
+          </div>
+          <div class="formula-item">
+            <div class="formula-icon green">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6L9 12.75l4.286-4.286a11.948 11.948 0 014.306 6.43l.776 2.898m0 0l3.182-5.511m-3.182 5.51l-5.511-3.181" />
+              </svg>
+            </div>
+            <div class="formula-content">
+              <h4>Today's Money (Present Value)</h4>
+              <p class="formula-text">PV = FV / (1 + inflation)^n</p>
+              <p class="formula-example">Discounts by {{ data.assumptions.inflation_rate }}% inflation per year</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+  </div>
+</template>
+
+<script>
+import { mapState, mapActions } from 'vuex';
+import retirementService from '@/services/retirementService';
+import { currencyMixin } from '@/mixins/currencyMixin';
+
+export default {
+  name: 'RequiredCapitalDetail',
+
+  mixins: [currencyMixin],
+
+  emits: ['back'],
+
+  data() {
+    return {
+      loading: true,
+      error: null,
+      data: null,
+    };
+  },
+
+  computed: {
+    ...mapState('retirement', ['projections', 'dcPensions']),
+    ...mapState('investment', ['accounts']),
+    ...mapState('savings', { savingsAccounts: 'accounts' }),
+
+    investmentAccounts() {
+      return (this.accounts || []).filter(a => parseFloat(a.current_value) > 0);
+    },
+
+    cashAccounts() {
+      return (this.savingsAccounts || []).filter(a => parseFloat(a.current_balance) > 0);
+    },
+
+    totalInvestments() {
+      return this.investmentAccounts.reduce((sum, a) => sum + (parseFloat(a.current_value) || 0), 0);
+    },
+
+    totalCash() {
+      return this.cashAccounts.reduce((sum, a) => sum + (parseFloat(a.balance) || 0), 0);
+    },
+
+    compoundingLabel() {
+      const periods = this.data?.assumptions?.compound_periods || 4;
+      switch (periods) {
+        case 1:
+          return 'Annually';
+        case 2:
+          return 'Semi-annually';
+        case 4:
+          return 'Quarterly';
+        case 12:
+          return 'Monthly';
+        case 365:
+          return 'Daily';
+        default:
+          return `${periods}x/year`;
+      }
+    },
+
+    progressPercentage() {
+      if (!this.data?.current_pot_value || !this.data?.required_capital_today) {
+        return 0;
+      }
+      return Math.round((this.data.current_pot_value / this.data.required_capital_today) * 100);
+    },
+
+    progressColorClass() {
+      const pct = this.progressPercentage;
+      if (pct >= 80) return 'green';
+      if (pct >= 50) return 'orange';
+      return 'red';
+    },
+
+    projectedPotAtRetirement() {
+      // Use the Monte Carlo 80% confidence projection from the store
+      return this.projections?.pension_pot_projection?.percentile_20_at_retirement || 0;
+    },
+
+    isDefaultFees() {
+      const fees = this.data?.assumptions?.fees_total;
+      return !fees || fees === 0;
+    },
+
+    displayFees() {
+      const fees = this.data?.assumptions?.fees_total;
+      return (!fees || fees === 0) ? 1 : fees;
+    },
+  },
+
+  mounted() {
+    this.fetchData();
+    this.fetchDCPensions();
+    this.fetchInvestmentAccounts();
+    this.fetchSavingsAccounts();
+  },
+
+  methods: {
+    ...mapActions('retirement', ['fetchDCPensions']),
+    ...mapActions('investment', { fetchInvestmentAccounts: 'fetchAccounts' }),
+    ...mapActions('savings', { fetchSavingsAccounts: 'fetchAccounts' }),
+
+    async fetchData() {
+      this.loading = true;
+      this.error = null;
+
+      try {
+        const response = await retirementService.getRequiredCapital();
+        if (response.success) {
+          this.data = response.data;
+        } else {
+          this.error = response.message || 'Failed to load required capital data';
+        }
+      } catch (err) {
+        console.error('Error fetching required capital:', err);
+        this.error = err.response?.data?.message || 'Failed to load required capital data';
+      } finally {
+        this.loading = false;
+      }
+    },
+  },
+};
+</script>
+
+<style scoped>
+.required-capital-detail {
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Back Button */
+.back-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  font-weight: 500;
+  @apply text-gray-700;
+  background: white;
+  @apply border border-gray-300;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.back-button:hover {
+  @apply bg-gray-50;
+  @apply border-gray-400;
+}
+
+.back-button svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Loading State */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  text-align: center;
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  @apply border-[3px] border-gray-200;
+  @apply border-t-primary-500;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-state p {
+  @apply text-gray-500;
+  font-size: 16px;
+  margin: 0;
+}
+
+/* Error State */
+.error-state {
+  text-align: center;
+  padding: 60px 40px;
+  background: white;
+  border-radius: 12px;
+  @apply border border-red-200;
+}
+
+.error-icon {
+  width: 48px;
+  height: 48px;
+  @apply text-red-400;
+  margin: 0 auto 16px;
+}
+
+.error-state p {
+  @apply text-gray-600;
+  font-size: 16px;
+  margin: 0 0 16px 0;
+}
+
+.retry-button {
+  padding: 8px 20px;
+  @apply bg-primary-500 text-white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.retry-button:hover {
+  @apply bg-primary-600;
+}
+
+/* Summary Cards */
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.summary-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  @apply border border-gray-200;
+}
+
+.summary-card.blue {
+  @apply bg-gradient-to-br from-blue-50 to-blue-100;
+  @apply border-blue-200;
+}
+
+.summary-card.purple {
+  @apply bg-gradient-to-br from-purple-50 to-purple-100;
+  @apply border-purple-300;
+}
+
+.summary-card.green {
+  @apply bg-gradient-to-br from-green-50 to-green-100;
+  @apply border-green-200;
+}
+
+.summary-card.teal {
+  @apply bg-gradient-to-br from-teal-50 to-teal-100;
+  @apply border-teal-200;
+}
+
+.summary-label {
+  font-size: 14px;
+  @apply text-gray-500;
+  margin: 0 0 8px 0;
+  font-weight: 500;
+}
+
+.summary-value {
+  font-size: 28px;
+  font-weight: 700;
+  @apply text-gray-900;
+  margin: 0;
+}
+
+.per-year {
+  font-size: 14px;
+  font-weight: 500;
+  @apply text-gray-500;
+}
+
+.summary-subtitle {
+  font-size: 13px;
+  @apply text-gray-500;
+  margin: 8px 0 0 0;
+}
+
+/* Assets Sections */
+.assets-section {
+  margin-bottom: 20px;
+}
+
+.section-label {
+  font-size: 14px;
+  font-weight: 600;
+  @apply text-gray-700;
+  margin: 0 0 10px 0;
+}
+
+.no-items {
+  @apply text-gray-400;
+  font-style: italic;
+  font-size: 14px;
+}
+
+.asset-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.asset-card {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 16px;
+  border-radius: 8px;
+  min-width: 160px;
+  @apply border;
+}
+
+.asset-card.pension {
+  @apply bg-purple-50 border-purple-200;
+}
+
+.asset-card.investment {
+  @apply bg-indigo-50 border-indigo-200;
+}
+
+.asset-card.cash {
+  @apply bg-emerald-50 border-emerald-200;
+}
+
+.asset-name {
+  font-size: 14px;
+  font-weight: 500;
+  @apply text-gray-800;
+  margin-bottom: 4px;
+}
+
+.asset-value {
+  font-size: 18px;
+  font-weight: 700;
+  @apply text-gray-900;
+}
+
+.asset-type {
+  font-size: 12px;
+  @apply text-gray-500;
+  margin-top: 4px;
+}
+
+/* Progress and Assumptions Row */
+.progress-assumptions-row {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+/* Progress Section */
+.progress-section {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  flex: 0 0 340px;
+  @apply border border-gray-200;
+}
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.progress-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+  @apply text-gray-900;
+  margin: 0;
+}
+
+.progress-percentage {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.progress-percentage.green {
+  @apply text-green-600;
+}
+
+.progress-percentage.orange {
+  @apply text-orange-600;
+}
+
+.progress-percentage.red {
+  @apply text-red-600;
+}
+
+.progress-bar-container {
+  height: 12px;
+  @apply bg-gray-200;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.progress-bar {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.5s ease-out;
+}
+
+.progress-bar.green {
+  @apply bg-green-500;
+}
+
+.progress-bar.orange {
+  @apply bg-orange-500;
+}
+
+.progress-bar.red {
+  @apply bg-red-500;
+}
+
+.progress-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  @apply text-gray-500;
+}
+
+/* Assumptions Panel */
+.assumptions-panel {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  flex: 1;
+  @apply border border-gray-200;
+}
+
+.assumptions-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.assumptions-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+  @apply text-gray-900;
+  margin: 0;
+}
+
+.edit-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  @apply text-primary-600;
+  text-decoration: none;
+  transition: all 0.15s;
+}
+
+.edit-link:hover {
+  @apply text-primary-700;
+}
+
+.link-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.assumptions-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+  font-size: 14px;
+  @apply text-gray-700;
+}
+
+.assumption-item {
+  white-space: nowrap;
+}
+
+.assumption-item .label {
+  @apply text-gray-500;
+}
+
+.assumption-item .note {
+  @apply text-gray-400;
+}
+
+/* Table Section */
+.table-section {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
+  @apply border border-gray-200;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  @apply text-gray-900;
+  margin: 0 0 16px 0;
+}
+
+.table-container {
+  overflow-x: auto;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.projection-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.projection-table th {
+  position: sticky;
+  top: 0;
+  @apply bg-gray-50;
+  @apply text-gray-600;
+  font-weight: 600;
+  text-align: left;
+  padding: 12px 16px;
+  border-bottom: 2px solid;
+  @apply border-gray-200;
+}
+
+.projection-table td {
+  padding: 10px 16px;
+  @apply text-gray-700;
+  border-bottom: 1px solid;
+  @apply border-gray-100;
+}
+
+.projection-table .text-right {
+  text-align: right;
+}
+
+.projection-table tr:hover {
+  @apply bg-gray-50;
+}
+
+.projection-table tr.retirement-row {
+  @apply bg-teal-50;
+  font-weight: 600;
+}
+
+.projection-table tr.retirement-row td {
+  @apply text-teal-800;
+  @apply border-teal-200;
+}
+
+/* Formula Section */
+.formula-section {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  @apply border border-gray-200;
+}
+
+.formula-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.formula-item {
+  display: flex;
+  gap: 12px;
+}
+
+.formula-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.formula-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.formula-icon.blue {
+  @apply bg-blue-100;
+  @apply text-blue-600;
+}
+
+.formula-icon.purple {
+  @apply bg-purple-100;
+  @apply text-purple-600;
+}
+
+.formula-icon.green {
+  @apply bg-green-100;
+  @apply text-green-600;
+}
+
+.formula-content {
+  flex: 1;
+}
+
+.formula-content h4 {
+  font-size: 14px;
+  font-weight: 600;
+  @apply text-gray-900;
+  margin: 0 0 4px 0;
+}
+
+.formula-text {
+  font-size: 13px;
+  @apply text-gray-600;
+  margin: 0 0 4px 0;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Mono', monospace;
+}
+
+.formula-example {
+  font-size: 12px;
+  @apply text-gray-400;
+  margin: 0;
+}
+
+@media (max-width: 1024px) {
+  .summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .progress-assumptions-row {
+    flex-direction: column;
+  }
+
+  .progress-section {
+    flex: none;
+  }
+
+  .formula-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .assumptions-list {
+    gap: 4px 12px;
+    font-size: 13px;
+  }
+}
+</style>

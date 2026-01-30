@@ -1,51 +1,59 @@
 <template>
   <div class="future-value-tab">
-    <!-- Back Button -->
-    <button
-      @click="$emit('back')"
-      class="back-button"
-    >
-      <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-      </svg>
-      Back to Pensions
-    </button>
+    <!-- Show RequiredCapitalDetail when selected -->
+    <RequiredCapitalDetail
+      v-if="showRequiredCapitalDetail"
+      @back="showRequiredCapitalDetail = false"
+    />
 
-    <!-- Loading State -->
-    <div v-if="loading" class="loading-state">
-      <div class="spinner"></div>
-      <p>Running projections...</p>
-    </div>
-
-    <!-- No DC Pensions State -->
-    <div v-else-if="!projections || !projections.pension_pot_projection?.dc_pension_count" class="empty-state">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="empty-icon">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
-      </svg>
-      <p>No DC pensions found</p>
-      <p class="empty-subtitle">Add money purchase pensions to see future value projections</p>
-    </div>
-
-    <!-- Projections Content -->
+    <!-- Main FutureValue view -->
     <template v-else>
-      <!-- Summary Cards -->
-      <div class="summary-grid">
-        <div class="summary-card blue">
-          <p class="summary-label">Projected Pot at Retirement</p>
-          <p class="summary-value">{{ formatCurrency(projections.pension_pot_projection?.percentile_20_at_retirement) }}</p>
-          <p class="summary-subtitle">Age {{ projections.pension_pot_projection?.retirement_age }} (80% probability)</p>
-        </div>
-        <div class="summary-card purple">
-          <p class="summary-label">Required Capital</p>
-          <p class="summary-value">{{ formatCurrency(requiredCapital) }}</p>
-          <p class="summary-subtitle">Based on 4.7% withdrawal rate</p>
-        </div>
-        <div class="summary-card orange">
-          <p class="summary-label">Target Retirement Income</p>
-          <p class="summary-value">{{ formatCurrency(projections.income_drawdown?.target_income) }}<span class="per-year">/year</span></p>
-          <p class="summary-subtitle">From retirement profile</p>
-        </div>
+      <!-- Back Button -->
+      <button
+        @click="$emit('back')"
+        class="back-button"
+      >
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+        </svg>
+        Back to Pensions
+      </button>
+
+      <!-- Loading State -->
+      <div v-if="loading" class="loading-state">
+        <div class="spinner"></div>
+        <p>Running projections...</p>
       </div>
+
+      <!-- No DC Pensions State -->
+      <div v-else-if="!projections || !projections.pension_pot_projection?.dc_pension_count" class="empty-state">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="empty-icon">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+        </svg>
+        <p>No DC pensions found</p>
+        <p class="empty-subtitle">Add money purchase pensions to see future value projections</p>
+      </div>
+
+      <!-- Projections Content -->
+      <template v-else>
+        <!-- Summary Cards -->
+        <div class="summary-grid">
+          <div class="summary-card blue">
+            <p class="summary-label">Projected Pot at Retirement</p>
+            <p class="summary-value">{{ formatCurrency(projections.pension_pot_projection?.percentile_20_at_retirement) }}</p>
+            <p class="summary-subtitle">Age {{ projections.pension_pot_projection?.retirement_age }} (80% probability)</p>
+          </div>
+          <div class="summary-card purple clickable" @click="showRequiredCapitalDetail = true">
+            <p class="summary-label">Required Capital</p>
+            <p class="summary-value">{{ formatCurrency(requiredCapital) }}</p>
+            <p class="summary-subtitle">Click for breakdown <span class="arrow-icon">→</span></p>
+          </div>
+          <div class="summary-card orange">
+            <p class="summary-label">Target Retirement Income</p>
+            <p class="summary-value">{{ formatCurrency(projections.income_drawdown?.target_income) }}<span class="per-year">/year</span></p>
+            <p class="summary-subtitle">From retirement profile</p>
+          </div>
+        </div>
 
       <!-- Pension Pot Projection Chart -->
       <div class="chart-card">
@@ -96,25 +104,26 @@
         <TargetIncomeDrawdownChart :data="projections.target_income_drawdown" />
       </div>
 
-      <!-- Guaranteed Income Info -->
-      <div class="info-panel">
-        <div class="info-icon-wrapper">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="info-icon">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
-          </svg>
+        <!-- Guaranteed Income Info -->
+        <div class="info-panel">
+          <div class="info-icon-wrapper">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="info-icon">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+            </svg>
+          </div>
+          <div class="info-content">
+            <p class="info-title">Guaranteed Income Sources</p>
+            <ul class="info-list">
+              <li>DB Pension Income: <strong>{{ formatCurrency(projections.income_drawdown?.guaranteed_income?.db_pensions) }}/year</strong></li>
+              <li>State Pension: <strong>{{ formatCurrency(projections.income_drawdown?.guaranteed_income?.state_pension) }}/year</strong></li>
+              <li>Total Guaranteed: <strong>{{ formatCurrency(projections.income_drawdown?.guaranteed_income?.total) }}/year</strong></li>
+            </ul>
+            <p v-if="projections.income_drawdown?.fund_depletion_age" class="info-warning">
+              DC fund projected to deplete at age {{ projections.income_drawdown.fund_depletion_age }}
+            </p>
+          </div>
         </div>
-        <div class="info-content">
-          <p class="info-title">Guaranteed Income Sources</p>
-          <ul class="info-list">
-            <li>DB Pension Income: <strong>{{ formatCurrency(projections.income_drawdown?.guaranteed_income?.db_pensions) }}/year</strong></li>
-            <li>State Pension: <strong>{{ formatCurrency(projections.income_drawdown?.guaranteed_income?.state_pension) }}/year</strong></li>
-            <li>Total Guaranteed: <strong>{{ formatCurrency(projections.income_drawdown?.guaranteed_income?.total) }}/year</strong></li>
-          </ul>
-          <p v-if="projections.income_drawdown?.fund_depletion_age" class="info-warning">
-            DC fund projected to deplete at age {{ projections.income_drawdown.fund_depletion_age }}
-          </p>
-        </div>
-      </div>
+      </template>
     </template>
   </div>
 </template>
@@ -123,6 +132,7 @@
 import PensionPotProjectionChart from './PensionPotProjectionChart.vue';
 import IncomeDrawdownChart from './IncomeDrawdownChart.vue';
 import TargetIncomeDrawdownChart from './TargetIncomeDrawdownChart.vue';
+import RequiredCapitalDetail from './RequiredCapitalDetail.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
@@ -136,6 +146,7 @@ export default {
     PensionPotProjectionChart,
     IncomeDrawdownChart,
     TargetIncomeDrawdownChart,
+    RequiredCapitalDetail,
   },
 
   props: {
@@ -147,6 +158,12 @@ export default {
       type: Boolean,
       default: false,
     },
+  },
+
+  data() {
+    return {
+      showRequiredCapitalDetail: false,
+    };
   },
 
   computed: {
@@ -303,6 +320,25 @@ export default {
 .summary-card.purple {
   @apply bg-gradient-to-br from-purple-50 to-purple-100;
   @apply border-purple-300;
+}
+
+.summary-card.clickable {
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.summary-card.clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.summary-card.clickable:hover .arrow-icon {
+  transform: translateX(4px);
+}
+
+.arrow-icon {
+  display: inline-block;
+  transition: transform 0.15s ease;
 }
 
 .summary-card.green {

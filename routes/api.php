@@ -51,6 +51,7 @@ use App\Http\Controllers\Api\ProtectionController;
 use App\Http\Controllers\Api\RecommendationsController;
 use App\Http\Controllers\Api\Retirement\DCPensionHoldingsController;
 use App\Http\Controllers\Api\RetirementController;
+use App\Http\Controllers\Api\Settings\AssumptionsController;
 use App\Http\Controllers\Api\RiskPreferenceController;
 use App\Http\Controllers\Api\SavingsController;
 use App\Http\Controllers\Api\SessionController;
@@ -823,6 +824,7 @@ Route::middleware('auth:sanctum')->prefix('retirement')->group(function () {
     // Main retirement data and analysis
     Route::get('/', [RetirementController::class, 'index']);
     Route::get('/projections', [RetirementController::class, 'getProjections']);
+    Route::get('/required-capital', [RetirementController::class, 'getRequiredCapital']);
     Route::get('/dc-pensions/{id}/projections', [RetirementController::class, 'getDCPensionProjection']);
     Route::post('/analyze', [RetirementController::class, 'analyze']);
     Route::get('/recommendations', [RetirementController::class, 'recommendations']);
@@ -913,6 +915,13 @@ Route::middleware('auth:sanctum')->prefix('tax-info')->group(function () {
     Route::get('/investment/{accountType}', [\App\Http\Controllers\Api\TaxProductInfoController::class, 'getInvestmentTaxInfo']);
     Route::get('/savings/{accountType}', [\App\Http\Controllers\Api\TaxProductInfoController::class, 'getSavingsTaxInfo']);
     Route::get('/summary', [\App\Http\Controllers\Api\TaxProductInfoController::class, 'getTaxSummary']);
+});
+
+// User Settings routes
+Route::middleware('auth:sanctum')->prefix('settings')->group(function () {
+    // Planning Assumptions
+    Route::get('/assumptions', [AssumptionsController::class, 'index']);
+    Route::put('/assumptions/{type}', [AssumptionsController::class, 'update']);
 });
 
 // UK Taxes & Allowances routes (Admin only)

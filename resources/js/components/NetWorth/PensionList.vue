@@ -195,8 +195,8 @@
 
             <!-- Projections Content -->
             <template v-else>
-              <!-- Monte Carlo Chart - Clickable to Future Value Tab -->
-              <div class="chart-card clickable" @click="setActiveTab('future')">
+              <!-- Monte Carlo Chart - Clickable to Required Capital Detail -->
+              <div class="chart-card clickable" @click="setActiveTab('required-capital')">
                 <div class="chart-header">
                   <h3 class="chart-title">Pension Pot Projection</h3>
                   <span class="risk-badge-corner">{{ formatRiskLevel(projections.pension_pot_projection?.risk_level) }} Risk</span>
@@ -318,6 +318,12 @@
         @back="setActiveTab('current')"
       />
 
+      <!-- Required Capital Detail -->
+      <RequiredCapitalDetail
+        v-else-if="activeTab === 'required-capital'"
+        @back="setActiveTab('current')"
+      />
+
       <!-- Strategies Tab -->
       <StrategiesTab
         v-else-if="activeTab === 'strategies'"
@@ -368,6 +374,7 @@ import DocumentUploadModal from '@/components/Shared/DocumentUploadModal.vue';
 import RiskBadge from '@/components/Shared/RiskBadge.vue';
 import PensionPotProjectionChart from '@/components/Retirement/PensionPotProjectionChart.vue';
 import FutureValueTab from '@/components/Retirement/FutureValueTab.vue';
+import RequiredCapitalDetail from '@/components/Retirement/RequiredCapitalDetail.vue';
 import StrategiesTab from '@/components/Retirement/StrategiesTab.vue';
 import RetirementIncomeTab from '@/components/Retirement/RetirementIncomeTab.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
@@ -384,6 +391,7 @@ export default {
     RiskBadge,
     PensionPotProjectionChart,
     FutureValueTab,
+    RequiredCapitalDetail,
     StrategiesTab,
     RetirementIncomeTab,
   },
