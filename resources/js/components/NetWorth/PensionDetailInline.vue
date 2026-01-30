@@ -429,10 +429,10 @@ export default {
   },
 
   computed: {
-    ...mapState('auth', ['currentUser']),
+    ...mapState('retirement', ['profile']),
 
     userRetirementAge() {
-      return this.currentUser?.target_retirement_age || 67;
+      return this.profile?.target_retirement_age || 67;
     },
 
     tabs() {

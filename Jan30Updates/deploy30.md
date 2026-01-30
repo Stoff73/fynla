@@ -201,7 +201,7 @@ resources/js/components/Retirement/FutureValueTab.vue
 
 | Change | Description |
 |--------|-------------|
-| Computed | Added `userRetirementAge` computed property pulling from `currentUser.target_retirement_age` |
+| Computed | Added `userRetirementAge` computed property pulling from `profile.target_retirement_age` (retirement store) |
 | DC Metrics Card | Changed from `pension.retirement_age` to `userRetirementAge` |
 | DC Overview Section | Changed "Target Retirement Age" label to "Retirement Age", now uses `userRetirementAge` |
 
