@@ -26,33 +26,8 @@
       />
     </div>
 
-    <!-- All Funds Depletion Summary -->
-    <div v-if="totalDepletionAge" class="mb-6">
-      <div class="text-xs font-medium text-gray-500 uppercase mb-3">Estimated Fund Depletion</div>
-      <div
-        :class="['rounded-lg py-3 px-4 border inline-flex items-center gap-3', totalDepletionAge < 100 ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200']"
-      >
-        <span class="text-sm text-gray-600">All funds depleted at</span>
-        <span :class="['text-lg font-bold', totalDepletionAge < 100 ? 'text-blue-800' : 'text-gray-900']">
-          <template v-if="totalDepletionAge >= 100">Age 100+</template>
-          <template v-else>Age {{ totalDepletionAge }}</template>
-        </span>
-        <span v-if="totalDepletionAge < 100" class="text-xs text-blue-600">(before target)</span>
-      </div>
-    </div>
-
     <!-- Year-by-Year Table -->
     <div class="mt-6">
-      <div class="flex justify-between items-center mb-3">
-        <div class="text-xs font-medium text-gray-500 uppercase">Year-by-Year Breakdown</div>
-        <button
-          @click="showAllYears = !showAllYears"
-          class="text-xs text-primary-600 hover:text-primary-700 font-medium"
-        >
-          {{ showAllYears ? 'Show Summary (Every 5 Years)' : 'Show All Years' }}
-        </button>
-      </div>
-
       <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200 text-sm">
           <thead>
