@@ -712,10 +712,13 @@ export default {
 
 .summary-label {
   font-size: 14px;
+  line-height: 1.3;
   @apply text-gray-500;
   margin: 0 0 8px 0;
   font-weight: 500;
-  min-height: 20px;
+  height: 36px;
+  display: flex;
+  align-items: flex-end;
 }
 
 .summary-value {
