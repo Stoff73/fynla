@@ -1573,6 +1573,29 @@ class RetirementIncomeService
                 'tax_treatment' => 'tax_free',
             ];
             $remainingTarget -= $pclsAllocation;
+
+            // Also add the Pension Drawdown card (even if £0 withdrawal for now)
+            // This shows the taxable pension pot available for future use
+            foreach ($availableAccounts as $account) {
+                if ($account['type'] === 'pension_pot' && isset($account['sub_accounts'])) {
+                    foreach ($account['sub_accounts'] as $subAccount) {
+                        if ($subAccount['source_type'] === 'pension_pot_drawdown') {
+                            $drawdownBalance = $subAccount['max_amount'] ?? 0;
+                            $allocations[] = [
+                                'source_type' => 'pension_pot_drawdown',
+                                'source_id' => $subAccount['source_id'],
+                                'name' => $subAccount['name'],
+                                'annual_amount' => 0, // Not drawing yet - tax-free sources covering target
+                                'starting_balance' => $drawdownBalance,
+                                'max_amount' => $drawdownBalance,
+                                'tax_rate' => null,
+                                'tax_treatment' => 'taxable',
+                            ];
+                            break 2;
+                        }
+                    }
+                }
+            }
         }
 
         // 3c: ISA - FILL THE REMAINING GAP (tax-free)

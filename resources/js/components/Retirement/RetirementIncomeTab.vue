@@ -146,7 +146,6 @@
       <div class="sources-section">
         <div class="sources-header">
           <h4 class="sources-title">Income Sources</h4>
-          <p class="sources-subtitle">Adjust sliders to see real-time tax impact</p>
         </div>
 
         <div class="sources-list">
@@ -155,7 +154,6 @@
             :key="`${allocation.source_type}-${allocation.source_id}`"
             :allocation="allocation"
             :account="getAccountForAllocation(allocation)"
-            @update="handleAllocationUpdate"
           />
         </div>
 
@@ -319,15 +317,6 @@ export default {
     },
   },
 
-  watch: {
-    incomeAllocations: {
-      handler() {
-        this.debouncedCalculate();
-      },
-      deep: true,
-    },
-  },
-
   mounted() {
     this.loadData();
   },
@@ -345,7 +334,6 @@ export default {
       'calculateRetirementIncome',
       'toggleSpouseAssets',
       'setCustomTargetIncome',
-      'updateIncomeAllocation',
     ]),
 
     async loadData() {
@@ -363,10 +351,6 @@ export default {
 
     async toggleSpouse() {
       await this.toggleSpouseAssets(!this.includeSpouse);
-    },
-
-    handleAllocationUpdate({ sourceType, sourceId, amount }) {
-      this.updateIncomeAllocation({ sourceType, sourceId, amount });
     },
 
     debouncedCalculate() {
@@ -712,12 +696,6 @@ export default {
   font-size: 18px;
   font-weight: 600;
   @apply text-gray-900;
-  margin: 0 0 4px 0;
-}
-
-.sources-subtitle {
-  font-size: 14px;
-  @apply text-gray-500;
   margin: 0;
 }
 

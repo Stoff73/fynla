@@ -1788,6 +1788,94 @@ resources/js/components/Retirement/FundDepletionChart.vue
 
 ---
 
+## Income Source Cards Simplification
+
+**Branch:** decumRetire
+
+**Status:** Ready to deploy
+
+### Description
+
+Simplified the Income Source cards in the Retirement Income Planner to show only essential information: account type, account name, and projected fund value. Removed interactive sliders and tax information.
+
+### Changes Made
+
+| Change | Description |
+|--------|-------------|
+| Removed sliders | Interactive sliders removed from all income source cards |
+| Removed tax labels | Tax rate % and tax treatment labels removed |
+| Removed annual withdrawal | "Annual withdrawal" display removed |
+| Simplified layout | Account type badge → Account name → "Projected fund value" label → Value |
+| Always show Pension Drawdown | Drawdown card now shows even when £0 is being withdrawn |
+
+### Card Layout (Before)
+
+```text
+┌────────────────────────────────────────────────┐
+│ PCLS    Pension Pot - PCLS    │ 0%  Tax-free  │
+│ Available: £121,484                            │
+│ Annual withdrawal            £3,471           │
+│ ─────────────●────────────────                │
+│ £0                        £121,484            │
+└────────────────────────────────────────────────┘
+```
+
+### Card Layout (After)
+
+```text
+┌─────────────────────────┐
+│ PCLS                    │
+│ Pension Pot - PCLS      │
+│ Projected fund value    │
+│ £121,484                │
+└─────────────────────────┘
+```
+
+### Backend Changes (RetirementIncomeService.php)
+
+| Change | Description |
+|--------|-------------|
+| Always include drawdown | Pension Pot - Drawdown card now added unconditionally after PCLS |
+| `annual_amount: 0` | When not being drawn from, drawdown shows £0 withdrawal |
+| `max_amount` field | Added to drawdown allocation for projected balance display |
+
+### Frontend Changes
+
+**IncomeSourceSlider.vue:**
+
+| Change | Description |
+|--------|-------------|
+| Template | Simplified to: badge → name → "Projected fund value" label → value |
+| Removed | Slider input, tax badge container, annual withdrawal display |
+| Removed | All slider-related computed properties (`sliderStep`, `sliderFillWidth`) |
+| Removed | `emits`, `data`, `watch`, `methods` - component is now purely presentational |
+| CSS | Simplified styles, removed all slider-related CSS |
+
+**RetirementIncomeTab.vue:**
+
+| Change | Description |
+|--------|-------------|
+| Removed | "Adjust sliders" subtitle under Income Sources heading |
+| Removed | `@update` event handler on IncomeSourceSlider |
+| Removed | `handleAllocationUpdate` method |
+| Removed | `updateIncomeAllocation` Vuex action import |
+| Removed | `incomeAllocations` watcher |
+
+### Files Changed
+
+**Backend:**
+```text
+app/Services/Retirement/RetirementIncomeService.php
+```
+
+**Frontend (Included in Build):**
+```text
+resources/js/components/Retirement/IncomeSourceSlider.vue
+resources/js/components/Retirement/RetirementIncomeTab.vue
+```
+
+---
+
 ## Rollback
 
 If issues occur:
