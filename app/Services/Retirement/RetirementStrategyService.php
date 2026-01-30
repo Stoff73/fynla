@@ -55,16 +55,26 @@ class RetirementStrategyService
         $projections = $this->projectionService->getProjections($userId);
         $currentStatus = $this->extractCurrentStatus($projections);
 
-        // If already on track, return early but still include capital position data
-        if ($currentStatus['probability'] >= self::ON_TRACK_PROBABILITY) {
-            $capitalPosition = $this->calculateCapitalPosition($userId, $projections);
+        // Calculate capital position first to check if user is truly on track
+        // This considers ALL assets (pension + ISAs + bonds + savings), not just pension pot
+        $capitalPosition = $this->calculateCapitalPosition($userId, $projections);
+
+        // User is "on track" if:
+        // 1. Pension pot probability is >= 95% (traditional check), OR
+        // 2. Achievable net income from ALL sources meets the target income
+        $isOnTrack = $currentStatus['probability'] >= self::ON_TRACK_PROBABILITY
+            || $capitalPosition['income_meets_target'];
+
+        if ($isOnTrack) {
             return [
                 'current_status' => $currentStatus,
                 'affordability' => $this->calculateAffordability($user),
                 'annual_allowance' => $this->getAnnualAllowanceStatus($userId),
                 'strategies' => [],
                 'on_track_at_strategy' => 0,
-                'message' => 'You are on track to achieve your retirement goals.',
+                'message' => $capitalPosition['income_meets_target']
+                    ? 'Your combined assets can provide your target retirement income.'
+                    : 'You are on track to achieve your retirement goals.',
                 'capital_position' => $capitalPosition,
             ];
         }
@@ -240,9 +250,7 @@ class RetirementStrategyService
             }
         }
 
-        // Get capital position data from retirement income planner and required capital calculator
-        $capitalPosition = $this->calculateCapitalPosition($userId, $projections);
-
+        // $capitalPosition was already calculated at the start of this method
         return [
             'current_status' => $currentStatus,
             'affordability' => $affordability,
