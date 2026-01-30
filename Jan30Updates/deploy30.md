@@ -1447,7 +1447,7 @@ Schema::table('investment_accounts', function (Blueprint $table) {
 
 **Database:**
 ```text
-database/migrations/2026_01_29_130208_add_missing_contribution_fields_to_investment_accounts.php
+database/migrations/2026_01_30_160000_add_contribution_fields_to_investment_accounts.php
 ```
 
 ---
@@ -1515,7 +1515,7 @@ routes/api.php → ~/www/fynla.org/public_html/routes/
 
 **Migrations:**
 ```text
-database/migrations/2026_01_29_130208_add_missing_contribution_fields_to_investment_accounts.php → ~/www/fynla.org/public_html/database/migrations/
+database/migrations/2026_01_30_160000_add_contribution_fields_to_investment_accounts.php → ~/www/fynla.org/public_html/database/migrations/
 database/migrations/2026_01_30_100000_add_beneficiary_to_dc_pensions_table.php → ~/www/fynla.org/public_html/database/migrations/
 database/migrations/2026_01_30_120000_create_user_assumptions_table.php → ~/www/fynla.org/public_html/database/migrations/
 database/migrations/2026_01_30_150000_add_include_in_retirement_to_investment_accounts.php → ~/www/fynla.org/public_html/database/migrations/
@@ -2125,7 +2125,7 @@ routes/api.php
 ### Migrations (4 files)
 
 ```text
-database/migrations/2026_01_29_130208_add_missing_contribution_fields_to_investment_accounts.php
+database/migrations/2026_01_30_160000_add_contribution_fields_to_investment_accounts.php
 database/migrations/2026_01_30_100000_add_beneficiary_to_dc_pensions_table.php
 database/migrations/2026_01_30_120000_create_user_assumptions_table.php
 database/migrations/2026_01_30_150000_add_include_in_retirement_to_investment_accounts.php
