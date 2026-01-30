@@ -40,7 +40,7 @@
         <div class="summary-card purple">
           <p class="summary-label">Required Capital at Retirement</p>
           <p class="summary-value">{{ formatCurrency(data.required_capital_at_retirement) }}</p>
-          <p class="summary-subtitle">At age {{ data.retirement_info.retirement_age }} (Future Value)</p>
+          <p class="summary-subtitle">Nominal value at age {{ data.retirement_info.retirement_age }}</p>
         </div>
         <div class="summary-card teal">
           <p class="summary-label">Projected Pension Pot</p>
@@ -177,9 +177,9 @@
               <tr>
                 <th>Year</th>
                 <th>Age</th>
-                <th class="text-right">Accumulated Value</th>
-                <th class="text-right">In Today's Money</th>
-                <th class="text-right">Target (Today's Money)</th>
+                <th class="text-right">Projected Pot Value</th>
+                <th class="text-right">Pot in Today's Money</th>
+                <th class="text-right">Target in Today's Money</th>
               </tr>
             </thead>
             <tbody>
