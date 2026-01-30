@@ -49,6 +49,7 @@ class InvestmentAccount extends Model
         'risk_preference',
         'has_custom_risk',
         'rebalance_threshold_percent',
+        'include_in_retirement',
         // Private Company / Crowdfunding fields
         'company_legal_name',
         'company_registration_number',
@@ -183,6 +184,7 @@ class InvestmentAccount extends Model
         'ownership_percentage' => 'decimal:2',
         'has_custom_risk' => 'boolean',
         'rebalance_threshold_percent' => 'float',
+        'include_in_retirement' => 'boolean',
         // Private Company / Crowdfunding casts
         'investment_date' => 'date',
         'investment_amount' => 'float',
@@ -265,6 +267,7 @@ class InvestmentAccount extends Model
         'isa_subscription_current_year' => 0,
         'has_custom_risk' => false,
         'rebalance_threshold_percent' => 10.00,
+        'include_in_retirement' => false,
     ];
 
     /**

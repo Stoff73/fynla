@@ -559,6 +559,126 @@ resources/js/components/Retirement/RequiredCapitalDetail.vue
 
 ---
 
+## Retirement Income Planner Updates
+
+**Branch:** decumRetire
+
+**Status:** Ready to deploy
+
+### Description
+
+Updated the Retirement Income Planner with bond account support, improved ISA withdrawal rates, and investment account retirement inclusion filtering. Also hidden the spouse assets toggle pending future release.
+
+### Changes Overview
+
+| Change | Description |
+|--------|-------------|
+| Bond accounts | Added onshore and offshore bonds to available accounts with 5% tax-deferred withdrawal |
+| ISA withdrawal rate | Changed from 4% to 4.7% sustainable withdrawal rate |
+| Tax priority order | Updated to: PCLS → Bonds (5%) → ISA (4.7%) → DC Pension → GIA |
+| Investment filtering | Only accounts with `include_in_retirement = true` appear in planner |
+| Spouse toggle | Hidden in UI (backend functionality remains) |
+
+### Database Migration
+
+New migration: `2026_01_30_150000_add_include_in_retirement_to_investment_accounts.php`
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| include_in_retirement | boolean | false | Whether account is included in retirement planning |
+
+### Tax Optimisation Priority Order
+
+```text
+1. PCLS (25% tax-free lump sum)
+   └── Always use first if available
+
+2. State Pension / DB Pension
+   └── Guaranteed, unavoidable - uses PA first
+
+3. Bond Withdrawals (5% tax-deferred)   ← NEW
+   └── Uses cumulative 5% allowance - no immediate tax
+   └── Preserves tax-deferred growth in remaining bond value
+
+4. ISA Withdrawals (4.7% sustainable)   ← Rate changed from 4%
+   └── 100% tax-free, preserves tax-advantaged growth
+   └── After bonds as ISA has no cumulative limit
+
+5. DC Pension Drawdown
+   └── Use remaining PA, then basic rate
+
+6. GIA / Savings
+   └── Last resort - highest marginal rates
+```
+
+### Bond Account Types
+
+| Type | Tax Treatment | 5% Rule |
+|------|---------------|---------|
+| Onshore Bond | Tax-deferred | 5% of original investment tax-free annually (cumulative) |
+| Offshore Bond | Tax-deferred | 5% of original investment tax-free annually (cumulative, gross roll-up) |
+
+### Investment Account Filtering
+
+Only investment accounts marked with `include_in_retirement = true` appear in the Retirement Income Planner. This applies to:
+
+- Stocks & Shares ISA
+- GIA (General Investment Account)
+- Onshore Bonds
+- Offshore Bonds
+- LISA (Lifetime ISA)
+
+Users can toggle this setting per account via the investment account edit form.
+
+### InvestmentAccount Model Changes
+
+| Change | Description |
+|--------|-------------|
+| $fillable | Added `include_in_retirement` |
+| $casts | Added `'include_in_retirement' => 'boolean'` |
+| $attributes | Added default `'include_in_retirement' => false` |
+
+### RetirementIncomeService Changes
+
+| Change | Description |
+|--------|-------------|
+| Constants | Added `ISA_WITHDRAWAL_RATE` (0.047), `BOND_TAX_FREE_RATE` (0.05), `GIA_WITHDRAWAL_RATE` (0.04) |
+| getAvailableAccounts() | Added onshore/offshore bond queries, filtered ISA/GIA by `include_in_retirement = true` |
+| calculateDefaultAllocations() | Added Step 3 for bond withdrawals, updated ISA rate to 4.7% |
+| sortByTaxEfficiency() | Added `tax_deferred` priority (2) between PCLS and tax_free |
+| initializeFundBalances() | Added onshore/offshore bond balance queries |
+| calculateAnnualWithdrawals() | Added `onshore_bond`, `offshore_bond` source type mappings |
+| getFundTypeFromKey() | Added `bond` category mapping for chart |
+| getGrowthRateForFund() | Added bond growth rate (4% same as other investments) |
+| projectFundDepletion() | Added `bond` to aggregation arrays and yearData |
+
+### Frontend Changes
+
+| File | Change |
+|------|--------|
+| RetirementIncomeTab.vue | Hidden spouse assets toggle with `v-if="false"` |
+| FundDepletionChart.vue | Already supports `bond` category in chart series |
+
+### Files Changed
+
+**Database (Migration Required):**
+```text
+database/migrations/2026_01_30_150000_add_include_in_retirement_to_investment_accounts.php (NEW)
+```
+
+**Backend:**
+```text
+app/Models/Investment/InvestmentAccount.php
+app/Services/Retirement/RetirementIncomeService.php
+```
+
+**Frontend (Included in Build):**
+```text
+resources/js/components/Retirement/RetirementIncomeTab.vue
+```
+
+---
+
 ## Rebuild Required: YES
 
 Frontend Vue components changed. Full rebuild required:
@@ -595,12 +715,14 @@ Upload the following PHP files to their corresponding paths on the server:
 app/Models/UserAssumption.php → ~/www/fynla.org/public_html/app/Models/
 app/Models/User.php → ~/www/fynla.org/public_html/app/Models/
 app/Models/DCPension.php → ~/www/fynla.org/public_html/app/Models/
+app/Models/Investment/InvestmentAccount.php → ~/www/fynla.org/public_html/app/Models/Investment/
 ```
 
 **Services:**
 ```text
 app/Services/Settings/AssumptionsService.php → ~/www/fynla.org/public_html/app/Services/Settings/
 app/Services/Retirement/RequiredCapitalCalculator.php → ~/www/fynla.org/public_html/app/Services/Retirement/
+app/Services/Retirement/RetirementIncomeService.php → ~/www/fynla.org/public_html/app/Services/Retirement/
 ```
 (Create the `Settings` directory if it doesn't exist)
 
@@ -620,6 +742,7 @@ routes/api.php → ~/www/fynla.org/public_html/routes/
 ```text
 database/migrations/2026_01_30_100000_add_beneficiary_to_dc_pensions_table.php → ~/www/fynla.org/public_html/database/migrations/
 database/migrations/2026_01_30_120000_create_user_assumptions_table.php → ~/www/fynla.org/public_html/database/migrations/
+database/migrations/2026_01_30_150000_add_include_in_retirement_to_investment_accounts.php → ~/www/fynla.org/public_html/database/migrations/
 ```
 
 ### Step 4: Run Migrations (SSH)

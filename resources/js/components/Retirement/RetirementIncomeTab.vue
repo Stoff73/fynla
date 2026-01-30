@@ -49,7 +49,8 @@
           <h3 class="section-title">Retirement Income Planner</h3>
           <p class="section-subtitle">Model your tax-optimised drawdown strategy from age {{ retirementAge }}</p>
         </div>
-        <div class="header-right">
+        <!-- Spouse toggle hidden - functionality exists in backend but not exposed to users at this time -->
+        <div v-if="false" class="header-right">
           <label class="spouse-toggle">
             <span class="toggle-label">Include spouse's assets</span>
             <button

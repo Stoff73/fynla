@@ -30,6 +30,13 @@ class RetirementIncomeService
 
     private const PROJECTION_END_AGE = 100;
 
+    // Sustainable withdrawal rates
+    private const ISA_WITHDRAWAL_RATE = 0.047; // 4.7% sustainable withdrawal
+
+    private const BOND_TAX_FREE_RATE = 0.05; // 5% cumulative tax-free allowance
+
+    private const GIA_WITHDRAWAL_RATE = 0.04; // 4% sustainable withdrawal
+
     public function __construct(
         private TaxConfigService $taxConfig,
         private DecumulationPlanner $decumulationPlanner,
@@ -206,7 +213,9 @@ class RetirementIncomeService
         }
 
         // ISAs (Investment - Stocks & Shares ISA)
+        // Only include accounts marked for retirement planning
         $investmentIsas = InvestmentAccount::whereIn('user_id', $userIds)
+            ->where('include_in_retirement', true)
             ->where(function ($query) {
                 $query->where('account_type', 'isa')
                     ->orWhere('account_type', 'stocks_shares_isa')
@@ -230,8 +239,68 @@ class RetirementIncomeService
             ];
         }
 
+        // Onshore Bonds - 5% cumulative tax-free withdrawal
+        // Only include accounts marked for retirement planning
+        $onshoreBonds = InvestmentAccount::whereIn('user_id', $userIds)
+            ->where('include_in_retirement', true)
+            ->where('account_type', 'onshore_bond')
+            ->get();
+        foreach ($onshoreBonds as $account) {
+            $value = (float) ($account->current_value ?? 0);
+            // Original investment for 5% calculation (fallback to current value if not set)
+            $originalInvestment = (float) ($account->investment_amount ?? $value);
+            // 5% annual tax-free allowance of original investment
+            $annualTaxFreeAllowance = $originalInvestment * self::BOND_TAX_FREE_RATE;
+
+            $accounts[] = [
+                'id' => $account->id,
+                'type' => 'onshore_bond',
+                'owner_id' => $account->user_id,
+                'name' => $account->provider ?? 'Onshore Bond',
+                'provider' => $account->provider,
+                'value' => round($value, 2),
+                'original_investment' => round($originalInvestment, 2),
+                'annual_tax_free_allowance' => round($annualTaxFreeAllowance, 2),
+                'tax_rate' => 0, // Within 5% allowance
+                'tax_treatment' => 'tax_deferred',
+                'source_type' => 'onshore_bond',
+                'source_id' => $account->id,
+            ];
+        }
+
+        // Offshore Bonds - 5% cumulative tax-free withdrawal with gross roll-up
+        // Only include accounts marked for retirement planning
+        $offshoreBonds = InvestmentAccount::whereIn('user_id', $userIds)
+            ->where('include_in_retirement', true)
+            ->where('account_type', 'offshore_bond')
+            ->get();
+        foreach ($offshoreBonds as $account) {
+            $value = (float) ($account->current_value ?? 0);
+            // Original investment for 5% calculation (fallback to current value if not set)
+            $originalInvestment = (float) ($account->investment_amount ?? $value);
+            // 5% annual tax-free allowance of original investment
+            $annualTaxFreeAllowance = $originalInvestment * self::BOND_TAX_FREE_RATE;
+
+            $accounts[] = [
+                'id' => $account->id,
+                'type' => 'offshore_bond',
+                'owner_id' => $account->user_id,
+                'name' => $account->provider ?? 'Offshore Bond',
+                'provider' => $account->provider,
+                'value' => round($value, 2),
+                'original_investment' => round($originalInvestment, 2),
+                'annual_tax_free_allowance' => round($annualTaxFreeAllowance, 2),
+                'tax_rate' => 0, // Within 5% allowance
+                'tax_treatment' => 'tax_deferred',
+                'source_type' => 'offshore_bond',
+                'source_id' => $account->id,
+            ];
+        }
+
         // GIAs (General Investment Accounts)
+        // Only include accounts marked for retirement planning
         $giaAccounts = InvestmentAccount::whereIn('user_id', $userIds)
+            ->where('include_in_retirement', true)
             ->where(function ($query) {
                 $query->where('account_type', 'gia')
                     ->orWhere('account_type', 'general');
@@ -430,7 +499,7 @@ class RetirementIncomeService
         $annualWithdrawals = $this->calculateAnnualWithdrawals($incomeAllocations);
 
         // Initialize aggregated balances from starting fund balances
-        $aggregatedBalances = ['dc_pension' => 0, 'isa' => 0, 'gia' => 0, 'savings' => 0];
+        $aggregatedBalances = ['dc_pension' => 0, 'isa' => 0, 'bond' => 0, 'gia' => 0, 'savings' => 0];
         foreach ($fundBalances as $fundKey => $balance) {
             $type = $this->getFundTypeFromKey($fundKey);
             if ($type) {
@@ -443,7 +512,7 @@ class RetirementIncomeService
             $yearData = ['age' => $age, 'total_income' => 0, 'funds' => []];
 
             // Reset aggregated totals for this year
-            $yearAggregated = ['dc_pension' => 0, 'isa' => 0, 'gia' => 0, 'savings' => 0];
+            $yearAggregated = ['dc_pension' => 0, 'isa' => 0, 'bond' => 0, 'gia' => 0, 'savings' => 0];
 
             foreach ($fundBalances as $fundKey => $balance) {
                 $withdrawal = $annualWithdrawals[$fundKey] ?? 0;
@@ -478,15 +547,16 @@ class RetirementIncomeService
             // Add aggregated values directly on yearData for chart compatibility
             $yearData['dc_pension'] = round($yearAggregated['dc_pension'], 2);
             $yearData['isa'] = round($yearAggregated['isa'], 2);
+            $yearData['bond'] = round($yearAggregated['bond'], 2);
             $yearData['gia'] = round($yearAggregated['gia'], 2);
             $yearData['savings'] = round($yearAggregated['savings'], 2);
             $yearData['total_funds'] = round(
-                $yearAggregated['dc_pension'] + $yearAggregated['isa'] + $yearAggregated['gia'] + $yearAggregated['savings'],
+                $yearAggregated['dc_pension'] + $yearAggregated['isa'] + $yearAggregated['bond'] + $yearAggregated['gia'] + $yearAggregated['savings'],
                 2
             );
 
             // Track aggregated depletion ages
-            foreach (['dc_pension', 'isa', 'gia', 'savings'] as $type) {
+            foreach (['dc_pension', 'isa', 'bond', 'gia', 'savings'] as $type) {
                 if ($yearAggregated[$type] <= 0 && ! isset($aggregatedDepleted[$type]) && $aggregatedBalances[$type] > 0) {
                     $aggregatedDepleted[$type] = $age;
                 }
@@ -513,6 +583,9 @@ class RetirementIncomeService
         }
         if (str_starts_with($fundKey, 'isa_')) {
             return 'isa';
+        }
+        if (str_starts_with($fundKey, 'onshore_bond_') || str_starts_with($fundKey, 'offshore_bond_')) {
+            return 'bond';
         }
         if (str_starts_with($fundKey, 'gia_')) {
             return 'gia';
@@ -642,10 +715,31 @@ class RetirementIncomeService
             }
         }
 
-        // Step 3: ISA withdrawals (tax-free)
+        // Step 3: Bond withdrawals (5% tax-deferred)
+        // Use 5% cumulative tax-free allowance from bonds before touching ISA
+        foreach ($availableAccounts as $account) {
+            if (($account['type'] === 'onshore_bond' || $account['type'] === 'offshore_bond') && $remainingTarget > 0) {
+                // 5% of original investment is tax-deferred
+                $taxFreeAllowance = $account['annual_tax_free_allowance'] ?? ($account['value'] * self::BOND_TAX_FREE_RATE);
+                $bondAmount = min($taxFreeAllowance, $remainingTarget, $account['value']);
+                if ($bondAmount > 0) {
+                    $allocations[] = [
+                        'source_type' => $account['type'],
+                        'source_id' => $account['id'],
+                        'name' => $account['name'],
+                        'annual_amount' => round($bondAmount, 2),
+                        'tax_rate' => 0, // Within 5% allowance
+                        'tax_treatment' => 'tax_deferred',
+                    ];
+                    $remainingTarget -= $bondAmount;
+                }
+            }
+        }
+
+        // Step 4: ISA withdrawals (tax-free)
         foreach ($availableAccounts as $account) {
             if (($account['type'] === 'isa_cash' || $account['type'] === 'isa_investment') && $remainingTarget > 0) {
-                $isaAmount = min($account['value'] * 0.04, $remainingTarget); // 4% sustainable withdrawal
+                $isaAmount = min($account['value'] * self::ISA_WITHDRAWAL_RATE, $remainingTarget); // 4.7% sustainable withdrawal
                 if ($isaAmount > 0) {
                     $allocations[] = [
                         'source_type' => 'isa',
@@ -660,7 +754,7 @@ class RetirementIncomeService
             }
         }
 
-        // Step 4: DC pension drawdown (taxable, but can use remaining personal allowance)
+        // Step 5: DC pension drawdown (taxable, but can use remaining personal allowance)
         // First, use any remaining personal allowance
         if ($personalAllowanceRemaining > 0 && $remainingTarget > 0) {
             foreach ($availableAccounts as $account) {
@@ -686,7 +780,7 @@ class RetirementIncomeService
             }
         }
 
-        // Step 5: Additional taxable pension drawdown beyond personal allowance
+        // Step 6: Additional taxable pension drawdown beyond personal allowance
         if ($remainingTarget > 0) {
             foreach ($availableAccounts as $account) {
                 if ($account['type'] === 'dc_pension' && isset($account['sub_accounts']) && $remainingTarget > 0) {
@@ -732,11 +826,11 @@ class RetirementIncomeService
             }
         }
 
-        // Step 6: GIA and other taxable savings if still needed
+        // Step 7: GIA and other taxable savings if still needed
         if ($remainingTarget > 0) {
             foreach ($availableAccounts as $account) {
                 if ($account['type'] === 'gia' && $remainingTarget > 0) {
-                    $giaAmount = min($account['value'] * 0.04, $remainingTarget);
+                    $giaAmount = min($account['value'] * self::GIA_WITHDRAWAL_RATE, $remainingTarget);
                     if ($giaAmount > 0) {
                         $allocations[] = [
                             'source_type' => 'gia',
@@ -757,18 +851,21 @@ class RetirementIncomeService
 
     /**
      * Sort allocations by tax efficiency (tax-free first).
+     *
+     * Priority: PCLS (1) → Tax-deferred bonds (2) → Tax-free ISA (3) → Taxable (4)
      */
     private function sortByTaxEfficiency(array $allocations): array
     {
         $order = [
             'pcls' => 1,
-            'tax_free' => 2,
-            'taxable' => 3,
+            'tax_deferred' => 2, // Bonds - uses 5% allowance before ISA
+            'tax_free' => 3,
+            'taxable' => 4,
         ];
 
         usort($allocations, function ($a, $b) use ($order) {
-            $aOrder = $order[$a['tax_treatment'] ?? 'taxable'] ?? 3;
-            $bOrder = $order[$b['tax_treatment'] ?? 'taxable'] ?? 3;
+            $aOrder = $order[$a['tax_treatment'] ?? 'taxable'] ?? 4;
+            $bOrder = $order[$b['tax_treatment'] ?? 'taxable'] ?? 4;
 
             return $aOrder <=> $bOrder;
         });
@@ -808,6 +905,22 @@ class RetirementIncomeService
             $balances['isa_investment_'.$account->id] = (float) ($account->current_value ?? 0);
         }
 
+        // Onshore Bonds
+        $onshoreBonds = InvestmentAccount::whereIn('user_id', $userIds)
+            ->where('account_type', 'onshore_bond')
+            ->get();
+        foreach ($onshoreBonds as $account) {
+            $balances['onshore_bond_'.$account->id] = (float) ($account->current_value ?? 0);
+        }
+
+        // Offshore Bonds
+        $offshoreBonds = InvestmentAccount::whereIn('user_id', $userIds)
+            ->where('account_type', 'offshore_bond')
+            ->get();
+        foreach ($offshoreBonds as $account) {
+            $balances['offshore_bond_'.$account->id] = (float) ($account->current_value ?? 0);
+        }
+
         // GIAs
         $giaAccounts = InvestmentAccount::whereIn('user_id', $userIds)
             ->whereIn('account_type', ['gia', 'general'])
@@ -845,6 +958,8 @@ class RetirementIncomeService
             $fundKey = match ($sourceType) {
                 'dc_pension_pcls', 'dc_pension_drawdown' => 'dc_pension_'.$sourceId,
                 'isa' => 'isa_investment_'.$sourceId, // Could be savings or investment
+                'onshore_bond' => 'onshore_bond_'.$sourceId,
+                'offshore_bond' => 'offshore_bond_'.$sourceId,
                 'gia' => 'gia_'.$sourceId,
                 'savings' => 'savings_'.$sourceId,
                 default => null,
@@ -863,7 +978,11 @@ class RetirementIncomeService
      */
     private function getGrowthRateForFund(string $fundKey): float
     {
-        if (str_contains($fundKey, 'dc_pension') || str_contains($fundKey, 'isa_investment') || str_contains($fundKey, 'gia')) {
+        if (str_contains($fundKey, 'dc_pension') ||
+            str_contains($fundKey, 'isa_investment') ||
+            str_contains($fundKey, 'onshore_bond') ||
+            str_contains($fundKey, 'offshore_bond') ||
+            str_contains($fundKey, 'gia')) {
             return self::DEFAULT_GROWTH_RATE;
         }
 
