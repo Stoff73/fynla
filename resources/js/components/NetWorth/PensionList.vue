@@ -326,6 +326,7 @@
       <RetirementIncomeTab
         v-else-if="activeTab === 'income'"
         @back="setActiveTab('current')"
+        @add-state-pension="openStatePensionForm"
       />
     </template>
 
@@ -335,6 +336,7 @@
       :pension="editingPension"
       :state-pension="statePension"
       :is-edit="!!editingPension"
+      :initial-pension-type="initialPensionType"
       @close="closePensionForm"
       @save="handlePensionSave"
     />
@@ -395,6 +397,7 @@ export default {
       showPensionForm: false,
       showUploadModal: false,
       editingPension: null,
+      initialPensionType: null,
       successMessage: null,
       errorMessage: null,
     };
@@ -622,6 +625,13 @@ export default {
     closePensionForm() {
       this.showPensionForm = false;
       this.editingPension = null;
+      this.initialPensionType = null;
+    },
+
+    openStatePensionForm() {
+      this.initialPensionType = 'state';
+      this.editingPension = null;
+      this.showPensionForm = true;
     },
 
     async handlePensionSave(data) {

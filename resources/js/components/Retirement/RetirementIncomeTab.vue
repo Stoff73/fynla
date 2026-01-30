@@ -71,17 +71,30 @@
         </svg>
         <div class="info-content">
           <p class="info-message">{{ statePensionStatus.message }}</p>
-          <a
-            :href="statePensionStatus.link"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="info-link"
-          >
-            {{ statePensionStatus.link_text }}
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="external-link-icon">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
-            </svg>
-          </a>
+          <div class="info-links">
+            <button
+              type="button"
+              @click="$emit('add-state-pension')"
+              class="info-link-button"
+            >
+              Add State Pension
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+            </button>
+            <span class="info-separator">or</span>
+            <a
+              :href="statePensionStatus.link"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="info-link"
+            >
+              {{ statePensionStatus.link_text }}
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="external-link-icon">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+              </svg>
+            </a>
+          </div>
         </div>
       </div>
 
@@ -200,7 +213,7 @@ export default {
 
   mixins: [currencyMixin],
 
-  emits: ['back'],
+  emits: ['back', 'add-state-pension'],
 
   components: {
     IncomeSourceSlider,
@@ -910,6 +923,37 @@ export default {
 .external-link-icon {
   width: 14px;
   height: 14px;
+}
+
+.info-links {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.info-link-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  @apply text-white;
+  @apply bg-blue-600;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.info-link-button:hover {
+  @apply bg-blue-700;
+}
+
+.info-separator {
+  font-size: 13px;
+  @apply text-gray-400;
 }
 
 @media (max-width: 768px) {
