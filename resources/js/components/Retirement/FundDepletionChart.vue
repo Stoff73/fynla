@@ -1,21 +1,23 @@
 <template>
-  <div class="fund-depletion-chart">
-    <div class="chart-header">
-      <div class="header-left">
-        <h4 class="chart-title">Fund Depletion Projection</h4>
-        <p class="chart-subtitle">How your retirement funds will be drawn down over time</p>
+  <div class="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+    <!-- Header -->
+    <div class="flex justify-between items-start mb-4">
+      <div>
+        <h4 class="text-lg font-semibold text-gray-900">Fund Depletion Projection</h4>
+        <p class="text-sm text-gray-500">How your retirement funds will be drawn down over time</p>
       </div>
-      <div v-if="hasDepletionWarning" class="warning-badge">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+      <div v-if="hasDepletionWarning" class="flex items-center gap-1.5 bg-blue-100 text-blue-800 px-3 py-1.5 rounded-full text-xs font-semibold">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
         </svg>
-        Funds may run out
+        Funds may run out early
       </div>
     </div>
 
     <!-- Chart -->
-    <div class="chart-container">
+    <div class="mb-6">
       <apexchart
+        v-if="projections.length > 0"
         :key="chartKey"
         type="area"
         height="350"
@@ -24,31 +26,97 @@
       />
     </div>
 
-    <!-- Depletion Ages -->
-    <div v-if="Object.keys(depletionAges).length > 0" class="depletion-ages">
-      <h5 class="section-title">Estimated Fund Depletion Ages</h5>
-      <div class="ages-grid">
-        <div
-          v-for="(age, fund) in depletionAges"
-          :key="fund"
-          :class="['age-item', { 'warning': age < 90 }]"
+    <!-- All Funds Depletion Summary -->
+    <div v-if="totalDepletionAge" class="mb-6">
+      <div class="text-xs font-medium text-gray-500 uppercase mb-3">Estimated Fund Depletion</div>
+      <div
+        :class="['rounded-lg py-3 px-4 border inline-flex items-center gap-3', totalDepletionAge < 100 ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200']"
+      >
+        <span class="text-sm text-gray-600">All funds depleted at</span>
+        <span :class="['text-lg font-bold', totalDepletionAge < 100 ? 'text-blue-800' : 'text-gray-900']">
+          <template v-if="totalDepletionAge >= 100">Age 100+</template>
+          <template v-else>Age {{ totalDepletionAge }}</template>
+        </span>
+        <span v-if="totalDepletionAge < 100" class="text-xs text-blue-600">(before target)</span>
+      </div>
+    </div>
+
+    <!-- Year-by-Year Table -->
+    <div class="mt-6">
+      <div class="flex justify-between items-center mb-3">
+        <div class="text-xs font-medium text-gray-500 uppercase">Year-by-Year Breakdown</div>
+        <button
+          @click="showAllYears = !showAllYears"
+          class="text-xs text-primary-600 hover:text-primary-700 font-medium"
         >
-          <span class="fund-name">{{ formatFundName(fund) }}</span>
-          <span class="depletion-age">
-            <template v-if="age >= 100">100+</template>
-            <template v-else>Age {{ age }}</template>
-          </span>
-          <span v-if="age < 90" class="warning-text">Early depletion</span>
-        </div>
+          {{ showAllYears ? 'Show Summary (Every 5 Years)' : 'Show All Years' }}
+        </button>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200 text-sm">
+          <thead>
+            <tr class="bg-gray-50">
+              <th class="px-3 py-2 text-left font-semibold text-gray-900">Age</th>
+              <th class="px-3 py-2 text-right font-semibold text-gray-900">Withdrawal</th>
+              <th v-for="type in activeFundTypes" :key="type" class="px-3 py-2 text-right font-semibold text-gray-900">
+                {{ formatFundName(type) }}
+              </th>
+              <th class="px-3 py-2 text-right font-semibold text-gray-900">Growth</th>
+              <th class="px-3 py-2 text-right font-semibold text-gray-900">
+                <div>Taxable</div>
+                <div class="text-xs font-normal text-gray-500">Drawdown</div>
+              </th>
+              <th class="px-3 py-2 text-right font-semibold text-gray-900">Tax Paid</th>
+              <th class="px-3 py-2 text-right font-semibold text-gray-900">Total Balance</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            <tr
+              v-for="year in displayedYears"
+              :key="year.age"
+              :class="{ 'bg-blue-50': year.total_funds <= 0 }"
+            >
+              <td class="px-3 py-2 text-gray-700 font-medium">{{ year.age }}</td>
+              <td class="px-3 py-2 text-right text-red-600">-{{ formatCurrency(year.total_income) }}</td>
+              <td v-for="type in activeFundTypes" :key="type" class="px-3 py-2 text-right text-gray-600">
+                <div>{{ formatCurrency(year[type] || 0) }}</div>
+                <div v-if="year.withdrawals && year.withdrawals[type] > 0" class="text-xs text-red-500">
+                  -{{ formatCurrency(year.withdrawals[type]) }}
+                </div>
+              </td>
+              <td class="px-3 py-2 text-right text-green-600">
+                +{{ formatCurrency(totalGrowth(year)) }}
+              </td>
+              <!-- Taxable Drawdown (over PA) -->
+              <td class="px-3 py-2 text-right">
+                <div v-if="year.taxable_drawdown > 0" class="text-red-600">
+                  {{ formatCurrency(year.taxable_drawdown) }}
+                </div>
+                <div v-else class="text-green-600">£0</div>
+                <div v-if="year.pa_drawdown > 0" class="text-xs text-gray-500">
+                  ({{ formatCurrency(year.pa_drawdown) }} in PA)
+                </div>
+              </td>
+              <!-- Tax Paid -->
+              <td class="px-3 py-2 text-right" :class="year.tax_paid > 0 ? 'text-red-600 font-medium' : 'text-green-600'">
+                {{ year.tax_paid > 0 ? '-' + formatCurrency(year.tax_paid) : '£0' }}
+              </td>
+              <td class="px-3 py-2 text-right font-semibold" :class="year.total_funds <= 0 ? 'text-blue-700' : 'text-gray-900'">
+                {{ formatCurrency(year.total_funds) }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
 
     <!-- Tax Impact Note -->
-    <div v-if="hasIsaDepletion" class="tax-impact-note">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="note-icon">
+    <div v-if="hasIsaDepletion" class="mt-4 flex gap-3 bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5">
         <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
       </svg>
-      <div class="note-content">
+      <div class="text-sm text-blue-800">
         <strong>Tax Impact:</strong> When your ISA funds are depleted at age {{ depletionAges.isa }},
         you'll need to draw more from taxable sources, increasing your tax liability.
       </div>
@@ -85,35 +153,69 @@ export default {
     },
   },
 
+  data() {
+    return {
+      showAllYears: true,
+    };
+  },
+
   computed: {
     chartKey() {
-      // Force re-render when projections change
       const total = this.projections.reduce((sum, p) => sum + (p.total_funds || 0), 0);
       return `depletion-${this.projections.length}-${total}`;
     },
 
+    totalDepletionAge() {
+      // Use total from depletionAges if available
+      if (this.depletionAges.total) {
+        return this.depletionAges.total;
+      }
+      // Otherwise calculate from projections - find when total_funds hits 0
+      if (this.projections.length === 0) return null;
+      const depletedYear = this.projections.find(p => p.total_funds <= 0);
+      if (depletedYear) {
+        return depletedYear.age;
+      }
+      // If never depletes, return 100+
+      return 100;
+    },
+
     hasDepletionWarning() {
-      return Object.values(this.depletionAges).some(age => age < 90);
+      return this.totalDepletionAge && this.totalDepletionAge < 100;
     },
 
     hasIsaDepletion() {
       return this.depletionAges.isa && this.depletionAges.isa < 100;
     },
 
-    fundTypes() {
-      // Extract unique fund types from projections
+    activeFundTypes() {
+      // Determine which fund types have non-zero starting values
       if (this.projections.length === 0) return [];
 
-      const firstProjection = this.projections[0];
+      const first = this.projections[0];
       const types = [];
 
-      if (firstProjection.dc_pension !== undefined && firstProjection.dc_pension > 0) types.push('dc_pension');
-      if (firstProjection.isa !== undefined && firstProjection.isa > 0) types.push('isa');
-      if (firstProjection.gia !== undefined && firstProjection.gia > 0) types.push('gia');
-      if (firstProjection.bond !== undefined && firstProjection.bond > 0) types.push('bond');
-      if (firstProjection.savings !== undefined && firstProjection.savings > 0) types.push('savings');
+      // PCLS and Drawdown are separate (not combined pension_pot)
+      if (first.pcls > 0) types.push('pcls');
+      if (first.drawdown > 0) types.push('drawdown');
+      if (first.isa > 0) types.push('isa');
+      if (first.bond > 0) types.push('bond');
+      if (first.gia > 0) types.push('gia');
+      if (first.savings > 0) types.push('savings');
 
       return types;
+    },
+
+    displayedYears() {
+      if (this.showAllYears) {
+        return this.projections;
+      }
+
+      // Show every 5 years plus first and last
+      return this.projections.filter((year, index) => {
+        if (index === 0 || index === this.projections.length - 1) return true;
+        return year.age % 5 === 0;
+      });
     },
 
     chartSeries() {
@@ -121,40 +223,43 @@ export default {
 
       const series = [];
 
-      // DC Pension
-      if (this.projections[0].dc_pension !== undefined && this.projections[0].dc_pension > 0) {
+      // PCLS and Drawdown are separate series
+      if (this.activeFundTypes.includes('pcls')) {
         series.push({
-          name: 'Pension',
-          data: this.projections.map(p => Math.round(p.dc_pension || 0)),
+          name: 'PCLS (Tax-Free)',
+          data: this.projections.map(p => Math.round(p.pcls || 0)),
         });
       }
 
-      // ISA
-      if (this.projections[0].isa !== undefined && this.projections[0].isa > 0) {
+      if (this.activeFundTypes.includes('drawdown')) {
+        series.push({
+          name: 'Pension Drawdown',
+          data: this.projections.map(p => Math.round(p.drawdown || 0)),
+        });
+      }
+
+      if (this.activeFundTypes.includes('isa')) {
         series.push({
           name: 'ISA',
           data: this.projections.map(p => Math.round(p.isa || 0)),
         });
       }
 
-      // GIA
-      if (this.projections[0].gia !== undefined && this.projections[0].gia > 0) {
-        series.push({
-          name: 'GIA',
-          data: this.projections.map(p => Math.round(p.gia || 0)),
-        });
-      }
-
-      // Bond
-      if (this.projections[0].bond !== undefined && this.projections[0].bond > 0) {
+      if (this.activeFundTypes.includes('bond')) {
         series.push({
           name: 'Bond',
           data: this.projections.map(p => Math.round(p.bond || 0)),
         });
       }
 
-      // Savings
-      if (this.projections[0].savings !== undefined && this.projections[0].savings > 0) {
+      if (this.activeFundTypes.includes('gia')) {
+        series.push({
+          name: 'GIA',
+          data: this.projections.map(p => Math.round(p.gia || 0)),
+        });
+      }
+
+      if (this.activeFundTypes.includes('savings')) {
         series.push({
           name: 'Savings',
           data: this.projections.map(p => Math.round(p.savings || 0)),
@@ -195,7 +300,6 @@ export default {
             style: { colors: TEXT_COLORS.muted, fontSize: '11px' },
             rotate: 0,
             formatter: (val) => {
-              // Show every 5th age
               if (val % 5 === 0 || val === this.retirementAge) return val;
               return '';
             },
@@ -229,11 +333,16 @@ export default {
           itemMargin: { horizontal: 12 },
         },
         tooltip: {
+          shared: true,
           y: {
             formatter: (val) => '£' + val.toLocaleString(),
           },
           x: {
-            formatter: (val) => `Age ${val}`,
+            formatter: (val, { dataPointIndex }) => {
+              // Use dataPointIndex to get actual age from projections
+              const age = this.projections[dataPointIndex]?.age;
+              return age ? `Age ${age}` : `Age ${val}`;
+            },
           },
         },
         dataLabels: { enabled: false },
@@ -262,6 +371,9 @@ export default {
   methods: {
     formatFundName(fund) {
       const names = {
+        pcls: 'PCLS',
+        drawdown: 'Drawdown',
+        pension_pot: 'Pension Pot',
         dc_pension: 'Pension',
         isa: 'ISA',
         gia: 'GIA',
@@ -272,105 +384,10 @@ export default {
       return names[fund] || fund;
     },
 
+    totalGrowth(year) {
+      if (!year.growth) return 0;
+      return Object.values(year.growth).reduce((sum, val) => sum + (val || 0), 0);
+    },
   },
 };
 </script>
-
-<style scoped>
-.fund-depletion-chart {
-  @apply bg-white rounded-card p-6 border border-gray-200 transition-all duration-200;
-}
-
-.chart-header {
-  @apply flex justify-between items-start mb-5 gap-4 flex-wrap;
-}
-
-.header-left {
-  @apply flex-1;
-}
-
-.chart-title {
-  @apply text-lg font-semibold text-gray-900 mb-1;
-}
-
-.chart-subtitle {
-  @apply text-sm text-gray-500 m-0;
-}
-
-.warning-badge {
-  @apply flex items-center gap-1.5 bg-orange-100 text-orange-800 px-3 py-1.5 rounded-full text-xs font-semibold;
-}
-
-.warning-badge svg {
-  @apply w-4 h-4;
-}
-
-.chart-container {
-  @apply mb-6;
-}
-
-/* Depletion Ages */
-.depletion-ages {
-  @apply mb-5;
-}
-
-.section-title {
-  @apply text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide;
-}
-
-.ages-grid {
-  @apply grid gap-3;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-}
-
-.age-item {
-  @apply bg-gray-50 rounded-lg py-3 px-4 border border-gray-200;
-}
-
-.age-item.warning {
-  @apply bg-orange-100 border-orange-200;
-}
-
-.fund-name {
-  @apply block text-xs text-gray-500 mb-1;
-}
-
-.depletion-age {
-  @apply block text-lg font-bold text-gray-900;
-}
-
-.age-item.warning .depletion-age {
-  @apply text-orange-800;
-}
-
-.warning-text {
-  @apply block text-xs text-orange-600 mt-1;
-}
-
-/* Tax Impact Note */
-.tax-impact-note {
-  @apply flex gap-3 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-lg p-4;
-}
-
-.note-icon {
-  @apply w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5;
-}
-
-.note-content {
-  @apply text-sm text-blue-800 leading-relaxed;
-}
-
-.note-content strong {
-  @apply font-semibold;
-}
-
-@media (max-width: 640px) {
-  .chart-header {
-    @apply flex-col;
-  }
-
-  .ages-grid {
-    @apply grid-cols-2;
-  }
-}
-</style>

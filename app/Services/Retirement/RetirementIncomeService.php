@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace App\Services\Retirement;
 
 use App\Models\DBPension;
-use App\Models\DCPension;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\RetirementProfile;
 use App\Models\SavingsAccount;
 use App\Models\StatePension;
 use App\Models\User;
+use App\Services\Investment\InvestmentProjectionService;
 use App\Services\TaxBandTracker;
 use App\Services\TaxConfigService;
 
@@ -19,6 +19,14 @@ use App\Services\TaxConfigService;
  *
  * Calculates tax-optimized retirement income drawdown strategies,
  * projects fund depletion over time, and provides real-time tax calculations.
+ *
+ * Key features:
+ * - Uses combined Pension Pot (not individual pensions)
+ * - Uses 80% Monte Carlo projected value at retirement
+ * - Checks if target income depletes funds before age 100
+ * - Adjusts income to sustainable level if funds would deplete early
+ * - Handles state pension timing (before/after state pension age)
+ * - Shows message with gov.uk link if no state pension data entered
  */
 class RetirementIncomeService
 {
@@ -30,6 +38,10 @@ class RetirementIncomeService
 
     private const PROJECTION_END_AGE = 100;
 
+    private const STATE_PENSION_GOV_UK = 'https://www.gov.uk/check-state-pension';
+
+    private const DEFAULT_STATE_PENSION_AGE = 67;
+
     // Sustainable withdrawal rates
     private const ISA_WITHDRAWAL_RATE = 0.047; // 4.7% sustainable withdrawal
 
@@ -40,34 +52,106 @@ class RetirementIncomeService
     public function __construct(
         private TaxConfigService $taxConfig,
         private DecumulationPlanner $decumulationPlanner,
+        private RequiredCapitalCalculator $requiredCapitalCalculator,
+        private RetirementProjectionService $projectionService,
+        private InvestmentProjectionService $investmentProjectionService,
     ) {}
 
     /**
      * Get retirement income configuration with default tax-optimized allocations.
+     *
+     * Process:
+     * 1. Get projected pension pot value (80% Monte Carlo confidence)
+     * 2. Get target income from RequiredCapitalCalculator
+     * 3. Check state pension status (show message if not entered)
+     * 4. Check if target income depletes funds before age 100
+     * 5. If depletes early, calculate sustainable income to last to age 100
+     * 6. Optimise allocations for that income (adjusted or original)
+     * 7. Account for state pension timing in calculations
      */
     public function getRetirementIncomeConfig(int $userId, bool $includeSpouse = false): array
     {
         $user = User::findOrFail($userId);
         $profile = RetirementProfile::where('user_id', $userId)->first();
+        $currentAge = $user->date_of_birth ? $user->date_of_birth->age : null;
 
         $retirementAge = $profile?->target_retirement_age ?? self::DEFAULT_RETIREMENT_AGE;
-        $targetIncome = (float) ($profile?->target_retirement_income ?? $this->calculateDefaultTargetIncome($user));
 
-        $availableAccounts = $this->getAvailableAccounts($userId, $includeSpouse);
-        $defaultAllocations = $this->calculateDefaultAllocations($availableAccounts, $targetIncome, $retirementAge);
-        $taxBreakdown = $this->calculateTaxBreakdown($defaultAllocations);
-        $fundProjections = $this->projectFundDepletion($userId, $defaultAllocations, $retirementAge);
+        // Get projected pension pot value (80% Monte Carlo confidence)
+        $potProjection = $this->projectionService->projectPensionPot($user);
+        $projectedPensionPot = (float) ($potProjection['percentile_20_at_retirement'] ?? 0);
+
+        // Get target income from centralised RequiredCapitalCalculator
+        $requiredCapitalData = $this->requiredCapitalCalculator->calculate($userId);
+        $targetIncome = (float) $requiredCapitalData['required_income'];
+
+        // Calculate years to retirement for projecting asset values
+        $yearsToRetirement = max(0, $retirementAge - ($currentAge ?? 45));
+
+        // Get available accounts (non-pension sources: ISAs, bonds, GIA, savings)
+        // Plus combined pension pot using projected value
+        // All assets are projected to retirement age
+        $availableAccounts = $this->getAvailableAccounts($userId, $includeSpouse, $projectedPensionPot, $yearsToRetirement);
+
+        // Total funds = projected pension pot + other drawable assets
+        $totalFunds = $this->calculateTotalFunds($availableAccounts);
+
+        // Get state pension status
+        $statePensionStatus = $this->getStatePensionStatus($userId, $includeSpouse, $retirementAge);
+
+        // Calculate years in retirement (used for depletion check reference)
+        $yearsInRetirement = self::PROJECTION_END_AGE - $retirementAge;
+
+        // NOTE: We no longer pre-adjust income here. The projectFundDepletion function
+        // correctly simulates using actual allocations (which exclude guaranteed income
+        // like state pension and DB pensions). Pre-checking with checkFundDepletion
+        // was incorrectly including guaranteed income in the withdrawal calculation,
+        // causing premature income reduction.
+
+        // Use target income directly - projectFundDepletion will adjust if truly needed
+        $optimisedIncome = $targetIncome;
+
+        // Calculate allocations for the target income
+        $defaultAllocations = $this->calculateDefaultAllocations(
+            $availableAccounts,
+            $optimisedIncome,
+            $retirementAge,
+            $statePensionStatus
+        );
+
+        // Calculate tax breakdown accounting for state pension timing
+        $taxBreakdown = $this->calculateTaxBreakdown($defaultAllocations, $statePensionStatus);
+
+        // Project fund depletion (with all assets projected to retirement age)
+        // Pass availableAccounts to ensure consistent values between PMT calculation and projection
+        $fundProjections = $this->projectFundDepletion($userId, $defaultAllocations, $retirementAge, $statePensionStatus, $projectedPensionPot, $yearsToRetirement, $availableAccounts);
+
+        // Build depletion check from projections
+        $depletionAges = $fundProjections['depletion_ages'] ?? [];
+        $totalDepletionAge = $depletionAges['total'] ?? 100;
+        $depletionCheck = [
+            'is_sustainable' => $totalDepletionAge >= 100,
+            'depletion_age' => $totalDepletionAge < 100 ? $totalDepletionAge : null,
+            'funds_at_100' => $fundProjections['projections'][count($fundProjections['projections']) - 1]['total_funds'] ?? 0,
+        ];
 
         return [
             'target_income' => round($targetIncome, 2),
+            'optimised_income' => round($fundProjections['actual_withdrawal'] ?? $optimisedIncome, 2),
+            'income_was_adjusted' => $fundProjections['income_was_adjusted'] ?? false,
+            'sustainable_withdrawal' => $fundProjections['sustainable_withdrawal'] ?? 0,
             'retirement_age' => $retirementAge,
-            'current_age' => $user->date_of_birth ? $user->date_of_birth->age : null,
+            'current_age' => $currentAge,
             'include_spouse' => $includeSpouse,
+            'projected_pension_pot' => round($projectedPensionPot, 2),
+            'total_funds' => round($fundProjections['total_starting_funds'] ?? $totalFunds, 2),
             'available_accounts' => $availableAccounts,
             'allocations' => $defaultAllocations,
             'tax_breakdown' => $taxBreakdown,
             'fund_projections' => $fundProjections['projections'],
             'depletion_ages' => $fundProjections['depletion_ages'],
+            'depletion_check' => $depletionCheck,
+            'state_pension_status' => $statePensionStatus,
         ];
     }
 
@@ -78,18 +162,59 @@ class RetirementIncomeService
     {
         $user = User::findOrFail($userId);
         $profile = RetirementProfile::where('user_id', $userId)->first();
+        $currentAge = $user->date_of_birth ? $user->date_of_birth->age : null;
 
         $retirementAge = $profile?->target_retirement_age ?? self::DEFAULT_RETIREMENT_AGE;
-        $targetIncome = (float) ($customTargetIncome ?? $profile?->target_retirement_income ?? $this->calculateDefaultTargetIncome($user));
+
+        // Get target income from centralised RequiredCapitalCalculator, or use custom if provided
+        if ($customTargetIncome !== null) {
+            $targetIncome = $customTargetIncome;
+        } else {
+            $requiredCapitalData = $this->requiredCapitalCalculator->calculate($userId);
+            $targetIncome = (float) $requiredCapitalData['required_income'];
+        }
+
+        // Get state pension status
+        $statePensionStatus = $this->getStatePensionStatus($userId, $includeSpouse, $retirementAge);
+
+        // Get projected pension pot value (80% Monte Carlo confidence)
+        $potProjection = $this->projectionService->projectPensionPot($user);
+        $projectedPensionPot = (float) ($potProjection['percentile_20_at_retirement'] ?? 0);
+
+        // Calculate years to retirement for projecting asset values
+        $yearsToRetirement = max(0, $retirementAge - ($currentAge ?? 45));
 
         // Include available accounts so they're not lost after recalculation
-        $availableAccounts = $this->getAvailableAccounts($userId, $includeSpouse);
-        $taxBreakdown = $this->calculateTaxBreakdown($incomeAllocations);
-        $fundProjections = $this->projectFundDepletion($userId, $incomeAllocations, $retirementAge);
+        // All assets are projected to retirement age
+        $availableAccounts = $this->getAvailableAccounts($userId, $includeSpouse, $projectedPensionPot, $yearsToRetirement);
+        $totalFunds = $this->calculateTotalFunds($availableAccounts);
+
+        // Calculate gross income from allocations
+        $grossAllocationIncome = array_reduce($incomeAllocations, function ($sum, $alloc) {
+            return $sum + (float) ($alloc['annual_amount'] ?? 0);
+        }, 0.0);
+
+        $taxBreakdown = $this->calculateTaxBreakdown($incomeAllocations, $statePensionStatus);
+        // Pass availableAccounts to ensure consistent values between PMT calculation and projection
+        $fundProjections = $this->projectFundDepletion($userId, $incomeAllocations, $retirementAge, $statePensionStatus, $projectedPensionPot, $yearsToRetirement, $availableAccounts);
+
+        // Build depletion check from projections (more accurate than checkFundDepletion)
+        $depletionAges = $fundProjections['depletion_ages'] ?? [];
+        $totalDepletionAge = $depletionAges['total'] ?? 100;
+        $depletionCheck = [
+            'is_sustainable' => $totalDepletionAge >= 100,
+            'depletion_age' => $totalDepletionAge < 100 ? $totalDepletionAge : null,
+            'funds_at_100' => $fundProjections['projections'][count($fundProjections['projections']) - 1]['total_funds'] ?? 0,
+        ];
 
         return [
             'target_income' => round($targetIncome, 2),
+            'optimised_income' => round($fundProjections['actual_withdrawal'] ?? $grossAllocationIncome, 2),
+            'income_was_adjusted' => $fundProjections['income_was_adjusted'] ?? false,
+            'sustainable_withdrawal' => $fundProjections['sustainable_withdrawal'] ?? 0,
             'retirement_age' => $retirementAge,
+            'projected_pension_pot' => round($projectedPensionPot, 2),
+            'total_funds' => round($fundProjections['total_starting_funds'] ?? $totalFunds, 2),
             'available_accounts' => $availableAccounts,
             'allocations' => $incomeAllocations,
             'tax_breakdown' => $taxBreakdown,
@@ -97,13 +222,24 @@ class RetirementIncomeService
             'depletion_ages' => $fundProjections['depletion_ages'],
             'meets_target' => $taxBreakdown['net_income'] >= $targetIncome,
             'income_gap' => max(0, $targetIncome - $taxBreakdown['net_income']),
+            'depletion_check' => $depletionCheck,
+            'state_pension_status' => $statePensionStatus,
         ];
     }
 
     /**
      * Get all accounts eligible for retirement income.
+     *
+     * Uses the COMBINED Pension Pot with the projected value (80% Monte Carlo confidence),
+     * NOT individual DC pensions. The pension pot is split into PCLS (25%) and drawdown (75%).
+     *
+     * All assets (ISAs, bonds, GIAs) are PROJECTED to retirement age using compound growth,
+     * not current values. This provides accurate values for retirement planning.
+     *
+     * @param  float  $projectedPensionPot  The 80% confidence projected value from Monte Carlo
+     * @param  int|null  $yearsToRetirement  Years until retirement for projecting asset values
      */
-    public function getAvailableAccounts(int $userId, bool $includeSpouse = false): array
+    public function getAvailableAccounts(int $userId, bool $includeSpouse = false, float $projectedPensionPot = 0, ?int $yearsToRetirement = null): array
     {
         $accounts = [];
 
@@ -116,36 +252,44 @@ class RetirementIncomeService
             }
         }
 
-        // DC Pensions
-        $dcPensions = DCPension::whereIn('user_id', $userIds)->get();
-        foreach ($dcPensions as $pension) {
-            $value = (float) ($pension->current_fund_value ?? 0);
-            $pclsAvailable = $value * 0.25;
+        // Calculate years to retirement if not provided
+        if ($yearsToRetirement === null) {
+            $user = User::find($userId);
+            $profile = RetirementProfile::where('user_id', $userId)->first();
+            $currentAge = $user?->date_of_birth?->age;
+            $retirementAge = $profile?->target_retirement_age ?? self::DEFAULT_RETIREMENT_AGE;
+            $yearsToRetirement = max(0, $retirementAge - ($currentAge ?? 45));
+        }
+
+        // Combined Pension Pot (using projected 80% Monte Carlo value, not individual pensions)
+        // This is the combined value of ALL DC pensions projected to retirement age
+        if ($projectedPensionPot > 0) {
+            $pclsAvailable = $projectedPensionPot * 0.25; // 25% tax-free
+            $drawdownAvailable = $projectedPensionPot * 0.75; // 75% taxable
 
             $accounts[] = [
-                'id' => $pension->id,
-                'type' => 'dc_pension',
-                'owner_id' => $pension->user_id,
-                'name' => $pension->scheme_name ?? 'DC Pension',
-                'provider' => $pension->provider,
-                'value' => round($value, 2),
+                'id' => 'pension_pot',
+                'type' => 'pension_pot',
+                'owner_id' => $userId,
+                'name' => 'Pension Pot',
+                'value' => round($projectedPensionPot, 2),
                 'pcls_available' => round($pclsAvailable, 2),
-                'annual_contribution' => (float) ($pension->monthly_contribution_amount ?? 0) * 12,
                 'tax_treatment' => 'taxable',
+                'is_projected' => true,
                 'sub_accounts' => [
                     [
-                        'source_type' => 'dc_pension_pcls',
-                        'source_id' => $pension->id,
-                        'name' => ($pension->scheme_name ?? 'DC Pension').' - Tax-Free Cash (PCLS)',
+                        'source_type' => 'pension_pot_pcls',
+                        'source_id' => 'pension_pot',
+                        'name' => 'Pension Pot - Tax-Free Cash (PCLS)',
                         'max_amount' => round($pclsAvailable, 2),
                         'tax_rate' => 0,
                         'tax_treatment' => 'tax_free',
                     ],
                     [
-                        'source_type' => 'dc_pension_drawdown',
-                        'source_id' => $pension->id,
-                        'name' => ($pension->scheme_name ?? 'DC Pension').' - Drawdown',
-                        'max_amount' => round($value - $pclsAvailable, 2),
+                        'source_type' => 'pension_pot_drawdown',
+                        'source_id' => 'pension_pot',
+                        'name' => 'Pension Pot - Drawdown',
+                        'max_amount' => round($drawdownAvailable, 2),
                         'tax_rate' => null, // Depends on total income
                         'tax_treatment' => 'taxable',
                     ],
@@ -193,17 +337,25 @@ class RetirementIncomeService
         }
 
         // ISAs (Savings - Cash ISA)
+        // Projected to retirement age using compound growth
         $isaAccounts = SavingsAccount::whereIn('user_id', $userIds)
             ->where('is_isa', true)
             ->get();
         foreach ($isaAccounts as $account) {
-            $value = (float) ($account->current_balance ?? 0);
+            $currentValue = (float) ($account->current_balance ?? 0);
+            // Cash ISAs grow at lower rate (savings rate)
+            $cashGrowthRate = 0.02; // 2% for cash
+            $projectedValue = $currentValue * pow(1 + $cashGrowthRate, $yearsToRetirement);
             $accounts[] = [
                 'id' => $account->id,
                 'type' => 'isa_cash',
                 'owner_id' => $account->user_id,
                 'name' => $account->institution ?? 'Cash ISA',
-                'value' => round($value, 2),
+                'current_value' => round($currentValue, 2),
+                'value' => round($projectedValue, 2),
+                'is_projected' => true,
+                'years_projected' => $yearsToRetirement,
+                'growth_rate' => $cashGrowthRate,
                 'isa_type' => $account->isa_type,
                 'tax_rate' => 0,
                 'tax_treatment' => 'tax_free',
@@ -214,6 +366,7 @@ class RetirementIncomeService
 
         // ISAs (Investment - Stocks & Shares ISA)
         // Only include accounts marked for retirement planning
+        // Projected to retirement age using Monte Carlo 80% confidence
         $investmentIsas = InvestmentAccount::whereIn('user_id', $userIds)
             ->where('include_in_retirement', true)
             ->where(function ($query) {
@@ -223,14 +376,23 @@ class RetirementIncomeService
             })
             ->get();
         foreach ($investmentIsas as $account) {
-            $value = (float) ($account->current_value ?? 0);
+            $currentValue = (float) ($account->current_value ?? 0);
+            $accountUser = User::find($account->user_id);
+            // Use Monte Carlo 80% projected value (same as Investment module)
+            $projectedValue = $yearsToRetirement > 0 && $accountUser
+                ? $this->investmentProjectionService->getAccountProjectedValue80($account, $accountUser, $yearsToRetirement)
+                : $currentValue;
             $accounts[] = [
                 'id' => $account->id,
                 'type' => 'isa_investment',
                 'owner_id' => $account->user_id,
                 'name' => $account->provider ?? 'Stocks & Shares ISA',
                 'platform' => $account->platform,
-                'value' => round($value, 2),
+                'current_value' => round($currentValue, 2),
+                'value' => round($projectedValue, 2),
+                'is_projected' => true,
+                'years_projected' => $yearsToRetirement,
+                'projection_type' => 'monte_carlo_80',
                 'isa_type' => $account->isa_type ?? 'stocks_shares',
                 'tax_rate' => 0,
                 'tax_treatment' => 'tax_free',
@@ -241,14 +403,20 @@ class RetirementIncomeService
 
         // Onshore Bonds - 5% cumulative tax-free withdrawal
         // Only include accounts marked for retirement planning
+        // Projected to retirement age using Monte Carlo 80% confidence
         $onshoreBonds = InvestmentAccount::whereIn('user_id', $userIds)
             ->where('include_in_retirement', true)
             ->where('account_type', 'onshore_bond')
             ->get();
         foreach ($onshoreBonds as $account) {
-            $value = (float) ($account->current_value ?? 0);
+            $currentValue = (float) ($account->current_value ?? 0);
+            $accountUser = User::find($account->user_id);
+            // Use Monte Carlo 80% projected value
+            $projectedValue = $yearsToRetirement > 0 && $accountUser
+                ? $this->investmentProjectionService->getAccountProjectedValue80($account, $accountUser, $yearsToRetirement)
+                : $currentValue;
             // Original investment for 5% calculation (fallback to current value if not set)
-            $originalInvestment = (float) ($account->investment_amount ?? $value);
+            $originalInvestment = (float) ($account->investment_amount ?? $currentValue);
             // 5% annual tax-free allowance of original investment
             $annualTaxFreeAllowance = $originalInvestment * self::BOND_TAX_FREE_RATE;
 
@@ -258,7 +426,11 @@ class RetirementIncomeService
                 'owner_id' => $account->user_id,
                 'name' => $account->provider ?? 'Onshore Bond',
                 'provider' => $account->provider,
-                'value' => round($value, 2),
+                'current_value' => round($currentValue, 2),
+                'value' => round($projectedValue, 2),
+                'is_projected' => true,
+                'years_projected' => $yearsToRetirement,
+                'projection_type' => 'monte_carlo_80',
                 'original_investment' => round($originalInvestment, 2),
                 'annual_tax_free_allowance' => round($annualTaxFreeAllowance, 2),
                 'tax_rate' => 0, // Within 5% allowance
@@ -270,14 +442,20 @@ class RetirementIncomeService
 
         // Offshore Bonds - 5% cumulative tax-free withdrawal with gross roll-up
         // Only include accounts marked for retirement planning
+        // Projected to retirement age using Monte Carlo 80% confidence
         $offshoreBonds = InvestmentAccount::whereIn('user_id', $userIds)
             ->where('include_in_retirement', true)
             ->where('account_type', 'offshore_bond')
             ->get();
         foreach ($offshoreBonds as $account) {
-            $value = (float) ($account->current_value ?? 0);
+            $currentValue = (float) ($account->current_value ?? 0);
+            $accountUser = User::find($account->user_id);
+            // Use Monte Carlo 80% projected value
+            $projectedValue = $yearsToRetirement > 0 && $accountUser
+                ? $this->investmentProjectionService->getAccountProjectedValue80($account, $accountUser, $yearsToRetirement)
+                : $currentValue;
             // Original investment for 5% calculation (fallback to current value if not set)
-            $originalInvestment = (float) ($account->investment_amount ?? $value);
+            $originalInvestment = (float) ($account->investment_amount ?? $currentValue);
             // 5% annual tax-free allowance of original investment
             $annualTaxFreeAllowance = $originalInvestment * self::BOND_TAX_FREE_RATE;
 
@@ -287,7 +465,11 @@ class RetirementIncomeService
                 'owner_id' => $account->user_id,
                 'name' => $account->provider ?? 'Offshore Bond',
                 'provider' => $account->provider,
-                'value' => round($value, 2),
+                'current_value' => round($currentValue, 2),
+                'value' => round($projectedValue, 2),
+                'is_projected' => true,
+                'years_projected' => $yearsToRetirement,
+                'projection_type' => 'monte_carlo_80',
                 'original_investment' => round($originalInvestment, 2),
                 'annual_tax_free_allowance' => round($annualTaxFreeAllowance, 2),
                 'tax_rate' => 0, // Within 5% allowance
@@ -299,6 +481,7 @@ class RetirementIncomeService
 
         // GIAs (General Investment Accounts)
         // Only include accounts marked for retirement planning
+        // Projected to retirement age using Monte Carlo 80% confidence
         $giaAccounts = InvestmentAccount::whereIn('user_id', $userIds)
             ->where('include_in_retirement', true)
             ->where(function ($query) {
@@ -307,14 +490,23 @@ class RetirementIncomeService
             })
             ->get();
         foreach ($giaAccounts as $account) {
-            $value = (float) ($account->current_value ?? 0);
+            $currentValue = (float) ($account->current_value ?? 0);
+            $accountUser = User::find($account->user_id);
+            // Use Monte Carlo 80% projected value
+            $projectedValue = $yearsToRetirement > 0 && $accountUser
+                ? $this->investmentProjectionService->getAccountProjectedValue80($account, $accountUser, $yearsToRetirement)
+                : $currentValue;
             $accounts[] = [
                 'id' => $account->id,
                 'type' => 'gia',
                 'owner_id' => $account->user_id,
                 'name' => $account->provider ?? 'General Investment Account',
                 'platform' => $account->platform,
-                'value' => round($value, 2),
+                'current_value' => round($currentValue, 2),
+                'value' => round($projectedValue, 2),
+                'is_projected' => true,
+                'years_projected' => $yearsToRetirement,
+                'projection_type' => 'monte_carlo_80',
                 'tax_rate' => null, // Depends on total income
                 'tax_treatment' => 'taxable',
                 'source_type' => 'gia',
@@ -323,6 +515,7 @@ class RetirementIncomeService
         }
 
         // Non-ISA Savings
+        // Projected to retirement age using lower cash growth rate
         $savingsAccounts = SavingsAccount::whereIn('user_id', $userIds)
             ->where(function ($query) {
                 $query->where('is_isa', false)
@@ -330,13 +523,20 @@ class RetirementIncomeService
             })
             ->get();
         foreach ($savingsAccounts as $account) {
-            $value = (float) ($account->current_balance ?? 0);
+            $currentValue = (float) ($account->current_balance ?? 0);
+            // Cash savings grow at lower rate
+            $cashGrowthRate = 0.02; // 2% for cash
+            $projectedValue = $currentValue * pow(1 + $cashGrowthRate, $yearsToRetirement);
             $accounts[] = [
                 'id' => $account->id,
                 'type' => 'savings',
                 'owner_id' => $account->user_id,
                 'name' => $account->institution ?? 'Savings Account',
-                'value' => round($value, 2),
+                'current_value' => round($currentValue, 2),
+                'value' => round($projectedValue, 2),
+                'is_projected' => true,
+                'years_projected' => $yearsToRetirement,
+                'growth_rate' => $cashGrowthRate,
                 'interest_rate' => (float) ($account->interest_rate ?? 0),
                 'tax_rate' => null, // PSA may apply
                 'tax_treatment' => 'taxable',
@@ -349,10 +549,201 @@ class RetirementIncomeService
     }
 
     /**
+     * Get state pension status for the user.
+     *
+     * Returns whether state pension data exists, the amount, age, and timing.
+     * If no data entered, returns a message with link to gov.uk.
+     */
+    public function getStatePensionStatus(int $userId, bool $includeSpouse, int $retirementAge): array
+    {
+        $userIds = [$userId];
+        if ($includeSpouse) {
+            $spouse = User::find($userId)?->spouse;
+            if ($spouse) {
+                $userIds[] = $spouse->id;
+            }
+        }
+
+        $statePensions = StatePension::whereIn('user_id', $userIds)->get();
+
+        // No state pension data entered
+        if ($statePensions->isEmpty()) {
+            return [
+                'has_data' => false,
+                'annual_amount' => 0,
+                'state_pension_age' => self::DEFAULT_STATE_PENSION_AGE,
+                'already_receiving' => false,
+                'starts_at_retirement' => false,
+                'years_until_state_pension' => max(0, self::DEFAULT_STATE_PENSION_AGE - $retirementAge),
+                'message' => 'No State Pension forecast entered. Your projections do not include State Pension income.',
+                'link' => self::STATE_PENSION_GOV_UK,
+                'link_text' => 'Check your State Pension forecast on GOV.UK',
+            ];
+        }
+
+        // Calculate totals from state pension records
+        $totalAnnualAmount = 0;
+        $statePensionAge = self::DEFAULT_STATE_PENSION_AGE;
+        $alreadyReceiving = false;
+
+        foreach ($statePensions as $pension) {
+            $totalAnnualAmount += (float) ($pension->state_pension_forecast_annual ?? 0);
+            if ($pension->state_pension_age) {
+                $statePensionAge = max($statePensionAge, $pension->state_pension_age);
+            }
+            if ($pension->already_receiving) {
+                $alreadyReceiving = true;
+            }
+        }
+
+        $startsAtRetirement = $alreadyReceiving || ($statePensionAge <= $retirementAge);
+        $yearsUntilStatePension = $alreadyReceiving ? 0 : max(0, $statePensionAge - $retirementAge);
+
+        return [
+            'has_data' => true,
+            'annual_amount' => round($totalAnnualAmount, 2),
+            'state_pension_age' => $statePensionAge,
+            'already_receiving' => $alreadyReceiving,
+            'starts_at_retirement' => $startsAtRetirement,
+            'years_until_state_pension' => $yearsUntilStatePension,
+            'message' => null,
+            'link' => null,
+            'link_text' => null,
+        ];
+    }
+
+    /**
+     * Calculate total drawable funds from available accounts.
+     *
+     * Includes pension pot (projected value), ISAs, Bonds, GIAs, Savings.
+     * Excludes DB pensions and State Pension (income streams, not capital).
+     */
+    public function calculateTotalFunds(array $availableAccounts): float
+    {
+        $total = 0.0;
+
+        foreach ($availableAccounts as $account) {
+            $type = $account['type'] ?? '';
+
+            // Skip income-based pensions (not capital)
+            if (in_array($type, ['db_pension', 'state_pension'])) {
+                continue;
+            }
+
+            if (isset($account['value']) && $account['value'] > 0) {
+                $total += (float) $account['value'];
+            }
+        }
+
+        return $total;
+    }
+
+    /**
+     * @deprecated Use calculateTotalFunds() instead
+     */
+    public function calculateTotalPensionPot(array $availableAccounts): float
+    {
+        return $this->calculateTotalFunds($availableAccounts);
+    }
+
+    /**
+     * Check if target income will deplete funds before age 100.
+     *
+     * Returns whether the income is sustainable and when funds would deplete.
+     */
+    public function checkFundDepletion(
+        float $totalFunds,
+        float $annualIncome,
+        int $yearsInRetirement,
+        array $statePensionStatus
+    ): array {
+        if ($totalFunds <= 0 || $annualIncome <= 0) {
+            return [
+                'is_sustainable' => $annualIncome <= 0,
+                'depletion_year' => $annualIncome > 0 ? 0 : null,
+                'depletion_age' => null,
+                'funds_at_100' => 0,
+            ];
+        }
+
+        $balance = $totalFunds;
+        $statePensionAmount = $statePensionStatus['annual_amount'] ?? 0;
+        $yearsUntilStatePension = $statePensionStatus['years_until_state_pension'] ?? 0;
+        $growthRate = self::DEFAULT_GROWTH_RATE;
+
+        for ($year = 0; $year < $yearsInRetirement; $year++) {
+            // Calculate withdrawal needed from funds
+            // After state pension starts, need less from funds
+            $withdrawal = $annualIncome;
+            if ($year >= $yearsUntilStatePension && $statePensionAmount > 0) {
+                $withdrawal = max(0, $annualIncome - $statePensionAmount);
+            }
+
+            $balance -= $withdrawal;
+
+            if ($balance <= 0) {
+                return [
+                    'is_sustainable' => false,
+                    'depletion_year' => $year,
+                    'depletion_age' => self::PROJECTION_END_AGE - $yearsInRetirement + $year,
+                    'funds_at_100' => 0,
+                ];
+            }
+
+            // Apply growth
+            $balance *= (1 + $growthRate);
+        }
+
+        return [
+            'is_sustainable' => true,
+            'depletion_year' => null,
+            'depletion_age' => null,
+            'funds_at_100' => round($balance, 2),
+        ];
+    }
+
+    /**
+     * Calculate sustainable income that ensures funds last to age 100.
+     *
+     * Uses binary search to find the maximum annual income that won't
+     * deplete funds before age 100.
+     */
+    public function calculateSustainableIncome(
+        float $totalFunds,
+        int $yearsInRetirement,
+        array $statePensionStatus
+    ): float {
+        if ($totalFunds <= 0 || $yearsInRetirement <= 0) {
+            return $statePensionStatus['annual_amount'] ?? 0;
+        }
+
+        $low = 0.0;
+        $high = $totalFunds * 0.15; // Max 15% as upper bound
+        $tolerance = 100.0; // £100 precision
+
+        while (($high - $low) > $tolerance) {
+            $mid = ($low + $high) / 2;
+
+            $check = $this->checkFundDepletion($totalFunds, $mid, $yearsInRetirement, $statePensionStatus);
+
+            if ($check['is_sustainable']) {
+                $low = $mid;
+            } else {
+                $high = $mid;
+            }
+        }
+
+        return floor($low);
+    }
+
+    /**
      * Calculate tax breakdown based on income allocations.
      * Applies income in tax-efficient order: PCLS -> Personal Allowance -> ISA -> Taxable
+     *
+     * State pension status is used for context but doesn't change tax calculation
+     * (state pension is included in allocations if applicable).
      */
-    public function calculateTaxBreakdown(array $incomeAllocations): array
+    public function calculateTaxBreakdown(array $incomeAllocations, ?array $statePensionStatus = null): array
     {
         $incomeTaxConfig = $this->taxConfig->getIncomeTax();
         $tracker = new TaxBandTracker($incomeTaxConfig);
@@ -396,8 +787,9 @@ class RetirementIncomeService
                 'effective_rate' => 0,
             ];
 
-            if ($taxTreatment === 'tax_free' || $taxTreatment === 'pcls') {
-                // PCLS and ISA are tax-free
+            if ($taxTreatment === 'tax_free' || $taxTreatment === 'pcls' || $taxTreatment === 'tax_deferred') {
+                // PCLS, ISA are tax-free; Bonds are tax-deferred (no tax until encashment)
+                // All count as tax-free for annual income calculation purposes
                 $sourceBreakdown['tax'] = 0;
                 $sourceBreakdown['effective_rate'] = 0;
                 $breakdown['tax_free_total'] += $amount;
@@ -488,98 +880,495 @@ class RetirementIncomeService
 
     /**
      * Project fund depletion from retirement age to 100.
+     *
+     * CRITICAL: Uses the SAME allocations as the tax breakdown.
+     * The income allocations passed in define EXACTLY how much to withdraw from each source.
+     * This ensures the year-by-year table matches the tax breakdown.
+     *
+     * Process:
+     * 1. Use income allocations to determine annual withdrawal per source
+     * 2. SIMULATE with actual allocations first
+     * 3. ONLY reduce if funds deplete before age 95 (5-year tolerance)
+     * 4. Year-by-year: Withdraw per allocation, then apply growth
      */
-    public function projectFundDepletion(int $userId, array $incomeAllocations, int $retirementAge): array
+    public function projectFundDepletion(int $userId, array $incomeAllocations, int $retirementAge, ?array $statePensionStatus = null, float $projectedPensionPot = 0, int $yearsToRetirement = 0, ?array $availableAccounts = null): array
     {
-        $projections = [];
-        $depletionAges = [];
+        // Initialize fund balances - PCLS and Drawdown as SEPARATE buckets
+        // Pass availableAccounts to ensure values match what was used for PMT calculation
+        $fundBalances = $this->initializeFundBalancesWithPclsSplit($userId, $incomeAllocations, $projectedPensionPot, $yearsToRetirement, $availableAccounts);
 
-        // Group allocations by source to track fund balances
-        $fundBalances = $this->initializeFundBalances($userId, $incomeAllocations);
-        $annualWithdrawals = $this->calculateAnnualWithdrawals($incomeAllocations);
+        // Calculate total starting funds
+        $totalStartingFunds = array_sum($fundBalances);
 
-        // Initialize aggregated balances from starting fund balances
-        $aggregatedBalances = ['dc_pension' => 0, 'isa' => 0, 'bond' => 0, 'gia' => 0, 'savings' => 0];
-        foreach ($fundBalances as $fundKey => $balance) {
-            $type = $this->getFundTypeFromKey($fundKey);
-            if ($type) {
-                $aggregatedBalances[$type] += $balance;
+        // Build withdrawal map from allocations - this is what the tax breakdown uses
+        $allocationWithdrawals = $this->buildWithdrawalMapFromAllocations($incomeAllocations);
+
+        // Get target income from allocations
+        $targetAnnualIncome = array_sum($allocationWithdrawals);
+
+        // Calculate years in retirement
+        $yearsInRetirement = self::PROJECTION_END_AGE - $retirementAge;
+
+        // FIRST: Simulate with actual allocations (no scaling) to check if funds deplete before age 100
+        $testResult = $this->simulateDepletion($fundBalances, $allocationWithdrawals, $retirementAge, 1.0);
+
+        $scaleFactor = 1.0;
+        $incomeWasAdjusted = false;
+        $actualAnnualWithdrawal = $targetAnnualIncome;
+
+        // Calculate sustainable withdrawal rate (for reference only)
+        $avgGrowthRate = $this->calculateWeightedGrowthRate($fundBalances);
+        $sustainableWithdrawal = $this->calculateSustainableWithdrawalRate($totalStartingFunds, $yearsInRetirement, $avgGrowthRate);
+
+        // ONLY adjust if funds actually deplete BEFORE age 100
+        // If final balance > 0, NO adjustment needed regardless of sustainable withdrawal formula
+        if ($testResult['depletes_early'] && $testResult['final_balance'] <= 0) {
+            // Funds will run out before age 100 - calculate reduced income
+            if ($targetAnnualIncome > 0 && $sustainableWithdrawal < $targetAnnualIncome) {
+                $scaleFactor = $sustainableWithdrawal / $targetAnnualIncome;
+                $actualAnnualWithdrawal = $sustainableWithdrawal;
+                $incomeWasAdjusted = true;
             }
         }
+
+        // Reset fund balances for actual projection
+        $fundBalances = $this->initializeFundBalancesWithPclsSplit($userId, $incomeAllocations, $projectedPensionPot, $yearsToRetirement, $availableAccounts);
+
+        // Track initial balances for depletion detection (pcls and drawdown separate)
+        $initialBalances = [
+            'pcls' => $fundBalances['pension_pot_pcls'] ?? 0,
+            'drawdown' => $fundBalances['pension_pot_drawdown'] ?? 0,
+            'isa' => 0,
+            'bond' => 0,
+            'gia' => 0,
+            'savings' => 0,
+        ];
+        foreach ($fundBalances as $fundKey => $balance) {
+            $type = $this->getFundTypeFromKey($fundKey);
+            if ($type && ! in_array($type, ['pcls', 'drawdown'])) {
+                $initialBalances[$type] += $balance;
+            }
+        }
+
+        // =============================================================================
+        // TAX CALCULATION SETUP
+        // Extract guaranteed taxable income (State Pension, DB Pension) that uses PA first
+        // =============================================================================
+        $incomeTax = $this->taxConfig->getIncomeTax();
+        $personalAllowance = $incomeTax['personal_allowance'] ?? 12570;
+        $basicRate = $incomeTax['basic_rate'] ?? 0.20;
+
+        // Get State Pension and DB Pension amounts from allocations
+        $statePensionAmount = 0;
+        $dbPensionAmount = 0;
+        $statePensionStartAge = 67;  // Default
+
+        foreach ($incomeAllocations as $allocation) {
+            $sourceType = $allocation['source_type'] ?? '';
+            $amount = (float) ($allocation['annual_amount'] ?? 0);
+
+            if ($sourceType === 'state_pension') {
+                $statePensionAmount = $amount;
+                $statePensionStartAge = $allocation['starts_at_age'] ?? 67;
+            } elseif ($sourceType === 'db_pension') {
+                $dbPensionAmount += $amount;
+            }
+        }
+
+        $projections = [];
         $aggregatedDepleted = [];
 
         for ($age = $retirementAge; $age <= self::PROJECTION_END_AGE; $age++) {
-            $yearData = ['age' => $age, 'total_income' => 0, 'funds' => []];
+            $yearData = [
+                'age' => $age,
+                'total_income' => 0,
+                'withdrawals' => ['pcls' => 0, 'drawdown' => 0, 'isa' => 0, 'bond' => 0, 'gia' => 0, 'savings' => 0],
+                'growth' => ['pcls' => 0, 'drawdown' => 0, 'isa' => 0, 'bond' => 0, 'gia' => 0, 'savings' => 0],
+                // Tax calculation fields
+                'state_pension' => 0,
+                'db_pension' => 0,
+                'guaranteed_income' => 0,
+                'remaining_pa' => $personalAllowance,
+                'pa_drawdown' => 0,      // Drawdown covered by PA (tax-free)
+                'taxable_drawdown' => 0, // Drawdown over PA (taxed)
+                'tax_paid' => 0,
+            ];
 
-            // Reset aggregated totals for this year
-            $yearAggregated = ['dc_pension' => 0, 'isa' => 0, 'bond' => 0, 'gia' => 0, 'savings' => 0];
+            // =============================================================================
+            // PRIORITY-BASED WITHDRAWAL: Maximize tax-free, minimize taxable
+            // Order: Bond 5% (mandatory) → PCLS → ISA → Pension Drawdown (LAST RESORT)
+            // Goal: PAY ZERO TAX while tax-free sources exist!
+            // =============================================================================
 
-            foreach ($fundBalances as $fundKey => $balance) {
-                $withdrawal = $annualWithdrawals[$fundKey] ?? 0;
+            $remainingTarget = $targetAnnualIncome * $scaleFactor;
 
-                // Apply withdrawal
-                $newBalance = $balance - $withdrawal;
+            // Helper function to withdraw from a specific fund type
+            $withdrawFromFundType = function ($fundType, $maxAmount) use (&$fundBalances, &$yearData, &$aggregatedDepleted, $age) {
+                $withdrawn = 0;
+                foreach ($fundBalances as $fundKey => $balance) {
+                    if ($balance <= 0 || $maxAmount <= 0) {
+                        continue;
+                    }
 
-                // Check for depletion
-                if ($newBalance <= 0 && ! isset($depletionAges[$fundKey])) {
-                    $depletionAges[$fundKey] = $age;
-                    $newBalance = 0;
-                    $withdrawal = $balance; // Only withdraw what's left
+                    $keyType = $this->getFundTypeFromKey($fundKey);
+                    if ($keyType !== $fundType) {
+                        continue;
+                    }
+
+                    $withdrawal = min($balance, $maxAmount - $withdrawn);
+                    $fundBalances[$fundKey] -= $withdrawal;
+                    $withdrawn += $withdrawal;
+                    $yearData['total_income'] += $withdrawal;
+                    $yearData['withdrawals'][$fundType] += $withdrawal;
+
+                    if ($fundBalances[$fundKey] <= 0 && ! isset($aggregatedDepleted[$fundKey])) {
+                        $aggregatedDepleted[$fundKey] = $age;
+                    }
+
+                    if ($withdrawn >= $maxAmount) {
+                        break;
+                    }
                 }
+                return $withdrawn;
+            };
 
-                // Apply growth to remaining balance (not for cash)
-                if ($newBalance > 0 && ! str_contains($fundKey, 'savings') && ! str_contains($fundKey, 'cash')) {
-                    $growthRate = $this->getGrowthRateForFund($fundKey);
-                    $newBalance *= (1 + $growthRate);
+            // Get available balance for each fund type
+            $getAvailableBalance = function ($fundType) use ($fundBalances) {
+                $total = 0;
+                foreach ($fundBalances as $fundKey => $balance) {
+                    if ($this->getFundTypeFromKey($fundKey) === $fundType && $balance > 0) {
+                        $total += $balance;
+                    }
                 }
+                return $total;
+            };
 
-                $fundBalances[$fundKey] = max(0, $newBalance);
-                $yearData['funds'][$fundKey] = round($fundBalances[$fundKey], 2);
-                $yearData['total_income'] += $withdrawal;
+            // PRIORITY 1: Bond 5% (MANDATORY - always withdraw if available)
+            // Calculate sustainable PMT for bonds to deplete at age 100
+            $bondBalance = $getAvailableBalance('bond');
+            if ($bondBalance > 0) {
+                $yearsRemaining = max(1, self::PROJECTION_END_AGE - $age + 1);
+                $bondPmt = $this->calculateSustainableWithdrawalRate($bondBalance, $yearsRemaining, self::DEFAULT_GROWTH_RATE);
+                $bondWithdrawn = $withdrawFromFundType('bond', $bondPmt);
+                $remainingTarget -= $bondWithdrawn;
+            }
 
-                // Aggregate by fund type for chart
-                $aggregatedType = $this->getFundTypeFromKey($fundKey);
-                if ($aggregatedType) {
-                    $yearAggregated[$aggregatedType] += $fundBalances[$fundKey];
+            // PRIORITY 2: PCLS (TAX-FREE - use to fill gap before any taxable sources)
+            if ($remainingTarget > 0) {
+                $pclsBalance = $getAvailableBalance('pcls');
+                if ($pclsBalance > 0) {
+                    // Draw what we need from PCLS (up to remaining balance)
+                    $pclsWithdrawn = $withdrawFromFundType('pcls', min($remainingTarget, $pclsBalance));
+                    $remainingTarget -= $pclsWithdrawn;
                 }
             }
 
-            // Add aggregated values directly on yearData for chart compatibility
-            $yearData['dc_pension'] = round($yearAggregated['dc_pension'], 2);
+            // PRIORITY 3: ISA (TAX-FREE - use to fill gap before any taxable sources)
+            if ($remainingTarget > 0) {
+                $isaBalance = $getAvailableBalance('isa');
+                if ($isaBalance > 0) {
+                    // Draw what we need from ISA (up to remaining balance)
+                    $isaWithdrawn = $withdrawFromFundType('isa', min($remainingTarget, $isaBalance));
+                    $remainingTarget -= $isaWithdrawn;
+                }
+            }
+
+            // PRIORITY 4: Pension Drawdown (TAXABLE - ONLY if tax-free sources depleted!)
+            // This is the LAST RESORT after all tax-free sources are exhausted
+            if ($remainingTarget > 0) {
+                $drawdownBalance = $getAvailableBalance('drawdown');
+                if ($drawdownBalance > 0) {
+                    $drawdownWithdrawn = $withdrawFromFundType('drawdown', min($remainingTarget, $drawdownBalance));
+                    $remainingTarget -= $drawdownWithdrawn;
+                }
+            }
+
+            // PRIORITY 5: GIA (if needed)
+            if ($remainingTarget > 0) {
+                $giaBalance = $getAvailableBalance('gia');
+                if ($giaBalance > 0) {
+                    $giaWithdrawn = $withdrawFromFundType('gia', min($remainingTarget, $giaBalance));
+                    $remainingTarget -= $giaWithdrawn;
+                }
+            }
+
+            // PRIORITY 6: Savings (if needed)
+            if ($remainingTarget > 0) {
+                $savingsBalance = $getAvailableBalance('savings');
+                if ($savingsBalance > 0) {
+                    $savingsWithdrawn = $withdrawFromFundType('savings', min($remainingTarget, $savingsBalance));
+                    $remainingTarget -= $savingsWithdrawn;
+                }
+            }
+
+            // Apply growth to remaining balances AFTER withdrawal
+            foreach ($fundBalances as $fundKey => $balance) {
+                if ($balance > 0) {
+                    $growthRate = $this->getGrowthRateForFund($fundKey);
+                    $growthAmount = $balance * $growthRate;
+                    $fundBalances[$fundKey] = $balance + $growthAmount;
+
+                    $displayType = $this->getFundTypeFromKey($fundKey);
+                    if ($displayType) {
+                        $yearData['growth'][$displayType] += $growthAmount;
+                    }
+                }
+            }
+
+            // Aggregate balances by display type for chart (pcls and drawdown separate)
+            $yearAggregated = ['pcls' => 0, 'drawdown' => 0, 'isa' => 0, 'bond' => 0, 'gia' => 0, 'savings' => 0];
+            foreach ($fundBalances as $fundKey => $balance) {
+                $displayType = $this->getFundTypeFromKey($fundKey);
+                if ($displayType) {
+                    $yearAggregated[$displayType] += max(0, $balance);
+                }
+            }
+
+            // Record balances for this year
+            $yearData['pcls'] = round($yearAggregated['pcls'], 2);
+            $yearData['drawdown'] = round($yearAggregated['drawdown'], 2);
             $yearData['isa'] = round($yearAggregated['isa'], 2);
             $yearData['bond'] = round($yearAggregated['bond'], 2);
             $yearData['gia'] = round($yearAggregated['gia'], 2);
             $yearData['savings'] = round($yearAggregated['savings'], 2);
-            $yearData['total_funds'] = round(
-                $yearAggregated['dc_pension'] + $yearAggregated['isa'] + $yearAggregated['bond'] + $yearAggregated['gia'] + $yearAggregated['savings'],
-                2
-            );
+            $yearData['total_funds'] = round(array_sum($yearAggregated), 2);
 
-            // Track aggregated depletion ages
-            foreach (['dc_pension', 'isa', 'bond', 'gia', 'savings'] as $type) {
-                if ($yearAggregated[$type] <= 0 && ! isset($aggregatedDepleted[$type]) && $aggregatedBalances[$type] > 0) {
+            // Round withdrawal and growth values
+            foreach (['pcls', 'drawdown', 'isa', 'bond', 'gia', 'savings'] as $type) {
+                $yearData['withdrawals'][$type] = round($yearData['withdrawals'][$type], 2);
+                $yearData['growth'][$type] = round($yearData['growth'][$type], 2);
+            }
+
+            // Track when each fund type is fully depleted
+            foreach (['pcls', 'drawdown', 'isa', 'bond', 'gia', 'savings'] as $type) {
+                if ($yearAggregated[$type] <= 0 && ! isset($aggregatedDepleted[$type]) && $initialBalances[$type] > 0) {
                     $aggregatedDepleted[$type] = $age;
                 }
-                $aggregatedBalances[$type] = $yearAggregated[$type];
             }
 
             $yearData['total_income'] = round($yearData['total_income'], 2);
+
+            // =============================================================================
+            // TAX CALCULATION FOR THIS YEAR
+            // State Pension and DB Pension use Personal Allowance FIRST
+            // Pension drawdown is only taxed on amount exceeding remaining PA
+            // =============================================================================
+
+            // Add State Pension if age >= state pension age
+            $yearStatePension = ($age >= $statePensionStartAge) ? $statePensionAmount : 0;
+            $yearDbPension = $dbPensionAmount;  // DB pension available from retirement age
+
+            $yearData['state_pension'] = round($yearStatePension, 2);
+            $yearData['db_pension'] = round($yearDbPension, 2);
+            $yearData['guaranteed_income'] = round($yearStatePension + $yearDbPension, 2);
+
+            // Calculate remaining PA after guaranteed income
+            $guaranteedTaxable = $yearStatePension + $yearDbPension;
+            $remainingPa = max(0, $personalAllowance - $guaranteedTaxable);
+            $yearData['remaining_pa'] = round($remainingPa, 2);
+
+            // Calculate how much of drawdown is covered by PA vs taxable
+            $drawdownWithdrawal = $yearData['withdrawals']['drawdown'];
+            $paDrawdown = min($drawdownWithdrawal, $remainingPa);  // Covered by remaining PA
+            $taxableDrawdown = max(0, $drawdownWithdrawal - $remainingPa);  // Over PA = taxable
+
+            $yearData['pa_drawdown'] = round($paDrawdown, 2);
+            $yearData['taxable_drawdown'] = round($taxableDrawdown, 2);
+
+            // Calculate tax paid (basic rate on taxable drawdown + guaranteed income over PA)
+            $totalTaxableIncome = $guaranteedTaxable + $drawdownWithdrawal;
+            $taxableAmount = max(0, $totalTaxableIncome - $personalAllowance);
+            $taxPaid = $taxableAmount * $basicRate;
+            $yearData['tax_paid'] = round($taxPaid, 2);
+
             $projections[] = $yearData;
+        }
+
+        // Calculate total depletion age (when ALL funds hit zero)
+        $finalProjection = end($projections);
+        $totalDepletionAge = null;
+        if ($finalProjection && $finalProjection['total_funds'] <= 0) {
+            foreach ($projections as $proj) {
+                if ($proj['total_funds'] <= 0) {
+                    $totalDepletionAge = $proj['age'];
+                    break;
+                }
+            }
         }
 
         return [
             'projections' => $projections,
-            'depletion_ages' => $aggregatedDepleted,
+            'depletion_ages' => ['total' => $totalDepletionAge ?? 100] + $aggregatedDepleted,
+            'sustainable_withdrawal' => round($sustainableWithdrawal, 2),
+            'actual_withdrawal' => round($actualAnnualWithdrawal, 2),
+            'income_was_adjusted' => $incomeWasAdjusted,
+            'total_starting_funds' => round($totalStartingFunds, 2),
         ];
     }
 
     /**
-     * Map fund key to aggregated type for chart.
+     * Simulate depletion to check if funds run out early.
+     * Returns whether funds deplete before age 100 and at what age.
+     */
+    private function simulateDepletion(array $fundBalances, array $allocationWithdrawals, int $retirementAge, float $scaleFactor): array
+    {
+        $balances = $fundBalances; // Copy
+        $depletionAge = null;
+
+        for ($age = $retirementAge; $age <= self::PROJECTION_END_AGE; $age++) {
+            // Withdraw according to allocations
+            foreach ($allocationWithdrawals as $fundKey => $annualAmount) {
+                $scaledAmount = $annualAmount * $scaleFactor;
+
+                // Find actual fund key (handle ISA variations)
+                $actualFundKey = $fundKey;
+                if (! isset($balances[$fundKey])) {
+                    if (str_starts_with($fundKey, 'isa_investment_')) {
+                        $altKey = str_replace('isa_investment_', 'isa_savings_', $fundKey);
+                        if (isset($balances[$altKey])) {
+                            $actualFundKey = $altKey;
+                        }
+                    } elseif (str_starts_with($fundKey, 'isa_savings_')) {
+                        $altKey = str_replace('isa_savings_', 'isa_investment_', $fundKey);
+                        if (isset($balances[$altKey])) {
+                            $actualFundKey = $altKey;
+                        }
+                    }
+                }
+
+                if (isset($balances[$actualFundKey]) && $balances[$actualFundKey] > 0) {
+                    $withdrawal = min($balances[$actualFundKey], $scaledAmount);
+                    $balances[$actualFundKey] -= $withdrawal;
+                }
+            }
+
+            // Apply growth
+            foreach ($balances as $fundKey => $balance) {
+                if ($balance > 0) {
+                    $growthRate = $this->getGrowthRateForFund($fundKey);
+                    $balances[$fundKey] = $balance * (1 + $growthRate);
+                }
+            }
+
+            // Check total
+            $totalFunds = array_sum($balances);
+            if ($totalFunds <= 0 && $depletionAge === null) {
+                $depletionAge = $age;
+                break;
+            }
+        }
+
+        return [
+            'depletes_early' => $depletionAge !== null && $depletionAge < self::PROJECTION_END_AGE,
+            'depletion_age' => $depletionAge,
+            'final_balance' => array_sum($balances),
+        ];
+    }
+
+    /**
+     * Build withdrawal map from income allocations.
+     * Maps each allocation to a fund key for the depletion projection.
+     */
+    private function buildWithdrawalMapFromAllocations(array $incomeAllocations): array
+    {
+        $withdrawals = [];
+
+        foreach ($incomeAllocations as $allocation) {
+            $sourceType = $allocation['source_type'] ?? '';
+            $sourceId = $allocation['source_id'] ?? '';
+            $amount = (float) ($allocation['annual_amount'] ?? 0);
+
+            if ($amount <= 0) {
+                continue;
+            }
+
+            // Map source type to fund key
+            $fundKey = null;
+
+            if ($sourceType === 'pension_pot_pcls') {
+                $fundKey = 'pension_pot_pcls';
+            } elseif ($sourceType === 'pension_pot_drawdown') {
+                $fundKey = 'pension_pot_drawdown';
+            } elseif ($sourceType === 'onshore_bond' && $sourceId) {
+                $fundKey = 'onshore_bond_'.$sourceId;
+            } elseif ($sourceType === 'offshore_bond' && $sourceId) {
+                $fundKey = 'offshore_bond_'.$sourceId;
+            } elseif ($sourceType === 'isa' && $sourceId) {
+                // Could be savings or investment ISA - check both
+                $fundKey = 'isa_investment_'.$sourceId;
+                // Fallback handled in projection loop
+            } elseif ($sourceType === 'gia' && $sourceId) {
+                $fundKey = 'gia_'.$sourceId;
+            } elseif ($sourceType === 'savings' && $sourceId) {
+                $fundKey = 'savings_'.$sourceId;
+            }
+
+            if ($fundKey) {
+                $withdrawals[$fundKey] = ($withdrawals[$fundKey] ?? 0) + $amount;
+            }
+        }
+
+        return $withdrawals;
+    }
+
+    /**
+     * Calculate weighted average growth rate based on fund balances.
+     */
+    private function calculateWeightedGrowthRate(array $fundBalances): float
+    {
+        $totalBalance = array_sum($fundBalances);
+        if ($totalBalance <= 0) {
+            return self::DEFAULT_GROWTH_RATE;
+        }
+
+        $weightedSum = 0;
+        foreach ($fundBalances as $fundKey => $balance) {
+            $growthRate = $this->getGrowthRateForFund($fundKey);
+            $weightedSum += $balance * $growthRate;
+        }
+
+        return $weightedSum / $totalBalance;
+    }
+
+    /**
+     * Calculate sustainable annual withdrawal that depletes funds to £0 at end of period.
+     *
+     * Uses the PMT formula: PMT = PV * (r * (1 + r)^n) / ((1 + r)^n - 1)
+     * Where: PV = present value, r = growth rate, n = years
+     */
+    private function calculateSustainableWithdrawalRate(float $totalFunds, int $years, float $growthRate): float
+    {
+        if ($totalFunds <= 0 || $years <= 0) {
+            return 0;
+        }
+
+        // If no growth, simple division
+        if ($growthRate <= 0) {
+            return $totalFunds / $years;
+        }
+
+        // PMT formula for annuity
+        $r = $growthRate;
+        $n = $years;
+        $factor = pow(1 + $r, $n);
+
+        return $totalFunds * ($r * $factor) / ($factor - 1);
+    }
+
+    /**
+     * Map fund key to aggregated type for chart display.
+     *
+     * pension_pot_pcls and pension_pot_drawdown both map to 'pension_pot'
+     * for display purposes, but are tracked separately for withdrawal order.
      */
     private function getFundTypeFromKey(string $fundKey): ?string
     {
-        if (str_starts_with($fundKey, 'dc_pension_')) {
-            return 'dc_pension';
+        // PCLS and Drawdown are SEPARATE display types
+        if ($fundKey === 'pension_pot_pcls') {
+            return 'pcls';
+        }
+        if ($fundKey === 'pension_pot_drawdown' || $fundKey === 'pension_pot') {
+            return 'drawdown';
         }
         if (str_starts_with($fundKey, 'isa_')) {
             return 'isa';
@@ -598,31 +1387,6 @@ class RetirementIncomeService
     }
 
     /**
-     * Calculate default target income (75% of current net income).
-     */
-    private function calculateDefaultTargetIncome(User $user): float
-    {
-        $grossIncome = (float) ($user->annual_employment_income ?? 0);
-        if ($grossIncome <= 0) {
-            return 25000; // Default fallback
-        }
-
-        // Estimate net income (simple approximation)
-        $incomeTax = $this->taxConfig->getIncomeTax();
-        $personalAllowance = $incomeTax['personal_allowance'] ?? 12570;
-
-        $taxableIncome = max(0, $grossIncome - $personalAllowance);
-        $basicBand = ($incomeTax['bands'][0]['max'] ?? 37700);
-        $basicTax = min($taxableIncome, $basicBand) * 0.20;
-        $higherTax = max(0, $taxableIncome - $basicBand) * 0.40;
-
-        $totalTax = $basicTax + $higherTax;
-        $netIncome = $grossIncome - $totalTax;
-
-        return $netIncome * 0.75; // 75% replacement ratio
-    }
-
-    /**
      * Calculate default tax-optimized allocations.
      *
      * Tax-efficient order:
@@ -633,17 +1397,25 @@ class RetirementIncomeService
      * State pension only included if retirement age >= state pension age.
      * DB pension only included if retirement age >= normal retirement age.
      */
-    private function calculateDefaultAllocations(array $availableAccounts, float $targetIncome, int $retirementAge): array
+    private function calculateDefaultAllocations(array $availableAccounts, float $targetIncome, int $retirementAge, ?array $statePensionStatus = null): array
     {
         $allocations = [];
         $incomeTax = $this->taxConfig->getIncomeTax();
         $personalAllowance = $incomeTax['personal_allowance'] ?? 12570;
 
-        // Step 1: Calculate guaranteed income that will be received at retirement age
-        // These consume personal allowance first since they're unavoidable
+        // Calculate years in retirement for depletion calculations
+        $yearsInRetirement = max(1, self::PROJECTION_END_AGE - $retirementAge);
+
+        // =============================================================================
+        // STEP 1: Add Guaranteed Income (unavoidable - State Pension, DB Pension)
+        // These are TAXABLE and use the Personal Allowance FIRST
+        // Any pension drawdown will only be taxed on amounts exceeding remaining PA
+        // =============================================================================
         $guaranteedIncome = 0;
+        $guaranteedTaxableIncome = 0;  // Track taxable portion for PA calculation
 
         // State Pension - only if retirement age >= state pension age
+        // State Pension is TAXABLE and uses Personal Allowance FIRST
         foreach ($availableAccounts as $account) {
             if ($account['type'] === 'state_pension' && isset($account['annual_income'])) {
                 $statePensionAge = $account['payment_start_age'] ?? 67;
@@ -660,11 +1432,13 @@ class RetirementIncomeService
                         'starts_at_age' => $statePensionAge,
                     ];
                     $guaranteedIncome += $account['annual_income'];
+                    $guaranteedTaxableIncome += $account['annual_income'];  // Uses PA first
                 }
             }
         }
 
         // DB Pensions - only if retirement age >= normal retirement age
+        // DB Pension is TAXABLE and uses Personal Allowance (after State Pension)
         foreach ($availableAccounts as $account) {
             if ($account['type'] === 'db_pension' && isset($account['annual_income'])) {
                 $dbStartAge = $account['payment_start_age'] ?? 65;
@@ -681,166 +1455,297 @@ class RetirementIncomeService
                         'starts_at_age' => $dbStartAge,
                     ];
                     $guaranteedIncome += $account['annual_income'];
+                    $guaranteedTaxableIncome += $account['annual_income'];  // Uses PA after State Pension
                 }
             }
         }
 
-        // Calculate remaining personal allowance after guaranteed income
-        $personalAllowanceRemaining = max(0, $personalAllowance - $guaranteedIncome);
+        // Calculate remaining Personal Allowance after guaranteed taxable income
+        // This determines how much pension drawdown (if any) can be tax-free
+        $remainingPersonalAllowance = max(0, $personalAllowance - $guaranteedTaxableIncome);
 
         // Calculate how much more income we need beyond guaranteed
         $remainingTarget = max(0, $targetIncome - $guaranteedIncome);
 
-        // Step 2: Tax-free sources (PCLS from DC pensions)
-        // These are completely tax-free regardless of other income
+        // =============================================================================
+        // STEP 2: Calculate PMT withdrawals to DEPLETE tax-free accounts at age 100
+        // =============================================================================
+        // This ensures tax-free accounts reach £0 at age 100, maximising tax efficiency
+
+        // 2a: PCLS Annual = PCLS Total ÷ Years in Retirement (no growth on PCLS cash)
+        $pclsAnnualPmt = 0;
+        $pclsSubAccount = null;
+        $pclsBalance = 0;
         foreach ($availableAccounts as $account) {
-            if ($account['type'] === 'dc_pension' && isset($account['sub_accounts']) && $remainingTarget > 0) {
+            if ($account['type'] === 'pension_pot' && isset($account['sub_accounts'])) {
                 foreach ($account['sub_accounts'] as $subAccount) {
-                    if ($subAccount['source_type'] === 'dc_pension_pcls') {
-                        // Take PCLS up to 20% of remaining target or max available
-                        $pclsAmount = min($subAccount['max_amount'], $remainingTarget * 0.25);
-                        if ($pclsAmount > 0) {
-                            $allocations[] = [
-                                'source_type' => 'dc_pension_pcls',
-                                'source_id' => $subAccount['source_id'],
-                                'name' => $subAccount['name'],
-                                'annual_amount' => round($pclsAmount, 2),
-                                'tax_rate' => 0,
-                                'tax_treatment' => 'tax_free',
-                            ];
-                            $remainingTarget -= $pclsAmount;
-                        }
+                    if ($subAccount['source_type'] === 'pension_pot_pcls') {
+                        $pclsBalance = $subAccount['max_amount'] ?? 0;
+                        $pclsAnnualPmt = $pclsBalance / $yearsInRetirement;
+                        $pclsSubAccount = $subAccount;
+                        break 2;
                     }
                 }
             }
         }
 
-        // Step 3: Bond withdrawals (5% tax-deferred)
-        // Use 5% cumulative tax-free allowance from bonds before touching ISA
+        // 2b: Bond PMT = Calculate withdrawal to deplete at age 100 (4% growth)
+        $bondAccounts = [];
+        $totalBondPmt = 0;
         foreach ($availableAccounts as $account) {
-            if (($account['type'] === 'onshore_bond' || $account['type'] === 'offshore_bond') && $remainingTarget > 0) {
-                // 5% of original investment is tax-deferred
-                $taxFreeAllowance = $account['annual_tax_free_allowance'] ?? ($account['value'] * self::BOND_TAX_FREE_RATE);
-                $bondAmount = min($taxFreeAllowance, $remainingTarget, $account['value']);
-                if ($bondAmount > 0) {
-                    $allocations[] = [
-                        'source_type' => $account['type'],
-                        'source_id' => $account['id'],
-                        'name' => $account['name'],
-                        'annual_amount' => round($bondAmount, 2),
-                        'tax_rate' => 0, // Within 5% allowance
-                        'tax_treatment' => 'tax_deferred',
-                    ];
-                    $remainingTarget -= $bondAmount;
-                }
+            if ($account['type'] === 'onshore_bond' || $account['type'] === 'offshore_bond') {
+                $bondBalance = $account['value'] ?? 0;
+                // Use PMT formula to deplete bond at age 100
+                $bondPmt = $this->calculateSustainableWithdrawalRate($bondBalance, $yearsInRetirement, self::DEFAULT_GROWTH_RATE);
+                $totalBondPmt += $bondPmt;
+                $bondAccounts[] = [
+                    'account' => $account,
+                    'pmt' => $bondPmt,
+                    'balance' => $bondBalance,
+                ];
             }
         }
 
-        // Step 4: ISA withdrawals (tax-free)
+        // 2c: ISA PMT = Calculate withdrawal to deplete at age 100 (4% growth for S&S ISA, 0% for cash)
+        $isaAccounts = [];
+        $totalIsaPmt = 0;
         foreach ($availableAccounts as $account) {
-            if (($account['type'] === 'isa_cash' || $account['type'] === 'isa_investment') && $remainingTarget > 0) {
-                $isaAmount = min($account['value'] * self::ISA_WITHDRAWAL_RATE, $remainingTarget); // 4.7% sustainable withdrawal
-                if ($isaAmount > 0) {
+            if ($account['type'] === 'isa_cash' || $account['type'] === 'isa_investment') {
+                $isaBalance = $account['value'] ?? 0;
+                // Cash ISA has no growth, investment ISA has 4% growth
+                $growthRate = ($account['type'] === 'isa_cash') ? 0 : self::DEFAULT_GROWTH_RATE;
+                $isaPmt = $this->calculateSustainableWithdrawalRate($isaBalance, $yearsInRetirement, $growthRate);
+                $totalIsaPmt += $isaPmt;
+                $isaAccounts[] = [
+                    'account' => $account,
+                    'pmt' => $isaPmt,
+                    'balance' => $isaBalance,
+                ];
+            }
+        }
+
+        // Total tax-free PMT available (depletes all tax-free at age 100)
+        $totalTaxFreePmt = $pclsAnnualPmt + $totalBondPmt + $totalIsaPmt;
+
+        // =============================================================================
+        // STEP 3: Allocate TAX-FREE sources to FILL THE GAP - NO TAX!
+        // Priority: Bond 5% (mandatory) → PCLS → ISA → Pension Drawdown (LAST RESORT)
+        // Goal: Use tax-free sources to cover the ENTIRE remaining target
+        // Only use pension drawdown when tax-free sources are INSUFFICIENT
+        // =============================================================================
+
+        // 3a: Bond PMT withdrawals FIRST (MANDATORY - tax-deferred, using PMT to deplete at 100)
+        // Bond 5% must ALWAYS be used if bonds exist
+        foreach ($bondAccounts as $bondData) {
+            $account = $bondData['account'];
+            $bondPmt = $bondData['pmt'];
+            if ($bondPmt > 0) {
+                $allocations[] = [
+                    'source_type' => $account['type'],
+                    'source_id' => $account['id'],
+                    'name' => $account['name'],
+                    'annual_amount' => round($bondPmt, 2),  // FULL PMT - not capped
+                    'starting_balance' => $bondData['balance'],
+                    'tax_rate' => 0,
+                    'tax_treatment' => 'tax_deferred',
+                ];
+                $remainingTarget -= $bondPmt;
+            }
+        }
+
+        // 3b: PCLS - FILL THE GAP (tax-free, draw what's needed to avoid pension drawdown)
+        // If we need more income, draw from PCLS first (will deplete sooner, but NO TAX)
+        if ($pclsSubAccount && $pclsBalance > 0 && $remainingTarget > 0) {
+            // Calculate max sustainable withdrawal from PCLS (no growth on cash)
+            $maxPclsWithdrawal = $pclsBalance / $yearsInRetirement;
+            // Draw what we need OR the max sustainable, whichever is less
+            $pclsAllocation = min($remainingTarget, $maxPclsWithdrawal);
+            // But if ISA can't cover the rest, we may need to draw more from PCLS
+            // For now, use max sustainable to spread depletion
+            $pclsAllocation = min($remainingTarget, $pclsBalance / max(1, $yearsInRetirement));
+
+            $allocations[] = [
+                'source_type' => 'pension_pot_pcls',
+                'source_id' => $pclsSubAccount['source_id'],
+                'name' => $pclsSubAccount['name'],
+                'annual_amount' => round($pclsAllocation, 2),
+                'tax_rate' => 0,
+                'tax_treatment' => 'tax_free',
+            ];
+            $remainingTarget -= $pclsAllocation;
+        }
+
+        // 3c: ISA - FILL THE REMAINING GAP (tax-free)
+        // After Bond and PCLS, use ISA to cover whatever is left
+        if ($remainingTarget > 0) {
+            $totalIsaBalance = array_sum(array_column($isaAccounts, 'balance'));
+
+            foreach ($isaAccounts as $isaData) {
+                if ($remainingTarget <= 0) {
+                    break;
+                }
+
+                $account = $isaData['account'];
+                $isaBalance = $isaData['balance'];
+
+                if ($isaBalance <= 0) {
+                    continue;
+                }
+
+                // Calculate proportion of total ISA this account represents
+                $proportion = $totalIsaBalance > 0 ? $isaBalance / $totalIsaBalance : 1;
+
+                // Calculate what this ISA should contribute to fill the gap
+                $growthRate = ($account['type'] === 'isa_cash') ? 0 : self::DEFAULT_GROWTH_RATE;
+                $maxSustainable = $this->calculateSustainableWithdrawalRate($isaBalance, $yearsInRetirement, $growthRate);
+
+                // Allocate the larger of: (proportional share of remaining) or (sustainable PMT)
+                // This ensures we fill the gap while spreading across ISAs
+                $isaAllocation = max($maxSustainable, $remainingTarget * $proportion);
+                $isaAllocation = min($isaAllocation, $remainingTarget); // Don't exceed what's needed
+
+                if ($isaAllocation > 0) {
                     $allocations[] = [
                         'source_type' => 'isa',
                         'source_id' => $account['id'],
                         'name' => $account['name'],
-                        'annual_amount' => round($isaAmount, 2),
+                        'annual_amount' => round($isaAllocation, 2),
+                        'starting_balance' => $isaBalance,
+                        'account_type' => $account['type'],
                         'tax_rate' => 0,
                         'tax_treatment' => 'tax_free',
                     ];
-                    $remainingTarget -= $isaAmount;
+                    $remainingTarget -= $isaAllocation;
                 }
             }
         }
 
-        // Step 5: DC pension drawdown (taxable, but can use remaining personal allowance)
-        // First, use any remaining personal allowance
-        if ($personalAllowanceRemaining > 0 && $remainingTarget > 0) {
+        // =============================================================================
+        // STEP 4: ONLY if tax-free sources CANNOT cover target, use TAXABLE sources
+        // This should rarely happen if user has sufficient tax-free assets
+        // Pension drawdown is the LAST RESORT - only used when tax-free is exhausted
+        //
+        // TAX CALCULATION:
+        // - State Pension and DB Pension use Personal Allowance FIRST
+        // - Remaining PA available for pension drawdown: £{$remainingPersonalAllowance}
+        // - Only pension drawdown EXCEEDING remaining PA is taxed at Basic Rate
+        // =============================================================================
+
+        if ($remainingTarget > 0) {
+            // Tax-free sources couldn't cover the target - need taxable income
+            // Note: First £{$remainingPersonalAllowance} of pension drawdown is tax-free (remaining PA)
+            // Gather all taxable sources with their PMT rates
+            $taxableSources = [];
+
+            // Pension Pot Drawdown
             foreach ($availableAccounts as $account) {
-                if ($account['type'] === 'dc_pension' && isset($account['sub_accounts']) && $remainingTarget > 0 && $personalAllowanceRemaining > 0) {
+                if ($account['type'] === 'pension_pot' && isset($account['sub_accounts'])) {
                     foreach ($account['sub_accounts'] as $subAccount) {
-                        if ($subAccount['source_type'] === 'dc_pension_drawdown') {
-                            $drawdownAmount = min($personalAllowanceRemaining, $remainingTarget, $subAccount['max_amount']);
-                            if ($drawdownAmount > 0) {
-                                $allocations[] = [
-                                    'source_type' => 'dc_pension_drawdown',
-                                    'source_id' => $subAccount['source_id'],
-                                    'name' => $subAccount['name'],
-                                    'annual_amount' => round($drawdownAmount, 2),
-                                    'tax_rate' => null,
-                                    'tax_treatment' => 'taxable',
-                                ];
-                                $remainingTarget -= $drawdownAmount;
-                                $personalAllowanceRemaining -= $drawdownAmount;
-                            }
+                        if ($subAccount['source_type'] === 'pension_pot_drawdown') {
+                            $drawdownBalance = $subAccount['max_amount'] ?? 0;
+                            $drawdownPmt = $this->calculateSustainableWithdrawalRate($drawdownBalance, $yearsInRetirement, self::DEFAULT_GROWTH_RATE);
+                            $taxableSources[] = [
+                                'source_type' => 'pension_pot_drawdown',
+                                'source_id' => $subAccount['source_id'],
+                                'name' => $subAccount['name'],
+                                'balance' => $drawdownBalance,
+                                'pmt' => $drawdownPmt,
+                                'tax_treatment' => 'taxable',
+                            ];
                         }
                     }
                 }
             }
-        }
 
-        // Step 6: Additional taxable pension drawdown beyond personal allowance
-        if ($remainingTarget > 0) {
+            // GIA - include from the start to spread taxable load
             foreach ($availableAccounts as $account) {
-                if ($account['type'] === 'dc_pension' && isset($account['sub_accounts']) && $remainingTarget > 0) {
-                    foreach ($account['sub_accounts'] as $subAccount) {
-                        if ($subAccount['source_type'] === 'dc_pension_drawdown') {
-                            // Check if we already allocated to this source
-                            $existingAllocation = null;
-                            foreach ($allocations as $alloc) {
-                                if ($alloc['source_id'] === $subAccount['source_id'] && $alloc['source_type'] === 'dc_pension_drawdown') {
-                                    $existingAllocation = $alloc;
-                                    break;
-                                }
-                            }
-                            $alreadyAllocated = $existingAllocation['annual_amount'] ?? 0;
-                            $availableForDrawdown = $subAccount['max_amount'] - $alreadyAllocated;
-
-                            if ($availableForDrawdown > 0) {
-                                $additionalAmount = min($availableForDrawdown, $remainingTarget);
-                                // Update existing allocation or add new
-                                if ($existingAllocation) {
-                                    foreach ($allocations as &$alloc) {
-                                        if ($alloc['source_id'] === $subAccount['source_id'] && $alloc['source_type'] === 'dc_pension_drawdown') {
-                                            $alloc['annual_amount'] = round($alloc['annual_amount'] + $additionalAmount, 2);
-                                            break;
-                                        }
-                                    }
-                                    unset($alloc);
-                                } else {
-                                    $allocations[] = [
-                                        'source_type' => 'dc_pension_drawdown',
-                                        'source_id' => $subAccount['source_id'],
-                                        'name' => $subAccount['name'],
-                                        'annual_amount' => round($additionalAmount, 2),
-                                        'tax_rate' => null,
-                                        'tax_treatment' => 'taxable',
-                                    ];
-                                }
-                                $remainingTarget -= $additionalAmount;
-                            }
-                        }
-                    }
+                if ($account['type'] === 'gia') {
+                    $giaBalance = $account['value'] ?? 0;
+                    $giaPmt = $this->calculateSustainableWithdrawalRate($giaBalance, $yearsInRetirement, self::DEFAULT_GROWTH_RATE);
+                    $taxableSources[] = [
+                        'source_type' => 'gia',
+                        'source_id' => $account['id'],
+                        'name' => $account['name'],
+                        'balance' => $giaBalance,
+                        'pmt' => $giaPmt,
+                        'tax_treatment' => 'taxable',
+                    ];
                 }
             }
-        }
 
-        // Step 7: GIA and other taxable savings if still needed
-        if ($remainingTarget > 0) {
+            // Savings
             foreach ($availableAccounts as $account) {
-                if ($account['type'] === 'gia' && $remainingTarget > 0) {
-                    $giaAmount = min($account['value'] * self::GIA_WITHDRAWAL_RATE, $remainingTarget);
-                    if ($giaAmount > 0) {
+                if ($account['type'] === 'savings') {
+                    $savingsBalance = $account['value'] ?? 0;
+                    // Savings typically have lower/no growth
+                    $savingsPmt = $this->calculateSustainableWithdrawalRate($savingsBalance, $yearsInRetirement, 0.02);
+                    $taxableSources[] = [
+                        'source_type' => 'savings',
+                        'source_id' => $account['id'],
+                        'name' => $account['name'],
+                        'balance' => $savingsBalance,
+                        'pmt' => $savingsPmt,
+                        'tax_treatment' => 'taxable',
+                    ];
+                }
+            }
+
+            // Calculate total taxable PMT and balance
+            $totalTaxablePmt = array_sum(array_column($taxableSources, 'pmt'));
+            $totalTaxableBalance = array_sum(array_column($taxableSources, 'balance'));
+
+            // Check if taxable sources can cover the remaining target sustainably
+            if ($totalTaxablePmt >= $remainingTarget) {
+                // Sustainable: split remaining target proportionally by balance
+                foreach ($taxableSources as $source) {
+                    if ($remainingTarget <= 0 || $totalTaxableBalance <= 0) {
+                        break;
+                    }
+
+                    // Calculate proportional share based on balance
+                    $proportion = $source['balance'] / $totalTaxableBalance;
+                    $taxableAmount = min($source['pmt'], $remainingTarget * $proportion, $remainingTarget);
+
+                    if ($taxableAmount > 0) {
                         $allocations[] = [
-                            'source_type' => 'gia',
-                            'source_id' => $account['id'],
-                            'name' => $account['name'],
-                            'annual_amount' => round($giaAmount, 2),
+                            'source_type' => $source['source_type'],
+                            'source_id' => $source['source_id'],
+                            'name' => $source['name'],
+                            'annual_amount' => round($taxableAmount, 2),
+                            'starting_balance' => $source['balance'],  // Include projected balance
                             'tax_rate' => null,
-                            'tax_treatment' => 'taxable',
+                            'tax_treatment' => $source['tax_treatment'],
                         ];
-                        $remainingTarget -= $giaAmount;
+                        $remainingTarget -= $taxableAmount;
+                    }
+                }
+            } else {
+                // Not sustainable: use all available PMT, then note shortfall
+                // This handles Scenario 3 case where income exceeds sustainable withdrawal
+                foreach ($taxableSources as $source) {
+                    if ($remainingTarget <= 0) {
+                        break;
+                    }
+
+                    // Calculate what we need from this source to deplete proportionally
+                    $proportion = ($totalTaxableBalance > 0) ? ($source['balance'] / $totalTaxableBalance) : 0;
+                    $taxableAmount = min($remainingTarget * $proportion, $remainingTarget);
+
+                    // But cap at what the fund can actually provide (even if not sustainable)
+                    $maxAnnual = $source['balance'] / $yearsInRetirement * 2; // Allow up to 2x sustainable
+                    $taxableAmount = min($taxableAmount, $maxAnnual);
+
+                    if ($taxableAmount > 0) {
+                        $allocations[] = [
+                            'source_type' => $source['source_type'],
+                            'source_id' => $source['source_id'],
+                            'name' => $source['name'],
+                            'annual_amount' => round($taxableAmount, 2),
+                            'starting_balance' => $source['balance'],  // Include projected balance
+                            'tax_rate' => null,
+                            'tax_treatment' => $source['tax_treatment'],
+                        ];
+                        $remainingTarget -= $taxableAmount;
                     }
                 }
             }
@@ -874,69 +1779,376 @@ class RetirementIncomeService
     }
 
     /**
-     * Initialize fund balances for projection.
+     * Initialize fund balances with PCLS and Drawdown as SEPARATE buckets.
+     *
+     * PCLS = 25% of projected pension pot (tax-free)
+     * Drawdown = 75% of projected pension pot (taxable)
+     *
+     * This allows correct withdrawal order: PCLS first, then drawdown later.
+     *
+     * @param  array|null  $availableAccounts  If provided, use these values directly for consistent projection
      */
-    private function initializeFundBalances(int $userId, array $incomeAllocations): array
+    private function initializeFundBalancesWithPclsSplit(int $userId, array $incomeAllocations, float $projectedPensionPot = 0, int $yearsToRetirement = 0, ?array $availableAccounts = null): array
     {
         $balances = [];
-        $userIds = [$userId];
-        $spouse = User::find($userId)?->spouse;
-        if ($spouse) {
-            $userIds[] = $spouse->id;
+
+        // =============================================================================
+        // CRITICAL: Build a lookup map from availableAccounts for CONSISTENT values
+        // This ensures the projection uses the SAME values that were used to calculate
+        // PMT rates in calculateDefaultAllocations()
+        // =============================================================================
+        $accountValueMap = [];
+        if ($availableAccounts !== null) {
+            foreach ($availableAccounts as $account) {
+                $type = $account['type'] ?? '';
+                $id = $account['id'] ?? null;
+                $value = $account['value'] ?? null;
+
+                if ($id === null || $value === null) {
+                    continue;
+                }
+
+                // Map by type and ID
+                if ($type === 'isa_investment' || $type === 'isa_cash') {
+                    $prefix = ($type === 'isa_cash') ? 'isa_savings_' : 'isa_investment_';
+                    $accountValueMap[$prefix.$id] = $value;
+                } elseif ($type === 'onshore_bond') {
+                    $accountValueMap['onshore_bond_'.$id] = $value;
+                } elseif ($type === 'offshore_bond') {
+                    $accountValueMap['offshore_bond_'.$id] = $value;
+                } elseif ($type === 'gia') {
+                    $accountValueMap['gia_'.$id] = $value;
+                } elseif ($type === 'savings') {
+                    $accountValueMap['savings_'.$id] = $value;
+                }
+            }
         }
 
-        // DC Pensions
-        $dcPensions = DCPension::whereIn('user_id', $userIds)->get();
-        foreach ($dcPensions as $pension) {
-            $balances['dc_pension_'.$pension->id] = (float) ($pension->current_fund_value ?? 0);
+        // =============================================================================
+        // ALSO use starting_balance from allocations as fallback
+        // This ensures the projection uses the SAME values that were used to calculate
+        // PMT rates, avoiding mismatches from re-querying Monte Carlo projections
+        // =============================================================================
+
+        // Build maps: account IDs AND their starting balances from allocations
+        $allocationBalances = [];
+        $allocatedAccounts = [];
+        $hasPensionPotAllocation = false;
+
+        foreach ($incomeAllocations as $allocation) {
+            $sourceType = $allocation['source_type'] ?? '';
+            $sourceId = $allocation['source_id'] ?? 0;
+            $startingBalance = $allocation['starting_balance'] ?? null;
+
+            if (in_array($sourceType, ['pension_pot_pcls', 'pension_pot_drawdown'])) {
+                $hasPensionPotAllocation = true;
+            } elseif ($sourceType === 'isa' && $sourceId) {
+                // Store the starting balance keyed by source_id
+                $accountType = $allocation['account_type'] ?? 'isa_investment';
+                $isCashIsa = str_contains($accountType, 'cash');
+                // Track cash vs investment ISAs separately to avoid ID collisions across tables
+                if ($isCashIsa) {
+                    $allocatedAccounts['isa_cash'][] = $sourceId;
+                    $allocationBalances['isa_savings_'.$sourceId] = $startingBalance;
+                } else {
+                    $allocatedAccounts['isa_investment'][] = $sourceId;
+                    $allocationBalances['isa_investment_'.$sourceId] = $startingBalance;
+                }
+            } elseif ($sourceType === 'onshore_bond' && $sourceId) {
+                $allocatedAccounts['onshore_bond'][] = $sourceId;
+                $allocationBalances['onshore_bond_'.$sourceId] = $startingBalance;
+            } elseif ($sourceType === 'offshore_bond' && $sourceId) {
+                $allocatedAccounts['offshore_bond'][] = $sourceId;
+                $allocationBalances['offshore_bond_'.$sourceId] = $startingBalance;
+            } elseif ($sourceType === 'gia' && $sourceId) {
+                $allocatedAccounts['gia'][] = $sourceId;
+                $allocationBalances['gia_'.$sourceId] = $startingBalance;
+            } elseif ($sourceType === 'savings' && $sourceId) {
+                $allocatedAccounts['savings'][] = $sourceId;
+                $allocationBalances['savings_'.$sourceId] = $startingBalance;
+            } elseif ($sourceType === 'pension_pot_drawdown') {
+                // Drawdown balance comes from projected pension pot
+                $allocationBalances['pension_pot_drawdown'] = $startingBalance;
+            }
         }
 
-        // ISAs (Savings)
-        $isaAccounts = SavingsAccount::whereIn('user_id', $userIds)->where('is_isa', true)->get();
-        foreach ($isaAccounts as $account) {
-            $balances['isa_savings_'.$account->id] = (float) ($account->current_balance ?? 0);
+        // Pension Pot - split into PCLS (25%) and Drawdown (75%) as SEPARATE buckets
+        if ($hasPensionPotAllocation && $projectedPensionPot > 0) {
+            $balances['pension_pot_pcls'] = $projectedPensionPot * 0.25;      // 25% tax-free
+            $balances['pension_pot_drawdown'] = $projectedPensionPot * 0.75; // 75% taxable
         }
 
-        // ISAs (Investment)
-        $investmentIsas = InvestmentAccount::whereIn('user_id', $userIds)
-            ->whereIn('account_type', ['isa', 'stocks_shares_isa', 'lifetime_isa'])
-            ->get();
-        foreach ($investmentIsas as $account) {
-            $balances['isa_investment_'.$account->id] = (float) ($account->current_value ?? 0);
+        // Cash growth rate
+        $cashGrowthRate = 0.02;
+
+        // Load only accounts that are in allocations
+        // Cash ISAs and Investment ISAs use separate ID arrays to avoid collisions
+        $cashIsaIds = $allocatedAccounts['isa_cash'] ?? [];
+        $investmentIsaIds = $allocatedAccounts['isa_investment'] ?? [];
+        $onshoreBondIds = $allocatedAccounts['onshore_bond'] ?? [];
+        $offshoreBondIds = $allocatedAccounts['offshore_bond'] ?? [];
+        $giaIds = $allocatedAccounts['gia'] ?? [];
+        $savingsIds = $allocatedAccounts['savings'] ?? [];
+
+        // ISAs (Cash/Savings) - only those explicitly allocated as cash ISAs
+        if (! empty($cashIsaIds)) {
+            $isaAccounts = SavingsAccount::whereIn('id', $cashIsaIds)->where('is_isa', true)->get();
+            foreach ($isaAccounts as $account) {
+                $fundKey = 'isa_savings_'.$account->id;
+                // Priority: 1) accountValueMap (from availableAccounts), 2) allocationBalances, 3) DB query
+                if (isset($accountValueMap[$fundKey])) {
+                    $balances[$fundKey] = $accountValueMap[$fundKey];
+                } elseif (isset($allocationBalances[$fundKey]) && $allocationBalances[$fundKey] !== null) {
+                    $balances[$fundKey] = $allocationBalances[$fundKey];
+                } else {
+                    $currentValue = (float) ($account->current_balance ?? 0);
+                    $balances[$fundKey] = $currentValue * pow(1 + $cashGrowthRate, $yearsToRetirement);
+                }
+            }
         }
 
-        // Onshore Bonds
-        $onshoreBonds = InvestmentAccount::whereIn('user_id', $userIds)
-            ->where('account_type', 'onshore_bond')
-            ->get();
-        foreach ($onshoreBonds as $account) {
-            $balances['onshore_bond_'.$account->id] = (float) ($account->current_value ?? 0);
+        // ISAs (Investment) - only those explicitly allocated as investment ISAs
+        if (! empty($investmentIsaIds)) {
+            $investmentIsas = InvestmentAccount::whereIn('id', $investmentIsaIds)
+                ->whereIn('account_type', ['isa', 'stocks_shares_isa', 'lifetime_isa'])
+                ->get();
+            foreach ($investmentIsas as $account) {
+                $fundKey = 'isa_investment_'.$account->id;
+                // Priority: 1) accountValueMap (from availableAccounts), 2) allocationBalances, 3) DB query
+                if (isset($accountValueMap[$fundKey])) {
+                    $balances[$fundKey] = $accountValueMap[$fundKey];
+                } elseif (isset($allocationBalances[$fundKey]) && $allocationBalances[$fundKey] !== null) {
+                    $balances[$fundKey] = $allocationBalances[$fundKey];
+                } else {
+                    $currentValue = (float) ($account->current_value ?? 0);
+                    $accountUser = User::find($account->user_id);
+                    $balances[$fundKey] = $yearsToRetirement > 0 && $accountUser
+                        ? $this->investmentProjectionService->getAccountProjectedValue80($account, $accountUser, $yearsToRetirement)
+                        : $currentValue;
+                }
+            }
         }
 
-        // Offshore Bonds
-        $offshoreBonds = InvestmentAccount::whereIn('user_id', $userIds)
-            ->where('account_type', 'offshore_bond')
-            ->get();
-        foreach ($offshoreBonds as $account) {
-            $balances['offshore_bond_'.$account->id] = (float) ($account->current_value ?? 0);
+        // Onshore Bonds - only those in allocations
+        if (! empty($onshoreBondIds)) {
+            $onshoreBonds = InvestmentAccount::whereIn('id', $onshoreBondIds)
+                ->where('account_type', 'onshore_bond')
+                ->get();
+            foreach ($onshoreBonds as $account) {
+                $fundKey = 'onshore_bond_'.$account->id;
+                // Priority: 1) accountValueMap (from availableAccounts), 2) allocationBalances, 3) DB query
+                if (isset($accountValueMap[$fundKey])) {
+                    $balances[$fundKey] = $accountValueMap[$fundKey];
+                } elseif (isset($allocationBalances[$fundKey]) && $allocationBalances[$fundKey] !== null) {
+                    $balances[$fundKey] = $allocationBalances[$fundKey];
+                } else {
+                    $currentValue = (float) ($account->current_value ?? 0);
+                    $accountUser = User::find($account->user_id);
+                    $balances[$fundKey] = $yearsToRetirement > 0 && $accountUser
+                        ? $this->investmentProjectionService->getAccountProjectedValue80($account, $accountUser, $yearsToRetirement)
+                        : $currentValue;
+                }
+            }
         }
 
-        // GIAs
-        $giaAccounts = InvestmentAccount::whereIn('user_id', $userIds)
-            ->whereIn('account_type', ['gia', 'general'])
-            ->get();
-        foreach ($giaAccounts as $account) {
-            $balances['gia_'.$account->id] = (float) ($account->current_value ?? 0);
+        // Offshore Bonds - only those in allocations
+        if (! empty($offshoreBondIds)) {
+            $offshoreBonds = InvestmentAccount::whereIn('id', $offshoreBondIds)
+                ->where('account_type', 'offshore_bond')
+                ->get();
+            foreach ($offshoreBonds as $account) {
+                $fundKey = 'offshore_bond_'.$account->id;
+                // Priority: 1) accountValueMap (from availableAccounts), 2) allocationBalances, 3) DB query
+                if (isset($accountValueMap[$fundKey])) {
+                    $balances[$fundKey] = $accountValueMap[$fundKey];
+                } elseif (isset($allocationBalances[$fundKey]) && $allocationBalances[$fundKey] !== null) {
+                    $balances[$fundKey] = $allocationBalances[$fundKey];
+                } else {
+                    $currentValue = (float) ($account->current_value ?? 0);
+                    $accountUser = User::find($account->user_id);
+                    $balances[$fundKey] = $yearsToRetirement > 0 && $accountUser
+                        ? $this->investmentProjectionService->getAccountProjectedValue80($account, $accountUser, $yearsToRetirement)
+                        : $currentValue;
+                }
+            }
         }
 
-        // Non-ISA Savings
-        $savingsAccounts = SavingsAccount::whereIn('user_id', $userIds)
-            ->where(function ($query) {
-                $query->where('is_isa', false)->orWhereNull('is_isa');
-            })
-            ->get();
-        foreach ($savingsAccounts as $account) {
-            $balances['savings_'.$account->id] = (float) ($account->current_balance ?? 0);
+        // GIAs - only those in allocations
+        if (! empty($giaIds)) {
+            $giaAccounts = InvestmentAccount::whereIn('id', $giaIds)
+                ->whereIn('account_type', ['gia', 'general'])
+                ->get();
+            foreach ($giaAccounts as $account) {
+                $fundKey = 'gia_'.$account->id;
+                // Priority: 1) accountValueMap (from availableAccounts), 2) allocationBalances, 3) DB query
+                if (isset($accountValueMap[$fundKey])) {
+                    $balances[$fundKey] = $accountValueMap[$fundKey];
+                } elseif (isset($allocationBalances[$fundKey]) && $allocationBalances[$fundKey] !== null) {
+                    $balances[$fundKey] = $allocationBalances[$fundKey];
+                } else {
+                    $currentValue = (float) ($account->current_value ?? 0);
+                    $accountUser = User::find($account->user_id);
+                    $balances[$fundKey] = $yearsToRetirement > 0 && $accountUser
+                        ? $this->investmentProjectionService->getAccountProjectedValue80($account, $accountUser, $yearsToRetirement)
+                        : $currentValue;
+                }
+            }
+        }
+
+        // Non-ISA Savings - only those in allocations
+        if (! empty($savingsIds)) {
+            $savingsAccounts = SavingsAccount::whereIn('id', $savingsIds)
+                ->where(function ($query) {
+                    $query->where('is_isa', false)->orWhereNull('is_isa');
+                })
+                ->get();
+            foreach ($savingsAccounts as $account) {
+                $fundKey = 'savings_'.$account->id;
+                // Priority: 1) accountValueMap (from availableAccounts), 2) allocationBalances, 3) DB query
+                if (isset($accountValueMap[$fundKey])) {
+                    $balances[$fundKey] = $accountValueMap[$fundKey];
+                } elseif (isset($allocationBalances[$fundKey]) && $allocationBalances[$fundKey] !== null) {
+                    $balances[$fundKey] = $allocationBalances[$fundKey];
+                } else {
+                    $currentValue = (float) ($account->current_balance ?? 0);
+                    $balances[$fundKey] = $currentValue * pow(1 + $cashGrowthRate, $yearsToRetirement);
+                }
+            }
+        }
+
+        return $balances;
+    }
+
+    /**
+     * Initialize fund balances for projection.
+     *
+     * Uses projected pension pot value (80% Monte Carlo) passed directly.
+     * All other assets are projected to retirement age using compound growth.
+     *
+     * @deprecated Use initializeFundBalancesWithPclsSplit() instead
+     */
+    private function initializeFundBalances(int $userId, array $incomeAllocations, float $projectedPensionPot = 0, int $yearsToRetirement = 0): array
+    {
+        $balances = [];
+
+        // Build a set of account IDs that are actually in the income allocations
+        $allocatedAccounts = [];
+        $hasPensionPotAllocation = false;
+
+        foreach ($incomeAllocations as $allocation) {
+            $sourceType = $allocation['source_type'] ?? '';
+            $sourceId = $allocation['source_id'] ?? 0;
+
+            if (in_array($sourceType, ['pension_pot_pcls', 'pension_pot_drawdown'])) {
+                $hasPensionPotAllocation = true;
+            } elseif ($sourceType === 'isa' && $sourceId) {
+                $allocatedAccounts['isa'][] = $sourceId;
+            } elseif ($sourceType === 'onshore_bond' && $sourceId) {
+                $allocatedAccounts['onshore_bond'][] = $sourceId;
+            } elseif ($sourceType === 'offshore_bond' && $sourceId) {
+                $allocatedAccounts['offshore_bond'][] = $sourceId;
+            } elseif ($sourceType === 'gia' && $sourceId) {
+                $allocatedAccounts['gia'][] = $sourceId;
+            } elseif ($sourceType === 'savings' && $sourceId) {
+                $allocatedAccounts['savings'][] = $sourceId;
+            }
+        }
+
+        // Cash growth rate (lower for savings)
+        $cashGrowthRate = 0.02;
+
+        // Pension Pot - only include if there's an allocation for it
+        if ($hasPensionPotAllocation && $projectedPensionPot > 0) {
+            $balances['pension_pot'] = $projectedPensionPot;
+        }
+
+        // Only load accounts that are in the allocations
+        $isaIds = $allocatedAccounts['isa'] ?? [];
+        $onshoreBondIds = $allocatedAccounts['onshore_bond'] ?? [];
+        $offshoreBondIds = $allocatedAccounts['offshore_bond'] ?? [];
+        $giaIds = $allocatedAccounts['gia'] ?? [];
+        $savingsIds = $allocatedAccounts['savings'] ?? [];
+
+        // ISAs (Savings) - only those in allocations
+        if (! empty($isaIds)) {
+            $isaAccounts = SavingsAccount::whereIn('id', $isaIds)->where('is_isa', true)->get();
+            foreach ($isaAccounts as $account) {
+                $currentValue = (float) ($account->current_balance ?? 0);
+                $projectedValue = $currentValue * pow(1 + $cashGrowthRate, $yearsToRetirement);
+                $balances['isa_savings_'.$account->id] = $projectedValue;
+            }
+
+            // ISAs (Investment) - only those in allocations
+            $investmentIsas = InvestmentAccount::whereIn('id', $isaIds)
+                ->whereIn('account_type', ['isa', 'stocks_shares_isa', 'lifetime_isa'])
+                ->get();
+            foreach ($investmentIsas as $account) {
+                $currentValue = (float) ($account->current_value ?? 0);
+                $accountUser = User::find($account->user_id);
+                $projectedValue = $yearsToRetirement > 0 && $accountUser
+                    ? $this->investmentProjectionService->getAccountProjectedValue80($account, $accountUser, $yearsToRetirement)
+                    : $currentValue;
+                $balances['isa_investment_'.$account->id] = $projectedValue;
+            }
+        }
+
+        // Onshore Bonds - only those in allocations
+        if (! empty($onshoreBondIds)) {
+            $onshoreBonds = InvestmentAccount::whereIn('id', $onshoreBondIds)
+                ->where('account_type', 'onshore_bond')
+                ->get();
+            foreach ($onshoreBonds as $account) {
+                $currentValue = (float) ($account->current_value ?? 0);
+                $accountUser = User::find($account->user_id);
+                $projectedValue = $yearsToRetirement > 0 && $accountUser
+                    ? $this->investmentProjectionService->getAccountProjectedValue80($account, $accountUser, $yearsToRetirement)
+                    : $currentValue;
+                $balances['onshore_bond_'.$account->id] = $projectedValue;
+            }
+        }
+
+        // Offshore Bonds - only those in allocations
+        if (! empty($offshoreBondIds)) {
+            $offshoreBonds = InvestmentAccount::whereIn('id', $offshoreBondIds)
+                ->where('account_type', 'offshore_bond')
+                ->get();
+            foreach ($offshoreBonds as $account) {
+                $currentValue = (float) ($account->current_value ?? 0);
+                $accountUser = User::find($account->user_id);
+                $projectedValue = $yearsToRetirement > 0 && $accountUser
+                    ? $this->investmentProjectionService->getAccountProjectedValue80($account, $accountUser, $yearsToRetirement)
+                    : $currentValue;
+                $balances['offshore_bond_'.$account->id] = $projectedValue;
+            }
+        }
+
+        // GIAs - only those in allocations
+        if (! empty($giaIds)) {
+            $giaAccounts = InvestmentAccount::whereIn('id', $giaIds)
+                ->whereIn('account_type', ['gia', 'general'])
+                ->get();
+            foreach ($giaAccounts as $account) {
+                $currentValue = (float) ($account->current_value ?? 0);
+                $accountUser = User::find($account->user_id);
+                $projectedValue = $yearsToRetirement > 0 && $accountUser
+                    ? $this->investmentProjectionService->getAccountProjectedValue80($account, $accountUser, $yearsToRetirement)
+                    : $currentValue;
+                $balances['gia_'.$account->id] = $projectedValue;
+            }
+        }
+
+        // Non-ISA Savings - only those in allocations
+        if (! empty($savingsIds)) {
+            $savingsAccounts = SavingsAccount::whereIn('id', $savingsIds)
+                ->where(function ($query) {
+                    $query->where('is_isa', false)->orWhereNull('is_isa');
+                })
+                ->get();
+            foreach ($savingsAccounts as $account) {
+                $currentValue = (float) ($account->current_balance ?? 0);
+                $projectedValue = $currentValue * pow(1 + $cashGrowthRate, $yearsToRetirement);
+                $balances['savings_'.$account->id] = $projectedValue;
+            }
         }
 
         return $balances;
@@ -955,15 +2167,23 @@ class RetirementIncomeService
             $amount = (float) ($allocation['annual_amount'] ?? 0);
 
             // Map source type to fund key
-            $fundKey = match ($sourceType) {
-                'dc_pension_pcls', 'dc_pension_drawdown' => 'dc_pension_'.$sourceId,
-                'isa' => 'isa_investment_'.$sourceId, // Could be savings or investment
-                'onshore_bond' => 'onshore_bond_'.$sourceId,
-                'offshore_bond' => 'offshore_bond_'.$sourceId,
-                'gia' => 'gia_'.$sourceId,
-                'savings' => 'savings_'.$sourceId,
-                default => null,
-            };
+            $fundKey = null;
+
+            if (in_array($sourceType, ['pension_pot_pcls', 'pension_pot_drawdown'])) {
+                $fundKey = 'pension_pot';
+            } elseif ($sourceType === 'isa' && $sourceId) {
+                // Check if it's a savings ISA or investment ISA
+                $isSavingsIsa = SavingsAccount::where('id', $sourceId)->where('is_isa', true)->exists();
+                $fundKey = $isSavingsIsa ? 'isa_savings_'.$sourceId : 'isa_investment_'.$sourceId;
+            } elseif ($sourceType === 'onshore_bond' && $sourceId) {
+                $fundKey = 'onshore_bond_'.$sourceId;
+            } elseif ($sourceType === 'offshore_bond' && $sourceId) {
+                $fundKey = 'offshore_bond_'.$sourceId;
+            } elseif ($sourceType === 'gia' && $sourceId) {
+                $fundKey = 'gia_'.$sourceId;
+            } elseif ($sourceType === 'savings' && $sourceId) {
+                $fundKey = 'savings_'.$sourceId;
+            }
 
             if ($fundKey) {
                 $withdrawals[$fundKey] = ($withdrawals[$fundKey] ?? 0) + $amount;
@@ -978,7 +2198,19 @@ class RetirementIncomeService
      */
     private function getGrowthRateForFund(string $fundKey): float
     {
-        if (str_contains($fundKey, 'dc_pension') ||
+        // PCLS is TAX-FREE CASH - NO GROWTH (it's withdrawn and held as cash)
+        if ($fundKey === 'pension_pot_pcls' || str_contains($fundKey, '_pcls')) {
+            return 0.0;
+        }
+
+        // Cash ISA has no growth
+        if (str_contains($fundKey, 'isa_cash') || str_contains($fundKey, 'isa_savings')) {
+            return 0.0;
+        }
+
+        // Investment assets grow at 4%
+        if ($fundKey === 'pension_pot' ||
+            $fundKey === 'pension_pot_drawdown' ||
             str_contains($fundKey, 'isa_investment') ||
             str_contains($fundKey, 'onshore_bond') ||
             str_contains($fundKey, 'offshore_bond') ||
@@ -986,6 +2218,7 @@ class RetirementIncomeService
             return self::DEFAULT_GROWTH_RATE;
         }
 
-        return 0.02; // Lower rate for cash/savings
+        // Savings grow at 2%
+        return 0.02;
     }
 }
