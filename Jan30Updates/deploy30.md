@@ -1963,6 +1963,17 @@ The Strategies tab now shows a "Capital Position at Retirement" section with:
    - Other Assets (ISAs, bonds, savings included)
    - Achievable Net Income (from Retirement Income Planner)
 
+### Smart "On Track" Detection
+
+The strategy logic now considers ALL assets when determining if the user needs strategies:
+
+**Before:** Only checked if pension pot probability >= 95%
+**After:** User is "on track" if:
+- Pension pot probability >= 95% (traditional), OR
+- Achievable net income from ALL sources meets target income
+
+This means users with significant ISA/bond holdings won't see unnecessary strategy recommendations if their combined assets can already provide their target retirement income.
+
 ### Backend Changes
 
 | File | Change |
@@ -1971,6 +1982,7 @@ The Strategies tab now shows a "Capital Position at Retirement" section with:
 | RetirementStrategyService.php | Added `calculateCapitalPosition()` method |
 | RetirementStrategyService.php | Added `getIncludedOtherAssets()` method |
 | RetirementStrategyService.php | Added `capital_position` to strategy response |
+| RetirementStrategyService.php | Modified "on track" check to consider `income_meets_target` |
 
 ### Frontend Changes
 
