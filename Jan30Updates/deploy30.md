@@ -1937,6 +1937,64 @@ resources/js/components/NetWorth/PensionList.vue
 
 ---
 
+## Strategies Tab - Capital Position Summary
+
+**Branch:** decumRetire
+
+**Status:** Ready to deploy
+
+### Description
+
+Enhanced the Strategies tab to include comprehensive capital position data from the Retirement Income Planner. This gives users a complete view of their retirement readiness by showing:
+- Projected pension pot at retirement (80% Monte Carlo confidence)
+- Other assets included (ISAs, bonds, savings)
+- Total projected capital vs required capital
+- Gap/surplus analysis with progress bar
+- Achievable net income from tax-optimised drawdown
+
+### New Capital Position Section
+
+The Strategies tab now shows a "Capital Position at Retirement" section with:
+
+1. **Progress Bar** - Visual progress towards required capital with percentage
+2. **Gap/Surplus Badge** - Shows shortfall or surplus amount
+3. **Capital Breakdown Cards**:
+   - Projected Pension Pot (80% Monte Carlo confidence)
+   - Other Assets (ISAs, bonds, savings included)
+   - Achievable Net Income (from Retirement Income Planner)
+
+### Backend Changes
+
+| File | Change |
+|------|--------|
+| RetirementStrategyService.php | Added RequiredCapitalCalculator and RetirementIncomeService dependencies |
+| RetirementStrategyService.php | Added `calculateCapitalPosition()` method |
+| RetirementStrategyService.php | Added `getIncludedOtherAssets()` method |
+| RetirementStrategyService.php | Added `capital_position` to strategy response |
+
+### Frontend Changes
+
+| File | Change |
+|------|--------|
+| StrategiesTab.vue | Added Capital Position section with progress bar and cards |
+| StrategiesTab.vue | Added capital position computed properties |
+| StrategiesTab.vue | Enhanced On Track banner to show capital summary |
+| StrategiesTab.vue | Added comprehensive CSS for new section |
+
+### Files Changed
+
+**Backend:**
+```text
+app/Services/Retirement/RetirementStrategyService.php
+```
+
+**Frontend (Included in Build):**
+```text
+resources/js/components/Retirement/StrategiesTab.vue
+```
+
+---
+
 ## Rollback
 
 If issues occur:

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Services\Retirement;
 
 use App\Models\User;
+use App\Models\Investment\InvestmentAccount;
+use App\Models\SavingsAccount;
 use App\Services\TaxConfigService;
 use App\Services\UKTaxCalculator;
 use App\Services\UserProfile\UserProfileService;
@@ -27,7 +29,9 @@ class RetirementStrategyService
         private UserProfileService $userProfileService,
         private UKTaxCalculator $taxCalculator,
         private RetirementProjectionService $projectionService,
-        private AnnualAllowanceChecker $allowanceChecker
+        private AnnualAllowanceChecker $allowanceChecker,
+        private RequiredCapitalCalculator $requiredCapitalCalculator,
+        private RetirementIncomeService $retirementIncomeService
     ) {}
 
     /**
@@ -51,8 +55,9 @@ class RetirementStrategyService
         $projections = $this->projectionService->getProjections($userId);
         $currentStatus = $this->extractCurrentStatus($projections);
 
-        // If already on track, return early
+        // If already on track, return early but still include capital position data
         if ($currentStatus['probability'] >= self::ON_TRACK_PROBABILITY) {
+            $capitalPosition = $this->calculateCapitalPosition($userId, $projections);
             return [
                 'current_status' => $currentStatus,
                 'affordability' => $this->calculateAffordability($user),
@@ -60,6 +65,7 @@ class RetirementStrategyService
                 'strategies' => [],
                 'on_track_at_strategy' => 0,
                 'message' => 'You are on track to achieve your retirement goals.',
+                'capital_position' => $capitalPosition,
             ];
         }
 
@@ -234,12 +240,16 @@ class RetirementStrategyService
             }
         }
 
+        // Get capital position data from retirement income planner and required capital calculator
+        $capitalPosition = $this->calculateCapitalPosition($userId, $projections);
+
         return [
             'current_status' => $currentStatus,
             'affordability' => $affordability,
             'annual_allowance' => $allowanceStatus,
             'strategies' => $strategies,
             'on_track_at_strategy' => $onTrackAtStrategy,
+            'capital_position' => $capitalPosition,
         ];
     }
 
@@ -2021,5 +2031,104 @@ class RetirementStrategyService
 
         // Cap between 10 and 95
         return min(95, max(10, round($probability, 0)));
+    }
+
+    /**
+     * Calculate capital position including retirement income planner data.
+     *
+     * This provides a complete picture of the user's retirement readiness by combining:
+     * - Projected pension pot at retirement (80% Monte Carlo confidence)
+     * - Other assets (ISAs, bonds, savings) included in retirement planning
+     * - Required capital based on target income
+     * - Achievable net income from tax-optimised drawdown
+     */
+    private function calculateCapitalPosition(int $userId, array $projections): array
+    {
+        // Get required capital data
+        $requiredCapitalData = $this->requiredCapitalCalculator->calculate($userId);
+        $requiredCapital = (float) ($requiredCapitalData['required_capital_at_retirement'] ?? 0);
+        $targetIncome = (float) ($requiredCapitalData['required_income'] ?? 0);
+
+        // Get projected pension pot (80% confidence from Monte Carlo)
+        $projectedPensionPot = (float) ($projections['pension_pot_projection']['percentile_20_at_retirement'] ?? 0);
+
+        // Get retirement income planner data for achievable net income
+        $retirementIncomeData = $this->retirementIncomeService->getRetirementIncomeConfig($userId);
+        $achievableNetIncome = (float) ($retirementIncomeData['tax_breakdown']['net_income'] ?? 0);
+        $totalFunds = (float) ($retirementIncomeData['total_funds'] ?? 0);
+
+        // Calculate other assets (total funds minus pension pot)
+        // These are ISAs, bonds, savings that are included in retirement planning
+        $otherAssets = max(0, $totalFunds - $projectedPensionPot);
+
+        // Get list of other assets included (for display)
+        $includedOtherAssets = $this->getIncludedOtherAssets($userId);
+
+        // Calculate gap or surplus
+        $totalProjectedCapital = $projectedPensionPot + $otherAssets;
+        $gapToTarget = $requiredCapital - $totalProjectedCapital;
+
+        // Calculate progress percentage
+        $progressPercentage = $requiredCapital > 0
+            ? round(($totalProjectedCapital / $requiredCapital) * 100, 1)
+            : 0;
+
+        // Determine if "on track" based on capital position (>= 80% of required)
+        $capitalOnTrack = $progressPercentage >= 80;
+
+        return [
+            'projected_pension_pot' => round($projectedPensionPot, 2),
+            'other_assets_total' => round($otherAssets, 2),
+            'included_assets' => $includedOtherAssets,
+            'total_projected_capital' => round($totalProjectedCapital, 2),
+            'required_capital' => round($requiredCapital, 2),
+            'target_income' => round($targetIncome, 2),
+            'gap_to_target' => round($gapToTarget, 2),
+            'is_surplus' => $gapToTarget < 0,
+            'progress_percentage' => $progressPercentage,
+            'capital_on_track' => $capitalOnTrack,
+            'achievable_net_income' => round($achievableNetIncome, 2),
+            'income_meets_target' => $achievableNetIncome >= $targetIncome,
+        ];
+    }
+
+    /**
+     * Get list of other assets (non-pension) included in retirement planning.
+     */
+    private function getIncludedOtherAssets(int $userId): array
+    {
+        $assets = [];
+
+        // Get investment accounts included in retirement (ISAs, bonds, GIAs)
+        $investmentAccounts = InvestmentAccount::where('user_id', $userId)
+            ->where('include_in_retirement', true)
+            ->whereNotIn('account_type', ['vct', 'eis', 'private_company', 'crowdfunding', 'saye', 'csop', 'emi', 'unapproved_options', 'rsu', 'other'])
+            ->get();
+
+        foreach ($investmentAccounts as $account) {
+            $value = (float) ($account->current_value ?? 0);
+            if ($value > 0) {
+                $assets[] = [
+                    'type' => $account->account_type,
+                    'name' => $account->account_name ?? $account->provider ?? ucfirst($account->account_type),
+                    'value' => round($value, 2),
+                ];
+            }
+        }
+
+        // Get savings accounts (cash)
+        $savingsAccounts = SavingsAccount::where('user_id', $userId)->get();
+        foreach ($savingsAccounts as $account) {
+            $value = (float) ($account->current_balance ?? 0);
+            if ($value > 0) {
+                $assets[] = [
+                    'type' => 'cash',
+                    'name' => $account->account_name ?? $account->name ?? 'Savings',
+                    'value' => round($value, 2),
+                ];
+            }
+        }
+
+        return $assets;
     }
 }
