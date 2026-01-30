@@ -2085,6 +2085,67 @@ resources/js/components/Retirement/RequiredCapitalDetail.vue
 
 ---
 
+## Complete Backend Upload Summary
+
+All PHP files that need to be uploaded manually (not included in frontend build):
+
+### Models (4 files)
+
+```text
+app/Models/User.php
+app/Models/DCPension.php
+app/Models/UserAssumption.php (NEW)
+app/Models/Investment/InvestmentAccount.php
+```
+
+### Services (5 files)
+
+```text
+app/Services/Settings/AssumptionsService.php (NEW)
+app/Services/Retirement/RequiredCapitalCalculator.php (NEW)
+app/Services/Retirement/RetirementIncomeService.php
+app/Services/Retirement/RetirementStrategyService.php
+app/Services/Investment/InvestmentProjectionService.php
+```
+
+### Controllers (3 files)
+
+```text
+app/Http/Controllers/Api/Settings/AssumptionsController.php (NEW)
+app/Http/Controllers/Api/RetirementController.php
+app/Http/Controllers/Api/InvestmentController.php
+```
+
+### Routes (1 file)
+
+```text
+routes/api.php
+```
+
+### Migrations (4 files)
+
+```text
+database/migrations/2026_01_29_130208_add_missing_contribution_fields_to_investment_accounts.php
+database/migrations/2026_01_30_100000_add_beneficiary_to_dc_pensions_table.php
+database/migrations/2026_01_30_120000_create_user_assumptions_table.php
+database/migrations/2026_01_30_150000_add_include_in_retirement_to_investment_accounts.php
+```
+
+### New Directories to Create
+
+```text
+app/Http/Controllers/Api/Settings/
+app/Services/Settings/
+```
+
+### Quick Upload Commands (SiteGround File Manager)
+
+**Total: 17 PHP files + 1 routes file**
+
+Upload to `~/www/fynla.org/public_html/` maintaining the same directory structure.
+
+---
+
 ## Rollback
 
 If issues occur:
