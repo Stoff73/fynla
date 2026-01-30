@@ -204,6 +204,12 @@ resources/js/components/Retirement/FutureValueTab.vue
 | Key Metrics Cards | Removed the 3 metric cards from the header (Current Fund Value, Monthly Contribution, Retirement Age) |
 | DC Overview Section | Changed "Target Retirement Age" label to "Retirement Age", now uses `userRetirementAge` from auth store |
 
+### PensionList.vue Changes
+
+| Change | Description |
+|--------|-------------|
+| Risk Badge | Removed RiskBadge component from DC pension account cards |
+
 ---
 
 ## DC Pension Beneficiary Field
