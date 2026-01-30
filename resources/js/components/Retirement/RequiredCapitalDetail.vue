@@ -48,9 +48,9 @@
           <p class="summary-subtitle">At age {{ data.retirement_info.retirement_age }} (80% confidence)</p>
         </div>
         <div class="summary-card indigo">
-          <p class="summary-label">Other Assets Added</p>
-          <p class="summary-value">{{ formatCurrency(totalOtherAssets) }}</p>
-          <p class="summary-subtitle">Investments &amp; cash included</p>
+          <p class="summary-label">Other Assets at Retirement</p>
+          <p class="summary-value">{{ formatCurrency(totalProjectedOtherAssets) }}</p>
+          <p class="summary-subtitle">Projected at age {{ data.retirement_info.retirement_age }}</p>
         </div>
         <div class="summary-card" :class="gapToTarget >= 0 ? 'red' : 'green'">
           <p class="summary-label">{{ gapToTarget >= 0 ? 'Gap to Target' : 'Surplus' }}</p>
@@ -61,17 +61,18 @@
 
       <!-- Assets Included -->
       <div class="assets-section">
-        <h3 class="section-label">Assets included in calculation <span class="total-value">{{ formatCurrency(totalIncludedAssets) }}</span></h3>
+        <h3 class="section-label">Assets included in calculation <span class="total-value">{{ formatCurrency(projectedPotAtRetirement + totalProjectedOtherAssets) }}</span></h3>
+        <p class="section-note">Values projected to age {{ data.retirement_info.retirement_age }} (80% confidence)</p>
         <div class="asset-cards">
           <div v-for="pension in dcPensions" :key="pension.id" class="asset-card pension">
             <span class="asset-name">{{ pension.scheme_name || pension.provider || 'DC Pension' }}</span>
-            <span class="asset-value">{{ formatCurrency(pension.current_fund_value) }}</span>
-            <span class="asset-type">DC Pension</span>
+            <span class="asset-value">{{ formatCurrency(projectedPotAtRetirement) }}</span>
+            <span class="asset-type">DC Pension - Projected (80% confidence)</span>
           </div>
           <div v-for="account in includedInvestments" :key="'inv-' + account.id" class="asset-card investment">
             <span class="asset-name">{{ account.account_name || account.provider || formatAccountType(account.account_type) }}</span>
-            <span class="asset-value">{{ formatCurrency(getDisplayValue(account)) }}</span>
-            <span class="asset-type">{{ formatAccountType(account.account_type) }} - {{ getValueLabel(account) }}</span>
+            <span class="asset-value">{{ formatCurrency(getProjectedValue(account)) }}</span>
+            <span class="asset-type">{{ formatAccountType(account.account_type) }} - Projected (80% confidence)</span>
             <label class="toggle-row">
               <span class="toggle-label">Exclude</span>
               <input
@@ -84,8 +85,8 @@
           </div>
           <div v-for="account in includedCash" :key="'cash-' + account.id" class="asset-card cash">
             <span class="asset-name">{{ account.account_name || account.name }}</span>
-            <span class="asset-value">{{ formatCurrency(account.current_balance) }}</span>
-            <span class="asset-type">Cash</span>
+            <span class="asset-value">{{ formatCurrency(getProjectedCashValue(account)) }}</span>
+            <span class="asset-type">Cash - Projected</span>
             <label class="toggle-row">
               <span class="toggle-label">Exclude</span>
               <input
@@ -102,12 +103,12 @@
 
       <!-- Other Assets -->
       <div v-if="excludedInvestments.length > 0 || excludedCash.length > 0" class="assets-section">
-        <h3 class="section-label">Other assets</h3>
+        <h3 class="section-label">Other assets (not included)</h3>
         <div class="asset-cards">
           <div v-for="account in excludedInvestments" :key="'inv-other-' + account.id" class="asset-card investment">
             <span class="asset-name">{{ account.account_name || account.provider || formatAccountType(account.account_type) }}</span>
-            <span class="asset-value">{{ formatCurrency(getDisplayValue(account)) }}</span>
-            <span class="asset-type">{{ formatAccountType(account.account_type) }} - {{ getValueLabel(account) }}</span>
+            <span class="asset-value">{{ formatCurrency(getProjectedValue(account)) }}</span>
+            <span class="asset-type">{{ formatAccountType(account.account_type) }} - Projected (80% confidence)</span>
             <label class="toggle-row">
               <span class="toggle-label">Include</span>
               <input
@@ -119,8 +120,8 @@
           </div>
           <div v-for="account in excludedCash" :key="'cash-other-' + account.id" class="asset-card cash">
             <span class="asset-name">{{ account.account_name || account.name }}</span>
-            <span class="asset-value">{{ formatCurrency(account.current_balance) }}</span>
-            <span class="asset-type">Cash</span>
+            <span class="asset-value">{{ formatCurrency(getProjectedCashValue(account)) }}</span>
+            <span class="asset-type">Cash - Projected</span>
             <label class="toggle-row">
               <span class="toggle-label">Include</span>
               <input
@@ -164,7 +165,7 @@
               <div class="progress-bar" :style="{ width: Math.min(forecastedProgressPercentage, 100) + '%' }" :class="forecastedProgressColorClass"></div>
             </div>
             <div class="progress-values">
-              <span>{{ formatCurrency(projectedPotAtRetirement + totalOtherAssets) }}</span>
+              <span>{{ formatCurrency(projectedPotAtRetirement + totalProjectedOtherAssets) }}</span>
               <span class="target-label">of {{ formatCurrency(data.required_capital_at_retirement) }}</span>
             </div>
           </div>
@@ -295,8 +296,9 @@ export default {
       'requiredCapitalLoading',
       'includedInvestmentIds',
       'includedCashIds',
+      'retirementIncome',
     ]),
-    ...mapGetters('retirement', ['requiredCapitalData']),
+    ...mapGetters('retirement', ['requiredCapitalData', 'retirementIncomeAvailableAccounts']),
     ...mapState('investment', ['accounts']),
     ...mapState('savings', { savingsAccounts: 'accounts' }),
 
@@ -422,10 +424,34 @@ export default {
       return this.totalIncludedInvestments + this.totalIncludedCash;
     },
 
+    /**
+     * Total projected investments at retirement (Monte Carlo 80%)
+     */
+    totalProjectedInvestments() {
+      return this.includedInvestments.reduce((sum, a) => {
+        return sum + this.getProjectedValue(a);
+      }, 0);
+    },
+
+    /**
+     * Total projected cash at retirement
+     */
+    totalProjectedCash() {
+      return this.includedCash.reduce((sum, a) => {
+        return sum + this.getProjectedCashValue(a);
+      }, 0);
+    },
+
+    /**
+     * Total other assets projected to retirement
+     */
+    totalProjectedOtherAssets() {
+      return this.totalProjectedInvestments + this.totalProjectedCash;
+    },
+
     gapToTarget() {
-      // Gap = Required Capital at Retirement - (Projected Pot + Other Assets grown to retirement)
-      // For simplicity, compare projected pot vs required capital
-      const projectedTotal = this.projectedPotAtRetirement + this.totalOtherAssets;
+      // Gap = Required Capital at Retirement - (Projected Pot + Projected Other Assets)
+      const projectedTotal = this.projectedPotAtRetirement + this.totalProjectedOtherAssets;
       return this.data?.required_capital_at_retirement - projectedTotal;
     },
 
@@ -433,7 +459,7 @@ export default {
       if (!this.data?.required_capital_at_retirement) {
         return 0;
       }
-      const projectedTotal = this.projectedPotAtRetirement + this.totalOtherAssets;
+      const projectedTotal = this.projectedPotAtRetirement + this.totalProjectedOtherAssets;
       return Math.round((projectedTotal / this.data.required_capital_at_retirement) * 100);
     },
 
@@ -453,6 +479,7 @@ export default {
     ...mapActions('retirement', [
       'fetchRetirementData',
       'fetchRequiredCapital',
+      'fetchRetirementIncome',
       'toggleIncludedInvestment',
       'toggleIncludedCash',
       'setIncludedInvestmentIds',
@@ -468,6 +495,7 @@ export default {
         // dcPensions come from fetchRetirementData if not already loaded
         const promises = [
           this.fetchRequiredCapital(),
+          this.fetchRetirementIncome(), // Fetch retirement income for Monte Carlo projections
           this.fetchInvestmentAccounts(),
           this.fetchSavingsAccounts(),
         ];
@@ -535,6 +563,50 @@ export default {
         return 'Valuation';
       }
       return 'Current Value';
+    },
+
+    /**
+     * Get projected value for an investment account from retirement income Monte Carlo projections.
+     * Falls back to current value if no projection available.
+     */
+    getProjectedValue(account) {
+      // Look up the Monte Carlo 80% projected value from retirement income data
+      const availableAccounts = this.retirementIncomeAvailableAccounts || [];
+
+      // Match by account ID - retirement income API uses source_id for investments
+      const projected = availableAccounts.find(a =>
+        a.id === account.id ||
+        a.source_id === account.id
+      );
+
+      if (projected && projected.value) {
+        return parseFloat(projected.value);
+      }
+
+      // Fallback to current value if no projection found
+      return this.getDisplayValue(account);
+    },
+
+    /**
+     * Get projected value for a cash/savings account from retirement income data.
+     * Falls back to current value if no projection available.
+     */
+    getProjectedCashValue(account) {
+      // Look up from retirement income available accounts
+      const availableAccounts = this.retirementIncomeAvailableAccounts || [];
+
+      // Match by account ID
+      const projected = availableAccounts.find(a =>
+        a.id === account.id ||
+        a.source_id === account.id
+      );
+
+      if (projected && projected.value) {
+        return parseFloat(projected.value);
+      }
+
+      // Fallback to current value if no projection found
+      return parseFloat(account.current_balance) || 0;
     },
 
     /**
@@ -776,7 +848,13 @@ export default {
   font-size: 14px;
   font-weight: 600;
   @apply text-gray-700;
-  margin: 0 0 10px 0;
+  margin: 0 0 4px 0;
+}
+
+.section-note {
+  font-size: 12px;
+  @apply text-gray-400;
+  margin: 0 0 12px 0;
 }
 
 .no-items {

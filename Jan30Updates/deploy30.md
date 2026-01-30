@@ -2007,6 +2007,84 @@ resources/js/components/Retirement/StrategiesTab.vue
 
 ---
 
+## Required Capital Detail - Projected Values for Other Assets
+
+**Branch:** decumRetire
+
+**Status:** Ready to deploy
+
+### Description
+
+Updated the Required Capital Detail view to display projected values at retirement for other assets (ISAs, bonds, cash) instead of current values. The projections now use the same Monte Carlo 80% confidence values as the Retirement Income Planner and Investment detail views, ensuring consistency across all views.
+
+### Changes Made
+
+| Change | Description |
+|--------|-------------|
+| Asset values | Now show Monte Carlo 80% projected value at retirement |
+| Asset type label | Shows "(80% confidence)" suffix (e.g., "ISA - Projected (80% confidence)") |
+| Section note | Shows "Values projected to age X (80% confidence)" |
+| Summary cards | "Other Assets at Retirement" card now shows projected total |
+| Gap calculation | Uses Monte Carlo projected values for accurate gap/surplus calculation |
+| Data fetching | Now fetches retirement income data to get Monte Carlo projections |
+
+### Projection Consistency
+
+All three views now use the same Monte Carlo 80% confidence projections:
+
+| View | Projection Method |
+|------|-------------------|
+| Required Capital Detail | Monte Carlo 80% (from Retirement Income API) |
+| Retirement Income Planner | Monte Carlo 80% (from `getAccountProjectedValue80`) |
+| Investment Account Detail | Monte Carlo 80% (from `MonteCarloSimulator`) |
+
+### Visual Layout
+
+**Before:**
+```text
+┌─────────────────────────┐
+│ ISA                     │
+│ Vanguard                │
+│ £150,000                │  ← Current value
+│ ISA - Investment        │
+└─────────────────────────┘
+```
+
+**After:**
+```text
+┌─────────────────────────────────────────┐
+│ ISA                                     │
+│ Vanguard                                │
+│ £590,862                                │  ← Monte Carlo 80% projected
+│ ISA - Projected (80% confidence)        │
+└─────────────────────────────────────────┘
+```
+
+### Data Flow
+
+1. Component calls `fetchRetirementIncome()` on load
+2. Retirement Income API returns `available_accounts` with Monte Carlo projections
+3. `getProjectedValue()` looks up account by ID in `retirementIncomeAvailableAccounts`
+4. Returns the `value` field which is the Monte Carlo 80% projected value
+
+### Methods Updated
+
+| Method | Description |
+|--------|-------------|
+| `getProjectedValue(account)` | Looks up Monte Carlo 80% value from retirement income data |
+| `getProjectedCashValue(account)` | Looks up projected value for cash accounts |
+| `totalProjectedInvestments` | Sum of Monte Carlo projected investment values |
+| `totalProjectedCash` | Sum of projected cash values |
+
+### Files Changed
+
+**Frontend (Included in Build):**
+```text
+resources/js/components/Retirement/RequiredCapitalDetail.vue
+```
+
+---
+
 ## Rollback
 
 If issues occur:
