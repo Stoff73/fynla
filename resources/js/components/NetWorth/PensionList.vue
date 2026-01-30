@@ -155,7 +155,7 @@
               <div class="income-card-value">{{ formatCurrency(targetIncome) }}</div>
               <div class="income-card-divider"></div>
               <div class="income-card-label">Required Capital</div>
-              <div class="income-card-value-secondary">{{ formatCurrency(requiredCapital) }}</div>
+              <div class="income-card-value-secondary">{{ formatCurrency(requiredCapitalValue) }}</div>
               <div class="income-card-sublabel">Based on 4.7% withdrawal rate</div>
             </div>
 
@@ -413,6 +413,7 @@ export default {
       'strategiesLoading',
       'profile',
       'activeTab',
+      'requiredCapital',
     ]),
 
     allPensions() {
@@ -440,11 +441,20 @@ export default {
     },
 
     targetIncome() {
+      // Use centralised value from requiredCapital store (fetched from backend)
+      if (this.requiredCapital?.required_income) {
+        return this.requiredCapital.required_income;
+      }
+      // Fallback to projections or profile
       return this.projections?.income_drawdown?.target_income || this.profile?.target_retirement_income || 35000;
     },
 
-    requiredCapital() {
-      // Calculate required capital based on 4.7% withdrawal rate
+    requiredCapitalValue() {
+      // Use centralised value from requiredCapital store (fetched from backend)
+      if (this.requiredCapital?.required_capital_at_retirement) {
+        return this.requiredCapital.required_capital_at_retirement;
+      }
+      // Fallback: Calculate required capital based on 4.7% withdrawal rate
       const withdrawalRate = 0.047;
       return this.targetIncome / withdrawalRate;
     },
@@ -561,6 +571,7 @@ export default {
       'fetchRetirementData',
       'fetchProjections',
       'fetchStrategies',
+      'fetchRequiredCapital',
       'createDCPension',
       'createDBPension',
       'updateStatePension',
@@ -654,7 +665,11 @@ export default {
         return;
       }
       try {
-        await this.fetchProjections();
+        // Fetch projections and required capital in parallel
+        await Promise.all([
+          this.fetchProjections(),
+          this.fetchRequiredCapital(),
+        ]);
         if (this.showStrategies) {
           await this.fetchStrategies();
         }

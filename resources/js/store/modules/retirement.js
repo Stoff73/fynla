@@ -23,6 +23,11 @@ const state = {
     strategies: null, // Retirement strategies for Strategies tab
     strategiesLoading: false,
     strategyImpact: null, // Impact calculation for slider interaction
+    // Required Capital state (centralised for dashboard + detail view)
+    requiredCapital: null, // Full required capital data from API
+    requiredCapitalLoading: false,
+    includedInvestmentIds: [], // Investment account IDs included in capital calculation
+    includedCashIds: [], // Cash account IDs included in capital calculation
     // Retirement Income (Decumulation) state
     retirementIncome: null, // Full income configuration from API
     retirementIncomeLoading: false,
@@ -110,6 +115,35 @@ const mutations = {
     },
     SET_STRATEGY_IMPACT(state, impact) {
         state.strategyImpact = impact;
+    },
+    // Required Capital mutations
+    SET_REQUIRED_CAPITAL(state, data) {
+        state.requiredCapital = data;
+    },
+    SET_REQUIRED_CAPITAL_LOADING(state, loading) {
+        state.requiredCapitalLoading = loading;
+    },
+    SET_INCLUDED_INVESTMENT_IDS(state, ids) {
+        state.includedInvestmentIds = ids;
+    },
+    SET_INCLUDED_CASH_IDS(state, ids) {
+        state.includedCashIds = ids;
+    },
+    TOGGLE_INCLUDED_INVESTMENT(state, id) {
+        const index = state.includedInvestmentIds.indexOf(id);
+        if (index === -1) {
+            state.includedInvestmentIds.push(id);
+        } else {
+            state.includedInvestmentIds.splice(index, 1);
+        }
+    },
+    TOGGLE_INCLUDED_CASH(state, id) {
+        const index = state.includedCashIds.indexOf(id);
+        if (index === -1) {
+            state.includedCashIds.push(id);
+        } else {
+            state.includedCashIds.splice(index, 1);
+        }
     },
     // Retirement Income (Decumulation) mutations
     SET_RETIREMENT_INCOME(state, data) {
@@ -248,6 +282,40 @@ const actions = {
             commit('SET_ERROR', error.response?.data?.message || 'Failed to calculate strategy impact');
             throw error;
         }
+    },
+
+    // Required Capital actions
+    async fetchRequiredCapital({ commit }) {
+        commit('SET_REQUIRED_CAPITAL_LOADING', true);
+        commit('SET_ERROR', null);
+        try {
+            const response = await retirementService.getRequiredCapital();
+            if (response.success) {
+                commit('SET_REQUIRED_CAPITAL', response.data);
+            }
+            return response.data;
+        } catch (error) {
+            commit('SET_ERROR', error.response?.data?.message || 'Failed to fetch required capital');
+            throw error;
+        } finally {
+            commit('SET_REQUIRED_CAPITAL_LOADING', false);
+        }
+    },
+
+    toggleIncludedInvestment({ commit }, id) {
+        commit('TOGGLE_INCLUDED_INVESTMENT', id);
+    },
+
+    toggleIncludedCash({ commit }, id) {
+        commit('TOGGLE_INCLUDED_CASH', id);
+    },
+
+    setIncludedInvestmentIds({ commit }, ids) {
+        commit('SET_INCLUDED_INVESTMENT_IDS', ids);
+    },
+
+    setIncludedCashIds({ commit }, ids) {
+        commit('SET_INCLUDED_CASH_IDS', ids);
     },
 
     async runScenario({ commit }, scenarioData) {
@@ -645,6 +713,15 @@ const getters = {
     // Direct state accessors for risk profile page
     dcPensions: (state) => state.dcPensions,
     dbPensions: (state) => state.dbPensions,
+
+    // Required Capital Getters
+    requiredCapitalData: (state) => state.requiredCapital,
+    requiredCapitalLoading: (state) => state.requiredCapitalLoading,
+    includedInvestmentIds: (state) => state.includedInvestmentIds,
+    includedCashIds: (state) => state.includedCashIds,
+    targetRetirementIncome: (state) => state.requiredCapital?.required_income || 0,
+    requiredCapitalAtRetirement: (state) => state.requiredCapital?.required_capital_at_retirement || 0,
+    requiredCapitalToday: (state) => state.requiredCapital?.required_capital_today || 0,
 
     // Retirement Income (Decumulation) Getters
     retirementIncomeData: (state) => state.retirementIncome,

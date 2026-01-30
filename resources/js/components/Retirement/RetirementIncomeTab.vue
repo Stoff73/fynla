@@ -194,6 +194,7 @@ export default {
       'customTargetIncome',
       'error',
       'profile',
+      'requiredCapital',
     ]),
     ...mapGetters('retirement', [
       'retirementIncomeData',
@@ -221,7 +222,11 @@ export default {
     },
 
     displayTargetIncome() {
-      return this.customTargetIncome || this.retirementIncome?.target_income || 0;
+      // Priority: custom target > requiredCapital (centralised) > retirementIncome API > 0
+      return this.customTargetIncome ||
+             this.requiredCapital?.required_income ||
+             this.retirementIncome?.target_income ||
+             0;
     },
 
     taxBreakdown() {
@@ -284,6 +289,7 @@ export default {
   methods: {
     ...mapActions('retirement', [
       'fetchRetirementIncome',
+      'fetchRequiredCapital',
       'calculateRetirementIncome',
       'toggleSpouseAssets',
       'setCustomTargetIncome',
@@ -292,7 +298,11 @@ export default {
 
     async loadData() {
       try {
-        await this.fetchRetirementIncome();
+        // Fetch retirement income and required capital in parallel
+        await Promise.all([
+          this.fetchRetirementIncome(),
+          this.fetchRequiredCapital(),
+        ]);
         this.tempTargetIncome = this.displayTargetIncome;
       } catch (error) {
         console.error('Failed to load retirement income data:', error);

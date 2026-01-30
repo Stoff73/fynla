@@ -511,6 +511,54 @@ resources/js/components/NetWorth/PensionList.vue
 
 ---
 
+## Centralised Required Capital Data Flow
+
+**Branch:** decumRetire
+
+**Status:** Ready to deploy
+
+### Description
+
+Centralised the required capital data (target income, required capital at retirement, included assets) in the Vuex retirement store so that the dashboard cards and Retirement Income Planner use the same values as the RequiredCapitalDetail view.
+
+### Problem Solved
+
+| Component | Before | After |
+|-----------|--------|-------|
+| PensionList.vue (dashboard) | Used `projections.income_drawdown.target_income` and simple `targetIncome / 0.047` | Uses `requiredCapital.required_income` and `requiredCapital.required_capital_at_retirement` from store |
+| RetirementIncomeTab.vue | Used `retirementIncome.target_income` | Uses `requiredCapital.required_income` (with fallback) |
+| RequiredCapitalDetail.vue | Stored data in local component state | Uses Vuex store state for data and asset toggles |
+
+### Vuex Store Changes (retirement.js)
+
+**New State:**
+- `requiredCapital` - Full required capital data from API
+- `requiredCapitalLoading` - Loading state
+- `includedInvestmentIds` - Investment account IDs included in calculation
+- `includedCashIds` - Cash account IDs included in calculation
+
+**New Actions:**
+- `fetchRequiredCapital()` - Fetches data from `/api/retirement/required-capital`
+- `toggleIncludedInvestment(id)` - Toggle investment in/out of calculation
+- `toggleIncludedCash(id)` - Toggle cash account in/out of calculation
+
+**New Getters:**
+- `requiredCapitalData`, `requiredCapitalLoading`
+- `includedInvestmentIds`, `includedCashIds`
+- `targetRetirementIncome`, `requiredCapitalAtRetirement`, `requiredCapitalToday`
+
+### Files Changed
+
+**Frontend (Included in Build):**
+```text
+resources/js/store/modules/retirement.js
+resources/js/components/NetWorth/PensionList.vue
+resources/js/components/Retirement/RetirementIncomeTab.vue
+resources/js/components/Retirement/RequiredCapitalDetail.vue
+```
+
+---
+
 ## Rebuild Required: YES
 
 Frontend Vue components changed. Full rebuild required:

@@ -271,8 +271,7 @@
 </template>
 
 <script>
-import { mapState, mapActions } from 'vuex';
-import retirementService from '@/services/retirementService';
+import { mapState, mapGetters, mapActions } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
@@ -284,18 +283,30 @@ export default {
 
   data() {
     return {
-      loading: true,
       error: null,
-      data: null,
-      includedInvestmentIds: [],
-      includedCashIds: [],
     };
   },
 
   computed: {
-    ...mapState('retirement', ['projections', 'dcPensions']),
+    ...mapState('retirement', [
+      'projections',
+      'dcPensions',
+      'requiredCapital',
+      'requiredCapitalLoading',
+      'includedInvestmentIds',
+      'includedCashIds',
+    ]),
+    ...mapGetters('retirement', ['requiredCapitalData']),
     ...mapState('investment', ['accounts']),
     ...mapState('savings', { savingsAccounts: 'accounts' }),
+
+    loading() {
+      return this.requiredCapitalLoading;
+    },
+
+    data() {
+      return this.requiredCapital;
+    },
 
     investmentAccounts() {
       // Exclude illiquid investments and employee share schemes from retirement capital
@@ -321,19 +332,27 @@ export default {
     },
 
     includedInvestments() {
-      return this.investmentAccounts.filter(a => this.includedInvestmentIds.includes(a.id));
+      return this.investmentAccounts.filter(a => this.storeIncludedInvestmentIds.includes(a.id));
     },
 
     excludedInvestments() {
-      return this.investmentAccounts.filter(a => !this.includedInvestmentIds.includes(a.id));
+      return this.investmentAccounts.filter(a => !this.storeIncludedInvestmentIds.includes(a.id));
     },
 
     includedCash() {
-      return this.cashAccounts.filter(a => this.includedCashIds.includes(a.id));
+      return this.cashAccounts.filter(a => this.storeIncludedCashIds.includes(a.id));
     },
 
     excludedCash() {
-      return this.cashAccounts.filter(a => !this.includedCashIds.includes(a.id));
+      return this.cashAccounts.filter(a => !this.storeIncludedCashIds.includes(a.id));
+    },
+
+    storeIncludedInvestmentIds() {
+      return this.includedInvestmentIds || [];
+    },
+
+    storeIncludedCashIds() {
+      return this.includedCashIds || [];
     },
 
     totalPensions() {
@@ -427,51 +446,51 @@ export default {
   },
 
   mounted() {
-    this.fetchData();
-    this.fetchDCPensions();
-    this.fetchInvestmentAccounts();
-    this.fetchSavingsAccounts();
+    this.loadData();
   },
 
   methods: {
-    ...mapActions('retirement', ['fetchDCPensions']),
+    ...mapActions('retirement', [
+      'fetchRetirementData',
+      'fetchRequiredCapital',
+      'toggleIncludedInvestment',
+      'toggleIncludedCash',
+    ]),
     ...mapActions('investment', { fetchInvestmentAccounts: 'fetchAccounts' }),
     ...mapActions('savings', { fetchSavingsAccounts: 'fetchAccounts' }),
 
-    async fetchData() {
-      this.loading = true;
+    async loadData() {
       this.error = null;
 
       try {
-        const response = await retirementService.getRequiredCapital();
-        if (response.success) {
-          this.data = response.data;
-        } else {
-          this.error = response.message || 'Failed to load required capital data';
+        // Fetch all data in parallel
+        // dcPensions come from fetchRetirementData if not already loaded
+        const promises = [
+          this.fetchRequiredCapital(),
+          this.fetchInvestmentAccounts(),
+          this.fetchSavingsAccounts(),
+        ];
+        // Only fetch retirement data if dcPensions not yet loaded
+        if (!this.dcPensions || this.dcPensions.length === 0) {
+          promises.push(this.fetchRetirementData());
         }
+        await Promise.all(promises);
       } catch (err) {
         console.error('Error fetching required capital:', err);
         this.error = err.response?.data?.message || 'Failed to load required capital data';
-      } finally {
-        this.loading = false;
       }
+    },
+
+    async fetchData() {
+      // Alias for retry button
+      await this.loadData();
     },
 
     toggleAsset(type, id) {
       if (type === 'investment') {
-        const index = this.includedInvestmentIds.indexOf(id);
-        if (index === -1) {
-          this.includedInvestmentIds.push(id);
-        } else {
-          this.includedInvestmentIds.splice(index, 1);
-        }
+        this.toggleIncludedInvestment(id);
       } else if (type === 'cash') {
-        const index = this.includedCashIds.indexOf(id);
-        if (index === -1) {
-          this.includedCashIds.push(id);
-        } else {
-          this.includedCashIds.splice(index, 1);
-        }
+        this.toggleIncludedCash(id);
       }
     },
 
