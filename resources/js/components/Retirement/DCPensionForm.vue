@@ -267,6 +267,50 @@
             </label>
           </div>
 
+          <!-- Beneficiary Section -->
+          <div class="space-y-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <p class="text-sm text-blue-800 font-medium">Beneficiary Details</p>
+
+            <!-- Beneficiary Selection -->
+            <div>
+              <label for="beneficiary_selection" class="block text-sm font-medium text-gray-700 mb-1">
+                Beneficiary
+              </label>
+              <select
+                id="beneficiary_selection"
+                v-model="beneficiarySelection"
+                @change="handleBeneficiarySelection"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">Select beneficiary...</option>
+                <option v-if="spouseOption" :value="'linked_' + spouseOption.id">
+                  {{ spouseOption.name }} (Spouse - Linked Account)
+                </option>
+                <option value="other">Other (enter name)</option>
+              </select>
+              <p class="text-xs text-gray-500 mt-1">
+                Who should receive this pension if you pass away?
+              </p>
+            </div>
+
+            <!-- Custom Beneficiary Name (when "Other" selected) -->
+            <div v-if="beneficiarySelection === 'other'">
+              <label for="beneficiary_name" class="block text-sm font-medium text-gray-700 mb-1">
+                Beneficiary Name
+              </label>
+              <input
+                id="beneficiary_name"
+                v-model="formData.beneficiary_name"
+                type="text"
+                placeholder="Enter beneficiary's full name"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <p class="text-xs text-gray-500 mt-1">
+                This person doesn't have an account in the system.
+              </p>
+            </div>
+          </div>
+
           <!-- Notes -->
           <div>
             <label for="notes" class="block text-sm font-medium text-gray-700 mb-2">
@@ -347,6 +391,8 @@ export default {
         salary_sacrifice: false,
         notes: '',
         risk_preference: null,
+        beneficiary_id: null,
+        beneficiary_name: '',
       },
       validationErrors: {
         employee_contribution_percent: '',
@@ -355,6 +401,8 @@ export default {
       // Risk profile state
       mainRiskLevel: null,
       allowedRiskLevels: ['low', 'lower_medium', 'medium', 'upper_medium', 'high'],
+      // Beneficiary state
+      beneficiarySelection: '',
     };
   },
 
@@ -394,6 +442,11 @@ export default {
       }
       return Math.round((this.formData.annual_salary * this.formData.employer_contribution_percent / 100) / 12);
     },
+
+    spouseOption() {
+      const spouse = this.$store.getters['userProfile/spouse'];
+      return spouse ? { id: spouse.id, name: spouse.name } : null;
+    },
   },
 
   watch: {
@@ -405,7 +458,12 @@ export default {
           this.formData = {
             ...newPension,
             risk_preference: newPension.risk_preference || null,
+            beneficiary_id: newPension.beneficiary_id || null,
+            beneficiary_name: newPension.beneficiary_name || '',
           };
+          this.$nextTick(() => {
+            this.initializeBeneficiarySelection();
+          });
         }
       },
     },
@@ -456,6 +514,34 @@ export default {
       } else {
         // sipp, personal map directly
         this.formData.scheme_type = this.formData.pension_type;
+      }
+    },
+
+    handleBeneficiarySelection() {
+      if (this.beneficiarySelection.startsWith('linked_')) {
+        // Linked spouse selected
+        const id = parseInt(this.beneficiarySelection.replace('linked_', ''));
+        this.formData.beneficiary_id = id;
+        this.formData.beneficiary_name = this.spouseOption?.name || '';
+      } else if (this.beneficiarySelection === 'other') {
+        // Custom beneficiary
+        this.formData.beneficiary_id = null;
+        this.formData.beneficiary_name = '';
+      } else {
+        // No beneficiary selected
+        this.formData.beneficiary_id = null;
+        this.formData.beneficiary_name = '';
+      }
+    },
+
+    initializeBeneficiarySelection() {
+      // Set beneficiarySelection based on existing data
+      if (this.formData.beneficiary_id && this.spouseOption && this.formData.beneficiary_id === this.spouseOption.id) {
+        this.beneficiarySelection = `linked_${this.formData.beneficiary_id}`;
+      } else if (this.formData.beneficiary_name) {
+        this.beneficiarySelection = 'other';
+      } else {
+        this.beneficiarySelection = '';
       }
     },
 

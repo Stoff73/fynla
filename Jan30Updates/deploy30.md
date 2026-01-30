@@ -201,9 +201,71 @@ resources/js/components/Retirement/FutureValueTab.vue
 
 | Change | Description |
 |--------|-------------|
-| Computed | Added `userRetirementAge` computed property pulling from `profile.target_retirement_age` (retirement store) |
-| DC Metrics Card | Changed from `pension.retirement_age` to `userRetirementAge` |
-| DC Overview Section | Changed "Target Retirement Age" label to "Retirement Age", now uses `userRetirementAge` |
+| Key Metrics Cards | Removed the 3 metric cards from the header (Current Fund Value, Monthly Contribution, Retirement Age) |
+| DC Overview Section | Changed "Target Retirement Age" label to "Retirement Age", now uses `userRetirementAge` from auth store |
+
+---
+
+## DC Pension Beneficiary Field
+
+**Branch:** decumRetire
+
+**Status:** Ready to deploy
+
+### Description
+
+Added beneficiary field to DC pension forms and detail view. Users can select their spouse (linked account) or enter a custom beneficiary name.
+
+### Database Migration
+
+New migration: `2026_01_30_100000_add_beneficiary_to_dc_pensions_table.php`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| beneficiary_id | bigint unsigned nullable | Foreign key to users table (for linked spouse) |
+| beneficiary_name | varchar nullable | Custom beneficiary name |
+
+### DCPension Model Changes
+
+| Change | Description |
+|--------|-------------|
+| fillable | Added `beneficiary_id`, `beneficiary_name` |
+| relationship | Added `beneficiary()` BelongsTo relationship |
+
+### DCPensionForm.vue Changes
+
+| Change | Description |
+|--------|-------------|
+| Template | Added beneficiary selection dropdown and custom name input |
+| formData | Added `beneficiary_id`, `beneficiary_name` fields |
+| data | Added `beneficiarySelection` state |
+| computed | Added `spouseOption` to get spouse from userProfile store |
+| methods | Added `handleBeneficiarySelection()`, `initializeBeneficiarySelection()` |
+| watch | Updated to initialize beneficiary when editing |
+
+### PensionDetailInline.vue Changes
+
+| Change | Description |
+|--------|-------------|
+| DC Overview | Added Beneficiary row showing `pension.beneficiary_name` |
+
+### Files Changed
+
+**Database (Migration Required):**
+```text
+database/migrations/2026_01_30_100000_add_beneficiary_to_dc_pensions_table.php
+```
+
+**Backend:**
+```text
+app/Models/DCPension.php
+```
+
+**Frontend (Included in Build):**
+```text
+resources/js/components/Retirement/DCPensionForm.vue
+resources/js/components/NetWorth/PensionDetailInline.vue
+```
 
 ---
 

@@ -44,57 +44,6 @@
             </button>
           </div>
         </div>
-
-        <!-- Key Metrics -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-          <!-- DC Pension Metrics -->
-          <template v-if="pensionType === 'dc'">
-            <div class="bg-gray-50 rounded-lg p-4">
-              <p class="text-sm text-gray-600">Current Fund Value</p>
-              <p class="text-2xl font-bold text-blue-600">{{ formatCurrency(pension.current_fund_value) }}</p>
-            </div>
-            <div class="bg-gray-50 rounded-lg p-4">
-              <p class="text-sm text-gray-600">Monthly Contribution</p>
-              <p class="text-2xl font-bold text-gray-900">{{ formatCurrency(totalMonthlyContribution) }}</p>
-            </div>
-            <div class="bg-gray-50 rounded-lg p-4">
-              <p class="text-sm text-gray-600">Retirement Age</p>
-              <p class="text-2xl font-bold text-gray-900">{{ userRetirementAge }}</p>
-            </div>
-          </template>
-
-          <!-- DB Pension Metrics -->
-          <template v-else-if="pensionType === 'db'">
-            <div class="bg-gray-50 rounded-lg p-4">
-              <p class="text-sm text-gray-600">Annual Pension</p>
-              <p class="text-2xl font-bold text-purple-600">{{ formatCurrency(pension.accrued_annual_pension) }}<span class="text-sm">/yr</span></p>
-            </div>
-            <div class="bg-gray-50 rounded-lg p-4">
-              <p class="text-sm text-gray-600">Lump Sum Entitlement</p>
-              <p class="text-2xl font-bold text-gray-900">{{ formatCurrency(pension.lump_sum_entitlement || 0) }}</p>
-            </div>
-            <div class="bg-gray-50 rounded-lg p-4">
-              <p class="text-sm text-gray-600">Payment Start Age</p>
-              <p class="text-2xl font-bold text-gray-900">{{ pension.payment_start_age || pension.normal_retirement_age || 65 }}</p>
-            </div>
-          </template>
-
-          <!-- State Pension Metrics -->
-          <template v-else-if="pensionType === 'state'">
-            <div class="bg-gray-50 rounded-lg p-4">
-              <p class="text-sm text-gray-600">Forecast Annual Amount</p>
-              <p class="text-2xl font-bold text-green-600">{{ formatCurrency(pension.state_pension_forecast_annual || 0) }}<span class="text-sm">/yr</span></p>
-            </div>
-            <div class="bg-gray-50 rounded-lg p-4">
-              <p class="text-sm text-gray-600">NI Years Completed</p>
-              <p class="text-2xl font-bold text-gray-900">{{ pension.ni_years_completed || 0 }} / 35</p>
-            </div>
-            <div class="bg-gray-50 rounded-lg p-4">
-              <p class="text-sm text-gray-600">State Pension Age</p>
-              <p class="text-2xl font-bold text-gray-900">{{ pension.state_pension_age || 67 }}</p>
-            </div>
-          </template>
-        </div>
       </div>
 
       <!-- Tabs -->
@@ -195,6 +144,10 @@
                     <div class="flex justify-between">
                       <dt class="text-sm text-gray-600">Growth Rate Assumption:</dt>
                       <dd class="text-sm font-medium text-gray-900">{{ pension.growth_rate ? (pension.growth_rate * 100).toFixed(1) + '%' : 'N/A' }}</dd>
+                    </div>
+                    <div class="flex justify-between">
+                      <dt class="text-sm text-gray-600">Beneficiary:</dt>
+                      <dd class="text-sm font-medium text-gray-900">{{ pension.beneficiary_name || 'Not specified' }}</dd>
                     </div>
                   </dl>
                 </div>
@@ -429,10 +382,10 @@ export default {
   },
 
   computed: {
-    ...mapState('retirement', ['profile']),
+    ...mapState('auth', ['user']),
 
     userRetirementAge() {
-      return this.profile?.target_retirement_age || 67;
+      return this.user?.target_retirement_age || 67;
     },
 
     tabs() {
