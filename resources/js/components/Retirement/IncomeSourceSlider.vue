@@ -223,7 +223,7 @@ export default {
 
 <style scoped>
 .income-source-slider {
-  @apply bg-gray-50;
+  background: white;
   border-radius: 12px;
   padding: 20px;
   @apply border border-gray-200;
