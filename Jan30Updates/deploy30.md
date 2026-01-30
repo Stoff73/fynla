@@ -373,7 +373,7 @@ Added detailed "Required Capital" calculations to the Retirement module. Users c
 - "Assets included in calculation" section showing DC pensions plus any toggled investments/cash with total value
 - "Other assets" section with toggle switches to include investments and cash in retirement capital calculation
 - Toggle updates total included assets and recalculates progress bars in real-time
-- Toggle label shows "Exclude from retirement capital" when included, "Include in retirement capital" when excluded
+- Toggle label shows "Exclude" when included, "Include" when excluded
 
 ### Year-by-Year Table Columns
 

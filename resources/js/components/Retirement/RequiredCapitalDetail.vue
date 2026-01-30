@@ -73,7 +73,7 @@
             <span class="asset-value">{{ formatCurrency(getDisplayValue(account)) }}</span>
             <span class="asset-type">{{ formatAccountType(account.account_type) }} - {{ getValueLabel(account) }}</span>
             <label class="toggle-row">
-              <span class="toggle-label">Exclude from retirement capital</span>
+              <span class="toggle-label">Exclude</span>
               <input
                 type="checkbox"
                 class="toggle-switch"
@@ -87,7 +87,7 @@
             <span class="asset-value">{{ formatCurrency(account.current_balance) }}</span>
             <span class="asset-type">Cash</span>
             <label class="toggle-row">
-              <span class="toggle-label">Exclude from retirement capital</span>
+              <span class="toggle-label">Exclude</span>
               <input
                 type="checkbox"
                 class="toggle-switch"
@@ -109,7 +109,7 @@
             <span class="asset-value">{{ formatCurrency(getDisplayValue(account)) }}</span>
             <span class="asset-type">{{ formatAccountType(account.account_type) }} - {{ getValueLabel(account) }}</span>
             <label class="toggle-row">
-              <span class="toggle-label">Include in retirement capital</span>
+              <span class="toggle-label">Include</span>
               <input
                 type="checkbox"
                 class="toggle-switch"
@@ -122,7 +122,7 @@
             <span class="asset-value">{{ formatCurrency(account.current_balance) }}</span>
             <span class="asset-type">Cash</span>
             <label class="toggle-row">
-              <span class="toggle-label">Include in retirement capital</span>
+              <span class="toggle-label">Include</span>
               <input
                 type="checkbox"
                 class="toggle-switch"
