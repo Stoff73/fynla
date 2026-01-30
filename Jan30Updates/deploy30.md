@@ -188,6 +188,7 @@ The retirement age info displays inline with the summary cards in a 3-column lay
 
 ```text
 resources/js/components/NetWorth/PensionList.vue
+resources/js/components/NetWorth/PensionDetailInline.vue
 ```
 
 **Retirement Module:**
@@ -195,6 +196,14 @@ resources/js/components/NetWorth/PensionList.vue
 ```text
 resources/js/components/Retirement/FutureValueTab.vue
 ```
+
+### PensionDetailInline.vue Changes
+
+| Change | Description |
+|--------|-------------|
+| Computed | Added `userRetirementAge` computed property pulling from `currentUser.target_retirement_age` |
+| DC Metrics Card | Changed from `pension.retirement_age` to `userRetirementAge` |
+| DC Overview Section | Changed "Target Retirement Age" label to "Retirement Age", now uses `userRetirementAge` |
 
 ---
 

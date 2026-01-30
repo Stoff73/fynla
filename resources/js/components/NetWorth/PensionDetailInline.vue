@@ -59,7 +59,7 @@
             </div>
             <div class="bg-gray-50 rounded-lg p-4">
               <p class="text-sm text-gray-600">Retirement Age</p>
-              <p class="text-2xl font-bold text-gray-900">{{ pension.retirement_age || 67 }}</p>
+              <p class="text-2xl font-bold text-gray-900">{{ userRetirementAge }}</p>
             </div>
           </template>
 
@@ -189,8 +189,8 @@
                   <h3 class="text-lg font-semibold text-gray-800 mb-3">Retirement</h3>
                   <dl class="space-y-2">
                     <div class="flex justify-between">
-                      <dt class="text-sm text-gray-600">Target Retirement Age:</dt>
-                      <dd class="text-sm font-medium text-gray-900">{{ pension.retirement_age || 67 }}</dd>
+                      <dt class="text-sm text-gray-600">Retirement Age:</dt>
+                      <dd class="text-sm font-medium text-gray-900">{{ userRetirementAge }}</dd>
                     </div>
                     <div class="flex justify-between">
                       <dt class="text-sm text-gray-600">Growth Rate Assumption:</dt>
@@ -386,7 +386,7 @@
 </template>
 
 <script>
-import { mapActions } from 'vuex';
+import { mapActions, mapState } from 'vuex';
 import UnifiedPensionForm from '@/components/Retirement/UnifiedPensionForm.vue';
 import ConfirmationModal from '@/components/Common/ConfirmationModal.vue';
 import PensionPotProjectionChart from '@/components/Retirement/PensionPotProjectionChart.vue';
@@ -429,6 +429,12 @@ export default {
   },
 
   computed: {
+    ...mapState('auth', ['currentUser']),
+
+    userRetirementAge() {
+      return this.currentUser?.target_retirement_age || 67;
+    },
+
     tabs() {
       const baseTabs = [
         { id: 'overview', label: 'Overview' },
