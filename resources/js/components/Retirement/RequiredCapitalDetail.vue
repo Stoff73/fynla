@@ -54,32 +54,76 @@
         </div>
       </div>
 
-      <!-- Pensions Included -->
+      <!-- Assets Included -->
       <div class="assets-section">
-        <h3 class="section-label">Pensions included in calculation</h3>
+        <h3 class="section-label">Assets included in calculation <span class="total-value">{{ formatCurrency(totalIncludedAssets) }}</span></h3>
         <div class="asset-cards">
           <div v-for="pension in dcPensions" :key="pension.id" class="asset-card pension">
             <span class="asset-name">{{ pension.scheme_name || pension.provider || 'DC Pension' }}</span>
             <span class="asset-value">{{ formatCurrency(pension.current_fund_value) }}</span>
             <span class="asset-type">DC Pension</span>
           </div>
-          <div v-if="!dcPensions || dcPensions.length === 0" class="no-items">No DC pensions found</div>
-        </div>
-      </div>
-
-      <!-- Other Assets Not Included -->
-      <div v-if="investmentAccounts.length > 0 || cashAccounts.length > 0" class="assets-section">
-        <h3 class="section-label">Other assets not included</h3>
-        <div class="asset-cards">
-          <div v-for="account in investmentAccounts" :key="'inv-' + account.id" class="asset-card investment">
-            <span class="asset-name">{{ account.name || account.provider }}</span>
-            <span class="asset-value">{{ formatCurrency(account.current_value) }}</span>
-            <span class="asset-type">Investment</span>
+          <div v-for="account in includedInvestments" :key="'inv-' + account.id" class="asset-card investment">
+            <span class="asset-name">{{ account.account_name || account.provider || formatAccountType(account.account_type) }}</span>
+            <span class="asset-value">{{ formatCurrency(getDisplayValue(account)) }}</span>
+            <span class="asset-type">{{ formatAccountType(account.account_type) }} - {{ getValueLabel(account) }}</span>
+            <label class="toggle-row">
+              <span class="toggle-label">Exclude from retirement capital</span>
+              <input
+                type="checkbox"
+                class="toggle-switch"
+                checked
+                @change="toggleAsset('investment', account.id)"
+              />
+            </label>
           </div>
-          <div v-for="account in cashAccounts" :key="'cash-' + account.id" class="asset-card cash">
+          <div v-for="account in includedCash" :key="'cash-' + account.id" class="asset-card cash">
             <span class="asset-name">{{ account.account_name || account.name }}</span>
             <span class="asset-value">{{ formatCurrency(account.current_balance) }}</span>
             <span class="asset-type">Cash</span>
+            <label class="toggle-row">
+              <span class="toggle-label">Exclude from retirement capital</span>
+              <input
+                type="checkbox"
+                class="toggle-switch"
+                checked
+                @change="toggleAsset('cash', account.id)"
+              />
+            </label>
+          </div>
+          <div v-if="(!dcPensions || dcPensions.length === 0) && includedInvestments.length === 0 && includedCash.length === 0" class="no-items">No assets included</div>
+        </div>
+      </div>
+
+      <!-- Other Assets -->
+      <div v-if="excludedInvestments.length > 0 || excludedCash.length > 0" class="assets-section">
+        <h3 class="section-label">Other assets</h3>
+        <div class="asset-cards">
+          <div v-for="account in excludedInvestments" :key="'inv-other-' + account.id" class="asset-card investment">
+            <span class="asset-name">{{ account.account_name || account.provider || formatAccountType(account.account_type) }}</span>
+            <span class="asset-value">{{ formatCurrency(getDisplayValue(account)) }}</span>
+            <span class="asset-type">{{ formatAccountType(account.account_type) }} - {{ getValueLabel(account) }}</span>
+            <label class="toggle-row">
+              <span class="toggle-label">Include in retirement capital</span>
+              <input
+                type="checkbox"
+                class="toggle-switch"
+                @change="toggleAsset('investment', account.id)"
+              />
+            </label>
+          </div>
+          <div v-for="account in excludedCash" :key="'cash-other-' + account.id" class="asset-card cash">
+            <span class="asset-name">{{ account.account_name || account.name }}</span>
+            <span class="asset-value">{{ formatCurrency(account.current_balance) }}</span>
+            <span class="asset-type">Cash</span>
+            <label class="toggle-row">
+              <span class="toggle-label">Include in retirement capital</span>
+              <input
+                type="checkbox"
+                class="toggle-switch"
+                @change="toggleAsset('cash', account.id)"
+              />
+            </label>
           </div>
         </div>
       </div>
@@ -96,7 +140,7 @@
             <div class="progress-bar" :style="{ width: Math.min(progressPercentage, 100) + '%' }" :class="progressColorClass"></div>
           </div>
           <div class="progress-labels">
-            <span>Current: {{ formatCurrency(data.current_pot_value) }}</span>
+            <span>Current: {{ formatCurrency(totalIncludedAssets) }}</span>
             <span>Target: {{ formatCurrency(data.required_capital_today) }}</span>
           </div>
         </div>
@@ -217,6 +261,8 @@ export default {
       loading: true,
       error: null,
       data: null,
+      includedInvestmentIds: [],
+      includedCashIds: [],
     };
   },
 
@@ -226,19 +272,58 @@ export default {
     ...mapState('savings', { savingsAccounts: 'accounts' }),
 
     investmentAccounts() {
-      return (this.accounts || []).filter(a => parseFloat(a.current_value) > 0);
+      // Exclude illiquid investments and employee share schemes from retirement capital
+      const excludedTypes = [
+        'vct',
+        'eis',
+        'private_company',
+        'crowdfunding',
+        'saye',
+        'csop',
+        'emi',
+        'unapproved_options',
+        'rsu',
+        'other',
+      ];
+      return (this.accounts || []).filter(
+        a => this.getDisplayValue(a) > 0 && !excludedTypes.includes(a.account_type)
+      );
     },
 
     cashAccounts() {
       return (this.savingsAccounts || []).filter(a => parseFloat(a.current_balance) > 0);
     },
 
-    totalInvestments() {
-      return this.investmentAccounts.reduce((sum, a) => sum + (parseFloat(a.current_value) || 0), 0);
+    includedInvestments() {
+      return this.investmentAccounts.filter(a => this.includedInvestmentIds.includes(a.id));
     },
 
-    totalCash() {
-      return this.cashAccounts.reduce((sum, a) => sum + (parseFloat(a.balance) || 0), 0);
+    excludedInvestments() {
+      return this.investmentAccounts.filter(a => !this.includedInvestmentIds.includes(a.id));
+    },
+
+    includedCash() {
+      return this.cashAccounts.filter(a => this.includedCashIds.includes(a.id));
+    },
+
+    excludedCash() {
+      return this.cashAccounts.filter(a => !this.includedCashIds.includes(a.id));
+    },
+
+    totalPensions() {
+      return (this.dcPensions || []).reduce((sum, p) => sum + (parseFloat(p.current_fund_value) || 0), 0);
+    },
+
+    totalIncludedInvestments() {
+      return this.includedInvestments.reduce((sum, a) => sum + this.getDisplayValue(a), 0);
+    },
+
+    totalIncludedCash() {
+      return this.includedCash.reduce((sum, a) => sum + (parseFloat(a.current_balance) || 0), 0);
+    },
+
+    totalIncludedAssets() {
+      return this.totalPensions + this.totalIncludedInvestments + this.totalIncludedCash;
     },
 
     compoundingLabel() {
@@ -260,10 +345,10 @@ export default {
     },
 
     progressPercentage() {
-      if (!this.data?.current_pot_value || !this.data?.required_capital_today) {
+      if (!this.data?.required_capital_today) {
         return 0;
       }
-      return Math.round((this.data.current_pot_value / this.data.required_capital_today) * 100);
+      return Math.round((this.totalIncludedAssets / this.data.required_capital_today) * 100);
     },
 
     progressColorClass() {
@@ -318,6 +403,98 @@ export default {
       } finally {
         this.loading = false;
       }
+    },
+
+    toggleAsset(type, id) {
+      if (type === 'investment') {
+        const index = this.includedInvestmentIds.indexOf(id);
+        if (index === -1) {
+          this.includedInvestmentIds.push(id);
+        } else {
+          this.includedInvestmentIds.splice(index, 1);
+        }
+      } else if (type === 'cash') {
+        const index = this.includedCashIds.indexOf(id);
+        if (index === -1) {
+          this.includedCashIds.push(id);
+        } else {
+          this.includedCashIds.splice(index, 1);
+        }
+      }
+    },
+
+    formatAccountType(type) {
+      if (!type) return 'Investment';
+      const typeMap = {
+        isa: 'ISA',
+        sipp: 'SIPP',
+        gia: 'GIA',
+        lisa: 'LISA',
+        jisa: 'JISA',
+        private_company: 'Private Company',
+        crowdfunding: 'Crowdfunding',
+        saye: 'SAYE',
+        csop: 'CSOP',
+        emi: 'EMI',
+        rsu: 'RSU',
+        unapproved_options: 'Unapproved Options',
+      };
+      return typeMap[type] || type.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+    },
+
+    /**
+     * Get the appropriate value label for the account type.
+     * Matches logic from InvestmentList.vue
+     */
+    getValueLabel(account) {
+      const employeeShareSchemes = ['saye', 'csop', 'emi', 'unapproved_options', 'rsu'];
+      const privateTypes = ['private_company', 'crowdfunding'];
+
+      if (employeeShareSchemes.includes(account.account_type)) {
+        return account.account_type === 'rsu' ? 'Grant Value' : 'Exercise Value';
+      }
+      if (privateTypes.includes(account.account_type)) {
+        return 'Valuation';
+      }
+      return 'Current Value';
+    },
+
+    /**
+     * Calculate the display value for an account based on its type.
+     * Matches logic from InvestmentList.vue for consistency.
+     */
+    getDisplayValue(account) {
+      const employeeShareSchemes = ['saye', 'csop', 'emi', 'unapproved_options', 'rsu'];
+      const privateTypes = ['private_company', 'crowdfunding'];
+
+      // Employee share schemes - calculate from units × price
+      if (employeeShareSchemes.includes(account.account_type)) {
+        const unitsGranted = parseFloat(account.units_granted) || 0;
+        const exercisePrice = parseFloat(account.exercise_price) || 0;
+        const marketValueAtGrant = parseFloat(account.market_value_at_grant) || 0;
+
+        // RSUs: units × market value at grant
+        if (account.account_type === 'rsu') {
+          return unitsGranted * marketValueAtGrant;
+        }
+
+        // Options (SAYE, CSOP, EMI, Unapproved): units × exercise price
+        return unitsGranted * exercisePrice;
+      }
+
+      // Private investments - use latest valuation or investment amount
+      if (privateTypes.includes(account.account_type)) {
+        if (account.latest_valuation && parseFloat(account.latest_valuation) > 0) {
+          return parseFloat(account.latest_valuation);
+        }
+        if (account.investment_amount && parseFloat(account.investment_amount) > 0) {
+          return parseFloat(account.investment_amount);
+        }
+        return 0;
+      }
+
+      // Standard accounts - use current_value
+      return parseFloat(account.current_value) || 0;
     },
   },
 };
@@ -557,6 +734,60 @@ export default {
   font-size: 12px;
   @apply text-gray-500;
   margin-top: 4px;
+}
+
+.total-value {
+  font-weight: 600;
+  @apply text-gray-900;
+  margin-left: 8px;
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid;
+  @apply border-gray-200;
+  cursor: pointer;
+}
+
+.toggle-label {
+  font-size: 13px;
+  @apply text-gray-600;
+}
+
+.toggle-switch {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  appearance: none;
+  @apply bg-gray-300;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.toggle-switch:checked {
+  @apply bg-primary-600;
+}
+
+.toggle-switch::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-switch:checked::before {
+  transform: translateX(16px);
 }
 
 /* Progress and Assumptions Row */

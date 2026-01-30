@@ -346,13 +346,34 @@ resources/js/router/index.js
 Added detailed "Required Capital" calculations to the Retirement module. Users can access this by clicking the pension pot projection chart in the Retirement dashboard. The breakdown includes:
 
 - 4 summary cards inline: Target Income, Required Capital, Projected Pension Pot (80% Monte Carlo), Required Capital Today
-- Pensions included in calculation section (DC pensions with scheme name and value)
-- Other assets not included section (Investment and Cash accounts with values > £0)
+- "Assets included in calculation" section showing DC pensions plus any toggled investments/cash with total value
+- "Other assets" section with toggle switches to include investments and cash in retirement capital calculation
+- Toggle updates total included assets and recalculates progress bar in real-time
+- Toggle label shows "Exclude from retirement capital" when included, "Include in retirement capital" when excluded
 - Progress towards target with progress bar (inline with assumptions)
 - Calculation assumptions displayed inline
 - Default 1% fees if none entered (with helper text)
 - Year-by-year projection table with FV and PV columns
 - Formula explanations
+
+### Investment Account Types
+
+Only liquid investment accounts are shown in the retirement capital calculation. The following illiquid and employee share scheme types are excluded:
+
+| Excluded Type | Reason |
+|--------------|--------|
+| VCT | Illiquid - 5 year minimum holding |
+| EIS | Illiquid - 3 year minimum holding |
+| Private Company | Illiquid - no market |
+| Crowdfunding | Illiquid - no market |
+| SAYE/Sharesave | Employee scheme - restricted |
+| CSOP | Employee scheme - restricted |
+| EMI | Employee scheme - restricted |
+| Unapproved Options | Employee scheme - restricted |
+| RSUs | Employee scheme - restricted |
+| Other | Unknown liquidity |
+
+Only ISA, GIA, SIPP, LISA, and JISA accounts are included as these are liquid and accessible for retirement funding.
 
 ### Formulas Used
 
