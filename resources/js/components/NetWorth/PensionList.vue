@@ -149,14 +149,19 @@
               </div>
             </div>
 
-            <!-- Retirement Income Card -->
+            <!-- Retirement Income Planner Card -->
             <div class="income-card-standalone target clickable" @click="setActiveTab('income')">
+              <div class="income-card-heading">Retirement Income Planner</div>
               <div class="income-card-label">Target Annual Income</div>
               <div class="income-card-value">{{ formatCurrency(targetIncome) }}</div>
               <div class="income-card-divider"></div>
               <div class="income-card-label">Required Capital</div>
               <div class="income-card-value-secondary">{{ formatCurrency(requiredCapitalValue) }}</div>
               <div class="income-card-sublabel">Based on 4.7% withdrawal rate</div>
+              <div class="income-card-divider"></div>
+              <div class="income-card-label">Projected Net Income</div>
+              <div class="income-card-value-green">{{ formatCurrency(projectedNetIncome) }}</div>
+              <div class="income-card-sublabel">After tax from all sources</div>
             </div>
 
             <!-- Fund Depletion Warning -->
@@ -417,6 +422,7 @@ export default {
       'profile',
       'activeTab',
       'requiredCapital',
+      'retirementIncome',
     ]),
 
     allPensions() {
@@ -460,6 +466,11 @@ export default {
       // Fallback: Calculate required capital based on 4.7% withdrawal rate
       const withdrawalRate = 0.047;
       return this.targetIncome / withdrawalRate;
+    },
+
+    projectedNetIncome() {
+      // Get net income from retirement income planner (after tax)
+      return this.retirementIncome?.tax_breakdown?.net_income || this.targetIncome;
     },
 
     incomeGap() {
@@ -575,6 +586,7 @@ export default {
       'fetchProjections',
       'fetchStrategies',
       'fetchRequiredCapital',
+      'fetchRetirementIncome',
       'createDCPension',
       'createDBPension',
       'updateStatePension',
@@ -675,10 +687,11 @@ export default {
         return;
       }
       try {
-        // Fetch projections and required capital in parallel
+        // Fetch projections, required capital, and retirement income in parallel
         await Promise.all([
           this.fetchProjections(),
           this.fetchRequiredCapital(),
+          this.fetchRetirementIncome(),
         ]);
         if (this.showStrategies) {
           await this.fetchStrategies();
@@ -1511,6 +1524,15 @@ export default {
   @apply border border-red-200;
 }
 
+.income-card-heading {
+  font-size: 14px;
+  font-weight: 600;
+  @apply text-blue-800;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
 .income-card-label {
   font-size: 13px;
   @apply text-gray-500;
@@ -1521,6 +1543,12 @@ export default {
   font-size: 22px;
   font-weight: 700;
   @apply text-gray-900;
+}
+
+.income-card-value-green {
+  font-size: 20px;
+  font-weight: 700;
+  @apply text-green-600;
 }
 
 .income-card-sublabel {

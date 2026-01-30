@@ -1876,6 +1876,67 @@ resources/js/components/Retirement/RetirementIncomeTab.vue
 
 ---
 
+## Pension Dashboard - Retirement Income Planner Card
+
+**Branch:** decumRetire
+
+**Status:** Ready to deploy
+
+### Description
+
+Enhanced the Target Annual Income card on the Pension dashboard to show more information from the Retirement Income Planner, including a heading and the projected net income after tax.
+
+### Card Layout (Before)
+
+```text
+┌─────────────────────────────┐
+│ Target Annual Income        │
+│ £75,000                     │
+│ ─────────────────────────── │
+│ Required Capital            │
+│ £1,595,745                  │
+│ Based on 4.7% withdrawal    │
+└─────────────────────────────┘
+```
+
+### Card Layout (After)
+
+```text
+┌─────────────────────────────┐
+│ Retirement Income Planner   │  ← NEW heading
+│ ─────────────────────────── │
+│ Target Annual Income        │
+│ £75,000                     │
+│ ─────────────────────────── │
+│ Required Capital            │
+│ £1,595,745                  │
+│ Based on 4.7% withdrawal    │
+│ ─────────────────────────── │
+│ Projected Net Income        │  ← NEW
+│ £75,000 (green)             │  ← From retirement income planner
+│ After tax from all sources  │
+└─────────────────────────────┘
+```
+
+### Changes Made
+
+| Change | Description |
+|--------|-------------|
+| Card heading | Added "Retirement Income Planner" heading at top of card |
+| Projected Net Income | Added new field showing net income after tax from retirement income planner |
+| Data fetching | Added `fetchRetirementIncome` to load retirement income data on page load |
+| Computed property | Added `projectedNetIncome` computed property |
+| CSS | Added `.income-card-heading` and `.income-card-value-green` styles |
+
+### Files Changed
+
+**Frontend (Included in Build):**
+```text
+resources/js/components/NetWorth/PensionList.vue
+```
+
+---
+
 ## Rollback
 
 If issues occur:
