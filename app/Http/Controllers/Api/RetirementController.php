@@ -19,6 +19,7 @@ use App\Models\RetirementProfile;
 use App\Models\StatePension;
 use App\Services\Investment\DiversificationAnalyzer;
 use App\Services\Retirement\AnnualAllowanceChecker;
+use App\Services\Retirement\RequiredCapitalCalculator;
 use App\Services\Retirement\RetirementIncomeService;
 use App\Services\Retirement\RetirementProjectionService;
 use App\Services\Retirement\RetirementStrategyService;
@@ -42,7 +43,8 @@ class RetirementController extends Controller
         private RetirementProjectionService $projectionService,
         private RetirementStrategyService $strategyService,
         private RetirementIncomeService $retirementIncomeService,
-        private DiversificationAnalyzer $diversificationAnalyzer
+        private DiversificationAnalyzer $diversificationAnalyzer,
+        private RequiredCapitalCalculator $requiredCapitalCalculator
     ) {}
 
     /**
@@ -103,6 +105,25 @@ class RetirementController extends Controller
                 'message' => 'Pension not found',
             ], 404);
         }
+    }
+
+    /**
+     * Get required capital calculations with present value breakdown.
+     *
+     * Returns required income, required capital at retirement (FV),
+     * required capital in today's money (PV), and year-by-year projections.
+     */
+    public function getRequiredCapital(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $data = $this->requiredCapitalCalculator->calculate($user->id);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Required capital calculations generated successfully',
+            'data' => $data,
+        ]);
     }
 
     /**

@@ -84,7 +84,7 @@
             <!-- Retirement Age (for non-retired) -->
             <div v-if="formData.employment_status && formData.employment_status !== 'retired'">
               <label for="target_retirement_age" class="label">
-                What age do you want to retire?
+                Retirement Age
               </label>
               <input
                 id="target_retirement_age"
@@ -96,7 +96,7 @@
                 placeholder="65"
               >
               <p class="mt-1 text-body-sm text-gray-500">
-                Your planned retirement age. This may be different to the age entered for your DC Pension Plans.
+                Planned retirement age, used for all pension forecast calculations.
               </p>
             </div>
           </template>

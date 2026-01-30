@@ -113,6 +113,16 @@ const investmentService = {
         return response.data;
     },
 
+    /**
+     * Toggle include_in_retirement flag for an investment account
+     * @param {Number} id - Account ID
+     * @returns {Promise} Updated account with new include_in_retirement value
+     */
+    async toggleRetirementInclusion(id) {
+        const response = await api.patch(`/investment/accounts/${id}/toggle-retirement`);
+        return response.data;
+    },
+
     // Holdings Methods
     /**
      * Create a new holding

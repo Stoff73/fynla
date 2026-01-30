@@ -43,6 +43,8 @@ class DCPension extends Model
         'projected_value_at_retirement',
         'risk_preference',
         'has_custom_risk',
+        'beneficiary_id',
+        'beneficiary_name',
     ];
 
     protected $casts = [
@@ -70,6 +72,14 @@ class DCPension extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get the beneficiary user (if linked to an account).
+     */
+    public function beneficiary(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'beneficiary_id');
     }
 
     /**

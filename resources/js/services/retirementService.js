@@ -52,6 +52,14 @@ export default {
     },
 
     /**
+     * Get required capital calculations with present value breakdown
+     */
+    async getRequiredCapital() {
+        const response = await api.get(`${API_BASE}/required-capital`);
+        return response.data;
+    },
+
+    /**
      * Get Monte Carlo projections for a specific DC pension
      */
     async getDCPensionProjection(pensionId) {

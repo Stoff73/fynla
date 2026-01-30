@@ -145,10 +145,10 @@ export default {
 
     const getStepCircleClass = (step, index) => {
       if (isCurrentStep(index)) {
-        return 'bg-blue-600 border-blue-600 text-white';
+        return 'bg-teal-600 border-teal-600 text-white';
       }
       if (isStepSkipped(step)) {
-        return 'bg-orange-500 border-orange-500 text-white';
+        return 'bg-blue-500 border-blue-500 text-white';
       }
       if (isStepCompleted(step, index)) {
         return 'bg-green-600 border-green-600 text-white';
@@ -158,10 +158,10 @@ export default {
 
     const getStepLabelClass = (step, index) => {
       if (isCurrentStep(index)) {
-        return 'text-blue-600 font-semibold';
+        return 'text-teal-600 font-semibold';
       }
       if (isStepSkipped(step)) {
-        return 'text-orange-600';
+        return 'text-blue-600';
       }
       if (isStepCompleted(step, index)) {
         return 'text-green-600';

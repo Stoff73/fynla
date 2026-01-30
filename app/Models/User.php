@@ -367,6 +367,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the user's retirement profile.
+     */
+    public function retirementProfile(): HasOne
+    {
+        return $this->hasOne(RetirementProfile::class);
+    }
+
+    /**
      * Get the spouse permission requests sent by this user
      */
     public function spousePermissionRequests(): HasMany
@@ -412,6 +420,14 @@ class User extends Authenticatable
     public function goals(): HasMany
     {
         return $this->hasMany(Goal::class);
+    }
+
+    /**
+     * Get the user's planning assumptions.
+     */
+    public function assumptions(): HasMany
+    {
+        return $this->hasMany(UserAssumption::class);
     }
 
     /**

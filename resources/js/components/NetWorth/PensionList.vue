@@ -86,14 +86,6 @@
               @click="selectPension(pension, 'dc')"
               class="pension-card-standalone"
             >
-              <!-- Risk Badge - Top Right Corner -->
-              <RiskBadge
-                v-if="pension.risk_preference"
-                :level="pension.risk_preference"
-                size="xs"
-                :abbreviated="true"
-                class="pension-risk-badge"
-              />
               <div class="card-header">
                 <span class="badge badge-dc">{{ formatDCPensionType(pension.pension_type) }}</span>
               </div>
@@ -157,14 +149,19 @@
               </div>
             </div>
 
-            <!-- Retirement Income Card -->
+            <!-- Retirement Income Planner Card -->
             <div class="income-card-standalone target clickable" @click="setActiveTab('income')">
+              <div class="income-card-heading">Retirement Income Planner</div>
               <div class="income-card-label">Target Annual Income</div>
               <div class="income-card-value">{{ formatCurrency(targetIncome) }}</div>
               <div class="income-card-divider"></div>
               <div class="income-card-label">Required Capital</div>
-              <div class="income-card-value-secondary">{{ formatCurrency(requiredCapital) }}</div>
+              <div class="income-card-value-secondary">{{ formatCurrency(requiredCapitalValue) }}</div>
               <div class="income-card-sublabel">Based on 4.7% withdrawal rate</div>
+              <div class="income-card-divider"></div>
+              <div class="income-card-label">Projected Net Income</div>
+              <div class="income-card-value-green">{{ formatCurrency(projectedNetIncome) }}</div>
+              <div class="income-card-sublabel">After tax from all sources</div>
             </div>
 
             <!-- Fund Depletion Warning -->
@@ -195,13 +192,13 @@
 
             <!-- Projections Content -->
             <template v-else>
-              <!-- Monte Carlo Chart - Clickable to Future Value Tab -->
-              <div class="chart-card clickable" @click="setActiveTab('future')">
+              <!-- Monte Carlo Chart - Clickable to Required Capital Detail -->
+              <div class="chart-card clickable" @click="setActiveTab('required-capital')">
                 <div class="chart-header">
                   <h3 class="chart-title">Pension Pot Projection</h3>
                   <span class="risk-badge-corner">{{ formatRiskLevel(projections.pension_pot_projection?.risk_level) }} Risk</span>
                 </div>
-                <div class="summary-row">
+                <div class="summary-row three-col">
                   <div class="summary-item blue">
                     <span class="summary-item-label">Pension Pot Value</span>
                     <span class="summary-item-value">{{ formatCurrency(dcPensionValue) }}</span>
@@ -209,6 +206,19 @@
                   <div class="summary-item purple">
                     <span class="summary-item-label">Projected Value (80%)</span>
                     <span class="summary-item-value">{{ formatCurrency(projections.pension_pot_projection?.percentile_20_at_retirement) }}</span>
+                  </div>
+                  <div class="summary-item teal">
+                    <div class="retirement-age-inline">
+                      <div class="retirement-inline-item">
+                        <span class="summary-item-label">Retirement Age</span>
+                        <span class="summary-item-value">{{ projections.pension_pot_projection?.retirement_age }}</span>
+                      </div>
+                      <div class="retirement-inline-divider"></div>
+                      <div class="retirement-inline-item">
+                        <span class="summary-item-label">Years to Go</span>
+                        <span class="summary-item-value">{{ projections.pension_pot_projection?.years_to_retirement }}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
                 <PensionPotProjectionChart
@@ -305,6 +315,12 @@
         @back="setActiveTab('current')"
       />
 
+      <!-- Required Capital Detail -->
+      <RequiredCapitalDetail
+        v-else-if="activeTab === 'required-capital'"
+        @back="setActiveTab('current')"
+      />
+
       <!-- Strategies Tab -->
       <StrategiesTab
         v-else-if="activeTab === 'strategies'"
@@ -315,6 +331,7 @@
       <RetirementIncomeTab
         v-else-if="activeTab === 'income'"
         @back="setActiveTab('current')"
+        @add-state-pension="openStatePensionForm"
       />
     </template>
 
@@ -324,6 +341,7 @@
       :pension="editingPension"
       :state-pension="statePension"
       :is-edit="!!editingPension"
+      :initial-pension-type="initialPensionType"
       @close="closePensionForm"
       @save="handlePensionSave"
     />
@@ -355,6 +373,7 @@ import DocumentUploadModal from '@/components/Shared/DocumentUploadModal.vue';
 import RiskBadge from '@/components/Shared/RiskBadge.vue';
 import PensionPotProjectionChart from '@/components/Retirement/PensionPotProjectionChart.vue';
 import FutureValueTab from '@/components/Retirement/FutureValueTab.vue';
+import RequiredCapitalDetail from '@/components/Retirement/RequiredCapitalDetail.vue';
 import StrategiesTab from '@/components/Retirement/StrategiesTab.vue';
 import RetirementIncomeTab from '@/components/Retirement/RetirementIncomeTab.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
@@ -371,6 +390,7 @@ export default {
     RiskBadge,
     PensionPotProjectionChart,
     FutureValueTab,
+    RequiredCapitalDetail,
     StrategiesTab,
     RetirementIncomeTab,
   },
@@ -382,6 +402,7 @@ export default {
       showPensionForm: false,
       showUploadModal: false,
       editingPension: null,
+      initialPensionType: null,
       successMessage: null,
       errorMessage: null,
     };
@@ -400,6 +421,8 @@ export default {
       'strategiesLoading',
       'profile',
       'activeTab',
+      'requiredCapital',
+      'retirementIncome',
     ]),
 
     allPensions() {
@@ -427,13 +450,27 @@ export default {
     },
 
     targetIncome() {
+      // Use centralised value from requiredCapital store (fetched from backend)
+      if (this.requiredCapital?.required_income) {
+        return this.requiredCapital.required_income;
+      }
+      // Fallback to projections or profile
       return this.projections?.income_drawdown?.target_income || this.profile?.target_retirement_income || 35000;
     },
 
-    requiredCapital() {
-      // Calculate required capital based on 4.7% withdrawal rate
+    requiredCapitalValue() {
+      // Use centralised value from requiredCapital store (fetched from backend)
+      if (this.requiredCapital?.required_capital_at_retirement) {
+        return this.requiredCapital.required_capital_at_retirement;
+      }
+      // Fallback: Calculate required capital based on 4.7% withdrawal rate
       const withdrawalRate = 0.047;
       return this.targetIncome / withdrawalRate;
+    },
+
+    projectedNetIncome() {
+      // Get net income from retirement income planner (after tax)
+      return this.retirementIncome?.tax_breakdown?.net_income || this.targetIncome;
     },
 
     incomeGap() {
@@ -548,6 +585,8 @@ export default {
       'fetchRetirementData',
       'fetchProjections',
       'fetchStrategies',
+      'fetchRequiredCapital',
+      'fetchRetirementIncome',
       'createDCPension',
       'createDBPension',
       'updateStatePension',
@@ -598,6 +637,13 @@ export default {
     closePensionForm() {
       this.showPensionForm = false;
       this.editingPension = null;
+      this.initialPensionType = null;
+    },
+
+    openStatePensionForm() {
+      this.initialPensionType = 'state';
+      this.editingPension = null;
+      this.showPensionForm = true;
     },
 
     async handlePensionSave(data) {
@@ -641,7 +687,12 @@ export default {
         return;
       }
       try {
-        await this.fetchProjections();
+        // Fetch projections, required capital, and retirement income in parallel
+        await Promise.all([
+          this.fetchProjections(),
+          this.fetchRequiredCapital(),
+          this.fetchRetirementIncome(),
+        ]);
         if (this.showStrategies) {
           await this.fetchStrategies();
         }
@@ -806,13 +857,6 @@ export default {
   transition: all 0.2s ease;
 }
 
-/* Risk Badge - Top Right Corner */
-.pension-card-standalone :deep(.pension-risk-badge) {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  z-index: 10;
-}
 
 .pension-card-standalone:hover {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
@@ -1117,6 +1161,7 @@ export default {
   font-weight: 600;
 }
 
+
 .chart-footer {
   font-size: 13px;
   @apply text-gray-500;
@@ -1159,6 +1204,10 @@ export default {
   margin-bottom: 20px;
 }
 
+.summary-row.three-col {
+  grid-template-columns: repeat(3, 1fr);
+}
+
 .summary-item {
   padding: 12px 16px;
   border-radius: 8px;
@@ -1182,6 +1231,29 @@ export default {
 
 .summary-item.red {
   @apply bg-red-50;
+}
+
+.summary-item.teal {
+  @apply bg-teal-50;
+}
+
+/* Inline Retirement Age */
+.retirement-age-inline {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.retirement-inline-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.retirement-inline-divider {
+  width: 1px;
+  height: 32px;
+  @apply bg-teal-300;
 }
 
 .summary-item-label {
@@ -1452,6 +1524,15 @@ export default {
   @apply border border-red-200;
 }
 
+.income-card-heading {
+  font-size: 14px;
+  font-weight: 600;
+  @apply text-blue-800;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
 .income-card-label {
   font-size: 13px;
   @apply text-gray-500;
@@ -1462,6 +1543,12 @@ export default {
   font-size: 22px;
   font-weight: 700;
   @apply text-gray-900;
+}
+
+.income-card-value-green {
+  font-size: 20px;
+  font-weight: 700;
+  @apply text-green-600;
 }
 
 .income-card-sublabel {
@@ -1574,7 +1661,8 @@ export default {
     justify-content: center;
   }
 
-  .summary-row {
+  .summary-row,
+  .summary-row.three-col {
     grid-template-columns: 1fr;
   }
 }

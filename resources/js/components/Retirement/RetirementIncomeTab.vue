@@ -49,7 +49,8 @@
           <h3 class="section-title">Retirement Income Planner</h3>
           <p class="section-subtitle">Model your tax-optimised drawdown strategy from age {{ retirementAge }}</p>
         </div>
-        <div class="header-right">
+        <!-- Spouse toggle hidden - functionality exists in backend but not exposed to users at this time -->
+        <div v-if="false" class="header-right">
           <label class="spouse-toggle">
             <span class="toggle-label">Include spouse's assets</span>
             <button
@@ -63,20 +64,67 @@
         </div>
       </div>
 
+      <!-- State Pension Message -->
+      <div v-if="statePensionStatus && !statePensionStatus.has_data" class="info-banner">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="info-icon">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+        </svg>
+        <div class="info-content">
+          <p class="info-message">{{ statePensionStatus.message }}</p>
+          <div class="info-links">
+            <button
+              type="button"
+              @click="$emit('add-state-pension')"
+              class="info-link-button"
+            >
+              Add State Pension
+            </button>
+            <span class="info-separator">or</span>
+            <a
+              :href="statePensionStatus.link"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="info-link"
+            >
+              {{ statePensionStatus.link_text }}
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="external-link-icon">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+              </svg>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Income Adjusted Notice -->
+      <div v-if="incomeWasAdjusted" class="info-banner adjusted">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="info-icon">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+        </svg>
+        <div class="info-content">
+          <p class="info-message">
+            Income adjusted from {{ formatCurrency(displayTargetIncome) }} to {{ formatCurrency(optimisedIncome) }}/year
+            to ensure funds last to age 100.
+          </p>
+        </div>
+      </div>
+
       <!-- Summary Cards -->
       <div class="summary-grid">
         <!-- Target Income Card -->
         <div class="summary-card target">
           <div class="card-header-row">
-            <p class="summary-label">Target Annual Income</p>
+            <p class="summary-label">{{ incomeWasAdjusted ? 'Optimised Income' : 'Target Annual Income' }}</p>
             <button class="edit-btn" @click="showTargetModal = true">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
               </svg>
             </button>
           </div>
-          <p class="summary-value">{{ formatCurrency(displayTargetIncome) }}</p>
-          <p class="summary-subtitle">{{ customTargetIncome ? 'Custom target' : 'From retirement profile' }}</p>
+          <p class="summary-value">{{ formatCurrency(incomeWasAdjusted ? optimisedIncome : displayTargetIncome) }}</p>
+          <p class="summary-subtitle">
+            <template v-if="incomeWasAdjusted">Adjusted to last until age 100</template>
+            <template v-else>{{ customTargetIncome ? 'Custom target' : 'From retirement profile' }}</template>
+          </p>
         </div>
 
         <!-- Net Income Card -->
@@ -98,7 +146,6 @@
       <div class="sources-section">
         <div class="sources-header">
           <h4 class="sources-title">Income Sources</h4>
-          <p class="sources-subtitle">Adjust sliders to see real-time tax impact</p>
         </div>
 
         <div class="sources-list">
@@ -107,7 +154,6 @@
             :key="`${allocation.source_type}-${allocation.source_id}`"
             :allocation="allocation"
             :account="getAccountForAllocation(allocation)"
-            @update="handleAllocationUpdate"
           />
         </div>
 
@@ -115,12 +161,6 @@
           <p>No income allocations configured</p>
         </div>
       </div>
-
-      <!-- Tax Breakdown Section -->
-      <TaxBreakdownCard
-        v-if="taxBreakdown"
-        :breakdown="taxBreakdown"
-      />
 
       <!-- Fund Depletion Chart -->
       <FundDepletionChart
@@ -160,7 +200,6 @@
 <script>
 import { mapState, mapGetters, mapActions } from 'vuex';
 import IncomeSourceSlider from './IncomeSourceSlider.vue';
-import TaxBreakdownCard from './TaxBreakdownCard.vue';
 import FundDepletionChart from './FundDepletionChart.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
@@ -169,11 +208,10 @@ export default {
 
   mixins: [currencyMixin],
 
-  emits: ['back'],
+  emits: ['back', 'add-state-pension'],
 
   components: {
     IncomeSourceSlider,
-    TaxBreakdownCard,
     FundDepletionChart,
   },
 
@@ -194,6 +232,7 @@ export default {
       'customTargetIncome',
       'error',
       'profile',
+      'requiredCapital',
     ]),
     ...mapGetters('retirement', [
       'retirementIncomeData',
@@ -221,7 +260,11 @@ export default {
     },
 
     displayTargetIncome() {
-      return this.customTargetIncome || this.retirementIncome?.target_income || 0;
+      // Priority: custom target > requiredCapital (centralised) > retirementIncome API > 0
+      return this.customTargetIncome ||
+             this.requiredCapital?.required_income ||
+             this.retirementIncome?.target_income ||
+             0;
     },
 
     taxBreakdown() {
@@ -238,6 +281,18 @@ export default {
 
     availableAccounts() {
       return this.retirementIncome?.available_accounts || [];
+    },
+
+    statePensionStatus() {
+      return this.retirementIncome?.state_pension_status || null;
+    },
+
+    optimisedIncome() {
+      return this.retirementIncome?.optimised_income || this.displayTargetIncome;
+    },
+
+    incomeWasAdjusted() {
+      return this.retirementIncome?.income_was_adjusted || false;
     },
 
     displayAllocations() {
@@ -262,15 +317,6 @@ export default {
     },
   },
 
-  watch: {
-    incomeAllocations: {
-      handler() {
-        this.debouncedCalculate();
-      },
-      deep: true,
-    },
-  },
-
   mounted() {
     this.loadData();
   },
@@ -284,15 +330,19 @@ export default {
   methods: {
     ...mapActions('retirement', [
       'fetchRetirementIncome',
+      'fetchRequiredCapital',
       'calculateRetirementIncome',
       'toggleSpouseAssets',
       'setCustomTargetIncome',
-      'updateIncomeAllocation',
     ]),
 
     async loadData() {
       try {
-        await this.fetchRetirementIncome();
+        // Fetch retirement income and required capital in parallel
+        await Promise.all([
+          this.fetchRetirementIncome(),
+          this.fetchRequiredCapital(),
+        ]);
         this.tempTargetIncome = this.displayTargetIncome;
       } catch (error) {
         console.error('Failed to load retirement income data:', error);
@@ -301,10 +351,6 @@ export default {
 
     async toggleSpouse() {
       await this.toggleSpouseAssets(!this.includeSpouse);
-    },
-
-    handleAllocationUpdate({ sourceType, sourceId, amount }) {
-      this.updateIncomeAllocation({ sourceType, sourceId, amount });
     },
 
     debouncedCalculate() {
@@ -330,10 +376,31 @@ export default {
     },
 
     getAccountForAllocation(allocation) {
-      return this.availableAccounts.find(
-        a => a.type === allocation.source_type.replace('_pcls', '').replace('_drawdown', '') &&
-             a.id === allocation.source_id
-      ) || null;
+      const sourceType = allocation.source_type.replace('_pcls', '').replace('_drawdown', '');
+
+      return this.availableAccounts.find(a => {
+        // Match by source_id
+        const idMatch = a.id === allocation.source_id || a.source_id === allocation.source_id;
+        if (!idMatch) return false;
+
+        // Match type - handle ISA variants (source_type='isa', account.type='isa_investment' or 'isa_cash')
+        if (sourceType === 'isa') {
+          return a.type === 'isa' || a.type === 'isa_investment' || a.type === 'isa_cash';
+        }
+
+        // Match type - handle bond variants
+        if (sourceType === 'onshore_bond' || sourceType === 'offshore_bond') {
+          return a.type === sourceType;
+        }
+
+        // Match type - handle pension pot
+        if (sourceType === 'pension_pot') {
+          return a.type === 'pension_pot';
+        }
+
+        // Default exact match
+        return a.type === sourceType;
+      }) || null;
     },
 
     formatPercent(value) {
@@ -568,31 +635,6 @@ export default {
   @apply border border-gray-200;
 }
 
-.summary-card.target {
-  background: linear-gradient(135deg, theme('colors.blue.50') 0%, theme('colors.blue.100') 100%);
-  @apply border-blue-200;
-}
-
-.summary-card.green {
-  background: linear-gradient(135deg, theme('colors.green.50') 0%, theme('colors.green.100') 100%);
-  @apply border-green-200;
-}
-
-.summary-card.orange {
-  background: linear-gradient(135deg, theme('colors.orange.50') 0%, theme('colors.orange.100') 100%);
-  @apply border-orange-200;
-}
-
-.summary-card.red {
-  background: linear-gradient(135deg, theme('colors.red.50') 0%, theme('colors.red.100') 100%);
-  @apply border-red-200;
-}
-
-.summary-card.tax {
-  background: linear-gradient(135deg, theme('colors.purple.50') 0%, theme('colors.purple.100') 100%);
-  @apply border-purple-100;
-}
-
 .card-header-row {
   display: flex;
   justify-content: space-between;
@@ -654,18 +696,12 @@ export default {
   font-size: 18px;
   font-weight: 600;
   @apply text-gray-900;
-  margin: 0 0 4px 0;
-}
-
-.sources-subtitle {
-  font-size: 14px;
-  @apply text-gray-500;
   margin: 0;
 }
 
 .sources-list {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
 }
 
@@ -793,6 +829,108 @@ export default {
   @apply bg-blue-600;
 }
 
+@media (max-width: 1024px) {
+  .sources-list {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Info Banner */
+.info-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  @apply bg-blue-50;
+  @apply border border-blue-200;
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.info-banner.adjusted {
+  @apply bg-blue-50;
+  @apply border-blue-200;
+}
+
+.info-icon {
+  width: 20px;
+  height: 20px;
+  @apply text-blue-600;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.info-banner.adjusted .info-icon {
+  @apply text-blue-600;
+}
+
+.info-content {
+  flex: 1;
+}
+
+.info-message {
+  font-size: 14px;
+  @apply text-gray-700;
+  margin: 0 0 8px 0;
+  line-height: 1.5;
+}
+
+.info-banner.adjusted .info-message {
+  margin: 0;
+}
+
+.info-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  @apply text-blue-600;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.info-link:hover {
+  @apply text-blue-700;
+  text-decoration: underline;
+}
+
+.external-link-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.info-links {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.info-link-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  @apply text-white;
+  @apply bg-blue-600;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.info-link-button:hover {
+  @apply bg-blue-700;
+}
+
+.info-separator {
+  font-size: 13px;
+  @apply text-gray-400;
+}
+
 @media (max-width: 768px) {
   .header-section {
     flex-direction: column;
@@ -802,8 +940,21 @@ export default {
     grid-template-columns: 1fr;
   }
 
+  .sources-list {
+    grid-template-columns: 1fr;
+  }
+
   .modal-content {
     margin: 20px;
+  }
+
+  .info-banner {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .info-icon {
+    margin-top: 0;
   }
 }
 </style>

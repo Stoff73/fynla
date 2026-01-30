@@ -75,6 +75,14 @@
               >
                 Joint
               </span>
+              <!-- Retirement Badge - Top Right Corner (below Joint if both) -->
+              <span
+                v-if="account.include_in_retirement"
+                class="retirement-badge-corner"
+                :class="{ 'has-joint': account.ownership_type === 'joint' }"
+              >
+                Retirement
+              </span>
               <div class="card-header">
                 <span :class="['badge', accountTypeBadgeClass(account.account_type)]">
                   {{ formatAccountType(account.account_type) }}
@@ -913,6 +921,18 @@ export default {
   right: 8px;
   z-index: 10;
   @apply px-2 py-0.5 text-xs font-medium rounded-full bg-purple-100 text-purple-800;
+}
+
+.retirement-badge-corner {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 10;
+  @apply px-2 py-0.5 text-xs font-medium rounded-full bg-teal-100 text-teal-800;
+}
+
+.retirement-badge-corner.has-joint {
+  top: 30px;
 }
 
 .compact-account-card:hover {

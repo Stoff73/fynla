@@ -199,44 +199,22 @@
             </p>
           </div>
 
-          <!-- Expected Return and Retirement Age -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label for="expected_return_percent" class="block text-sm font-medium text-gray-700 mb-2">
-                Expected Return (% p.a.)
-              </label>
-              <input
-                id="expected_return_percent"
-                v-model.number="formData.expected_return_percent"
-                type="number"
-                step="0.01"
-                min="0"
-                max="20"
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                placeholder="e.g., 5.00"
-              />
-              <p class="text-xs text-gray-500 mt-1">Typical: 4-6% for balanced funds</p>
-            </div>
-            <div>
-              <label for="retirement_age" class="block text-sm font-medium text-gray-700 mb-2">
-                Planned Retirement Age
-              </label>
-              <input
-                id="retirement_age"
-                v-model.number="formData.retirement_age"
-                type="number"
-                min="55"
-                max="75"
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                :class="{ 'border-red-500': validationErrors.retirement_age }"
-                placeholder="e.g., 67"
-                @blur="validateRetirementAge"
-              />
-              <p v-if="validationErrors.retirement_age" class="text-xs text-red-500 mt-1">
-                {{ validationErrors.retirement_age }}
-              </p>
-              <p v-else class="text-xs text-gray-500 mt-1">Pensions can usually be accessed from age 55</p>
-            </div>
+          <!-- Expected Return -->
+          <div>
+            <label for="expected_return_percent" class="block text-sm font-medium text-gray-700 mb-2">
+              Expected Return (% p.a.)
+            </label>
+            <input
+              id="expected_return_percent"
+              v-model.number="formData.expected_return_percent"
+              type="number"
+              step="0.01"
+              min="0"
+              max="20"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="e.g., 5.00"
+            />
+            <p class="text-xs text-gray-500 mt-1">Typical: 4-6% for balanced funds</p>
           </div>
 
           <!-- Risk Level Section (hidden during onboarding) -->
@@ -287,6 +265,50 @@
             <label for="salary_sacrifice" class="ml-2 block text-sm text-gray-700">
               Using salary sacrifice arrangement
             </label>
+          </div>
+
+          <!-- Beneficiary Section -->
+          <div class="space-y-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <p class="text-sm text-blue-800 font-medium">Beneficiary Details</p>
+
+            <!-- Beneficiary Selection -->
+            <div>
+              <label for="beneficiary_selection" class="block text-sm font-medium text-gray-700 mb-1">
+                Beneficiary
+              </label>
+              <select
+                id="beneficiary_selection"
+                v-model="beneficiarySelection"
+                @change="handleBeneficiarySelection"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">Select beneficiary...</option>
+                <option v-if="spouseOption" :value="'linked_' + spouseOption.id">
+                  {{ spouseOption.name }} (Spouse - Linked Account)
+                </option>
+                <option value="other">Other (enter name)</option>
+              </select>
+              <p class="text-xs text-gray-500 mt-1">
+                Who should receive this pension if you pass away?
+              </p>
+            </div>
+
+            <!-- Custom Beneficiary Name (when "Other" selected) -->
+            <div v-if="beneficiarySelection === 'other'">
+              <label for="beneficiary_name" class="block text-sm font-medium text-gray-700 mb-1">
+                Beneficiary Name
+              </label>
+              <input
+                id="beneficiary_name"
+                v-model="formData.beneficiary_name"
+                type="text"
+                placeholder="Enter beneficiary's full name"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <p class="text-xs text-gray-500 mt-1">
+                This person doesn't have an account in the system.
+              </p>
+            </div>
           </div>
 
           <!-- Notes -->
@@ -366,19 +388,21 @@ export default {
         monthly_contribution_amount: null,
         lump_sum_contribution: null,
         expected_return_percent: 5.0,
-        retirement_age: null, // Will be populated from user profile
         salary_sacrifice: false,
         notes: '',
         risk_preference: null,
+        beneficiary_id: null,
+        beneficiary_name: '',
       },
       validationErrors: {
         employee_contribution_percent: '',
         employer_contribution_percent: '',
-        retirement_age: '',
       },
       // Risk profile state
       mainRiskLevel: null,
       allowedRiskLevels: ['low', 'lower_medium', 'medium', 'upper_medium', 'high'],
+      // Beneficiary state
+      beneficiarySelection: '',
     };
   },
 
@@ -418,6 +442,11 @@ export default {
       }
       return Math.round((this.formData.annual_salary * this.formData.employer_contribution_percent / 100) / 12);
     },
+
+    spouseOption() {
+      const spouse = this.$store.getters['userProfile/spouse'];
+      return spouse ? { id: spouse.id, name: spouse.name } : null;
+    },
   },
 
   watch: {
@@ -429,12 +458,12 @@ export default {
           this.formData = {
             ...newPension,
             risk_preference: newPension.risk_preference || null,
+            beneficiary_id: newPension.beneficiary_id || null,
+            beneficiary_name: newPension.beneficiary_name || '',
           };
-        } else {
-          // Adding new pension - populate retirement age from user profile
-          if (this.currentUser && this.currentUser.target_retirement_age) {
-            this.formData.retirement_age = this.currentUser.target_retirement_age;
-          }
+          this.$nextTick(() => {
+            this.initializeBeneficiarySelection();
+          });
         }
       },
     },
@@ -488,6 +517,34 @@ export default {
       }
     },
 
+    handleBeneficiarySelection() {
+      if (this.beneficiarySelection.startsWith('linked_')) {
+        // Linked spouse selected
+        const id = parseInt(this.beneficiarySelection.replace('linked_', ''));
+        this.formData.beneficiary_id = id;
+        this.formData.beneficiary_name = this.spouseOption?.name || '';
+      } else if (this.beneficiarySelection === 'other') {
+        // Custom beneficiary
+        this.formData.beneficiary_id = null;
+        this.formData.beneficiary_name = '';
+      } else {
+        // No beneficiary selected
+        this.formData.beneficiary_id = null;
+        this.formData.beneficiary_name = '';
+      }
+    },
+
+    initializeBeneficiarySelection() {
+      // Set beneficiarySelection based on existing data
+      if (this.formData.beneficiary_id && this.spouseOption && this.formData.beneficiary_id === this.spouseOption.id) {
+        this.beneficiarySelection = `linked_${this.formData.beneficiary_id}`;
+      } else if (this.formData.beneficiary_name) {
+        this.beneficiarySelection = 'other';
+      } else {
+        this.beneficiarySelection = '';
+      }
+    },
+
     validateEmployeeContribution() {
       this.validationErrors.employee_contribution_percent = '';
       const value = this.formData.employee_contribution_percent;
@@ -514,18 +571,7 @@ export default {
       }
     },
 
-    validateRetirementAge() {
-      this.validationErrors.retirement_age = '';
-      const age = this.formData.retirement_age;
-
-      if (age !== null && age !== '' && age < 55) {
-        this.validationErrors.retirement_age = 'Pensions can only be accessed from age 55, so this is the youngest age you can enter';
-      }
-    },
-
     handleSubmit() {
-      // Validate all fields before submitting
-      this.validateRetirementAge();
 
       if (this.isWorkplacePension) {
         this.validateEmployeeContribution();
@@ -535,11 +581,6 @@ export default {
         if (this.validationErrors.employee_contribution_percent || this.validationErrors.employer_contribution_percent) {
           return;
         }
-      }
-
-      // Check retirement age validation
-      if (this.validationErrors.retirement_age) {
-        return;
       }
 
       // Basic validation
