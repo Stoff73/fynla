@@ -672,6 +672,8 @@ export default {
 }
 
 .summary-card {
+  display: flex;
+  flex-direction: column;
   background: white;
   border-radius: 12px;
   padding: 20px;
@@ -713,6 +715,7 @@ export default {
   @apply text-gray-500;
   margin: 0 0 8px 0;
   font-weight: 500;
+  min-height: 20px;
 }
 
 .summary-value {
@@ -731,7 +734,8 @@ export default {
 .summary-subtitle {
   font-size: 13px;
   @apply text-gray-500;
-  margin: 8px 0 0 0;
+  margin-top: auto;
+  padding-top: 8px;
 }
 
 /* Assets Sections */
