@@ -162,6 +162,7 @@
             <span class="assumption-item"><span class="label">Inflation:</span> {{ data.assumptions.inflation_rate }}%</span>
             <span class="assumption-item"><span class="label">Compounding:</span> {{ compoundingLabel }}</span>
             <span class="assumption-item"><span class="label">Withdrawal:</span> {{ data.assumptions.withdrawal_rate }}%</span>
+            <span class="assumption-item"><span class="label">Contributions:</span> {{ formatCurrency(data.assumptions.monthly_contributions) }}/month</span>
             <span class="assumption-item"><span class="label">Years to Retirement:</span> {{ data.retirement_info.years_to_retirement }}</span>
           </div>
         </div>
@@ -222,8 +223,8 @@
             </div>
             <div class="formula-content">
               <h4>Accumulated Value (Future Value)</h4>
-              <p class="formula-text">FV = PV x (1 + r/m)^(m x n)</p>
-              <p class="formula-example">Compounds {{ compoundingLabel.toLowerCase() }} at {{ data.assumptions.net_return_rate }}% net return</p>
+              <p class="formula-text">FV = PV x (1 + r/m)^(m x n) + PMT x [((1 + r/m)^(m x n) - 1) / (r/m)]</p>
+              <p class="formula-example">Compounds {{ compoundingLabel.toLowerCase() }} at {{ data.assumptions.net_return_rate }}% with {{ formatCurrency(data.assumptions.monthly_contributions) }}/month contributions</p>
             </div>
           </div>
           <div class="formula-item">

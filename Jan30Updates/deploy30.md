@@ -381,10 +381,17 @@ Only ISA, GIA, SIPP, LISA, and JISA accounts are included as these are liquid an
 |---------|-------------|
 | **Target Income (default)** | (Gross Income - Pension Contributions) × 75% |
 | **Required Capital** | Target Income / 4.7% withdrawal rate |
-| **Future Value** | FV = PV × (1 + r/m)^(m×n) - Quarterly compounding |
+| **Future Value with Contributions** | FV = PV × (1 + r/m)^(m×n) + PMT × [((1 + r/m)^(m×n) - 1) / (r/m)] |
 | **Present Value** | PV = FV / (1 + inflation)^n - Discounting to today's money |
 
-The 75% multiplier accounts for the lower tax burden in retirement. Pension contributions are excluded since they won't be made in retirement.
+Where:
+- PV = Current pension pot value
+- PMT = Contribution per compounding period (monthly contribution × months per period)
+- r = Net return rate (return - fees)
+- m = Compounding periods per year (4 for quarterly)
+- n = Years to retirement
+
+The 75% multiplier accounts for the lower tax burden in retirement. Pension contributions are excluded from target income since they won't be made in retirement.
 
 ### API Endpoint
 

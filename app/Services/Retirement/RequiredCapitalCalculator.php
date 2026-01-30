@@ -65,8 +65,9 @@ class RequiredCapitalCalculator
         // Get required income (from profile or 75% of net income)
         $requiredIncome = $this->getRequiredIncome($user);
 
-        // Get current pension pot value
+        // Get current pension pot value and monthly contributions
         $currentPotValue = $this->getCurrentPensionPotValue($user);
+        $monthlyContributions = $this->getMonthlyContributions($user);
 
         // Calculate required capital at retirement using withdrawal rate
         $withdrawalRate = self::DEFAULT_WITHDRAWAL_RATE;
@@ -86,6 +87,7 @@ class RequiredCapitalCalculator
             'compound_periods' => $compoundPeriods,
             'fees_total' => round($feesTotal, 2),
             'withdrawal_rate' => round($withdrawalRate * 100, 2), // As percentage
+            'monthly_contributions' => round($monthlyContributions, 2),
         ];
 
         // Build year-by-year projection table
@@ -96,7 +98,8 @@ class RequiredCapitalCalculator
             compoundPeriods: $compoundPeriods,
             yearsToRetirement: $retirementInfo['years_to_retirement'],
             currentAge: $retirementInfo['current_age'],
-            targetCapital: $requiredCapitalAtRetirement
+            targetCapital: $requiredCapitalAtRetirement,
+            monthlyContributions: $monthlyContributions
         );
 
         // Calculate present value of required capital (what it's worth in today's money)
@@ -219,6 +222,14 @@ class RequiredCapitalCalculator
     }
 
     /**
+     * Get total monthly pension contributions (employee + employer).
+     */
+    private function getMonthlyContributions(User $user): float
+    {
+        return $user->dcPensions->sum(fn ($p) => (float) ($p->monthly_contribution_amount ?? 0));
+    }
+
+    /**
      * Build year-by-year projection table.
      *
      * @return array<int, array{
@@ -238,19 +249,26 @@ class RequiredCapitalCalculator
         int $compoundPeriods,
         int $yearsToRetirement,
         int $currentAge,
-        float $targetCapital
+        float $targetCapital,
+        float $monthlyContributions = 0
     ): array {
         $currentYear = Carbon::now()->year;
         $table = [];
 
+        // Convert monthly contributions to contribution per compounding period
+        // e.g., if quarterly compounding (4), contribution per period = monthly × 3
+        $monthsPerPeriod = 12 / $compoundPeriods;
+        $contributionPerPeriod = $monthlyContributions * $monthsPerPeriod;
+
         for ($year = 0; $year <= $yearsToRetirement; $year++) {
-            // Calculate accumulated value using compound interest
-            // FV = PV × (1 + r/m)^(m×n)
-            $accumulatedValue = $this->calculateFutureValue(
+            // Calculate accumulated value using compound interest with contributions
+            // FV = PV × (1 + r/m)^(m×n) + PMT × [((1 + r/m)^(m×n) - 1) / (r/m)]
+            $accumulatedValue = $this->calculateFutureValueWithContributions(
                 presentValue: $currentValue,
                 rate: $netReturnRate,
                 periods: $compoundPeriods,
-                years: $year
+                years: $year,
+                contributionPerPeriod: $contributionPerPeriod
             );
 
             // Calculate present value of accumulated value (discount back to today's money)
@@ -305,6 +323,49 @@ class RequiredCapitalCalculator
         $totalPeriods = $periods * $years;
 
         return $presentValue * pow(1 + $periodicRate, $totalPeriods);
+    }
+
+    /**
+     * Calculate Future Value with compound interest AND regular contributions.
+     *
+     * FV = PV × (1 + r/m)^(m×n) + PMT × [((1 + r/m)^(m×n) - 1) / (r/m)]
+     *
+     * This combines the Future Value of a lump sum with the Future Value of an annuity.
+     *
+     * @param  float  $presentValue  Starting value (PV)
+     * @param  float  $rate  Annual return rate as decimal (e.g., 0.05 for 5%)
+     * @param  int  $periods  Compounding periods per year (m)
+     * @param  int  $years  Number of years (n)
+     * @param  float  $contributionPerPeriod  Contribution made each compounding period (PMT)
+     */
+    private function calculateFutureValueWithContributions(
+        float $presentValue,
+        float $rate,
+        int $periods,
+        int $years,
+        float $contributionPerPeriod = 0
+    ): float {
+        if ($years <= 0) {
+            return $presentValue;
+        }
+
+        $periodicRate = $rate / $periods;
+        $totalPeriods = $periods * $years;
+        $compoundFactor = pow(1 + $periodicRate, $totalPeriods);
+
+        // FV of lump sum
+        $fvLumpSum = $presentValue * $compoundFactor;
+
+        // FV of annuity (regular contributions)
+        $fvAnnuity = 0;
+        if ($contributionPerPeriod > 0 && $periodicRate > 0) {
+            $fvAnnuity = $contributionPerPeriod * (($compoundFactor - 1) / $periodicRate);
+        } elseif ($contributionPerPeriod > 0 && $periodicRate == 0) {
+            // If rate is 0, just sum the contributions
+            $fvAnnuity = $contributionPerPeriod * $totalPeriods;
+        }
+
+        return $fvLumpSum + $fvAnnuity;
     }
 
     /**
