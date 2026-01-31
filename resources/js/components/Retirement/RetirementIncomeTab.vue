@@ -546,7 +546,18 @@ export default {
       // Filter to show ONLY pension sources in Income Sources section
       // Other assets (ISA, Bond, GIA, Savings) are shown separately with toggles
       const pensionTypes = ['pension_pot', 'pension_pot_pcls', 'pension_pot_drawdown', 'db_pension', 'state_pension'];
-      return allocations.filter(a => pensionTypes.includes(a.source_type));
+      const pensionAllocations = allocations.filter(a => pensionTypes.includes(a.source_type));
+
+      // Deduplicate by source_type + source_id, keeping the one with highest annual_amount
+      const seen = new Map();
+      for (const alloc of pensionAllocations) {
+        const key = `${alloc.source_type}-${alloc.source_id}`;
+        const existing = seen.get(key);
+        if (!existing || (alloc.annual_amount || 0) > (existing.annual_amount || 0)) {
+          seen.set(key, alloc);
+        }
+      }
+      return Array.from(seen.values());
     },
 
     // Allocations for non-pension sources (ISA, Bond, GIA, Savings) that are included
