@@ -486,9 +486,18 @@ Upload the following PHP files:
 ```text
 app/Models/SavingsAccount.php
 app/Http/Controllers/Api/SavingsController.php
+app/Http/Controllers/Api/BugReportController.php     (NEW: Bug report feature)
+app/Mail/BugReportMail.php                           (NEW: Bug report email)
 app/Services/Retirement/RetirementIncomeService.php  (updated: Priority-based withdrawal)
 app/Http/Middleware/PreviewWriteInterceptor.php      (updated: Toggle persistence fix)
+app/Providers/RouteServiceProvider.php               (updated: Bug report rate limiter)
 routes/api.php
+```
+
+### Step 3b: Upload Blade Template
+
+```text
+resources/views/emails/bug-report.blade.php          (NEW: Bug report email template)
 ```
 
 ### Step 4: Run Migration
@@ -522,25 +531,39 @@ designStyle.md
 database/migrations/2026_01_31_120000_add_include_in_retirement_to_savings_accounts.php
 ```
 
-### Backend (5 files - Upload required)
+### Backend (8 files - Upload required)
 
 ```text
 app/Models/SavingsAccount.php
 app/Http/Controllers/Api/SavingsController.php
+app/Http/Controllers/Api/BugReportController.php     (NEW)
+app/Mail/BugReportMail.php                           (NEW)
 app/Services/Retirement/RetirementIncomeService.php
 app/Http/Middleware/PreviewWriteInterceptor.php
+app/Providers/RouteServiceProvider.php               (updated)
 routes/api.php
 ```
 
-### Frontend (6 files - Included in Build)
+### Blade Templates (1 file - Upload required)
+
+```text
+resources/views/emails/bug-report.blade.php          (NEW)
+```
+
+### Frontend (10 files - Included in Build)
 
 ```text
 resources/js/constants/designSystem.js
 resources/js/components/Retirement/RetirementIncomeTab.vue
 resources/js/components/Retirement/FutureValueTab.vue
 resources/js/components/NetWorth/PensionList.vue
+resources/js/components/Navbar.vue                   (updated: Bug Report button)
+resources/js/components/BugReportModal.vue           (NEW)
 resources/js/store/modules/retirement.js
 resources/js/services/savingsService.js
+resources/js/services/consoleCapture.js              (NEW)
+resources/js/services/bugReportService.js            (NEW)
+resources/js/app.js                                  (updated: console capture init)
 ```
 
 ---
@@ -581,6 +604,13 @@ After deployment, verify:
 5. **Navigation Updates**
    - Click Pension Pot Projection chart - should go to Income tab
    - Click Required Capital card in Future Value - should go to Income tab
+
+6. **Bug Report Feature**
+   - Click Bug Report button in navbar - modal should open
+   - Enter description and click Send Report
+   - Verify success message appears
+   - Verify email arrives at chris@fynla.org with console logs and user info
+   - Test on mobile menu as well
 
 ---
 
@@ -919,5 +949,109 @@ resources/js/components/Onboarding/steps/ExpenditureStep.vue
 - Review each usage to determine appropriate replacement color
 - Maintain visual hierarchy and meaning
 - Test that color changes don't reduce accessibility
+
+---
+
+## Bug Report Feature
+
+**Branch:** retireDecim
+
+**Status:** Ready for deployment
+
+### Description
+
+Added a Bug Report button to the navbar that captures user context, console logs, and user description, then emails to chris@fynla.org. Works for both authenticated and guest users.
+
+### Features
+
+- **Console Capture Service** - Intercepts console.log/error/warn/info, maintains circular buffer of last 100 entries, captures unhandled errors and promise rejections
+- **Bug Report Modal** - Description (required), expected behaviour (optional), info notice about technical data, loading/success states
+- **Rate Limiting** - 5 reports per hour per user/IP
+- **Email includes:**
+  - User info (ID, name, email, preview status)
+  - Bug description and expected behaviour
+  - Console logs (dark code block)
+  - Technical context (URL, browser, screen size, viewport, IP, timestamps)
+
+### Email Subject Format
+
+```
+Bug Report - User {id}
+Bug Report - User {id} [PREVIEW]   (for preview users)
+Bug Report - User Guest            (for unauthenticated users)
+```
+
+### New Files Created (6 files)
+
+**Backend:**
+```text
+app/Http/Controllers/Api/BugReportController.php
+app/Mail/BugReportMail.php
+resources/views/emails/bug-report.blade.php
+```
+
+**Frontend:**
+```text
+resources/js/services/consoleCapture.js
+resources/js/services/bugReportService.js
+resources/js/components/BugReportModal.vue
+```
+
+### Files Modified (4 files)
+
+**Backend:**
+```text
+app/Providers/RouteServiceProvider.php   (added bug-reports rate limiter)
+routes/api.php                           (added POST /api/bug-report route)
+```
+
+**Frontend:**
+```text
+resources/js/app.js                      (initialize console capture)
+resources/js/components/Navbar.vue       (added Bug Report button + modal, kept Feedback link)
+```
+
+### Button Styling
+
+Both Feedback and Bug Report buttons use blue colors (design system compliant):
+
+```html
+class="inline-flex items-center px-4 py-2 border-2 border-blue-300
+       text-body-sm font-medium rounded-button text-blue-600 bg-white
+       hover:text-blue-800 hover:border-blue-400 transition-colors"
+```
+
+### API Endpoint
+
+```
+POST /api/bug-report
+Rate limit: 5 per hour per user/IP
+
+Request body:
+{
+  "description": "string (required, max 5000)",
+  "expected_behaviour": "string (optional, max 2000)",
+  "console_logs": "string (optional, max 50000)",
+  "page_url": "string (optional)",
+  "user_agent": "string (optional)",
+  "screen_size": "string (optional)",
+  "viewport_size": "string (optional)",
+  "client_timestamp": "string (optional)"
+}
+
+Response:
+{ "success": true, "message": "Bug report submitted successfully..." }
+```
+
+### Testing Performed
+
+1. ✅ Bug Report button visible in navbar (desktop and mobile)
+2. ✅ Feedback button still present
+3. ✅ Modal opens with correct fields
+4. ✅ Form validation works (description required)
+5. ✅ Submission shows loading state then success
+6. ✅ Email received at chris@fynla.org with all data
+7. ✅ Console logs included in email
+8. ✅ Preview user badge appears in subject for preview users
 
 ---

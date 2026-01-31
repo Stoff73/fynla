@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BugReportController;
 use App\Http\Controllers\Api\BusinessInterestController;
 use App\Http\Controllers\Api\ChattelController;
 use App\Http\Controllers\Api\DashboardController;
@@ -983,3 +984,7 @@ Route::middleware(['auth:sanctum', 'throttle:30,1'])
 // Occupation search (SOC 2020)
 Route::middleware('auth:sanctum')
     ->get('/occupations/search', [OccupationController::class, 'search']);
+
+// Bug Report route (works for both authenticated and guest users)
+Route::post('/bug-report', [BugReportController::class, 'store'])
+    ->middleware('throttle:bug-reports');

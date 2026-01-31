@@ -65,6 +65,16 @@ class RouteServiceProvider extends ServiceProvider
             });
         });
 
+        // Rate limit for bug reports (5 per hour per user/IP)
+        RateLimiter::for('bug-reports', function (Request $request) {
+            return Limit::perHour(5)->by($request->user()?->id ?: $request->ip())->response(function () {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bug report limit reached. Please try again in an hour.',
+                ], 429);
+            });
+        });
+
         $this->routes(function () {
             Route::middleware('api')
                 ->prefix('api')
