@@ -61,11 +61,11 @@ export const ERROR_COLORS = {
 };
 
 export const WARNING_COLORS = {
-  50: '#FFFFFF',
-  100: '#FFFBEB',
-  500: '#F59E0B',     // Warning icons, text
-  600: '#D97706',     // Warning borders
-  700: '#B45309',
+  50: '#EFF6FF',      // blue-50
+  100: '#DBEAFE',     // blue-100
+  500: '#3B82F6',     // blue-500 - Warning icons, text
+  600: '#2563EB',     // blue-600 - Warning borders
+  700: '#1D4ED8',     // blue-700
 };
 
 export const INFO_COLORS = {
@@ -84,10 +84,10 @@ export const CHART_COLORS = [
   '#1257A0',  // Chart 1: Trust Blue - Primary data series
   '#475569',  // Chart 2: Slate - Secondary series
   '#15803D',  // Chart 3: Green - Positive values
-  '#D97706',  // Chart 4: Amber - Neutral/caution
+  '#EA580C',  // Chart 4: Orange - Neutral/caution
   '#B91C1C',  // Chart 5: Red - Negative values
   '#7C3AED',  // Chart 6: Purple - Alternative
-  '#C2410C',  // Chart 7: Orange - Tertiary
+  '#F97316',  // Chart 7: Orange light - Tertiary
   '#0F172A',  // Chart 8: Navy - Dark accent
 ];
 
@@ -99,9 +99,9 @@ export const ASSET_COLORS = {
   pensions: '#1257A0',      // Trust Blue - largest category typically
   property: '#15803D',      // Green - real assets
   investments: '#475569',   // Slate - investment accounts
-  cash: '#D97706',          // Amber - liquid assets
+  cash: '#EA580C',          // Orange - liquid assets
   business: '#7C3AED',      // Purple - business interests
-  chattels: '#C2410C',      // Orange - personal valuables
+  chattels: '#F97316',      // Orange light - personal valuables
 };
 
 /**
@@ -114,7 +114,7 @@ export const SPENDING_COLORS = [
   '#0891b2', // Cyan - Pension Contributions
   '#dc2626', // Red - Protection Premiums
   '#16a34a', // Green - Food & Groceries
-  '#f59e0b', // Amber - Transport
+  '#ea580c', // Orange - Transport
   '#ec4899', // Pink - Healthcare
   '#6366f1', // Indigo - Insurance
   '#8b5cf6', // Violet - Clothing & Personal

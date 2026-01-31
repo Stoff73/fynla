@@ -27,12 +27,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ./vendor/bin/pest                    # Run all tests
 ./vendor/bin/pest tests/Unit/...     # Single file
 
-# Database (run after tests or migrations)
+# Database - Reseed (PRESERVES existing data)
+php artisan db:seed                  # Reseed all data
+
+# Database - Fresh install only (runs pending migrations)
 php artisan migrate && php artisan db:seed
 
 # Code formatting
 ./vendor/bin/pint                    # PSR-12 format
 ```
+
+**CRITICAL: NEVER use `migrate:fresh` or `migrate:refresh` when asked to reseed. These commands DROP ALL TABLES and destroy user data. Use `php artisan db:seed` instead.**
 
 **Reseed specific data:**
 
@@ -128,8 +133,18 @@ $ownershipMultiplier = $userIsOwner
 ### 8. PreviewWriteInterceptor Middleware
 When adding new auth-related POST routes, add them to `EXCLUDED_ROUTES` in `app/Http/Middleware/PreviewWriteInterceptor.php`. This middleware intercepts all write operations from preview users - any route that must work regardless of preview mode state (login, register, password reset) must be excluded.
 
-### 9. No Amber Color
-The amber color (`amber-*`) is banned from the application. Use orange (`orange-*`) instead for warnings and caution states. See `designStyle.md` for the full color system.
+### 9. No Amber or Orange Color
+The amber (`amber-*`) and orange (`orange-*`) colors are banned from the application. Use blue (`blue-*`) instead for warnings and caution states. See `designStyle.md` for the full color system.
+
+### 10. Design System Compliance
+**CRITICAL:** Before changing, updating, or implementing anything related to the UI, you MUST read and follow `designStyle.md`. This includes:
+- Colors (especially risk level colors, semantic colors, and forbidden colors)
+- Typography and spacing
+- Component patterns (buttons, cards, forms, modals)
+- Badges and status indicators
+- Charts and data visualisation
+
+The design system is the single source of truth for all visual decisions. Never introduce new colors, spacing values, or component patterns without checking `designStyle.md` first.
 
 ## Deployment
 
@@ -166,6 +181,8 @@ Test via landing page persona selector at http://localhost:8000, not direct URLs
 | peak_earners | David & Sarah Mitchell | Multiple properties, SIPP + NHS pension |
 | widow | Margaret Thompson | Estate planning |
 | entrepreneur | Alex Chen | SIPP, business interests |
+| young_saver | John Morgan | Emergency fund, first-time savings |
+| retired_couple | Robert & Patricia Williams | Decumulation, estate planning |
 
 ## UK Tax Context
 
