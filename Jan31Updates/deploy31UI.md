@@ -18,12 +18,14 @@ Added nested expandable rows in the Financial Commitments section so users can d
 |--------|-------------|
 | New component | Created `ExpenditureExpandableGridRow.vue` for expandable category rows |
 | Nested expansion | Clicking a category (e.g., Property Expenses) expands to show individual items |
+| Third level | Clicking a property expands to show expense breakdown (Mortgage, Council Tax, Utilities, etc.) |
 | Item details | Shows each property, investment, policy with its monthly cost |
 | Joint ownership | Displays ownership percentage for joint assets |
 
 ### User Flow
 1. Click "Financial Commitments" → shows categories (Property Expenses, Investment Contributions, etc.)
 2. Click on a category → expands to show individual items with amounts
+3. Click on a property → expands to show expense breakdown (Mortgage, Council Tax, Utilities, etc.)
 
 ### Files Changed
 ```
@@ -481,6 +483,7 @@ php artisan cache:clear && php artisan config:clear
 - [ ] Property details - verify joint/tenants in common properties show both owner names with percentages
 - [ ] Onboarding - skip Expenditure step and verify progress bar shows it as blue (skipped) not green (completed)
 - [ ] Expenditure - verify Financial Commitments categories expand to show individual items (properties, investments, etc.)
+- [ ] Expenditure - verify clicking a property expands to show expense breakdown (Mortgage, Council Tax, etc.)
 
 ---
 

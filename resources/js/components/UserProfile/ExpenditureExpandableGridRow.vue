@@ -32,27 +32,70 @@
   <!-- Expanded items -->
   <template v-if="isExpanded && hasItems">
     <template v-for="item in mergedItems" :key="item.id">
-      <div class="col-label text-body-sm py-1 pl-14 text-gray-500">
-        <div class="flex items-center gap-2">
+      <!-- Item row - expandable if has breakdown -->
+      <div
+        :class="['col-label text-body-sm py-1 pl-14 text-gray-500', item.hasBreakdown ? 'cursor-pointer' : '']"
+        @click="item.hasBreakdown && toggleItemExpanded(item.id)"
+      >
+        <div class="flex items-center gap-1">
+          <svg
+            v-if="item.hasBreakdown"
+            :class="['h-3 w-3 text-gray-400 transition-transform', expandedItems[item.id] ? 'rotate-90' : '']"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          </svg>
+          <span v-else class="w-3"></span>
           <span>{{ item.name }}</span>
           <span v-if="item.is_joint" class="text-xs text-primary-600">({{ item.ownership_percentage || 50 }}%)</span>
         </div>
       </div>
-      <div class="col-value text-body-sm py-1 text-gray-600">
+      <div
+        :class="['col-value text-body-sm py-1 text-gray-600', item.hasBreakdown ? 'cursor-pointer' : '']"
+        @click="item.hasBreakdown && toggleItemExpanded(item.id)"
+      >
         {{ formatCurrency(item.userAmount) }}
       </div>
-      <div v-if="isMarried" class="col-value-mid text-body-sm py-1 text-gray-600">
+      <div
+        v-if="isMarried"
+        :class="['col-value-mid text-body-sm py-1 text-gray-600', item.hasBreakdown ? 'cursor-pointer' : '']"
+        @click="item.hasBreakdown && toggleItemExpanded(item.id)"
+      >
         {{ formatCurrency(item.spouseAmount) }}
       </div>
-      <div v-if="isMarried" class="col-total text-body-sm py-1 text-gray-600">
+      <div
+        v-if="isMarried"
+        :class="['col-total text-body-sm py-1 text-gray-600', item.hasBreakdown ? 'cursor-pointer' : '']"
+        @click="item.hasBreakdown && toggleItemExpanded(item.id)"
+      >
         {{ formatCurrency(item.userAmount + item.spouseAmount) }}
       </div>
+
+      <!-- Breakdown rows (third level) -->
+      <template v-if="expandedItems[item.id] && item.hasBreakdown">
+        <template v-for="(expense, expenseKey) in item.breakdown" :key="`${item.id}-${expenseKey}`">
+          <div class="col-label text-body-sm py-0.5 pl-20 text-gray-400">
+            {{ formatExpenseLabel(expenseKey) }}
+          </div>
+          <div class="col-value text-body-sm py-0.5 text-gray-500">
+            {{ formatCurrency(expense) }}
+          </div>
+          <div v-if="isMarried" class="col-value-mid text-body-sm py-0.5 text-gray-500">
+            {{ formatCurrency(getSpouseBreakdownAmount(item, expenseKey)) }}
+          </div>
+          <div v-if="isMarried" class="col-total text-body-sm py-0.5 text-gray-500">
+            {{ formatCurrency(expense + getSpouseBreakdownAmount(item, expenseKey)) }}
+          </div>
+        </template>
+      </template>
     </template>
   </template>
 </template>
 
 <script>
-import { ref, computed } from 'vue';
+import { ref, computed, reactive } from 'vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
@@ -97,6 +140,7 @@ export default {
 
   setup(props) {
     const isExpanded = ref(false);
+    const expandedItems = reactive({});
 
     const hasItems = computed(() => {
       return (props.items && props.items.length > 0) || (props.spouseItems && props.spouseItems.length > 0);
@@ -108,6 +152,10 @@ export default {
       }
     };
 
+    const toggleItemExpanded = (itemId) => {
+      expandedItems[itemId] = !expandedItems[itemId];
+    };
+
     // Merge user and spouse items into a single list with amounts for each
     const mergedItems = computed(() => {
       const itemMap = new Map();
@@ -115,6 +163,7 @@ export default {
       // Add user items
       if (props.items) {
         props.items.forEach(item => {
+          const hasBreakdown = item.breakdown && Object.keys(item.breakdown).length > 0;
           itemMap.set(item.id, {
             id: item.id,
             name: item.name,
@@ -122,6 +171,9 @@ export default {
             ownership_percentage: item.ownership_percentage,
             userAmount: item.monthly_amount || 0,
             spouseAmount: 0,
+            breakdown: item.breakdown || null,
+            spouseBreakdown: null,
+            hasBreakdown,
           });
         });
       }
@@ -133,8 +185,10 @@ export default {
             // Joint item - update spouse amount
             const existing = itemMap.get(item.id);
             existing.spouseAmount = item.monthly_amount || 0;
+            existing.spouseBreakdown = item.breakdown || null;
           } else {
             // Spouse-only item
+            const hasBreakdown = item.breakdown && Object.keys(item.breakdown).length > 0;
             itemMap.set(item.id, {
               id: item.id,
               name: item.name,
@@ -142,6 +196,9 @@ export default {
               ownership_percentage: item.ownership_percentage,
               userAmount: 0,
               spouseAmount: item.monthly_amount || 0,
+              breakdown: null,
+              spouseBreakdown: item.breakdown || null,
+              hasBreakdown,
             });
           }
         });
@@ -150,11 +207,36 @@ export default {
       return Array.from(itemMap.values());
     });
 
+    const formatExpenseLabel = (key) => {
+      const labels = {
+        mortgage: 'Mortgage',
+        council_tax: 'Council Tax',
+        utilities: 'Utilities',
+        maintenance: 'Maintenance',
+        ground_rent: 'Ground Rent',
+        service_charge: 'Service Charge',
+        insurance: 'Insurance',
+        management_fees: 'Management Fees',
+      };
+      return labels[key] || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    };
+
+    const getSpouseBreakdownAmount = (item, expenseKey) => {
+      if (item.spouseBreakdown && item.spouseBreakdown[expenseKey]) {
+        return item.spouseBreakdown[expenseKey];
+      }
+      return 0;
+    };
+
     return {
       isExpanded,
+      expandedItems,
       hasItems,
       toggleExpanded,
+      toggleItemExpanded,
       mergedItems,
+      formatExpenseLabel,
+      getSpouseBreakdownAmount,
     };
   },
 };
