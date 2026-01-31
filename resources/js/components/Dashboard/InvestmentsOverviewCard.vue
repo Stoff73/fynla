@@ -37,7 +37,7 @@
             <span class="text-sm font-medium text-gray-900">{{ account.displayName }}</span>
             <span
               v-if="account.isJoint"
-              class="text-xs text-orange-600 font-medium"
+              class="text-xs text-blue-600 font-medium"
             >
               (Joint)
             </span>

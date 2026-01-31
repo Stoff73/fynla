@@ -72,9 +72,9 @@
     </div>
 
     <!-- Streak Display (if available) -->
-    <div v-if="goal.contribution_streak > 0" class="flex items-center gap-2 mb-4 py-2 px-3 bg-orange-50 rounded-lg">
+    <div v-if="goal.contribution_streak > 0" class="flex items-center gap-2 mb-4 py-2 px-3 bg-blue-50 rounded-lg">
       <span class="text-lg">🔥</span>
-      <span class="text-sm font-medium text-orange-700">{{ goal.contribution_streak }} month streak!</span>
+      <span class="text-sm font-medium text-blue-700">{{ goal.contribution_streak }} month streak!</span>
     </div>
 
     <!-- Status Badge -->
@@ -135,21 +135,21 @@ export default {
       if (this.progressPercent >= 100) return 'text-green-600';
       if (this.isNotStarted) return 'text-gray-500';
       if (this.isOnTrack) return 'text-blue-600';
-      return 'text-orange-600';
+      return 'text-blue-600';
     },
 
     progressBarClass() {
       if (this.progressPercent >= 100) return 'bg-green-500';
       if (this.isNotStarted) return 'bg-gray-300';
       if (this.isOnTrack) return 'bg-blue-500';
-      return 'bg-orange-500';
+      return 'bg-blue-500';
     },
 
     borderColorClass() {
       if (this.goal.status === 'completed') return 'border-l-green-500';
       if (this.isNotStarted) return 'border-l-gray-300';
       if (this.isOnTrack) return 'border-l-blue-500';
-      return 'border-l-orange-500';
+      return 'border-l-blue-500';
     },
 
     timeRemaining() {
@@ -183,7 +183,7 @@ export default {
       if (this.goal.status === 'paused') return 'bg-gray-100 text-gray-800';
       if (this.isNotStarted) return 'bg-gray-100 text-gray-700';
       if (this.isOnTrack) return 'bg-blue-100 text-blue-800';
-      return 'bg-orange-100 text-orange-800';
+      return 'bg-blue-100 text-blue-800';
     },
 
     statusDotClass() {
@@ -191,7 +191,7 @@ export default {
       if (this.goal.status === 'paused') return 'bg-gray-500';
       if (this.isNotStarted) return 'bg-gray-400';
       if (this.isOnTrack) return 'bg-blue-500';
-      return 'bg-orange-500';
+      return 'bg-blue-500';
     },
 
     moduleLabel() {
@@ -209,14 +209,14 @@ export default {
         savings: 'bg-emerald-100 text-emerald-700',
         investment: 'bg-blue-100 text-blue-700',
         property: 'bg-purple-100 text-purple-700',
-        retirement: 'bg-orange-100 text-orange-700',
+        retirement: 'bg-blue-100 text-blue-700',
       };
       return classes[this.goal.assigned_module] || 'bg-gray-100 text-gray-700';
     },
 
     priorityTagClass() {
       if (this.goal.priority === 'critical') return 'bg-red-100 text-red-700';
-      if (this.goal.priority === 'high') return 'bg-orange-100 text-orange-700';
+      if (this.goal.priority === 'high') return 'bg-blue-100 text-blue-700';
       return 'bg-gray-100 text-gray-700';
     },
 

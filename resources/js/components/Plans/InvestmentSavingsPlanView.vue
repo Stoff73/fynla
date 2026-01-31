@@ -24,14 +24,14 @@
     <!-- Plan Content -->
     <div v-else-if="plan" class="space-y-8">
       <!-- Scaffold Warning Banner -->
-      <div class="bg-orange-50 border-2 border-orange-400 rounded-lg p-4">
+      <div class="bg-blue-50 border-2 border-blue-400 rounded-lg p-4">
         <div class="flex items-start">
-          <svg class="h-6 w-6 text-orange-600 mr-3 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg class="h-6 w-6 text-blue-600 mr-3 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
           <div>
-            <h3 class="text-lg font-semibold text-orange-800">Work in Progress</h3>
-            <p class="text-sm text-orange-700 mt-1">
+            <h3 class="text-lg font-semibold text-blue-800">Work in Progress</h3>
+            <p class="text-sm text-blue-700 mt-1">
               This Investment & Savings Plan is currently a scaffold and not fully implemented.
               Some data may be incomplete or calculations may not reflect your full financial picture.
               Full functionality is coming soon.
@@ -239,7 +239,7 @@
                 </div>
                 <div class="bg-white rounded-lg p-4 shadow-sm">
                   <p class="text-xs text-gray-600 mb-1">Volatility</p>
-                  <p class="text-2xl font-bold text-orange-600">
+                  <p class="text-2xl font-bold text-blue-600">
                     {{ formatPercentage(plan.investment.summary.risk_metrics.volatility) }}%
                   </p>
                   <p class="text-xs text-gray-500 mt-1">Standard deviation</p>
@@ -408,12 +408,12 @@
                     <p class="text-sm text-gray-700 mt-3">{{ plan.savings.emergency_fund.recommendation }}</p>
                   </div>
                   <div v-if="plan.savings.emergency_fund.shortfall_months > 0"
-                    class="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                    <p class="text-sm font-semibold text-orange-900 mb-2">Shortfall</p>
-                    <p class="text-xl font-bold text-orange-600">
+                    class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p class="text-sm font-semibold text-blue-900 mb-2">Shortfall</p>
+                    <p class="text-xl font-bold text-blue-600">
                       £{{ formatNumber(plan.savings.emergency_fund.shortfall_amount) }}
                     </p>
-                    <p class="text-xs text-orange-700 mt-1">
+                    <p class="text-xs text-blue-700 mt-1">
                       {{ plan.savings.emergency_fund.shortfall_months }} months needed
                     </p>
                   </div>
@@ -475,11 +475,11 @@
                   </span>
                 </div>
                 <p class="text-sm text-gray-700 mb-2">{{ rec.action_required }}</p>
-                <div v-if="rec.shortfall_amount" class="bg-orange-50 rounded p-3 text-sm">
-                  <p class="text-orange-900">
+                <div v-if="rec.shortfall_amount" class="bg-blue-50 rounded p-3 text-sm">
+                  <p class="text-blue-900">
                     <span class="font-semibold">Shortfall:</span> £{{ formatNumber(rec.shortfall_amount) }}
                   </p>
-                  <p v-if="rec.suggested_monthly_contribution" class="text-orange-800 mt-1">
+                  <p v-if="rec.suggested_monthly_contribution" class="text-blue-800 mt-1">
                     <span class="font-semibold">Suggested monthly contribution:</span>
                     £{{ formatNumber(rec.suggested_monthly_contribution) }} over {{ rec.timeline }}
                   </p>
@@ -540,7 +540,7 @@
                 <p class="text-xs text-gray-600">Critical</p>
               </div>
               <div>
-                <p class="text-2xl font-bold text-orange-600">{{ plan.action_plan.high_priority_actions }}</p>
+                <p class="text-2xl font-bold text-blue-600">{{ plan.action_plan.high_priority_actions }}</p>
                 <p class="text-xs text-gray-600">High Priority</p>
               </div>
               <div>
@@ -624,7 +624,7 @@ export default {
     getRunwayColour(months) {
       if (months >= 6) return 'text-green-600';
       if (months >= 3) return 'text-yellow-600';
-      if (months >= 1) return 'text-orange-600';
+      if (months >= 1) return 'text-blue-600';
       return 'text-red-600';
     },
 
@@ -639,7 +639,7 @@ export default {
         'Adequate': 'bg-green-100 text-green-800',
         'Good': 'bg-blue-100 text-blue-800',
         'Moderate': 'bg-yellow-100 text-yellow-800',
-        'Low': 'bg-orange-100 text-orange-800',
+        'Low': 'bg-blue-100 text-blue-800',
         'Critical': 'bg-red-100 text-red-800',
         'Unknown': 'bg-gray-100 text-gray-800',
       };
@@ -649,7 +649,7 @@ export default {
     getPriorityBadgeClass(priority) {
       const priorityMap = {
         'Critical': 'bg-red-100 text-red-800',
-        'High': 'bg-orange-100 text-orange-800',
+        'High': 'bg-blue-100 text-blue-800',
         'Medium': 'bg-yellow-100 text-yellow-800',
         'Low': 'bg-blue-100 text-blue-800',
       };
@@ -659,7 +659,7 @@ export default {
     getPriorityBorderClass(priority) {
       const priorityMap = {
         'Critical': 'border-red-500 bg-red-50',
-        'High': 'border-orange-500 bg-orange-50',
+        'High': 'border-blue-500 bg-blue-50',
         'Medium': 'border-yellow-500 bg-yellow-50',
         'Low': 'border-blue-500 bg-blue-50',
       };
@@ -669,7 +669,7 @@ export default {
     getUrgencyBadgeClass(urgency) {
       const urgencyMap = {
         'Critical': 'bg-red-100 text-red-800',
-        'High': 'bg-orange-100 text-orange-800',
+        'High': 'bg-blue-100 text-blue-800',
         'Medium': 'bg-yellow-100 text-yellow-800',
         'Low': 'bg-blue-100 text-blue-800',
       };
@@ -679,7 +679,7 @@ export default {
     getUrgencyBorderClass(urgency) {
       const urgencyMap = {
         'Critical': 'border-red-500 bg-red-50',
-        'High': 'border-orange-500 bg-orange-50',
+        'High': 'border-blue-500 bg-blue-50',
         'Medium': 'border-yellow-500 bg-yellow-50',
         'Low': 'border-blue-500 bg-blue-50',
       };
@@ -689,7 +689,7 @@ export default {
     getUrgencyBgClass(urgency) {
       const urgencyMap = {
         'Critical': 'bg-red-600',
-        'High': 'bg-orange-600',
+        'High': 'bg-blue-600',
         'Medium': 'bg-yellow-600',
         'Low': 'bg-blue-600',
       };
@@ -700,7 +700,7 @@ export default {
       const colourMap = {
         'green': 'border-green-500',
         'yellow': 'border-yellow-500',
-        'orange': 'border-orange-500',
+        'orange': 'border-blue-500',
         'red': 'border-red-500',
       };
       return colourMap[colour] || 'border-gray-300';

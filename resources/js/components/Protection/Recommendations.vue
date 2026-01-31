@@ -87,7 +87,7 @@ export default {
         {
           value: 'medium',
           label: 'Medium',
-          activeClass: 'bg-orange-600 text-white',
+          activeClass: 'bg-blue-600 text-white',
         },
         {
           value: 'low',

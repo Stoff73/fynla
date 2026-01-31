@@ -56,7 +56,7 @@ export default {
     badgeClass() {
       return {
         'bg-green-100 text-green-800': this.level === 'very_high' || this.level === 'high',
-        'bg-orange-100 text-orange-800': this.level === 'medium',
+        'bg-blue-100 text-blue-800': this.level === 'medium',
         'bg-red-100 text-red-800': this.level === 'low' || this.level === 'very_low',
       };
     },

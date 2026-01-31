@@ -162,7 +162,7 @@ export default {
 
     isaRemainingClass() {
       if (this.isaRemaining <= 0) return 'text-red-600';
-      if (this.isaRemaining < 5000) return 'text-orange-600';
+      if (this.isaRemaining < 5000) return 'text-blue-600';
       return 'text-green-600';
     },
 

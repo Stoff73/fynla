@@ -72,7 +72,7 @@
                   ></span>
                   <span
                     v-else
-                    class="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-orange-500"
+                    class="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-blue-500"
                     title="Behind schedule"
                   ></span>
                 </div>
@@ -80,7 +80,7 @@
                   <div class="flex-1 h-1 bg-gray-200 rounded-full max-w-[60px]">
                     <div
                       class="h-1 rounded-full"
-                      :class="goal.is_on_track ? 'bg-green-500' : 'bg-orange-500'"
+                      :class="goal.is_on_track ? 'bg-green-500' : 'bg-blue-500'"
                       :style="{ width: Math.min(goal.progress_percentage, 100) + '%' }"
                     ></div>
                   </div>
@@ -103,10 +103,10 @@
         <!-- Streak Banner -->
         <div
           v-if="bestStreak >= 3"
-          class="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg flex items-center gap-2"
+          class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2"
         >
           <span class="text-lg">🔥</span>
-          <span class="text-sm font-medium text-orange-700">
+          <span class="text-sm font-medium text-blue-700">
             {{ bestStreak }} month contribution streak!
           </span>
         </div>
@@ -126,13 +126,13 @@
 
         <div
           v-else-if="onTrackCount < totalGoals"
-          class="mt-4 p-3 bg-white border-2 border-orange-500 rounded-lg"
+          class="mt-4 p-3 bg-white border-2 border-blue-500 rounded-lg"
         >
           <div class="flex items-center gap-2">
-            <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
-            <span class="text-sm font-medium text-orange-700">
+            <span class="text-sm font-medium text-blue-700">
               {{ totalGoals - onTrackCount }} {{ (totalGoals - onTrackCount) === 1 ? 'goal needs' : 'goals need' }} attention
             </span>
           </div>
@@ -189,13 +189,13 @@ export default {
     overallProgressBarClass() {
       if (this.overallProgress >= 75) return 'bg-green-500';
       if (this.overallProgress >= 50) return 'bg-blue-500';
-      return 'bg-orange-500';
+      return 'bg-blue-500';
     },
 
     onTrackTextClass() {
       if (this.onTrackCount === this.totalGoals) return 'text-green-600';
       if (this.onTrackCount >= this.totalGoals / 2) return 'text-blue-600';
-      return 'text-orange-600';
+      return 'text-blue-600';
     },
   },
 

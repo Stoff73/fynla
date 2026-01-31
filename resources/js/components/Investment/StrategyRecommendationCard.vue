@@ -24,7 +24,7 @@
           </span>
 
           <!-- Days Remaining -->
-          <span v-if="recommendation.days_remaining && recommendation.days_remaining <= 90" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-500 text-white">
+          <span v-if="recommendation.days_remaining && recommendation.days_remaining <= 90" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-500 text-white">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3 h-3 mr-1">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
@@ -91,7 +91,7 @@ export default {
       const priority = this.recommendation.priority;
       const base = 'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium';
       if (priority <= 2) return `${base} bg-red-500 text-white`;
-      if (priority <= 3) return `${base} bg-orange-500 text-white`;
+      if (priority <= 3) return `${base} bg-blue-500 text-white`;
       return `${base} bg-blue-500 text-white`;
     },
 
@@ -110,7 +110,7 @@ export default {
       const colors = {
         tax: 'bg-purple-500 text-white',
         wrapper: 'bg-blue-500 text-white',
-        fees: 'bg-orange-500 text-white',
+        fees: 'bg-blue-500 text-white',
         rebalancing: 'bg-green-500 text-white',
       };
       return `${base} ${colors[this.recommendation.category] || 'bg-gray-500 text-white'}`;

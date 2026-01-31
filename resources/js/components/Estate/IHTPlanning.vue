@@ -1,7 +1,7 @@
 <template>
   <div class="iht-planning-tab">
     <!-- Error State - No Profile -->
-    <div v-if="error && !ihtData" class="bg-white border-2 border-orange-500 rounded-lg p-6 mb-6">
+    <div v-if="error && !ihtData" class="bg-white border-2 border-blue-500 rounded-lg p-6 mb-6">
       <div class="flex items-start">
         <div class="flex-shrink-0">
           <svg class="h-6 w-6 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -135,7 +135,7 @@
                 <svg class="mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3" /></svg>
                 Complete
               </span>
-              <span v-else class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-gray-900">
+              <span v-else class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-gray-900">
                 <svg class="mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3" /></svg>
                 Incomplete
               </span>

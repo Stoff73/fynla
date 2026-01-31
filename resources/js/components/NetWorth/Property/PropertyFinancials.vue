@@ -136,8 +136,8 @@
           </div>
         </dl>
 
-        <div v-if="property.tax_position.has_interest_portion_missing" class="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-md">
-          <p class="text-sm text-orange-800">
+        <div v-if="property.tax_position.has_interest_portion_missing" class="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-md">
+          <p class="text-sm text-blue-800">
             Your mortgage may qualify for a tax credit. Enter the interest portion of your monthly payment in the mortgage details to calculate your Section 24 tax relief (20% of mortgage interest).
           </p>
         </div>

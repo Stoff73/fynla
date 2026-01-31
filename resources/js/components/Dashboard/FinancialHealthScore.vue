@@ -280,13 +280,13 @@ export default {
 
     scoreTextClass() {
       if (this.compositeScore >= 80) return 'text-green-600';
-      if (this.compositeScore >= 60) return 'text-orange-600';
+      if (this.compositeScore >= 60) return 'text-blue-600';
       return 'text-red-600';
     },
 
     scoreBadgeClass() {
       if (this.compositeScore >= 80) return 'bg-green-100 text-green-800';
-      if (this.compositeScore >= 60) return 'bg-orange-100 text-orange-800';
+      if (this.compositeScore >= 60) return 'bg-blue-100 text-blue-800';
       return 'bg-red-100 text-red-800';
     },
 
@@ -311,13 +311,13 @@ export default {
   methods: {
     getScoreClass(score) {
       if (score >= 80) return 'text-green-600';
-      if (score >= 60) return 'text-orange-600';
+      if (score >= 60) return 'text-blue-600';
       return 'text-red-600';
     },
 
     getBarClass(score) {
       if (score >= 80) return 'bg-green-600';
-      if (score >= 60) return 'bg-orange-500';
+      if (score >= 60) return 'bg-blue-500';
       return 'bg-red-600';
     },
   },

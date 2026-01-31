@@ -87,10 +87,10 @@
       </div>
 
       <!-- Recent Milestone Achievement -->
-      <div v-if="showLastAchievement && lastReachedMilestone" class="mt-2 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+      <div v-if="showLastAchievement && lastReachedMilestone" class="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
         <div class="flex items-center gap-2">
           <span class="text-lg">{{ lastReachedMilestone.icon }}</span>
-          <p class="text-sm font-medium text-orange-700">
+          <p class="text-sm font-medium text-blue-700">
             {{ lastReachedMilestone.label }} milestone reached!
           </p>
         </div>

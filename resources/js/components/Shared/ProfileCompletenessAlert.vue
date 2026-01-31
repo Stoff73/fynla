@@ -157,7 +157,7 @@ export default {
         case 'critical':
           return 'bg-red-50 border-red-400';
         case 'warning':
-          return 'bg-orange-50 border-orange-400';
+          return 'bg-blue-50 border-blue-400';
         default:
           return 'bg-green-50 border-green-400';
       }
@@ -168,7 +168,7 @@ export default {
         case 'critical':
           return 'text-red-400';
         case 'warning':
-          return 'text-orange-400';
+          return 'text-blue-400';
         default:
           return 'text-green-400';
       }
@@ -179,7 +179,7 @@ export default {
         case 'critical':
           return 'text-red-800';
         case 'warning':
-          return 'text-orange-800';
+          return 'text-blue-800';
         default:
           return 'text-green-800';
       }
@@ -190,7 +190,7 @@ export default {
         case 'critical':
           return 'text-red-700';
         case 'warning':
-          return 'text-orange-700';
+          return 'text-blue-700';
         default:
           return 'text-green-700';
       }
@@ -201,7 +201,7 @@ export default {
         case 'critical':
           return 'text-red-700 hover:text-red-900';
         case 'warning':
-          return 'text-orange-700 hover:text-orange-900';
+          return 'text-blue-700 hover:text-blue-900';
         default:
           return 'text-green-700 hover:text-green-900';
       }
@@ -212,7 +212,7 @@ export default {
         case 'critical':
           return 'bg-red-600';
         case 'warning':
-          return 'bg-orange-500';
+          return 'bg-blue-500';
         default:
           return 'bg-green-600';
       }
@@ -223,7 +223,7 @@ export default {
         case 'critical':
           return 'bg-red-200 text-red-800';
         case 'warning':
-          return 'bg-orange-200 text-orange-800';
+          return 'bg-blue-200 text-blue-800';
         default:
           return 'bg-green-200 text-green-800';
       }

@@ -151,8 +151,8 @@ export default {
 }
 
 .type-antique {
-  @apply bg-orange-100;
-  @apply text-orange-800;
+  @apply bg-blue-100;
+  @apply text-blue-800;
 }
 
 .type-jewelry {

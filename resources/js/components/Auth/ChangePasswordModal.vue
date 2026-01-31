@@ -11,7 +11,7 @@
             <h3 class="text-lg font-semibold text-gray-900">
               {{ isRequired ? 'Change Your Password' : 'Update Password' }}
             </h3>
-            <p v-if="isRequired" class="mt-2 text-sm text-orange-700 bg-orange-50 rounded p-3 border border-orange-200">
+            <p v-if="isRequired" class="mt-2 text-sm text-blue-700 bg-blue-50 rounded p-3 border border-blue-200">
               For security reasons, you must change your password before continuing.
             </p>
             <p v-else class="mt-1 text-sm text-gray-600">

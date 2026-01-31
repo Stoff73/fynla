@@ -191,7 +191,7 @@
                     :title="`Bonds: ${riskData.allocation.bonds}%`"
                   ></div>
                   <div
-                    class="h-full bg-orange-500"
+                    class="h-full bg-blue-500"
                     :style="{ width: riskData.allocation.cash + '%' }"
                     :title="`Cash: ${riskData.allocation.cash}%`"
                   ></div>
@@ -210,7 +210,7 @@
                   Bonds {{ riskData.allocation.bonds }}%
                 </span>
                 <span class="flex items-center gap-1">
-                  <span class="w-2 h-2 bg-orange-500 rounded"></span>
+                  <span class="w-2 h-2 bg-blue-500 rounded"></span>
                   Cash {{ riskData.allocation.cash }}%
                 </span>
               </div>
@@ -257,7 +257,7 @@ export default {
       const classes = {
         comfortable: 'bg-green-100 text-green-700',
         moderate: 'bg-blue-100 text-blue-700',
-        challenging: 'bg-orange-100 text-orange-700',
+        challenging: 'bg-blue-100 text-blue-700',
         stretch: 'bg-red-100 text-red-700',
       };
       return classes[category] || 'bg-gray-100 text-gray-700';
@@ -288,7 +288,7 @@ export default {
     getRecommendationBorderClass(priority) {
       const classes = {
         high: 'border-red-200',
-        medium: 'border-orange-200',
+        medium: 'border-blue-200',
         low: 'border-gray-200',
       };
       return classes[priority] || 'border-gray-200';
@@ -297,7 +297,7 @@ export default {
     getPriorityClass(priority) {
       const classes = {
         high: 'bg-red-100 text-red-700',
-        medium: 'bg-orange-100 text-orange-700',
+        medium: 'bg-blue-100 text-blue-700',
         low: 'bg-gray-100 text-gray-700',
       };
       return classes[priority] || 'bg-gray-100 text-gray-700';

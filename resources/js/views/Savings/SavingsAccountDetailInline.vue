@@ -161,11 +161,11 @@
             </div>
             <div v-if="account.access_type === 'notice' && account.notice_period_days" class="flex justify-between">
               <dt class="text-sm text-gray-600">Notice Period:</dt>
-              <dd class="text-sm font-medium text-orange-600">{{ account.notice_period_days }} days</dd>
+              <dd class="text-sm font-medium text-blue-600">{{ account.notice_period_days }} days</dd>
             </div>
             <div v-if="account.access_type === 'fixed' && account.maturity_date" class="flex justify-between">
               <dt class="text-sm text-gray-600">Maturity Date:</dt>
-              <dd class="text-sm font-medium" :class="isMatured ? 'text-gray-600' : 'text-orange-600'">
+              <dd class="text-sm font-medium" :class="isMatured ? 'text-gray-600' : 'text-blue-600'">
                 {{ formatDate(account.maturity_date) }}
               </dd>
             </div>

@@ -952,8 +952,8 @@ export default {
         sipp: 'bg-purple-100 text-purple-800',
         pension: 'bg-purple-100 text-purple-800',
         nsi: 'bg-indigo-100 text-indigo-800',
-        onshore_bond: 'bg-orange-100 text-orange-800',
-        offshore_bond: 'bg-orange-100 text-orange-800',
+        onshore_bond: 'bg-green-100 text-green-800',
+        offshore_bond: 'bg-green-100 text-green-800',
         vct: 'bg-pink-100 text-pink-800',
         eis: 'bg-pink-100 text-pink-800',
         other: 'bg-gray-100 text-gray-800',
@@ -1012,7 +1012,7 @@ export default {
       const classes = {
         individual: 'bg-gray-100 text-gray-800',
         joint: 'bg-purple-100 text-purple-800',
-        trust: 'bg-orange-100 text-orange-800',
+        trust: 'bg-indigo-100 text-indigo-800',
       };
       return classes[type] || 'bg-gray-100 text-gray-800';
     };

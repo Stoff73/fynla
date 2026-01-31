@@ -2,8 +2,8 @@
   <div class="portfolio-analysis relative">
     <!-- Coming Soon Watermark -->
     <div class="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-      <div class="bg-orange-100 border-2 border-orange-400 rounded-lg px-8 py-4 transform -rotate-12 shadow-lg">
-        <p class="text-2xl font-bold text-orange-700">Coming Soon</p>
+      <div class="bg-blue-100 border-2 border-blue-400 rounded-lg px-8 py-4 transform -rotate-12 shadow-lg">
+        <p class="text-2xl font-bold text-blue-700">Coming Soon</p>
       </div>
     </div>
 
@@ -94,7 +94,7 @@
             </div>
             <div class="bg-white rounded-lg p-4 shadow-sm">
               <p class="text-xs text-gray-600 mb-1">Volatility</p>
-              <p class="text-2xl font-bold text-orange-600">
+              <p class="text-2xl font-bold text-blue-600">
                 {{ formatPercentage(riskMetrics.volatility) }}%
               </p>
               <p class="text-xs text-gray-500 mt-1">Standard deviation</p>
@@ -136,7 +136,7 @@
       <!-- Fee Analysis -->
       <div v-if="feeAnalysis" class="bg-white rounded-lg shadow-md p-6">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">Fee Analysis</h3>
-        <div class="bg-gradient-to-br from-orange-50 to-orange-50 border border-orange-200 rounded-lg p-6">
+        <div class="bg-gradient-to-br from-blue-50 to-blue-50 border border-blue-200 rounded-lg p-6">
           <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
             <div class="bg-white rounded-lg p-4 shadow-sm">
               <p class="text-xs text-gray-600 mb-1">Total Annual Fees</p>
@@ -162,7 +162,7 @@
               </div>
               <div>
                 <p class="text-xs text-gray-600 mb-1">Potential Annual Saving</p>
-                <p class="text-lg font-semibold text-orange-600">£{{ formatNumber(feeAnalysis.low_cost_comparison.potential_annual_saving) }}</p>
+                <p class="text-lg font-semibold text-blue-600">£{{ formatNumber(feeAnalysis.low_cost_comparison.potential_annual_saving) }}</p>
               </div>
             </div>
           </div>
@@ -351,7 +351,7 @@ export default {
     getDiversificationColour(score) {
       if (score >= 80) return 'text-green-600';
       if (score >= 60) return 'text-yellow-600';
-      return 'text-orange-600';
+      return 'text-blue-600';
     },
 
     getReturnColour(value) {

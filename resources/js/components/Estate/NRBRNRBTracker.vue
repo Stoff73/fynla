@@ -248,7 +248,7 @@ export default {
     taxableAmountClass() {
       if (this.taxableAmount === 0) return 'text-green-600';
       if (this.taxableAmount > 500000) return 'text-red-600';
-      return 'text-orange-600';
+      return 'text-blue-600';
     },
 
     showEligibilityNotes() {
@@ -358,7 +358,7 @@ export default {
 }
 
 .progress-warning {
-  @apply bg-gradient-to-r from-orange-500 to-orange-600;
+  @apply bg-gradient-to-r from-blue-500 to-blue-600;
 }
 
 .progress-critical {
@@ -404,8 +404,8 @@ export default {
 }
 
 .badge-warning {
-  @apply bg-orange-100;
-  @apply text-orange-800;
+  @apply bg-blue-100;
+  @apply text-blue-800;
 }
 
 .badge-error {
@@ -456,7 +456,7 @@ export default {
 }
 
 .eligibility-notes {
-  @apply mt-5 p-4 bg-orange-50 border-l-4 border-orange-500 rounded;
+  @apply mt-5 p-4 bg-blue-50 border-l-4 border-blue-500 rounded;
 }
 
 .note-header {
@@ -464,7 +464,7 @@ export default {
   align-items: center;
   gap: 8px;
   font-weight: 600;
-  @apply text-orange-800;
+  @apply text-blue-800;
   margin-bottom: 12px;
   font-size: 14px;
 }
@@ -477,7 +477,7 @@ export default {
 
 .eligibility-notes li {
   font-size: 13px;
-  @apply text-orange-900;
+  @apply text-blue-900;
   margin-bottom: 6px;
   line-height: 1.5;
 }

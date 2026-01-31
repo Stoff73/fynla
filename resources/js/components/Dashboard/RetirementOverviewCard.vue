@@ -47,13 +47,13 @@
       <!-- Income Gap Status -->
       <div
         v-if="hasIncomeGap"
-        class="mt-4 p-3 bg-white border-2 border-orange-500 rounded-lg"
+        class="mt-4 p-3 bg-white border-2 border-blue-500 rounded-lg"
       >
         <div class="flex items-center gap-2">
-          <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
-          <span class="text-sm font-medium text-orange-700">
+          <span class="text-sm font-medium text-blue-700">
             {{ formatCurrency(incomeGap) }} income gap to target
           </span>
         </div>
@@ -338,7 +338,7 @@ export default {
   padding: 12px;
   border-radius: 8px;
   @apply bg-white;
-  @apply border-2 border-orange-500;
+  @apply border-2 border-blue-500;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -347,13 +347,13 @@ export default {
 .info-icon {
   width: 20px;
   height: 20px;
-  @apply text-orange-800;
+  @apply text-blue-800;
   flex-shrink: 0;
 }
 
 .info-text {
   font-size: 13px;
   font-weight: 500;
-  @apply text-orange-800;
+  @apply text-blue-800;
 }
 </style>

@@ -180,14 +180,14 @@ export default {
 
     progressBarClass() {
       if (this.isOverLimit) return 'bg-red-600';
-      if (this.usagePercent >= 90) return 'bg-orange-500';
-      if (this.usagePercent >= 75) return 'bg-orange-500';
+      if (this.usagePercent >= 90) return 'bg-blue-500';
+      if (this.usagePercent >= 75) return 'bg-blue-500';
       return 'bg-green-600';
     },
 
     remainingClass() {
       if (this.isOverLimit) return 'text-red-600 font-semibold';
-      if (this.remaining < 2000) return 'text-orange-600 font-semibold';
+      if (this.remaining < 2000) return 'text-blue-600 font-semibold';
       return 'text-green-600 font-semibold';
     },
   },

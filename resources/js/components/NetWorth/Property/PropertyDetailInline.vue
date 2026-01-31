@@ -312,7 +312,7 @@
                       </div>
                       <div v-if="mortgage.rate_type === 'fixed' && mortgage.rate_fix_end_date" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                         <dt class="text-sm text-gray-600">Rate Fix Ends:</dt>
-                        <dd class="text-sm font-medium text-orange-600">{{ formatDate(mortgage.rate_fix_end_date) }}</dd>
+                        <dd class="text-sm font-medium text-blue-600">{{ formatDate(mortgage.rate_fix_end_date) }}</dd>
                       </div>
                     </dl>
                   </div>

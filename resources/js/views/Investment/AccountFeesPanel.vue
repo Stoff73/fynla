@@ -80,7 +80,7 @@
         </div>
         <div class="impact-card highlight">
           <span class="impact-label">Fee Drag (Lost Growth)</span>
-          <span class="impact-value text-orange-600">{{ formatCurrency(tenYearFeeDrag) }}</span>
+          <span class="impact-value text-blue-600">{{ formatCurrency(tenYearFeeDrag) }}</span>
         </div>
       </div>
     </div>

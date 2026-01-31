@@ -173,15 +173,15 @@
         {{ feeHelpText }}
       </p>
       <!-- High percentage fee warning -->
-      <div v-if="feePercentageWarning" class="mt-2 p-3 bg-orange-50 border border-orange-200 rounded-md">
-        <p class="text-sm text-orange-800">
+      <div v-if="feePercentageWarning" class="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+        <p class="text-sm text-blue-800">
           You have entered <strong>{{ localData.platform_fee_percent }}%</strong> as a percentage fee. Did you mean <strong>£{{ localData.platform_fee_percent }}</strong> instead?
         </p>
         <div class="mt-2 flex gap-2">
-          <button type="button" @click="$emit('confirm-fee')" class="px-3 py-1 text-xs font-medium bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors">
+          <button type="button" @click="$emit('confirm-fee')" class="px-3 py-1 text-xs font-medium bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">
             Yes, it's {{ localData.platform_fee_percent }}%
           </button>
-          <button type="button" @click="switchFeeToFixed" class="px-3 py-1 text-xs font-medium border border-orange-600 text-orange-700 rounded hover:bg-orange-100 transition-colors">
+          <button type="button" @click="switchFeeToFixed" class="px-3 py-1 text-xs font-medium border border-blue-600 text-blue-700 rounded hover:bg-blue-100 transition-colors">
             Change to £
           </button>
         </div>
@@ -367,7 +367,7 @@
             <!-- Planned contributions (lighter shade) -->
             <div
               v-if="plannedAnnualContribution > 0"
-              class="bg-orange-400 h-full"
+              class="bg-blue-400 h-full"
               :style="{ width: Math.min(plannedAnnualContribution / ISA_ALLOWANCE * 100, 100 - totalUsedPercent) + '%' }"
               :title="`Planned: ${formatCurrency(plannedAnnualContribution)}`"
             ></div>
@@ -387,7 +387,7 @@
             <span class="text-gray-600">This account: {{ formatCurrency(thisAccountSubscription) }}</span>
           </div>
           <div v-if="plannedAnnualContribution > 0" class="flex items-center gap-1">
-            <div class="w-2 h-2 rounded-full bg-orange-400"></div>
+            <div class="w-2 h-2 rounded-full bg-blue-400"></div>
             <span class="text-gray-600">Planned: {{ formatCurrency(plannedAnnualContribution) }}</span>
           </div>
         </div>
@@ -693,7 +693,7 @@ export default {
 
     totalRemainingAllowanceClass() {
       if (this.totalWithPlanned > this.ISA_ALLOWANCE) return 'text-red-600';
-      if (this.totalRemainingAllowance < 2000) return 'text-orange-600';
+      if (this.totalRemainingAllowance < 2000) return 'text-blue-600';
       return 'text-green-600';
     },
   },

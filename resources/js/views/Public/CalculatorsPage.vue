@@ -55,7 +55,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
               </svg>
               <!-- Loan Icon - Amber -->
-              <svg v-else-if="calc.id === 'loan'" class="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg v-else-if="calc.id === 'loan'" class="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <!-- Emergency Fund Icon - Emerald -->
@@ -309,9 +309,9 @@
 
       <!-- Loan Repayment Calculator -->
       <div v-if="activeCalculator === 'loan'" class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
-        <div class="bg-gradient-to-r from-orange-600 to-orange-700 px-8 py-6">
+        <div class="bg-gradient-to-r from-yellow-600 to-yellow-700 px-8 py-6">
           <h2 class="text-2xl font-bold text-white">Loan Repayment Calculator</h2>
-          <p class="text-orange-100 mt-1">Calculate monthly payments and total interest on personal loans</p>
+          <p class="text-yellow-100 mt-1">Calculate monthly payments and total interest on personal loans</p>
         </div>
 
         <div class="p-8">
@@ -324,7 +324,7 @@
                   <input
                     v-model.number="loan.amount"
                     type="number"
-                    class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all"
+                    class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-all"
                     placeholder="10,000"
                   />
                 </div>
@@ -336,7 +336,7 @@
                   v-model.number="loan.rate"
                   type="number"
                   step="0.1"
-                  class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all"
+                  class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-all"
                   placeholder="8.9"
                 />
               </div>
@@ -346,14 +346,14 @@
                 <input
                   v-model.number="loan.term"
                   type="number"
-                  class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all"
+                  class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-all"
                   placeholder="36"
                 />
               </div>
 
               <button
                 @click="calculateLoan"
-                class="w-full px-6 py-4 bg-gradient-to-r from-orange-600 to-orange-700 text-white rounded-xl font-semibold hover:from-orange-700 hover:to-orange-800 transition-all shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40"
+                class="w-full px-6 py-4 bg-gradient-to-r from-yellow-600 to-yellow-700 text-white rounded-xl font-semibold hover:from-yellow-700 hover:to-yellow-800 transition-all shadow-lg shadow-yellow-500/25 hover:shadow-yellow-500/40"
               >
                 Calculate Loan
               </button>
@@ -361,7 +361,7 @@
 
             <div v-if="loan.result" class="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-6 border border-slate-200">
               <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center">
-                <svg class="w-5 h-5 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-5 h-5 mr-2 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 Results
@@ -380,9 +380,9 @@
                   <span class="font-semibold text-slate-900">{{ loan.result.term }} months</span>
                 </div>
                 <div class="border-t border-slate-300 my-2"></div>
-                <div class="flex justify-between items-center py-3 bg-orange-50 -mx-6 px-6 rounded-lg">
+                <div class="flex justify-between items-center py-3 bg-yellow-50 -mx-6 px-6 rounded-lg">
                   <span class="font-bold text-slate-900">Monthly Payment</span>
-                  <span class="font-bold text-2xl text-orange-600">{{ formatCurrency(loan.result.monthlyPayment) }}</span>
+                  <span class="font-bold text-2xl text-yellow-600">{{ formatCurrency(loan.result.monthlyPayment) }}</span>
                 </div>
                 <div class="flex justify-between items-center py-2">
                   <span class="text-slate-600">Total Interest</span>
@@ -503,13 +503,13 @@
                   'rounded-xl p-4',
                   emergencyFund.result.adequacy === 'Good' ? 'bg-green-50 border border-green-200' :
                   emergencyFund.result.adequacy === 'Adequate' ? 'bg-blue-50 border border-blue-200' :
-                  'bg-orange-50 border border-orange-200'
+                  'bg-yellow-50 border border-yellow-200'
                 ]">
                   <p :class="[
                     'text-sm font-semibold',
                     emergencyFund.result.adequacy === 'Good' ? 'text-green-900' :
                     emergencyFund.result.adequacy === 'Adequate' ? 'text-blue-900' :
-                    'text-orange-900'
+                    'text-yellow-900'
                   ]">
                     Status: {{ emergencyFund.result.adequacy }}
                   </p>
@@ -517,7 +517,7 @@
                     'text-xs mt-1',
                     emergencyFund.result.adequacy === 'Good' ? 'text-green-700' :
                     emergencyFund.result.adequacy === 'Adequate' ? 'text-blue-700' :
-                    'text-orange-700'
+                    'text-yellow-700'
                   ]">
                     {{ emergencyFund.result.message }}
                   </p>
@@ -691,7 +691,7 @@
           <div class="flex flex-col sm:flex-row justify-center gap-4">
             <router-link
               to="/register"
-              class="group px-8 py-4 bg-orange-500 text-slate-900 rounded-xl font-semibold text-lg hover:bg-orange-400 transition-all shadow-lg hover:shadow-xl"
+              class="group px-8 py-4 bg-yellow-500 text-slate-900 rounded-xl font-semibold text-lg hover:bg-yellow-400 transition-all shadow-lg hover:shadow-xl"
             >
               <span class="flex items-center justify-center">
                 Get Started Free

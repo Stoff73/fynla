@@ -59,7 +59,7 @@
                 Age: {{ calculateAge(member.date_of_birth) }} years
               </p>
               <p v-if="member.is_dependent" class="text-body-sm text-gray-600">
-                <span class="text-orange-600">● Financially dependent</span>
+                <span class="text-blue-600">● Financially dependent</span>
               </p>
             </div>
             <div v-if="member.relationship !== 'spouse'" class="flex gap-2 ml-4">

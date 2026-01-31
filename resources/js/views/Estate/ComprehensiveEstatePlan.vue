@@ -246,9 +246,9 @@
                   <p class="text-2xl font-bold text-blue-900">{{ formatCurrency(plan.estate_breakdown.user.total_assets) }}</p>
                   <p class="text-xs text-blue-600 mt-1">{{ plan.estate_breakdown.user.asset_count }} assets</p>
                 </div>
-                <div class="bg-orange-50 rounded-lg p-4">
-                  <p class="text-sm text-orange-600 mb-1">Total Liabilities</p>
-                  <p class="text-2xl font-bold text-orange-900">{{ formatCurrency(plan.estate_breakdown.user.total_liabilities) }}</p>
+                <div class="bg-blue-50 rounded-lg p-4">
+                  <p class="text-sm text-blue-600 mb-1">Total Liabilities</p>
+                  <p class="text-2xl font-bold text-blue-900">{{ formatCurrency(plan.estate_breakdown.user.total_liabilities) }}</p>
                 </div>
                 <div class="bg-green-50 rounded-lg p-4">
                   <p class="text-sm text-green-600 mb-1">Net Estate</p>
@@ -282,22 +282,22 @@
 
               <!-- User Detailed Liabilities Breakdown -->
               <div v-if="plan.estate_breakdown.user.detailed_liabilities && plan.estate_breakdown.user.detailed_liabilities.length > 0" class="mt-6">
-                <div class="bg-orange-100 p-3 rounded-t font-semibold text-orange-900">
+                <div class="bg-blue-100 p-3 rounded-t font-semibold text-blue-900">
                   Liabilities
                 </div>
-                <div class="border border-orange-200 rounded-b overflow-hidden">
+                <div class="border border-blue-200 rounded-b overflow-hidden">
                   <div
                     v-for="(liability, index) in plan.estate_breakdown.user.detailed_liabilities"
                     :key="index"
-                    class="flex justify-between items-center p-3 border-b last:border-b-0 hover:bg-orange-50"
+                    class="flex justify-between items-center p-3 border-b last:border-b-0 hover:bg-blue-50"
                   >
                     <div class="flex items-center gap-3">
                       <span class="text-gray-900">{{ liability.name }}</span>
-                      <span class="px-2 py-0.5 bg-orange-200 text-orange-800 text-xs rounded-full">
+                      <span class="px-2 py-0.5 bg-blue-200 text-blue-800 text-xs rounded-full">
                         {{ liability.type }}
                       </span>
                     </div>
-                    <span class="font-semibold text-orange-900">{{ formatCurrency(liability.balance) }}</span>
+                    <span class="font-semibold text-blue-900">{{ formatCurrency(liability.balance) }}</span>
                   </div>
                 </div>
               </div>
@@ -313,9 +313,9 @@
                   <p class="text-2xl font-bold text-blue-900">{{ formatCurrency(plan.estate_breakdown.spouse.total_assets) }}</p>
                   <p class="text-xs text-blue-600 mt-1">{{ plan.estate_breakdown.spouse.asset_count }} assets</p>
                 </div>
-                <div class="bg-orange-50 rounded-lg p-4">
-                  <p class="text-sm text-orange-600 mb-1">Total Liabilities</p>
-                  <p class="text-2xl font-bold text-orange-900">{{ formatCurrency(plan.estate_breakdown.spouse.total_liabilities) }}</p>
+                <div class="bg-blue-50 rounded-lg p-4">
+                  <p class="text-sm text-blue-600 mb-1">Total Liabilities</p>
+                  <p class="text-2xl font-bold text-blue-900">{{ formatCurrency(plan.estate_breakdown.spouse.total_liabilities) }}</p>
                 </div>
                 <div class="bg-green-50 rounded-lg p-4">
                   <p class="text-sm text-green-600 mb-1">Net Estate</p>
@@ -349,22 +349,22 @@
 
               <!-- Spouse Detailed Liabilities Breakdown -->
               <div v-if="plan.estate_breakdown.spouse.detailed_liabilities && plan.estate_breakdown.spouse.detailed_liabilities.length > 0" class="mt-6">
-                <div class="bg-orange-100 p-3 rounded-t font-semibold text-orange-900">
+                <div class="bg-blue-100 p-3 rounded-t font-semibold text-blue-900">
                   Liabilities
                 </div>
-                <div class="border border-orange-200 rounded-b overflow-hidden">
+                <div class="border border-blue-200 rounded-b overflow-hidden">
                   <div
                     v-for="(liability, index) in plan.estate_breakdown.spouse.detailed_liabilities"
                     :key="index"
-                    class="flex justify-between items-center p-3 border-b last:border-b-0 hover:bg-orange-50"
+                    class="flex justify-between items-center p-3 border-b last:border-b-0 hover:bg-blue-50"
                   >
                     <div class="flex items-center gap-3">
                       <span class="text-gray-900">{{ liability.name }}</span>
-                      <span class="px-2 py-0.5 bg-orange-200 text-orange-800 text-xs rounded-full">
+                      <span class="px-2 py-0.5 bg-blue-200 text-blue-800 text-xs rounded-full">
                         {{ liability.type }}
                       </span>
                     </div>
-                    <span class="font-semibold text-orange-900">{{ formatCurrency(liability.balance) }}</span>
+                    <span class="font-semibold text-blue-900">{{ formatCurrency(liability.balance) }}</span>
                   </div>
                 </div>
               </div>
@@ -380,9 +380,9 @@
                   <p class="text-2xl font-bold text-blue-900">{{ formatCurrency(plan.estate_breakdown.combined.total_assets) }}</p>
                   <p class="text-xs text-blue-600 mt-1">{{ plan.estate_breakdown.combined.asset_count }} assets</p>
                 </div>
-                <div class="bg-orange-50 rounded-lg p-4">
-                  <p class="text-sm text-orange-600 mb-1">Total Liabilities</p>
-                  <p class="text-2xl font-bold text-orange-900">{{ formatCurrency(plan.estate_breakdown.combined.total_liabilities) }}</p>
+                <div class="bg-blue-50 rounded-lg p-4">
+                  <p class="text-sm text-blue-600 mb-1">Total Liabilities</p>
+                  <p class="text-2xl font-bold text-blue-900">{{ formatCurrency(plan.estate_breakdown.combined.total_liabilities) }}</p>
                 </div>
                 <div class="bg-green-50 rounded-lg p-4">
                   <p class="text-sm text-green-600 mb-1">Net Estate</p>
@@ -416,22 +416,22 @@
 
               <!-- Combined Detailed Liabilities Breakdown -->
               <div v-if="plan.estate_breakdown.combined.detailed_liabilities && plan.estate_breakdown.combined.detailed_liabilities.length > 0" class="mt-6">
-                <div class="bg-orange-100 p-3 rounded-t font-semibold text-orange-900">
+                <div class="bg-blue-100 p-3 rounded-t font-semibold text-blue-900">
                   Liabilities
                 </div>
-                <div class="border border-orange-200 rounded-b overflow-hidden">
+                <div class="border border-blue-200 rounded-b overflow-hidden">
                   <div
                     v-for="(liability, index) in plan.estate_breakdown.combined.detailed_liabilities"
                     :key="index"
-                    class="flex justify-between items-center p-3 border-b last:border-b-0 hover:bg-orange-50"
+                    class="flex justify-between items-center p-3 border-b last:border-b-0 hover:bg-blue-50"
                   >
                     <div class="flex items-center gap-3">
                       <span class="text-gray-900">{{ liability.name }}</span>
-                      <span class="px-2 py-0.5 bg-orange-200 text-orange-800 text-xs rounded-full">
+                      <span class="px-2 py-0.5 bg-blue-200 text-blue-800 text-xs rounded-full">
                         {{ liability.type }}
                       </span>
                     </div>
-                    <span class="font-semibold text-orange-900">{{ formatCurrency(liability.balance) }}</span>
+                    <span class="font-semibold text-blue-900">{{ formatCurrency(liability.balance) }}</span>
                   </div>
                 </div>
               </div>
@@ -477,9 +477,9 @@
                       <span class="text-gray-700 text-sm">RNRB (Spouse)</span>
                       <span class="font-bold text-green-600">-{{ formatCurrency(plan.current_iht_position.now.spouse_rnrb) }}</span>
                     </div>
-                    <div class="flex justify-between items-center pb-3 border-b bg-orange-50 -mx-6 px-6 py-3">
+                    <div class="flex justify-between items-center pb-3 border-b bg-blue-50 -mx-6 px-6 py-3">
                       <span class="font-semibold text-gray-900">Taxable Estate</span>
-                      <span class="font-bold text-orange-700">{{ formatCurrency(plan.current_iht_position.now.taxable_estate) }}</span>
+                      <span class="font-bold text-blue-700">{{ formatCurrency(plan.current_iht_position.now.taxable_estate) }}</span>
                     </div>
                     <div class="flex justify-between items-center bg-red-50 -mx-6 px-6 py-3 rounded">
                       <span class="font-semibold text-red-900">IHT Liability (40%)</span>
@@ -522,9 +522,9 @@
                       <span class="text-gray-700 text-sm">RNRB (Spouse)</span>
                       <span class="font-bold text-green-600">-{{ formatCurrency(plan.current_iht_position.projected.spouse_rnrb) }}</span>
                     </div>
-                    <div class="flex justify-between items-center pb-3 border-b bg-orange-50 -mx-6 px-6 py-3">
+                    <div class="flex justify-between items-center pb-3 border-b bg-blue-50 -mx-6 px-6 py-3">
                       <span class="font-semibold text-gray-900">Taxable Estate</span>
-                      <span class="font-bold text-orange-700">{{ formatCurrency(plan.current_iht_position.projected.taxable_estate) }}</span>
+                      <span class="font-bold text-blue-700">{{ formatCurrency(plan.current_iht_position.projected.taxable_estate) }}</span>
                     </div>
                     <div class="flex justify-between items-center bg-red-50 -mx-6 px-6 py-3 rounded">
                       <span class="font-semibold text-red-900">IHT Liability (40%)</span>
@@ -550,9 +550,9 @@
                   <span class="text-gray-700">RNRB</span>
                   <span class="font-bold text-green-600">-{{ formatCurrency(plan.current_iht_position.rnrb) }}</span>
                 </div>
-                <div class="flex justify-between items-center pb-3 border-b bg-orange-50 -mx-6 px-6 py-3">
+                <div class="flex justify-between items-center pb-3 border-b bg-blue-50 -mx-6 px-6 py-3">
                   <span class="font-semibold text-gray-900">Taxable Estate</span>
-                  <span class="font-bold text-orange-700">{{ formatCurrency(plan.current_iht_position.taxable_estate) }}</span>
+                  <span class="font-bold text-blue-700">{{ formatCurrency(plan.current_iht_position.taxable_estate) }}</span>
                 </div>
                 <div class="flex justify-between items-center bg-red-50 -mx-6 px-6 py-3 rounded">
                   <span class="font-semibold text-red-900">IHT Liability (40%)</span>
@@ -580,7 +580,7 @@
                 </div>
                 <div class="bg-white rounded-lg p-4">
                   <p class="text-xs text-gray-600 mb-1">Remaining Liability</p>
-                  <p class="text-xl font-bold text-orange-600">{{ formatCurrency(plan.optimized_recommendation.summary.remaining_liability) }}</p>
+                  <p class="text-xl font-bold text-blue-600">{{ formatCurrency(plan.optimized_recommendation.summary.remaining_liability) }}</p>
                 </div>
                 <div class="bg-white rounded-lg p-4">
                   <p class="text-xs text-gray-600 mb-1">Annual Costs</p>
@@ -629,7 +629,7 @@
                         </div>
                         <div>
                           <span class="text-gray-600">Cost:</span>
-                          <span class="font-semibold text-orange-600 ml-2">{{ formatCurrency(action.cost) }}</span>
+                          <span class="font-semibold text-blue-600 ml-2">{{ formatCurrency(action.cost) }}</span>
                         </div>
                         <div>
                           <span class="text-gray-600">Timeframe:</span>
@@ -835,13 +835,13 @@ export default {
     getPlanTypeBadgeClass(isComplete) {
       return isComplete
         ? 'bg-blue-100 text-blue-800'
-        : 'bg-orange-100 text-orange-800';
+        : 'bg-blue-100 text-blue-800';
     },
 
     getCompletenessWarningClass(severity) {
       const classes = {
         critical: 'bg-red-50 border-l-4 border-red-500',
-        warning: 'bg-orange-50 border-l-4 border-orange-500',
+        warning: 'bg-blue-50 border-l-4 border-blue-500',
         success: 'bg-green-50 border-l-4 border-green-500',
       };
       return classes[severity] || classes.warning;
@@ -850,7 +850,7 @@ export default {
     getWarningIconColour(severity) {
       const colours = {
         critical: 'text-red-600',
-        warning: 'text-orange-600',
+        warning: 'text-blue-600',
         success: 'text-green-600',
       };
       return colours[severity] || colours.warning;
@@ -859,7 +859,7 @@ export default {
     getWarningTitleColour(severity) {
       const colours = {
         critical: 'text-red-900',
-        warning: 'text-orange-900',
+        warning: 'text-blue-900',
         success: 'text-green-900',
       };
       return colours[severity] || colours.warning;
@@ -868,7 +868,7 @@ export default {
     getWarningTextColour(severity) {
       const colours = {
         critical: 'text-red-700',
-        warning: 'text-orange-700',
+        warning: 'text-blue-700',
         success: 'text-green-700',
       };
       return colours[severity] || colours.warning;
@@ -877,7 +877,7 @@ export default {
     getCompleteProfileButtonClass(severity) {
       const classes = {
         critical: 'bg-red-600 hover:bg-red-700 text-white',
-        warning: 'bg-orange-600 hover:bg-orange-700 text-white',
+        warning: 'bg-blue-600 hover:bg-blue-700 text-white',
         success: 'bg-green-600 hover:bg-green-700 text-white',
       };
       return classes[severity] || classes.warning;

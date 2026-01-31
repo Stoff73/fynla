@@ -98,7 +98,7 @@ export default {
       if (this.variant !== 'auto') {
         const variants = {
           success: 'bg-green-500',
-          warning: 'bg-orange-500',
+          warning: 'bg-blue-500',
           danger: 'bg-red-500',
           info: 'bg-blue-500',
         };
@@ -108,14 +108,14 @@ export default {
       // Auto color based on progress and track status
       if (this.percentage >= 100) return 'bg-green-500';
       if (this.isOnTrack) return 'bg-blue-500';
-      return 'bg-orange-500';
+      return 'bg-blue-500';
     },
 
     percentageClass() {
       if (this.variant !== 'auto') {
         const variants = {
           success: 'text-green-600',
-          warning: 'text-orange-600',
+          warning: 'text-blue-600',
           danger: 'text-red-600',
           info: 'text-blue-600',
         };
@@ -124,7 +124,7 @@ export default {
 
       if (this.percentage >= 100) return 'text-green-600';
       if (this.isOnTrack) return 'text-blue-600';
-      return 'text-orange-600';
+      return 'text-blue-600';
     },
   },
 };

@@ -419,7 +419,7 @@
                     <!-- Planned contributions (lighter shade) -->
                     <div
                       v-if="plannedAnnualContribution > 0"
-                      class="bg-orange-400 h-full"
+                      class="bg-blue-400 h-full"
                       :style="{ width: Math.min(plannedAnnualContribution / ISA_ALLOWANCE * 100, 100 - totalUsedPercent) + '%' }"
                       :title="`Planned: ${formatCurrency(plannedAnnualContribution)}`"
                     ></div>
@@ -439,7 +439,7 @@
                     <span class="text-gray-600">This account: {{ formatCurrency(thisAccountSubscription) }}</span>
                   </div>
                   <div v-if="plannedAnnualContribution > 0" class="flex items-center gap-1">
-                    <div class="w-2 h-2 rounded-full bg-orange-400"></div>
+                    <div class="w-2 h-2 rounded-full bg-blue-400"></div>
                     <span class="text-gray-600">Planned: {{ formatCurrency(plannedAnnualContribution) }}</span>
                   </div>
                 </div>
@@ -775,7 +775,7 @@ export default {
     // Class for remaining allowance display
     totalRemainingAllowanceClass() {
       if (this.totalWithPlanned > this.ISA_ALLOWANCE) return 'text-red-600';
-      if (this.totalRemainingAllowance < 2000) return 'text-orange-600';
+      if (this.totalRemainingAllowance < 2000) return 'text-blue-600';
       return 'text-green-600';
     },
   },

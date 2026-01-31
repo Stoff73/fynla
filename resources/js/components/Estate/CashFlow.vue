@@ -29,11 +29,11 @@
       </div>
       <div :class="[
         'rounded-lg p-6',
-        netCashFlow >= 0 ? 'bg-blue-50' : 'bg-orange-50',
+        netCashFlow >= 0 ? 'bg-blue-50' : 'bg-blue-50',
       ]">
         <p :class="[
           'text-sm font-medium mb-2',
-          netCashFlow >= 0 ? 'text-blue-600' : 'text-orange-600',
+          netCashFlow >= 0 ? 'text-blue-600' : 'text-blue-600',
         ]">
           Net Cash Flow
         </p>

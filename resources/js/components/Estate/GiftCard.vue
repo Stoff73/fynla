@@ -267,7 +267,7 @@ export default {
 }
 
 .gift-card.status-taper {
-  @apply border-l-orange-500;
+  @apply border-l-blue-500;
 }
 
 .gift-card.status-taxable {
@@ -299,8 +299,8 @@ export default {
 }
 
 .icon-warning {
-  @apply bg-orange-100;
-  @apply text-orange-600;
+  @apply bg-blue-100;
+  @apply text-blue-600;
 }
 
 .icon-danger {
@@ -406,7 +406,7 @@ export default {
 }
 
 .progress-partial {
-  @apply bg-gradient-to-r from-orange-500 to-orange-600;
+  @apply bg-gradient-to-r from-blue-500 to-blue-600;
 }
 
 .progress-complete {
@@ -416,7 +416,7 @@ export default {
 .taper-relief {
   margin: 16px 0;
   padding: 12px;
-  @apply bg-orange-50;
+  @apply bg-blue-50;
   border-radius: 6px;
 }
 
@@ -437,8 +437,8 @@ export default {
 }
 
 .relief-medium {
-  @apply bg-orange-200;
-  @apply text-orange-800;
+  @apply bg-blue-200;
+  @apply text-blue-800;
 }
 
 .relief-high {
@@ -448,7 +448,7 @@ export default {
 
 .relief-description {
   font-size: 12px;
-  @apply text-orange-900;
+  @apply text-blue-900;
   margin: 0;
 }
 
@@ -471,7 +471,7 @@ export default {
 }
 
 .banner-warning {
-  @apply bg-orange-100 text-orange-800 border border-orange-500;
+  @apply bg-blue-100 text-blue-800 border border-blue-500;
 }
 
 .banner-danger {

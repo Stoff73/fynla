@@ -126,12 +126,12 @@
 
     <!-- Tapered Allowance Info (if applicable) -->
     <div v-if="isTapered" class="bg-gray-50 rounded-lg p-4 flex items-start">
-      <svg class="w-5 h-5 text-orange-600 mr-3 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg class="w-5 h-5 text-blue-600 mr-3 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
       </svg>
       <div>
-        <p class="text-sm font-bold text-orange-900">Tapered Annual Allowance</p>
-        <p class="text-sm text-orange-800 mt-1">
+        <p class="text-sm font-bold text-blue-900">Tapered Annual Allowance</p>
+        <p class="text-sm text-blue-800 mt-1">
           Your annual allowance has been tapered to {{ formatCurrency(currentAllowance) }} based on your income level.
         </p>
       </div>
@@ -204,14 +204,14 @@ export default {
 
     progressBarColour() {
       if (this.progressPercent >= 100) return 'bg-red-500';
-      if (this.progressPercent >= 80) return 'bg-orange-500';
+      if (this.progressPercent >= 80) return 'bg-blue-500';
       if (this.progressPercent >= 60) return 'bg-yellow-500';
       return 'bg-green-500';
     },
 
     statusTextColour() {
       if (this.progressPercent >= 100) return 'text-red-600';
-      if (this.progressPercent >= 80) return 'text-orange-600';
+      if (this.progressPercent >= 80) return 'text-blue-600';
       return 'text-green-600';
     },
 
@@ -286,7 +286,7 @@ export default {
 /* Progress bar animation */
 .bg-green-500,
 .bg-yellow-500,
-.bg-orange-500,
+.bg-blue-500,
 .bg-red-500 {
   transition: width 0.5s ease-out, background-colour 0.3s ease;
 }

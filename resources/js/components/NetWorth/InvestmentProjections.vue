@@ -128,7 +128,7 @@
             <div class="analysis-content">
               <div class="analysis-row">
                 <span class="row-label">Annual Fees</span>
-                <span class="row-value text-orange-600">{{ formatCurrency(totalAnnualFees) }}/yr</span>
+                <span class="row-value text-blue-600">{{ formatCurrency(totalAnnualFees) }}/yr</span>
               </div>
               <div class="analysis-row">
                 <span class="row-label">Fee Drag (10yr)</span>
@@ -299,7 +299,7 @@ export default {
     diversificationScoreClass() {
       const score = this.diversificationScore;
       if (score >= 70) return 'text-green-600';
-      if (score >= 50) return 'text-orange-600';
+      if (score >= 50) return 'text-blue-600';
       return 'text-red-600';
     },
 
@@ -749,8 +749,8 @@ export default {
 }
 
 .score-fair {
-  @apply bg-orange-100;
-  @apply text-orange-800;
+  @apply bg-blue-100;
+  @apply text-blue-800;
 }
 
 .score-poor {
@@ -772,8 +772,8 @@ export default {
   border-radius: 4px;
   font-size: 12px;
   font-weight: 600;
-  @apply bg-orange-100;
-  @apply text-orange-800;
+  @apply bg-blue-100;
+  @apply text-blue-800;
 }
 
 .analysis-content {

@@ -71,14 +71,14 @@
       <!-- Streak Banner -->
       <div
         v-if="bestStreak >= 3"
-        class="mb-8 p-4 bg-orange-50 border border-orange-200 rounded-lg flex items-center gap-3"
+        class="mb-8 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-3"
       >
         <span class="text-2xl">🔥</span>
         <div>
-          <p class="text-base font-semibold text-orange-700">
+          <p class="text-base font-semibold text-blue-700">
             {{ bestStreak }} month contribution streak!
           </p>
-          <p class="text-sm text-orange-600">Keep up the great work!</p>
+          <p class="text-sm text-blue-600">Keep up the great work!</p>
         </div>
       </div>
 
@@ -161,18 +161,18 @@
         <!-- Needs Attention Status -->
         <div
           v-else-if="summary.on_track_count < summary.total_goals"
-          class="p-4 bg-white border-2 border-orange-500 rounded-lg"
+          class="p-4 bg-white border-2 border-blue-500 rounded-lg"
         >
           <div class="flex items-center gap-3">
-            <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
             <div>
-              <p class="font-semibold text-orange-700">
+              <p class="font-semibold text-blue-700">
                 {{ summary.total_goals - summary.on_track_count }}
                 {{ (summary.total_goals - summary.on_track_count) === 1 ? 'goal needs' : 'goals need' }} attention
               </p>
-              <p class="text-sm text-orange-600">Consider increasing contributions</p>
+              <p class="text-sm text-blue-600">Consider increasing contributions</p>
             </div>
           </div>
         </div>
@@ -223,13 +223,13 @@ export default {
     progressTextClass() {
       if (this.overallProgress >= 75) return 'text-green-600';
       if (this.overallProgress >= 50) return 'text-blue-600';
-      return 'text-orange-600';
+      return 'text-blue-600';
     },
 
     progressBarClass() {
       if (this.overallProgress >= 75) return 'bg-green-500';
       if (this.overallProgress >= 50) return 'bg-blue-500';
-      return 'bg-orange-500';
+      return 'bg-blue-500';
     },
   },
 
@@ -266,7 +266,7 @@ export default {
         savings: 'bg-emerald-100 text-emerald-700',
         investment: 'bg-blue-100 text-blue-700',
         property: 'bg-purple-100 text-purple-700',
-        retirement: 'bg-orange-100 text-orange-700',
+        retirement: 'bg-blue-100 text-blue-700',
       };
       return classes[module] || 'bg-gray-100 text-gray-700';
     },
@@ -278,7 +278,7 @@ export default {
     getGoalStatusDotClass(goal) {
       if (this.isNotStarted(goal)) return 'bg-gray-400';
       if (goal.is_on_track) return 'bg-green-500';
-      return 'bg-orange-500';
+      return 'bg-blue-500';
     },
 
     getGoalStatusLabel(goal) {
@@ -290,7 +290,7 @@ export default {
     getGoalProgressBarClass(goal) {
       if (this.isNotStarted(goal)) return 'bg-gray-300';
       if (goal.is_on_track) return 'bg-blue-500';
-      return 'bg-orange-500';
+      return 'bg-blue-500';
     },
   },
 };

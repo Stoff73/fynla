@@ -4,16 +4,16 @@
     <div v-if="hasNoPolicies" class="bg-gray-50 rounded-lg p-6 mb-8">
       <div class="flex">
         <div class="flex-shrink-0">
-          <svg class="h-6 w-6 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
+          <svg class="h-6 w-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
             <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
           </svg>
         </div>
         <div class="ml-3 flex-1">
-          <h3 class="text-lg font-medium text-orange-800 mb-2">No Protection Coverage</h3>
-          <p class="text-sm text-orange-700 mb-4">
+          <h3 class="text-lg font-medium text-blue-800 mb-2">No Protection Coverage</h3>
+          <p class="text-sm text-blue-700 mb-4">
             You currently have no protection policies recorded. Without adequate life insurance and protection coverage, your family may face financial difficulties if something unexpected happens.
           </p>
-          <div class="bg-white rounded-lg p-4 border border-orange-300 mb-4">
+          <div class="bg-white rounded-lg p-4 border border-blue-300 mb-4">
             <h4 class="text-sm font-semibold text-gray-900 mb-2">Why Protection is Important:</h4>
             <ul class="text-sm text-gray-700 space-y-1 list-disc list-inside">
               <li>Replaces lost income if you're unable to work</li>
@@ -26,28 +26,28 @@
             <div class="flex gap-3">
               <button
                 @click="$router.push('/protection')"
-                class="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors font-medium text-sm"
+                class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium text-sm"
               >
                 View Gap Analysis →
               </button>
               <button
                 v-preview-disabled="'add'"
                 @click="$emit('add-policy')"
-                class="px-4 py-2 bg-white text-orange-600 border border-orange-600 rounded-md hover:bg-orange-50 transition-colors font-medium text-sm"
+                class="px-4 py-2 bg-white text-blue-600 border border-blue-600 rounded-md hover:bg-blue-50 transition-colors font-medium text-sm"
               >
                 I Have Protection to Add
               </button>
             </div>
 
             <!-- I Don't Have Protection Checkbox -->
-            <div class="flex items-start pt-2 border-t border-orange-200">
+            <div class="flex items-start pt-2 border-t border-blue-200">
               <div class="flex items-center h-5">
                 <input
                   id="has_no_policies"
                   v-model="hasNoPoliciesChecked"
                   v-preview-disabled="'edit'"
                   type="checkbox"
-                  class="h-4 w-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
+                  class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                   @change="updateHasNoPoliciesFlag"
                 />
               </div>
@@ -157,7 +157,7 @@
                 </div>
               </div>
 
-              <div v-if="excessUnused > 0" class="flex justify-between items-center text-orange-700">
+              <div v-if="excessUnused > 0" class="flex justify-between items-center text-blue-700">
                 <span class="font-medium">3. Excess unused</span>
                 <span class="font-medium">{{ formatCurrency(excessUnused) }}</span>
               </div>
@@ -329,7 +329,7 @@
                 <div v-if="!isEmployee" class="flex justify-between items-center text-sm">
                   <span class="text-gray-600">
                     Statutory Sick Pay (SSP)
-                    <span class="text-xs text-orange-500 block">Self-employed not eligible</span>
+                    <span class="text-xs text-blue-500 block">Self-employed not eligible</span>
                   </span>
                   <span class="font-medium text-gray-400">£0</span>
                 </div>
@@ -478,7 +478,7 @@
           <div class="text-xs text-gray-400 hidden sm:block">per year</div>
         </div>
         <div class="text-center">
-          <div class="text-xl sm:text-2xl lg:text-3xl font-bold text-orange-600 mb-1">
+          <div class="text-xl sm:text-2xl lg:text-3xl font-bold text-blue-600 mb-1">
             {{ formatCurrency(disabilityCover) }}
           </div>
           <div class="text-xs sm:text-sm text-gray-600">Disability Cover</div>
@@ -592,7 +592,7 @@ export default {
     debtCoverageColour() {
       if (this.totalDebt === 0) return 'text-green-600';
       if (this.debtCoveragePercent >= 100) return 'text-green-600';
-      if (this.debtCoveragePercent >= 75) return 'text-orange-600';
+      if (this.debtCoveragePercent >= 75) return 'text-blue-600';
       return 'text-red-600';
     },
 
@@ -616,7 +616,7 @@ export default {
       if (this.annualIncome === 0) return 'text-gray-600';
       // Target is typically 50-70% of income
       if (this.incomeProtectedPercent >= 50) return 'text-green-600';
-      if (this.incomeProtectedPercent >= 25) return 'text-orange-600';
+      if (this.incomeProtectedPercent >= 25) return 'text-blue-600';
       return 'text-red-600';
     },
 
@@ -787,7 +787,7 @@ export default {
     premiumPercentageColour() {
       const percentage = parseFloat(this.premiumPercentage);
       if (percentage <= 10) return 'text-green-600';
-      if (percentage <= 15) return 'text-orange-600';
+      if (percentage <= 15) return 'text-blue-600';
       return 'text-red-600';
     },
   },
@@ -842,7 +842,7 @@ export default {
       const classes = {
         none: 'bg-green-500 text-white',
         low: 'bg-blue-500 text-white',
-        medium: 'bg-orange-500 text-white',
+        medium: 'bg-blue-500 text-white',
         high: 'bg-red-500 text-white',
       };
       return classes[severity] || 'bg-gray-500 text-white';

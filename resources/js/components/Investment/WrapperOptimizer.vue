@@ -85,11 +85,11 @@
               </div>
               <div class="flex justify-between items-center">
                 <span class="text-sm text-gray-600">Tax on Growth:</span>
-                <span class="font-semibold text-orange-600">CGT (10-20%)</span>
+                <span class="font-semibold text-blue-600">CGT (10-20%)</span>
               </div>
               <div class="flex justify-between items-center">
                 <span class="text-sm text-gray-600">Tax on Income:</span>
-                <span class="font-semibold text-orange-600">Income Tax</span>
+                <span class="font-semibold text-blue-600">Income Tax</span>
               </div>
               <div class="flex justify-between items-center">
                 <span class="text-sm text-gray-600">Withdrawal:</span>
@@ -287,7 +287,7 @@
           <!-- GIA Result -->
           <div class="bg-gray-50 rounded-lg p-4">
             <h4 class="text-sm font-semibold text-gray-800 mb-3">GIA (Taxable)</h4>
-            <p class="text-2xl font-bold text-orange-600 mb-2">
+            <p class="text-2xl font-bold text-blue-600 mb-2">
               £{{ formatNumber(comparisonResults.gia.finalValue) }}
             </p>
             <div class="text-xs text-gray-600 space-y-1">
@@ -603,7 +603,7 @@ export default {
       const winner = this.getWinner();
       if (winner === 'ISA') return 'text-green-600';
       if (winner === 'Pension') return 'text-blue-600';
-      return 'text-orange-600';
+      return 'text-blue-600';
     },
 
     formatNumber(value) {

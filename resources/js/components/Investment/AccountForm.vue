@@ -536,7 +536,7 @@ export default {
     // Class for remaining allowance display
     totalRemainingAllowanceClass() {
       if (this.totalWithPlanned > this.ISA_ALLOWANCE) return 'text-red-600';
-      if (this.totalRemainingAllowance < 2000) return 'text-orange-600';
+      if (this.totalRemainingAllowance < 2000) return 'text-blue-600';
       return 'text-green-600';
     },
 
@@ -553,13 +553,13 @@ export default {
 
     remainingAllowanceClass() {
       if (this.remainingAllowance === 0) return 'text-red-600';
-      if (this.remainingAllowance < 2000) return 'text-orange-600';
+      if (this.remainingAllowance < 2000) return 'text-blue-600';
       return 'text-green-600';
     },
 
     allowanceBarClass() {
       if (this.allowanceUsedPercent >= 100) return 'bg-red-600';
-      if (this.allowanceUsedPercent >= 75) return 'bg-orange-500';
+      if (this.allowanceUsedPercent >= 75) return 'bg-blue-500';
       if (this.allowanceUsedPercent >= 50) return 'bg-yellow-500';
       return 'bg-green-600';
     },
