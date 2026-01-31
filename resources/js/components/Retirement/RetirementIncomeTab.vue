@@ -130,8 +130,8 @@
         <!-- Net Income Card -->
         <div :class="['summary-card', netIncomeClass]">
           <p class="summary-label">Projected Net Income</p>
-          <p class="summary-value">{{ formatCurrency(taxBreakdown?.net_income || 0) }}</p>
-          <p class="summary-subtitle">After tax ({{ formatPercent(taxBreakdown?.effective_rate || 0) }} effective rate)</p>
+          <p class="summary-value">{{ formatCurrency(firstYearNetIncome) }}</p>
+          <p class="summary-subtitle">After tax ({{ formatPercent(firstYearEffectiveRate) }} effective rate)</p>
         </div>
 
         <!-- Tax Paid Card -->
@@ -489,6 +489,32 @@ export default {
       return this.retirementIncome?.fund_projections || [];
     },
 
+    // Calculate net income from first year's fund projection (matches Withdrawal column)
+    firstYearNetIncome() {
+      if (this.fundProjections.length === 0) return 0;
+      const firstYear = this.fundProjections[0];
+      // Gross income = fund withdrawals + guaranteed pensions
+      const grossIncome = (firstYear.total_income || 0) + (firstYear.state_pension || 0) + (firstYear.db_pension || 0);
+      // Net = gross - tax
+      return grossIncome - (firstYear.tax_paid || 0);
+    },
+
+    // Calculate effective tax rate from first year's projection
+    firstYearEffectiveRate() {
+      if (this.fundProjections.length === 0) return 0;
+      const firstYear = this.fundProjections[0];
+      const grossIncome = (firstYear.total_income || 0) + (firstYear.state_pension || 0) + (firstYear.db_pension || 0);
+      if (grossIncome <= 0) return 0;
+      return (firstYear.tax_paid || 0) / grossIncome;
+    },
+
+    // First year gross income (for reference)
+    firstYearGrossIncome() {
+      if (this.fundProjections.length === 0) return 0;
+      const firstYear = this.fundProjections[0];
+      return (firstYear.total_income || 0) + (firstYear.state_pension || 0) + (firstYear.db_pension || 0);
+    },
+
     depletionAges() {
       return this.retirementIncome?.depletion_ages || {};
     },
@@ -590,8 +616,8 @@ export default {
     },
 
     netIncomeClass() {
-      if (!this.taxBreakdown) return '';
-      const netIncome = this.taxBreakdown.net_income || 0;
+      if (this.fundProjections.length === 0) return '';
+      const netIncome = this.firstYearNetIncome;
       const target = this.displayTargetIncome;
       if (netIncome >= target) return 'green';
       if (netIncome >= target * 0.9) return 'yellow';
