@@ -54,6 +54,31 @@ resources/js/components/NetWorth/NetWorthWealthSummary.vue
 
 ---
 
+## Property Details - Add Owner Names for Joint/Tenants in Common
+
+Added owner names display in the property details view for properties with shared ownership (joint or tenants in common).
+
+### Changes Made
+
+| Change | Description |
+|--------|-------------|
+| Owner names display | Shows both owners with their respective ownership percentages for joint/tenants in common properties |
+| Ownership type formatting | Added proper formatting for ownership types (e.g., "tenants_in_common" → "Tenants in Common") |
+| Individual ownership | Shows single owner name with 100% for individual ownership |
+
+### Example Display
+For a joint property:
+- Ownership Type: Joint
+- David Mitchell: 60%
+- Sarah Mitchell: 40%
+
+### Files Changed
+```
+resources/js/components/NetWorth/Property/PropertyDetailInline.vue
+```
+
+---
+
 ## Orange/Amber Color Removal
 
 Removed all orange/amber colors from the codebase per the design system rules in `designStyle.md`. Orange and amber are banned colors - replaced with blue for warnings/cautions, and appropriate semantic colors for other use cases.
@@ -392,6 +417,7 @@ php artisan cache:clear && php artisan config:clear
 - [ ] Medium priority badges use blue, not orange
 - [ ] Trust ownership badges use indigo
 - [ ] Bond type badges use green
+- [ ] Property details - verify joint/tenants in common properties show both owner names with percentages
 
 ---
 
