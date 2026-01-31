@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\UserProfile;
 
 use App\Models\User;
+use App\Services\Benefits\ChildBenefitService;
 use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\UKTaxCalculator;
 
@@ -12,7 +13,8 @@ class UserProfileService
 {
     public function __construct(
         private CrossModuleAssetAggregator $assetAggregator,
-        private UKTaxCalculator $taxCalculator
+        private UKTaxCalculator $taxCalculator,
+        private ChildBenefitService $childBenefitService
     ) {}
 
     /**
@@ -373,6 +375,9 @@ class UserProfileService
         $monthlyExpenditure = $expenditureBreakdown['monthly'];
         $netIncome = $detailedTax['summary']['net_income'];
 
+        // Calculate Child Benefit and HICBC
+        $childBenefitPosition = $this->childBenefitService->calculateChildBenefitPosition($user, $totalAnnualIncome);
+
         return [
             'occupation' => $user->occupation,
             'employer' => $user->employer,
@@ -409,6 +414,18 @@ class UserProfileService
             'rental_breakdown' => $rentalBreakdown,
             // New detailed breakdown for UI display
             'detailed_tax_breakdown' => $detailedTax,
+            // Child Benefit and HICBC
+            'child_benefit' => [
+                'annual_amount' => $childBenefitPosition['benefit']['annual_amount'],
+                'eligible_children' => $childBenefitPosition['benefit']['eligible_children_count'],
+                'breakdown' => $childBenefitPosition['benefit']['breakdown'],
+            ],
+            'hicbc' => [
+                'applies' => $childBenefitPosition['hicbc']['applies'],
+                'charge' => $childBenefitPosition['hicbc']['charge'],
+                'net_benefit' => $childBenefitPosition['net_annual_benefit'],
+                'clawback_percentage' => $childBenefitPosition['hicbc']['clawback_percentage'] ?? 0,
+            ],
         ];
     }
 

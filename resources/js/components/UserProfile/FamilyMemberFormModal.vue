@@ -155,8 +155,8 @@
               </div>
             </div>
 
-            <!-- Education Status (if child) -->
-            <div v-if="form.relationship === 'child'">
+            <!-- Education Status (if child or step_child) -->
+            <div v-if="['child', 'step_child'].includes(form.relationship)">
               <label for="education_status" class="block text-body-sm font-medium text-gray-700 mb-1">
                 Education Status
               </label>
@@ -174,6 +174,26 @@
                 <option value="graduated">Graduated</option>
                 <option value="not_applicable">Not in Education</option>
               </select>
+            </div>
+
+            <!-- Child Benefit (for children) -->
+            <div v-if="['child', 'step_child'].includes(form.relationship)" class="flex items-start">
+              <div class="flex items-center h-5">
+                <input
+                  id="receives_child_benefit"
+                  v-model="form.receives_child_benefit"
+                  type="checkbox"
+                  class="form-checkbox"
+                />
+              </div>
+              <div class="ml-3 text-sm">
+                <label for="receives_child_benefit" class="font-medium text-gray-700">
+                  Receives Child Benefit
+                </label>
+                <p class="text-gray-500">
+                  Check if you claim Child Benefit for this child
+                </p>
+              </div>
             </div>
 
             <!-- Notes -->
@@ -291,6 +311,7 @@ export default {
       gender: '',
       is_dependent: false,
       education_status: '',
+      receives_child_benefit: false,
       notes: '',
     });
 
@@ -322,6 +343,7 @@ export default {
           gender: member.gender || '',
           is_dependent: member.is_dependent || false,
           education_status: member.education_status || '',
+          receives_child_benefit: member.receives_child_benefit || false,
           notes: member.notes || '',
         };
       } else {
@@ -336,6 +358,7 @@ export default {
           gender: '',
           is_dependent: false,
           education_status: '',
+          receives_child_benefit: false,
           notes: '',
         };
       }

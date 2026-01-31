@@ -526,7 +526,7 @@
                   <br>
                   <strong>High Income Charge:</strong> Applies if income exceeds £{{ formatNumber(taxConfig.other.child_benefit.high_income_charge_threshold) }}
                   <br>
-                  <em class="text-xs">Charge is 1% per £100 over threshold (fully clawed back at £80,000)</em>
+                  <em class="text-xs">Charge is 1% per £200 over threshold (fully clawed back at £80,000)</em>
                 </p>
               </div>
             </div>
@@ -898,9 +898,10 @@ export default {
         },
         blind_persons_allowance: 3070,
         child_benefit: {
-          eldest_child: 25.60,
-          additional_child: 16.95,
+          eldest_child: 26.05,
+          additional_child: 17.25,
           high_income_charge_threshold: 60000,
+          high_income_full_clawback: 80000,
         },
       },
     };

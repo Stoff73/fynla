@@ -1,6 +1,6 @@
 # Deployment Notes - January 31, 2026
 
-**Deployment Status:** NOT DEPLOYED
+**Deployment Status:** ✅ DEPLOYED - January 31, 2026
 
 ---
 
@@ -8,7 +8,7 @@
 
 **Branch:** main
 
-**Status:** Ready for deployment
+**Status:** ✅ Deployed
 
 ### Description
 
@@ -59,7 +59,7 @@ designStyle.md
 
 **Branch:** main
 
-**Status:** Ready for deployment
+**Status:** ✅ Deployed
 
 ### Description
 
@@ -110,7 +110,7 @@ designStyle.md
 
 **Branch:** main
 
-**Status:** Ready for deployment
+**Status:** ✅ Deployed
 
 ### Description
 
@@ -150,7 +150,7 @@ CLAUDE.md
 
 **Branch:** main
 
-**Status:** Ready for deployment
+**Status:** ✅ Deployed
 
 ### Description
 
@@ -188,7 +188,7 @@ CLAUDE.md
 
 **Branch:** main
 
-**Status:** Ready for deployment
+**Status:** ✅ Deployed
 
 ### Description
 
@@ -227,7 +227,7 @@ resources/js/constants/designSystem.js
 
 **Branch:** main
 
-**Status:** Ready for deployment
+**Status:** ✅ Deployed
 
 ### Description
 
@@ -268,7 +268,7 @@ resources/js/constants/designSystem.js
 
 **Branch:** main
 
-**Status:** Ready for deployment
+**Status:** ✅ Deployed
 
 ### Description
 
@@ -308,7 +308,7 @@ resources/js/constants/designSystem.js
 
 **Branch:** main
 
-**Status:** Ready for deployment
+**Status:** ✅ Deployed
 
 ### Description
 
@@ -335,7 +335,7 @@ resources/js/components/Retirement/FutureValueTab.vue
 
 **Branch:** main
 
-**Status:** Ready for deployment
+**Status:** ✅ Deployed
 
 ### Description
 
@@ -369,7 +369,7 @@ resources/js/components/Retirement/RetirementIncomeTab.vue
 
 **Branch:** main
 
-**Status:** Ready for deployment
+**Status:** ✅ Deployed
 
 ### Description
 
@@ -630,7 +630,7 @@ If issues occur:
 
 **Branch:** main
 
-**Status:** Ready for deployment
+**Status:** ✅ Deployed
 
 ### Description
 
@@ -694,7 +694,7 @@ designStyle.md
 
 **Branch:** main
 
-**Status:** Ready for deployment
+**Status:** ✅ Deployed
 
 ### Description
 
@@ -759,7 +759,7 @@ resources/js/components/Retirement/RetirementIncomeTab.vue
 
 **Branch:** retireDecim
 
-**Status:** Ready for deployment
+**Status:** ✅ Deployed
 
 ### Description
 
@@ -865,7 +865,7 @@ app/Services/Retirement/RetirementIncomeService.php
 
 **Branch:** retireDecim
 
-**Status:** Ready for deployment
+**Status:** ✅ Deployed
 
 ### Description
 
@@ -956,7 +956,7 @@ resources/js/components/Onboarding/steps/ExpenditureStep.vue
 
 **Branch:** retireDecim
 
-**Status:** Ready for deployment
+**Status:** ✅ Deployed
 
 ### Description
 
@@ -1053,5 +1053,240 @@ Response:
 6. ✅ Email received at chris@fynla.org with all data
 7. ✅ Console logs included in email
 8. ✅ Preview user badge appears in subject for preview users
+
+---
+
+## Joint Owner Names Display
+
+**Branch:** main
+
+**Status:** ✅ Deployed
+
+### Description
+
+Added joint owner names to property and investment detail views. For joint/TiC properties and joint investments, the co-owner's name is now displayed prominently.
+
+### Property Changes
+
+In the property detail Overview tab, the Ownership section now shows both owner names with their respective percentages:
+
+| Field | Display |
+|-------|---------|
+| Ownership Type | Joint |
+| David | 50% |
+| Sarah Mitchell | 50% |
+
+### Investment Changes
+
+For joint investment accounts, the 4th summary card now shows the Joint Owner instead of Holdings count:
+
+| Card | Before | After (Joint Accounts) |
+|------|--------|------------------------|
+| Card 4 | Holdings: 3 | Joint Owner: Sarah Mitchell (50% share) |
+
+Non-joint accounts continue to show the Holdings card.
+
+### Files Changed (5 files)
+
+**Backend:**
+
+```text
+app/Http/Controllers/Api/PropertyController.php    (added owner_name, joint_owner_name to index + show)
+app/Http/Controllers/Api/InvestmentController.php  (added owner_name, joint_owner_name to index)
+app/Models/Investment/InvestmentAccount.php        (added jointOwner relationship)
+```
+
+**Frontend (Included in Build):**
+
+```text
+resources/js/components/NetWorth/InvestmentDetailInline.vue  (Joint Owner card replaces Holdings)
+resources/js/views/Investment/AccountDetailView.vue          (minor cleanup)
+```
+
+### Testing Performed
+
+1. ✅ Property detail shows both David and Sarah Mitchell with percentages
+2. ✅ Investment detail shows Joint Owner card with Sarah Mitchell (50% share)
+3. ✅ Non-joint investments still show Holdings card
+4. ✅ TiC properties show joint owner name (Mike Jones for Unit 12)
+
+---
+
+## Child Benefit Feature
+
+**Branch:** childBen
+
+**Status:** ✅ Deployed
+
+### Description
+
+Added Child Benefit tracking to the family member form. When users mark children as receiving Child Benefit, the system calculates the annual amount and displays it in their income. Includes High Income Child Benefit Charge (HICBC) calculations for higher earners.
+
+### UK Child Benefit Rules (2024-25)
+
+| Item | Value |
+|------|-------|
+| Eldest/only child | £26.05/week (£1,354.60/year) |
+| Additional children | £17.25/week (£897.00/year) |
+| HICBC threshold start | £60,000 adjusted net income |
+| HICBC full clawback | £80,000 adjusted net income |
+| Clawback rate | 1% per £200 over threshold |
+
+### Features Added
+
+1. **Family Member Form** - "Receives Child Benefit" checkbox for children and step-children
+2. **Family Members List** - Green "Child Benefit" badge on children receiving benefit
+3. **Income Section** - Displays Child Benefit amount with breakdown
+4. **HICBC Warning** - Blue info box when income exceeds £60k showing clawback percentage and net benefit
+5. **Tax Dashboard** - Fixed Child Benefit rates from old £25.60/£16.95 to current £26.05/£17.25
+6. **Tax Dashboard** - Fixed HICBC description from "1% per £100" to "1% per £200"
+
+### HICBC Calculation
+
+When parent's adjusted net income exceeds £60,000:
+- 1% clawed back per £200 over threshold
+- At £70,000: 50% clawed back
+- At £80,000: 100% clawed back (full benefit returned via tax)
+
+### New Files (2)
+
+**Database:**
+```text
+database/migrations/2026_01_31_200000_add_receives_child_benefit_to_family_members.php
+```
+
+**Backend:**
+```text
+app/Services/Benefits/ChildBenefitService.php
+```
+
+### Modified Files (10)
+
+**Backend (6):**
+```text
+app/Models/FamilyMember.php                          (added receives_child_benefit field)
+app/Http/Requests/StoreFamilyMemberRequest.php       (added validation)
+app/Http/Requests/UpdateFamilyMemberRequest.php      (added validation)
+app/Services/TaxConfigService.php                    (added getChildBenefit() method)
+app/Services/UserProfile/UserProfileService.php      (integrated ChildBenefitService)
+database/seeders/TaxConfigurationSeeder.php          (added benefits.child_benefit config)
+```
+
+**Frontend (4 - Included in Build):**
+```text
+resources/js/components/UserProfile/FamilyMemberFormModal.vue  (added checkbox)
+resources/js/components/UserProfile/FamilyMembers.vue          (added badge)
+resources/js/components/UserProfile/IncomeOccupation.vue       (added display + HICBC warning)
+resources/js/views/UKTaxes/UKTaxesDashboard.vue                (fixed rates)
+resources/js/components/Dashboard/UKTaxesAllowancesCard.vue    (fixed rates)
+```
+
+### Testing
+
+1. **Add child with Child Benefit** - Go to User Profile > Family Members, add child, check "Receives Child Benefit", verify green badge appears
+2. **Check income calculation** - Go to User Profile > Income, verify Child Benefit amount shows (£1,354.60 for one child, £2,251.60 for two)
+3. **HICBC warning** - Set user income to £70,000, verify blue HICBC warning with 50% clawback
+4. **Tax dashboard** - Go to UK Taxes dashboard, verify rates show £26.05/£17.25
+
+---
+
+## Onboarding Fixes
+
+**Branch:** childBen
+
+**Status:** ✅ Deployed
+
+### Issues Fixed
+
+| Issue | Root Cause | Fix |
+|-------|------------|-----|
+| Main residence address not auto-populating | Frontend expected `profile.address_line_1` but API returns nested `profile.personal_info.address.line_1` | Updated `AssetsStep.vue` to use correct nested path |
+| Occupation lookup not working | `occupation_codes` table was empty | Seeded 406 occupation codes |
+
+### Modified Files (1)
+
+**Frontend (Included in Build):**
+
+```text
+resources/js/components/Onboarding/steps/AssetsStep.vue  (fixed address path mapping)
+```
+
+### Server Commands Required
+
+```bash
+# Seed occupation codes
+php artisan db:seed --class=OccupationCodeSeeder --force
+```
+
+### Testing
+
+1. **Address auto-populate** - Start onboarding, enter address in Personal Info, proceed to Assets, add main residence property - address should auto-fill
+2. **Occupation lookup** - In Income step, type "software" in occupation field - should show dropdown with matching occupations
+
+---
+
+## Quick Deployment Summary
+
+### 1. Build Locally
+
+```bash
+cd /Users/Chris/Desktop/fynla
+./deploy/fynla-org/build.sh
+```
+
+### 2. Upload via SiteGround File Manager
+
+**Built Assets:**
+
+```text
+public/build/ → ~/www/fynla.org/public_html/public/build/
+```
+
+**PHP Files (18):**
+
+```text
+app/Models/SavingsAccount.php
+app/Models/Investment/InvestmentAccount.php
+app/Models/FamilyMember.php
+app/Http/Controllers/Api/SavingsController.php
+app/Http/Controllers/Api/PropertyController.php
+app/Http/Controllers/Api/InvestmentController.php
+app/Http/Controllers/Api/BugReportController.php
+app/Http/Requests/StoreFamilyMemberRequest.php
+app/Http/Requests/UpdateFamilyMemberRequest.php
+app/Mail/BugReportMail.php
+app/Services/Retirement/RetirementIncomeService.php
+app/Services/Benefits/ChildBenefitService.php
+app/Services/TaxConfigService.php
+app/Services/UserProfile/UserProfileService.php
+app/Http/Middleware/PreviewWriteInterceptor.php
+app/Providers/RouteServiceProvider.php
+database/seeders/TaxConfigurationSeeder.php
+routes/api.php
+```
+
+**Blade Template (1):**
+
+```text
+resources/views/emails/bug-report.blade.php
+```
+
+**Database Migrations (2):**
+
+```text
+database/migrations/2026_01_31_120000_add_include_in_retirement_to_savings_accounts.php
+database/migrations/2026_01_31_200000_add_receives_child_benefit_to_family_members.php
+```
+
+### 3. SSH Commands
+
+```bash
+ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
+cd ~/www/fynla.org/public_html
+php artisan migrate --force
+php artisan db:seed --class=OccupationCodeSeeder --force
+php artisan db:seed --class=TaxConfigurationSeeder --force
+php artisan cache:clear && php artisan config:clear && php artisan view:clear && php artisan route:clear
+```
 
 ---

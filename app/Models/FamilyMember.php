@@ -27,6 +27,7 @@ class FamilyMember extends Model
         'annual_income',
         'is_dependent',
         'education_status',
+        'receives_child_benefit',
         'notes',
     ];
 
@@ -34,6 +35,7 @@ class FamilyMember extends Model
         'date_of_birth' => 'date',
         'annual_income' => 'decimal:2',
         'is_dependent' => 'boolean',
+        'receives_child_benefit' => 'boolean',
     ];
 
     /**

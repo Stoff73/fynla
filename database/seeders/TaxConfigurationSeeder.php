@@ -327,6 +327,20 @@ class TaxConfigurationSeeder extends Seeder
                 'salary_growth' => 0.03,
             ],
 
+            // Benefits and allowances
+            'benefits' => [
+                'child_benefit' => [
+                    'eldest_child_weekly' => 26.05,              // Weekly rate for eldest/only child
+                    'additional_child_weekly' => 17.25,          // Weekly rate for additional children
+                    'eldest_child_annual' => 1354.60,            // Annual amount (52 weeks)
+                    'additional_child_annual' => 897.00,         // Annual amount (52 weeks)
+                    'high_income_charge_threshold' => 60000,     // HICBC starts at this income level
+                    'high_income_full_clawback' => 80000,        // HICBC claws back 100% at this level
+                    'clawback_increment' => 200,                 // 1% clawed back per £200 over threshold
+                    'notes' => 'Child Benefit is claimed for children under 16, or under 20 if in approved education/training. High Income Child Benefit Charge (HICBC) applies when either parent earns over £60,000.',
+                ],
+            ],
+
             // Property ownership and leasehold information
             'property_ownership' => [
                 'joint_ownership_types' => [

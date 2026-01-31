@@ -105,6 +105,30 @@
                 <span class="text-body-sm text-gray-600">Trust Income:</span>
                 <span class="text-body-sm text-gray-900 text-right">{{ formatCurrency(form.annual_trust_income) }}</span>
               </div>
+              <!-- Child Benefit -->
+              <div v-if="childBenefitAmount > 0" class="flex justify-between">
+                <span class="text-body-sm text-gray-600">Child Benefit:</span>
+                <span class="text-body-sm text-gray-900 text-right">{{ formatCurrency(childBenefitAmount) }}</span>
+              </div>
+            </div>
+
+            <!-- HICBC Warning -->
+            <div v-if="hicbcApplies" class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div class="flex items-start">
+                <svg class="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z" clip-rule="evenodd" />
+                </svg>
+                <div class="ml-2">
+                  <p class="text-body-sm font-medium text-blue-800">High Income Child Benefit Charge</p>
+                  <p class="text-body-xs text-blue-700 mt-1">
+                    Your income exceeds {{ formatCurrency(60000) }}. You may need to pay back
+                    <strong>{{ hicbcClawbackPercentage }}%</strong> of your Child Benefit ({{ formatCurrency(hicbcCharge) }}/year) through Self Assessment.
+                  </p>
+                  <p class="text-body-xs text-blue-700 mt-1">
+                    Net Child Benefit after HICBC: <strong>{{ formatCurrency(hicbcNetBenefit) }}/year</strong>
+                  </p>
+                </div>
+              </div>
             </div>
 
             <!-- Total Annual Income -->
@@ -343,6 +367,13 @@ export default {
     const detailedTaxBreakdown = computed(() => incomeOccupation.value?.detailed_tax_breakdown || null);
     const rentalBreakdown = computed(() => incomeOccupation.value?.rental_breakdown || null);
 
+    // Child Benefit computed properties
+    const childBenefitAmount = computed(() => incomeOccupation.value?.child_benefit?.annual_amount || 0);
+    const hicbcApplies = computed(() => incomeOccupation.value?.hicbc?.applies || false);
+    const hicbcCharge = computed(() => incomeOccupation.value?.hicbc?.charge || 0);
+    const hicbcNetBenefit = computed(() => incomeOccupation.value?.hicbc?.net_benefit || 0);
+    const hicbcClawbackPercentage = computed(() => incomeOccupation.value?.hicbc?.clawback_percentage || 0);
+
     // Check if income needs updating due to employment status change
     const incomeNeedsUpdate = computed(() => incomeOccupation.value?.income_needs_update || false);
     const previousEmploymentStatus = computed(() => incomeOccupation.value?.previous_employment_status || null);
@@ -532,6 +563,11 @@ export default {
       incomeNeedsUpdate,
       previousStatusLabel,
       netIncomeLabel,
+      childBenefitAmount,
+      hicbcApplies,
+      hicbcCharge,
+      hicbcNetBenefit,
+      hicbcClawbackPercentage,
       handleSubmit,
       handleCancel,
       formatCurrency,
