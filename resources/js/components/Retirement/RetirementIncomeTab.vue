@@ -137,8 +137,8 @@
         <!-- Tax Paid Card -->
         <div class="summary-card tax">
           <p class="summary-label">Annual Tax</p>
-          <p class="summary-value">{{ formatCurrency(taxBreakdown?.total_tax || 0) }}</p>
-          <p class="summary-subtitle">{{ formatCurrency(taxBreakdown?.tax_free_income || 0) }} tax-free</p>
+          <p class="summary-value">{{ formatCurrency(firstYearTaxPaid) }}</p>
+          <p class="summary-subtitle">{{ formatCurrency(firstYearGrossIncome - firstYearTaxPaid) }} tax-free</p>
         </div>
 
         <!-- Pension Capital Card -->
@@ -513,6 +513,12 @@ export default {
       if (this.fundProjections.length === 0) return 0;
       const firstYear = this.fundProjections[0];
       return (firstYear.total_income || 0) + (firstYear.state_pension || 0) + (firstYear.db_pension || 0);
+    },
+
+    // First year tax paid (matches Fund Depletion table)
+    firstYearTaxPaid() {
+      if (this.fundProjections.length === 0) return 0;
+      return this.fundProjections[0].tax_paid || 0;
     },
 
     depletionAges() {
@@ -982,7 +988,13 @@ export default {
       if (projected && projected.value) {
         return parseFloat(projected.value);
       }
-      return this.getDisplayValue(account);
+      // If not in available accounts (excluded), calculate projection using assumptions
+      // Use 80% confidence approximation: 4% net return (5% gross - 1% fees)
+      const currentValue = this.getDisplayValue(account);
+      const years = this.yearsToRetirement || 0;
+      if (years <= 0) return currentValue;
+      const netReturnRate = 0.04; // 5% return - 1% fees = 4% net
+      return currentValue * Math.pow(1 + netReturnRate, years);
     },
 
     getProjectedCashValue(account) {
@@ -994,7 +1006,13 @@ export default {
       if (projected && projected.value) {
         return parseFloat(projected.value);
       }
-      return parseFloat(account.current_balance) || 0;
+      // If not in available accounts (excluded), calculate projection
+      // Cash grows at lower rate (2% savings rate)
+      const currentBalance = parseFloat(account.current_balance) || 0;
+      const years = this.yearsToRetirement || 0;
+      if (years <= 0) return currentBalance;
+      const savingsRate = 0.02; // 2% for cash
+      return currentBalance * Math.pow(1 + savingsRate, years);
     },
   },
 };
