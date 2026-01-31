@@ -58,6 +58,7 @@ class PreviewWriteInterceptor
         '/recalculate',         // Risk profile recalculation endpoint
         '/reprocess',           // Document re-extraction endpoint
         '/analyze',             // Analysis endpoints (investment portfolio analysis)
+        '/toggle-retirement',   // Retirement inclusion toggle for assets (investment & savings)
     ];
 
     /**
