@@ -53,6 +53,17 @@ resources/js/store/modules/preview.js
 
 ---
 
+## Preview Banner - Change Register Button Text
+
+Changed the register button text in the demo preview banner from "Register to Save Your Data" to "Signup Now".
+
+### Files Changed
+```
+resources/js/components/Preview/PreviewBanner.vue
+```
+
+---
+
 ## Deployment Steps
 
 ### 1. Build Frontend (Required)
@@ -82,3 +93,4 @@ php artisan cache:clear && php artisan config:clear
 - [ ] Verify encouragement message displays correctly
 - [ ] Click register button - verify modal closes and navigates to /register
 - [ ] Verify persona cards display in correct order: Carters, Mitchells, Chen, Morgan, Williams, Thompson
+- [ ] In demo mode, verify preview banner button says "Signup Now"
