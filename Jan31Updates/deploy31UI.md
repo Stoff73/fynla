@@ -27,6 +27,11 @@ Added nested expandable rows in the Financial Commitments section so users can d
 2. Click on a category → expands to show individual items with amounts
 3. Click on a property → expands to show expense breakdown (Mortgage, Council Tax, Utilities, etc.)
 
+### Consistency Across Tabs
+- **Current Budget**: Full expandable view with all commitments
+- **Retired Budget**: Shows adjustments (struck-through removed items), Protection Premiums expandable
+- **Widowed Budget**: Single-person view with expandable Property, Protection, and Loans
+
 ### Files Changed
 ```
 resources/js/components/UserProfile/ExpenditureExpandableGridRow.vue (new)
