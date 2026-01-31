@@ -658,6 +658,71 @@ designStyle.md
 
 ---
 
+## Toggle Functionality Fix - Retirement Income Planner
+
+**Branch:** main
+
+**Status:** Ready for deployment
+
+### Description
+
+Fixed critical bug where toggling assets to include/exclude in the Retirement Income Planner did not update the page calculations. When users toggled investments or savings accounts, the depletion chart, projected net income, tax breakdown, and summary cards were not recalculating.
+
+### Root Cause
+
+The `toggleAsset()` and `toggleAllocation()` methods were calling `debouncedCalculate()` which internally calls `calculateRetirementIncome()`. This action sends the **existing** allocations to the backend for recalculation - but the toggled asset's `include_in_retirement` status wasn't reflected in those allocations.
+
+### Solution
+
+Changed both methods to call `fetchRetirementIncome()` instead. This action:
+1. Sends a fresh request to `/api/retirement/income`
+2. Backend queries the database with updated `include_in_retirement` flags
+3. Returns recalculated allocations including/excluding the toggled asset
+4. Updates all derived calculations (tax, depletion, progress)
+
+### Code Changes
+
+```javascript
+// BEFORE (broken)
+async toggleAsset(type, id) {
+  if (type === 'investment') {
+    await this.toggleIncludedInvestment(id);
+  } else if (type === 'cash') {
+    await this.toggleIncludedCash(id);
+  }
+  this.debouncedCalculate();  // Sends stale allocations
+}
+
+// AFTER (fixed)
+async toggleAsset(type, id) {
+  if (type === 'investment') {
+    await this.toggleIncludedInvestment(id);
+  } else if (type === 'cash') {
+    await this.toggleIncludedCash(id);
+  }
+  await this.fetchRetirementIncome();  // Fetches fresh allocations
+}
+```
+
+Same fix applied to `toggleAllocation()` method.
+
+### Verification
+
+Tested with peak_earners persona:
+- Toggle Royal London bond to "Excluded" → Other Assets changed from £844,492 to £521,730
+- Gap to Target updated from £265,317 to £588,079
+- Bond moved from Income Sources to Other Assets section
+- Toggle back to "Included" → Values restored correctly
+
+### Files Changed (1 file)
+
+**Frontend (Included in Build):**
+```text
+resources/js/components/Retirement/RetirementIncomeTab.vue
+```
+
+---
+
 ## TODO: Remove Orange Colors from Goals and Onboarding
 
 **Status:** Not Started

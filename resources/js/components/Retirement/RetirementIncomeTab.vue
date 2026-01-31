@@ -849,8 +849,9 @@ export default {
       } else if (type === 'cash') {
         await this.toggleIncludedCash(id);
       }
-      // Recalculate after toggle
-      this.debouncedCalculate();
+      // Fetch fresh data with updated allocations after toggle
+      // This gets new allocations from backend that include/exclude the toggled asset
+      await this.fetchRetirementIncome();
     },
 
     async toggleAllocation(allocation) {
@@ -879,8 +880,9 @@ export default {
         await this.toggleIncludedCash(sourceId);
       }
 
-      // Recalculate after toggle
-      this.debouncedCalculate();
+      // Fetch fresh data with updated allocations after toggle
+      // This gets new allocations from backend that include/exclude the toggled asset
+      await this.fetchRetirementIncome();
     },
 
     formatSourceType(type) {
