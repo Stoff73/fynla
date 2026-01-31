@@ -114,6 +114,25 @@
                                 <p class="text-center text-gray-500 text-sm mt-5">
                                     Click a scenario to explore the demo dashboard
                                 </p>
+
+                                <!-- Register Section -->
+                                <div class="mt-6 pt-5 border-t border-gray-200">
+                                    <p class="text-center text-gray-600 text-sm mb-3">
+                                        We strongly encourage you to explore the personas above first to see what Fynla can do.
+                                    </p>
+                                    <div class="flex justify-center">
+                                        <router-link
+                                            to="/register"
+                                            class="inline-flex items-center px-5 py-2.5 bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+                                            @click="$emit('close')"
+                                        >
+                                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                                            </svg>
+                                            Create Your Account
+                                        </router-link>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </Transition>
