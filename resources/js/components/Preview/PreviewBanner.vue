@@ -92,7 +92,7 @@
                         to="/register"
                         :class="[registerButtonClass, 'px-4 py-1.5 rounded-md font-medium text-sm transition-colors shadow-sm']"
                     >
-                        Register to Save Your Data
+                        Signup Now
                     </router-link>
                 </div>
             </div>
