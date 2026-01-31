@@ -1,5 +1,9 @@
 import './bootstrap';
 
+// Start console capture early to capture any initialization errors
+import consoleCapture from './services/consoleCapture';
+consoleCapture.startCapture();
+
 import { createApp } from 'vue';
 import App from './App.vue';
 import router from './router';

@@ -486,8 +486,18 @@ Upload the following PHP files:
 ```text
 app/Models/SavingsAccount.php
 app/Http/Controllers/Api/SavingsController.php
-app/Services/Retirement/RetirementIncomeService.php
+app/Http/Controllers/Api/BugReportController.php     (NEW: Bug report feature)
+app/Mail/BugReportMail.php                           (NEW: Bug report email)
+app/Services/Retirement/RetirementIncomeService.php  (updated: Priority-based withdrawal)
+app/Http/Middleware/PreviewWriteInterceptor.php      (updated: Toggle persistence fix)
+app/Providers/RouteServiceProvider.php               (updated: Bug report rate limiter)
 routes/api.php
+```
+
+### Step 3b: Upload Blade Template
+
+```text
+resources/views/emails/bug-report.blade.php          (NEW: Bug report email template)
 ```
 
 ### Step 4: Run Migration
@@ -521,24 +531,39 @@ designStyle.md
 database/migrations/2026_01_31_120000_add_include_in_retirement_to_savings_accounts.php
 ```
 
-### Backend (4 files - Upload required)
+### Backend (8 files - Upload required)
 
 ```text
 app/Models/SavingsAccount.php
 app/Http/Controllers/Api/SavingsController.php
+app/Http/Controllers/Api/BugReportController.php     (NEW)
+app/Mail/BugReportMail.php                           (NEW)
 app/Services/Retirement/RetirementIncomeService.php
+app/Http/Middleware/PreviewWriteInterceptor.php
+app/Providers/RouteServiceProvider.php               (updated)
 routes/api.php
 ```
 
-### Frontend (6 files - Included in Build)
+### Blade Templates (1 file - Upload required)
+
+```text
+resources/views/emails/bug-report.blade.php          (NEW)
+```
+
+### Frontend (10 files - Included in Build)
 
 ```text
 resources/js/constants/designSystem.js
 resources/js/components/Retirement/RetirementIncomeTab.vue
 resources/js/components/Retirement/FutureValueTab.vue
 resources/js/components/NetWorth/PensionList.vue
+resources/js/components/Navbar.vue                   (updated: Bug Report button)
+resources/js/components/BugReportModal.vue           (NEW)
 resources/js/store/modules/retirement.js
 resources/js/services/savingsService.js
+resources/js/services/consoleCapture.js              (NEW)
+resources/js/services/bugReportService.js            (NEW)
+resources/js/app.js                                  (updated: console capture init)
 ```
 
 ---
@@ -579,6 +604,13 @@ After deployment, verify:
 5. **Navigation Updates**
    - Click Pension Pot Projection chart - should go to Income tab
    - Click Required Capital card in Future Value - should go to Income tab
+
+6. **Bug Report Feature**
+   - Click Bug Report button in navbar - modal should open
+   - Enter description and click Send Report
+   - Verify success message appears
+   - Verify email arrives at chris@fynla.org with console logs and user info
+   - Test on mobile menu as well
 
 ---
 
@@ -723,6 +755,161 @@ resources/js/components/Retirement/RetirementIncomeTab.vue
 
 ---
 
+## Fund Depletion Projection Fix - Priority-Based Withdrawal
+
+**Branch:** retireDecim
+
+**Status:** Ready for deployment
+
+### Description
+
+Fixed the Fund Depletion year-by-year projection to use **priority-based tax-efficient withdrawal**. Tax-free sources (PCLS, ISA) are now used FIRST before ANY taxable sources (Pension Drawdown). This achieves **ZERO TAX** while tax-free money exists.
+
+### Previous Bug (Allocation-Based Without Fallback)
+
+The year-by-year projection used allocation-based withdrawal without fallback:
+```php
+// OLD: Withdraw according to calculated allocations
+foreach ($allocationWithdrawals as $fundKey => $annualAmount) {
+    $withdrawFromFundKey($actualFundKey, $scaledAmount);
+}
+// NO FALLBACK: income DROPS when allocated funds deplete
+```
+
+**Problem:** When ISA depleted, income dropped dramatically while £1.5M in Pension Drawdown sat unused. Users paid TAX while £300k+ tax-free remained at age 100.
+
+### Fix Applied - Priority-Based Withdrawal
+
+Implemented tax-efficient withdrawal order per documentation (retireIncomePriority.md lines 711-736):
+
+**File:** `app/Services/Retirement/RetirementIncomeService.php`
+**Lines:** 1111-1182
+
+```php
+// PRIORITY-BASED WITHDRAWAL: Tax-efficient order per documentation
+// Order: Bond 5% (mandatory) → PCLS → ISA → Drawdown → GIA → Savings
+// GOAL: Use ALL tax-free sources FIRST before ANY taxable sources
+// Result: ZERO TAX while tax-free money exists
+
+$remainingTarget = $yearTargetIncome;
+
+// 1. BOND 5% (MANDATORY) - Tax-deferred
+$bondWithdrawn = $withdrawFromFundType('bond', $bondBalance * 0.05);
+$remainingTarget -= $bondWithdrawn;
+
+// 2. PCLS (TAX-FREE) - Fill the gap first
+if ($remainingTarget > 0) {
+    $pclsWithdrawn = $withdrawFromFundType('pcls', $remainingTarget);
+    $remainingTarget -= $pclsWithdrawn;
+}
+
+// 3. ISA (TAX-FREE) - Fill remaining gap
+if ($remainingTarget > 0) {
+    $isaWithdrawn = $withdrawFromFundType('isa', $remainingTarget);
+    $remainingTarget -= $isaWithdrawn;
+}
+
+// 4. PENSION DRAWDOWN (TAXABLE) - ONLY if tax-free insufficient
+if ($remainingTarget > 0) {
+    $drawdownWithdrawn = $withdrawFromFundType('drawdown', $remainingTarget);
+    $remainingTarget -= $drawdownWithdrawn;
+}
+
+// 5. GIA, 6. Savings - if still needed
+```
+
+### Documented Behavior (from retireIncomePriority.md)
+
+Per **Lines 1026-1031**:
+> "GOAL: Use tax-free sources FIRST so that:
+> - Tax-free depletes BEFORE taxable
+> - Later years have ZERO TAX (only taxable remains within PA)
+> - Pension Drawdown is LAST RESORT"
+
+### Results (Verified with David Mitchell - Peak Earners)
+
+| Ages | Source Used | Tax Paid | Analysis |
+|------|-------------|----------|----------|
+| 60-63 | PCLS withdrawn | £0 | PCLS used FIRST |
+| 64 | PCLS depletes, ISA starts | £0 | ISA takes over |
+| 65-71 | ISA withdrawn, Drawdown untouched | £0 | ISA used BEFORE Drawdown |
+| 72+ | ISA depletes, Drawdown now used | £8,111+ | Tax starts only when tax-free gone |
+
+### Key Behavior Changes
+
+| Aspect | Previous (Wrong) | Now (Correct) |
+|--------|------------------|---------------|
+| Withdrawal order | Allocation-based (PMT amounts) | Priority-based (tax-efficient) |
+| When tax-free depletes | Income drops, taxable unused | Fallback to taxable sources |
+| Tax efficiency | Paid tax while tax-free existed | ZERO TAX while tax-free exists |
+| Drawdown usage | Per allocation | ONLY when tax-free exhausted |
+
+### Files Changed (1 file)
+
+**Backend:**
+```text
+app/Services/Retirement/RetirementIncomeService.php
+```
+
+### Testing Performed
+
+1. ✅ PCLS used FIRST (ages 60-63)
+2. ✅ ISA used SECOND after PCLS depletes (ages 64-71)
+3. ✅ Drawdown used LAST (age 72+) - ONLY when tax-free exhausted
+4. ✅ Tax Paid = £0 while tax-free sources have balance
+5. ✅ All automated tests pass (9 controller, 12 projection)
+
+---
+
+## Toggle Persistence Fix - PreviewWriteInterceptor
+
+**Branch:** retireDecim
+
+**Status:** Ready for deployment
+
+### Description
+
+Fixed critical bug where toggling assets to include/exclude in retirement planning did not persist to the database for preview users. The toggle appeared to work in the UI but the change was never saved.
+
+### Root Cause
+
+The `PreviewWriteInterceptor` middleware intercepts all write operations (POST, PUT, PATCH, DELETE) for preview users and returns a fake success response without actually saving to the database. The `/toggle-retirement` endpoint was not excluded from this interception.
+
+### Fix Applied
+
+Added `/toggle-retirement` to the excluded patterns so the toggle persists for preview users:
+
+**File:** `app/Http/Middleware/PreviewWriteInterceptor.php`
+
+```php
+private const EXCLUDED_PATTERNS = [
+    '/calculate',           // All calculation endpoints
+    '/calculate-',          // Hyphenated calculation endpoints
+    '/projections',         // Projection/simulation endpoints
+    '/recalculate',         // Risk profile recalculation
+    '/reprocess',           // Document re-extraction
+    '/analyze',             // Analysis endpoints
+    '/toggle-retirement',   // Retirement inclusion toggle (NEW)
+];
+```
+
+### Testing Performed
+
+1. Reset ISA `include_in_retirement = false` in database
+2. Logged in as David Mitchell (preview user)
+3. Clicked ISA toggle to "Include"
+4. Verified database updated: `include_in_retirement = TRUE`
+5. Verified UI shows ISA in Income Sources with correct calculations
+
+### Files Changed (1 file)
+
+**Backend:**
+```text
+app/Http/Middleware/PreviewWriteInterceptor.php
+```
+
+---
+
 ## TODO: Remove Orange Colors from Goals and Onboarding
 
 **Status:** Not Started
@@ -762,5 +949,109 @@ resources/js/components/Onboarding/steps/ExpenditureStep.vue
 - Review each usage to determine appropriate replacement color
 - Maintain visual hierarchy and meaning
 - Test that color changes don't reduce accessibility
+
+---
+
+## Bug Report Feature
+
+**Branch:** retireDecim
+
+**Status:** Ready for deployment
+
+### Description
+
+Added a Bug Report button to the navbar that captures user context, console logs, and user description, then emails to chris@fynla.org. Works for both authenticated and guest users.
+
+### Features
+
+- **Console Capture Service** - Intercepts console.log/error/warn/info, maintains circular buffer of last 100 entries, captures unhandled errors and promise rejections
+- **Bug Report Modal** - Description (required), expected behaviour (optional), info notice about technical data, loading/success states
+- **Rate Limiting** - 5 reports per hour per user/IP
+- **Email includes:**
+  - User info (ID, name, email, preview status)
+  - Bug description and expected behaviour
+  - Console logs (dark code block)
+  - Technical context (URL, browser, screen size, viewport, IP, timestamps)
+
+### Email Subject Format
+
+```
+Bug Report - User {id}
+Bug Report - User {id} [PREVIEW]   (for preview users)
+Bug Report - User Guest            (for unauthenticated users)
+```
+
+### New Files Created (6 files)
+
+**Backend:**
+```text
+app/Http/Controllers/Api/BugReportController.php
+app/Mail/BugReportMail.php
+resources/views/emails/bug-report.blade.php
+```
+
+**Frontend:**
+```text
+resources/js/services/consoleCapture.js
+resources/js/services/bugReportService.js
+resources/js/components/BugReportModal.vue
+```
+
+### Files Modified (4 files)
+
+**Backend:**
+```text
+app/Providers/RouteServiceProvider.php   (added bug-reports rate limiter)
+routes/api.php                           (added POST /api/bug-report route)
+```
+
+**Frontend:**
+```text
+resources/js/app.js                      (initialize console capture)
+resources/js/components/Navbar.vue       (added Bug Report button + modal, kept Feedback link)
+```
+
+### Button Styling
+
+Both Feedback and Bug Report buttons use blue colors (design system compliant):
+
+```html
+class="inline-flex items-center px-4 py-2 border-2 border-blue-300
+       text-body-sm font-medium rounded-button text-blue-600 bg-white
+       hover:text-blue-800 hover:border-blue-400 transition-colors"
+```
+
+### API Endpoint
+
+```
+POST /api/bug-report
+Rate limit: 5 per hour per user/IP
+
+Request body:
+{
+  "description": "string (required, max 5000)",
+  "expected_behaviour": "string (optional, max 2000)",
+  "console_logs": "string (optional, max 50000)",
+  "page_url": "string (optional)",
+  "user_agent": "string (optional)",
+  "screen_size": "string (optional)",
+  "viewport_size": "string (optional)",
+  "client_timestamp": "string (optional)"
+}
+
+Response:
+{ "success": true, "message": "Bug report submitted successfully..." }
+```
+
+### Testing Performed
+
+1. ✅ Bug Report button visible in navbar (desktop and mobile)
+2. ✅ Feedback button still present
+3. ✅ Modal opens with correct fields
+4. ✅ Form validation works (description required)
+5. ✅ Submission shows loading state then success
+6. ✅ Email received at chris@fynla.org with all data
+7. ✅ Console logs included in email
+8. ✅ Preview user badge appears in subject for preview users
 
 ---

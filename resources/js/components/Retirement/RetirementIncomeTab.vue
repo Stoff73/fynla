@@ -130,15 +130,15 @@
         <!-- Net Income Card -->
         <div :class="['summary-card', netIncomeClass]">
           <p class="summary-label">Projected Net Income</p>
-          <p class="summary-value">{{ formatCurrency(taxBreakdown?.net_income || 0) }}</p>
-          <p class="summary-subtitle">After tax ({{ formatPercent(taxBreakdown?.effective_rate || 0) }} effective rate)</p>
+          <p class="summary-value">{{ formatCurrency(firstYearNetIncome) }}</p>
+          <p class="summary-subtitle">After tax ({{ formatPercent(firstYearEffectiveRate) }} effective rate)</p>
         </div>
 
         <!-- Tax Paid Card -->
         <div class="summary-card tax">
           <p class="summary-label">Annual Tax</p>
-          <p class="summary-value">{{ formatCurrency(taxBreakdown?.total_tax || 0) }}</p>
-          <p class="summary-subtitle">{{ formatCurrency(taxBreakdown?.tax_free_income || 0) }} tax-free</p>
+          <p class="summary-value">{{ formatCurrency(firstYearTaxPaid) }}</p>
+          <p class="summary-subtitle">{{ formatCurrency(firstYearGrossIncome - firstYearTaxPaid) }} tax-free</p>
         </div>
 
         <!-- Pension Capital Card -->
@@ -348,7 +348,7 @@
       />
 
       <!-- Year-by-Year Projection Table -->
-      <div v-if="requiredCapital?.year_by_year_projection?.length > 0" class="table-section">
+      <div v-if="requiredCapital?.year_by_year?.length > 0" class="table-section">
         <h4 class="table-title">Year-by-Year Projection</h4>
         <div class="table-container">
           <table class="projection-table">
@@ -363,15 +363,15 @@
             </thead>
             <tbody>
               <tr
-                v-for="row in requiredCapital.year_by_year_projection"
-                :key="row.year"
-                :class="{ 'retirement-row': row.age === retirementAge }"
+                v-for="row in requiredCapital.year_by_year"
+                :key="row.year_number"
+                :class="{ 'retirement-row': row.is_retirement_year }"
               >
-                <td>{{ row.year }}</td>
+                <td>{{ row.calendar_year }}</td>
                 <td>{{ row.age }}</td>
-                <td>{{ formatCurrency(row.projected_pot_value) }}</td>
-                <td>{{ formatCurrency(row.pot_in_todays_money) }}</td>
-                <td>{{ formatCurrency(row.target_in_todays_money) }}</td>
+                <td>{{ formatCurrency(row.accumulated_value) }}</td>
+                <td>{{ formatCurrency(row.present_value_today) }}</td>
+                <td>{{ formatCurrency(row.target_in_today_money) }}</td>
               </tr>
             </tbody>
           </table>
@@ -489,6 +489,38 @@ export default {
       return this.retirementIncome?.fund_projections || [];
     },
 
+    // Calculate net income from first year's fund projection (matches Withdrawal column)
+    firstYearNetIncome() {
+      if (this.fundProjections.length === 0) return 0;
+      const firstYear = this.fundProjections[0];
+      // Gross income = fund withdrawals + guaranteed pensions
+      const grossIncome = (firstYear.total_income || 0) + (firstYear.state_pension || 0) + (firstYear.db_pension || 0);
+      // Net = gross - tax
+      return grossIncome - (firstYear.tax_paid || 0);
+    },
+
+    // Calculate effective tax rate from first year's projection
+    firstYearEffectiveRate() {
+      if (this.fundProjections.length === 0) return 0;
+      const firstYear = this.fundProjections[0];
+      const grossIncome = (firstYear.total_income || 0) + (firstYear.state_pension || 0) + (firstYear.db_pension || 0);
+      if (grossIncome <= 0) return 0;
+      return (firstYear.tax_paid || 0) / grossIncome;
+    },
+
+    // First year gross income (for reference)
+    firstYearGrossIncome() {
+      if (this.fundProjections.length === 0) return 0;
+      const firstYear = this.fundProjections[0];
+      return (firstYear.total_income || 0) + (firstYear.state_pension || 0) + (firstYear.db_pension || 0);
+    },
+
+    // First year tax paid (matches Fund Depletion table)
+    firstYearTaxPaid() {
+      if (this.fundProjections.length === 0) return 0;
+      return this.fundProjections[0].tax_paid || 0;
+    },
+
     depletionAges() {
       return this.retirementIncome?.depletion_ages || {};
     },
@@ -520,7 +552,18 @@ export default {
       // Filter to show ONLY pension sources in Income Sources section
       // Other assets (ISA, Bond, GIA, Savings) are shown separately with toggles
       const pensionTypes = ['pension_pot', 'pension_pot_pcls', 'pension_pot_drawdown', 'db_pension', 'state_pension'];
-      return allocations.filter(a => pensionTypes.includes(a.source_type));
+      const pensionAllocations = allocations.filter(a => pensionTypes.includes(a.source_type));
+
+      // Deduplicate by source_type + source_id, keeping the one with highest annual_amount
+      const seen = new Map();
+      for (const alloc of pensionAllocations) {
+        const key = `${alloc.source_type}-${alloc.source_id}`;
+        const existing = seen.get(key);
+        if (!existing || (alloc.annual_amount || 0) > (existing.annual_amount || 0)) {
+          seen.set(key, alloc);
+        }
+      }
+      return Array.from(seen.values());
     },
 
     // Allocations for non-pension sources (ISA, Bond, GIA, Savings) that are included
@@ -541,23 +584,25 @@ export default {
       const pensionTypes = ['pension_pot', 'pension_pot_pcls', 'pension_pot_drawdown', 'db_pension', 'state_pension'];
       const nonPensionAllocations = allocations.filter(a => !pensionTypes.includes(a.source_type));
 
-      // Add allocations that match included IDs
+      // Add allocations that match included IDs (use numeric comparison for type safety)
       for (const a of nonPensionAllocations) {
         const investmentTypes = ['isa', 'isa_investment', 'stocks_shares_isa', 'gia', 'onshore_bond', 'offshore_bond'];
         const cashTypes = ['isa_cash', 'savings', 'cash_isa'];
+        const sourceIdNum = parseInt(a.source_id, 10);
 
-        if (investmentTypes.includes(a.source_type) && this.storeIncludedInvestmentIds.includes(a.source_id)) {
+        if (investmentTypes.includes(a.source_type) && this.storeIncludedInvestmentIds.some(id => parseInt(id, 10) === sourceIdNum)) {
           result.push(a);
-          seenIds.add(a.source_id);
-        } else if (cashTypes.includes(a.source_type) && this.storeIncludedCashIds.includes(a.source_id)) {
+          seenIds.add(sourceIdNum);
+        } else if (cashTypes.includes(a.source_type) && this.storeIncludedCashIds.some(id => parseInt(id, 10) === sourceIdNum)) {
           result.push(a);
-          seenIds.add(a.source_id);
+          seenIds.add(sourceIdNum);
         }
       }
 
       // Add included investments that don't have allocations yet
       for (const account of this.includedInvestments) {
-        if (!seenIds.has(account.id)) {
+        const accountIdNum = parseInt(account.id, 10);
+        if (!seenIds.has(accountIdNum)) {
           // Create a pseudo-allocation for display
           result.push({
             source_id: account.id,
@@ -571,7 +616,8 @@ export default {
 
       // Add included cash that don't have allocations yet
       for (const account of this.includedCash) {
-        if (!seenIds.has(account.id)) {
+        const accountIdNum = parseInt(account.id, 10);
+        if (!seenIds.has(accountIdNum)) {
           result.push({
             source_id: account.id,
             source_type: account.is_isa ? 'isa_cash' : 'savings',
@@ -590,8 +636,8 @@ export default {
     },
 
     netIncomeClass() {
-      if (!this.taxBreakdown) return '';
-      const netIncome = this.taxBreakdown.net_income || 0;
+      if (this.fundProjections.length === 0) return '';
+      const netIncome = this.firstYearNetIncome;
       const target = this.displayTargetIncome;
       if (netIncome >= target) return 'green';
       if (netIncome >= target * 0.9) return 'yellow';
@@ -623,19 +669,31 @@ export default {
     },
 
     includedInvestments() {
-      return this.investmentAccounts.filter(a => this.storeIncludedInvestmentIds.includes(a.id));
+      // Use numeric comparison for type safety
+      return this.investmentAccounts.filter(a =>
+        this.storeIncludedInvestmentIds.some(id => parseInt(id, 10) === parseInt(a.id, 10))
+      );
     },
 
     excludedInvestments() {
-      return this.investmentAccounts.filter(a => !this.storeIncludedInvestmentIds.includes(a.id));
+      // Use numeric comparison for type safety
+      return this.investmentAccounts.filter(a =>
+        !this.storeIncludedInvestmentIds.some(id => parseInt(id, 10) === parseInt(a.id, 10))
+      );
     },
 
     includedCash() {
-      return this.cashAccounts.filter(a => this.storeIncludedCashIds.includes(a.id));
+      // Use numeric comparison for type safety
+      return this.cashAccounts.filter(a =>
+        this.storeIncludedCashIds.some(id => parseInt(id, 10) === parseInt(a.id, 10))
+      );
     },
 
     excludedCash() {
-      return this.cashAccounts.filter(a => !this.storeIncludedCashIds.includes(a.id));
+      // Use numeric comparison for type safety
+      return this.cashAccounts.filter(a =>
+        !this.storeIncludedCashIds.some(id => parseInt(id, 10) === parseInt(a.id, 10))
+      );
     },
 
     projectedPotAtRetirement() {
@@ -858,31 +916,39 @@ export default {
       // Toggle an allocation based on its source_type
       // Map allocation source_type to the corresponding asset type
       const sourceType = allocation.source_type;
-      const sourceId = allocation.source_id;
+      const sourceId = parseInt(allocation.source_id, 10); // Ensure numeric for comparison
+      let toggled = false;
 
-      if (sourceType === 'isa' || sourceType === 'isa_investment' || sourceType === 'isa_cash') {
-        // Find the account ID from the source_id
-        const account = this.investmentAccounts.find(a => a.id === sourceId);
+      console.log('[toggleAllocation] START', { sourceType, sourceId, allocation });
+      console.log('[toggleAllocation] investmentAccounts:', this.investmentAccounts.map(a => ({ id: a.id, type: a.account_type })));
+
+      const investmentTypes = ['isa', 'isa_investment', 'stocks_shares_isa', 'onshore_bond', 'offshore_bond', 'gia'];
+      const cashTypes = ['isa_cash', 'savings', 'cash_isa'];
+
+      if (investmentTypes.includes(sourceType)) {
+        // Find the account using numeric comparison
+        const account = this.investmentAccounts.find(a => parseInt(a.id, 10) === sourceId);
+        console.log('[toggleAllocation] Found account:', account);
         if (account) {
+          console.log('[toggleAllocation] Calling toggleIncludedInvestment with id:', account.id);
           await this.toggleIncludedInvestment(account.id);
+          toggled = true;
+          console.log('[toggleAllocation] Toggle completed, toggled =', toggled);
+        } else {
+          console.log('[toggleAllocation] NO ACCOUNT FOUND for sourceId:', sourceId);
         }
-      } else if (sourceType === 'onshore_bond' || sourceType === 'offshore_bond') {
-        const account = this.investmentAccounts.find(a => a.id === sourceId);
-        if (account) {
-          await this.toggleIncludedInvestment(account.id);
-        }
-      } else if (sourceType === 'gia') {
-        const account = this.investmentAccounts.find(a => a.id === sourceId);
-        if (account) {
-          await this.toggleIncludedInvestment(account.id);
-        }
-      } else if (sourceType === 'savings') {
+      } else if (cashTypes.includes(sourceType)) {
         await this.toggleIncludedCash(sourceId);
+        toggled = true;
       }
 
-      // Fetch fresh data with updated allocations after toggle
+      console.log('[toggleAllocation] Calling fetchRetirementIncome...');
+      // Always fetch fresh data after toggle attempt
       // This gets new allocations from backend that include/exclude the toggled asset
       await this.fetchRetirementIncome();
+      console.log('[toggleAllocation] fetchRetirementIncome completed');
+      console.log('[toggleAllocation] New fundProjections[0]:', this.fundProjections[0]);
+      console.log('[toggleAllocation] New firstYearNetIncome:', this.firstYearNetIncome);
     },
 
     formatSourceType(type) {
@@ -945,7 +1011,13 @@ export default {
       if (projected && projected.value) {
         return parseFloat(projected.value);
       }
-      return this.getDisplayValue(account);
+      // If not in available accounts (excluded), calculate projection using assumptions
+      // Use 80% confidence approximation: 4% net return (5% gross - 1% fees)
+      const currentValue = this.getDisplayValue(account);
+      const years = this.yearsToRetirement || 0;
+      if (years <= 0) return currentValue;
+      const netReturnRate = 0.04; // 5% return - 1% fees = 4% net
+      return currentValue * Math.pow(1 + netReturnRate, years);
     },
 
     getProjectedCashValue(account) {
@@ -957,7 +1029,13 @@ export default {
       if (projected && projected.value) {
         return parseFloat(projected.value);
       }
-      return parseFloat(account.current_balance) || 0;
+      // If not in available accounts (excluded), calculate projection
+      // Cash grows at lower rate (2% savings rate)
+      const currentBalance = parseFloat(account.current_balance) || 0;
+      const years = this.yearsToRetirement || 0;
+      if (years <= 0) return currentBalance;
+      const savingsRate = 0.02; // 2% for cash
+      return currentBalance * Math.pow(1 + savingsRate, years);
     },
   },
 };

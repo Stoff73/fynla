@@ -271,6 +271,7 @@ class InvestmentProjectionService
         $result[] = [
             'year' => $currentYear,
             'year_number' => 0,
+            'percentile_5' => round($startValue, 2),
             'percentile_10' => round($startValue, 2),
             'percentile_15' => round($startValue, 2),
             'percentile_20' => round($startValue, 2),
@@ -295,6 +296,9 @@ class InvestmentProjectionService
             $p15 = $p10 + ($spread * 0.33);
             $p20 = $p10 + ($spread * 0.67);
 
+            // Extrapolate 5th percentile below 10th (conservative estimate)
+            $p5 = $p10 - ($spread * 0.33);
+
             // Smooth transition for early years
             $blendFactor = 1.0;
             if ($yearIndex === 1) {
@@ -303,6 +307,7 @@ class InvestmentProjectionService
                 $blendFactor = 0.9;
             }
 
+            $p5 = $this->blendValue($p5, $startValue, $blendFactor);
             $p10 = $this->blendValue($p10, $startValue, $blendFactor);
             $p15 = $this->blendValue($p15, $startValue, $blendFactor);
             $p20 = $this->blendValue($p20, $startValue, $blendFactor);
@@ -314,6 +319,7 @@ class InvestmentProjectionService
             $result[] = [
                 'year' => $currentYear + $yearIndex,
                 'year_number' => $yearIndex,
+                'percentile_5' => round($p5, 2),
                 'percentile_10' => round($p10, 2),
                 'percentile_15' => round($p15, 2),
                 'percentile_20' => round($p20, 2),
@@ -415,6 +421,39 @@ class InvestmentProjectionService
             'sipp' => 'SIPP',
             default => ucfirst($type),
         };
+    }
+
+    /**
+     * Get the 80% probability (percentile_20) projected value for a single account.
+     * Used by Retirement Income Planner to get Monte Carlo projections.
+     */
+    public function getAccountProjectedValue80(InvestmentAccount $account, User $user, int $years): float
+    {
+        $value = $this->getUserShareValue($account);
+        $monthlyContribution = $this->contributionEstimator->estimateMonthlyContribution($account);
+
+        // Get risk level
+        $mainRiskLevel = $this->riskService->getMainRiskLevel($user->id);
+        $riskLevel = $account->risk_preference ?? $mainRiskLevel ?? 'medium';
+        $riskParams = $this->riskService->getReturnParameters($riskLevel);
+
+        // Cache key for this projection
+        $cacheKey = "user_{$user->id}_account_{$account->id}_{$years}y_p20";
+
+        $simulation = $this->simulator->simulate(
+            $value,
+            $monthlyContribution,
+            $riskParams['expected_return_typical'] / 100,
+            $riskParams['volatility'] / 100,
+            $years,
+            self::MONTE_CARLO_ITERATIONS,
+            $cacheKey
+        );
+
+        $yearByYear = $this->extractProbabilityBands($simulation);
+        $finalYear = end($yearByYear);
+
+        return (float) ($finalYear['percentile_20'] ?? $value);
     }
 
     /**

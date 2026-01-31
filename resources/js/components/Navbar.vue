@@ -5,6 +5,12 @@
     @close="handleLogoutModalClose"
   />
 
+  <!-- Bug Report Modal -->
+  <BugReportModal
+    :show="showBugReportModal"
+    @close="closeBugReport"
+  />
+
   <nav class="bg-white shadow-sm border-b border-gray-200">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between h-16">
@@ -25,7 +31,7 @@
           </div>
         </div>
 
-        <!-- Center - Feedback Button -->
+        <!-- Center - Feedback & Bug Report Buttons -->
         <div class="hidden sm:flex sm:items-center space-x-3">
           <!-- Feedback Button -->
           <a
@@ -39,6 +45,16 @@
             </svg>
             Feedback
           </a>
+          <!-- Bug Report Button -->
+          <button
+            @click="openBugReport"
+            class="inline-flex items-center px-4 py-2 border-2 border-blue-300 text-body-sm font-medium rounded-button text-blue-600 bg-white hover:text-blue-800 hover:border-blue-400 transition-colors"
+          >
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            Bug Report
+          </button>
         </div>
 
         <div class="hidden sm:ml-6 sm:flex sm:items-center space-x-4">
@@ -212,6 +228,12 @@
         >
           Feedback
         </a>
+        <button
+          @click="openBugReport"
+          class="w-full text-left block pl-3 pr-4 py-2 border-l-4 border-blue-500 text-base font-medium bg-blue-50 text-blue-700"
+        >
+          Bug Report
+        </button>
         <router-link
           v-if="isAdmin"
           to="/admin"
@@ -267,6 +289,7 @@ import { useStore } from 'vuex';
 import { useRoute, useRouter } from 'vue-router';
 import logoImage from '@/assets/logoTransparent.png';
 import LogoutSuccessModal from './Auth/LogoutSuccessModal.vue';
+import BugReportModal from './BugReportModal.vue';
 import { stopInactivityTimer } from '@/services/sessionLifecycleService';
 
 export default {
@@ -274,6 +297,7 @@ export default {
 
   components: {
     LogoutSuccessModal,
+    BugReportModal,
   },
 
   setup() {
@@ -285,6 +309,7 @@ export default {
     const mobileMenuOpen = ref(false);
     const userDropdownOpen = ref(false);
     const showLogoutModal = ref(false);
+    const showBugReportModal = ref(false);
 
     const userName = computed(() => {
       const user = store.getters['auth/currentUser'];
@@ -352,6 +377,14 @@ export default {
       router.push('/login');
     };
 
+    const openBugReport = () => {
+      showBugReportModal.value = true;
+    };
+
+    const closeBugReport = () => {
+      showBugReportModal.value = false;
+    };
+
     // Close dropdowns when clicking outside
     const handleClickOutside = (event) => {
       const dropdown = event.target.closest('.relative');
@@ -373,6 +406,7 @@ export default {
       mobileMenuOpen,
       userDropdownOpen,
       showLogoutModal,
+      showBugReportModal,
       userName,
       isAdmin,
       onboardingCompleted,
@@ -381,6 +415,8 @@ export default {
       isActive,
       handleLogout,
       handleLogoutModalClose,
+      openBugReport,
+      closeBugReport,
     };
   },
 };

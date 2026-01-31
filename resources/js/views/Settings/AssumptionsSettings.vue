@@ -1,0 +1,726 @@
+<template>
+  <AppLayout>
+    <div class="assumptions-settings">
+      <div class="page-header">
+        <h1 class="page-title">Planning Assumptions</h1>
+        <p class="page-description">
+          Configure the assumptions used in your pension and investment projections.
+          These values help calculate future growth estimates.
+        </p>
+      </div>
+
+      <div v-if="loading" class="loading-state">
+        <div class="spinner"></div>
+        <p>Loading assumptions...</p>
+      </div>
+
+      <div v-else-if="error" class="error-state">
+        <p class="error-message">{{ error }}</p>
+        <button class="btn btn-primary" @click="loadAssumptions">
+          Try Again
+        </button>
+      </div>
+
+      <template v-else>
+        <!-- Pensions Section -->
+        <div class="settings-section">
+          <div class="section-header">
+            <h2 class="section-title">Pension Projections</h2>
+            <span
+              v-if="assumptions.pensions?.has_overrides"
+              class="status-badge custom"
+            >Custom</span>
+            <span v-else class="status-badge default">Defaults</span>
+          </div>
+          <p class="section-description">
+            These assumptions are used to project the future value of your DC pensions.
+          </p>
+
+          <div class="assumptions-grid">
+            <div class="assumption-field">
+              <label for="pension-inflation">Inflation Rate</label>
+              <div class="input-group">
+                <input
+                  id="pension-inflation"
+                  v-model.number="form.pensions.inflation_rate"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="20"
+                  class="form-input"
+                  :placeholder="assumptions.pensions?.inflation_rate_default"
+                >
+                <span class="input-suffix">%</span>
+              </div>
+              <p class="field-hint">
+                Default: {{ assumptions.pensions?.inflation_rate_default }}%
+              </p>
+            </div>
+
+            <div class="assumption-field">
+              <label for="pension-return">Expected Return</label>
+              <div class="input-group">
+                <input
+                  id="pension-return"
+                  v-model.number="form.pensions.return_rate"
+                  type="number"
+                  step="0.1"
+                  min="-10"
+                  max="30"
+                  class="form-input"
+                  :placeholder="assumptions.pensions?.return_rate_default"
+                >
+                <span class="input-suffix">%</span>
+              </div>
+              <p class="field-hint">
+                Based on {{ formatRiskLevel(assumptions.pensions?.risk_level) }} risk profile
+                (default: {{ assumptions.pensions?.return_rate_default }}%)
+              </p>
+            </div>
+
+            <div class="assumption-field">
+              <label for="pension-compound">Compound Periods</label>
+              <div class="input-group">
+                <input
+                  id="pension-compound"
+                  v-model.number="form.pensions.compound_periods"
+                  type="number"
+                  step="1"
+                  min="1"
+                  max="365"
+                  class="form-input"
+                  :placeholder="assumptions.pensions?.compound_periods_default"
+                >
+                <span class="input-suffix">per year</span>
+              </div>
+              <p class="field-hint">
+                Default: {{ assumptions.pensions?.compound_periods_default }} (monthly)
+              </p>
+            </div>
+
+            <div class="assumption-field readonly">
+              <label>Weighted Average Fees</label>
+              <div class="readonly-value">
+                <span class="value">{{ formatFees(assumptions.pensions?.fees) }}</span>
+              </div>
+              <p class="field-hint">
+                Calculated from your pension accounts
+                <span v-if="assumptions.pensions?.fees?.platform > 0">
+                  (Platform: {{ assumptions.pensions?.fees?.platform }}%, OCF: {{ assumptions.pensions?.fees?.ocf }}%)
+                </span>
+              </p>
+            </div>
+          </div>
+
+          <div class="summary-row">
+            <div class="summary-item">
+              <span class="label">Years to Retirement:</span>
+              <span class="value">{{ assumptions.pensions?.years_to_retirement ?? '-' }}</span>
+            </div>
+            <div class="summary-item">
+              <span class="label">Total Pension Value:</span>
+              <span class="value">{{ formatCurrency(assumptions.pensions?.total_value) }}</span>
+            </div>
+          </div>
+
+          <div class="section-actions">
+            <button
+              class="btn btn-outline"
+              :disabled="saving.pensions || !pensionsHasChanges"
+              @click="resetType('pensions')"
+            >
+              Reset to Defaults
+            </button>
+            <button
+              class="btn btn-primary"
+              :disabled="saving.pensions || !pensionsHasChanges"
+              @click="saveType('pensions')"
+            >
+              <span v-if="saving.pensions">Saving...</span>
+              <span v-else>Save Changes</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Investments Section -->
+        <div class="settings-section">
+          <div class="section-header">
+            <h2 class="section-title">Investment Projections</h2>
+            <span
+              v-if="assumptions.investments?.has_overrides"
+              class="status-badge custom"
+            >Custom</span>
+            <span v-else class="status-badge default">Defaults</span>
+          </div>
+          <p class="section-description">
+            These assumptions are used to project the future value of your investment accounts (ISAs, GIAs, etc.).
+          </p>
+
+          <div class="assumptions-grid">
+            <div class="assumption-field">
+              <label for="investment-inflation">Inflation Rate</label>
+              <div class="input-group">
+                <input
+                  id="investment-inflation"
+                  v-model.number="form.investments.inflation_rate"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="20"
+                  class="form-input"
+                  :placeholder="assumptions.investments?.inflation_rate_default"
+                >
+                <span class="input-suffix">%</span>
+              </div>
+              <p class="field-hint">
+                Default: {{ assumptions.investments?.inflation_rate_default }}%
+              </p>
+            </div>
+
+            <div class="assumption-field">
+              <label for="investment-return">Expected Return</label>
+              <div class="input-group">
+                <input
+                  id="investment-return"
+                  v-model.number="form.investments.return_rate"
+                  type="number"
+                  step="0.1"
+                  min="-10"
+                  max="30"
+                  class="form-input"
+                  :placeholder="assumptions.investments?.return_rate_default"
+                >
+                <span class="input-suffix">%</span>
+              </div>
+              <p class="field-hint">
+                Based on {{ formatRiskLevel(assumptions.investments?.risk_level) }} risk profile
+                (default: {{ assumptions.investments?.return_rate_default }}%)
+              </p>
+            </div>
+
+            <div class="assumption-field">
+              <label for="investment-compound">Compound Periods</label>
+              <div class="input-group">
+                <input
+                  id="investment-compound"
+                  v-model.number="form.investments.compound_periods"
+                  type="number"
+                  step="1"
+                  min="1"
+                  max="365"
+                  class="form-input"
+                  :placeholder="assumptions.investments?.compound_periods_default"
+                >
+                <span class="input-suffix">per year</span>
+              </div>
+              <p class="field-hint">
+                Default: {{ assumptions.investments?.compound_periods_default }} (monthly)
+              </p>
+            </div>
+
+            <div class="assumption-field readonly">
+              <label>Weighted Average Fees</label>
+              <div class="readonly-value">
+                <span class="value">{{ formatFees(assumptions.investments?.fees) }}</span>
+              </div>
+              <p class="field-hint">
+                Calculated from your investment accounts
+                <span v-if="assumptions.investments?.fees?.platform > 0">
+                  (Platform: {{ assumptions.investments?.fees?.platform }}%,
+                  OCF: {{ assumptions.investments?.fees?.ocf }}%<template v-if="assumptions.investments?.fees?.advisory > 0">,
+                  Advisory: {{ assumptions.investments?.fees?.advisory }}%</template>)
+                </span>
+              </p>
+            </div>
+          </div>
+
+          <div class="summary-row">
+            <div class="summary-item">
+              <span class="label">Years to Retirement:</span>
+              <span class="value">{{ assumptions.investments?.years_to_retirement ?? '-' }}</span>
+            </div>
+            <div class="summary-item">
+              <span class="label">Total Investment Value:</span>
+              <span class="value">{{ formatCurrency(assumptions.investments?.total_value) }}</span>
+            </div>
+          </div>
+
+          <div class="section-actions">
+            <button
+              class="btn btn-outline"
+              :disabled="saving.investments || !investmentsHasChanges"
+              @click="resetType('investments')"
+            >
+              Reset to Defaults
+            </button>
+            <button
+              class="btn btn-primary"
+              :disabled="saving.investments || !investmentsHasChanges"
+              @click="saveType('investments')"
+            >
+              <span v-if="saving.investments">Saving...</span>
+              <span v-else>Save Changes</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Info Section -->
+        <div class="settings-section info-section">
+          <div class="section-header">
+            <h2 class="section-title">About These Assumptions</h2>
+          </div>
+          <ul class="info-list">
+            <li>
+              <strong>Inflation Rate:</strong> The expected annual increase in the cost of living.
+              Used to calculate real (inflation-adjusted) returns.
+            </li>
+            <li>
+              <strong>Expected Return:</strong> The anticipated annual growth rate before fees.
+              Default values are based on your risk profile.
+            </li>
+            <li>
+              <strong>Compound Periods:</strong> How often returns are compounded.
+              Monthly (12) is typical for most calculations.
+            </li>
+            <li>
+              <strong>Fees:</strong> Automatically calculated from your actual accounts.
+              Platform fees, fund fees (OCF), and advisory fees are included.
+            </li>
+          </ul>
+        </div>
+      </template>
+    </div>
+  </AppLayout>
+</template>
+
+<script>
+import AppLayout from '@/layouts/AppLayout.vue';
+import assumptionsService from '@/services/assumptionsService';
+import { currencyMixin } from '@/mixins/currencyMixin';
+
+export default {
+  name: 'AssumptionsSettings',
+
+  components: {
+    AppLayout,
+  },
+
+  mixins: [currencyMixin],
+
+  data() {
+    return {
+      loading: true,
+      error: null,
+      assumptions: {
+        pensions: null,
+        investments: null,
+      },
+      form: {
+        pensions: {
+          inflation_rate: null,
+          return_rate: null,
+          compound_periods: null,
+        },
+        investments: {
+          inflation_rate: null,
+          return_rate: null,
+          compound_periods: null,
+        },
+      },
+      originalForm: {
+        pensions: {},
+        investments: {},
+      },
+      saving: {
+        pensions: false,
+        investments: false,
+      },
+    };
+  },
+
+  computed: {
+    pensionsHasChanges() {
+      return this.hasChanges('pensions');
+    },
+
+    investmentsHasChanges() {
+      return this.hasChanges('investments');
+    },
+  },
+
+  mounted() {
+    this.loadAssumptions();
+  },
+
+  methods: {
+    async loadAssumptions() {
+      this.loading = true;
+      this.error = null;
+
+      try {
+        const response = await assumptionsService.getAssumptions();
+        this.assumptions = response.data.data;
+        this.initializeForm();
+      } catch (err) {
+        console.error('Failed to load assumptions:', err);
+        this.error = err.message || 'Failed to load assumptions. Please try again.';
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    initializeForm() {
+      // Initialize form with current values
+      ['pensions', 'investments'].forEach((type) => {
+        const data = this.assumptions[type];
+        if (data) {
+          this.form[type] = {
+            inflation_rate: data.inflation_rate,
+            return_rate: data.return_rate,
+            compound_periods: data.compound_periods,
+          };
+          // Store original values for change detection
+          this.originalForm[type] = { ...this.form[type] };
+        }
+      });
+    },
+
+    hasChanges(type) {
+      const current = this.form[type];
+      const original = this.originalForm[type];
+
+      return (
+        current.inflation_rate !== original.inflation_rate ||
+        current.return_rate !== original.return_rate ||
+        current.compound_periods !== original.compound_periods
+      );
+    },
+
+    async saveType(type) {
+      this.saving[type] = true;
+
+      try {
+        const data = {
+          inflation_rate: this.form[type].inflation_rate,
+          return_rate: this.form[type].return_rate,
+          compound_periods: this.form[type].compound_periods,
+        };
+
+        const response = await assumptionsService.updateAssumptions(type, data);
+        this.assumptions[type] = response.data.data;
+
+        // Update original form values
+        this.originalForm[type] = { ...this.form[type] };
+
+        this.$toast?.success?.(`${this.capitalise(type)} assumptions saved successfully.`);
+      } catch (err) {
+        console.error(`Failed to save ${type} assumptions:`, err);
+        this.$toast?.error?.(err.message || `Failed to save ${type} assumptions.`);
+      } finally {
+        this.saving[type] = false;
+      }
+    },
+
+    async resetType(type) {
+      this.saving[type] = true;
+
+      try {
+        const response = await assumptionsService.resetAssumptions(type);
+        this.assumptions[type] = response.data.data;
+
+        // Reset form to defaults
+        this.form[type] = {
+          inflation_rate: response.data.data.inflation_rate,
+          return_rate: response.data.data.return_rate,
+          compound_periods: response.data.data.compound_periods,
+        };
+        this.originalForm[type] = { ...this.form[type] };
+
+        this.$toast?.success?.(`${this.capitalise(type)} assumptions reset to defaults.`);
+      } catch (err) {
+        console.error(`Failed to reset ${type} assumptions:`, err);
+        this.$toast?.error?.(err.message || `Failed to reset ${type} assumptions.`);
+      } finally {
+        this.saving[type] = false;
+      }
+    },
+
+    formatFees(fees) {
+      if (!fees || fees.total === 0) {
+        return 'No fees recorded';
+      }
+      return `${fees.total}%`;
+    },
+
+    formatRiskLevel(level) {
+      if (!level) return 'medium';
+
+      const labels = {
+        low: 'Low',
+        lower_medium: 'Lower-Medium',
+        medium: 'Medium',
+        upper_medium: 'Upper-Medium',
+        high: 'High',
+      };
+
+      return labels[level] || level;
+    },
+
+    capitalise(str) {
+      return str.charAt(0).toUpperCase() + str.slice(1);
+    },
+  },
+};
+</script>
+
+<style scoped>
+.assumptions-settings {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.page-header {
+  margin-bottom: 2rem;
+}
+
+.page-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 0.5rem;
+}
+
+.page-description {
+  color: #6b7280;
+}
+
+.loading-state,
+.error-state {
+  text-align: center;
+  padding: 3rem;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e5e7eb;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.error-message {
+  color: #dc2626;
+  margin-bottom: 1rem;
+}
+
+.settings-section {
+  background: white;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.section-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+}
+
+.status-badge {
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+}
+
+.status-badge.default {
+  background-color: #e5e7eb;
+  color: #374151;
+}
+
+.status-badge.custom {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.section-description {
+  color: #6b7280;
+  font-size: 0.875rem;
+  margin-bottom: 1.5rem;
+}
+
+.assumptions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 640px) {
+  .assumptions-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.assumption-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.assumption-field label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.5rem;
+}
+
+.input-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.form-input {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  transition: border-color 0.15s ease-in-out;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.input-suffix {
+  color: #6b7280;
+  font-size: 0.875rem;
+  min-width: 60px;
+}
+
+.field-hint {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin-top: 0.25rem;
+}
+
+.assumption-field.readonly .readonly-value {
+  padding: 0.5rem 0.75rem;
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+}
+
+.assumption-field.readonly .value {
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+.summary-row {
+  display: flex;
+  gap: 2rem;
+  padding: 1rem;
+  background-color: #f9fafb;
+  border-radius: 0.375rem;
+  margin-bottom: 1.5rem;
+}
+
+.summary-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.summary-item .label {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.summary-item .value {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.section-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.btn {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #2563eb;
+}
+
+.btn-outline {
+  background-color: white;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.btn-outline:hover:not(:disabled) {
+  background-color: #f9fafb;
+}
+
+.info-section {
+  background-color: #f0fdf4;
+  border: 1px solid #bbf7d0;
+}
+
+.info-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.info-list li {
+  padding: 0.5rem 0;
+  color: #166534;
+  font-size: 0.875rem;
+}
+
+.info-list li strong {
+  color: #14532d;
+}
+</style>

@@ -7,11 +7,11 @@ namespace App\Http\Controllers\Api;
 use App\Agents\RetirementAgent;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Retirement\RetirementAnalysisRequest;
-use App\Http\Traits\SanitizedErrorResponse;
 use App\Http\Requests\Retirement\ScenarioRequest;
 use App\Http\Requests\Retirement\StoreDBPensionRequest;
 use App\Http\Requests\Retirement\StoreDCPensionRequest;
 use App\Http\Requests\Retirement\UpdateStatePensionRequest;
+use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\DBPension;
 use App\Models\DCPension;
 use App\Models\Investment\RiskProfile;
@@ -546,7 +546,7 @@ class RetirementController extends Controller
         $request->validate([
             'income_allocations' => 'required|array',
             'income_allocations.*.source_type' => 'required|string',
-            'income_allocations.*.source_id' => 'required|integer',
+            'income_allocations.*.source_id' => 'required', // Can be integer or string (e.g., 'pension_pot')
             'income_allocations.*.annual_amount' => 'required|numeric|min:0',
             'income_allocations.*.tax_treatment' => 'nullable|string',
             'income_allocations.*.name' => 'nullable|string',

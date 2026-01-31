@@ -93,6 +93,15 @@ class RetirementIncomeService
         // All assets are projected to retirement age
         $availableAccounts = $this->getAvailableAccounts($userId, $includeSpouse, $projectedPensionPot, $yearsToRetirement);
 
+        // DEBUG: Log available accounts to trace toggle issues
+        $accountTypes = array_map(fn($a) => $a['type'] ?? 'unknown', $availableAccounts);
+        \Log::debug('RetirementIncomeService::getRetirementIncomeConfig - Available accounts', [
+            'user_id' => $userId,
+            'account_count' => count($availableAccounts),
+            'account_types' => $accountTypes,
+            'has_bonds' => in_array('onshore_bond', $accountTypes) || in_array('offshore_bond', $accountTypes),
+        ]);
+
         // Total funds = projected pension pot + other drawable assets
         $totalFunds = $this->calculateTotalFunds($availableAccounts);
 
@@ -119,8 +128,31 @@ class RetirementIncomeService
             $statePensionStatus
         );
 
+        // DEBUG: Log allocations to trace toggle issues
+        $allocationTypes = array_map(fn($a) => [
+            'type' => $a['source_type'] ?? 'unknown',
+            'amount' => $a['annual_amount'] ?? 0,
+        ], $defaultAllocations);
+        \Log::debug('RetirementIncomeService::getRetirementIncomeConfig - Calculated allocations', [
+            'user_id' => $userId,
+            'target_income' => $optimisedIncome,
+            'allocation_count' => count($defaultAllocations),
+            'allocations' => $allocationTypes,
+            'total_allocated' => array_sum(array_column($defaultAllocations, 'annual_amount')),
+        ]);
+
         // Calculate tax breakdown accounting for state pension timing
         $taxBreakdown = $this->calculateTaxBreakdown($defaultAllocations, $statePensionStatus);
+
+        // DEBUG: Log tax breakdown
+        \Log::debug('RetirementIncomeService::getRetirementIncomeConfig - Tax breakdown', [
+            'user_id' => $userId,
+            'gross_income' => $taxBreakdown['gross_income'] ?? 0,
+            'tax_free_total' => $taxBreakdown['tax_free_total'] ?? 0,
+            'taxable_total' => $taxBreakdown['taxable_total'] ?? 0,
+            'total_tax' => $taxBreakdown['total_tax'] ?? 0,
+            'net_income' => $taxBreakdown['net_income'] ?? 0,
+        ]);
 
         // Project fund depletion (with all assets projected to retirement age)
         // Pass availableAccounts to ensure consistent values between PMT calculation and projection
@@ -901,6 +933,15 @@ class RetirementIncomeService
         // Pass availableAccounts to ensure values match what was used for PMT calculation
         $fundBalances = $this->initializeFundBalancesWithPclsSplit($userId, $incomeAllocations, $projectedPensionPot, $yearsToRetirement, $availableAccounts);
 
+        // DEBUG: Log initialized fund balances
+        $bondKeys = array_filter(array_keys($fundBalances), fn($k) => str_contains($k, 'bond'));
+        \Log::debug('projectFundDepletion - Fund balances initialized', [
+            'total_fund_keys' => count($fundBalances),
+            'fund_keys' => array_keys($fundBalances),
+            'bond_keys' => $bondKeys,
+            'total_balance' => array_sum($fundBalances),
+        ]);
+
         // Calculate total starting funds
         $totalStartingFunds = array_sum($fundBalances);
 
@@ -999,14 +1040,34 @@ class RetirementIncomeService
             ];
 
             // =============================================================================
-            // PRIORITY-BASED WITHDRAWAL: Maximize tax-free, minimize taxable
-            // Order: Bond 5% (mandatory) → PCLS → ISA → Pension Drawdown (LAST RESORT)
-            // Goal: PAY ZERO TAX while tax-free sources exist!
+            // ALLOCATION-BASED WITHDRAWAL: Follow calculated PMT amounts
+            // Withdraw the allocated annual amount from each fund (matching simulateDepletion)
+            // Bond 5% is still mandatory but calculated in allocations
             // =============================================================================
 
-            $remainingTarget = $targetAnnualIncome * $scaleFactor;
+            // Helper function to withdraw from a specific fund key
+            $withdrawFromFundKey = function ($fundKey, $maxAmount) use (&$fundBalances, &$yearData, &$aggregatedDepleted, $age) {
+                if (! isset($fundBalances[$fundKey]) || $fundBalances[$fundKey] <= 0 || $maxAmount <= 0) {
+                    return 0;
+                }
 
-            // Helper function to withdraw from a specific fund type
+                $withdrawal = min($fundBalances[$fundKey], $maxAmount);
+                $fundBalances[$fundKey] -= $withdrawal;
+                $yearData['total_income'] += $withdrawal;
+
+                $fundType = $this->getFundTypeFromKey($fundKey);
+                if ($fundType) {
+                    $yearData['withdrawals'][$fundType] += $withdrawal;
+                }
+
+                if ($fundBalances[$fundKey] <= 0 && ! isset($aggregatedDepleted[$fundKey])) {
+                    $aggregatedDepleted[$fundKey] = $age;
+                }
+
+                return $withdrawal;
+            };
+
+            // Helper function to withdraw from a specific fund type (for Bond 5% mandatory)
             $withdrawFromFundType = function ($fundType, $maxAmount) use (&$fundBalances, &$yearData, &$aggregatedDepleted, $age) {
                 $withdrawn = 0;
                 foreach ($fundBalances as $fundKey => $balance) {
@@ -1047,63 +1108,80 @@ class RetirementIncomeService
                 return $total;
             };
 
-            // PRIORITY 1: Bond 5% (MANDATORY - always withdraw if available)
-            // UK investment bonds allow 5% tax-deferred withdrawal on capital per year
+            // =============================================================================
+            // PRIORITY-BASED WITHDRAWAL: Tax-efficient order per documentation
+            // Order: Bond 5% (mandatory) → PCLS → ISA → Drawdown → GIA → Savings
+            // GOAL: Use ALL tax-free sources FIRST before ANY taxable sources
+            // Result: ZERO TAX while tax-free money exists
+            //
+            // Reference: retireIncomePriority.md lines 711-736, 1026-1031
+            // =============================================================================
+
+            // Calculate target income for this year
+            // Note: State Pension added separately in tax calculation section
+            $yearTargetIncome = $actualAnnualWithdrawal;
+            $remainingTarget = $yearTargetIncome;
+
+            // 1. BOND 5% (MANDATORY) - Tax-deferred, always withdraw if bonds exist
+            // UK investment bonds allow 5% tax-deferred withdrawal annually
             $bondBalance = $getAvailableBalance('bond');
             if ($bondBalance > 0) {
-                // 5% of current bond balance (UK tax-deferred withdrawal rule)
-                $bondPmt = $bondBalance * 0.05;
+                $bondPmt = $bondBalance * 0.05;  // 5% of current balance
                 $bondWithdrawn = $withdrawFromFundType('bond', $bondPmt);
                 $remainingTarget -= $bondWithdrawn;
             }
 
-            // PRIORITY 2: PCLS (TAX-FREE - use to fill gap before any taxable sources)
+            // 2. PCLS (TAX-FREE) - Fill the gap first
+            // PCLS is 25% of pension pot, completely tax-free
             if ($remainingTarget > 0) {
                 $pclsBalance = $getAvailableBalance('pcls');
                 if ($pclsBalance > 0) {
-                    // Draw what we need from PCLS (up to remaining balance)
-                    $pclsWithdrawn = $withdrawFromFundType('pcls', min($remainingTarget, $pclsBalance));
+                    $pclsWithdrawn = $withdrawFromFundType('pcls', $remainingTarget);
                     $remainingTarget -= $pclsWithdrawn;
                 }
             }
 
-            // PRIORITY 3: ISA (TAX-FREE - use to fill gap before any taxable sources)
+            // 3. ISA (TAX-FREE) - Fill remaining gap
+            // ISA withdrawals are 100% tax-free
             if ($remainingTarget > 0) {
                 $isaBalance = $getAvailableBalance('isa');
                 if ($isaBalance > 0) {
-                    // Draw what we need from ISA (up to remaining balance)
-                    $isaWithdrawn = $withdrawFromFundType('isa', min($remainingTarget, $isaBalance));
+                    $isaWithdrawn = $withdrawFromFundType('isa', $remainingTarget);
                     $remainingTarget -= $isaWithdrawn;
                 }
             }
 
-            // PRIORITY 4: Pension Drawdown (TAXABLE - ONLY if tax-free sources depleted!)
-            // This is the LAST RESORT after all tax-free sources are exhausted
+            // 4. PENSION DRAWDOWN (TAXABLE) - ONLY if tax-free sources insufficient
+            // This is the LAST RESORT for meeting target income
+            // Tax calculated later based on PA usage
             if ($remainingTarget > 0) {
                 $drawdownBalance = $getAvailableBalance('drawdown');
                 if ($drawdownBalance > 0) {
-                    $drawdownWithdrawn = $withdrawFromFundType('drawdown', min($remainingTarget, $drawdownBalance));
+                    $drawdownWithdrawn = $withdrawFromFundType('drawdown', $remainingTarget);
                     $remainingTarget -= $drawdownWithdrawn;
                 }
             }
 
-            // PRIORITY 5: GIA (if needed)
+            // 5. GIA (TAXABLE) - If pension insufficient
             if ($remainingTarget > 0) {
                 $giaBalance = $getAvailableBalance('gia');
                 if ($giaBalance > 0) {
-                    $giaWithdrawn = $withdrawFromFundType('gia', min($remainingTarget, $giaBalance));
+                    $giaWithdrawn = $withdrawFromFundType('gia', $remainingTarget);
                     $remainingTarget -= $giaWithdrawn;
                 }
             }
 
-            // PRIORITY 6: Savings (if needed)
+            // 6. SAVINGS (TAXABLE) - Absolute last resort
             if ($remainingTarget > 0) {
                 $savingsBalance = $getAvailableBalance('savings');
                 if ($savingsBalance > 0) {
-                    $savingsWithdrawn = $withdrawFromFundType('savings', min($remainingTarget, $savingsBalance));
+                    $savingsWithdrawn = $withdrawFromFundType('savings', $remainingTarget);
                     $remainingTarget -= $savingsWithdrawn;
                 }
             }
+
+            // Note: If remainingTarget > 0 after all sources, income is less than target
+            // This is correct - we can only withdraw what exists
 
             // Apply growth to remaining balances AFTER withdrawal
             foreach ($fundBalances as $fundKey => $balance) {
@@ -1184,6 +1262,20 @@ class RetirementIncomeService
             $taxableAmount = max(0, $totalTaxableIncome - $personalAllowance);
             $taxPaid = $taxableAmount * $basicRate;
             $yearData['tax_paid'] = round($taxPaid, 2);
+
+            // DEBUG: Log first year projection for tracing
+            if ($age === $retirementAge) {
+                \Log::debug('projectFundDepletion - First year projection', [
+                    'age' => $age,
+                    'total_income' => $yearData['total_income'],
+                    'withdrawals' => $yearData['withdrawals'],
+                    'state_pension' => $yearData['state_pension'],
+                    'db_pension' => $yearData['db_pension'],
+                    'taxable_drawdown' => $yearData['taxable_drawdown'],
+                    'tax_paid' => $yearData['tax_paid'],
+                    'bond_balance' => $yearData['bond'] ?? 0,
+                ]);
+            }
 
             $projections[] = $yearData;
         }
@@ -1512,6 +1604,13 @@ class RetirementIncomeService
             }
         }
 
+        // DEBUG: Log bond allocation calculation
+        \Log::debug('calculateDefaultAllocations - Bond calculation', [
+            'bond_accounts_found' => count($bondAccounts),
+            'total_bond_pmt' => $totalBondPmt,
+            'remaining_target' => $remainingTarget,
+        ]);
+
         // 2c: ISA PMT = Calculate withdrawal to deplete at age 100 (4% growth for S&S ISA, 0% for cash)
         $isaAccounts = [];
         $totalIsaPmt = 0;
@@ -1621,17 +1720,15 @@ class RetirementIncomeService
                     continue;
                 }
 
-                // Calculate proportion of total ISA this account represents
-                $proportion = $totalIsaBalance > 0 ? $isaBalance / $totalIsaBalance : 1;
-
-                // Calculate what this ISA should contribute to fill the gap
+                // Calculate PMT to deplete ISA at age 100
                 $growthRate = ($account['type'] === 'isa_cash') ? 0 : self::DEFAULT_GROWTH_RATE;
-                $maxSustainable = $this->calculateSustainableWithdrawalRate($isaBalance, $yearsInRetirement, $growthRate);
+                $isaPmt = $this->calculateSustainableWithdrawalRate($isaBalance, $yearsInRetirement, $growthRate);
 
-                // Allocate the larger of: (proportional share of remaining) or (sustainable PMT)
-                // This ensures we fill the gap while spreading across ISAs
-                $isaAllocation = max($maxSustainable, $remainingTarget * $proportion);
-                $isaAllocation = min($isaAllocation, $remainingTarget); // Don't exceed what's needed
+                // ISA should use PMT (to deplete at 100), NOT fill the gap
+                // Per documentation: "ISA is MANDATORY - ALWAYS allocate full PMT to deplete at age 100"
+                // If PMT exceeds remaining target, reduce to avoid over-allocation (zero tax scenario)
+                // The remaining gap after ISA PMT goes to pension drawdown
+                $isaAllocation = min($isaPmt, $remainingTarget);
 
                 if ($isaAllocation > 0) {
                     $allocations[] = [
@@ -1749,20 +1846,23 @@ class RetirementIncomeService
                     }
                 }
             } else {
-                // Not sustainable: use all available PMT, then note shortfall
-                // This handles Scenario 3 case where income exceeds sustainable withdrawal
+                // Not sustainable: draw what's needed to meet target, even if funds deplete faster
+                // User wants target income - we'll show them the depletion impact in the projection
                 foreach ($taxableSources as $source) {
                     if ($remainingTarget <= 0) {
                         break;
                     }
 
-                    // Calculate what we need from this source to deplete proportionally
-                    $proportion = ($totalTaxableBalance > 0) ? ($source['balance'] / $totalTaxableBalance) : 0;
-                    $taxableAmount = min($remainingTarget * $proportion, $remainingTarget);
+                    // Calculate what we need from this source
+                    // If there's only one taxable source, it should cover the full remaining target
+                    $proportion = ($totalTaxableBalance > 0) ? ($source['balance'] / $totalTaxableBalance) : 1;
+                    $taxableAmount = $remainingTarget * $proportion;
 
-                    // But cap at what the fund can actually provide (even if not sustainable)
-                    $maxAnnual = $source['balance'] / $yearsInRetirement * 2; // Allow up to 2x sustainable
-                    $taxableAmount = min($taxableAmount, $maxAnnual);
+                    // Cap at what the fund can realistically provide per year (balance / years remaining)
+                    // But allow higher withdrawals if needed to meet target - user accepts faster depletion
+                    $maxAnnual = $source['balance'] / max(1, $yearsInRetirement);
+                    // Allow up to 3x sustainable to meet target, accepting earlier depletion
+                    $taxableAmount = min($taxableAmount, $maxAnnual * 3, $remainingTarget);
 
                     if ($taxableAmount > 0) {
                         $allocations[] = [
@@ -1779,6 +1879,18 @@ class RetirementIncomeService
                 }
             }
         }
+
+        // DEBUG: Log final allocations
+        $finalAllocationSummary = array_map(fn($a) => [
+            'type' => $a['source_type'] ?? 'unknown',
+            'amount' => $a['annual_amount'] ?? 0,
+            'tax_treatment' => $a['tax_treatment'] ?? 'unknown',
+        ], $allocations);
+        \Log::debug('calculateDefaultAllocations - Final allocations', [
+            'total_allocations' => count($allocations),
+            'remaining_target' => $remainingTarget,
+            'allocations' => $finalAllocationSummary,
+        ]);
 
         return $allocations;
     }
