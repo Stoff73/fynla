@@ -54,6 +54,25 @@ resources/js/components/NetWorth/NetWorthWealthSummary.vue
 
 ---
 
+## Protection Module - Life Insurance Coverage Card Styling
+
+Improved the "Your Existing Life Insurance Coverage" card layout for better visual alignment.
+
+### Changes Made
+
+| Change | Description |
+|--------|-------------|
+| Removed background | Removed gray background box from "Total Life Insurance" row |
+| Column alignment | All currency values now align in a neat right-aligned column |
+| Visual hierarchy | Added subtle border separator between total and breakdown items |
+
+### Files Changed
+```
+resources/js/components/Protection/CurrentSituation.vue
+```
+
+---
+
 ## Property Details - Add Owner Names for Joint/Tenants in Common
 
 Added owner names display in the property details view for properties with shared ownership (joint or tenants in common).

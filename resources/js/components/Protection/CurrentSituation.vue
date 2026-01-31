@@ -129,28 +129,22 @@
             Your life insurance is allocated to cover your debts first, then any excess reduces your income replacement need.
           </p>
 
-          <div class="space-y-4">
+          <div class="space-y-3">
             <!-- Total Life Cover -->
-            <div class="p-4 bg-gray-50 rounded-lg">
-              <div class="flex justify-between items-center">
-                <span class="font-semibold text-gray-900">Total Life Insurance</span>
-                <span class="text-2xl font-bold text-green-600">{{ formatCurrency(existingLifeCoverage) }}</span>
-              </div>
+            <div class="flex justify-between items-center pb-3 border-b border-gray-200">
+              <span class="font-semibold text-gray-900">Total Life Insurance</span>
+              <span class="text-xl font-bold text-green-600">{{ formatCurrency(existingLifeCoverage) }}</span>
             </div>
 
             <!-- Allocation Breakdown -->
-            <div class="pl-4 space-y-3">
+            <div class="space-y-3">
               <div class="flex justify-between items-center">
-                <div class="flex items-center">
-                  <span class="text-gray-600">1. Allocated to cover debts</span>
-                </div>
+                <span class="text-gray-600">1. Allocated to cover debts</span>
                 <span class="font-medium text-gray-900">{{ formatCurrency(debtCoveredAmount) }}</span>
               </div>
 
               <div class="flex justify-between items-center">
-                <div class="flex items-center">
-                  <span class="text-gray-600">2. Excess for {{ spouseName || 'beneficiary' }}'s income</span>
-                </div>
+                <span class="text-gray-600">2. Excess for {{ spouseName || 'beneficiary' }}'s income</span>
                 <div class="text-right">
                   <span class="font-medium text-gray-900">{{ formatCurrency(humanCapitalCovered) }}</span>
                   <span class="text-xs text-gray-500 block">{{ formatCurrency(humanCapitalCoveredAnnual) }} p.a.</span>
