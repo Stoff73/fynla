@@ -1116,7 +1116,7 @@ resources/js/views/Investment/AccountDetailView.vue          (minor cleanup)
 
 **Branch:** childBen
 
-**Status:** Pending Deployment
+**Status:** ✅ Deployed
 
 ### Description
 
@@ -1190,6 +1190,41 @@ resources/js/components/Dashboard/UKTaxesAllowancesCard.vue    (fixed rates)
 
 ---
 
+## Onboarding Fixes
+
+**Branch:** childBen
+
+**Status:** ✅ Deployed
+
+### Issues Fixed
+
+| Issue | Root Cause | Fix |
+|-------|------------|-----|
+| Main residence address not auto-populating | Frontend expected `profile.address_line_1` but API returns nested `profile.personal_info.address.line_1` | Updated `AssetsStep.vue` to use correct nested path |
+| Occupation lookup not working | `occupation_codes` table was empty | Seeded 406 occupation codes |
+
+### Modified Files (1)
+
+**Frontend (Included in Build):**
+
+```text
+resources/js/components/Onboarding/steps/AssetsStep.vue  (fixed address path mapping)
+```
+
+### Server Commands Required
+
+```bash
+# Seed occupation codes
+php artisan db:seed --class=OccupationCodeSeeder --force
+```
+
+### Testing
+
+1. **Address auto-populate** - Start onboarding, enter address in Personal Info, proceed to Assets, add main residence property - address should auto-fill
+2. **Occupation lookup** - In Income step, type "software" in occupation field - should show dropdown with matching occupations
+
+---
+
 ## Quick Deployment Summary
 
 ### 1. Build Locally
@@ -1207,19 +1242,26 @@ cd /Users/Chris/Desktop/fynla
 public/build/ → ~/www/fynla.org/public_html/public/build/
 ```
 
-**PHP Files (11):**
+**PHP Files (18):**
 
 ```text
 app/Models/SavingsAccount.php
 app/Models/Investment/InvestmentAccount.php
+app/Models/FamilyMember.php
 app/Http/Controllers/Api/SavingsController.php
 app/Http/Controllers/Api/PropertyController.php
 app/Http/Controllers/Api/InvestmentController.php
 app/Http/Controllers/Api/BugReportController.php
+app/Http/Requests/StoreFamilyMemberRequest.php
+app/Http/Requests/UpdateFamilyMemberRequest.php
 app/Mail/BugReportMail.php
 app/Services/Retirement/RetirementIncomeService.php
+app/Services/Benefits/ChildBenefitService.php
+app/Services/TaxConfigService.php
+app/Services/UserProfile/UserProfileService.php
 app/Http/Middleware/PreviewWriteInterceptor.php
 app/Providers/RouteServiceProvider.php
+database/seeders/TaxConfigurationSeeder.php
 routes/api.php
 ```
 
@@ -1229,10 +1271,11 @@ routes/api.php
 resources/views/emails/bug-report.blade.php
 ```
 
-**Database Migration (1):**
+**Database Migrations (2):**
 
 ```text
 database/migrations/2026_01_31_120000_add_include_in_retirement_to_savings_accounts.php
+database/migrations/2026_01_31_200000_add_receives_child_benefit_to_family_members.php
 ```
 
 ### 3. SSH Commands
@@ -1241,6 +1284,8 @@ database/migrations/2026_01_31_120000_add_include_in_retirement_to_savings_accou
 ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
 cd ~/www/fynla.org/public_html
 php artisan migrate --force
+php artisan db:seed --class=OccupationCodeSeeder --force
+php artisan db:seed --class=TaxConfigurationSeeder --force
 php artisan cache:clear && php artisan config:clear && php artisan view:clear && php artisan route:clear
 ```
 

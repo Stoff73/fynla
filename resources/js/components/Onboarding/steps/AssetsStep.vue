@@ -802,12 +802,14 @@ export default {
       try {
         const response = await userProfileService.getProfile();
         const profile = response.data || response;
+        // Address is nested under personal_info.address in the API response
+        const address = profile.personal_info?.address || {};
         userAddress.value = {
-          address_line_1: profile.address_line_1 || '',
-          address_line_2: profile.address_line_2 || '',
-          city: profile.city || '',
-          county: profile.county || '',
-          postcode: profile.postcode || '',
+          address_line_1: address.line_1 || '',
+          address_line_2: address.line_2 || '',
+          city: address.city || '',
+          county: address.county || '',
+          postcode: address.postcode || '',
         };
       } catch (err) {
         // Address loading failed silently - auto-populate won't work
