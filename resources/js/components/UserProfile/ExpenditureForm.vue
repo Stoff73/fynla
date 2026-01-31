@@ -2143,6 +2143,10 @@ export default {
   text-align: right;
 }
 
+:deep(.col-header) {
+  text-align: right;
+}
+
 .retired-grid-single {
   display: grid;
   grid-template-columns: 1fr minmax(140px, max-content);
@@ -2173,7 +2177,8 @@ export default {
   :deep(.col-label),
   :deep(.col-value),
   :deep(.col-value-mid),
-  :deep(.col-total) {
+  :deep(.col-total),
+  :deep(.col-header) {
     text-align: left !important;
     padding-left: 0 !important;
   }

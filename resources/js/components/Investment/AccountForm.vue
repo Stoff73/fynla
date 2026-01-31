@@ -239,6 +239,14 @@ export default {
         loss_relief_eligible: false,
         capital_loss_amount: null,
         negligible_value_claim: false,
+        // Business Asset Disposal Relief (BADR) fields
+        badr_eligible: false,
+        badr_is_employee: false,
+        badr_trading_company: false,
+        badr_5_percent_holding: false,
+        badr_held_2_years: false,
+        badr_emi_shares: false,
+        badr_lifetime_used: null,
         // Employee Share Scheme fields
         // Group 1: Employer Details
         employer_name: '',
@@ -943,6 +951,14 @@ export default {
         loss_relief_eligible: false,
         capital_loss_amount: null,
         negligible_value_claim: false,
+        // Business Asset Disposal Relief (BADR) fields
+        badr_eligible: false,
+        badr_is_employee: false,
+        badr_trading_company: false,
+        badr_5_percent_holding: false,
+        badr_held_2_years: false,
+        badr_emi_shares: false,
+        badr_lifetime_used: null,
         // Employee Share Scheme fields
         employer_name: '',
         employer_registration: '',

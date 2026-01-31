@@ -517,6 +517,113 @@ php artisan cache:clear && php artisan config:clear
 - [x] Expenditure - verify Financial Commitments categories expand to show individual items (properties, investments, etc.)
 - [x] Expenditure - verify clicking a property expands to show expense breakdown (Mortgage, Council Tax, etc.)
 - [x] Investment - add Onshore/Offshore Bond and verify Bond Details section appears with purchase date and withdrawal fields
+- [ ] Landing page - click "Try Demo" and verify register button appears in modal
+- [ ] Verify persona cards display in correct order: Carters, Mitchells, Chen, Morgan, Williams, Thompson
+- [ ] In demo mode, verify preview banner button says "Signup Now"
+- [ ] Expenditure - verify Retired and Widowed tab column headers are right-aligned
+- [ ] Investment - add Private Company and verify BADR section appears with eligibility checkboxes
+- [ ] Investment - view Private Company detail and verify BADR section shows eligibility status and CGT savings
+
+---
+
+---
+
+## uiUp Branch Updates
+
+### Persona Selection Modal - Add Register Button
+
+Added a register button to the persona selection modal on the landing page, encouraging users to explore the demo personas before creating an account.
+
+| Change | Description |
+|--------|-------------|
+| Register section | Added new section below persona grid with register button |
+| Encouragement message | "We strongly encourage you to explore the personas above first to see what Fynla can do." |
+| Register button | "Create Your Account" button that closes modal and navigates to /register |
+
+**Files Changed:**
+```
+resources/js/components/Preview/PersonaSelectionModal.vue
+```
+
+### Persona Card Order - Reorder in Selection Modal
+
+Reordered the persona cards in the selection modal:
+1. **Carters** (young_family) - James & Emily Carter
+2. **Mitchells** (peak_earners) - David & Sarah Mitchell
+3. **Chen** (entrepreneur) - Alex Chen
+4. **Morgan** (young_saver) - John Morgan
+5. **Williams** (retired_couple) - Robert & Patricia Williams
+6. **Thompson** (widow) - Margaret Thompson
+
+**Files Changed:**
+```
+resources/js/store/modules/preview.js
+```
+
+### Preview Banner - Change Register Button Text
+
+Changed the register button text in the demo preview banner from "Register to Save Your Data" to "Signup Now".
+
+**Files Changed:**
+```
+resources/js/components/Preview/PreviewBanner.vue
+```
+
+### Expenditure - Align Column Headers in Retired and Widowed Tabs
+
+Fixed column header alignment in the Retired and Widowed budget tabs to match the Current tab styling.
+
+**Fix:** Added CSS rule for `.col-header` class to align text to the right.
+
+**Files Changed:**
+```
+resources/js/components/UserProfile/ExpenditureForm.vue
+```
+
+### Business Asset Disposal Relief (BADR) - Private Company Investments
+
+Added full BADR support for private company investments, allowing users to track eligibility and calculate potential CGT savings.
+
+#### What is BADR?
+Business Asset Disposal Relief reduces CGT to 14% (from 6 April 2025) on qualifying disposals of business assets, with a £1 million lifetime limit.
+
+#### Qualifying Conditions
+- Employee or officer of the company for 2+ years
+- Trading company (not investment company)
+- 5% shareholding (waived for EMI share options)
+- Held shares for 2+ years before disposal
+
+#### New Fields in Private Investment Form
+
+| Field | Type | Description |
+|-------|------|-------------|
+| BADR Eligible | Toggle | Master flag to enable BADR tracking |
+| Employee/Officer | Checkbox | 2+ years as employee/officer |
+| Trading Company | Checkbox | Qualifies as trading company |
+| 5% Shareholding | Checkbox | Holds 5%+ of shares/voting rights |
+| Held 2+ Years | Checkbox | Shares held for qualifying period |
+| EMI Shares | Checkbox | Acquired via EMI scheme (relaxes 5% rule) |
+| Lifetime Used | Currency | Amount of £1m lifetime allowance already used |
+
+#### Detail View Features
+- BADR eligibility status badge (green if fully qualified, yellow if partial)
+- Remaining lifetime allowance display
+- Estimated CGT savings calculation (6% of unrealised gain)
+- Qualifying conditions checklist
+
+**Files Changed:**
+```
+database/migrations/2026_01_31_154201_add_badr_fields_to_investment_accounts_table.php (new)
+app/Models/Investment/InvestmentAccount.php
+resources/js/components/Investment/AccountForm.vue
+resources/js/components/Investment/PrivateInvestmentFields.vue
+resources/js/views/Investment/PrivateInvestmentDetail.vue
+```
+
+**Database Migration Required:** YES
+```bash
+php artisan migrate
+```
 
 ---
 
