@@ -405,6 +405,60 @@ class SavingsController extends Controller
     }
 
     /**
+     * Toggle include_in_retirement flag for a savings account.
+     *
+     * Allows users to include/exclude savings accounts from retirement income planning.
+     */
+    public function toggleRetirementInclusion(Request $request, int $id): JsonResponse
+    {
+        $user = $request->user();
+
+        try {
+            // Allow toggle if user is owner OR joint_owner
+            $account = SavingsAccount::where('id', $id)
+                ->where(function ($query) use ($user) {
+                    $query->where('user_id', $user->id)
+                        ->orWhere('joint_owner_id', $user->id);
+                })
+                ->firstOrFail();
+
+            // Toggle the flag
+            $account->include_in_retirement = ! $account->include_in_retirement;
+            $account->save();
+
+            // Invalidate caches
+            Cache::forget("savings_analysis_{$user->id}");
+            $this->netWorthService->invalidateCache($user->id);
+
+            if ($account->joint_owner_id) {
+                Cache::forget("savings_analysis_{$account->joint_owner_id}");
+                $this->netWorthService->invalidateCache($account->joint_owner_id);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => $account->include_in_retirement
+                    ? 'Account included in retirement planning'
+                    : 'Account excluded from retirement planning',
+                'data' => [
+                    'id' => $account->id,
+                    'include_in_retirement' => $account->include_in_retirement,
+                ],
+            ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Account not found or unauthorized',
+            ], 404);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to toggle retirement inclusion: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Get all goals for authenticated user
      */
     public function indexGoals(Request $request): JsonResponse

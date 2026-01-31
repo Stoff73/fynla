@@ -12,7 +12,7 @@
 
 ### Description
 
-Updated the design system documentation (`designStyle.md`) to reflect the new risk level color system that was deployed on January 29. The risk level badges now use a distinct color palette that avoids semantic color conflicts.
+Updated the design system documentation (`designStyle.md`) to reflect the new risk level color system. The risk level badges now use a distinct color palette that avoids semantic color conflicts.
 
 ### New Risk Level Colors
 
@@ -264,6 +264,194 @@ resources/js/constants/designSystem.js
 
 ---
 
+## designSystem.js - Complete Orange Ban (Charts, Assets, Spending)
+
+**Branch:** main
+
+**Status:** Ready for deployment
+
+### Description
+
+Removed all remaining orange hex values from `CHART_COLORS`, `ASSET_COLORS`, and `SPENDING_COLORS` constants to complete the orange color ban.
+
+### CHART_COLORS Changes
+
+| Index | Before | After |
+|-------|--------|-------|
+| Chart 4 | `#EA580C` (Orange) | `#60A5FA` (Blue-400) |
+| Chart 7 | `#F97316` (Orange light) | `#3B82F6` (Blue-500) |
+
+### ASSET_COLORS Changes
+
+| Asset Type | Before | After |
+|------------|--------|-------|
+| cash | `#EA580C` (Orange) | `#60A5FA` (Blue-400) |
+| chattels | `#F97316` (Orange light) | `#93C5FD` (Blue-300) |
+
+### SPENDING_COLORS Changes
+
+| Index | Category | Before | After |
+|-------|----------|--------|-------|
+| 5 | Transport | `#ea580c` (Orange) | `#0284c7` (Sky-600) |
+| 9 | Entertainment | `#f97316` (Orange) | `#0ea5e9` (Sky-500) |
+
+### Files Changed (1 file)
+
+**Frontend (Included in Build):**
+```text
+resources/js/constants/designSystem.js
+```
+
+---
+
+## FutureValueTab.vue - Orange Color Removal
+
+**Branch:** main
+
+**Status:** Ready for deployment
+
+### Description
+
+Removed banned orange colors from FutureValueTab.vue styles. The "Target Retirement Income" card now uses teal, and warning/depletion badges use red instead of banned orange.
+
+### Changes Made
+
+| Element | Before | After |
+|---------|--------|-------|
+| Target Income card | `summary-card.orange` with `from-orange-50 to-orange-100` | `summary-card.teal` with `from-teal-50 to-teal-100` |
+| Depletion badge | `bg-orange-100 text-orange-700` | `bg-red-100 text-red-700` |
+| Info warning | `bg-orange-100 text-orange-800` | `bg-red-100 text-red-800` |
+
+### Files Changed (1 file)
+
+**Frontend (Included in Build):**
+```text
+resources/js/components/Retirement/FutureValueTab.vue
+```
+
+---
+
+## RetirementIncomeTab.vue - Orange Color Fix
+
+**Branch:** main
+
+**Status:** Ready for deployment
+
+### Description
+
+Fixed `netIncomeClass` computed property which returned banned 'orange' class. Changed to 'yellow' and added missing CSS class definitions for income status color coding.
+
+### Changes Made
+
+| Change | Before | After |
+|--------|--------|-------|
+| `netIncomeClass()` return value | `'orange'` | `'yellow'` |
+| CSS classes | Missing green/yellow/red variants | Added `.summary-card.green`, `.summary-card.yellow`, `.summary-card.red` |
+
+### Color Coding Logic
+
+| Income Status | Color |
+|--------------|-------|
+| At or above target | Green |
+| 90-100% of target | Yellow (was orange) |
+| Below 90% of target | Red |
+
+### Files Changed (1 file)
+
+**Frontend (Included in Build):**
+```text
+resources/js/components/Retirement/RetirementIncomeTab.vue
+```
+
+---
+
+## Unified Retirement Income Planner
+
+**Branch:** main
+
+**Status:** Ready for deployment
+
+### Description
+
+Merged the Pension Pot Projection detail view (RequiredCapitalDetail.vue) functionality into the Retirement Income Planner (RetirementIncomeTab.vue). This creates a single unified view for retirement planning with no duplicated information.
+
+### Key Changes
+
+1. **Extended Summary Cards** (6 cards instead of 3)
+   - Target Income (editable)
+   - Projected Net Income (after tax)
+   - Annual Tax
+   - Pension Capital at Retirement (80% confidence)
+   - Other Assets at Retirement
+   - Gap/Surplus (colour-coded)
+
+2. **Other Assets Section** (NEW)
+   - Investment accounts with include/exclude toggles
+   - Savings/Cash accounts with include/exclude toggles
+   - Assets default to NOT included (must be explicitly added)
+
+3. **Progress Section** (from RequiredCapitalDetail)
+   - Current Progress bar
+   - Forecasted at Retirement Progress bar
+
+4. **Assumptions Panel** (from RequiredCapitalDetail)
+   - Return rate, fees, inflation, compounding
+   - Link to settings page
+
+5. **Two Tables Preserved**
+   - Fund Depletion Table (from RetirementIncomeTab)
+   - Year-by-Year Projection Table (from RequiredCapitalDetail)
+
+### Cash Account Bug Fixed
+
+**Problem:** All savings accounts were automatically included in retirement income calculations regardless of user preference.
+
+**Fix:** Added `include_in_retirement` column to `savings_accounts` table with default `false`. Savings accounts now require explicit inclusion like investment accounts.
+
+### Database Migration
+
+New migration: `2026_01_31_120000_add_include_in_retirement_to_savings_accounts.php`
+
+```sql
+ALTER TABLE savings_accounts ADD COLUMN include_in_retirement BOOLEAN DEFAULT FALSE;
+```
+
+### New API Endpoint
+
+`PATCH /api/savings/accounts/{id}/toggle-retirement` - Toggle include_in_retirement for savings accounts
+
+### Navigation Changes
+
+- Pension Pot Projection chart now navigates to Income tab (was: required-capital)
+- Future Value "Required Capital" card now navigates to Income tab
+- RequiredCapitalDetail removed from navigation
+
+### Files Changed (10 files)
+
+**Database:**
+```text
+database/migrations/2026_01_31_120000_add_include_in_retirement_to_savings_accounts.php (NEW)
+```
+
+**Backend:**
+```text
+app/Models/SavingsAccount.php
+app/Http/Controllers/Api/SavingsController.php
+app/Services/Retirement/RetirementIncomeService.php
+routes/api.php
+```
+
+**Frontend:**
+```text
+resources/js/components/Retirement/RetirementIncomeTab.vue
+resources/js/components/Retirement/FutureValueTab.vue
+resources/js/components/NetWorth/PensionList.vue
+resources/js/store/modules/retirement.js
+resources/js/services/savingsService.js
+```
+
+---
+
 ## Rebuild Required: YES
 
 Frontend JavaScript constants changed. Full rebuild required:
@@ -291,13 +479,22 @@ Upload the entire `public/build/` directory to:
 ~/www/fynla.org/public_html/public/build/
 ```
 
-### Step 3: No PHP Files Changed
+### Step 3: Upload PHP Files
 
-No backend PHP files were modified in this deployment.
+Upload the following PHP files:
 
-### Step 4: No Migrations Required
+```text
+app/Models/SavingsAccount.php
+app/Http/Controllers/Api/SavingsController.php
+app/Services/Retirement/RetirementIncomeService.php
+routes/api.php
+```
 
-No database migrations in this deployment.
+### Step 4: Run Migration
+
+```bash
+php artisan migrate --force
+```
 
 ### Step 5: Clear Cache (SSH)
 
@@ -318,10 +515,30 @@ CLAUDE.md
 designStyle.md
 ```
 
-### Frontend (1 file - Included in Build)
+### Database (1 file - Migration)
+
+```text
+database/migrations/2026_01_31_120000_add_include_in_retirement_to_savings_accounts.php
+```
+
+### Backend (4 files - Upload required)
+
+```text
+app/Models/SavingsAccount.php
+app/Http/Controllers/Api/SavingsController.php
+app/Services/Retirement/RetirementIncomeService.php
+routes/api.php
+```
+
+### Frontend (6 files - Included in Build)
 
 ```text
 resources/js/constants/designSystem.js
+resources/js/components/Retirement/RetirementIncomeTab.vue
+resources/js/components/Retirement/FutureValueTab.vue
+resources/js/components/NetWorth/PensionList.vue
+resources/js/store/modules/retirement.js
+resources/js/services/savingsService.js
 ```
 
 ---
@@ -343,6 +560,26 @@ After deployment, verify:
    - Verify no orange colors appear in warnings, badges, or alerts
    - All warning/caution states should use blue
 
+3. **Unified Retirement Income Planner**
+   - Navigate to Retirement > Income tab
+   - Verify 6 summary cards display (Target, Net, Tax, Pension Capital, Other Assets, Gap/Surplus)
+   - Verify Other Assets section shows investments and cash with toggles
+   - Verify toggling assets updates calculations
+   - Verify Progress bars display (Current and Forecasted)
+   - Verify Assumptions panel displays with edit link
+   - Verify Fund Depletion chart and table display
+   - Verify Year-by-Year Projection table displays
+
+4. **Cash Account Default Behaviour**
+   - Create a new savings account
+   - Verify it does NOT appear in Income Planner by default
+   - Toggle it to "Include" in Other Assets section
+   - Verify it now appears in calculations
+
+5. **Navigation Updates**
+   - Click Pension Pot Projection chart - should go to Income tab
+   - Click Required Capital card in Future Value - should go to Income tab
+
 ---
 
 ## Rollback
@@ -354,5 +591,47 @@ If issues occur:
    ```bash
    php artisan cache:clear && php artisan config:clear && php artisan view:clear
    ```
+
+---
+
+## TODO: Remove Orange Colors from Goals and Onboarding
+
+**Status:** Not Started
+
+### Description
+
+Orange colors remain in the Goals and Onboarding modules and need to be replaced to complete the orange color ban.
+
+### Files to Update
+
+**Goals Module (4 files):**
+```text
+resources/js/components/Goals/GoalsByModule.vue
+resources/js/components/Goals/GoalsAnalysis.vue
+resources/js/components/Goals/GoalContributionStreak.vue
+resources/js/components/Goals/GoalCountdown.vue
+```
+
+**Onboarding Module (2 files):**
+```text
+resources/js/components/Onboarding/SkipConfirmationModal.vue
+resources/js/components/Onboarding/steps/ExpenditureStep.vue
+```
+
+### Replacement Guidelines
+
+| Context | Replace Orange With |
+|---------|---------------------|
+| Warning/caution states | Blue (`blue-*`) |
+| Progress indicators | Blue or Teal |
+| Priority badges (high priority) | Keep Red for critical, use Blue for high |
+| Streak/achievement indicators | Teal or Purple |
+| Countdown urgency | Red or Blue |
+
+### Notes
+
+- Review each usage to determine appropriate replacement color
+- Maintain visual hierarchy and meaning
+- Test that color changes don't reduce accessibility
 
 ---

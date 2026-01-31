@@ -95,6 +95,16 @@ const savingsService = {
         return response.data;
     },
 
+    /**
+     * Toggle include_in_retirement flag for a savings account
+     * @param {Number} id - Account ID
+     * @returns {Promise} Updated inclusion status
+     */
+    async toggleRetirementInclusion(id) {
+        const response = await api.patch(`/savings/accounts/${id}/toggle-retirement`);
+        return response.data;
+    },
+
     // Savings Goals Methods
     /**
      * Get all savings goals

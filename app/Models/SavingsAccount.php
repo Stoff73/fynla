@@ -46,6 +46,8 @@ class SavingsAccount extends Model
         'beneficiary_id',
         'beneficiary_name',
         'beneficiary_dob',
+        // Retirement planning
+        'include_in_retirement',
     ];
 
     protected $casts = [
@@ -60,6 +62,7 @@ class SavingsAccount extends Model
         'planned_lump_sum_amount' => 'decimal:2',
         'planned_lump_sum_date' => 'date',
         'beneficiary_dob' => 'date',
+        'include_in_retirement' => 'boolean',
     ];
 
     /**

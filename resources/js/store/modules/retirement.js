@@ -1,6 +1,7 @@
 import retirementService from '../../services/retirementService';
 import dcPensionHoldingsService from '../../services/dcPensionHoldingsService';
 import investmentService from '../../services/investmentService';
+import savingsService from '../../services/savingsService';
 
 // Track ongoing requests to prevent duplicates
 const ongoingRequests = {
@@ -322,8 +323,23 @@ const actions = {
         }
     },
 
-    toggleIncludedCash({ commit }, id) {
-        commit('TOGGLE_INCLUDED_CASH', id);
+    async toggleIncludedCash({ commit, rootState }, id) {
+        try {
+            // Call API to persist the toggle
+            const response = await savingsService.toggleRetirementInclusion(id);
+            if (response.success) {
+                // Update local state
+                commit('TOGGLE_INCLUDED_CASH', id);
+                // Update the account in the savings store
+                const account = rootState.savings.accounts.find(a => a.id === id);
+                if (account) {
+                    account.include_in_retirement = response.data.include_in_retirement;
+                }
+            }
+        } catch (error) {
+            console.error('Failed to toggle retirement inclusion:', error);
+            throw error;
+        }
     },
 
     setIncludedInvestmentIds({ commit }, ids) {

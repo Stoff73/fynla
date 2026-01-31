@@ -109,7 +109,7 @@
       </div>
 
       <!-- Summary Cards -->
-      <div class="summary-grid">
+      <div class="summary-grid-extended">
         <!-- Target Income Card -->
         <div class="summary-card target">
           <div class="card-header-row">
@@ -140,6 +140,27 @@
           <p class="summary-value">{{ formatCurrency(taxBreakdown?.total_tax || 0) }}</p>
           <p class="summary-subtitle">{{ formatCurrency(taxBreakdown?.tax_free_income || 0) }} tax-free</p>
         </div>
+
+        <!-- Pension Capital Card -->
+        <div class="summary-card teal">
+          <p class="summary-label">Pension Capital at Retirement</p>
+          <p class="summary-value">{{ formatCurrency(projectedPotAtRetirement) }}</p>
+          <p class="summary-subtitle">At age {{ retirementAge }} (80% confidence)</p>
+        </div>
+
+        <!-- Other Assets Card -->
+        <div class="summary-card indigo">
+          <p class="summary-label">Other Assets at Retirement</p>
+          <p class="summary-value">{{ formatCurrency(totalProjectedOtherAssets) }}</p>
+          <p class="summary-subtitle">Investments + Cash projected</p>
+        </div>
+
+        <!-- Gap/Surplus Card -->
+        <div :class="['summary-card', gapToTarget >= 0 ? 'red' : 'green']">
+          <p class="summary-label">{{ gapToTarget >= 0 ? 'Gap to Target' : 'Surplus' }}</p>
+          <p class="summary-value">{{ formatCurrency(Math.abs(gapToTarget)) }}</p>
+          <p class="summary-subtitle">{{ gapToTarget >= 0 ? 'Shortfall at retirement' : 'Exceeds target at retirement' }}</p>
+        </div>
       </div>
 
       <!-- Income Sources Section -->
@@ -162,6 +183,150 @@
         </div>
       </div>
 
+      <!-- Other Assets Section -->
+      <div v-if="hasOtherAssets" class="assets-section">
+        <div class="assets-header">
+          <h4 class="assets-title">Other Assets</h4>
+          <p class="assets-subtitle">Toggle to include/exclude from retirement income planning</p>
+        </div>
+
+        <!-- Included Assets -->
+        <div v-if="includedInvestments.length > 0 || includedCash.length > 0" class="assets-group">
+          <h5 class="assets-group-label">Included in calculation</h5>
+          <div class="asset-cards">
+            <div v-for="account in includedInvestments" :key="'inv-' + account.id" class="asset-card investment">
+              <div class="asset-info">
+                <span class="asset-name">{{ account.account_name || account.provider || formatAccountType(account.account_type) }}</span>
+                <span class="asset-value">{{ formatCurrency(getProjectedValue(account)) }}</span>
+                <span class="asset-type">{{ formatAccountType(account.account_type) }} - Projected (80%)</span>
+              </div>
+              <label class="toggle-row">
+                <span class="toggle-text">Exclude</span>
+                <input
+                  type="checkbox"
+                  class="toggle-checkbox"
+                  checked
+                  @change="toggleAsset('investment', account.id)"
+                />
+              </label>
+            </div>
+            <div v-for="account in includedCash" :key="'cash-' + account.id" class="asset-card cash">
+              <div class="asset-info">
+                <span class="asset-name">{{ account.institution || 'Cash Account' }}</span>
+                <span class="asset-value">{{ formatCurrency(getProjectedCashValue(account)) }}</span>
+                <span class="asset-type">{{ account.is_isa ? 'Cash ISA' : 'Savings' }} - Projected</span>
+              </div>
+              <label class="toggle-row">
+                <span class="toggle-text">Exclude</span>
+                <input
+                  type="checkbox"
+                  class="toggle-checkbox"
+                  checked
+                  @change="toggleAsset('cash', account.id)"
+                />
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Excluded Assets -->
+        <div v-if="excludedInvestments.length > 0 || excludedCash.length > 0" class="assets-group">
+          <h5 class="assets-group-label">Not included</h5>
+          <div class="asset-cards">
+            <div v-for="account in excludedInvestments" :key="'inv-ex-' + account.id" class="asset-card investment excluded">
+              <div class="asset-info">
+                <span class="asset-name">{{ account.account_name || account.provider || formatAccountType(account.account_type) }}</span>
+                <span class="asset-value">{{ formatCurrency(getProjectedValue(account)) }}</span>
+                <span class="asset-type">{{ formatAccountType(account.account_type) }} - Projected (80%)</span>
+              </div>
+              <label class="toggle-row">
+                <span class="toggle-text">Include</span>
+                <input
+                  type="checkbox"
+                  class="toggle-checkbox"
+                  @change="toggleAsset('investment', account.id)"
+                />
+              </label>
+            </div>
+            <div v-for="account in excludedCash" :key="'cash-ex-' + account.id" class="asset-card cash excluded">
+              <div class="asset-info">
+                <span class="asset-name">{{ account.institution || 'Cash Account' }}</span>
+                <span class="asset-value">{{ formatCurrency(getProjectedCashValue(account)) }}</span>
+                <span class="asset-type">{{ account.is_isa ? 'Cash ISA' : 'Savings' }} - Projected</span>
+              </div>
+              <label class="toggle-row">
+                <span class="toggle-text">Include</span>
+                <input
+                  type="checkbox"
+                  class="toggle-checkbox"
+                  @change="toggleAsset('cash', account.id)"
+                />
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Progress and Assumptions Row -->
+      <div v-if="requiredCapital" class="progress-assumptions-row">
+        <!-- Progress Section -->
+        <div class="progress-section">
+          <h4 class="progress-title">Progress Towards Target</h4>
+
+          <!-- Current Progress -->
+          <div class="progress-row">
+            <div class="progress-label-row">
+              <span class="progress-type">Current</span>
+              <span :class="['progress-percentage', progressColorClass]">{{ progressPercentage }}%</span>
+            </div>
+            <div class="progress-bar-container">
+              <div class="progress-bar" :style="{ width: Math.min(progressPercentage, 100) + '%' }" :class="progressColorClass"></div>
+            </div>
+            <div class="progress-values">
+              <span>{{ formatCurrency(totalIncludedAssets) }}</span>
+              <span class="target-label">of {{ formatCurrency(requiredCapital.required_capital_today) }}</span>
+            </div>
+          </div>
+
+          <!-- Forecasted Progress -->
+          <div class="progress-row">
+            <div class="progress-label-row">
+              <span class="progress-type">Forecasted at Retirement</span>
+              <span :class="['progress-percentage', forecastedProgressColorClass]">{{ forecastedProgressPercentage }}%</span>
+            </div>
+            <div class="progress-bar-container">
+              <div class="progress-bar" :style="{ width: Math.min(forecastedProgressPercentage, 100) + '%' }" :class="forecastedProgressColorClass"></div>
+            </div>
+            <div class="progress-values">
+              <span>{{ formatCurrency(projectedPotAtRetirement + totalProjectedOtherAssets) }}</span>
+              <span class="target-label">of {{ formatCurrency(requiredCapital.required_capital_at_retirement) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Assumptions Panel -->
+        <div class="assumptions-panel">
+          <div class="assumptions-header-row">
+            <h4>Calculation Assumptions</h4>
+            <router-link to="/settings?tab=assumptions" class="edit-link">
+              Edit
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="link-icon">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+              </svg>
+            </router-link>
+          </div>
+          <div class="assumptions-list">
+            <span class="assumption-item"><span class="label">Return:</span> {{ requiredCapital.assumptions?.return_rate }}% <span class="note">(Net: {{ requiredCapital.assumptions?.net_return_rate }}%)</span></span>
+            <span class="assumption-item"><span class="label">Fees:</span> {{ displayFees }}%<span v-if="isDefaultFees" class="note"> (default)</span></span>
+            <span class="assumption-item"><span class="label">Inflation:</span> {{ requiredCapital.assumptions?.inflation_rate }}%</span>
+            <span class="assumption-item"><span class="label">Compounding:</span> {{ compoundingLabel }}</span>
+            <span class="assumption-item"><span class="label">Withdrawal:</span> {{ requiredCapital.assumptions?.withdrawal_rate }}%</span>
+            <span class="assumption-item"><span class="label">Contributions:</span> {{ formatCurrency(requiredCapital.assumptions?.monthly_contributions) }}/month</span>
+            <span class="assumption-item"><span class="label">Years to Retirement:</span> {{ yearsToRetirement }}</span>
+          </div>
+        </div>
+      </div>
+
       <!-- Fund Depletion Chart -->
       <FundDepletionChart
         v-if="fundProjections.length > 0"
@@ -169,6 +334,37 @@
         :depletion-ages="depletionAges"
         :retirement-age="retirementAge"
       />
+
+      <!-- Year-by-Year Projection Table -->
+      <div v-if="requiredCapital?.year_by_year_projection?.length > 0" class="table-section">
+        <h4 class="table-title">Year-by-Year Projection</h4>
+        <div class="table-container">
+          <table class="projection-table">
+            <thead>
+              <tr>
+                <th>Year</th>
+                <th>Age</th>
+                <th>Projected Pot Value</th>
+                <th>Pot in Today's Money</th>
+                <th>Target in Today's Money</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="row in requiredCapital.year_by_year_projection"
+                :key="row.year"
+                :class="{ 'retirement-row': row.age === retirementAge }"
+              >
+                <td>{{ row.year }}</td>
+                <td>{{ row.age }}</td>
+                <td>{{ formatCurrency(row.projected_pot_value) }}</td>
+                <td>{{ formatCurrency(row.pot_in_todays_money) }}</td>
+                <td>{{ formatCurrency(row.target_in_todays_money) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       <!-- Target Income Modal -->
       <div v-if="showTargetModal" class="modal-overlay" @click.self="showTargetModal = false">
@@ -233,6 +429,10 @@ export default {
       'error',
       'profile',
       'requiredCapital',
+      'projections',
+      'dcPensions',
+      'includedInvestmentIds',
+      'includedCashIds',
     ]),
     ...mapGetters('retirement', [
       'retirementIncomeData',
@@ -241,6 +441,8 @@ export default {
       'retirementIncomeDepletionAges',
       'retirementIncomeAvailableAccounts',
     ]),
+    ...mapState('investment', ['accounts']),
+    ...mapState('savings', { savingsAccounts: 'accounts' }),
 
     loading() {
       return this.retirementIncomeLoading;
@@ -312,8 +514,131 @@ export default {
       const netIncome = this.taxBreakdown.net_income || 0;
       const target = this.displayTargetIncome;
       if (netIncome >= target) return 'green';
-      if (netIncome >= target * 0.9) return 'orange';
+      if (netIncome >= target * 0.9) return 'yellow';
       return 'red';
+    },
+
+    // Required Capital computed properties
+    investmentAccounts() {
+      // Exclude illiquid investments and employee share schemes from retirement capital
+      const excludedTypes = [
+        'vct', 'eis', 'private_company', 'crowdfunding',
+        'saye', 'csop', 'emi', 'unapproved_options', 'rsu', 'other',
+      ];
+      return (this.accounts || []).filter(
+        a => this.getDisplayValue(a) > 0 && !excludedTypes.includes(a.account_type)
+      );
+    },
+
+    cashAccounts() {
+      return (this.savingsAccounts || []).filter(a => parseFloat(a.current_balance) > 0);
+    },
+
+    storeIncludedInvestmentIds() {
+      return this.includedInvestmentIds || [];
+    },
+
+    storeIncludedCashIds() {
+      return this.includedCashIds || [];
+    },
+
+    includedInvestments() {
+      return this.investmentAccounts.filter(a => this.storeIncludedInvestmentIds.includes(a.id));
+    },
+
+    excludedInvestments() {
+      return this.investmentAccounts.filter(a => !this.storeIncludedInvestmentIds.includes(a.id));
+    },
+
+    includedCash() {
+      return this.cashAccounts.filter(a => this.storeIncludedCashIds.includes(a.id));
+    },
+
+    excludedCash() {
+      return this.cashAccounts.filter(a => !this.storeIncludedCashIds.includes(a.id));
+    },
+
+    projectedPotAtRetirement() {
+      return this.projections?.pension_pot_projection?.percentile_20_at_retirement || 0;
+    },
+
+    totalProjectedInvestments() {
+      return this.includedInvestments.reduce((sum, a) => sum + this.getProjectedValue(a), 0);
+    },
+
+    totalProjectedCash() {
+      return this.includedCash.reduce((sum, a) => sum + this.getProjectedCashValue(a), 0);
+    },
+
+    totalProjectedOtherAssets() {
+      return this.totalProjectedInvestments + this.totalProjectedCash;
+    },
+
+    gapToTarget() {
+      const projectedTotal = this.projectedPotAtRetirement + this.totalProjectedOtherAssets;
+      return (this.requiredCapital?.required_capital_at_retirement || 0) - projectedTotal;
+    },
+
+    totalIncludedAssets() {
+      const totalPensions = (this.dcPensions || []).reduce((sum, p) => sum + (parseFloat(p.current_fund_value) || 0), 0);
+      const totalInvestments = this.includedInvestments.reduce((sum, a) => sum + this.getDisplayValue(a), 0);
+      const totalCash = this.includedCash.reduce((sum, a) => sum + (parseFloat(a.current_balance) || 0), 0);
+      return totalPensions + totalInvestments + totalCash;
+    },
+
+    progressPercentage() {
+      if (!this.requiredCapital?.required_capital_today) return 0;
+      return Math.round((this.totalIncludedAssets / this.requiredCapital.required_capital_today) * 100);
+    },
+
+    progressColorClass() {
+      const pct = this.progressPercentage;
+      if (pct >= 80) return 'green';
+      if (pct >= 50) return 'blue';
+      return 'red';
+    },
+
+    forecastedProgressPercentage() {
+      if (!this.requiredCapital?.required_capital_at_retirement) return 0;
+      const projectedTotal = this.projectedPotAtRetirement + this.totalProjectedOtherAssets;
+      return Math.round((projectedTotal / this.requiredCapital.required_capital_at_retirement) * 100);
+    },
+
+    forecastedProgressColorClass() {
+      const pct = this.forecastedProgressPercentage;
+      if (pct >= 80) return 'green';
+      if (pct >= 50) return 'blue';
+      return 'red';
+    },
+
+    compoundingLabel() {
+      const periods = this.requiredCapital?.assumptions?.compound_periods || 4;
+      switch (periods) {
+        case 1: return 'Annually';
+        case 2: return 'Semi-annually';
+        case 4: return 'Quarterly';
+        case 12: return 'Monthly';
+        case 365: return 'Daily';
+        default: return `${periods}x/year`;
+      }
+    },
+
+    isDefaultFees() {
+      const fees = this.requiredCapital?.assumptions?.fees_total;
+      return !fees || fees === 0;
+    },
+
+    displayFees() {
+      const fees = this.requiredCapital?.assumptions?.fees_total;
+      return (!fees || fees === 0) ? 1 : fees;
+    },
+
+    hasOtherAssets() {
+      return this.investmentAccounts.length > 0 || this.cashAccounts.length > 0;
+    },
+
+    yearsToRetirement() {
+      return this.requiredCapital?.retirement_info?.years_to_retirement || 0;
     },
   },
 
@@ -331,19 +656,45 @@ export default {
     ...mapActions('retirement', [
       'fetchRetirementIncome',
       'fetchRequiredCapital',
+      'fetchRetirementData',
       'calculateRetirementIncome',
       'toggleSpouseAssets',
       'setCustomTargetIncome',
+      'toggleIncludedInvestment',
+      'toggleIncludedCash',
+      'setIncludedInvestmentIds',
+      'setIncludedCashIds',
     ]),
+    ...mapActions('investment', { fetchInvestmentAccounts: 'fetchAccounts' }),
+    ...mapActions('savings', { fetchSavingsAccounts: 'fetchAccounts' }),
 
     async loadData() {
       try {
-        // Fetch retirement income and required capital in parallel
-        await Promise.all([
+        // Fetch all data in parallel
+        const promises = [
           this.fetchRetirementIncome(),
           this.fetchRequiredCapital(),
-        ]);
+          this.fetchInvestmentAccounts(),
+          this.fetchSavingsAccounts(),
+        ];
+        // Only fetch retirement data if dcPensions not yet loaded
+        if (!this.dcPensions || this.dcPensions.length === 0) {
+          promises.push(this.fetchRetirementData());
+        }
+        await Promise.all(promises);
         this.tempTargetIncome = this.displayTargetIncome;
+
+        // Initialize includedInvestmentIds from accounts with include_in_retirement = true
+        const includedInvIds = (this.accounts || [])
+          .filter(a => a.include_in_retirement)
+          .map(a => a.id);
+        this.setIncludedInvestmentIds(includedInvIds);
+
+        // Initialize includedCashIds from savings accounts with include_in_retirement = true
+        const includedCashIds = (this.savingsAccounts || [])
+          .filter(a => a.include_in_retirement)
+          .map(a => a.id);
+        this.setIncludedCashIds(includedCashIds);
       } catch (error) {
         console.error('Failed to load retirement income data:', error);
       }
@@ -405,6 +756,59 @@ export default {
 
     formatPercent(value) {
       return (value * 100).toFixed(1) + '%';
+    },
+
+    async toggleAsset(type, id) {
+      if (type === 'investment') {
+        await this.toggleIncludedInvestment(id);
+      } else if (type === 'cash') {
+        await this.toggleIncludedCash(id);
+      }
+      // Recalculate after toggle
+      this.debouncedCalculate();
+    },
+
+    formatAccountType(type) {
+      if (!type) return 'Investment';
+      const typeMap = {
+        isa: 'ISA',
+        stocks_shares_isa: 'Stocks & Shares ISA',
+        lifetime_isa: 'Lifetime ISA',
+        sipp: 'SIPP',
+        gia: 'GIA',
+        onshore_bond: 'Onshore Bond',
+        offshore_bond: 'Offshore Bond',
+      };
+      return typeMap[type] || type.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+    },
+
+    getDisplayValue(account) {
+      // For standard accounts, use current_value
+      return parseFloat(account.current_value) || 0;
+    },
+
+    getProjectedValue(account) {
+      // Look up Monte Carlo 80% projected value from retirement income data
+      const availableAccounts = this.retirementIncomeAvailableAccounts || [];
+      const projected = availableAccounts.find(a =>
+        a.id === account.id || a.source_id === account.id
+      );
+      if (projected && projected.value) {
+        return parseFloat(projected.value);
+      }
+      return this.getDisplayValue(account);
+    },
+
+    getProjectedCashValue(account) {
+      // Look up from retirement income available accounts
+      const availableAccounts = this.retirementIncomeAvailableAccounts || [];
+      const projected = availableAccounts.find(a =>
+        a.id === account.id || a.source_id === account.id
+      );
+      if (projected && projected.value) {
+        return parseFloat(projected.value);
+      }
+      return parseFloat(account.current_balance) || 0;
     },
   },
 };
@@ -931,12 +1335,410 @@ export default {
   @apply text-gray-400;
 }
 
+/* Extended Summary Grid (6 cards) */
+.summary-grid-extended {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+/* Summary Card Colors */
+.summary-card.teal {
+  @apply border-teal-200;
+  @apply bg-teal-50;
+}
+
+.summary-card.teal .summary-value {
+  @apply text-teal-700;
+}
+
+.summary-card.indigo {
+  @apply border-indigo-200;
+  @apply bg-indigo-50;
+}
+
+.summary-card.indigo .summary-value {
+  @apply text-indigo-700;
+}
+
+.summary-card.green {
+  @apply border-green-200;
+  @apply bg-green-50;
+}
+
+.summary-card.green .summary-value {
+  @apply text-green-700;
+}
+
+.summary-card.yellow {
+  @apply border-yellow-200;
+  @apply bg-yellow-50;
+}
+
+.summary-card.yellow .summary-value {
+  @apply text-yellow-700;
+}
+
+.summary-card.red {
+  @apply border-red-200;
+  @apply bg-red-50;
+}
+
+.summary-card.red .summary-value {
+  @apply text-red-700;
+}
+
+/* Other Assets Section */
+.assets-section {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  @apply border border-gray-200;
+  margin-bottom: 24px;
+}
+
+.assets-header {
+  margin-bottom: 20px;
+}
+
+.assets-title {
+  font-size: 18px;
+  font-weight: 600;
+  @apply text-gray-900;
+  margin: 0 0 4px 0;
+}
+
+.assets-subtitle {
+  font-size: 14px;
+  @apply text-gray-500;
+  margin: 0;
+}
+
+.assets-group {
+  margin-bottom: 20px;
+}
+
+.assets-group:last-child {
+  margin-bottom: 0;
+}
+
+.assets-group-label {
+  font-size: 13px;
+  font-weight: 600;
+  @apply text-gray-500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 12px 0;
+}
+
+.asset-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.asset-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-radius: 8px;
+  @apply border border-gray-200;
+  background: white;
+}
+
+.asset-card.investment {
+  @apply border-l-4 border-l-indigo-500;
+}
+
+.asset-card.cash {
+  @apply border-l-4 border-l-emerald-500;
+}
+
+.asset-card.excluded {
+  @apply bg-gray-50;
+  opacity: 0.8;
+}
+
+.asset-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.asset-name {
+  font-size: 14px;
+  font-weight: 600;
+  @apply text-gray-900;
+}
+
+.asset-value {
+  font-size: 16px;
+  font-weight: 700;
+  @apply text-gray-900;
+}
+
+.asset-type {
+  font-size: 12px;
+  @apply text-gray-500;
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.toggle-text {
+  font-size: 13px;
+  @apply text-gray-600;
+}
+
+.toggle-checkbox {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #1257A0;
+}
+
+/* Progress and Assumptions Row */
+.progress-assumptions-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.progress-section {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  @apply border border-gray-200;
+}
+
+.progress-title {
+  font-size: 16px;
+  font-weight: 600;
+  @apply text-gray-900;
+  margin: 0 0 20px 0;
+}
+
+.progress-row {
+  margin-bottom: 20px;
+}
+
+.progress-row:last-child {
+  margin-bottom: 0;
+}
+
+.progress-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.progress-type {
+  font-size: 14px;
+  @apply text-gray-700;
+  font-weight: 500;
+}
+
+.progress-percentage {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.progress-percentage.green {
+  @apply text-green-600;
+}
+
+.progress-percentage.blue {
+  @apply text-blue-600;
+}
+
+.progress-percentage.red {
+  @apply text-red-600;
+}
+
+.progress-bar-container {
+  height: 8px;
+  @apply bg-gray-200;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.progress-bar {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.progress-bar.green {
+  @apply bg-green-500;
+}
+
+.progress-bar.blue {
+  @apply bg-blue-500;
+}
+
+.progress-bar.red {
+  @apply bg-red-500;
+}
+
+.progress-values {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  @apply text-gray-600;
+}
+
+.target-label {
+  @apply text-gray-400;
+}
+
+/* Assumptions Panel */
+.assumptions-panel {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  @apply border border-gray-200;
+}
+
+.assumptions-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.assumptions-header-row h4 {
+  font-size: 16px;
+  font-weight: 600;
+  @apply text-gray-900;
+  margin: 0;
+}
+
+.edit-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  @apply text-primary-600;
+  text-decoration: none;
+}
+
+.edit-link:hover {
+  @apply text-primary-700;
+}
+
+.link-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.assumptions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.assumption-item {
+  font-size: 13px;
+  @apply text-gray-700;
+}
+
+.assumption-item .label {
+  @apply text-gray-500;
+  margin-right: 4px;
+}
+
+.assumption-item .note {
+  @apply text-gray-400;
+  font-size: 12px;
+}
+
+/* Year-by-Year Table Section */
+.table-section {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  @apply border border-gray-200;
+  margin-bottom: 24px;
+}
+
+.table-title {
+  font-size: 18px;
+  font-weight: 600;
+  @apply text-gray-900;
+  margin: 0 0 16px 0;
+}
+
+.table-container {
+  overflow-x: auto;
+}
+
+.projection-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.projection-table th,
+.projection-table td {
+  padding: 12px 16px;
+  text-align: right;
+  @apply border-b border-gray-100;
+}
+
+.projection-table th:first-child,
+.projection-table td:first-child {
+  text-align: left;
+}
+
+.projection-table th {
+  font-size: 12px;
+  font-weight: 600;
+  @apply text-gray-500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  @apply bg-gray-50;
+}
+
+.projection-table td {
+  font-size: 14px;
+  @apply text-gray-700;
+}
+
+.projection-table tr.retirement-row {
+  @apply bg-teal-50;
+}
+
+.projection-table tr.retirement-row td {
+  @apply text-teal-800;
+  font-weight: 600;
+}
+
+@media (max-width: 1024px) {
+  .summary-grid-extended {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .progress-assumptions-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 768px) {
   .header-section {
     flex-direction: column;
   }
 
-  .summary-grid {
+  .summary-grid,
+  .summary-grid-extended {
     grid-template-columns: 1fr;
   }
 
@@ -955,6 +1757,16 @@ export default {
 
   .info-icon {
     margin-top: 0;
+  }
+
+  .asset-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .projection-table th,
+  .projection-table td {
+    padding: 8px 12px;
+    font-size: 12px;
   }
 }
 </style>

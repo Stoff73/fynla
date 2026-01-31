@@ -380,6 +380,7 @@ Route::middleware('auth:sanctum')->prefix('savings')->group(function () {
         Route::get('/{id}', [SavingsController::class, 'showAccount']);
         Route::put('/{id}', [SavingsController::class, 'updateAccount']);
         Route::delete('/{id}', [SavingsController::class, 'destroyAccount']);
+        Route::patch('/{id}/toggle-retirement', [SavingsController::class, 'toggleRetirementInclusion']);
     });
 
     // Savings goals

@@ -1,13 +1,5 @@
 <template>
   <div class="future-value-tab">
-    <!-- Show RequiredCapitalDetail when selected -->
-    <RequiredCapitalDetail
-      v-if="showRequiredCapitalDetail"
-      @back="showRequiredCapitalDetail = false"
-    />
-
-    <!-- Main FutureValue view -->
-    <template v-else>
       <!-- Back Button -->
       <button
         @click="$emit('back')"
@@ -43,12 +35,12 @@
             <p class="summary-value">{{ formatCurrency(projections.pension_pot_projection?.percentile_20_at_retirement) }}</p>
             <p class="summary-subtitle">Age {{ projections.pension_pot_projection?.retirement_age }} (80% probability)</p>
           </div>
-          <div class="summary-card purple clickable" @click="showRequiredCapitalDetail = true">
+          <div class="summary-card purple clickable" @click="$emit('show-income')">
             <p class="summary-label">Required Capital</p>
             <p class="summary-value">{{ formatCurrency(requiredCapital) }}</p>
-            <p class="summary-subtitle">Click for breakdown <span class="arrow-icon">→</span></p>
+            <p class="summary-subtitle">View in Income Planner <span class="arrow-icon">→</span></p>
           </div>
-          <div class="summary-card orange">
+          <div class="summary-card teal">
             <p class="summary-label">Target Retirement Income</p>
             <p class="summary-value">{{ formatCurrency(projections.income_drawdown?.target_income) }}<span class="per-year">/year</span></p>
             <p class="summary-subtitle">From retirement profile</p>
@@ -124,7 +116,6 @@
           </div>
         </div>
       </template>
-    </template>
   </div>
 </template>
 
@@ -132,7 +123,6 @@
 import PensionPotProjectionChart from './PensionPotProjectionChart.vue';
 import IncomeDrawdownChart from './IncomeDrawdownChart.vue';
 import TargetIncomeDrawdownChart from './TargetIncomeDrawdownChart.vue';
-import RequiredCapitalDetail from './RequiredCapitalDetail.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
@@ -140,13 +130,12 @@ export default {
 
   mixins: [currencyMixin],
 
-  emits: ['back'],
+  emits: ['back', 'show-income'],
 
   components: {
     PensionPotProjectionChart,
     IncomeDrawdownChart,
     TargetIncomeDrawdownChart,
-    RequiredCapitalDetail,
   },
 
   props: {
@@ -158,12 +147,6 @@ export default {
       type: Boolean,
       default: false,
     },
-  },
-
-  data() {
-    return {
-      showRequiredCapitalDetail: false,
-    };
   },
 
   computed: {
@@ -346,9 +329,9 @@ export default {
   @apply border-green-200;
 }
 
-.summary-card.orange {
-  @apply bg-gradient-to-br from-orange-50 to-orange-100;
-  @apply border-orange-200;
+.summary-card.teal {
+  @apply bg-gradient-to-br from-teal-50 to-teal-100;
+  @apply border-teal-200;
 }
 
 .summary-card.red {
@@ -450,8 +433,8 @@ export default {
 .depletion-badge {
   display: inline-block;
   padding: 2px 8px;
-  @apply bg-orange-100;
-  @apply text-orange-700;
+  @apply bg-red-100;
+  @apply text-red-700;
   border-radius: 4px;
   font-size: 12px;
   font-weight: 600;
@@ -518,8 +501,8 @@ export default {
 
 .info-warning {
   font-size: 13px;
-  @apply text-orange-800;
-  @apply bg-orange-100;
+  @apply text-red-800;
+  @apply bg-red-100;
   padding: 8px 12px;
   border-radius: 6px;
   margin: 12px 0 0 0;

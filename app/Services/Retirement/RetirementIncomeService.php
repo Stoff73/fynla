@@ -338,7 +338,9 @@ class RetirementIncomeService
 
         // ISAs (Savings - Cash ISA)
         // Projected to retirement age using compound growth
+        // Only include accounts explicitly marked for retirement planning
         $isaAccounts = SavingsAccount::whereIn('user_id', $userIds)
+            ->where('include_in_retirement', true)
             ->where('is_isa', true)
             ->get();
         foreach ($isaAccounts as $account) {
@@ -516,7 +518,9 @@ class RetirementIncomeService
 
         // Non-ISA Savings
         // Projected to retirement age using lower cash growth rate
+        // Only include accounts explicitly marked for retirement planning
         $savingsAccounts = SavingsAccount::whereIn('user_id', $userIds)
+            ->where('include_in_retirement', true)
             ->where(function ($query) {
                 $query->where('is_isa', false)
                     ->orWhereNull('is_isa');

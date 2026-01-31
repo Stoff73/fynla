@@ -84,10 +84,10 @@ export const CHART_COLORS = [
   '#1257A0',  // Chart 1: Trust Blue - Primary data series
   '#475569',  // Chart 2: Slate - Secondary series
   '#15803D',  // Chart 3: Green - Positive values
-  '#EA580C',  // Chart 4: Orange - Neutral/caution
+  '#60A5FA',  // Chart 4: Blue - Neutral/caution
   '#B91C1C',  // Chart 5: Red - Negative values
   '#7C3AED',  // Chart 6: Purple - Alternative
-  '#F97316',  // Chart 7: Orange light - Tertiary
+  '#3B82F6',  // Chart 7: Blue - Tertiary
   '#0F172A',  // Chart 8: Navy - Dark accent
 ];
 
@@ -99,9 +99,9 @@ export const ASSET_COLORS = {
   pensions: '#1257A0',      // Trust Blue - largest category typically
   property: '#15803D',      // Green - real assets
   investments: '#475569',   // Slate - investment accounts
-  cash: '#EA580C',          // Orange - liquid assets
+  cash: '#60A5FA',          // Blue - liquid assets
   business: '#7C3AED',      // Purple - business interests
-  chattels: '#F97316',      // Orange light - personal valuables
+  chattels: '#93C5FD',      // Blue light - personal valuables
 };
 
 /**
@@ -114,14 +114,14 @@ export const SPENDING_COLORS = [
   '#0891b2', // Cyan - Pension Contributions
   '#dc2626', // Red - Protection Premiums
   '#16a34a', // Green - Food & Groceries
-  '#ea580c', // Orange - Transport
+  '#0284c7', // Sky - Transport
   '#ec4899', // Pink - Healthcare
   '#6366f1', // Indigo - Insurance
   '#8b5cf6', // Violet - Clothing & Personal
-  '#f97316', // Orange - Entertainment
+  '#0ea5e9', // Sky light - Entertainment
   '#14b8a6', // Teal - Childcare
   '#84cc16', // Lime - School Fees
-  '#06b6d4', // Sky - Holidays
+  '#06b6d4', // Cyan - Holidays
   '#64748b', // Slate - Other
   '#059669', // Emerald - Savings Deposits
   '#be123c', // Rose - Credit Card Spending
