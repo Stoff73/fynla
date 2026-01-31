@@ -8,6 +8,31 @@
 
 ---
 
+## Expenditure - Expandable Financial Commitments
+
+Added nested expandable rows in the Financial Commitments section so users can drill down to see individual items.
+
+### Changes Made
+
+| Change | Description |
+|--------|-------------|
+| New component | Created `ExpenditureExpandableGridRow.vue` for expandable category rows |
+| Nested expansion | Clicking a category (e.g., Property Expenses) expands to show individual items |
+| Item details | Shows each property, investment, policy with its monthly cost |
+| Joint ownership | Displays ownership percentage for joint assets |
+
+### User Flow
+1. Click "Financial Commitments" → shows categories (Property Expenses, Investment Contributions, etc.)
+2. Click on a category → expands to show individual items with amounts
+
+### Files Changed
+```
+resources/js/components/UserProfile/ExpenditureExpandableGridRow.vue (new)
+resources/js/components/UserProfile/ExpenditureForm.vue
+```
+
+---
+
 ## Onboarding Progress Bar - Fix Skipped Step Display
 
 Fixed bug where skipping the Expenditure step during onboarding would incorrectly mark it as completed (green) instead of skipped (blue) in the progress bar.
@@ -455,6 +480,7 @@ php artisan cache:clear && php artisan config:clear
 - [ ] Bond type badges use green
 - [ ] Property details - verify joint/tenants in common properties show both owner names with percentages
 - [ ] Onboarding - skip Expenditure step and verify progress bar shows it as blue (skipped) not green (completed)
+- [ ] Expenditure - verify Financial Commitments categories expand to show individual items (properties, investments, etc.)
 
 ---
 

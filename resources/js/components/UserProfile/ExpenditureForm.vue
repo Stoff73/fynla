@@ -238,58 +238,68 @@
               </span>
             </template>
 
-            <!-- Commitment Rows -->
+            <!-- Commitment Rows - Expandable to show individual items -->
             <template v-if="hasRetirementCommitments || spouseHasRetirementCommitments">
-              <ExpenditureGridRow
+              <ExpenditureExpandableGridRow
                 label="Pension Contributions"
                 :value="financialCommitments?.totals?.retirement || 0"
                 :spouse-value="spouseFinancialCommitments?.totals?.retirement || 0"
                 :household-value="(financialCommitments?.totals?.retirement || 0) + (spouseFinancialCommitments?.totals?.retirement || 0)"
                 :is-married="isMarried"
+                :items="financialCommitments?.commitments?.retirement || []"
+                :spouse-items="spouseFinancialCommitments?.commitments?.retirement || []"
                 indent
               />
             </template>
 
             <template v-if="hasPropertyCommitments || spouseHasPropertyCommitments">
-              <ExpenditureGridRow
+              <ExpenditureExpandableGridRow
                 label="Property Expenses"
                 :value="financialCommitments?.totals?.properties || 0"
                 :spouse-value="spouseFinancialCommitments?.totals?.properties || 0"
                 :household-value="(financialCommitments?.totals?.properties || 0) + (spouseFinancialCommitments?.totals?.properties || 0)"
                 :is-married="isMarried"
+                :items="financialCommitments?.commitments?.properties || []"
+                :spouse-items="spouseFinancialCommitments?.commitments?.properties || []"
                 indent
               />
             </template>
 
             <template v-if="hasInvestmentCommitments || spouseHasInvestmentCommitments">
-              <ExpenditureGridRow
+              <ExpenditureExpandableGridRow
                 label="Investment Contributions"
                 :value="financialCommitments?.totals?.investments || 0"
                 :spouse-value="spouseFinancialCommitments?.totals?.investments || 0"
                 :household-value="(financialCommitments?.totals?.investments || 0) + (spouseFinancialCommitments?.totals?.investments || 0)"
                 :is-married="isMarried"
+                :items="financialCommitments?.commitments?.investments || []"
+                :spouse-items="spouseFinancialCommitments?.commitments?.investments || []"
                 indent
               />
             </template>
 
             <template v-if="hasProtectionCommitments || spouseHasProtectionCommitments">
-              <ExpenditureGridRow
+              <ExpenditureExpandableGridRow
                 label="Protection Premiums"
                 :value="financialCommitments?.totals?.protection || 0"
                 :spouse-value="spouseFinancialCommitments?.totals?.protection || 0"
                 :household-value="(financialCommitments?.totals?.protection || 0) + (spouseFinancialCommitments?.totals?.protection || 0)"
                 :is-married="isMarried"
+                :items="financialCommitments?.commitments?.protection || []"
+                :spouse-items="spouseFinancialCommitments?.commitments?.protection || []"
                 indent
               />
             </template>
 
             <template v-if="hasLiabilityCommitments || spouseHasLiabilityCommitments">
-              <ExpenditureGridRow
+              <ExpenditureExpandableGridRow
                 label="Loan Repayments"
                 :value="financialCommitments?.totals?.liabilities || 0"
                 :spouse-value="spouseFinancialCommitments?.totals?.liabilities || 0"
                 :household-value="(financialCommitments?.totals?.liabilities || 0) + (spouseFinancialCommitments?.totals?.liabilities || 0)"
                 :is-married="isMarried"
+                :items="financialCommitments?.commitments?.liabilities || []"
+                :spouse-items="spouseFinancialCommitments?.commitments?.liabilities || []"
                 indent
               />
             </template>
@@ -1071,6 +1081,7 @@ import api from '@/services/api';
 import CurrencyInputField from '@/components/Shared/CurrencyInputField.vue';
 import ExpenditureSection from './ExpenditureSection.vue';
 import ExpenditureGridRow from './ExpenditureGridRow.vue';
+import ExpenditureExpandableGridRow from './ExpenditureExpandableGridRow.vue';
 import ExpenditureCategoryCard from './ExpenditureCategoryCard.vue';
 
 export default {
@@ -1080,6 +1091,7 @@ export default {
     CurrencyInputField,
     ExpenditureSection,
     ExpenditureGridRow,
+    ExpenditureExpandableGridRow,
     ExpenditureCategoryCard,
   },
 
