@@ -34,7 +34,7 @@
             <p class="metric-sub">{{ daysRemainingInWindow }} days left</p>
           </template>
           <template v-else-if="daysToExerciseWindow">
-            <p class="metric-value text-orange-600">{{ daysToExerciseWindow }}</p>
+            <p class="metric-value text-blue-600">{{ daysToExerciseWindow }}</p>
             <p class="metric-sub">days until open</p>
           </template>
           <template v-else>
@@ -186,7 +186,7 @@
         </div>
         <div class="detail-item">
           <span class="detail-label">Units Unvested</span>
-          <span class="detail-value text-orange-600">{{ formatNumber(account.units_unvested || 0) }}</span>
+          <span class="detail-value text-blue-600">{{ formatNumber(account.units_unvested || 0) }}</span>
         </div>
         <div v-if="account.units_exercised" class="detail-item">
           <span class="detail-label">Units Exercised</span>
@@ -266,7 +266,7 @@
         </div>
         <div v-if="isCSOPScheme && csopThreeYearDate" class="detail-item">
           <span class="detail-label">CSOP 3-Year Date</span>
-          <span class="detail-value" :class="isInCsopTaxWindow ? 'text-green-600' : 'text-orange-600'">
+          <span class="detail-value" :class="isInCsopTaxWindow ? 'text-green-600' : 'text-blue-600'">
             {{ formatDate(csopThreeYearDate) }}
           </span>
         </div>
@@ -415,7 +415,7 @@ export default {
     },
     exerciseWindowCardClass() {
       if (this.isInExerciseWindow) return 'bg-green-50 border border-green-200';
-      if (this.daysToExerciseWindow) return 'bg-orange-50 border border-orange-200';
+      if (this.daysToExerciseWindow) return 'bg-blue-50 border border-blue-200';
       return 'bg-gray-50 border border-gray-200';
     },
 
@@ -586,7 +586,7 @@ export default {
 }
 
 .alert-warning {
-  @apply bg-orange-50 border border-orange-200 text-orange-800;
+  @apply bg-blue-50 border border-blue-200 text-blue-800;
 }
 
 @media (max-width: 640px) {

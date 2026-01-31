@@ -50,6 +50,9 @@ class InvestmentAccount extends Model
         'has_custom_risk',
         'rebalance_threshold_percent',
         'include_in_retirement',
+        // Bond-specific fields (onshore/offshore bonds)
+        'bond_purchase_date',
+        'bond_withdrawal_taken',
         // Private Company / Crowdfunding fields
         'company_legal_name',
         'company_registration_number',
@@ -185,6 +188,9 @@ class InvestmentAccount extends Model
         'has_custom_risk' => 'boolean',
         'rebalance_threshold_percent' => 'float',
         'include_in_retirement' => 'boolean',
+        // Bond-specific casts
+        'bond_purchase_date' => 'date',
+        'bond_withdrawal_taken' => 'float',
         // Private Company / Crowdfunding casts
         'investment_date' => 'date',
         'investment_amount' => 'float',

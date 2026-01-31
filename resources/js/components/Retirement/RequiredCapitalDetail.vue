@@ -401,7 +401,7 @@ export default {
     progressColorClass() {
       const pct = this.progressPercentage;
       if (pct >= 80) return 'green';
-      if (pct >= 50) return 'orange';
+      if (pct >= 50) return 'blue';
       return 'red';
     },
 
@@ -466,7 +466,7 @@ export default {
     forecastedProgressColorClass() {
       const pct = this.forecastedProgressPercentage;
       if (pct >= 80) return 'green';
-      if (pct >= 50) return 'orange';
+      if (pct >= 50) return 'blue';
       return 'red';
     },
   },
@@ -1028,8 +1028,8 @@ export default {
   @apply text-green-600;
 }
 
-.progress-percentage.orange {
-  @apply text-orange-600;
+.progress-percentage.blue {
+  @apply text-blue-600;
 }
 
 .progress-percentage.red {
@@ -1054,8 +1054,8 @@ export default {
   @apply bg-green-500;
 }
 
-.progress-bar.orange {
-  @apply bg-orange-500;
+.progress-bar.blue {
+  @apply bg-blue-500;
 }
 
 .progress-bar.red {

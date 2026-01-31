@@ -77,7 +77,7 @@
             <span
               v-if="goal.priority === 'critical' || goal.priority === 'high'"
               class="px-2 py-0.5 text-xs font-medium rounded-full"
-              :class="goal.priority === 'critical' ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'"
+              :class="goal.priority === 'critical' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'"
             >
               {{ goal.priority }}
             </span>
@@ -141,7 +141,7 @@ export default {
         retirement: {
           label: 'Retirement',
           icon: '☀️',
-          tagClass: 'bg-orange-100 text-orange-700',
+          tagClass: 'bg-blue-100 text-blue-700',
         },
       },
     };
@@ -176,25 +176,25 @@ export default {
     getProgressTextClass(goal) {
       if (this.isNotStarted(goal)) return 'text-gray-500';
       if (goal.is_on_track) return 'text-blue-600';
-      return 'text-orange-600';
+      return 'text-blue-600';
     },
 
     getProgressBarClass(goal) {
       if (this.isNotStarted(goal)) return 'bg-gray-300';
       if (goal.is_on_track) return 'bg-blue-500';
-      return 'bg-orange-500';
+      return 'bg-blue-500';
     },
 
     getStatusBadgeClass(goal) {
       if (this.isNotStarted(goal)) return 'bg-gray-100 text-gray-700';
       if (goal.is_on_track) return 'bg-green-100 text-green-700';
-      return 'bg-orange-100 text-orange-700';
+      return 'bg-blue-100 text-blue-700';
     },
 
     getStatusDotClass(goal) {
       if (this.isNotStarted(goal)) return 'bg-gray-400';
       if (goal.is_on_track) return 'bg-green-500';
-      return 'bg-orange-500';
+      return 'bg-blue-500';
     },
 
     getStatusLabel(goal) {

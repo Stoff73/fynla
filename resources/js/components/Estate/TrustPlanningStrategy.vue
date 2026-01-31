@@ -9,18 +9,18 @@
     </div>
 
     <!-- Error State -->
-    <div v-else-if="trustStrategyError" class="bg-white border-2 border-orange-500 rounded-lg p-6">
+    <div v-else-if="trustStrategyError" class="bg-white border-2 border-blue-500 rounded-lg p-6">
       <div class="flex items-start">
-        <svg class="h-6 w-6 text-orange-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="h-6 w-6 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
         </svg>
         <div class="ml-3">
-          <h3 class="text-sm font-medium text-orange-800">Unable to Load Trust Strategy</h3>
-          <p class="mt-2 text-sm text-orange-700">{{ trustStrategyError }}</p>
+          <h3 class="text-sm font-medium text-blue-800">Unable to Load Trust Strategy</h3>
+          <p class="mt-2 text-sm text-blue-700">{{ trustStrategyError }}</p>
           <button
             v-if="requiresAssets"
             @click="$emit('navigate-to-assets')"
-            class="mt-3 text-sm font-medium text-orange-800 hover:text-orange-900 underline"
+            class="mt-3 text-sm font-medium text-blue-800 hover:text-blue-900 underline"
           >
             Add Assets Now
           </button>
@@ -74,10 +74,10 @@
           <p class="text-2xl font-bold text-blue-900">{{ formatCurrency(trustStrategy.giftable_amounts.giftable_with_planning) }}</p>
           <p class="text-xs text-blue-600">{{ trustStrategy.giftable_amounts.semi_liquid_asset_count }} semi-liquid assets</p>
         </div>
-        <div class="bg-white rounded-lg p-4 border-2 border-orange-500">
-          <p class="text-sm text-orange-700 mb-1 font-medium">Not Transferable</p>
-          <p class="text-2xl font-bold text-orange-900">{{ formatCurrency(trustStrategy.giftable_amounts.not_giftable) }}</p>
-          <p class="text-xs text-orange-600">{{ trustStrategy.giftable_amounts.illiquid_asset_count }} illiquid assets</p>
+        <div class="bg-white rounded-lg p-4 border-2 border-blue-500">
+          <p class="text-sm text-blue-700 mb-1 font-medium">Not Transferable</p>
+          <p class="text-2xl font-bold text-blue-900">{{ formatCurrency(trustStrategy.giftable_amounts.not_giftable) }}</p>
+          <p class="text-xs text-blue-600">{{ trustStrategy.giftable_amounts.illiquid_asset_count }} illiquid assets</p>
         </div>
       </div>
 
@@ -248,7 +248,7 @@
                   </div>
                 </div>
                 <div class="mt-3 pt-3 border-t border-gray-200">
-                  <p class="text-xs text-orange-700">
+                  <p class="text-xs text-blue-700">
                     <strong>⚠️ {{ strategy.property_details.reason_not_giftable }}</strong>
                   </p>
                 </div>
@@ -316,15 +316,15 @@
         </div>
 
         <!-- Worst Case Scenario -->
-        <div class="bg-gray-50 border border-orange-200 rounded-lg p-4">
-          <h4 class="font-semibold text-orange-900 mb-2">Worst Case Scenario (Death Before 7 Years)</h4>
+        <div class="bg-gray-50 border border-blue-200 rounded-lg p-4">
+          <h4 class="font-semibold text-blue-900 mb-2">Worst Case Scenario (Death Before 7 Years)</h4>
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <p class="text-xs text-orange-700 mb-1">Total Costs (20% + additional 20%)</p>
-              <p class="text-lg font-bold text-orange-900">{{ formatCurrency(trustStrategy.strategy_impact.worst_case_cost) }}</p>
+              <p class="text-xs text-blue-700 mb-1">Total Costs (20% + additional 20%)</p>
+              <p class="text-lg font-bold text-blue-900">{{ formatCurrency(trustStrategy.strategy_impact.worst_case_cost) }}</p>
             </div>
             <div>
-              <p class="text-xs text-orange-700 mb-1">Net Saving (Worst Case)</p>
+              <p class="text-xs text-blue-700 mb-1">Net Saving (Worst Case)</p>
               <p class="text-lg font-bold" :class="trustStrategy.strategy_impact.worst_case_net_saving > 0 ? 'text-green-600' : 'text-red-600'">
                 {{ formatCurrency(trustStrategy.strategy_impact.worst_case_net_saving) }}
               </p>
@@ -450,7 +450,7 @@ export default {
     getRiskLevelClass(riskLevel) {
       const riskLower = (riskLevel || '').toLowerCase();
       if (riskLower === 'low') return 'bg-green-500 text-white';
-      if (riskLower === 'medium') return 'bg-orange-500 text-white';
+      if (riskLower === 'medium') return 'bg-blue-500 text-white';
       if (riskLower === 'high') return 'bg-red-500 text-white';
       return 'bg-gray-500 text-white';
     },

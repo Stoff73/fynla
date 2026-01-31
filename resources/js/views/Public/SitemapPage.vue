@@ -134,7 +134,7 @@
           <!-- Financial Calculators -->
           <div class="bg-white rounded-xl shadow-sm p-6">
             <h2 class="text-xl font-semibold text-gray-900 mb-4 flex items-center">
-              <svg class="w-5 h-5 mr-2 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg class="w-5 h-5 mr-2 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
               </svg>
               Calculators
@@ -142,31 +142,31 @@
             <ul class="space-y-3">
               <li>
                 <router-link to="/calculators" class="text-blue-600 hover:text-blue-800 hover:underline flex items-center">
-                  <span class="w-2 h-2 bg-orange-400 rounded-full mr-3"></span>
+                  <span class="w-2 h-2 bg-blue-400 rounded-full mr-3"></span>
                   Income Tax Calculator
                 </router-link>
               </li>
               <li>
                 <router-link to="/calculators" class="text-blue-600 hover:text-blue-800 hover:underline flex items-center">
-                  <span class="w-2 h-2 bg-orange-400 rounded-full mr-3"></span>
+                  <span class="w-2 h-2 bg-blue-400 rounded-full mr-3"></span>
                   Retirement Calculator
                 </router-link>
               </li>
               <li>
                 <router-link to="/calculators" class="text-blue-600 hover:text-blue-800 hover:underline flex items-center">
-                  <span class="w-2 h-2 bg-orange-400 rounded-full mr-3"></span>
+                  <span class="w-2 h-2 bg-blue-400 rounded-full mr-3"></span>
                   Inheritance Tax Calculator
                 </router-link>
               </li>
               <li>
                 <router-link to="/calculators" class="text-blue-600 hover:text-blue-800 hover:underline flex items-center">
-                  <span class="w-2 h-2 bg-orange-400 rounded-full mr-3"></span>
+                  <span class="w-2 h-2 bg-blue-400 rounded-full mr-3"></span>
                   Capital Gains Tax Calculator
                 </router-link>
               </li>
               <li>
                 <router-link to="/calculators" class="text-blue-600 hover:text-blue-800 hover:underline flex items-center">
-                  <span class="w-2 h-2 bg-orange-400 rounded-full mr-3"></span>
+                  <span class="w-2 h-2 bg-blue-400 rounded-full mr-3"></span>
                   Pension Contribution Calculator
                 </router-link>
               </li>

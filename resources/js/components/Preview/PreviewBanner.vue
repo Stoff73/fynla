@@ -144,7 +144,7 @@ export default {
                 young_family: 'bg-gradient-to-r from-blue-500 to-blue-600',
                 peak_earners: 'bg-gradient-to-r from-green-500 to-green-600',
                 widow: 'bg-gradient-to-r from-purple-500 to-purple-600',
-                entrepreneur: 'bg-gradient-to-r from-orange-500 to-orange-600',
+                entrepreneur: 'bg-gradient-to-r from-blue-500 to-blue-600',
                 young_saver: 'bg-gradient-to-r from-cyan-500 to-cyan-600',
                 retired_couple: 'bg-gradient-to-r from-rose-500 to-rose-600',
             };
@@ -156,7 +156,7 @@ export default {
                 young_family: 'text-blue-100 hover:text-white',
                 peak_earners: 'text-green-100 hover:text-white',
                 widow: 'text-purple-100 hover:text-white',
-                entrepreneur: 'text-orange-100 hover:text-white',
+                entrepreneur: 'text-fuchsia-100 hover:text-white',
                 young_saver: 'text-cyan-100 hover:text-white',
                 retired_couple: 'text-rose-100 hover:text-white',
             };
@@ -168,7 +168,7 @@ export default {
                 young_family: 'bg-white text-blue-600 hover:bg-blue-50',
                 peak_earners: 'bg-white text-green-600 hover:bg-green-50',
                 widow: 'bg-white text-purple-600 hover:bg-purple-50',
-                entrepreneur: 'bg-white text-orange-600 hover:bg-orange-50',
+                entrepreneur: 'bg-white text-fuchsia-600 hover:bg-fuchsia-50',
                 young_saver: 'bg-white text-cyan-600 hover:bg-cyan-50',
                 retired_couple: 'bg-white text-rose-600 hover:bg-rose-50',
             };
@@ -180,7 +180,7 @@ export default {
                 young_family: 'text-blue-100',
                 peak_earners: 'text-green-100',
                 widow: 'text-purple-100',
-                entrepreneur: 'text-orange-100',
+                entrepreneur: 'text-fuchsia-100',
                 young_saver: 'text-cyan-100',
                 retired_couple: 'text-rose-100',
             };

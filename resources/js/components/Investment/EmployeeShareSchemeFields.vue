@@ -261,12 +261,12 @@
 
     <!-- CSOP Info (only for CSOP) -->
     <div v-if="isCSOPScheme" class="border-t border-gray-200 pt-4 mt-4">
-      <div class="bg-orange-50 border border-orange-200 rounded-md p-4">
-        <h4 class="text-sm font-semibold text-orange-900 mb-2">CSOP Tax Advantage Window</h4>
-        <p class="text-sm text-orange-800 mb-3">
+      <div class="bg-blue-50 border border-blue-200 rounded-md p-4">
+        <h4 class="text-sm font-semibold text-blue-900 mb-2">CSOP Tax Advantage Window</h4>
+        <p class="text-sm text-blue-800 mb-3">
           To benefit from tax-advantaged treatment, options must be exercised between 3 and 10 years from grant date.
         </p>
-        <div v-if="modelValue.csop_three_year_date" class="text-sm text-orange-700">
+        <div v-if="modelValue.csop_three_year_date" class="text-sm text-blue-700">
           <strong>Earliest Tax-Advantaged Exercise:</strong> {{ formatDate(modelValue.csop_three_year_date) }}
         </div>
       </div>

@@ -4,10 +4,17 @@
     <!-- Monthly Costs -->
     <div class="bg-white border border-gray-200 rounded-lg p-6">
       <div class="mb-4">
-        <h4 class="text-md font-semibold text-gray-700">Monthly Costs</h4>
-        <p v-if="isSharedOwnership" class="mt-2 text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg p-3">
-          <strong>Note:</strong> Enter 100% of all property costs. The system will automatically calculate your share ({{ property.ownership_percentage }}%) based on your ownership percentage.
-        </p>
+        <div class="flex items-center gap-2">
+          <h4 class="text-md font-semibold text-gray-700">Monthly Costs</h4>
+          <div v-if="isSharedOwnership" class="relative group">
+            <svg class="w-4 h-4 text-blue-500 cursor-help" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+            </svg>
+            <div class="hidden group-hover:block absolute z-10 w-64 p-3 mt-1 text-xs text-white bg-gray-900 rounded-lg shadow-lg left-0">
+              Enter 100% of all property costs. The system will automatically calculate your share ({{ property.ownership_percentage }}%) based on your ownership percentage.
+            </div>
+          </div>
+        </div>
       </div>
 
       <dl class="space-y-2">
@@ -115,7 +122,7 @@
       <!-- Tax Position (separate from cash flow) -->
       <div v-if="property.tax_position" class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
         <h5 class="text-sm font-semibold text-blue-900 mb-3">For Your Income Tax Calculation</h5>
-        <p class="text-xs text-blue-700 mb-3">These figures are used in your Income &amp; Occupation tab for UK tax and NI calculations.</p>
+        <p class="text-xs text-blue-700 mb-3">These figures are used in your income calculations for UK tax purposes.</p>
         <dl class="space-y-2">
           <div class="flex justify-between py-2 border-b border-blue-100">
             <dt class="text-sm text-blue-800">Taxable Rental Income:</dt>
@@ -136,8 +143,8 @@
           </div>
         </dl>
 
-        <div v-if="property.tax_position.has_interest_portion_missing" class="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-md">
-          <p class="text-sm text-orange-800">
+        <div v-if="property.tax_position.has_interest_portion_missing" class="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-md">
+          <p class="text-sm text-blue-800">
             Your mortgage may qualify for a tax credit. Enter the interest portion of your monthly payment in the mortgage details to calculate your Section 24 tax relief (20% of mortgage interest).
           </p>
         </div>

@@ -56,7 +56,7 @@
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
-        class="h-5 w-5 text-orange-600 mr-2"
+        class="h-5 w-5 text-blue-600 mr-2"
         viewBox="0 0 20 20"
         fill="currentColor"
       >
@@ -66,7 +66,7 @@
           clip-rule="evenodd"
         />
       </svg>
-      <span class="text-sm font-medium text-orange-800">
+      <span class="text-sm font-medium text-blue-800">
         Portfolio needs rebalancing
       </span>
     </div>

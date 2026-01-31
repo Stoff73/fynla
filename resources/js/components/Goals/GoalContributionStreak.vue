@@ -20,7 +20,7 @@
           <!-- Intensity rings for higher streaks -->
           <div
             v-if="streak >= 6"
-            class="absolute inset-0 rounded-full border-2 border-orange-300 animate-ping opacity-50"
+            class="absolute inset-0 rounded-full border-2 border-blue-300 animate-ping opacity-50"
           ></div>
         </div>
 
@@ -114,24 +114,24 @@ export default {
 
     backgroundClass() {
       if (this.streak === 0) return 'bg-gray-50';
-      if (this.streak >= 12) return 'bg-orange-50';
-      if (this.streak >= 6) return 'bg-orange-50';
-      if (this.streak >= 3) return 'bg-orange-50';
+      if (this.streak >= 12) return 'bg-blue-50';
+      if (this.streak >= 6) return 'bg-blue-50';
+      if (this.streak >= 3) return 'bg-blue-50';
       return 'bg-yellow-50';
     },
 
     textClass() {
       if (this.streak === 0) return 'text-gray-500';
-      if (this.streak >= 6) return 'text-orange-600';
-      if (this.streak >= 3) return 'text-orange-500';
+      if (this.streak >= 6) return 'text-blue-600';
+      if (this.streak >= 3) return 'text-blue-500';
       return 'text-yellow-600';
     },
 
     numberClass() {
       if (this.streak === 0) return 'text-gray-400';
-      if (this.streak >= 12) return 'text-orange-600';
-      if (this.streak >= 6) return 'text-orange-600';
-      if (this.streak >= 3) return 'text-orange-500';
+      if (this.streak >= 12) return 'text-blue-600';
+      if (this.streak >= 6) return 'text-blue-600';
+      if (this.streak >= 3) return 'text-blue-500';
       return 'text-yellow-600';
     },
 
@@ -150,13 +150,13 @@ export default {
     },
 
     encouragementBgClass() {
-      if (this.streak >= 6) return 'bg-orange-100';
+      if (this.streak >= 6) return 'bg-blue-100';
       if (this.streak >= 3) return 'bg-yellow-100';
       return 'bg-green-100';
     },
 
     encouragementTextClass() {
-      if (this.streak >= 6) return 'text-orange-700';
+      if (this.streak >= 6) return 'text-blue-700';
       if (this.streak >= 3) return 'text-yellow-700';
       return 'text-green-700';
     },
@@ -182,9 +182,9 @@ export default {
     getMeterSegmentClass(position) {
       if (position <= this.streak) {
         // Filled segment
-        if (this.streak >= 12) return 'bg-orange-500';
-        if (this.streak >= 6) return 'bg-orange-500';
-        if (this.streak >= 3) return 'bg-orange-400';
+        if (this.streak >= 12) return 'bg-blue-500';
+        if (this.streak >= 6) return 'bg-blue-500';
+        if (this.streak >= 3) return 'bg-blue-400';
         return 'bg-yellow-400';
       }
       // Empty segment

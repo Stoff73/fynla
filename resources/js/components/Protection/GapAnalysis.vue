@@ -4,19 +4,19 @@
     <div v-if="hasNoPolicies" class="mb-6 bg-gray-50 rounded-lg p-4">
       <div class="flex items-start">
         <div class="flex-shrink-0">
-          <svg class="h-5 w-5 text-orange-400" fill="currentColor" viewBox="0 0 20 20">
+          <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
             <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
           </svg>
         </div>
         <div class="ml-3 flex-1">
-          <h3 class="text-sm font-medium text-orange-800">No Protection Policies Added</h3>
-          <div class="mt-2 text-sm text-orange-700">
+          <h3 class="text-sm font-medium text-blue-800">No Protection Policies Added</h3>
+          <div class="mt-2 text-sm text-blue-700">
             <p class="mb-2">
               You haven't added any protection policies yet. The analysis below shows your protection needs based on your current situation.
             </p>
             <button
               @click="$emit('add-policy')"
-              class="inline-flex items-center px-4 py-2 bg-orange-600 text-white text-sm font-medium rounded-md hover:bg-orange-700 transition-colors"
+              class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
             >
               <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -102,7 +102,7 @@
                 </div>
               </div>
 
-              <div v-if="excessUnused > 0" class="flex justify-between items-center text-orange-700">
+              <div v-if="excessUnused > 0" class="flex justify-between items-center text-blue-700">
                 <span class="font-medium">3. Excess unused</span>
                 <span class="font-medium">{{ formatCurrency(excessUnused) }}</span>
               </div>
@@ -283,7 +283,7 @@
                 <div v-if="!isEmployee" class="flex justify-between items-center text-sm">
                   <span class="text-gray-600">
                     Statutory Sick Pay (SSP)
-                    <span class="text-xs text-orange-500 block">Self-employed not eligible</span>
+                    <span class="text-xs text-blue-500 block">Self-employed not eligible</span>
                   </span>
                   <span class="font-medium text-gray-400">£0</span>
                 </div>
@@ -521,7 +521,7 @@ export default {
     premiumPercentageColour() {
       const percentage = parseFloat(this.premiumPercentage);
       if (percentage <= 10) return 'text-green-600';
-      if (percentage <= 15) return 'text-orange-600';
+      if (percentage <= 15) return 'text-blue-600';
       return 'text-red-600';
     },
 
@@ -694,7 +694,7 @@ export default {
       const classes = {
         none: 'bg-green-500 text-white',
         low: 'bg-blue-500 text-white',
-        medium: 'bg-orange-500 text-white',
+        medium: 'bg-blue-500 text-white',
         high: 'bg-red-500 text-white',
       };
       return classes[severity] || 'bg-gray-500 text-white';

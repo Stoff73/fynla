@@ -183,8 +183,8 @@ export default {
 }
 
 .type-partnership {
-  @apply bg-orange-100;
-  @apply text-orange-800;
+  @apply bg-blue-100;
+  @apply text-blue-800;
 }
 
 .type-limited_company {
@@ -215,8 +215,8 @@ export default {
 }
 
 .status-pre_trading {
-  @apply bg-orange-100;
-  @apply text-orange-800;
+  @apply bg-blue-100;
+  @apply text-blue-800;
 }
 
 .actions {

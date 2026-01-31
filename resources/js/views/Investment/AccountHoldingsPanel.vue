@@ -310,7 +310,7 @@ export default {
       const classes = {
         equity: 'bg-blue-100 text-blue-800',
         fixed_income: 'bg-green-100 text-green-800',
-        property: 'bg-orange-100 text-orange-800',
+        property: 'bg-blue-100 text-blue-800',
         commodities: 'bg-purple-100 text-purple-800',
         cash: 'bg-gray-100 text-gray-800',
         alternatives: 'bg-pink-100 text-pink-800',

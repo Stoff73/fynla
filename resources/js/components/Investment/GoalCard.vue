@@ -191,14 +191,14 @@ export default {
       if (this.progressPercent >= 100) return 'text-green-600';
       if (this.progressPercent >= 75) return 'text-blue-600';
       if (this.progressPercent >= 50) return 'text-yellow-600';
-      return 'text-orange-600';
+      return 'text-blue-600';
     },
 
     progressBarClass() {
       if (this.progressPercent >= 100) return 'bg-green-600';
       if (this.progressPercent >= 75) return 'bg-blue-600';
       if (this.progressPercent >= 50) return 'bg-yellow-500';
-      return 'bg-orange-500';
+      return 'bg-blue-500';
     },
 
     timeRemaining() {
@@ -262,7 +262,7 @@ export default {
       }
       if (this.progressPercent >= 75) return 'bg-green-500 text-white';
       if (this.progressPercent >= 50) return 'bg-yellow-500 text-white';
-      return 'bg-orange-500 text-white';
+      return 'bg-blue-500 text-white';
     },
 
     statusDotClass() {
@@ -275,7 +275,7 @@ export default {
       }
       if (this.progressPercent >= 75) return 'bg-green-600';
       if (this.progressPercent >= 50) return 'bg-yellow-500';
-      return 'bg-orange-500';
+      return 'bg-blue-500';
     },
   },
 

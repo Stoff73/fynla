@@ -52,9 +52,9 @@
         <!-- Key Metrics - Only show for standard accounts -->
         <template v-if="detailComponentType === 'standard'">
           <div v-if="activeTab === 'fees'" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mt-6">
-            <div class="bg-orange-50 rounded-lg p-4 border border-orange-200">
+            <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
               <p class="text-sm text-gray-600">Platform Fee</p>
-              <p class="text-2xl font-bold text-orange-600">{{ platformFeeDisplay }}</p>
+              <p class="text-2xl font-bold text-blue-600">{{ platformFeeDisplay }}</p>
             </div>
             <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
               <p class="text-sm text-gray-600">Average Fund Fee (OCF)</p>
@@ -731,8 +731,8 @@ export default {
 }
 
 .badge-trust {
-  @apply bg-orange-100;
-  @apply text-orange-800;
+  @apply bg-blue-100;
+  @apply text-blue-800;
 }
 
 .badge-isa {
@@ -756,8 +756,8 @@ export default {
 }
 
 .badge-bond {
-  @apply bg-orange-100;
-  @apply text-orange-800;
+  @apply bg-blue-100;
+  @apply text-blue-800;
 }
 
 .badge-vct {

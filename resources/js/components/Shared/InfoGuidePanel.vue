@@ -69,7 +69,7 @@
                 v-for="item in allRequirements"
                 :key="item.key"
                 class="p-3 rounded-lg border"
-                :class="item.status === 'filled' ? 'bg-green-50 border-green-200' : 'bg-orange-50 border-orange-200'"
+                :class="item.status === 'filled' ? 'bg-green-50 border-green-200' : 'bg-blue-50 border-blue-200'"
               >
                 <div class="flex items-start gap-2">
                   <!-- Status icon -->
@@ -90,7 +90,7 @@
                       xmlns="http://www.w3.org/2000/svg"
                       viewBox="0 0 20 20"
                       fill="currentColor"
-                      class="w-5 h-5 text-orange-600"
+                      class="w-5 h-5 text-blue-600"
                     >
                       <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
                     </svg>
@@ -101,20 +101,20 @@
                     <div class="flex items-center gap-2">
                       <span
                         class="font-medium text-sm"
-                        :class="item.status === 'filled' ? 'text-green-800' : 'text-orange-800'"
+                        :class="item.status === 'filled' ? 'text-green-800' : 'text-blue-800'"
                       >
                         {{ item.label }}
                       </span>
                       <span
                         v-if="item.status === 'missing'"
-                        class="text-xs px-1.5 py-0.5 rounded bg-orange-200 text-orange-800"
+                        class="text-xs px-1.5 py-0.5 rounded bg-blue-200 text-blue-800"
                       >
                         missing
                       </span>
                     </div>
 
                     <!-- Why explanation -->
-                    <p class="text-xs mt-1" :class="item.status === 'filled' ? 'text-green-700' : 'text-orange-700'">
+                    <p class="text-xs mt-1" :class="item.status === 'filled' ? 'text-green-700' : 'text-blue-700'">
                       {{ item.why }}
                     </p>
 
@@ -190,13 +190,13 @@ export default {
 
     progressColor() {
       if (this.completionPercentage >= 80) return 'text-green-600';
-      if (this.completionPercentage >= 50) return 'text-orange-600';
+      if (this.completionPercentage >= 50) return 'text-blue-600';
       return 'text-red-600';
     },
 
     progressBarColor() {
       if (this.completionPercentage >= 80) return 'bg-green-500';
-      if (this.completionPercentage >= 50) return 'bg-orange-500';
+      if (this.completionPercentage >= 50) return 'bg-blue-500';
       return 'bg-red-500';
     },
   },

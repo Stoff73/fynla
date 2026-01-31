@@ -237,7 +237,7 @@
             class="text-left p-4 border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-colors"
           >
             <p class="font-semibold text-gray-800 mb-2">Active Funds</p>
-            <p class="text-2xl font-bold text-orange-600 mb-1">1.5% - 2.0%</p>
+            <p class="text-2xl font-bold text-blue-600 mb-1">1.5% - 2.0%</p>
             <p class="text-xs text-gray-600">Typical active management fees</p>
           </button>
 

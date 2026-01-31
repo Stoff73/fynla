@@ -94,7 +94,7 @@
         </div>
         <div class="flex justify-between items-center">
           <div class="flex items-center">
-            <div class="w-3 h-3 rounded-full bg-orange-500 mr-2"></div>
+            <div class="w-3 h-3 rounded-full bg-blue-500 mr-2"></div>
             <span class="text-sm text-gray-700">Other Assets</span>
           </div>
           <span class="text-sm font-semibold text-gray-800">

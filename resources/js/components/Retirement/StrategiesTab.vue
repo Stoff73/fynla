@@ -183,7 +183,7 @@
         </div>
 
         <!-- Annual Allowance Card -->
-        <div class="summary-card orange">
+        <div class="summary-card blue">
           <p class="summary-label">Annual Allowance Remaining</p>
           <p class="summary-value">{{ formatCurrency(strategies.annual_allowance?.remaining_allowance) }}</p>
           <p class="summary-subtitle">
@@ -333,7 +333,7 @@ export default {
     capitalProgressClass() {
       const pct = this.capitalPosition?.progress_percentage || 0;
       if (pct >= 100) return 'green';
-      if (pct >= 80) return 'orange';
+      if (pct >= 80) return 'blue';
       return 'red';
     },
   },
@@ -357,7 +357,7 @@ export default {
 
     getProbabilityClass(probability) {
       if (probability >= 95) return 'green';
-      if (probability >= 80) return 'orange';
+      if (probability >= 80) return 'blue';
       return 'red';
     },
   },
@@ -587,15 +587,15 @@ export default {
 .dob-required {
   text-align: center;
   padding: 60px 40px;
-  background: linear-gradient(135deg, theme('colors.orange.50') 0%, theme('colors.orange.100') 100%);
+  background: linear-gradient(135deg, theme('colors.blue.50') 0%, theme('colors.blue.100') 100%);
   border-radius: 16px;
-  @apply border-2 border-orange-200;
+  @apply border-2 border-blue-200;
 }
 
 .dob-icon {
   width: 72px;
   height: 72px;
-  @apply bg-orange-500;
+  @apply bg-blue-500;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -612,20 +612,20 @@ export default {
 .dob-required h3 {
   font-size: 22px;
   font-weight: 700;
-  @apply text-orange-800;
+  @apply text-blue-800;
   margin: 0 0 12px 0;
 }
 
 .dob-message {
   font-size: 16px;
-  @apply text-orange-700;
+  @apply text-blue-700;
   margin: 0 0 8px 0;
   font-weight: 500;
 }
 
 .dob-subtitle {
   font-size: 14px;
-  @apply text-orange-500;
+  @apply text-blue-500;
   margin: 0;
   max-width: 400px;
   margin-left: auto;
@@ -706,9 +706,9 @@ export default {
   @apply border-green-200;
 }
 
-.summary-card.orange {
-  background: linear-gradient(135deg, theme('colors.orange.50') 0%, theme('colors.orange.100') 100%);
-  @apply border-orange-200;
+.summary-card.blue {
+  background: linear-gradient(135deg, theme('colors.blue.50') 0%, theme('colors.blue.100') 100%);
+  @apply border-blue-200;
 }
 
 .summary-card.red {
@@ -823,8 +823,8 @@ export default {
   @apply text-green-500;
 }
 
-.prob-value.orange {
-  @apply text-orange-500;
+.prob-value.blue {
+  @apply text-blue-500;
 }
 
 .prob-value.red {
@@ -892,7 +892,7 @@ export default {
 }
 
 .progress-status.on-track {
-  @apply bg-orange-100 text-orange-700;
+  @apply bg-blue-100 text-blue-700;
 }
 
 .progress-status.surplus {
@@ -922,8 +922,8 @@ export default {
   @apply bg-green-500;
 }
 
-.capital-progress-fill.orange {
-  @apply bg-orange-500;
+.capital-progress-fill.blue {
+  @apply bg-blue-500;
 }
 
 .capital-progress-fill.red {
@@ -945,8 +945,8 @@ export default {
   @apply text-green-600;
 }
 
-.percent-value.orange {
-  @apply text-orange-600;
+.percent-value.blue {
+  @apply text-blue-600;
 }
 
 .percent-value.red {
