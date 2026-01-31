@@ -8,6 +8,23 @@
 
 ---
 
+## Onboarding Progress Bar - Fix Skipped Step Display
+
+Fixed bug where skipping the Expenditure step during onboarding would incorrectly mark it as completed (green) instead of skipped (blue) in the progress bar.
+
+### Bug Description
+When a user skipped the Expenditure step, the `confirmSkip` function emitted `'next'` instead of properly marking the step as skipped in the store.
+
+### Fix
+Changed `confirmSkip()` to directly dispatch `onboarding/skipStep` and `onboarding/goToNextStep` actions, which properly adds the step to the `skippedSteps` array.
+
+### Files Changed
+```
+resources/js/components/Onboarding/steps/ExpenditureStep.vue
+```
+
+---
+
 ## Property Financials Tab Improvements
 
 ### Changes Made
@@ -437,6 +454,7 @@ php artisan cache:clear && php artisan config:clear
 - [ ] Trust ownership badges use indigo
 - [ ] Bond type badges use green
 - [ ] Property details - verify joint/tenants in common properties show both owner names with percentages
+- [ ] Onboarding - skip Expenditure step and verify progress bar shows it as blue (skipped) not green (completed)
 
 ---
 

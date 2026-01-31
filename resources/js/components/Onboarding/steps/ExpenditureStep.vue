@@ -192,10 +192,20 @@ export default {
       emit('back');
     };
 
-    const confirmSkip = () => {
+    const confirmSkip = async () => {
       showSkipModal.value = false;
-      // Proceed to next step without saving expenditure data
-      emit('next');
+      loading.value = true;
+
+      try {
+        // Mark the step as skipped in the store
+        await store.dispatch('onboarding/skipStep', 'expenditure');
+        // Move to the next step
+        await store.dispatch('onboarding/goToNextStep');
+      } catch (err) {
+        error.value = err.message || 'Failed to skip step. Please try again.';
+      } finally {
+        loading.value = false;
+      }
     };
 
     onMounted(async () => {
