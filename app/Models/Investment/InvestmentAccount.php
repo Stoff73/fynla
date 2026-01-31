@@ -53,6 +53,14 @@ class InvestmentAccount extends Model
         // Bond-specific fields (onshore/offshore bonds)
         'bond_purchase_date',
         'bond_withdrawal_taken',
+        // Business Asset Disposal Relief (BADR) fields
+        'badr_eligible',
+        'badr_is_employee',
+        'badr_trading_company',
+        'badr_5_percent_holding',
+        'badr_held_2_years',
+        'badr_emi_shares',
+        'badr_lifetime_used',
         // Private Company / Crowdfunding fields
         'company_legal_name',
         'company_registration_number',
@@ -191,6 +199,14 @@ class InvestmentAccount extends Model
         // Bond-specific casts
         'bond_purchase_date' => 'date',
         'bond_withdrawal_taken' => 'float',
+        // Business Asset Disposal Relief (BADR) casts
+        'badr_eligible' => 'boolean',
+        'badr_is_employee' => 'boolean',
+        'badr_trading_company' => 'boolean',
+        'badr_5_percent_holding' => 'boolean',
+        'badr_held_2_years' => 'boolean',
+        'badr_emi_shares' => 'boolean',
+        'badr_lifetime_used' => 'float',
         // Private Company / Crowdfunding casts
         'investment_date' => 'date',
         'investment_amount' => 'float',

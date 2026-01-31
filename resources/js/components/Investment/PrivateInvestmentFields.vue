@@ -447,6 +447,135 @@
       </div>
     </div>
 
+    <!-- Business Asset Disposal Relief Section -->
+    <div class="border-t border-gray-200 pt-4 mt-4">
+      <div class="bg-green-50 rounded-lg p-4">
+        <h4 class="text-sm font-semibold text-green-900 mb-3">Business Asset Disposal Relief (BADR)</h4>
+        <p class="text-xs text-green-700 mb-4">
+          BADR reduces Capital Gains Tax to 14% (from 6 April 2025) on qualifying disposals, up to a £1 million lifetime limit.
+        </p>
+        <div class="space-y-4">
+          <label class="flex items-start gap-3">
+            <input
+              v-model="modelValue.badr_eligible"
+              type="checkbox"
+              class="mt-1 rounded border-green-300 text-green-600 focus:ring-green-500"
+            />
+            <div>
+              <span class="text-sm font-medium text-green-800">This investment may qualify for BADR</span>
+              <p class="text-xs text-green-600 mt-0.5">Check if you believe this investment meets the qualifying conditions</p>
+            </div>
+          </label>
+
+          <div v-if="modelValue.badr_eligible" class="space-y-4 pt-3 border-t border-green-200">
+            <!-- Qualifying Conditions -->
+            <div class="space-y-3">
+              <p class="text-sm font-medium text-green-800">Qualifying Conditions</p>
+
+              <label class="flex items-start gap-3">
+                <input
+                  v-model="modelValue.badr_is_employee"
+                  type="checkbox"
+                  class="mt-1 rounded border-green-300 text-green-600 focus:ring-green-500"
+                />
+                <div>
+                  <span class="text-sm text-green-800">Employee or officer of the company</span>
+                  <p class="text-xs text-green-600">You must be employed by or hold office in the company (or group company)</p>
+                </div>
+              </label>
+
+              <label class="flex items-start gap-3">
+                <input
+                  v-model="modelValue.badr_trading_company"
+                  type="checkbox"
+                  class="mt-1 rounded border-green-300 text-green-600 focus:ring-green-500"
+                />
+                <div>
+                  <span class="text-sm text-green-800">Trading company (not investment-focused)</span>
+                  <p class="text-xs text-green-600">The company must primarily conduct trading activities</p>
+                </div>
+              </label>
+
+              <label class="flex items-start gap-3">
+                <input
+                  v-model="modelValue.badr_5_percent_holding"
+                  type="checkbox"
+                  class="mt-1 rounded border-green-300 text-green-600 focus:ring-green-500"
+                />
+                <div>
+                  <span class="text-sm text-green-800">5% shareholding requirement met</span>
+                  <p class="text-xs text-green-600">You hold at least 5% of shares AND voting rights (not required for EMI shares)</p>
+                </div>
+              </label>
+
+              <label class="flex items-start gap-3">
+                <input
+                  v-model="modelValue.badr_held_2_years"
+                  type="checkbox"
+                  class="mt-1 rounded border-green-300 text-green-600 focus:ring-green-500"
+                />
+                <div>
+                  <span class="text-sm text-green-800">2-year qualifying period met</span>
+                  <p class="text-xs text-green-600">All conditions have been met for at least 2 years before disposal</p>
+                </div>
+              </label>
+
+              <label class="flex items-start gap-3">
+                <input
+                  v-model="modelValue.badr_emi_shares"
+                  type="checkbox"
+                  class="mt-1 rounded border-green-300 text-green-600 focus:ring-green-500"
+                />
+                <div>
+                  <span class="text-sm text-green-800">EMI share option scheme</span>
+                  <p class="text-xs text-green-600">Shares acquired under an Enterprise Management Incentive scheme (5% requirement waived)</p>
+                </div>
+              </label>
+            </div>
+
+            <!-- Lifetime Allowance Used -->
+            <div>
+              <label for="badr_lifetime_used" class="block text-sm font-medium text-green-800 mb-1">
+                BADR Lifetime Allowance Already Used (£)
+              </label>
+              <div class="relative">
+                <span class="absolute left-3 top-2.5 text-gray-500">£</span>
+                <input
+                  id="badr_lifetime_used"
+                  v-model.number="modelValue.badr_lifetime_used"
+                  type="number"
+                  min="0"
+                  max="1000000"
+                  step="1000"
+                  class="w-full border border-green-200 rounded-md pl-8 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
+                  placeholder="0"
+                />
+              </div>
+              <p class="text-xs text-green-600 mt-1">Lifetime limit is £1,000,000. Enter any amount you've already claimed.</p>
+            </div>
+
+            <!-- Info Box -->
+            <div class="bg-green-100 border border-green-300 rounded-md p-3">
+              <div class="flex items-start gap-2">
+                <svg class="w-5 h-5 text-green-700 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div class="text-xs text-green-800">
+                  <p class="font-medium">Key Requirements:</p>
+                  <ul class="mt-1 space-y-1 list-disc list-inside">
+                    <li>Must be employee/officer AND conditions met for 2+ years before sale</li>
+                    <li>Non-EMI shares require 5% shareholding AND voting rights</li>
+                    <li>EMI shares only need option granted 2+ years before sale</li>
+                    <li>Claims must be filed via Self Assessment by 31 January following disposal</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Status & Valuation Section -->
     <div class="border-t border-gray-200 pt-4 mt-4">
       <h4 class="text-sm font-semibold text-gray-900 mb-3">Status & Current Valuation</h4>
