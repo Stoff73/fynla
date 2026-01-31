@@ -182,27 +182,32 @@
           <div
             v-for="allocation in includedOtherAllocations"
             :key="'other-' + allocation.source_id"
-            class="income-source-card other-asset"
+            class="account-card"
           >
-            <div class="source-info">
-              <div class="source-header">
-                <span class="source-label">{{ formatSourceType(allocation.source_type) }}</span>
-                <span class="source-name">{{ allocation.name }}</span>
+            <!-- Type Badge -->
+            <span :class="['account-type-badge', getAccountTypeBadgeClass(allocation.source_type)]">
+              {{ formatSourceType(allocation.source_type) }}
+            </span>
+
+            <!-- Account Name -->
+            <h4 class="account-name">{{ allocation.name }}</h4>
+
+            <!-- Value and Toggle Row -->
+            <div class="account-value-row">
+              <div class="account-values">
+                <p class="account-value">{{ formatCurrency(allocation.starting_balance) }}</p>
+                <p class="account-detail">Annual draw: {{ formatCurrency(allocation.annual_amount) }}</p>
               </div>
-              <div class="source-details">
-                <span class="source-value">{{ formatCurrency(allocation.starting_balance) }}</span>
-                <span class="source-draw">Annual draw: {{ formatCurrency(allocation.annual_amount) }}</span>
-              </div>
+              <button
+                type="button"
+                class="account-toggle active"
+                @click="toggleAllocation(allocation)"
+                title="Click to exclude from retirement income"
+              >
+                <span>Included</span>
+                <span class="toggle-switch on"></span>
+              </button>
             </div>
-            <button
-              type="button"
-              :class="['include-toggle', 'active']"
-              @click="toggleAllocation(allocation)"
-              title="Click to exclude from retirement income"
-            >
-              <span class="toggle-label">Included</span>
-              <span class="toggle-slider"></span>
-            </button>
           </div>
         </div>
 
@@ -219,47 +224,57 @@
         </div>
 
         <div class="asset-cards">
-          <div v-for="account in excludedInvestments" :key="'inv-ex-' + account.id" class="income-source-card other-asset excluded">
-            <div class="source-info">
-              <div class="source-header">
-                <span class="source-label">{{ formatAccountType(account.account_type) }}</span>
-                <span class="source-name">{{ account.account_name || account.provider || formatAccountType(account.account_type) }}</span>
+          <div v-for="account in excludedInvestments" :key="'inv-ex-' + account.id" class="account-card">
+            <!-- Type Badge -->
+            <span :class="['account-type-badge', getAccountTypeBadgeClass(account.account_type)]">
+              {{ formatAccountType(account.account_type) }}
+            </span>
+
+            <!-- Account Name -->
+            <h4 class="account-name">{{ account.account_name || account.provider || formatAccountType(account.account_type) }}</h4>
+
+            <!-- Value and Toggle Row -->
+            <div class="account-value-row">
+              <div class="account-values">
+                <p class="account-value">{{ formatCurrency(getProjectedValue(account)) }}</p>
+                <p class="account-detail">Projected at retirement (80%)</p>
               </div>
-              <div class="source-details">
-                <span class="source-value">{{ formatCurrency(getProjectedValue(account)) }}</span>
-                <span class="source-draw">Projected at retirement (80%)</span>
-              </div>
+              <button
+                type="button"
+                class="account-toggle"
+                @click="toggleAsset('investment', account.id)"
+                title="Click to include in retirement income"
+              >
+                <span>Excluded</span>
+                <span class="toggle-switch"></span>
+              </button>
             </div>
-            <button
-              type="button"
-              class="include-toggle"
-              @click="toggleAsset('investment', account.id)"
-              title="Click to include in retirement income"
-            >
-              <span class="toggle-label">Excluded</span>
-              <span class="toggle-slider"></span>
-            </button>
           </div>
-          <div v-for="account in excludedCash" :key="'cash-ex-' + account.id" class="income-source-card other-asset excluded">
-            <div class="source-info">
-              <div class="source-header">
-                <span class="source-label">{{ account.is_isa ? 'Cash ISA' : 'Savings' }}</span>
-                <span class="source-name">{{ account.institution || 'Cash Account' }}</span>
+          <div v-for="account in excludedCash" :key="'cash-ex-' + account.id" class="account-card">
+            <!-- Type Badge -->
+            <span :class="['account-type-badge', account.is_isa ? 'badge-emerald' : 'badge-gray']">
+              {{ account.is_isa ? 'Cash ISA' : 'Savings' }}
+            </span>
+
+            <!-- Account Name -->
+            <h4 class="account-name">{{ account.institution || 'Cash Account' }}</h4>
+
+            <!-- Value and Toggle Row -->
+            <div class="account-value-row">
+              <div class="account-values">
+                <p class="account-value">{{ formatCurrency(getProjectedCashValue(account)) }}</p>
+                <p class="account-detail">Projected at retirement</p>
               </div>
-              <div class="source-details">
-                <span class="source-value">{{ formatCurrency(getProjectedCashValue(account)) }}</span>
-                <span class="source-draw">Projected at retirement</span>
-              </div>
+              <button
+                type="button"
+                class="account-toggle"
+                @click="toggleAsset('cash', account.id)"
+                title="Click to include in retirement income"
+              >
+                <span>Excluded</span>
+                <span class="toggle-switch"></span>
+              </button>
             </div>
-            <button
-              type="button"
-              class="include-toggle"
-              @click="toggleAsset('cash', account.id)"
-              title="Click to include in retirement income"
-            >
-              <span class="toggle-label">Excluded</span>
-              <span class="toggle-slider"></span>
-            </button>
           </div>
         </div>
       </div>
@@ -896,6 +911,24 @@ export default {
       return typeMap[type] || type.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
     },
 
+    getAccountTypeBadgeClass(type) {
+      // Returns badge color class based on account type
+      const badgeClasses = {
+        isa: 'badge-green',
+        stocks_shares_isa: 'badge-green',
+        isa_investment: 'badge-green',
+        lifetime_isa: 'badge-green',
+        isa_cash: 'badge-emerald',
+        cash_isa: 'badge-emerald',
+        sipp: 'badge-blue',
+        gia: 'badge-gray',
+        onshore_bond: 'badge-green',
+        offshore_bond: 'badge-green',
+        savings: 'badge-gray',
+      };
+      return badgeClasses[type] || 'badge-gray';
+    },
+
     getDisplayValue(account) {
       // For standard accounts, use current_value
       return parseFloat(account.current_value) || 0;
@@ -1223,128 +1256,137 @@ export default {
   gap: 16px;
 }
 
-/* Income Source Card - for included other assets */
-.income-source-card {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+/* Account Card - matches Pension/Investment Dashboard styling */
+.account-card {
   background: white;
   @apply border border-gray-200;
-  border-radius: 12px;
-  padding: 16px 20px;
-  transition: all 0.2s ease;
+  border-radius: 8px;
+  padding: 16px;
+  transition: box-shadow 0.2s ease;
 }
 
-.income-source-card.other-asset {
-  @apply bg-teal-50;
-  @apply border-teal-200;
+.account-card:hover {
+  @apply shadow-md;
 }
 
-.income-source-card.other-asset.excluded {
-  @apply bg-gray-50;
-  @apply border-gray-200;
-}
-
-.source-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.source-header {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin-bottom: 8px;
-}
-
-.source-label {
+/* Account Type Badge */
+.account-type-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 4px;
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  @apply text-gray-500;
+  letter-spacing: 0.02em;
+  margin-bottom: 8px;
 }
 
-.source-name {
+.badge-green {
+  @apply bg-green-100 text-green-800;
+}
+
+.badge-emerald {
+  @apply bg-emerald-100 text-emerald-800;
+}
+
+.badge-blue {
+  @apply bg-blue-100 text-blue-800;
+}
+
+.badge-gray {
+  @apply bg-gray-100 text-gray-700;
+}
+
+/* Account Name */
+.account-name {
   font-size: 15px;
   font-weight: 600;
   @apply text-gray-900;
+  margin: 0 0 12px 0;
 }
 
-.source-details {
+/* Value and Toggle Row */
+.account-value-row {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  justify-content: space-between;
+  align-items: flex-end;
 }
 
-.source-value {
-  font-size: 20px;
+.account-values {
+  flex: 1;
+}
+
+.account-value {
+  font-size: 18px;
   font-weight: 700;
   @apply text-gray-900;
+  margin: 0;
 }
 
-.source-draw {
-  font-size: 13px;
+.account-detail {
+  font-size: 12px;
   @apply text-gray-500;
+  margin: 2px 0 0 0;
 }
 
-/* Include/Exclude Toggle Button */
-.include-toggle {
+/* Account Toggle Button - neutral gray styling */
+.account-toggle {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 16px;
-  border-radius: 20px;
+  padding: 6px 12px;
+  border-radius: 16px;
   border: none;
   cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 13px;
-  font-weight: 600;
-  @apply bg-gray-200;
-  @apply text-gray-600;
+  transition: all 0.15s ease;
+  font-size: 12px;
+  font-weight: 500;
+  @apply bg-gray-100 text-gray-600;
   flex-shrink: 0;
 }
 
-.include-toggle:hover {
+.account-toggle:hover {
+  @apply bg-gray-200;
+}
+
+.account-toggle.active {
+  @apply bg-gray-200 text-gray-700;
+}
+
+.account-toggle.active:hover {
   @apply bg-gray-300;
 }
 
-.include-toggle.active {
-  @apply bg-teal-500;
-  color: white;
-}
-
-.include-toggle.active:hover {
-  @apply bg-teal-600;
-}
-
-.toggle-label {
-  white-space: nowrap;
-}
-
-.include-toggle .toggle-slider {
-  width: 32px;
-  height: 18px;
-  background: rgba(255, 255, 255, 0.3);
-  border-radius: 9px;
+/* Toggle Switch */
+.toggle-switch {
+  width: 28px;
+  height: 16px;
+  @apply bg-gray-300;
+  border-radius: 8px;
   position: relative;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 }
 
-.include-toggle .toggle-slider::after {
+.toggle-switch::after {
   content: '';
   position: absolute;
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
   background: white;
   border-radius: 50%;
   top: 2px;
   left: 2px;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
+  @apply shadow-sm;
 }
 
-.include-toggle.active .toggle-slider::after {
-  left: 16px;
+.toggle-switch.on {
+  @apply bg-gray-400;
+}
+
+.toggle-switch.on::after {
+  left: 14px;
 }
 
 .no-allocations {

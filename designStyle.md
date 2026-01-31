@@ -529,6 +529,86 @@ All buttons must implement:
 +----------------------------------+
 ```
 
+### Account Cards (Pensions & Investments)
+
+Account cards are used in the Pension Dashboard and Investment Dashboard to display individual accounts. They follow a consistent structure:
+
+```html
+<div class="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer">
+  <!-- Header with badges -->
+  <div class="flex items-start justify-between mb-3">
+    <!-- Type Badge (left) -->
+    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold
+                 bg-green-100 text-green-800">
+      Stocks & Shares ISA
+    </span>
+    <!-- Optional secondary badge (right) -->
+    <span class="text-xs font-medium text-blue-600">Retirement</span>
+  </div>
+
+  <!-- Account Name -->
+  <h4 class="text-base font-semibold text-gray-900 mb-3">Vanguard</h4>
+
+  <!-- Key-Value Details -->
+  <div class="space-y-1">
+    <div class="flex justify-between">
+      <span class="text-sm text-gray-500">Current Value</span>
+      <span class="text-sm font-medium text-gray-900">£175,000</span>
+    </div>
+    <div class="flex justify-between">
+      <span class="text-sm text-gray-500">ISA Used (YTD)</span>
+      <span class="text-sm font-medium text-gray-900">£0</span>
+    </div>
+  </div>
+</div>
+```
+
+#### Account Type Badge Colors
+
+| Account Type | Background | Text |
+|--------------|------------|------|
+| Stocks & Shares ISA | `bg-green-100` | `text-green-800` |
+| Cash ISA | `bg-emerald-100` | `text-emerald-800` |
+| GIA | `bg-gray-100` | `text-gray-700` |
+| Onshore Bond | `bg-green-100` | `text-green-800` |
+| Offshore Bond | `bg-green-100` | `text-green-800` |
+| SIPP | `bg-blue-100` | `text-blue-800` |
+| Workplace Pension | `bg-blue-100` | `text-blue-800` |
+| DB Pension | `bg-indigo-100` | `text-indigo-800` |
+
+#### Account Card with Toggle
+
+When an account card has an include/exclude toggle (e.g., in Retirement Income Planner), the toggle appears at the end of the card without colored background styling:
+
+```html
+<div class="bg-white rounded-lg border border-gray-200 p-4">
+  <!-- Badge and Name -->
+  <div class="flex items-start justify-between mb-2">
+    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold
+                 bg-green-100 text-green-800">ISA</span>
+  </div>
+  <h4 class="text-base font-semibold text-gray-900">Vanguard</h4>
+
+  <!-- Value and Toggle Row -->
+  <div class="flex items-center justify-between mt-3">
+    <div>
+      <p class="text-lg font-bold text-gray-900">£521,730</p>
+      <p class="text-xs text-gray-500">Annual draw: £55,391</p>
+    </div>
+    <!-- Simple Toggle (no colored background) -->
+    <button class="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium
+                   bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">
+      <span>Included</span>
+      <span class="w-8 h-4 bg-gray-300 rounded-full relative">
+        <span class="absolute w-3 h-3 bg-white rounded-full top-0.5 right-0.5"></span>
+      </span>
+    </button>
+  </div>
+</div>
+```
+
+**Important:** Toggle buttons in account cards should use neutral gray styling, not teal or other accent colors. The active/included state uses the same gray styling to maintain visual consistency.
+
 ---
 
 ## Profile & Information Tabs
