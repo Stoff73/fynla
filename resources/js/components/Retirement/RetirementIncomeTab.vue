@@ -1330,7 +1330,7 @@ export default {
   margin: 2px 0 0 0;
 }
 
-/* Account Toggle Button - neutral gray styling */
+/* Account Toggle Button - no background color */
 .account-toggle {
   display: flex;
   align-items: center;
@@ -1342,27 +1342,28 @@ export default {
   transition: all 0.15s ease;
   font-size: 12px;
   font-weight: 500;
-  @apply bg-gray-100 text-gray-600;
+  background: transparent;
+  @apply text-gray-600;
   flex-shrink: 0;
 }
 
 .account-toggle:hover {
-  @apply bg-gray-200;
+  @apply bg-gray-50;
 }
 
 .account-toggle.active {
-  @apply bg-gray-200 text-gray-700;
+  @apply text-gray-700;
 }
 
 .account-toggle.active:hover {
-  @apply bg-gray-300;
+  @apply bg-gray-50;
 }
 
-/* Toggle Switch */
+/* Toggle Switch - colored track with white slider */
 .toggle-switch {
   width: 28px;
   height: 16px;
-  @apply bg-gray-300;
+  @apply bg-blue-500;
   border-radius: 8px;
   position: relative;
   transition: all 0.15s ease;
@@ -1382,11 +1383,11 @@ export default {
 }
 
 .toggle-switch.on {
-  @apply bg-gray-400;
+  @apply bg-green-500;
 }
 
 .toggle-switch.on::after {
-  left: 14px;
+  left: 13px;
 }
 
 .no-allocations {
