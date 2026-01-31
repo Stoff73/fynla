@@ -8,7 +8,23 @@
 
 ---
 
-## Summary
+## Property Financials Tab Improvements
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| PropertyFinancials.vue | Removed "Income & Occupation" reference - now says "income calculations for UK tax purposes" |
+| PropertyFinancials.vue | Converted shared ownership note from blue box to hover tooltip on info icon next to "Monthly Costs" heading |
+
+### Files Changed
+```
+resources/js/components/NetWorth/Property/PropertyFinancials.vue
+```
+
+---
+
+## Orange/Amber Color Removal
 
 Removed all orange/amber colors from the codebase per the design system rules in `designStyle.md`. Orange and amber are banned colors - replaced with blue for warnings/cautions, and appropriate semantic colors for other use cases.
 
@@ -23,7 +39,7 @@ Removed all orange/amber colors from the codebase per the design system rules in
 
 ---
 
-## Files Changed (176 files)
+## Files Changed (177 files)
 
 ### CSS Files (2 files)
 ```
