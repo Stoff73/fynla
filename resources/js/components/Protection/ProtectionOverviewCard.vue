@@ -538,7 +538,7 @@ export default {
 }
 
 .policy-count-badge-orange {
-  @apply bg-white text-orange-800 border-2 border-orange-500;
+  @apply bg-white text-blue-800 border-2 border-blue-500;
 }
 
 /* Policy List */
@@ -596,7 +596,7 @@ export default {
 }
 
 .joint-badge-orange {
-  @apply bg-orange-500;
+  @apply bg-blue-500;
 }
 
 .policy-details {
@@ -623,7 +623,7 @@ export default {
 }
 
 .policy-premium-orange {
-  @apply text-orange-800;
+  @apply text-blue-800;
 }
 
 /* Shortfalls Section */
@@ -708,7 +708,7 @@ export default {
 }
 
 .status-banner-warning {
-  @apply bg-orange-500;
+  @apply bg-blue-500;
 }
 
 .status-banner-success {

@@ -61,7 +61,7 @@
           </div>
           <div>
             <p class="text-xs text-gray-600 mb-1">CGT Liability</p>
-            <p class="text-lg font-bold text-orange-600">
+            <p class="text-lg font-bold text-blue-600">
               £{{ formatNumber(opportunities.transfer_strategy.total_cgt_liability) }}
             </p>
           </div>
@@ -112,7 +112,7 @@
               </div>
               <div>
                 <p class="text-xs text-gray-600">CGT Payable</p>
-                <p class="text-sm font-semibold text-orange-600">£{{ formatNumber(transfer.cgt_liability) }}</p>
+                <p class="text-sm font-semibold text-blue-600">£{{ formatNumber(transfer.cgt_liability) }}</p>
               </div>
               <div>
                 <p class="text-xs text-gray-600">Annual Saving</p>
@@ -179,7 +179,7 @@
               <td class="px-4 py-3 text-sm" :class="opp.unrealised_gain >= 0 ? 'text-green-600' : 'text-red-600'">
                 £{{ formatNumber(Math.abs(opp.unrealised_gain)) }}
               </td>
-              <td class="px-4 py-3 text-sm text-orange-600">£{{ formatNumber(opp.cgt_on_full_transfer) }}</td>
+              <td class="px-4 py-3 text-sm text-blue-600">£{{ formatNumber(opp.cgt_on_full_transfer) }}</td>
               <td class="px-4 py-3 text-sm font-semibold text-green-600">£{{ formatNumber(opp.annual_saving) }}</td>
               <td class="px-4 py-3 text-sm">
                 <span
@@ -239,7 +239,7 @@ export default {
     getPriorityClass(priority) {
       const classes = {
         high: 'bg-red-500 text-white',
-        medium: 'bg-orange-500 text-white',
+        medium: 'bg-blue-500 text-white',
         low: 'bg-blue-500 text-white',
       };
       return classes[priority] || 'bg-gray-500 text-white';

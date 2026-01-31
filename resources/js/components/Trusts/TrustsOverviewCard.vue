@@ -274,8 +274,8 @@ export default {
   font-size: 10px;
   font-weight: 600;
   @apply bg-white;
-  @apply text-orange-800;
-  @apply border-2 border-orange-500;
+  @apply text-blue-800;
+  @apply border-2 border-blue-500;
 }
 
 .trust-details {
@@ -304,7 +304,7 @@ export default {
   padding: 12px;
   border-radius: 8px;
   @apply bg-white;
-  @apply border-2 border-orange-500;
+  @apply border-2 border-blue-500;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -313,14 +313,14 @@ export default {
 .info-icon {
   width: 20px;
   height: 20px;
-  @apply text-orange-800;
+  @apply text-blue-800;
   flex-shrink: 0;
 }
 
 .info-text {
   font-size: 13px;
   font-weight: 500;
-  @apply text-orange-800;
+  @apply text-blue-800;
 }
 
 @media (min-width: 640px) {

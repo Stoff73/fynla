@@ -260,7 +260,7 @@
                 </div>
 
                 <div v-else-if="cgtResult.is_loss" class="bg-gray-50 rounded-lg p-6">
-                  <h4 class="text-lg font-semibold text-orange-800">Capital Loss</h4>
+                  <h4 class="text-lg font-semibold text-blue-800">Capital Loss</h4>
                   <dl class="mt-4 space-y-2">
                     <div class="flex justify-between">
                       <dt class="text-sm text-gray-600">Actual Loss</dt>
@@ -268,10 +268,10 @@
                     </div>
                     <div v-if="cgtResult.loss_restriction_applied" class="flex justify-between">
                       <dt class="text-sm text-gray-600">Allowable Loss (restricted)</dt>
-                      <dd class="text-sm font-medium text-orange-600">{{ formatCurrency(cgtResult.allowable_loss) }}</dd>
+                      <dd class="text-sm font-medium text-blue-600">{{ formatCurrency(cgtResult.allowable_loss) }}</dd>
                     </div>
                   </dl>
-                  <p class="text-xs text-orange-700 mt-3">
+                  <p class="text-xs text-blue-700 mt-3">
                     Losses can be offset against other capital gains in the same tax year.
                   </p>
                 </div>
@@ -456,7 +456,7 @@ export default {
       const classes = {
         vehicle: 'badge-blue',
         art: 'badge-pink',
-        antique: 'badge-orange',
+        antique: 'badge-blue',
         jewelry: 'badge-purple',
         collectible: 'badge-green',
         other: 'badge-gray',
@@ -553,9 +553,9 @@ export default {
   @apply text-rose-800;
 }
 
-.badge-orange {
-  @apply bg-orange-100;
-  @apply text-orange-800;
+.badge-blue {
+  @apply bg-blue-100;
+  @apply text-blue-800;
 }
 
 .badge-purple {

@@ -131,11 +131,23 @@
                 <dl class="space-y-2">
                   <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-gray-600">Ownership Type:</dt>
-                    <dd class="text-sm font-medium text-gray-900 capitalize">{{ property.ownership_type }}</dd>
+                    <dd class="text-sm font-medium text-gray-900 capitalize">{{ formatOwnershipType(property.ownership_type) }}</dd>
                   </div>
-                  <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
-                    <dt class="text-sm text-gray-600">Ownership Percentage:</dt>
-                    <dd class="text-sm font-medium text-gray-900">{{ property.ownership_percentage }}%</dd>
+                  <!-- Owner names for shared ownership -->
+                  <template v-if="isSharedOwnership">
+                    <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
+                      <dt class="text-sm text-gray-600">{{ currentUserName }}:</dt>
+                      <dd class="text-sm font-medium text-gray-900">{{ property.ownership_percentage }}%</dd>
+                    </div>
+                    <div v-if="jointOwnerDisplayName" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
+                      <dt class="text-sm text-gray-600">{{ jointOwnerDisplayName }}:</dt>
+                      <dd class="text-sm font-medium text-gray-900">{{ jointOwnerPercentage }}%</dd>
+                    </div>
+                  </template>
+                  <!-- Standard percentage display for individual ownership -->
+                  <div v-else class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
+                    <dt class="text-sm text-gray-600">Owner:</dt>
+                    <dd class="text-sm font-medium text-gray-900">{{ currentUserName }} (100%)</dd>
                   </div>
                 </dl>
               </div>
@@ -312,7 +324,7 @@
                       </div>
                       <div v-if="mortgage.rate_type === 'fixed' && mortgage.rate_fix_end_date" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                         <dt class="text-sm text-gray-600">Rate Fix Ends:</dt>
-                        <dd class="text-sm font-medium text-orange-600">{{ formatDate(mortgage.rate_fix_end_date) }}</dd>
+                        <dd class="text-sm font-medium text-blue-600">{{ formatDate(mortgage.rate_fix_end_date) }}</dd>
                       </div>
                     </dl>
                   </div>
@@ -581,6 +593,17 @@ export default {
       if (!user) return 'You';
       return `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'You';
     },
+
+    jointOwnerDisplayName() {
+      if (!this.property) return null;
+      // Return the joint owner name if set (either from linked user or free text)
+      return this.property.joint_owner_name || null;
+    },
+
+    jointOwnerPercentage() {
+      if (!this.property?.ownership_percentage) return 50;
+      return 100 - this.property.ownership_percentage;
+    },
   },
 
   watch: {
@@ -712,6 +735,16 @@ export default {
         interest_only: 'Interest Only',
         part_and_part: 'Part and Part',
         mixed: 'Mixed',
+      };
+      return types[type] || type;
+    },
+
+    formatOwnershipType(type) {
+      const types = {
+        individual: 'Individual',
+        joint: 'Joint',
+        tenants_in_common: 'Tenants in Common',
+        trust: 'Trust',
       };
       return types[type] || type;
     },

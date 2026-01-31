@@ -76,7 +76,7 @@
               </svg>
               <span class="font-medium">Tax-Free Account</span>
             </div>
-            <div v-else class="flex items-center text-orange-600">
+            <div v-else class="flex items-center text-blue-600">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
@@ -152,9 +152,9 @@
 
       <!-- Trade Recommendations (if needed) -->
       <div v-if="rebalancingData.drift_analysis.needs_rebalancing && rebalancingData.rebalancing_actions.length > 0" class="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <div class="px-4 py-3 bg-orange-50 border-b border-orange-200">
-          <h3 class="text-lg font-semibold text-orange-800">Recommended Trades</h3>
-          <p class="text-sm text-orange-700">Execute these trades to realign with your target allocation</p>
+        <div class="px-4 py-3 bg-blue-50 border-b border-blue-200">
+          <h3 class="text-lg font-semibold text-blue-800">Recommended Trades</h3>
+          <p class="text-sm text-blue-700">Execute these trades to realign with your target allocation</p>
         </div>
         <div class="overflow-x-auto">
           <table class="w-full text-sm">
@@ -324,7 +324,7 @@ export default {
         1: 'text-blue-600',
         2: 'text-green-600',
         3: 'text-yellow-600',
-        4: 'text-orange-600',
+        4: 'text-blue-600',
         5: 'text-red-600',
       }[level] || 'text-gray-600';
     },
@@ -333,7 +333,7 @@ export default {
       const score = this.rebalancingData?.drift_analysis?.drift_score || 0;
       const threshold = this.rebalancingData?.threshold_percent || 10;
       if (score >= threshold) return 'text-red-600';
-      if (score >= threshold * 0.7) return 'text-orange-600';
+      if (score >= threshold * 0.7) return 'text-blue-600';
       return 'text-green-600';
     },
 
@@ -341,7 +341,7 @@ export default {
       const score = this.rebalancingData?.drift_analysis?.drift_score || 0;
       const threshold = this.rebalancingData?.threshold_percent || 10;
       if (score >= threshold) return 'bg-red-50';
-      if (score >= threshold * 0.7) return 'bg-orange-50';
+      if (score >= threshold * 0.7) return 'bg-blue-50';
       return 'bg-green-50';
     },
 
@@ -429,7 +429,7 @@ export default {
       return {
         equities: 'bg-blue-500',
         bonds: 'bg-green-500',
-        cash: 'bg-orange-500',
+        cash: 'bg-blue-500',
         alternatives: 'bg-purple-500',
       }[assetKey] || 'bg-gray-500';
     },

@@ -130,12 +130,12 @@
           <!-- Top-Slicing Explanation -->
           <div class="bg-gray-50 rounded-lg p-4">
             <div class="flex items-start">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-orange-600 mt-0.5 mr-2">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-blue-600 mt-0.5 mr-2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
               </svg>
               <div>
-                <h5 class="font-medium text-orange-800">What is Top-Slicing Relief?</h5>
-                <p class="text-sm text-orange-700 mt-1">
+                <h5 class="font-medium text-blue-800">What is Top-Slicing Relief?</h5>
+                <p class="text-sm text-blue-700 mt-1">
                   Top-slicing spreads the gain over the years you held the bond, potentially reducing the tax rate.
                   This is particularly valuable for {{ data.tax_band }} rate taxpayers who might drop to a lower band when withdrawing.
                 </p>

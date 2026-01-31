@@ -250,9 +250,9 @@
                 <p class="text-xs text-green-600 mb-1">Annual Income</p>
                 <p class="text-2xl font-bold text-green-900">{{ formatCurrency(plan.financial_summary.annual_income) }}</p>
               </div>
-              <div class="bg-orange-50 rounded-lg p-4 border border-orange-200">
-                <p class="text-xs text-orange-600 mb-1">Annual Expenditure</p>
-                <p class="text-2xl font-bold text-orange-900">{{ formatCurrency(plan.financial_summary.annual_expenditure) }}</p>
+              <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                <p class="text-xs text-blue-600 mb-1">Annual Expenditure</p>
+                <p class="text-2xl font-bold text-blue-900">{{ formatCurrency(plan.financial_summary.annual_expenditure) }}</p>
               </div>
               <div class="bg-red-50 rounded-lg p-4 border border-red-200">
                 <p class="text-xs text-red-600 mb-1">Total Debt</p>
@@ -492,7 +492,7 @@
                 </div>
                 <div class="bg-white rounded-lg p-4">
                   <p class="text-xs text-gray-600 mb-1">Est. Monthly Cost</p>
-                  <p class="text-xl font-bold text-orange-600">{{ formatCurrency(plan.optimized_strategy.summary.total_estimated_monthly_cost) }}</p>
+                  <p class="text-xl font-bold text-blue-600">{{ formatCurrency(plan.optimized_strategy.summary.total_estimated_monthly_cost) }}</p>
                 </div>
                 <div class="bg-white rounded-lg p-4">
                   <p class="text-xs text-gray-600 mb-1">Est. Annual Cost</p>
@@ -535,7 +535,7 @@
                     </div>
                     <div>
                       <span class="text-gray-600">Est. Monthly Cost:</span>
-                      <span class="font-semibold text-orange-600 ml-2">{{ formatCurrency(rec.estimated_monthly_cost) }}</span>
+                      <span class="font-semibold text-blue-600 ml-2">{{ formatCurrency(rec.estimated_monthly_cost) }}</span>
                     </div>
                     <div>
                       <span class="text-gray-600">Timeframe:</span>
@@ -578,24 +578,24 @@
 
           <!-- Professional Disclaimer -->
           <section class="mb-8">
-            <div class="bg-orange-50 border-l-4 border-orange-500 p-6 rounded">
+            <div class="bg-blue-50 border-l-4 border-blue-500 p-6 rounded">
               <div class="flex items-start">
-                <svg class="h-6 w-6 text-orange-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <svg class="h-6 w-6 text-blue-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
                 </svg>
                 <div class="ml-3">
-                  <h4 class="text-sm font-medium text-orange-800">Important: Professional Advice Required</h4>
-                  <p class="mt-2 text-sm text-orange-700">
+                  <h4 class="text-sm font-medium text-blue-800">Important: Professional Advice Required</h4>
+                  <p class="mt-2 text-sm text-blue-700">
                     This protection plan is for educational and planning purposes only. It is not regulated financial advice.
                     Before purchasing any protection policies, you must consult with a qualified independent financial adviser (IFA) who can:
                   </p>
-                  <ul class="mt-2 text-sm text-orange-700 list-disc list-inside space-y-1">
+                  <ul class="mt-2 text-sm text-blue-700 list-disc list-inside space-y-1">
                     <li>Assess your individual circumstances and protection needs</li>
                     <li>Recommend suitable products from the whole market</li>
                     <li>Assist with medical underwriting and policy application</li>
                     <li>Ensure policies are written in trust where appropriate</li>
                   </ul>
-                  <p class="mt-2 text-sm text-orange-700">
+                  <p class="mt-2 text-sm text-blue-700">
                     Premium estimates shown are indicative only and will vary based on individual underwriting. Actual quotes should be obtained from insurers via an IFA.
                   </p>
                 </div>
@@ -694,34 +694,34 @@ export default {
     getScoreColourClass(score) {
       if (score >= 80) return 'text-green-600';
       if (score >= 60) return 'text-blue-600';
-      if (score >= 40) return 'text-orange-600';
+      if (score >= 40) return 'text-blue-600';
       return 'text-red-600';
     },
 
     getCoverageBorderClass(score) {
       if (score >= 80) return 'border-green-300';
       if (score >= 60) return 'border-blue-300';
-      if (score >= 40) return 'border-orange-300';
+      if (score >= 40) return 'border-blue-300';
       return 'border-red-300';
     },
 
     getCoverageHeaderClass(score) {
       if (score >= 80) return 'bg-green-50';
       if (score >= 60) return 'bg-blue-50';
-      if (score >= 40) return 'bg-orange-50';
+      if (score >= 40) return 'bg-blue-50';
       return 'bg-red-50';
     },
 
     getPlanTypeBadgeClass(isComplete) {
       return isComplete
         ? 'bg-blue-100 text-blue-800'
-        : 'bg-orange-100 text-orange-800';
+        : 'bg-blue-100 text-blue-800';
     },
 
     getCompletenessWarningClass(severity) {
       const classes = {
         critical: 'bg-red-50 border-l-4 border-red-500',
-        warning: 'bg-orange-50 border-l-4 border-orange-500',
+        warning: 'bg-blue-50 border-l-4 border-blue-500',
         success: 'bg-green-50 border-l-4 border-green-500',
       };
       return classes[severity] || classes.warning;
@@ -730,7 +730,7 @@ export default {
     getWarningIconColour(severity) {
       const colours = {
         critical: 'text-red-600',
-        warning: 'text-orange-600',
+        warning: 'text-blue-600',
         success: 'text-green-600',
       };
       return colours[severity] || colours.warning;
@@ -739,7 +739,7 @@ export default {
     getWarningTitleColour(severity) {
       const colours = {
         critical: 'text-red-900',
-        warning: 'text-orange-900',
+        warning: 'text-blue-900',
         success: 'text-green-900',
       };
       return colours[severity] || colours.warning;
@@ -748,7 +748,7 @@ export default {
     getWarningTextColour(severity) {
       const colours = {
         critical: 'text-red-700',
-        warning: 'text-orange-700',
+        warning: 'text-blue-700',
         success: 'text-green-700',
       };
       return colours[severity] || colours.warning;
@@ -757,7 +757,7 @@ export default {
     getCompleteProfileButtonClass(severity) {
       const classes = {
         critical: 'bg-red-600 hover:bg-red-700 text-white',
-        warning: 'bg-orange-600 hover:bg-orange-700 text-white',
+        warning: 'bg-blue-600 hover:bg-blue-700 text-white',
         success: 'bg-green-600 hover:bg-green-700 text-white',
       };
       return classes[severity] || classes.warning;
@@ -766,34 +766,34 @@ export default {
     getCoverageStatusClass(status) {
       if (status === 'Excellent') return 'bg-green-100 text-green-800';
       if (status === 'Good') return 'bg-blue-100 text-blue-800';
-      if (status === 'Fair') return 'bg-orange-100 text-orange-800';
+      if (status === 'Fair') return 'bg-blue-100 text-blue-800';
       return 'bg-red-100 text-red-800';
     },
 
     getPriorityBorderClass(priority) {
       if (priority === 1) return 'border-red-300';
-      if (priority === 2) return 'border-orange-300';
+      if (priority === 2) return 'border-blue-300';
       if (priority === 3) return 'border-yellow-300';
       return 'border-gray-300';
     },
 
     getPriorityHeaderClass(priority) {
       if (priority === 1) return 'bg-red-50';
-      if (priority === 2) return 'bg-orange-50';
+      if (priority === 2) return 'bg-blue-50';
       if (priority === 3) return 'bg-yellow-50';
       return 'bg-gray-50';
     },
 
     getPriorityTextClass(priority) {
       if (priority === 1) return 'text-red-700';
-      if (priority === 2) return 'text-orange-700';
+      if (priority === 2) return 'text-blue-700';
       if (priority === 3) return 'text-yellow-700';
       return 'text-gray-700';
     },
 
     getImportanceClass(importance) {
       if (importance === 'Critical') return 'bg-red-100 text-red-800';
-      if (importance === 'High') return 'bg-orange-100 text-orange-800';
+      if (importance === 'High') return 'bg-blue-100 text-blue-800';
       if (importance === 'Medium') return 'bg-yellow-100 text-yellow-800';
       return 'bg-gray-100 text-gray-800';
     },

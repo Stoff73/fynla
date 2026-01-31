@@ -144,7 +144,7 @@
           </table>
         </div>
         <div class="mt-3 p-3 bg-gray-50 rounded-md">
-          <p class="text-sm text-orange-800">
+          <p class="text-sm text-blue-800">
             <strong>Note:</strong> Consider reviewing alternatives for holdings with fees above 1.0%
           </p>
         </div>
@@ -209,7 +209,7 @@ export default {
     getFeeStatusClass(percentage) {
       if (percentage <= 0.5) return 'bg-green-500 text-white';
       if (percentage <= 1.0) return 'bg-blue-500 text-white';
-      if (percentage <= 1.5) return 'bg-orange-500 text-white';
+      if (percentage <= 1.5) return 'bg-blue-500 text-white';
       return 'bg-red-500 text-white';
     },
 
@@ -223,7 +223,7 @@ export default {
     getEfficiencyColour(score) {
       if (score >= 80) return 'text-green-600';
       if (score >= 60) return 'text-blue-600';
-      if (score >= 40) return 'text-orange-600';
+      if (score >= 40) return 'text-blue-600';
       return 'text-red-600';
     },
 

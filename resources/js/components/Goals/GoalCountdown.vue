@@ -13,8 +13,8 @@
       </div>
 
       <div v-else-if="daysRemaining === 0" class="text-center">
-        <div class="text-3xl font-bold text-orange-600 mb-1">Today!</div>
-        <div class="text-sm text-orange-500">Target date is today</div>
+        <div class="text-3xl font-bold text-blue-600 mb-1">Today!</div>
+        <div class="text-sm text-blue-500">Target date is today</div>
       </div>
 
       <div v-else-if="showDetailed" class="flex justify-center gap-4">
@@ -155,7 +155,7 @@ export default {
       if (this.variant === 'neutral') return 'bg-gray-50';
       if (this.isOverdue) return 'bg-red-50';
       if (this.urgencyLevel === 'critical') return 'bg-red-50';
-      if (this.urgencyLevel === 'urgent') return 'bg-orange-50';
+      if (this.urgencyLevel === 'urgent') return 'bg-blue-50';
       if (this.urgencyLevel === 'approaching') return 'bg-blue-50';
       return 'bg-gray-50';
     },
@@ -164,7 +164,7 @@ export default {
       if (this.variant === 'neutral') return 'text-gray-700';
       if (this.isOverdue) return 'text-red-600';
       if (this.urgencyLevel === 'critical') return 'text-red-600';
-      if (this.urgencyLevel === 'urgent') return 'text-orange-600';
+      if (this.urgencyLevel === 'urgent') return 'text-blue-600';
       if (this.urgencyLevel === 'approaching') return 'text-blue-600';
       return 'text-gray-700';
     },
@@ -173,7 +173,7 @@ export default {
       if (this.variant === 'neutral') return 'text-gray-900';
       if (this.isOverdue) return 'text-red-600';
       if (this.urgencyLevel === 'critical') return 'text-red-600';
-      if (this.urgencyLevel === 'urgent') return 'text-orange-600';
+      if (this.urgencyLevel === 'urgent') return 'text-blue-600';
       if (this.urgencyLevel === 'approaching') return 'text-blue-600';
       return 'text-gray-900';
     },
@@ -182,7 +182,7 @@ export default {
       const classes = {
         overdue: 'bg-red-100 text-red-700',
         critical: 'bg-red-100 text-red-700',
-        urgent: 'bg-orange-100 text-orange-700',
+        urgent: 'bg-blue-100 text-blue-700',
         approaching: 'bg-blue-100 text-blue-700',
         normal: 'bg-gray-100 text-gray-700',
       };

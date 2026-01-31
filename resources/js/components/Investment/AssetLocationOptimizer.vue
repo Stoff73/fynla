@@ -59,7 +59,7 @@
             </div>
             <div>
               <p class="text-sm text-gray-600 mb-1">20-Year Impact</p>
-              <p class="text-2xl font-bold text-orange-600">
+              <p class="text-2xl font-bold text-blue-600">
                 £{{ formatNumber(analysis?.tax_drag?.long_term_impact || 0) }}
               </p>
               <p class="text-xs text-gray-500">compound savings</p>

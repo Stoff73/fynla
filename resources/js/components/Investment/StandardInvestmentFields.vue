@@ -60,6 +60,62 @@
       <p class="mt-1 text-xs text-gray-500">Current total value of the account</p>
     </div>
 
+    <!-- Bond-specific fields (onshore/offshore bonds) -->
+    <div v-if="isBondType" class="space-y-4 pt-4 border-t border-gray-200">
+      <h4 class="text-sm font-semibold text-gray-900">Bond Details</h4>
+
+      <!-- Bond Purchase Date -->
+      <div>
+        <label for="bond_purchase_date" class="block text-sm font-medium text-gray-700 mb-1">
+          Bond Purchase Date
+        </label>
+        <input
+          id="bond_purchase_date"
+          v-model="localData.bond_purchase_date"
+          type="date"
+          class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <p class="mt-1 text-xs text-gray-500">
+          The date you purchased this bond (used to calculate 5% withdrawal allowance)
+        </p>
+      </div>
+
+      <!-- 5% Withdrawal Taken -->
+      <div>
+        <label for="bond_withdrawal_taken" class="block text-sm font-medium text-gray-700 mb-1">
+          5% Withdrawal Already Taken (£)
+        </label>
+        <input
+          id="bond_withdrawal_taken"
+          v-model.number="localData.bond_withdrawal_taken"
+          type="number"
+          step="0.01"
+          min="0"
+          class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="0.00"
+        />
+        <p class="mt-1 text-xs text-gray-500">
+          Total amount of tax-deferred 5% annual withdrawals you have taken to date
+        </p>
+      </div>
+
+      <!-- 5% Withdrawal Info Box -->
+      <div class="bg-blue-50 border border-blue-200 rounded-md p-3">
+        <div class="flex items-start gap-2">
+          <svg class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <div class="text-sm text-blue-800">
+            <p class="font-medium">5% Tax-Deferred Withdrawals</p>
+            <p class="mt-1">
+              You can withdraw up to 5% of your original investment each year without triggering a chargeable event.
+              Unused allowance can be carried forward to future years.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Contributions Section (only for non-ISA accounts) -->
     <div v-if="!isISAType" class="space-y-4 pt-4 border-t border-gray-200">
       <h4 class="text-sm font-semibold text-gray-900">Regular Contributions</h4>
@@ -173,15 +229,15 @@
         {{ feeHelpText }}
       </p>
       <!-- High percentage fee warning -->
-      <div v-if="feePercentageWarning" class="mt-2 p-3 bg-orange-50 border border-orange-200 rounded-md">
-        <p class="text-sm text-orange-800">
+      <div v-if="feePercentageWarning" class="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+        <p class="text-sm text-blue-800">
           You have entered <strong>{{ localData.platform_fee_percent }}%</strong> as a percentage fee. Did you mean <strong>£{{ localData.platform_fee_percent }}</strong> instead?
         </p>
         <div class="mt-2 flex gap-2">
-          <button type="button" @click="$emit('confirm-fee')" class="px-3 py-1 text-xs font-medium bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors">
+          <button type="button" @click="$emit('confirm-fee')" class="px-3 py-1 text-xs font-medium bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">
             Yes, it's {{ localData.platform_fee_percent }}%
           </button>
-          <button type="button" @click="switchFeeToFixed" class="px-3 py-1 text-xs font-medium border border-orange-600 text-orange-700 rounded hover:bg-orange-100 transition-colors">
+          <button type="button" @click="switchFeeToFixed" class="px-3 py-1 text-xs font-medium border border-blue-600 text-blue-700 rounded hover:bg-blue-100 transition-colors">
             Change to £
           </button>
         </div>
@@ -367,7 +423,7 @@
             <!-- Planned contributions (lighter shade) -->
             <div
               v-if="plannedAnnualContribution > 0"
-              class="bg-orange-400 h-full"
+              class="bg-blue-400 h-full"
               :style="{ width: Math.min(plannedAnnualContribution / ISA_ALLOWANCE * 100, 100 - totalUsedPercent) + '%' }"
               :title="`Planned: ${formatCurrency(plannedAnnualContribution)}`"
             ></div>
@@ -387,7 +443,7 @@
             <span class="text-gray-600">This account: {{ formatCurrency(thisAccountSubscription) }}</span>
           </div>
           <div v-if="plannedAnnualContribution > 0" class="flex items-center gap-1">
-            <div class="w-2 h-2 rounded-full bg-orange-400"></div>
+            <div class="w-2 h-2 rounded-full bg-blue-400"></div>
             <span class="text-gray-600">Planned: {{ formatCurrency(plannedAnnualContribution) }}</span>
           </div>
         </div>
@@ -543,6 +599,10 @@ export default {
       return this.accountType === 'nsi';
     },
 
+    isBondType() {
+      return ['onshore_bond', 'offshore_bond'].includes(this.accountType);
+    },
+
     hasRiskProfile() {
       return !!this.mainRiskLevel;
     },
@@ -693,7 +753,7 @@ export default {
 
     totalRemainingAllowanceClass() {
       if (this.totalWithPlanned > this.ISA_ALLOWANCE) return 'text-red-600';
-      if (this.totalRemainingAllowance < 2000) return 'text-orange-600';
+      if (this.totalRemainingAllowance < 2000) return 'text-blue-600';
       return 'text-green-600';
     },
   },

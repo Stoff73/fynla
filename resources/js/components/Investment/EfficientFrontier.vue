@@ -134,21 +134,21 @@
 
       <!-- Improvement Opportunities -->
       <div v-if="frontierData.improvement_opportunities" class="bg-gray-50 rounded-lg p-6">
-        <h4 class="text-sm font-semibold text-orange-900 mb-3">Improvement Opportunities</h4>
+        <h4 class="text-sm font-semibold text-blue-900 mb-3">Improvement Opportunities</h4>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <p class="text-sm text-orange-800 mb-2">
+            <p class="text-sm text-blue-800 mb-2">
               <span class="font-medium">Sharpe Improvement:</span>
               {{ frontierData.improvement_opportunities.sharpe_improvement > 0 ? '+' : '' }}{{ frontierData.improvement_opportunities.sharpe_improvement.toFixed(4) }}
               ({{ frontierData.improvement_opportunities.sharpe_improvement_percent.toFixed(1) }}%)
             </p>
-            <p class="text-sm text-orange-800">
+            <p class="text-sm text-blue-800">
               <span class="font-medium">Potential Risk Reduction:</span>
               {{ formatPercentage(frontierData.improvement_opportunities.potential_risk_reduction) }}
             </p>
           </div>
           <div>
-            <p class="text-sm text-orange-900 italic">
+            <p class="text-sm text-blue-900 italic">
               {{ frontierData.improvement_opportunities.recommendation }}
             </p>
           </div>

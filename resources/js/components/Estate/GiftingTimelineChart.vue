@@ -32,7 +32,7 @@
         <span>Within 7 years (potentially taxable)</span>
       </div>
       <div class="legend-item">
-        <span class="legend-colour bg-orange-500"></span>
+        <span class="legend-colour bg-blue-500"></span>
         <span>Years 3-7 (taper relief applies)</span>
       </div>
       <div class="legend-item">

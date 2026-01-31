@@ -86,7 +86,7 @@ export default {
         life: 'bg-blue-100 text-blue-800',
         criticalIllness: 'bg-purple-100 text-purple-800',
         incomeProtection: 'bg-green-100 text-green-800',
-        disability: 'bg-orange-100 text-orange-800',
+        disability: 'bg-indigo-100 text-indigo-800',
         sicknessIllness: 'bg-red-100 text-red-800',
       };
       return classes[this.policy.policy_type] || 'bg-gray-100 text-gray-800';

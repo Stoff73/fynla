@@ -312,15 +312,15 @@ export default {
 }
 
 .recovery-codes-section {
-  @apply bg-orange-100;
-  @apply border border-orange-300;
+  @apply bg-blue-100;
+  @apply border border-blue-300;
   border-radius: 0.5rem;
   padding: 1rem;
   margin-bottom: 1.5rem;
 }
 
 .recovery-warning {
-  @apply text-orange-800;
+  @apply text-blue-800;
   font-size: 0.875rem;
   margin-bottom: 1rem;
 }

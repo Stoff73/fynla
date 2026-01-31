@@ -15,7 +15,7 @@
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div class="bg-gray-50 rounded-lg p-4">
           <p class="text-sm text-gray-600 mb-1">Platform Fees</p>
-          <p class="text-2xl font-bold text-orange-600">{{ formatPercent(weightedPlatformFee) }}</p>
+          <p class="text-2xl font-bold text-blue-600">{{ formatPercent(weightedPlatformFee) }}</p>
           <p class="text-sm text-gray-500">{{ formatCurrency(annualPlatformFees) }}/year</p>
         </div>
         <div class="bg-gray-50 rounded-lg p-4">
@@ -105,7 +105,7 @@
           </div>
           <div class="text-center p-4 bg-gray-50 rounded-lg">
             <p class="text-sm text-gray-600 mb-1">Fee Drag (Lost Growth)</p>
-            <p class="text-3xl font-bold text-orange-600">{{ formatCurrency(tenYearFeeDrag) }}</p>
+            <p class="text-3xl font-bold text-blue-600">{{ formatCurrency(tenYearFeeDrag) }}</p>
           </div>
           <div class="text-center p-4 bg-gray-100 rounded-lg border border-gray-300">
             <p class="text-sm text-gray-600 mb-1">Total Impact</p>
@@ -126,7 +126,7 @@
             <span class="text-gray-700">Low: &lt; 0.5%</span>
           </div>
           <div>
-            <span class="inline-block w-3 h-3 rounded-full bg-orange-500 mr-2"></span>
+            <span class="inline-block w-3 h-3 rounded-full bg-blue-500 mr-2"></span>
             <span class="text-gray-700">Medium: 0.5% - 1.5%</span>
           </div>
           <div>
@@ -285,7 +285,7 @@ export default {
 
     getFeeClass(percent) {
       if (percent < 0.5) return 'text-green-600';
-      if (percent < 1.5) return 'text-orange-600';
+      if (percent < 1.5) return 'text-blue-600';
       return 'text-red-600';
     },
   },

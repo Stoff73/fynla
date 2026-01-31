@@ -65,7 +65,7 @@
 
         <!-- On-Track/Off-Track Message -->
         <div v-if="goal.on_track === false" class="mt-3 p-3 bg-gray-50 rounded-md">
-          <p class="text-sm text-orange-800">
+          <p class="text-sm text-blue-800">
             <strong>Action needed:</strong> {{ goal.recommendation }}
           </p>
         </div>
@@ -90,7 +90,7 @@
           </div>
           <div>
             <p class="text-xs text-gray-600 mb-1">Needs Attention</p>
-            <p class="text-lg font-bold text-orange-600">{{ data.summary.off_track_count || 0 }}</p>
+            <p class="text-lg font-bold text-blue-600">{{ data.summary.off_track_count || 0 }}</p>
           </div>
         </div>
       </div>
@@ -129,7 +129,7 @@ export default {
     getGoalStatusClass(status) {
       const classes = {
         'on-track': 'bg-green-500 text-white',
-        'at-risk': 'bg-orange-500 text-white',
+        'at-risk': 'bg-blue-500 text-white',
         'off-track': 'bg-red-500 text-white',
         'achieved': 'bg-blue-500 text-white',
       };
@@ -139,7 +139,7 @@ export default {
     getProgressBarClass(percentage) {
       if (percentage >= 80) return 'bg-green-600';
       if (percentage >= 50) return 'bg-blue-600';
-      if (percentage >= 30) return 'bg-orange-600';
+      if (percentage >= 30) return 'bg-blue-600';
       return 'bg-red-600';
     },
   },

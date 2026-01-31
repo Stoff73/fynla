@@ -340,8 +340,8 @@ export default {
 }
 
 .badge-isa {
-  @apply bg-orange-100;
-  @apply text-orange-800;
+  @apply bg-blue-100;
+  @apply text-blue-800;
 }
 
 .badge-gia {
@@ -424,11 +424,11 @@ export default {
 }
 
 .band-dot.basic {
-  @apply bg-orange-500;
+  @apply bg-blue-500;
 }
 
 .band-dot.higher {
-  @apply bg-orange-500;
+  @apply bg-blue-500;
 }
 
 .band-dot.additional {
@@ -565,11 +565,11 @@ export default {
 }
 
 .band-fill.basic {
-  @apply bg-gradient-to-r from-orange-500 to-orange-400;
+  @apply bg-gradient-to-r from-blue-500 to-blue-400;
 }
 
 .band-fill.higher {
-  @apply bg-gradient-to-r from-orange-500 to-orange-400;
+  @apply bg-gradient-to-r from-blue-500 to-blue-400;
 }
 
 .band-fill.additional {

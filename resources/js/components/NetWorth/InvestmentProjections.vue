@@ -128,7 +128,7 @@
             <div class="analysis-content">
               <div class="analysis-row">
                 <span class="row-label">Annual Fees</span>
-                <span class="row-value text-orange-600">{{ formatCurrency(totalAnnualFees) }}/yr</span>
+                <span class="row-value text-blue-600">{{ formatCurrency(totalAnnualFees) }}/yr</span>
               </div>
               <div class="analysis-row">
                 <span class="row-label">Fee Drag (10yr)</span>
@@ -143,52 +143,6 @@
         </div>
       </div>
 
-      <!-- Per-Account Projections -->
-      <div v-if="accountProjections && accountProjections.length > 0" class="accounts-section">
-        <h2 class="section-title">Individual Account Projections</h2>
-        <p class="section-subtitle">Projections for each of your {{ accountProjections.length }} investment accounts</p>
-
-        <div class="accounts-grid">
-          <div
-            v-for="account in accountProjections"
-            :key="account.account_id"
-            class="account-card"
-          >
-            <div class="account-header">
-              <div>
-                <h3 class="account-name">{{ account.account_name }}</h3>
-                <span :class="['account-type-badge', accountTypeBadgeClass(account.account_type)]">
-                  {{ formatAccountType(account.account_type) }}
-                </span>
-              </div>
-              <div class="account-value">
-                <span class="value-label">Current</span>
-                <span class="value-amount">{{ formatCurrency(account.current_value) }}</span>
-              </div>
-            </div>
-
-            <div class="account-stats">
-              <div class="stat">
-                <span class="stat-label">Monthly contribution</span>
-                <span class="stat-value">{{ formatCurrency(account.estimated_monthly_contribution) }}</span>
-              </div>
-              <div class="stat">
-                <span class="stat-label">Projected ({{ selectedProjectionYears }}yr)</span>
-                <span class="stat-value text-blue-600">{{ formatCurrency(account.projections[selectedProjectionYears]?.median_value) }}</span>
-              </div>
-            </div>
-
-            <div class="account-chart">
-              <InvestmentProjectionChart
-                v-if="account.projections[selectedProjectionYears]"
-                :data="account.projections[selectedProjectionYears]"
-                :title="account.account_name"
-                :compact="true"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
 
     <!-- No Data State -->
@@ -248,10 +202,6 @@ export default {
       return this.portfolioProjections?.portfolio;
     },
 
-    accountProjections() {
-      return this.portfolioProjections?.accounts || [];
-    },
-
     selectedProjectionData() {
       if (!this.portfolioProjection?.projections) return null;
       return this.portfolioProjection.projections[this.selectedProjectionYears];
@@ -299,7 +249,7 @@ export default {
     diversificationScoreClass() {
       const score = this.diversificationScore;
       if (score >= 70) return 'text-green-600';
-      if (score >= 50) return 'text-orange-600';
+      if (score >= 50) return 'text-blue-600';
       return 'text-red-600';
     },
 
@@ -493,16 +443,6 @@ export default {
       return type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
     },
 
-    accountTypeBadgeClass(type) {
-      const classes = {
-        isa: 'badge-isa',
-        gia: 'badge-gia',
-        sipp: 'badge-sipp',
-        pension: 'badge-sipp',
-        other: 'badge-other',
-      };
-      return classes[type] || 'badge-other';
-    },
   },
 };
 </script>
@@ -749,8 +689,8 @@ export default {
 }
 
 .score-fair {
-  @apply bg-orange-100;
-  @apply text-orange-800;
+  @apply bg-blue-100;
+  @apply text-blue-800;
 }
 
 .score-poor {
@@ -772,8 +712,8 @@ export default {
   border-radius: 4px;
   font-size: 12px;
   font-weight: 600;
-  @apply bg-orange-100;
-  @apply text-orange-800;
+  @apply bg-blue-100;
+  @apply text-blue-800;
 }
 
 .analysis-content {
@@ -838,127 +778,6 @@ export default {
   padding: 24px;
 }
 
-/* Accounts Section */
-.accounts-section {
-  margin-top: 32px;
-}
-
-.section-title {
-  font-size: 20px;
-  font-weight: 600;
-  @apply text-gray-900;
-  margin: 0;
-}
-
-.section-subtitle {
-  font-size: 14px;
-  @apply text-gray-500;
-  margin: 8px 0 24px 0;
-}
-
-.accounts-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 24px;
-}
-
-.account-card {
-  background: white;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  @apply border border-gray-200;
-}
-
-.account-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 16px;
-}
-
-.account-name {
-  font-size: 16px;
-  font-weight: 600;
-  @apply text-gray-900;
-  margin: 0 0 8px 0;
-}
-
-.account-type-badge {
-  display: inline-block;
-  padding: 4px 10px;
-  font-size: 11px;
-  font-weight: 600;
-  border-radius: 4px;
-}
-
-.badge-isa {
-  @apply bg-green-100;
-  @apply text-green-800;
-}
-
-.badge-gia {
-  @apply bg-blue-100;
-  @apply text-blue-800;
-}
-
-.badge-sipp {
-  @apply bg-purple-100;
-  @apply text-purple-800;
-}
-
-.badge-other {
-  @apply bg-gray-100;
-  @apply text-gray-700;
-}
-
-.account-value {
-  text-align: right;
-}
-
-.value-label {
-  display: block;
-  font-size: 11px;
-  @apply text-gray-500;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.value-amount {
-  font-size: 18px;
-  font-weight: 700;
-  @apply text-gray-900;
-}
-
-.account-stats {
-  display: flex;
-  gap: 24px;
-  padding: 12px 0;
-  @apply border-t border-b border-gray-200;
-  margin-bottom: 16px;
-}
-
-.stat {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.stat-label {
-  font-size: 12px;
-  @apply text-gray-500;
-}
-
-.stat-value {
-  font-size: 14px;
-  font-weight: 600;
-  @apply text-gray-900;
-}
-
-.account-chart {
-  margin-top: 8px;
-}
-
 /* Responsive */
 @media (max-width: 1024px) {
   .top-section {
@@ -973,10 +792,6 @@ export default {
   .analysis-card {
     flex: 1;
     min-width: 200px;
-  }
-
-  .accounts-grid {
-    grid-template-columns: 1fr;
   }
 }
 

@@ -207,7 +207,7 @@ export default {
 
     runwayColour() {
       if (this.emergencyFundRunway >= 6) return 'text-green-600';
-      if (this.emergencyFundRunway >= 3) return 'text-orange-600';
+      if (this.emergencyFundRunway >= 3) return 'text-blue-600';
       return 'text-red-600';
     },
   },
@@ -276,7 +276,7 @@ export default {
       const classes = {
         individual: 'bg-gray-500 text-white',
         joint: 'bg-purple-500 text-white',
-        trust: 'bg-orange-500 text-white',
+        trust: 'bg-indigo-500 text-white',
       };
       return classes[type] || 'bg-gray-500 text-white';
     },

@@ -65,8 +65,8 @@
 
           <!-- Important Notes -->
           <div class="mt-4 p-4 bg-gray-50 rounded-lg">
-            <h4 class="font-semibold text-orange-800 mb-2">Important Notes</h4>
-            <ul class="text-sm text-orange-700 space-y-1 list-disc list-inside">
+            <h4 class="font-semibold text-blue-800 mb-2">Important Notes</h4>
+            <ul class="text-sm text-blue-700 space-y-1 list-disc list-inside">
               <li>The 30-day rule does not apply to Bed & ISA (only to Bed & Breakfast)</li>
               <li>You can repurchase the same securities immediately in your ISA</li>
               <li>Any gains realised will use your CGT allowance</li>

@@ -141,7 +141,7 @@ export default {
                 young_family: 'bg-gradient-to-br from-blue-500 to-blue-700',
                 peak_earners: 'bg-gradient-to-br from-green-500 to-green-700',
                 widow: 'bg-gradient-to-br from-purple-500 to-purple-700',
-                entrepreneur: 'bg-gradient-to-br from-orange-500 to-orange-700',
+                entrepreneur: 'bg-gradient-to-br from-fuchsia-500 to-fuchsia-700',
                 young_saver: 'bg-gradient-to-br from-cyan-500 to-cyan-700',
                 retired_couple: 'bg-gradient-to-br from-rose-500 to-rose-700',
             };

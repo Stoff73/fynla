@@ -2,8 +2,8 @@
   <div class="relative">
     <!-- Coming Soon Watermark -->
     <div class="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-      <div class="bg-orange-100 border-2 border-orange-400 rounded-lg px-8 py-4 transform -rotate-12 shadow-lg">
-        <p class="text-2xl font-bold text-orange-700">Coming Soon</p>
+      <div class="bg-blue-100 border-2 border-blue-400 rounded-lg px-8 py-4 transform -rotate-12 shadow-lg">
+        <p class="text-2xl font-bold text-blue-700">Coming Soon</p>
       </div>
     </div>
 

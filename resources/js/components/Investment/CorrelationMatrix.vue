@@ -423,7 +423,7 @@ export default {
     getCorrelationColour(value) {
       if (value === null || value === undefined) return 'text-gray-900';
       if (value >= 0.90) return 'text-red-600';
-      if (value >= 0.70) return 'text-orange-600';
+      if (value >= 0.70) return 'text-blue-600';
       if (value >= 0.30) return 'text-yellow-600';
       if (value >= 0) return 'text-green-600';
       return 'text-blue-600';
@@ -435,7 +435,7 @@ export default {
       }
 
       if (value >= 0.90) return 'bg-red-500 text-white';
-      if (value >= 0.70) return 'bg-orange-500 text-white';
+      if (value >= 0.70) return 'bg-blue-500 text-white';
       if (value >= 0.30) return 'bg-yellow-500 text-white';
       if (value >= 0) return 'bg-green-500 text-white';
       return 'bg-blue-500 text-white';

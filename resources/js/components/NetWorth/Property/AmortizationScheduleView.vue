@@ -53,8 +53,8 @@
         </div>
 
         <div class="bg-gray-50 rounded-lg p-4">
-          <p class="text-sm text-orange-700">Remaining Term</p>
-          <p class="text-xl font-bold text-orange-900">{{ remainingYears }} years</p>
+          <p class="text-sm text-blue-700">Remaining Term</p>
+          <p class="text-xl font-bold text-blue-900">{{ remainingYears }} years</p>
         </div>
       </div>
 

@@ -2,8 +2,8 @@
   <div class="recommendations relative">
     <!-- Coming Soon Watermark -->
     <div class="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-      <div class="bg-orange-100 border-2 border-orange-400 rounded-lg px-8 py-4 transform -rotate-12 shadow-lg">
-        <p class="text-2xl font-bold text-orange-700">Coming Soon</p>
+      <div class="bg-blue-100 border-2 border-blue-400 rounded-lg px-8 py-4 transform -rotate-12 shadow-lg">
+        <p class="text-2xl font-bold text-blue-700">Coming Soon</p>
       </div>
     </div>
 
@@ -117,7 +117,7 @@ export default {
       priorities: [
         { value: 'all', label: 'All', activeClass: 'bg-indigo-600 text-white' },
         { value: 'High', label: 'High', activeClass: 'bg-red-600 text-white' },
-        { value: 'Medium', label: 'Medium', activeClass: 'bg-orange-600 text-white' },
+        { value: 'Medium', label: 'Medium', activeClass: 'bg-blue-600 text-white' },
         { value: 'Low', label: 'Low', activeClass: 'bg-green-600 text-white' },
       ],
     };
@@ -138,7 +138,7 @@ export default {
     getPriorityBgClass(priority) {
       const classes = {
         High: 'bg-red-600',
-        Medium: 'bg-orange-600',
+        Medium: 'bg-blue-600',
         Low: 'bg-green-600',
       };
       return classes[priority] || 'bg-gray-600';
@@ -147,7 +147,7 @@ export default {
     getPriorityBadgeClass(priority) {
       const classes = {
         High: 'bg-red-100 text-red-800',
-        Medium: 'bg-orange-100 text-orange-800',
+        Medium: 'bg-blue-100 text-blue-800',
         Low: 'bg-green-100 text-green-800',
       };
       return classes[priority] || 'bg-gray-100 text-gray-800';

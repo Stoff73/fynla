@@ -70,13 +70,13 @@
     <!-- Expiring Warning -->
     <div
       v-if="hasExpiringAllowances"
-      class="mt-4 p-3 bg-white border-2 border-orange-500 rounded-lg"
+      class="mt-4 p-3 bg-white border-2 border-blue-500 rounded-lg"
     >
       <div class="flex items-center gap-2">
-        <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
-        <span class="text-sm font-medium text-orange-700">
+        <span class="text-sm font-medium text-blue-700">
           {{ expiringMessage }}
         </span>
       </div>
@@ -257,7 +257,7 @@ export default {
     getProgressBarClass(percent) {
       if (percent >= 90) return 'bg-green-600';
       if (percent >= 50) return 'bg-primary-600';
-      if (percent >= 25) return 'bg-orange-500';
+      if (percent >= 25) return 'bg-blue-500';
       return 'bg-gray-400';
     },
   },

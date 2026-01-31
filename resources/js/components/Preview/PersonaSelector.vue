@@ -84,8 +84,8 @@
                 </div>
 
                 <!-- Footer with edit indicator -->
-                <div v-if="hasEdits" class="px-4 py-3 bg-orange-50 border-t border-orange-200">
-                    <div class="flex items-center gap-2 text-sm text-orange-700">
+                <div v-if="hasEdits" class="px-4 py-3 bg-blue-50 border-t border-blue-200">
+                    <div class="flex items-center gap-2 text-sm text-blue-700">
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                         </svg>
@@ -182,11 +182,11 @@ export default {
                     young_family: 'bg-blue-600 hover:bg-blue-700 text-white',
                     peak_earners: 'bg-green-600 hover:bg-green-700 text-white',
                     widow: 'bg-purple-600 hover:bg-purple-700 text-white',
-                    entrepreneur: 'bg-orange-600 hover:bg-orange-700 text-white',
+                    entrepreneur: 'bg-fuchsia-600 hover:bg-fuchsia-700 text-white',
                     young_saver: 'bg-cyan-600 hover:bg-cyan-700 text-white',
                     retired_couple: 'bg-rose-600 hover:bg-rose-700 text-white',
                 };
-                base = darkColors[this.currentPersonaId] || 'bg-orange-600 hover:bg-orange-700 text-white';
+                base = darkColors[this.currentPersonaId] || 'bg-fuchsia-600 hover:bg-fuchsia-700 text-white';
             } else {
                 base = 'bg-white hover:bg-gray-50 text-gray-700 border border-gray-200';
             }
@@ -255,7 +255,7 @@ export default {
                 young_family: 'bg-blue-100',
                 peak_earners: 'bg-green-100',
                 widow: 'bg-purple-100',
-                entrepreneur: 'bg-orange-100',
+                entrepreneur: 'bg-fuchsia-100',
                 young_saver: 'bg-cyan-100',
                 retired_couple: 'bg-rose-100',
             };

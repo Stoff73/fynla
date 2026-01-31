@@ -89,7 +89,7 @@
         class="mt-3 p-3 rounded-lg"
         :class="{
           'bg-green-50 border border-green-200': breakdown.tax_breakdown.reclaim_info.type === 'reclaim',
-          'bg-orange-50 border border-orange-200': breakdown.tax_breakdown.reclaim_info.type === 'owe',
+          'bg-blue-50 border border-blue-200': breakdown.tax_breakdown.reclaim_info.type === 'owe',
           'bg-gray-50 border border-gray-200': breakdown.tax_breakdown.reclaim_info.type === 'none'
         }"
       >
@@ -97,7 +97,7 @@
           class="text-sm font-medium"
           :class="{
             'text-green-800': breakdown.tax_breakdown.reclaim_info.type === 'reclaim',
-            'text-orange-800': breakdown.tax_breakdown.reclaim_info.type === 'owe',
+            'text-blue-800': breakdown.tax_breakdown.reclaim_info.type === 'owe',
             'text-gray-700': breakdown.tax_breakdown.reclaim_info.type === 'none'
           }"
         >

@@ -211,7 +211,7 @@
 
               <div class="border border-gray-200 rounded-lg p-4">
                 <p class="text-sm font-medium text-gray-700 mb-2">Reduce Target Amount</p>
-                <p class="text-2xl font-bold text-orange-600 mb-1">
+                <p class="text-2xl font-bold text-blue-600 mb-1">
                   £{{ formatNumber(shortfallData.achievable_target || 0) }}
                 </p>
                 <p class="text-xs text-gray-600">Realistic target at current contribution rate</p>

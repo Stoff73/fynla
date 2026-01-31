@@ -28,7 +28,7 @@
       <div class="metric-card" :class="taxReliefCardClass">
         <p class="metric-label">Tax Relief</p>
         <template v-if="hasTaxRelief">
-          <p class="metric-value" :class="taxReliefStatus === 'claimed' ? 'text-green-600' : 'text-orange-600'">
+          <p class="metric-value" :class="taxReliefStatus === 'claimed' ? 'text-green-600' : 'text-blue-600'">
             {{ taxReliefLabel }}
           </p>
           <p class="metric-sub">{{ taxReliefStatusLabel }}</p>
@@ -43,7 +43,7 @@
       <div class="metric-card" :class="statusCardClass">
         <template v-if="disposalRestrictionDays">
           <p class="metric-label">Holding Period</p>
-          <p class="metric-value text-orange-600">{{ disposalRestrictionDays }}</p>
+          <p class="metric-value text-blue-600">{{ disposalRestrictionDays }}</p>
           <p class="metric-sub">days remaining</p>
         </template>
         <template v-else-if="isHoldingPeriodComplete && hasTaxRelief">
@@ -373,7 +373,7 @@ export default {
     taxReliefCardClass() {
       if (!this.hasTaxRelief) return 'bg-gray-50 border border-gray-200';
       if (this.taxReliefStatus === 'claimed') return 'bg-green-50 border border-green-200';
-      return 'bg-orange-50 border border-orange-200';
+      return 'bg-blue-50 border border-blue-200';
     },
 
     disposalRestrictionDays() {
@@ -390,7 +390,7 @@ export default {
     },
 
     statusCardClass() {
-      if (this.disposalRestrictionDays) return 'bg-orange-50 border border-orange-200';
+      if (this.disposalRestrictionDays) return 'bg-blue-50 border border-blue-200';
       if (this.isHoldingPeriodComplete && this.hasTaxRelief) return 'bg-green-50 border border-green-200';
       return 'bg-gray-50 border border-gray-200';
     },
@@ -409,7 +409,7 @@ export default {
     companyStatusClass() {
       const classes = {
         'active': 'text-green-600',
-        'distressed': 'text-orange-600',
+        'distressed': 'text-blue-600',
         'dormant': 'text-gray-600',
         'failed': 'text-red-600',
         'exited': 'text-blue-600',
@@ -420,7 +420,7 @@ export default {
     companyStatusBadgeClass() {
       const classes = {
         'active': 'bg-green-100 text-green-800',
-        'distressed': 'bg-orange-100 text-orange-800',
+        'distressed': 'bg-blue-100 text-blue-800',
         'dormant': 'bg-gray-100 text-gray-800',
         'failed': 'bg-red-100 text-red-800',
         'exited': 'bg-blue-100 text-blue-800',
@@ -593,7 +593,7 @@ export default {
 }
 
 .alert-warning {
-  @apply bg-orange-100 border border-orange-300 text-orange-800;
+  @apply bg-blue-100 border border-blue-300 text-blue-800;
 }
 
 @media (max-width: 640px) {

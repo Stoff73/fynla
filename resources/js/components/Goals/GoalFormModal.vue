@@ -284,7 +284,7 @@ export default {
       propertyCosts: null,
       priorities: [
         { value: 'critical', label: 'Critical', activeClass: 'border-red-500 bg-red-50 text-red-700' },
-        { value: 'high', label: 'High', activeClass: 'border-orange-500 bg-orange-50 text-orange-700' },
+        { value: 'high', label: 'High', activeClass: 'border-blue-500 bg-blue-50 text-blue-700' },
         { value: 'medium', label: 'Medium', activeClass: 'border-blue-500 bg-blue-50 text-blue-700' },
         { value: 'low', label: 'Low', activeClass: 'border-gray-500 bg-gray-50 text-gray-700' },
       ],
@@ -335,7 +335,7 @@ export default {
         savings: 'bg-emerald-100 text-emerald-700',
         investment: 'bg-blue-100 text-blue-700',
         property: 'bg-purple-100 text-purple-700',
-        retirement: 'bg-orange-100 text-orange-700',
+        retirement: 'bg-blue-100 text-blue-700',
       };
       return classes[this.assignedModule] || 'bg-gray-100 text-gray-700';
     },

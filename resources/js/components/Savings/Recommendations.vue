@@ -65,7 +65,7 @@ export default {
     getPriorityClass(priority) {
       const classes = {
         high: 'bg-red-500 text-white',
-        medium: 'bg-orange-500 text-white',
+        medium: 'bg-blue-500 text-white',
         low: 'bg-green-500 text-white',
       };
       return classes[priority] || 'bg-gray-500 text-white';

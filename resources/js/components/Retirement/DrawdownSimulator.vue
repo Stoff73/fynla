@@ -118,7 +118,7 @@
 
         <div class="p-4 bg-gray-50 rounded-lg">
           <p class="text-sm text-gray-600 mb-1">Real Value Lost (Inflation)</p>
-          <p class="text-2xl font-bold text-orange-600">
+          <p class="text-2xl font-bold text-blue-600">
             {{ simulationResults.realValueLoss }}%
           </p>
           <p class="text-xs text-gray-500 mt-1">Purchasing power erosion</p>

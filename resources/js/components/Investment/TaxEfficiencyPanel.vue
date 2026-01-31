@@ -139,7 +139,7 @@
           </div>
           <div class="text-center p-4 bg-gray-50 rounded-lg">
             <p class="text-sm text-gray-600 mb-1">CGT Allowance</p>
-            <p class="text-xl font-bold text-orange-600">{{ formatCurrency(currentPosition.cgt_allowance) }}</p>
+            <p class="text-xl font-bold text-blue-600">{{ formatCurrency(currentPosition.cgt_allowance) }}</p>
           </div>
         </div>
 
@@ -178,7 +178,7 @@
       <div v-if="taxLossOpportunities.length > 0" class="bg-white rounded-lg border border-gray-200 overflow-hidden">
         <div class="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
           <h3 class="text-lg font-semibold text-gray-800">Tax-Loss Harvesting Opportunities</h3>
-          <span class="px-2 py-1 bg-orange-500 text-white text-xs font-medium rounded">
+          <span class="px-2 py-1 bg-blue-500 text-white text-xs font-medium rounded">
             {{ taxLossOpportunities.length }} opportunities
           </span>
         </div>
@@ -212,7 +212,7 @@
                 <td class="text-center py-3 px-4">
                   <button
                     @click="openHarvestModal(opp)"
-                    class="px-3 py-1 bg-orange-500 text-white text-xs rounded hover:bg-orange-600"
+                    class="px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600"
                   >
                     Harvest Loss
                   </button>
@@ -222,7 +222,7 @@
           </table>
         </div>
         <div class="px-4 py-3 bg-gray-50 rounded-b-lg">
-          <p class="text-xs text-orange-700">
+          <p class="text-xs text-blue-700">
             <strong>Note:</strong> The 30-day bed-and-breakfasting rule applies. You cannot repurchase substantially the same securities within 30 days.
           </p>
         </div>
@@ -319,12 +319,12 @@
       <!-- Dividend Tax Info -->
       <div v-if="currentPosition.dividend_excess > 0" class="bg-gray-50 rounded-lg p-4">
         <div class="flex items-start">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 text-orange-600 mr-3 flex-shrink-0">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 text-blue-600 mr-3 flex-shrink-0">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
           </svg>
           <div>
-            <p class="font-semibold text-orange-800">Dividend Allowance Exceeded</p>
-            <p class="text-sm text-orange-700">
+            <p class="font-semibold text-blue-800">Dividend Allowance Exceeded</p>
+            <p class="text-sm text-blue-700">
               Your estimated annual dividend income of {{ formatCurrency(currentPosition.annual_dividend_income) }}
               exceeds the {{ formatCurrency(currentPosition.dividend_allowance) }} allowance by
               {{ formatCurrency(currentPosition.dividend_excess) }}.
@@ -429,7 +429,7 @@ export default {
 
     cgtPositionClass() {
       if (this.cgtExcess > 0) return 'text-red-600';
-      return 'text-orange-600';
+      return 'text-blue-600';
     },
 
     netPositionClass() {
@@ -442,7 +442,7 @@ export default {
     isaUrgencyClass() {
       const utilization = this.currentPosition.isa_utilization || 0;
       if (utilization >= 80) return 'bg-green-500 text-white rounded-lg';
-      if (utilization >= 50) return 'bg-orange-500 text-white rounded-lg';
+      if (utilization >= 50) return 'bg-blue-500 text-white rounded-lg';
       return 'bg-red-500 text-white rounded-lg';
     },
 
@@ -465,7 +465,7 @@ export default {
 
     daysRemainingClass() {
       if (this.daysRemaining <= 30) return 'text-red-600 font-semibold';
-      if (this.daysRemaining <= 90) return 'text-orange-600 font-medium';
+      if (this.daysRemaining <= 90) return 'text-blue-600 font-medium';
       return 'text-gray-600';
     },
 
@@ -509,7 +509,7 @@ export default {
         case 'high':
           return 'bg-red-500 text-white';
         case 'medium':
-          return 'bg-orange-500 text-white';
+          return 'bg-blue-500 text-white';
         case 'low':
           return 'bg-green-500 text-white';
         default:

@@ -177,8 +177,8 @@
         </div>
       </div>
 
-      <div class="mt-6 p-4 bg-orange-50 border border-orange-200 rounded-lg">
-        <p class="text-sm text-orange-900">
+      <div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <p class="text-sm text-blue-900">
           <strong>Hybrid Approach:</strong> Many retirees use a combination of both strategies.
           For example, use an annuity to cover essential expenses and drawdown for discretionary spending.
         </p>

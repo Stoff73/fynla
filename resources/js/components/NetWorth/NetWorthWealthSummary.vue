@@ -29,7 +29,7 @@
       <div v-if="filteredSpouseOverview" class="chart-item">
         <AssetAllocationDonut
           :breakdown="combinedBreakdown"
-          title="Combined Wealth Allocation"
+          title="Combined Asset Allocation"
         />
       </div>
     </div>
