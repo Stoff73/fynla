@@ -392,4 +392,22 @@ class TaxConfigService
 
         return $typeInfo['will_override'] ?? false;
     }
+
+    /**
+     * Get Child Benefit configuration
+     *
+     * @return array Contains weekly/annual rates and HICBC thresholds
+     */
+    public function getChildBenefit(): array
+    {
+        return $this->get('benefits.child_benefit', [
+            'eldest_child_weekly' => 26.05,
+            'additional_child_weekly' => 17.25,
+            'eldest_child_annual' => 1354.60,
+            'additional_child_annual' => 897.00,
+            'high_income_charge_threshold' => 60000,
+            'high_income_full_clawback' => 80000,
+            'clawback_increment' => 200,
+        ]);
+    }
 }

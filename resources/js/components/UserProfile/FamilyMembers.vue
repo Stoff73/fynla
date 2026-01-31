@@ -76,6 +76,15 @@
                 <span class="hidden sm:inline">Shared from Spouse</span>
                 <span class="sm:hidden">Shared</span>
               </span>
+              <!-- Child Benefit Badge -->
+              <span
+                v-if="member.receives_child_benefit"
+                class="inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"
+                title="Child Benefit is claimed for this child"
+              >
+                <span class="hidden sm:inline">Child Benefit</span>
+                <span class="sm:hidden">CB</span>
+              </span>
               <!-- Linked Account Indicator for Spouse -->
               <span
                 v-if="member.relationship === 'spouse' && member.email"

@@ -36,6 +36,7 @@ class UpdateFamilyMemberRequest extends FormRequest
             'annual_income' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:9999999999.99'],
             'is_dependent' => ['sometimes', 'boolean'],
             'education_status' => ['sometimes', 'nullable', Rule::in(['pre_school', 'primary', 'secondary', 'further_education', 'higher_education', 'graduated', 'not_applicable'])],
+            'receives_child_benefit' => ['sometimes', 'nullable', 'boolean'],
             'notes' => ['sometimes', 'nullable', 'string', 'max:1000'],
         ];
     }
