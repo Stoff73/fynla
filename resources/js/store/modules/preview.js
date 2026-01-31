@@ -33,13 +33,14 @@ const PERSONA_DATA = {
 };
 
 // Persona display order for the selector UI
+// Order: Carters, Mitchells, Chen, Morgan, then others
 const PERSONA_ORDER = [
-    'young_saver',
-    'young_family',
-    'entrepreneur',
-    'peak_earners',
-    'retired_couple',
-    'widow',
+    'young_family',    // James & Emily Carter
+    'peak_earners',    // David & Sarah Mitchell
+    'entrepreneur',    // Alex Chen
+    'young_saver',     // John Morgan
+    'retired_couple',  // Robert & Patricia Williams
+    'widow',           // Margaret Thompson
 ];
 
 /**
