@@ -304,18 +304,15 @@ const actions = {
         }
     },
 
-    async toggleIncludedInvestment({ commit, rootState }, id) {
+    async toggleIncludedInvestment({ commit, dispatch }, id) {
         try {
             // Call API to persist the toggle
             const response = await investmentService.toggleRetirementInclusion(id);
             if (response.success) {
-                // Update local state
+                // Update local retirement state
                 commit('TOGGLE_INCLUDED_INVESTMENT', id);
-                // Update the account in the investment store
-                const account = rootState.investment.accounts.find(a => a.id === id);
-                if (account) {
-                    account.include_in_retirement = response.data.include_in_retirement;
-                }
+                // Refresh investment accounts to get updated include_in_retirement flag
+                await dispatch('investment/fetchAccounts', null, { root: true });
             }
         } catch (error) {
             console.error('Failed to toggle retirement inclusion:', error);
@@ -323,18 +320,15 @@ const actions = {
         }
     },
 
-    async toggleIncludedCash({ commit, rootState }, id) {
+    async toggleIncludedCash({ commit, dispatch }, id) {
         try {
             // Call API to persist the toggle
             const response = await savingsService.toggleRetirementInclusion(id);
             if (response.success) {
-                // Update local state
+                // Update local retirement state
                 commit('TOGGLE_INCLUDED_CASH', id);
-                // Update the account in the savings store
-                const account = rootState.savings.accounts.find(a => a.id === id);
-                if (account) {
-                    account.include_in_retirement = response.data.include_in_retirement;
-                }
+                // Refresh savings accounts to get updated include_in_retirement flag
+                await dispatch('savings/fetchSavingsData', null, { root: true });
             }
         } catch (error) {
             console.error('Failed to toggle retirement inclusion:', error);
