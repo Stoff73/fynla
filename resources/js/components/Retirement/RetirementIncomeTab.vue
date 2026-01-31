@@ -348,7 +348,7 @@
       />
 
       <!-- Year-by-Year Projection Table -->
-      <div v-if="requiredCapital?.year_by_year_projection?.length > 0" class="table-section">
+      <div v-if="requiredCapital?.year_by_year?.length > 0" class="table-section">
         <h4 class="table-title">Year-by-Year Projection</h4>
         <div class="table-container">
           <table class="projection-table">
@@ -363,15 +363,15 @@
             </thead>
             <tbody>
               <tr
-                v-for="row in requiredCapital.year_by_year_projection"
-                :key="row.year"
-                :class="{ 'retirement-row': row.age === retirementAge }"
+                v-for="row in requiredCapital.year_by_year"
+                :key="row.year_number"
+                :class="{ 'retirement-row': row.is_retirement_year }"
               >
-                <td>{{ row.year }}</td>
+                <td>{{ row.calendar_year }}</td>
                 <td>{{ row.age }}</td>
-                <td>{{ formatCurrency(row.projected_pot_value) }}</td>
-                <td>{{ formatCurrency(row.pot_in_todays_money) }}</td>
-                <td>{{ formatCurrency(row.target_in_todays_money) }}</td>
+                <td>{{ formatCurrency(row.accumulated_value) }}</td>
+                <td>{{ formatCurrency(row.present_value_today) }}</td>
+                <td>{{ formatCurrency(row.target_in_today_money) }}</td>
               </tr>
             </tbody>
           </table>
