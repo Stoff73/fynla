@@ -60,6 +60,62 @@
       <p class="mt-1 text-xs text-gray-500">Current total value of the account</p>
     </div>
 
+    <!-- Bond-specific fields (onshore/offshore bonds) -->
+    <div v-if="isBondType" class="space-y-4 pt-4 border-t border-gray-200">
+      <h4 class="text-sm font-semibold text-gray-900">Bond Details</h4>
+
+      <!-- Bond Purchase Date -->
+      <div>
+        <label for="bond_purchase_date" class="block text-sm font-medium text-gray-700 mb-1">
+          Bond Purchase Date
+        </label>
+        <input
+          id="bond_purchase_date"
+          v-model="localData.bond_purchase_date"
+          type="date"
+          class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <p class="mt-1 text-xs text-gray-500">
+          The date you purchased this bond (used to calculate 5% withdrawal allowance)
+        </p>
+      </div>
+
+      <!-- 5% Withdrawal Taken -->
+      <div>
+        <label for="bond_withdrawal_taken" class="block text-sm font-medium text-gray-700 mb-1">
+          5% Withdrawal Already Taken (£)
+        </label>
+        <input
+          id="bond_withdrawal_taken"
+          v-model.number="localData.bond_withdrawal_taken"
+          type="number"
+          step="0.01"
+          min="0"
+          class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="0.00"
+        />
+        <p class="mt-1 text-xs text-gray-500">
+          Total amount of tax-deferred 5% annual withdrawals you have taken to date
+        </p>
+      </div>
+
+      <!-- 5% Withdrawal Info Box -->
+      <div class="bg-blue-50 border border-blue-200 rounded-md p-3">
+        <div class="flex items-start gap-2">
+          <svg class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <div class="text-sm text-blue-800">
+            <p class="font-medium">5% Tax-Deferred Withdrawals</p>
+            <p class="mt-1">
+              You can withdraw up to 5% of your original investment each year without triggering a chargeable event.
+              Unused allowance can be carried forward to future years.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Contributions Section (only for non-ISA accounts) -->
     <div v-if="!isISAType" class="space-y-4 pt-4 border-t border-gray-200">
       <h4 class="text-sm font-semibold text-gray-900">Regular Contributions</h4>
@@ -541,6 +597,10 @@ export default {
 
     isNSIType() {
       return this.accountType === 'nsi';
+    },
+
+    isBondType() {
+      return ['onshore_bond', 'offshore_bond'].includes(this.accountType);
     },
 
     hasRiskProfile() {

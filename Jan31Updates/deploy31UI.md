@@ -147,6 +147,33 @@ resources/js/components/NetWorth/Property/PropertyDetailInline.vue
 
 ---
 
+## Investment Bonds - Add Purchase Date and 5% Withdrawal Fields
+
+Added optional bond-specific fields for onshore and offshore bond accounts.
+
+### New Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| Bond Purchase Date | Date | Date the bond was purchased (used to calculate 5% withdrawal allowance) |
+| 5% Withdrawal Taken | Currency | Total amount of tax-deferred 5% annual withdrawals taken to date |
+
+### Features
+- Fields only appear when account type is "Onshore Bond" or "Offshore Bond"
+- Both fields are optional (not required)
+- Info box explains the 5% annual withdrawal rule and carry-forward allowance
+- Data stored in `investment_accounts` table
+
+### Files Changed
+```
+database/migrations/2026_01_31_135615_add_bond_fields_to_investment_accounts_table.php (new)
+app/Models/Investment/InvestmentAccount.php
+resources/js/components/Investment/AccountForm.vue
+resources/js/components/Investment/StandardInvestmentFields.vue
+```
+
+---
+
 ## Orange/Amber Color Removal
 
 Removed all orange/amber colors from the codebase per the design system rules in `designStyle.md`. Orange and amber are banned colors - replaced with blue for warnings/cautions, and appropriate semantic colors for other use cases.
@@ -489,6 +516,7 @@ php artisan cache:clear && php artisan config:clear
 - [ ] Onboarding - skip Expenditure step and verify progress bar shows it as blue (skipped) not green (completed)
 - [ ] Expenditure - verify Financial Commitments categories expand to show individual items (properties, investments, etc.)
 - [ ] Expenditure - verify clicking a property expands to show expense breakdown (Mortgage, Council Tax, etc.)
+- [ ] Investment - add Onshore/Offshore Bond and verify Bond Details section appears with purchase date and withdrawal fields
 
 ---
 

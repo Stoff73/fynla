@@ -188,6 +188,9 @@ export default {
         joint_owner_id: null,
         trust_id: null,
         risk_preference: null,
+        // Bond-specific fields (onshore/offshore bonds)
+        bond_purchase_date: null,
+        bond_withdrawal_taken: null,
         // Private Company / Crowdfunding fields
         company_legal_name: '',
         company_registration_number: '',
@@ -339,6 +342,10 @@ export default {
 
     isNSIType() {
       return this.formData.account_type === 'nsi';
+    },
+
+    isBondType() {
+      return ['onshore_bond', 'offshore_bond'].includes(this.formData.account_type);
     },
 
     isPrivateInvestmentType() {
@@ -885,6 +892,9 @@ export default {
         joint_owner_id: null,
         trust_id: null,
         risk_preference: null,
+        // Bond-specific fields (onshore/offshore bonds)
+        bond_purchase_date: null,
+        bond_withdrawal_taken: null,
         // Private Company / Crowdfunding fields
         company_legal_name: '',
         company_registration_number: '',
