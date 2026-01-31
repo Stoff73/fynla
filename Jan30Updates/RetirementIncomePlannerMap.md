@@ -1,5 +1,18 @@
 # Retirement Income Planner - Technical Map
 
+## CRITICAL: Income Calculation Rule                                                                                      
+                                                                                                                            
+  Income is CALCULATED from available assets, NOT fixed at target.                                                          
+                                                                                                                            
+  When ANY asset is added/removed/changed:                                                                                  
+  1. Recalculate PMT for ALL included tax-free assets                                                                       
+  2. Sum PMT withdrawals = Available Tax-Free Income                                                                        
+  3. If gap to target exists, fill with pension drawdown                                                                    
+  4. If total PMT > target, reduce pension drawdown to £0 (zero tax)                                                        
+  5. Projected Net Income = Sum of all calculated withdrawals                                                               
+                                                                                                                            
+  THE INCOME CHANGES WHEN ASSETS CHANGE.                 
+
 ## Executive Summary
 
 The Retirement Income Planner is a Vue.js + Laravel module that calculates tax-optimised retirement income drawdown strategies. Users can interactively model their retirement income from multiple account types (pensions, ISAs, GIAs, savings) with real-time tax calculations, fund depletion projections, and tax-efficient allocation recommendations.
@@ -644,3 +657,374 @@ The system optimises for the user by:
 8. **Account-level control** - Only accounts marked "include in retirement" appear in planner
 
 The user can override any allocation, but the defaults provide a tax-optimised starting point that minimises overall tax liability while meeting their target retirement income.
+
+---
+
+## 14. Fund Depletion Calculation - Correct Process
+
+### Step 1: Get Target Income
+
+Get the **Target Retirement Income** value from the Pension Pot Forecast Detail View. This is the starting income figure for all calculations.
+
+### Step 2: Calculate Total Funds
+
+Sum ALL drawable funds at retirement:
+
+```
+Total Funds = Projected Pension Pot (80% Monte Carlo)
+            + All Included Investment Accounts (projected to retirement)
+            + All Included Savings Accounts (projected to retirement)
+```
+
+Only accounts marked `include_in_retirement = true` are included.
+
+### Step 3: Check Sustainability
+
+Check if the **Target Income** will deplete **Total Funds** before age 100:
+
+```
+For each year from retirement_age to 100:
+    1. Withdraw target income amount
+    2. Apply growth to remaining balance
+    3. Check if total_funds <= 0
+```
+
+### Step 4: Adjust If Necessary
+
+**If funds DO NOT deplete before age 100:**
+→ Use Target Income as-is, show the plan
+
+**If funds DO deplete before age 100:**
+→ Calculate reduced income that depletes funds to £0 AT age 100
+
+Use PMT formula to find sustainable withdrawal:
+```
+Sustainable Withdrawal = Total Funds × (r × (1+r)^n) / ((1+r)^n - 1)
+
+Where:
+  r = weighted average growth rate (typically 4%)
+  n = years in retirement (100 - retirement_age)
+```
+
+**Tolerance:** ±5 years is acceptable. If funds deplete at age 95-105, this is fine.
+
+### Step 5: Tax-Efficient Withdrawal Order
+
+When withdrawing funds each year, follow this order:
+
+```
+1. PCLS (25% of pension pot) - Tax-free
+2. Bonds (5% of original investment) - Tax-deferred
+3. ISA - Tax-free
+4. Pension Pot Drawdown (75% of pot) - Taxable
+5. GIA - Taxable
+6. Savings - Taxable
+```
+
+### Step 6: Year-by-Year Projection
+
+For each year from retirement to age 100:
+
+```
+START OF YEAR:
+  - Record balances for each fund type
+
+WITHDRAWALS:
+  - Withdraw in tax-efficient order (Step 5)
+  - Withdraw up to annual income target
+  - Cap withdrawal at available balance per fund
+  - Record withdrawal per fund type
+
+END OF YEAR:
+  - Apply growth to remaining balances:
+    - Pension/ISA/Bond/GIA: 4% growth
+    - Cash/Savings: 2% growth
+  - Record new balances
+  - Record total_funds (sum of all balances)
+```
+
+### Step 7: Output
+
+```
+Year-by-Year Table:
+| Age | Withdrawal | Pension | ISA | Bond | GIA | Savings | Growth | Total Balance |
+
+Summary:
+- Total Starting Funds: £X
+- Annual Withdrawal: £Y
+- Sustainable Withdrawal: £Z
+- Income Was Adjusted: true/false
+- All Funds Depleted At: Age X
+```
+
+### Key Rules
+
+1. **Income = Withdrawal** for tax-free sources (ISA, PCLS). If withdrawing £50k from ISA, income shown is £50k.
+
+2. **Math must balance**: `Previous Balance - Withdrawal + Growth = New Balance`
+
+3. **PCLS is separate** from Pension Drawdown. Track as separate buckets:
+   - `pension_pot_pcls` = 25% of projected pot (tax-free)
+   - `pension_pot_drawdown` = 75% of projected pot (taxable)
+
+4. **Only allocated accounts** appear in projections. Don't show accounts that aren't in the income plan.
+
+5. **Target is ceiling, not floor**. Never withdraw MORE than target income. Only withdraw LESS if funds are insufficient.
+
+---
+
+## 15. Fix: True Tax Optimisation Logic (UPDATED)
+
+### The Problem (Fixed)
+
+The original implementation had these issues:
+
+1. **Tax-free sources used fixed rates**: ISA used 4.7%, Bonds used 5% - but these don't deplete accounts to £0 at age 100.
+
+2. **GIA not included from start**: GIA was only used as fallback, not proportionally with pension.
+
+3. **Tax-free money left at death**: Using sustainable rates meant tax-free accounts still had balances at age 100.
+
+### The Correct Logic (PMT-Based Depletion)
+
+#### Rule 1: Use PMT Formula to Deplete Tax-Free at Age 100
+
+Tax-free accounts should reach £0 at age 100. Use PMT formula for growing accounts:
+
+```
+PMT Formula: Annual Withdrawal = Balance × (r × (1+r)^n) / ((1+r)^n - 1)
+
+Where:
+  r = growth rate (4% for investments, 0% for cash)
+  n = years to age 100
+
+PCLS Annual = PCLS Total ÷ Years to 100 (no growth - simple division)
+Bond Annual = PMT(bond_balance, 0.04, years_to_100)
+ISA Annual  = PMT(isa_balance, growth_rate, years_to_100)
+  - Investment ISA: 4% growth
+  - Cash ISA: 0% growth (simple division)
+```
+
+#### Rule 2: PMT Multipliers by Years
+
+Quick reference for 4% growth:
+
+```
+Years to 100 | PMT Multiplier
+-------------|----------------
+    35       |    0.0536
+    38       |    0.0508
+    40       |    0.0505
+    42       |    0.0495
+    45       |    0.0483
+
+Example: £200,000 ISA, 35 years to 100
+PMT = £200,000 × 0.0536 = £10,720/year
+```
+
+#### Rule 3: Include GIA Proportionally from Start
+
+When taxable income is needed, split between Pension Drawdown and GIA proportionally:
+
+```
+Pension Balance: £600,000
+GIA Balance: £150,000
+Total Taxable: £750,000
+
+Pension share: 600,000 / 750,000 = 80%
+GIA share: 150,000 / 750,000 = 20%
+
+If £50,000 taxable needed:
+  Pension: £40,000
+  GIA: £10,000
+```
+
+#### Rule 4: Only Reduce Income If Funds Deplete Before 100
+
+```
+1. Simulate depletion with FULL target income using PMT allocations
+2. Check: Do funds hit £0 BEFORE age 100?
+
+IF funds > £0 at age 100:
+  → Use full target income
+  → Tax-free accounts deplete to £0
+  → Pension/GIA may have remaining balance (acceptable)
+
+IF funds = £0 BEFORE age 100:
+  → Income exceeds sustainable level
+  → Show warning: "Income will drop at age X"
+  → Or reduce target to sustainable level
+```
+
+### Correct Allocation Order (PMT-Based)
+
+When allocating target income to sources:
+
+```
+Step 1: Calculate PMT withdrawals to deplete tax-free at age 100
+  PCLS Annual = PCLS Total ÷ Years to 100
+  Bond PMT = PMT(bond_balance, 0.04, years_to_100)
+  ISA PMT = PMT(isa_balance, growth_rate, years_to_100)
+
+Step 2: Allocate from tax-free sources FIRST (using PMT rates)
+  remaining = target_income
+
+  IF PCLS PMT available AND remaining > 0:
+    allocate min(PCLS PMT, remaining) to PCLS
+    remaining -= allocated
+
+  IF Bond PMT available AND remaining > 0:
+    allocate min(Bond PMT, remaining) to Bond
+    remaining -= allocated
+
+  IF ISA PMT available AND remaining > 0:
+    allocate min(ISA PMT, remaining) to ISA
+    remaining -= allocated
+
+Step 3: If tax-free doesn't cover target, use TAXABLE sources proportionally
+  IF remaining > 0:
+    Calculate PMT for Pension Drawdown and GIA
+    Split remaining proportionally by balance
+    Pension + GIA both deplete together
+
+  IF still remaining > 0:
+    allocate from Savings
+```
+
+### Example: £80k Target (PMT-Based)
+
+```
+User has:
+  Pension Pot: £1,000,000 (PCLS = £250,000, Drawdown = £750,000)
+  ISA: £400,000
+  Bonds: £200,000 (current value)
+
+Years in Retirement: 32 (age 68 to 100)
+PMT Multiplier at 4% for 32 years: 0.0540
+
+Tax-Free PMT (to deplete at 100):
+  PCLS Annual: £250,000 ÷ 32 = £7,812
+  Bond PMT: £200,000 × 0.0540 = £10,800
+  ISA PMT: £400,000 × 0.0540 = £21,600
+
+  TOTAL TAX-FREE PMT: £40,212/year
+
+Target Income: £80,000
+
+Allocation (all tax-free accounts deplete at 100):
+  PCLS: £7,812 (tax-free)
+  Bond: £10,800 (tax-deferred)
+  ISA: £21,600 (tax-free)
+
+  Remaining: £80,000 - £40,212 = £39,788 (taxable)
+  Pension Drawdown: £39,788
+
+Tax Calculation:
+  Personal Allowance: £12,570 @ 0%
+  Basic Rate: £39,788 - £12,570 = £27,218 @ 20% = £5,444
+
+  Total Tax: £5,444
+  Net Income: £74,556
+```
+
+### Example: £40k Target - ZERO TAX (PMT-Based)
+
+```
+Same funds as above, target is £40,000
+
+Tax-Free PMT Available: £40,212/year
+
+Since £40,212 > £40,000, we can achieve ZERO TAX!
+
+Allocation (adjusted to hit target):
+  PCLS: £7,812 (tax-free)
+  Bond: £10,800 (tax-deferred)
+  ISA: £21,388 (reduced slightly to hit target)
+  Pension Drawdown: £0
+
+Tax Calculation:
+  No taxable income = ZERO TAX
+
+  Total Tax: £0
+  Net Income: £40,000
+
+Note: ISA slightly under PMT rate, so ISA won't fully deplete at 100.
+This is acceptable - tax-free balance at death is fine.
+```
+
+### Fund Depletion Check
+
+```
+AFTER allocations are calculated using PMT rates:
+
+1. Simulate year-by-year with PMT-based allocations
+2. Track each fund balance
+3. Tax-free accounts should reach £0 at age 100
+
+Expected outcomes:
+  - PCLS: £0 at age 100 (simple division, no growth)
+  - Bonds: £0 at age 100 (PMT with 4% growth)
+  - ISA: £0 at age 100 (PMT with 4% growth)
+  - Pension: May have balance (taxable, acts as reserve)
+  - GIA: May have balance (taxable, acts as reserve)
+
+IF target income > sustainable:
+  → Taxable accounts deplete before 100
+  → Tax-free accounts still deplete at 100 (correct!)
+  → Show warning: "Income may need to reduce at age X"
+```
+
+### Tax Breakdown Must Match Year-by-Year Table
+
+The tax breakdown and year-by-year withdrawal table MUST show identical values:
+
+```
+Tax Breakdown shows:
+  PCLS: £7,812 (depletes at 100)
+  Bond: £10,800 (depletes at 100)
+  ISA: £21,600 (depletes at 100)
+  Pension Drawdown: £39,788
+
+Year-by-Year Table (Age 68) shows:
+  PCLS withdrawal: £7,812
+  Bond withdrawal: £10,800
+  ISA withdrawal: £21,600
+  Pension withdrawal: £39,788
+
+These MUST match. If they don't, there's a bug.
+```
+
+### Summary of Code Changes (IMPLEMENTED)
+
+1. **`calculateDefaultAllocations()`**:
+   - PCLS: `PCLS Total ÷ Years to 100` (simple division, no growth)
+   - Bonds: `PMT(balance, 4%, years_to_100)` - depletes at 100
+   - ISA: `PMT(balance, growth_rate, years_to_100)` - depletes at 100
+   - GIA: Included from start, split proportionally with pension
+
+2. **`calculateDefaultAllocations()`**: Tax-free sources allocated using PMT rates to ensure depletion at age 100
+
+3. **`projectFundDepletion()`**: Withdraws in tax-efficient order (PCLS → Bonds → ISA → Drawdown → GIA → Savings)
+
+4. **Taxable split**: When taxable income needed, Pension and GIA are split proportionally by balance so they deplete together
+
+5. **Sustainability check**: If `totalTaxablePMT < remainingTarget`, income is NOT sustainable - show warning
+
+### PMT Formula Reference
+
+```
+PMT = PV × (r × (1+r)^n) / ((1+r)^n - 1)
+
+Where:
+  PV = Present Value (account balance)
+  r = growth rate (0.04 for investments, 0 for cash)
+  n = years to age 100
+
+Quick multipliers at 4%:
+  30 years: 0.0578
+  32 years: 0.0540
+  35 years: 0.0536
+  38 years: 0.0508
+  40 years: 0.0505
+  45 years: 0.0483
+```

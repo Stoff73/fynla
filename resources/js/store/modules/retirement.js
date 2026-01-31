@@ -132,17 +132,21 @@ const mutations = {
         state.includedCashIds = ids;
     },
     TOGGLE_INCLUDED_INVESTMENT(state, id) {
-        const index = state.includedInvestmentIds.indexOf(id);
+        // Use numeric comparison to handle type mismatches (string vs number)
+        const numericId = parseInt(id, 10);
+        const index = state.includedInvestmentIds.findIndex(existingId => parseInt(existingId, 10) === numericId);
         if (index === -1) {
-            state.includedInvestmentIds.push(id);
+            state.includedInvestmentIds.push(numericId);
         } else {
             state.includedInvestmentIds.splice(index, 1);
         }
     },
     TOGGLE_INCLUDED_CASH(state, id) {
-        const index = state.includedCashIds.indexOf(id);
+        // Use numeric comparison to handle type mismatches (string vs number)
+        const numericId = parseInt(id, 10);
+        const index = state.includedCashIds.findIndex(existingId => parseInt(existingId, 10) === numericId);
         if (index === -1) {
-            state.includedCashIds.push(id);
+            state.includedCashIds.push(numericId);
         } else {
             state.includedCashIds.splice(index, 1);
         }

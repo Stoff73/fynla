@@ -152,20 +152,37 @@
           <div class="bg-blue-50 rounded-lg p-4 mb-4">
             <div class="flex items-center justify-between mb-1">
               <p class="text-xs text-blue-600 uppercase tracking-wide">Projected Value (80%)</p>
+              <!-- Show fixed "To Retirement" text for retirement-included accounts -->
+              <span
+                v-if="isIncludedInRetirement && yearsToRetirement"
+                class="px-2 py-1 text-xs bg-teal-100 text-teal-700 rounded font-medium"
+              >
+                To Retirement ({{ yearsToRetirement }} yrs)
+              </span>
+              <!-- Show dropdown for non-retirement accounts -->
               <select
+                v-else
                 v-model="selectedProjectionYears"
                 @change="updateProjectionData"
                 class="px-2 py-1 text-xs border border-blue-200 rounded bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
-                <option :value="5">5 Years</option>
-                <option :value="10">10 Years</option>
-                <option :value="20">20 Years</option>
-                <option :value="30">30 Years</option>
+                <option
+                  v-for="option in projectionYearOptions"
+                  :key="option.value"
+                  :value="option.value"
+                >
+                  {{ option.label }}
+                </option>
               </select>
             </div>
             <p class="text-2xl font-bold text-blue-900">{{ formatProjectedValue80 }}</p>
             <p class="text-sm text-blue-600 mt-1">
-              in {{ selectedProjectionYears }} years
+              <template v-if="isIncludedInRetirement && yearsToRetirement">
+                at retirement in {{ yearsToRetirement }} years
+              </template>
+              <template v-else>
+                in {{ selectedProjectionYears }} years
+              </template>
             </p>
           </div>
 
@@ -294,6 +311,8 @@ import investmentService from '@/services/investmentService';
 import diversificationService from '@/services/diversificationService';
 import rebalancingService from '@/services/rebalancingService';
 import api from '@/services/api';
+import { mapState } from 'vuex';
+import { PRIMARY_COLORS, SUCCESS_COLORS, BORDER_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'AccountPerformancePanel',
@@ -333,8 +352,37 @@ export default {
   },
 
   computed: {
+    ...mapState('auth', ['currentUser']),
+    ...mapState('retirement', ['profile']),
+
     hasProjectionData() {
       return this.projectionData?.year_by_year?.length > 0;
+    },
+
+    // Check if account is included in retirement planning
+    isIncludedInRetirement() {
+      return this.account.include_in_retirement === true;
+    },
+
+    // Calculate years to retirement
+    yearsToRetirement() {
+      const retirementAge = this.profile?.target_retirement_age || this.currentUser?.target_retirement_age || 68;
+      const currentAge = this.currentUser?.date_of_birth
+        ? Math.floor((new Date() - new Date(this.currentUser.date_of_birth)) / (365.25 * 24 * 60 * 60 * 1000))
+        : null;
+
+      if (!currentAge) return null;
+      return Math.max(1, retirementAge - currentAge);
+    },
+
+    // Dropdown options for non-retirement accounts
+    projectionYearOptions() {
+      return [
+        { value: 5, label: '5 Years' },
+        { value: 10, label: '10 Years' },
+        { value: 20, label: '20 Years' },
+        { value: 30, label: '30 Years' },
+      ];
     },
 
     userShareValue() {
@@ -406,14 +454,18 @@ export default {
             speed: 800,
           },
         },
-        colors: ['#1e3a5f', '#3b82f6', '#14b8a6', '#a7f3d0'],
+        colors: [PRIMARY_COLORS[900], PRIMARY_COLORS[600], SUCCESS_COLORS[500], SUCCESS_COLORS[400]],
         stroke: {
           curve: 'smooth',
           width: [1, 1, 1, 1],
         },
         fill: {
-          type: 'solid',
-          opacity: 0.5,
+          type: 'gradient',
+          gradient: {
+            opacityFrom: 0.5,
+            opacityTo: 0.1,
+            stops: [0, 90, 100],
+          },
         },
         xaxis: {
           categories: this.years,
@@ -469,7 +521,7 @@ export default {
           },
         },
         grid: {
-          borderColor: '#e5e7eb',
+          borderColor: BORDER_COLORS.default,
           strokeDashArray: 4,
         },
         dataLabels: {
@@ -553,6 +605,8 @@ export default {
       immediate: true,
       handler(newId) {
         if (newId) {
+          // Set projection years based on retirement inclusion
+          this.setProjectionYearsForAccount();
           this.loadProjections();
           this.loadDiversification();
           this.loadRebalancing();
@@ -560,9 +614,37 @@ export default {
         }
       },
     },
+    // Re-evaluate when profile loads (for retirement years calculation)
+    profile: {
+      handler() {
+        if (this.isIncludedInRetirement && this.yearsToRetirement) {
+          this.setProjectionYearsForAccount();
+          this.updateProjectionData();
+        }
+      },
+    },
+  },
+
+  mounted() {
+    // Fetch retirement data (includes profile) if not already loaded
+    if (!this.profile) {
+      this.$store.dispatch('retirement/fetchRetirementData').catch(() => {
+        // Silently fail - profile is optional for this feature
+      });
+    }
   },
 
   methods: {
+    setProjectionYearsForAccount() {
+      // For retirement-included accounts, always use years to retirement
+      if (this.isIncludedInRetirement && this.yearsToRetirement) {
+        this.selectedProjectionYears = this.yearsToRetirement;
+      } else if (this.selectedProjectionYears === 'retirement') {
+        // Reset to default if was previously set to retirement but no longer applicable
+        this.selectedProjectionYears = 10;
+      }
+    },
+
     async loadProjections() {
       this.loading = true;
       this.error = null;
@@ -594,12 +676,28 @@ export default {
     updateProjectionData() {
       if (!this.allProjections?.projections) return;
 
-      const selectedData = this.allProjections.projections[this.selectedProjectionYears];
+      // Get the years to project (now always numeric)
+      const yearsKey = this.selectedProjectionYears;
+
+      // Find the closest projection data available
+      const availableYears = Object.keys(this.allProjections.projections).map(Number).sort((a, b) => a - b);
+      let selectedYear = availableYears.find(y => y >= yearsKey) || availableYears[availableYears.length - 1];
+
+      const selectedData = this.allProjections.projections[selectedYear];
       if (selectedData) {
-        this.projectionData = {
-          year_by_year: selectedData.year_by_year,
-          percentiles: selectedData.percentiles,
-        };
+        // For retirement accounts, slice data to exact years to retirement
+        if (this.isIncludedInRetirement && this.yearsToRetirement && selectedYear > this.yearsToRetirement) {
+          const slicedYearByYear = selectedData.year_by_year.slice(0, this.yearsToRetirement + 1);
+          this.projectionData = {
+            year_by_year: slicedYearByYear,
+            percentiles: selectedData.percentiles,
+          };
+        } else {
+          this.projectionData = {
+            year_by_year: selectedData.year_by_year,
+            percentiles: selectedData.percentiles,
+          };
+        }
         this.isChartReady = false;
         this.$nextTick(() => {
           setTimeout(() => {

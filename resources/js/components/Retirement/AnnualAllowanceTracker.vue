@@ -205,7 +205,7 @@ export default {
     progressBarColour() {
       if (this.progressPercent >= 100) return 'bg-red-500';
       if (this.progressPercent >= 80) return 'bg-orange-500';
-      if (this.progressPercent >= 60) return 'bg-yellow-500';
+      if (this.progressPercent >= 60) return 'bg-orange-400';
       return 'bg-green-500';
     },
 
@@ -285,7 +285,7 @@ export default {
 <style scoped>
 /* Progress bar animation */
 .bg-green-500,
-.bg-yellow-500,
+.bg-orange-400,
 .bg-orange-500,
 .bg-red-500 {
   transition: width 0.5s ease-out, background-colour 0.3s ease;

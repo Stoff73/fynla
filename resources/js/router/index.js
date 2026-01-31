@@ -19,6 +19,7 @@ const Dashboard = () => import('@/views/Dashboard.vue');
 const Settings = () => import('@/views/Settings.vue');
 const SecuritySettings = () => import('@/views/Settings/SecuritySettings.vue');
 const PrivacySettings = () => import('@/views/Settings/PrivacySettings.vue');
+const AssumptionsSettings = () => import('@/views/Settings/AssumptionsSettings.vue');
 const UserProfile = () => import('@/views/UserProfile.vue');
 const NetWorthDashboard = () => import('@/views/NetWorth/NetWorthDashboard.vue');
 const NetWorthWealthSummary = () => import('@/components/NetWorth/NetWorthWealthSummary.vue');
@@ -145,6 +146,19 @@ const routes = [
         { label: 'Home', path: '/dashboard' },
         { label: 'Settings', path: '/settings' },
         { label: 'Privacy & Data', path: '/settings/privacy' },
+      ],
+    },
+  },
+  {
+    path: '/settings/assumptions',
+    name: 'AssumptionsSettings',
+    component: AssumptionsSettings,
+    meta: {
+      requiresAuth: true,
+      breadcrumb: [
+        { label: 'Home', path: '/dashboard' },
+        { label: 'Settings', path: '/settings' },
+        { label: 'Planning Assumptions', path: '/settings/assumptions' },
       ],
     },
   },

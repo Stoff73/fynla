@@ -739,8 +739,17 @@ class InvestmentController extends Controller
             ->firstOrFail();
 
         // Toggle the flag
+        $oldValue = $account->include_in_retirement;
         $account->include_in_retirement = ! $account->include_in_retirement;
         $account->save();
+
+        // DEBUG: Log the toggle operation
+        \Log::debug('InvestmentController::toggleRetirementInclusion', [
+            'account_id' => $account->id,
+            'account_type' => $account->account_type,
+            'old_value' => $oldValue,
+            'new_value' => $account->include_in_retirement,
+        ]);
 
         // Clear caches
         $this->investmentAgent->clearCache($user->id);

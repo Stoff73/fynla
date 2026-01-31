@@ -919,24 +919,36 @@ export default {
       const sourceId = parseInt(allocation.source_id, 10); // Ensure numeric for comparison
       let toggled = false;
 
+      console.log('[toggleAllocation] START', { sourceType, sourceId, allocation });
+      console.log('[toggleAllocation] investmentAccounts:', this.investmentAccounts.map(a => ({ id: a.id, type: a.account_type })));
+
       const investmentTypes = ['isa', 'isa_investment', 'stocks_shares_isa', 'onshore_bond', 'offshore_bond', 'gia'];
       const cashTypes = ['isa_cash', 'savings', 'cash_isa'];
 
       if (investmentTypes.includes(sourceType)) {
         // Find the account using numeric comparison
         const account = this.investmentAccounts.find(a => parseInt(a.id, 10) === sourceId);
+        console.log('[toggleAllocation] Found account:', account);
         if (account) {
+          console.log('[toggleAllocation] Calling toggleIncludedInvestment with id:', account.id);
           await this.toggleIncludedInvestment(account.id);
           toggled = true;
+          console.log('[toggleAllocation] Toggle completed, toggled =', toggled);
+        } else {
+          console.log('[toggleAllocation] NO ACCOUNT FOUND for sourceId:', sourceId);
         }
       } else if (cashTypes.includes(sourceType)) {
         await this.toggleIncludedCash(sourceId);
         toggled = true;
       }
 
+      console.log('[toggleAllocation] Calling fetchRetirementIncome...');
       // Always fetch fresh data after toggle attempt
       // This gets new allocations from backend that include/exclude the toggled asset
       await this.fetchRetirementIncome();
+      console.log('[toggleAllocation] fetchRetirementIncome completed');
+      console.log('[toggleAllocation] New fundProjections[0]:', this.fundProjections[0]);
+      console.log('[toggleAllocation] New firstYearNetIncome:', this.firstYearNetIncome);
     },
 
     formatSourceType(type) {

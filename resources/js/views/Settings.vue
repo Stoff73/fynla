@@ -100,6 +100,16 @@
 
           <div class="flex items-center justify-between py-4 border-b border-gray-200">
             <div>
+              <h3 class="text-body-base font-medium text-gray-900">Planning Assumptions</h3>
+              <p class="text-body-sm text-gray-600">Configure assumptions for pension and investment projections</p>
+            </div>
+            <router-link to="/settings/assumptions" class="btn-secondary">
+              Manage Assumptions
+            </router-link>
+          </div>
+
+          <div class="flex items-center justify-between py-4 border-b border-gray-200">
+            <div>
               <h3 class="text-body-base font-medium text-gray-900">Email Notifications</h3>
               <p class="text-body-sm text-gray-600">Manage your email notification preferences</p>
             </div>
