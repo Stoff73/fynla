@@ -521,6 +521,8 @@ php artisan cache:clear && php artisan config:clear
 - [ ] Verify persona cards display in correct order: Carters, Mitchells, Chen, Morgan, Williams, Thompson
 - [ ] In demo mode, verify preview banner button says "Signup Now"
 - [ ] Expenditure - verify Retired and Widowed tab column headers are right-aligned
+- [ ] Investment - add Private Company and verify BADR section appears with eligibility checkboxes
+- [ ] Investment - view Private Company detail and verify BADR section shows eligibility status and CGT savings
 
 ---
 
@@ -576,6 +578,51 @@ Fixed column header alignment in the Retired and Widowed budget tabs to match th
 **Files Changed:**
 ```
 resources/js/components/UserProfile/ExpenditureForm.vue
+```
+
+### Business Asset Disposal Relief (BADR) - Private Company Investments
+
+Added full BADR support for private company investments, allowing users to track eligibility and calculate potential CGT savings.
+
+#### What is BADR?
+Business Asset Disposal Relief reduces CGT to 14% (from 6 April 2025) on qualifying disposals of business assets, with a £1 million lifetime limit.
+
+#### Qualifying Conditions
+- Employee or officer of the company for 2+ years
+- Trading company (not investment company)
+- 5% shareholding (waived for EMI share options)
+- Held shares for 2+ years before disposal
+
+#### New Fields in Private Investment Form
+
+| Field | Type | Description |
+|-------|------|-------------|
+| BADR Eligible | Toggle | Master flag to enable BADR tracking |
+| Employee/Officer | Checkbox | 2+ years as employee/officer |
+| Trading Company | Checkbox | Qualifies as trading company |
+| 5% Shareholding | Checkbox | Holds 5%+ of shares/voting rights |
+| Held 2+ Years | Checkbox | Shares held for qualifying period |
+| EMI Shares | Checkbox | Acquired via EMI scheme (relaxes 5% rule) |
+| Lifetime Used | Currency | Amount of £1m lifetime allowance already used |
+
+#### Detail View Features
+- BADR eligibility status badge (green if fully qualified, yellow if partial)
+- Remaining lifetime allowance display
+- Estimated CGT savings calculation (6% of unrealised gain)
+- Qualifying conditions checklist
+
+**Files Changed:**
+```
+database/migrations/2026_01_31_154201_add_badr_fields_to_investment_accounts_table.php (new)
+app/Models/Investment/InvestmentAccount.php
+resources/js/components/Investment/AccountForm.vue
+resources/js/components/Investment/PrivateInvestmentFields.vue
+resources/js/views/Investment/PrivateInvestmentDetail.vue
+```
+
+**Database Migration Required:** YES
+```bash
+php artisan migrate
 ```
 
 ---
