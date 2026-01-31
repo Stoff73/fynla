@@ -584,23 +584,25 @@ export default {
       const pensionTypes = ['pension_pot', 'pension_pot_pcls', 'pension_pot_drawdown', 'db_pension', 'state_pension'];
       const nonPensionAllocations = allocations.filter(a => !pensionTypes.includes(a.source_type));
 
-      // Add allocations that match included IDs
+      // Add allocations that match included IDs (use numeric comparison for type safety)
       for (const a of nonPensionAllocations) {
         const investmentTypes = ['isa', 'isa_investment', 'stocks_shares_isa', 'gia', 'onshore_bond', 'offshore_bond'];
         const cashTypes = ['isa_cash', 'savings', 'cash_isa'];
+        const sourceIdNum = parseInt(a.source_id, 10);
 
-        if (investmentTypes.includes(a.source_type) && this.storeIncludedInvestmentIds.includes(a.source_id)) {
+        if (investmentTypes.includes(a.source_type) && this.storeIncludedInvestmentIds.some(id => parseInt(id, 10) === sourceIdNum)) {
           result.push(a);
-          seenIds.add(a.source_id);
-        } else if (cashTypes.includes(a.source_type) && this.storeIncludedCashIds.includes(a.source_id)) {
+          seenIds.add(sourceIdNum);
+        } else if (cashTypes.includes(a.source_type) && this.storeIncludedCashIds.some(id => parseInt(id, 10) === sourceIdNum)) {
           result.push(a);
-          seenIds.add(a.source_id);
+          seenIds.add(sourceIdNum);
         }
       }
 
       // Add included investments that don't have allocations yet
       for (const account of this.includedInvestments) {
-        if (!seenIds.has(account.id)) {
+        const accountIdNum = parseInt(account.id, 10);
+        if (!seenIds.has(accountIdNum)) {
           // Create a pseudo-allocation for display
           result.push({
             source_id: account.id,
@@ -614,7 +616,8 @@ export default {
 
       // Add included cash that don't have allocations yet
       for (const account of this.includedCash) {
-        if (!seenIds.has(account.id)) {
+        const accountIdNum = parseInt(account.id, 10);
+        if (!seenIds.has(accountIdNum)) {
           result.push({
             source_id: account.id,
             source_type: account.is_isa ? 'isa_cash' : 'savings',
@@ -666,19 +669,31 @@ export default {
     },
 
     includedInvestments() {
-      return this.investmentAccounts.filter(a => this.storeIncludedInvestmentIds.includes(a.id));
+      // Use numeric comparison for type safety
+      return this.investmentAccounts.filter(a =>
+        this.storeIncludedInvestmentIds.some(id => parseInt(id, 10) === parseInt(a.id, 10))
+      );
     },
 
     excludedInvestments() {
-      return this.investmentAccounts.filter(a => !this.storeIncludedInvestmentIds.includes(a.id));
+      // Use numeric comparison for type safety
+      return this.investmentAccounts.filter(a =>
+        !this.storeIncludedInvestmentIds.some(id => parseInt(id, 10) === parseInt(a.id, 10))
+      );
     },
 
     includedCash() {
-      return this.cashAccounts.filter(a => this.storeIncludedCashIds.includes(a.id));
+      // Use numeric comparison for type safety
+      return this.cashAccounts.filter(a =>
+        this.storeIncludedCashIds.some(id => parseInt(id, 10) === parseInt(a.id, 10))
+      );
     },
 
     excludedCash() {
-      return this.cashAccounts.filter(a => !this.storeIncludedCashIds.includes(a.id));
+      // Use numeric comparison for type safety
+      return this.cashAccounts.filter(a =>
+        !this.storeIncludedCashIds.some(id => parseInt(id, 10) === parseInt(a.id, 10))
+      );
     },
 
     projectedPotAtRetirement() {
@@ -901,29 +916,25 @@ export default {
       // Toggle an allocation based on its source_type
       // Map allocation source_type to the corresponding asset type
       const sourceType = allocation.source_type;
-      const sourceId = allocation.source_id;
+      const sourceId = parseInt(allocation.source_id, 10); // Ensure numeric for comparison
+      let toggled = false;
 
-      if (sourceType === 'isa' || sourceType === 'isa_investment' || sourceType === 'isa_cash') {
-        // Find the account ID from the source_id
-        const account = this.investmentAccounts.find(a => a.id === sourceId);
+      const investmentTypes = ['isa', 'isa_investment', 'stocks_shares_isa', 'onshore_bond', 'offshore_bond', 'gia'];
+      const cashTypes = ['isa_cash', 'savings', 'cash_isa'];
+
+      if (investmentTypes.includes(sourceType)) {
+        // Find the account using numeric comparison
+        const account = this.investmentAccounts.find(a => parseInt(a.id, 10) === sourceId);
         if (account) {
           await this.toggleIncludedInvestment(account.id);
+          toggled = true;
         }
-      } else if (sourceType === 'onshore_bond' || sourceType === 'offshore_bond') {
-        const account = this.investmentAccounts.find(a => a.id === sourceId);
-        if (account) {
-          await this.toggleIncludedInvestment(account.id);
-        }
-      } else if (sourceType === 'gia') {
-        const account = this.investmentAccounts.find(a => a.id === sourceId);
-        if (account) {
-          await this.toggleIncludedInvestment(account.id);
-        }
-      } else if (sourceType === 'savings') {
+      } else if (cashTypes.includes(sourceType)) {
         await this.toggleIncludedCash(sourceId);
+        toggled = true;
       }
 
-      // Fetch fresh data with updated allocations after toggle
+      // Always fetch fresh data after toggle attempt
       // This gets new allocations from backend that include/exclude the toggled asset
       await this.fetchRetirementIncome();
     },
