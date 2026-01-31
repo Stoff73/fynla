@@ -43,6 +43,17 @@ resources/js/components/NetWorth/InvestmentProjections.vue
 
 ---
 
+## Wealth Summary - Fix Combined Chart Heading
+
+Changed the combined pie chart heading from "Combined Wealth Allocation" to "Combined Asset Allocation" for consistency.
+
+### Files Changed
+```
+resources/js/components/NetWorth/NetWorthWealthSummary.vue
+```
+
+---
+
 ## Orange/Amber Color Removal
 
 Removed all orange/amber colors from the codebase per the design system rules in `designStyle.md`. Orange and amber are banned colors - replaced with blue for warnings/cautions, and appropriate semantic colors for other use cases.
@@ -58,7 +69,7 @@ Removed all orange/amber colors from the codebase per the design system rules in
 
 ---
 
-## Files Changed (178 files)
+## Files Changed (179 files)
 
 ### CSS Files (2 files)
 ```
