@@ -520,6 +520,7 @@ php artisan cache:clear && php artisan config:clear
 - [ ] Landing page - click "Try Demo" and verify register button appears in modal
 - [ ] Verify persona cards display in correct order: Carters, Mitchells, Chen, Morgan, Williams, Thompson
 - [ ] In demo mode, verify preview banner button says "Signup Now"
+- [ ] Expenditure - verify Retired and Widowed tab column headers are right-aligned
 
 ---
 
@@ -564,6 +565,17 @@ Changed the register button text in the demo preview banner from "Register to Sa
 **Files Changed:**
 ```
 resources/js/components/Preview/PreviewBanner.vue
+```
+
+### Expenditure - Align Column Headers in Retired and Widowed Tabs
+
+Fixed column header alignment in the Retired and Widowed budget tabs to match the Current tab styling.
+
+**Fix:** Added CSS rule for `.col-header` class to align text to the right.
+
+**Files Changed:**
+```
+resources/js/components/UserProfile/ExpenditureForm.vue
 ```
 
 ---
