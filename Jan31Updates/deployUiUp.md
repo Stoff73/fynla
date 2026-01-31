@@ -34,6 +34,25 @@ resources/js/components/Preview/PersonaSelectionModal.vue
 
 ---
 
+## Persona Card Order - Reorder in Selection Modal
+
+Reordered the persona cards in the selection modal to display in a more logical order.
+
+### New Order
+1. **Carters** (young_family) - James & Emily Carter
+2. **Mitchells** (peak_earners) - David & Sarah Mitchell
+3. **Chen** (entrepreneur) - Alex Chen
+4. **Morgan** (young_saver) - John Morgan
+5. **Williams** (retired_couple) - Robert & Patricia Williams
+6. **Thompson** (widow) - Margaret Thompson
+
+### Files Changed
+```
+resources/js/store/modules/preview.js
+```
+
+---
+
 ## Deployment Steps
 
 ### 1. Build Frontend (Required)
@@ -62,3 +81,4 @@ php artisan cache:clear && php artisan config:clear
 - [ ] Landing page - click "Try Demo" and verify register button appears in modal
 - [ ] Verify encouragement message displays correctly
 - [ ] Click register button - verify modal closes and navigates to /register
+- [ ] Verify persona cards display in correct order: Carters, Mitchells, Chen, Morgan, Williams, Thompson
