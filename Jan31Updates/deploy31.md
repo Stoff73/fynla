@@ -594,6 +594,70 @@ If issues occur:
 
 ---
 
+## Account Card Styling - Retirement Income Planner
+
+**Branch:** main
+
+**Status:** Ready for deployment
+
+### Description
+
+Updated account card styling in the Retirement Income Planner to match the pension and investment dashboard patterns. Added consistent toggle styling with colored tracks.
+
+### Account Card Pattern
+
+Cards in Income Sources and Other Assets now follow the dashboard card pattern:
+
+| Element | Style |
+|---------|-------|
+| Background | White |
+| Border | `border-gray-200` |
+| Border radius | 8px |
+| Padding | 16px |
+| Type badge | Colored pill at top-left |
+
+### Type Badge Colors
+
+| Account Type | Badge Color | Tailwind Classes |
+|--------------|-------------|------------------|
+| ISA (Stocks & Shares) | Green | `bg-green-100 text-green-800` |
+| Cash ISA | Emerald | `bg-emerald-100 text-emerald-800` |
+| SIPP | Blue | `bg-blue-100 text-blue-800` |
+| Onshore Bond | Green | `bg-green-100 text-green-800` |
+| Offshore Bond | Green | `bg-green-100 text-green-800` |
+| GIA | Gray | `bg-gray-100 text-gray-700` |
+| Savings | Gray | `bg-gray-100 text-gray-700` |
+
+### Toggle Styling
+
+| State | Track Color | Slider Color | Slider Position |
+|-------|-------------|--------------|-----------------|
+| Excluded | Blue (`bg-blue-500`) | White | Left |
+| Included | Green (`bg-green-500`) | White | Right |
+
+Toggle button has no background color (transparent).
+
+### Other Assets Display
+
+| Section | Shows |
+|---------|-------|
+| Income Sources (Included) | Value + Annual draw |
+| Other Assets (Excluded) | Projected value only (no annual draw) |
+
+### Files Changed (2 files)
+
+**Frontend (Included in Build):**
+```text
+resources/js/components/Retirement/RetirementIncomeTab.vue
+```
+
+**Documentation:**
+```text
+designStyle.md
+```
+
+---
+
 ## TODO: Remove Orange Colors from Goals and Onboarding
 
 **Status:** Not Started
