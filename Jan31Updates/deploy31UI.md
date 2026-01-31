@@ -24,6 +24,25 @@ resources/js/components/NetWorth/Property/PropertyFinancials.vue
 
 ---
 
+## Investment Portfolio Projections - Remove Individual Account Projections
+
+### Changes Made
+
+Removed the "Individual Account Projections" section from the Portfolio Projections view. This section showed projection charts for each individual investment account, which cluttered the view.
+
+The view now focuses on:
+- Portfolio-level projection chart (Monte Carlo simulation)
+- Tax Efficiency summary
+- Holdings summary with asset allocation donut chart
+- Total Fees summary
+
+### Files Changed
+```
+resources/js/components/NetWorth/InvestmentProjections.vue
+```
+
+---
+
 ## Orange/Amber Color Removal
 
 Removed all orange/amber colors from the codebase per the design system rules in `designStyle.md`. Orange and amber are banned colors - replaced with blue for warnings/cautions, and appropriate semantic colors for other use cases.
@@ -39,7 +58,7 @@ Removed all orange/amber colors from the codebase per the design system rules in
 
 ---
 
-## Files Changed (177 files)
+## Files Changed (178 files)
 
 ### CSS Files (2 files)
 ```
