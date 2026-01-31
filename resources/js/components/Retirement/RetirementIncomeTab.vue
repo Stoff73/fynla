@@ -170,99 +170,96 @@
         </div>
 
         <div class="sources-list">
+          <!-- Pension Sources -->
           <IncomeSourceSlider
             v-for="allocation in displayAllocations"
             :key="`${allocation.source_type}-${allocation.source_id}`"
             :allocation="allocation"
             :account="getAccountForAllocation(allocation)"
           />
+
+          <!-- Included Other Assets (ISA, Bond, etc.) - shown inline with toggle -->
+          <div
+            v-for="allocation in includedOtherAllocations"
+            :key="'other-' + allocation.source_id"
+            class="income-source-card other-asset"
+          >
+            <div class="source-info">
+              <div class="source-header">
+                <span class="source-label">{{ formatSourceType(allocation.source_type) }}</span>
+                <span class="source-name">{{ allocation.name }}</span>
+              </div>
+              <div class="source-details">
+                <span class="source-value">{{ formatCurrency(allocation.starting_balance) }}</span>
+                <span class="source-draw">Annual draw: {{ formatCurrency(allocation.annual_amount) }}</span>
+              </div>
+            </div>
+            <button
+              type="button"
+              :class="['include-toggle', 'active']"
+              @click="toggleAllocation(allocation)"
+              title="Click to exclude from retirement income"
+            >
+              <span class="toggle-label">Included</span>
+              <span class="toggle-slider"></span>
+            </button>
+          </div>
         </div>
 
-        <div v-if="displayAllocations.length === 0" class="no-allocations">
+        <div v-if="displayAllocations.length === 0 && includedOtherAllocations.length === 0" class="no-allocations">
           <p>No income allocations configured</p>
         </div>
       </div>
 
-      <!-- Other Assets Section -->
-      <div v-if="hasOtherAssets" class="assets-section">
+      <!-- Other Assets Section (Excluded Only) -->
+      <div v-if="excludedInvestments.length > 0 || excludedCash.length > 0" class="assets-section">
         <div class="assets-header">
           <h4 class="assets-title">Other Assets</h4>
-          <p class="assets-subtitle">Toggle to include/exclude from retirement income planning</p>
+          <p class="assets-subtitle">Toggle to include in retirement income planning</p>
         </div>
 
-        <!-- Included Assets -->
-        <div v-if="includedInvestments.length > 0 || includedCash.length > 0" class="assets-group">
-          <h5 class="assets-group-label">Included in calculation</h5>
-          <div class="asset-cards">
-            <div v-for="account in includedInvestments" :key="'inv-' + account.id" class="asset-card investment">
-              <div class="asset-info">
-                <span class="asset-name">{{ account.account_name || account.provider || formatAccountType(account.account_type) }}</span>
-                <span class="asset-value">{{ formatCurrency(getProjectedValue(account)) }}</span>
-                <span class="asset-type">{{ formatAccountType(account.account_type) }} - Projected (80%)</span>
+        <div class="asset-cards">
+          <div v-for="account in excludedInvestments" :key="'inv-ex-' + account.id" class="income-source-card other-asset excluded">
+            <div class="source-info">
+              <div class="source-header">
+                <span class="source-label">{{ formatAccountType(account.account_type) }}</span>
+                <span class="source-name">{{ account.account_name || account.provider || formatAccountType(account.account_type) }}</span>
               </div>
-              <label class="toggle-row">
-                <span class="toggle-text">Exclude</span>
-                <input
-                  type="checkbox"
-                  class="toggle-checkbox"
-                  checked
-                  @change="toggleAsset('investment', account.id)"
-                />
-              </label>
-            </div>
-            <div v-for="account in includedCash" :key="'cash-' + account.id" class="asset-card cash">
-              <div class="asset-info">
-                <span class="asset-name">{{ account.institution || 'Cash Account' }}</span>
-                <span class="asset-value">{{ formatCurrency(getProjectedCashValue(account)) }}</span>
-                <span class="asset-type">{{ account.is_isa ? 'Cash ISA' : 'Savings' }} - Projected</span>
+              <div class="source-details">
+                <span class="source-value">{{ formatCurrency(getProjectedValue(account)) }}</span>
+                <span class="source-draw">Projected at retirement (80%)</span>
               </div>
-              <label class="toggle-row">
-                <span class="toggle-text">Exclude</span>
-                <input
-                  type="checkbox"
-                  class="toggle-checkbox"
-                  checked
-                  @change="toggleAsset('cash', account.id)"
-                />
-              </label>
             </div>
+            <button
+              type="button"
+              class="include-toggle"
+              @click="toggleAsset('investment', account.id)"
+              title="Click to include in retirement income"
+            >
+              <span class="toggle-label">Excluded</span>
+              <span class="toggle-slider"></span>
+            </button>
           </div>
-        </div>
-
-        <!-- Excluded Assets -->
-        <div v-if="excludedInvestments.length > 0 || excludedCash.length > 0" class="assets-group">
-          <h5 class="assets-group-label">Not included</h5>
-          <div class="asset-cards">
-            <div v-for="account in excludedInvestments" :key="'inv-ex-' + account.id" class="asset-card investment excluded">
-              <div class="asset-info">
-                <span class="asset-name">{{ account.account_name || account.provider || formatAccountType(account.account_type) }}</span>
-                <span class="asset-value">{{ formatCurrency(getProjectedValue(account)) }}</span>
-                <span class="asset-type">{{ formatAccountType(account.account_type) }} - Projected (80%)</span>
+          <div v-for="account in excludedCash" :key="'cash-ex-' + account.id" class="income-source-card other-asset excluded">
+            <div class="source-info">
+              <div class="source-header">
+                <span class="source-label">{{ account.is_isa ? 'Cash ISA' : 'Savings' }}</span>
+                <span class="source-name">{{ account.institution || 'Cash Account' }}</span>
               </div>
-              <label class="toggle-row">
-                <span class="toggle-text">Include</span>
-                <input
-                  type="checkbox"
-                  class="toggle-checkbox"
-                  @change="toggleAsset('investment', account.id)"
-                />
-              </label>
-            </div>
-            <div v-for="account in excludedCash" :key="'cash-ex-' + account.id" class="asset-card cash excluded">
-              <div class="asset-info">
-                <span class="asset-name">{{ account.institution || 'Cash Account' }}</span>
-                <span class="asset-value">{{ formatCurrency(getProjectedCashValue(account)) }}</span>
-                <span class="asset-type">{{ account.is_isa ? 'Cash ISA' : 'Savings' }} - Projected</span>
+              <div class="source-details">
+                <span class="source-value">{{ formatCurrency(getProjectedCashValue(account)) }}</span>
+                <span class="source-draw">Projected at retirement</span>
               </div>
-              <label class="toggle-row">
-                <span class="toggle-text">Include</span>
-                <input
-                  type="checkbox"
-                  class="toggle-checkbox"
-                  @change="toggleAsset('cash', account.id)"
-                />
-              </label>
             </div>
+            <button
+              type="button"
+              class="include-toggle"
+              @click="toggleAsset('cash', account.id)"
+              title="Click to include in retirement income"
+            >
+              <span class="toggle-label">Excluded</span>
+              <span class="toggle-slider"></span>
+            </button>
           </div>
         </div>
       </div>
@@ -499,10 +496,78 @@ export default {
 
     displayAllocations() {
       // Use incomeAllocations if it has items, otherwise fall back to API response
+      let allocations = [];
       if (this.incomeAllocations && this.incomeAllocations.length > 0) {
-        return this.incomeAllocations;
+        allocations = this.incomeAllocations;
+      } else {
+        allocations = this.retirementIncome?.allocations || [];
       }
-      return this.retirementIncome?.allocations || [];
+      // Filter to show ONLY pension sources in Income Sources section
+      // Other assets (ISA, Bond, GIA, Savings) are shown separately with toggles
+      const pensionTypes = ['pension_pot', 'pension_pot_pcls', 'pension_pot_drawdown', 'db_pension', 'state_pension'];
+      return allocations.filter(a => pensionTypes.includes(a.source_type));
+    },
+
+    // Allocations for non-pension sources (ISA, Bond, GIA, Savings) that are included
+    includedOtherAllocations() {
+      // Build list from included investments - this ensures we always show them
+      // even if the API hasn't returned allocations yet
+      const result = [];
+      const seenIds = new Set();
+
+      // First, add allocations from API response for included assets
+      let allocations = [];
+      if (this.incomeAllocations && this.incomeAllocations.length > 0) {
+        allocations = this.incomeAllocations;
+      } else {
+        allocations = this.retirementIncome?.allocations || [];
+      }
+
+      const pensionTypes = ['pension_pot', 'pension_pot_pcls', 'pension_pot_drawdown', 'db_pension', 'state_pension'];
+      const nonPensionAllocations = allocations.filter(a => !pensionTypes.includes(a.source_type));
+
+      // Add allocations that match included IDs
+      for (const a of nonPensionAllocations) {
+        const investmentTypes = ['isa', 'isa_investment', 'stocks_shares_isa', 'gia', 'onshore_bond', 'offshore_bond'];
+        const cashTypes = ['isa_cash', 'savings', 'cash_isa'];
+
+        if (investmentTypes.includes(a.source_type) && this.storeIncludedInvestmentIds.includes(a.source_id)) {
+          result.push(a);
+          seenIds.add(a.source_id);
+        } else if (cashTypes.includes(a.source_type) && this.storeIncludedCashIds.includes(a.source_id)) {
+          result.push(a);
+          seenIds.add(a.source_id);
+        }
+      }
+
+      // Add included investments that don't have allocations yet
+      for (const account of this.includedInvestments) {
+        if (!seenIds.has(account.id)) {
+          // Create a pseudo-allocation for display
+          result.push({
+            source_id: account.id,
+            source_type: account.account_type,
+            name: account.account_name || account.provider || this.formatAccountType(account.account_type),
+            starting_balance: this.getProjectedValue(account),
+            annual_amount: account.account_type?.includes('bond') ? this.getProjectedValue(account) * 0.05 : 0,
+          });
+        }
+      }
+
+      // Add included cash that don't have allocations yet
+      for (const account of this.includedCash) {
+        if (!seenIds.has(account.id)) {
+          result.push({
+            source_id: account.id,
+            source_type: account.is_isa ? 'isa_cash' : 'savings',
+            name: account.institution || 'Cash Account',
+            starting_balance: this.getProjectedCashValue(account),
+            annual_amount: 0,
+          });
+        }
+      }
+
+      return result;
     },
 
     hasAccounts() {
@@ -634,7 +699,12 @@ export default {
     },
 
     hasOtherAssets() {
-      return this.investmentAccounts.length > 0 || this.cashAccounts.length > 0;
+      // Only shows "Other Assets" section if there are EXCLUDED assets
+      return this.excludedInvestments.length > 0 || this.excludedCash.length > 0;
+    },
+
+    hasIncludedOtherAssets() {
+      return this.includedInvestments.length > 0 || this.includedCash.length > 0;
     },
 
     yearsToRetirement() {
@@ -766,6 +836,50 @@ export default {
       }
       // Recalculate after toggle
       this.debouncedCalculate();
+    },
+
+    async toggleAllocation(allocation) {
+      // Toggle an allocation based on its source_type
+      // Map allocation source_type to the corresponding asset type
+      const sourceType = allocation.source_type;
+      const sourceId = allocation.source_id;
+
+      if (sourceType === 'isa' || sourceType === 'isa_investment' || sourceType === 'isa_cash') {
+        // Find the account ID from the source_id
+        const account = this.investmentAccounts.find(a => a.id === sourceId);
+        if (account) {
+          await this.toggleIncludedInvestment(account.id);
+        }
+      } else if (sourceType === 'onshore_bond' || sourceType === 'offshore_bond') {
+        const account = this.investmentAccounts.find(a => a.id === sourceId);
+        if (account) {
+          await this.toggleIncludedInvestment(account.id);
+        }
+      } else if (sourceType === 'gia') {
+        const account = this.investmentAccounts.find(a => a.id === sourceId);
+        if (account) {
+          await this.toggleIncludedInvestment(account.id);
+        }
+      } else if (sourceType === 'savings') {
+        await this.toggleIncludedCash(sourceId);
+      }
+
+      // Recalculate after toggle
+      this.debouncedCalculate();
+    },
+
+    formatSourceType(type) {
+      if (!type) return 'Investment';
+      const typeMap = {
+        isa: 'ISA',
+        isa_investment: 'Stocks & Shares ISA',
+        isa_cash: 'Cash ISA',
+        onshore_bond: 'Onshore Bond',
+        offshore_bond: 'Offshore Bond',
+        gia: 'General Investment Account',
+        savings: 'Savings',
+      };
+      return typeMap[type] || type.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
     },
 
     formatAccountType(type) {
@@ -1105,8 +1219,132 @@ export default {
 
 .sources-list {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 16px;
+}
+
+/* Income Source Card - for included other assets */
+.income-source-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+  @apply border border-gray-200;
+  border-radius: 12px;
+  padding: 16px 20px;
+  transition: all 0.2s ease;
+}
+
+.income-source-card.other-asset {
+  @apply bg-teal-50;
+  @apply border-teal-200;
+}
+
+.income-source-card.other-asset.excluded {
+  @apply bg-gray-50;
+  @apply border-gray-200;
+}
+
+.source-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.source-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 8px;
+}
+
+.source-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  @apply text-gray-500;
+}
+
+.source-name {
+  font-size: 15px;
+  font-weight: 600;
+  @apply text-gray-900;
+}
+
+.source-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.source-value {
+  font-size: 20px;
+  font-weight: 700;
+  @apply text-gray-900;
+}
+
+.source-draw {
+  font-size: 13px;
+  @apply text-gray-500;
+}
+
+/* Include/Exclude Toggle Button */
+.include-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 13px;
+  font-weight: 600;
+  @apply bg-gray-200;
+  @apply text-gray-600;
+  flex-shrink: 0;
+}
+
+.include-toggle:hover {
+  @apply bg-gray-300;
+}
+
+.include-toggle.active {
+  @apply bg-teal-500;
+  color: white;
+}
+
+.include-toggle.active:hover {
+  @apply bg-teal-600;
+}
+
+.toggle-label {
+  white-space: nowrap;
+}
+
+.include-toggle .toggle-slider {
+  width: 32px;
+  height: 18px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 9px;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.include-toggle .toggle-slider::after {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  background: white;
+  border-radius: 50%;
+  top: 2px;
+  left: 2px;
+  transition: all 0.2s ease;
+}
+
+.include-toggle.active .toggle-slider::after {
+  left: 16px;
 }
 
 .no-allocations {
@@ -1396,6 +1634,15 @@ export default {
   padding: 24px;
   @apply border border-gray-200;
   margin-bottom: 24px;
+}
+
+.included-assets {
+  @apply bg-teal-50;
+  @apply border-teal-200;
+}
+
+.included-assets .sources-title {
+  @apply text-teal-800;
 }
 
 .assets-header {

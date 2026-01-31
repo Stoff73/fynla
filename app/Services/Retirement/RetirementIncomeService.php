@@ -1048,11 +1048,11 @@ class RetirementIncomeService
             };
 
             // PRIORITY 1: Bond 5% (MANDATORY - always withdraw if available)
-            // Calculate sustainable PMT for bonds to deplete at age 100
+            // UK investment bonds allow 5% tax-deferred withdrawal on capital per year
             $bondBalance = $getAvailableBalance('bond');
             if ($bondBalance > 0) {
-                $yearsRemaining = max(1, self::PROJECTION_END_AGE - $age + 1);
-                $bondPmt = $this->calculateSustainableWithdrawalRate($bondBalance, $yearsRemaining, self::DEFAULT_GROWTH_RATE);
+                // 5% of current bond balance (UK tax-deferred withdrawal rule)
+                $bondPmt = $bondBalance * 0.05;
                 $bondWithdrawn = $withdrawFromFundType('bond', $bondPmt);
                 $remainingTarget -= $bondWithdrawn;
             }
@@ -1493,14 +1493,16 @@ class RetirementIncomeService
             }
         }
 
-        // 2b: Bond PMT = Calculate withdrawal to deplete at age 100 (4% growth)
+        // 2b: Bond 5% = UK investment bonds allow 5% tax-deferred withdrawal per year
+        // This is the 5% allowance rule - you can withdraw up to 5% of original capital annually
+        // without triggering an immediate tax charge (tax-deferred, not tax-free)
         $bondAccounts = [];
         $totalBondPmt = 0;
         foreach ($availableAccounts as $account) {
             if ($account['type'] === 'onshore_bond' || $account['type'] === 'offshore_bond') {
                 $bondBalance = $account['value'] ?? 0;
-                // Use PMT formula to deplete bond at age 100
-                $bondPmt = $this->calculateSustainableWithdrawalRate($bondBalance, $yearsInRetirement, self::DEFAULT_GROWTH_RATE);
+                // 5% of original capital (the balance at retirement) - UK tax-deferred withdrawal rule
+                $bondPmt = $bondBalance * 0.05;
                 $totalBondPmt += $bondPmt;
                 $bondAccounts[] = [
                     'account' => $account,
