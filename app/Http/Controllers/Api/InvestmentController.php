@@ -56,7 +56,7 @@ class InvestmentController extends Controller
         // Single-record pattern: Get accounts where user is owner OR joint_owner
         $accounts = InvestmentAccount::where('user_id', $user->id)
             ->orWhere('joint_owner_id', $user->id)
-            ->with('holdings')
+            ->with(['holdings', 'user', 'jointOwner'])
             ->get();
 
         // Add calculated fields for each account
@@ -69,6 +69,12 @@ class InvestmentController extends Controller
 
             // Calculate annualised return from holdings
             $accountData['annualised_return'] = $this->calculateAccountAnnualisedReturn($account);
+
+            // Add owner names for joint accounts
+            $owner = $account->user;
+            $jointOwner = $account->jointOwner;
+            $accountData['owner_name'] = $owner ? trim(($owner->first_name ?? '').' '.($owner->surname ?? '')) : null;
+            $accountData['joint_owner_name'] = $jointOwner ? trim(($jointOwner->first_name ?? '').' '.($jointOwner->surname ?? '')) : null;
 
             return $accountData;
         });

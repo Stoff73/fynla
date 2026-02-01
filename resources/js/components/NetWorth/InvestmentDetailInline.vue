@@ -99,7 +99,13 @@
               <p class="text-2xl font-bold text-green-600">{{ formatCurrency(account.isa_subscription_current_year || 0) }}</p>
               <p class="text-xs text-gray-500 mt-1">{{ formatCurrency(isaRemaining) }} remaining</p>
             </div>
-            <!-- Holdings Card (for non-ISA accounts) -->
+            <!-- Joint Owner Card (for joint non-ISA accounts) -->
+            <div v-else-if="account.ownership_type === 'joint' && account.joint_owner_name" class="bg-purple-50 rounded-lg p-4 border border-purple-200">
+              <p class="text-sm text-gray-600">Joint Owner</p>
+              <p class="text-xl font-bold text-purple-700">{{ account.joint_owner_name }}</p>
+              <p class="text-xs text-gray-500 mt-1">{{ 100 - (account.ownership_percentage ?? 50) }}% share</p>
+            </div>
+            <!-- Holdings Card (for non-ISA, non-joint accounts) -->
             <div v-else class="bg-gray-50 rounded-lg p-4">
               <p class="text-sm text-gray-600">Holdings</p>
               <p class="text-2xl font-bold text-gray-900">{{ holdingsCount }}</p>

@@ -285,6 +285,14 @@ class InvestmentAccount extends Model
     }
 
     /**
+     * Get the joint owner (if account is jointly owned and linked to system user).
+     */
+    public function jointOwner(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'joint_owner_id');
+    }
+
+    /**
      * Holdings relationship (polymorphic)
      */
     public function holdings(): MorphMany

@@ -57,3 +57,10 @@ php artisan config:clear && php artisan cache:clear && php artisan view:clear &&
 php artisan tinker --execute="App\Models\User::where('is_preview_user', true)->delete();"
 php artisan db:seed --class=PreviewUserSeeder --force
 ```
+
+## Migrate
+
+```bash
+php artisan migrate --force
+php artisan cache:clear && php artisan config:clear && php artisan view:clear && php artisan route:clear
+```

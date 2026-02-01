@@ -51,7 +51,7 @@ class PropertyController extends Controller
         // Single-record pattern: Get properties where user is owner OR joint_owner
         $properties = Property::where('user_id', $user->id)
             ->orWhere('joint_owner_id', $user->id)
-            ->with('mortgages')
+            ->with(['mortgages', 'user', 'jointOwner'])
             ->orderBy('property_type')
             ->orderBy('created_at', 'desc')
             ->get();
@@ -65,6 +65,12 @@ class PropertyController extends Controller
             $propertyData['full_value'] = (float) $property->current_value;
             $propertyData['is_primary_owner'] = $this->isPrimaryOwner($property, $user->id);
             $propertyData['is_shared'] = $this->isSharedOwnership($property);
+
+            // Add owner names for joint/TiC properties
+            $owner = $property->user;
+            $jointOwner = $property->jointOwner;
+            $propertyData['owner_name'] = $owner ? trim(($owner->first_name ?? '').' '.($owner->surname ?? '')) : null;
+            $propertyData['joint_owner_name'] = $jointOwner ? trim(($jointOwner->first_name ?? '').' '.($jointOwner->surname ?? '')) : ($property->joint_owner_name ?? null);
 
             // Calculate user's mortgage share if mortgages exist
             if ($property->mortgages && $property->mortgages->count() > 0) {
@@ -165,7 +171,7 @@ class PropertyController extends Controller
                 $query->where('user_id', $user->id)
                     ->orWhere('joint_owner_id', $user->id);
             })
-            ->with(['mortgages', 'household', 'trust'])
+            ->with(['mortgages', 'household', 'trust', 'user', 'jointOwner'])
             ->firstOrFail();
 
         $summary = $this->propertyService->getPropertySummary($property);
@@ -175,6 +181,12 @@ class PropertyController extends Controller
         $summary['full_value'] = (float) $property->current_value;
         $summary['is_primary_owner'] = $this->isPrimaryOwner($property, $user->id);
         $summary['is_shared'] = $this->isSharedOwnership($property);
+
+        // Add owner names for joint/TiC properties
+        $owner = $property->user;
+        $jointOwner = $property->jointOwner;
+        $summary['owner_name'] = $owner ? trim(($owner->first_name ?? '').' '.($owner->surname ?? '')) : null;
+        $summary['joint_owner_name'] = $jointOwner ? trim(($jointOwner->first_name ?? '').' '.($jointOwner->surname ?? '')) : ($property->joint_owner_name ?? null);
 
         // Calculate user's mortgage share if mortgages exist
         if ($property->mortgages && $property->mortgages->count() > 0) {
