@@ -575,19 +575,40 @@ class RetirementController extends Controller
 
     /**
      * Get available accounts for retirement income.
+     *
+     * Returns all accounts eligible for retirement income, including the combined
+     * Pension Pot with Monte Carlo 80% projected value, ISAs, bonds, GIAs and savings.
      */
     public function getIncomeAccounts(Request $request): JsonResponse
     {
         $user = $request->user();
         $includeSpouse = $request->boolean('include_spouse', false);
 
-        $accounts = $this->retirementIncomeService->getAvailableAccounts($user->id, $includeSpouse);
+        // Get the projected pension pot value (80% Monte Carlo confidence)
+        $potProjection = $this->projectionService->projectPensionPot($user);
+        $projectedPensionPot = (float) ($potProjection['percentile_20_at_retirement'] ?? 0);
+
+        // Calculate years to retirement for projecting asset values
+        $profile = RetirementProfile::where('user_id', $user->id)->first();
+        $currentAge = $user->date_of_birth ? $user->date_of_birth->age : null;
+        $retirementAge = $profile?->target_retirement_age ?? 68;
+        $yearsToRetirement = max(0, $retirementAge - ($currentAge ?? 45));
+
+        // Get available accounts with projected pension pot and years to retirement
+        $accounts = $this->retirementIncomeService->getAvailableAccounts(
+            $user->id,
+            $includeSpouse,
+            $projectedPensionPot,
+            $yearsToRetirement
+        );
 
         return response()->json([
             'success' => true,
             'message' => 'Income accounts retrieved successfully',
             'data' => [
                 'accounts' => $accounts,
+                'projected_pension_pot' => round($projectedPensionPot, 2),
+                'years_to_retirement' => $yearsToRetirement,
             ],
         ]);
     }
