@@ -39,12 +39,24 @@ class DocumentProcessor
         User $user,
         ?string $expectedType = null
     ): array {
+        \Log::info('[DocumentProcessor] process called', [
+            'file_name' => $file->getClientOriginalName(),
+            'file_size' => $file->getSize(),
+            'mime_type' => $file->getMimeType(),
+            'user_id' => $user->id,
+            'expected_type' => $expectedType,
+        ]);
+
         return DB::transaction(function () use ($file, $user, $expectedType) {
             // 1. Upload document
+            \Log::info('[DocumentProcessor] Step 1: Uploading document');
             $document = $this->uploadService->upload($file, $user, $expectedType);
+            \Log::info('[DocumentProcessor] Document uploaded', ['document_id' => $document->id]);
 
             // 2. Extract data via AI
+            \Log::info('[DocumentProcessor] Step 2: Extracting data via AI');
             $extraction = $this->extractionService->extract($document);
+            \Log::info('[DocumentProcessor] Extraction complete', ['extraction_id' => $extraction->id]);
 
             // 3. Map to model fields
             $mapper = $this->getMapper($document);
