@@ -219,6 +219,77 @@
       </div>
     </div>
 
+    <!-- Business Asset Disposal Relief (if applicable) -->
+    <div v-if="hasBadrPotential" class="details-section bg-green-50 border-green-200">
+      <h3 class="section-title text-green-800">Business Asset Disposal Relief (BADR)</h3>
+
+      <!-- Eligibility Status Banner -->
+      <div v-if="badrFullyQualified" class="alert bg-green-100 border border-green-300 text-green-800 mb-4">
+        <p class="font-medium">Potentially Eligible for BADR</p>
+        <p class="text-sm">All qualifying conditions appear to be met. Tax rate: 14% (from 6 April 2025)</p>
+      </div>
+      <div v-else class="alert bg-blue-100 border border-blue-300 text-blue-800 mb-4">
+        <p class="font-medium">BADR Flagged - Review Conditions</p>
+        <p class="text-sm">Some qualifying conditions may not be met. Review the checklist below.</p>
+      </div>
+
+      <div class="details-grid">
+        <div class="detail-item">
+          <span class="detail-label">Employee/Officer Status</span>
+          <span class="detail-value" :class="account.badr_is_employee ? 'text-green-600' : 'text-gray-400'">
+            {{ account.badr_is_employee ? '✓ Yes' : '✗ Not confirmed' }}
+          </span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Trading Company</span>
+          <span class="detail-value" :class="account.badr_trading_company ? 'text-green-600' : 'text-gray-400'">
+            {{ account.badr_trading_company ? '✓ Yes' : '✗ Not confirmed' }}
+          </span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">5% Shareholding</span>
+          <span class="detail-value" :class="account.badr_5_percent_holding || account.badr_emi_shares ? 'text-green-600' : 'text-gray-400'">
+            {{ account.badr_emi_shares ? '✓ N/A (EMI)' : (account.badr_5_percent_holding ? '✓ Yes' : '✗ Not confirmed') }}
+          </span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">2-Year Qualifying Period</span>
+          <span class="detail-value" :class="account.badr_held_2_years ? 'text-green-600' : 'text-gray-400'">
+            {{ account.badr_held_2_years ? '✓ Met' : '✗ Not confirmed' }}
+          </span>
+        </div>
+        <div v-if="account.badr_emi_shares" class="detail-item">
+          <span class="detail-label">EMI Shares</span>
+          <span class="detail-value text-green-600">✓ Yes</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Lifetime Allowance Used</span>
+          <span class="detail-value">{{ formatCurrency(account.badr_lifetime_used || 0) }} / £1,000,000</span>
+        </div>
+        <div v-if="badrRemainingAllowance !== null" class="detail-item">
+          <span class="detail-label">Remaining Allowance</span>
+          <span class="detail-value text-green-600">{{ formatCurrency(badrRemainingAllowance) }}</span>
+        </div>
+        <div v-if="estimatedBadrSaving" class="detail-item">
+          <span class="detail-label">Estimated Tax Saving</span>
+          <span class="detail-value text-green-600 font-bold">{{ formatCurrency(estimatedBadrSaving) }}</span>
+        </div>
+      </div>
+
+      <!-- Info Box -->
+      <div class="mt-4 bg-green-100 border border-green-300 rounded-md p-3">
+        <div class="flex items-start gap-2">
+          <svg class="w-5 h-5 text-green-700 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <div class="text-xs text-green-800">
+            <p class="font-medium">About BADR</p>
+            <p class="mt-1">Business Asset Disposal Relief reduces CGT to 14% (from 6 April 2025) on qualifying gains up to a £1m lifetime limit. Claims must be submitted via Self Assessment by 31 January following the tax year of disposal.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Status & Valuation -->
     <div class="details-section">
       <h3 class="section-title">Status & Valuation</h3>
@@ -485,6 +556,37 @@ export default {
         'liquidation': 'Liquidation',
       };
       return types[this.account.exit_type] || this.account.exit_type || '--';
+    },
+
+    // Business Asset Disposal Relief computed properties
+    hasBadrPotential() {
+      return this.account.badr_eligible === true;
+    },
+
+    badrFullyQualified() {
+      if (!this.hasBadrPotential) return false;
+      const isEmi = this.account.badr_emi_shares;
+      const hasBasicConditions = this.account.badr_is_employee &&
+                                  this.account.badr_trading_company &&
+                                  this.account.badr_held_2_years;
+      // EMI shares don't need 5% holding requirement
+      const hasOwnershipCondition = isEmi || this.account.badr_5_percent_holding;
+      return hasBasicConditions && hasOwnershipCondition;
+    },
+
+    badrRemainingAllowance() {
+      const lifetimeLimit = 1000000;
+      const used = parseFloat(this.account.badr_lifetime_used) || 0;
+      return lifetimeLimit - used;
+    },
+
+    estimatedBadrSaving() {
+      if (!this.hasBadrPotential || !this.paperGainLoss || this.paperGainLoss <= 0) return null;
+      // Standard CGT rate for higher earners is typically 20% for assets, BADR reduces to 14%
+      // Saving is the difference: 20% - 14% = 6% of the gain
+      const gain = Math.min(this.paperGainLoss, this.badrRemainingAllowance);
+      if (gain <= 0) return null;
+      return gain * 0.06; // 6% saving (20% standard - 14% BADR)
     },
   },
 
