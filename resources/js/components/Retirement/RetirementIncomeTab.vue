@@ -134,13 +134,6 @@
           <p class="summary-subtitle">After tax ({{ formatPercent(firstYearEffectiveRate) }} effective rate)</p>
         </div>
 
-        <!-- Tax Paid Card -->
-        <div class="summary-card tax">
-          <p class="summary-label">Annual Tax</p>
-          <p class="summary-value">{{ formatCurrency(firstYearTaxPaid) }}</p>
-          <p class="summary-subtitle">{{ formatCurrency(firstYearGrossIncome - firstYearTaxPaid) }} tax-free</p>
-        </div>
-
         <!-- Pension Capital Card -->
         <div class="summary-card teal">
           <p class="summary-label">Pension Capital at Retirement</p>
@@ -154,187 +147,123 @@
           <p class="summary-value">{{ formatCurrency(totalProjectedOtherAssets) }}</p>
           <p class="summary-subtitle">Investments + Cash projected</p>
         </div>
-
-        <!-- Gap/Surplus Card -->
-        <div :class="['summary-card', gapToTarget >= 0 ? 'red' : 'green']">
-          <p class="summary-label">{{ gapToTarget >= 0 ? 'Gap to Target' : 'Surplus' }}</p>
-          <p class="summary-value">{{ formatCurrency(Math.abs(gapToTarget)) }}</p>
-          <p class="summary-subtitle">{{ gapToTarget >= 0 ? 'Shortfall at retirement' : 'Exceeds target at retirement' }}</p>
-        </div>
       </div>
 
-      <!-- Income Sources Section -->
-      <div class="sources-section">
-        <div class="sources-header">
-          <h4 class="sources-title">Income Sources</h4>
-        </div>
+      <!-- Income Sources and Other Assets Row -->
+      <div class="sources-assets-row">
+        <!-- Income Sources Section -->
+        <div class="sources-section">
+          <div class="sources-header">
+            <h4 class="sources-title">Income Sources</h4>
+          </div>
 
-        <div class="sources-list">
-          <!-- Pension Sources -->
-          <IncomeSourceSlider
-            v-for="allocation in displayAllocations"
-            :key="`${allocation.source_type}-${allocation.source_id}`"
-            :allocation="allocation"
-            :account="getAccountForAllocation(allocation)"
-          />
+          <div class="sources-list">
+            <!-- Pension Sources -->
+            <IncomeSourceSlider
+              v-for="allocation in displayAllocations"
+              :key="`${allocation.source_type}-${allocation.source_id}`"
+              :allocation="allocation"
+              :account="getAccountForAllocation(allocation)"
+            />
 
-          <!-- Included Other Assets (ISA, Bond, etc.) - shown inline with toggle -->
-          <div
-            v-for="allocation in includedOtherAllocations"
-            :key="'other-' + allocation.source_id"
-            class="account-card"
-          >
-            <!-- Type Badge -->
-            <span :class="['account-type-badge', getAccountTypeBadgeClass(allocation.source_type)]">
-              {{ formatSourceType(allocation.source_type) }}
-            </span>
+            <!-- Included Other Assets (ISA, Bond, etc.) - shown inline with toggle -->
+            <div
+              v-for="allocation in includedOtherAllocations"
+              :key="'other-' + allocation.source_id"
+              class="account-card"
+            >
+              <!-- Type Badge -->
+              <span :class="['account-type-badge', getAccountTypeBadgeClass(allocation.source_type)]">
+                {{ formatSourceType(allocation.source_type) }}
+              </span>
 
-            <!-- Account Name -->
-            <h4 class="account-name">{{ allocation.name }}</h4>
+              <!-- Account Name -->
+              <h4 class="account-name">{{ allocation.name }}</h4>
 
-            <!-- Value and Toggle Row -->
-            <div class="account-value-row">
-              <div class="account-values">
-                <p class="account-value">{{ formatCurrency(allocation.starting_balance) }}</p>
-                <p class="account-detail">Annual draw: {{ formatCurrency(allocation.annual_amount) }}</p>
+              <!-- Value and Toggle Row -->
+              <div class="account-value-row">
+                <div class="account-values">
+                  <p class="account-value">{{ formatCurrency(allocation.starting_balance) }}</p>
+                  <p class="account-detail">Annual draw: {{ formatCurrency(allocation.annual_amount) }}</p>
+                </div>
+                <button
+                  type="button"
+                  class="account-toggle active"
+                  @click="toggleAllocation(allocation)"
+                  title="Click to exclude from retirement income"
+                >
+                  <span>Included</span>
+                  <span class="toggle-switch on"></span>
+                </button>
               </div>
-              <button
-                type="button"
-                class="account-toggle active"
-                @click="toggleAllocation(allocation)"
-                title="Click to exclude from retirement income"
-              >
-                <span>Included</span>
-                <span class="toggle-switch on"></span>
-              </button>
             </div>
+          </div>
+
+          <div v-if="displayAllocations.length === 0 && includedOtherAllocations.length === 0" class="no-allocations">
+            <p>No income allocations configured</p>
           </div>
         </div>
 
-        <div v-if="displayAllocations.length === 0 && includedOtherAllocations.length === 0" class="no-allocations">
-          <p>No income allocations configured</p>
-        </div>
-      </div>
+        <!-- Other Assets Section (Excluded Only) -->
+        <div v-if="excludedInvestments.length > 0 || excludedCash.length > 0" class="assets-section">
+          <div class="assets-header">
+            <h4 class="assets-title">Other Assets</h4>
+            <p class="assets-subtitle">Toggle to include in retirement income planning</p>
+          </div>
 
-      <!-- Other Assets Section (Excluded Only) -->
-      <div v-if="excludedInvestments.length > 0 || excludedCash.length > 0" class="assets-section">
-        <div class="assets-header">
-          <h4 class="assets-title">Other Assets</h4>
-          <p class="assets-subtitle">Toggle to include in retirement income planning</p>
-        </div>
+          <div class="asset-cards">
+            <div v-for="account in excludedInvestments" :key="'inv-ex-' + account.id" class="account-card">
+              <!-- Type Badge -->
+              <span :class="['account-type-badge', getAccountTypeBadgeClass(account.account_type)]">
+                {{ formatAccountType(account.account_type) }}
+              </span>
 
-        <div class="asset-cards">
-          <div v-for="account in excludedInvestments" :key="'inv-ex-' + account.id" class="account-card">
-            <!-- Type Badge -->
-            <span :class="['account-type-badge', getAccountTypeBadgeClass(account.account_type)]">
-              {{ formatAccountType(account.account_type) }}
-            </span>
+              <!-- Account Name -->
+              <h4 class="account-name">{{ account.account_name || account.provider || formatAccountType(account.account_type) }}</h4>
 
-            <!-- Account Name -->
-            <h4 class="account-name">{{ account.account_name || account.provider || formatAccountType(account.account_type) }}</h4>
-
-            <!-- Value and Toggle Row -->
-            <div class="account-value-row">
-              <div class="account-values">
-                <p class="account-value">{{ formatCurrency(getProjectedValue(account)) }}</p>
-                <p class="account-detail">Projected at retirement (80%)</p>
+              <!-- Value and Toggle Row -->
+              <div class="account-value-row">
+                <div class="account-values">
+                  <p class="account-value">{{ formatCurrency(getProjectedValue(account)) }}</p>
+                  <p class="account-detail">Projected at retirement (80%)</p>
+                </div>
+                <button
+                  type="button"
+                  class="account-toggle"
+                  @click="toggleAsset('investment', account.id)"
+                  title="Click to include in retirement income"
+                >
+                  <span>Excluded</span>
+                  <span class="toggle-switch"></span>
+                </button>
               </div>
-              <button
-                type="button"
-                class="account-toggle"
-                @click="toggleAsset('investment', account.id)"
-                title="Click to include in retirement income"
-              >
-                <span>Excluded</span>
-                <span class="toggle-switch"></span>
-              </button>
             </div>
-          </div>
-          <div v-for="account in excludedCash" :key="'cash-ex-' + account.id" class="account-card">
-            <!-- Type Badge -->
-            <span :class="['account-type-badge', account.is_isa ? 'badge-emerald' : 'badge-gray']">
-              {{ account.is_isa ? 'Cash ISA' : 'Savings' }}
-            </span>
+            <div v-for="account in excludedCash" :key="'cash-ex-' + account.id" class="account-card">
+              <!-- Type Badge -->
+              <span :class="['account-type-badge', account.is_isa ? 'badge-emerald' : 'badge-gray']">
+                {{ account.is_isa ? 'Cash ISA' : 'Savings' }}
+              </span>
 
-            <!-- Account Name -->
-            <h4 class="account-name">{{ account.institution || 'Cash Account' }}</h4>
+              <!-- Account Name -->
+              <h4 class="account-name">{{ account.institution || 'Cash Account' }}</h4>
 
-            <!-- Value and Toggle Row -->
-            <div class="account-value-row">
-              <div class="account-values">
-                <p class="account-value">{{ formatCurrency(getProjectedCashValue(account)) }}</p>
-                <p class="account-detail">Projected at retirement</p>
+              <!-- Value and Toggle Row -->
+              <div class="account-value-row">
+                <div class="account-values">
+                  <p class="account-value">{{ formatCurrency(getProjectedCashValue(account)) }}</p>
+                  <p class="account-detail">Projected at retirement</p>
+                </div>
+                <button
+                  type="button"
+                  class="account-toggle"
+                  @click="toggleAsset('cash', account.id)"
+                  title="Click to include in retirement income"
+                >
+                  <span>Excluded</span>
+                  <span class="toggle-switch"></span>
+                </button>
               </div>
-              <button
-                type="button"
-                class="account-toggle"
-                @click="toggleAsset('cash', account.id)"
-                title="Click to include in retirement income"
-              >
-                <span>Excluded</span>
-                <span class="toggle-switch"></span>
-              </button>
             </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Progress and Assumptions Row -->
-      <div v-if="requiredCapital" class="progress-assumptions-row">
-        <!-- Progress Section -->
-        <div class="progress-section">
-          <h4 class="progress-title">Progress Towards Target</h4>
-
-          <!-- Current Progress -->
-          <div class="progress-row">
-            <div class="progress-label-row">
-              <span class="progress-type">Current</span>
-              <span :class="['progress-percentage', progressColorClass]">{{ progressPercentage }}%</span>
-            </div>
-            <div class="progress-bar-container">
-              <div class="progress-bar" :style="{ width: Math.min(progressPercentage, 100) + '%' }" :class="progressColorClass"></div>
-            </div>
-            <div class="progress-values">
-              <span>{{ formatCurrency(totalIncludedAssets) }}</span>
-              <span class="target-label">of {{ formatCurrency(requiredCapital.required_capital_today) }}</span>
-            </div>
-          </div>
-
-          <!-- Forecasted Progress -->
-          <div class="progress-row">
-            <div class="progress-label-row">
-              <span class="progress-type">Forecasted at Retirement</span>
-              <span :class="['progress-percentage', forecastedProgressColorClass]">{{ forecastedProgressPercentage }}%</span>
-            </div>
-            <div class="progress-bar-container">
-              <div class="progress-bar" :style="{ width: Math.min(forecastedProgressPercentage, 100) + '%' }" :class="forecastedProgressColorClass"></div>
-            </div>
-            <div class="progress-values">
-              <span>{{ formatCurrency(projectedPotAtRetirement + totalProjectedOtherAssets) }}</span>
-              <span class="target-label">of {{ formatCurrency(requiredCapital.required_capital_at_retirement) }}</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Assumptions Panel -->
-        <div class="assumptions-panel">
-          <div class="assumptions-header-row">
-            <h4>Calculation Assumptions</h4>
-            <router-link to="/settings?tab=assumptions" class="edit-link">
-              Edit
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="link-icon">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-              </svg>
-            </router-link>
-          </div>
-          <div class="assumptions-list">
-            <span class="assumption-item"><span class="label">Return:</span> {{ requiredCapital.assumptions?.return_rate }}% <span class="note">(Net: {{ requiredCapital.assumptions?.net_return_rate }}%)</span></span>
-            <span class="assumption-item"><span class="label">Fees:</span> {{ displayFees }}%<span v-if="isDefaultFees" class="note"> (default)</span></span>
-            <span class="assumption-item"><span class="label">Inflation:</span> {{ requiredCapital.assumptions?.inflation_rate }}%</span>
-            <span class="assumption-item"><span class="label">Compounding:</span> {{ compoundingLabel }}</span>
-            <span class="assumption-item"><span class="label">Withdrawal:</span> {{ requiredCapital.assumptions?.withdrawal_rate }}%</span>
-            <span class="assumption-item"><span class="label">Contributions:</span> {{ formatCurrency(requiredCapital.assumptions?.monthly_contributions) }}/month</span>
-            <span class="assumption-item"><span class="label">Years to Retirement:</span> {{ yearsToRetirement }}</span>
           </div>
         </div>
       </div>
@@ -809,7 +738,7 @@ export default {
       'setIncludedCashIds',
     ]),
     ...mapActions('investment', { fetchInvestmentAccounts: 'fetchAccounts' }),
-    ...mapActions('savings', { fetchSavingsAccounts: 'fetchAccounts' }),
+    ...mapActions('savings', { fetchSavingsAccounts: 'fetchSavingsData' }),
 
     async loadData() {
       try {
@@ -1310,13 +1239,21 @@ export default {
   margin: 8px 0 0 0;
 }
 
+/* Sources and Assets Row */
+.sources-assets-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
 /* Sources Section */
 .sources-section {
   background: white;
   border-radius: 12px;
   padding: 24px;
   @apply border border-gray-200;
-  margin-bottom: 24px;
+  margin-bottom: 0;
 }
 
 .sources-header {
@@ -1699,7 +1636,7 @@ export default {
 /* Extended Summary Grid (6 cards) */
 .summary-grid-extended {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 16px;
   margin-bottom: 32px;
 }
@@ -1756,7 +1693,7 @@ export default {
   border-radius: 12px;
   padding: 24px;
   @apply border border-gray-200;
-  margin-bottom: 24px;
+  margin-bottom: 0;
 }
 
 .included-assets {
@@ -1804,7 +1741,7 @@ export default {
 
 .asset-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: 12px;
 }
 
@@ -2109,6 +2046,10 @@ export default {
 
   .summary-grid,
   .summary-grid-extended {
+    grid-template-columns: 1fr;
+  }
+
+  .sources-assets-row {
     grid-template-columns: 1fr;
   }
 
