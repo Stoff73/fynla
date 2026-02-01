@@ -33,6 +33,7 @@ class AIExtractionService
      */
     public function extract(Document $document): DocumentExtraction
     {
+        \Log::info('[AIExtractionService] extract called', ['document_id' => $document->id]);
         $user = $document->user;
 
         // Update status to processing
@@ -47,19 +48,24 @@ class AIExtractionService
 
         try {
             $mediaType = $document->mime_type;
+            \Log::info('[AIExtractionService] Processing document', ['media_type' => $mediaType]);
 
             // Build the extraction prompt
             $prompt = $this->buildExtractionPrompt($document);
 
             // Handle spreadsheets differently - convert to text
             if ($this->excelParserService->isSpreadsheet($mediaType)) {
+                \Log::info('[AIExtractionService] Processing as spreadsheet');
                 $fileContents = $this->uploadService->getFileContents($document);
                 $spreadsheetText = $this->excelParserService->parseFromContent($fileContents, $mediaType);
                 $response = $this->callClaudeAPIWithText($spreadsheetText, $prompt);
             } else {
                 // Get file as base64 for images/PDFs
+                \Log::info('[AIExtractionService] Processing as image/PDF');
                 $base64 = $this->uploadService->getBase64($document);
+                \Log::info('[AIExtractionService] Calling Claude API', ['base64_length' => strlen($base64)]);
                 $response = $this->callClaudeAPI($base64, $mediaType, $prompt);
+                \Log::info('[AIExtractionService] Claude API response received');
             }
 
             // Parse the response
