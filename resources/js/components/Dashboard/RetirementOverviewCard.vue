@@ -1,359 +1,564 @@
 <template>
-  <div class="card">
-    <!-- Retirement Section (clickable) -->
+  <div class="card w-full !h-auto">
+    <!-- Clickable content area -->
     <div
-      class="cursor-pointer hover:bg-gray-50 -m-6 p-6 transition-colors"
-      :class="hasTrusts ? 'pb-4 rounded-t-lg' : 'rounded-lg'"
+      class="cursor-pointer hover:bg-gray-50 -m-6 p-6 rounded-lg transition-colors"
       @click="navigateToRetirement"
     >
-      <!-- Primary Value Section -->
-      <div class="border-b border-gray-200 pb-4 mb-4">
-        <span class="text-sm text-gray-500">Projected Annual Income</span>
-        <div class="flex items-baseline gap-2 mt-1">
-          <span class="text-3xl font-bold text-primary-600">
-            {{ formatCurrency(projectedIncome) }}
-          </span>
-          <span class="text-sm text-gray-500">/year</span>
-        </div>
-      </div>
+      <!-- RETIRED VIEW: Retirement Income -->
+      <template v-if="isRetired">
+        <!-- Header -->
+        <h3 class="text-lg font-bold text-gray-900 mb-3">Retirement Income</h3>
 
-      <!-- Breakdown -->
-      <div class="space-y-3">
-        <div class="flex justify-between items-center">
-          <span class="text-sm text-gray-600">Potential Income</span>
-          <span class="text-sm font-semibold text-gray-900">{{ formatCurrency(potentialRetirementIncome) }}/yr</span>
-        </div>
-        <div v-if="dbPensionIncome > 0" class="flex justify-between items-center">
-          <span class="text-sm text-gray-600">Guaranteed Income</span>
-          <span class="text-sm font-semibold text-gray-900">{{ formatCurrency(dbPensionIncome) }}/yr</span>
-        </div>
-        <div v-if="hasPensions" class="flex justify-between items-center">
-          <span class="text-sm text-gray-600">State Pension</span>
-          <span class="text-sm font-semibold text-gray-900">{{ formatCurrency(statePensionIncome) }}/yr</span>
-        </div>
-      </div>
-
-      <!-- Target Income -->
-      <div class="mt-3 pt-3 border-t border-gray-200">
-        <div class="flex justify-between items-center">
-          <div class="flex items-center gap-1">
-            <span class="text-sm text-gray-600">Target Income</span>
-            <span class="text-xs text-gray-400">({{ isUserEnteredTarget ? 'user set' : '75% default' }})</span>
+        <!-- Loading State -->
+        <div v-if="retirementIncomeLoading" class="h-[180px] flex items-center justify-center">
+          <div class="flex items-center gap-2 text-gray-500">
+            <svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span class="text-sm">Loading...</span>
           </div>
-          <span class="text-sm font-semibold text-gray-900">{{ formatCurrency(retirementTargetIncome) }}/yr</span>
         </div>
-      </div>
 
-      <!-- Income Gap Status -->
-      <div
-        v-if="hasIncomeGap"
-        class="mt-4 p-3 bg-white border-2 border-blue-500 rounded-lg"
-      >
-        <div class="flex items-center gap-2">
-          <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
-          <span class="text-sm font-medium text-blue-700">
-            {{ formatCurrency(incomeGap) }} income gap to target
-          </span>
-        </div>
-      </div>
-
-      <div
-        v-else-if="projectedIncome > 0"
-        class="mt-4 p-3 bg-white border-2 border-green-600 rounded-lg"
-      >
-        <div class="flex items-center gap-2">
-          <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <span class="text-sm font-medium text-green-700">On track for retirement</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Trusts Section (only shown if trusts exist) -->
-    <template v-if="hasTrusts">
-      <!-- Divider -->
-      <div class="border-t border-gray-200 mt-6 mb-4"></div>
-
-      <!-- Trusts Content (clickable) -->
-      <div
-        class="cursor-pointer hover:bg-gray-50 -mx-6 -mb-6 p-6 pt-0 rounded-b-lg transition-colors"
-        @click="navigateToTrusts"
-      >
-        <div class="trust-sections">
-          <div
-            v-for="trust in displayedTrusts"
-            :key="trust.id"
-            class="trust-item"
-          >
-            <div class="trust-info">
-              <div class="trust-name-row">
-                <span class="trust-name">{{ trust.trust_name }}</span>
-              </div>
-              <p class="trust-details">{{ formatTrustType(trust.trust_type) }}</p>
+        <template v-else>
+          <!-- Income Stats Grid -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+            <div class="stat-item">
+              <span class="stat-label">Target Income</span>
+              <span class="stat-value text-blue-600">{{ formatCurrencyCompact(retiredTargetIncome) }}</span>
             </div>
-            <span class="trust-value">{{ formatCurrency(trust.current_value) }}</span>
+            <div class="stat-item">
+              <span class="stat-label">Net Income</span>
+              <span class="stat-value text-green-600">{{ formatCurrencyCompact(retiredNetIncome) }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Tax Rate</span>
+              <span class="stat-value text-purple-600">{{ formatPercent(retiredEffectiveTaxRate) }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Total Capital</span>
+              <span class="stat-value text-teal-600">{{ formatCurrencyCompact(retiredTotalCapital) }}</span>
+            </div>
           </div>
-          <p v-if="trusts.length > 3" class="text-sm text-gray-500 mt-2">
-            +{{ trusts.length - 3 }} more {{ trusts.length - 3 === 1 ? 'trust' : 'trusts' }}
-          </p>
+
+          <!-- Income Sources -->
+          <div class="flex gap-4">
+            <!-- Sources List (left side) -->
+            <div class="flex-1">
+              <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Income Sources</div>
+              <div v-if="retiredIncomeSources.length > 0" class="space-y-2">
+                <div v-for="source in retiredIncomeSources" :key="source.key" class="income-source-item">
+                  <div class="source-info">
+                    <span class="source-name">{{ source.name }}</span>
+                    <span class="source-type">{{ source.type }}</span>
+                  </div>
+                  <span class="source-value">{{ formatCurrencyCompact(source.amount) }}/yr</span>
+                </div>
+              </div>
+              <div v-else class="text-xs text-gray-400 italic">No income sources configured</div>
+            </div>
+
+            <!-- Summary (right side) -->
+            <div class="w-48 flex-shrink-0">
+              <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Annual Breakdown</div>
+              <div class="breakdown-box">
+                <div class="breakdown-row">
+                  <span class="breakdown-label">Gross Income</span>
+                  <span class="breakdown-value">{{ formatCurrencyCompact(retiredGrossIncome) }}</span>
+                </div>
+                <div class="breakdown-row">
+                  <span class="breakdown-label">Tax</span>
+                  <span class="breakdown-value text-red-600">-{{ formatCurrencyCompact(retiredTaxPaid) }}</span>
+                </div>
+                <div class="breakdown-row total">
+                  <span class="breakdown-label">Net Income</span>
+                  <span class="breakdown-value text-green-600">{{ formatCurrencyCompact(retiredNetIncome) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </template>
+      </template>
+
+      <!-- NON-RETIRED VIEW: Projection Card -->
+      <template v-else>
+        <!-- Header -->
+        <h3 class="text-lg font-bold text-gray-900 mb-3">Retirement</h3>
+
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-3 sm:grid-cols-6 gap-3 mb-4">
+          <div class="stat-item">
+            <span class="stat-label">Target Income</span>
+            <span class="stat-value text-blue-600">{{ formatCurrencyCompact(targetIncome) }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Projected Income</span>
+            <span class="stat-value text-green-600">{{ formatCurrencyCompact(projectedIncome) }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Required Capital</span>
+            <span class="stat-value text-purple-600">{{ formatCurrencyCompact(requiredCapitalValue) }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Projected Capital</span>
+            <span class="stat-value text-teal-600">{{ formatCurrencyCompact(projectedCapital) }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Retirement Age</span>
+            <span class="stat-value text-primary-600">{{ retirementAge }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Allowance Used</span>
+            <span class="stat-value text-rose-600">{{ formatCurrencyCompact(allowanceUsed) }}</span>
+          </div>
         </div>
 
-        <!-- Tax Info Banner -->
-        <div v-if="hasRelevantPropertyTrusts" class="info-banner">
-          <svg class="info-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <span class="info-text">
-            6% charge on asset value on {{ nextChargeDate }}
-          </span>
+        <!-- Pensions List + Chart -->
+        <div class="flex gap-4">
+          <!-- Pensions List (left side) -->
+          <div class="w-48 flex-shrink-0">
+            <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Your Pensions</div>
+            <div v-if="dcPensions && dcPensions.length > 0" class="space-y-2">
+              <div v-for="pension in dcPensions" :key="pension.id" class="pension-item">
+                <span class="pension-name">{{ pension.scheme_name || 'Pension' }}</span>
+                <span class="pension-value">{{ formatCurrencyCompact(pension.current_fund_value) }}</span>
+              </div>
+            </div>
+            <div v-else class="text-xs text-gray-400 italic">No pensions added</div>
+          </div>
+
+          <!-- Chart (right side) -->
+          <div class="flex-1 min-w-0">
+            <div v-if="projectionsLoading" class="h-[120px] flex items-center justify-center">
+              <div class="flex items-center gap-2 text-gray-500">
+                <svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span class="text-sm">Loading...</span>
+              </div>
+            </div>
+            <div v-else-if="hasProjectionData" class="pension-chart-container">
+              <PensionPotProjectionChart
+                :data="projections.pension_pot_projection"
+                :height="120"
+                :show-legend="false"
+                :show-axes="false"
+                :show-toolbar="false"
+                :single-line="true"
+                :key="chartKey"
+              />
+            </div>
+            <div v-else class="h-[120px] flex items-center justify-center bg-gray-50 rounded-lg border border-dashed border-gray-300">
+              <p class="text-sm text-gray-500">Add DC pensions to see projections</p>
+            </div>
+          </div>
         </div>
-      </div>
-    </template>
+      </template>
+    </div>
   </div>
 </template>
 
 <script>
-import { mapState, mapGetters } from 'vuex';
-import { currencyMixin } from '@/mixins/currencyMixin';
-
-// UK full new State Pension 2025/26 (approximate)
-const DEFAULT_STATE_PENSION = 11500;
+import { mapState, mapGetters, mapActions } from 'vuex';
+import PensionPotProjectionChart from '@/components/Retirement/PensionPotProjectionChart.vue';
 
 export default {
   name: 'RetirementOverviewCard',
-  mixins: [currencyMixin],
+
+  components: {
+    PensionPotProjectionChart,
+  },
+
+  data() {
+    return {
+      chartKey: 0,
+    };
+  },
 
   computed: {
-    ...mapState('retirement', ['dcPensions', 'dbPensions', 'statePension', 'profile', 'analysis']),
-    ...mapGetters('retirement', ['totalPensionWealth']),
-    ...mapGetters('userProfile', ['totalAnnualIncome']),
-    ...mapState('trusts', { trusts: 'trusts' }),
+    ...mapState('retirement', [
+      'dcPensions',
+      'projections',
+      'projectionsLoading',
+      'annualAllowance',
+      'requiredCapital',
+      'retirementIncome',
+      'retirementIncomeLoading',
+      'incomeAllocations',
+    ]),
 
-    retirementAge() {
-      return this.profile?.target_retirement_age || 67;
+    // Check if user is already retired (current age >= retirement age)
+    isRetired() {
+      const projection = this.projections?.pension_pot_projection;
+      if (!projection) return false;
+      const currentAge = projection.current_age;
+      const retirementAge = projection.retirement_age;
+      // If current_age >= retirement_age, user is retired
+      return currentAge !== undefined && retirementAge !== undefined && currentAge >= retirementAge;
     },
 
-    dcPensionWealth() {
-      return this.totalPensionWealth || 0;
+    hasProjectionData() {
+      return this.projections?.pension_pot_projection?.year_by_year?.length > 0;
     },
 
-    // Convert DC pension wealth to estimated annual income using 4% safe withdrawal rate
-    potentialRetirementIncome() {
-      return this.dcPensionWealth * 0.04;
+    // ============ NON-RETIRED (Projection) computed properties ============
+
+    // Target income from projections API
+    targetIncome() {
+      return this.projections?.income_drawdown?.target_income || 0;
     },
 
-    dbPensionIncome() {
-      if (!this.dbPensions || this.dbPensions.length === 0) return 0;
-      return this.dbPensions.reduce((sum, pension) => {
-        return sum + parseFloat(pension.accrued_annual_pension || 0);
-      }, 0);
-    },
-
-    // Whether user has entered any pension data
-    hasPensions() {
-      const hasDC = this.dcPensions && this.dcPensions.length > 0;
-      const hasDB = this.dbPensions && this.dbPensions.length > 0;
-      const hasState = !!this.statePension;
-      return hasDC || hasDB || hasState;
-    },
-
-    // State pension - use configured amount or default to full UK state pension
-    // Only returns a value if user has entered pension data
-    statePensionIncome() {
-      if (!this.hasPensions) return 0;
-      const configured = parseFloat(this.statePension?.annual_amount || 0);
-      return configured > 0 ? configured : DEFAULT_STATE_PENSION;
-    },
-
-    // Total projected annual income from all sources
+    // Projected income - first year's total income from drawdown projection
     projectedIncome() {
-      return this.potentialRetirementIncome + this.dbPensionIncome + this.statePensionIncome;
+      return this.projections?.income_drawdown?.yearly_income?.[0]?.total_income || 0;
     },
 
-    // Check if user has entered a target income
-    isUserEnteredTarget() {
-      const userTarget = this.profile?.target_retirement_income;
-      return userTarget && userTarget > 0;
+    // Required capital from requiredCapital API
+    requiredCapitalValue() {
+      return this.requiredCapital?.required_capital_today || 0;
     },
 
-    // Target income - user configured or default to 75% of current income
-    retirementTargetIncome() {
-      if (this.isUserEnteredTarget) {
-        return this.profile.target_retirement_income;
-      }
-      // Default to 75% of current annual income
-      const currentIncome = this.totalAnnualIncome || 0;
-      return currentIncome * 0.75;
+    // Projected capital at retirement (80% probability) from projections API
+    projectedCapital() {
+      return this.projections?.pension_pot_projection?.percentile_20_at_retirement || 0;
     },
 
-    // Check if projected income meets target
-    hasIncomeGap() {
-      return this.projectedIncome < this.retirementTargetIncome;
+    // Retirement age from projections API
+    retirementAge() {
+      return this.projections?.pension_pot_projection?.retirement_age || 67;
     },
 
-    incomeGap() {
-      return Math.max(0, this.retirementTargetIncome - this.projectedIncome);
+    // Allowance used value from annualAllowance API
+    allowanceUsed() {
+      return this.annualAllowance?.total_contributions || 0;
     },
 
-    // Trusts computed properties
-    hasTrusts() {
-      return this.trusts && this.trusts.length > 0;
+    // ============ RETIRED (Income) computed properties ============
+
+    // Target income for retired users
+    retiredTargetIncome() {
+      return this.retirementIncome?.optimised_income ||
+             this.retirementIncome?.target_income ||
+             0;
     },
 
-    displayedTrusts() {
-      if (!this.trusts) return [];
-      // Show up to 3 trusts, prioritizing active ones
-      return [...this.trusts]
-        .sort((a, b) => {
-          if (a.is_active && !b.is_active) return -1;
-          if (!a.is_active && b.is_active) return 1;
-          return parseFloat(b.current_value || 0) - parseFloat(a.current_value || 0);
-        })
-        .slice(0, 3);
+    // Fund projections for retired users
+    retiredFundProjections() {
+      return this.retirementIncome?.fund_projections || [];
     },
 
-    hasRelevantPropertyTrusts() {
-      return this.trusts && this.trusts.some(t => t.is_relevant_property_trust);
+    // Gross income for first year
+    retiredGrossIncome() {
+      if (this.retiredFundProjections.length === 0) return 0;
+      const firstYear = this.retiredFundProjections[0];
+      return (firstYear.total_income || 0) +
+             (firstYear.state_pension || 0) +
+             (firstYear.db_pension || 0);
     },
 
-    nextChargeDate() {
-      if (!this.trusts) return '';
-      // Find the earliest next 10-year charge date from relevant property trusts
-      const rptTrusts = this.trusts.filter(t => t.is_relevant_property_trust);
-      if (rptTrusts.length === 0) return '';
+    // Tax paid for first year
+    retiredTaxPaid() {
+      if (this.retiredFundProjections.length === 0) return 0;
+      return this.retiredFundProjections[0].tax_paid || 0;
+    },
 
-      // Get next charge dates, calculating from trust creation if not set
-      const chargeDates = rptTrusts.map(trust => {
-        if (trust.next_10_year_charge_date) {
-          return new Date(trust.next_10_year_charge_date);
-        }
-        // Calculate from trust creation date if available
-        if (trust.trust_creation_date || trust.created_at) {
-          const creationDate = new Date(trust.trust_creation_date || trust.created_at);
-          const nextCharge = new Date(creationDate);
-          // Find next 10-year anniversary
-          const now = new Date();
-          while (nextCharge <= now) {
-            nextCharge.setFullYear(nextCharge.getFullYear() + 10);
-          }
-          return nextCharge;
-        }
-        return null;
-      }).filter(d => d !== null);
+    // Net income after tax
+    retiredNetIncome() {
+      return this.retiredGrossIncome - this.retiredTaxPaid;
+    },
 
-      if (chargeDates.length === 0) return 'next anniversary';
+    // Effective tax rate
+    retiredEffectiveTaxRate() {
+      if (this.retiredGrossIncome <= 0) return 0;
+      return this.retiredTaxPaid / this.retiredGrossIncome;
+    },
 
-      // Return earliest date
-      const earliest = chargeDates.reduce((a, b) => a < b ? a : b);
-      return earliest.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    // Total capital at start of retirement
+    retiredTotalCapital() {
+      if (this.retiredFundProjections.length === 0) return 0;
+      const firstYear = this.retiredFundProjections[0];
+      // Sum all fund balances at start
+      return (firstYear.pension_pot_start || 0) +
+             (firstYear.isa_start || 0) +
+             (firstYear.bond_start || 0) +
+             (firstYear.gia_start || 0);
+    },
+
+    // Income sources for retired users
+    retiredIncomeSources() {
+      const allocations = this.incomeAllocations?.length > 0
+        ? this.incomeAllocations
+        : (this.retirementIncome?.allocations || []);
+
+      // Filter to only include sources with amounts > 0
+      return allocations
+        .filter(a => (a.annual_amount || 0) > 0)
+        .map(a => ({
+          key: `${a.source_type}-${a.source_id}`,
+          name: a.name || this.formatSourceName(a.source_type),
+          type: this.formatSourceType(a.source_type),
+          amount: a.annual_amount || 0,
+        }))
+        .slice(0, 5); // Limit to 5 sources for compact view
     },
   },
 
   methods: {
+    ...mapActions('retirement', [
+      'fetchProjections',
+      'fetchRequiredCapital',
+      'fetchAnnualAllowance',
+      'fetchRetirementIncome',
+    ]),
+
     navigateToRetirement() {
       this.$router.push('/net-worth/retirement');
     },
 
-    navigateToTrusts() {
-      this.$router.push('/trusts');
+    formatCurrencyCompact(value) {
+      if (value === null || value === undefined || value === 0) return '£0';
+      if (value >= 1000000) {
+        return '£' + (value / 1000000).toFixed(1) + 'M';
+      }
+      if (value >= 1000) {
+        return '£' + (value / 1000).toFixed(0) + 'K';
+      }
+      return '£' + Math.round(value).toLocaleString();
     },
 
-    formatTrustType(type) {
-      const types = {
-        bare: 'Bare Trust',
-        interest_in_possession: 'Interest in Possession',
-        discretionary: 'Discretionary Trust',
-        accumulation_maintenance: 'Accumulation & Maintenance',
-        life_insurance: 'Life Insurance Trust',
-        discounted_gift: 'Discounted Gift Trust',
-        loan: 'Loan Trust',
-        mixed: 'Mixed Trust',
-        settlor_interested: 'Settlor-Interested Trust',
+    formatPercent(value) {
+      return (value * 100).toFixed(1) + '%';
+    },
+
+    formatSourceType(type) {
+      const typeMap = {
+        pension_pot: 'DC Pension',
+        pension_pot_pcls: 'Tax-Free Cash',
+        pension_pot_drawdown: 'Drawdown',
+        db_pension: 'DB Pension',
+        state_pension: 'State Pension',
+        isa: 'ISA',
+        isa_investment: 'S&S ISA',
+        isa_cash: 'Cash ISA',
+        onshore_bond: 'Bond',
+        offshore_bond: 'Bond',
+        gia: 'GIA',
+        savings: 'Savings',
       };
-      return types[type] || type;
+      return typeMap[type] || 'Other';
+    },
+
+    formatSourceName(type) {
+      const nameMap = {
+        pension_pot: 'Pension Drawdown',
+        pension_pot_pcls: 'Tax-Free Cash',
+        pension_pot_drawdown: 'Pension Drawdown',
+        db_pension: 'Defined Benefit',
+        state_pension: 'State Pension',
+      };
+      return nameMap[type] || type?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'Unknown';
+    },
+  },
+
+  async mounted() {
+    const promises = [];
+
+    // Always fetch projections to get age data (needed to determine if retired)
+    if (!this.projections) {
+      promises.push(
+        this.fetchProjections().then(() => {
+          this.chartKey++;
+        }).catch(() => {})
+      );
+    }
+
+    // Fetch required capital if not loaded
+    if (!this.requiredCapital) {
+      promises.push(this.fetchRequiredCapital().catch(() => {}));
+    }
+
+    // Fetch annual allowance if not loaded (only relevant for non-retired)
+    if (!this.annualAllowance) {
+      promises.push(this.fetchAnnualAllowance().catch(() => {}));
+    }
+
+    await Promise.all(promises);
+
+    // If retired, also fetch retirement income data
+    if (this.isRetired && !this.retirementIncome) {
+      this.fetchRetirementIncome().catch(() => {});
+    }
+  },
+
+  watch: {
+    // Re-fetch projections when DC pensions change
+    'dcPensions.length': {
+      handler(newLen, oldLen) {
+        if (newLen !== oldLen) {
+          this.fetchProjections().then(() => {
+            this.chartKey++;
+          }).catch(() => {});
+        }
+      },
+    },
+
+    // When isRetired changes (after projections load), fetch retirement income
+    isRetired: {
+      handler(retired) {
+        if (retired && !this.retirementIncome) {
+          this.fetchRetirementIncome().catch(() => {});
+        }
+      },
     },
   },
 };
 </script>
 
 <style scoped>
-/* Trust Sections */
-.trust-sections {
+.stat-item {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 2px;
 }
 
-.trust-item {
+.stat-label {
+  font-size: 11px;
+  @apply text-gray-500;
+  font-weight: 500;
+}
+
+.stat-value {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.pension-item {
+  display: flex;
+  flex-direction: column;
+  padding: 6px 8px;
+  background: #f9fafb;
+  border-radius: 6px;
+}
+
+.pension-name {
+  font-size: 12px;
+  font-weight: 500;
+  @apply text-gray-700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pension-value {
+  font-size: 13px;
+  font-weight: 600;
+  @apply text-primary-600;
+}
+
+.pension-chart-container {
+  height: 120px;
+}
+
+.pension-chart-container :deep(.pension-pot-chart) {
+  height: 100%;
+}
+
+.pension-chart-container :deep(.apexcharts-canvas) {
+  height: 100% !important;
+}
+
+.pension-chart-container :deep(.chart-placeholder) {
+  height: 100%;
+}
+
+/* Hide chart legend and footer in compact mode */
+.pension-chart-container :deep(.apexcharts-legend) {
+  display: none !important;
+}
+
+.pension-chart-container :deep(.chart-footer) {
+  display: none;
+}
+
+/* Retired View Styles */
+.income-source-item {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  padding-bottom: 12px;
-  @apply border-b border-gray-100;
+  align-items: center;
+  padding: 8px 10px;
+  background: #f9fafb;
+  border-radius: 6px;
 }
 
-.trust-item:last-of-type {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
-.trust-info {
-  flex: 1;
+.source-info {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
 }
 
-.trust-name-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.trust-name {
-  font-weight: 600;
-  font-size: 14px;
-  @apply text-gray-900;
-}
-
-.trust-details {
+.source-name {
   font-size: 12px;
+  font-weight: 600;
+  @apply text-gray-800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.source-type {
+  font-size: 10px;
   @apply text-gray-500;
 }
 
-.trust-value {
-  font-weight: 600;
-  font-size: 14px;
-  @apply text-purple-600;
-  white-space: nowrap;
-  margin-left: 12px;
-}
-
-/* Info Banner */
-.info-banner {
-  margin-top: 20px;
-  padding: 12px;
-  border-radius: 8px;
-  @apply bg-white;
-  @apply border-2 border-blue-500;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.info-icon {
-  width: 20px;
-  height: 20px;
-  @apply text-blue-800;
-  flex-shrink: 0;
-}
-
-.info-text {
+.source-value {
   font-size: 13px;
-  font-weight: 500;
-  @apply text-blue-800;
+  font-weight: 600;
+  @apply text-green-600;
+  flex-shrink: 0;
+  margin-left: 8px;
 }
+
+.breakdown-box {
+  background: #f9fafb;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.breakdown-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+}
+
+.breakdown-row.total {
+  border-top: 1px solid #e5e7eb;
+  margin-top: 8px;
+  padding-top: 8px;
+}
+
+.breakdown-label {
+  font-size: 12px;
+  @apply text-gray-600;
+}
+
+.breakdown-value {
+  font-size: 13px;
+  font-weight: 600;
+  @apply text-gray-800;
+}
+
+.breakdown-row.total .breakdown-label {
+  font-weight: 600;
+  @apply text-gray-700;
+}
+
+.breakdown-row.total .breakdown-value {
+  font-weight: 700;
+}
+
 </style>

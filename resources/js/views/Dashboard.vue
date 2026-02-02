@@ -55,12 +55,17 @@
           <NetWorthOverviewCard />
         </div>
 
-        <!-- Retirement -->
-        <div class="flex">
-          <div v-if="loading.retirement" class="card animate-pulse">
-            <div class="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
-            <div class="h-8 bg-gray-200 rounded w-1/2 mb-2"></div>
-            <div class="h-3 bg-gray-200 rounded w-full"></div>
+        <!-- Retirement (spans 2 columns) -->
+        <div class="sm:col-span-2 self-start">
+          <div v-if="loading.retirement" class="card animate-pulse w-full">
+            <div class="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
+            <div class="flex gap-6">
+              <div class="flex-1">
+                <div class="h-8 bg-gray-200 rounded w-1/2 mb-2"></div>
+                <div class="h-3 bg-gray-200 rounded w-3/4"></div>
+              </div>
+              <div class="flex-1 h-32 bg-gray-200 rounded"></div>
+            </div>
           </div>
           <RetirementOverviewCard v-else />
         </div>

@@ -5,7 +5,7 @@
       type="area"
       :options="chartOptions"
       :series="series"
-      height="400"
+      :height="height"
     />
     <div v-else class="chart-placeholder">
       <p>No projection data available</p>
@@ -32,6 +32,26 @@ export default {
     data: {
       type: Object,
       required: true,
+    },
+    height: {
+      type: [Number, String],
+      default: 400,
+    },
+    showLegend: {
+      type: Boolean,
+      default: true,
+    },
+    showAxes: {
+      type: Boolean,
+      default: true,
+    },
+    showToolbar: {
+      type: Boolean,
+      default: true,
+    },
+    singleLine: {
+      type: Boolean,
+      default: false,
     },
     riskSource: {
       type: String,
@@ -61,6 +81,16 @@ export default {
 
     series() {
       if (!this.data?.year_by_year || this.data.year_by_year.length === 0) return [];
+
+      // Single line mode - just show 80% probability
+      if (this.singleLine) {
+        return [
+          {
+            name: '80% Probability',
+            data: this.data.year_by_year.map(y => y.percentile_20),
+          },
+        ];
+      }
 
       // Create stacked areas for probability bands
       // Order from bottom to top: 90% (darkest) -> 75% (lightest)
@@ -102,7 +132,7 @@ export default {
           stacked: false,
           fontFamily: 'Inter, system-ui, sans-serif',
           toolbar: {
-            show: true,
+            show: this.showToolbar,
             tools: {
               download: true,
               selection: false,
@@ -122,16 +152,18 @@ export default {
             speed: 800,
           },
         },
-        // Blue and green gradient for more contrast
-        colors: [PRIMARY_COLORS[900], PRIMARY_COLORS[600], SUCCESS_COLORS[500], SUCCESS_COLORS[400]],
+        // Green for single line mode, blue/green gradient for full mode
+        colors: this.singleLine
+          ? [SUCCESS_COLORS[500]]
+          : [PRIMARY_COLORS[900], PRIMARY_COLORS[600], SUCCESS_COLORS[500], SUCCESS_COLORS[400]],
         stroke: {
           curve: 'smooth',
-          width: [1, 1, 1, 1],
+          width: this.singleLine ? 2 : [1, 1, 1, 1],
         },
         fill: {
           type: 'gradient',
           gradient: {
-            opacityFrom: 0.5,
+            opacityFrom: this.singleLine ? 0.4 : 0.5,
             opacityTo: 0.1,
             stops: [0, 90, 100],
           },
@@ -139,30 +171,30 @@ export default {
         xaxis: {
           categories: this.years,
           title: {
-            text: 'Year',
-            style: {
-              fontWeight: 600,
-              fontSize: '12px',
-            },
+            text: this.showAxes ? 'Year' : '',
           },
           labels: {
+            show: this.showAxes,
             style: {
               fontSize: '11px',
             },
             rotate: -45,
             rotateAlways: this.years.length > 15,
           },
+          axisBorder: {
+            show: this.showAxes,
+          },
+          axisTicks: {
+            show: this.showAxes,
+          },
           tickAmount: Math.min(this.years.length, 10),
         },
         yaxis: {
           title: {
-            text: 'Pension Pot Value',
-            style: {
-              fontWeight: 600,
-              fontSize: '12px',
-            },
+            text: this.showAxes ? 'Pension Pot Value' : '',
           },
           labels: {
+            show: this.showAxes,
             formatter: (val) => this.formatCurrencyShort(val),
             style: {
               fontSize: '11px',
@@ -177,6 +209,7 @@ export default {
           },
         },
         legend: {
+          show: this.showLegend,
           position: 'top',
           horizontalAlign: 'center',
           fontSize: '12px',
