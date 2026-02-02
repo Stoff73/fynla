@@ -27,7 +27,6 @@ const documentService = {
    * @param {Function} onProgress - Progress callback
    */
   async upload(file, documentType = null, onProgress = null) {
-    console.log('[documentService] upload called:', { fileName: file?.name, documentType });
     const formData = new FormData();
     formData.append('document', file);
     if (documentType) {
@@ -45,14 +44,11 @@ const documentService = {
         const percentCompleted = Math.round(
           (progressEvent.loaded * 100) / progressEvent.total
         );
-        console.log('[documentService] upload progress:', percentCompleted);
         onProgress(percentCompleted);
       };
     }
 
-    console.log('[documentService] making POST to /documents/upload');
     const response = await api.post('/documents/upload', formData, config);
-    console.log('[documentService] upload response:', response.data);
     return response.data;
   },
 
