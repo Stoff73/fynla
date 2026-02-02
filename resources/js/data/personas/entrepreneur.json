@@ -559,13 +559,49 @@
   },
 
   "will": {
-    "has_will": false,
+    "has_will": true,
     "spouse_primary_beneficiary": false,
     "spouse_bequest_percentage": 0,
-    "executor_name": null,
-    "executor_notes": null,
-    "will_last_updated": null,
-    "bequests": []
+    "executor_name": "David Chen (Father) & Pannone Corporate LLP",
+    "executor_notes": "Will drafted to account for business interests. DataFlow Analytics shares held via SeedLegals shareholder agreement. Business partner Tom has first refusal on shares. Consider updating after any funding round.",
+    "will_last_updated": "2024-06-15",
+    "bequests": [
+      {
+        "beneficiary_name": "David Chen (Father)",
+        "bequest_type": "percentage",
+        "percentage_of_estate": 40,
+        "priority_order": 2,
+        "conditions": null
+      },
+      {
+        "beneficiary_name": "Lin Chen (Mother)",
+        "bequest_type": "percentage",
+        "percentage_of_estate": 40,
+        "priority_order": 2,
+        "conditions": null
+      },
+      {
+        "beneficiary_name": "Manchester Tech Foundation",
+        "bequest_type": "percentage",
+        "percentage_of_estate": 10,
+        "priority_order": 2,
+        "conditions": "To support young entrepreneurs from underrepresented backgrounds"
+      },
+      {
+        "beneficiary_name": "Cancer Research UK",
+        "bequest_type": "specific_amount",
+        "specific_amount": 25000,
+        "priority_order": 1,
+        "conditions": "In memory of grandmother Li Chen"
+      },
+      {
+        "beneficiary_name": "Tom Harrison (Business Partner)",
+        "bequest_type": "specific_asset",
+        "specific_asset_description": "First refusal on DataFlow Analytics shares at fair market value",
+        "priority_order": 1,
+        "conditions": "Per shareholder agreement dated March 2022"
+      }
+    ]
   },
 
   "goals": [
@@ -657,5 +693,48 @@
       "last_contribution_date": "2026-01-01",
       "ownership_type": "individual"
     }
-  ]
+  ],
+
+  "letter_to_spouse": {
+    "immediate_actions": "1. Contact my parents Wei and Mei Chen immediately (details below)\n2. Contact Marcus Wong (business partner) - he needs to know ASAP for business continuity\n3. Contact Legal & General about key person insurance - policy LG-KP-234567 (£500k)\n4. Zurich personal life insurance - policy ZUR-LT-567890 (£200k to parents)\n5. Contact Chen Tech Consulting accountant for company matters\n6. Keep my mobile phone active - it has 2FA for all accounts\n7. Register the death at Manchester Register Office\n8. Obtain at least 15 death certificates (business accounts need more)",
+    "executor_name": "To be appointed - URGENT need to create will",
+    "executor_contact": "Recommend: Marcus Wong as primary, Wei Chen as backup",
+    "attorney_name": "Pannone Corporate LLP",
+    "attorney_contact": "0161 909 3000 / corporate@pannonecorp.com - Ask for Rachel Holmes (handles company matters)",
+    "financial_advisor_name": "Interactive Investor Advisory Team",
+    "financial_advisor_contact": "0345 607 6001 / advice@ii.co.uk",
+    "accountant_name": "BDO Manchester - Tech Sector Team",
+    "accountant_contact": "0161 817 7500 / manchester@bdo.co.uk - Ask for Tom Richards",
+    "immediate_funds_access": "Personal Accounts:\n• Starling Bank Current - Approx £5,680\n• Aldermore Notice Account - £40,000 (90-day notice)\n\nBusiness Accounts (Director access):\n• Tide Business Current - Approx £48,500\n• Tide Business Reserve - £75,000\n\nNote: Company accounts will need board resolution for access. Marcus has co-signatory rights on all business accounts.",
+    "employer_hr_contact": "N/A - Self-employed / Company Director",
+    "employer_benefits_info": "Key Person Insurance: £500,000 payable to Chen Tech Consulting Ltd\nThis is to ensure business continuity, not personal inheritance.\nContact Legal & General: 0800 587 0097, policy LG-KP-234567",
+    "password_manager_info": "Bitwarden - Master password written on card in safe at apartment\nSafe combination: On file with parents\n2FA backup codes: Printed in safe\nYubikey hardware key: Desk drawer",
+    "estate_documents_location": "NOTE: NO WILL CURRENTLY EXISTS - THIS IS URGENT\n\nCompany documents: With Pannone Corporate LLP\nShareholder agreement with Marcus: Same location\nPersonal documents: Safe at apartment\nSafe at penthouse: Contains passports, backup codes, share certificates",
+    "vehicles_info": "Porsche 911 (2022 992 Carrera S):\n- Registration: [To be added]\n- Finance: Fully paid off\n- Insured with Admiral\n- Worth approximately £85,000\n- Parents don't drive - recommend selling through Porsche Centre Manchester",
+    "valuable_items_info": "Porsche 911 Carrera S (£85,000):\n- 2022 model, low mileage\n- Sell through Porsche Centre Manchester\n\nWatch Collection (£35,000):\n- Rolex Submariner (£12,000)\n- Omega Speedmaster (£8,000)\n- IWC Portuguese (£15,000)\n- All documentation in safe\n- Sell through Watches of Switzerland\n\nArt Collection (£25,000):\n- Contemporary pieces\n- Contact Bonhams Manchester for valuation",
+    "cryptocurrency_info": "Holdings on Interactive Investor account - small allocation.\n\nCoinbase account:\n- Various holdings approx £5,000\n- Seed phrases in safe at apartment\n- Login details in Bitwarden\n\nDO NOT lose the seed phrases - crypto is unrecoverable without them.",
+    "recurring_bills_info": "Personal:\n- Council Tax: £245/month (direct debit Starling)\n- Service Charge: £350/month\n- Utilities: £155/month (Octopus)\n- Car Insurance: Admiral\n- Gym: Third Space Manchester - cancel\n\nBusiness (company accounts):\n- Office rent, salaries, software subscriptions\n- Marcus will know what to do\n- BDO has all financial records",
+    "funeral_preference": "cremation",
+    "funeral_service_details": "Cremation preferred. Simple service - no religious ceremony. Celebration of life at The Ivy Manchester or similar venue. Invite tech community friends and colleagues. Play some good music - no sad songs.",
+    "obituary_wishes": "Mention building Chen Tech Consulting from nothing, the team I built, and my passion for technology and entrepreneurship. Note my work with TechAngel Ventures helping other startups. Keep it brief and forward-looking.",
+    "additional_wishes": "Mum and Dad - I'm sorry I didn't spend more time with you. Please use the money to enjoy your retirement and travel. Maybe finally take that trip back to South Africa you've always talked about.\n\nMarcus - thank you for being my business partner and friend. Please look after the team. The company is in good hands with you.\n\nUrgent: PLEASE MAKE A WILL. I know I've been putting this off. If you're reading this without a will, everything goes to intestacy rules which is not what I want.",
+    "additional_boxes": [
+      {
+        "title": "Chen Tech Consulting - Business Succession",
+        "content": "60% shareholding in Chen Tech Consulting Ltd\nMarc Wong owns 40%\n\nShareholder Agreement provisions:\n- Marcus has right of first refusal on my shares\n- Valuation: 3x trailing earnings multiple\n- Key person insurance (£500k) to fund buyout\n\nCompany Number: 12345678\nContact: Pannone Corporate for share transfer\n\nCRITICAL: Business must continue - 8 employees depend on it"
+      },
+      {
+        "title": "TechAngel Ventures LLP - Investment Holding",
+        "content": "25% interest in TechAngel Ventures LLP\nOC456789\n\nThree other partners:\n- Contact Simon Wright (managing partner)\n- simon@techangelventures.com\n\nNot BPR eligible (investment holding)\nCurrent value: ~£100,000 (my 25%)\nPartnership agreement specifies buyout terms"
+      },
+      {
+        "title": "Director's Loan Account",
+        "content": "Outstanding director's loan: £35,000\nOWED BY ME TO THE COMPANY\n\nThis is repayable to Chen Tech Consulting Ltd\nDeduct from any inheritance or estate\n\nBDO has full records of the loan account"
+      },
+      {
+        "title": "Parents Care Planning",
+        "content": "Wei Chen (father, 66) - May need care support in future\nMei Chen (mother, 63) - Currently in good health\n\nI've been setting aside money for their future care.\nThe Aldermore savings (£40,000) and life insurance proceeds should help.\n\nThey live in Hong Kong - may want to return to UK for care."
+      }
+    ]
+  }
 }

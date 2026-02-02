@@ -674,5 +674,52 @@
       "last_contribution_date": "2026-01-01",
       "ownership_type": "individual"
     }
-  ]
+  ],
+
+  "letter_to_spouse": {
+    "immediate_actions": "1. Contact Andrew Thompson immediately - he is co-executor with Smithson Solicitors\n2. Contact Smithson Solicitors LLP (they handle everything)\n3. Access Lloyds current account for immediate expenses\n4. Contact Hargreaves Lansdown for investment accounts\n5. File life insurance claim with Aviva - policy AV-WOL-123456 (£100k in trust)\n6. Contact Teachers' Pension about any final payments\n7. Register the death at Cheltenham Register Office\n8. Obtain at least 10 death certificates",
+    "executor_name": "Andrew Thompson & Smithson Solicitors LLP",
+    "executor_contact": "Andrew: 07700 900456 / Smithson Solicitors: 01451 820 567 - Ask for Philip Smithson",
+    "attorney_name": "Smithson Solicitors LLP",
+    "attorney_contact": "01451 820 567 / estates@smithsonllp.co.uk - Philip Smithson (senior partner)",
+    "financial_advisor_name": "Helen Richards - Hargreaves Lansdown Wealth Advice",
+    "financial_advisor_contact": "0117 900 9000 / helen.richards@hl.co.uk",
+    "accountant_name": "N/A - Tax affairs straightforward, solicitor handles",
+    "accountant_contact": "Smithson Solicitors handle annual tax returns",
+    "immediate_funds_access": "All accounts are individual (no joint accounts since Robert passed):\n\n• Lloyds Current Account - Approx £4,850 (accessible after probate)\n• Cash ISA - £85,000 (will be frozen)\n• NS&I Direct Saver - £50,000\n\nAndrew has access to emergency cash (£500) kept in the house.\nCatherine has a debit card linked to the Lloyds account for emergencies.",
+    "employer_hr_contact": "N/A - Retired",
+    "employer_benefits_info": "Teachers' Pension is already in payment.\nNo spouse benefits as Robert has passed.\nPension payments will stop - notify NHS Pensions: 0345 606 6166",
+    "password_manager_info": "Passwords written in red notebook in bedside drawer.\nLaptop password: On sticky note under keyboard (I know, not secure!)\nAndrew has copies of all important passwords.",
+    "estate_documents_location": "All original documents at Smithson Solicitors, Bourton-on-the-Water\n\nAt home (Rose Cottage):\n- Will copy in filing cabinet, study\n- LPAs (Andrew and Catherine are attorneys)\n- House deeds (originals with solicitor)\n- Robert's death certificate\n- Life insurance policy documents\n- Premium Bonds certificates\n\nSafe deposit box at Lloyds Cheltenham:\n- Jewellery valuation certificates\n- Premium Bonds certificates backup\n- Copy of offshore bond documentation",
+    "vehicles_info": "Volvo XC60 (2021):\n- Registration: MT21 ABC\n- Fully owned, no finance\n- Insured with NFU Mutual\n- Worth approximately £28,000\n- Catherine may want it, otherwise sell\n\nNo second car since Robert passed.",
+    "valuable_items_info": "Antique Furniture Collection (£25,000):\n- Georgian sideboard in dining room\n- Victorian chaise longue in sitting room\n- Mahogany grandfather clock (from Robert's parents)\n- Various other period pieces\n- Valuations on file with Smithson Solicitors\n\nJewellery (£15,000):\n- My engagement and wedding rings - to Catherine\n- Robert's watch collection - split between Andrew and Richard\n- Pearl necklace (mother's) - to first granddaughter to marry\n- Other pieces documented in jewellery book, bedroom dresser",
+    "cryptocurrency_info": "N/A - No cryptocurrency holdings",
+    "recurring_bills_info": "Rose Cottage (Main Residence):\n- Council Tax: £280/month - Lloyds direct debit\n- Gas: £95/month - British Gas\n- Electric: £70/month - EDF\n- Water: £40/month - Severn Trent\n- Building Insurance: £45/month - NFU Mutual\n- Contents Insurance: £30/month - NFU Mutual\n- Gardener: £200/month - Jim Harris (local)\n\nPadstow Cottage:\n- Council Tax: £175/month (even when empty)\n- Utilities: Minimal when not in use\n- Insurance: Included in main policy\n\nSubscriptions: Times newspaper, National Trust, Netflix - can all be cancelled",
+    "funeral_preference": "burial",
+    "funeral_service_details": "Burial at St Lawrence Church, Bourton-on-the-Water - next to Robert. Service at St Lawrence with reception at the Old Manse Hotel. Traditional Church of England service. Hymns: 'The Lord is My Shepherd', 'Abide With Me', 'Jerusalem'. Donations to Cotswold Care Hospice (they cared for Robert) and Alzheimer's Research UK.",
+    "obituary_wishes": "Mention my 35 years as a teacher and headteacher serving Gloucestershire children. Note Robert as my beloved husband of 45 years. Mention the three children and five grandchildren - they are my greatest achievement. Include my love of gardening and the Cotswolds. Keep it dignified but warm.",
+    "additional_wishes": "My darling children,\n\nI've had a wonderful life and you three have been the greatest joy. Please don't argue over the estate - I've tried to be fair to everyone.\n\nCatherine - Rose Cottage is for you as we discussed. You've always loved this village and I want you to raise Lucy and James here.\n\nAndrew - Please look after your sisters and be the family anchor.\n\nRichard - Don't work so hard, spend time with Lucy while she's young.\n\nTo my grandchildren - Grandma loves you all. The education trust will help with university. Make me proud.\n\nScatter some of my ashes in the garden at Padstow where your father and I spent so many happy summers.\n\nAll my love always,\nMum xxx",
+    "additional_boxes": [
+      {
+        "title": "Thompson Family Discretionary Trust",
+        "content": "Current value: £245,000\nSettlor: Robert Thompson (deceased)\nTrustees: Smithson Solicitors LLP, Andrew Thompson\n\nPurpose: Supplementary income for me, remainder to children\n\nThis trust is OUTSIDE my estate for IHT purposes.\nOn my death, trustees have discretion to distribute to children.\n\nContact Smithson Solicitors for all trust matters.\nAnnual trust accounts filed with HMRC."
+      },
+      {
+        "title": "Padstow Cottage - Holiday Home",
+        "content": "14 Harbour View, Padstow, Cornwall PL28 8AE\n\nValue: ~£285,000 (no mortgage)\nThis is a SECOND RESIDENCE - full CGT applies on sale\n\nConsider:\n- Keep for family holidays\n- Rent out for income (needs letting agency)\n- Sell and distribute proceeds\n\nKeys with local keyholder: Mrs Janet Trevithick\n01841 532 890"
+      },
+      {
+        "title": "Offshore Bond - Tax Planning",
+        "content": "Quilter International Offshore Bond\nCurrent value: £150,000\n\nThis is for tax-efficient withdrawals.\nCan take 5% per year tax-deferred.\n\nBeneficiaries: Split equally between children\n\nContact Quilter: 0345 600 3030\nPolicy docs with Helen Richards at HL"
+      },
+      {
+        "title": "Grandchildren's Education Planning",
+        "content": "Junior ISAs set up for each grandchild:\n- Emily Williams (Catherine's)\n- James Williams (Catherine's)\n- Sophie Thompson (Andrew's)\n- Oliver Thompson (Andrew's)\n- Lucy Thompson (Richard's)\n\nI contribute £600/year to each (from annual exemption).\n\nEducation trust in will: 15% of residual estate for university costs when they turn 21.\n\nEncourage them all to go to university - education changes lives."
+      },
+      {
+        "title": "IHT Planning Notes",
+        "content": "Robert's NRB (£325k) and RNRB (£175k) transferred to me.\n\nMy total allowances:\n- NRB: £650,000 (double)\n- RNRB: £350,000 (double)\n- Total: £1,000,000\n\nCurrent estate: ~£1,595,000\nEstimated IHT: ~£238,000 (40% of excess)\n\nLife insurance (£100k in trust) covers most of this.\n\nGifting strategy: £6,000/year (2 x £3k exemptions) to grandchildren.\n£45,000 already gifted in last 7 years - children got house deposit help."
+      }
+    ]
+  }
 }

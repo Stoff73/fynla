@@ -20,6 +20,7 @@ use App\Models\IncomeProtectionPolicy;
 use App\Models\Investment\Holding;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\Investment\RiskProfile;
+use App\Models\LetterToSpouse;
 use App\Models\LifeInsurancePolicy;
 use App\Models\Mortgage;
 use App\Models\Property;
@@ -149,6 +150,9 @@ class PreviewUserSeeder extends Seeder
         // Create goals
         $this->createGoals($user, $spouse, $data['goals'] ?? []);
 
+        // Create letters to spouse
+        $this->createLetterToSpouse($user, $spouse, $data['letter_to_spouse'] ?? null, $data['chattels'] ?? []);
+
         $this->command->info("  Created user: {$user->name} ({$user->email})");
         if ($spouse) {
             $this->command->info("  Created spouse: {$spouse->name} ({$spouse->email})");
@@ -232,6 +236,9 @@ class PreviewUserSeeder extends Seeder
         // Delete profiles
         RiskProfile::where('user_id', $user->id)->delete();
         RetirementProfile::where('user_id', $user->id)->delete();
+
+        // Delete letters to spouse
+        LetterToSpouse::where('user_id', $user->id)->delete();
     }
 
     /**
@@ -1382,5 +1389,110 @@ class PreviewUserSeeder extends Seeder
                 'additional_costs_estimate' => $goal['additional_costs_estimate'] ?? null,
             ]);
         }
+    }
+
+    /**
+     * Create letters to spouse for users.
+     * Also generates valuable_items_info from chattels if not provided.
+     */
+    private function createLetterToSpouse(User $user, ?User $spouse, ?array $letterData, array $chattels = []): void
+    {
+        if (! $letterData) {
+            return;
+        }
+
+        // Generate valuable_items_info from chattels if not provided in letter data
+        $valuableItemsInfo = $letterData['valuable_items_info'] ?? $this->generateValuableItemsFromChattels($chattels);
+
+        // Create letter for primary user
+        LetterToSpouse::create([
+            'user_id' => $user->id,
+            'immediate_actions' => $letterData['immediate_actions'] ?? null,
+            'executor_name' => $letterData['executor_name'] ?? null,
+            'executor_contact' => $letterData['executor_contact'] ?? null,
+            'attorney_name' => $letterData['attorney_name'] ?? null,
+            'attorney_contact' => $letterData['attorney_contact'] ?? null,
+            'financial_advisor_name' => $letterData['financial_advisor_name'] ?? null,
+            'financial_advisor_contact' => $letterData['financial_advisor_contact'] ?? null,
+            'accountant_name' => $letterData['accountant_name'] ?? null,
+            'accountant_contact' => $letterData['accountant_contact'] ?? null,
+            'immediate_funds_access' => $letterData['immediate_funds_access'] ?? null,
+            'employer_hr_contact' => $letterData['employer_hr_contact'] ?? null,
+            'employer_benefits_info' => $letterData['employer_benefits_info'] ?? null,
+            'password_manager_info' => $letterData['password_manager_info'] ?? null,
+            'estate_documents_location' => $letterData['estate_documents_location'] ?? null,
+            'vehicles_info' => $letterData['vehicles_info'] ?? null,
+            'valuable_items_info' => $valuableItemsInfo,
+            'cryptocurrency_info' => $letterData['cryptocurrency_info'] ?? null,
+            'recurring_bills_info' => $letterData['recurring_bills_info'] ?? null,
+            'funeral_preference' => $letterData['funeral_preference'] ?? 'not_specified',
+            'funeral_service_details' => $letterData['funeral_service_details'] ?? null,
+            'obituary_wishes' => $letterData['obituary_wishes'] ?? null,
+            'additional_wishes' => $letterData['additional_wishes'] ?? null,
+            'additional_boxes' => $letterData['additional_boxes'] ?? null,
+        ]);
+
+        // Create letter for spouse if data provided
+        if ($spouse && ! empty($letterData['spouse_letter'])) {
+            $spouseLetterData = $letterData['spouse_letter'];
+
+            // Generate spouse valuable items from chattels owned by spouse
+            $spouseValuableItems = $spouseLetterData['valuable_items_info']
+                ?? $this->generateValuableItemsFromChattels(
+                    array_filter($chattels, fn ($c) => ($c['owner'] ?? null) === 'spouse')
+                );
+
+            LetterToSpouse::create([
+                'user_id' => $spouse->id,
+                'immediate_actions' => $spouseLetterData['immediate_actions'] ?? null,
+                'executor_name' => $spouseLetterData['executor_name'] ?? null,
+                'executor_contact' => $spouseLetterData['executor_contact'] ?? null,
+                'attorney_name' => $spouseLetterData['attorney_name'] ?? null,
+                'attorney_contact' => $spouseLetterData['attorney_contact'] ?? null,
+                'financial_advisor_name' => $spouseLetterData['financial_advisor_name'] ?? null,
+                'financial_advisor_contact' => $spouseLetterData['financial_advisor_contact'] ?? null,
+                'accountant_name' => $spouseLetterData['accountant_name'] ?? null,
+                'accountant_contact' => $spouseLetterData['accountant_contact'] ?? null,
+                'immediate_funds_access' => $spouseLetterData['immediate_funds_access'] ?? null,
+                'employer_hr_contact' => $spouseLetterData['employer_hr_contact'] ?? null,
+                'employer_benefits_info' => $spouseLetterData['employer_benefits_info'] ?? null,
+                'password_manager_info' => $spouseLetterData['password_manager_info'] ?? null,
+                'estate_documents_location' => $spouseLetterData['estate_documents_location'] ?? null,
+                'vehicles_info' => $spouseLetterData['vehicles_info'] ?? null,
+                'valuable_items_info' => $spouseValuableItems,
+                'cryptocurrency_info' => $spouseLetterData['cryptocurrency_info'] ?? null,
+                'recurring_bills_info' => $spouseLetterData['recurring_bills_info'] ?? null,
+                'funeral_preference' => $spouseLetterData['funeral_preference'] ?? 'not_specified',
+                'funeral_service_details' => $spouseLetterData['funeral_service_details'] ?? null,
+                'obituary_wishes' => $spouseLetterData['obituary_wishes'] ?? null,
+                'additional_wishes' => $spouseLetterData['additional_wishes'] ?? null,
+                'additional_boxes' => $spouseLetterData['additional_boxes'] ?? null,
+            ]);
+        }
+    }
+
+    /**
+     * Generate valuable_items_info text from chattels data.
+     */
+    private function generateValuableItemsFromChattels(array $chattels): ?string
+    {
+        if (empty($chattels)) {
+            return null;
+        }
+
+        $info = '';
+        foreach ($chattels as $chattel) {
+            $name = $chattel['name'] ?? $chattel['item_name'] ?? 'Unnamed Item';
+            $value = $chattel['current_value'] ?? 0;
+            $notes = $chattel['notes'] ?? $chattel['description'] ?? '';
+
+            $info .= "{$name} (£".number_format((float) $value, 0)."):\n";
+            if ($notes) {
+                $info .= "- {$notes}\n";
+            }
+            $info .= "\n";
+        }
+
+        return trim($info);
     }
 }

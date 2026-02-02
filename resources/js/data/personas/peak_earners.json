@@ -922,5 +922,70 @@
       "last_contribution_date": "2026-01-01",
       "ownership_type": "joint"
     }
-  ]
+  ],
+
+  "letter_to_spouse": {
+    "immediate_actions": "1. Contact Sarah Mitchell immediately - she is executor and knows everything\n2. Notify Global Finance Corp HR (020 7946 0123) - death in service benefit of 4x salary\n3. Access our joint Nationwide account for immediate expenses\n4. Contact James Patterson at Hargreaves Lansdown (01onal 234 567890)\n5. File life insurance claim with Vitality - policy VIT-LT-456789 (£500k in trust)\n6. Keep my mobile phone active - it has all authentication apps\n7. Register the death at Guildford Register Office\n8. Obtain at least 12 death certificates (multiple financial accounts)",
+    "executor_name": "Sarah Mitchell & Barclays Wealth",
+    "executor_contact": "sarah.mitchell@nhs.net / Barclays Wealth: 0800 779 9779",
+    "attorney_name": "Henderson & Co Solicitors",
+    "attorney_contact": "01483 562 890 / estates@hendersonlaw.co.uk - Ask for Mr Richard Henderson",
+    "financial_advisor_name": "James Patterson - Hargreaves Lansdown Wealth Advice",
+    "financial_advisor_contact": "01onal 234 567890 / james.patterson@hl.co.uk",
+    "accountant_name": "Graham & Associates Chartered Accountants",
+    "accountant_contact": "01483 445 678 / david.graham@grahamassoc.co.uk",
+    "immediate_funds_access": "Joint Accounts (Accessible Immediately):\n\n• Nationwide Joint Current Account - Approx £4,500\n• Premium Bonds - £50,000 (joint holding, can access immediately)\n\nMy individual accounts will be frozen until probate:\n• HSBC Current Account\n• HSBC savings\n\nCredit card (Amex Platinum) should be cancelled but can be used for funeral expenses first.",
+    "employer_hr_contact": "Global Finance Corp HR: 020 7946 0123 - Ask for Karen Williams",
+    "employer_benefits_info": "Death in service: 4x salary (£580,000)\nGroup life cover: Additional £200,000\nPension: Contact Fidelity for survivor benefits",
+    "password_manager_info": "1Password - Master password is in the safe at home\nEmergency Kit stored in safety deposit box at HSBC Guildford\nBiometric backup: William and Charlotte both have emergency access",
+    "estate_documents_location": "Original will and LPAs: Henderson & Co Solicitors, 45 High Street, Guildford\nCopies at home: Filing cabinet in study, bottom drawer\nLife insurance policy documents: Same drawer, blue folder\nSafe at home: Contains passports, Premium Bonds certificates, house deeds\nSafe combination: Written on card in your bedside drawer",
+    "vehicles_info": "BMW X5 xDrive40i (DM22 XYZ):\n- Joint ownership, PCP ends March 2025\n- BMW Finance: 0800 083 2222\n- Insured with Aviva\n\n1967 Jaguar E-Type (ABC 123E):\n- My name only, fully owned\n- Specialist insurance with Hagerty\n- Keep in climate-controlled garage\n- Worth approximately £85,000\n- May want to keep for William",
+    "valuable_items_info": "Contemporary Art Collection (£35,000):\n- Damien Hirst lithograph plus other pieces\n- Insured separately with Hiscox\n- Professional valuation from Christie's Sept 2024\n- Keep for the children or sell through Christie's\n\nJaguar E-Type (£85,000):\n- Classic car, CGT exempt as wasting asset\n- William has expressed interest in keeping it\n\nSarah's Engagement Ring (£18,000):\n- Yours obviously, recently valued for insurance\n\nGeorgian Writing Desk (£8,500):\n- From your grandmother, keep in family\n\nFirst Edition Book Collection (£4,500):\n- Ian Fleming Bond novels\n- Below CGT threshold\n- Richard at Sotheby's can value if selling",
+    "cryptocurrency_info": "Small holding in Coinbase account:\n- Bitcoin: approx £2,500\n- Ethereum: approx £1,000\nSeed phrase in safety deposit box at HSBC\nCoinbase login in 1Password",
+    "recurring_bills_info": "Council Tax: £320/month - Direct debit from joint account\nUtilities (Gas/Electric): £165/month - Octopus Energy, joint account\nWater: £40/month - Thames Water, joint account\nBroadband: BT - £55/month - my account, switch to your name\nNetflix, Spotify, Times subscription: All on my card, may want to keep\nPrivate school fees: Paid termly, insurance covers if I die\nGym membership: David Lloyd Guildford - cancel",
+    "funeral_preference": "cremation",
+    "funeral_service_details": "Cremation preferred, service at St Nicolas Church in Guildford where we were married. Reception at the rugby club - I was a member for 20 years. No flowers - donations to Cancer Research UK instead. Playing 'You'll Never Walk Alone' at the service is fine (sorry, not sorry).",
+    "obituary_wishes": "Keep it simple. Mention the children, my years at Global Finance Corp, my love of classic cars and rugby. Don't make it too serious - I'd want people laughing not crying. Maybe mention the time I drove the Jag to William's school and accidentally set off the car alarm during the nativity.",
+    "additional_wishes": "Sarah, you've been my best friend for 20 years. Please don't rush into any major decisions - take at least a year before selling the house or making big financial moves. James at Hargreaves will look after you. Make sure the kids know I loved them more than anything. And please, let William have the Jag when he's old enough - he's wanted it since he was 10. I love you all.",
+    "additional_boxes": [
+      {
+        "title": "Manchester BTL Property - Mike Jones",
+        "content": "40% share owned with Mike Jones (60%).\nMike has right of first refusal if selling.\nContact: 07700 900123 / mike.jones@email.com\nTenant: Ms Rachel Green, lease ends May 2025\nProperty management: Northwood Manchester"
+      },
+      {
+        "title": "Children's Education Trust",
+        "content": "Mitchell Children's Education Trust - £185,000\nTrustees: Me, you, Barclays Trustee Services\nPurpose: William and Charlotte's university and education costs\nBarclays contact: 0800 779 9779 - reference MT2020\nYou'll need to appoint a replacement trustee"
+      },
+      {
+        "title": "NHS Pension - Sarah's Benefits",
+        "content": "Remember your NHS pension has death benefits too.\nIf I'm still working: Lump sum of 2x salary plus survivor pension\nContact NHS Pensions: 0300 330 1346\nMake sure nomination form is up to date"
+      }
+    ],
+    "spouse_letter": {
+      "immediate_actions": "1. Contact David Mitchell immediately - he is co-executor\n2. Notify Surrey NHS Trust HR (01483 571 122)\n3. Access our joint Nationwide account for immediate expenses\n4. Contact James Patterson at Hargreaves Lansdown\n5. File life insurance claim with Vitality - joint policy\n6. Register the death at Guildford Register Office\n7. Obtain at least 12 death certificates",
+      "executor_name": "David Mitchell & Barclays Wealth",
+      "executor_contact": "david.mitchell@globalfinance.com / Barclays Wealth: 0800 779 9779",
+      "attorney_name": "Henderson & Co Solicitors",
+      "attorney_contact": "01483 562 890 / estates@hendersonlaw.co.uk - Ask for Mr Richard Henderson",
+      "financial_advisor_name": "James Patterson - Hargreaves Lansdown Wealth Advice",
+      "financial_advisor_contact": "01personal 234 567890 / james.patterson@hl.co.uk",
+      "accountant_name": "Graham & Associates Chartered Accountants",
+      "accountant_contact": "01483 445 678 / david.graham@grahamassoc.co.uk",
+      "password_manager_info": "1Password - Master password is in the safe at home\nDavid has the emergency access details",
+      "employer_hr_contact": "Surrey NHS Trust HR: 01483 571 122",
+      "employer_benefits_info": "NHS Pension death benefits: Contact NHS Pensions 0300 330 1346\n50% spouse pension continues to David\nLump sum payment to nominated beneficiary",
+      "vehicles_info": "BMW X5 is joint ownership\nMy personal car: Audi A3 - fully owned",
+      "valuable_items_info": "My engagement ring (£18,000) - to Charlotte\nJewellery collection - split between Charlotte and any future granddaughters\nGeorgian writing desk from grandmother - family heirloom, keep",
+      "funeral_preference": "cremation",
+      "funeral_service_details": "Cremation with service at St Nicolas Church. Reception at home or local venue - intimate gathering. Donations to British Heart Foundation.",
+      "obituary_wishes": "Mention my years as a GP helping the local community, the children, and my passion for gardening.",
+      "additional_wishes": "David, please look after yourself and the children. Don't let William skip university! Make sure Charlotte knows she can do anything she sets her mind to. I love you all so much.",
+      "additional_boxes": [
+        {
+          "title": "NHS Pension Details",
+          "content": "NHS Pension Scheme (2015 scheme)\nMember number: On file with NHS Pensions\nDavid nominated for 50% survivor pension\nLump sum: 3x pensionable salary\nContact: 0300 330 1346"
+        }
+      ]
+    }
+  }
 }
