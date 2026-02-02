@@ -52,11 +52,13 @@ class LetterToSpouse extends Model
         'funeral_service_details',
         'obituary_wishes',
         'additional_wishes',
+        'additional_boxes',
     ];
 
     protected $casts = [
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
+        'additional_boxes' => 'array',
     ];
 
     /**
