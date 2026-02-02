@@ -118,7 +118,7 @@
                                 <!-- Register Section -->
                                 <div class="mt-6 pt-5 border-t border-gray-200">
                                     <p class="text-center text-gray-600 text-sm mb-3">
-                                        We strongly encourage you to explore the personas above first to see what Fynla can do.
+                                        We strongly recommend looking through a persona to see the full power of the platform.
                                     </p>
                                     <div class="flex justify-center">
                                         <router-link
