@@ -392,7 +392,21 @@ export default {
         }
       } catch (error) {
         this.errorTitle = 'Processing Failed';
-        this.errorMessage = error.response?.data?.message || error.message || 'An error occurred while processing the document';
+
+        // Extract specific validation errors if available
+        const responseData = error.response?.data;
+        if (responseData?.errors) {
+          // Get all validation error messages
+          const errorMessages = Object.values(responseData.errors)
+            .flat()
+            .filter(msg => msg);
+          this.errorMessage = errorMessages.length > 0
+            ? errorMessages.join(' ')
+            : responseData.message || 'Validation failed';
+        } else {
+          this.errorMessage = responseData?.message || error.message || 'An error occurred while processing the document';
+        }
+
         this.currentStep = 'error';
       }
     },
@@ -418,7 +432,20 @@ export default {
         }
       } catch (error) {
         this.errorTitle = 'Save Failed';
-        this.errorMessage = error.response?.data?.message || error.message || 'Failed to save the extracted data';
+
+        // Extract specific validation errors if available
+        const responseData = error.response?.data;
+        if (responseData?.errors) {
+          const errorMessages = Object.values(responseData.errors)
+            .flat()
+            .filter(msg => msg);
+          this.errorMessage = errorMessages.length > 0
+            ? errorMessages.join(' ')
+            : responseData.message || 'Validation failed';
+        } else {
+          this.errorMessage = responseData?.message || error.message || 'Failed to save the extracted data';
+        }
+
         this.currentStep = 'error';
       } finally {
         this.isSaving = false;
