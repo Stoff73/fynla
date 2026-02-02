@@ -112,7 +112,7 @@ export default {
     },
     maxSizeMB: {
       type: Number,
-      default: 100,
+      default: 20,
     },
   },
 
@@ -197,7 +197,7 @@ export default {
       }
     },
 
-    processFile(file) {
+    async processFile(file) {
       this.error = null;
 
       // Validate file type
@@ -217,16 +217,82 @@ export default {
         return;
       }
 
-      // Validate file size
-      const maxBytes = this.maxSizeMB * 1024 * 1024;
+      // Validate file size (allow larger files for PDFs since we extract text)
+      const maxBytes = file.type === 'application/pdf'
+        ? 100 * 1024 * 1024 // 100MB for PDFs (text extraction handles large files)
+        : this.maxSizeMB * 1024 * 1024; // 20MB for images
+
       if (file.size > maxBytes) {
-        this.error = `File too large. Maximum size is ${this.maxSizeMB}MB.`;
+        this.error = file.type === 'application/pdf'
+          ? 'PDF too large. Maximum size is 100MB.'
+          : `File too large. Maximum size is ${this.maxSizeMB}MB.`;
         this.$emit('error', this.error);
         return;
       }
 
-      this.selectedFile = file;
-      this.$emit('file-selected', file);
+      // Compress images if they're large (> 2MB)
+      let processedFile = file;
+      if (file.type.startsWith('image/') && file.size > 2 * 1024 * 1024) {
+        try {
+          processedFile = await this.compressImage(file);
+        } catch (err) {
+          // If compression fails, use original file
+          processedFile = file;
+        }
+      }
+
+      this.selectedFile = processedFile;
+      this.$emit('file-selected', processedFile);
+    },
+
+    compressImage(file) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+
+        img.onload = () => {
+          // Calculate new dimensions (max 2000px on longest side for AI processing)
+          const maxDimension = 2000;
+          let { width, height } = img;
+
+          if (width > maxDimension || height > maxDimension) {
+            if (width > height) {
+              height = Math.round((height / width) * maxDimension);
+              width = maxDimension;
+            } else {
+              width = Math.round((width / height) * maxDimension);
+              height = maxDimension;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Convert to JPEG with 85% quality for good balance
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                // Create a new File object with the compressed data
+                const compressedFile = new File(
+                  [blob],
+                  file.name.replace(/\.[^/.]+$/, '.jpg'),
+                  { type: 'image/jpeg' }
+                );
+                resolve(compressedFile);
+              } else {
+                reject(new Error('Compression failed'));
+              }
+            },
+            'image/jpeg',
+            0.85
+          );
+        };
+
+        img.onerror = () => reject(new Error('Failed to load image'));
+        img.src = URL.createObjectURL(file);
+      });
     },
 
     removeFile() {

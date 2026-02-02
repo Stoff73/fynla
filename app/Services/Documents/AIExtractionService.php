@@ -67,7 +67,23 @@ class AIExtractionService
                     // Use text-based extraction (much smaller payload)
                     $response = $this->callClaudeAPIWithText($pdfText, $prompt);
                 } else {
-                    // Fall back to image-based extraction if no text found (scanned PDF)
+                    // Scanned PDF - check size before attempting image-based extraction
+                    // Base64 adds ~33% overhead, and Claude API limit is ~25MB
+                    $fileSizeBytes = strlen($fileContents);
+                    $maxScannedPdfSize = 15 * 1024 * 1024; // 15MB limit for scanned PDFs
+
+                    if ($fileSizeBytes > $maxScannedPdfSize) {
+                        $fileSizeMB = round($fileSizeBytes / (1024 * 1024), 1);
+                        throw new RuntimeException(
+                            "This scanned PDF ({$fileSizeMB}MB) is too large for AI processing. ".
+                            'Scanned PDFs must be under 15MB. Please try: '.
+                            '(1) Compress the PDF using a tool like smallpdf.com, '.
+                            '(2) Re-scan at 150 DPI instead of 300 DPI, or '.
+                            '(3) Use a PDF with selectable text (not scanned images).'
+                        );
+                    }
+
+                    // Fall back to image-based extraction
                     $base64 = $this->uploadService->getBase64($document);
                     $response = $this->callClaudeAPI($base64, $mediaType, $prompt);
                 }

@@ -27,7 +27,7 @@ class UploadDocumentRequest extends FormRequest
                 'required',
                 'file',
                 'mimes:pdf,jpeg,jpg,png,webp,xlsx,xls,csv',
-                'max:102400', // 100MB - text PDFs work at any size, scanned PDFs have API limits
+                'max:20480', // 20MB - reasonable limit, images auto-compressed on frontend
             ],
             'document_type' => [
                 'nullable',
@@ -52,7 +52,7 @@ class UploadDocumentRequest extends FormRequest
             'document.required' => 'Please select a document to upload.',
             'document.file' => 'The uploaded item must be a file.',
             'document.mimes' => 'Document must be a PDF, image (JPEG, PNG, WebP), or spreadsheet (Excel, CSV).',
-            'document.max' => 'Document must be less than 100MB.',
+            'document.max' => 'Document must be less than 20MB. For large PDFs, try compressing the file or using a PDF with selectable text.',
             'document_type.in' => 'Invalid document type specified.',
         ];
     }
