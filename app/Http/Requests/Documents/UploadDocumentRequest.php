@@ -27,7 +27,7 @@ class UploadDocumentRequest extends FormRequest
                 'required',
                 'file',
                 'mimes:pdf,jpeg,jpg,png,webp,xlsx,xls,csv',
-                'max:10240', // 10MB - reduced from 100MB for security
+                'max:102400', // 100MB to match frontend and Claude API limits
             ],
             'document_type' => [
                 'nullable',
@@ -52,7 +52,7 @@ class UploadDocumentRequest extends FormRequest
             'document.required' => 'Please select a document to upload.',
             'document.file' => 'The uploaded item must be a file.',
             'document.mimes' => 'Document must be a PDF, image (JPEG, PNG, WebP), or spreadsheet (Excel, CSV).',
-            'document.max' => 'Document must be less than 10MB.',
+            'document.max' => 'Document must be less than 100MB.',
             'document_type.in' => 'Invalid document type specified.',
         ];
     }
