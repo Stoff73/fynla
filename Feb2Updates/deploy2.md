@@ -294,7 +294,7 @@ smalot/pdfparser  (installed via composer install on server)
 
 ## 7. Joint Ownership Percentage Bug Fix
 
-**Status:** 🔄 PENDING DEPLOYMENT
+**Status:** ✅ DEPLOYED
 
 ### Description
 
@@ -424,9 +424,147 @@ Test widowed budget shows ALL household expenses:
 
 ---
 
+## 8. Spouse View Toggle for Preview Mode
+
+**Status:** ✅ DEPLOYED
+
+### Description
+
+Added a "View as {spouse name}" toggle button to the preview mode banner for personas with spouses (Carter, Mitchell, and Bennett). This allows users to switch between viewing the primary user's perspective and the spouse's perspective, demonstrating the power of the joint ownership features.
+
+### How It Works
+
+1. User clicks "View as Emily" while viewing as James Carter
+2. Frontend calls `toggleSpouseView()` which switches to `young_family_spouse` persona
+3. Backend finds `preview_young_family_spouse@fynla.local` user (already exists from seeder)
+4. New Sanctum token issued, page reloads
+5. All API queries now return Emily's data (her individual assets, her share of joint assets)
+6. Banner shows "(Emily's view)" and toggle shows "View as James" to switch back
+
+### Features
+
+1. **Spouse Toggle Button**
+   - Shows "View as {spouse name}" (e.g., "View as Emily" when viewing as James)
+   - Swap icon indicates perspective switching
+   - Only visible for personas with spouses (Carter, Mitchell, Bennett)
+   - Loading spinner while switching
+   - Semi-transparent white button that works on all persona gradient backgrounds
+
+2. **View Indicator**
+   - Banner shows "(James's view)" or "(Emily's view)" next to "Preview Mode" text
+   - Mobile shows shortened "(James)" or "(Emily)"
+
+3. **Consistent Colors When Viewing as Spouse**
+   - Persona selector keeps the family color (e.g., green for Mitchells)
+   - Persona selector shows family name (e.g., "David & Sarah Mitchell")
+   - "Current" badge stays on correct family in dropdown
+
+### Personas with Spouse Toggle
+
+| Persona | Primary User | Spouse User |
+|---------|-------------|-------------|
+| young_family | James Carter | Emily Carter |
+| peak_earners | David Mitchell | Sarah Mitchell |
+| retired_couple | Patricia Bennett | Harold Bennett |
+
+### Files Changed
+
+```text
+app/Http/Controllers/Api/PreviewController.php          ← Added spouse persona IDs and metadata
+resources/js/store/modules/preview.js                   ← Added spouse view getters and actions
+resources/js/components/Preview/PreviewBanner.vue       ← Added toggle button and view indicator
+resources/js/components/Preview/PersonaSelector.vue     ← Fixed to use basePersonaId for consistent colors
+```
+
+### Upload Instructions
+
+**Step 1: Run Build**
+
+```bash
+cd /Users/Chris/Desktop/fynla
+./deploy/fynla-org/build.sh
+```
+
+**Step 2: Upload Built Assets**
+
+Upload `public/build/` directory to:
+
+```text
+~/www/fynla.org/public_html/public/build/
+```
+
+**Step 3: Upload PHP Files (1 file)**
+
+```text
+app/Http/Controllers/Api/PreviewController.php → ~/www/fynla.org/public_html/app/Http/Controllers/Api/
+```
+
+**Step 4: Clear Caches**
+
+```bash
+ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
+cd ~/www/fynla.org/public_html
+php artisan cache:clear && php artisan config:clear && php artisan route:clear
+```
+
+### Verification
+
+1. **Toggle Button Visibility**
+   - Select Carter (young_family) persona → Toggle should appear
+   - Select Mitchell (peak_earners) persona → Toggle should appear
+   - Select Bennett (retired_couple) persona → Toggle should appear
+   - Select Widow (Margaret Thompson) → Toggle should NOT appear
+   - Select Entrepreneur (Alex Chen) → Toggle should NOT appear
+   - Select Young Saver (John Morgan) → Toggle should NOT appear
+
+2. **Toggle Functionality (Carter)**
+   - View as James Carter
+   - Verify banner shows "(James's view)"
+   - Click "View as Emily" → Page reloads
+   - Verify banner now shows "(Emily's view)"
+   - Verify toggle now says "View as James"
+   - Verify persona selector still shows "Emily & James Carter" (family name)
+   - Verify persona selector is blue (not changed)
+   - Click "View as James" → Returns to primary view
+
+3. **Toggle Functionality (Mitchell)**
+   - View as David Mitchell
+   - Click "View as Sarah"
+   - Verify selector stays green
+   - Verify selector still shows "David & Sarah Mitchell"
+
+4. **Data Changes When Switching**
+   - When viewing as James: See James's individual savings, investments, pensions
+   - When viewing as Emily: See Emily's individual savings, investments, pensions
+   - Joint assets should show correct ownership percentage for current viewer
+
+---
+
+## 9. Info Guide Badge Color Change
+
+**Status:** ✅ DEPLOYED
+
+### Description
+
+Changed the indicator badge on the "What powers this view?" help button (? icon) from blue to green. The ? button itself remains blue, only the small number indicator showing missing items count is now green.
+
+### Files Changed
+
+```text
+resources/js/components/Shared/InfoGuideButton.vue    ← Badge color: bg-blue-500 → bg-green-500
+```
+
+### Verification
+
+1. Navigate to any page with the ? help button visible (bottom right corner)
+2. If there are missing data items, verify the badge shows a green background (not blue)
+3. Verify the ? button itself is still blue
+
+---
+
 ## Files Changed Summary
 
-### Frontend (7 files - Included in Build)
+### Frontend (11 files - Included in Build)
 
 ```text
 resources/js/components/Retirement/RetirementIncomeTab.vue      ✅ Deployed
@@ -435,10 +573,14 @@ resources/js/components/Retirement/CapitalAdequacyTab.vue       ✅ Deployed (NE
 resources/js/components/NetWorth/PensionList.vue                ✅ Deployed
 resources/js/components/UserProfile/LetterToSpouse.vue          ✅ Deployed
 resources/js/components/Shared/UploadDropZone.vue               ✅ Deployed
-resources/js/components/UserProfile/ExpenditureForm.vue         🔄 Pending
+resources/js/components/UserProfile/ExpenditureForm.vue         ✅ Deployed (Section 7)
+resources/js/components/Preview/PreviewBanner.vue               ✅ Deployed (Section 8)
+resources/js/components/Preview/PersonaSelector.vue             ✅ Deployed (Section 8)
+resources/js/store/modules/preview.js                           ✅ Deployed (Section 8)
+resources/js/components/Shared/InfoGuideButton.vue              ✅ Deployed (Section 9)
 ```
 
-### Backend (14 files - Manual Upload)
+### Backend (15 files - Manual Upload)
 
 ```text
 database/migrations/2026_02_02_095622_add_additional_boxes_to_letters_to_spouse_table.php  ✅ Deployed (NEW)
@@ -447,14 +589,15 @@ database/seeders/PreviewUserSeeder.php                                          
 app/Services/Documents/AIExtractionService.php                                             ✅ Deployed
 app/Services/Documents/DocumentUploadService.php                                           ✅ Deployed
 app/Http/Requests/Documents/UploadDocumentRequest.php                                      ✅ Deployed
-app/Http/Controllers/Api/InvestmentController.php                                          🔄 Pending
-app/Http/Controllers/Api/SavingsController.php                                             🔄 Pending
-app/Http/Controllers/Api/PropertyController.php                                            🔄 Pending
-app/Http/Controllers/Api/BusinessInterestController.php                                    🔄 Pending
-app/Http/Controllers/Api/ChattelController.php                                             🔄 Pending
-app/Http/Controllers/Api/GoalsController.php                                               🔄 Pending
-app/Http/Controllers/Api/MortgageController.php                                            🔄 Pending
-app/Services/UserProfile/UserProfileService.php                                            🔄 Pending
+app/Http/Controllers/Api/InvestmentController.php                                          ✅ Deployed (Section 7)
+app/Http/Controllers/Api/SavingsController.php                                             ✅ Deployed (Section 7)
+app/Http/Controllers/Api/PropertyController.php                                            ✅ Deployed (Section 7)
+app/Http/Controllers/Api/BusinessInterestController.php                                    ✅ Deployed (Section 7)
+app/Http/Controllers/Api/ChattelController.php                                             ✅ Deployed (Section 7)
+app/Http/Controllers/Api/GoalsController.php                                               ✅ Deployed (Section 7)
+app/Http/Controllers/Api/MortgageController.php                                            ✅ Deployed (Section 7)
+app/Services/UserProfile/UserProfileService.php                                            ✅ Deployed (Section 7)
+app/Http/Controllers/Api/PreviewController.php                                             ✅ Deployed (Section 8)
 ```
 
 ### Persona Data (4 JSON files - Included in Build)
@@ -470,22 +613,25 @@ resources/js/data/personas/retired_couple.json                  ✅ Deployed
 
 ## Rebuild Required: YES
 
-Section 7 now includes frontend changes (ExpenditureForm.vue) in addition to backend files.
+Sections 7, 8 & 9 include frontend changes:
+- Section 7: ExpenditureForm.vue
+- Section 8: PreviewBanner.vue, PersonaSelector.vue, preview.js (Vuex store)
+- Section 9: InfoGuideButton.vue
 
 ---
 
-## Upload Checklist - SECTION 7 PENDING 🔄
+## Upload Checklist - ALL DEPLOYED ✅
 
-### Section 7 Deployment Steps
+### Sections 7, 8 & 9 Deployment Steps
 
-**Step 1: Run Build** 🔄
+**Step 1: Run Build** ✅
 
 ```bash
 cd /Users/Chris/Desktop/fynla
 ./deploy/fynla-org/build.sh
 ```
 
-**Step 2: Upload Built Assets** 🔄
+**Step 2: Upload Built Assets** ✅
 
 Upload `public/build/` directory to:
 
@@ -493,11 +639,12 @@ Upload `public/build/` directory to:
 ~/www/fynla.org/public_html/public/build/
 ```
 
-**Step 3: Upload PHP Files (8 files)** 🔄
+**Step 3: Upload PHP Files (9 files)** ✅
 
 Upload via SiteGround File Manager:
 
 ```text
+# Section 7 files
 app/Http/Controllers/Api/InvestmentController.php       → ~/www/fynla.org/public_html/app/Http/Controllers/Api/
 app/Http/Controllers/Api/SavingsController.php          → ~/www/fynla.org/public_html/app/Http/Controllers/Api/
 app/Http/Controllers/Api/PropertyController.php         → ~/www/fynla.org/public_html/app/Http/Controllers/Api/
@@ -506,9 +653,12 @@ app/Http/Controllers/Api/ChattelController.php          → ~/www/fynla.org/publ
 app/Http/Controllers/Api/GoalsController.php            → ~/www/fynla.org/public_html/app/Http/Controllers/Api/
 app/Http/Controllers/Api/MortgageController.php         → ~/www/fynla.org/public_html/app/Http/Controllers/Api/
 app/Services/UserProfile/UserProfileService.php         → ~/www/fynla.org/public_html/app/Services/UserProfile/
+
+# Section 8 files
+app/Http/Controllers/Api/PreviewController.php          → ~/www/fynla.org/public_html/app/Http/Controllers/Api/
 ```
 
-**Step 4: Clear Caches** 🔄
+**Step 4: Clear Caches** ✅
 
 ```bash
 ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
@@ -662,6 +812,28 @@ After deployment, verify:
 
 7. **Existing Functionality**
    - Verify all existing features still work
+
+8. **Spouse View Toggle (Section 8)** ✅
+   - Select Carter (young_family) persona
+   - Verify "(James's view)" appears next to "Preview Mode" in the banner
+   - Verify "View as Emily" button appears (with swap icon)
+   - Click "View as Emily" button
+   - Verify page reloads and now shows "(Emily's view)"
+   - Verify button now says "View as James"
+   - Verify persona selector dropdown still shows "Emily & James Carter" and stays blue
+   - Verify "Current" badge stays on Carter family in dropdown
+   - Click "View as James" to return to primary view
+   - Test with Mitchells (peak_earners): Toggle between David/Sarah, verify green stays
+   - Test with Bennetts (retired_couple): Toggle between Patricia/Harold, verify rose stays
+   - Select Widow persona → Verify NO toggle button appears
+   - Select Entrepreneur persona → Verify NO toggle button appears
+   - Select Young Saver persona → Verify NO toggle button appears
+
+9. **Info Guide Badge Color (Section 9)** ✅
+   - Navigate to any authenticated page
+   - Verify the ? button appears in the bottom right corner (blue background)
+   - If there are missing data items, verify the small badge number is green (not blue)
+   - Click the ? button to open the panel and verify it works correctly
 
 ---
 
