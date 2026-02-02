@@ -152,6 +152,18 @@ class AIExtractionService
             throw new RuntimeException('Anthropic API key not configured');
         }
 
+        // Check PDF size before sending to API (base64 adds ~33% overhead)
+        // Claude API has a practical limit around 20-25MB for requests
+        $base64SizeBytes = strlen($base64);
+        $maxBase64Size = 20 * 1024 * 1024; // 20MB limit for base64 data
+
+        if ($mediaType === 'application/pdf' && $base64SizeBytes > $maxBase64Size) {
+            $fileSizeMB = round($base64SizeBytes / (1024 * 1024), 1);
+            throw new RuntimeException(
+                "PDF file is too large for processing ({$fileSizeMB}MB). Please use a smaller PDF (under 15MB) or compress the document."
+            );
+        }
+
         // For images, resize if exceeds Claude API 5MB limit
         $processedData = $base64;
         $processedMediaType = $mediaType;
