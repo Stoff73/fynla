@@ -230,9 +230,40 @@ resources/js/data/personas/retired_couple.json
 
 ---
 
-## Files Changed Summary (12 files)
+## 6. Document Upload - Cleanup & Model Update
 
-### Frontend (5 files - Included in Build)
+**Status:** 🔄 PENDING
+
+### Description
+
+Cleaned up debug logging from the document upload feature and switched the AI extraction model from Claude Sonnet to the faster and more cost-effective Claude Haiku 4.
+
+### Changes
+
+1. **Model Update**
+   - Changed from `claude-sonnet-4-5` to `claude-haiku-4-5-20241022`
+   - Faster extraction with lower API costs
+
+2. **Debug Logging Removed**
+   - Removed development debug logs from backend (DocumentController, DocumentProcessor, AIExtractionService)
+   - Removed console.log statements from frontend (DocumentUploadModal, documentService)
+   - Retained legitimate operational logging (error handling, audit logs)
+
+### Files Changed
+
+```text
+app/Http/Controllers/Api/DocumentController.php
+app/Services/Documents/AIExtractionService.php
+app/Services/Documents/DocumentProcessor.php
+resources/js/components/Shared/DocumentUploadModal.vue
+resources/js/services/documentService.js
+```
+
+---
+
+## Files Changed Summary (17 files)
+
+### Frontend (7 files - Included in Build)
 
 ```text
 resources/js/components/Retirement/RetirementIncomeTab.vue      ✅ Deployed
@@ -240,14 +271,19 @@ resources/js/components/Preview/PersonaSelectionModal.vue       ✅ Deployed
 resources/js/components/Retirement/CapitalAdequacyTab.vue       ✅ Deployed (NEW)
 resources/js/components/NetWorth/PensionList.vue                ✅ Deployed
 resources/js/components/UserProfile/LetterToSpouse.vue          ✅ Deployed
+resources/js/components/Shared/DocumentUploadModal.vue          🔄 Pending
+resources/js/services/documentService.js                        🔄 Pending
 ```
 
-### Backend (3 files - Manual Upload)
+### Backend (6 files - Manual Upload)
 
 ```text
-database/migrations/2026_02_02_095622_add_additional_boxes_to_letters_to_spouse_table.php  (NEW)
-app/Models/LetterToSpouse.php
-database/seeders/PreviewUserSeeder.php
+database/migrations/2026_02_02_095622_add_additional_boxes_to_letters_to_spouse_table.php  ✅ Deployed (NEW)
+app/Models/LetterToSpouse.php                                                              ✅ Deployed
+database/seeders/PreviewUserSeeder.php                                                     ✅ Deployed
+app/Http/Controllers/Api/DocumentController.php                                            🔄 Pending
+app/Services/Documents/AIExtractionService.php                                             🔄 Pending
+app/Services/Documents/DocumentProcessor.php                                               🔄 Pending
 ```
 
 ### Persona Data (4 JSON files - Included in Build)
@@ -296,6 +332,9 @@ Upload these backend files manually:
 database/migrations/2026_02_02_095622_add_additional_boxes_to_letters_to_spouse_table.php  → ~/www/fynla.org/public_html/database/migrations/
 app/Models/LetterToSpouse.php                                                              → ~/www/fynla.org/public_html/app/Models/
 database/seeders/PreviewUserSeeder.php                                                     → ~/www/fynla.org/public_html/database/seeders/
+app/Http/Controllers/Api/DocumentController.php                                            → ~/www/fynla.org/public_html/app/Http/Controllers/Api/
+app/Services/Documents/AIExtractionService.php                                             → ~/www/fynla.org/public_html/app/Services/Documents/
+app/Services/Documents/DocumentProcessor.php                                               → ~/www/fynla.org/public_html/app/Services/Documents/
 ```
 
 ### Step 4: Run Migration & Reseed (SSH)
@@ -391,7 +430,16 @@ After deployment, verify:
      - Verify Patricia has 4 additional boxes, Harold has 1
      - **Verify Bequests: Mark (50%), Susan (50%), Grandchildren Education Fund (£25k)**
 
-6. **Existing Functionality**
+6. **Document Upload Feature** 🔄
+   - Navigate to Retirement (Pensions tab)
+   - Click "Upload Statement" button
+   - Select a PDF or PNG pension statement
+   - Click "Upload & Analyse"
+   - Verify document is processed successfully
+   - Verify extracted data appears in review modal
+   - Verify model used is now claude-haiku-4-5 (visible in database if checking)
+
+7. **Existing Functionality**
    - Verify all existing features still work
 
 ---
