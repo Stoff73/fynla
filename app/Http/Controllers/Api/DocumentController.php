@@ -44,12 +44,6 @@ class DocumentController extends Controller
      */
     public function upload(UploadDocumentRequest $request): JsonResponse
     {
-        \Log::info('[DocumentController] upload called', [
-            'has_file' => $request->hasFile('document'),
-            'document_type' => $request->input('document_type'),
-            'user_id' => $request->user()->id,
-        ]);
-
         try {
             $result = $this->processor->process(
                 $request->file('document'),
@@ -76,10 +70,6 @@ class DocumentController extends Controller
                 ],
             ], 201);
         } catch (\Exception $e) {
-            \Log::error('[DocumentController] upload failed', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
             return $this->safeErrorResponse('Document processing failed', $e);
         }
     }

@@ -326,31 +326,26 @@ export default {
     },
 
     handleFileSelected(file) {
-      console.log('[DocumentUpload] File selected:', file?.name, file?.type, file?.size);
       this.selectedFile = file;
     },
 
     handleFileRemoved() {
-      console.log('[DocumentUpload] File removed');
       this.selectedFile = null;
     },
 
     handleUploadError(error) {
-      console.log('[DocumentUpload] Upload error:', error);
       this.errorMessage = error;
     },
 
     async startUpload() {
-      console.log('[DocumentUpload] startUpload called, selectedFile:', this.selectedFile?.name);
       if (!this.selectedFile) {
-        console.log('[DocumentUpload] No file selected, returning');
         return;
       }
 
+      // Show processing state immediately
       this.currentStep = 'processing';
       this.processingStep = 'uploading';
       this.uploadProgress = 0;
-      console.log('[DocumentUpload] Starting upload to API...');
 
       try {
         // Upload and process
@@ -358,14 +353,12 @@ export default {
           this.selectedFile,
           this.documentType,
           (progress) => {
-            console.log('[DocumentUpload] Upload progress:', progress);
             this.uploadProgress = progress;
             if (progress >= 100) {
               this.processingStep = 'analysing';
             }
           }
         );
-        console.log('[DocumentUpload] API response:', result);
 
         if (result.success) {
           this.processingStep = 'extracting';
@@ -398,10 +391,22 @@ export default {
           throw new Error(result.message || 'Upload failed');
         }
       } catch (error) {
-        console.error('[DocumentUpload] Upload error:', error);
-        console.error('[DocumentUpload] Error details:', error.response?.data, error.message);
         this.errorTitle = 'Processing Failed';
-        this.errorMessage = error.response?.data?.message || error.message || 'An error occurred while processing the document';
+
+        // Extract specific validation errors if available
+        const responseData = error.response?.data;
+        if (responseData?.errors) {
+          // Get all validation error messages
+          const errorMessages = Object.values(responseData.errors)
+            .flat()
+            .filter(msg => msg);
+          this.errorMessage = errorMessages.length > 0
+            ? errorMessages.join(' ')
+            : responseData.message || 'Validation failed';
+        } else {
+          this.errorMessage = responseData?.message || error.message || 'An error occurred while processing the document';
+        }
+
         this.currentStep = 'error';
       }
     },
@@ -426,9 +431,21 @@ export default {
           throw new Error(result.message || 'Save failed');
         }
       } catch (error) {
-        console.error('Save error:', error);
         this.errorTitle = 'Save Failed';
-        this.errorMessage = error.response?.data?.message || error.message || 'Failed to save the extracted data';
+
+        // Extract specific validation errors if available
+        const responseData = error.response?.data;
+        if (responseData?.errors) {
+          const errorMessages = Object.values(responseData.errors)
+            .flat()
+            .filter(msg => msg);
+          this.errorMessage = errorMessages.length > 0
+            ? errorMessages.join(' ')
+            : responseData.message || 'Validation failed';
+        } else {
+          this.errorMessage = responseData?.message || error.message || 'Failed to save the extracted data';
+        }
+
         this.currentStep = 'error';
       } finally {
         this.isSaving = false;

@@ -49,7 +49,7 @@
 
       <!-- Supported formats -->
       <p class="text-gray-400 text-xs">
-        Supported: PDF, PNG, JPG, Excel (XLSX, XLS), CSV (max {{ maxSizeMB }}MB)
+        Supported: PDF, PNG, JPG, WebP (max {{ maxSizeMB }}MB)
       </p>
       <p class="text-gray-400 text-xs mt-1">
         Large images will be automatically compressed for processing
@@ -63,10 +63,6 @@
         <!-- PDF Icon -->
         <svg v-if="isPdf" fill="currentColor" viewBox="0 0 24 24">
           <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M10.92,12.31C10.68,11.54 10.15,9.08 11.55,9.04C12.95,9 12.03,12.16 12.03,12.16C12.42,13.65 14.05,14.72 14.05,14.72C14.55,14.57 17.4,14.24 17,15.72C16.57,17.2 13.5,15.81 13.5,15.81C11.55,15.95 10.09,16.47 10.09,16.47C8.96,18.58 7.64,19.5 7.1,18.61C6.43,17.5 9.23,16.07 9.23,16.07C10.68,13.72 10.92,12.31 10.92,12.31Z" />
-        </svg>
-        <!-- Excel Icon -->
-        <svg v-else-if="isExcel" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M12.9,14.5L15.8,19H14L12,15.6L10,19H8.2L11.1,14.5L8.2,10H10L12,13.4L14,10H15.8L12.9,14.5Z" />
         </svg>
         <!-- Image Icon -->
         <svg v-else fill="currentColor" viewBox="0 0 24 24">
@@ -108,11 +104,11 @@ export default {
   props: {
     acceptedTypes: {
       type: Array,
-      default: () => ['.pdf', '.png', '.jpg', '.jpeg', '.webp', '.xlsx', '.xls', '.csv'],
+      default: () => ['.pdf', '.png', '.jpg', '.jpeg', '.webp'],
     },
     maxSizeMB: {
       type: Number,
-      default: 100,
+      default: 20,
     },
   },
 
@@ -148,19 +144,8 @@ export default {
       return this.selectedFile?.type === 'application/pdf';
     },
 
-    isExcel() {
-      const excelTypes = [
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'application/vnd.ms-excel',
-        'text/csv',
-        'application/csv',
-      ];
-      return excelTypes.includes(this.selectedFile?.type);
-    },
-
     fileIconClass() {
       if (this.isPdf) return 'text-red-500';
-      if (this.isExcel) return 'text-green-600';
       return 'text-blue-500';
     },
   },
@@ -197,7 +182,7 @@ export default {
       }
     },
 
-    processFile(file) {
+    async processFile(file) {
       this.error = null;
 
       // Validate file type
@@ -206,27 +191,85 @@ export default {
         'image/jpeg',
         'image/png',
         'image/webp',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // xlsx
-        'application/vnd.ms-excel', // xls
-        'text/csv',
-        'application/csv',
       ];
       if (!allowedMimes.includes(file.type)) {
-        this.error = 'Invalid file type. Please upload a PDF, image (JPEG, PNG, WebP), or spreadsheet (Excel, CSV).';
+        this.error = 'Invalid file type. Please upload a PDF or image (JPEG, PNG, WebP).';
         this.$emit('error', this.error);
         return;
       }
 
-      // Validate file size
+      // Validate file size - 20MB for all file types
       const maxBytes = this.maxSizeMB * 1024 * 1024;
+
       if (file.size > maxBytes) {
         this.error = `File too large. Maximum size is ${this.maxSizeMB}MB.`;
         this.$emit('error', this.error);
         return;
       }
 
-      this.selectedFile = file;
-      this.$emit('file-selected', file);
+      // Compress images if they're large (> 2MB)
+      let processedFile = file;
+      if (file.type.startsWith('image/') && file.size > 2 * 1024 * 1024) {
+        try {
+          processedFile = await this.compressImage(file);
+        } catch (err) {
+          // If compression fails, use original file
+          processedFile = file;
+        }
+      }
+
+      this.selectedFile = processedFile;
+      this.$emit('file-selected', processedFile);
+    },
+
+    compressImage(file) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+
+        img.onload = () => {
+          // Calculate new dimensions (max 2000px on longest side for AI processing)
+          const maxDimension = 2000;
+          let { width, height } = img;
+
+          if (width > maxDimension || height > maxDimension) {
+            if (width > height) {
+              height = Math.round((height / width) * maxDimension);
+              width = maxDimension;
+            } else {
+              width = Math.round((width / height) * maxDimension);
+              height = maxDimension;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Convert to JPEG with 85% quality for good balance
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                // Create a new File object with the compressed data
+                const compressedFile = new File(
+                  [blob],
+                  file.name.replace(/\.[^/.]+$/, '.jpg'),
+                  { type: 'image/jpeg' }
+                );
+                resolve(compressedFile);
+              } else {
+                reject(new Error('Compression failed'));
+              }
+            },
+            'image/jpeg',
+            0.85
+          );
+        };
+
+        img.onerror = () => reject(new Error('Failed to load image'));
+        img.src = URL.createObjectURL(file);
+      });
     },
 
     removeFile() {

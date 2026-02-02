@@ -10,22 +10,28 @@ use App\Models\DocumentExtractionLog;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
+use Smalot\PdfParser\Parser as PdfParser;
 
 class AIExtractionService
 {
     private const API_URL = 'https://api.anthropic.com/v1/messages';
 
-    private const MODEL = 'claude-sonnet-4-5';
+    private const MODEL = 'claude-3-5-haiku-20241022';
 
     private const MAX_TOKENS = 4096;
 
     private const TIMEOUT_SECONDS = 120;
 
+    /**
+     * Maximum file size for scanned PDFs (no extractable text) - 15MB.
+     * Text-based PDFs can be larger since we extract text.
+     */
+    private const MAX_SCANNED_PDF_SIZE = 15 * 1024 * 1024;
+
     public function __construct(
         private DocumentUploadService $uploadService,
         private DocumentTypeDetector $typeDetector,
         private ImageResizeService $imageResizeService,
-        private ExcelParserService $excelParserService,
     ) {}
 
     /**
@@ -48,24 +54,21 @@ class AIExtractionService
 
         try {
             $mediaType = $document->mime_type;
-            \Log::info('[AIExtractionService] Processing document', ['media_type' => $mediaType]);
+            Log::info('[AIExtractionService] Processing document', ['media_type' => $mediaType]);
 
             // Build the extraction prompt
             $prompt = $this->buildExtractionPrompt($document);
 
-            // Handle spreadsheets differently - convert to text
-            if ($this->excelParserService->isSpreadsheet($mediaType)) {
-                \Log::info('[AIExtractionService] Processing as spreadsheet');
-                $fileContents = $this->uploadService->getFileContents($document);
-                $spreadsheetText = $this->excelParserService->parseFromContent($fileContents, $mediaType);
-                $response = $this->callClaudeAPIWithText($spreadsheetText, $prompt);
+            // Handle PDFs - try text extraction first
+            if ($mediaType === 'application/pdf') {
+                $response = $this->processPdfDocument($document, $prompt);
             } else {
-                // Get file as base64 for images/PDFs
-                \Log::info('[AIExtractionService] Processing as image/PDF');
+                // Images - use vision API
+                Log::info('[AIExtractionService] Processing as image');
                 $base64 = $this->uploadService->getBase64($document);
-                \Log::info('[AIExtractionService] Calling Claude API', ['base64_length' => strlen($base64)]);
+                Log::info('[AIExtractionService] Calling Claude API', ['base64_length' => strlen($base64)]);
                 $response = $this->callClaudeAPI($base64, $mediaType, $prompt);
-                \Log::info('[AIExtractionService] Claude API response received');
+                Log::info('[AIExtractionService] Claude API response received');
             }
 
             // Parse the response
@@ -562,5 +565,212 @@ PROMPT;
         }
 
         return $data;
+    }
+
+    /**
+     * Process a PDF document - try text extraction first, fall back to vision API.
+     */
+    private function processPdfDocument(Document $document, string $prompt): array
+    {
+        $fileContents = $this->uploadService->getFileContents($document);
+
+        // Try to extract text from PDF
+        $extractedText = $this->extractPdfText($fileContents);
+
+        if ($extractedText !== null && strlen($extractedText) > 100) {
+            // Text-based PDF - filter noise and send text to Claude
+            Log::info('[AIExtractionService] PDF has extractable text', [
+                'raw_length' => strlen($extractedText),
+            ]);
+
+            $filteredText = $this->filterPdfNoise($extractedText);
+
+            Log::info('[AIExtractionService] Filtered PDF text', [
+                'filtered_length' => strlen($filteredText),
+            ]);
+
+            return $this->callClaudeAPIWithText($filteredText, $prompt);
+        }
+
+        // Scanned PDF - check file size limit
+        if ($document->file_size > self::MAX_SCANNED_PDF_SIZE) {
+            throw new RuntimeException(
+                'This PDF appears to be scanned (no extractable text) and is too large for image processing. '.
+                'Maximum size for scanned PDFs is 15MB. Please try: '.
+                '(1) Compress the PDF, (2) Re-scan at 150 DPI, or (3) Use a PDF with selectable text.'
+            );
+        }
+
+        // Fall back to vision API for scanned PDFs
+        Log::info('[AIExtractionService] PDF appears to be scanned, using vision API');
+        $base64 = base64_encode($fileContents);
+
+        return $this->callClaudeAPI($base64, 'application/pdf', $prompt);
+    }
+
+    /**
+     * Extract text from a PDF file using smalot/pdfparser.
+     *
+     * @return string|null Extracted text, or null if extraction failed
+     */
+    private function extractPdfText(string $fileContents): ?string
+    {
+        try {
+            // Increase memory limit temporarily for large PDFs
+            $oldMemoryLimit = ini_get('memory_limit');
+            ini_set('memory_limit', '256M');
+
+            try {
+                $parser = new PdfParser();
+                $pdf = $parser->parseContent($fileContents);
+                $text = $pdf->getText();
+
+                return $text;
+            } finally {
+                ini_set('memory_limit', $oldMemoryLimit);
+            }
+        } catch (\Exception $e) {
+            Log::warning('[AIExtractionService] PDF text extraction failed', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+    }
+
+    /**
+     * Filter noise from PDF text (T&Cs, disclaimers, headers, footers, marketing).
+     */
+    private function filterPdfNoise(string $text): string
+    {
+        $lines = explode("\n", $text);
+        $filteredLines = [];
+        $skipPatterns = [
+            // Legal disclaimers
+            '/terms\s+(and|&)\s+conditions/i',
+            '/privacy\s+policy/i',
+            '/data\s+protection/i',
+            '/financial\s+conduct\s+authority/i',
+            '/fca\s+register/i',
+            '/regulated\s+by/i',
+            '/authorised\s+(and|&)\s+regulated/i',
+            '/compensation\s+scheme/i',
+            '/fscs/i',
+            '/ombudsman/i',
+            '/complaints?\s+procedure/i',
+
+            // Marketing content
+            '/visit\s+(our\s+)?website/i',
+            '/download\s+(our\s+)?app/i',
+            '/contact\s+us\s+(today|now)/i',
+            '/call\s+us\s+(on|at)/i',
+            '/follow\s+us\s+on/i',
+            '/social\s+media/i',
+            '/newsletter/i',
+            '/sign\s+up/i',
+            '/special\s+offer/i',
+
+            // Page furniture
+            '/^page\s+\d+\s*(of\s+\d+)?$/i',
+            '/^\d+\s*$/i',  // Just page numbers
+            '/^[A-Z][a-z]+\s+\d{4}$/i',  // Month Year
+            '/confidential/i',
+            '/for\s+your\s+records/i',
+            '/please\s+keep\s+this/i',
+
+            // Introductory fluff
+            '/thank\s+you\s+for\s+(your|choosing)/i',
+            '/we\s+are\s+pleased\s+to/i',
+            '/enclosed\s+(please\s+find|you\s+will\s+find)/i',
+            '/this\s+statement\s+shows/i',
+            '/important\s+information\s+about/i',
+
+            // Website/contact info (typically footer)
+            '/www\.[a-z0-9-]+\.[a-z]+/i',
+            '/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i',  // Emails
+            '/registered\s+(in|office)/i',
+            '/company\s+(number|no\.?|registration)/i',
+            '/vat\s+(number|no\.?|registration)/i',
+        ];
+
+        // Keywords that indicate important financial content - keep these lines
+        $keepPatterns = [
+            '/fund\s+value/i',
+            '/current\s+value/i',
+            '/balance/i',
+            '/contribution/i',
+            '/pension/i',
+            '/retirement/i',
+            '/investment/i',
+            '/premium/i',
+            '/sum\s+assured/i',
+            '/benefit/i',
+            '/salary/i',
+            '/employer/i',
+            '/employee/i',
+            '/annual/i',
+            '/monthly/i',
+            '/percentage/i',
+            '/£\d/i',  // Currency amounts
+            '/\d+\.\d{2}/i',  // Decimal numbers (likely money)
+            '/\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}/i',  // Dates
+        ];
+
+        $inSkipSection = false;
+        $skipSectionKeywords = [
+            'terms and conditions',
+            'important information',
+            'regulatory information',
+            'how to complain',
+            'data protection',
+            'privacy notice',
+        ];
+
+        foreach ($lines as $line) {
+            $line = trim($line);
+
+            // Skip empty lines
+            if (empty($line)) {
+                continue;
+            }
+
+            // Check if entering a skip section
+            $lineLower = strtolower($line);
+            foreach ($skipSectionKeywords as $keyword) {
+                if (str_contains($lineLower, $keyword)) {
+                    $inSkipSection = true;
+                    continue 2;
+                }
+            }
+
+            // Check if line contains financial data - always keep
+            foreach ($keepPatterns as $pattern) {
+                if (preg_match($pattern, $line)) {
+                    $filteredLines[] = $line;
+                    $inSkipSection = false;  // Reset skip section
+                    continue 2;
+                }
+            }
+
+            // Skip if in a skip section
+            if ($inSkipSection) {
+                continue;
+            }
+
+            // Check skip patterns
+            $shouldSkip = false;
+            foreach ($skipPatterns as $pattern) {
+                if (preg_match($pattern, $line)) {
+                    $shouldSkip = true;
+                    break;
+                }
+            }
+
+            if (! $shouldSkip) {
+                $filteredLines[] = $line;
+            }
+        }
+
+        return implode("\n", $filteredLines);
     }
 }
