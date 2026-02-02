@@ -103,7 +103,7 @@ resources/js/components/NetWorth/PensionList.vue
 
 ## 4. Letter to Spouse - UI Improvements
 
-**Status:** ⏳ NOT DEPLOYED
+**Status:** ✅ DEPLOYED
 
 ### Description
 
@@ -173,7 +173,7 @@ resources/js/components/UserProfile/LetterToSpouse.vue
 
 ## 5. Preview Persona Letter to Spouse Data
 
-**Status:** ⏳ NOT DEPLOYED
+**Status:** ✅ DEPLOYED
 
 ### Description
 
@@ -239,7 +239,7 @@ resources/js/components/Retirement/RetirementIncomeTab.vue      ✅ Deployed
 resources/js/components/Preview/PersonaSelectionModal.vue       ✅ Deployed
 resources/js/components/Retirement/CapitalAdequacyTab.vue       ✅ Deployed (NEW)
 resources/js/components/NetWorth/PensionList.vue                ✅ Deployed
-resources/js/components/UserProfile/LetterToSpouse.vue          ⏳ Not Deployed
+resources/js/components/UserProfile/LetterToSpouse.vue          ✅ Deployed
 ```
 
 ### Backend (3 files - Manual Upload)
@@ -339,7 +339,7 @@ After deployment, verify:
    - Move the slider and verify impact calculations update
    - Verify slider constraint note shows whether limited by affordability or allowance
 
-4. **Letter to Spouse** ⏳
+4. **Letter to Spouse** ✅
    - Navigate to User Profile > Letter to Spouse (or Expression of Wishes for single users)
    - Verify executor details show from Will data with "From Will" badge
    - Verify immediate actions display as numbered two-column checklist
@@ -364,7 +364,7 @@ After deployment, verify:
    - Remove a box using the trash icon, verify it disappears
    - Save and verify additional boxes persist
 
-5. **Preview Persona Letter to Spouse Data** ⏳
+5. **Preview Persona Letter to Spouse Data** ✅
    - Test with Mitchells (peak_earners) persona:
      - Navigate to User Profile > Letter to Spouse
      - Verify David has: James Patterson as financial adviser, Henderson & Co as solicitor, Graham & Associates as accountant
