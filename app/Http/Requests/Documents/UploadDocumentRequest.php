@@ -27,7 +27,7 @@ class UploadDocumentRequest extends FormRequest
                 'required',
                 'file',
                 'mimes:pdf,jpeg,jpg,png,webp,xlsx,xls,csv',
-                'max:20480', // 20MB - practical limit for Claude API after base64 encoding
+                'max:102400', // 100MB - text PDFs work at any size, scanned PDFs have API limits
             ],
             'document_type' => [
                 'nullable',
@@ -52,7 +52,7 @@ class UploadDocumentRequest extends FormRequest
             'document.required' => 'Please select a document to upload.',
             'document.file' => 'The uploaded item must be a file.',
             'document.mimes' => 'Document must be a PDF, image (JPEG, PNG, WebP), or spreadsheet (Excel, CSV).',
-            'document.max' => 'Document must be less than 20MB. Please compress or reduce the file size.',
+            'document.max' => 'Document must be less than 100MB.',
             'document_type.in' => 'Invalid document type specified.',
         ];
     }

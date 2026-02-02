@@ -112,7 +112,7 @@ export default {
     },
     maxSizeMB: {
       type: Number,
-      default: 20,
+      default: 100,
     },
   },
 

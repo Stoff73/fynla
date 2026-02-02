@@ -10,6 +10,7 @@ use App\Models\DocumentExtractionLog;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
+use Smalot\PdfParser\Parser as PdfParser;
 
 class AIExtractionService
 {
@@ -51,13 +52,27 @@ class AIExtractionService
             // Build the extraction prompt
             $prompt = $this->buildExtractionPrompt($document);
 
-            // Handle spreadsheets differently - convert to text
+            // Handle different file types appropriately
             if ($this->excelParserService->isSpreadsheet($mediaType)) {
+                // Spreadsheets: extract text and send to Claude
                 $fileContents = $this->uploadService->getFileContents($document);
                 $spreadsheetText = $this->excelParserService->parseFromContent($fileContents, $mediaType);
                 $response = $this->callClaudeAPIWithText($spreadsheetText, $prompt);
+            } elseif ($mediaType === 'application/pdf') {
+                // PDFs: extract text to avoid large base64 payloads
+                $fileContents = $this->uploadService->getFileContents($document);
+                $pdfText = $this->extractPdfText($fileContents);
+
+                if (! empty(trim($pdfText))) {
+                    // Use text-based extraction (much smaller payload)
+                    $response = $this->callClaudeAPIWithText($pdfText, $prompt);
+                } else {
+                    // Fall back to image-based extraction if no text found (scanned PDF)
+                    $base64 = $this->uploadService->getBase64($document);
+                    $response = $this->callClaudeAPI($base64, $mediaType, $prompt);
+                }
             } else {
-                // Get file as base64 for images/PDFs
+                // Images: send as base64 (ImageResizeService handles size limits)
                 $base64 = $this->uploadService->getBase64($document);
                 $response = $this->callClaudeAPI($base64, $mediaType, $prompt);
             }
@@ -152,15 +167,24 @@ class AIExtractionService
             throw new RuntimeException('Anthropic API key not configured');
         }
 
-        // Check PDF size before sending to API (base64 adds ~33% overhead)
+        // Check size before sending to API (base64 adds ~33% overhead)
         // Claude API has a practical limit around 20-25MB for requests
         $base64SizeBytes = strlen($base64);
         $maxBase64Size = 20 * 1024 * 1024; // 20MB limit for base64 data
 
-        if ($mediaType === 'application/pdf' && $base64SizeBytes > $maxBase64Size) {
+        if ($base64SizeBytes > $maxBase64Size) {
             $fileSizeMB = round($base64SizeBytes / (1024 * 1024), 1);
+
+            if ($mediaType === 'application/pdf') {
+                throw new RuntimeException(
+                    "This appears to be a scanned PDF ({$fileSizeMB}MB) which is too large for image-based processing. ".
+                    'Please try: (1) A smaller/compressed PDF, (2) Re-scan at lower resolution (150 DPI is sufficient), '.
+                    'or (3) Use a PDF with selectable text instead of scanned images.'
+                );
+            }
+
             throw new RuntimeException(
-                "PDF file is too large for processing ({$fileSizeMB}MB). Please use a smaller PDF (under 15MB) or compress the document."
+                "File is too large for processing ({$fileSizeMB}MB). Please use a smaller file (under 15MB)."
             );
         }
 
@@ -568,5 +592,156 @@ PROMPT;
         }
 
         return $data;
+    }
+
+    /**
+     * Extract text from PDF and filter out noise (T&Cs, legal, marketing).
+     */
+    private function extractPdfText(string $fileContents): string
+    {
+        try {
+            $parser = new PdfParser;
+            $pdf = $parser->parseContent($fileContents);
+            $text = $pdf->getText();
+
+            // Filter out common noise patterns
+            $text = $this->filterPdfNoise($text);
+
+            return $text;
+        } catch (\Exception $e) {
+            Log::warning('PDF text extraction failed, will try image-based extraction', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return '';
+        }
+    }
+
+    /**
+     * Filter out T&Cs, legal disclaimers, and marketing noise from PDF text.
+     */
+    private function filterPdfNoise(string $text): string
+    {
+        // Split into lines for processing
+        $lines = explode("\n", $text);
+        $filteredLines = [];
+        $skipSection = false;
+        $skipPatterns = [];
+
+        // Patterns that indicate start of noise sections (case-insensitive)
+        $noiseSectionStarts = [
+            '/^terms\s+(and|&)\s+conditions/i',
+            '/^important\s+information$/i',
+            '/^legal\s+information/i',
+            '/^regulatory\s+information/i',
+            '/^disclaimer/i',
+            '/^privacy\s+(notice|policy|statement)/i',
+            '/^data\s+protection/i',
+            '/^complaints?\s+procedure/i',
+            '/^how\s+to\s+complain/i',
+            '/^financial\s+services\s+compensation/i',
+            '/^fscs\s+protection/i',
+            '/^about\s+this\s+statement$/i',
+            '/^understanding\s+your\s+statement/i',
+            '/^glossary/i',
+            '/^definitions$/i',
+            '/^notes$/i',
+            '/^appendix/i',
+        ];
+
+        // Patterns that indicate end of noise sections (return to useful content)
+        $noiseSectionEnds = [
+            '/^(your\s+)?(fund|pension|investment|portfolio)\s+(value|summary|details)/i',
+            '/^(current|total)\s+(value|balance)/i',
+            '/^contributions?/i',
+            '/^(fund|investment)\s+(performance|allocation|breakdown)/i',
+            '/^charges?\s+(and\s+fees|summary)/i',
+            '/^transaction\s+(history|summary)/i',
+        ];
+
+        // Lines to always skip (individual line patterns)
+        $skipLinePatterns = [
+            '/^page\s+\d+\s+(of\s+\d+)?$/i',
+            '/^\d+\s*\/\s*\d+$/',  // Page numbers like "1/5"
+            '/^(©|copyright)\s+/i',
+            '/^all\s+rights\s+reserved/i',
+            '/^registered\s+(in|office)/i',
+            '/^authorised\s+and\s+regulated/i',
+            '/^fca\s+register/i',
+            '/^company\s+(registration|number)/i',
+            '/^vat\s+(registration|number)/i',
+            '/^\s*$/',  // Empty lines (we'll add back reasonable spacing)
+            '/^www\./i',
+            '/^https?:\/\//i',
+            '/^tel(ephone)?:?\s*[\d\s\-\+]+$/i',
+            '/^fax:?\s*[\d\s\-\+]+$/i',
+            '/^email:?\s*\S+@\S+$/i',
+        ];
+
+        $consecutiveEmptyLines = 0;
+
+        foreach ($lines as $line) {
+            $trimmedLine = trim($line);
+
+            // Check if we're entering a noise section
+            foreach ($noiseSectionStarts as $pattern) {
+                if (preg_match($pattern, $trimmedLine)) {
+                    $skipSection = true;
+                    break;
+                }
+            }
+
+            // Check if we're exiting a noise section
+            if ($skipSection) {
+                foreach ($noiseSectionEnds as $pattern) {
+                    if (preg_match($pattern, $trimmedLine)) {
+                        $skipSection = false;
+                        break;
+                    }
+                }
+            }
+
+            // Skip if in a noise section
+            if ($skipSection) {
+                continue;
+            }
+
+            // Check individual line skip patterns
+            $shouldSkip = false;
+            foreach ($skipLinePatterns as $pattern) {
+                if (preg_match($pattern, $trimmedLine)) {
+                    $shouldSkip = true;
+                    break;
+                }
+            }
+
+            if ($shouldSkip) {
+                // Track empty lines to avoid too many consecutive blank lines
+                if (empty($trimmedLine)) {
+                    $consecutiveEmptyLines++;
+                }
+
+                continue;
+            }
+
+            // Add line to output (with max 1 blank line between sections)
+            if (empty($trimmedLine)) {
+                if ($consecutiveEmptyLines < 1) {
+                    $filteredLines[] = '';
+                    $consecutiveEmptyLines++;
+                }
+            } else {
+                $filteredLines[] = $trimmedLine;
+                $consecutiveEmptyLines = 0;
+            }
+        }
+
+        $filteredText = implode("\n", $filteredLines);
+
+        // Additional cleanup: remove repeated whitespace
+        $filteredText = preg_replace('/[ \t]+/', ' ', $filteredText);
+        $filteredText = preg_replace('/\n{3,}/', "\n\n", $filteredText);
+
+        return trim($filteredText);
     }
 }
