@@ -319,6 +319,21 @@ class SavingsController extends Controller
                 $data['country'] = 'United Kingdom';
             }
 
+            // Single-record pattern: Handle ownership percentage when changing to/from joint
+            $ownershipType = $data['ownership_type'] ?? $account->ownership_type;
+            $jointOwnerId = $data['joint_owner_id'] ?? $account->joint_owner_id;
+
+            if ($ownershipType === 'joint' && $jointOwnerId) {
+                // Switching to joint or already joint - default to 50% if not specified
+                if (! isset($data['ownership_percentage'])) {
+                    $data['ownership_percentage'] = 50.00;
+                }
+            } elseif ($ownershipType === 'individual') {
+                // Switching to individual - reset to 100%
+                $data['ownership_percentage'] = 100.00;
+                $data['joint_owner_id'] = null;
+            }
+
             // Single-record pattern: Update directly (no reciprocal)
             $account->update($data);
 
@@ -453,7 +468,7 @@ class SavingsController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to toggle retirement inclusion: ' . $e->getMessage(),
+                'message' => 'Failed to toggle retirement inclusion: '.$e->getMessage(),
             ], 500);
         }
     }

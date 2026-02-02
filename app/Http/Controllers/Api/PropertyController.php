@@ -222,6 +222,21 @@ class PropertyController extends Controller
 
         $validated = $request->validated();
 
+        // Single-record pattern: Handle ownership percentage when changing to/from joint
+        $ownershipType = $validated['ownership_type'] ?? $property->ownership_type;
+        $jointOwnerId = $validated['joint_owner_id'] ?? $property->joint_owner_id;
+
+        if (in_array($ownershipType, ['joint', 'tenants_in_common']) && $jointOwnerId) {
+            // Switching to joint or already joint - default to 50% if not specified
+            if (! isset($validated['ownership_percentage'])) {
+                $validated['ownership_percentage'] = 50.00;
+            }
+        } elseif ($ownershipType === 'individual') {
+            // Switching to individual - reset to 100%
+            $validated['ownership_percentage'] = 100.00;
+            $validated['joint_owner_id'] = null;
+        }
+
         // Log joint property update if applicable
         if ($this->isSharedOwnership($property) && $property->joint_owner_id) {
             $this->logJointPropertyUpdate($user, $property, $validated);

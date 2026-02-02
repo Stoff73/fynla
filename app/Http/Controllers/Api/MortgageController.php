@@ -222,6 +222,21 @@ class MortgageController extends Controller
             $validated['remaining_term_months'] = ($interval->y * 12) + $interval->m;
         }
 
+        // Single-record pattern: Handle ownership percentage when changing to/from joint
+        $ownershipType = $validated['ownership_type'] ?? $mortgage->ownership_type;
+        $jointOwnerId = $validated['joint_owner_id'] ?? $mortgage->joint_owner_id;
+
+        if ($ownershipType === 'joint' && $jointOwnerId) {
+            // Switching to joint or already joint - default to 50% if not specified
+            if (! isset($validated['ownership_percentage'])) {
+                $validated['ownership_percentage'] = 50.00;
+            }
+        } elseif ($ownershipType === 'individual') {
+            // Switching to individual - reset to 100%
+            $validated['ownership_percentage'] = 100.00;
+            $validated['joint_owner_id'] = null;
+        }
+
         // Log joint mortgage update if applicable
         if ($this->isSharedOwnership($mortgage) && $mortgage->joint_owner_id && isset($validated['outstanding_balance'])) {
             $this->logJointMortgageUpdate($user, $mortgage, $validated);
