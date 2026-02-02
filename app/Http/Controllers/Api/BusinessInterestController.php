@@ -181,6 +181,21 @@ class BusinessInterestController extends Controller
 
         $validated = $request->validated();
 
+        // Single-record pattern: Handle ownership percentage when changing to/from joint
+        $ownershipType = $validated['ownership_type'] ?? $business->ownership_type;
+        $jointOwnerId = $validated['joint_owner_id'] ?? $business->joint_owner_id;
+
+        if ($ownershipType === 'joint' && $jointOwnerId) {
+            // Switching to joint or already joint - default to 50% if not specified
+            if (! isset($validated['ownership_percentage'])) {
+                $validated['ownership_percentage'] = 50.00;
+            }
+        } elseif ($ownershipType === 'individual') {
+            // Switching to individual - reset to 100%
+            $validated['ownership_percentage'] = 100.00;
+            $validated['joint_owner_id'] = null;
+        }
+
         // Single-record pattern: Update directly
         $business->update($validated);
         $business->load(['household', 'trust', 'jointOwner']);

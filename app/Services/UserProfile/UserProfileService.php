@@ -674,7 +674,7 @@ class UserProfileService
         // Include properties owned by user OR where user is the joint owner
         $properties = \App\Models\Property::where(function ($query) use ($user) {
             $query->where('user_id', $user->id)
-                  ->orWhere('joint_owner_id', $user->id);
+                ->orWhere('joint_owner_id', $user->id);
         })->get();
         foreach ($properties as $property) {
             $totalMonthlyExpense = 0;
@@ -789,10 +789,18 @@ class UserProfileService
         }
 
         // 3. Investment Contributions
-        $investmentAccounts = \App\Models\Investment\InvestmentAccount::where('user_id', $user->id)->get();
+        // Include accounts owned by user OR where user is the joint owner
+        $investmentAccounts = \App\Models\Investment\InvestmentAccount::where(function ($query) use ($user) {
+            $query->where('user_id', $user->id)
+                ->orWhere('joint_owner_id', $user->id);
+        })->get();
         foreach ($investmentAccounts as $account) {
             $isJoint = in_array($account->ownership_type, ['joint', 'tenants_in_common']);
-            $ownershipMultiplier = $isJoint ? (($account->ownership_percentage ?? 50) / 100) : 1;
+            $userIsOwner = $account->user_id === $user->id;
+            $ownershipPercentage = $isJoint
+                ? ($userIsOwner ? ($account->ownership_percentage ?? 50) : (100 - ($account->ownership_percentage ?? 50)))
+                : 100;
+            $ownershipMultiplier = $ownershipPercentage / 100;
 
             // Calculate monthly contribution based on frequency
             $monthlyContribution = 0;
@@ -836,7 +844,7 @@ class UserProfileService
                     ],
                     'is_joint' => $isJoint,
                     'ownership_type' => $account->ownership_type,
-                    'ownership_percentage' => $isJoint ? ($account->ownership_percentage ?? 50) : 100,
+                    'ownership_percentage' => $ownershipPercentage,
                 ];
             }
         }
@@ -958,21 +966,27 @@ class UserProfileService
         }
 
         // 5. Liability Payments (excluding mortgages - they're in properties)
-        $liabilities = \App\Models\Estate\Liability::where('user_id', $user->id)
-            ->where('liability_type', '!=', 'mortgage')
-            ->get();
+        // Include liabilities owned by user OR where user is the joint owner
+        $liabilities = \App\Models\Estate\Liability::where(function ($query) use ($user) {
+            $query->where('user_id', $user->id)
+                ->orWhere('joint_owner_id', $user->id);
+        })->where('liability_type', '!=', 'mortgage')->get();
 
         foreach ($liabilities as $liability) {
             if ($liability->monthly_payment > 0) {
                 // Adjust for joint ownership
                 $isJoint = $liability->ownership_type === 'joint';
+                $userIsOwner = $liability->user_id === $user->id;
+                $ownershipPercentage = $isJoint
+                    ? ($userIsOwner ? ($liability->ownership_percentage ?? 50) : (100 - ($liability->ownership_percentage ?? 50)))
+                    : 100;
 
                 // Apply ownership filter
                 if (! $this->shouldIncludeByOwnership($isJoint, $ownershipFilter)) {
                     continue;
                 }
 
-                $displayAmount = $isJoint ? ($liability->monthly_payment / 2) : $liability->monthly_payment;
+                $displayAmount = $liability->monthly_payment * ($ownershipPercentage / 100);
 
                 $commitments['liabilities'][] = [
                     'id' => $liability->id,
@@ -981,6 +995,7 @@ class UserProfileService
                     'monthly_amount' => $displayAmount,
                     'is_joint' => $isJoint,
                     'ownership_type' => $liability->ownership_type,
+                    'ownership_percentage' => $ownershipPercentage,
                 ];
             }
         }

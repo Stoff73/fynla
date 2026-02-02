@@ -798,16 +798,18 @@
               <div v-if="isMarried" class="col-total text-body-sm text-gray-400 py-1">{{ formatCurrency(0) }}</div>
             </template>
 
-            <!-- Investment Contributions - removed in retirement -->
+            <!-- Investment Contributions - kept in retirement -->
             <template v-if="hasInvestmentCommitments || spouseHasInvestmentCommitments">
-              <div class="col-label text-body-sm text-gray-500 py-1 pl-7 line-through">Investment Contributions</div>
-              <div class="col-value text-body-sm text-gray-400 py-1">
-                {{ formatCurrency(0) }}<span class="text-success-600 text-xs ml-1">(-{{ formatCurrency(financialCommitments?.totals?.investments || 0) }})</span>
-              </div>
-              <div v-if="isMarried" class="col-value-mid text-body-sm text-gray-400 py-1">
-                {{ formatCurrency(0) }}<span class="text-success-600 text-xs ml-1">(-{{ formatCurrency(spouseFinancialCommitments?.totals?.investments || 0) }})</span>
-              </div>
-              <div v-if="isMarried" class="col-total text-body-sm text-gray-400 py-1">{{ formatCurrency(0) }}</div>
+              <ExpenditureExpandableGridRow
+                label="Investment Contributions"
+                :value="financialCommitments?.totals?.investments || 0"
+                :spouse-value="spouseFinancialCommitments?.totals?.investments || 0"
+                :household-value="(financialCommitments?.totals?.investments || 0) + (spouseFinancialCommitments?.totals?.investments || 0)"
+                :is-married="isMarried"
+                :items="financialCommitments?.commitments?.investments || []"
+                :spouse-items="spouseFinancialCommitments?.commitments?.investments || []"
+                indent
+              />
             </template>
 
             <!-- Protection Premiums - kept in retirement -->
@@ -1002,9 +1004,9 @@
           <ExpenditureSection
             title="Financial Commitments"
             :is-expanded="isSectionExpanded('widowed', 'commitments')"
-            :user-total="widowedCommitments.propertyAmount + widowedCommitments.protectionAmount + widowedCommitments.loansAmount"
+            :user-total="widowedCommitments.propertyAmount + widowedCommitments.protectionAmount + widowedCommitments.investmentsAmount + widowedCommitments.loansAmount"
             :spouse-total="0"
-            :household-total="widowedCommitments.propertyAmount + widowedCommitments.protectionAmount + widowedCommitments.loansAmount"
+            :household-total="widowedCommitments.propertyAmount + widowedCommitments.protectionAmount + widowedCommitments.investmentsAmount + widowedCommitments.loansAmount"
             :is-married="false"
             @toggle="toggleSection('widowed', 'commitments')"
           >
@@ -1014,43 +1016,57 @@
               </span>
             </template>
 
-            <!-- Property Expenses - user's share only -->
-            <template v-if="hasPropertyCommitments">
+            <!-- Property Expenses - combined household (survivor responsible for all) -->
+            <template v-if="hasPropertyCommitments || spouseHasPropertyCommitments">
               <ExpenditureExpandableGridRow
                 label="Property Expenses"
                 :value="widowedCommitments.propertyAmount"
                 :spouse-value="0"
                 :household-value="widowedCommitments.propertyAmount"
                 :is-married="false"
-                :items="financialCommitments?.commitments?.properties || []"
+                :items="widowedCommitments.propertyItems"
                 :spouse-items="[]"
                 indent
               />
             </template>
 
-            <!-- Protection Premiums - user's only, spouse removed -->
-            <template v-if="hasProtectionCommitments">
+            <!-- Investment Contributions - combined household -->
+            <template v-if="hasInvestmentCommitments || spouseHasInvestmentCommitments">
+              <ExpenditureExpandableGridRow
+                label="Investment Contributions"
+                :value="widowedCommitments.investmentsAmount"
+                :spouse-value="0"
+                :household-value="widowedCommitments.investmentsAmount"
+                :is-married="false"
+                :items="widowedCommitments.investmentItems"
+                :spouse-items="[]"
+                indent
+              />
+            </template>
+
+            <!-- Protection Premiums - combined household -->
+            <template v-if="hasProtectionCommitments || spouseHasProtectionCommitments">
               <ExpenditureExpandableGridRow
                 label="Protection Premiums"
                 :value="widowedCommitments.protectionAmount"
                 :spouse-value="0"
                 :household-value="widowedCommitments.protectionAmount"
                 :is-married="false"
-                :items="financialCommitments?.commitments?.protection || []"
+                :items="widowedCommitments.protectionItems"
                 :spouse-items="[]"
                 indent
               />
             </template>
 
-            <!-- Loan Repayments -->
-            <template v-if="hasLiabilityCommitments">
+            <!-- Loan Repayments - combined household -->
+            <template v-if="hasLiabilityCommitments || spouseHasLiabilityCommitments">
               <ExpenditureExpandableGridRow
                 label="Loan Repayments"
                 :value="widowedCommitments.loansAmount"
                 :spouse-value="0"
                 :household-value="widowedCommitments.loansAmount"
                 :is-married="false"
-                :items="financialCommitments?.commitments?.liabilities || []"
+                :items="widowedCommitments.liabilityItems"
                 :spouse-items="[]"
                 indent
               />
@@ -1569,15 +1585,19 @@ export default {
       return retiredBudgetData.value[key]?.value || 0;
     };
 
-    // User's retired total: manual expenditure + protection premiums (only commitment in retirement)
+    // User's retired total: manual expenditure + protection premiums + investment contributions
     const retiredTotalMonthly = computed(() => {
-      return retiredManualExpenditureTotal.value + (financialCommitments.value?.totals?.protection || 0);
+      return retiredManualExpenditureTotal.value +
+        (financialCommitments.value?.totals?.protection || 0) +
+        (financialCommitments.value?.totals?.investments || 0);
     });
 
-    // Spouse's retired total: spouse's manual expenditure + spouse's protection premiums
+    // Spouse's retired total: spouse's manual expenditure + spouse's protection + spouse's investments
     const retiredSpouseTotalMonthly = computed(() => {
       if (!props.isMarried) return 0;
-      return retiredSpouseManualExpenditureTotal.value + (spouseFinancialCommitments.value?.totals?.protection || 0);
+      return retiredSpouseManualExpenditureTotal.value +
+        (spouseFinancialCommitments.value?.totals?.protection || 0) +
+        (spouseFinancialCommitments.value?.totals?.investments || 0);
     });
 
     // Household total is user + spouse
@@ -1811,14 +1831,86 @@ export default {
       return adjustments;
     });
 
+    // Merge user and spouse items for widowed budget - combine same assets into household totals
+    const mergeToHouseholdItems = (userItems, spouseItems) => {
+      const itemMap = new Map();
+
+      // Helper to add item to map (deep copy breakdown to avoid mutations)
+      const addItem = (item) => {
+        const key = `${item.id}-${item.name || item.policy_name || item.liability_name || ''}`;
+        if (itemMap.has(key)) {
+          // Same item exists - add amounts together
+          const existing = itemMap.get(key);
+          existing.monthly_amount = (existing.monthly_amount || 0) + (item.monthly_amount || 0);
+          // Add breakdown values
+          if (item.breakdown) {
+            if (!existing.breakdown) existing.breakdown = {};
+            Object.entries(item.breakdown).forEach(([k, v]) => {
+              existing.breakdown[k] = (existing.breakdown[k] || 0) + v;
+            });
+          }
+        } else {
+          // Create new entry with deep copied breakdown
+          itemMap.set(key, {
+            ...item,
+            monthly_amount: item.monthly_amount || 0,
+            breakdown: item.breakdown ? { ...item.breakdown } : null,
+          });
+        }
+      };
+
+      // Add all user items
+      (userItems || []).forEach(addItem);
+      // Add all spouse items
+      (spouseItems || []).forEach(addItem);
+
+      // Return merged items marked as 100% ownership (survivor responsible for all)
+      return Array.from(itemMap.values()).map(item => ({
+        ...item,
+        ownership_percentage: 100,
+        is_joint: false,
+      }));
+    };
+
     const widowedCommitments = computed(() => {
+      // In widowed scenario, survivor is responsible for ALL household expenses
       const userProperty = financialCommitments.value?.totals?.properties || 0;
       const spouseProperty = spouseFinancialCommitments.value?.totals?.properties || 0;
+      const userInvestments = financialCommitments.value?.totals?.investments || 0;
+      const spouseInvestments = spouseFinancialCommitments.value?.totals?.investments || 0;
+      const userProtection = financialCommitments.value?.totals?.protection || 0;
+      const spouseProtection = spouseFinancialCommitments.value?.totals?.protection || 0;
+      const userLoans = financialCommitments.value?.totals?.liabilities || 0;
+      const spouseLoans = spouseFinancialCommitments.value?.totals?.liabilities || 0;
+
+      // Merge items from both users into household totals
+      const propertyItems = mergeToHouseholdItems(
+        financialCommitments.value?.commitments?.properties,
+        spouseFinancialCommitments.value?.commitments?.properties
+      );
+      const investmentItems = mergeToHouseholdItems(
+        financialCommitments.value?.commitments?.investments,
+        spouseFinancialCommitments.value?.commitments?.investments
+      );
+      const protectionItems = mergeToHouseholdItems(
+        financialCommitments.value?.commitments?.protection,
+        spouseFinancialCommitments.value?.commitments?.protection
+      );
+      const liabilityItems = mergeToHouseholdItems(
+        financialCommitments.value?.commitments?.liabilities,
+        spouseFinancialCommitments.value?.commitments?.liabilities
+      );
 
       return {
         propertyAmount: userProperty + spouseProperty,
-        protectionAmount: financialCommitments.value?.totals?.protection || 0,
-        loansAmount: (financialCommitments.value?.totals?.liabilities || 0) + (spouseFinancialCommitments.value?.totals?.liabilities || 0),
+        protectionAmount: userProtection + spouseProtection,
+        investmentsAmount: userInvestments + spouseInvestments,
+        loansAmount: userLoans + spouseLoans,
+        // Include merged items for display
+        propertyItems,
+        investmentItems,
+        protectionItems,
+        liabilityItems,
       };
     });
 
@@ -1829,6 +1921,7 @@ export default {
       });
       total += widowedCommitments.value.propertyAmount;
       total += widowedCommitments.value.protectionAmount;
+      total += widowedCommitments.value.investmentsAmount;
       total += widowedCommitments.value.loansAmount;
       return total;
     });
@@ -1906,12 +1999,17 @@ export default {
         const response = await api.get('/user/financial-commitments');
         financialCommitments.value = response.data.data;
 
-        if (props.isMarried && user.value?.spouse_id) {
+        // Always fetch spouse commitments if married - the backend will determine spouse from auth user
+        // Don't rely on user.value?.spouse_id as it may not be loaded yet at mount time
+        if (props.isMarried) {
           try {
             const spouseResponse = await api.get('/user/spouse/financial-commitments');
             spouseFinancialCommitments.value = spouseResponse.data.data;
           } catch (err) {
-            console.error('Failed to fetch spouse commitments:', err);
+            // 404 is expected if no spouse linked - only log other errors
+            if (err.response?.status !== 404) {
+              console.error('Failed to fetch spouse commitments:', err);
+            }
           }
         }
       } catch (err) {

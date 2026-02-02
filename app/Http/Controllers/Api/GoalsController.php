@@ -240,6 +240,21 @@ class GoalsController extends Controller
                 $data['assigned_module'] = $this->assignmentService->determineModule($checkData);
             }
 
+            // Single-record pattern: Handle ownership percentage when changing to/from joint
+            $ownershipType = $data['ownership_type'] ?? $goal->ownership_type;
+            $jointOwnerId = $data['joint_owner_id'] ?? $goal->joint_owner_id;
+
+            if ($ownershipType === 'joint' && $jointOwnerId) {
+                // Switching to joint or already joint - default to 50% if not specified
+                if (! isset($data['ownership_percentage'])) {
+                    $data['ownership_percentage'] = 50.00;
+                }
+            } elseif ($ownershipType === 'individual') {
+                // Switching to individual - reset to 100%
+                $data['ownership_percentage'] = 100.00;
+                $data['joint_owner_id'] = null;
+            }
+
             $goal->update($data);
 
             // Clear cache

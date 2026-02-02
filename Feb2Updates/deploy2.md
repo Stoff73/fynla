@@ -292,9 +292,141 @@ smalot/pdfparser  (installed via composer install on server)
 
 ---
 
+## 7. Joint Ownership Percentage Bug Fix
+
+**Status:** 🔄 PENDING DEPLOYMENT
+
+### Description
+
+Fixed a systemic bug where editing an existing asset to joint ownership would leave the `ownership_percentage` at 100% instead of defaulting to 50/50. This affected ALL asset types: investments, savings, properties, mortgages, business interests, chattels, and goals.
+
+The `store` methods correctly defaulted to 50% for joint ownership, but the `update` methods were missing this logic.
+
+### Root Cause
+
+When creating a new joint asset, the controllers correctly defaulted `ownership_percentage` to 50%. However, when editing an existing individual asset to make it joint, the update methods didn't apply the same logic - they just passed through whatever was in the request (which was nothing, since the frontend doesn't have an ownership percentage field).
+
+### Fixes Applied
+
+**1. Controller Update Methods** - Added ownership percentage defaulting logic:
+- When changing to `joint` ownership with a `joint_owner_id`: defaults to 50%
+- When changing to `individual` ownership: resets to 100% and clears `joint_owner_id`
+
+**2. Financial Commitments Service** - Fixed joint owner queries:
+- Investment accounts: Now queries `user_id OR joint_owner_id` (was only `user_id`)
+- Liabilities: Now queries `user_id OR joint_owner_id` (was only `user_id`)
+- Ownership percentage now correctly inverted for joint owner (100 - ownership_percentage)
+- This fixes the Expenditure tab showing joint property expenses for both users
+
+**3. Investment Contributions in Retirement** - Now continue instead of being removed:
+- Retired budget: Investment contributions now included (was showing as struck through / £0)
+- Widowed budget: Investment contributions now included in commitments total
+- Both user and spouse investment contributions are shown in retired/widowed budgets
+
+**4. Widowed Budget Household Expenses** - Survivor now sees ALL household expenses:
+- All financial commitments (properties, investments, protection, loans) combine user + spouse totals
+- Expandable rows show merged items with combined amounts (e.g., £400 property, not two £200 entries)
+- Breakdown values (council tax, utilities, etc.) show full household amounts, not split percentages
+- Protection premiums now include both user and spouse (was only showing user's)
+- Items marked as 100% ownership (no longer showing 50% for joint assets)
+- Same totals visible regardless of which linked account is viewing
+
+**5. Spouse Financial Commitments Fetch Fix**:
+- Changed condition from `props.isMarried && user.value?.spouse_id` to just `props.isMarried`
+- Fixes issue where spouse commitments weren't fetched if Vuex store hadn't loaded user data yet
+- Backend determines spouse from authenticated user's token
+
+### Files Changed
+
+```text
+app/Http/Controllers/Api/InvestmentController.php       ← updateAccount method
+app/Http/Controllers/Api/SavingsController.php          ← updateAccount method
+app/Http/Controllers/Api/PropertyController.php         ← update method
+app/Http/Controllers/Api/BusinessInterestController.php ← update method
+app/Http/Controllers/Api/ChattelController.php          ← update method
+app/Http/Controllers/Api/GoalsController.php            ← update method
+app/Http/Controllers/Api/MortgageController.php         ← update method
+app/Services/UserProfile/UserProfileService.php         ← getFinancialCommitments - joint owner queries
+resources/js/components/UserProfile/ExpenditureForm.vue ← Investment contributions in retired/widowed budgets
+```
+
+### Upload Instructions
+
+Upload all 8 files via SiteGround File Manager:
+
+```text
+app/Http/Controllers/Api/InvestmentController.php       → ~/www/fynla.org/public_html/app/Http/Controllers/Api/
+app/Http/Controllers/Api/SavingsController.php          → ~/www/fynla.org/public_html/app/Http/Controllers/Api/
+app/Http/Controllers/Api/PropertyController.php         → ~/www/fynla.org/public_html/app/Http/Controllers/Api/
+app/Http/Controllers/Api/BusinessInterestController.php → ~/www/fynla.org/public_html/app/Http/Controllers/Api/
+app/Http/Controllers/Api/ChattelController.php          → ~/www/fynla.org/public_html/app/Http/Controllers/Api/
+app/Http/Controllers/Api/GoalsController.php            → ~/www/fynla.org/public_html/app/Http/Controllers/Api/
+app/Http/Controllers/Api/MortgageController.php         → ~/www/fynla.org/public_html/app/Http/Controllers/Api/
+app/Services/UserProfile/UserProfileService.php         → ~/www/fynla.org/public_html/app/Services/UserProfile/
+```
+
+### SSH Commands
+
+```bash
+ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
+cd ~/www/fynla.org/public_html
+php artisan cache:clear && php artisan config:clear && php artisan route:clear
+```
+
+### Verification
+
+Test each asset type by:
+1. Create or find an existing **individual** asset
+2. Edit it and change ownership to **Joint**
+3. Select the joint owner (spouse)
+4. Save
+5. Verify the asset shows as 50/50 split (not 0% or 100%)
+
+Test with:
+- [ ] Investment account (GIA, onshore bond, etc.)
+- [ ] Savings account (cash account)
+- [ ] Property
+- [ ] Mortgage
+- [ ] Business interest
+- [ ] Chattel (valuable item)
+- [ ] Goal
+
+### Expenditure Tab Verification
+
+Test joint assets appear for both linked accounts:
+1. Login as chris@fynla.org
+2. Go to User Profile → Expenditure tab
+3. Verify joint property expenses show (with ownership percentage share)
+4. Verify joint investment contributions show
+5. Login as c.jones@csjones.co (linked account)
+6. Go to User Profile → Expenditure tab
+7. Verify same joint property expenses show (with inverted ownership share)
+8. Verify same joint investment contributions show
+
+Test investment contributions continue in retirement:
+1. On Expenditure tab, click "Budget at Retirement" tab
+2. Verify Investment Contributions row appears (NOT crossed out)
+3. Verify Investment Contributions amount is included in Total Monthly
+4. Click "Widowed" tab (if married)
+5. Verify Investment Contributions row appears under Financial Commitments
+6. Verify Investment Contributions included in widowed total
+
+Test widowed budget shows ALL household expenses:
+1. Login as chris@fynla.org
+2. Go to Expenditure tab → Widowed tab
+3. Expand Financial Commitments section
+4. Verify Property Expenses shows ALL properties (user + spouse combined)
+5. Verify Investment Contributions shows ALL investments (user + spouse combined)
+6. Verify Protection Premiums shows ALL protection policies (user + spouse combined)
+7. Verify Loan Repayments shows ALL loans (user + spouse combined)
+8. Login as c.jones@csjones.co (linked account)
+9. Repeat steps 2-7 - should see SAME totals (survivor responsible for all)
+
+---
+
 ## Files Changed Summary
 
-### Frontend (6 files - Included in Build)
+### Frontend (7 files - Included in Build)
 
 ```text
 resources/js/components/Retirement/RetirementIncomeTab.vue      ✅ Deployed
@@ -303,9 +435,10 @@ resources/js/components/Retirement/CapitalAdequacyTab.vue       ✅ Deployed (NE
 resources/js/components/NetWorth/PensionList.vue                ✅ Deployed
 resources/js/components/UserProfile/LetterToSpouse.vue          ✅ Deployed
 resources/js/components/Shared/UploadDropZone.vue               ✅ Deployed
+resources/js/components/UserProfile/ExpenditureForm.vue         🔄 Pending
 ```
 
-### Backend (6 files - Manual Upload)
+### Backend (14 files - Manual Upload)
 
 ```text
 database/migrations/2026_02_02_095622_add_additional_boxes_to_letters_to_spouse_table.php  ✅ Deployed (NEW)
@@ -314,6 +447,14 @@ database/seeders/PreviewUserSeeder.php                                          
 app/Services/Documents/AIExtractionService.php                                             ✅ Deployed
 app/Services/Documents/DocumentUploadService.php                                           ✅ Deployed
 app/Http/Requests/Documents/UploadDocumentRequest.php                                      ✅ Deployed
+app/Http/Controllers/Api/InvestmentController.php                                          🔄 Pending
+app/Http/Controllers/Api/SavingsController.php                                             🔄 Pending
+app/Http/Controllers/Api/PropertyController.php                                            🔄 Pending
+app/Http/Controllers/Api/BusinessInterestController.php                                    🔄 Pending
+app/Http/Controllers/Api/ChattelController.php                                             🔄 Pending
+app/Http/Controllers/Api/GoalsController.php                                               🔄 Pending
+app/Http/Controllers/Api/MortgageController.php                                            🔄 Pending
+app/Services/UserProfile/UserProfileService.php                                            🔄 Pending
 ```
 
 ### Persona Data (4 JSON files - Included in Build)
@@ -327,13 +468,57 @@ resources/js/data/personas/retired_couple.json                  ✅ Deployed
 
 ---
 
-## Rebuild Required: DONE
+## Rebuild Required: YES
 
-All frontend and backend changes have been deployed.
+Section 7 now includes frontend changes (ExpenditureForm.vue) in addition to backend files.
 
 ---
 
-## Upload Checklist - COMPLETED ✅
+## Upload Checklist - SECTION 7 PENDING 🔄
+
+### Section 7 Deployment Steps
+
+**Step 1: Run Build** 🔄
+
+```bash
+cd /Users/Chris/Desktop/fynla
+./deploy/fynla-org/build.sh
+```
+
+**Step 2: Upload Built Assets** 🔄
+
+Upload `public/build/` directory to:
+
+```text
+~/www/fynla.org/public_html/public/build/
+```
+
+**Step 3: Upload PHP Files (8 files)** 🔄
+
+Upload via SiteGround File Manager:
+
+```text
+app/Http/Controllers/Api/InvestmentController.php       → ~/www/fynla.org/public_html/app/Http/Controllers/Api/
+app/Http/Controllers/Api/SavingsController.php          → ~/www/fynla.org/public_html/app/Http/Controllers/Api/
+app/Http/Controllers/Api/PropertyController.php         → ~/www/fynla.org/public_html/app/Http/Controllers/Api/
+app/Http/Controllers/Api/BusinessInterestController.php → ~/www/fynla.org/public_html/app/Http/Controllers/Api/
+app/Http/Controllers/Api/ChattelController.php          → ~/www/fynla.org/public_html/app/Http/Controllers/Api/
+app/Http/Controllers/Api/GoalsController.php            → ~/www/fynla.org/public_html/app/Http/Controllers/Api/
+app/Http/Controllers/Api/MortgageController.php         → ~/www/fynla.org/public_html/app/Http/Controllers/Api/
+app/Services/UserProfile/UserProfileService.php         → ~/www/fynla.org/public_html/app/Services/UserProfile/
+```
+
+**Step 4: Clear Caches** 🔄
+
+```bash
+ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
+cd ~/www/fynla.org/public_html
+php artisan cache:clear && php artisan config:clear && php artisan route:clear
+```
+
+---
+
+### Previous Deployment (Sections 1-6) ✅
 
 ### Step 1: Run Build ✅
 
