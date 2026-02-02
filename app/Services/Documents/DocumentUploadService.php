@@ -22,16 +22,12 @@ class DocumentUploadService
         'image/jpeg',
         'image/png',
         'image/webp',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // xlsx
-        'application/vnd.ms-excel', // xls
-        'text/csv',
-        'application/csv',
     ];
 
     /**
-     * Maximum file size in bytes (100MB).
+     * Maximum file size in bytes (20MB).
      */
-    private const MAX_FILE_SIZE = 100 * 1024 * 1024;
+    private const MAX_FILE_SIZE = 20 * 1024 * 1024;
 
     /**
      * Upload a document and create a database record.
@@ -51,8 +47,8 @@ class DocumentUploadService
         // Store in user-specific directory
         $path = "documents/{$user->id}/{$storedFilename}";
 
-        // Use local disk in development, s3 in production
-        $disk = config('app.env') === 'production' ? 's3' : 'local';
+        // Use local disk for document storage
+        $disk = 'local';
 
         // Store the file
         Storage::disk($disk)->put($path, file_get_contents($file->getRealPath()));
@@ -153,14 +149,14 @@ class DocumentUploadService
         // Check MIME type
         if (! in_array($file->getMimeType(), self::ALLOWED_MIME_TYPES, true)) {
             throw new InvalidArgumentException(
-                'Invalid file type. Allowed types: PDF, JPEG, PNG, WebP, Excel (XLSX, XLS), CSV'
+                'Invalid file type. Allowed types: PDF, JPEG, PNG, WebP'
             );
         }
 
         // Check file size
         if ($file->getSize() > self::MAX_FILE_SIZE) {
             throw new InvalidArgumentException(
-                'File too large. Maximum size is 10MB'
+                'File too large. Maximum size is 20MB'
             );
         }
 
@@ -182,9 +178,6 @@ class DocumentUploadService
             'image/jpeg' => 'jpg',
             'image/png' => 'png',
             'image/webp' => 'webp',
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => 'xlsx',
-            'application/vnd.ms-excel' => 'xls',
-            'text/csv', 'application/csv' => 'csv',
             default => 'bin',
         };
     }

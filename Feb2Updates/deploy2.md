@@ -230,40 +230,71 @@ resources/js/data/personas/retired_couple.json
 
 ---
 
-## 6. Document Upload - Cleanup & Model Update
+## 6. Document Upload - PDF Text Extraction & Cleanup
 
-**Status:** 🔄 PENDING
+**Status:** ✅ DEPLOYED
 
 ### Description
 
-Cleaned up debug logging from the document upload feature and switched the AI extraction model from Claude Sonnet to the faster and more cost-effective Claude Haiku 4.
+Major improvements to the document upload feature:
+- Switched AI model to Claude 3.5 Haiku for faster, cheaper extraction
+- Added PDF text extraction using `smalot/pdfparser` to avoid large base64 payloads
+- Implemented noise filtering to remove T&Cs, legal disclaimers, and marketing content
+- Removed Excel/CSV support (PDF and images only)
+- Standardised 20MB file size limit
 
 ### Changes
 
 1. **Model Update**
-   - Changed from `claude-sonnet-4-5` to `claude-haiku-4-5-20241022`
+   - Changed from `claude-sonnet-4-5` to `claude-3-5-haiku-20241022`
    - Faster extraction with lower API costs
 
-2. **Debug Logging Removed**
-   - Removed development debug logs from backend (DocumentController, DocumentProcessor, AIExtractionService)
-   - Removed console.log statements from frontend (DocumentUploadModal, documentService)
-   - Retained legitimate operational logging (error handling, audit logs)
+2. **PDF Text Extraction** (NEW)
+   - Uses `smalot/pdfparser` to extract text from PDFs
+   - Sends text content (~50KB) instead of base64 images (~40MB) to Claude API
+   - Falls back to image-based extraction for scanned PDFs (no extractable text)
+   - Scanned PDFs limited to 15MB (with helpful error message and suggestions)
+
+3. **Noise Filtering** (NEW)
+   - Filters out T&Cs, legal disclaimers, regulatory info, marketing content
+   - Preserves financial data (fund names, costs, values, contributions, dates)
+   - Removes page numbers, headers, footers, promotional content
+   - Significantly reduces payload size while retaining important information
+
+4. **Removed Excel/CSV Support**
+   - Supported formats now: PDF, PNG, JPG, WebP only
+   - Simplifies the upload flow and reduces complexity
+   - Removed ExcelParserService dependency from AIExtractionService
+
+5. **Standardised 20MB Limit**
+   - All file types: 20MB maximum
+   - Scanned PDFs (no extractable text): 15MB limit with helpful error message
+   - Frontend image compression still applies for images > 2MB
+
+6. **Storage Fix**
+   - Changed from S3 to local disk storage (S3 adapter not installed on server)
+   - Documents stored in `storage/app/documents/{user_id}/`
 
 ### Files Changed
 
 ```text
-app/Http/Controllers/Api/DocumentController.php
-app/Services/Documents/AIExtractionService.php
-app/Services/Documents/DocumentProcessor.php
-resources/js/components/Shared/DocumentUploadModal.vue
-resources/js/services/documentService.js
+app/Services/Documents/AIExtractionService.php           ← PDF text extraction, Haiku model, noise filter
+app/Services/Documents/DocumentUploadService.php         ← 20MB limit, removed Excel/CSV, local storage fix
+app/Http/Requests/Documents/UploadDocumentRequest.php    ← Updated validation rules
+resources/js/components/Shared/UploadDropZone.vue        ← Removed Excel/CSV from UI
+```
+
+### Dependencies
+
+```text
+smalot/pdfparser  (installed via composer install on server)
 ```
 
 ---
 
-## Files Changed Summary (17 files)
+## Files Changed Summary
 
-### Frontend (7 files - Included in Build)
+### Frontend (6 files - Included in Build)
 
 ```text
 resources/js/components/Retirement/RetirementIncomeTab.vue      ✅ Deployed
@@ -271,8 +302,7 @@ resources/js/components/Preview/PersonaSelectionModal.vue       ✅ Deployed
 resources/js/components/Retirement/CapitalAdequacyTab.vue       ✅ Deployed (NEW)
 resources/js/components/NetWorth/PensionList.vue                ✅ Deployed
 resources/js/components/UserProfile/LetterToSpouse.vue          ✅ Deployed
-resources/js/components/Shared/DocumentUploadModal.vue          🔄 Pending
-resources/js/services/documentService.js                        🔄 Pending
+resources/js/components/Shared/UploadDropZone.vue               ✅ Deployed
 ```
 
 ### Backend (6 files - Manual Upload)
@@ -281,77 +311,71 @@ resources/js/services/documentService.js                        🔄 Pending
 database/migrations/2026_02_02_095622_add_additional_boxes_to_letters_to_spouse_table.php  ✅ Deployed (NEW)
 app/Models/LetterToSpouse.php                                                              ✅ Deployed
 database/seeders/PreviewUserSeeder.php                                                     ✅ Deployed
-app/Http/Controllers/Api/DocumentController.php                                            🔄 Pending
-app/Services/Documents/AIExtractionService.php                                             🔄 Pending
-app/Services/Documents/DocumentProcessor.php                                               🔄 Pending
+app/Services/Documents/AIExtractionService.php                                             ✅ Deployed
+app/Services/Documents/DocumentUploadService.php                                           ✅ Deployed
+app/Http/Requests/Documents/UploadDocumentRequest.php                                      ✅ Deployed
 ```
 
 ### Persona Data (4 JSON files - Included in Build)
 
 ```text
-resources/js/data/personas/peak_earners.json
-resources/js/data/personas/entrepreneur.json
-resources/js/data/personas/widow.json
-resources/js/data/personas/retired_couple.json
+resources/js/data/personas/peak_earners.json                    ✅ Deployed
+resources/js/data/personas/entrepreneur.json                    ✅ Deployed
+resources/js/data/personas/widow.json                           ✅ Deployed
+resources/js/data/personas/retired_couple.json                  ✅ Deployed
 ```
 
 ---
 
-## Rebuild Required: YES
+## Rebuild Required: DONE
 
-Frontend Vue components changed. Full rebuild required:
-
-```bash
-./deploy/fynla-org/build.sh
-```
+All frontend and backend changes have been deployed.
 
 ---
 
-## Upload Checklist
+## Upload Checklist - COMPLETED ✅
 
-### Step 1: Run Build
+### Step 1: Run Build ✅
 
 ```bash
 cd /Users/Chris/Desktop/fynla
 ./deploy/fynla-org/build.sh
 ```
 
-### Step 2: Upload Built Assets
+### Step 2: Upload Built Assets ✅
 
-Upload the entire `public/build/` directory to:
+Uploaded `public/build/` directory to:
 
 ```text
 ~/www/fynla.org/public_html/public/build/
 ```
 
-### Step 3: Upload PHP Files
+### Step 3: Upload PHP Files ✅
 
-Upload these backend files manually:
+Uploaded 3 backend files via SiteGround File Manager:
 
 ```text
-database/migrations/2026_02_02_095622_add_additional_boxes_to_letters_to_spouse_table.php  → ~/www/fynla.org/public_html/database/migrations/
-app/Models/LetterToSpouse.php                                                              → ~/www/fynla.org/public_html/app/Models/
-database/seeders/PreviewUserSeeder.php                                                     → ~/www/fynla.org/public_html/database/seeders/
-app/Http/Controllers/Api/DocumentController.php                                            → ~/www/fynla.org/public_html/app/Http/Controllers/Api/
-app/Services/Documents/AIExtractionService.php                                             → ~/www/fynla.org/public_html/app/Services/Documents/
-app/Services/Documents/DocumentProcessor.php                                               → ~/www/fynla.org/public_html/app/Services/Documents/
+app/Services/Documents/AIExtractionService.php        → ~/www/fynla.org/public_html/app/Services/Documents/
+app/Services/Documents/DocumentUploadService.php      → ~/www/fynla.org/public_html/app/Services/Documents/
+app/Http/Requests/Documents/UploadDocumentRequest.php → ~/www/fynla.org/public_html/app/Http/Requests/Documents/
 ```
 
-### Step 4: Run Migration & Reseed (SSH)
+### Step 4: SSH Commands ✅
 
 ```bash
 ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
 cd ~/www/fynla.org/public_html
 
-# Run migration for additional_boxes column
-php artisan migrate
+# Installed smalot/pdfparser dependency
+composer install --no-dev --optimize-autoloader
 
-# Reseed preview users to get Letter to Spouse data
-php artisan db:seed --class=PreviewUserSeeder --force
-
-# Clear all caches
+# Cleared all caches
 php artisan cache:clear && php artisan config:clear && php artisan view:clear && php artisan route:clear
 ```
+
+### Deployment Fix
+
+Initial deployment failed with S3 storage error (`Class "League\Flysystem\AwsS3V3\PortableVisibilityConverter" not found`). Fixed by changing `DocumentUploadService.php` to use local storage instead of S3.
 
 ---
 
@@ -430,14 +454,26 @@ After deployment, verify:
      - Verify Patricia has 4 additional boxes, Harold has 1
      - **Verify Bequests: Mark (50%), Susan (50%), Grandchildren Education Fund (£25k)**
 
-6. **Document Upload Feature** 🔄
+6. **Document Upload Feature** ✅
    - Navigate to Retirement (Pensions tab)
    - Click "Upload Statement" button
-   - Select a PDF or PNG pension statement
-   - Click "Upload & Analyse"
-   - Verify document is processed successfully
-   - Verify extracted data appears in review modal
-   - Verify model used is now claude-haiku-4-5 (visible in database if checking)
+   - Verify supported formats shows "PDF, PNG, JPG, WebP (max 20MB)" - NO Excel/CSV
+   - Verify Excel icon no longer appears when selecting files
+   - **Test with text-based PDF**:
+     - Upload a PDF with selectable text (e.g., digital pension statement)
+     - Should process via text extraction (faster, cheaper)
+     - Check Laravel logs for "[AIExtractionService] PDF has extractable text"
+   - **Test with scanned PDF**:
+     - Upload a scanned PDF (no selectable text)
+     - Should fall back to vision API
+     - Check logs for "[AIExtractionService] PDF appears to be scanned"
+   - **Test with image**:
+     - Upload a PNG/JPG pension statement
+     - Should process via vision API
+   - **Test file size limit**:
+     - Try uploading a file > 20MB
+     - Should show "File too large. Maximum size is 20MB."
+   - Verify extracted data appears in review modal with confidence badges
 
 7. **Existing Functionality**
    - Verify all existing features still work
