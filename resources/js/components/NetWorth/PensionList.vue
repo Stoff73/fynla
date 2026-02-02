@@ -149,21 +149,6 @@
               </div>
             </div>
 
-            <!-- Retirement Income Planner Card -->
-            <div class="income-card-standalone target clickable" @click="setActiveTab('income')">
-              <div class="income-card-heading">Retirement Income Planner</div>
-              <div class="income-card-label">Target Annual Income</div>
-              <div class="income-card-value">{{ formatCurrency(targetIncome) }}</div>
-              <div class="income-card-divider"></div>
-              <div class="income-card-label">Required Capital</div>
-              <div class="income-card-value-secondary">{{ formatCurrency(requiredCapitalValue) }}</div>
-              <div class="income-card-sublabel">Based on 4.7% withdrawal rate</div>
-              <div class="income-card-divider"></div>
-              <div class="income-card-label">Projected Net Income</div>
-              <div class="income-card-value-green">{{ formatCurrency(projectedNetIncome) }}</div>
-              <div class="income-card-sublabel">After tax from all sources</div>
-            </div>
-
             <!-- Fund Depletion Warning -->
             <div v-if="fundDepletionAge" class="depletion-warning-standalone">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -192,8 +177,69 @@
 
             <!-- Projections Content -->
             <template v-else>
-              <!-- Monte Carlo Chart - Clickable to Income Planner -->
-              <div class="chart-card clickable" @click="setActiveTab('income')">
+              <!-- Retirement Planner Cards Row -->
+              <div class="planner-cards-row">
+                <!-- Retirement Income Planner Card -->
+                <div class="planner-card income clickable" @click="setActiveTab('income')">
+                  <div class="planner-card-header">
+                    <div class="planner-card-icon income">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
+                      </svg>
+                    </div>
+                    <h3 class="planner-card-title">Retirement Income Planner</h3>
+                    <div class="planner-card-arrow">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div class="planner-card-metrics">
+                    <div class="planner-metric">
+                      <span class="planner-metric-label">Target Income</span>
+                      <span class="planner-metric-value">{{ formatCurrency(targetIncome) }}</span>
+                    </div>
+                    <div class="planner-metric">
+                      <span class="planner-metric-label">Projected Net Income</span>
+                      <span class="planner-metric-value green">{{ formatCurrency(projectedNetIncome) }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Capital Adequacy Planner Card -->
+                <div class="planner-card capital clickable" @click="setActiveTab('capital')">
+                  <div class="planner-card-header">
+                    <div class="planner-card-icon capital">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+                      </svg>
+                    </div>
+                    <h3 class="planner-card-title">Capital Adequacy Planner</h3>
+                    <div class="planner-card-arrow">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div class="planner-card-metrics three-col">
+                    <div class="planner-metric">
+                      <span class="planner-metric-label">Required Capital</span>
+                      <span class="planner-metric-value">{{ formatCurrency(requiredCapitalValue) }}</span>
+                    </div>
+                    <div class="planner-metric">
+                      <span class="planner-metric-label">Projected Capital</span>
+                      <span class="planner-metric-value" :class="projectedCapitalClass">{{ formatCurrency(projectedCapitalValue) }}</span>
+                    </div>
+                    <div class="planner-metric">
+                      <span class="planner-metric-label">Allowance Used</span>
+                      <span class="planner-metric-value">{{ formatCurrency(allowanceUsedThisYear) }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Monte Carlo Chart -->
+              <div class="chart-card">
                 <div class="chart-header">
                   <h3 class="chart-title">Pension Pot Projection</h3>
                   <span class="risk-badge-corner">{{ formatRiskLevel(projections.pension_pot_projection?.risk_level) }} Risk</span>
@@ -329,6 +375,12 @@
         @back="setActiveTab('current')"
         @add-state-pension="openStatePensionForm"
       />
+
+      <!-- Capital Adequacy Tab -->
+      <CapitalAdequacyTab
+        v-else-if="activeTab === 'capital'"
+        @back="setActiveTab('current')"
+      />
     </template>
 
     <!-- Pension Form Modal -->
@@ -371,6 +423,7 @@ import PensionPotProjectionChart from '@/components/Retirement/PensionPotProject
 import FutureValueTab from '@/components/Retirement/FutureValueTab.vue';
 import StrategiesTab from '@/components/Retirement/StrategiesTab.vue';
 import RetirementIncomeTab from '@/components/Retirement/RetirementIncomeTab.vue';
+import CapitalAdequacyTab from '@/components/Retirement/CapitalAdequacyTab.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
@@ -387,6 +440,7 @@ export default {
     FutureValueTab,
     StrategiesTab,
     RetirementIncomeTab,
+    CapitalAdequacyTab,
   },
 
   data() {
@@ -465,6 +519,38 @@ export default {
     projectedNetIncome() {
       // Get net income from retirement income planner (after tax)
       return this.retirementIncome?.tax_breakdown?.net_income || this.targetIncome;
+    },
+
+    projectedCapitalValue() {
+      // Get projected pension pot at retirement (80% confidence from Monte Carlo)
+      return this.projections?.pension_pot_projection?.percentile_20_at_retirement || 0;
+    },
+
+    projectedCapitalClass() {
+      // Green if projected meets/exceeds required, red if shortfall
+      if (this.projectedCapitalValue >= this.requiredCapitalValue) {
+        return 'green';
+      }
+      return 'red';
+    },
+
+    allowanceUsedThisYear() {
+      // Calculate pension contributions made this tax year
+      // Sum of all DC pension contributions (annual basis)
+      // Includes both percentage-based (occupational) and flat monthly contributions
+      return this.dcPensions.reduce((sum, p) => {
+        // Percentage-based contributions (occupational pensions)
+        const salary = parseFloat(p.annual_salary || 0);
+        const employeePercent = parseFloat(p.employee_contribution_percent || 0);
+        const employerPercent = parseFloat(p.employer_contribution_percent || 0);
+        const percentBasedAnnual = salary * (employeePercent + employerPercent) / 100;
+
+        // Flat monthly contributions (personal pensions, SIPPs)
+        const monthlyFlat = parseFloat(p.monthly_contribution_amount || 0);
+        const flatAnnual = monthlyFlat * 12;
+
+        return sum + percentBasedAnnual + flatAnnual;
+      }, 0);
     },
 
     incomeGap() {
@@ -566,7 +652,7 @@ export default {
         this.loadProjections();
       }
       // Scroll to top when switching to detail tabs
-      if (newTab === 'strategies' || newTab === 'future' || newTab === 'income') {
+      if (newTab === 'strategies' || newTab === 'future' || newTab === 'income' || newTab === 'capital') {
         this.$nextTick(() => {
           window.scrollTo({ top: 0, behavior: 'instant' });
         });
@@ -1129,6 +1215,166 @@ export default {
 .clickable:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   transform: translateY(-1px);
+}
+
+/* Planner Cards Row */
+.planner-cards-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.planner-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  transition: all 0.2s ease;
+}
+
+.planner-card.income {
+  @apply border-2 border-blue-200;
+  background: linear-gradient(135deg, white 0%, theme('colors.blue.50') 100%);
+}
+
+.planner-card.capital {
+  @apply border-2 border-teal-200;
+  background: linear-gradient(135deg, white 0%, theme('colors.teal.50') 100%);
+}
+
+.planner-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+.planner-card.income:hover {
+  @apply border-blue-400;
+}
+
+.planner-card.capital:hover {
+  @apply border-teal-400;
+}
+
+.planner-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.planner-card-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.planner-card-icon.income {
+  @apply bg-blue-100;
+}
+
+.planner-card-icon.income svg {
+  width: 22px;
+  height: 22px;
+  @apply text-blue-600;
+}
+
+.planner-card-icon.capital {
+  @apply bg-teal-100;
+}
+
+.planner-card-icon.capital svg {
+  width: 22px;
+  height: 22px;
+  @apply text-teal-600;
+}
+
+.planner-card-title {
+  flex: 1;
+  font-size: 16px;
+  font-weight: 600;
+  @apply text-gray-900;
+  margin: 0;
+}
+
+.planner-card-arrow {
+  @apply text-gray-400;
+  transition: all 0.2s;
+}
+
+.planner-card-arrow svg {
+  width: 18px;
+  height: 18px;
+}
+
+.planner-card:hover .planner-card-arrow {
+  @apply text-gray-600;
+  transform: translateX(2px);
+}
+
+.planner-card-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.planner-card-metrics.three-col {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.planner-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.planner-metric-label {
+  font-size: 12px;
+  @apply text-gray-500;
+  font-weight: 500;
+}
+
+.planner-metric-value {
+  font-size: 18px;
+  font-weight: 700;
+  @apply text-gray-900;
+}
+
+.planner-metric-value.green {
+  @apply text-green-600;
+}
+
+.planner-metric-value.red {
+  @apply text-red-600;
+}
+
+@media (max-width: 1024px) {
+  .planner-cards-row {
+    grid-template-columns: 1fr;
+  }
+
+  .planner-card-metrics.three-col {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .planner-card-metrics,
+  .planner-card-metrics.three-col {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
+/* Chart Card */
+.chart-card {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  @apply border border-gray-200;
 }
 
 .chart-header {
