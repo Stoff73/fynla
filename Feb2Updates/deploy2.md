@@ -294,7 +294,7 @@ smalot/pdfparser  (installed via composer install on server)
 
 ## 7. Joint Ownership Percentage Bug Fix
 
-**Status:** 🔄 PENDING DEPLOYMENT
+**Status:** ✅ DEPLOYED
 
 ### Description
 
@@ -426,7 +426,7 @@ Test widowed budget shows ALL household expenses:
 
 ## 8. Spouse View Toggle for Preview Mode
 
-**Status:** 🔄 PENDING DEPLOYMENT
+**Status:** ✅ DEPLOYED
 
 ### Description
 
@@ -540,9 +540,31 @@ php artisan cache:clear && php artisan config:clear && php artisan route:clear
 
 ---
 
+## 9. Info Guide Badge Color Change
+
+**Status:** ✅ DEPLOYED
+
+### Description
+
+Changed the indicator badge on the "What powers this view?" help button (? icon) from blue to green. The ? button itself remains blue, only the small number indicator showing missing items count is now green.
+
+### Files Changed
+
+```text
+resources/js/components/Shared/InfoGuideButton.vue    ← Badge color: bg-blue-500 → bg-green-500
+```
+
+### Verification
+
+1. Navigate to any page with the ? help button visible (bottom right corner)
+2. If there are missing data items, verify the badge shows a green background (not blue)
+3. Verify the ? button itself is still blue
+
+---
+
 ## Files Changed Summary
 
-### Frontend (10 files - Included in Build)
+### Frontend (11 files - Included in Build)
 
 ```text
 resources/js/components/Retirement/RetirementIncomeTab.vue      ✅ Deployed
@@ -551,10 +573,11 @@ resources/js/components/Retirement/CapitalAdequacyTab.vue       ✅ Deployed (NE
 resources/js/components/NetWorth/PensionList.vue                ✅ Deployed
 resources/js/components/UserProfile/LetterToSpouse.vue          ✅ Deployed
 resources/js/components/Shared/UploadDropZone.vue               ✅ Deployed
-resources/js/components/UserProfile/ExpenditureForm.vue         🔄 Pending (Section 7)
-resources/js/components/Preview/PreviewBanner.vue               🔄 Pending (Section 8)
-resources/js/components/Preview/PersonaSelector.vue             🔄 Pending (Section 8)
-resources/js/store/modules/preview.js                           🔄 Pending (Section 8)
+resources/js/components/UserProfile/ExpenditureForm.vue         ✅ Deployed (Section 7)
+resources/js/components/Preview/PreviewBanner.vue               ✅ Deployed (Section 8)
+resources/js/components/Preview/PersonaSelector.vue             ✅ Deployed (Section 8)
+resources/js/store/modules/preview.js                           ✅ Deployed (Section 8)
+resources/js/components/Shared/InfoGuideButton.vue              ✅ Deployed (Section 9)
 ```
 
 ### Backend (15 files - Manual Upload)
@@ -566,15 +589,15 @@ database/seeders/PreviewUserSeeder.php                                          
 app/Services/Documents/AIExtractionService.php                                             ✅ Deployed
 app/Services/Documents/DocumentUploadService.php                                           ✅ Deployed
 app/Http/Requests/Documents/UploadDocumentRequest.php                                      ✅ Deployed
-app/Http/Controllers/Api/InvestmentController.php                                          🔄 Pending (Section 7)
-app/Http/Controllers/Api/SavingsController.php                                             🔄 Pending (Section 7)
-app/Http/Controllers/Api/PropertyController.php                                            🔄 Pending (Section 7)
-app/Http/Controllers/Api/BusinessInterestController.php                                    🔄 Pending (Section 7)
-app/Http/Controllers/Api/ChattelController.php                                             🔄 Pending (Section 7)
-app/Http/Controllers/Api/GoalsController.php                                               🔄 Pending (Section 7)
-app/Http/Controllers/Api/MortgageController.php                                            🔄 Pending (Section 7)
-app/Services/UserProfile/UserProfileService.php                                            🔄 Pending (Section 7)
-app/Http/Controllers/Api/PreviewController.php                                             🔄 Pending (Section 8)
+app/Http/Controllers/Api/InvestmentController.php                                          ✅ Deployed (Section 7)
+app/Http/Controllers/Api/SavingsController.php                                             ✅ Deployed (Section 7)
+app/Http/Controllers/Api/PropertyController.php                                            ✅ Deployed (Section 7)
+app/Http/Controllers/Api/BusinessInterestController.php                                    ✅ Deployed (Section 7)
+app/Http/Controllers/Api/ChattelController.php                                             ✅ Deployed (Section 7)
+app/Http/Controllers/Api/GoalsController.php                                               ✅ Deployed (Section 7)
+app/Http/Controllers/Api/MortgageController.php                                            ✅ Deployed (Section 7)
+app/Services/UserProfile/UserProfileService.php                                            ✅ Deployed (Section 7)
+app/Http/Controllers/Api/PreviewController.php                                             ✅ Deployed (Section 8)
 ```
 
 ### Persona Data (4 JSON files - Included in Build)
@@ -590,24 +613,25 @@ resources/js/data/personas/retired_couple.json                  ✅ Deployed
 
 ## Rebuild Required: YES
 
-Sections 7 & 8 include frontend changes:
+Sections 7, 8 & 9 include frontend changes:
 - Section 7: ExpenditureForm.vue
 - Section 8: PreviewBanner.vue, PersonaSelector.vue, preview.js (Vuex store)
+- Section 9: InfoGuideButton.vue
 
 ---
 
-## Upload Checklist - SECTIONS 7 & 8 PENDING 🔄
+## Upload Checklist - ALL DEPLOYED ✅
 
-### Sections 7 & 8 Deployment Steps
+### Sections 7, 8 & 9 Deployment Steps
 
-**Step 1: Run Build** 🔄
+**Step 1: Run Build** ✅
 
 ```bash
 cd /Users/Chris/Desktop/fynla
 ./deploy/fynla-org/build.sh
 ```
 
-**Step 2: Upload Built Assets** 🔄
+**Step 2: Upload Built Assets** ✅
 
 Upload `public/build/` directory to:
 
@@ -615,7 +639,7 @@ Upload `public/build/` directory to:
 ~/www/fynla.org/public_html/public/build/
 ```
 
-**Step 3: Upload PHP Files (9 files)** 🔄
+**Step 3: Upload PHP Files (9 files)** ✅
 
 Upload via SiteGround File Manager:
 
@@ -634,7 +658,7 @@ app/Services/UserProfile/UserProfileService.php         → ~/www/fynla.org/publ
 app/Http/Controllers/Api/PreviewController.php          → ~/www/fynla.org/public_html/app/Http/Controllers/Api/
 ```
 
-**Step 4: Clear Caches** 🔄
+**Step 4: Clear Caches** ✅
 
 ```bash
 ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
@@ -789,7 +813,7 @@ After deployment, verify:
 7. **Existing Functionality**
    - Verify all existing features still work
 
-8. **Spouse View Toggle (Section 8)** 🔄
+8. **Spouse View Toggle (Section 8)** ✅
    - Select Carter (young_family) persona
    - Verify "(James's view)" appears next to "Preview Mode" in the banner
    - Verify "View as Emily" button appears (with swap icon)
@@ -804,6 +828,12 @@ After deployment, verify:
    - Select Widow persona → Verify NO toggle button appears
    - Select Entrepreneur persona → Verify NO toggle button appears
    - Select Young Saver persona → Verify NO toggle button appears
+
+9. **Info Guide Badge Color (Section 9)** ✅
+   - Navigate to any authenticated page
+   - Verify the ? button appears in the bottom right corner (blue background)
+   - If there are missing data items, verify the small badge number is green (not blue)
+   - Click the ? button to open the panel and verify it works correctly
 
 ---
 
