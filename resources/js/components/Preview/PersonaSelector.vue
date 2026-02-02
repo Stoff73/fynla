@@ -66,7 +66,7 @@
                                 <div class="flex items-center gap-2">
                                     <span class="font-medium text-gray-900">{{ persona.name }}</span>
                                     <span
-                                        v-if="persona.id === currentPersonaId"
+                                        v-if="persona.id === basePersonaId"
                                         class="text-xs bg-primary-100 text-primary-700 px-1.5 py-0.5 rounded"
                                     >
                                         Current
@@ -165,19 +165,30 @@ export default {
         ...mapGetters('preview', [
             'currentPersona',
             'currentPersonaId',
+            'basePersonaId',
             'availablePersonas',
             'hasEdits',
             'editCount',
         ]),
 
+        /**
+         * Get the base persona for display (handles spouse view)
+         * When viewing as spouse, we still want to show the family name
+         */
+        basePersona() {
+            return this.availablePersonas.find(p => p.id === this.basePersonaId);
+        },
+
         currentPersonaName() {
-            return this.currentPersona?.name || 'Select Persona';
+            // Always show the family/couple name, not individual spouse name
+            return this.basePersona?.name || this.currentPersona?.name || 'Select Persona';
         },
 
         buttonClasses() {
             let base = '';
             if (this.variant === 'dark') {
                 // Use persona-specific darker shade for the selector button
+                // Use basePersonaId to maintain consistent color when viewing as spouse
                 const darkColors = {
                     young_family: 'bg-blue-600 hover:bg-blue-700 text-white',
                     peak_earners: 'bg-green-600 hover:bg-green-700 text-white',
@@ -186,7 +197,7 @@ export default {
                     young_saver: 'bg-cyan-600 hover:bg-cyan-700 text-white',
                     retired_couple: 'bg-rose-600 hover:bg-rose-700 text-white',
                 };
-                base = darkColors[this.currentPersonaId] || 'bg-fuchsia-600 hover:bg-fuchsia-700 text-white';
+                base = darkColors[this.basePersonaId] || 'bg-fuchsia-600 hover:bg-fuchsia-700 text-white';
             } else {
                 base = 'bg-white hover:bg-gray-50 text-gray-700 border border-gray-200';
             }
@@ -206,7 +217,8 @@ export default {
         },
 
         async selectPersona(persona) {
-            if (persona.id === this.currentPersonaId) {
+            // Use basePersonaId to handle spouse view - clicking the same family shouldn't switch
+            if (persona.id === this.basePersonaId) {
                 this.isOpen = false;
                 return;
             }
@@ -244,7 +256,8 @@ export default {
         },
 
         personaButtonClasses(persona) {
-            if (persona.id === this.currentPersonaId) {
+            // Use basePersonaId to maintain highlighting when viewing as spouse
+            if (persona.id === this.basePersonaId) {
                 return 'bg-primary-50 border border-primary-200';
             }
             return 'hover:bg-gray-50';

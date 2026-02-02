@@ -11,8 +11,27 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                         </svg>
                         <span class="font-semibold text-sm">Preview</span>
+                        <span v-if="hasSpouse && currentViewerName" class="text-xs opacity-90">({{ currentViewerName }})</span>
                     </div>
                     <PersonaSelector variant="dark" size="small" @persona-selected="handlePersonaSelected" />
+                </div>
+
+                <!-- Middle row: Spouse toggle (only for personas with spouses) -->
+                <div v-if="hasSpouse && !switching" class="flex justify-center">
+                    <button
+                        @click="handleSpouseToggle"
+                        :class="[spouseToggleClass, 'flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-all duration-200']"
+                        :disabled="switchingSpouse"
+                    >
+                        <svg v-if="switchingSpouse" class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <svg v-else class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                        </svg>
+                        <span>View as {{ toggleTargetName }}</span>
+                    </button>
                 </div>
 
                 <!-- Bottom row: Actions -->
@@ -60,6 +79,7 @@
                             />
                         </svg>
                         <span class="font-semibold">Preview Mode</span>
+                        <span v-if="hasSpouse && currentViewerName" class="text-sm opacity-90">({{ currentViewerName }}'s view)</span>
                     </div>
 
                     <!-- Persona Selector Component -->
@@ -75,6 +95,23 @@
                         </svg>
                         Loading...
                     </span>
+
+                    <!-- Spouse View Toggle -->
+                    <button
+                        v-if="hasSpouse && !switching"
+                        @click="handleSpouseToggle"
+                        :class="[spouseToggleClass, 'flex items-center gap-1.5 px-3 py-1 rounded-md text-sm font-medium transition-all duration-200 hover:scale-105']"
+                        :disabled="switchingSpouse"
+                    >
+                        <svg v-if="switchingSpouse" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                        </svg>
+                        <span>View as {{ toggleTargetName }}</span>
+                    </button>
                 </div>
 
                 <!-- Right side: Actions -->
@@ -124,6 +161,7 @@ export default {
     data() {
         return {
             switching: false,
+            switchingSpouse: false,
             showIntroModal: false,
             selectedPersona: null,
         };
@@ -133,6 +171,11 @@ export default {
         ...mapGetters('preview', [
             'currentPersona',
             'currentPersonaId',
+            'hasSpouse',
+            'isViewingAsSpouse',
+            'basePersonaId',
+            'toggleTargetName',
+            'currentViewerName',
         ]),
 
         currentPersonaName() {
@@ -144,11 +187,12 @@ export default {
                 young_family: 'bg-gradient-to-r from-blue-500 to-blue-600',
                 peak_earners: 'bg-gradient-to-r from-green-500 to-green-600',
                 widow: 'bg-gradient-to-r from-purple-500 to-purple-600',
-                entrepreneur: 'bg-gradient-to-r from-blue-500 to-blue-600',
+                entrepreneur: 'bg-gradient-to-r from-fuchsia-500 to-fuchsia-600',
                 young_saver: 'bg-gradient-to-r from-cyan-500 to-cyan-600',
                 retired_couple: 'bg-gradient-to-r from-rose-500 to-rose-600',
             };
-            return colors[this.currentPersonaId] || 'bg-gradient-to-r from-gray-500 to-gray-600';
+            // Use basePersonaId to get consistent colors for both primary and spouse views
+            return colors[this.basePersonaId] || 'bg-gradient-to-r from-gray-500 to-gray-600';
         },
 
         buttonColorClass() {
@@ -160,7 +204,7 @@ export default {
                 young_saver: 'text-cyan-100 hover:text-white',
                 retired_couple: 'text-rose-100 hover:text-white',
             };
-            return colors[this.currentPersonaId] || 'text-gray-100 hover:text-white';
+            return colors[this.basePersonaId] || 'text-gray-100 hover:text-white';
         },
 
         registerButtonClass() {
@@ -172,7 +216,7 @@ export default {
                 young_saver: 'bg-white text-cyan-600 hover:bg-cyan-50',
                 retired_couple: 'bg-white text-rose-600 hover:bg-rose-50',
             };
-            return colors[this.currentPersonaId] || 'bg-white text-gray-600 hover:bg-gray-50';
+            return colors[this.basePersonaId] || 'bg-white text-gray-600 hover:bg-gray-50';
         },
 
         loadingTextClass() {
@@ -184,12 +228,20 @@ export default {
                 young_saver: 'text-cyan-100',
                 retired_couple: 'text-rose-100',
             };
-            return colors[this.currentPersonaId] || 'text-gray-100';
+            return colors[this.basePersonaId] || 'text-gray-100';
+        },
+
+        /**
+         * Spouse toggle button styling - uses a semi-transparent white button
+         * that works well on all persona gradient backgrounds
+         */
+        spouseToggleClass() {
+            return 'bg-white/20 hover:bg-white/30 text-white border border-white/30';
         },
     },
 
     methods: {
-        ...mapActions('preview', ['exitPreview', 'switchPersona']),
+        ...mapActions('preview', ['exitPreview', 'switchPersona', 'toggleSpouseView']),
 
         async exitPreviewMode() {
             await this.exitPreview();
@@ -219,6 +271,23 @@ export default {
             } catch (error) {
                 console.error('Failed to switch persona:', error);
                 this.switching = false;
+            }
+        },
+
+        /**
+         * Handle clicking the spouse view toggle button
+         */
+        async handleSpouseToggle() {
+            if (this.switchingSpouse) return;
+
+            this.switchingSpouse = true;
+
+            try {
+                await this.toggleSpouseView();
+                // toggleSpouseView will reload the page via switchPersona
+            } catch (error) {
+                console.error('Failed to toggle spouse view:', error);
+                this.switchingSpouse = false;
             }
         },
     },

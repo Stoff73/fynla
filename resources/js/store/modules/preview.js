@@ -100,7 +100,9 @@ const getters = {
      */
     effectivePersonaData: (state, getters) => {
         const personaId = getters.currentPersonaId;
-        return personaId ? PERSONA_DATA[personaId] : null;
+        // For spouse personas, get the base persona data
+        const baseId = getters.basePersonaId;
+        return baseId ? PERSONA_DATA[baseId] : null;
     },
 
     /**
@@ -116,6 +118,75 @@ const getters = {
 
     loading: (state) => state.loading,
     error: (state) => state.error,
+
+    // =========================================
+    // Spouse View Toggle Getters
+    // =========================================
+
+    /**
+     * Check if the current persona has a spouse (for toggle visibility)
+     * Only young_family, peak_earners, and retired_couple have spouse accounts
+     */
+    hasSpouse: (state, getters) => {
+        const baseId = getters.basePersonaId;
+        const personasWithSpouses = ['young_family', 'peak_earners', 'retired_couple'];
+        return personasWithSpouses.includes(baseId);
+    },
+
+    /**
+     * Check if currently viewing as the spouse
+     */
+    isViewingAsSpouse: (state, getters) => {
+        const personaId = getters.currentPersonaId;
+        return personaId ? personaId.endsWith('_spouse') : false;
+    },
+
+    /**
+     * Get the base persona ID (without _spouse suffix)
+     */
+    basePersonaId: (state, getters) => {
+        const personaId = getters.currentPersonaId;
+        if (!personaId) return null;
+        return personaId.replace('_spouse', '');
+    },
+
+    /**
+     * Get the spouse's first name from the persona JSON
+     */
+    spouseFirstName: (state, getters) => {
+        const baseId = getters.basePersonaId;
+        const data = baseId ? PERSONA_DATA[baseId] : null;
+        return data?.spouse?.first_name || null;
+    },
+
+    /**
+     * Get the primary user's first name from the persona JSON
+     */
+    primaryFirstName: (state, getters) => {
+        const baseId = getters.basePersonaId;
+        const data = baseId ? PERSONA_DATA[baseId] : null;
+        return data?.user?.first_name || null;
+    },
+
+    /**
+     * Get the name to display on the toggle button (the OTHER person's name)
+     */
+    toggleTargetName: (state, getters) => {
+        if (getters.isViewingAsSpouse) {
+            return getters.primaryFirstName;
+        }
+        return getters.spouseFirstName;
+    },
+
+    /**
+     * Get the current viewer's first name (for the banner indicator)
+     */
+    currentViewerName: (state, getters) => {
+        if (getters.isViewingAsSpouse) {
+            return getters.spouseFirstName;
+        }
+        return getters.primaryFirstName;
+    },
 };
 
 const mutations = {
@@ -239,6 +310,35 @@ const actions = {
         // No-op: With the new architecture, edits are handled by the backend
         // interceptor and are session-only, so there's nothing to clear in the store
         return;
+    },
+
+    /**
+     * Switch to viewing as the spouse
+     * Only works for personas that have spouse accounts
+     */
+    async switchToSpouse({ dispatch, getters }) {
+        if (!getters.hasSpouse || getters.isViewingAsSpouse) return;
+        const spousePersonaId = `${getters.basePersonaId}_spouse`;
+        return dispatch('switchPersona', spousePersonaId);
+    },
+
+    /**
+     * Switch back to viewing as the primary user
+     */
+    async switchToPrimary({ dispatch, getters }) {
+        if (!getters.isViewingAsSpouse) return;
+        return dispatch('switchPersona', getters.basePersonaId);
+    },
+
+    /**
+     * Toggle between primary and spouse views
+     */
+    async toggleSpouseView({ dispatch, getters }) {
+        if (getters.isViewingAsSpouse) {
+            return dispatch('switchToPrimary');
+        } else {
+            return dispatch('switchToSpouse');
+        }
     },
 
     /**

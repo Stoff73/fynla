@@ -38,6 +38,10 @@ class PreviewController extends Controller
         'entrepreneur',
         'young_saver',
         'retired_couple',
+        // Spouse personas (for spouse view toggle)
+        'young_family_spouse',
+        'peak_earners_spouse',
+        'retired_couple_spouse',
     ];
 
     /**
@@ -79,6 +83,25 @@ class PreviewController extends Controller
             'name' => 'Patricia & Harold Bennett',
             'tagline' => 'Retired couple with estate planning focus',
             'description' => 'A retired couple in their early 70s drawing DB pensions, focusing on IHT planning and gifting to grandchildren.',
+        ],
+        // Spouse personas (for spouse view toggle)
+        'young_family_spouse' => [
+            'id' => 'young_family_spouse',
+            'name' => 'Emily Carter',
+            'tagline' => 'Viewing as Emily Carter',
+            'description' => 'Emily\'s individual view of the Carter family finances.',
+        ],
+        'peak_earners_spouse' => [
+            'id' => 'peak_earners_spouse',
+            'name' => 'Sarah Mitchell',
+            'tagline' => 'Viewing as Sarah Mitchell',
+            'description' => 'Sarah\'s individual view of the Mitchell family finances.',
+        ],
+        'retired_couple_spouse' => [
+            'id' => 'retired_couple_spouse',
+            'name' => 'Harold Bennett',
+            'tagline' => 'Viewing as Harold Bennett',
+            'description' => 'Harold\'s individual view of the Bennett family finances.',
         ],
     ];
 
