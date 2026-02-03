@@ -117,6 +117,26 @@ Converted the blue information message box under "Inheritance Tax Calculation (J
 
 ---
 
+## Mortgage End Date Retirement Age Messaging ✅ DEPLOYED
+
+### Summary
+Added informational messages about mortgage end dates defaulting to retirement age when not specified:
+- Form help text: "If no end date specified, chosen retirement date will be used"
+- Detail view message: "No end date specified, retirement age of {age} being used"
+
+### Files Changed
+
+| File | Change Type |
+|------|-------------|
+| `resources/js/components/NetWorth/Property/PropertyForm.vue` | Modified |
+| `resources/js/components/NetWorth/Property/PropertyDetailInline.vue` | Modified |
+
+### Files to Upload
+
+- `public/build/` directory (full replacement)
+
+---
+
 ## Complete Upload Checklist
 
 ### PHP Files
