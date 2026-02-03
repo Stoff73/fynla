@@ -258,7 +258,8 @@ export default {
     }),
 
     shouldShowEstateCard() {
-      return this.estateData.ihtLiability > 0;
+      // Always show estate card - users need to see their estate planning status
+      return true;
     },
 
     shouldShowProtectionCard() {
