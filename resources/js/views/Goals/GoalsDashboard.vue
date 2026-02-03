@@ -66,11 +66,6 @@
               />
             </div>
 
-            <!-- Projection Tab -->
-            <div v-else-if="activeTab === 'projection'">
-              <GoalsProjectionChart />
-            </div>
-
             <!-- Life Events Tab -->
             <div v-else-if="activeTab === 'events'">
               <EventsTab />
@@ -147,7 +142,6 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import GoalFormModal from '@/components/Goals/GoalFormModal.vue';
 import GoalsOverview from '@/components/Goals/GoalsOverview.vue';
 import ContributionModal from '@/components/Goals/ContributionModal.vue';
-import GoalsProjectionChart from '@/components/Goals/GoalsProjectionChart.vue';
 import EventsTab from '@/components/Goals/EventsTab.vue';
 
 export default {
@@ -158,7 +152,6 @@ export default {
     GoalFormModal,
     GoalsOverview,
     ContributionModal,
-    GoalsProjectionChart,
     EventsTab,
   },
 
@@ -167,7 +160,6 @@ export default {
       activeTab: 'overview',
       tabs: [
         { id: 'overview', label: 'Overview' },
-        { id: 'projection', label: 'Projection' },
         { id: 'events', label: 'Life Events' },
       ],
       showGoalModal: false,
