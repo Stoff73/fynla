@@ -642,7 +642,7 @@ export default {
           <div style="font-weight: 600; margin-bottom: 8px; color: #111827; font-size: 14px;">Age ${age}</div>
       `;
 
-      // Add series values
+      // Add series values based on chart view
       if (this.chartView === 'net_worth' && yearData) {
         tooltipHtml += `
           <div style="display: flex; align-items: center; margin-bottom: 4px;">
@@ -662,6 +662,41 @@ export default {
             <span style="width: 10px; height: 10px; border-radius: 50%; background: ${ERROR_COLORS[500]}; margin-right: 8px;"></span>
             <span style="color: #6B7280;">Expenditure:</span>
             <span style="font-weight: 600; margin-left: auto; color: #111827;">${this.formatCurrency(yearData.expenditure)}</span>
+          </div>
+        `;
+      } else if (this.chartView === 'asset_breakdown' && yearData) {
+        // Show each asset category with its value
+        const assets = yearData.assets || {};
+        const pensions = assets.pensions || 0;
+        const property = assets.property || 0;
+        const investments = assets.investments || 0;
+        const cash = assets.cash || 0;
+        const total = pensions + property + investments + cash;
+
+        tooltipHtml += `
+          <div style="display: flex; align-items: center; margin-bottom: 4px;">
+            <span style="width: 10px; height: 10px; border-radius: 50%; background: ${ASSET_COLORS.pensions}; margin-right: 8px;"></span>
+            <span style="color: #6B7280;">Pensions:</span>
+            <span style="font-weight: 600; margin-left: auto; color: #111827;">${this.formatCurrency(pensions)}</span>
+          </div>
+          <div style="display: flex; align-items: center; margin-bottom: 4px;">
+            <span style="width: 10px; height: 10px; border-radius: 50%; background: ${ASSET_COLORS.property}; margin-right: 8px;"></span>
+            <span style="color: #6B7280;">Property:</span>
+            <span style="font-weight: 600; margin-left: auto; color: #111827;">${this.formatCurrency(property)}</span>
+          </div>
+          <div style="display: flex; align-items: center; margin-bottom: 4px;">
+            <span style="width: 10px; height: 10px; border-radius: 50%; background: ${ASSET_COLORS.investments}; margin-right: 8px;"></span>
+            <span style="color: #6B7280;">Investments:</span>
+            <span style="font-weight: 600; margin-left: auto; color: #111827;">${this.formatCurrency(investments)}</span>
+          </div>
+          <div style="display: flex; align-items: center; margin-bottom: 4px;">
+            <span style="width: 10px; height: 10px; border-radius: 50%; background: ${ASSET_COLORS.cash}; margin-right: 8px;"></span>
+            <span style="color: #6B7280;">Cash:</span>
+            <span style="font-weight: 600; margin-left: auto; color: #111827;">${this.formatCurrency(cash)}</span>
+          </div>
+          <div style="display: flex; align-items: center; margin-top: 6px; padding-top: 6px; border-top: 1px solid #E5E7EB;">
+            <span style="color: #374151; font-weight: 600;">Total Assets:</span>
+            <span style="font-weight: 700; margin-left: auto; color: #111827;">${this.formatCurrency(total)}</span>
           </div>
         `;
       }
