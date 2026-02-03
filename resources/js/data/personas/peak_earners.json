@@ -987,5 +987,129 @@
         }
       ]
     }
-  }
+  },
+
+  "life_events": [
+    {
+      "event_name": "Previous Inheritance (David's Aunt)",
+      "event_type": "inheritance",
+      "description": "Inheritance from David's aunt in 2020 - used for investment portfolio",
+      "amount": 45000,
+      "impact_type": "income",
+      "expected_date": "2020-03-15",
+      "certainty": "confirmed",
+      "status": "completed",
+      "show_in_projection": true,
+      "show_in_household_view": true,
+      "ownership_type": "individual"
+    },
+    {
+      "event_name": "Parents' Estate (David)",
+      "event_type": "inheritance",
+      "description": "David's parents are in their late 70s with an estate valued at approximately £400k. Expected inheritance to be split with his sister.",
+      "amount": 200000,
+      "impact_type": "income",
+      "expected_date": "2035-06-01",
+      "certainty": "possible",
+      "show_in_projection": true,
+      "show_in_household_view": true,
+      "ownership_type": "individual"
+    },
+    {
+      "event_name": "Kitchen & Extension",
+      "event_type": "home_improvement",
+      "description": "Major kitchen renovation and rear extension to add a garden room. Planning permission already granted.",
+      "amount": 85000,
+      "impact_type": "expense",
+      "expected_date": "2027-04-01",
+      "certainty": "likely",
+      "show_in_projection": true,
+      "show_in_household_view": true,
+      "ownership_type": "joint"
+    },
+    {
+      "event_name": "William's Wedding Contribution",
+      "event_type": "gift_given",
+      "description": "Contribution towards William's wedding when the time comes",
+      "amount": 25000,
+      "impact_type": "expense",
+      "expected_date": "2030-08-01",
+      "certainty": "speculative",
+      "show_in_projection": true,
+      "show_in_household_view": true,
+      "ownership_type": "joint"
+    },
+    {
+      "event_name": "Annual Bonus",
+      "event_type": "bonus",
+      "description": "David's typical annual bonus from Global Finance Corp",
+      "amount": 35000,
+      "impact_type": "income",
+      "expected_date": "2026-04-01",
+      "certainty": "likely",
+      "show_in_projection": true,
+      "show_in_household_view": true,
+      "ownership_type": "individual"
+    },
+    {
+      "event_name": "Charlotte's University Costs",
+      "event_type": "education_fees",
+      "description": "Charlotte's university tuition and living costs over 3 years (additional to loans)",
+      "amount": 45000,
+      "impact_type": "expense",
+      "expected_date": "2028-09-01",
+      "certainty": "likely",
+      "show_in_projection": true,
+      "show_in_household_view": true,
+      "ownership_type": "joint"
+    },
+    {
+      "event_name": "Replace BMW X5",
+      "event_type": "large_purchase",
+      "description": "Replace family car at end of PCP agreement",
+      "amount": 55000,
+      "impact_type": "expense",
+      "expected_date": "2028-03-01",
+      "certainty": "confirmed",
+      "show_in_projection": true,
+      "show_in_household_view": true,
+      "ownership_type": "joint"
+    },
+    {
+      "event_name": "Downsizing Property Sale",
+      "event_type": "property_sale",
+      "description": "Sell main residence and downsize to smaller property in retirement",
+      "amount": 350000,
+      "impact_type": "income",
+      "expected_date": "2046-06-01",
+      "certainty": "possible",
+      "show_in_projection": true,
+      "show_in_household_view": true,
+      "ownership_type": "joint"
+    },
+    {
+      "event_name": "World Cruise",
+      "event_type": "large_purchase",
+      "description": "Round-the-world cruise to celebrate 70th birthday",
+      "amount": 45000,
+      "impact_type": "expense",
+      "expected_date": "2046-11-08",
+      "certainty": "speculative",
+      "show_in_projection": true,
+      "show_in_household_view": true,
+      "ownership_type": "joint"
+    },
+    {
+      "event_name": "Grandchildren Education Fund",
+      "event_type": "gift_given",
+      "description": "Set up education fund for grandchildren",
+      "amount": 100000,
+      "impact_type": "expense",
+      "expected_date": "2041-01-01",
+      "certainty": "speculative",
+      "show_in_projection": true,
+      "show_in_household_view": true,
+      "ownership_type": "joint"
+    }
+  ]
 }
