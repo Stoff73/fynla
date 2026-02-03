@@ -21,7 +21,7 @@
 
     <div v-else class="card-content">
       <div class="net-worth-value">
-        <h3 class="value-header">Net Worth</h3>
+        <span class="value-label">Total Net Worth</span>
         <span class="value-amount" :class="netWorthClass">{{ formattedNetWorth }}</span>
       </div>
 
@@ -188,11 +188,10 @@ export default {
   @apply border-b border-gray-200;
 }
 
-.value-header {
-  font-size: 18px;
-  font-weight: 700;
-  @apply text-gray-900;
-  margin: 0 0 4px 0;
+.value-label {
+  font-size: 14px;
+  @apply text-gray-500;
+  font-weight: 500;
 }
 
 .value-amount {
