@@ -400,3 +400,130 @@ shouldShowEstateCard() {
   - [ ] Estate Planning card visible on dashboard
   - [ ] Card shows correct current and projected values
   - [ ] Clicking card navigates to Estate Planning page
+
+---
+
+## Life Insurance Strategy Page Simplification
+
+### Summary
+Simplified the Life Insurance Strategy page by removing self-insurance options, inaccurate claims, and unnecessary UI elements.
+
+### Files Changed
+
+| File | Change Type |
+|------|-------------|
+| `resources/js/components/Estate/LifePolicyStrategy.vue` | Modified |
+| `app/Services/Estate/LifePolicyStrategyService.php` | Modified |
+
+### Changes Detail
+
+#### 1. LifePolicyStrategy.vue
+- Removed top header card with "Life Insurance Strategy" title
+- Removed cost-benefit ratio section from policy card header
+- Removed "Fixed for life" label from Monthly Premium card
+- Removed entire self-insurance section (Option 2)
+- Removed side-by-side comparison table
+- Removed prioritized recommendations section
+
+#### 2. LifePolicyStrategyService.php
+- Removed inaccurate key features:
+  - "Premiums fixed for life (level premiums)" - premiums can increase
+  - "Joint policy saves approximately 25%" - not always true
+  - "No medical underwriting required" - medical underwriting IS required
+- Updated conditional for joint policy to show factual info
+
+### Deployment Steps
+
+1. **Build frontend locally:**
+   ```bash
+   ./deploy/fynla-org/build.sh
+   ```
+
+2. **Upload files via SiteGround File Manager:**
+   - `public/build/` directory (full replacement)
+   - `app/Services/Estate/LifePolicyStrategyService.php`
+
+3. **Clear caches:**
+   ```bash
+   ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
+   cd ~/www/fynla.org/public_html
+   php artisan cache:clear && php artisan route:clear && php artisan config:clear
+   ```
+
+### Testing Checklist
+
+- [ ] **Life Insurance Strategy page (Mitchell persona)**:
+  - [ ] Shows "Joint Life Second Death" policy card
+  - [ ] No cost-benefit ratio in header
+  - [ ] Monthly Premium card shows just "£447" (no "Fixed for life")
+  - [ ] Key Features shows only 3 items (no fixed premiums, no 25% savings, no medical underwriting claims)
+  - [ ] Decision Framework still displays correctly
+
+---
+
+## Gifting Strategy UI Fix
+
+### Summary
+Fixed misleading "Immediately Giftable" and "Giftable with Planning" terminology that showed arbitrary asset liquidity values. Replaced with meaningful exemption-based metrics.
+
+### Problem
+The Gifting Strategy page showed:
+- "Immediately Giftable: £513,669" - arbitrary 30% of net worth
+- "Giftable with Planning" - total semi-liquid assets
+
+These values were misleading because:
+1. Users can't gift ALL their liquid assets (need money to live)
+2. Values implied you SHOULD gift everything in these categories
+3. Didn't align with actual UK gifting exemptions
+
+### Files Changed
+
+| File | Change Type |
+|------|-------------|
+| `resources/js/components/Estate/GiftingStrategy.vue` | Modified |
+| `resources/js/components/Estate/IHTPlanning.vue` | Modified |
+
+### Changes Detail
+
+#### 1. GiftingStrategy.vue
+**Changed header cards from asset liquidity to strategy metrics:**
+```
+Before:
+- Total Estate Value | Immediately Giftable | Giftable with Planning | Not Giftable
+
+After:
+- Current IHT Liability | Annual Exemption (£3,000/year) | Total to Gift | IHT Saved
+```
+
+#### 2. IHTPlanning.vue (Dashboard Card)
+**Changed Gifting card metrics:**
+```
+Before:
+- Annual Exemption: £3,000
+- Immediately Giftable: {{ formatCurrency(immediatelyGiftableAmount) }}
+
+After:
+- Annual Exemption: £3,000
+- IHT Liability: {{ formatCurrency(projection?.now?.iht_liability || 0) }}
+```
+
+### Deployment Steps
+
+1. **Build frontend locally:**
+   ```bash
+   ./deploy/fynla-org/build.sh
+   ```
+
+2. **Upload files via SiteGround File Manager:**
+   - `public/build/` directory (full replacement)
+
+### Testing Checklist
+
+- [ ] **Estate Dashboard (Mitchell persona)**:
+  - [ ] Gifting card shows "Annual Exemption: £3,000"
+  - [ ] Gifting card shows "IHT Liability: £284,892" (not "Immediately Giftable")
+
+- [ ] **Gifting Strategy page (Mitchell persona)**:
+  - [ ] Header shows: Current IHT Liability | Annual Exemption | Total to Gift | IHT Saved
+  - [ ] No "Immediately Giftable" or "Giftable with Planning" cards
+  - [ ] Strategy cards still display correctly with priorities and implementation steps

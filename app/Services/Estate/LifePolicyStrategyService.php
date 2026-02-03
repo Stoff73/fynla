@@ -166,12 +166,10 @@ class LifePolicyStrategyService
 
             'key_features' => [
                 'Guaranteed payout at death (whenever that occurs)',
-                'Premiums fixed for life (level premiums)',
                 'Must be written in trust to keep outside estate',
                 $isJointPolicy ?
-                    'Joint policy saves approximately 25% vs. two single policies' :
+                    'Joint life second death policy pays out on second death' :
                     'Can convert to joint policy if marrying in future',
-                'No medical underwriting required if applying while healthy',
             ],
 
             'implementation_steps' => [

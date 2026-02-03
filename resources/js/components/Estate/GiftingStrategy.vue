@@ -31,26 +31,27 @@
         Based on your specific assets and their liquidity, here's a tailored gifting strategy to reduce your Inheritance Tax liability.
       </p>
 
-      <!-- Liquidity Summary -->
+      <!-- Strategy Summary -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div class="bg-white rounded-lg p-4 border border-emerald-100">
-          <p class="text-sm text-gray-600 mb-1">Total Estate Value</p>
-          <p class="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">{{ formatCurrency(personalizedStrategy.liquidity_analysis.summary.total_value) }}</p>
+        <div class="bg-white rounded-lg p-4 border-2 border-red-500">
+          <p class="text-sm text-red-700 mb-1 font-medium">Current IHT Liability</p>
+          <p class="text-lg sm:text-xl lg:text-2xl font-bold text-red-900">{{ formatCurrency(personalizedStrategy.summary.original_iht_liability) }}</p>
+          <p class="text-xs text-red-600">At projected death</p>
+        </div>
+        <div class="bg-white rounded-lg p-4 border-2 border-blue-500">
+          <p class="text-sm text-blue-700 mb-1 font-medium">Annual Exemption</p>
+          <p class="text-lg sm:text-xl lg:text-2xl font-bold text-blue-900">£3,000/year</p>
+          <p class="text-xs text-blue-600">Immediately exempt gifts</p>
+        </div>
+        <div class="bg-white rounded-lg p-4 border-2 border-purple-500">
+          <p class="text-sm text-purple-700 mb-1 font-medium">Total to Gift</p>
+          <p class="text-lg sm:text-xl lg:text-2xl font-bold text-purple-900">{{ formatCurrency(personalizedStrategy.summary.total_gifted) }}</p>
+          <p class="text-xs text-purple-600">Via recommended strategies</p>
         </div>
         <div class="bg-white rounded-lg p-4 border-2 border-green-500">
-          <p class="text-sm text-green-700 mb-1 font-medium">Immediately Giftable</p>
-          <p class="text-lg sm:text-xl lg:text-2xl font-bold text-green-900">{{ formatCurrency(personalizedStrategy.giftable_amounts.immediately_giftable) }}</p>
-          <p class="text-xs text-green-600">{{ personalizedStrategy.giftable_amounts.liquid_asset_count }} liquid assets</p>
-        </div>
-        <div class="bg-white rounded-lg p-4 border-2 border-blue-500">
-          <p class="text-sm text-blue-700 mb-1 font-medium">Giftable with Planning</p>
-          <p class="text-lg sm:text-xl lg:text-2xl font-bold text-blue-900">{{ formatCurrency(personalizedStrategy.giftable_amounts.giftable_with_planning) }}</p>
-          <p class="text-xs text-blue-600">{{ personalizedStrategy.giftable_amounts.semi_liquid_asset_count }} semi-liquid assets</p>
-        </div>
-        <div class="bg-white rounded-lg p-4 border-2 border-blue-500">
-          <p class="text-sm text-blue-700 mb-1 font-medium">Not Giftable</p>
-          <p class="text-lg sm:text-xl lg:text-2xl font-bold text-blue-900">{{ formatCurrency(personalizedStrategy.giftable_amounts.not_giftable) }}</p>
-          <p class="text-xs text-blue-600">{{ personalizedStrategy.giftable_amounts.illiquid_asset_count }} illiquid assets</p>
+          <p class="text-sm text-green-700 mb-1 font-medium">IHT Saved</p>
+          <p class="text-lg sm:text-xl lg:text-2xl font-bold text-green-900">{{ formatCurrency(personalizedStrategy.summary.total_iht_saved) }}</p>
+          <p class="text-xs text-green-600">{{ personalizedStrategy.summary.reduction_percentage }}% reduction</p>
         </div>
       </div>
 
