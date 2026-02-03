@@ -204,6 +204,30 @@ export default {
       return map;
     },
 
+    // Build a map of age -> bar top value based on current chart view
+    // This is used for icon positioning
+    barTopValueByAge() {
+      if (!this.projection?.yearly_data) return {};
+      const map = {};
+      this.projection.yearly_data.forEach(d => {
+        if (this.chartView === 'net_worth') {
+          map[d.age] = d.net_worth;
+        } else if (this.chartView === 'cash_flow') {
+          // For cash flow, use the max of income and expenditure
+          map[d.age] = Math.max(d.income || 0, d.expenditure || 0);
+        } else if (this.chartView === 'asset_breakdown') {
+          // For stacked assets, use the total
+          map[d.age] = (d.assets?.pensions || 0) +
+                       (d.assets?.property || 0) +
+                       (d.assets?.investments || 0) +
+                       (d.assets?.cash || 0);
+        } else {
+          map[d.age] = d.net_worth;
+        }
+      });
+      return map;
+    },
+
     chartSeries() {
       if (!this.projection?.yearly_data) return [];
 
@@ -551,9 +575,9 @@ export default {
       Object.keys(eventsByAge).forEach(ageKey => {
         const ageNum = parseInt(ageKey, 10);
         const eventsAtAge = eventsByAge[ageKey];
-        const netWorth = this.netWorthByAge[ageNum];
+        const barTopValue = this.barTopValueByAge[ageNum];
 
-        if (netWorth === undefined) {
+        if (barTopValue === undefined) {
           return;
         }
 
@@ -561,8 +585,8 @@ export default {
         const xRatio = (ageNum - xMin) / (xMax - xMin);
         const x = translateX + (xRatio * gridWidth);
 
-        // Calculate y position of the bar top (net worth to pixel - inverted because y=0 is top)
-        const yRatio = (netWorth - yMin) / (yMax - yMin);
+        // Calculate y position of the bar top (value to pixel - inverted because y=0 is top)
+        const yRatio = (barTopValue - yMin) / (yMax - yMin);
         const barTopY = translateY + gridHeight - (yRatio * gridHeight);
 
         // Stack icons VERTICALLY above the bar - first icon closest to bar, others stack upward
