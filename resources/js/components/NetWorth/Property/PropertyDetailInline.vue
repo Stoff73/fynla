@@ -364,6 +364,10 @@
                         <dt class="text-sm text-gray-600">End Date:</dt>
                         <dd class="text-sm font-medium text-gray-900">{{ formatDate(mortgage.maturity_date) }}</dd>
                       </div>
+                      <div v-else class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
+                        <dt class="text-sm text-gray-600">End Date:</dt>
+                        <dd class="text-sm text-gray-500 italic">No end date specified, retirement age of {{ retirementAge }} being used</dd>
+                      </div>
                     </dl>
                   </div>
 
@@ -519,9 +523,14 @@ export default {
 
   computed: {
     ...mapState('netWorth', ['selectedProperty', 'mortgages', 'loading', 'error']),
+    ...mapState('retirement', { retirementProfile: 'profile' }),
 
     property() {
       return this.selectedProperty;
+    },
+
+    retirementAge() {
+      return this.retirementProfile?.target_retirement_age || 67;
     },
 
     tabs() {
