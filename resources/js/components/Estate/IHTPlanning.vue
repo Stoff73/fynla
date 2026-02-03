@@ -169,8 +169,8 @@
               <p class="text-lg font-bold text-green-700">£3,000</p>
             </div>
             <div class="text-xs">
-              <p class="text-gray-600">Immediately Giftable:</p>
-              <p class="text-sm font-semibold text-gray-900">{{ formatCurrency(immediatelyGiftableAmount) }}</p>
+              <p class="text-gray-600">IHT Liability:</p>
+              <p class="text-sm font-semibold text-gray-900">{{ formatCurrency(projection?.now?.iht_liability || 0) }}</p>
             </div>
           </div>
         </div>
@@ -351,6 +351,118 @@
       </div>
     </div>
 
+    <!-- Cash Projection Breakdown Table -->
+    <div v-if="!loading && cashProjectionBreakdown" class="bg-white rounded-lg border border-gray-200 p-6 mb-8">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold text-gray-900">Cash Projection Methodology</h3>
+        <button
+          class="text-sm text-blue-600 hover:text-blue-800"
+          @click="showCashProjectionTable = !showCashProjectionTable"
+        >
+          {{ showCashProjectionTable ? 'Hide Details' : 'Show Details' }}
+        </button>
+      </div>
+
+      <!-- Summary -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+        <div class="bg-gray-50 rounded p-3">
+          <p class="text-xs text-gray-500">Starting Cash</p>
+          <p class="text-sm font-semibold text-gray-900">{{ formatCurrency(cashProjectionBreakdown.starting_cash) }}</p>
+        </div>
+        <div class="bg-gray-50 rounded p-3">
+          <p class="text-xs text-gray-500">Pre-Retirement Surplus</p>
+          <p class="text-sm font-semibold" :class="preRetirementSurplus >= 0 ? 'text-green-700' : 'text-red-700'">
+            {{ formatCurrency(preRetirementSurplus) }}/year
+          </p>
+        </div>
+        <div class="bg-gray-50 rounded p-3">
+          <p class="text-xs text-gray-500">Retirement Surplus</p>
+          <p class="text-sm font-semibold" :class="retirementSurplus >= 0 ? 'text-green-700' : 'text-red-700'">
+            {{ formatCurrency(retirementSurplus) }}/year
+          </p>
+        </div>
+        <div class="bg-gray-50 rounded p-3">
+          <p class="text-xs text-gray-500">Final Cash (Age {{ cashProjectionBreakdown.death_age }})</p>
+          <p class="text-sm font-semibold" :class="cashProjectionBreakdown.final_cash_raw >= 0 ? 'text-gray-900' : 'text-red-700'">
+            {{ formatCurrency(cashProjectionBreakdown.final_cash_capped) }}
+            <span v-if="cashProjectionBreakdown.final_cash_raw < 0" class="text-xs text-red-500 block">
+              ({{ formatCurrency(cashProjectionBreakdown.final_cash_raw) }} shortfall from investments)
+            </span>
+          </p>
+        </div>
+      </div>
+
+      <!-- Year-by-Year Table -->
+      <div v-if="showCashProjectionTable" class="overflow-x-auto">
+        <table class="min-w-full text-xs">
+          <thead>
+            <tr class="bg-gray-100">
+              <th class="px-2 py-2 text-left font-medium text-gray-600">Year</th>
+              <th class="px-2 py-2 text-left font-medium text-gray-600">Age</th>
+              <th class="px-2 py-2 text-left font-medium text-gray-600">Phase</th>
+              <th class="px-2 py-2 text-right font-medium text-gray-600">Income</th>
+              <th class="px-2 py-2 text-right font-medium text-gray-600">Expenses</th>
+              <th class="px-2 py-2 text-right font-medium text-gray-600">Surplus</th>
+              <th class="px-2 py-2 text-right font-medium text-gray-600">Running Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="row in cashProjectionBreakdown.years"
+              :key="row.year"
+              :class="[
+                row.running_total < 0 ? 'bg-red-50' : '',
+                row.phase === 'Pre-Retirement' ? 'bg-blue-50/30' : '',
+                row.age === cashProjectionBreakdown.retirement_age ? 'border-t-2 border-blue-300' : '',
+                row.age === cashProjectionBreakdown.state_pension_age ? 'border-t border-green-300' : ''
+              ]"
+            >
+              <td class="px-2 py-1 text-gray-600">{{ row.year }}</td>
+              <td class="px-2 py-1 text-gray-900 font-medium">{{ row.age }}</td>
+              <td class="px-2 py-1">
+                <span
+                  class="px-1.5 py-0.5 rounded text-xs"
+                  :class="row.phase === 'Pre-Retirement' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'"
+                >
+                  {{ row.phase }}
+                </span>
+              </td>
+              <td class="px-2 py-1 text-right text-gray-900">{{ formatCurrency(row.income) }}</td>
+              <td class="px-2 py-1 text-right text-gray-900">{{ formatCurrency(row.expenses) }}</td>
+              <td class="px-2 py-1 text-right font-medium" :class="row.surplus >= 0 ? 'text-green-700' : 'text-red-700'">
+                {{ formatCurrency(row.surplus) }}
+              </td>
+              <td class="px-2 py-1 text-right font-medium" :class="row.running_total >= 0 ? 'text-gray-900' : 'text-red-700'">
+                {{ formatCurrency(row.running_total) }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Legend -->
+        <div class="mt-4 flex flex-wrap gap-4 text-xs text-gray-500">
+          <div class="flex items-center gap-1">
+            <span class="w-3 h-3 bg-blue-50 border border-blue-200 rounded"></span>
+            <span>Pre-Retirement</span>
+          </div>
+          <div class="flex items-center gap-1">
+            <span class="w-3 h-3 bg-red-50 border border-red-200 rounded"></span>
+            <span>Negative Balance (shortfall from investments)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Methodology Note -->
+      <div class="mt-4 text-xs text-gray-500 bg-gray-50 rounded p-3">
+        <p class="font-medium text-gray-700 mb-1">Methodology:</p>
+        <ul class="list-disc list-inside space-y-0.5">
+          <li>Pre-retirement: Employment income minus estimated expenses (70% of income if no profile)</li>
+          <li>Retirement: Target retirement income + state pension minus retirement expenses</li>
+          <li>Negative cash indicates shortfall that would be drawn from investment accounts</li>
+        </ul>
+      </div>
+    </div>
+
     <!-- Dual Gifting Timeline (Married Users Only) -->
     <DualGiftingTimeline
       v-if="isMarried && secondDeathData?.user_gifting_timeline"
@@ -520,6 +632,7 @@ export default {
       ihtData: null,
       secondDeathData: null,
       projection: null,
+      cashProjectionBreakdown: null,
       userGender: 'male',
       isMarried: false,
       hasSpouse: false,
@@ -528,6 +641,7 @@ export default {
       error: null,
       showMinus5Years: false,
       showPlus5Years: false,
+      showCashProjectionTable: true,
       expandedAllowances: false,
       charitableBequest: null,
       savingCharitableBequest: false,
@@ -544,6 +658,20 @@ export default {
 
     formattedIHTLiability() {
       return this.formatCurrency(this.ihtData?.iht_liability || 0);
+    },
+
+    // Cash projection computed properties
+    preRetirementSurplus() {
+      if (!this.cashProjectionBreakdown) return 0;
+      return this.cashProjectionBreakdown.pre_retirement_income - this.cashProjectionBreakdown.pre_retirement_expenses;
+    },
+
+    retirementSurplus() {
+      if (!this.cashProjectionBreakdown) return 0;
+      const income = this.cashProjectionBreakdown.retirement_income +
+        this.cashProjectionBreakdown.state_pension_user +
+        this.cashProjectionBreakdown.state_pension_spouse;
+      return income - this.cashProjectionBreakdown.retirement_expenses;
     },
 
     hasGifts() {
@@ -786,11 +914,11 @@ export default {
       const assets = this.secondDeathData.assets_breakdown.user.assets;
       let total = 0;
 
-      // Sum all asset types
+      // Sum all asset types (use ?? to handle 0 as valid projected value)
       Object.keys(assets).forEach(assetType => {
         if (Array.isArray(assets[assetType])) {
           assets[assetType].forEach(asset => {
-            total += (asset.projected_value || asset.value || 0);
+            total += (asset.projected_value ?? asset.value ?? 0);
           });
         }
       });
@@ -803,11 +931,11 @@ export default {
       const assets = this.secondDeathData.assets_breakdown.spouse.assets;
       let total = 0;
 
-      // Sum all asset types
+      // Sum all asset types (use ?? to handle 0 as valid projected value)
       Object.keys(assets).forEach(assetType => {
         if (Array.isArray(assets[assetType])) {
           assets[assetType].forEach(asset => {
-            total += (asset.projected_value || asset.value || 0);
+            total += (asset.projected_value ?? asset.value ?? 0);
           });
         }
       });
@@ -1398,6 +1526,9 @@ export default {
                 mortgages: 0, // Included in liabilities
               }
             };
+
+            // Store cash projection breakdown for methodology table
+            this.cashProjectionBreakdown = response.cash_projection_breakdown || null;
           }
         }
       } catch (error) {
