@@ -14,6 +14,8 @@ use App\Services\Goals\GoalAffordabilityService;
 use App\Services\Goals\GoalAssignmentService;
 use App\Services\Goals\GoalProgressService;
 use App\Services\Goals\GoalRiskService;
+use App\Services\Goals\GoalsProjectionService;
+use App\Services\Goals\LifeEventService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -31,7 +33,9 @@ class GoalsController extends Controller
         private GoalAssignmentService $assignmentService,
         private GoalAffordabilityService $affordabilityService,
         private GoalProgressService $progressService,
-        private GoalRiskService $riskService
+        private GoalRiskService $riskService,
+        private GoalsProjectionService $projectionService,
+        private LifeEventService $lifeEventService
     ) {}
 
     /**
@@ -504,5 +508,83 @@ class GoalsController extends Controller
                 'monthly_summary' => $monthlySummary,
             ],
         ]);
+    }
+
+    /**
+     * Get net worth projection with goals and life events.
+     */
+    public function getProjection(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $household = $request->boolean('household', false);
+
+        try {
+            $projection = $this->projectionService->generateProjection($user->id, $household);
+
+            return response()->json([
+                'success' => true,
+                'data' => $projection,
+            ]);
+        } catch (\Exception $e) {
+            return $this->errorResponse($e, 'Get goals projection', 500, ['user_id' => $user->id]);
+        }
+    }
+
+    /**
+     * Get household summary combining user and spouse data.
+     */
+    public function getHouseholdSummary(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        // Check spouse permission
+        if (! $user->hasAcceptedSpousePermission()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Spouse permission required to view household data.',
+            ], 403);
+        }
+
+        try {
+            // Get combined goals
+            $goals = Goal::where(function ($query) use ($user) {
+                $query->where('user_id', $user->id)
+                    ->orWhere('joint_owner_id', $user->id);
+            })
+                ->orWhere(function ($query) use ($user) {
+                    $query->where('user_id', $user->spouse_user_id)
+                        ->where('show_in_household_view', true);
+                })
+                ->where('status', 'active')
+                ->orderBy('target_date')
+                ->get();
+
+            // Get combined life events
+            $lifeEvents = $this->lifeEventService->getEvents($user->id, true);
+
+            // Get projection
+            $projection = $this->projectionService->generateProjection($user->id, true);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'goals' => [
+                        'items' => $goals,
+                        'count' => $goals->count(),
+                        'total_target' => $goals->sum('target_amount'),
+                        'total_current' => $goals->sum('current_amount'),
+                    ],
+                    'life_events' => [
+                        'items' => $lifeEvents,
+                        'count' => $lifeEvents->count(),
+                        'total_income' => $lifeEvents->where('impact_type', 'income')->sum('amount'),
+                        'total_expense' => $lifeEvents->where('impact_type', 'expense')->sum('amount'),
+                    ],
+                    'projection' => $projection,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return $this->errorResponse($e, 'Get household summary', 500, ['user_id' => $user->id]);
+        }
     }
 }

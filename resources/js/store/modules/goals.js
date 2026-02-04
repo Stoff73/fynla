@@ -25,6 +25,17 @@ const state = {
     selectedGoal: null,
     loading: false,
     error: null,
+
+    // Life Events
+    lifeEvents: [],
+    lifeEventsLoading: false,
+    eventTypes: [],
+
+    // Projection
+    projectionData: null,
+    projectionLoading: false,
+    chartView: 'net_worth', // 'net_worth', 'cash_flow', 'asset_breakdown'
+    viewMode: 'individual', // 'individual', 'household'
 };
 
 const getters = {
@@ -100,6 +111,28 @@ const getters = {
             best_streak: 0,
         };
     },
+
+    // Life Events getters
+    activeLifeEvents: (state) => {
+        return (state.lifeEvents || []).filter(e => e.status === 'expected' || e.status === 'confirmed');
+    },
+
+    incomeEvents: (state) => {
+        return (state.lifeEvents || []).filter(e => e.impact_type === 'income');
+    },
+
+    expenseEvents: (state) => {
+        return (state.lifeEvents || []).filter(e => e.impact_type === 'expense');
+    },
+
+    lifeEventsForProjection: (state) => {
+        return (state.lifeEvents || []).filter(e => e.show_in_projection);
+    },
+
+    // Projection getters
+    currentChartView: (state) => state.chartView,
+    currentViewMode: (state) => state.viewMode,
+    isHouseholdView: (state) => state.viewMode === 'household',
 };
 
 const mutations = {
@@ -172,6 +205,51 @@ const mutations = {
 
     CLEAR_ERROR(state) {
         state.error = null;
+    },
+
+    // Life Events mutations
+    SET_LIFE_EVENTS(state, events) {
+        state.lifeEvents = events;
+    },
+
+    SET_LIFE_EVENTS_LOADING(state, loading) {
+        state.lifeEventsLoading = loading;
+    },
+
+    SET_EVENT_TYPES(state, types) {
+        state.eventTypes = types;
+    },
+
+    ADD_LIFE_EVENT(state, event) {
+        state.lifeEvents.push(event);
+    },
+
+    UPDATE_LIFE_EVENT(state, updatedEvent) {
+        const index = state.lifeEvents.findIndex(e => e.id === updatedEvent.id);
+        if (index !== -1) {
+            state.lifeEvents.splice(index, 1, updatedEvent);
+        }
+    },
+
+    REMOVE_LIFE_EVENT(state, eventId) {
+        state.lifeEvents = state.lifeEvents.filter(e => e.id !== eventId);
+    },
+
+    // Projection mutations
+    SET_PROJECTION_DATA(state, data) {
+        state.projectionData = data;
+    },
+
+    SET_PROJECTION_LOADING(state, loading) {
+        state.projectionLoading = loading;
+    },
+
+    SET_CHART_VIEW(state, view) {
+        state.chartView = view;
+    },
+
+    SET_VIEW_MODE(state, mode) {
+        state.viewMode = mode;
     },
 };
 
@@ -442,7 +520,166 @@ const actions = {
         commit('SET_ANALYSIS', null);
         commit('SET_DASHBOARD_OVERVIEW', null);
         commit('SET_SELECTED_GOAL', null);
+        commit('SET_LIFE_EVENTS', []);
+        commit('SET_PROJECTION_DATA', null);
         commit('CLEAR_ERROR');
+    },
+
+    // =========================================
+    // Life Events Actions
+    // =========================================
+
+    /**
+     * Fetch all life events for the user.
+     */
+    async fetchLifeEvents({ commit }, { household = false } = {}) {
+        commit('SET_LIFE_EVENTS_LOADING', true);
+
+        try {
+            const response = await goalsService.getLifeEvents({ household });
+            if (response.success) {
+                // API returns { events: [...], count: n } - extract just the events array
+                commit('SET_LIFE_EVENTS', response.data.events || response.data || []);
+            }
+            return response;
+        } catch (error) {
+            console.error('Failed to fetch life events:', error);
+            throw error;
+        } finally {
+            commit('SET_LIFE_EVENTS_LOADING', false);
+        }
+    },
+
+    /**
+     * Fetch event types for life events.
+     */
+    async fetchEventTypes({ commit, state }) {
+        // Only fetch if not already loaded
+        if (state.eventTypes.length > 0) {
+            return { success: true, data: state.eventTypes };
+        }
+
+        try {
+            const response = await goalsService.getEventTypes();
+            if (response.success) {
+                // API returns { event_types: [...], certainty_levels: [...] }
+                // Extract just the event_types array for the store
+                commit('SET_EVENT_TYPES', response.data.event_types || []);
+            }
+            return response;
+        } catch (error) {
+            console.error('Failed to fetch event types:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Create a new life event.
+     */
+    async createLifeEvent({ commit, dispatch }, eventData) {
+        commit('SET_LIFE_EVENTS_LOADING', true);
+
+        try {
+            const response = await goalsService.createLifeEvent(eventData);
+            if (response.success) {
+                commit('ADD_LIFE_EVENT', response.data);
+                // Refresh projection data
+                dispatch('fetchProjection');
+            }
+            return response;
+        } catch (error) {
+            console.error('Failed to create life event:', error);
+            throw error;
+        } finally {
+            commit('SET_LIFE_EVENTS_LOADING', false);
+        }
+    },
+
+    /**
+     * Update a life event.
+     */
+    async updateLifeEvent({ commit, dispatch }, { eventId, eventData }) {
+        commit('SET_LIFE_EVENTS_LOADING', true);
+
+        try {
+            const response = await goalsService.updateLifeEvent(eventId, eventData);
+            if (response.success) {
+                commit('UPDATE_LIFE_EVENT', response.data);
+                // Refresh projection data
+                dispatch('fetchProjection');
+            }
+            return response;
+        } catch (error) {
+            console.error('Failed to update life event:', error);
+            throw error;
+        } finally {
+            commit('SET_LIFE_EVENTS_LOADING', false);
+        }
+    },
+
+    /**
+     * Delete a life event.
+     */
+    async deleteLifeEvent({ commit, dispatch }, eventId) {
+        commit('SET_LIFE_EVENTS_LOADING', true);
+
+        try {
+            const response = await goalsService.deleteLifeEvent(eventId);
+            if (response.success) {
+                commit('REMOVE_LIFE_EVENT', eventId);
+                // Refresh projection data
+                dispatch('fetchProjection');
+            }
+            return response;
+        } catch (error) {
+            console.error('Failed to delete life event:', error);
+            throw error;
+        } finally {
+            commit('SET_LIFE_EVENTS_LOADING', false);
+        }
+    },
+
+    // =========================================
+    // Projection Actions
+    // =========================================
+
+    /**
+     * Fetch projection data.
+     */
+    async fetchProjection({ commit, state }) {
+        commit('SET_PROJECTION_LOADING', true);
+
+        try {
+            const household = state.viewMode === 'household';
+            const response = await goalsService.getProjection({ household });
+            if (response.success) {
+                commit('SET_PROJECTION_DATA', response.data);
+            }
+            return response;
+        } catch (error) {
+            console.error('Failed to fetch projection:', error);
+            throw error;
+        } finally {
+            commit('SET_PROJECTION_LOADING', false);
+        }
+    },
+
+    /**
+     * Set chart view (net_worth, cash_flow, asset_breakdown).
+     */
+    setChartView({ commit }, view) {
+        commit('SET_CHART_VIEW', view);
+    },
+
+    /**
+     * Set view mode (individual, household) and refresh projection.
+     */
+    async setViewMode({ commit, dispatch }, mode) {
+        commit('SET_VIEW_MODE', mode);
+        // Refresh projection with new view mode
+        await dispatch('fetchProjection');
+        // Also refresh life events for household view
+        await dispatch('fetchLifeEvents', { household: mode === 'household' });
     },
 };
 

@@ -267,18 +267,25 @@
 
     <!-- Inheritance Tax Breakdown - Second Death (Married Users) -->
     <div v-if="!loading && isMarried && secondDeathData?.second_death_analysis" class="bg-white rounded-lg border border-gray-200 p-6 mb-8">
-      <h3 class="text-lg font-semibold text-gray-900 mb-4">Inheritance Tax Calculation (Joint Death Scenario)</h3>
-      <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-        <p class="text-sm text-blue-800 mb-2">
-          <strong>What this calculation shows:</strong> This scenario assumes both you and your spouse pass away at the same time,
-          with the combined estate then passing to your beneficiaries. The projected age ({{ secondDeathData.second_death_analysis.second_death.estimated_age_at_death }})
-          is based on your life expectancy and may differ from your spouse's.
-        </p>
-        <p class="text-sm text-blue-800">
-          <strong>If one spouse dies first:</strong> Under most wills, the entire estate passes to the surviving spouse tax-free
-          (spouse exemption). Inheritance Tax would then be calculated on the surviving spouse's estate at their death,
-          potentially with different allowances and values.
-        </p>
+      <div class="flex items-center gap-2 mb-4">
+        <h3 class="text-lg font-semibold text-gray-900">Inheritance Tax Calculation (Joint Death Scenario)</h3>
+        <div class="relative group">
+          <svg class="h-5 w-5 text-blue-500 cursor-help" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+          </svg>
+          <div class="absolute left-0 top-6 z-50 w-80 p-4 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+            <p class="text-sm text-gray-700 mb-2">
+              <strong>What this calculation shows:</strong> This scenario assumes both you and your spouse pass away at the same time,
+              with the combined estate then passing to your beneficiaries. The projected age ({{ secondDeathData.second_death_analysis.second_death.estimated_age_at_death }})
+              is based on your life expectancy and may differ from your spouse's.
+            </p>
+            <p class="text-sm text-gray-700">
+              <strong>If one spouse dies first:</strong> Under most wills, the entire estate passes to the surviving spouse tax-free
+              (spouse exemption). Inheritance Tax would then be calculated on the surviving spouse's estate at their death,
+              potentially with different allowances and values.
+            </p>
+          </div>
+        </div>
       </div>
 
       <!-- Estate Calculation Table (Refactored) -->
@@ -300,26 +307,31 @@
 
     <!-- Inheritance Tax Breakdown - Standard (Non-Married Users OR Married without spouse link) -->
     <div v-else-if="!loading && ihtData && standardTableProps" class="bg-white rounded-lg border border-gray-200 p-6 mb-8">
-      <h3 class="text-lg font-semibold text-gray-900 mb-4">
-        {{ isMarried ? 'Inheritance Tax Calculation (Joint Death Scenario)' : 'Inheritance Tax Calculation Breakdown' }}
-      </h3>
-
-      <!-- Explanation box for married users -->
-      <div v-if="isMarried && projection" class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-        <p class="text-sm text-blue-800 mb-2">
-          <strong>What this calculation shows:</strong> This scenario assumes both you and your spouse pass away at the same time,
-          with the combined estate then passing to your beneficiaries. The projected age ({{ projection.at_death.estimated_age_at_death }})
-          is based on your life expectancy and may differ from your spouse's.
-        </p>
-        <p class="text-sm text-blue-800">
-          <strong>If one spouse dies first:</strong> Under most wills, the entire estate passes to the surviving spouse tax-free
-          (spouse exemption). Inheritance Tax would then be calculated on the surviving spouse's estate at their death,
-          potentially with different allowances and values.
-        </p>
+      <div class="flex items-center gap-2 mb-4">
+        <h3 class="text-lg font-semibold text-gray-900">
+          {{ isMarried ? 'Inheritance Tax Calculation (Joint Death Scenario)' : 'Inheritance Tax Calculation Breakdown' }}
+        </h3>
+        <div v-if="isMarried && projection" class="relative group">
+          <svg class="h-5 w-5 text-blue-500 cursor-help" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+          </svg>
+          <div class="absolute left-0 top-6 z-50 w-80 p-4 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+            <p class="text-sm text-gray-700 mb-2">
+              <strong>What this calculation shows:</strong> This scenario assumes both you and your spouse pass away at the same time,
+              with the combined estate then passing to your beneficiaries. The projected age ({{ projection.at_death.estimated_age_at_death }})
+              is based on your life expectancy and may differ from your spouse's.
+            </p>
+            <p class="text-sm text-gray-700">
+              <strong>If one spouse dies first:</strong> Under most wills, the entire estate passes to the surviving spouse tax-free
+              (spouse exemption). Inheritance Tax would then be calculated on the surviving spouse's estate at their death,
+              potentially with different allowances and values.
+            </p>
+          </div>
+        </div>
       </div>
 
       <!-- Simple description for non-married users -->
-      <p v-else-if="projection" class="text-sm text-gray-600 mb-6">Comparison of Inheritance Tax liability if death occurs now vs. at projected life expectancy (Age {{ projection.at_death.estimated_age_at_death }})</p>
+      <p v-if="!isMarried && projection" class="text-sm text-gray-600 mb-6">Comparison of Inheritance Tax liability if death occurs now vs. at projected life expectancy (Age {{ projection.at_death.estimated_age_at_death }})</p>
 
       <!-- IHT Calculation Table Component -->
       <IHTCalculationTable

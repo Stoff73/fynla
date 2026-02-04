@@ -64,3 +64,19 @@ php artisan db:seed --class=PreviewUserSeeder --force
 php artisan migrate --force
 php artisan cache:clear && php artisan config:clear && php artisan view:clear && php artisan route:clear
 ```
+
+## Run all seeders
+
+```bash
+cd ~/www/fynla.orgpublic_html                                                                             
+  php artisan db:seed --force                                                                            
+  php artisan cache:clear && php artisan config:clear && php artisan view:clear && php artisan route:clear && php artisan optimize
+  ```
+
+  ```bash
+  php artisan db:seed --class=OccupationCodeSeeder --force
+  php artisan db:seed --class=PreviewUserSeeder --force
+  php artisan db:seed --class=ActuarialLifeTableSeeder --force
+  php artisan db:seed --class=TaxConfigurationSeeder --force
+  php artisan db:seed --class=TaxProductReferenceSeeder --force
+  ```

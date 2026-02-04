@@ -226,6 +226,125 @@ class TaxConfigService
     }
 
     /**
+     * Get PET (Potentially Exempt Transfer) rules
+     *
+     * @return array Contains years_to_exemption, taper_relief, failed_pet_rules
+     */
+    public function getPETRules(): array
+    {
+        return $this->get('inheritance_tax.potentially_exempt_transfers', []);
+    }
+
+    /**
+     * Get CLT (Chargeable Lifetime Transfer) rules
+     *
+     * @return array Contains lookback_period, lifetime_rate, death_rate, taper_relief
+     */
+    public function getCLTRules(): array
+    {
+        return $this->get('inheritance_tax.chargeable_lifetime_transfers', []);
+    }
+
+    /**
+     * Get the 14-year rule configuration
+     *
+     * @return array Contains lookback periods and calculation steps
+     */
+    public function getFourteenYearRule(): array
+    {
+        return $this->get('inheritance_tax.fourteen_year_rule', []);
+    }
+
+    /**
+     * Get Trust IHT charges configuration
+     *
+     * @return array Contains entry, periodic, and exit charge rules
+     */
+    public function getTrustCharges(): array
+    {
+        return $this->get('inheritance_tax.trust_charges', []);
+    }
+
+    /**
+     * Get taper relief rates for PETs/CLTs
+     *
+     * @param  string  $type  'pet' or 'clt'
+     * @return array Taper relief schedule
+     */
+    public function getTaperRelief(string $type = 'pet'): array
+    {
+        if ($type === 'clt') {
+            return $this->get('inheritance_tax.chargeable_lifetime_transfers.taper_relief', []);
+        }
+
+        return $this->get('inheritance_tax.potentially_exempt_transfers.taper_relief', []);
+    }
+
+    /**
+     * Get the tax rate for a gift based on years survived
+     *
+     * @param  int|float  $yearsSurvived  Years between gift and death
+     * @param  string  $type  'pet' or 'clt'
+     * @return float Tax rate (0.0 to 0.40)
+     */
+    public function getGiftTaxRate(int|float $yearsSurvived, string $type = 'pet'): float
+    {
+        $taperRelief = $this->getTaperRelief($type);
+
+        foreach ($taperRelief as $band) {
+            $minYears = $band['min_years'] ?? 0;
+            $maxYears = $band['max_years'] ?? PHP_INT_MAX;
+
+            if ($yearsSurvived >= $minYears && $yearsSurvived < $maxYears) {
+                return $band['tax_rate'] ?? 0.40;
+            }
+        }
+
+        // Default to full rate if no band matches
+        return $this->get('inheritance_tax.standard_rate', 0.40);
+    }
+
+    /**
+     * Get Business Relief configuration
+     *
+     * @return array Contains rates, min_ownership_years, excluded_businesses
+     */
+    public function getBusinessRelief(): array
+    {
+        return $this->get('inheritance_tax.business_relief', []);
+    }
+
+    /**
+     * Get Agricultural Relief configuration
+     *
+     * @return array Contains rates, ownership requirements, caps
+     */
+    public function getAgriculturalRelief(): array
+    {
+        return $this->get('inheritance_tax.agricultural_relief', []);
+    }
+
+    /**
+     * Get Quick Succession Relief configuration
+     *
+     * @return array Contains relief rates by years
+     */
+    public function getQuickSuccessionRelief(): array
+    {
+        return $this->get('inheritance_tax.quick_succession_relief', []);
+    }
+
+    /**
+     * Get Normal Expenditure from Income exemption rules
+     *
+     * @return array Contains conditions and evidence requirements
+     */
+    public function getNormalExpenditureFromIncome(): array
+    {
+        return $this->get('gifting_exemptions.normal_expenditure_from_income', []);
+    }
+
+    /**
      * Get Investment/Financial Planning Assumptions
      *
      * @return array Contains investment_growth, inflation, salary_growth

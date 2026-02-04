@@ -209,35 +209,158 @@ class TaxConfigurationSeeder extends Seeder
             ],
 
             'inheritance_tax' => [
-                'nil_rate_band' => 325000,
-                'residence_nil_rate_band' => 175000,
-                'rnrb_taper_threshold' => 2000000,
-                'rnrb_taper_rate' => 0.5,
-                'standard_rate' => 0.40,
-                'reduced_rate_charity' => 0.36,
-                'spouse_exemption' => true,
-                'transferable_nil_rate_band' => true,
+                // =================================================================
+                // Core Thresholds and Rates
+                // =================================================================
+                'nil_rate_band' => 325000,                       // £325,000 - frozen until April 2030
+                'residence_nil_rate_band' => 175000,             // £175,000 - for main residence left to direct descendants
+                'rnrb_taper_threshold' => 2000000,               // RNRB tapers away if estate exceeds £2m
+                'rnrb_taper_rate' => 0.5,                        // £1 lost per £2 over threshold
+                'standard_rate' => 0.40,                         // 40% on taxable estate
+                'reduced_rate_charity' => 0.36,                  // 36% if 10%+ of net estate left to charity
+                'charity_threshold_percent' => 0.10,             // 10% of baseline amount required for reduced rate
+                'spouse_exemption' => true,                      // Unlimited transfers to UK-domiciled spouse/civil partner
+                'transferable_nil_rate_band' => true,            // Unused NRB can transfer to surviving spouse
+                'transferable_rnrb' => true,                     // Unused RNRB can also transfer to surviving spouse
+
+                // =================================================================
+                // Potentially Exempt Transfers (PETs)
+                // Gifts to individuals that become exempt if donor survives 7 years
+                // =================================================================
                 'potentially_exempt_transfers' => [
-                    'years_to_exemption' => 7,
+                    'years_to_exemption' => 7,                   // Fully exempt after 7 years
+                    'immediate_charge' => false,                 // No tax on gift when made
+                    'becomes_chargeable_on_death' => true,       // Becomes chargeable if donor dies within 7 years
+                    'uses_donor_nrb' => true,                    // Uses donor's NRB when calculating tax
+                    'cumulation_period' => 7,                    // PETs in 7 years before death are cumulated
+
+                    // Taper relief - reduces tax if donor survives 3-7 years
+                    // Note: Only applies if gift itself exceeds available NRB
                     'taper_relief' => [
-                        ['years' => 3, 'rate' => 0.40],
-                        ['years' => 4, 'rate' => 0.32],
-                        ['years' => 5, 'rate' => 0.24],
-                        ['years' => 6, 'rate' => 0.16],
-                        ['years' => 7, 'rate' => 0.08],
+                        ['min_years' => 0, 'max_years' => 3, 'tax_rate' => 0.40, 'description' => 'Full 40% tax'],
+                        ['min_years' => 3, 'max_years' => 4, 'tax_rate' => 0.32, 'description' => '80% of 40%'],
+                        ['min_years' => 4, 'max_years' => 5, 'tax_rate' => 0.24, 'description' => '60% of 40%'],
+                        ['min_years' => 5, 'max_years' => 6, 'tax_rate' => 0.16, 'description' => '40% of 40%'],
+                        ['min_years' => 6, 'max_years' => 7, 'tax_rate' => 0.08, 'description' => '20% of 40%'],
+                        ['min_years' => 7, 'max_years' => null, 'tax_rate' => 0.00, 'description' => 'Fully exempt'],
+                    ],
+
+                    // Failed PET impact
+                    'failed_pet_rules' => [
+                        'becomes_chargeable_transfer' => true,   // Failed PET becomes chargeable on death
+                        'affects_later_clt_nrb' => true,         // Failed PET reduces NRB available for later CLTs
+                        'affects_estate_nrb' => true,            // Failed PET reduces NRB available for estate
+                        'calculation_order' => 'chronological',  // Gifts charged in date order
                     ],
                 ],
+
+                // =================================================================
+                // Chargeable Lifetime Transfers (CLTs)
+                // Gifts to most trusts - immediately chargeable
+                // =================================================================
                 'chargeable_lifetime_transfers' => [
-                    'lookback_period' => 14,
-                    'rate' => 0.20,
+                    'lookback_period' => 7,                      // CLTs in 7 years before this CLT use up NRB
+                    'cumulation_period' => 7,                    // Rolling 7-year cumulation for NRB
+                    'lifetime_rate' => 0.20,                     // 20% immediate charge on excess over NRB
+                    'lifetime_rate_grossed_up' => 0.25,          // 25% if settlor pays the tax (grossing up)
+                    'death_rate' => 0.40,                        // 40% rate on death within 7 years
+                    'additional_death_charge' => 0.20,           // Extra 20% due if death within 7 years (40% - 20% already paid)
+
+                    // CLT taper relief - applies to additional death charge
+                    'taper_relief_applies' => true,              // Taper relief reduces additional death charge
+                    'taper_relief' => [
+                        ['min_years' => 0, 'max_years' => 3, 'relief_percent' => 0, 'tax_percent' => 100],
+                        ['min_years' => 3, 'max_years' => 4, 'relief_percent' => 20, 'tax_percent' => 80],
+                        ['min_years' => 4, 'max_years' => 5, 'relief_percent' => 40, 'tax_percent' => 60],
+                        ['min_years' => 5, 'max_years' => 6, 'relief_percent' => 60, 'tax_percent' => 40],
+                        ['min_years' => 6, 'max_years' => 7, 'relief_percent' => 80, 'tax_percent' => 20],
+                        ['min_years' => 7, 'max_years' => null, 'relief_percent' => 100, 'tax_percent' => 0],
+                    ],
                 ],
 
-                // Trust IHT charges (2025/26 - verified from gov.uk)
-                'trust_entry_charge' => 0.20,                    // 20% on chargeable lifetime transfers into trusts exceeding NRB
-                'trust_periodic_charge_max' => 0.06,             // Max 6% on 10-year anniversary
-                'trust_exit_charge_max' => 0.06,                 // Max 6% when assets leave trust (pro-rated)
-                'trust_no_exit_charge_period' => 3,              // No exit charge if distribution within 3 months of setup
-                'trust_will_no_exit_charge_period' => 24,        // Discretionary will trust: no exit charge if distributed within 2 years of death
+                // =================================================================
+                // 14-Year Rule (Extended Cumulation)
+                // Failed PETs can affect CLT tax even beyond 7 years
+                // =================================================================
+                'fourteen_year_rule' => [
+                    'applies_to' => 'clt_with_prior_failed_pet', // When calculating CLT tax at death
+                    'lookback_for_failed_pets' => 7,             // Look back 7 years from CLT for failed PETs
+                    'lookback_for_clts' => 7,                    // Look back 7 years from death for CLTs
+                    'maximum_window' => 14,                      // Total maximum window is 14 years
+                    'description' => 'When calculating IHT on a CLT made within 7 years of death, any failed PETs made in the 7 years before that CLT reduce the NRB available',
+                    'calculation_steps' => [
+                        '1. Identify all CLTs made within 7 years of death',
+                        '2. For each CLT, identify any failed PETs made in the 7 years before that CLT',
+                        '3. Failed PETs reduce the NRB available for the CLT',
+                        '4. This can result in additional tax on the CLT even if it was within NRB when made',
+                    ],
+                ],
+
+                // =================================================================
+                // Trust IHT Charges
+                // Entry, periodic (10-year), and exit charges
+                // =================================================================
+                'trust_charges' => [
+                    // Entry charge (when assets transferred into trust)
+                    'entry' => [
+                        'rate' => 0.20,                          // 20% on value exceeding NRB
+                        'rate_grossed_up' => 0.25,               // 25% if settlor pays
+                        'nrb_available' => true,                 // NRB applies (less previous 7-year CLTs)
+                        'exemptions' => [
+                            'bare_trusts' => true,               // No entry charge (treated as PET)
+                            'disabled_person_trusts' => true,    // No entry charge
+                            'bereaved_minor_trusts' => true,     // Created by will - no lifetime charge
+                        ],
+                    ],
+
+                    // Periodic charge (10-year anniversary)
+                    'periodic' => [
+                        'interval_years' => 10,                  // Every 10 years from trust creation
+                        'max_rate' => 0.06,                      // Maximum 6% of trust value
+                        'calculation_formula' => '30% of lifetime rate', // 30% × 20% = 6%
+                        'lifetime_rate_multiplier' => 0.30,      // 30% multiplier
+                        'base_rate' => 0.20,                     // Base lifetime rate
+                        'nrb_available' => true,                 // NRB applies to reduce charge
+                        'exemptions' => [
+                            'disabled_person_trusts' => true,
+                            'bereaved_minor_trusts' => true,
+                            'age_18_to_25_trusts' => true,
+                            'interest_in_possession_pre_2006' => true,
+                        ],
+                    ],
+
+                    // Exit charge (when assets leave trust)
+                    'exit' => [
+                        'max_rate' => 0.06,                      // Maximum 6%
+                        'calculation_basis' => 'proportionate',  // Based on time since last periodic charge
+                        'quarters_in_period' => 40,              // 40 complete quarters in 10 years
+                        'formula' => 'effective_rate × 30% × (complete_quarters / 40)',
+                        'no_charge_periods' => [
+                            'first_quarter' => 3,                // No charge in first 3 months after setup
+                            'post_anniversary_months' => 3,      // No charge in first 3 months after anniversary
+                            'will_trust_months' => 24,           // Discretionary will trust: 2 years from death
+                        ],
+                        'exemptions' => [
+                            'costs_and_expenses' => true,        // Payment of trust costs/expenses
+                            'advancement_to_bereaved_minor' => true,
+                            'excluded_property' => true,         // Certain foreign assets
+                        ],
+                    ],
+                ],
+
+                // Agricultural Property Relief for IHT
+                'agricultural_relief' => [
+                    'min_ownership_years' => 2,                  // Must own for 2 years (or 7 if let)
+                    'min_occupation_years' => 2,                 // If let, must be used for agriculture
+                    'rates' => [
+                        'vacant_possession' => 1.0,              // 100% relief
+                        'let_tenancy' => 1.0,                    // 100% relief (post-Sept 1995 tenancies)
+                        'pre_1995_tenancy' => 0.5,               // 50% relief (pre-Sept 1995 tenancies)
+                    ],
+                    'allowance_cap' => 1000000,                  // £1m cap from April 2026 (Budget 2024)
+                    'allowance_cap_effective_date' => '2026-04-06',
+                    'notes' => 'APR is being reformed. From April 2026, combined APR/BPR capped at £1m at 100%, then 50%.',
+                ],
 
                 // Business Relief (formerly Business Property Relief) for IHT
                 'business_relief' => [
@@ -265,20 +388,92 @@ class TaxConfigurationSeeder extends Seeder
                         'dealing_in_land_or_buildings',
                         'making_or_holding_investments',
                     ],
-                    'notes' => 'Business Relief reduces IHT on qualifying business assets. Trading status and ownership period are key requirements.',
+                    'allowance_cap' => 1000000,                  // £1m cap from April 2026 (Budget 2024)
+                    'allowance_cap_effective_date' => '2026-04-06',
+                    'notes' => 'BPR is being reformed. From April 2026, combined APR/BPR capped at £1m at 100%, then 50%.',
+                ],
+
+                // Quick Death Rules (death shortly after gift)
+                'quick_succession_relief' => [
+                    'applies_when' => 'beneficiary_dies_after_receiving_gift',
+                    'max_years' => 5,                            // Relief reduces over 5 years
+                    'relief_rates' => [
+                        ['max_years' => 1, 'relief' => 1.0],     // 100% relief if death within 1 year
+                        ['max_years' => 2, 'relief' => 0.8],     // 80% relief
+                        ['max_years' => 3, 'relief' => 0.6],     // 60% relief
+                        ['max_years' => 4, 'relief' => 0.4],     // 40% relief
+                        ['max_years' => 5, 'relief' => 0.2],     // 20% relief
+                    ],
                 ],
             ],
 
             'gifting_exemptions' => [
+                // Annual Exemption - £3,000 per year, carry forward 1 year
                 'annual_exemption' => 3000,
                 'annual_exemption_can_carry_forward' => true,
                 'carry_forward_years' => 1,
-                'small_gifts_limit' => 250,    // Flattened for Vue component display
+                'annual_exemption_notes' => 'Can carry forward one unused year only. Used before other exemptions.',
+
+                // Small Gifts Exemption - £250 per recipient, unlimited recipients
+                'small_gifts_limit' => 250,
+                'small_gifts_unlimited_recipients' => true,
+                'small_gifts_notes' => 'Cannot use on same person who receives annual exemption gift.',
+
+                // Wedding/Civil Partnership Gifts
                 'wedding_gifts' => [
+                    'parent_to_child' => 5000,
+                    'grandparent_to_grandchild' => 2500,
+                    'great_grandparent' => 2500,
+                    'other_person' => 1000,
+                    'must_be_given_before_ceremony' => true,
+                    'must_be_conditional_on_marriage' => true,
+                    // Aliases for backward compatibility
                     'child' => 5000,
                     'grandchild_great_grandchild' => 2500,
                     'other' => 1000,
                 ],
+
+                // Normal Expenditure from Income - UNLIMITED if conditions met
+                'normal_expenditure_from_income' => [
+                    'limit' => null,                             // Unlimited
+                    'immediately_exempt' => true,
+                    'conditions' => [
+                        'from_income_not_capital' => true,       // Must be from income, not capital
+                        'regular_pattern' => true,               // Must be regular/habitual
+                        'maintain_standard_of_living' => true,   // Must not affect donor's lifestyle
+                    ],
+                    'evidence_required' => [
+                        'Income and expenditure records',
+                        'Pattern of regular giving (typically 3+ years)',
+                        'Proof that standard of living maintained',
+                    ],
+                    'examples' => [
+                        'Regular pension contributions for family member',
+                        'School/university fees',
+                        'Regular savings for children/grandchildren',
+                        'Premium payments on life insurance for another',
+                    ],
+                    'notes' => 'Most powerful exemption but requires clear evidence. HMRC scrutinise carefully.',
+                ],
+
+                // Maintenance Gifts - for family members
+                'maintenance_exemptions' => [
+                    'spouse_civil_partner' => true,              // Unlimited
+                    'ex_spouse_maintenance' => true,             // Court-ordered or reasonable
+                    'minor_children' => true,                    // Under 18
+                    'adult_children_in_education' => true,       // In full-time education
+                    'dependent_relatives' => true,               // Elderly/infirm relatives
+                ],
+
+                // Charity and Political Party Exemptions
+                'charity_exemption' => true,                     // Unlimited to UK charities
+                'political_party_exemption' => true,             // To qualifying political parties
+
+                // Gifts to Housing Associations
+                'housing_association_exemption' => true,
+
+                // National Purposes Exemption (museums, universities, etc.)
+                'national_purposes_exemption' => true,
             ],
 
             'stamp_duty' => [
@@ -323,7 +518,7 @@ class TaxConfigurationSeeder extends Seeder
                     'property' => 0.03,
                     'balanced_portfolio' => 0.04,
                 ],
-                'inflation' => 0.02,
+                'inflation' => 0.025,  // 2.5% - updated per specification
                 'salary_growth' => 0.03,
             ],
 
@@ -417,15 +612,31 @@ class TaxConfigurationSeeder extends Seeder
                     'notes' => 'Trusts pay CGT at a flat 24% rate. The annual exempt amount is half the individual allowance.',
                 ],
 
-                // IHT Charges for Trusts
+                // IHT Charges for Trusts (detailed config in inheritance_tax.trust_charges)
+                // This section provides simplified access for trust-specific calculations
                 'inheritance_tax' => [
-                    'entry_charge' => 0.20,                // 20% on CLTs exceeding NRB (paid at time of gift)
-                    'periodic_charge_max' => 0.06,         // Max 6% on 10-year anniversary
-                    'exit_charge_max' => 0.06,             // Max 6% when assets leave trust (proportionate)
-                    'periodic_charge_interval' => 10,      // Years between periodic charges
-                    'no_exit_charge_period' => 3,          // Months - no exit charge if distributed within 3 months of setup
-                    'will_trust_no_exit_charge_period' => 24, // Months - discretionary will trust: no exit charge within 2 years of death
-                    'notes' => 'Relevant Property Trusts face IHT charges every 10 years. Exit charges are proportionate based on time since last periodic charge.',
+                    // Entry charge
+                    'entry_charge_rate' => 0.20,           // 20% on CLTs exceeding NRB
+                    'entry_charge_grossed_up' => 0.25,     // 25% if settlor pays
+
+                    // Periodic (10-year) charge
+                    'periodic_charge_max' => 0.06,         // Max 6% (30% of 20%)
+                    'periodic_charge_interval' => 10,      // Years between charges
+                    'periodic_rate_multiplier' => 0.30,    // 30% of lifetime rate
+                    'periodic_base_rate' => 0.20,          // Lifetime rate base
+
+                    // Exit charge
+                    'exit_charge_max' => 0.06,             // Max 6%
+                    'exit_quarters_per_period' => 40,      // 40 complete quarters in 10 years
+                    'exit_rate_multiplier' => 0.30,        // 30% of effective rate
+                    'no_exit_charge_months' => 3,          // No charge in first 3 months
+                    'will_trust_no_exit_months' => 24,     // Will trust: 2 years from death
+
+                    // Death within 7 years of CLT
+                    'additional_death_charge' => 0.20,     // Extra 20% (40% - 20% already paid)
+                    'death_charge_taper_applies' => true,  // Taper relief reduces additional charge
+
+                    'notes' => 'Full calculation details in inheritance_tax.trust_charges. Rates: Entry 20%, Periodic max 6% (30% × 20%), Exit proportionate up to 6%.',
                 ],
 
                 // Management Expenses Relief

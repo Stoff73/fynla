@@ -401,6 +401,10 @@ Route::middleware('auth:sanctum')->prefix('goals')->group(function () {
     Route::get('/analysis', [GoalsController::class, 'analysis']);
     Route::get('/dashboard-overview', [GoalsController::class, 'dashboardOverview']);
 
+    // Projection (net worth chart with events)
+    Route::get('/projection', [GoalsController::class, 'getProjection']);
+    Route::get('/household-summary', [GoalsController::class, 'getHouseholdSummary']);
+
     // Reference data
     Route::get('/types', [GoalsController::class, 'getGoalTypes']);
     Route::get('/risk-levels', [GoalsController::class, 'getRiskLevels']);
@@ -419,6 +423,18 @@ Route::middleware('auth:sanctum')->prefix('goals')->group(function () {
     Route::get('/{id}/projections', [GoalsController::class, 'getProjections']);
     Route::get('/{id}/scenarios', [GoalsController::class, 'getScenarios']);
     Route::get('/{id}/contributions', [GoalsController::class, 'getContributionHistory']);
+});
+
+// Life Events routes (future occurrences impacting net worth)
+Route::middleware('auth:sanctum')->prefix('life-events')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\LifeEventController::class, 'index']);
+    Route::get('/types', [\App\Http\Controllers\Api\LifeEventController::class, 'getEventTypes']);
+    Route::get('/by-age', [\App\Http\Controllers\Api\LifeEventController::class, 'getByAge']);
+    Route::post('/', [\App\Http\Controllers\Api\LifeEventController::class, 'store']);
+    Route::get('/{id}', [\App\Http\Controllers\Api\LifeEventController::class, 'show']);
+    Route::put('/{id}', [\App\Http\Controllers\Api\LifeEventController::class, 'update']);
+    Route::delete('/{id}', [\App\Http\Controllers\Api\LifeEventController::class, 'destroy']);
+    Route::post('/{id}/complete', [\App\Http\Controllers\Api\LifeEventController::class, 'markCompleted']);
 });
 
 // Investment module routes

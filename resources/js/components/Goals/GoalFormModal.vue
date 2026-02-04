@@ -151,6 +151,34 @@
               <p class="text-xs text-gray-500 mt-1">Based on goal type and timeline</p>
             </div>
 
+            <!-- Projection Settings -->
+            <div class="border-t border-gray-200 pt-4 mt-4">
+              <h4 class="text-sm font-medium text-gray-900 mb-3">Projection Settings</h4>
+
+              <div class="space-y-3">
+                <label class="flex items-center">
+                  <input
+                    v-model="form.show_in_projection"
+                    type="checkbox"
+                    class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                  />
+                  <span class="ml-2 text-sm text-gray-700">Show in projection chart</span>
+                </label>
+
+                <label class="flex items-center">
+                  <input
+                    v-model="form.show_in_household_view"
+                    type="checkbox"
+                    class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                  />
+                  <span class="ml-2 text-sm text-gray-700">Show in household view</span>
+                </label>
+                <p class="text-xs text-gray-500 ml-6">
+                  Visible in combined household projection if spouse has granted permission.
+                </p>
+              </div>
+            </div>
+
             <!-- Property-specific fields -->
             <div v-if="isPropertyGoal" class="border-t border-gray-200 pt-4 mt-4">
               <h4 class="text-sm font-medium text-gray-900 mb-3">Property Details</h4>
@@ -376,6 +404,8 @@ export default {
         estimated_property_price: null,
         deposit_percentage: 10,
         is_first_time_buyer: false,
+        show_in_projection: true,
+        show_in_household_view: true,
       };
     },
 
@@ -394,6 +424,8 @@ export default {
           estimated_property_price: this.goal.estimated_property_price ? parseFloat(this.goal.estimated_property_price) : null,
           deposit_percentage: this.goal.deposit_percentage ? parseFloat(this.goal.deposit_percentage) : 10,
           is_first_time_buyer: this.goal.is_first_time_buyer || false,
+          show_in_projection: this.goal.show_in_projection ?? true,
+          show_in_household_view: this.goal.show_in_household_view ?? true,
         };
       } else {
         this.form = this.getDefaultForm();

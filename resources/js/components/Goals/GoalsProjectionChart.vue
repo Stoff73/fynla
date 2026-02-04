@@ -161,6 +161,7 @@ export default {
       eventMarkers: [],
       activeTooltip: null,
       tooltipPosition: { x: 0, y: 0 },
+      isComponentMounted: false,
     };
   },
 
@@ -488,7 +489,12 @@ export default {
   },
 
   mounted() {
+    this.isComponentMounted = true;
     this.fetchProjection();
+  },
+
+  beforeUnmount() {
+    this.isComponentMounted = false;
   },
 
   methods: {
@@ -509,19 +515,25 @@ export default {
     },
 
     onChartMounted() {
+      if (!this.isComponentMounted) return;
       this.$nextTick(() => {
-        this.updateEventMarkers();
+        if (this.isComponentMounted) {
+          this.updateEventMarkers();
+        }
       });
     },
 
     onChartUpdated() {
+      if (!this.isComponentMounted) return;
       this.$nextTick(() => {
-        this.updateEventMarkers();
+        if (this.isComponentMounted) {
+          this.updateEventMarkers();
+        }
       });
     },
 
     updateEventMarkers() {
-      if (!this.$refs.chart || !this.projection?.events || !this.projection?.yearly_data) {
+      if (!this.isComponentMounted || !this.$refs.chart || !this.projection?.events || !this.projection?.yearly_data) {
         this.eventMarkers = [];
         return;
       }
@@ -754,19 +766,32 @@ export default {
       this.onViewModeChange(newMode);
     },
     chartView() {
+      if (!this.isComponentMounted) return;
       this.$nextTick(() => {
-        this.updateEventMarkers();
+        if (this.isComponentMounted) {
+          this.updateEventMarkers();
+        }
       });
     },
     chartType() {
+      if (!this.isComponentMounted) return;
       this.$nextTick(() => {
-        this.updateEventMarkers();
+        if (this.isComponentMounted) {
+          this.updateEventMarkers();
+        }
       });
     },
     projection: {
       handler() {
+        if (!this.isComponentMounted) return;
         this.$nextTick(() => {
-          setTimeout(() => this.updateEventMarkers(), 100);
+          if (this.isComponentMounted) {
+            setTimeout(() => {
+              if (this.isComponentMounted) {
+                this.updateEventMarkers();
+              }
+            }, 100);
+          }
         });
       },
       deep: true,

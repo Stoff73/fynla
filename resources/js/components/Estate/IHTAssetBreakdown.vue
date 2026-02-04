@@ -299,7 +299,8 @@ export default {
     },
 
     assetGroupProjectedTotal(assets) {
-      return (assets || []).reduce((sum, a) => sum + (a.projected_value || a.value || 0), 0);
+      // Use nullish coalescing to handle 0 as valid (cash may project to 0)
+      return (assets || []).reduce((sum, a) => sum + (a.projected_value ?? a.value ?? 0), 0);
     },
   },
 };

@@ -23,12 +23,18 @@ class AssumptionsService
 
     private const DEFAULT_RETIREMENT_AGE = 68;
 
+    private const DEFAULT_PROPERTY_GROWTH_RATE = 3.0;
+
+    private const DEFAULT_INVESTMENT_GROWTH_METHOD = 'monte_carlo';
+
+    private const VALID_ASSUMPTION_TYPES = ['pensions', 'investments', 'estate_planning'];
+
     public function __construct(
         private RiskPreferenceService $riskService
     ) {}
 
     /**
-     * Get all assumptions for a user (both pensions and investments).
+     * Get all assumptions for a user (pensions, investments, and estate planning).
      */
     public function getAssumptions(int $userId): array
     {
@@ -38,14 +44,46 @@ class AssumptionsService
         return [
             'pensions' => $this->getTypeAssumptions($user, 'pensions'),
             'investments' => $this->getTypeAssumptions($user, 'investments'),
+            'estate_planning' => $this->getEstateAssumptions($user),
         ];
     }
 
     /**
-     * Get assumptions for a specific type (pensions or investments).
+     * Get estate planning assumptions for a user.
+     */
+    public function getEstateAssumptions(User $user): array
+    {
+        $override = UserAssumption::where('user_id', $user->id)
+            ->where('assumption_type', 'estate_planning')
+            ->first();
+
+        return [
+            'inflation_rate' => $override?->inflation_rate ?? self::DEFAULT_INFLATION_RATE,
+            'inflation_rate_default' => self::DEFAULT_INFLATION_RATE,
+            'property_growth_rate' => $override?->property_growth_rate ?? self::DEFAULT_PROPERTY_GROWTH_RATE,
+            'property_growth_rate_default' => self::DEFAULT_PROPERTY_GROWTH_RATE,
+            'investment_growth_method' => $override?->investment_growth_method ?? self::DEFAULT_INVESTMENT_GROWTH_METHOD,
+            'investment_growth_method_default' => self::DEFAULT_INVESTMENT_GROWTH_METHOD,
+            'custom_investment_rate' => $override?->custom_investment_rate,
+            'has_overrides' => $override !== null && (
+                $override->inflation_rate !== null ||
+                $override->property_growth_rate !== null ||
+                $override->investment_growth_method !== 'monte_carlo' ||
+                $override->custom_investment_rate !== null
+            ),
+        ];
+    }
+
+    /**
+     * Get assumptions for a specific type (pensions, investments, or estate_planning).
      */
     public function getTypeAssumptions(User $user, string $type): array
     {
+        // Handle estate_planning separately
+        if ($type === 'estate_planning') {
+            return $this->getEstateAssumptions($user);
+        }
+
         $override = UserAssumption::where('user_id', $user->id)
             ->where('assumption_type', $type)
             ->first();
@@ -81,8 +119,13 @@ class AssumptionsService
      */
     public function updateAssumptions(int $userId, string $type, array $data): array
     {
-        if (! in_array($type, ['pensions', 'investments'], true)) {
+        if (! in_array($type, self::VALID_ASSUMPTION_TYPES, true)) {
             throw new \InvalidArgumentException("Invalid assumption type: {$type}");
+        }
+
+        // Handle estate_planning separately with its specific fields
+        if ($type === 'estate_planning') {
+            return $this->updateEstateAssumptions($userId, $data);
         }
 
         $updateData = array_filter([
@@ -121,6 +164,63 @@ class AssumptionsService
             ->findOrFail($userId);
 
         return $this->getTypeAssumptions($user, $type);
+    }
+
+    /**
+     * Update estate planning assumptions.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function updateEstateAssumptions(int $userId, array $data): array
+    {
+        $updateData = [];
+
+        if (isset($data['inflation_rate'])) {
+            $updateData['inflation_rate'] = (float) $data['inflation_rate'];
+        }
+
+        if (isset($data['property_growth_rate'])) {
+            $updateData['property_growth_rate'] = (float) $data['property_growth_rate'];
+        }
+
+        if (isset($data['investment_growth_method'])) {
+            $method = $data['investment_growth_method'];
+            if (in_array($method, ['monte_carlo', 'custom'], true)) {
+                $updateData['investment_growth_method'] = $method;
+            }
+        }
+
+        if (isset($data['custom_investment_rate'])) {
+            $updateData['custom_investment_rate'] = (float) $data['custom_investment_rate'];
+        }
+
+        // If all values are being reset, delete the override
+        if (empty($updateData)) {
+            UserAssumption::where('user_id', $userId)
+                ->where('assumption_type', 'estate_planning')
+                ->delete();
+
+            Log::info('Estate planning assumptions reset to defaults', [
+                'user_id' => $userId,
+            ]);
+        } else {
+            UserAssumption::updateOrCreate(
+                [
+                    'user_id' => $userId,
+                    'assumption_type' => 'estate_planning',
+                ],
+                $updateData
+            );
+
+            Log::info('Estate planning assumptions updated', [
+                'user_id' => $userId,
+                'data' => $updateData,
+            ]);
+        }
+
+        $user = User::findOrFail($userId);
+
+        return $this->getEstateAssumptions($user);
     }
 
     /**

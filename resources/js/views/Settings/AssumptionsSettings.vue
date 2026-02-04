@@ -264,6 +264,121 @@
           </div>
         </div>
 
+        <!-- Estate Planning Section -->
+        <div class="settings-section">
+          <div class="section-header">
+            <h2 class="section-title">Estate Planning Projections</h2>
+            <span
+              v-if="assumptions.estate_planning?.has_overrides"
+              class="status-badge custom"
+            >Custom</span>
+            <span v-else class="status-badge default">Defaults</span>
+          </div>
+          <p class="section-description">
+            These assumptions are used to project future estate values for IHT planning.
+          </p>
+
+          <div class="assumptions-grid">
+            <div class="assumption-field">
+              <label for="estate-inflation">Inflation Rate</label>
+              <div class="input-group">
+                <input
+                  id="estate-inflation"
+                  v-model.number="form.estate_planning.inflation_rate"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="20"
+                  class="form-input"
+                  :placeholder="assumptions.estate_planning?.inflation_rate_default"
+                >
+                <span class="input-suffix">%</span>
+              </div>
+              <p class="field-hint">
+                Default: {{ assumptions.estate_planning?.inflation_rate_default }}%
+              </p>
+            </div>
+
+            <div class="assumption-field">
+              <label for="estate-property-growth">Property Growth Rate</label>
+              <div class="input-group">
+                <input
+                  id="estate-property-growth"
+                  v-model.number="form.estate_planning.property_growth_rate"
+                  type="number"
+                  step="0.1"
+                  min="-10"
+                  max="20"
+                  class="form-input"
+                  :placeholder="assumptions.estate_planning?.property_growth_rate_default"
+                >
+                <span class="input-suffix">%</span>
+              </div>
+              <p class="field-hint">
+                Default: {{ assumptions.estate_planning?.property_growth_rate_default }}% annual property value growth
+              </p>
+            </div>
+
+            <div class="assumption-field">
+              <label for="estate-growth-method">Investment Growth Method</label>
+              <div class="input-group">
+                <select
+                  id="estate-growth-method"
+                  v-model="form.estate_planning.investment_growth_method"
+                  class="form-input"
+                >
+                  <option value="monte_carlo">Monte Carlo (80% confidence)</option>
+                  <option value="custom">Custom Rate</option>
+                </select>
+              </div>
+              <p class="field-hint">
+                Monte Carlo uses probabilistic modelling for more realistic projections
+              </p>
+            </div>
+
+            <div
+              v-if="form.estate_planning.investment_growth_method === 'custom'"
+              class="assumption-field"
+            >
+              <label for="estate-custom-rate">Custom Investment Rate</label>
+              <div class="input-group">
+                <input
+                  id="estate-custom-rate"
+                  v-model.number="form.estate_planning.custom_investment_rate"
+                  type="number"
+                  step="0.1"
+                  min="-10"
+                  max="30"
+                  class="form-input"
+                  placeholder="Enter custom rate"
+                >
+                <span class="input-suffix">%</span>
+              </div>
+              <p class="field-hint">
+                Your custom annual growth rate for investment projections
+              </p>
+            </div>
+          </div>
+
+          <div class="section-actions">
+            <button
+              class="btn btn-outline"
+              :disabled="saving.estate_planning || !estatePlanningHasChanges"
+              @click="resetType('estate_planning')"
+            >
+              Reset to Defaults
+            </button>
+            <button
+              class="btn btn-primary"
+              :disabled="saving.estate_planning || !estatePlanningHasChanges"
+              @click="saveType('estate_planning')"
+            >
+              <span v-if="saving.estate_planning">Saving...</span>
+              <span v-else>Save Changes</span>
+            </button>
+          </div>
+        </div>
+
         <!-- Info Section -->
         <div class="settings-section info-section">
           <div class="section-header">
@@ -285,6 +400,14 @@
             <li>
               <strong>Fees:</strong> Automatically calculated from your actual accounts.
               Platform fees, fund fees (OCF), and advisory fees are included.
+            </li>
+            <li>
+              <strong>Property Growth Rate:</strong> The expected annual increase in property values.
+              Used for estate planning projections.
+            </li>
+            <li>
+              <strong>Investment Growth Method:</strong> Monte Carlo uses probabilistic modelling
+              at 80% confidence. Custom allows you to set a specific growth rate.
             </li>
           </ul>
         </div>
@@ -314,6 +437,7 @@ export default {
       assumptions: {
         pensions: null,
         investments: null,
+        estate_planning: null,
       },
       form: {
         pensions: {
@@ -326,14 +450,22 @@ export default {
           return_rate: null,
           compound_periods: null,
         },
+        estate_planning: {
+          inflation_rate: null,
+          property_growth_rate: null,
+          investment_growth_method: 'monte_carlo',
+          custom_investment_rate: null,
+        },
       },
       originalForm: {
         pensions: {},
         investments: {},
+        estate_planning: {},
       },
       saving: {
         pensions: false,
         investments: false,
+        estate_planning: false,
       },
     };
   },
@@ -345,6 +477,10 @@ export default {
 
     investmentsHasChanges() {
       return this.hasChanges('investments');
+    },
+
+    estatePlanningHasChanges() {
+      return this.hasChanges('estate_planning');
     },
   },
 
@@ -370,7 +506,7 @@ export default {
     },
 
     initializeForm() {
-      // Initialize form with current values
+      // Initialize form with current values for pensions and investments
       ['pensions', 'investments'].forEach((type) => {
         const data = this.assumptions[type];
         if (data) {
@@ -383,11 +519,32 @@ export default {
           this.originalForm[type] = { ...this.form[type] };
         }
       });
+
+      // Initialize estate planning separately (different fields)
+      const estateData = this.assumptions.estate_planning;
+      if (estateData) {
+        this.form.estate_planning = {
+          inflation_rate: estateData.inflation_rate,
+          property_growth_rate: estateData.property_growth_rate,
+          investment_growth_method: estateData.investment_growth_method || 'monte_carlo',
+          custom_investment_rate: estateData.custom_investment_rate,
+        };
+        this.originalForm.estate_planning = { ...this.form.estate_planning };
+      }
     },
 
     hasChanges(type) {
       const current = this.form[type];
       const original = this.originalForm[type];
+
+      if (type === 'estate_planning') {
+        return (
+          current.inflation_rate !== original.inflation_rate ||
+          current.property_growth_rate !== original.property_growth_rate ||
+          current.investment_growth_method !== original.investment_growth_method ||
+          current.custom_investment_rate !== original.custom_investment_rate
+        );
+      }
 
       return (
         current.inflation_rate !== original.inflation_rate ||
@@ -400,11 +557,22 @@ export default {
       this.saving[type] = true;
 
       try {
-        const data = {
-          inflation_rate: this.form[type].inflation_rate,
-          return_rate: this.form[type].return_rate,
-          compound_periods: this.form[type].compound_periods,
-        };
+        let data;
+
+        if (type === 'estate_planning') {
+          data = {
+            inflation_rate: this.form[type].inflation_rate,
+            property_growth_rate: this.form[type].property_growth_rate,
+            investment_growth_method: this.form[type].investment_growth_method,
+            custom_investment_rate: this.form[type].custom_investment_rate,
+          };
+        } else {
+          data = {
+            inflation_rate: this.form[type].inflation_rate,
+            return_rate: this.form[type].return_rate,
+            compound_periods: this.form[type].compound_periods,
+          };
+        }
 
         const response = await assumptionsService.updateAssumptions(type, data);
         this.assumptions[type] = response.data.data;
@@ -412,7 +580,7 @@ export default {
         // Update original form values
         this.originalForm[type] = { ...this.form[type] };
 
-        this.$toast?.success?.(`${this.capitalise(type)} assumptions saved successfully.`);
+        this.$toast?.success?.(`${this.formatTypeName(type)} assumptions saved successfully.`);
       } catch (err) {
         console.error(`Failed to save ${type} assumptions:`, err);
         this.$toast?.error?.(err.message || `Failed to save ${type} assumptions.`);
@@ -428,15 +596,24 @@ export default {
         const response = await assumptionsService.resetAssumptions(type);
         this.assumptions[type] = response.data.data;
 
-        // Reset form to defaults
-        this.form[type] = {
-          inflation_rate: response.data.data.inflation_rate,
-          return_rate: response.data.data.return_rate,
-          compound_periods: response.data.data.compound_periods,
-        };
+        // Reset form to defaults based on type
+        if (type === 'estate_planning') {
+          this.form[type] = {
+            inflation_rate: response.data.data.inflation_rate,
+            property_growth_rate: response.data.data.property_growth_rate,
+            investment_growth_method: response.data.data.investment_growth_method || 'monte_carlo',
+            custom_investment_rate: response.data.data.custom_investment_rate,
+          };
+        } else {
+          this.form[type] = {
+            inflation_rate: response.data.data.inflation_rate,
+            return_rate: response.data.data.return_rate,
+            compound_periods: response.data.data.compound_periods,
+          };
+        }
         this.originalForm[type] = { ...this.form[type] };
 
-        this.$toast?.success?.(`${this.capitalise(type)} assumptions reset to defaults.`);
+        this.$toast?.success?.(`${this.formatTypeName(type)} assumptions reset to defaults.`);
       } catch (err) {
         console.error(`Failed to reset ${type} assumptions:`, err);
         this.$toast?.error?.(err.message || `Failed to reset ${type} assumptions.`);
@@ -468,6 +645,15 @@ export default {
 
     capitalise(str) {
       return str.charAt(0).toUpperCase() + str.slice(1);
+    },
+
+    formatTypeName(type) {
+      const names = {
+        pensions: 'Pension',
+        investments: 'Investment',
+        estate_planning: 'Estate Planning',
+      };
+      return names[type] || this.capitalise(type);
     },
   },
 };

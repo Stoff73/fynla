@@ -45,23 +45,36 @@ class AssumptionsController extends Controller
     }
 
     /**
-     * Update assumptions for a specific type (pensions or investments).
+     * Update assumptions for a specific type (pensions, investments, or estate_planning).
      */
     public function update(Request $request, string $type): JsonResponse
     {
-        if (! in_array($type, ['pensions', 'investments'], true)) {
+        $validTypes = ['pensions', 'investments', 'estate_planning'];
+
+        if (! in_array($type, $validTypes, true)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Invalid assumption type. Must be "pensions" or "investments".',
+                'message' => 'Invalid assumption type. Must be "pensions", "investments", or "estate_planning".',
             ], 422);
         }
 
-        $validated = $request->validate([
-            'inflation_rate' => 'nullable|numeric|min:0|max:20',
-            'return_rate' => 'nullable|numeric|min:-10|max:30',
-            'compound_periods' => 'nullable|integer|min:1|max:365',
-            'reset' => 'nullable|boolean',
-        ]);
+        // Use different validation rules for estate_planning
+        if ($type === 'estate_planning') {
+            $validated = $request->validate([
+                'inflation_rate' => 'nullable|numeric|min:0|max:20',
+                'property_growth_rate' => 'nullable|numeric|min:-10|max:20',
+                'investment_growth_method' => 'nullable|in:monte_carlo,custom',
+                'custom_investment_rate' => 'nullable|numeric|min:-10|max:30',
+                'reset' => 'nullable|boolean',
+            ]);
+        } else {
+            $validated = $request->validate([
+                'inflation_rate' => 'nullable|numeric|min:0|max:20',
+                'return_rate' => 'nullable|numeric|min:-10|max:30',
+                'compound_periods' => 'nullable|integer|min:1|max:365',
+                'reset' => 'nullable|boolean',
+            ]);
+        }
 
         $userId = Auth::id();
 
@@ -77,12 +90,24 @@ class AssumptionsController extends Controller
                 ]);
             }
 
+            // Build update data based on type
+            if ($type === 'estate_planning') {
+                $updateData = [
+                    'inflation_rate' => $validated['inflation_rate'] ?? null,
+                    'property_growth_rate' => $validated['property_growth_rate'] ?? null,
+                    'investment_growth_method' => $validated['investment_growth_method'] ?? null,
+                    'custom_investment_rate' => $validated['custom_investment_rate'] ?? null,
+                ];
+            } else {
+                $updateData = [
+                    'inflation_rate' => $validated['inflation_rate'] ?? null,
+                    'return_rate' => $validated['return_rate'] ?? null,
+                    'compound_periods' => $validated['compound_periods'] ?? null,
+                ];
+            }
+
             // Update with provided values
-            $assumptions = $this->assumptionsService->updateAssumptions($userId, $type, [
-                'inflation_rate' => $validated['inflation_rate'] ?? null,
-                'return_rate' => $validated['return_rate'] ?? null,
-                'compound_periods' => $validated['compound_periods'] ?? null,
-            ]);
+            $assumptions = $this->assumptionsService->updateAssumptions($userId, $type, $updateData);
 
             return response()->json([
                 'success' => true,

@@ -1,13 +1,13 @@
 ---
 name: fps-component-builder
-description: Guide Claude through creating Vue 3 components for the FPS application following established patterns. Use this skill when the user requests to create specific UI components (e.g., "Create a chart component", "Build a form modal for...", "Add a data table component"). This skill provides patterns for dashboard cards, form modals (avoiding the @submit bug), charts (ApexCharts), data tables, and common UI elements with consistent FPS styling.
+description: Guide Claude through creating Vue 3 components for the Fynla application following established patterns. Use this skill when the user requests to create specific UI components (e.g., "Create a chart component", "Build a form modal for...", "Add a data table component"). This skill provides patterns for dashboard cards, form modals (avoiding the @submit bug), charts (ApexCharts), data tables, and common UI elements with consistent FPS styling.
 ---
 
 # FPS Component Builder
 
 ## Overview
 
-Create Vue 3 components for the FPS application following consistent patterns and best practices. This skill covers all common component types used across FPS modules with comprehensive reference documentation.
+Create Vue 3 components for the Fynla application following consistent patterns and best practices. This skill covers all common component types used across FPS modules with comprehensive reference documentation.
 
 ## When to Use This Skill
 
