@@ -1,6 +1,5 @@
 <template>
-  <div class="card">
-    <div class="-m-6 p-6 rounded-lg">
+  <div>
       <!-- Header Row -->
       <div class="flex items-center justify-between border-b border-gray-200 pb-4 mb-4">
         <div>
@@ -19,7 +18,11 @@
       </div>
 
       <!-- Actions Grid -->
-      <div v-if="displayedActions.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+      <div
+        v-if="displayedActions.length > 0"
+        class="grid gap-4"
+        :class="compact ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5'"
+      >
         <div
           v-for="(action, index) in displayedActions"
           :key="index"
@@ -53,10 +56,9 @@
         <p class="text-xs text-gray-400">No pending actions</p>
       </div>
 
-      <!-- Loading State -->
-      <div v-if="loading" class="text-center py-8">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
-      </div>
+    <!-- Loading State -->
+    <div v-if="loading" class="text-center py-8">
+      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
     </div>
   </div>
 </template>
@@ -70,6 +72,13 @@ import { currencyMixin } from '@/mixins/currencyMixin';
 export default {
   name: 'ActionsOverviewCard',
   mixins: [currencyMixin],
+
+  props: {
+    compact: {
+      type: Boolean,
+      default: false,
+    },
+  },
 
   data() {
     return {
