@@ -545,17 +545,17 @@ export default {
     ...mapGetters('goals', ['dashboardData']),
 
     // Estate data
-    ...mapGetters('estate', ['ihtLiability', 'netEstateValue']),
+    ...mapGetters('estate', ['ihtLiability', 'grossEstate']),
 
     estateData() {
       return {
-        estateValue: this.netEstateValue || 0,
+        estateValue: this.grossEstate || 0,
         ihtLiability: this.ihtLiability || 0,
       };
     },
 
     hasEstateData() {
-      return this.netEstateValue > 0;
+      return this.grossEstate > 0;
     },
 
     goalsData() {
