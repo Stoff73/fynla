@@ -96,7 +96,7 @@ Then upload `public/build/` directory to production.
 
 ---
 
-## Pension Fees in Overview Tab
+## Pension Fees in Overview Tab ✅ DEPLOYED
 
 ### Summary
 
@@ -166,14 +166,14 @@ php artisan db:seed --class=PreviewUserSeeder --force
 - [x] Run `./deploy/fynla-org/build.sh`
 - [x] Upload `public/build/` directory
 
-### Pension Fees in Overview Tab
+### Pension Fees in Overview Tab ✅
 
 **Frontend Rebuild Required:** ✅ YES
 
-- [ ] Run `./deploy/fynla-org/build.sh`
-- [ ] Upload `public/build/` directory
-- [ ] Upload `database/seeders/PreviewUserSeeder.php`
-- [ ] Run `php artisan db:seed --class=PreviewUserSeeder --force` on server
+- [x] Run `./deploy/fynla-org/build.sh`
+- [x] Upload `public/build/` directory
+- [x] Upload `database/seeders/PreviewUserSeeder.php`
+- [x] Run `php artisan db:seed --class=PreviewUserSeeder --force` on server
 
 ### Post-Upload Commands
 
