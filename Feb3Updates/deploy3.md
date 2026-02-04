@@ -137,6 +137,41 @@ Added informational messages about mortgage end dates defaulting to retirement a
 
 ---
 
+## Goals Projection Chart Improvements ✅ DEPLOYED
+
+### Summary
+Major refactoring of the Goals module projection chart with visual improvements and simplified navigation:
+
+1. **Real SVG icons** - Replaced text abbreviations with proper icons (house, plane, gift, etc.)
+2. **Floating icons** - Icons now float above bars with gap, no connector lines
+3. **Vertical stacking** - Multiple events at same age stack vertically without overlap
+4. **Completed state** - Past events show at 40% opacity
+5. **Asset Breakdown tooltip** - Shows Pensions, Property, Investments, Cash with amounts
+6. **Cash Flow fix** - Income now displays correctly using annual_employment_income field
+7. **Simplified tabs** - Removed "All Goals", "By Module", "Analysis" tabs
+8. **Merged Overview** - Projection chart now embedded in Overview tab
+9. **Removed summary cards** - Removed Total Goals, On Track, Total Target, Current Progress cards
+10. **Removed progress meter** - Removed overall progress bar
+
+### Files Changed
+
+| File | Change Type |
+|------|-------------|
+| `resources/js/components/Goals/GoalsProjectionChart.vue` | Modified |
+| `resources/js/components/Goals/GoalsOverview.vue` | Modified |
+| `resources/js/views/Goals/GoalsDashboard.vue` | Modified |
+| `resources/js/constants/eventIconSvgs.js` | New |
+| `resources/js/components/Goals/EventIcon.vue` | New |
+| `app/Services/Goals/GoalsProjectionService.php` | Modified |
+| `resources/js/data/personas/peak_earners.json` | Modified |
+
+### Files to Upload
+
+- `public/build/` directory (full replacement)
+- `app/Services/Goals/GoalsProjectionService.php`
+
+---
+
 ## Complete Upload Checklist
 
 ### PHP Files
@@ -144,6 +179,7 @@ Added informational messages about mortgage end dates defaulting to retirement a
 - [x] `app/Http/Controllers/Api/Estate/IHTController.php`
 - [x] `app/Services/Estate/LifePolicyStrategyService.php`
 - [x] `app/Services/Settings/AssumptionsService.php`
+- [x] `app/Services/Goals/GoalsProjectionService.php`
 
 ### Frontend
 - [x] `public/build/` directory (full replacement)
