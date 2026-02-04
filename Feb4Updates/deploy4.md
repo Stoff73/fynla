@@ -96,6 +96,37 @@ Then upload `public/build/` directory to production.
 
 ---
 
+## Pension Fees in Overview Tab
+
+### Summary
+
+Added a Fees section to the Overview tab for DC pensions in the detailed view. Shows fee breakdown including platform fee, fund fees (OCF), total annual cost, and annual fee impact.
+
+### Features Added
+
+1. **Platform Fee** - Shows the pension platform fee percentage
+2. **Avg Fund Fee (OCF)** - Weighted average OCF across holdings (only shown if pension has holdings)
+3. **Total Annual Cost** - Combined platform fee + weighted average OCF
+4. **Annual Fee Impact** - Total fees as a pound amount per year
+
+### Files Changed
+
+| File | Change Type |
+|------|-------------|
+| `resources/js/components/NetWorth/PensionDetailInline.vue` | Modified |
+
+### Deployment
+
+**Frontend Rebuild Required:** ✅ YES
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+Then upload `public/build/` directory to production.
+
+---
+
 ## Complete Upload Checklist
 
 ### Goals Life Events Fix ✅
@@ -117,6 +148,13 @@ Then upload `public/build/` directory to production.
 
 - [x] Run `./deploy/fynla-org/build.sh`
 - [x] Upload `public/build/` directory
+
+### Pension Fees in Overview Tab
+
+**Frontend Rebuild Required:** ✅ YES
+
+- [ ] Run `./deploy/fynla-org/build.sh`
+- [ ] Upload `public/build/` directory
 
 ### Post-Upload Commands
 

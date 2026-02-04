@@ -151,6 +151,28 @@
                     </div>
                   </dl>
                 </div>
+
+                <div>
+                  <h3 class="text-lg font-semibold text-gray-800 mb-3">Fees</h3>
+                  <dl class="space-y-2">
+                    <div class="flex justify-between">
+                      <dt class="text-sm text-gray-600">Platform Fee:</dt>
+                      <dd class="text-sm font-medium text-gray-900">{{ platformFeePercent.toFixed(2) }}%</dd>
+                    </div>
+                    <div v-if="hasHoldings" class="flex justify-between">
+                      <dt class="text-sm text-gray-600">Avg Fund Fee (OCF):</dt>
+                      <dd class="text-sm font-medium text-gray-900">{{ weightedAverageOCF.toFixed(2) }}%</dd>
+                    </div>
+                    <div class="flex justify-between border-t border-gray-100 pt-2 mt-2">
+                      <dt class="text-sm text-gray-600 font-medium">Total Annual Cost:</dt>
+                      <dd class="text-sm font-semibold text-gray-900">{{ totalFeePercent.toFixed(2) }}%</dd>
+                    </div>
+                    <div class="flex justify-between">
+                      <dt class="text-sm text-gray-600">Annual Fee Impact:</dt>
+                      <dd class="text-sm font-medium text-red-600">{{ formatCurrency(annualFeeCost) }}/year</dd>
+                    </div>
+                  </dl>
+                </div>
               </template>
 
               <!-- DB Pension Details -->
@@ -460,6 +482,42 @@ export default {
     // Annual contribution
     annualContribution() {
       return this.totalMonthlyContribution * 12;
+    },
+
+    // Platform fee percentage for DC pensions
+    platformFeePercent() {
+      return parseFloat(this.pension.platform_fee_percent) || 0;
+    },
+
+    // Check if pension has holdings with OCF data
+    hasHoldings() {
+      return this.pension.holdings?.length > 0;
+    },
+
+    // Total holdings value
+    totalHoldingsValue() {
+      if (!this.pension.holdings?.length) return 0;
+      return this.pension.holdings.reduce((sum, h) => sum + (parseFloat(h.current_value) || 0), 0);
+    },
+
+    // Weighted average OCF across holdings
+    weightedAverageOCF() {
+      if (!this.hasHoldings || this.totalHoldingsValue === 0) return 0;
+      const totalWeightedOCF = this.pension.holdings.reduce((sum, h) => {
+        return sum + ((parseFloat(h.current_value) || 0) * (parseFloat(h.ocf_percent) || 0));
+      }, 0);
+      return totalWeightedOCF / this.totalHoldingsValue;
+    },
+
+    // Total fee percentage (platform + weighted OCF)
+    totalFeePercent() {
+      return this.platformFeePercent + this.weightedAverageOCF;
+    },
+
+    // Annual fee cost in pounds
+    annualFeeCost() {
+      const fundValue = parseFloat(this.pension.current_fund_value) || 0;
+      return fundValue * (this.totalFeePercent / 100);
     },
   },
 
