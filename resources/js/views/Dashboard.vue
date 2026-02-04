@@ -281,26 +281,45 @@
           @click="navigateTo('/estate')"
         >
           <div class="space-y-4">
-            <!-- Estate Value -->
+            <!-- Taxable Estate Now -->
             <div class="border-b border-gray-200 pb-4">
-              <span class="text-sm text-gray-500">Estate Value</span>
+              <span class="text-sm text-gray-500">Taxable Estate on Joint Death Now</span>
               <div class="mt-1">
-                <span class="text-2xl font-bold text-gray-900">
-                  {{ formatCurrency(estateData.estateValue) }}
+                <span class="text-2xl font-bold text-primary-600">
+                  {{ formatCurrency(estateData.taxableEstate) }}
                 </span>
               </div>
             </div>
 
-            <!-- IHT Liability -->
-            <div>
-              <span class="text-sm text-gray-500">IHT Liability</span>
-              <div class="mt-1">
-                <span
-                  class="text-2xl font-bold"
-                  :class="estateData.ihtLiability > 0 ? 'text-red-600' : 'text-green-600'"
-                >
-                  {{ formatCurrency(estateData.ihtLiability) }}
-                </span>
+            <!-- Current IHT Liability -->
+            <div class="border-b border-gray-200 pb-4">
+              <div class="text-sm font-semibold text-gray-900 mb-2">Current Inheritance Tax Liability</div>
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-600">Amount Due</span>
+                <span class="font-medium text-gray-900">{{ formatCurrency(estateData.ihtLiability) }}</span>
+              </div>
+            </div>
+
+            <!-- Future Projection -->
+            <div v-if="estateData.futureDeathAge" class="pb-2">
+              <div class="text-sm font-semibold text-gray-900 mb-2">Joint Death at Age {{ estateData.futureDeathAge }}</div>
+              <div class="flex justify-between text-sm mb-1">
+                <span class="text-gray-600">Taxable Estate</span>
+                <span class="font-medium text-primary-600">{{ formatCurrency(estateData.futureTaxableEstate) }}</span>
+              </div>
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-600">Inheritance Tax Liability</span>
+                <span class="font-medium text-gray-900">{{ formatCurrency(estateData.futureIHTLiability) }}</span>
+              </div>
+            </div>
+
+            <!-- IHT Planning Recommendation -->
+            <div v-if="estateData.ihtLiability > 0" class="mt-4 p-3 border border-primary-300 rounded-lg bg-primary-50">
+              <div class="flex items-center gap-2 text-primary-700">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <span class="text-sm font-medium">Inheritance Tax planning recommended</span>
               </div>
             </div>
           </div>
@@ -542,17 +561,20 @@ export default {
     ...mapGetters('goals', ['dashboardData']),
 
     // Estate data
-    ...mapGetters('estate', ['ihtLiability', 'grossEstate']),
+    ...mapGetters('estate', ['ihtLiability', 'taxableEstate', 'futureDeathAge', 'futureTaxableEstate', 'futureIHTLiability']),
 
     estateData() {
       return {
-        estateValue: this.grossEstate || 0,
+        taxableEstate: this.taxableEstate || 0,
         ihtLiability: this.ihtLiability || 0,
+        futureDeathAge: this.futureDeathAge || null,
+        futureTaxableEstate: this.futureTaxableEstate || 0,
+        futureIHTLiability: this.futureIHTLiability || 0,
       };
     },
 
     hasEstateData() {
-      return this.grossEstate > 0;
+      return this.taxableEstate > 0 || this.ihtLiability > 0;
     },
 
     goalsData() {
