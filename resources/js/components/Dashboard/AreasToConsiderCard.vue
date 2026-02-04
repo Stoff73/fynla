@@ -71,6 +71,7 @@
 
 <script>
 import { mapState, mapGetters } from 'vuex';
+import api from '@/services/api';
 
 export default {
   name: 'AreasToConsiderCard',
@@ -80,6 +81,13 @@ export default {
       type: Number,
       default: 0, // 0 means no limit
     },
+  },
+
+  data() {
+    return {
+      letterData: null,
+      letterLoaded: false,
+    };
   },
 
   computed: {
@@ -133,9 +141,29 @@ export default {
     },
 
     hasLetterToSpouse() {
-      // Check if user has letter_to_spouse data - this is stored on the user model
-      if (!this.user) return true; // Don't show if no user
-      return !!this.user.letter_to_spouse;
+      // Don't show until we've loaded the data
+      if (!this.letterLoaded) return true;
+
+      // Check if letter has any meaningful content
+      if (!this.letterData) return false;
+
+      // Check if any key fields have been filled in
+      const keyFields = [
+        'immediate_actions',
+        'executor_name',
+        'executor_contact',
+        'attorney_name',
+        'financial_advisor_name',
+        'immediate_funds_access',
+        'password_manager_info',
+        'estate_documents_location',
+        'funeral_preference',
+      ];
+
+      return keyFields.some(field => {
+        const value = this.letterData[field];
+        return value && value.trim && value.trim().length > 0;
+      });
     },
 
     isMarried() {
@@ -256,7 +284,23 @@ export default {
     },
   },
 
+  async mounted() {
+    await this.loadLetterData();
+  },
+
   methods: {
+    async loadLetterData() {
+      try {
+        const response = await api.get('/user/letter-to-spouse');
+        this.letterData = response.data.data;
+      } catch (error) {
+        // Letter might not exist yet, that's fine
+        this.letterData = null;
+      } finally {
+        this.letterLoaded = true;
+      }
+    },
+
     navigateTo(route) {
       this.$router.push(route);
     },
