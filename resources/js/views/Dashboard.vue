@@ -104,70 +104,6 @@
           </div>
         </DashboardCard>
 
-        <!-- Retirement Card -->
-        <DashboardCard
-          v-if="hasRetirementData"
-          title="Retirement"
-          :loading="loading.retirement"
-          @click="navigateTo('/net-worth/retirement')"
-        >
-          <div class="space-y-4">
-            <!-- Income row: Projected and Required inline -->
-            <div class="flex justify-between border-b border-gray-200 pb-4">
-              <div>
-                <span class="text-sm text-gray-500">Projected Income</span>
-                <div class="flex items-baseline gap-1 mt-1">
-                  <span class="text-2xl font-bold text-green-600">
-                    {{ formatCurrency(retirementData.projectedIncome) }}
-                  </span>
-                  <span class="text-xs text-gray-500">/yr</span>
-                </div>
-              </div>
-              <div class="text-right">
-                <span class="text-sm text-gray-500">Required Income</span>
-                <div class="flex items-baseline justify-end gap-1 mt-1">
-                  <span class="text-2xl font-bold text-gray-700">
-                    {{ formatCurrency(retirementData.targetIncome) }}
-                  </span>
-                  <span class="text-xs text-gray-500">/yr</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Capital row: Projected and Required inline -->
-            <div class="flex justify-between border-b border-gray-200 pb-4">
-              <div>
-                <span class="text-sm text-gray-500">Projected Capital</span>
-                <div class="mt-1">
-                  <span class="text-2xl font-bold text-green-600">
-                    {{ formatCurrency(retirementData.projectedCapital) }}
-                  </span>
-                </div>
-              </div>
-              <div class="text-right">
-                <span class="text-sm text-gray-500">Capital Required</span>
-                <div class="mt-1">
-                  <span class="text-2xl font-bold text-gray-700">
-                    {{ formatCurrency(retirementData.capitalRequired) }}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Retirement age and years -->
-            <div class="flex justify-between">
-              <div v-if="retirementData.retirementAge" class="text-center">
-                <span class="text-sm text-gray-500">Retirement Age</span>
-                <div class="text-lg font-semibold text-gray-900">{{ retirementData.retirementAge }}</div>
-              </div>
-              <div v-if="retirementData.yearsToRetirement !== null" class="text-center">
-                <span class="text-sm text-gray-500">Years to Retirement</span>
-                <div class="text-lg font-semibold text-gray-900">{{ retirementData.yearsToRetirement }} years</div>
-              </div>
-            </div>
-          </div>
-        </DashboardCard>
-
         <!-- Investment & Savings Card -->
         <DashboardCard
           v-if="hasInvestmentData"
@@ -268,6 +204,70 @@
               <div class="flex justify-between text-sm">
                 <span class="text-gray-600">Monthly Premium</span>
                 <span class="font-medium text-gray-900">{{ formatCurrency(protectionData.premiumTotal) }}/mo</span>
+              </div>
+            </div>
+          </div>
+        </DashboardCard>
+
+        <!-- Retirement Card -->
+        <DashboardCard
+          v-if="hasRetirementData"
+          title="Retirement"
+          :loading="loading.retirement"
+          @click="navigateTo('/net-worth/retirement')"
+        >
+          <div class="space-y-4">
+            <!-- Income row: Projected and Required inline -->
+            <div class="flex justify-between border-b border-gray-200 pb-4">
+              <div>
+                <span class="text-sm text-gray-500">Projected Income</span>
+                <div class="flex items-baseline gap-1 mt-1">
+                  <span class="text-2xl font-bold text-green-600">
+                    {{ formatCurrency(retirementData.projectedIncome) }}
+                  </span>
+                  <span class="text-xs text-gray-500">/yr</span>
+                </div>
+              </div>
+              <div class="text-right">
+                <span class="text-sm text-gray-500">Required Income</span>
+                <div class="flex items-baseline justify-end gap-1 mt-1">
+                  <span class="text-2xl font-bold text-gray-700">
+                    {{ formatCurrency(retirementData.targetIncome) }}
+                  </span>
+                  <span class="text-xs text-gray-500">/yr</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Capital row: Projected and Required inline -->
+            <div class="flex justify-between border-b border-gray-200 pb-4">
+              <div>
+                <span class="text-sm text-gray-500">Projected Capital</span>
+                <div class="mt-1">
+                  <span class="text-2xl font-bold text-green-600">
+                    {{ formatCurrency(retirementData.projectedCapital) }}
+                  </span>
+                </div>
+              </div>
+              <div class="text-right">
+                <span class="text-sm text-gray-500">Capital Required</span>
+                <div class="mt-1">
+                  <span class="text-2xl font-bold text-gray-700">
+                    {{ formatCurrency(retirementData.capitalRequired) }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Retirement age and years -->
+            <div class="flex justify-between">
+              <div v-if="retirementData.retirementAge" class="text-center">
+                <span class="text-sm text-gray-500">Retirement Age</span>
+                <div class="text-lg font-semibold text-gray-900">{{ retirementData.retirementAge }}</div>
+              </div>
+              <div v-if="retirementData.yearsToRetirement !== null" class="text-center">
+                <span class="text-sm text-gray-500">Years to Retirement</span>
+                <div class="text-lg font-semibold text-gray-900">{{ retirementData.yearsToRetirement }} years</div>
               </div>
             </div>
           </div>
