@@ -320,6 +320,11 @@
           </div>
         </DashboardCard>
 
+        <!-- Actions Card - fills 3rd slot in row 2 -->
+        <div class="bg-white rounded-lg border border-gray-200 p-6">
+          <ActionsOverviewCard :compact="true" />
+        </div>
+
         <!-- Goals & Events Card (spans 2 columns on larger screens) -->
         <DashboardCard
           v-if="hasGoalsData"
@@ -356,14 +361,6 @@
         >
           <UKTaxesOverviewCard />
         </DashboardCard>
-
-        <!-- Actions Card - fills remaining space or full width -->
-        <div
-          class="bg-white rounded-lg border border-gray-200 p-6"
-          :class="actionsCardClass"
-        >
-          <ActionsOverviewCard :compact="!actionsFullWidth" />
-        </div>
       </div>
     </div>
   </AppLayout>
@@ -594,38 +591,6 @@ export default {
     hasGoalsData() {
       // Always show goals card - it has empty state
       return true;
-    },
-
-    // Count visible cards to determine Actions card layout
-    visibleCardsCount() {
-      let count = 0;
-      if (this.hasNetWorthData) count += 1;
-      if (this.hasEstateData) count += 1;
-      if (this.hasInvestmentData) count += 1;
-      if (this.hasProtectionData) count += 1;
-      if (this.hasRetirementData) count += 1;
-      if (this.hasGoalsData) count += 2; // Goals spans 2 columns
-      if (this.isAdmin) count += 1; // UK Taxes card
-      return count;
-    },
-
-    // Determine if Actions should be full width or fill a gap
-    actionsFullWidth() {
-      // In a 3-column grid, if total columns used is divisible by 3, Actions goes full width
-      // Otherwise it fills the remaining space
-      return this.visibleCardsCount % 3 === 0;
-    },
-
-    actionsCardClass() {
-      if (this.actionsFullWidth) {
-        return 'lg:col-span-3'; // Full width
-      }
-      // Fill remaining columns in the row
-      const remaining = 3 - (this.visibleCardsCount % 3);
-      if (remaining === 2) {
-        return 'lg:col-span-2';
-      }
-      return 'lg:col-span-1';
     },
   },
 
