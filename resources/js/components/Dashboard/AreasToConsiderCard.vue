@@ -106,55 +106,16 @@ export default {
       return this.$store.state.auth.user;
     },
 
-    hasRetirement() {
-      return (this.dcPensions && this.dcPensions.length > 0) ||
-             (this.dbPensions && this.dbPensions.length > 0) ||
-             !!this.statePension;
-    },
-
-    hasProtection() {
-      return (this.protectionLifePolicies?.length || 0) +
-             (this.protectionCriticalIllnessPolicies?.length || 0) +
-             (this.protectionIncomeProtectionPolicies?.length || 0) > 0;
-    },
-
-    hasInvestments() {
-      return this.investmentAccounts && this.investmentAccounts.length > 0;
-    },
-
-    hasSavings() {
-      return this.cashAccounts && this.cashAccounts.length > 0;
-    },
-
-    hasGoals() {
-      return this.dashboardOverview?.has_goals || false;
-    },
-
-    hasIncome() {
-      if (!this.incomeOccupation) return false;
-      const total = (this.incomeOccupation.annual_employment_income || 0) +
-                   (this.incomeOccupation.annual_self_employment_income || 0) +
-                   (this.incomeOccupation.annual_rental_income || 0) +
-                   (this.incomeOccupation.annual_dividend_income || 0) +
-                   (this.incomeOccupation.annual_other_income || 0);
-      return total > 0;
-    },
-
-    hasLetterToSpouse() {
-      // Don't show until we've loaded the data
-      if (!this.letterLoaded) return true;
-      return this.hasLetterContent;
-    },
-
     isMarried() {
       return this.user?.marital_status === 'married';
     },
 
+    // Check for GAPS and missing items, not just "has any data"
     allAreas() {
       const areas = [];
 
-      // Letter to Spouse / Expression of Wishes
-      if (!this.hasLetterToSpouse) {
+      // 1. Letter to Spouse / Expression of Wishes - if not filled in
+      if (this.letterLoaded && !this.hasLetterContent) {
         areas.push({
           id: 'letter',
           title: this.isMarried ? 'Letter to Spouse' : 'Expression of Wishes',
@@ -167,87 +128,141 @@ export default {
         });
       }
 
-      // Retirement
-      if (!this.hasRetirement) {
+      // 2. Will - if user doesn't have one
+      if (this.user && !this.user.has_will) {
         areas.push({
-          id: 'retirement',
-          title: 'Retirement Planning',
-          description: 'Add your pension details',
-          route: '/net-worth/retirement',
-          icon: 'calendar',
-          iconBgClass: 'bg-blue-100',
-          iconClass: 'text-blue-600',
+          id: 'will',
+          title: 'Will',
+          description: 'Protect your family\'s future',
+          route: '/valuable-info?section=will',
+          icon: 'document',
+          iconBgClass: 'bg-gray-100',
+          iconClass: 'text-gray-600',
           priority: 2,
         });
       }
 
-      // Protection
-      if (!this.hasProtection) {
+      // 3. Critical Illness - if NO policies
+      if (!this.protectionCriticalIllnessPolicies || this.protectionCriticalIllnessPolicies.length === 0) {
         areas.push({
-          id: 'protection',
-          title: 'Protection',
-          description: 'Life & income protection',
+          id: 'critical-illness',
+          title: 'Critical Illness Cover',
+          description: 'Protection if you become seriously ill',
           route: '/protection',
           icon: 'shield',
-          iconBgClass: 'bg-green-100',
-          iconClass: 'text-green-600',
+          iconBgClass: 'bg-red-100',
+          iconClass: 'text-red-600',
           priority: 3,
         });
       }
 
-      // Investments
-      if (!this.hasInvestments) {
+      // 4. Income Protection - if NO policies
+      if (!this.protectionIncomeProtectionPolicies || this.protectionIncomeProtectionPolicies.length === 0) {
         areas.push({
-          id: 'investments',
-          title: 'Investments',
-          description: 'Track your investment accounts',
-          route: '/net-worth/investments',
-          icon: 'chart',
-          iconBgClass: 'bg-indigo-100',
-          iconClass: 'text-indigo-600',
+          id: 'income-protection',
+          title: 'Income Protection',
+          description: 'Cover your income if unable to work',
+          route: '/protection',
+          icon: 'shield',
+          iconBgClass: 'bg-blue-100',
+          iconClass: 'text-blue-600',
           priority: 4,
         });
       }
 
-      // Savings
-      if (!this.hasSavings) {
+      // 5. Life Insurance - if NO policies
+      if (!this.protectionLifePolicies || this.protectionLifePolicies.length === 0) {
         areas.push({
-          id: 'savings',
-          title: 'Cash & Savings',
-          description: 'Add your savings accounts',
-          route: '/net-worth/savings',
-          icon: 'cash',
-          iconBgClass: 'bg-sky-100',
-          iconClass: 'text-sky-600',
+          id: 'life-insurance',
+          title: 'Life Insurance',
+          description: 'Protect your dependents',
+          route: '/protection',
+          icon: 'shield',
+          iconBgClass: 'bg-green-100',
+          iconClass: 'text-green-600',
           priority: 5,
         });
       }
 
-      // Goals
-      if (!this.hasGoals) {
+      // 6. Pensions - if none at all
+      const hasPensions = (this.dcPensions?.length > 0) || (this.dbPensions?.length > 0) || !!this.statePension;
+      if (!hasPensions) {
         areas.push({
-          id: 'goals',
-          title: 'Financial Goals',
-          description: 'Set and track your goals',
-          route: '/goals',
-          icon: 'target',
-          iconBgClass: 'bg-primary-100',
-          iconClass: 'text-primary-600',
+          id: 'pensions',
+          title: 'Pensions',
+          description: 'Track your retirement savings',
+          route: '/net-worth/retirement',
+          icon: 'calendar',
+          iconBgClass: 'bg-indigo-100',
+          iconClass: 'text-indigo-600',
           priority: 6,
         });
       }
 
-      // Income
-      if (!this.hasIncome) {
+      // 7. ISA - if no ISA accounts (not using tax-free allowance)
+      const hasISA = this.investmentAccounts?.some(a => a.account_type === 'isa') ||
+                     this.cashAccounts?.some(a => a.is_isa || a.account_type === 'cash_isa');
+      if (!hasISA) {
         areas.push({
-          id: 'income',
-          title: 'Income Details',
-          description: 'Add your income sources',
-          route: '/valuable-info?section=income',
-          icon: 'currency',
+          id: 'isa',
+          title: 'ISA Allowance',
+          description: 'Use your £20k tax-free allowance',
+          route: '/net-worth/investments',
+          icon: 'cash',
           iconBgClass: 'bg-emerald-100',
           iconClass: 'text-emerald-600',
           priority: 7,
+        });
+      }
+
+      // 8. Emergency Fund - if no savings or very low
+      const totalSavings = this.cashAccounts?.reduce((sum, a) => sum + (parseFloat(a.current_balance) || 0), 0) || 0;
+      if (totalSavings < 1000) {
+        areas.push({
+          id: 'emergency-fund',
+          title: 'Emergency Fund',
+          description: 'Build a financial safety net',
+          route: '/net-worth/savings',
+          icon: 'cash',
+          iconBgClass: 'bg-sky-100',
+          iconClass: 'text-sky-600',
+          priority: 8,
+        });
+      }
+
+      // 9. Goals - if none set
+      const hasGoals = this.dashboardOverview?.has_goals || false;
+      if (!hasGoals) {
+        areas.push({
+          id: 'goals',
+          title: 'Financial Goals',
+          description: 'Set and track your objectives',
+          route: '/goals',
+          icon: 'target',
+          iconBgClass: 'bg-primary-100',
+          iconClass: 'text-primary-600',
+          priority: 9,
+        });
+      }
+
+      // 10. Income - if not recorded
+      const hasIncome = this.incomeOccupation && (
+        (this.incomeOccupation.annual_employment_income || 0) +
+        (this.incomeOccupation.annual_self_employment_income || 0) +
+        (this.incomeOccupation.annual_rental_income || 0) +
+        (this.incomeOccupation.annual_dividend_income || 0) +
+        (this.incomeOccupation.annual_other_income || 0)
+      ) > 0;
+      if (!hasIncome) {
+        areas.push({
+          id: 'income',
+          title: 'Income Details',
+          description: 'Record your income sources',
+          route: '/valuable-info?section=income',
+          icon: 'currency',
+          iconBgClass: 'bg-teal-100',
+          iconClass: 'text-teal-600',
+          priority: 10,
         });
       }
 
