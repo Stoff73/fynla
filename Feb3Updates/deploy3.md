@@ -174,7 +174,7 @@ Major refactoring of the Goals module projection chart with visual improvements 
 
 ---
 
-## Life Events Feature (Goals Dependency)
+## Life Events Feature (Goals Dependency) ✅ DEPLOYED
 
 ### Summary
 
@@ -248,37 +248,37 @@ php artisan migrate --force
 - [x] `app/Services/Settings/AssumptionsService.php`
 - [x] `app/Services/Goals/GoalsProjectionService.php`
 
-### Goals & Life Events - TO UPLOAD
+### Goals & Life Events ✅ DEPLOYED
 
 #### Routes
 
-- [ ] `routes/api.php`
+- [x] `routes/api.php`
 
 #### Models
 
-- [ ] `app/Models/LifeEvent.php`
-- [ ] `app/Models/Goal.php`
+- [x] `app/Models/LifeEvent.php`
+- [x] `app/Models/Goal.php`
 
 #### Controllers
 
-- [ ] `app/Http/Controllers/Api/GoalsController.php`
-- [ ] `app/Http/Controllers/Api/LifeEventController.php`
+- [x] `app/Http/Controllers/Api/GoalsController.php`
+- [x] `app/Http/Controllers/Api/LifeEventController.php`
 
 #### Services
 
-- [ ] `app/Services/Goals/LifeEventService.php`
+- [x] `app/Services/Goals/LifeEventService.php`
 
 #### Form Requests
 
-- [ ] `app/Http/Requests/StoreLifeEventRequest.php`
-- [ ] `app/Http/Requests/UpdateLifeEventRequest.php`
+- [x] `app/Http/Requests/StoreLifeEventRequest.php`
+- [x] `app/Http/Requests/UpdateLifeEventRequest.php`
 
 #### Migrations
 
-- [ ] `database/migrations/2026_02_03_100001_add_charity_fields_to_bequests_table.php`
-- [ ] `database/migrations/2026_02_03_100002_add_estate_planning_to_user_assumptions_table.php`
-- [ ] `database/migrations/2026_02_03_120001_create_life_events_table.php`
-- [ ] `database/migrations/2026_02_03_120002_add_projection_fields_to_goals_table.php`
+- [x] `database/migrations/2026_02_03_100001_add_charity_fields_to_bequests_table.php`
+- [x] `database/migrations/2026_02_03_100002_add_estate_planning_to_user_assumptions_table.php`
+- [x] `database/migrations/2026_02_03_120001_create_life_events_table.php`
+- [x] `database/migrations/2026_02_03_120002_add_projection_fields_to_goals_table.php`
 
 ### Post-Upload Commands
 
