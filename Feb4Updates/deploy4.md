@@ -150,7 +150,7 @@ php artisan db:seed --class=PreviewUserSeeder --force
 
 - [x] `php artisan db:seed --class=PreviewUserSeeder --force` (run on server)
 
-### BTL Tax Ownership Fix
+### BTL Tax Ownership Fix ✅
 
 **Frontend Rebuild Required:** ❌ NO (backend-only fix)
 
@@ -174,6 +174,26 @@ php artisan db:seed --class=PreviewUserSeeder --force
 - [x] Upload `public/build/` directory
 - [x] Upload `database/seeders/PreviewUserSeeder.php`
 - [x] Run `php artisan db:seed --class=PreviewUserSeeder --force` on server
+
+### Code Quality Audit ✅
+
+- [x] Run `./deploy/fynla-org/build.sh`
+- [x] Upload `public/build/` directory
+- [x] Upload all new and modified backend files
+- [x] Clear caches on server
+
+### Dashboard Redesign ✅
+
+- [x] Run `./deploy/fynla-org/build.sh`
+- [x] Upload `public/build/` directory
+- [x] Upload `app/Http/Controllers/Api/LetterToSpouseController.php`
+- [x] Upload `routes/api.php`
+- [x] Clear caches on server
+
+### Goals & Life Events Chart Fixes ✅
+
+- [x] Run `./deploy/fynla-org/build.sh`
+- [x] Upload `public/build/` directory
 
 ### Post-Upload Commands
 
@@ -297,7 +317,7 @@ Changes are backward compatible. Verify by:
 
 ---
 
-## Dashboard Redesign
+## Dashboard Redesign ✅ DEPLOYED
 
 ### Summary
 
@@ -405,7 +425,7 @@ Then upload `public/build/` directory to production.
 
 ---
 
-## Goals & Life Events Chart Fixes
+## Goals & Life Events Chart Fixes ✅ DEPLOYED
 
 ### Summary
 
