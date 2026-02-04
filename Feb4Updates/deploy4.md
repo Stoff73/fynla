@@ -352,11 +352,22 @@ Redesigned the dashboard cards to show more detailed information with real data 
    - Clickable items navigate to relevant module
 
 8. **Other Areas to Consider Card** (NEW)
-   - Shows incomplete areas of the user's financial profile
-   - Checks for missing: Letter to Spouse, Retirement, Protection, Investments, Savings, Goals, Income
+   - Shows actual gaps in the user's financial profile, not just missing data
+   - Checks for:
+     - **Letter to Spouse** - if user hasn't filled in any content
+     - **Will** - if `has_will` is false
+     - **Critical Illness Cover** - if NO policies exist
+     - **Income Protection** - if NO policies exist
+     - **Life Insurance** - if NO policies exist
+     - **Pensions** - if none tracked
+     - **ISA Allowance** - if not using tax-free wrapper
+     - **Emergency Fund** - if savings < £1,000
+     - **Goals** - if none set
+     - **Income** - if not recorded
    - Each area shows icon, title, description and link to complete
-   - Limited to top 5 items
-   - Shows "All areas complete!" when everything is filled in
+   - Limited to top 5 items by priority
+   - Shows "All areas complete!" when no gaps identified
+   - New `/user/letter-to-spouse/exists` API endpoint checks for user-entered content (not auto-generated)
 
 9. **All Cards**
    - Removed arrow icon from top right of all cards
@@ -375,6 +386,8 @@ Redesigned the dashboard cards to show more detailed information with real data 
 | `resources/js/components/Dashboard/GoalsProjectionChartDashboard.vue` | New |
 | `resources/js/components/Dashboard/ActionsOverviewCard.vue` | Modified |
 | `resources/js/components/Dashboard/AreasToConsiderCard.vue` | New |
+| `app/Http/Controllers/Api/LetterToSpouseController.php` | Modified |
+| `routes/api.php` | Modified |
 
 ### Deployment
 
@@ -385,3 +398,7 @@ Redesigned the dashboard cards to show more detailed information with real data 
 ```
 
 Then upload `public/build/` directory to production.
+
+**Backend Files to Upload:**
+- `app/Http/Controllers/Api/LetterToSpouseController.php`
+- `routes/api.php`
