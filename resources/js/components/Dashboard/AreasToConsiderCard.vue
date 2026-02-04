@@ -85,7 +85,7 @@ export default {
 
   data() {
     return {
-      letterData: null,
+      hasLetterContent: false,
       letterLoaded: false,
     };
   },
@@ -143,27 +143,7 @@ export default {
     hasLetterToSpouse() {
       // Don't show until we've loaded the data
       if (!this.letterLoaded) return true;
-
-      // Check if letter has any meaningful content
-      if (!this.letterData) return false;
-
-      // Check if any key fields have been filled in
-      const keyFields = [
-        'immediate_actions',
-        'executor_name',
-        'executor_contact',
-        'attorney_name',
-        'financial_advisor_name',
-        'immediate_funds_access',
-        'password_manager_info',
-        'estate_documents_location',
-        'funeral_preference',
-      ];
-
-      return keyFields.some(field => {
-        const value = this.letterData[field];
-        return value && value.trim && value.trim().length > 0;
-      });
+      return this.hasLetterContent;
     },
 
     isMarried() {
@@ -291,11 +271,11 @@ export default {
   methods: {
     async loadLetterData() {
       try {
-        const response = await api.get('/user/letter-to-spouse');
-        this.letterData = response.data.data;
+        const response = await api.get('/user/letter-to-spouse/exists');
+        this.hasLetterContent = response.data.has_content || false;
       } catch (error) {
         // Letter might not exist yet, that's fine
-        this.letterData = null;
+        this.hasLetterContent = false;
       } finally {
         this.letterLoaded = true;
       }

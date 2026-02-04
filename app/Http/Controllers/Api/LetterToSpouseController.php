@@ -17,6 +17,62 @@ class LetterToSpouseController extends Controller
     ) {}
 
     /**
+     * Check if user has a letter with user-entered content (not auto-generated)
+     */
+    public function exists(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $letter = $user->letterToSpouse;
+
+        // No letter record at all
+        if (! $letter) {
+            return response()->json([
+                'success' => true,
+                'has_content' => false,
+            ]);
+        }
+
+        // Check if any user-editable fields have been filled in
+        // These are fields that wouldn't be auto-populated
+        $userEditableFields = [
+            'executor_name',
+            'executor_contact',
+            'attorney_name',
+            'attorney_contact',
+            'financial_advisor_name',
+            'financial_advisor_contact',
+            'accountant_name',
+            'accountant_contact',
+            'password_manager_info',
+            'estate_documents_location',
+            'vehicles_info',
+            'cryptocurrency_info',
+            'funeral_service_details',
+            'obituary_wishes',
+            'additional_wishes',
+        ];
+
+        $hasUserContent = false;
+        foreach ($userEditableFields as $field) {
+            $value = $letter->$field;
+            if ($value && is_string($value) && trim($value) !== '') {
+                $hasUserContent = true;
+                break;
+            }
+        }
+
+        // Also check if funeral preference has been explicitly set
+        if ($letter->funeral_preference && $letter->funeral_preference !== 'not_specified') {
+            $hasUserContent = true;
+        }
+
+        return response()->json([
+            'success' => true,
+            'has_content' => $hasUserContent,
+        ]);
+    }
+
+    /**
      * Get current user's letter
      */
     public function show(Request $request): JsonResponse
