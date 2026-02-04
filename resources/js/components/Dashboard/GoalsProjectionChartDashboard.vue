@@ -101,6 +101,14 @@ export default {
       return map;
     },
 
+    // Calculate Y-axis max to minimize white space above bars
+    yAxisMax() {
+      if (!this.hasData) return undefined;
+      const maxValue = Math.max(...this.projectionData.yearly_data.map(d => d.net_worth));
+      // Add 15% headroom for event icons
+      return Math.ceil(maxValue * 1.15);
+    },
+
     chartOptions() {
       return {
         chart: {
@@ -152,6 +160,9 @@ export default {
             formatter: (val) => this.formatCompact(val),
             style: { fontSize: '10px', colors: '#6B7280' },
           },
+          min: 0,
+          max: this.yAxisMax,
+          forceNiceScale: false,
         },
         tooltip: {
           enabled: true,
