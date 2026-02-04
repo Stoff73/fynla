@@ -1,4 +1,4 @@
-# FPS Coding Standards
+# Fynla Coding Standards
 
 ## PHP Standards (PSR-12)
 
@@ -356,7 +356,7 @@ if ($validated['account_type'] === 'isa' && $validated['ownership_type'] !== 'in
 1. **UK-Specific**: All calculations must follow UK tax rules (2025/26 tax year)
 2. **Agent Pattern**: Encapsulate module logic in Agent classes
 3. **Centralized Config**: Never hardcode tax rates - use `config/uk_tax_config.php`
-4. **No Financial Advice**: FPS is for demonstration/analysis only
+4. **No Financial Advice**: Fynla is for demonstration/analysis only
 5. **Data Isolation**: Users can only access their own data
 6. **Progressive Disclosure**: Summaries first, details on demand
 7. **Mobile-First**: Responsive design (320px to 2560px)

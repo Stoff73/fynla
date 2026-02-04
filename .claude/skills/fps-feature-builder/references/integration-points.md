@@ -1,8 +1,8 @@
-# FPS Integration Points
+# Fynla Integration Points
 
 ## Overview
 
-This document describes how different parts of the FPS system integrate with each other, helping you understand dependencies when adding or modifying features.
+This document describes how different parts of the Fynla system integrate with each other, helping you understand dependencies when adding or modifying features.
 
 ## Backend Integration Points
 

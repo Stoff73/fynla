@@ -1,8 +1,8 @@
-# FPS Module Architecture
+# Fynla Module Architecture
 
 ## Overview
 
-FPS (Financial Planning System) uses an **agent-based architecture** where each module follows a consistent three-tier pattern:
+Fynla (Financial Planning System) uses an **agent-based architecture** where each module follows a consistent three-tier pattern:
 
 ```
 Presentation Layer (Vue.js 3 + ApexCharts)

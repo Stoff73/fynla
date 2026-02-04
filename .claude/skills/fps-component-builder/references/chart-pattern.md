@@ -1,8 +1,8 @@
-# FPS Chart Pattern (ApexCharts)
+# Fynla Chart Pattern (ApexCharts)
 
 ## Overview
 
-FPS uses ApexCharts for all data visualizations. This document covers standard patterns for creating charts across all modules.
+Fynla uses ApexCharts for all data visualizations. This document covers standard patterns for creating charts across all modules.
 
 ## Global Registration
 
@@ -13,7 +13,7 @@ import VueApexCharts from 'vue3-apexcharts';
 app.component('apexchart', VueApexCharts);
 ```
 
-## Chart Types Used in FPS
+## Chart Types Used in Fynla
 
 1. **Radial Bar (Gauge)** - Scores and percentages
 2. **Donut** - Asset allocation and breakdowns
@@ -913,10 +913,10 @@ methods: {
 
 ### 5. Color Consistency
 
-Use FPS color scheme (traffic light system):
+Use Fynla color scheme (traffic light system):
 
 ```javascript
-const FPS_COLORS = {
+const Fynla_COLORS = {
   primary: '#3B82F6',    // Blue
   success: '#10B981',    // Green
   warning: '#F59E0B',    // Amber

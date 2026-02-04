@@ -1,13 +1,13 @@
 ---
 name: fps-module-builder
-description: Guide Claude through creating a complete new financial planning module for the FPS application. Use this skill when the user requests to create an entirely new module (e.g., "Create a new Tax Planning module", "Add a Business Planning module"). This skill provides step-by-step instructions for building backend (Laravel) and frontend (Vue.js) components following FPS architecture patterns, coding standards, and UK financial planning requirements.
+description: Guide Claude through creating a complete new financial planning module for the Fynla application. Use this skill when the user requests to create an entirely new module (e.g., "Create a new Tax Planning module", "Add a Business Planning module"). This skill provides step-by-step instructions for building backend (Laravel) and frontend (Vue.js) components following Fynla architecture patterns, coding standards, and UK financial planning requirements.
 ---
 
-# FPS Module Builder
+# Fynla Module Builder
 
 ## Overview
 
-Create complete financial planning modules for the FPS application following the agent-based architecture pattern. Each module includes backend components (Controller, Agent, Service, Model, Tests) and frontend components (Vuex store, API service, Dashboard view, components).
+Create complete financial planning modules for the Fynla application following the agent-based architecture pattern. Each module includes backend components (Controller, Agent, Service, Model, Tests) and frontend components (Vuex store, API service, Dashboard view, components).
 
 ## When to Use This Skill
 
@@ -820,7 +820,7 @@ Use this checklist to ensure completeness:
 This skill includes comprehensive reference documentation:
 
 ### references/module-architecture.md
-Complete FPS module architecture patterns including:
+Complete Fynla module architecture patterns including:
 - Three-tier architecture (Presentation, Application, Data)
 - Agent pattern implementation
 - Service layer patterns
@@ -832,7 +832,7 @@ Complete FPS module architecture patterns including:
 Load this reference when you need detailed patterns for any module component.
 
 ### references/coding-standards.md
-FPS coding standards including:
+Fynla coding standards including:
 - PHP PSR-12 standards
 - MySQL naming conventions and schema design
 - Vue.js 3 style guide

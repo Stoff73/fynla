@@ -1,13 +1,13 @@
 ---
 name: fps-component-builder
-description: Guide Claude through creating Vue 3 components for the Fynla application following established patterns. Use this skill when the user requests to create specific UI components (e.g., "Create a chart component", "Build a form modal for...", "Add a data table component"). This skill provides patterns for dashboard cards, form modals (avoiding the @submit bug), charts (ApexCharts), data tables, and common UI elements with consistent FPS styling.
+description: Guide Claude through creating Vue 3 components for the Fynla application following established patterns. Use this skill when the user requests to create specific UI components (e.g., "Create a chart component", "Build a form modal for...", "Add a data table component"). This skill provides patterns for dashboard cards, form modals (avoiding the @submit bug), charts (ApexCharts), data tables, and common UI elements with consistent Fynla styling.
 ---
 
-# FPS Component Builder
+# Fynla Component Builder
 
 ## Overview
 
-Create Vue 3 components for the Fynla application following consistent patterns and best practices. This skill covers all common component types used across FPS modules with comprehensive reference documentation.
+Create Vue 3 components for the Fynla application following consistent patterns and best practices. This skill covers all common component types used across Fynla modules with comprehensive reference documentation.
 
 ## When to Use This Skill
 
@@ -212,10 +212,10 @@ All charts use ApexCharts. See `references/chart-pattern.md` for complete exampl
 7. **Heatmap**: Risk matrices, gap analysis
 8. **RangeBar (Timeline)**: Time-based events, gifting timeline
 
-### FPS Color Scheme
+### Fynla Color Scheme
 
 ```javascript
-const FPS_COLORS = {
+const Fynla_COLORS = {
   primary: '#3B82F6',    // Blue
   success: '#10B981',    // Green
   warning: '#F59E0B',    // Amber
@@ -352,13 +352,13 @@ Load this reference when creating any chart visualization.
 7. **Empty States**: Provide helpful messages
 8. **Error Handling**: Display user-friendly errors
 9. **Format Values**: Use Intl formatters
-10. **Color Consistency**: Use FPS color scheme
+10. **Color Consistency**: Use Fynla color scheme
 
 ## Common Pitfalls to Avoid
 
 1. **Don't use `@submit`** - Use `@save` for custom form events
 2. **Don't skip props validation** - Always define type, required, validator
-3. **Don't hardcode colors** - Use FPS color scheme
+3. **Don't hardcode colors** - Use Fynla color scheme
 4. **Don't forget loading states** - Show spinners
 5. **Don't skip empty states** - Provide helpful messages
 6. **Don't use inline styles** - Prefer Tailwind classes

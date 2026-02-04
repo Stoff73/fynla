@@ -1,13 +1,13 @@
 ---
 name: fps-feature-builder
-description: Guide Claude through adding or extending features within existing FPS modules. Use this skill when the user requests to add functionality to an existing module (e.g., "Add pension type to Retirement module", "Extend Protection module to calculate...", "The retirement planning module needs to change..."). This skill provides patterns for common feature additions including new calculations, data types, charts, tabs, and cross-module integrations while maintaining FPS coding standards and architecture.
+description: Guide Claude through adding or extending features within existing Fynla modules. Use this skill when the user requests to add functionality to an existing module (e.g., "Add pension type to Retirement module", "Extend Protection module to calculate...", "The retirement planning module needs to change..."). This skill provides patterns for common feature additions including new calculations, data types, charts, tabs, and cross-module integrations while maintaining Fynla coding standards and architecture.
 ---
 
-# FPS Feature Builder
+# Fynla Feature Builder
 
 ## Overview
 
-Add or extend features within existing FPS modules following established patterns. This skill helps you integrate new functionality seamlessly into the existing codebase without breaking existing features.
+Add or extend features within existing Fynla modules following established patterns. This skill helps you integrate new functionality seamlessly into the existing codebase without breaking existing features.
 
 ## When to Use This Skill
 
@@ -365,7 +365,7 @@ Seven common patterns for adding features:
 Load this reference to see complete code examples for each pattern.
 
 ### references/integration-points.md
-FPS integration points across modules:
+Fynla integration points across modules:
 - UK Tax Configuration usage
 - UKTaxCalculator service integration
 - Cross-module data access patterns

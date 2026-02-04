@@ -1,8 +1,8 @@
-# FPS Form Modal Pattern
+# Fynla Form Modal Pattern
 
 ## Overview
 
-Form modals are a critical pattern in FPS for creating and editing data. This document provides the correct pattern to avoid common pitfalls, especially the `@submit` event conflict bug.
+Form modals are a critical pattern in Fynla for creating and editing data. This document provides the correct pattern to avoid common pitfalls, especially the `@submit` event conflict bug.
 
 ## The @submit Bug
 

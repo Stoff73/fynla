@@ -1,8 +1,8 @@
-# FPS Vue Component Patterns
+# Fynla Vue Component Patterns
 
 ## Overview
 
-This document covers standard patterns for creating Vue 3 components in the FPS application.
+This document covers standard patterns for creating Vue 3 components in the Fynla application.
 
 ## Component Types
 

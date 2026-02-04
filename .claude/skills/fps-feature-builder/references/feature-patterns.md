@@ -1,8 +1,8 @@
-# FPS Feature Patterns
+# Fynla Feature Patterns
 
 ## Overview
 
-This document covers common patterns for adding or extending features within existing FPS modules.
+This document covers common patterns for adding or extending features within existing Fynla modules.
 
 ## Pattern 1: Adding a New Calculation
 
