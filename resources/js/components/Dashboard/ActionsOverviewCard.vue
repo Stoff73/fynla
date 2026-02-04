@@ -294,7 +294,6 @@ export default {
 }
 
 .action-card:hover {
-  @apply bg-gray-50;
   @apply border-gray-300;
   transform: translateY(-1px);
 }
