@@ -281,9 +281,9 @@
           class="lg:col-span-2"
           @click="navigateTo('/goals')"
         >
-          <!-- Full projection chart with bar graph and event icons -->
+          <!-- Bar chart with event icons - simplified for dashboard -->
           <div v-if="goalsData.hasProjection || goalsData.hasGoals" @click.stop>
-            <GoalsProjectionChart />
+            <GoalsProjectionChartDashboard />
           </div>
 
           <!-- Empty state for goals -->
@@ -323,7 +323,7 @@
 import { mapGetters, mapState, mapActions } from 'vuex';
 import AppLayout from '@/layouts/AppLayout.vue';
 import DashboardCard from '@/components/Dashboard/DashboardCard.vue';
-import GoalsProjectionChart from '@/components/Goals/GoalsProjectionChart.vue';
+import GoalsProjectionChartDashboard from '@/components/Dashboard/GoalsProjectionChartDashboard.vue';
 import UKTaxesOverviewCard from '@/components/Dashboard/UKTaxesOverviewCard.vue';
 import ActionsOverviewCard from '@/components/Dashboard/ActionsOverviewCard.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
@@ -335,7 +335,7 @@ export default {
   components: {
     AppLayout,
     DashboardCard,
-    GoalsProjectionChart,
+    GoalsProjectionChartDashboard,
     UKTaxesOverviewCard,
     ActionsOverviewCard,
   },
