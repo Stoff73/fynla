@@ -331,15 +331,24 @@ Redesigned the dashboard cards to show more detailed information with real data 
    - Shows sum assured for each policy
    - Shows total coverage and monthly premium
 
-5. **Goals & Life Events Card**
+5. **Estate Planning Card** (NEW)
+   - Shows Taxable Estate on Joint Death Now (large blue value)
+   - Shows Current Inheritance Tax Liability (Amount Due)
+   - Lists user's trusts with name, value, and beneficiaries
+
+6. **Goals & Life Events Card**
    - New simplified GoalsProjectionChartDashboard component (just the chart, no controls)
    - Bar graph displays net worth projection over time
    - Event icons float above bars showing goals and life events
    - Includes retirement age annotation
    - Tooltips on hover for details
 
-6. **All Cards**
+7. **All Cards**
    - Removed arrow icon from top right of all cards
+
+8. **Card Order**
+   - Row 1: Net Worth, Estate Planning, Investments & Savings
+   - Row 2: Protection, Retirement, Goals
 
 ### Files Changed
 
