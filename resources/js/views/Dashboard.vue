@@ -201,7 +201,7 @@
                 :key="'cash-' + account.id"
                 class="flex justify-between text-sm"
               >
-                <span class="text-gray-600 truncate mr-2">{{ account.account_name }}</span>
+                <span class="text-gray-600 truncate mr-2">{{ formatCashAccountName(account) }}</span>
                 <span class="font-medium text-gray-900 whitespace-nowrap">{{ formatCurrency(account.current_balance) }}</span>
               </div>
               <div class="flex justify-between text-sm pt-2 border-t border-gray-100">
@@ -220,45 +220,54 @@
           @click="navigateTo('/protection')"
         >
           <div class="space-y-4">
-            <!-- Adequacy score -->
-            <div class="border-b border-gray-200 pb-4">
-              <span class="text-sm text-gray-500">Coverage Adequacy</span>
-              <div class="flex items-baseline gap-2 mt-1">
-                <span class="text-3xl font-bold text-primary-600">
-                  {{ protectionData.adequacyScore }}%
-                </span>
+            <!-- Life Insurance policies -->
+            <div v-if="protectionLifePolicies.length > 0" class="space-y-2">
+              <div class="text-sm font-semibold text-gray-700">Life Insurance</div>
+              <div
+                v-for="policy in protectionLifePolicies"
+                :key="'life-' + policy.id"
+                class="flex justify-between text-sm"
+              >
+                <span class="text-gray-600 truncate mr-2">{{ formatPolicyName(policy, 'Life') }}</span>
+                <span class="font-medium text-gray-900 whitespace-nowrap">{{ formatCurrency(policy.sum_assured) }}</span>
               </div>
             </div>
 
-            <!-- Coverage breakdown -->
-            <div class="space-y-3">
+            <!-- Critical Illness policies -->
+            <div v-if="protectionCriticalIllnessPolicies.length > 0" class="space-y-2">
+              <div class="text-sm font-semibold text-gray-700">Critical Illness</div>
+              <div
+                v-for="policy in protectionCriticalIllnessPolicies"
+                :key="'ci-' + policy.id"
+                class="flex justify-between text-sm"
+              >
+                <span class="text-gray-600 truncate mr-2">{{ formatPolicyName(policy, 'Critical Illness') }}</span>
+                <span class="font-medium text-gray-900 whitespace-nowrap">{{ formatCurrency(policy.sum_assured) }}</span>
+              </div>
+            </div>
+
+            <!-- Income Protection policies -->
+            <div v-if="protectionIncomeProtectionPolicies.length > 0" class="space-y-2">
+              <div class="text-sm font-semibold text-gray-700">Income Protection</div>
+              <div
+                v-for="policy in protectionIncomeProtectionPolicies"
+                :key="'ip-' + policy.id"
+                class="flex justify-between text-sm"
+              >
+                <span class="text-gray-600 truncate mr-2">{{ formatPolicyName(policy, 'Income Protection') }}</span>
+                <span class="font-medium text-gray-900 whitespace-nowrap">{{ formatCurrency(policy.annual_benefit || policy.sum_assured) }}/yr</span>
+              </div>
+            </div>
+
+            <!-- Total coverage and premium -->
+            <div class="pt-2 border-t border-gray-100 space-y-2">
               <div class="flex justify-between text-sm">
-                <span class="text-gray-600">Total Coverage</span>
-                <span class="font-semibold text-gray-900">{{ formatCurrency(protectionData.totalCoverage) }}</span>
+                <span class="text-gray-700 font-medium">Total Coverage</span>
+                <span class="font-semibold text-primary-600">{{ formatCurrency(protectionData.totalCoverage) }}</span>
               </div>
               <div class="flex justify-between text-sm">
                 <span class="text-gray-600">Monthly Premium</span>
-                <span class="font-semibold text-gray-900">{{ formatCurrency(protectionData.premiumTotal) }}/mo</span>
-              </div>
-            </div>
-
-            <!-- Policy count -->
-            <div class="text-sm text-gray-500">
-              {{ protectionData.policyCount }} active {{ protectionData.policyCount === 1 ? 'policy' : 'policies' }}
-            </div>
-
-            <!-- Critical gaps warning -->
-            <div
-              v-if="protectionData.criticalGaps > 0"
-              class="p-3 bg-white border-2 border-blue-500 rounded-lg"
-            >
-              <div class="flex items-center gap-2">
-                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-                <span class="text-sm font-medium text-blue-700">
-                  {{ protectionData.criticalGaps }} coverage {{ protectionData.criticalGaps === 1 ? 'gap' : 'gaps' }} identified
-                </span>
+                <span class="font-medium text-gray-900">{{ formatCurrency(protectionData.premiumTotal) }}/mo</span>
               </div>
             </div>
           </div>
@@ -522,39 +531,24 @@ export default {
 
     // Protection data
     ...mapGetters('protection', {
-      protectionAdequacyScore: 'adequacyScore',
       protectionTotalCoverage: 'totalCoverage',
       protectionTotalPremium: 'totalPremium',
-      protectionCoverageGaps: 'coverageGaps',
       protectionLifePolicies: 'lifePolicies',
       protectionCriticalIllnessPolicies: 'criticalIllnessPolicies',
       protectionIncomeProtectionPolicies: 'incomeProtectionPolicies',
-      protectionDisabilityPolicies: 'disabilityPolicies',
     }),
 
     protectionData() {
-      const gaps = this.protectionCoverageGaps?.gaps_by_category || {};
-      const criticalGaps = Object.values(gaps).filter(gap => gap > 10000).length || 0;
-      const adequacyScore = typeof this.protectionAdequacyScore === 'object'
-        ? (this.protectionAdequacyScore?.score ?? 0)
-        : (this.protectionAdequacyScore || 0);
-
-      const policyCount = (this.protectionLifePolicies?.length || 0) +
-                          (this.protectionCriticalIllnessPolicies?.length || 0) +
-                          (this.protectionIncomeProtectionPolicies?.length || 0) +
-                          (this.protectionDisabilityPolicies?.length || 0);
-
       return {
-        adequacyScore,
         totalCoverage: this.protectionTotalCoverage || 0,
         premiumTotal: (this.protectionTotalPremium || 0) / 12, // Monthly premium
-        criticalGaps,
-        policyCount,
       };
     },
 
     hasProtectionData() {
-      return this.protectionData.policyCount > 0;
+      return (this.protectionLifePolicies?.length || 0) +
+             (this.protectionCriticalIllnessPolicies?.length || 0) +
+             (this.protectionIncomeProtectionPolicies?.length || 0) > 0;
     },
 
     // Goals data
@@ -607,6 +601,44 @@ export default {
         other: 'Other Liabilities',
       };
       return categoryLabels[category] || category.charAt(0).toUpperCase() + category.slice(1).replace(/_/g, ' ');
+    },
+
+    // Format cash account name from institution and account type
+    formatCashAccountName(account) {
+      const typeLabels = {
+        current_account: 'Current',
+        savings_account: 'Savings',
+        cash_isa: 'Cash ISA',
+        fixed_term: 'Fixed Term',
+        notice_account: 'Notice',
+        money_market: 'Money Market',
+      };
+      const type = typeLabels[account.account_type] || account.account_type || '';
+      const institution = account.institution || '';
+      if (institution && type) {
+        return `${institution} ${type}`;
+      }
+      return institution || type || 'Cash Account';
+    },
+
+    // Format protection policy name from provider and policy type
+    formatPolicyName(policy, fallbackType) {
+      const provider = policy.provider || policy.provider_name || '';
+      const policyType = policy.policy_type || '';
+
+      // Format policy type for display
+      const typeLabels = {
+        level_term: 'Level Term',
+        decreasing_term: 'Decreasing Term',
+        whole_of_life: 'Whole of Life',
+        family_income_benefit: 'Family Income Benefit',
+      };
+      const formattedType = typeLabels[policyType] || policyType.replace(/_/g, ' ');
+
+      if (provider && formattedType) {
+        return `${provider} ${formattedType}`;
+      }
+      return provider || formattedType || fallbackType;
     },
 
     dismissMFABanner() {
