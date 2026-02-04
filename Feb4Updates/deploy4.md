@@ -332,17 +332,22 @@ Redesigned the dashboard cards to show more detailed information with real data 
    - Shows total coverage and monthly premium
 
 5. **Goals & Life Events Card**
-   - Now shows full GoalsProjectionChart with bar graph and event icons
-   - Chart displays net worth projection over time
+   - New simplified GoalsProjectionChartDashboard component (just the chart, no controls)
+   - Bar graph displays net worth projection over time
    - Event icons float above bars showing goals and life events
-   - Interactive controls (view selector, chart type toggle)
-   - Click events on chart don't trigger card navigation
+   - Includes retirement age annotation
+   - Tooltips on hover for details
+
+6. **All Cards**
+   - Removed arrow icon from top right of all cards
 
 ### Files Changed
 
 | File | Change Type |
 |------|-------------|
 | `resources/js/views/Dashboard.vue` | Modified |
+| `resources/js/components/Dashboard/DashboardCard.vue` | Modified |
+| `resources/js/components/Dashboard/GoalsProjectionChartDashboard.vue` | New |
 
 ### Deployment
 
