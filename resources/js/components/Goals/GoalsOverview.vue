@@ -22,50 +22,9 @@
 
     <!-- Overview Content -->
     <div v-else>
-      <!-- Summary Cards -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <!-- Total Goals -->
-        <div class="bg-gray-50 rounded-lg p-4">
-          <p class="text-sm text-gray-500 mb-1">Total Goals</p>
-          <p class="text-2xl font-bold text-gray-900">{{ summary.total_goals }}</p>
-        </div>
-
-        <!-- On Track -->
-        <div class="bg-green-50 rounded-lg p-4">
-          <p class="text-sm text-green-600 mb-1">On Track</p>
-          <p class="text-2xl font-bold text-green-700">{{ summary.on_track_count }}</p>
-        </div>
-
-        <!-- Total Target -->
-        <div class="bg-blue-50 rounded-lg p-4">
-          <p class="text-sm text-blue-600 mb-1">Total Target</p>
-          <p class="text-2xl font-bold text-blue-700">{{ formatCurrency(summary.total_target) }}</p>
-        </div>
-
-        <!-- Current Progress -->
-        <div class="bg-primary-50 rounded-lg p-4">
-          <p class="text-sm text-primary-600 mb-1">Current Progress</p>
-          <p class="text-2xl font-bold text-primary-700">{{ formatCurrency(summary.total_current) }}</p>
-        </div>
-      </div>
-
-      <!-- Overall Progress Bar -->
-      <div class="bg-white border border-gray-200 rounded-lg p-6 mb-8">
-        <div class="flex justify-between items-center mb-2">
-          <span class="text-sm font-medium text-gray-700">Overall Progress</span>
-          <span class="text-sm font-semibold" :class="progressTextClass">{{ overallProgress }}%</span>
-        </div>
-        <div class="w-full bg-gray-200 rounded-full h-3">
-          <div
-            class="h-3 rounded-full transition-all duration-500"
-            :class="progressBarClass"
-            :style="{ width: Math.min(overallProgress, 100) + '%' }"
-          ></div>
-        </div>
-        <div class="flex justify-between mt-2 text-xs text-gray-500">
-          <span>{{ formatCurrency(summary.total_current) }} saved</span>
-          <span>{{ formatCurrency(summary.total_target) }} target</span>
-        </div>
+      <!-- Projection Chart -->
+      <div class="mb-8">
+        <GoalsProjectionChart />
       </div>
 
       <!-- Streak Banner -->
@@ -183,10 +142,15 @@
 
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
+import GoalsProjectionChart from '@/components/Goals/GoalsProjectionChart.vue';
 
 export default {
   name: 'GoalsOverview',
   mixins: [currencyMixin],
+
+  components: {
+    GoalsProjectionChart,
+  },
 
   props: {
     summary: {
@@ -214,22 +178,6 @@ export default {
   computed: {
     hasGoals() {
       return this.summary.total_goals > 0;
-    },
-
-    overallProgress() {
-      return Math.round(this.summary.overall_progress || 0);
-    },
-
-    progressTextClass() {
-      if (this.overallProgress >= 75) return 'text-green-600';
-      if (this.overallProgress >= 50) return 'text-blue-600';
-      return 'text-blue-600';
-    },
-
-    progressBarClass() {
-      if (this.overallProgress >= 75) return 'bg-green-500';
-      if (this.overallProgress >= 50) return 'bg-blue-500';
-      return 'bg-blue-500';
     },
   },
 

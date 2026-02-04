@@ -66,35 +66,9 @@
               />
             </div>
 
-            <!-- All Goals Tab -->
-            <div v-else-if="activeTab === 'all'">
-              <GoalsList
-                :goals="filteredGoals"
-                :filters="filters"
-                @update-filters="updateFilters"
-                @edit-goal="openEditModal"
-                @delete-goal="confirmDeleteGoal"
-                @add-contribution="openContributionModal"
-                @create-goal="openCreateModal"
-              />
-            </div>
-
-            <!-- By Module Tab -->
-            <div v-else-if="activeTab === 'modules'">
-              <GoalsByModule
-                :goals-by-module="goalsByModule"
-                @edit-goal="openEditModal"
-                @view-goal="viewGoal"
-              />
-            </div>
-
-            <!-- Analysis Tab -->
-            <div v-else-if="activeTab === 'analysis'">
-              <GoalsAnalysis
-                :analysis="analysis"
-                :loading="analysisLoading"
-                @refresh="fetchAnalysis"
-              />
+            <!-- Life Events Tab -->
+            <div v-else-if="activeTab === 'events'">
+              <EventsTab />
             </div>
           </div>
         </div>
@@ -167,10 +141,8 @@ import { mapState, mapGetters, mapActions } from 'vuex';
 import AppLayout from '@/layouts/AppLayout.vue';
 import GoalFormModal from '@/components/Goals/GoalFormModal.vue';
 import GoalsOverview from '@/components/Goals/GoalsOverview.vue';
-import GoalsList from '@/components/Goals/GoalsList.vue';
-import GoalsByModule from '@/components/Goals/GoalsByModule.vue';
-import GoalsAnalysis from '@/components/Goals/GoalsAnalysis.vue';
 import ContributionModal from '@/components/Goals/ContributionModal.vue';
+import EventsTab from '@/components/Goals/EventsTab.vue';
 
 export default {
   name: 'GoalsDashboard',
@@ -179,10 +151,8 @@ export default {
     AppLayout,
     GoalFormModal,
     GoalsOverview,
-    GoalsList,
-    GoalsByModule,
-    GoalsAnalysis,
     ContributionModal,
+    EventsTab,
   },
 
   data() {
@@ -190,9 +160,7 @@ export default {
       activeTab: 'overview',
       tabs: [
         { id: 'overview', label: 'Overview' },
-        { id: 'all', label: 'All Goals' },
-        { id: 'modules', label: 'By Module' },
-        { id: 'analysis', label: 'Analysis' },
+        { id: 'events', label: 'Life Events' },
       ],
       showGoalModal: false,
       editingGoal: null,
@@ -201,19 +169,12 @@ export default {
       showDeleteModal: false,
       deletingGoal: null,
       deleteLoading: false,
-      filters: {
-        status: 'all',
-        module: 'all',
-        priority: 'all',
-        search: '',
-      },
-      analysisLoading: false,
     };
   },
 
   computed: {
-    ...mapState('goals', ['loading', 'error', 'goals', 'analysis']),
-    ...mapGetters('goals', ['dashboardData', 'goalsForModule']),
+    ...mapState('goals', ['loading', 'error', 'goals']),
+    ...mapGetters('goals', ['dashboardData']),
 
     summary() {
       return {
@@ -232,51 +193,6 @@ export default {
     bestStreak() {
       return this.dashboardData?.best_streak || 0;
     },
-
-    goalsByModule() {
-      return {
-        savings: this.goalsForModule('savings'),
-        investment: this.goalsForModule('investment'),
-        property: this.goalsForModule('property'),
-        retirement: this.goalsForModule('retirement'),
-      };
-    },
-
-    filteredGoals() {
-      let result = [...this.goals];
-
-      // Filter by status
-      if (this.filters.status !== 'all') {
-        if (this.filters.status === 'on_track') {
-          result = result.filter(g => g.is_on_track);
-        } else if (this.filters.status === 'behind') {
-          result = result.filter(g => !g.is_on_track && g.status === 'active');
-        } else {
-          result = result.filter(g => g.status === this.filters.status);
-        }
-      }
-
-      // Filter by module
-      if (this.filters.module !== 'all') {
-        result = result.filter(g => g.assigned_module === this.filters.module);
-      }
-
-      // Filter by priority
-      if (this.filters.priority !== 'all') {
-        result = result.filter(g => g.priority === this.filters.priority);
-      }
-
-      // Filter by search
-      if (this.filters.search) {
-        const search = this.filters.search.toLowerCase();
-        result = result.filter(g =>
-          g.goal_name.toLowerCase().includes(search) ||
-          (g.description && g.description.toLowerCase().includes(search))
-        );
-      }
-
-      return result;
-    },
   },
 
   mounted() {
@@ -292,7 +208,6 @@ export default {
     ...mapActions('goals', [
       'fetchGoals',
       'fetchDashboardOverview',
-      'fetchAnalysis',
       'createGoal',
       'updateGoal',
       'deleteGoal',
@@ -308,21 +223,6 @@ export default {
       } catch (error) {
         console.error('Failed to load goals data:', error);
       }
-    },
-
-    async loadAnalysis() {
-      this.analysisLoading = true;
-      try {
-        await this.fetchAnalysis();
-      } catch (error) {
-        console.error('Failed to load analysis:', error);
-      } finally {
-        this.analysisLoading = false;
-      }
-    },
-
-    updateFilters(newFilters) {
-      this.filters = { ...this.filters, ...newFilters };
     },
 
     openCreateModal() {
@@ -405,14 +305,6 @@ export default {
     viewGoal(goal) {
       // For now, open edit modal - could add a detail view later
       this.openEditModal(goal);
-    },
-  },
-
-  watch: {
-    activeTab(newTab) {
-      if (newTab === 'analysis' && !this.analysis) {
-        this.loadAnalysis();
-      }
     },
   },
 };

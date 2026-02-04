@@ -137,18 +137,160 @@ Added informational messages about mortgage end dates defaulting to retirement a
 
 ---
 
+## Goals Projection Chart Improvements ✅ DEPLOYED
+
+### Summary
+Major refactoring of the Goals module projection chart with visual improvements and simplified navigation:
+
+1. **Real SVG icons** - Replaced text abbreviations with proper icons (house, plane, gift, etc.)
+2. **Floating icons** - Icons now float above bars with gap, no connector lines
+3. **Vertical stacking** - Multiple events at same age stack vertically without overlap
+4. **Completed state** - Past events show at 40% opacity
+5. **Asset Breakdown tooltip** - Shows Pensions, Property, Investments, Cash with amounts
+6. **Cash Flow fix** - Income now displays correctly using annual_employment_income field
+7. **Simplified tabs** - Removed "All Goals", "By Module", "Analysis" tabs
+8. **Merged Overview** - Projection chart now embedded in Overview tab
+9. **Removed summary cards** - Removed Total Goals, On Track, Total Target, Current Progress cards
+10. **Removed progress meter** - Removed overall progress bar
+
+### Files Changed
+
+| File | Change Type |
+|------|-------------|
+| `resources/js/components/Goals/GoalsProjectionChart.vue` | Modified |
+| `resources/js/components/Goals/GoalsOverview.vue` | Modified |
+| `resources/js/views/Goals/GoalsDashboard.vue` | Modified |
+| `resources/js/constants/eventIconSvgs.js` | New |
+| `resources/js/components/Goals/EventIcon.vue` | New |
+| `app/Services/Goals/GoalsProjectionService.php` | Modified |
+| `resources/js/data/personas/peak_earners.json` | Modified |
+
+### Files to Upload
+
+- `public/build/` directory (full replacement)
+- `app/Services/Goals/GoalsProjectionService.php`
+
+**Note:** This feature depends on the Life Events feature below.
+
+---
+
+## Life Events Feature (Goals Dependency)
+
+### Summary
+
+Backend infrastructure for life events that affect financial projections. Required dependency for Goals Projection Chart.
+
+### Files Changed
+
+| File | Change Type |
+|------|-------------|
+| `routes/api.php` | Modified |
+| `app/Models/LifeEvent.php` | New |
+| `app/Models/Goal.php` | Modified |
+| `app/Http/Controllers/Api/GoalsController.php` | Modified |
+| `app/Http/Controllers/Api/LifeEventController.php` | New |
+| `app/Services/Goals/LifeEventService.php` | New |
+| `app/Http/Requests/StoreLifeEventRequest.php` | New |
+| `app/Http/Requests/UpdateLifeEventRequest.php` | New |
+| `database/migrations/2026_02_03_100001_add_charity_fields_to_bequests_table.php` | New |
+| `database/migrations/2026_02_03_100002_add_estate_planning_to_user_assumptions_table.php` | New |
+| `database/migrations/2026_02_03_120001_create_life_events_table.php` | New |
+| `database/migrations/2026_02_03_120002_add_projection_fields_to_goals_table.php` | New |
+
+### Files to Upload (12 files)
+
+**Routes:**
+
+- `routes/api.php`
+
+**Models:**
+
+- `app/Models/LifeEvent.php`
+- `app/Models/Goal.php`
+
+**Controllers:**
+
+- `app/Http/Controllers/Api/GoalsController.php`
+- `app/Http/Controllers/Api/LifeEventController.php`
+
+**Services:**
+
+- `app/Services/Goals/LifeEventService.php`
+
+**Form Requests:**
+
+- `app/Http/Requests/StoreLifeEventRequest.php`
+- `app/Http/Requests/UpdateLifeEventRequest.php`
+
+**Migrations:**
+
+- `database/migrations/2026_02_03_100001_add_charity_fields_to_bequests_table.php`
+- `database/migrations/2026_02_03_100002_add_estate_planning_to_user_assumptions_table.php`
+- `database/migrations/2026_02_03_120001_create_life_events_table.php`
+- `database/migrations/2026_02_03_120002_add_projection_fields_to_goals_table.php`
+
+### Post-Upload
+
+```bash
+php artisan migrate --force
+```
+
+---
+
 ## Complete Upload Checklist
 
-### PHP Files
+### Previously Deployed ✅
+
+- [x] `public/build/` directory (full replacement)
 - [x] `app/Services/Estate/IHTCalculationService.php`
 - [x] `app/Http/Controllers/Api/Estate/IHTController.php`
 - [x] `app/Services/Estate/LifePolicyStrategyService.php`
 - [x] `app/Services/Settings/AssumptionsService.php`
+- [x] `app/Services/Goals/GoalsProjectionService.php`
 
-### Frontend
-- [x] `public/build/` directory (full replacement)
+### Goals & Life Events - TO UPLOAD
 
-### Post-Upload
+#### Routes
+
+- [ ] `routes/api.php`
+
+#### Models
+
+- [ ] `app/Models/LifeEvent.php`
+- [ ] `app/Models/Goal.php`
+
+#### Controllers
+
+- [ ] `app/Http/Controllers/Api/GoalsController.php`
+- [ ] `app/Http/Controllers/Api/LifeEventController.php`
+
+#### Services
+
+- [ ] `app/Services/Goals/LifeEventService.php`
+
+#### Form Requests
+
+- [ ] `app/Http/Requests/StoreLifeEventRequest.php`
+- [ ] `app/Http/Requests/UpdateLifeEventRequest.php`
+
+#### Migrations
+
+- [ ] `database/migrations/2026_02_03_100001_add_charity_fields_to_bequests_table.php`
+- [ ] `database/migrations/2026_02_03_100002_add_estate_planning_to_user_assumptions_table.php`
+- [ ] `database/migrations/2026_02_03_120001_create_life_events_table.php`
+- [ ] `database/migrations/2026_02_03_120002_add_projection_fields_to_goals_table.php`
+
+### Post-Upload Commands
+
 ```bash
-php artisan cache:clear && php artisan config:clear && php artisan view:clear && php artisan route:clear
+cd ~/www/fynla.org/public_html
+
+# 1. Clear all caches first
+php artisan cache:clear && php artisan route:clear && php artisan config:clear && php artisan view:clear
+
+# 2. Run migrations
+php artisan migrate --force
+
+# 3. Rebuild caches
+php artisan config:cache && php artisan route:cache
 ```
