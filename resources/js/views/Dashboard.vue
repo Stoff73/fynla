@@ -302,9 +302,6 @@
                   {{ formatCurrency(estateData.ihtLiability) }}
                 </span>
               </div>
-              <div v-if="estateData.ihtLiability > 0" class="mt-2 text-xs text-gray-500">
-                {{ Math.round((estateData.ihtLiability / estateData.estateValue) * 100) }}% of estate value
-              </div>
             </div>
           </div>
         </DashboardCard>
