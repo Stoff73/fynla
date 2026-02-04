@@ -66,6 +66,36 @@ php artisan cache:clear && php artisan route:clear && php artisan config:clear
 
 ---
 
+## UI Improvements ✅ DEPLOYED
+
+### Summary
+
+Minor UI improvements to Expenditure and Estate Planning pages.
+
+### Changes
+
+1. **Expenditure Form** - Changed "Widowed" tab label to "Budget if Widowed" for clarity
+2. **IHT Calculation Table** - Added "Expand All / Collapse All" button at top right to toggle all concertina sections
+
+### Files Changed
+
+| File | Change Type |
+|------|-------------|
+| `resources/js/components/UserProfile/ExpenditureForm.vue` | Modified |
+| `resources/js/components/Estate/IHTCalculationTable.vue` | Modified |
+
+### Deployment
+
+**Frontend Rebuild Required:** ✅ YES
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+Then upload `public/build/` directory to production.
+
+---
+
 ## Complete Upload Checklist
 
 ### Goals Life Events Fix ✅
@@ -80,6 +110,13 @@ php artisan cache:clear && php artisan route:clear && php artisan config:clear
 
 - [x] `app/Services/Property/PropertyService.php`
 - [x] `app/Services/UserProfile/UserProfileService.php`
+
+### UI Improvements ✅
+
+**Frontend Rebuild Required:** ✅ YES
+
+- [x] Run `./deploy/fynla-org/build.sh`
+- [x] Upload `public/build/` directory
 
 ### Post-Upload Commands
 
