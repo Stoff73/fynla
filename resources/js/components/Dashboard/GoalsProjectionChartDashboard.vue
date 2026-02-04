@@ -27,13 +27,36 @@
             left: `${marker.x}px`,
             top: `${marker.y}px`,
           }"
-          :title="`${marker.event.name}: ${formatCurrency(marker.event.amount)}`"
+          @mouseenter="showEventTooltip($event, marker.event)"
+          @mouseleave="hideEventTooltip"
         >
           <EventIcon
             :event="marker.event"
             :size="20"
             :is-completed="marker.isCompleted"
           />
+        </div>
+      </div>
+
+      <!-- Event tooltip -->
+      <div
+        v-if="activeTooltip"
+        class="fixed z-50 bg-gray-900 text-white text-sm rounded-lg shadow-lg px-3 py-2 pointer-events-none"
+        :style="{
+          left: `${tooltipPosition.x}px`,
+          top: `${tooltipPosition.y}px`,
+          transform: 'translate(-50%, -100%) translateY(-8px)',
+        }"
+      >
+        <div class="text-xs text-gray-400 uppercase tracking-wide mb-1">
+          {{ activeTooltip.type === 'goal' ? 'Goal' : 'Life Event' }}
+        </div>
+        <div class="font-semibold">{{ activeTooltip.name }}</div>
+        <div class="text-gray-300">
+          Age {{ activeTooltip.age }} · {{ formatCurrency(activeTooltip.amount) }}
+        </div>
+        <div class="text-xs text-gray-400 capitalize">
+          {{ activeTooltip.impact === 'income' ? 'Income' : 'Expense' }} · {{ activeTooltip.certainty || 'Planned' }}
         </div>
       </div>
     </div>
@@ -48,7 +71,7 @@
 <script>
 import { mapState, mapActions } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { PRIMARY_COLORS, BORDER_COLORS } from '@/constants/designSystem';
+import { PRIMARY_COLORS, BORDER_COLORS, SUCCESS_COLORS, ERROR_COLORS } from '@/constants/designSystem';
 import EventIcon from '@/components/Goals/EventIcon.vue';
 
 export default {
@@ -63,6 +86,8 @@ export default {
     return {
       eventMarkers: [],
       isComponentMounted: false,
+      activeTooltip: null,
+      tooltipPosition: { x: 0, y: 0 },
     };
   },
 
@@ -166,11 +191,13 @@ export default {
         },
         tooltip: {
           enabled: true,
+          shared: true,
+          intersect: false,
           x: {
             formatter: (val) => `Age ${Math.round(val)}`,
           },
-          y: {
-            formatter: (val) => this.formatCurrency(val),
+          custom: ({ series, seriesIndex, dataPointIndex, w }) => {
+            return this.buildCustomTooltip(series, seriesIndex, dataPointIndex, w);
           },
         },
         legend: { show: false },
@@ -308,6 +335,84 @@ export default {
 
       this.eventMarkers = markers;
     },
+
+    showEventTooltip(domEvent, event) {
+      const rect = domEvent.target.getBoundingClientRect();
+      this.activeTooltip = event;
+      this.tooltipPosition = {
+        x: rect.left + rect.width / 2,
+        y: rect.top,
+      };
+    },
+
+    hideEventTooltip() {
+      this.activeTooltip = null;
+    },
+
+    buildCustomTooltip(series, seriesIndex, dataPointIndex, w) {
+      const seriesData = w.config.series[0]?.data[dataPointIndex];
+      const age = seriesData?.x || w.globals.labels[dataPointIndex];
+      const yearData = this.projection?.yearly_data?.find(d => d.age === age);
+      const allEvents = this.projection?.events || [];
+      const eventsAtAge = allEvents.filter(e => e.age === age);
+
+      let tooltipHtml = `
+        <div class="apexcharts-tooltip-custom" style="padding: 12px; font-family: Inter, sans-serif; min-width: 200px;">
+          <div style="font-weight: 600; margin-bottom: 8px; color: #111827; font-size: 14px;">Age ${age}</div>
+      `;
+
+      if (yearData) {
+        tooltipHtml += `
+          <div style="display: flex; align-items: center; margin-bottom: 4px;">
+            <span style="width: 10px; height: 10px; border-radius: 50%; background: ${PRIMARY_COLORS[600]}; margin-right: 8px;"></span>
+            <span style="color: #6B7280;">Net Worth:</span>
+            <span style="font-weight: 600; margin-left: auto; color: #111827;">${this.formatCurrency(yearData.net_worth)}</span>
+          </div>
+        `;
+      }
+
+      if (eventsAtAge.length > 0) {
+        const goals = eventsAtAge.filter(e => e.type === 'goal');
+        const lifeEvents = eventsAtAge.filter(e => e.type === 'life_event');
+
+        tooltipHtml += `<div style="border-top: 1px solid #E5E7EB; margin-top: 8px; padding-top: 8px;">`;
+
+        if (goals.length > 0) {
+          tooltipHtml += `<div style="font-size: 11px; color: #6B7280; margin-bottom: 4px; font-weight: 600;">Goals:</div>`;
+          goals.forEach(event => {
+            const sign = event.impact === 'income' ? '+' : '-';
+            const color = event.impact === 'income' ? SUCCESS_COLORS[600] : ERROR_COLORS[600];
+            tooltipHtml += `
+              <div style="display: flex; align-items: center; margin-bottom: 4px;">
+                <span style="width: 8px; height: 8px; border-radius: 50%; background: ${event.color}; margin-right: 6px;"></span>
+                <span style="color: #374151; font-size: 12px;">${event.name}</span>
+                <span style="font-weight: 600; margin-left: auto; color: ${color}; font-size: 12px;">${sign}${this.formatCurrency(event.amount)}</span>
+              </div>
+            `;
+          });
+        }
+
+        if (lifeEvents.length > 0) {
+          tooltipHtml += `<div style="font-size: 11px; color: #6B7280; margin-bottom: 4px; margin-top: ${goals.length > 0 ? '8px' : '0'}; font-weight: 600;">Life Events:</div>`;
+          lifeEvents.forEach(event => {
+            const sign = event.impact === 'income' ? '+' : '-';
+            const color = event.impact === 'income' ? SUCCESS_COLORS[600] : ERROR_COLORS[600];
+            tooltipHtml += `
+              <div style="display: flex; align-items: center; margin-bottom: 4px;">
+                <span style="width: 8px; height: 8px; border-radius: 50%; background: ${event.color}; margin-right: 6px;"></span>
+                <span style="color: #374151; font-size: 12px;">${event.name}</span>
+                <span style="font-weight: 600; margin-left: auto; color: ${color}; font-size: 12px;">${sign}${this.formatCurrency(event.amount)}</span>
+              </div>
+            `;
+          });
+        }
+
+        tooltipHtml += `</div>`;
+      }
+
+      tooltipHtml += `</div>`;
+      return tooltipHtml;
+    },
   },
 
   watch: {
@@ -337,5 +442,16 @@ export default {
 
 .event-marker {
   pointer-events: auto;
+}
+
+/* Custom tooltip styling */
+:deep(.apexcharts-tooltip) {
+  border: none !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+  border-radius: 8px !important;
+}
+
+:deep(.apexcharts-tooltip-custom) {
+  min-width: 180px;
 }
 </style>
