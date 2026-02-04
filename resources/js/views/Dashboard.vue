@@ -352,6 +352,11 @@
           </div>
         </DashboardCard>
 
+        <!-- Other Areas to Consider Card -->
+        <div class="bg-white rounded-lg border border-gray-200 p-6">
+          <AreasToConsiderCard :limit="5" />
+        </div>
+
         <!-- Admin Taxes (only for admins) -->
         <DashboardCard
           v-if="isAdmin"
@@ -373,6 +378,7 @@ import DashboardCard from '@/components/Dashboard/DashboardCard.vue';
 import GoalsProjectionChartDashboard from '@/components/Dashboard/GoalsProjectionChartDashboard.vue';
 import UKTaxesOverviewCard from '@/components/Dashboard/UKTaxesOverviewCard.vue';
 import ActionsOverviewCard from '@/components/Dashboard/ActionsOverviewCard.vue';
+import AreasToConsiderCard from '@/components/Dashboard/AreasToConsiderCard.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import userProfileService from '@/services/userProfileService';
 
@@ -385,6 +391,7 @@ export default {
     GoalsProjectionChartDashboard,
     UKTaxesOverviewCard,
     ActionsOverviewCard,
+    AreasToConsiderCard,
   },
 
   mixins: [currencyMixin],

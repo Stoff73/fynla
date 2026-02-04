@@ -351,13 +351,20 @@ Redesigned the dashboard cards to show more detailed information with real data 
    - Simplified header - just "Recommended Actions" heading
    - Clickable items navigate to relevant module
 
-8. **All Cards**
+8. **Other Areas to Consider Card** (NEW)
+   - Shows incomplete areas of the user's financial profile
+   - Checks for missing: Letter to Spouse, Retirement, Protection, Investments, Savings, Goals, Income
+   - Each area shows icon, title, description and link to complete
+   - Limited to top 5 items
+   - Shows "All areas complete!" when everything is filled in
+
+9. **All Cards**
    - Removed arrow icon from top right of all cards
 
-9. **Card Order**
+10. **Card Order**
    - Row 1: Net Worth, Estate Planning, Investments & Savings
    - Row 2: Protection, Retirement, Recommended Actions
-   - Row 3: Goals (spans 2 columns)
+   - Row 3: Goals (spans 2 columns), Other Areas to Consider
 
 ### Files Changed
 
@@ -367,6 +374,7 @@ Redesigned the dashboard cards to show more detailed information with real data 
 | `resources/js/components/Dashboard/DashboardCard.vue` | Modified |
 | `resources/js/components/Dashboard/GoalsProjectionChartDashboard.vue` | New |
 | `resources/js/components/Dashboard/ActionsOverviewCard.vue` | Modified |
+| `resources/js/components/Dashboard/AreasToConsiderCard.vue` | New |
 
 ### Deployment
 
