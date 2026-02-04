@@ -287,7 +287,6 @@ export default {
 
 <style scoped>
 .action-card {
-  @apply bg-gray-50;
   @apply border border-gray-200;
   border-radius: 8px;
   padding: 16px;
@@ -295,7 +294,7 @@ export default {
 }
 
 .action-card:hover {
-  @apply bg-gray-100;
+  @apply bg-gray-50;
   @apply border-gray-300;
   transform: translateY(-1px);
 }
