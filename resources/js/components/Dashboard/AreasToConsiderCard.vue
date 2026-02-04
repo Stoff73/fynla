@@ -16,7 +16,34 @@
             class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
             :class="area.iconBgClass"
           >
-            <component :is="area.icon" class="w-4 h-4" :class="area.iconClass" />
+            <!-- Document Icon -->
+            <svg v-if="area.icon === 'document'" class="w-4 h-4" :class="area.iconClass" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <!-- Calendar Icon -->
+            <svg v-else-if="area.icon === 'calendar'" class="w-4 h-4" :class="area.iconClass" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <!-- Shield Icon -->
+            <svg v-else-if="area.icon === 'shield'" class="w-4 h-4" :class="area.iconClass" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+            <!-- Chart Icon -->
+            <svg v-else-if="area.icon === 'chart'" class="w-4 h-4" :class="area.iconClass" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+            <!-- Cash Icon -->
+            <svg v-else-if="area.icon === 'cash'" class="w-4 h-4" :class="area.iconClass" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            <!-- Target Icon -->
+            <svg v-else-if="area.icon === 'target'" class="w-4 h-4" :class="area.iconClass" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+            <!-- Currency Icon -->
+            <svg v-else-if="area.icon === 'currency'" class="w-4 h-4" :class="area.iconClass" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
           </div>
           <div class="min-w-0">
             <span class="text-sm font-medium text-gray-900 block truncate">{{ area.title }}</span>
@@ -45,164 +72,8 @@
 <script>
 import { mapState, mapGetters } from 'vuex';
 
-// Icon components as functional render functions
-const ShieldIcon = {
-  functional: true,
-  render(h) {
-    return h('svg', {
-      attrs: { fill: 'none', stroke: 'currentColor', viewBox: '0 0 24 24' }
-    }, [
-      h('path', {
-        attrs: {
-          'stroke-linecap': 'round',
-          'stroke-linejoin': 'round',
-          'stroke-width': '2',
-          d: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z'
-        }
-      })
-    ]);
-  }
-};
-
-const CurrencyIcon = {
-  functional: true,
-  render(h) {
-    return h('svg', {
-      attrs: { fill: 'none', stroke: 'currentColor', viewBox: '0 0 24 24' }
-    }, [
-      h('path', {
-        attrs: {
-          'stroke-linecap': 'round',
-          'stroke-linejoin': 'round',
-          'stroke-width': '2',
-          d: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
-        }
-      })
-    ]);
-  }
-};
-
-const ChartIcon = {
-  functional: true,
-  render(h) {
-    return h('svg', {
-      attrs: { fill: 'none', stroke: 'currentColor', viewBox: '0 0 24 24' }
-    }, [
-      h('path', {
-        attrs: {
-          'stroke-linecap': 'round',
-          'stroke-linejoin': 'round',
-          'stroke-width': '2',
-          d: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'
-        }
-      })
-    ]);
-  }
-};
-
-const PiggyBankIcon = {
-  functional: true,
-  render(h) {
-    return h('svg', {
-      attrs: { fill: 'none', stroke: 'currentColor', viewBox: '0 0 24 24' }
-    }, [
-      h('path', {
-        attrs: {
-          'stroke-linecap': 'round',
-          'stroke-linejoin': 'round',
-          'stroke-width': '2',
-          d: 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z'
-        }
-      })
-    ]);
-  }
-};
-
-const CalendarIcon = {
-  functional: true,
-  render(h) {
-    return h('svg', {
-      attrs: { fill: 'none', stroke: 'currentColor', viewBox: '0 0 24 24' }
-    }, [
-      h('path', {
-        attrs: {
-          'stroke-linecap': 'round',
-          'stroke-linejoin': 'round',
-          'stroke-width': '2',
-          d: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'
-        }
-      })
-    ]);
-  }
-};
-
-const DocumentIcon = {
-  functional: true,
-  render(h) {
-    return h('svg', {
-      attrs: { fill: 'none', stroke: 'currentColor', viewBox: '0 0 24 24' }
-    }, [
-      h('path', {
-        attrs: {
-          'stroke-linecap': 'round',
-          'stroke-linejoin': 'round',
-          'stroke-width': '2',
-          d: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'
-        }
-      })
-    ]);
-  }
-};
-
-const HeartIcon = {
-  functional: true,
-  render(h) {
-    return h('svg', {
-      attrs: { fill: 'none', stroke: 'currentColor', viewBox: '0 0 24 24' }
-    }, [
-      h('path', {
-        attrs: {
-          'stroke-linecap': 'round',
-          'stroke-linejoin': 'round',
-          'stroke-width': '2',
-          d: 'M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z'
-        }
-      })
-    ]);
-  }
-};
-
-const TargetIcon = {
-  functional: true,
-  render(h) {
-    return h('svg', {
-      attrs: { fill: 'none', stroke: 'currentColor', viewBox: '0 0 24 24' }
-    }, [
-      h('path', {
-        attrs: {
-          'stroke-linecap': 'round',
-          'stroke-linejoin': 'round',
-          'stroke-width': '2',
-          d: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z'
-        }
-      })
-    ]);
-  }
-};
-
 export default {
   name: 'AreasToConsiderCard',
-
-  components: {
-    ShieldIcon,
-    CurrencyIcon,
-    ChartIcon,
-    PiggyBankIcon,
-    CalendarIcon,
-    DocumentIcon,
-    HeartIcon,
-    TargetIcon,
-  },
 
   props: {
     limit: {
@@ -264,12 +135,6 @@ export default {
     hasLetterToSpouse() {
       // Check if user has letter_to_spouse data - this is stored on the user model
       if (!this.user) return true; // Don't show if no user
-      // For now, assume they haven't filled it if single/widowed/divorced
-      const maritalStatus = this.user.marital_status;
-      if (['single', 'widowed', 'divorced'].includes(maritalStatus)) {
-        // Check for expression of wishes instead
-        return !!this.user.letter_to_spouse;
-      }
       return !!this.user.letter_to_spouse;
     },
 
@@ -287,7 +152,7 @@ export default {
           title: this.isMarried ? 'Letter to Spouse' : 'Expression of Wishes',
           description: 'Important info for loved ones',
           route: '/valuable-info?section=letter',
-          icon: 'DocumentIcon',
+          icon: 'document',
           iconBgClass: 'bg-purple-100',
           iconClass: 'text-purple-600',
           priority: 1,
@@ -301,7 +166,7 @@ export default {
           title: 'Retirement Planning',
           description: 'Add your pension details',
           route: '/net-worth/retirement',
-          icon: 'CalendarIcon',
+          icon: 'calendar',
           iconBgClass: 'bg-blue-100',
           iconClass: 'text-blue-600',
           priority: 2,
@@ -315,7 +180,7 @@ export default {
           title: 'Protection',
           description: 'Life & income protection',
           route: '/protection',
-          icon: 'ShieldIcon',
+          icon: 'shield',
           iconBgClass: 'bg-green-100',
           iconClass: 'text-green-600',
           priority: 3,
@@ -329,7 +194,7 @@ export default {
           title: 'Investments',
           description: 'Track your investment accounts',
           route: '/net-worth/investments',
-          icon: 'ChartIcon',
+          icon: 'chart',
           iconBgClass: 'bg-indigo-100',
           iconClass: 'text-indigo-600',
           priority: 4,
@@ -343,7 +208,7 @@ export default {
           title: 'Cash & Savings',
           description: 'Add your savings accounts',
           route: '/net-worth/savings',
-          icon: 'PiggyBankIcon',
+          icon: 'cash',
           iconBgClass: 'bg-sky-100',
           iconClass: 'text-sky-600',
           priority: 5,
@@ -357,7 +222,7 @@ export default {
           title: 'Financial Goals',
           description: 'Set and track your goals',
           route: '/goals',
-          icon: 'TargetIcon',
+          icon: 'target',
           iconBgClass: 'bg-primary-100',
           iconClass: 'text-primary-600',
           priority: 6,
@@ -371,7 +236,7 @@ export default {
           title: 'Income Details',
           description: 'Add your income sources',
           route: '/valuable-info?section=income',
-          icon: 'CurrencyIcon',
+          icon: 'currency',
           iconBgClass: 'bg-emerald-100',
           iconClass: 'text-emerald-600',
           priority: 7,
