@@ -1,21 +1,7 @@
 <template>
   <div>
-      <!-- Header Row -->
-      <div class="flex items-center justify-between border-b border-gray-200 pb-4 mb-4">
-        <div>
-          <span class="text-sm text-gray-500">Recommended Actions</span>
-          <div class="flex items-baseline gap-2 mt-1">
-            <span class="text-3xl font-bold text-primary-600">
-              {{ totalActions }}
-            </span>
-            <span class="text-sm text-gray-500">actions to review</span>
-          </div>
-        </div>
-        <div v-if="totalPotentialSavings > 0" class="text-right">
-          <span class="text-sm text-gray-500">Potential savings</span>
-          <p class="text-xl font-bold text-green-600">{{ formatCurrency(totalPotentialSavings) }}<span class="text-sm font-normal">/yr</span></p>
-        </div>
-      </div>
+      <!-- Header -->
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">Recommended Actions</h3>
 
       <!-- Actions List -->
       <div v-if="displayedActions.length > 0" class="space-y-2">
