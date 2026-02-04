@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\UserProfile;
 
+use App\Models\Property;
 use App\Models\User;
 use App\Services\Benefits\ChildBenefitService;
 use App\Services\Shared\CrossModuleAssetAggregator;
@@ -161,6 +162,10 @@ class UserProfileService
     /**
      * Calculate total annual taxable rental income from user's BTL properties.
      * Uses PropertyService::calculateTaxPosition() as the single source of truth.
+     *
+     * Includes both:
+     * - Properties where user is primary owner (user_id)
+     * - Properties where user is joint owner (joint_owner_id)
      */
     private function calculateAnnualRentalIncome(User $user): array
     {
@@ -169,13 +174,18 @@ class UserProfileService
         $totalTaxableIncome = 0;
         $totalSection24Credit = 0;
 
-        foreach ($user->properties as $property) {
-            if ($property->property_type !== 'buy_to_let') {
-                continue;
-            }
+        // Get all BTL properties where user is either primary owner OR joint owner
+        $btlProperties = Property::where('property_type', 'buy_to_let')
+            ->where(function ($query) use ($user) {
+                $query->where('user_id', $user->id)
+                    ->orWhere('joint_owner_id', $user->id);
+            })
+            ->with('mortgages')
+            ->get();
 
-            $property->load('mortgages');
-            $taxPosition = $propertyService->calculateTaxPosition($property);
+        foreach ($btlProperties as $property) {
+            // Pass user ID so calculateTaxPosition returns the correct ownership share
+            $taxPosition = $propertyService->calculateTaxPosition($property, $user->id);
 
             if ($taxPosition['annual_taxable_income'] <= 0 && $taxPosition['section_24_annual_credit'] <= 0) {
                 continue;
@@ -188,6 +198,7 @@ class UserProfileService
                 'name' => $taxPosition['property_name'],
                 'annual_taxable' => $taxPosition['annual_taxable_income'],
                 'annual_credit' => $taxPosition['section_24_annual_credit'],
+                'ownership_percentage' => $taxPosition['ownership_percentage'],
             ];
         }
 

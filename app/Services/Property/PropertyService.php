@@ -75,8 +75,12 @@ class PropertyService
      * Calculate tax position for a BTL property.
      * Single source of truth for taxable rental income and Section 24 credit.
      * Used by both the property financials tab and the income tax calculator.
+     *
+     * @param  Property  $property  The BTL property
+     * @param  int|null  $userId  Optional user ID to calculate their specific share.
+     *                            If null, calculates primary owner's share.
      */
-    public function calculateTaxPosition(Property $property): array
+    public function calculateTaxPosition(Property $property, ?int $userId = null): array
     {
         $monthlyRental = (float) ($property->monthly_rental_income ?? 0);
 
@@ -112,10 +116,27 @@ class PropertyService
             }
         }
 
-        // Apply ownership percentage for joint properties
+        // Calculate ownership percentage based on user's role (primary or joint owner)
         $ownershipMultiplier = 1.0;
         if ($property->ownership_type === 'joint' || $property->ownership_type === 'tenants_in_common') {
-            $ownershipMultiplier = ((float) ($property->ownership_percentage ?? 50)) / 100;
+            $primaryOwnerPercentage = (float) ($property->ownership_percentage ?? 50);
+
+            if ($userId !== null) {
+                // Determine if user is primary owner or joint owner
+                if ($property->user_id === $userId) {
+                    // User is primary owner - use their percentage
+                    $ownershipMultiplier = $primaryOwnerPercentage / 100;
+                } elseif ($property->joint_owner_id === $userId) {
+                    // User is joint owner - use remaining percentage
+                    $ownershipMultiplier = (100 - $primaryOwnerPercentage) / 100;
+                } else {
+                    // User is neither owner - return zero
+                    $ownershipMultiplier = 0.0;
+                }
+            } else {
+                // No user specified - default to primary owner's share (backwards compatible)
+                $ownershipMultiplier = $primaryOwnerPercentage / 100;
+            }
         }
 
         $userMonthlyTaxable = $monthlyTaxableIncome * $ownershipMultiplier;
