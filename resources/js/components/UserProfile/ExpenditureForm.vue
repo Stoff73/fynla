@@ -38,7 +38,7 @@
             'whitespace-nowrap py-3 px-1 border-b-2 font-medium text-body-sm'
           ]"
         >
-          Widowed
+          Budget if Widowed
         </button>
       </nav>
     </div>

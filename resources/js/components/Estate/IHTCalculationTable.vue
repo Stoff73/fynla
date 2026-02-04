@@ -1,5 +1,19 @@
 <template>
   <div class="overflow-x-auto">
+    <!-- Expand/Collapse All Button -->
+    <div class="flex justify-end mb-2">
+      <button
+        type="button"
+        class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
+        @click="toggleExpandAll"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+          <path v-if="allExpanded" stroke-linecap="round" stroke-linejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
+          <path v-else stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+        </svg>
+        {{ allExpanded ? 'Collapse All' : 'Expand All' }}
+      </button>
+    </div>
     <table class="min-w-full divide-y divide-gray-200">
       <thead class="bg-gray-50">
         <tr>
@@ -599,6 +613,16 @@ export default {
     totalAllowances() {
       return this.allowances.totalNrb + this.allowances.totalRnrb;
     },
+    allExpanded() {
+      // Check if all expandable sections are expanded
+      const hasExpandedAssets = Object.keys(this.expandedAssets).length > 0 &&
+        Object.values(this.expandedAssets).some(v => v);
+      const hasExpandedLiabilities = Object.keys(this.expandedLiabilities).length > 0 &&
+        Object.values(this.expandedLiabilities).some(v => v);
+      const hasExpandedAllowances = this.expandedAllowances || this.expandedNRB || this.expandedRNRB;
+
+      return hasExpandedAssets || hasExpandedLiabilities || hasExpandedAllowances;
+    },
   },
 
   methods: {
@@ -620,6 +644,34 @@ export default {
 
     toggleRNRB() {
       this.expandedRNRB = !this.expandedRNRB;
+    },
+
+    toggleExpandAll() {
+      const shouldExpand = !this.allExpanded;
+
+      // Toggle all asset groups (keys use format: ownerKey-type)
+      const assetKeys = [
+        'user-all', 'user-property', 'user-investment', 'user-cash', 'user-business', 'user-chattel',
+        'spouse-all', 'spouse-property', 'spouse-investment', 'spouse-cash', 'spouse-business', 'spouse-chattel'
+      ];
+      const newExpandedAssets = {};
+      assetKeys.forEach(key => {
+        newExpandedAssets[key] = shouldExpand;
+      });
+      this.expandedAssets = newExpandedAssets;
+
+      // Toggle all liability groups (keys use format: ownerKey-type)
+      const liabilityKeys = ['user-all', 'user-mortgages', 'user-other', 'spouse-all', 'spouse-mortgages', 'spouse-other'];
+      const newExpandedLiabilities = {};
+      liabilityKeys.forEach(key => {
+        newExpandedLiabilities[key] = shouldExpand;
+      });
+      this.expandedLiabilities = newExpandedLiabilities;
+
+      // Toggle allowances
+      this.expandedAllowances = shouldExpand;
+      this.expandedNRB = shouldExpand;
+      this.expandedRNRB = shouldExpand;
     },
 
     getProjectedValueMinus5(currentValue) {
