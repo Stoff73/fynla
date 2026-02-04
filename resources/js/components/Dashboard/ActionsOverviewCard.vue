@@ -78,6 +78,10 @@ export default {
       type: Boolean,
       default: false,
     },
+    limit: {
+      type: Number,
+      default: 0, // 0 means no limit
+    },
   },
 
   data() {
@@ -140,9 +144,13 @@ export default {
     },
 
     displayedActions() {
-      // Sort by priority (lower number = higher priority) and show all
-      return [...this.allActions]
-        .sort((a, b) => a.priority - b.priority);
+      // Sort by priority (lower number = higher priority)
+      const sorted = [...this.allActions].sort((a, b) => a.priority - b.priority);
+      // Apply limit if specified
+      if (this.limit > 0) {
+        return sorted.slice(0, this.limit);
+      }
+      return sorted;
     },
 
     totalActions() {

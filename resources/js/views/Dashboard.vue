@@ -321,8 +321,8 @@
         </DashboardCard>
 
         <!-- Actions Card - fills 3rd slot in row 2 -->
-        <div class="bg-white rounded-lg border border-gray-200 p-6">
-          <ActionsOverviewCard :compact="true" />
+        <div>
+          <ActionsOverviewCard :compact="true" :limit="5" />
         </div>
 
         <!-- Goals & Events Card (spans 2 columns on larger screens) -->
