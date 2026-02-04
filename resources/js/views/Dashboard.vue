@@ -273,6 +273,42 @@
           </div>
         </DashboardCard>
 
+        <!-- Estate Planning Card -->
+        <DashboardCard
+          v-if="hasEstateData"
+          title="Estate Planning"
+          :loading="loading.estate"
+          @click="navigateTo('/estate')"
+        >
+          <div class="space-y-4">
+            <!-- Estate Value -->
+            <div class="border-b border-gray-200 pb-4">
+              <span class="text-sm text-gray-500">Estate Value</span>
+              <div class="mt-1">
+                <span class="text-2xl font-bold text-gray-900">
+                  {{ formatCurrency(estateData.estateValue) }}
+                </span>
+              </div>
+            </div>
+
+            <!-- IHT Liability -->
+            <div>
+              <span class="text-sm text-gray-500">IHT Liability</span>
+              <div class="mt-1">
+                <span
+                  class="text-2xl font-bold"
+                  :class="estateData.ihtLiability > 0 ? 'text-red-600' : 'text-green-600'"
+                >
+                  {{ formatCurrency(estateData.ihtLiability) }}
+                </span>
+              </div>
+              <div v-if="estateData.ihtLiability > 0" class="mt-2 text-xs text-gray-500">
+                {{ Math.round((estateData.ihtLiability / estateData.estateValue) * 100) }}% of estate value
+              </div>
+            </div>
+          </div>
+        </DashboardCard>
+
         <!-- Goals & Events Card (spans 2 columns on larger screens) -->
         <DashboardCard
           v-if="hasGoalsData"
@@ -347,6 +383,7 @@ export default {
       loading: {
         netWorth: true,
         retirement: true,
+        estate: true,
         investment: true,
         protection: true,
         goals: true,
@@ -506,6 +543,20 @@ export default {
     // Goals data
     ...mapState('goals', ['dashboardOverview', 'projectionData']),
     ...mapGetters('goals', ['dashboardData']),
+
+    // Estate data
+    ...mapGetters('estate', ['ihtLiability', 'netEstateValue']),
+
+    estateData() {
+      return {
+        estateValue: this.netEstateValue || 0,
+        ihtLiability: this.ihtLiability || 0,
+      };
+    },
+
+    hasEstateData() {
+      return this.netEstateValue > 0;
+    },
 
     goalsData() {
       const data = this.dashboardData || {};
