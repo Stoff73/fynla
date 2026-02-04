@@ -294,3 +294,49 @@ Changes are backward compatible. Verify by:
 2. Testing estate planning analysis
 3. Testing retirement projections
 4. Checking Monte Carlo simulations still work
+
+---
+
+## Dashboard Redesign
+
+### Summary
+
+Redesigned the dashboard cards to show more detailed information with real data from APIs.
+
+### Changes
+
+1. **Net Worth Card**
+   - Removed "Total Net Worth" heading - just shows the value
+   - Lists all assets by category (Pensions, Property, Investments, Cash & Savings, Business Interests, Chattels)
+   - Shows Total Assets
+   - Lists all liabilities by category (Mortgages, Loans, Credit Cards, Other)
+   - Shows Total Liabilities
+
+2. **Retirement Card**
+   - Shows Projected Retirement Income (from `analysis.projected_income`)
+   - Shows Capital Required (from `requiredCapital.required_capital_at_retirement`)
+   - Shows Retirement Age
+   - Shows Years to Retirement
+   - Added `analyseRetirement` and `fetchRequiredCapital` to data loading
+
+3. **Investments & Savings Card**
+   - Lists individual investment accounts as line items with values
+   - Shows Total Investments
+   - Lists individual cash accounts as line items with values
+   - Shows Total Cash
+
+### Files Changed
+
+| File | Change Type |
+|------|-------------|
+| `resources/js/views/Dashboard.vue` | Modified |
+
+### Deployment
+
+**Frontend Rebuild Required:** ✅ YES
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+Then upload `public/build/` directory to production.
