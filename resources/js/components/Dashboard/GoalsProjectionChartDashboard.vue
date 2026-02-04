@@ -13,7 +13,7 @@
           type="bar"
           :options="chartOptions"
           :series="chartSeries"
-          height="300"
+          height="340"
           @updated="updateEventMarkers"
           @mounted="updateEventMarkers"
         ></apexchart>
@@ -167,7 +167,7 @@ export default {
           borderColor: BORDER_COLORS.default,
           strokeDashArray: 4,
           padding: {
-            top: 80, // Space for event icons
+            top: 60, // Space for event icons
           },
         },
         annotations: this.retirementAnnotation,
