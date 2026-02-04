@@ -114,6 +114,17 @@ Added a Fees section to the Overview tab for DC pensions in the detailed view. S
 | File | Change Type |
 |------|-------------|
 | `resources/js/components/NetWorth/PensionDetailInline.vue` | Modified |
+| `resources/js/data/personas/peak_earners.json` | Modified |
+| `resources/js/data/personas/young_family.json` | Modified |
+| `resources/js/data/personas/entrepreneur.json` | Modified |
+| `resources/js/data/personas/young_saver.json` | Modified |
+| `database/seeders/PreviewUserSeeder.php` | Modified |
+
+### Changes Made
+
+1. **Vue Component** - Added Fees section to DC pension Overview tab
+2. **Persona Data** - Added `platform_fee_percent` to all DC pensions in persona JSON files
+3. **Seeder** - Fixed to map `platform_fee_percent` field + fixed LifeEvent soft-delete FK constraint
 
 ### Deployment
 
@@ -124,6 +135,12 @@ Added a Fees section to the Overview tab for DC pensions in the detailed view. S
 ```
 
 Then upload `public/build/` directory to production.
+
+**Seeder Required:** ✅ YES (to populate platform fees)
+
+```bash
+php artisan db:seed --class=PreviewUserSeeder --force
+```
 
 ---
 
@@ -155,6 +172,8 @@ Then upload `public/build/` directory to production.
 
 - [ ] Run `./deploy/fynla-org/build.sh`
 - [ ] Upload `public/build/` directory
+- [ ] Upload `database/seeders/PreviewUserSeeder.php`
+- [ ] Run `php artisan db:seed --class=PreviewUserSeeder --force` on server
 
 ### Post-Upload Commands
 
