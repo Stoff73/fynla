@@ -195,6 +195,11 @@ php artisan db:seed --class=PreviewUserSeeder --force
 - [x] Run `./deploy/fynla-org/build.sh`
 - [x] Upload `public/build/` directory
 
+### Acronym Expansion ✅
+
+- [x] Run `./deploy/fynla-org/build.sh`
+- [x] Upload `public/build/` directory
+
 ### Post-Upload Commands
 
 ```bash
