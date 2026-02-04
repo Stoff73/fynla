@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Agents;
 
+use App\Constants\EstateDefaults;
+use App\Constants\TaxDefaults;
 use App\Models\Estate\Will;
 use App\Models\User;
 use App\Services\Estate\ComprehensiveEstatePlanService;
@@ -114,7 +116,7 @@ class EstateAgent extends BaseAgent
 
             // Calculate current age and life expectancy context
             $currentAge = $user->date_of_birth ?
-                (int) $user->date_of_birth->diffInYears(now()) : 50;
+                (int) $user->date_of_birth->diffInYears(now()) : EstateDefaults::DEFAULT_CURRENT_AGE;
 
             return $this->response(
                 true,
@@ -400,10 +402,10 @@ class EstateAgent extends BaseAgent
     private function step4AnnualGiftingStrategy(int $currentAge, float $remainingLiability): array
     {
         $ihtConfig = $this->taxConfig->getInheritanceTax();
-        $annualExemption = $ihtConfig['annual_exemption'] ?? 3000;
+        $annualExemption = $ihtConfig['annual_exemption'] ?? TaxDefaults::ANNUAL_GIFT_EXEMPTION;
 
-        // Estimate years to life expectancy (simplified)
-        $yearsToLifeExpectancy = max(1, 85 - $currentAge);
+        // Estimate years to life expectancy
+        $yearsToLifeExpectancy = max(1, EstateDefaults::DEFAULT_LIFE_EXPECTANCY - $currentAge);
 
         // Annual exemption potential (including carry forward from unused previous year)
         $annualGiftingCapacity = $annualExemption * $yearsToLifeExpectancy;
@@ -476,10 +478,10 @@ class EstateAgent extends BaseAgent
     private function step6PETGiftingStrategy(int $currentAge, float $remainingLiability): array
     {
         $ihtConfig = $this->taxConfig->getInheritanceTax();
-        $nrb = $ihtConfig['nil_rate_band'] ?? 325000;
+        $nrb = $ihtConfig['nil_rate_band'] ?? TaxDefaults::NRB;
 
         // Calculate years to life expectancy
-        $yearsToLifeExpectancy = max(1, 85 - $currentAge);
+        $yearsToLifeExpectancy = max(1, EstateDefaults::DEFAULT_LIFE_EXPECTANCY - $currentAge);
 
         // Calculate 7-year cycles available
         $sevenYearCycles = floor($yearsToLifeExpectancy / 7);
@@ -497,7 +499,7 @@ class EstateAgent extends BaseAgent
                 'title' => 'Potentially Exempt Transfer (PET) Strategy',
                 'description' => "With {$sevenYearCycles} seven-year cycles available, PETs up to {$this->formatCurrency($petCapacity)} could become fully exempt.",
                 'actions' => [
-                    "Make larger gifts (PETs) that become exempt after 7 years",
+                    'Make larger gifts (PETs) that become exempt after 7 years',
                     "Each 7-year cycle can shelter up to {$this->formatCurrency($nrb)} (the NRB)",
                     'Taper relief applies if death occurs within 7 years of a PET',
                     'Consider timing gifts to maximise 7-year survival probability',
@@ -520,8 +522,8 @@ class EstateAgent extends BaseAgent
     private function step7CLTIntoTrust(float $remainingLiability): array
     {
         $ihtConfig = $this->taxConfig->getInheritanceTax();
-        $nrb = $ihtConfig['nil_rate_band'] ?? 325000;
-        $cltRate = $ihtConfig['clt_rate'] ?? 0.20;
+        $nrb = $ihtConfig['nil_rate_band'] ?? TaxDefaults::NRB;
+        $cltRate = $ihtConfig['clt_rate'] ?? TaxDefaults::CLT_RATE;
 
         // Calculate immediate charge if CLT exceeds NRB
         $excessOverNRB = max(0, $remainingLiability - $nrb);
@@ -745,14 +747,15 @@ class EstateAgent extends BaseAgent
 
     /**
      * Invalidate cache for user's estate analysis.
+     *
+     * Uses the standardised cache invalidation from BaseAgent.
+     *
+     * @param  int  $userId  User ID
      */
     public function invalidateCache(int $userId): void
     {
-        // Use tagged cache flush if supported, otherwise forget the specific key
-        if ($this->cacheStoreSupportsTagging()) {
-            Cache::tags(['estate', 'user_'.$userId])->flush();
-        } else {
-            Cache::forget("estate_analysis_{$userId}");
-        }
+        $this->invalidateUserCache($userId, [
+            "estate_analysis_{$userId}",
+        ]);
     }
 }

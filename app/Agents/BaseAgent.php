@@ -4,14 +4,16 @@ declare(strict_types=1);
 
 namespace App\Agents;
 
+use App\Constants\TaxDefaults;
 use Illuminate\Support\Facades\Cache;
 
 abstract class BaseAgent
 {
     /**
      * Cache time-to-live in seconds.
+     * Uses TaxDefaults::CACHE_TTL_STANDARD for consistency across agents.
      */
-    protected int $cacheTtl = 3600; // 1 hour default
+    protected int $cacheTtl = TaxDefaults::CACHE_TTL_STANDARD;
 
     /**
      * Analyze user data and generate insights.
@@ -83,6 +85,54 @@ abstract class BaseAgent
     {
         foreach ($suffixes as $suffix) {
             Cache::forget($this->getUserCacheKey($userId, $suffix));
+        }
+    }
+
+    /**
+     * Invalidate all cache entries for a user.
+     *
+     * This is the standardised method for cache invalidation across all agents.
+     * It handles both tagged and non-tagged cache stores.
+     *
+     * @param  int  $userId  User ID
+     * @param  array  $additionalKeys  Additional specific cache keys to clear
+     */
+    public function invalidateUserCache(int $userId, array $additionalKeys = []): void
+    {
+        $agentName = strtolower(class_basename(static::class));
+
+        // Clear via tags if supported (Redis/Memcached)
+        if ($this->cacheStoreSupportsTagging()) {
+            Cache::tags([$agentName, 'user_'.$userId])->flush();
+        }
+
+        // Always clear specific known keys for consistency
+        $defaultSuffixes = ['analysis', 'recommendations', 'scenarios', 'summary', 'projection'];
+        foreach ($defaultSuffixes as $suffix) {
+            Cache::forget($this->getUserCacheKey($userId, $suffix));
+        }
+
+        // Clear any agent-specific cache key pattern
+        Cache::forget("{$agentName}_analysis_{$userId}");
+
+        // Clear additional specified keys
+        foreach ($additionalKeys as $key) {
+            Cache::forget($key);
+        }
+    }
+
+    /**
+     * Clear cache for multiple users (useful for joint accounts).
+     *
+     * @param  array<int>  $userIds  Array of user IDs
+     * @param  array  $additionalKeys  Additional keys to clear per user
+     */
+    public function invalidateCacheForUsers(array $userIds, array $additionalKeys = []): void
+    {
+        foreach ($userIds as $userId) {
+            if ($userId !== null) {
+                $this->invalidateUserCache($userId, $additionalKeys);
+            }
         }
     }
 

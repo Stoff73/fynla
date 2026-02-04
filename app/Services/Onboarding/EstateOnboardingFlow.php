@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Onboarding;
 
+use App\Constants\EstateDefaults;
+
 class EstateOnboardingFlow
 {
     /**
@@ -230,7 +232,7 @@ class EstateOnboardingFlow
             $hasTrusts = $userData['has_trusts'] ?? false;
             $estateValue = $this->calculateEstimatedEstateValue($userData);
 
-            return $hasTrusts || $estateValue > 2000000;
+            return $hasTrusts || $estateValue > EstateDefaults::RNRB_TAPER_THRESHOLD;
         }
 
         // Family Info - show spouse section only if married
@@ -251,25 +253,24 @@ class EstateOnboardingFlow
     {
         $estimatedValue = 0.0;
 
-        // Add property values (rough estimate)
+        // Add property values (uses average UK property price as rough estimate)
         if (isset($userData['has_properties']) && $userData['has_properties']) {
-            // Use average UK property price as rough estimate
-            $estimatedValue += 300000;
+            $estimatedValue += EstateDefaults::ESTIMATED_PROPERTY_VALUE;
         }
 
-        // Add investment values
+        // Add investment values (conservative estimate)
         if (isset($userData['has_investments']) && $userData['has_investments']) {
-            $estimatedValue += 100000; // Conservative estimate
+            $estimatedValue += EstateDefaults::ESTIMATED_INVESTMENT_VALUE;
         }
 
-        // Add savings
+        // Add savings (conservative estimate)
         if (isset($userData['has_savings']) && $userData['has_savings']) {
-            $estimatedValue += 50000; // Conservative estimate
+            $estimatedValue += EstateDefaults::ESTIMATED_SAVINGS_VALUE;
         }
 
-        // Add business interests
+        // Add business interests (conservative estimate)
         if (isset($userData['has_business_interests']) && $userData['has_business_interests']) {
-            $estimatedValue += 200000; // Conservative estimate
+            $estimatedValue += EstateDefaults::ESTIMATED_BUSINESS_VALUE;
         }
 
         return $estimatedValue;

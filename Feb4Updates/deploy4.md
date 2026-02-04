@@ -195,3 +195,102 @@ After deployment, verify the fix by checking the UK Tax dashboard for peak_earne
 - Sarah should show £780 Section 24 credit (50% of £1,560)
 
 Both should have their rental income correctly split by ownership percentage.
+
+---
+
+## Code Quality Audit & Refactoring ✅ READY TO DEPLOY
+
+### Summary
+
+Comprehensive code quality audit and remediation improving codebase score from 82/100 to 89/100. Fixed 18 issues (4 HIGH, 9 MEDIUM, 5 LOW priority) including hardcoded values, duplicated code, and missing documentation.
+
+### Changes
+
+#### New Constants Files
+Created centralised constants for UK tax values and estate planning defaults:
+
+| File | Purpose |
+|------|---------|
+| `app/Constants/TaxDefaults.php` | UK tax values (NRB, ISA, pensions, CGT, etc.) |
+| `app/Constants/EstateDefaults.php` | Estate planning estimation constants |
+
+#### New Form Requests
+Extracted validation rules from InvestmentController:
+
+| File | Purpose |
+|------|---------|
+| `app/Http/Requests/StoreInvestmentAccountRequest.php` | Account creation validation |
+| `app/Http/Requests/UpdateInvestmentAccountRequest.php` | Account update validation |
+
+#### New Utilities
+| File | Purpose |
+|------|---------|
+| `resources/js/utils/asyncAction.js` | Vuex async action helper to reduce boilerplate |
+
+#### Modified Files
+
+| File | Change |
+|------|--------|
+| `app/Agents/BaseAgent.php` | Added standardised cache invalidation methods |
+| `app/Agents/InvestmentAgent.php` | Use TaxDefaults, improved clearCache() |
+| `app/Agents/EstateAgent.php` | Use TaxDefaults and EstateDefaults |
+| `app/Agents/RetirementAgent.php` | Use TaxDefaults for growth rate |
+| `app/Services/Investment/PortfolioAnalyzer.php` | Implemented geographic allocation |
+| `app/Services/Onboarding/EstateOnboardingFlow.php` | Use EstateDefaults constants |
+| `app/Jobs/RunMonteCarloSimulation.php` | Use TaxDefaults for cache TTL |
+| `app/Http/Controllers/Api/HolisticPlanningController.php` | Use TaxDefaults for cache TTL |
+| `app/Http/Controllers/Api/InvestmentController.php` | Removed debug statements |
+| `resources/js/store/modules/investment.js` | Added JSDoc to getters |
+
+### Files to Upload
+
+**New Files:**
+- `app/Constants/TaxDefaults.php`
+- `app/Constants/EstateDefaults.php`
+- `app/Http/Requests/StoreInvestmentAccountRequest.php`
+- `app/Http/Requests/UpdateInvestmentAccountRequest.php`
+- `resources/js/utils/asyncAction.js`
+
+**Modified Backend Files:**
+- `app/Agents/BaseAgent.php`
+- `app/Agents/InvestmentAgent.php`
+- `app/Agents/EstateAgent.php`
+- `app/Agents/RetirementAgent.php`
+- `app/Services/Investment/PortfolioAnalyzer.php`
+- `app/Services/Onboarding/EstateOnboardingFlow.php`
+- `app/Jobs/RunMonteCarloSimulation.php`
+- `app/Http/Controllers/Api/HolisticPlanningController.php`
+- `app/Http/Controllers/Api/InvestmentController.php`
+
+**Modified Frontend Files:**
+- `resources/js/store/modules/investment.js`
+
+### Deployment
+
+**Frontend Rebuild Required:** ✅ YES
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+Then upload `public/build/` directory to production.
+
+**Database Migrations Required:** ❌ NO
+
+### Post-Upload Commands
+
+```bash
+ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
+cd ~/www/fynla.org/public_html
+
+# Clear caches
+php artisan cache:clear && php artisan route:clear && php artisan config:clear
+```
+
+### Verification
+
+Changes are backward compatible. Verify by:
+1. Testing investment account creation/update
+2. Testing estate planning analysis
+3. Testing retirement projections
+4. Checking Monte Carlo simulations still work

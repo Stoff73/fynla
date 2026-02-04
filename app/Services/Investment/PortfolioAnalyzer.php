@@ -79,18 +79,143 @@ class PortfolioAnalyzer
     }
 
     /**
-     * Calculate geographic allocation
-     * Note: This is a simplified implementation. In production, you'd have region data.
+     * Calculate geographic allocation based on holdings data.
+     *
+     * Analyses holdings to determine regional exposure. Falls back to asset-type
+     * based estimation when specific geographic data is not available.
+     *
+     * @param  Collection  $holdings  Collection of Holding models
+     * @return array Array of regions with percentage allocations
      */
     public function calculateGeographicAllocation(Collection $holdings): array
     {
-        // Placeholder - would require additional holding data for geographic info
-        return [
-            ['region' => 'UK', 'percentage' => 40],
-            ['region' => 'US', 'percentage' => 35],
-            ['region' => 'Europe', 'percentage' => 15],
-            ['region' => 'Emerging Markets', 'percentage' => 10],
+        if ($holdings->isEmpty()) {
+            return [];
+        }
+
+        $totalValue = $holdings->sum('current_value');
+        if ($totalValue == 0) {
+            return [];
+        }
+
+        // Attempt to use geographic data from holdings if available
+        $hasGeographicData = $holdings->contains(fn ($h) => ! empty($h->region) || ! empty($h->country));
+
+        if ($hasGeographicData) {
+            return $this->calculateFromHoldingRegions($holdings, $totalValue);
+        }
+
+        // Fall back to asset-type based estimation
+        return $this->estimateGeographicFromAssetTypes($holdings, $totalValue);
+    }
+
+    /**
+     * Calculate geographic allocation from holding region data.
+     */
+    private function calculateFromHoldingRegions(Collection $holdings, float $totalValue): array
+    {
+        $byRegion = $holdings->groupBy(function ($holding) {
+            // Use region field if available, otherwise map country to region
+            if (! empty($holding->region)) {
+                return $holding->region;
+            }
+
+            if (! empty($holding->country)) {
+                return $this->mapCountryToRegion($holding->country);
+            }
+
+            return 'Unknown';
+        });
+
+        return $byRegion->map(function ($group, $region) use ($totalValue) {
+            $regionValue = $group->sum('current_value');
+
+            return [
+                'region' => $region,
+                'percentage' => round(($regionValue / $totalValue) * 100, 1),
+                'value' => round($regionValue, 2),
+            ];
+        })->sortByDesc('percentage')->values()->toArray();
+    }
+
+    /**
+     * Estimate geographic allocation based on asset types.
+     *
+     * Uses typical fund compositions when specific geographic data is unavailable.
+     */
+    private function estimateGeographicFromAssetTypes(Collection $holdings, float $totalValue): array
+    {
+        $regionTotals = [
+            'UK' => 0.0,
+            'US' => 0.0,
+            'Europe' => 0.0,
+            'Emerging Markets' => 0.0,
+            'Other' => 0.0,
         ];
+
+        foreach ($holdings as $holding) {
+            $value = (float) $holding->current_value;
+            $assetType = $holding->asset_type ?? 'unknown';
+
+            // Estimate regional exposure based on asset type
+            $allocation = match ($assetType) {
+                'uk_equity' => ['UK' => 1.0],
+                'us_equity' => ['US' => 1.0],
+                'international_equity' => ['US' => 0.4, 'Europe' => 0.3, 'Emerging Markets' => 0.2, 'Other' => 0.1],
+                'equity', 'fund', 'etf' => ['UK' => 0.25, 'US' => 0.45, 'Europe' => 0.15, 'Emerging Markets' => 0.15],
+                'bond' => ['UK' => 0.5, 'US' => 0.3, 'Europe' => 0.2],
+                default => ['Other' => 1.0],
+            };
+
+            foreach ($allocation as $region => $weight) {
+                $regionTotals[$region] += $value * $weight;
+            }
+        }
+
+        // Convert to percentages
+        $result = [];
+        foreach ($regionTotals as $region => $value) {
+            if ($value > 0) {
+                $result[] = [
+                    'region' => $region,
+                    'percentage' => round(($value / $totalValue) * 100, 1),
+                    'estimated' => true,
+                ];
+            }
+        }
+
+        // Sort by percentage descending
+        usort($result, fn ($a, $b) => $b['percentage'] <=> $a['percentage']);
+
+        return $result;
+    }
+
+    /**
+     * Map country codes/names to regions.
+     */
+    private function mapCountryToRegion(string $country): string
+    {
+        $country = strtoupper(trim($country));
+
+        $regionMap = [
+            // UK
+            'UK' => 'UK', 'GB' => 'UK', 'UNITED KINGDOM' => 'UK',
+            // US
+            'US' => 'US', 'USA' => 'US', 'UNITED STATES' => 'US',
+            // Europe
+            'DE' => 'Europe', 'GERMANY' => 'Europe',
+            'FR' => 'Europe', 'FRANCE' => 'Europe',
+            'IT' => 'Europe', 'ITALY' => 'Europe',
+            'ES' => 'Europe', 'SPAIN' => 'Europe',
+            'NL' => 'Europe', 'NETHERLANDS' => 'Europe',
+            'CH' => 'Europe', 'SWITZERLAND' => 'Europe',
+            // Emerging Markets
+            'CN' => 'Emerging Markets', 'CHINA' => 'Emerging Markets',
+            'IN' => 'Emerging Markets', 'INDIA' => 'Emerging Markets',
+            'BR' => 'Emerging Markets', 'BRAZIL' => 'Emerging Markets',
+        ];
+
+        return $regionMap[$country] ?? 'Other';
     }
 
     /**

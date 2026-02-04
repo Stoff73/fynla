@@ -212,14 +212,9 @@ class InvestmentController extends Controller
      */
     public function getMonteCarloResults(string $jobId): JsonResponse
     {
-        \Log::debug("Checking Monte Carlo results for job: {$jobId}");
-
         $status = Cache::get("monte_carlo_status_{$jobId}");
 
-        \Log::debug("Monte Carlo status for {$jobId}: ".($status ?? 'NULL'));
-
         if (! $status) {
-            \Log::debug("Job {$jobId} not found in cache");
 
             return response()->json([
                 'success' => false,
@@ -761,17 +756,8 @@ class InvestmentController extends Controller
             ->firstOrFail();
 
         // Toggle the flag
-        $oldValue = $account->include_in_retirement;
         $account->include_in_retirement = ! $account->include_in_retirement;
         $account->save();
-
-        // DEBUG: Log the toggle operation
-        \Log::debug('InvestmentController::toggleRetirementInclusion', [
-            'account_id' => $account->id,
-            'account_type' => $account->account_type,
-            'old_value' => $oldValue,
-            'new_value' => $account->include_in_retirement,
-        ]);
 
         // Clear caches
         $this->investmentAgent->clearCache($user->id);
@@ -1165,11 +1151,6 @@ class InvestmentController extends Controller
         }
 
         try {
-            \Log::info('getAccountProjections called', [
-                'account_id' => $id,
-                'risk_level_override' => $riskLevelOverride,
-            ]);
-
             // Use the risk-override method for direct account projection
             $accountProjection = $this->projectionService->getAccountProjectionWithRiskOverride(
                 $account,
@@ -1177,12 +1158,6 @@ class InvestmentController extends Controller
                 $riskLevelOverride,
                 [5, 10, 20, 30]
             );
-
-            \Log::info('Projection result', [
-                'risk_level' => $accountProjection['risk_level'],
-                'expected_return' => $accountProjection['expected_return'],
-                'volatility' => $accountProjection['volatility'],
-            ]);
 
             return response()->json([
                 'success' => true,
