@@ -721,5 +721,68 @@
         "content": "Robert's NRB (£325k) and RNRB (£175k) transferred to me.\n\nMy total allowances:\n- NRB: £650,000 (double)\n- RNRB: £350,000 (double)\n- Total: £1,000,000\n\nCurrent estate: ~£1,595,000\nEstimated IHT: ~£238,000 (40% of excess)\n\nLife insurance (£100k in trust) covers most of this.\n\nGifting strategy: £6,000/year (2 x £3k exemptions) to grandchildren.\n£45,000 already gifted in last 7 years - children got house deposit help."
       }
     ]
-  }
+  },
+
+  "life_events": [
+    {
+      "event_name": "Long-term Care Costs",
+      "event_type": "medical_expense",
+      "description": "Potential need for care home or live-in care in later years. Planning for 3-5 years of care costs.",
+      "amount": 150000,
+      "impact_type": "expense",
+      "expected_date": "2035-01-01",
+      "certainty": "possible",
+      "show_in_projection": true,
+      "show_in_household_view": false,
+      "ownership_type": "individual"
+    },
+    {
+      "event_name": "Sell Padstow Cottage",
+      "event_type": "property_sale",
+      "description": "Consider selling the Cornwall holiday cottage to simplify estate and release capital",
+      "amount": 285000,
+      "impact_type": "income",
+      "expected_date": "2030-06-01",
+      "certainty": "possible",
+      "show_in_projection": true,
+      "show_in_household_view": false,
+      "ownership_type": "individual"
+    },
+    {
+      "event_name": "Grandchildren University Gift",
+      "event_type": "gift_given",
+      "description": "Help grandchildren with university costs - £10k each for 5 grandchildren",
+      "amount": 50000,
+      "impact_type": "expense",
+      "expected_date": "2028-09-01",
+      "certainty": "likely",
+      "show_in_projection": true,
+      "show_in_household_view": false,
+      "ownership_type": "individual"
+    },
+    {
+      "event_name": "Replace Car (Final)",
+      "event_type": "large_purchase",
+      "description": "Final car purchase - automatic, easy access vehicle",
+      "amount": 28000,
+      "impact_type": "expense",
+      "expected_date": "2027-03-01",
+      "certainty": "likely",
+      "show_in_projection": true,
+      "show_in_household_view": false,
+      "ownership_type": "individual"
+    },
+    {
+      "event_name": "Home Adaptations",
+      "event_type": "home_improvement",
+      "description": "Mobility adaptations to allow staying at home longer - stairlift, bathroom modifications",
+      "amount": 25000,
+      "impact_type": "expense",
+      "expected_date": "2029-01-01",
+      "certainty": "likely",
+      "show_in_projection": true,
+      "show_in_household_view": false,
+      "ownership_type": "individual"
+    }
+  ]
 }

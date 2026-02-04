@@ -306,6 +306,7 @@
       "retirement_age": 55,
       "ownership_type": "individual",
       "risk_preference": "upper_medium",
+      "platform_fee_percent": 0.30,
       "notes": "Company director pension - employer contribution via company"
     },
     {
@@ -320,6 +321,7 @@
       "ownership_type": "individual",
       "risk_preference": "upper_medium",
       "has_custom_risk": true,
+      "platform_fee_percent": 0.25,
       "notes": "Personal SIPP with additional contributions",
       "holdings": [
         {
@@ -736,5 +738,80 @@
         "content": "Wei Chen (father, 66) - May need care support in future\nMei Chen (mother, 63) - Currently in good health\n\nI've been setting aside money for their future care.\nThe Aldermore savings (£40,000) and life insurance proceeds should help.\n\nThey live in Hong Kong - may want to return to UK for care."
       }
     ]
-  }
+  },
+
+  "life_events": [
+    {
+      "event_name": "Chen Tech Consulting Acquisition Offer",
+      "event_type": "business_sale",
+      "description": "Potential acquisition by larger consulting firm. Multiple expressions of interest over the years.",
+      "amount": 650000,
+      "impact_type": "income",
+      "expected_date": "2031-06-01",
+      "certainty": "possible",
+      "show_in_projection": true,
+      "show_in_household_view": false,
+      "ownership_type": "individual"
+    },
+    {
+      "event_name": "BTL Property Investment",
+      "event_type": "large_purchase",
+      "description": "Purchase of buy-to-let property in Manchester for rental income diversification",
+      "amount": 180000,
+      "impact_type": "expense",
+      "expected_date": "2027-09-01",
+      "certainty": "likely",
+      "show_in_projection": true,
+      "show_in_household_view": false,
+      "ownership_type": "individual"
+    },
+    {
+      "event_name": "Parents UK Relocation Support",
+      "event_type": "gift_given",
+      "description": "Help parents relocate from Hong Kong to UK including housing deposit assistance",
+      "amount": 80000,
+      "impact_type": "expense",
+      "expected_date": "2028-03-01",
+      "certainty": "possible",
+      "show_in_projection": true,
+      "show_in_household_view": false,
+      "ownership_type": "individual"
+    },
+    {
+      "event_name": "Annual Dividend",
+      "event_type": "bonus",
+      "description": "Annual dividend from Chen Tech Consulting (varies with profits)",
+      "amount": 45000,
+      "impact_type": "income",
+      "expected_date": "2026-05-01",
+      "certainty": "likely",
+      "show_in_projection": true,
+      "show_in_household_view": false,
+      "ownership_type": "individual"
+    },
+    {
+      "event_name": "TechAngel Venture Exit",
+      "event_type": "custom_income",
+      "description": "Expected return from TechAngel Ventures portfolio company exit (25% share)",
+      "amount": 75000,
+      "impact_type": "income",
+      "expected_date": "2029-12-01",
+      "certainty": "speculative",
+      "show_in_projection": true,
+      "show_in_household_view": false,
+      "ownership_type": "individual"
+    },
+    {
+      "event_name": "Office Expansion",
+      "event_type": "large_purchase",
+      "description": "Expand Chen Tech office space or acquire new premises",
+      "amount": 35000,
+      "impact_type": "expense",
+      "expected_date": "2027-01-01",
+      "certainty": "likely",
+      "show_in_projection": true,
+      "show_in_household_view": false,
+      "ownership_type": "individual"
+    }
+  ]
 }

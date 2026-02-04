@@ -17,6 +17,7 @@ use App\Models\Estate\Will;
 use App\Models\FamilyMember;
 use App\Models\Goal;
 use App\Models\IncomeProtectionPolicy;
+use App\Models\LifeEvent;
 use App\Models\Investment\Holding;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\Investment\RiskProfile;
@@ -150,6 +151,9 @@ class PreviewUserSeeder extends Seeder
         // Create goals
         $this->createGoals($user, $spouse, $data['goals'] ?? []);
 
+        // Create life events
+        $this->createLifeEvents($user, $spouse, $data['life_events'] ?? []);
+
         // Create letters to spouse
         $this->createLetterToSpouse($user, $spouse, $data['letter_to_spouse'] ?? null, $data['chattels'] ?? []);
 
@@ -225,6 +229,9 @@ class PreviewUserSeeder extends Seeder
         BusinessInterest::where('user_id', $user->id)->delete();
         Chattel::where('user_id', $user->id)->delete();
         Goal::where('user_id', $user->id)->delete();
+        // Delete life events where user is owner OR joint owner (force delete to clear soft-deleted records)
+        LifeEvent::withTrashed()->where('user_id', $user->id)->forceDelete();
+        LifeEvent::withTrashed()->where('joint_owner_id', $user->id)->forceDelete();
 
         // Delete wills and bequests
         $wills = Will::where('user_id', $user->id)->get();
@@ -808,6 +815,7 @@ class PreviewUserSeeder extends Seeder
                 'retirement_age' => $pension['retirement_age'] ?? 65,
                 'risk_preference' => $pension['risk_preference'] ?? null,
                 'has_custom_risk' => ! empty($pension['has_custom_risk']),
+                'platform_fee_percent' => $pension['platform_fee_percent'] ?? null,
             ]);
 
             // Create holdings for the pension (e.g., SIPP holdings)
@@ -1387,6 +1395,45 @@ class PreviewUserSeeder extends Seeder
                 'deposit_percentage' => $goal['deposit_percentage'] ?? null,
                 'stamp_duty_estimate' => $goal['stamp_duty_estimate'] ?? null,
                 'additional_costs_estimate' => $goal['additional_costs_estimate'] ?? null,
+            ]);
+        }
+    }
+
+    /**
+     * Create life events for users.
+     * Assigns events to spouse if 'owner' => 'spouse' flag is set.
+     */
+    private function createLifeEvents(User $user, ?User $spouse, array $lifeEvents): void
+    {
+        foreach ($lifeEvents as $event) {
+            // Determine owner
+            $owner = $user;
+            if ($spouse && ($event['owner'] ?? null) === 'spouse') {
+                $owner = $spouse;
+            }
+
+            // Determine joint owner for joint events
+            $jointOwnerId = null;
+            if (($event['ownership_type'] ?? 'individual') === 'joint' && $spouse) {
+                $jointOwnerId = ($owner->id === $user->id) ? $spouse->id : $user->id;
+            }
+
+            LifeEvent::create([
+                'user_id' => $owner->id,
+                'event_name' => $event['event_name'] ?? '',
+                'event_type' => $event['event_type'] ?? 'custom_income',
+                'description' => $event['description'] ?? null,
+                'amount' => $event['amount'] ?? 0,
+                'impact_type' => $event['impact_type'] ?? 'income',
+                'expected_date' => $event['expected_date'] ?? null,
+                'certainty' => $event['certainty'] ?? 'likely',
+                'icon' => $event['icon'] ?? null,
+                'show_in_projection' => $event['show_in_projection'] ?? true,
+                'show_in_household_view' => $event['show_in_household_view'] ?? true,
+                'ownership_type' => $event['ownership_type'] ?? 'individual',
+                'joint_owner_id' => $jointOwnerId,
+                'ownership_percentage' => $event['ownership_percentage'] ?? 100,
+                'status' => $event['status'] ?? 'expected',
             ]);
         }
     }

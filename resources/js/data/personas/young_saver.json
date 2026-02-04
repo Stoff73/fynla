@@ -114,6 +114,7 @@
       "retirement_age": 67,
       "ownership_type": "individual",
       "risk_preference": "medium",
+      "platform_fee_percent": 0.30,
       "notes": "Auto-enrolled workplace pension. Contributing 5% with 3% employer match."
     }
   ],
@@ -289,6 +290,69 @@
       "contribution_streak": 6,
       "longest_streak": 6,
       "last_contribution_date": "2026-01-01",
+      "ownership_type": "individual"
+    }
+  ],
+
+  "life_events": [
+    {
+      "event_name": "First Car Purchase",
+      "event_type": "large_purchase",
+      "description": "Buy first car - reliable used hatchback for commuting",
+      "amount": 8000,
+      "impact_type": "expense",
+      "expected_date": "2027-06-01",
+      "certainty": "likely",
+      "show_in_projection": true,
+      "show_in_household_view": false,
+      "ownership_type": "individual"
+    },
+    {
+      "event_name": "Annual Bonus",
+      "event_type": "bonus",
+      "description": "Expected performance bonus at TechFlow Digital",
+      "amount": 3500,
+      "impact_type": "income",
+      "expected_date": "2026-04-01",
+      "certainty": "likely",
+      "show_in_projection": true,
+      "show_in_household_view": false,
+      "ownership_type": "individual"
+    },
+    {
+      "event_name": "Promotion Pay Rise",
+      "event_type": "custom_income",
+      "description": "Expecting promotion to Senior Developer with significant pay increase",
+      "amount": 8000,
+      "impact_type": "income",
+      "expected_date": "2027-01-01",
+      "certainty": "possible",
+      "show_in_projection": true,
+      "show_in_household_view": false,
+      "ownership_type": "individual"
+    },
+    {
+      "event_name": "Move to Better Flat",
+      "event_type": "large_purchase",
+      "description": "Rental deposit and moving costs for better flat",
+      "amount": 3000,
+      "impact_type": "expense",
+      "expected_date": "2026-09-01",
+      "certainty": "likely",
+      "show_in_projection": true,
+      "show_in_household_view": false,
+      "ownership_type": "individual"
+    },
+    {
+      "event_name": "Grandparents' Gift",
+      "event_type": "gift_received",
+      "description": "Grandparents mentioned helping with first home deposit when the time comes",
+      "amount": 15000,
+      "impact_type": "income",
+      "expected_date": "2030-06-01",
+      "certainty": "possible",
+      "show_in_projection": true,
+      "show_in_household_view": false,
       "ownership_type": "individual"
     }
   ]

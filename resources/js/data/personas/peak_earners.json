@@ -470,6 +470,7 @@
       "retirement_age": 60,
       "ownership_type": "individual",
       "risk_preference": "upper_medium",
+      "platform_fee_percent": 0.35,
       "notes": "Employer matches employee contributions 1:1 up to 8% of salary"
     },
     {
@@ -483,6 +484,7 @@
       "retirement_age": 60,
       "ownership_type": "individual",
       "risk_preference": "upper_medium",
+      "platform_fee_percent": 0.25,
       "notes": "Personal contributions plus employer pension scheme transfer",
       "holdings": [
         {

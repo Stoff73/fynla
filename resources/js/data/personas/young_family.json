@@ -230,6 +230,7 @@
       "retirement_age": 65,
       "ownership_type": "individual",
       "risk_preference": "medium",
+      "platform_fee_percent": 0.40,
       "notes": "Employer matches contributions up to 10% of salary"
     },
     {
@@ -245,6 +246,7 @@
       "retirement_age": 65,
       "ownership_type": "individual",
       "risk_preference": "medium",
+      "platform_fee_percent": 0.45,
       "owner": "spouse",
       "notes": "Emily's workplace pension"
     }
@@ -433,6 +435,70 @@
       "longest_streak": 4,
       "last_contribution_date": "2026-01-01",
       "ownership_type": "joint"
+    }
+  ],
+
+  "life_events": [
+    {
+      "event_name": "Move to Larger Home",
+      "event_type": "large_purchase",
+      "description": "Upgrade to a 4-bedroom house when children need more space. Will require larger deposit and stamp duty.",
+      "amount": 35000,
+      "impact_type": "expense",
+      "expected_date": "2029-06-01",
+      "certainty": "likely",
+      "show_in_projection": true,
+      "show_in_household_view": true,
+      "ownership_type": "joint"
+    },
+    {
+      "event_name": "James's Parents' Gift",
+      "event_type": "gift_received",
+      "description": "James's parents have mentioned helping with house deposit when they downsize",
+      "amount": 30000,
+      "impact_type": "income",
+      "expected_date": "2028-03-01",
+      "certainty": "possible",
+      "show_in_projection": true,
+      "show_in_household_view": true,
+      "ownership_type": "joint"
+    },
+    {
+      "event_name": "Replace Family Car",
+      "event_type": "large_purchase",
+      "description": "Replace the Ford Focus with a larger family vehicle",
+      "amount": 18000,
+      "impact_type": "expense",
+      "expected_date": "2027-09-01",
+      "certainty": "likely",
+      "show_in_projection": true,
+      "show_in_household_view": true,
+      "ownership_type": "joint"
+    },
+    {
+      "event_name": "Oliver Starting School",
+      "event_type": "custom_expense",
+      "description": "One-off costs for school uniform, equipment and settling in expenses",
+      "amount": 800,
+      "impact_type": "expense",
+      "expected_date": "2026-09-01",
+      "certainty": "confirmed",
+      "show_in_projection": true,
+      "show_in_household_view": true,
+      "ownership_type": "joint"
+    },
+    {
+      "event_name": "Emily's Career Bonus",
+      "event_type": "bonus",
+      "description": "Expected bonus after completing professional qualification",
+      "amount": 5000,
+      "impact_type": "income",
+      "expected_date": "2026-12-01",
+      "certainty": "likely",
+      "show_in_projection": true,
+      "show_in_household_view": true,
+      "ownership_type": "individual",
+      "owner": "spouse"
     }
   ]
 }

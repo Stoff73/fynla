@@ -674,5 +674,93 @@
         }
       ]
     }
-  }
+  },
+
+  "life_events": [
+    {
+      "event_name": "Harold's 70th Birthday Celebration",
+      "event_type": "large_purchase",
+      "description": "Family gathering and celebration for Harold's 70th birthday",
+      "amount": 5000,
+      "impact_type": "expense",
+      "expected_date": "2023-08-10",
+      "certainty": "confirmed",
+      "status": "completed",
+      "show_in_projection": true,
+      "show_in_household_view": true,
+      "ownership_type": "joint"
+    },
+    {
+      "event_name": "Golden Wedding Anniversary Trip",
+      "event_type": "large_purchase",
+      "description": "50th wedding anniversary cruise to the Mediterranean - a dream trip",
+      "amount": 12000,
+      "impact_type": "expense",
+      "expected_date": "2028-06-15",
+      "certainty": "likely",
+      "show_in_projection": true,
+      "show_in_household_view": true,
+      "ownership_type": "joint"
+    },
+    {
+      "event_name": "Home Care Support",
+      "event_type": "medical_expense",
+      "description": "Anticipated need for part-time home care assistance as we age",
+      "amount": 20000,
+      "impact_type": "expense",
+      "expected_date": "2032-01-01",
+      "certainty": "possible",
+      "show_in_projection": true,
+      "show_in_household_view": true,
+      "ownership_type": "joint"
+    },
+    {
+      "event_name": "Grandchildren Wedding Gifts",
+      "event_type": "gift_given",
+      "description": "Wedding gifts for grandchildren as they marry - £5,000 each for 4 grandchildren",
+      "amount": 20000,
+      "impact_type": "expense",
+      "expected_date": "2030-08-01",
+      "certainty": "possible",
+      "show_in_projection": true,
+      "show_in_household_view": true,
+      "ownership_type": "joint"
+    },
+    {
+      "event_name": "Replace Car",
+      "event_type": "large_purchase",
+      "description": "Final car replacement - automatic, easy to access vehicle",
+      "amount": 22000,
+      "impact_type": "expense",
+      "expected_date": "2027-09-01",
+      "certainty": "likely",
+      "show_in_projection": true,
+      "show_in_household_view": true,
+      "ownership_type": "joint"
+    },
+    {
+      "event_name": "Kitchen & Bathroom Refresh",
+      "event_type": "home_improvement",
+      "description": "Update kitchen and bathroom for accessibility and modern conveniences",
+      "amount": 25000,
+      "impact_type": "expense",
+      "expected_date": "2027-03-01",
+      "certainty": "likely",
+      "show_in_projection": true,
+      "show_in_household_view": true,
+      "ownership_type": "joint"
+    },
+    {
+      "event_name": "Annual Gift to Children",
+      "event_type": "gift_given",
+      "description": "Using annual exemption to gift to children and grandchildren each year",
+      "amount": 6000,
+      "impact_type": "expense",
+      "expected_date": "2026-12-01",
+      "certainty": "confirmed",
+      "show_in_projection": true,
+      "show_in_household_view": true,
+      "ownership_type": "joint"
+    }
+  ]
 }
