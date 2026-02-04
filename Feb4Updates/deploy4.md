@@ -402,3 +402,48 @@ Then upload `public/build/` directory to production.
 **Backend Files to Upload:**
 - `app/Http/Controllers/Api/LetterToSpouseController.php`
 - `routes/api.php`
+
+---
+
+## Goals & Life Events Chart Fixes
+
+### Summary
+
+Fixed two issues with the GoalsProjectionChartDashboard on the main dashboard:
+
+1. **Y-axis white space** - Reduced white space above bars by setting Y-axis max to 115% of data maximum
+2. **Missing tooltips** - Restored hover tooltips for both event icons and bar hover
+
+### Changes
+
+1. **Y-axis Optimization**
+   - Added `yAxisMax` computed property that calculates 115% of the maximum net worth value
+   - Set `yaxis.max` to this value and disabled `forceNiceScale`
+   - Bars now fill more of the chart area with minimal headroom for event icons
+
+2. **Event Icon Tooltips**
+   - Restored `activeTooltip` and `tooltipPosition` data properties
+   - Added `@mouseenter` and `@mouseleave` handlers on event markers
+   - Added `showEventTooltip()` and `hideEventTooltip()` methods
+   - Tooltip shows event type, name, age, amount, and impact
+
+3. **Bar Hover Tooltips**
+   - Restored `buildCustomTooltip()` method for ApexCharts custom tooltip
+   - Shows age, net worth, and all goals/life events at that age
+   - Color-coded amounts (green for income, red for expenses)
+
+### Files Changed
+
+| File | Change Type |
+|------|-------------|
+| `resources/js/components/Dashboard/GoalsProjectionChartDashboard.vue` | Modified |
+
+### Deployment
+
+**Frontend Rebuild Required:** ✅ YES
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+Then upload `public/build/` directory to production.
