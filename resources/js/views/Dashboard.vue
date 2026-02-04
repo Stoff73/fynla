@@ -132,15 +132,20 @@
             </div>
 
             <!-- Trusts -->
-            <div v-if="trustsList.length > 0" class="space-y-2">
+            <div v-if="trustsList.length > 0" class="space-y-3">
               <div class="text-sm font-semibold text-gray-900">Trusts</div>
               <div
                 v-for="trust in trustsList"
                 :key="trust.id"
-                class="flex justify-between text-sm"
+                class="pb-2 border-b border-gray-100 last:border-0 last:pb-0"
               >
-                <span class="text-gray-600 truncate mr-2">{{ trust.name }}</span>
-                <span class="font-medium text-gray-900 whitespace-nowrap">{{ formatCurrency(trust.total_asset_value || trust.current_value || 0) }}</span>
+                <div class="flex justify-between text-sm">
+                  <span class="font-medium text-gray-900">{{ trust.trust_name }}</span>
+                  <span class="font-medium text-gray-900">{{ formatCurrency(trust.total_asset_value || trust.current_value || 0) }}</span>
+                </div>
+                <div v-if="trust.beneficiaries" class="text-xs text-gray-500 mt-1">
+                  Beneficiaries: {{ trust.beneficiaries }}
+                </div>
               </div>
             </div>
           </div>
