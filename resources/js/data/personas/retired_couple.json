@@ -2,9 +2,9 @@
   "id": "retired_couple",
   "name": "Patricia & Harold Bennett",
   "tagline": "Retired couple with estate planning focus",
-  "description": "A retired couple in their early 70s in Tunbridge Wells. Both drawing DB pensions from public sector careers (NHS and Civil Service). No debt, substantial savings, and active gifting to grandchildren. Key focus on IHT planning.",
+  "description": "A retired couple in their early 70s in Tunbridge Wells. Both drawing Defined Benefit pensions from public sector careers (NHS and Civil Service). No debt, substantial savings, and active gifting to grandchildren. Key focus on Inheritance Tax planning.",
   "netWorthRange": "£800k - £900k",
-  "focus": "IHT planning, gifting strategy",
+  "focus": "Inheritance Tax planning, gifting strategy",
 
   "user": {
     "first_name": "Patricia",
@@ -376,7 +376,7 @@
       "recipient_name": "Patricia to grandchildren",
       "amount": 3000,
       "gift_date": "2024-04-06",
-      "notes": "Patricia's annual exemption 2024/25 - to Emma, Thomas, Lucy JISAs",
+      "notes": "Patricia's annual exemption 2024/25 - to Emma, Thomas, Lucy Junior ISAs",
       "status": "within_7_years"
     },
     {
@@ -385,7 +385,7 @@
       "recipient_name": "Harold to grandchildren",
       "amount": 3000,
       "gift_date": "2024-04-06",
-      "notes": "Harold's annual exemption 2024/25 - to Sophie, William JISAs",
+      "notes": "Harold's annual exemption 2024/25 - to Sophie, William Junior ISAs",
       "status": "within_7_years"
     },
     {
@@ -394,7 +394,7 @@
       "recipient_name": "Patricia to grandchildren",
       "amount": 3000,
       "gift_date": "2025-04-06",
-      "notes": "Patricia's annual exemption 2025/26 - to Emma, Thomas, Lucy JISAs",
+      "notes": "Patricia's annual exemption 2025/26 - to Emma, Thomas, Lucy Junior ISAs",
       "status": "within_7_years"
     },
     {
@@ -403,7 +403,7 @@
       "recipient_name": "Harold to grandchildren",
       "amount": 3000,
       "gift_date": "2025-04-06",
-      "notes": "Harold's annual exemption 2025/26 - to Sophie, William JISAs",
+      "notes": "Harold's annual exemption 2025/26 - to Sophie, William Junior ISAs",
       "status": "within_7_years"
     }
   ],
@@ -449,12 +449,12 @@
     "marital_status": "married",
     "available_nrb": 325000,
     "available_rnrb": 175000,
-    "notes": "On first death, assets transfer to spouse tax-free. On second death, both NRBs and RNRBs available (up to 1M threshold). Current combined estate ~845k so IHT exposure ~138k on second death."
+    "notes": "On first death, assets transfer to spouse tax-free. On second death, both Nil Rate Bands and Residence Nil Rate Bands available (up to £1M threshold). Current combined estate ~£845k so Inheritance Tax exposure ~£138k on second death."
   },
 
   "key_concerns": [
     "Will our pensions keep up with inflation?",
-    "How much IHT will our children pay?",
+    "How much Inheritance Tax will our children pay?",
     "Should we be gifting more now while we can enjoy seeing them use it?",
     "What happens if one of us needs care?",
     "Are we protected if pension rules change under new government policies?",
@@ -470,7 +470,7 @@
       "gifts_in_last_7_years": 40000
     },
     "net_worth_range": "800k - 900k",
-    "primary_focus": "IHT planning, gifting strategy, care cost planning"
+    "primary_focus": "Inheritance Tax planning, gifting strategy, care cost planning"
   },
 
   "risk_profile": {
@@ -523,7 +523,7 @@
       "goal_name": "Annual Gifting to Grandchildren",
       "goal_type": "custom",
       "custom_goal_type_name": "Gifting Strategy",
-      "description": "Use both annual exemptions (£6,000 total) to gift to grandchildren JISAs, reducing estate for IHT",
+      "description": "Use both annual exemptions (£6,000 total) to gift to grandchildren Junior ISAs, reducing estate for Inheritance Tax",
       "target_amount": 6000,
       "current_amount": 3000,
       "target_date": "2026-04-05",
@@ -540,7 +540,7 @@
     {
       "goal_name": "Grandchildren Education Trust",
       "goal_type": "education",
-      "description": "Build education fund across 5 grandchildren's JISAs for university costs",
+      "description": "Build education fund across 5 grandchildren's Junior ISAs for university costs",
       "target_amount": 75000,
       "current_amount": 24000,
       "target_date": "2035-09-01",
@@ -573,10 +573,10 @@
       "ownership_type": "joint"
     },
     {
-      "goal_name": "IHT Reduction Target",
+      "goal_name": "Inheritance Tax Reduction Target",
       "goal_type": "custom",
       "custom_goal_type_name": "Estate Planning",
-      "description": "Reduce estate below combined NRB+RNRB threshold (£1M) through strategic gifting over 7 years",
+      "description": "Reduce estate below combined Nil Rate Band + Residence Nil Rate Band threshold (£1M) through strategic gifting over 7 years",
       "target_amount": 100000,
       "current_amount": 46000,
       "target_date": "2032-04-05",
@@ -638,11 +638,11 @@
         "content": "Patricia's NHS Pension:\n- Current pension: £18,500/year\n- Harold receives 50% (£9,250/year) as survivor pension\n- Continues for Harold's lifetime\n- Index-linked to CPI\n\nContact NHS Pensions: 0345 606 6166\nMember number in pension file\n\nNo lump sum - pension already in payment"
       },
       {
-        "title": "Grandchildren's JISAs",
+        "title": "Grandchildren's Junior ISAs",
         "content": "Junior ISAs for each grandchild:\n- Emma Bennett (Mark's) - Nationwide\n- Thomas Bennett (Mark's) - Nationwide\n- Lucy Clarke (Susan's) - Nationwide\n- Sophie Clarke (Susan's) - Nationwide\n- William Clarke (Susan's) - Nationwide\n\nWe contribute £600 each per year (£1,200 between us).\nUsing both annual exemptions (£3,000 each).\n\nContinue gifting to reduce estate for IHT."
       },
       {
-        "title": "IHT Planning Status",
+        "title": "Inheritance Tax Planning Status",
         "content": "Combined estate: ~£845,000\n\nAllowances on second death:\n- NRB: £650,000 (double)\n- RNRB: £350,000 (double - house to children)\n- Total: £1,000,000\n\nCurrently BELOW threshold - no IHT due!\n\nGifting history:\n- Mark: £20,000 (April 2022)\n- Susan: £20,000 (June 2021)\n- Grandchildren: £6,000/year ongoing\n\nAll gifts within 7 years recorded with Adams & Co."
       },
       {
