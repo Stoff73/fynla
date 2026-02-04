@@ -467,3 +467,48 @@ Fixed two issues with the GoalsProjectionChartDashboard on the main dashboard:
 ```
 
 Then upload `public/build/` directory to production.
+
+---
+
+## Acronym Expansion in Persona Data ✅ DEPLOYED
+
+### Summary
+
+Expanded all acronyms in persona data files to their full names for clarity in modal popups.
+
+### Acronyms Expanded
+
+| Acronym | Full Name |
+|---------|-----------|
+| SIPP | Self-Invested Personal Pension |
+| BTL | Buy-to-Let |
+| IHT | Inheritance Tax |
+| DB | Defined Benefit |
+| NRB | Nil Rate Band |
+| RNRB | Residence Nil Rate Band |
+| BPR | Business Property Relief |
+| CGT | Capital Gains Tax |
+| GIA | General Investment Account |
+| VCT | Venture Capital Trust |
+| S&S ISA | Stocks & Shares ISA |
+| JISA | Junior ISA |
+
+### Files Changed
+
+| File | Change Type |
+|------|-------------|
+| `resources/js/data/personas/peak_earners.json` | Modified |
+| `resources/js/data/personas/widow.json` | Modified |
+| `resources/js/data/personas/entrepreneur.json` | Modified |
+| `resources/js/data/personas/retired_couple.json` | Modified |
+| `resources/js/data/personas/young_family.json` | Modified |
+
+### Deployment
+
+**Frontend Rebuild Required:** ✅ YES
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+Then upload `public/build/` directory to production.
