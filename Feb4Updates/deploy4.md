@@ -325,6 +325,19 @@ Redesigned the dashboard cards to show more detailed information with real data 
    - Lists individual cash accounts as line items with values
    - Shows Total Cash
 
+4. **Protection Card**
+   - Lists actual policies by type (Life, Critical Illness, Income Protection)
+   - Shows policy names with provider and policy type (e.g., "Aviva Level Term")
+   - Shows sum assured for each policy
+   - Shows total coverage and monthly premium
+
+5. **Goals & Life Events Card**
+   - Now shows full GoalsProjectionChart with bar graph and event icons
+   - Chart displays net worth projection over time
+   - Event icons float above bars showing goals and life events
+   - Interactive controls (view selector, chart type toggle)
+   - Click events on chart don't trigger card navigation
+
 ### Files Changed
 
 | File | Change Type |

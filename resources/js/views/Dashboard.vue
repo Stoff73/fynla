@@ -281,70 +281,22 @@
           class="lg:col-span-2"
           @click="navigateTo('/goals')"
         >
-          <div class="space-y-4">
-            <!-- Goals summary -->
-            <div v-if="goalsData.hasGoals" class="border-b border-gray-200 pb-4">
-              <div class="flex justify-between items-center">
-                <div>
-                  <span class="text-sm text-gray-500">Overall Progress</span>
-                  <div class="flex items-baseline gap-2 mt-1">
-                    <span class="text-2xl font-bold text-primary-600">
-                      {{ formatCurrency(goalsData.totalCurrent) }}
-                    </span>
-                    <span class="text-sm text-gray-500">of {{ formatCurrency(goalsData.totalTarget) }}</span>
-                  </div>
-                </div>
-                <div class="text-right">
-                  <span class="text-2xl font-bold text-primary-600">{{ goalsData.overallProgress }}%</span>
-                  <div class="text-sm text-gray-500">complete</div>
-                </div>
-              </div>
-              <!-- Progress bar -->
-              <div class="mt-3">
-                <div class="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    class="h-2 rounded-full transition-all duration-500"
-                    :class="goalsData.overallProgress >= 75 ? 'bg-green-500' : 'bg-blue-500'"
-                    :style="{ width: Math.min(goalsData.overallProgress, 100) + '%' }"
-                  ></div>
-                </div>
-                <div class="flex justify-between mt-1">
-                  <span class="text-xs text-gray-500">{{ goalsData.totalGoals }} goals</span>
-                  <span
-                    class="text-xs font-medium"
-                    :class="goalsData.onTrackCount === goalsData.totalGoals ? 'text-green-600' : 'text-blue-600'"
-                  >
-                    {{ goalsData.onTrackCount }}/{{ goalsData.totalGoals }} on track
-                  </span>
-                </div>
-              </div>
-            </div>
+          <!-- Full projection chart with bar graph and event icons -->
+          <div v-if="goalsData.hasProjection || goalsData.hasGoals" @click.stop>
+            <GoalsProjectionChart />
+          </div>
 
-            <!-- Life events summary -->
-            <div v-if="goalsData.lifeEventsCount > 0" class="space-y-2">
-              <div class="text-sm font-semibold text-gray-700">Upcoming Life Events</div>
-              <div class="text-sm text-gray-600">
-                {{ goalsData.lifeEventsCount }} planned {{ goalsData.lifeEventsCount === 1 ? 'event' : 'events' }}
-              </div>
+          <!-- Empty state for goals -->
+          <div v-else class="text-center py-4">
+            <div class="mx-auto w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center mb-3">
+              <svg class="w-6 h-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
             </div>
-
-            <!-- Mini projection chart placeholder -->
-            <div v-if="goalsData.hasProjection" class="pt-4 border-t border-gray-200">
-              <GoalsProjectionChartMini />
-            </div>
-
-            <!-- Empty state for goals -->
-            <div v-if="!goalsData.hasGoals && !goalsData.lifeEventsCount" class="text-center py-4">
-              <div class="mx-auto w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center mb-3">
-                <svg class="w-6 h-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-              </div>
-              <h3 class="text-sm font-semibold text-gray-900 mb-1">Set Your First Goal</h3>
-              <p class="text-xs text-gray-500">
-                Track your financial goals and life events
-              </p>
-            </div>
+            <h3 class="text-sm font-semibold text-gray-900 mb-1">Set Your First Goal</h3>
+            <p class="text-xs text-gray-500">
+              Track your financial goals and life events
+            </p>
           </div>
         </DashboardCard>
 
@@ -371,7 +323,7 @@
 import { mapGetters, mapState, mapActions } from 'vuex';
 import AppLayout from '@/layouts/AppLayout.vue';
 import DashboardCard from '@/components/Dashboard/DashboardCard.vue';
-import GoalsProjectionChartMini from '@/components/Dashboard/GoalsProjectionChartMini.vue';
+import GoalsProjectionChart from '@/components/Goals/GoalsProjectionChart.vue';
 import UKTaxesOverviewCard from '@/components/Dashboard/UKTaxesOverviewCard.vue';
 import ActionsOverviewCard from '@/components/Dashboard/ActionsOverviewCard.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
@@ -383,7 +335,7 @@ export default {
   components: {
     AppLayout,
     DashboardCard,
-    GoalsProjectionChartMini,
+    GoalsProjectionChart,
     UKTaxesOverviewCard,
     ActionsOverviewCard,
   },
