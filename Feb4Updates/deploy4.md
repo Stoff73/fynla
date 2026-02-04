@@ -343,12 +343,21 @@ Redesigned the dashboard cards to show more detailed information with real data 
    - Includes retirement age annotation
    - Tooltips on hover for details
 
-7. **All Cards**
+7. **Recommended Actions Card**
+   - Now positioned as 3rd card in row 2 (part of grid)
+   - Changed from card grid to simple line items
+   - Each action shows priority dot, title, and module badge
+   - Limited to top 5 highest priority actions
+   - Simplified header - just "Recommended Actions" heading
+   - Clickable items navigate to relevant module
+
+8. **All Cards**
    - Removed arrow icon from top right of all cards
 
-8. **Card Order**
+9. **Card Order**
    - Row 1: Net Worth, Estate Planning, Investments & Savings
-   - Row 2: Protection, Retirement, Goals
+   - Row 2: Protection, Retirement, Recommended Actions
+   - Row 3: Goals (spans 2 columns)
 
 ### Files Changed
 
@@ -357,6 +366,7 @@ Redesigned the dashboard cards to show more detailed information with real data 
 | `resources/js/views/Dashboard.vue` | Modified |
 | `resources/js/components/Dashboard/DashboardCard.vue` | Modified |
 | `resources/js/components/Dashboard/GoalsProjectionChartDashboard.vue` | New |
+| `resources/js/components/Dashboard/ActionsOverviewCard.vue` | Modified |
 
 ### Deployment
 
