@@ -1,46 +1,26 @@
 <template>
-  <div class="card">
-    <div class="-m-6 p-6 rounded-lg">
-      <!-- Header Row -->
-      <div class="flex items-center justify-between border-b border-gray-200 pb-4 mb-4">
-        <div>
-          <span class="text-sm text-gray-500">Recommended Actions</span>
-          <div class="flex items-baseline gap-2 mt-1">
-            <span class="text-3xl font-bold text-primary-600">
-              {{ totalActions }}
-            </span>
-            <span class="text-sm text-gray-500">actions to review</span>
-          </div>
-        </div>
-        <div v-if="totalPotentialSavings > 0" class="text-right">
-          <span class="text-sm text-gray-500">Potential savings</span>
-          <p class="text-xl font-bold text-green-600">{{ formatCurrency(totalPotentialSavings) }}<span class="text-sm font-normal">/yr</span></p>
-        </div>
-      </div>
+  <div>
+      <!-- Header -->
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">Recommended Actions</h3>
 
-      <!-- Actions Grid -->
-      <div v-if="displayedActions.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+      <!-- Actions List -->
+      <div v-if="displayedActions.length > 0" class="space-y-2">
         <div
           v-for="(action, index) in displayedActions"
           :key="index"
-          class="action-card cursor-pointer"
+          class="flex items-center justify-between py-2 cursor-pointer hover:bg-gray-50 -mx-2 px-2 rounded transition-colors"
           @click="navigateToModule(action.module)"
         >
-          <div class="flex items-center gap-2 mb-2">
+          <div class="flex items-center gap-2 min-w-0">
             <span
-              class="priority-badge"
-              :class="getPriorityClass(action.priority)"
-            >
-              {{ getPriorityLabel(action.priority) }}
-            </span>
-            <span class="module-badge" :class="getModuleClass(action.module)">
-              {{ formatModule(action.module) }}
-            </span>
+              class="priority-dot flex-shrink-0"
+              :class="getPriorityDotClass(action.priority)"
+            ></span>
+            <span class="text-sm text-gray-700 truncate">{{ action.title }}</span>
           </div>
-          <p class="action-text">{{ action.title }}</p>
-          <p v-if="action.potential_saving" class="text-xs text-green-600 mt-2 font-medium">
-            Save {{ formatCurrency(action.potential_saving) }}/yr
-          </p>
+          <span class="module-badge flex-shrink-0 ml-2" :class="getModuleClass(action.module)">
+            {{ formatModule(action.module) }}
+          </span>
         </div>
       </div>
 
@@ -53,10 +33,9 @@
         <p class="text-xs text-gray-400">No pending actions</p>
       </div>
 
-      <!-- Loading State -->
-      <div v-if="loading" class="text-center py-8">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
-      </div>
+    <!-- Loading State -->
+    <div v-if="loading" class="text-center py-8">
+      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
     </div>
   </div>
 </template>
@@ -70,6 +49,17 @@ import { currencyMixin } from '@/mixins/currencyMixin';
 export default {
   name: 'ActionsOverviewCard',
   mixins: [currencyMixin],
+
+  props: {
+    compact: {
+      type: Boolean,
+      default: false,
+    },
+    limit: {
+      type: Number,
+      default: 0, // 0 means no limit
+    },
+  },
 
   data() {
     return {
@@ -131,9 +121,13 @@ export default {
     },
 
     displayedActions() {
-      // Sort by priority (lower number = higher priority) and show all
-      return [...this.allActions]
-        .sort((a, b) => a.priority - b.priority);
+      // Sort by priority (lower number = higher priority)
+      const sorted = [...this.allActions].sort((a, b) => a.priority - b.priority);
+      // Apply limit if specified
+      if (this.limit > 0) {
+        return sorted.slice(0, this.limit);
+      }
+      return sorted;
     },
 
     totalActions() {
@@ -230,6 +224,13 @@ export default {
       return 'priority-low';
     },
 
+    getPriorityDotClass(priority) {
+      if (priority <= 1) return 'dot-critical';
+      if (priority <= 2) return 'dot-high';
+      if (priority <= 3) return 'dot-medium';
+      return 'dot-low';
+    },
+
     getPriorityLabel(priority) {
       if (priority <= 1) return 'Urgent';
       if (priority <= 2) return 'High';
@@ -269,60 +270,26 @@ export default {
 </script>
 
 <style scoped>
-.action-card {
-  @apply bg-gray-50;
-  @apply border border-gray-200;
-  border-radius: 8px;
-  padding: 16px;
-  transition: all 0.2s ease;
+.priority-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
 }
 
-.action-card:hover {
-  @apply bg-gray-100;
-  @apply border-gray-300;
-  transform: translateY(-1px);
+.dot-critical {
+  @apply bg-red-500;
 }
 
-.action-text {
-  font-size: 13px;
-  @apply text-gray-700;
-  line-height: 1.4;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+.dot-high {
+  @apply bg-blue-500;
 }
 
-.priority-badge {
-  font-size: 10px;
-  font-weight: 600;
-  padding: 2px 6px;
-  border-radius: 4px;
-  text-transform: uppercase;
+.dot-medium {
+  @apply bg-sky-500;
 }
 
-.priority-critical {
-  @apply bg-red-50;
-  @apply text-red-600;
-  @apply border border-red-200;
-}
-
-.priority-high {
-  @apply bg-blue-50;
-  @apply text-blue-600;
-  @apply border border-blue-200;
-}
-
-.priority-medium {
-  @apply bg-sky-50;
-  @apply text-sky-600;
-  @apply border border-sky-200;
-}
-
-.priority-low {
-  @apply bg-green-50;
-  @apply text-green-600;
-  @apply border border-green-200;
+.dot-low {
+  @apply bg-green-500;
 }
 
 .module-badge {

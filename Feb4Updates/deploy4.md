@@ -150,7 +150,7 @@ php artisan db:seed --class=PreviewUserSeeder --force
 
 - [x] `php artisan db:seed --class=PreviewUserSeeder --force` (run on server)
 
-### BTL Tax Ownership Fix
+### BTL Tax Ownership Fix ✅
 
 **Frontend Rebuild Required:** ❌ NO (backend-only fix)
 
@@ -175,6 +175,26 @@ php artisan db:seed --class=PreviewUserSeeder --force
 - [x] Upload `database/seeders/PreviewUserSeeder.php`
 - [x] Run `php artisan db:seed --class=PreviewUserSeeder --force` on server
 
+### Code Quality Audit ✅
+
+- [x] Run `./deploy/fynla-org/build.sh`
+- [x] Upload `public/build/` directory
+- [x] Upload all new and modified backend files
+- [x] Clear caches on server
+
+### Dashboard Redesign ✅
+
+- [x] Run `./deploy/fynla-org/build.sh`
+- [x] Upload `public/build/` directory
+- [x] Upload `app/Http/Controllers/Api/LetterToSpouseController.php`
+- [x] Upload `routes/api.php`
+- [x] Clear caches on server
+
+### Goals & Life Events Chart Fixes ✅
+
+- [x] Run `./deploy/fynla-org/build.sh`
+- [x] Upload `public/build/` directory
+
 ### Post-Upload Commands
 
 ```bash
@@ -195,3 +215,300 @@ After deployment, verify the fix by checking the UK Tax dashboard for peak_earne
 - Sarah should show £780 Section 24 credit (50% of £1,560)
 
 Both should have their rental income correctly split by ownership percentage.
+
+---
+
+## Code Quality Audit & Refactoring ✅ DEPLOYED
+
+### Summary
+
+Comprehensive code quality audit and remediation improving codebase score from 82/100 to 89/100. Fixed 18 issues (4 HIGH, 9 MEDIUM, 5 LOW priority) including hardcoded values, duplicated code, and missing documentation.
+
+### Changes
+
+#### New Constants Files
+Created centralised constants for UK tax values and estate planning defaults:
+
+| File | Purpose |
+|------|---------|
+| `app/Constants/TaxDefaults.php` | UK tax values (NRB, ISA, pensions, CGT, etc.) |
+| `app/Constants/EstateDefaults.php` | Estate planning estimation constants |
+
+#### New Form Requests
+Extracted validation rules from InvestmentController:
+
+| File | Purpose |
+|------|---------|
+| `app/Http/Requests/StoreInvestmentAccountRequest.php` | Account creation validation |
+| `app/Http/Requests/UpdateInvestmentAccountRequest.php` | Account update validation |
+
+#### New Utilities
+| File | Purpose |
+|------|---------|
+| `resources/js/utils/asyncAction.js` | Vuex async action helper to reduce boilerplate |
+
+#### Modified Files
+
+| File | Change |
+|------|--------|
+| `app/Agents/BaseAgent.php` | Added standardised cache invalidation methods |
+| `app/Agents/InvestmentAgent.php` | Use TaxDefaults, improved clearCache() |
+| `app/Agents/EstateAgent.php` | Use TaxDefaults and EstateDefaults |
+| `app/Agents/RetirementAgent.php` | Use TaxDefaults for growth rate |
+| `app/Services/Investment/PortfolioAnalyzer.php` | Implemented geographic allocation |
+| `app/Services/Onboarding/EstateOnboardingFlow.php` | Use EstateDefaults constants |
+| `app/Jobs/RunMonteCarloSimulation.php` | Use TaxDefaults for cache TTL |
+| `app/Http/Controllers/Api/HolisticPlanningController.php` | Use TaxDefaults for cache TTL |
+| `app/Http/Controllers/Api/InvestmentController.php` | Removed debug statements |
+| `resources/js/store/modules/investment.js` | Added JSDoc to getters |
+
+### Files to Upload
+
+**New Files:**
+- `app/Constants/TaxDefaults.php`
+- `app/Constants/EstateDefaults.php`
+- `app/Http/Requests/StoreInvestmentAccountRequest.php`
+- `app/Http/Requests/UpdateInvestmentAccountRequest.php`
+- `resources/js/utils/asyncAction.js`
+
+**Modified Backend Files:**
+- `app/Agents/BaseAgent.php`
+- `app/Agents/InvestmentAgent.php`
+- `app/Agents/EstateAgent.php`
+- `app/Agents/RetirementAgent.php`
+- `app/Services/Investment/PortfolioAnalyzer.php`
+- `app/Services/Onboarding/EstateOnboardingFlow.php`
+- `app/Jobs/RunMonteCarloSimulation.php`
+- `app/Http/Controllers/Api/HolisticPlanningController.php`
+- `app/Http/Controllers/Api/InvestmentController.php`
+
+**Modified Frontend Files:**
+- `resources/js/store/modules/investment.js`
+
+### Deployment
+
+**Frontend Rebuild Required:** ✅ YES
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+Then upload `public/build/` directory to production.
+
+**Database Migrations Required:** ❌ NO
+
+### Post-Upload Commands
+
+```bash
+ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
+cd ~/www/fynla.org/public_html
+
+# Clear caches
+php artisan cache:clear && php artisan route:clear && php artisan config:clear
+```
+
+### Verification
+
+Changes are backward compatible. Verify by:
+1. Testing investment account creation/update
+2. Testing estate planning analysis
+3. Testing retirement projections
+4. Checking Monte Carlo simulations still work
+
+---
+
+## Dashboard Redesign ✅ DEPLOYED
+
+### Summary
+
+Redesigned the dashboard cards to show more detailed information with real data from APIs.
+
+### Changes
+
+1. **Net Worth Card**
+   - Removed "Total Net Worth" heading - just shows the value
+   - Lists all assets by category (Pensions, Property, Investments, Cash & Savings, Business Interests, Chattels)
+   - Shows Total Assets
+   - Lists all liabilities by category (Mortgages, Loans, Credit Cards, Other)
+   - Shows Total Liabilities
+
+2. **Retirement Card**
+   - Shows Projected Retirement Income (from `analysis.projected_income`)
+   - Shows Capital Required (from `requiredCapital.required_capital_at_retirement`)
+   - Shows Retirement Age
+   - Shows Years to Retirement
+   - Added `analyseRetirement` and `fetchRequiredCapital` to data loading
+
+3. **Investments & Savings Card**
+   - Lists individual investment accounts as line items with values
+   - Shows Total Investments
+   - Lists individual cash accounts as line items with values
+   - Shows Total Cash
+
+4. **Protection Card**
+   - Lists actual policies by type (Life, Critical Illness, Income Protection)
+   - Shows policy names with provider and policy type (e.g., "Aviva Level Term")
+   - Shows sum assured for each policy
+   - Shows total coverage and monthly premium
+
+5. **Estate Planning Card** (NEW)
+   - Shows Taxable Estate on Joint Death Now (large blue value)
+   - Shows Current Inheritance Tax Liability (Amount Due)
+   - Lists user's trusts with name, value, and beneficiaries
+
+6. **Goals & Life Events Card**
+   - New simplified GoalsProjectionChartDashboard component (just the chart, no controls)
+   - Bar graph displays net worth projection over time
+   - Event icons float above bars showing goals and life events
+   - Includes retirement age annotation
+   - Tooltips on hover for details
+
+7. **Recommended Actions Card**
+   - Now positioned as 3rd card in row 2 (part of grid)
+   - Changed from card grid to simple line items
+   - Each action shows priority dot, title, and module badge
+   - Limited to top 5 highest priority actions
+   - Simplified header - just "Recommended Actions" heading
+   - Clickable items navigate to relevant module
+
+8. **Other Areas to Consider Card** (NEW)
+   - Shows actual gaps in the user's financial profile, not just missing data
+   - Checks for:
+     - **Letter to Spouse** - if user hasn't filled in any content
+     - **Will** - if `has_will` is false
+     - **Critical Illness Cover** - if NO policies exist
+     - **Income Protection** - if NO policies exist
+     - **Life Insurance** - if NO policies exist
+     - **Pensions** - if none tracked
+     - **ISA Allowance** - if not using tax-free wrapper
+     - **Emergency Fund** - if savings < £1,000
+     - **Goals** - if none set
+     - **Income** - if not recorded
+   - Each area shows icon, title, description and link to complete
+   - Limited to top 5 items by priority
+   - Shows "All areas complete!" when no gaps identified
+   - New `/user/letter-to-spouse/exists` API endpoint checks for user-entered content (not auto-generated)
+
+9. **All Cards**
+   - Removed arrow icon from top right of all cards
+
+10. **Card Order**
+   - Row 1: Net Worth, Estate Planning, Investments & Savings
+   - Row 2: Protection, Retirement, Recommended Actions
+   - Row 3: Goals (spans 2 columns), Other Areas to Consider
+
+### Files Changed
+
+| File | Change Type |
+|------|-------------|
+| `resources/js/views/Dashboard.vue` | Modified |
+| `resources/js/components/Dashboard/DashboardCard.vue` | Modified |
+| `resources/js/components/Dashboard/GoalsProjectionChartDashboard.vue` | New |
+| `resources/js/components/Dashboard/ActionsOverviewCard.vue` | Modified |
+| `resources/js/components/Dashboard/AreasToConsiderCard.vue` | New |
+| `app/Http/Controllers/Api/LetterToSpouseController.php` | Modified |
+| `routes/api.php` | Modified |
+
+### Deployment
+
+**Frontend Rebuild Required:** ✅ YES
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+Then upload `public/build/` directory to production.
+
+**Backend Files to Upload:**
+- `app/Http/Controllers/Api/LetterToSpouseController.php`
+- `routes/api.php`
+
+---
+
+## Goals & Life Events Chart Fixes ✅ DEPLOYED
+
+### Summary
+
+Fixed two issues with the GoalsProjectionChartDashboard on the main dashboard:
+
+1. **Y-axis white space** - Reduced white space above bars by setting Y-axis max to 115% of data maximum
+2. **Missing tooltips** - Restored hover tooltips for both event icons and bar hover
+
+### Changes
+
+1. **Y-axis Optimization**
+   - Added `yAxisMax` computed property that calculates 115% of the maximum net worth value
+   - Set `yaxis.max` to this value and disabled `forceNiceScale`
+   - Bars now fill more of the chart area with minimal headroom for event icons
+
+2. **Event Icon Tooltips**
+   - Restored `activeTooltip` and `tooltipPosition` data properties
+   - Added `@mouseenter` and `@mouseleave` handlers on event markers
+   - Added `showEventTooltip()` and `hideEventTooltip()` methods
+   - Tooltip shows event type, name, age, amount, and impact
+
+3. **Bar Hover Tooltips**
+   - Restored `buildCustomTooltip()` method for ApexCharts custom tooltip
+   - Shows age, net worth, and all goals/life events at that age
+   - Color-coded amounts (green for income, red for expenses)
+
+### Files Changed
+
+| File | Change Type |
+|------|-------------|
+| `resources/js/components/Dashboard/GoalsProjectionChartDashboard.vue` | Modified |
+
+### Deployment
+
+**Frontend Rebuild Required:** ✅ YES
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+Then upload `public/build/` directory to production.
+
+---
+
+## Acronym Expansion in Persona Data ✅ DEPLOYED
+
+### Summary
+
+Expanded all acronyms in persona data files to their full names for clarity in modal popups.
+
+### Acronyms Expanded
+
+| Acronym | Full Name |
+|---------|-----------|
+| SIPP | Self-Invested Personal Pension |
+| BTL | Buy-to-Let |
+| IHT | Inheritance Tax |
+| DB | Defined Benefit |
+| NRB | Nil Rate Band |
+| RNRB | Residence Nil Rate Band |
+| BPR | Business Property Relief |
+| CGT | Capital Gains Tax |
+| GIA | General Investment Account |
+| VCT | Venture Capital Trust |
+| S&S ISA | Stocks & Shares ISA |
+| JISA | Junior ISA |
+
+### Files Changed
+
+| File | Change Type |
+|------|-------------|
+| `resources/js/data/personas/peak_earners.json` | Modified |
+| `resources/js/data/personas/widow.json` | Modified |
+| `resources/js/data/personas/entrepreneur.json` | Modified |
+| `resources/js/data/personas/retired_couple.json` | Modified |
+| `resources/js/data/personas/young_family.json` | Modified |
+
+### Deployment
+
+**Frontend Rebuild Required:** ✅ YES
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+Then upload `public/build/` directory to production.

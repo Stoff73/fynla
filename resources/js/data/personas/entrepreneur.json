@@ -2,7 +2,7 @@
   "id": "entrepreneur",
   "name": "Alex Chen",
   "tagline": "Self-made tech entrepreneur",
-  "description": "A 38-year-old single tech consultancy owner with business interests, SIPP, and key person insurance considerations.",
+  "description": "A 38-year-old single tech consultancy owner with business interests, Self-Invested Personal Pension (SIPP), and key person insurance considerations.",
   "netWorthRange": "£800k - £1m",
   "focus": "Business protection, single estate",
 
@@ -311,7 +311,7 @@
     },
     {
       "id": 2,
-      "scheme_name": "Alex's SIPP",
+      "scheme_name": "Alex's Self-Invested Personal Pension (SIPP)",
       "provider_name": "AJ Bell",
       "pension_type": "sipp",
       "scheme_type": "sipp",
@@ -482,7 +482,7 @@
       "acquisition_date": "2021-06-15",
       "acquisition_cost": 75000,
       "bpr_eligible": false,
-      "description": "Angel investment syndicate. Passive investment vehicle - not qualifying for BPR as primarily investment-holding.",
+      "description": "Angel investment syndicate. Passive investment vehicle - not qualifying for Business Property Relief as primarily investment-holding.",
       "notes": "Joint venture with 3 other tech entrepreneurs. Focuses on early-stage tech startups."
     }
   ],
@@ -625,9 +625,9 @@
       "ownership_type": "individual"
     },
     {
-      "goal_name": "Early Retirement SIPP",
+      "goal_name": "Early Retirement Pension (SIPP)",
       "goal_type": "retirement",
-      "description": "Max SIPP contributions for tax efficiency",
+      "description": "Max Self-Invested Personal Pension contributions for tax efficiency",
       "target_amount": 60000,
       "current_amount": 48000,
       "target_date": "2026-04-05",
@@ -727,7 +727,7 @@
       },
       {
         "title": "TechAngel Ventures LLP - Investment Holding",
-        "content": "25% interest in TechAngel Ventures LLP\nOC456789\n\nThree other partners:\n- Contact Simon Wright (managing partner)\n- simon@techangelventures.com\n\nNot BPR eligible (investment holding)\nCurrent value: ~£100,000 (my 25%)\nPartnership agreement specifies buyout terms"
+        "content": "25% interest in TechAngel Ventures LLP\nOC456789\n\nThree other partners:\n- Contact Simon Wright (managing partner)\n- simon@techangelventures.com\n\nNot Business Property Relief eligible (investment holding)\nCurrent value: ~£100,000 (my 25%)\nPartnership agreement specifies buyout terms"
       },
       {
         "title": "Director's Loan Account",
@@ -754,9 +754,9 @@
       "ownership_type": "individual"
     },
     {
-      "event_name": "BTL Property Investment",
+      "event_name": "Buy-to-Let Property Investment",
       "event_type": "large_purchase",
-      "description": "Purchase of buy-to-let property in Manchester for rental income diversification",
+      "description": "Purchase of Buy-to-Let property in Manchester for rental income diversification",
       "amount": 180000,
       "impact_type": "expense",
       "expected_date": "2027-09-01",

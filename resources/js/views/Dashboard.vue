@@ -48,171 +48,372 @@
         </div>
       </div>
 
-      <!-- Grid layout for dashboard cards -->
-      <div class="dashboard-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        <!-- Net Worth -->
-        <div class="flex">
-          <NetWorthOverviewCard />
-        </div>
+      <!-- Three-column dashboard grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Net Worth Card -->
+        <DashboardCard
+          v-if="hasNetWorthData"
+          title="Net Worth"
+          :loading="loading.netWorth"
+          @click="navigateTo('/net-worth/wealth-summary')"
+        >
+          <div class="space-y-4">
+            <!-- Primary value - no heading, just the value -->
+            <div class="border-b border-gray-200 pb-4">
+              <span
+                class="text-3xl font-bold"
+                :class="netWorthData.netWorth >= 0 ? 'text-green-600' : 'text-red-600'"
+              >
+                {{ formatCurrency(netWorthData.netWorth) }}
+              </span>
+            </div>
 
-        <!-- Retirement -->
-        <div class="flex">
-          <div v-if="loading.retirement" class="card animate-pulse">
-            <div class="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
-            <div class="h-8 bg-gray-200 rounded w-1/2 mb-2"></div>
-            <div class="h-3 bg-gray-200 rounded w-full"></div>
+            <!-- Assets breakdown by category -->
+            <div v-if="netWorthData.totalAssets > 0" class="space-y-2">
+              <div class="text-sm font-semibold text-gray-700">Assets</div>
+              <div
+                v-for="(value, category) in netWorthBreakdown.assets"
+                :key="category"
+                class="flex justify-between text-sm"
+              >
+                <span class="text-gray-600">{{ formatAssetCategory(category) }}</span>
+                <span class="font-medium text-gray-900">{{ formatCurrency(value) }}</span>
+              </div>
+              <div class="flex justify-between text-sm pt-2 border-t border-gray-100">
+                <span class="text-gray-700 font-medium">Total Assets</span>
+                <span class="font-semibold text-blue-600">{{ formatCurrency(netWorthData.totalAssets) }}</span>
+              </div>
+            </div>
+
+            <!-- Liabilities breakdown by category -->
+            <div v-if="netWorthData.totalLiabilities > 0" class="space-y-2">
+              <div class="text-sm font-semibold text-gray-700">Liabilities</div>
+              <div
+                v-for="(value, category) in netWorthBreakdown.liabilities"
+                :key="category"
+                class="flex justify-between text-sm"
+              >
+                <span class="text-gray-600">{{ formatLiabilityCategory(category) }}</span>
+                <span class="font-medium text-gray-900">{{ formatCurrency(value) }}</span>
+              </div>
+              <div class="flex justify-between text-sm pt-2 border-t border-gray-100">
+                <span class="text-gray-700 font-medium">Total Liabilities</span>
+                <span class="font-semibold text-red-600">{{ formatCurrency(netWorthData.totalLiabilities) }}</span>
+              </div>
+            </div>
           </div>
-          <RetirementOverviewCard v-else />
-        </div>
+        </DashboardCard>
 
-        <!-- Investment -->
-        <div class="flex">
-          <div v-if="loading.investment" class="card animate-pulse">
-            <div class="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
-            <div class="h-8 bg-gray-200 rounded w-1/2 mb-2"></div>
-            <div class="h-3 bg-gray-200 rounded w-full"></div>
+        <!-- Estate Planning Card -->
+        <DashboardCard
+          v-if="hasEstateData"
+          title="Estate Planning"
+          :loading="loading.estate"
+          @click="navigateTo('/estate')"
+        >
+          <div class="space-y-4">
+            <!-- Taxable Estate Now -->
+            <div class="border-b border-gray-200 pb-4">
+              <span class="text-sm text-gray-500">Taxable Estate on Joint Death Now</span>
+              <div class="mt-1">
+                <span class="text-2xl font-bold text-primary-600">
+                  {{ formatCurrency(estateData.taxableEstate) }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Current IHT Liability -->
+            <div class="border-b border-gray-200 pb-4">
+              <div class="text-sm font-semibold text-gray-900 mb-2">Current Inheritance Tax Liability</div>
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-600">Amount Due</span>
+                <span class="font-medium text-gray-900">{{ formatCurrency(estateData.ihtLiability) }}</span>
+              </div>
+            </div>
+
+            <!-- Trusts -->
+            <div v-if="trustsList.length > 0" class="space-y-3">
+              <div class="text-sm font-semibold text-gray-900">Trusts</div>
+              <div
+                v-for="trust in trustsList"
+                :key="trust.id"
+                class="pb-2 border-b border-gray-100 last:border-0 last:pb-0"
+              >
+                <div class="flex justify-between text-sm">
+                  <span class="font-medium text-gray-900">{{ trust.trust_name }}</span>
+                  <span class="font-medium text-gray-900">{{ formatCurrency(trust.total_asset_value || trust.current_value || 0) }}</span>
+                </div>
+                <div v-if="trust.beneficiaries" class="text-xs text-gray-500 mt-1">
+                  Beneficiaries: {{ trust.beneficiaries }}
+                </div>
+              </div>
+            </div>
           </div>
-          <InvestmentsOverviewCard v-else />
-        </div>
+        </DashboardCard>
 
-        <!-- Tax -->
-        <div class="flex">
-          <div v-if="loading.taxAllowances" class="card animate-pulse">
-            <div class="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
-            <div class="h-8 bg-gray-200 rounded w-1/2 mb-2"></div>
-            <div class="h-3 bg-gray-200 rounded w-full"></div>
+        <!-- Investment & Savings Card -->
+        <DashboardCard
+          v-if="hasInvestmentData"
+          title="Investments & Savings"
+          :loading="loading.investment"
+          @click="navigateTo('/net-worth/investments')"
+        >
+          <div class="space-y-4">
+            <!-- Investment accounts list -->
+            <div v-if="investmentAccountsList.length > 0" class="space-y-2">
+              <div class="text-sm font-semibold text-gray-700">Investments</div>
+              <div
+                v-for="account in investmentAccountsList"
+                :key="'inv-' + account.id"
+                class="flex justify-between text-sm"
+              >
+                <span class="text-gray-600 truncate mr-2">{{ account.account_name }}</span>
+                <span class="font-medium text-gray-900 whitespace-nowrap">{{ formatCurrency(account.current_value) }}</span>
+              </div>
+              <div class="flex justify-between text-sm pt-2 border-t border-gray-100">
+                <span class="text-gray-700 font-medium">Total Investments</span>
+                <span class="font-semibold text-primary-600">{{ formatCurrency(investmentData.totalInvestments) }}</span>
+              </div>
+            </div>
+
+            <!-- Cash accounts list -->
+            <div v-if="cashAccountsList.length > 0" class="space-y-2">
+              <div class="text-sm font-semibold text-gray-700">Cash Accounts</div>
+              <div
+                v-for="account in cashAccountsList"
+                :key="'cash-' + account.id"
+                class="flex justify-between text-sm"
+              >
+                <span class="text-gray-600 truncate mr-2">{{ formatCashAccountName(account) }}</span>
+                <span class="font-medium text-gray-900 whitespace-nowrap">{{ formatCurrency(account.current_balance) }}</span>
+              </div>
+              <div class="flex justify-between text-sm pt-2 border-t border-gray-100">
+                <span class="text-gray-700 font-medium">Total Cash</span>
+                <span class="font-semibold text-primary-600">{{ formatCurrency(investmentData.totalCash) }}</span>
+              </div>
+            </div>
           </div>
-          <TaxOptimisationCard v-else />
-        </div>
+        </DashboardCard>
 
-        <!-- Goals -->
-        <div class="flex">
-          <GoalsOverviewCard />
-        </div>
+        <!-- Protection Card -->
+        <DashboardCard
+          v-if="hasProtectionData"
+          title="Protection"
+          :loading="loading.protection"
+          @click="navigateTo('/protection')"
+        >
+          <div class="space-y-4">
+            <!-- Life Insurance policies -->
+            <div v-if="protectionLifePolicies.length > 0" class="space-y-2">
+              <div class="text-sm font-semibold text-gray-700">Life Insurance</div>
+              <div
+                v-for="policy in protectionLifePolicies"
+                :key="'life-' + policy.id"
+                class="flex justify-between text-sm"
+              >
+                <span class="text-gray-600 truncate mr-2">{{ formatPolicyName(policy, 'Life') }}</span>
+                <span class="font-medium text-gray-900 whitespace-nowrap">{{ formatCurrency(policy.sum_assured) }}</span>
+              </div>
+            </div>
 
-        <!-- Estate -->
-        <div v-if="shouldShowEstateCard" class="flex">
-          <div v-if="loading.estate" class="card animate-pulse">
-            <div class="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
-            <div class="h-8 bg-gray-200 rounded w-1/2 mb-2"></div>
-            <div class="h-3 bg-gray-200 rounded w-full"></div>
+            <!-- Critical Illness policies -->
+            <div v-if="protectionCriticalIllnessPolicies.length > 0" class="space-y-2">
+              <div class="text-sm font-semibold text-gray-700">Critical Illness</div>
+              <div
+                v-for="policy in protectionCriticalIllnessPolicies"
+                :key="'ci-' + policy.id"
+                class="flex justify-between text-sm"
+              >
+                <span class="text-gray-600 truncate mr-2">{{ formatPolicyName(policy, 'Critical Illness') }}</span>
+                <span class="font-medium text-gray-900 whitespace-nowrap">{{ formatCurrency(policy.sum_assured) }}</span>
+              </div>
+            </div>
+
+            <!-- Income Protection policies -->
+            <div v-if="protectionIncomeProtectionPolicies.length > 0" class="space-y-2">
+              <div class="text-sm font-semibold text-gray-700">Income Protection</div>
+              <div
+                v-for="policy in protectionIncomeProtectionPolicies"
+                :key="'ip-' + policy.id"
+                class="flex justify-between text-sm"
+              >
+                <span class="text-gray-600 truncate mr-2">{{ formatPolicyName(policy, 'Income Protection') }}</span>
+                <span class="font-medium text-gray-900 whitespace-nowrap">{{ formatCurrency(policy.annual_benefit || policy.sum_assured) }}/yr</span>
+              </div>
+            </div>
+
+            <!-- Total coverage and premium -->
+            <div class="pt-2 border-t border-gray-100 space-y-2">
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-700 font-medium">Total Coverage</span>
+                <span class="font-semibold text-primary-600">{{ formatCurrency(protectionData.totalCoverage) }}</span>
+              </div>
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-600">Monthly Premium</span>
+                <span class="font-medium text-gray-900">{{ formatCurrency(protectionData.premiumTotal) }}/mo</span>
+              </div>
+            </div>
           </div>
-          <div v-else-if="errors.estate" class="card border-2 border-red-600 bg-white">
-            <h3 class="text-h4 text-red-700 mb-2">Estate Module</h3>
-            <p class="text-body text-red-600 mb-4">
-              Failed to load estate data. {{ errors.estate }}
+        </DashboardCard>
+
+        <!-- Retirement Card -->
+        <DashboardCard
+          v-if="hasRetirementData"
+          title="Retirement"
+          :loading="loading.retirement"
+          @click="navigateTo('/net-worth/retirement')"
+        >
+          <div class="space-y-4">
+            <!-- Income row: Projected and Required inline -->
+            <div class="flex justify-between border-b border-gray-200 pb-4">
+              <div>
+                <span class="text-sm text-gray-500">Projected Income</span>
+                <div class="flex items-baseline gap-1 mt-1">
+                  <span class="text-2xl font-bold text-green-600">
+                    {{ formatCurrency(retirementData.projectedIncome) }}
+                  </span>
+                  <span class="text-xs text-gray-500">/yr</span>
+                </div>
+              </div>
+              <div class="text-right">
+                <span class="text-sm text-gray-500">Required Income</span>
+                <div class="flex items-baseline justify-end gap-1 mt-1">
+                  <span class="text-2xl font-bold text-gray-700">
+                    {{ formatCurrency(retirementData.targetIncome) }}
+                  </span>
+                  <span class="text-xs text-gray-500">/yr</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Capital row: Projected and Required inline -->
+            <div class="flex justify-between border-b border-gray-200 pb-4">
+              <div>
+                <span class="text-sm text-gray-500">Projected Capital</span>
+                <div class="mt-1">
+                  <span class="text-2xl font-bold text-green-600">
+                    {{ formatCurrency(retirementData.projectedCapital) }}
+                  </span>
+                </div>
+              </div>
+              <div class="text-right">
+                <span class="text-sm text-gray-500">Capital Required</span>
+                <div class="mt-1">
+                  <span class="text-2xl font-bold text-gray-700">
+                    {{ formatCurrency(retirementData.capitalRequired) }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Retirement age and years -->
+            <div class="flex justify-between">
+              <div v-if="retirementData.retirementAge" class="text-center">
+                <span class="text-sm text-gray-500">Retirement Age</span>
+                <div class="text-lg font-semibold text-gray-900">{{ retirementData.retirementAge }}</div>
+              </div>
+              <div v-if="retirementData.yearsToRetirement !== null" class="text-center">
+                <span class="text-sm text-gray-500">Years to Retirement</span>
+                <div class="text-lg font-semibold text-gray-900">{{ retirementData.yearsToRetirement }} years</div>
+              </div>
+            </div>
+          </div>
+        </DashboardCard>
+
+        <!-- Actions Card - fills 3rd slot in row 2 -->
+        <div class="bg-white rounded-lg border border-gray-200 p-6">
+          <ActionsOverviewCard :compact="true" :limit="5" />
+        </div>
+
+        <!-- Goals & Events Card (spans 2 columns on larger screens) -->
+        <DashboardCard
+          v-if="hasGoalsData"
+          title="Goals & Life Events"
+          :loading="loading.goals"
+          class="lg:col-span-2"
+          @click="navigateTo('/goals')"
+        >
+          <!-- Bar chart with event icons - simplified for dashboard -->
+          <div v-if="goalsData.hasProjection || goalsData.hasGoals" @click.stop>
+            <GoalsProjectionChartDashboard />
+          </div>
+
+          <!-- Empty state for goals -->
+          <div v-else class="text-center py-4">
+            <div class="mx-auto w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center mb-3">
+              <svg class="w-6 h-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+            </div>
+            <h3 class="text-sm font-semibold text-gray-900 mb-1">Set Your First Goal</h3>
+            <p class="text-xs text-gray-500">
+              Track your financial goals and life events
             </p>
-            <button
-              @click="retryLoadModule('estate')"
-              class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-            >
-              Retry
-            </button>
           </div>
-          <EstateOverviewCard
-            v-else
-            :taxable-estate="estateData.taxableEstate"
-            :iht-liability="estateData.ihtLiability"
-            :probate-readiness="estateData.probateReadiness"
-            :future-death-age="estateData.futureDeathAge"
-            :future-taxable-estate="estateData.futureTaxableEstate"
-            :future-iht-liability="estateData.futureIHTLiability"
-            :is-married="estateData.isMarried"
-          />
+        </DashboardCard>
+
+        <!-- Other Areas to Consider Card -->
+        <div class="bg-white rounded-lg border border-gray-200 p-6">
+          <AreasToConsiderCard :limit="5" />
         </div>
 
-        <!-- Protection -->
-        <div v-if="shouldShowProtectionCard" class="flex">
-          <div v-if="loading.protection" class="card animate-pulse">
-            <div class="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
-            <div class="h-8 bg-gray-200 rounded w-1/2 mb-2"></div>
-            <div class="h-3 bg-gray-200 rounded w-full"></div>
-          </div>
-          <div v-else-if="errors.protection" class="card border-2 border-red-600 bg-white">
-            <h3 class="text-h4 text-red-700 mb-2">Protection Module</h3>
-            <p class="text-body text-red-600 mb-4">
-              Failed to load protection data. {{ errors.protection }}
-            </p>
-            <button
-              @click="retryLoadModule('protection')"
-              class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-            >
-              Retry
-            </button>
-          </div>
-          <ProtectionOverviewCard
-            v-else
-            :adequacy-score="protectionData.adequacyScore"
-            :total-coverage="protectionData.totalCoverage"
-            :premium-total="protectionData.premiumTotal"
-            :critical-gaps="protectionData.criticalGaps"
-            :life-policies="protectionData.lifePolicies"
-            :critical-illness-policies="protectionData.criticalIllnessPolicies"
-            :income-protection-policies="protectionData.incomeProtectionPolicies"
-            :disability-policies="protectionData.disabilityPolicies"
-            :sickness-illness-policies="protectionData.sicknessIllnessPolicies"
-          />
-        </div>
-
-        <!-- Actions (full width) -->
-        <div class="flex col-span-1 sm:col-span-2 lg:col-span-3">
-          <ActionsOverviewCard />
-        </div>
-
-        <!-- Admin Taxes -->
-        <div v-if="isAdmin" class="flex">
+        <!-- Admin Taxes (only for admins) -->
+        <DashboardCard
+          v-if="isAdmin"
+          title="UK Taxes"
+          :loading="loading.taxAllowances"
+          @click="navigateTo('/uk-taxes')"
+        >
           <UKTaxesOverviewCard />
-        </div>
+        </DashboardCard>
       </div>
     </div>
   </AppLayout>
 </template>
 
 <script>
-import { mapGetters } from 'vuex';
+import { mapGetters, mapState, mapActions } from 'vuex';
 import AppLayout from '@/layouts/AppLayout.vue';
-import NetWorthOverviewCard from '@/components/Dashboard/NetWorthOverviewCard.vue';
-import RetirementOverviewCard from '@/components/Dashboard/RetirementOverviewCard.vue';
-import InvestmentsOverviewCard from '@/components/Dashboard/InvestmentsOverviewCard.vue';
-import TaxOptimisationCard from '@/components/Dashboard/TaxOptimisationCard.vue';
-import GoalsOverviewCard from '@/components/Dashboard/GoalsOverviewCard.vue';
-import ProtectionOverviewCard from '@/components/Protection/ProtectionOverviewCard.vue';
-import EstateOverviewCard from '@/components/Estate/EstateOverviewCard.vue';
+import DashboardCard from '@/components/Dashboard/DashboardCard.vue';
+import GoalsProjectionChartDashboard from '@/components/Dashboard/GoalsProjectionChartDashboard.vue';
 import UKTaxesOverviewCard from '@/components/Dashboard/UKTaxesOverviewCard.vue';
 import ActionsOverviewCard from '@/components/Dashboard/ActionsOverviewCard.vue';
+import AreasToConsiderCard from '@/components/Dashboard/AreasToConsiderCard.vue';
+import { currencyMixin } from '@/mixins/currencyMixin';
+import userProfileService from '@/services/userProfileService';
 
 export default {
   name: 'Dashboard',
 
   components: {
     AppLayout,
-    NetWorthOverviewCard,
-    RetirementOverviewCard,
-    InvestmentsOverviewCard,
-    TaxOptimisationCard,
-    GoalsOverviewCard,
-    ProtectionOverviewCard,
-    EstateOverviewCard,
+    DashboardCard,
+    GoalsProjectionChartDashboard,
     UKTaxesOverviewCard,
     ActionsOverviewCard,
+    AreasToConsiderCard,
   },
+
+  mixins: [currencyMixin],
 
   data() {
     return {
       loading: {
-        protection: true,
-        estate: true,
+        netWorth: true,
         retirement: true,
+        estate: true,
         investment: true,
+        protection: true,
+        goals: true,
         taxAllowances: true,
       },
       errors: {
         protection: null,
         estate: null,
       },
-      refreshing: false,
       dataLoaded: false,
       mfaBannerDismissed: localStorage.getItem('mfaBannerDismissed') === 'true',
+      financialCommitmentsData: null,
     };
   },
 
@@ -227,43 +428,12 @@ export default {
       return user.mfa_enabled !== true;
     },
 
+    // Net Worth data
     ...mapGetters('netWorth', {
       netWorthValue: 'netWorth',
       netWorthAssets: 'totalAssets',
       netWorthLiabilities: 'totalLiabilities',
     }),
-    ...mapGetters('protection', {
-      protectionAdequacyScore: 'adequacyScore',
-      protectionTotalCoverage: 'totalCoverage',
-      protectionTotalPremium: 'totalPremium',
-      protectionCoverageGaps: 'coverageGaps',
-      protectionLifePolicies: 'lifePolicies',
-      protectionCriticalIllnessPolicies: 'criticalIllnessPolicies',
-      protectionIncomeProtectionPolicies: 'incomeProtectionPolicies',
-      protectionDisabilityPolicies: 'disabilityPolicies',
-      protectionSicknessIllnessPolicies: 'sicknessIllnessPolicies',
-    }),
-    ...mapGetters('estate', {
-      estateIHTLiability: 'ihtLiability',
-      estateProbateReadiness: 'probateReadiness',
-      estateTaxableEstate: 'taxableEstate',
-      estateFutureDeathAge: 'futureDeathAge',
-      estateFutureTaxableEstate: 'futureTaxableEstate',
-      estateFutureIHTLiability: 'futureIHTLiability',
-    }),
-
-    shouldShowEstateCard() {
-      return this.estateData.ihtLiability > 0;
-    },
-
-    shouldShowProtectionCard() {
-      return (
-        this.protectionData.lifePolicies.length > 0 ||
-        this.protectionData.criticalIllnessPolicies.length > 0 ||
-        this.protectionData.incomeProtectionPolicies.length > 0 ||
-        this.protectionData.disabilityPolicies.length > 0
-      );
-    },
 
     netWorthData() {
       return {
@@ -273,47 +443,249 @@ export default {
       };
     },
 
-    protectionData() {
-      const gaps = this.protectionCoverageGaps?.gaps_by_category || {};
-      const criticalGaps = Object.values(gaps).filter(gap => gap > 10000).length || 0;
-      const adequacyScore = typeof this.protectionAdequacyScore === 'object'
-        ? (this.protectionAdequacyScore?.score ?? 0)
-        : (this.protectionAdequacyScore || 0);
+    // Breakdown of assets and liabilities by category
+    netWorthBreakdown() {
+      const overview = this.$store.state.netWorth.overview;
+      // Filter out categories with zero values
+      const assets = {};
+      const liabilities = {};
+
+      if (overview.breakdown) {
+        Object.entries(overview.breakdown).forEach(([key, value]) => {
+          if (value > 0) {
+            assets[key] = value;
+          }
+        });
+      }
+
+      if (overview.liabilitiesBreakdown) {
+        Object.entries(overview.liabilitiesBreakdown).forEach(([key, value]) => {
+          if (value > 0) {
+            liabilities[key] = value;
+          }
+        });
+      }
+
+      return { assets, liabilities };
+    },
+
+    hasNetWorthData() {
+      return this.netWorthData.totalAssets > 0 || this.netWorthData.totalLiabilities > 0;
+    },
+
+    // Retirement data - using real API data
+    ...mapState('retirement', ['dcPensions', 'dbPensions', 'statePension', 'profile', 'requiredCapital', 'analysis']),
+    ...mapGetters('retirement', ['totalPensionWealth', 'yearsToRetirement', 'projectedIncome']),
+
+    retirementData() {
+      // Use real data from API - NOT made up calculations
+      const requiredCapital = this.requiredCapital || {};
 
       return {
-        adequacyScore: adequacyScore,
-        totalCoverage: this.protectionTotalCoverage || 0,
-        premiumTotal: this.protectionTotalPremium || 0,
-        criticalGaps: criticalGaps,
-        coverageGaps: gaps,
-        lifePolicies: this.protectionLifePolicies || [],
-        criticalIllnessPolicies: this.protectionCriticalIllnessPolicies || [],
-        incomeProtectionPolicies: this.protectionIncomeProtectionPolicies || [],
-        disabilityPolicies: this.protectionDisabilityPolicies || [],
-        sicknessIllnessPolicies: this.protectionSicknessIllnessPolicies || [],
+        projectedIncome: this.projectedIncome || 0,
+        targetIncome: requiredCapital.required_income || 0,
+        projectedCapital: this.totalPensionWealth || 0,
+        capitalRequired: requiredCapital.required_capital_at_retirement || 0,
+        retirementAge: this.profile?.target_retirement_age || null,
+        yearsToRetirement: this.yearsToRetirement || null,
       };
     },
 
-    estateData() {
-      const user = this.$store.state.auth.user;
-      const isMarried = user && user.marital_status === 'married';
+    hasRetirementData() {
+      return (this.dcPensions && this.dcPensions.length > 0) ||
+             (this.dbPensions && this.dbPensions.length > 0) ||
+             !!this.statePension;
+    },
+
+    // Investment & Savings data
+    ...mapState('investment', { investmentAccounts: 'accounts', investmentAnalysis: 'analysis' }),
+    ...mapGetters('investment', ['totalPortfolioValue']),
+    ...mapState('savings', ['expenditureProfile', 'accounts']),
+
+    // Investment accounts list (for line items)
+    investmentAccountsList() {
+      return this.investmentAccounts || [];
+    },
+
+    // Cash/savings accounts list (for line items)
+    cashAccountsList() {
+      return this.accounts || [];
+    },
+
+    investmentData() {
+      // Total investments from investment accounts
+      const totalInvestments = this.investmentAccountsList.reduce((sum, account) => {
+        return sum + parseFloat(account.current_value || 0);
+      }, 0);
+
+      // Total cash from savings accounts
+      const totalCash = this.cashAccountsList.reduce((sum, account) => {
+        return sum + parseFloat(account.current_balance || 0);
+      }, 0);
 
       return {
-        taxableEstate: this.estateTaxableEstate || 0,
-        ihtLiability: this.estateIHTLiability || 0,
-        probateReadiness: this.estateProbateReadiness || 0,
-        futureDeathAge: this.estateFutureDeathAge,
-        futureTaxableEstate: this.estateFutureTaxableEstate,
-        futureIHTLiability: this.estateFutureIHTLiability,
-        isMarried: isMarried,
+        totalInvestments,
+        totalCash,
+        totalValue: totalInvestments + totalCash,
+        accountsCount: (this.investmentAccountsList?.length || 0) + (this.cashAccountsList?.length || 0),
       };
+    },
+
+    hasInvestmentData() {
+      return (this.investmentAccountsList && this.investmentAccountsList.length > 0) ||
+             (this.cashAccountsList && this.cashAccountsList.length > 0);
+    },
+
+    // Protection data
+    ...mapGetters('protection', {
+      protectionTotalCoverage: 'totalCoverage',
+      protectionTotalPremium: 'totalPremium',
+      protectionLifePolicies: 'lifePolicies',
+      protectionCriticalIllnessPolicies: 'criticalIllnessPolicies',
+      protectionIncomeProtectionPolicies: 'incomeProtectionPolicies',
+    }),
+
+    protectionData() {
+      return {
+        totalCoverage: this.protectionTotalCoverage || 0,
+        premiumTotal: (this.protectionTotalPremium || 0) / 12, // Monthly premium
+      };
+    },
+
+    hasProtectionData() {
+      return (this.protectionLifePolicies?.length || 0) +
+             (this.protectionCriticalIllnessPolicies?.length || 0) +
+             (this.protectionIncomeProtectionPolicies?.length || 0) > 0;
+    },
+
+    // Goals data
+    ...mapState('goals', ['dashboardOverview', 'projectionData']),
+    ...mapGetters('goals', ['dashboardData']),
+
+    // Estate data
+    ...mapGetters('estate', ['ihtLiability', 'taxableEstate']),
+    ...mapState('trusts', { trusts: 'trusts' }),
+
+    estateData() {
+      return {
+        taxableEstate: this.taxableEstate || 0,
+        ihtLiability: this.ihtLiability || 0,
+      };
+    },
+
+    trustsList() {
+      return this.trusts || [];
+    },
+
+    hasEstateData() {
+      return this.taxableEstate > 0 || this.ihtLiability > 0;
+    },
+
+    goalsData() {
+      const data = this.dashboardData || {};
+      return {
+        hasGoals: data.has_goals || false,
+        totalGoals: data.total_goals || 0,
+        onTrackCount: data.on_track_count || 0,
+        totalTarget: data.total_target || 0,
+        totalCurrent: data.total_current || 0,
+        overallProgress: Math.round(data.overall_progress || 0),
+        lifeEventsCount: data.life_events_count || 0,
+        hasProjection: !!this.projectionData,
+      };
+    },
+
+    hasGoalsData() {
+      // Always show goals card - it has empty state
+      return true;
     },
   },
 
   methods: {
+    ...mapActions('goals', ['fetchDashboardOverview', 'fetchProjection']),
+    ...mapActions('retirement', ['fetchRequiredCapital']),
+
+    // Format asset category names for display
+    formatAssetCategory(category) {
+      const categoryLabels = {
+        pensions: 'Pensions',
+        property: 'Property',
+        investments: 'Investments',
+        cash: 'Cash & Savings',
+        business: 'Business Interests',
+        chattels: 'Chattels',
+      };
+      return categoryLabels[category] || category.charAt(0).toUpperCase() + category.slice(1).replace(/_/g, ' ');
+    },
+
+    // Format liability category names for display
+    formatLiabilityCategory(category) {
+      const categoryLabels = {
+        mortgages: 'Mortgages',
+        loans: 'Loans',
+        credit_cards: 'Credit Cards',
+        other: 'Other Liabilities',
+      };
+      return categoryLabels[category] || category.charAt(0).toUpperCase() + category.slice(1).replace(/_/g, ' ');
+    },
+
+    // Format cash account name from institution and account type
+    formatCashAccountName(account) {
+      const typeLabels = {
+        current_account: 'Current',
+        savings_account: 'Savings',
+        cash_isa: 'Cash ISA',
+        fixed_term: 'Fixed Term',
+        notice_account: 'Notice',
+        money_market: 'Money Market',
+      };
+      const type = typeLabels[account.account_type] || account.account_type || '';
+      const institution = account.institution || '';
+      if (institution && type) {
+        return `${institution} ${type}`;
+      }
+      return institution || type || 'Cash Account';
+    },
+
+    // Format protection policy name from provider and policy type
+    formatPolicyName(policy, fallbackType) {
+      const provider = policy.provider || policy.provider_name || '';
+      const policyType = policy.policy_type || '';
+
+      // Format policy type for display
+      const typeLabels = {
+        level_term: 'Level Term',
+        decreasing_term: 'Decreasing Term',
+        whole_of_life: 'Whole of Life',
+        family_income_benefit: 'Family Income Benefit',
+      };
+      const formattedType = typeLabels[policyType] || policyType.replace(/_/g, ' ');
+
+      if (provider && formattedType) {
+        return `${provider} ${formattedType}`;
+      }
+      return provider || formattedType || fallbackType;
+    },
+
     dismissMFABanner() {
       this.mfaBannerDismissed = true;
       localStorage.setItem('mfaBannerDismissed', 'true');
+    },
+
+    navigateTo(path) {
+      this.$router.push(path);
+    },
+
+    async loadFinancialCommitments() {
+      try {
+        const response = await userProfileService.getFinancialCommitments();
+        if (response.success) {
+          this.financialCommitmentsData = response.data;
+        }
+      } catch (error) {
+        console.error('Failed to load financial commitments:', error);
+        this.financialCommitmentsData = null;
+      }
     },
 
     async loadAllData() {
@@ -331,9 +703,12 @@ export default {
         { name: 'retirement', action: 'trusts/fetchTrusts' },
         { name: 'investment', action: 'userProfile/fetchProfile' },
         { name: 'retirement', action: 'retirement/fetchRetirementData' },
+        { name: 'retirement', action: 'retirement/fetchRequiredCapital' },
+        { name: 'retirement', action: 'retirement/analyseRetirement' },
         { name: 'investment', action: 'investment/fetchInvestmentData' },
         { name: 'investment', action: 'investment/analyseInvestment' },
         { name: 'taxAllowances', action: 'savings/fetchSavingsData' },
+        { name: 'goals', action: 'goals/fetchDashboardOverview' },
       ];
 
       Object.keys(this.loading).forEach(key => {
@@ -342,6 +717,9 @@ export default {
       Object.keys(this.errors).forEach(key => {
         this.errors[key] = null;
       });
+
+      // Load financial commitments
+      this.loadFinancialCommitments();
 
       const moduleActionCounts = {};
       moduleLoaders.forEach(loader => {
@@ -379,56 +757,12 @@ export default {
           console.error('Failed to load module:', result.reason);
         }
       });
-    },
 
-    async retryLoadModule(moduleName) {
-      this.loading[moduleName] = true;
-      this.errors[moduleName] = null;
-
-      const user = this.$store.state.auth.user;
-      const isMarried = user && user.marital_status === 'married';
-      const estateCalculationAction = isMarried
-        ? 'estate/calculateSecondDeathIHTPlanning'
-        : 'estate/calculateIHT';
-
-      const actions = {
-        protection: ['protection/fetchProtectionData'],
-        estate: ['estate/fetchEstateData', estateCalculationAction],
-      };
-
+      // Also try to fetch projection data for goals chart
       try {
-        const moduleActions = actions[moduleName] || [];
-        await Promise.all(
-          moduleActions.map(action => this.$store.dispatch(action))
-        );
-        this.loading[moduleName] = false;
-      } catch (error) {
-        this.errors[moduleName] = error.response?.data?.message || error.message || 'Unknown error';
-        this.loading[moduleName] = false;
-      }
-    },
-
-    async refreshDashboard() {
-      this.refreshing = true;
-      try {
-        const user = this.$store.state.auth.user;
-        const isMarried = user && user.marital_status === 'married';
-        const estateCalculationAction = isMarried
-          ? 'estate/calculateSecondDeathIHTPlanning'
-          : 'estate/calculateIHT';
-
-        await this.$store.dispatch('netWorth/refreshNetWorth');
-        await Promise.allSettled([
-          this.$store.dispatch('protection/fetchProtectionData'),
-          this.$store.dispatch('savings/fetchSavingsData'),
-          this.$store.dispatch('investment/fetchInvestmentData'),
-          this.$store.dispatch('estate/fetchEstateData'),
-          this.$store.dispatch(estateCalculationAction),
-        ]);
-      } catch (error) {
-        console.error('Error refreshing dashboard:', error);
-      } finally {
-        this.refreshing = false;
+        await this.fetchProjection();
+      } catch (e) {
+        // Projection is optional, don't block
       }
     },
   },
@@ -448,39 +782,5 @@ export default {
 </script>
 
 <style scoped>
-/* Card styling with white background and borders */
-.dashboard-grid :deep(.card),
-.dashboard-grid :deep([class*="overview-card"]) {
-  background: white !important;
-  border: 1px solid #e5e7eb !important;
-  border-radius: 8px !important;
-  width: 100%;
-  height: 100%;
-  transition: all 0.2s ease;
-}
-
-/* Hover effect for clickable cards - shadow and slight lift */
-.dashboard-grid :deep(.card):hover,
-.dashboard-grid :deep([class*="overview-card"]):hover {
-  border-color: #d1d5db !important;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  transform: translateY(-2px);
-}
-
-/* Keep loading skeletons visible */
-.dashboard-grid :deep(.animate-pulse) {
-  background: #f3f4f6 !important;
-  border-radius: 8px !important;
-  width: 100%;
-  height: 100%;
-}
-
-/* Make grid items stretch */
-.dashboard-grid > div {
-  display: flex;
-}
-
-.dashboard-grid > div > * {
-  flex: 1;
-}
+/* Card styling inherited from DashboardCard component */
 </style>

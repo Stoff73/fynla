@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Agents;
 
+use App\Constants\TaxDefaults;
 use App\Models\DBPension;
 use App\Models\DCPension;
 use App\Models\RetirementProfile;
@@ -275,7 +276,7 @@ class RetirementAgent extends BaseAgent
         // Simulate increased contributions
         $yearsToRetirement = max(0, $profile->target_retirement_age - $profile->current_age);
         $additionalAnnualContribution = $additionalMonthlyContribution * 12;
-        $growthRate = 0.05;
+        $growthRate = TaxDefaults::DEFAULT_GROWTH_RATE;
 
         $additionalValue = 0.0;
         if ($yearsToRetirement > 0 && $growthRate > 0) {
@@ -316,7 +317,7 @@ class RetirementAgent extends BaseAgent
         $currentProjection = $this->projector->projectTotalRetirementIncome($userId);
 
         // Rough calculation: additional years of growth on current pot plus new contributions
-        $growthRate = 0.05;
+        $growthRate = TaxDefaults::DEFAULT_GROWTH_RATE;
         $additionalGrowth = $currentProjection['dc_total_value'] * (pow(1 + $growthRate, $additionalYears) - 1);
         $additionalFromContributions = $additionalContributions * (1 + $growthRate * ($additionalYears / 2)); // Simplified
 

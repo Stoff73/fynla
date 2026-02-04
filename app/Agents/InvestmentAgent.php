@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Agents;
 
+use App\Constants\TaxDefaults;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\Investment\InvestmentGoal;
 use App\Models\Investment\RiskProfile;
@@ -74,7 +75,7 @@ class InvestmentAgent extends BaseAgent
 
             // Tax wrapper summary
             $isaAccounts = $accounts->where('account_type', 'isa');
-            $isaAllowance = $this->taxConfig->getISAAllowances()['annual_allowance'] ?? 20000;
+            $isaAllowance = $this->taxConfig->getISAAllowances()['annual_allowance'] ?? TaxDefaults::ISA_ALLOWANCE;
             $isaUsedThisYear = $isaAccounts->sum('isa_subscription_current_year');
             $isaRemaining = max(0, $isaAllowance - $isaUsedThisYear);
 
@@ -346,11 +347,17 @@ class InvestmentAgent extends BaseAgent
     }
 
     /**
-     * Clear cache for a user
+     * Clear cache for a user.
+     *
+     * Uses the standardised cache invalidation from BaseAgent.
+     *
+     * @param  int  $userId  User ID
      */
     public function clearCache(int $userId): void
     {
-        Cache::forget("investment_analysis_{$userId}");
+        $this->invalidateUserCache($userId, [
+            "investment_analysis_{$userId}",
+        ]);
     }
 
     /**

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Agents\CoordinatingAgent;
+use App\Constants\TaxDefaults;
 use App\Http\Controllers\Controller;
 use App\Models\RecommendationTracking;
 use App\Services\Coordination\CashFlowCoordinator;
@@ -32,8 +33,8 @@ class HolisticPlanningController extends Controller
         // Cache key based on user ID
         $cacheKey = "holistic_analysis_{$userId}";
 
-        // Cache for 1 hour
-        $analysis = Cache::remember($cacheKey, 3600, function () use ($userId) {
+        // Cache for 1 hour (standard TTL)
+        $analysis = Cache::remember($cacheKey, TaxDefaults::CACHE_TTL_STANDARD, function () use ($userId) {
             return $this->coordinatingAgent->orchestrateAnalysis($userId);
         });
 
@@ -55,8 +56,8 @@ class HolisticPlanningController extends Controller
         // Cache key
         $cacheKey = "holistic_plan_{$userId}";
 
-        // Cache for 24 hours
-        $plan = Cache::remember($cacheKey, 86400, function () use ($userId) {
+        // Cache for 24 hours (simulation TTL)
+        $plan = Cache::remember($cacheKey, TaxDefaults::CACHE_TTL_SIMULATION, function () use ($userId) {
             return $this->coordinatingAgent->generateHolisticPlan($userId);
         });
 

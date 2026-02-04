@@ -2,7 +2,7 @@
   "id": "peak_earners",
   "name": "David & Sarah Mitchell",
   "tagline": "High earners approaching retirement",
-  "description": "A couple in their late 40s with high incomes, BTL property, substantial investments, and complex pension arrangements including DB schemes.",
+  "description": "A couple in their late 40s with high incomes, Buy-to-Let property, substantial investments, and complex pension arrangements including Defined Benefit schemes.",
   "netWorthRange": "£1.5m - £2m",
   "focus": "Tax efficiency, pension allowances",
 
@@ -188,7 +188,7 @@
       "mortgage_start_date": "2018-10-15",
       "ownership_type": "joint",
       "ownership_percentage": 50,
-      "notes": "BTL mortgage"
+      "notes": "Buy-to-Let mortgage"
     },
     {
       "id": 3,
@@ -206,7 +206,7 @@
       "ownership_type": "tenants_in_common",
       "ownership_percentage": 40,
       "joint_owner_name": "Mike Jones",
-      "notes": "BTL mortgage - David's 40% share, joint with Mike Jones (60%)"
+      "notes": "Buy-to-Let mortgage - David's 40% share, joint with Mike Jones (60%)"
     }
   ],
 
@@ -295,7 +295,7 @@
   "investment_accounts": [
     {
       "id": 1,
-      "account_name": "David's S&S ISA",
+      "account_name": "David's Stocks & Shares ISA",
       "provider_name": "Hargreaves Lansdown",
       "account_type": "isa",
       "current_value": 95000,
@@ -354,7 +354,7 @@
     },
     {
       "id": 2,
-      "account_name": "Sarah's S&S ISA",
+      "account_name": "Sarah's Stocks & Shares ISA",
       "provider_name": "Hargreaves Lansdown",
       "account_type": "isa",
       "current_value": 85000,
@@ -385,7 +385,7 @@
     },
     {
       "id": 3,
-      "account_name": "Joint GIA",
+      "account_name": "Joint General Investment Account",
       "provider_name": "AJ Bell",
       "account_type": "gia",
       "current_value": 95000,
@@ -441,7 +441,7 @@
     },
     {
       "id": 4,
-      "account_name": "VCT Holdings",
+      "account_name": "Venture Capital Trust Holdings",
       "provider_name": "Various",
       "account_type": "vct",
       "current_value": 30000,
@@ -451,7 +451,7 @@
       "advisor_fee_percent": 0.75,
       "risk_preference": "high",
       "has_custom_risk": true,
-      "notes": "Tax-efficient VCT investments"
+      "notes": "Tax-efficient Venture Capital Trust investments"
     }
   ],
 
@@ -475,7 +475,7 @@
     },
     {
       "id": 2,
-      "scheme_name": "David's SIPP",
+      "scheme_name": "David's Self-Invested Personal Pension (SIPP)",
       "provider_name": "AJ Bell",
       "pension_type": "sipp",
       "scheme_type": "sipp",
@@ -566,7 +566,7 @@
       "in_trust": true,
       "joint_life": true,
       "policy_reference": "VIT-LT-456789",
-      "notes": "Family protection - in trust for IHT efficiency",
+      "notes": "Family protection - in trust for Inheritance Tax efficiency",
       "beneficiaries": "Sarah Mitchell (spouse), William Mitchell (child), Charlotte Mitchell (child)"
     }
   ],
@@ -645,7 +645,7 @@
       "registration_number": "ABC 123E",
       "ownership_type": "individual",
       "ownership_percentage": 100,
-      "notes": "CGT exempt - wasting asset. Stored in climate-controlled garage. Member of Jaguar Enthusiasts Club."
+      "notes": "Capital Gains Tax exempt - wasting asset. Stored in climate-controlled garage. Member of Jaguar Enthusiasts Club."
     },
     {
       "id": 3,
@@ -685,7 +685,7 @@
       "valuation_date": "2024-06-01",
       "ownership_type": "individual",
       "ownership_percentage": 100,
-      "notes": "Below £6,000 CGT threshold"
+      "notes": "Below £6,000 Capital Gains Tax threshold"
     },
     {
       "id": 6,
@@ -702,7 +702,7 @@
       "registration_number": "DM22 XYZ",
       "ownership_type": "joint",
       "ownership_percentage": 50,
-      "notes": "CGT exempt - wasting asset. PCP finance ends 2025."
+      "notes": "Capital Gains Tax exempt - wasting asset. PCP finance ends 2025."
     }
   ],
 
@@ -736,7 +736,7 @@
     "Are we on track for retirement at 60?",
     "How do we optimise our tax position with tapered pension allowance?",
     "Should we pay off the mortgage or invest more?",
-    "What is the best strategy for the BTL property?"
+    "What is the best strategy for the Buy-to-Let property?"
   ],
 
   "highlights": {
@@ -951,7 +951,7 @@
     "additional_wishes": "Sarah, you've been my best friend for 20 years. Please don't rush into any major decisions - take at least a year before selling the house or making big financial moves. James at Hargreaves will look after you. Make sure the kids know I loved them more than anything. And please, let William have the Jag when he's old enough - he's wanted it since he was 10. I love you all.",
     "additional_boxes": [
       {
-        "title": "Manchester BTL Property - Mike Jones",
+        "title": "Manchester Buy-to-Let Property - Mike Jones",
         "content": "40% share owned with Mike Jones (60%).\nMike has right of first refusal if selling.\nContact: 07700 900123 / mike.jones@email.com\nTenant: Ms Rachel Green, lease ends May 2025\nProperty management: Northwood Manchester"
       },
       {

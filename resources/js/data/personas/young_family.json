@@ -185,7 +185,7 @@
   "investment_accounts": [
     {
       "id": 1,
-      "account_name": "James's S&S ISA",
+      "account_name": "James's Stocks & Shares ISA",
       "provider_name": "Vanguard",
       "account_type": "isa",
       "current_value": 15000,

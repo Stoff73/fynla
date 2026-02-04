@@ -4,7 +4,7 @@
   "tagline": "Retired widow with estate concerns",
   "description": "A 68-year-old retired headteacher who was widowed 2 years ago. Multiple properties, substantial investments, and complex estate planning needs.",
   "netWorthRange": "£1.4m - £1.6m",
-  "focus": "IHT planning, gifting strategy",
+  "focus": "Inheritance Tax planning, gifting strategy",
 
   "user": {
     "first_name": "Margaret",
@@ -38,7 +38,7 @@
     "date_of_birth": "1954-06-22",
     "date_of_death": "2022-11-15",
     "deceased": true,
-    "notes": "Passed away 2 years ago - transferred NRB and RNRB"
+    "notes": "Passed away 2 years ago - transferred Nil Rate Band and Residence Nil Rate Band"
   },
 
   "family_members": [
@@ -385,7 +385,7 @@
       "in_trust": true,
       "joint_life": false,
       "policy_reference": "AV-WOL-123456",
-      "notes": "Written in trust for IHT purposes - pays outside estate",
+      "notes": "Written in trust for Inheritance Tax purposes - pays outside estate",
       "beneficiaries": "Andrew Thompson (child), Catherine Williams (child), Richard Thompson (child)"
     }
   ],
@@ -465,7 +465,7 @@
       "purpose": "Provide supplementary income for Margaret during her lifetime, with remainder to children",
       "is_relevant_property_trust": true,
       "is_active": true,
-      "notes": "Set up by Robert Thompson in 2015 as part of estate planning. Provides Margaret with flexible income when needed while keeping assets outside her estate for IHT purposes. Trust deed allows trustees discretion on distributions to beneficiaries."
+      "notes": "Set up by Robert Thompson in 2015 as part of estate planning. Provides Margaret with flexible income when needed while keeping assets outside her estate for Inheritance Tax purposes. Trust deed allows trustees discretion on distributions to beneficiaries."
     }
   ],
 
@@ -522,11 +522,11 @@
     "transferred_rnrb": 175000,
     "spouse_deceased": true,
     "spouse_death_date": "2022-11-15",
-    "notes": "Full NRB and RNRB transferred from late husband's estate"
+    "notes": "Full Nil Rate Band and Residence Nil Rate Band transferred from late husband's estate"
   },
 
   "key_concerns": [
-    "How much IHT will my children have to pay?",
+    "How much Inheritance Tax will my children have to pay?",
     "Should I gift money now or wait?",
     "Is my will up to date after my husband's passing?",
     "What is the best way to help grandchildren with house deposits?"
@@ -541,7 +541,7 @@
       "gifts_in_last_7_years": 45000
     },
     "net_worth_range": "1.4m - 1.6m",
-    "primary_focus": "IHT planning, gifting strategy"
+    "primary_focus": "Inheritance Tax planning, gifting strategy"
   },
 
   "risk_profile": {
@@ -554,7 +554,7 @@
     "spouse_primary_beneficiary": false,
     "spouse_bequest_percentage": 0,
     "executor_name": "Andrew Thompson & Smithson Solicitors LLP",
-    "executor_notes": "Will updated following Robert's death. Includes NRB discretionary trust provisions. LPA for health and finance in place with Andrew and Catherine as attorneys. Funeral wishes documented separately.",
+    "executor_notes": "Will updated following Robert's death. Includes Nil Rate Band discretionary trust provisions. Lasting Power of Attorney for health and finance in place with Andrew and Catherine as attorneys. Funeral wishes documented separately.",
     "will_last_updated": "2023-06-10",
     "bequests": [
       {
@@ -624,7 +624,7 @@
       "goal_name": "Annual Gifting to Family",
       "goal_type": "custom",
       "custom_goal_type_name": "Estate Planning",
-      "description": "Regular gifting to reduce estate for IHT purposes",
+      "description": "Regular gifting to reduce estate for Inheritance Tax purposes",
       "target_amount": 12000,
       "current_amount": 9000,
       "target_date": "2026-04-05",
@@ -706,7 +706,7 @@
       },
       {
         "title": "Padstow Cottage - Holiday Home",
-        "content": "14 Harbour View, Padstow, Cornwall PL28 8AE\n\nValue: ~£285,000 (no mortgage)\nThis is a SECOND RESIDENCE - full CGT applies on sale\n\nConsider:\n- Keep for family holidays\n- Rent out for income (needs letting agency)\n- Sell and distribute proceeds\n\nKeys with local keyholder: Mrs Janet Trevithick\n01841 532 890"
+        "content": "14 Harbour View, Padstow, Cornwall PL28 8AE\n\nValue: ~£285,000 (no mortgage)\nThis is a SECOND RESIDENCE - full Capital Gains Tax applies on sale\n\nConsider:\n- Keep for family holidays\n- Rent out for income (needs letting agency)\n- Sell and distribute proceeds\n\nKeys with local keyholder: Mrs Janet Trevithick\n01841 532 890"
       },
       {
         "title": "Offshore Bond - Tax Planning",
@@ -717,7 +717,7 @@
         "content": "Junior ISAs set up for each grandchild:\n- Emily Williams (Catherine's)\n- James Williams (Catherine's)\n- Sophie Thompson (Andrew's)\n- Oliver Thompson (Andrew's)\n- Lucy Thompson (Richard's)\n\nI contribute £600/year to each (from annual exemption).\n\nEducation trust in will: 15% of residual estate for university costs when they turn 21.\n\nEncourage them all to go to university - education changes lives."
       },
       {
-        "title": "IHT Planning Notes",
+        "title": "Inheritance Tax Planning Notes",
         "content": "Robert's NRB (£325k) and RNRB (£175k) transferred to me.\n\nMy total allowances:\n- NRB: £650,000 (double)\n- RNRB: £350,000 (double)\n- Total: £1,000,000\n\nCurrent estate: ~£1,595,000\nEstimated IHT: ~£238,000 (40% of excess)\n\nLife insurance (£100k in trust) covers most of this.\n\nGifting strategy: £6,000/year (2 x £3k exemptions) to grandchildren.\n£45,000 already gifted in last 7 years - children got house deposit help."
       }
     ]

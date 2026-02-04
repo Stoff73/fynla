@@ -35,14 +35,36 @@ const state = {
     error: null,
 };
 
+/**
+ * Vuex getters for investment module.
+ *
+ * @typedef {Object} InvestmentState
+ * @property {Array<Object>} accounts - User's investment accounts
+ * @property {Array<Object>} goals - User's investment goals
+ * @property {Object|null} riskProfile - User's risk profile
+ * @property {Object|null} analysis - Portfolio analysis data
+ */
 const getters = {
-    // Get accounts
+    /**
+     * Get all investment accounts.
+     * @param {InvestmentState} state - Vuex state
+     * @returns {Array<Object>} Array of investment account objects
+     */
     accounts: (state) => state.accounts,
 
-    // Get goals
+    /**
+     * Get all investment goals.
+     * @param {InvestmentState} state - Vuex state
+     * @returns {Array<Object>} Array of investment goal objects
+     */
     goals: (state) => state.goals,
 
-    // Get total portfolio value across all accounts (user's share only for joint accounts)
+    /**
+     * Get total portfolio value across all accounts (user's share only for joint accounts).
+     * Joint accounts are weighted by ownership_percentage.
+     * @param {InvestmentState} state - Vuex state
+     * @returns {number} Total portfolio value in GBP
+     */
     totalPortfolioValue: (state) => {
         return state.accounts.reduce((sum, account) => {
             const fullValue = parseFloat(account.current_value || 0);
@@ -55,42 +77,74 @@ const getters = {
         }, 0);
     },
 
-    // Get YTD return percentage
+    /**
+     * Get year-to-date return percentage.
+     * @param {InvestmentState} state - Vuex state
+     * @returns {number} YTD return as percentage
+     */
     ytdReturn: (state) => {
         return state.analysis?.returns?.ytd_return || 0;
     },
 
-    // Get asset allocation data
+    /**
+     * Get asset allocation breakdown.
+     * @param {InvestmentState} state - Vuex state
+     * @returns {Array<{asset_type: string, percentage: number, value: number}>}
+     */
     assetAllocation: (state) => {
         return state.analysis?.asset_allocation || [];
     },
 
-    // Get total annual fees
+    /**
+     * Get total annual fees across all accounts.
+     * @param {InvestmentState} state - Vuex state
+     * @returns {number} Total fees in GBP
+     */
     totalFees: (state) => {
         return state.analysis?.fee_analysis?.total_annual_fees || 0;
     },
 
-    // Get fee drag percentage
+    /**
+     * Get fee drag as percentage of portfolio.
+     * @param {InvestmentState} state - Vuex state
+     * @returns {number} Fee drag percentage
+     */
     feeDragPercent: (state) => {
         return state.analysis?.fee_analysis?.fee_drag_percent || 0;
     },
 
-    // Get unrealised gains
+    /**
+     * Get total unrealised gains across holdings.
+     * @param {InvestmentState} state - Vuex state
+     * @returns {number} Unrealised gains in GBP
+     */
     unrealisedGains: (state) => {
         return state.analysis?.tax_efficiency?.unrealised_gains?.total_unrealised_gains || 0;
     },
 
-    // Get tax efficiency score
+    /**
+     * Get tax efficiency score (0-100).
+     * @param {InvestmentState} state - Vuex state
+     * @returns {number} Score from 0-100
+     */
     taxEfficiencyScore: (state) => {
         return state.analysis?.tax_efficiency?.efficiency_score || 0;
     },
 
-    // Get diversification score
+    /**
+     * Get diversification score (0-100).
+     * @param {InvestmentState} state - Vuex state
+     * @returns {number} Score from 0-100
+     */
     diversificationScore: (state) => {
         return state.analysis?.diversification_score || 0;
     },
 
-    // Get risk level (from analysis)
+    /**
+     * Get portfolio risk level from analysis.
+     * @param {InvestmentState} state - Vuex state
+     * @returns {'low'|'medium'|'high'} Risk level
+     */
     riskLevel: (state) => {
         return state.analysis?.risk_metrics?.risk_level || 'medium';
     },
