@@ -21,17 +21,6 @@
             overflow: hidden;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
-        .header {
-            background-color: #dc2626;
-            color: #ffffff;
-            padding: 30px;
-            text-align: center;
-        }
-        .header h1 {
-            margin: 0;
-            font-size: 24px;
-            font-weight: 600;
-        }
         .content {
             padding: 30px;
             text-align: center;
@@ -41,8 +30,8 @@
             text-align: left;
         }
         .code-box {
-            background-color: #fef2f2;
-            border: 2px solid #dc2626;
+            background-color: #f0f9ff;
+            border: 2px solid #3b82f6;
             border-radius: 12px;
             padding: 30px;
             margin: 30px 0;
@@ -50,7 +39,7 @@
         }
         .code-label {
             font-size: 14px;
-            color: #991b1b;
+            color: #1e40af;
             margin-bottom: 10px;
             text-transform: uppercase;
             letter-spacing: 1px;
@@ -60,28 +49,30 @@
             font-size: 42px;
             font-weight: bold;
             letter-spacing: 8px;
-            color: #dc2626;
+            color: #3b82f6;
             background-color: #ffffff;
             padding: 15px 25px;
             border-radius: 8px;
             display: inline-block;
-            border: 1px solid #fecaca;
+            border: 1px solid #bfdbfe;
         }
-        .warning-box {
-            background-color: #fef3c7;
-            border-left: 4px solid #f59e0b;
+        .info-box {
+            background-color: #f0f9ff;
+            border: 1px solid #3b82f6;
+            border-radius: 6px;
             padding: 12px 15px;
             margin: 20px 0;
             text-align: left;
         }
-        .warning-box p {
+        .info-box p {
             margin: 0;
-            color: #92400e;
+            color: #1e40af;
             font-size: 14px;
         }
         .danger-note {
             background-color: #fef2f2;
-            border-left: 4px solid #dc2626;
+            border: 1px solid #dc2626;
+            border-radius: 6px;
             padding: 12px 15px;
             margin: 20px 0;
             text-align: left;
@@ -90,6 +81,21 @@
             margin: 0;
             color: #991b1b;
             font-size: 14px;
+        }
+        .sign-off {
+            margin-top: 30px;
+            text-align: left;
+        }
+        .sign-off p {
+            margin: 5px 0;
+        }
+        .logo {
+            margin-top: 20px;
+            text-align: left;
+        }
+        .logo img {
+            max-width: 120px;
+            height: auto;
         }
         .footer {
             background-color: #f9fafb;
@@ -101,16 +107,19 @@
         .footer p {
             margin: 5px 0;
         }
+        .footer a {
+            color: #3b82f6;
+            text-decoration: none;
+        }
+        .footer a:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>Account Deletion Verification</h1>
-        </div>
-
         <div class="content">
-            <p>Hello {{ $user->first_name ?? 'there' }},</p>
+            <p>Dear {{ $user->first_name ?? 'User' }},</p>
 
             <p>You requested to delete your Fynla account or data. Use the following code to verify your identity:</p>
 
@@ -119,7 +128,7 @@
                 <div class="verification-code">{{ $code }}</div>
             </div>
 
-            <div class="warning-box">
+            <div class="info-box">
                 <p><strong>Important:</strong> This code expires in 15 minutes. If you did not request this deletion, please ignore this email and your account will remain safe.</p>
             </div>
 
@@ -127,12 +136,21 @@
                 <p><strong>Warning:</strong> Deletion is permanent and cannot be undone. All your financial data, goals, and planning history will be permanently removed.</p>
             </div>
 
-            <p style="margin-top: 20px; color: #6b7280; font-size: 14px;">If you did not request this deletion, someone may have access to your account. Please change your password immediately and contact support.</p>
+            <p style="margin-top: 20px; color: #6b7280; font-size: 14px;">If you did not request this deletion, someone may have access to your account. Please change your password immediately and <a href="mailto:support@fynla.org" style="color: #3b82f6;">contact support</a>.</p>
+
+            <div class="sign-off">
+                <p>Kindest regards,</p>
+                <p><strong>The Fynla Team (Chris & Brett)</strong></p>
+                <div class="logo">
+                    <img src="{{ config('app.url') }}/images/logoMain.png" alt="Fynla">
+                </div>
+            </div>
         </div>
 
         <div class="footer">
             <p>&copy; {{ date('Y') }} Fynla. All rights reserved.</p>
             <p>This is an automated message. Please do not reply to this email.</p>
+            <p>Need help? <a href="mailto:support@fynla.org">Contact Support</a></p>
         </div>
     </div>
 </body>
