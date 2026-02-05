@@ -50,11 +50,11 @@ class RetirementIncomeService
     private const GIA_WITHDRAWAL_RATE = 0.04; // 4% sustainable withdrawal
 
     public function __construct(
-        private TaxConfigService $taxConfig,
-        private DecumulationPlanner $decumulationPlanner,
-        private RequiredCapitalCalculator $requiredCapitalCalculator,
-        private RetirementProjectionService $projectionService,
-        private InvestmentProjectionService $investmentProjectionService,
+        private readonly TaxConfigService $taxConfig,
+        private readonly DecumulationPlanner $decumulationPlanner,
+        private readonly RequiredCapitalCalculator $requiredCapitalCalculator,
+        private readonly RetirementProjectionService $projectionService,
+        private readonly InvestmentProjectionService $investmentProjectionService,
     ) {}
 
     /**
@@ -94,7 +94,7 @@ class RetirementIncomeService
         $availableAccounts = $this->getAvailableAccounts($userId, $includeSpouse, $projectedPensionPot, $yearsToRetirement);
 
         // DEBUG: Log available accounts to trace toggle issues
-        $accountTypes = array_map(fn($a) => $a['type'] ?? 'unknown', $availableAccounts);
+        $accountTypes = array_map(fn ($a) => $a['type'] ?? 'unknown', $availableAccounts);
         \Log::debug('RetirementIncomeService::getRetirementIncomeConfig - Available accounts', [
             'user_id' => $userId,
             'account_count' => count($availableAccounts),
@@ -129,7 +129,7 @@ class RetirementIncomeService
         );
 
         // DEBUG: Log allocations to trace toggle issues
-        $allocationTypes = array_map(fn($a) => [
+        $allocationTypes = array_map(fn ($a) => [
             'type' => $a['source_type'] ?? 'unknown',
             'amount' => $a['annual_amount'] ?? 0,
         ], $defaultAllocations);
@@ -934,7 +934,7 @@ class RetirementIncomeService
         $fundBalances = $this->initializeFundBalancesWithPclsSplit($userId, $incomeAllocations, $projectedPensionPot, $yearsToRetirement, $availableAccounts);
 
         // DEBUG: Log initialized fund balances
-        $bondKeys = array_filter(array_keys($fundBalances), fn($k) => str_contains($k, 'bond'));
+        $bondKeys = array_filter(array_keys($fundBalances), fn ($k) => str_contains($k, 'bond'));
         \Log::debug('projectFundDepletion - Fund balances initialized', [
             'total_fund_keys' => count($fundBalances),
             'fund_keys' => array_keys($fundBalances),
@@ -1094,6 +1094,7 @@ class RetirementIncomeService
                         break;
                     }
                 }
+
                 return $withdrawn;
             };
 
@@ -1105,6 +1106,7 @@ class RetirementIncomeService
                         $total += $balance;
                     }
                 }
+
                 return $total;
             };
 
@@ -1881,7 +1883,7 @@ class RetirementIncomeService
         }
 
         // DEBUG: Log final allocations
-        $finalAllocationSummary = array_map(fn($a) => [
+        $finalAllocationSummary = array_map(fn ($a) => [
             'type' => $a['source_type'] ?? 'unknown',
             'amount' => $a['annual_amount'] ?? 0,
             'tax_treatment' => $a['tax_treatment'] ?? 'unknown',

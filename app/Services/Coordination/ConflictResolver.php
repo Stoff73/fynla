@@ -18,7 +18,7 @@ use App\Services\TaxConfigService;
 class ConflictResolver
 {
     public function __construct(
-        private TaxConfigService $taxConfig
+        private readonly TaxConfigService $taxConfig
     ) {}
 
     /**

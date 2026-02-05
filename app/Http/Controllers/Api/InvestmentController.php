@@ -6,6 +6,18 @@ namespace App\Http\Controllers\Api;
 
 use App\Agents\InvestmentAgent;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Investment\AccountProjectionsRequest;
+use App\Http\Requests\Investment\ScenarioRequest;
+use App\Http\Requests\Investment\StartMonteCarloRequest;
+use App\Http\Requests\Investment\StoreHoldingRequest;
+use App\Http\Requests\Investment\StoreInvestmentGoalRequest;
+use App\Http\Requests\Investment\StoreRiskProfileRequest;
+use App\Http\Requests\Investment\UpdateHoldingRequest;
+use App\Http\Requests\Investment\UpdateInvestmentGoalRequest;
+use App\Http\Requests\StoreInvestmentAccountRequest;
+use App\Http\Requests\UpdateInvestmentAccountRequest;
+use App\Http\Resources\HoldingResource;
+use App\Http\Resources\InvestmentAccountResource;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Jobs\RunMonteCarloSimulation;
 use App\Models\Investment\Holding;
@@ -36,9 +48,9 @@ class InvestmentController extends Controller
     use SanitizedErrorResponse;
 
     public function __construct(
-        private InvestmentAgent $investmentAgent,
-        private InvestmentProjectionService $projectionService,
-        private DiversificationAnalyzer $diversificationAnalyzer
+        private readonly InvestmentAgent $investmentAgent,
+        private readonly InvestmentProjectionService $projectionService,
+        private readonly DiversificationAnalyzer $diversificationAnalyzer
     ) {}
 
     /**
@@ -59,24 +71,26 @@ class InvestmentController extends Controller
             ->with(['holdings', 'user', 'jointOwner'])
             ->get();
 
-        // Add calculated fields for each account
-        $accounts = $accounts->map(function ($account) use ($user) {
-            $accountData = $account->toArray();
-            $accountData['user_share'] = $this->calculateUserShare($account, $user->id);
-            $accountData['full_value'] = (float) $account->current_value;
-            $accountData['is_primary_owner'] = $this->isPrimaryOwner($account, $user->id);
-            $accountData['is_shared'] = $this->isSharedOwnership($account);
+        // Transform accounts using resource and add calculated fields
+        $accountsData = $accounts->map(function ($account) use ($user) {
+            $resourceData = (new InvestmentAccountResource($account))->toArray(request());
+
+            // Add user-specific calculated fields
+            $resourceData['user_share'] = $this->calculateUserShare($account, $user->id);
+            $resourceData['full_value'] = (float) $account->current_value;
+            $resourceData['is_primary_owner'] = $this->isPrimaryOwner($account, $user->id);
+            $resourceData['is_shared'] = $this->isSharedOwnership($account);
 
             // Calculate annualised return from holdings
-            $accountData['annualised_return'] = $this->calculateAccountAnnualisedReturn($account);
+            $resourceData['annualised_return'] = $this->calculateAccountAnnualisedReturn($account);
 
             // Add owner names for joint accounts
             $owner = $account->user;
             $jointOwner = $account->jointOwner;
-            $accountData['owner_name'] = $owner ? trim(($owner->first_name ?? '').' '.($owner->surname ?? '')) : null;
-            $accountData['joint_owner_name'] = $jointOwner ? trim(($jointOwner->first_name ?? '').' '.($jointOwner->surname ?? '')) : null;
+            $resourceData['owner_name'] = $owner ? trim(($owner->first_name ?? '').' '.($owner->surname ?? '')) : null;
+            $resourceData['joint_owner_name'] = $jointOwner ? trim(($jointOwner->first_name ?? '').' '.($jointOwner->surname ?? '')) : null;
 
-            return $accountData;
+            return $resourceData;
         });
 
         $goals = InvestmentGoal::where('user_id', $user->id)->get();
@@ -85,7 +99,7 @@ class InvestmentController extends Controller
         return response()->json([
             'success' => true,
             'data' => [
-                'accounts' => $accounts,
+                'accounts' => $accountsData,
                 'goals' => $goals,
                 'risk_profile' => $riskProfile,
             ],
@@ -138,11 +152,9 @@ class InvestmentController extends Controller
     /**
      * Build scenarios
      */
-    public function scenarios(Request $request): JsonResponse
+    public function scenarios(ScenarioRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'monthly_contribution' => 'nullable|numeric|min:0',
-        ]);
+        $validated = $request->validated();
 
         $user = $request->user();
         $scenarios = $this->investmentAgent->buildScenarios($user->id, $validated);
@@ -156,18 +168,10 @@ class InvestmentController extends Controller
     /**
      * Start Monte Carlo simulation (dispatch queue job)
      */
-    public function startMonteCarlo(Request $request): JsonResponse
+    public function startMonteCarlo(StartMonteCarloRequest $request): JsonResponse
     {
         try {
-            $validated = $request->validate([
-                'start_value' => 'required|numeric|min:0',
-                'monthly_contribution' => 'required|numeric|min:0',
-                'expected_return' => 'required|numeric|min:0|max:0.5',
-                'volatility' => 'required|numeric|min:0|max:1',
-                'years' => 'required|integer|min:1|max:50',
-                'iterations' => 'nullable|integer|min:100|max:10000',
-                'goal_amount' => 'nullable|numeric|min:0',
-            ]);
+            $validated = $request->validated();
 
             // Generate unique job ID
             $jobId = Str::uuid()->toString();
@@ -265,153 +269,9 @@ class InvestmentController extends Controller
      *
      * POST /api/investment/accounts
      */
-    public function storeAccount(Request $request): JsonResponse
+    public function storeAccount(StoreInvestmentAccountRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'account_type' => ['required', Rule::in(['isa', 'gia', 'nsi', 'onshore_bond', 'offshore_bond', 'vct', 'eis', 'private_company', 'crowdfunding', 'saye', 'csop', 'emi', 'unapproved_options', 'rsu', 'other'])],
-            'account_type_other' => 'required_if:account_type,other|nullable|string|max:255',
-            'provider' => 'required_unless:account_type,private_company,crowdfunding,saye,csop,emi,unapproved_options,rsu|nullable|string|max:255',
-            'account_number' => 'nullable|string|max:255',
-            'platform' => 'nullable|string|max:255',
-            'current_value' => 'required_unless:account_type,private_company,crowdfunding,saye,csop,emi,unapproved_options,rsu|nullable|numeric|min:0',
-            'contributions_ytd' => 'nullable|numeric|min:0',
-            'tax_year' => 'nullable|string|max:10',
-            'platform_fee_percent' => 'nullable|numeric|min:0',
-            'platform_fee_amount' => 'nullable|numeric|min:0',
-            'platform_fee_type' => ['nullable', Rule::in(['percentage', 'fixed'])],
-            'platform_fee_frequency' => ['nullable', Rule::in(['monthly', 'quarterly', 'annually'])],
-            'isa_type' => ['nullable', Rule::in(['stocks_and_shares', 'lifetime', 'innovative_finance'])],
-            'isa_subscription_current_year' => 'nullable|numeric|min:0|max:20000',
-            'ownership_type' => ['nullable', Rule::in(['individual', 'joint', 'trust'])],
-            'ownership_percentage' => 'nullable|numeric|min:0|max:100',
-            'joint_owner_id' => 'nullable|exists:users,id',
-            'trust_id' => 'nullable|exists:trusts,id',
-            // Contribution fields
-            'monthly_contribution_amount' => 'nullable|numeric|min:0',
-            'contribution_frequency' => ['nullable', Rule::in(['monthly', 'quarterly', 'annually'])],
-            'planned_lump_sum_amount' => 'nullable|numeric|min:0',
-            'planned_lump_sum_date' => 'nullable|date',
-            'country' => 'nullable|string|max:255',
-            'risk_preference' => 'nullable|string|max:50',
-            // Private Company / Crowdfunding fields
-            'company_legal_name' => 'required_if:account_type,private_company,crowdfunding|nullable|string|max:255',
-            'company_registration_number' => 'nullable|string|max:50',
-            'company_country' => 'nullable|string|max:100',
-            'company_website' => 'nullable|url|max:255',
-            'company_trading_name' => 'nullable|string|max:255',
-            'company_sector' => 'nullable|string|max:100',
-            'crowdfunding_platform' => 'required_if:account_type,crowdfunding|nullable|string|max:255',
-            'investment_date' => 'required_if:account_type,private_company,crowdfunding|nullable|date',
-            'investment_amount' => 'required_if:account_type,private_company,crowdfunding|nullable|numeric|min:0',
-            'investment_currency' => 'nullable|string|size:3',
-            'funding_round' => ['nullable', Rule::in(['pre_seed', 'seed', 'series_a', 'series_b', 'series_c', 'bridge', 'safe', 'other'])],
-            'pre_money_valuation' => 'nullable|numeric|min:0',
-            'post_money_valuation' => 'nullable|numeric|min:0',
-            'price_per_share' => 'nullable|numeric|min:0',
-            'number_of_shares' => 'nullable|integer|min:0',
-            'instrument_type' => ['required_if:account_type,private_company,crowdfunding', 'nullable', Rule::in(['ordinary_shares', 'preference_shares', 'convertible_loan_note', 'safe', 'revenue_share', 'fund_nominee_interest'])],
-            'share_class' => 'nullable|string|max:100',
-            'has_voting_rights' => 'nullable|boolean',
-            'has_dividend_rights' => 'nullable|boolean',
-            'liquidation_preference' => 'nullable|string|max:100',
-            'has_anti_dilution' => 'nullable|boolean',
-            'holding_structure' => ['nullable', Rule::in(['direct', 'nominee'])],
-            'nominee_name' => 'required_if:holding_structure,nominee|nullable|string|max:255',
-            'conversion_terms' => 'nullable|string',
-            'interest_rate' => 'nullable|numeric|min:0|max:100',
-            'maturity_date' => 'nullable|date',
-            'tax_relief_type' => ['nullable', Rule::in(['eis', 'seis', 'sitr', 'vct', 'none'])],
-            'eis3_certificate_number' => 'nullable|string|max:50',
-            'hmrc_reference' => 'nullable|string|max:50',
-            'relief_claimed_date' => 'nullable|date',
-            'relief_amount_claimed' => 'nullable|numeric|min:0',
-            'clawback_risk' => 'nullable|boolean',
-            'clawback_notes' => 'nullable|string',
-            'latest_valuation' => 'nullable|numeric|min:0',
-            'latest_valuation_date' => 'nullable|date',
-            'current_ownership_percent' => 'nullable|numeric|min:0|max:100',
-            'company_status' => ['nullable', Rule::in(['active', 'distressed', 'dormant', 'failed', 'exited'])],
-            'status_notes' => 'nullable|string',
-            'exit_type' => ['nullable', Rule::in(['acquisition', 'secondary_sale', 'buyback', 'ipo', 'liquidation'])],
-            'exit_date' => 'nullable|date',
-            'exit_gross_proceeds' => 'nullable|numeric|min:0',
-            'exit_fees' => 'nullable|numeric|min:0',
-            'exit_net_proceeds' => 'nullable|numeric|min:0',
-            'exit_moic' => 'nullable|numeric|min:0',
-            'loss_relief_eligible' => 'nullable|boolean',
-            'capital_loss_amount' => 'nullable|numeric|min:0',
-            'negligible_value_claim' => 'nullable|boolean',
-            // Employee Share Scheme fields
-            // Group 1: Employer Details
-            'employer_name' => 'required_if:account_type,saye,csop,emi,unapproved_options,rsu|nullable|string|max:255',
-            'employer_registration' => 'nullable|string|max:50',
-            'employer_ticker' => 'nullable|string|max:20',
-            'employer_is_listed' => 'nullable|boolean',
-            'parent_company_name' => 'nullable|string|max:255',
-            'parent_company_country' => 'nullable|string|max:100',
-            'ers_scheme_reference' => 'nullable|string|max:50',
-            'ers_registered' => 'nullable|boolean',
-            // Group 2: Grant Details
-            'grant_date' => 'required_if:account_type,saye,csop,emi,unapproved_options,rsu|nullable|date',
-            'grant_reference' => 'nullable|string|max:100',
-            'units_granted' => 'required_if:account_type,saye,csop,emi,unapproved_options,rsu|nullable|integer|min:0',
-            'exercise_price' => 'required_if:account_type,saye,csop,emi,unapproved_options|nullable|numeric|min:0',
-            'market_value_at_grant' => 'nullable|numeric|min:0',
-            'share_class_scheme' => 'nullable|string|max:100',
-            'grant_currency' => 'nullable|string|size:3',
-            'option_price_paid' => 'nullable|numeric|min:0',
-            'scheme_start_date' => 'nullable|date',
-            'scheme_duration_months' => ['nullable', 'integer', Rule::in([36, 60])],
-            // Group 3: Vesting Schedule
-            'vesting_type' => ['nullable', Rule::in(['cliff', 'monthly', 'quarterly', 'annual', 'performance', 'immediate'])],
-            'cliff_date' => 'nullable|date',
-            'cliff_percentage' => 'nullable|integer|min:0|max:100',
-            'vesting_period_months' => 'nullable|integer|min:0',
-            'vesting_frequency_months' => 'nullable|integer|min:0',
-            'has_performance_conditions' => 'nullable|boolean',
-            'performance_conditions_description' => 'nullable|string',
-            'performance_period_end' => 'nullable|date',
-            'performance_vesting_min_percent' => 'nullable|integer|min:0|max:100',
-            'performance_vesting_max_percent' => 'nullable|integer|min:0|max:100',
-            'full_vest_date' => 'nullable|date',
-            'accelerated_vesting_allowed' => 'nullable|boolean',
-            // Group 4: Current Status
-            'units_vested' => 'nullable|integer|min:0',
-            'units_unvested' => 'nullable|integer|min:0',
-            'units_exercised' => 'nullable|integer|min:0',
-            'units_forfeited' => 'nullable|integer|min:0',
-            'units_expired' => 'nullable|integer|min:0',
-            'scheme_status' => ['nullable', Rule::in(['active', 'vesting', 'exercisable', 'exercised', 'expired', 'forfeited', 'cancelled'])],
-            'current_share_price' => 'nullable|numeric|min:0',
-            'share_price_date' => 'nullable|date',
-            // Group 5: Exercise & Expiry
-            'exercise_window_start' => 'nullable|date',
-            'exercise_window_end' => 'nullable|date',
-            'last_exercise_date' => 'nullable|date',
-            'total_exercise_proceeds' => 'nullable|numeric|min:0',
-            'total_exercise_cost' => 'nullable|numeric|min:0',
-            'exercise_history_json' => 'nullable|string',
-            // Group 6: Tax Treatment
-            'tax_treatment' => ['nullable', Rule::in(['tax_advantaged', 'unapproved', 'mixed'])],
-            'is_readily_convertible_asset' => 'nullable|boolean',
-            'paye_via_payroll' => 'nullable|boolean',
-            'income_tax_at_vest_exercise' => 'nullable|numeric|min:0',
-            'ni_at_vest_exercise' => 'nullable|numeric|min:0',
-            'csop_disqualifying_event' => 'nullable|boolean',
-            'csop_three_year_date' => 'nullable|date',
-            'cost_basis_for_cgt' => 'nullable|numeric|min:0',
-            // Group 7: SAYE-Specific
-            'saye_monthly_savings' => 'nullable|numeric|min:0|max:500',
-            'saye_current_savings_balance' => 'nullable|numeric|min:0',
-            'saye_maturity_date' => 'nullable|date',
-            'saye_option_discount_percent' => 'nullable|numeric|min:0|max:20',
-            'saye_bonus_amount' => 'nullable|numeric|min:0',
-            // Group 8: Leaver Terms
-            'leaver_category' => ['nullable', Rule::in(['good_leaver', 'bad_leaver', 'death', 'redundancy', 'retirement', 'unknown'])],
-            'post_termination_exercise_days' => 'nullable|integer|min:0',
-            'termination_date' => 'nullable|date',
-            'leaver_notes' => 'nullable|string',
-        ]);
+        $validated = $request->validated();
 
         $user = $request->user();
         $validated['user_id'] = $user->id;
@@ -494,15 +354,18 @@ class InvestmentController extends Controller
             $this->investmentAgent->clearCache($validated['joint_owner_id']);
         }
 
-        // Add calculated fields to response
-        $accountData = $account->load('holdings')->toArray();
-        $accountData['user_share'] = $this->calculateUserShare($account, $user->id);
-        $accountData['full_value'] = (float) $account->current_value;
-        $accountData['is_primary_owner'] = true;
+        // Load holdings for response
+        $account->load('holdings');
+
+        // Transform using resource and add calculated fields
+        $resourceData = (new InvestmentAccountResource($account))->toArray(request());
+        $resourceData['user_share'] = $this->calculateUserShare($account, $user->id);
+        $resourceData['full_value'] = (float) $account->current_value;
+        $resourceData['is_primary_owner'] = true;
 
         return response()->json([
             'success' => true,
-            'data' => $accountData,
+            'data' => $resourceData,
         ], 201);
     }
 
@@ -514,7 +377,7 @@ class InvestmentController extends Controller
      *
      * PUT /api/investment/accounts/{id}
      */
-    public function updateAccount(Request $request, int $id): JsonResponse
+    public function updateAccount(UpdateInvestmentAccountRequest $request, int $id): JsonResponse
     {
         $user = $request->user();
 
@@ -523,151 +386,7 @@ class InvestmentController extends Controller
             ->where('id', $id)
             ->firstOrFail();
 
-        $validated = $request->validate([
-            'account_type' => ['nullable', Rule::in(['isa', 'gia', 'nsi', 'onshore_bond', 'offshore_bond', 'vct', 'eis', 'private_company', 'crowdfunding', 'saye', 'csop', 'emi', 'unapproved_options', 'rsu', 'other'])],
-            'account_type_other' => 'required_if:account_type,other|nullable|string|max:255',
-            'provider' => 'nullable|string|max:255',
-            'account_number' => 'nullable|string|max:255',
-            'platform' => 'nullable|string|max:255',
-            'current_value' => 'nullable|numeric|min:0',
-            'contributions_ytd' => 'nullable|numeric|min:0',
-            'tax_year' => 'nullable|string|max:10',
-            'platform_fee_percent' => 'nullable|numeric|min:0',
-            'platform_fee_amount' => 'nullable|numeric|min:0',
-            'platform_fee_type' => ['nullable', Rule::in(['percentage', 'fixed'])],
-            'platform_fee_frequency' => ['nullable', Rule::in(['monthly', 'quarterly', 'annually'])],
-            'ownership_type' => ['nullable', Rule::in(['individual', 'joint', 'trust'])],
-            'ownership_percentage' => 'nullable|numeric|min:0|max:100',
-            'joint_owner_id' => 'nullable|exists:users,id',
-            'isa_type' => ['nullable', Rule::in(['stocks_and_shares', 'lifetime', 'innovative_finance'])],
-            'isa_subscription_current_year' => 'nullable|numeric|min:0|max:20000',
-            // Contribution fields
-            'monthly_contribution_amount' => 'nullable|numeric|min:0',
-            'contribution_frequency' => ['nullable', Rule::in(['monthly', 'quarterly', 'annually'])],
-            'planned_lump_sum_amount' => 'nullable|numeric|min:0',
-            'planned_lump_sum_date' => 'nullable|date',
-            'country' => 'nullable|string|max:255',
-            'risk_preference' => 'nullable|string|max:50',
-            // Private Company / Crowdfunding fields
-            'company_legal_name' => 'nullable|string|max:255',
-            'company_registration_number' => 'nullable|string|max:50',
-            'company_country' => 'nullable|string|max:100',
-            'company_website' => 'nullable|url|max:255',
-            'company_trading_name' => 'nullable|string|max:255',
-            'company_sector' => 'nullable|string|max:100',
-            'crowdfunding_platform' => 'nullable|string|max:255',
-            'investment_date' => 'nullable|date',
-            'investment_amount' => 'nullable|numeric|min:0',
-            'investment_currency' => 'nullable|string|size:3',
-            'funding_round' => ['nullable', Rule::in(['pre_seed', 'seed', 'series_a', 'series_b', 'series_c', 'bridge', 'safe', 'other'])],
-            'pre_money_valuation' => 'nullable|numeric|min:0',
-            'post_money_valuation' => 'nullable|numeric|min:0',
-            'price_per_share' => 'nullable|numeric|min:0',
-            'number_of_shares' => 'nullable|integer|min:0',
-            'instrument_type' => ['nullable', Rule::in(['ordinary_shares', 'preference_shares', 'convertible_loan_note', 'safe', 'revenue_share', 'fund_nominee_interest'])],
-            'share_class' => 'nullable|string|max:100',
-            'has_voting_rights' => 'nullable|boolean',
-            'has_dividend_rights' => 'nullable|boolean',
-            'liquidation_preference' => 'nullable|string|max:100',
-            'has_anti_dilution' => 'nullable|boolean',
-            'holding_structure' => ['nullable', Rule::in(['direct', 'nominee'])],
-            'nominee_name' => 'nullable|string|max:255',
-            'conversion_terms' => 'nullable|string',
-            'interest_rate' => 'nullable|numeric|min:0|max:100',
-            'maturity_date' => 'nullable|date',
-            'tax_relief_type' => ['nullable', Rule::in(['eis', 'seis', 'sitr', 'vct', 'none'])],
-            'eis3_certificate_number' => 'nullable|string|max:50',
-            'hmrc_reference' => 'nullable|string|max:50',
-            'relief_claimed_date' => 'nullable|date',
-            'relief_amount_claimed' => 'nullable|numeric|min:0',
-            'disposal_restriction_date' => 'nullable|date',
-            'clawback_risk' => 'nullable|boolean',
-            'clawback_notes' => 'nullable|string',
-            'latest_valuation' => 'nullable|numeric|min:0',
-            'latest_valuation_date' => 'nullable|date',
-            'current_ownership_percent' => 'nullable|numeric|min:0|max:100',
-            'company_status' => ['nullable', Rule::in(['active', 'distressed', 'dormant', 'failed', 'exited'])],
-            'status_notes' => 'nullable|string',
-            'exit_type' => ['nullable', Rule::in(['acquisition', 'secondary_sale', 'buyback', 'ipo', 'liquidation'])],
-            'exit_date' => 'nullable|date',
-            'exit_gross_proceeds' => 'nullable|numeric|min:0',
-            'exit_fees' => 'nullable|numeric|min:0',
-            'exit_net_proceeds' => 'nullable|numeric|min:0',
-            'exit_moic' => 'nullable|numeric|min:0',
-            'loss_relief_eligible' => 'nullable|boolean',
-            'capital_loss_amount' => 'nullable|numeric|min:0',
-            'negligible_value_claim' => 'nullable|boolean',
-            // Employee Share Scheme fields
-            // Group 1: Employer Details
-            'employer_name' => 'nullable|string|max:255',
-            'employer_registration' => 'nullable|string|max:50',
-            'employer_ticker' => 'nullable|string|max:20',
-            'employer_is_listed' => 'nullable|boolean',
-            'parent_company_name' => 'nullable|string|max:255',
-            'parent_company_country' => 'nullable|string|max:100',
-            'ers_scheme_reference' => 'nullable|string|max:50',
-            'ers_registered' => 'nullable|boolean',
-            // Group 2: Grant Details
-            'grant_date' => 'nullable|date',
-            'grant_reference' => 'nullable|string|max:100',
-            'units_granted' => 'nullable|integer|min:0',
-            'exercise_price' => 'nullable|numeric|min:0',
-            'market_value_at_grant' => 'nullable|numeric|min:0',
-            'share_class_scheme' => 'nullable|string|max:100',
-            'grant_currency' => 'nullable|string|size:3',
-            'option_price_paid' => 'nullable|numeric|min:0',
-            'scheme_start_date' => 'nullable|date',
-            'scheme_duration_months' => ['nullable', 'integer', Rule::in([36, 60])],
-            // Group 3: Vesting Schedule
-            'vesting_type' => ['nullable', Rule::in(['cliff', 'monthly', 'quarterly', 'annual', 'performance', 'immediate'])],
-            'cliff_date' => 'nullable|date',
-            'cliff_percentage' => 'nullable|integer|min:0|max:100',
-            'vesting_period_months' => 'nullable|integer|min:0',
-            'vesting_frequency_months' => 'nullable|integer|min:0',
-            'has_performance_conditions' => 'nullable|boolean',
-            'performance_conditions_description' => 'nullable|string',
-            'performance_period_end' => 'nullable|date',
-            'performance_vesting_min_percent' => 'nullable|integer|min:0|max:100',
-            'performance_vesting_max_percent' => 'nullable|integer|min:0|max:100',
-            'full_vest_date' => 'nullable|date',
-            'accelerated_vesting_allowed' => 'nullable|boolean',
-            // Group 4: Current Status
-            'units_vested' => 'nullable|integer|min:0',
-            'units_unvested' => 'nullable|integer|min:0',
-            'units_exercised' => 'nullable|integer|min:0',
-            'units_forfeited' => 'nullable|integer|min:0',
-            'units_expired' => 'nullable|integer|min:0',
-            'scheme_status' => ['nullable', Rule::in(['active', 'vesting', 'exercisable', 'exercised', 'expired', 'forfeited', 'cancelled'])],
-            'current_share_price' => 'nullable|numeric|min:0',
-            'share_price_date' => 'nullable|date',
-            // Group 5: Exercise & Expiry
-            'exercise_window_start' => 'nullable|date',
-            'exercise_window_end' => 'nullable|date',
-            'last_exercise_date' => 'nullable|date',
-            'total_exercise_proceeds' => 'nullable|numeric|min:0',
-            'total_exercise_cost' => 'nullable|numeric|min:0',
-            'exercise_history_json' => 'nullable|string',
-            // Group 6: Tax Treatment
-            'tax_treatment' => ['nullable', Rule::in(['tax_advantaged', 'unapproved', 'mixed'])],
-            'is_readily_convertible_asset' => 'nullable|boolean',
-            'paye_via_payroll' => 'nullable|boolean',
-            'income_tax_at_vest_exercise' => 'nullable|numeric|min:0',
-            'ni_at_vest_exercise' => 'nullable|numeric|min:0',
-            'csop_disqualifying_event' => 'nullable|boolean',
-            'csop_three_year_date' => 'nullable|date',
-            'cost_basis_for_cgt' => 'nullable|numeric|min:0',
-            // Group 7: SAYE-Specific
-            'saye_monthly_savings' => 'nullable|numeric|min:0|max:500',
-            'saye_current_savings_balance' => 'nullable|numeric|min:0',
-            'saye_maturity_date' => 'nullable|date',
-            'saye_option_discount_percent' => 'nullable|numeric|min:0|max:20',
-            'saye_bonus_amount' => 'nullable|numeric|min:0',
-            // Group 8: Leaver Terms
-            'leaver_category' => ['nullable', Rule::in(['good_leaver', 'bad_leaver', 'death', 'redundancy', 'retirement', 'unknown'])],
-            'post_termination_exercise_days' => 'nullable|integer|min:0',
-            'termination_date' => 'nullable|date',
-            'leaver_notes' => 'nullable|string',
-        ]);
+        $validated = $request->validated();
 
         // Log joint account update if applicable
         if ($this->isSharedOwnership($account) && $account->joint_owner_id && isset($validated['current_value'])) {
@@ -726,15 +445,18 @@ class InvestmentController extends Controller
             $this->investmentAgent->clearCache($oldJointOwnerId);
         }
 
-        // Add calculated fields to response
-        $accountData = $account->fresh()->toArray();
-        $accountData['user_share'] = $this->calculateUserShare($account, $user->id);
-        $accountData['full_value'] = (float) $account->current_value;
-        $accountData['is_primary_owner'] = true;
+        // Refresh account and load relationships for response
+        $account = $account->fresh()->load('holdings');
+
+        // Transform using resource and add calculated fields
+        $resourceData = (new InvestmentAccountResource($account))->toArray(request());
+        $resourceData['user_share'] = $this->calculateUserShare($account, $user->id);
+        $resourceData['full_value'] = (float) $account->current_value;
+        $resourceData['is_primary_owner'] = true;
 
         return response()->json([
             'success' => true,
-            'data' => $accountData,
+            'data' => $resourceData,
         ]);
     }
 
@@ -801,10 +523,7 @@ class InvestmentController extends Controller
             $this->investmentAgent->clearCache($jointOwnerId);
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Account deleted successfully',
-        ]);
+        return response()->noContent();
     }
 
     // ==================== Holding CRUD ====================
@@ -812,24 +531,10 @@ class InvestmentController extends Controller
     /**
      * Store a new holding
      */
-    public function storeHolding(Request $request): JsonResponse
+    public function storeHolding(StoreHoldingRequest $request): JsonResponse
     {
         $user = $request->user();
-
-        $validated = $request->validate([
-            'investment_account_id' => 'required|exists:investment_accounts,id',
-            'asset_type' => ['required', Rule::in(['equity', 'bond', 'fund', 'etf', 'alternative', 'uk_equity', 'us_equity', 'international_equity', 'cash', 'property'])],
-            'security_name' => 'required|string|max:255',
-            'ticker' => 'nullable|string|max:50',
-            'isin' => 'nullable|string|max:50',
-            'allocation_percent' => 'required|numeric|min:0|max:100',
-            'purchase_price' => 'nullable|numeric|min:0',
-            'purchase_date' => 'nullable|date',
-            'current_price' => 'nullable|numeric|min:0',
-            'current_value' => 'required|numeric|min:0',
-            'dividend_yield' => 'nullable|numeric|min:0|max:100',
-            'ocf_percent' => 'nullable|numeric|min:0|max:100',
-        ]);
+        $validated = $request->validated();
 
         // Verify account belongs to user
         $account = InvestmentAccount::where('id', $validated['investment_account_id'])
@@ -865,7 +570,7 @@ class InvestmentController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $holding,
+            'data' => new HoldingResource($holding),
         ], 201);
     }
 
@@ -903,7 +608,7 @@ class InvestmentController extends Controller
     /**
      * Update a holding
      */
-    public function updateHolding(Request $request, int $id): JsonResponse
+    public function updateHolding(UpdateHoldingRequest $request, int $id): JsonResponse
     {
         $user = $request->user();
 
@@ -912,19 +617,7 @@ class InvestmentController extends Controller
             $query->where('user_id', $user->id);
         })->findOrFail($id);
 
-        $validated = $request->validate([
-            'asset_type' => ['nullable', Rule::in(['equity', 'bond', 'fund', 'etf', 'alternative', 'uk_equity', 'us_equity', 'international_equity', 'cash', 'property'])],
-            'security_name' => 'nullable|string|max:255',
-            'ticker' => 'nullable|string|max:50',
-            'isin' => 'nullable|string|max:50',
-            'allocation_percent' => 'nullable|numeric|min:0|max:100',
-            'purchase_price' => 'nullable|numeric|min:0',
-            'purchase_date' => 'nullable|date',
-            'current_price' => 'nullable|numeric|min:0',
-            'current_value' => 'nullable|numeric|min:0',
-            'dividend_yield' => 'nullable|numeric|min:0|max:100',
-            'ocf_percent' => 'nullable|numeric|min:0|max:100',
-        ]);
+        $validated = $request->validated();
 
         // Recalculate quantity and cost_basis if prices are provided
         if (isset($validated['current_value']) && isset($validated['current_price']) && $validated['current_price'] > 0) {
@@ -950,7 +643,7 @@ class InvestmentController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $holding->fresh(),
+            'data' => new HoldingResource($holding->fresh()),
         ]);
     }
 
@@ -979,10 +672,7 @@ class InvestmentController extends Controller
         // Clear optimization caches (efficient frontier, correlation matrix)
         PortfolioOptimizationController::clearUserOptimizationCache($user->id);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Holding deleted successfully',
-        ]);
+        return response()->noContent();
     }
 
     // ==================== Goal CRUD ====================
@@ -990,17 +680,9 @@ class InvestmentController extends Controller
     /**
      * Store a new goal
      */
-    public function storeGoal(Request $request): JsonResponse
+    public function storeGoal(StoreInvestmentGoalRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'goal_name' => 'required|string|max:255',
-            'goal_type' => ['required', Rule::in(['retirement', 'education', 'wealth', 'home'])],
-            'target_amount' => 'required|numeric|min:0',
-            'target_date' => 'required|date',
-            'priority' => ['nullable', Rule::in(['high', 'medium', 'low'])],
-            'is_essential' => 'nullable|boolean',
-            'linked_account_ids' => 'nullable|array',
-        ]);
+        $validated = $request->validated();
 
         $user = $request->user();
         $validated['user_id'] = $user->id;
@@ -1016,20 +698,12 @@ class InvestmentController extends Controller
     /**
      * Update a goal
      */
-    public function updateGoal(Request $request, int $id): JsonResponse
+    public function updateGoal(UpdateInvestmentGoalRequest $request, int $id): JsonResponse
     {
         $user = $request->user();
         $goal = InvestmentGoal::where('user_id', $user->id)->findOrFail($id);
 
-        $validated = $request->validate([
-            'goal_name' => 'nullable|string|max:255',
-            'goal_type' => ['nullable', Rule::in(['retirement', 'education', 'wealth', 'home'])],
-            'target_amount' => 'nullable|numeric|min:0',
-            'target_date' => 'nullable|date',
-            'priority' => ['nullable', Rule::in(['high', 'medium', 'low'])],
-            'is_essential' => 'nullable|boolean',
-            'linked_account_ids' => 'nullable|array',
-        ]);
+        $validated = $request->validated();
 
         $goal->update($validated);
 
@@ -1049,10 +723,7 @@ class InvestmentController extends Controller
 
         $goal->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Goal deleted successfully',
-        ]);
+        return response()->noContent();
     }
 
     // ==================== Risk Profile ====================
@@ -1060,16 +731,9 @@ class InvestmentController extends Controller
     /**
      * Store or update risk profile
      */
-    public function storeOrUpdateRiskProfile(Request $request): JsonResponse
+    public function storeOrUpdateRiskProfile(StoreRiskProfileRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'risk_tolerance' => ['required', Rule::in(['cautious', 'balanced', 'adventurous'])],
-            'capacity_for_loss_percent' => 'required|numeric|min:0|max:100',
-            'time_horizon_years' => 'required|integer|min:0|max:100',
-            'knowledge_level' => ['required', Rule::in(['novice', 'intermediate', 'experienced'])],
-            'attitude_to_volatility' => 'nullable|string|max:255',
-            'esg_preference' => 'nullable|boolean',
-        ]);
+        $validated = $request->validated();
 
         $user = $request->user();
         $validated['user_id'] = $user->id;
@@ -1126,14 +790,10 @@ class InvestmentController extends Controller
      *
      * GET /api/investment/accounts/{id}/projections?risk_level=high
      */
-    public function getAccountProjections(Request $request, int $id): JsonResponse
+    public function getAccountProjections(AccountProjectionsRequest $request, int $id): JsonResponse
     {
         $user = $request->user();
-
-        // Validate risk_level if provided
-        $validated = $request->validate([
-            'risk_level' => ['nullable', 'string', Rule::in(['low', 'lower_medium', 'medium', 'upper_medium', 'high'])],
-        ]);
+        $validated = $request->validated();
 
         $riskLevelOverride = $validated['risk_level'] ?? null;
 

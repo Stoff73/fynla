@@ -34,10 +34,10 @@ class IHTCalculationService
     private const DEFAULT_PROPERTY_GROWTH_RATE = 3.0;
 
     public function __construct(
-        private EstateAssetAggregatorService $aggregator,
-        private TaxConfigService $taxConfig,
-        private AssumptionsService $assumptionsService,
-        private InvestmentProjectionService $investmentProjectionService
+        private readonly EstateAssetAggregatorService $aggregator,
+        private readonly TaxConfigService $taxConfig,
+        private readonly AssumptionsService $assumptionsService,
+        private readonly InvestmentProjectionService $investmentProjectionService
     ) {}
 
     /**

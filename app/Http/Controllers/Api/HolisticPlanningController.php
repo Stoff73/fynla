@@ -17,8 +17,8 @@ use Illuminate\Support\Str;
 class HolisticPlanningController extends Controller
 {
     public function __construct(
-        private CoordinatingAgent $coordinatingAgent,
-        private CashFlowCoordinator $cashFlowCoordinator
+        private readonly CoordinatingAgent $coordinatingAgent,
+        private readonly CashFlowCoordinator $cashFlowCoordinator
     ) {}
 
     /**

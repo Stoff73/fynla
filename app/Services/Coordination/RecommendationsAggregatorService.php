@@ -15,11 +15,11 @@ use Illuminate\Support\Facades\Log;
 class RecommendationsAggregatorService
 {
     public function __construct(
-        private ProtectionAgent $protectionEngine,
-        private SavingsAgent $savingsCalculator,
-        private PortfolioAnalyzer $investmentAnalyzer,
-        private RetirementAgent $retirementAgent,
-        private ComprehensiveEstatePlanService $estatePlanService
+        private readonly ProtectionAgent $protectionEngine,
+        private readonly SavingsAgent $savingsCalculator,
+        private readonly PortfolioAnalyzer $investmentAnalyzer,
+        private readonly RetirementAgent $retirementAgent,
+        private readonly ComprehensiveEstatePlanService $estatePlanService
     ) {}
 
     /**

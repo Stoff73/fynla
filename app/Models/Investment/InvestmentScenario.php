@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models\Investment;
 
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -49,7 +50,7 @@ class InvestmentScenario extends Model
     /**
      * Scope to get saved scenarios only
      */
-    public function scopeSaved($query)
+    public function scopeSaved(Builder $query): Builder
     {
         return $query->where('is_saved', true);
     }
@@ -57,7 +58,7 @@ class InvestmentScenario extends Model
     /**
      * Scope to get completed scenarios
      */
-    public function scopeCompleted($query)
+    public function scopeCompleted(Builder $query): Builder
     {
         return $query->where('status', 'completed');
     }
@@ -65,7 +66,7 @@ class InvestmentScenario extends Model
     /**
      * Scope to get scenarios by type
      */
-    public function scopeOfType($query, string $type)
+    public function scopeOfType(Builder $query, string $type): Builder
     {
         return $query->where('scenario_type', $type);
     }

@@ -22,7 +22,7 @@ class PensionProjector
     private const DEFAULT_RETIREMENT_AGE = 67;
 
     public function __construct(
-        private RiskPreferenceService $riskService
+        private readonly RiskPreferenceService $riskService
     ) {}
 
     /**

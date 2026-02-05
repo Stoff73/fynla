@@ -16,9 +16,9 @@ class InvestmentProjectionService
     private const MONTE_CARLO_ITERATIONS = 1000;
 
     public function __construct(
-        private MonteCarloSimulator $simulator,
-        private RiskPreferenceService $riskService,
-        private ContributionEstimatorService $contributionEstimator
+        private readonly MonteCarloSimulator $simulator,
+        private readonly RiskPreferenceService $riskService,
+        private readonly ContributionEstimatorService $contributionEstimator
     ) {}
 
     /**

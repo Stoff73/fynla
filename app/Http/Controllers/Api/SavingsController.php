@@ -12,6 +12,7 @@ use App\Http\Requests\Savings\StoreSavingsAccountRequest;
 use App\Http\Requests\Savings\StoreSavingsGoalRequest;
 use App\Http\Requests\Savings\UpdateSavingsAccountRequest;
 use App\Http\Requests\Savings\UpdateSavingsGoalRequest;
+use App\Http\Resources\SavingsAccountResource;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\SavingsAccount;
 use App\Models\SavingsGoal;
@@ -37,9 +38,9 @@ class SavingsController extends Controller
     use SanitizedErrorResponse;
 
     public function __construct(
-        private SavingsAgent $savingsAgent,
-        private ISATracker $isaTracker,
-        private NetWorthService $netWorthService
+        private readonly SavingsAgent $savingsAgent,
+        private readonly ISATracker $isaTracker,
+        private readonly NetWorthService $netWorthService
     ) {}
 
     /**
@@ -56,15 +57,15 @@ class SavingsController extends Controller
             ->orWhere('joint_owner_id', $user->id)
             ->get();
 
-        // Add calculated fields for each account
+        // Transform accounts using resource and add calculated fields
         $accounts = $accounts->map(function ($account) use ($user) {
-            $accountData = $account->toArray();
-            $accountData['user_share'] = $this->calculateUserShare($account, $user->id);
-            $accountData['full_balance'] = (float) $account->current_balance;
-            $accountData['is_primary_owner'] = $this->isPrimaryOwner($account, $user->id);
-            $accountData['is_shared'] = $this->isSharedOwnership($account);
+            $resourceData = (new SavingsAccountResource($account))->toArray(request());
+            $resourceData['user_share'] = $this->calculateUserShare($account, $user->id);
+            $resourceData['full_balance'] = (float) $account->current_balance;
+            $resourceData['is_primary_owner'] = $this->isPrimaryOwner($account, $user->id);
+            $resourceData['is_shared'] = $this->isSharedOwnership($account);
 
-            return $accountData;
+            return $resourceData;
         });
 
         $goals = SavingsGoal::where('user_id', $user->id)->get();
@@ -229,8 +230,8 @@ class SavingsController extends Controller
             Cache::forget("savings_analysis_{$user->id}");
             $this->netWorthService->invalidateCache($user->id);
 
-            // Add calculated fields to response
-            $accountData = $account->toArray();
+            // Add calculated fields to response using resource
+            $accountData = (new SavingsAccountResource($account))->toArray(request());
             $accountData['user_share'] = $this->calculateUserShare($account, $user->id);
             $accountData['full_balance'] = (float) $account->current_balance;
             $accountData['is_primary_owner'] = true;
@@ -269,7 +270,7 @@ class SavingsController extends Controller
                 })
                 ->firstOrFail();
 
-            $accountData = $account->toArray();
+            $accountData = (new SavingsAccountResource($account))->toArray(request());
             $accountData['user_share'] = $this->calculateUserShare($account, $user->id);
             $accountData['full_balance'] = (float) $account->current_balance;
             $accountData['is_primary_owner'] = $this->isPrimaryOwner($account, $user->id);
@@ -347,11 +348,12 @@ class SavingsController extends Controller
                 $this->netWorthService->invalidateCache($account->joint_owner_id);
             }
 
-            $accountData = $account->fresh()->toArray();
-            $accountData['user_share'] = $this->calculateUserShare($account->fresh(), $user->id);
-            $accountData['full_balance'] = (float) $account->fresh()->current_balance;
+            $freshAccount = $account->fresh();
+            $accountData = (new SavingsAccountResource($freshAccount))->toArray(request());
+            $accountData['user_share'] = $this->calculateUserShare($freshAccount, $user->id);
+            $accountData['full_balance'] = (float) $freshAccount->current_balance;
             $accountData['is_primary_owner'] = true;
-            $accountData['is_shared'] = $this->isSharedOwnership($account->fresh());
+            $accountData['is_shared'] = $this->isSharedOwnership($freshAccount);
 
             return response()->json([
                 'success' => true,

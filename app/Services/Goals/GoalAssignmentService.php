@@ -18,7 +18,7 @@ class GoalAssignmentService
     private const INVESTMENT_MIN_AMOUNT = 5000;
 
     public function __construct(
-        private TaxConfigService $taxConfig
+        private readonly TaxConfigService $taxConfig
     ) {}
 
     /**

@@ -22,8 +22,8 @@ use App\Services\UKTaxCalculator;
 class TaxDragCalculator
 {
     public function __construct(
-        private UKTaxCalculator $taxCalculator,
-        private TaxConfigService $taxConfig
+        private readonly UKTaxCalculator $taxCalculator,
+        private readonly TaxConfigService $taxConfig
     ) {}
 
     /**

@@ -15,18 +15,9 @@ use App\Services\TaxConfigService;
  */
 class AnnualAllowanceChecker
 {
-    /**
-     * Tax configuration service
-     */
-    private TaxConfigService $taxConfig;
-
-    /**
-     * Constructor
-     */
-    public function __construct(TaxConfigService $taxConfig)
-    {
-        $this->taxConfig = $taxConfig;
-    }
+    public function __construct(
+        private readonly TaxConfigService $taxConfig
+    ) {}
 
     /**
      * Get standard annual allowance from tax config

@@ -20,18 +20,9 @@ class IHTPeriodicChargeCalculator
 
     private const EXIT_CHARGE_MAX = 0.06; // Exit/proportionate charge rate
 
-    /**
-     * Tax configuration service
-     */
-    private TaxConfigService $taxConfig;
-
-    /**
-     * Constructor
-     */
-    public function __construct(TaxConfigService $taxConfig)
-    {
-        $this->taxConfig = $taxConfig;
-    }
+    public function __construct(
+        private readonly TaxConfigService $taxConfig
+    ) {}
 
     /**
      * Get Nil Rate Band from config

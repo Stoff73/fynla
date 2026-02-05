@@ -23,7 +23,7 @@ class ChattelCGTService
 
     private const MARGINAL_RELIEF_MULTIPLIER = 5 / 3;
 
-    public function __construct(private TaxConfigService $taxConfig) {}
+    public function __construct(private readonly TaxConfigService $taxConfig) {}
 
     /**
      * Calculate CGT for chattel disposal

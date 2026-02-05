@@ -5,6 +5,10 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\Estate;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Estate\CalculateIntestacyRequest;
+use App\Http\Requests\Estate\StoreBequestRequest;
+use App\Http\Requests\Estate\StoreWillRequest;
+use App\Http\Requests\Estate\UpdateBequestRequest;
 use App\Models\Estate\Bequest;
 use App\Models\Estate\Trust;
 use App\Models\Estate\Will;
@@ -86,18 +90,10 @@ class WillController extends Controller
     /**
      * Create or update will
      */
-    public function storeOrUpdateWill(Request $request): JsonResponse
+    public function storeOrUpdateWill(StoreWillRequest $request): JsonResponse
     {
         $user = $request->user();
-
-        $validated = $request->validate([
-            'has_will' => 'nullable|boolean',
-            'spouse_primary_beneficiary' => 'boolean',
-            'spouse_bequest_percentage' => 'nullable|numeric|min:0|max:100',
-            'executor_name' => 'nullable|string|max:255',
-            'executor_notes' => 'nullable|string',
-            'will_last_updated' => 'nullable|date',
-        ]);
+        $validated = $request->validated();
 
         $validated['user_id'] = $user->id;
 
@@ -142,7 +138,7 @@ class WillController extends Controller
     /**
      * Create a bequest
      */
-    public function storeBequest(Request $request): JsonResponse
+    public function storeBequest(StoreBequestRequest $request): JsonResponse
     {
         $user = $request->user();
 
@@ -155,17 +151,7 @@ class WillController extends Controller
             ]
         );
 
-        $validated = $request->validate([
-            'beneficiary_name' => 'required|string|max:255',
-            'beneficiary_user_id' => 'nullable|exists:users,id',
-            'bequest_type' => 'required|in:percentage,specific_amount,specific_asset,residuary',
-            'percentage_of_estate' => 'nullable|numeric|min:0|max:100',
-            'specific_amount' => 'nullable|numeric|min:0',
-            'specific_asset_description' => 'nullable|string',
-            'asset_id' => 'nullable|exists:assets,id',
-            'priority_order' => 'nullable|integer|min:1',
-            'conditions' => 'nullable|string',
-        ]);
+        $validated = $request->validated();
 
         $validated['will_id'] = $will->id;
         $validated['user_id'] = $user->id;
@@ -191,21 +177,10 @@ class WillController extends Controller
     /**
      * Update a bequest
      */
-    public function updateBequest(Request $request, int $id): JsonResponse
+    public function updateBequest(UpdateBequestRequest $request, int $id): JsonResponse
     {
         $user = $request->user();
-
-        $validated = $request->validate([
-            'beneficiary_name' => 'sometimes|string|max:255',
-            'beneficiary_user_id' => 'nullable|exists:users,id',
-            'bequest_type' => 'sometimes|in:percentage,specific_amount,specific_asset,residuary',
-            'percentage_of_estate' => 'nullable|numeric|min:0|max:100',
-            'specific_amount' => 'nullable|numeric|min:0',
-            'specific_asset_description' => 'nullable|string',
-            'asset_id' => 'nullable|exists:assets,id',
-            'priority_order' => 'nullable|integer|min:1',
-            'conditions' => 'nullable|string',
-        ]);
+        $validated = $request->validated();
 
         $bequest = Bequest::where('id', $id)
             ->where('user_id', $user->id)
@@ -239,10 +214,7 @@ class WillController extends Controller
         // Invalidate cache
         Cache::forget("estate_analysis_{$user->id}");
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Bequest deleted successfully',
-        ]);
+        return response()->noContent();
     }
 
     /**
@@ -259,13 +231,10 @@ class WillController extends Controller
      * Returns how the user's estate would be distributed under UK intestacy rules
      * if they die without a valid will.
      */
-    public function calculateIntestacy(Request $request): JsonResponse
+    public function calculateIntestacy(CalculateIntestacyRequest $request): JsonResponse
     {
         $user = $request->user();
-
-        $validated = $request->validate([
-            'estate_value' => 'nullable|numeric|min:0',
-        ]);
+        $validated = $request->validated();
 
         // If estate value not provided, calculate from user's assets
         $estateValue = $validated['estate_value'] ?? 0;

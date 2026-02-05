@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Mail;
 class PasswordResetService
 {
     public function __construct(
-        private MFAService $mfaService
+        private readonly MFAService $mfaService
     ) {}
 
     /**

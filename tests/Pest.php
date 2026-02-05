@@ -21,6 +21,15 @@ uses(
     Illuminate\Foundation\Testing\RefreshDatabase::class,
 )->in('Unit/Services');
 
+// Agent tests that need database access (RefreshDatabase)
+uses(
+    Tests\TestCase::class,
+    Illuminate\Foundation\Testing\RefreshDatabase::class,
+)->in('Unit/Agents/ProtectionAgentTest.php', 'Unit/Agents/SavingsAgentTest.php', 'Unit/Agents/GoalsAgentTest.php');
+
+// BaseAgentTest is pure unit tests, no database needed
+uses(Tests\TestCase::class)->in('Unit/Agents/BaseAgentTest.php');
+
 uses(
     Tests\TestCase::class,
     Illuminate\Foundation\Testing\RefreshDatabase::class,
@@ -34,7 +43,7 @@ beforeEach(function () {
             \App\Models\TaxConfiguration::factory()->create(['is_active' => true]);
         }
     }
-})->in('Feature', 'Unit/Services', 'Integration');
+})->in('Feature', 'Unit/Services', 'Unit/Agents/ProtectionAgentTest.php', 'Unit/Agents/SavingsAgentTest.php', 'Unit/Agents/GoalsAgentTest.php', 'Integration');
 
 /*
 |--------------------------------------------------------------------------

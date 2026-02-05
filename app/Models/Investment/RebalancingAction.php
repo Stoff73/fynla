@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models\Investment;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -81,7 +82,7 @@ class RebalancingAction extends Model
     /**
      * Scope: Filter by status
      */
-    public function scopeStatus($query, string $status)
+    public function scopeStatus(Builder $query, string $status): Builder
     {
         return $query->where('status', $status);
     }
@@ -89,7 +90,7 @@ class RebalancingAction extends Model
     /**
      * Scope: Filter by action type
      */
-    public function scopeActionType($query, string $type)
+    public function scopeActionType(Builder $query, string $type): Builder
     {
         return $query->where('action_type', $type);
     }
@@ -97,7 +98,7 @@ class RebalancingAction extends Model
     /**
      * Scope: Pending actions
      */
-    public function scopePending($query)
+    public function scopePending(Builder $query): Builder
     {
         return $query->where('status', 'pending');
     }
@@ -105,7 +106,7 @@ class RebalancingAction extends Model
     /**
      * Scope: Executed actions
      */
-    public function scopeExecuted($query)
+    public function scopeExecuted(Builder $query): Builder
     {
         return $query->where('status', 'executed');
     }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -211,7 +212,7 @@ class AuditLog extends Model
     /**
      * Scope to filter by event type
      */
-    public function scopeByEventType($query, string $eventType)
+    public function scopeByEventType(Builder $query, string $eventType): Builder
     {
         return $query->where('event_type', $eventType);
     }
@@ -219,7 +220,7 @@ class AuditLog extends Model
     /**
      * Scope to filter by user
      */
-    public function scopeByUser($query, int $userId)
+    public function scopeByUser(Builder $query, int $userId): Builder
     {
         return $query->where('user_id', $userId);
     }
@@ -227,7 +228,7 @@ class AuditLog extends Model
     /**
      * Scope to filter by model
      */
-    public function scopeByModel($query, string $modelType, ?int $modelId = null)
+    public function scopeByModel(Builder $query, string $modelType, ?int $modelId = null): Builder
     {
         $query->where('model_type', $modelType);
 
@@ -241,7 +242,7 @@ class AuditLog extends Model
     /**
      * Scope for recent entries
      */
-    public function scopeRecent($query, int $days = 30)
+    public function scopeRecent(Builder $query, int $days = 30): Builder
     {
         return $query->where('created_at', '>=', now()->subDays($days));
     }

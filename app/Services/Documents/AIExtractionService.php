@@ -29,9 +29,9 @@ class AIExtractionService
     private const MAX_SCANNED_PDF_SIZE = 15 * 1024 * 1024;
 
     public function __construct(
-        private DocumentUploadService $uploadService,
-        private DocumentTypeDetector $typeDetector,
-        private ImageResizeService $imageResizeService,
+        private readonly DocumentUploadService $uploadService,
+        private readonly DocumentTypeDetector $typeDetector,
+        private readonly ImageResizeService $imageResizeService,
     ) {}
 
     /**
@@ -621,7 +621,7 @@ PROMPT;
             ini_set('memory_limit', '256M');
 
             try {
-                $parser = new PdfParser();
+                $parser = new PdfParser;
                 $pdf = $parser->parseContent($fileContents);
                 $text = $pdf->getText();
 
@@ -739,6 +739,7 @@ PROMPT;
             foreach ($skipSectionKeywords as $keyword) {
                 if (str_contains($lineLower, $keyword)) {
                     $inSkipSection = true;
+
                     continue 2;
                 }
             }
@@ -748,6 +749,7 @@ PROMPT;
                 if (preg_match($pattern, $line)) {
                     $filteredLines[] = $line;
                     $inSkipSection = false;  // Reset skip section
+
                     continue 2;
                 }
             }

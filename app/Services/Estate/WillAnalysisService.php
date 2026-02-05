@@ -20,7 +20,7 @@ use App\Services\TaxConfigService;
 class WillAnalysisService
 {
     public function __construct(
-        private TaxConfigService $taxConfig
+        private readonly TaxConfigService $taxConfig
     ) {}
 
     /**

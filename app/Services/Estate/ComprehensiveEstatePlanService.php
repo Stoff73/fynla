@@ -25,13 +25,13 @@ class ComprehensiveEstatePlanService
     use CalculatesOwnershipShare;
 
     public function __construct(
-        private PersonalizedGiftingStrategyService $giftingStrategy,
-        private PersonalizedTrustStrategyService $trustStrategy,
-        private NetWorthAnalyzer $netWorthAnalyzer,
-        private IHTCalculationService $ihtCalculationService,
-        private EstateAssetAggregatorService $assetAggregator,
-        private ProfileCompletenessChecker $completenessChecker,
-        private TaxConfigService $taxConfig
+        private readonly PersonalizedGiftingStrategyService $giftingStrategy,
+        private readonly PersonalizedTrustStrategyService $trustStrategy,
+        private readonly NetWorthAnalyzer $netWorthAnalyzer,
+        private readonly IHTCalculationService $ihtCalculationService,
+        private readonly EstateAssetAggregatorService $assetAggregator,
+        private readonly ProfileCompletenessChecker $completenessChecker,
+        private readonly TaxConfigService $taxConfig
     ) {}
 
     /**

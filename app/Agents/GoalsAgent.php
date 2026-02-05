@@ -17,10 +17,10 @@ use App\Services\Goals\GoalRiskService;
 class GoalsAgent extends BaseAgent
 {
     public function __construct(
-        private GoalAssignmentService $assignmentService,
-        private GoalAffordabilityService $affordabilityService,
-        private GoalProgressService $progressService,
-        private GoalRiskService $riskService
+        private readonly GoalAssignmentService $assignmentService,
+        private readonly GoalAffordabilityService $affordabilityService,
+        private readonly GoalProgressService $progressService,
+        private readonly GoalRiskService $riskService
     ) {}
 
     /**

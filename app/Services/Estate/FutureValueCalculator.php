@@ -12,18 +12,9 @@ use Illuminate\Support\Facades\DB;
 
 class FutureValueCalculator
 {
-    /**
-     * Tax configuration service
-     */
-    private TaxConfigService $taxConfig;
-
-    /**
-     * Constructor
-     */
-    public function __construct(TaxConfigService $taxConfig)
-    {
-        $this->taxConfig = $taxConfig;
-    }
+    public function __construct(
+        private readonly TaxConfigService $taxConfig
+    ) {}
 
     /**
      * Get life expectancy for user based on UK ONS actuarial tables

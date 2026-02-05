@@ -15,7 +15,7 @@ class NetWorthController extends Controller
     use SanitizedErrorResponse;
 
     public function __construct(
-        private NetWorthService $netWorthService
+        private readonly NetWorthService $netWorthService
     ) {}
 
     /**

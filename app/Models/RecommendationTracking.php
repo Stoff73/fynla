@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -42,7 +43,7 @@ class RecommendationTracking extends Model
     /**
      * Scope for pending recommendations
      */
-    public function scopePending($query)
+    public function scopePending(Builder $query): Builder
     {
         return $query->where('status', 'pending');
     }
@@ -50,7 +51,7 @@ class RecommendationTracking extends Model
     /**
      * Scope for completed recommendations
      */
-    public function scopeCompleted($query)
+    public function scopeCompleted(Builder $query): Builder
     {
         return $query->where('status', 'completed');
     }
@@ -58,7 +59,7 @@ class RecommendationTracking extends Model
     /**
      * Scope for in progress recommendations
      */
-    public function scopeInProgress($query)
+    public function scopeInProgress(Builder $query): Builder
     {
         return $query->where('status', 'in_progress');
     }
@@ -66,7 +67,7 @@ class RecommendationTracking extends Model
     /**
      * Scope for active recommendations (pending or in progress)
      */
-    public function scopeActive($query)
+    public function scopeActive(Builder $query): Builder
     {
         return $query->whereIn('status', ['pending', 'in_progress']);
     }
@@ -74,7 +75,7 @@ class RecommendationTracking extends Model
     /**
      * Scope by module
      */
-    public function scopeByModule($query, string $module)
+    public function scopeByModule(Builder $query, string $module): Builder
     {
         return $query->where('module', $module);
     }
@@ -82,7 +83,7 @@ class RecommendationTracking extends Model
     /**
      * Scope by timeline
      */
-    public function scopeByTimeline($query, string $timeline)
+    public function scopeByTimeline(Builder $query, string $timeline): Builder
     {
         return $query->where('timeline', $timeline);
     }

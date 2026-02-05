@@ -20,14 +20,6 @@ class PortfolioStrategyService
 {
     use FormatsCurrency;
 
-    private TaxOptimizationAnalyzer $taxAnalyzer;
-
-    private FeeAnalyzer $feeAnalyzer;
-
-    private DriftAnalyzer $driftAnalyzer;
-
-    private TaxConfigService $taxConfig;
-
     // Priority categories (lower = higher priority)
     private const PRIORITY_TAX = 1;
 
@@ -43,16 +35,11 @@ class PortfolioStrategyService
     private const OFFSHORE_BOND_MIN_BALANCE = 100000;
 
     public function __construct(
-        TaxOptimizationAnalyzer $taxAnalyzer,
-        FeeAnalyzer $feeAnalyzer,
-        DriftAnalyzer $driftAnalyzer,
-        TaxConfigService $taxConfig
-    ) {
-        $this->taxAnalyzer = $taxAnalyzer;
-        $this->feeAnalyzer = $feeAnalyzer;
-        $this->driftAnalyzer = $driftAnalyzer;
-        $this->taxConfig = $taxConfig;
-    }
+        private readonly TaxOptimizationAnalyzer $taxAnalyzer,
+        private readonly FeeAnalyzer $feeAnalyzer,
+        private readonly DriftAnalyzer $driftAnalyzer,
+        private readonly TaxConfigService $taxConfig
+    ) {}
 
     /**
      * Get comprehensive portfolio strategy

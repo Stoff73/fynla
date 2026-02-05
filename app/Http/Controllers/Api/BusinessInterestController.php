@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\BusinessInterest\StoreBusinessInterestRequest;
 use App\Http\Requests\BusinessInterest\UpdateBusinessInterestRequest;
+use App\Http\Resources\BusinessInterestResource;
 use App\Models\BusinessInterest;
 use App\Services\Business\BusinessInterestService;
 use App\Traits\CalculatesOwnershipShare;
@@ -51,21 +52,21 @@ class BusinessInterestController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        // Add calculated fields for each business
-        $businesses = $businesses->map(function ($business) use ($user) {
-            $data = $business->toArray();
+        // Transform with resource and add calculated fields for each business
+        $transformed = $businesses->map(function ($business) use ($user, $request) {
+            $resource = (new BusinessInterestResource($business))->toArray($request);
 
-            // Calculate user's share from full value
-            $data['user_share'] = $this->businessService->calculateUserShare($business, $user->id);
-            $data['full_value'] = (float) $business->current_valuation;
-            $data['is_primary_owner'] = $this->isPrimaryOwner($business, $user->id);
-            $data['is_shared'] = $this->isSharedOwnership($business);
-            $data['business_type_label'] = $this->getBusinessTypeLabel($business->business_type);
+            // Add calculated fields for each business
+            $resource['user_share'] = $this->businessService->calculateUserShare($business, $user->id);
+            $resource['full_value'] = (float) $business->current_valuation;
+            $resource['is_primary_owner'] = $this->isPrimaryOwner($business, $user->id);
+            $resource['is_shared'] = $this->isSharedOwnership($business);
+            $resource['business_type_label'] = $this->getBusinessTypeLabel($business->business_type);
 
-            return $data;
+            return $resource;
         });
 
-        return response()->json($businesses);
+        return response()->json($transformed);
     }
 
     /**
@@ -97,15 +98,15 @@ class BusinessInterestController extends Controller
         // Single-record pattern: Store FULL value directly (no splitting)
         $business = BusinessInterest::create($validated);
 
-        // Add calculated fields to response
-        $data = $business->toArray();
-        $data['user_share'] = $this->businessService->calculateUserShare($business, $user->id);
-        $data['full_value'] = (float) $business->current_valuation;
-        $data['is_primary_owner'] = true;
-        $data['is_shared'] = $this->isSharedOwnership($business);
-        $data['business_type_label'] = $this->getBusinessTypeLabel($business->business_type);
+        // Transform with resource and add calculated fields
+        $resource = (new BusinessInterestResource($business))->toArray($request);
+        $resource['user_share'] = $this->businessService->calculateUserShare($business, $user->id);
+        $resource['full_value'] = (float) $business->current_valuation;
+        $resource['is_primary_owner'] = true;
+        $resource['is_shared'] = $this->isSharedOwnership($business);
+        $resource['business_type_label'] = $this->getBusinessTypeLabel($business->business_type);
 
-        return response()->json($data, 201);
+        return response()->json($resource, 201);
     }
 
     /**
@@ -130,34 +131,40 @@ class BusinessInterestController extends Controller
 
         $summary = $this->businessService->getBusinessSummary($business);
 
+        // Start with resource data as base
+        $resource = (new BusinessInterestResource($business))->toArray($request);
+
+        // Merge summary data with resource data (summary takes precedence for calculated fields)
+        $businessData = array_merge($resource, $summary);
+
         // Add user share and ownership context
-        $summary['user_share'] = $this->businessService->calculateUserShare($business, $user->id);
-        $summary['full_value'] = (float) $business->current_valuation;
-        $summary['is_primary_owner'] = $this->isPrimaryOwner($business, $user->id);
-        $summary['is_shared'] = $this->isSharedOwnership($business);
+        $businessData['user_share'] = $this->businessService->calculateUserShare($business, $user->id);
+        $businessData['full_value'] = (float) $business->current_valuation;
+        $businessData['is_primary_owner'] = $this->isPrimaryOwner($business, $user->id);
+        $businessData['is_shared'] = $this->isSharedOwnership($business);
 
         // Add flat fields for Vue component compatibility (matches index response)
-        $summary['current_valuation'] = (float) $business->current_valuation;
-        $summary['annual_revenue'] = (float) ($business->annual_revenue ?? 0);
-        $summary['annual_profit'] = (float) ($business->annual_profit ?? 0);
-        $summary['annual_dividend_income'] = (float) ($business->annual_dividend_income ?? 0);
-        $summary['employee_count'] = $business->employee_count ?? 0;
-        $summary['ownership_type'] = $business->ownership_type;
-        $summary['ownership_percentage'] = (float) ($business->ownership_percentage ?? 100);
-        $summary['trading_status'] = $business->trading_status ?? 'trading';
-        $summary['vat_registered'] = $business->vat_registered ?? false;
-        $summary['vat_number'] = $business->vat_number;
-        $summary['utr_number'] = $business->utr_number;
-        $summary['paye_reference'] = $business->paye_reference;
-        $summary['tax_year_end'] = $business->tax_year_end?->format('Y-m-d');
-        $summary['valuation_method'] = $business->valuation_method;
-        $summary['bpr_eligible'] = $business->bpr_eligible ?? false;
-        $summary['business_type_label'] = $this->getBusinessTypeLabel($business->business_type);
+        $businessData['current_valuation'] = (float) $business->current_valuation;
+        $businessData['annual_revenue'] = (float) ($business->annual_revenue ?? 0);
+        $businessData['annual_profit'] = (float) ($business->annual_profit ?? 0);
+        $businessData['annual_dividend_income'] = (float) ($business->annual_dividend_income ?? 0);
+        $businessData['employee_count'] = $business->employee_count ?? 0;
+        $businessData['ownership_type'] = $business->ownership_type;
+        $businessData['ownership_percentage'] = (float) ($business->ownership_percentage ?? 100);
+        $businessData['trading_status'] = $business->trading_status ?? 'trading';
+        $businessData['vat_registered'] = $business->vat_registered ?? false;
+        $businessData['vat_number'] = $business->vat_number;
+        $businessData['utr_number'] = $business->utr_number;
+        $businessData['paye_reference'] = $business->paye_reference;
+        $businessData['tax_year_end'] = $business->tax_year_end?->format('Y-m-d');
+        $businessData['valuation_method'] = $business->valuation_method;
+        $businessData['bpr_eligible'] = $business->bpr_eligible ?? false;
+        $businessData['business_type_label'] = $this->getBusinessTypeLabel($business->business_type);
 
         return response()->json([
             'success' => true,
             'data' => [
-                'business' => $summary,
+                'business' => $businessData,
             ],
         ]);
     }
@@ -202,35 +209,41 @@ class BusinessInterestController extends Controller
 
         $summary = $this->businessService->getBusinessSummary($business);
 
+        // Start with resource data as base
+        $resource = (new BusinessInterestResource($business))->toArray($request);
+
+        // Merge summary data with resource data (summary takes precedence for calculated fields)
+        $businessData = array_merge($resource, $summary);
+
         // Add calculated fields
-        $summary['user_share'] = $this->businessService->calculateUserShare($business, $user->id);
-        $summary['full_value'] = (float) $business->current_valuation;
-        $summary['is_primary_owner'] = true;
-        $summary['is_shared'] = $this->isSharedOwnership($business);
+        $businessData['user_share'] = $this->businessService->calculateUserShare($business, $user->id);
+        $businessData['full_value'] = (float) $business->current_valuation;
+        $businessData['is_primary_owner'] = true;
+        $businessData['is_shared'] = $this->isSharedOwnership($business);
 
         // Add flat fields for Vue component compatibility (matches index response)
-        $summary['current_valuation'] = (float) $business->current_valuation;
-        $summary['annual_revenue'] = (float) ($business->annual_revenue ?? 0);
-        $summary['annual_profit'] = (float) ($business->annual_profit ?? 0);
-        $summary['annual_dividend_income'] = (float) ($business->annual_dividend_income ?? 0);
-        $summary['employee_count'] = $business->employee_count ?? 0;
-        $summary['ownership_type'] = $business->ownership_type;
-        $summary['ownership_percentage'] = (float) ($business->ownership_percentage ?? 100);
-        $summary['trading_status'] = $business->trading_status ?? 'trading';
-        $summary['vat_registered'] = $business->vat_registered ?? false;
-        $summary['vat_number'] = $business->vat_number;
-        $summary['utr_number'] = $business->utr_number;
-        $summary['paye_reference'] = $business->paye_reference;
-        $summary['tax_year_end'] = $business->tax_year_end?->format('Y-m-d');
-        $summary['valuation_method'] = $business->valuation_method;
-        $summary['bpr_eligible'] = $business->bpr_eligible ?? false;
-        $summary['business_type_label'] = $this->getBusinessTypeLabel($business->business_type);
+        $businessData['current_valuation'] = (float) $business->current_valuation;
+        $businessData['annual_revenue'] = (float) ($business->annual_revenue ?? 0);
+        $businessData['annual_profit'] = (float) ($business->annual_profit ?? 0);
+        $businessData['annual_dividend_income'] = (float) ($business->annual_dividend_income ?? 0);
+        $businessData['employee_count'] = $business->employee_count ?? 0;
+        $businessData['ownership_type'] = $business->ownership_type;
+        $businessData['ownership_percentage'] = (float) ($business->ownership_percentage ?? 100);
+        $businessData['trading_status'] = $business->trading_status ?? 'trading';
+        $businessData['vat_registered'] = $business->vat_registered ?? false;
+        $businessData['vat_number'] = $business->vat_number;
+        $businessData['utr_number'] = $business->utr_number;
+        $businessData['paye_reference'] = $business->paye_reference;
+        $businessData['tax_year_end'] = $business->tax_year_end?->format('Y-m-d');
+        $businessData['valuation_method'] = $business->valuation_method;
+        $businessData['bpr_eligible'] = $business->bpr_eligible ?? false;
+        $businessData['business_type_label'] = $this->getBusinessTypeLabel($business->business_type);
 
         return response()->json([
             'success' => true,
             'message' => 'Business interest updated successfully',
             'data' => [
-                'business' => $summary,
+                'business' => $businessData,
             ],
         ]);
     }

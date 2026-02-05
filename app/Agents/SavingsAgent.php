@@ -19,11 +19,11 @@ class SavingsAgent extends BaseAgent
     protected int $cacheTtl = 1800; // 30 minutes
 
     public function __construct(
-        private EmergencyFundCalculator $emergencyFundCalculator,
-        private ISATracker $isaTracker,
-        private GoalProgressCalculator $goalProgressCalculator,
-        private LiquidityAnalyzer $liquidityAnalyzer,
-        private RateComparator $rateComparator
+        private readonly EmergencyFundCalculator $emergencyFundCalculator,
+        private readonly ISATracker $isaTracker,
+        private readonly GoalProgressCalculator $goalProgressCalculator,
+        private readonly LiquidityAnalyzer $liquidityAnalyzer,
+        private readonly RateComparator $rateComparator
     ) {}
 
     /**

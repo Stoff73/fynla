@@ -13,9 +13,9 @@ use App\Services\UKTaxCalculator;
 class UserProfileService
 {
     public function __construct(
-        private CrossModuleAssetAggregator $assetAggregator,
-        private UKTaxCalculator $taxCalculator,
-        private ChildBenefitService $childBenefitService
+        private readonly CrossModuleAssetAggregator $assetAggregator,
+        private readonly UKTaxCalculator $taxCalculator,
+        private readonly ChildBenefitService $childBenefitService
     ) {}
 
     /**

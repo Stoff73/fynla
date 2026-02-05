@@ -17,7 +17,7 @@ use Illuminate\Support\Collection;
 class TaxProductInfoService
 {
     public function __construct(
-        private TaxConfigService $taxConfig
+        private readonly TaxConfigService $taxConfig
     ) {}
 
     /**

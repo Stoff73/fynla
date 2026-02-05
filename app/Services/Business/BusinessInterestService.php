@@ -12,7 +12,7 @@ use Carbon\Carbon;
 class BusinessInterestService
 {
     public function __construct(
-        private TaxConfigService $taxConfig
+        private readonly TaxConfigService $taxConfig
     ) {}
 
     /**

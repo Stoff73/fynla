@@ -19,15 +19,15 @@ use App\Services\TaxConfigService;
 class CoordinatingAgent extends BaseAgent
 {
     public function __construct(
-        private ConflictResolver $conflictResolver,
-        private PriorityRanker $priorityRanker,
-        private HolisticPlanner $holisticPlanner,
-        private CashFlowCoordinator $cashFlowCoordinator,
-        private ProtectionAgent $protectionAgent,
-        private InvestmentAgent $investmentAgent,
-        private SavingsAgent $savingsAgent,
-        private RetirementAgent $retirementAgent,
-        private TaxConfigService $taxConfig
+        private readonly ConflictResolver $conflictResolver,
+        private readonly PriorityRanker $priorityRanker,
+        private readonly HolisticPlanner $holisticPlanner,
+        private readonly CashFlowCoordinator $cashFlowCoordinator,
+        private readonly ProtectionAgent $protectionAgent,
+        private readonly InvestmentAgent $investmentAgent,
+        private readonly SavingsAgent $savingsAgent,
+        private readonly RetirementAgent $retirementAgent,
+        private readonly TaxConfigService $taxConfig
     ) {}
 
     /**

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -100,7 +101,7 @@ class DocumentExtractionLog extends Model
     /**
      * Scope to filter by document.
      */
-    public function scopeForDocument($query, int $documentId)
+    public function scopeForDocument(Builder $query, int $documentId): Builder
     {
         return $query->where('document_id', $documentId);
     }
@@ -108,7 +109,7 @@ class DocumentExtractionLog extends Model
     /**
      * Scope to filter by user.
      */
-    public function scopeByUser($query, int $userId)
+    public function scopeByUser(Builder $query, int $userId): Builder
     {
         return $query->where('user_id', $userId);
     }
@@ -116,7 +117,7 @@ class DocumentExtractionLog extends Model
     /**
      * Scope to filter by action.
      */
-    public function scopeWithAction($query, string $action)
+    public function scopeWithAction(Builder $query, string $action): Builder
     {
         return $query->where('action', $action);
     }

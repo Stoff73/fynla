@@ -28,7 +28,7 @@ class MortgageController extends Controller
     use CalculatesOwnershipShare;
 
     public function __construct(
-        private MortgageService $mortgageService
+        private readonly MortgageService $mortgageService
     ) {}
 
     /**

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Services\Goals;
 
 use App\Models\Goal;
-use App\Models\LifeEvent;
 use App\Models\User;
 use App\Services\NetWorth\NetWorthService;
 use App\Services\Settings\AssumptionsService;
@@ -33,9 +32,9 @@ class GoalsProjectionService
     private const CACHE_TTL = 1800; // 30 minutes
 
     public function __construct(
-        private NetWorthService $netWorthService,
-        private LifeEventService $lifeEventService,
-        private AssumptionsService $assumptionsService
+        private readonly NetWorthService $netWorthService,
+        private readonly LifeEventService $lifeEventService,
+        private readonly AssumptionsService $assumptionsService
     ) {}
 
     /**
@@ -43,7 +42,7 @@ class GoalsProjectionService
      */
     public function generateProjection(int $userId, bool $household = false): array
     {
-        $cacheKey = "goals_projection_{$userId}_" . ($household ? 'household' : 'individual');
+        $cacheKey = "goals_projection_{$userId}_".($household ? 'household' : 'individual');
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($userId, $household) {
             $user = User::with(['goals', 'spouse'])->findOrFail($userId);

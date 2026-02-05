@@ -16,7 +16,7 @@ class DashboardController extends Controller
     use SanitizedErrorResponse;
 
     public function __construct(
-        private DashboardAggregator $aggregator
+        private readonly DashboardAggregator $aggregator
     ) {}
 
     /**

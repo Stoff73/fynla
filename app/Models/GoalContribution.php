@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -49,7 +50,7 @@ class GoalContribution extends Model
     /**
      * Scope for streak-qualifying contributions.
      */
-    public function scopeStreakQualifying($query)
+    public function scopeStreakQualifying(Builder $query): Builder
     {
         return $query->where('streak_qualifying', true);
     }
@@ -57,7 +58,7 @@ class GoalContribution extends Model
     /**
      * Scope by contribution type.
      */
-    public function scopeOfType($query, string $type)
+    public function scopeOfType(Builder $query, string $type): Builder
     {
         return $query->where('contribution_type', $type);
     }
@@ -65,7 +66,7 @@ class GoalContribution extends Model
     /**
      * Scope for contributions in a date range.
      */
-    public function scopeInDateRange($query, $startDate, $endDate)
+    public function scopeInDateRange(Builder $query, $startDate, $endDate): Builder
     {
         return $query->whereBetween('contribution_date', [$startDate, $endDate]);
     }

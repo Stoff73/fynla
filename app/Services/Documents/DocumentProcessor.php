@@ -24,9 +24,9 @@ class DocumentProcessor
     private array $mappers = [];
 
     public function __construct(
-        private DocumentUploadService $uploadService,
-        private AIExtractionService $extractionService,
-        private DocumentTypeDetector $typeDetector,
+        private readonly DocumentUploadService $uploadService,
+        private readonly AIExtractionService $extractionService,
+        private readonly DocumentTypeDetector $typeDetector,
     ) {
         $this->registerMappers();
     }

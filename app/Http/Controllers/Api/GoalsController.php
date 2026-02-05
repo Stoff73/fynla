@@ -8,6 +8,8 @@ use App\Agents\GoalsAgent;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Goals\StoreGoalRequest;
 use App\Http\Requests\Goals\UpdateGoalRequest;
+use App\Http\Resources\GoalContributionResource;
+use App\Http\Resources\GoalResource;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\Goal;
 use App\Services\Goals\GoalAffordabilityService;
@@ -29,13 +31,13 @@ class GoalsController extends Controller
     use SanitizedErrorResponse;
 
     public function __construct(
-        private GoalsAgent $goalsAgent,
-        private GoalAssignmentService $assignmentService,
-        private GoalAffordabilityService $affordabilityService,
-        private GoalProgressService $progressService,
-        private GoalRiskService $riskService,
-        private GoalsProjectionService $projectionService,
-        private LifeEventService $lifeEventService
+        private readonly GoalsAgent $goalsAgent,
+        private readonly GoalAssignmentService $assignmentService,
+        private readonly GoalAffordabilityService $affordabilityService,
+        private readonly GoalProgressService $progressService,
+        private readonly GoalRiskService $riskService,
+        private readonly GoalsProjectionService $projectionService,
+        private readonly LifeEventService $lifeEventService
     ) {}
 
     /**
@@ -70,7 +72,7 @@ class GoalsController extends Controller
         return response()->json([
             'success' => true,
             'data' => [
-                'goals' => $goals,
+                'goals' => GoalResource::collection($goals),
                 'count' => $goals->count(),
             ],
         ]);
@@ -155,7 +157,7 @@ class GoalsController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Goal created successfully.',
-                'data' => $goal,
+                'data' => new GoalResource($goal),
             ], 201);
         } catch (\Throwable $e) {
             return $this->errorResponse($e, 'Create goal', 500, ['user_id' => $user->id]);
@@ -201,7 +203,7 @@ class GoalsController extends Controller
         return response()->json([
             'success' => true,
             'data' => [
-                'goal' => $goal,
+                'goal' => new GoalResource($goal),
                 'progress' => $progress,
                 'milestones' => $milestones,
                 'streak' => $streak,
@@ -267,7 +269,7 @@ class GoalsController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Goal updated successfully.',
-                'data' => $goal->fresh(),
+                'data' => new GoalResource($goal->fresh()),
             ]);
         } catch (\Exception $e) {
             return $this->errorResponse($e, 'Update goal', 500, ['goal_id' => $id]);
@@ -298,10 +300,7 @@ class GoalsController extends Controller
             // Clear cache
             $this->goalsAgent->clearCache($user->id);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Goal deleted successfully.',
-            ]);
+            return response()->noContent();
         } catch (\Exception $e) {
             return $this->errorResponse($e, 'Delete goal', 500, ['goal_id' => $id]);
         }
@@ -354,8 +353,8 @@ class GoalsController extends Controller
                 'success' => true,
                 'message' => 'Contribution recorded successfully.',
                 'data' => [
-                    'contribution' => $contribution,
-                    'goal' => $goal->fresh(),
+                    'contribution' => new GoalContributionResource($contribution),
+                    'goal' => new GoalResource($goal->fresh()),
                     'milestones' => $this->progressService->checkMilestones($goal->fresh()),
                 ],
             ]);
@@ -569,7 +568,7 @@ class GoalsController extends Controller
                 'success' => true,
                 'data' => [
                     'goals' => [
-                        'items' => $goals,
+                        'items' => GoalResource::collection($goals),
                         'count' => $goals->count(),
                         'total_target' => $goals->sum('target_amount'),
                         'total_current' => $goals->sum('current_amount'),

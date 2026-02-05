@@ -10,8 +10,8 @@ use App\Services\TaxConfigService;
 class GiftingStrategyOptimizer
 {
     public function __construct(
-        private FutureValueCalculator $fvCalculator,
-        private TaxConfigService $taxConfig
+        private readonly FutureValueCalculator $fvCalculator,
+        private readonly TaxConfigService $taxConfig
     ) {}
 
     /**

@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Traits\Auditable;
 use App\Traits\HasJointOwnership;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -316,7 +317,7 @@ class Goal extends Model
     /**
      * Scope for active goals.
      */
-    public function scopeActive($query)
+    public function scopeActive(Builder $query): Builder
     {
         return $query->where('status', 'active');
     }
@@ -324,7 +325,7 @@ class Goal extends Model
     /**
      * Scope for completed goals.
      */
-    public function scopeCompleted($query)
+    public function scopeCompleted(Builder $query): Builder
     {
         return $query->where('status', 'completed');
     }
@@ -332,7 +333,7 @@ class Goal extends Model
     /**
      * Scope by assigned module.
      */
-    public function scopeForModule($query, string $module)
+    public function scopeForModule(Builder $query, string $module): Builder
     {
         return $query->where('assigned_module', $module);
     }
@@ -340,16 +341,22 @@ class Goal extends Model
     /**
      * Scope by priority.
      */
-    public function scopeByPriority($query, string $priority)
+    public function scopeByPriority(Builder $query, string $priority): Builder
     {
         return $query->where('priority', $priority);
     }
 
     /**
      * Scope for on-track goals.
+     *
+     * Note: This scope filters active goals with progress > 0 (basic SQL filtering).
+     * Full on-track calculation requires PHP accessors, so use:
+     * Goal::active()->get()->filter(fn($goal) => $goal->is_on_track)
+     * for complete filtering.
      */
-    public function scopeOnTrack($query)
+    public function scopeOnTrack(Builder $query): Builder
     {
-        return $query->active()->get()->filter(fn ($goal) => $goal->is_on_track);
+        return $query->where('status', 'active')
+            ->where('current_amount', '>', 0);
     }
 }

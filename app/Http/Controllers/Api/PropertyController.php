@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StorePropertyRequest;
 use App\Http\Requests\UpdatePropertyRequest;
+use App\Http\Resources\PropertyResource;
 use App\Models\Property;
 use App\Services\Property\MortgageService;
 use App\Services\Property\PropertyService;
@@ -30,9 +31,9 @@ class PropertyController extends Controller
     use CalculatesOwnershipShare;
 
     public function __construct(
-        private PropertyService $propertyService,
-        private PropertyTaxService $propertyTaxService,
-        private MortgageService $mortgageService
+        private readonly PropertyService $propertyService,
+        private readonly PropertyTaxService $propertyTaxService,
+        private readonly MortgageService $mortgageService
     ) {}
 
     /**
@@ -58,7 +59,7 @@ class PropertyController extends Controller
 
         // Add calculated fields for each property
         $properties = $properties->map(function ($property) use ($user) {
-            $propertyData = $property->toArray();
+            $propertyData = (new PropertyResource($property))->toArray(request());
 
             // Calculate user's share from full value
             $propertyData['user_share'] = $this->calculateUserShare($property, $user->id);
@@ -145,7 +146,7 @@ class PropertyController extends Controller
         $property->load('mortgages');
 
         // Add calculated fields to response
-        $propertyData = $property->toArray();
+        $propertyData = (new PropertyResource($property))->toArray(request());
         $propertyData['user_share'] = $this->calculateUserShare($property, $user->id);
         $propertyData['full_value'] = (float) $property->current_value;
         $propertyData['is_primary_owner'] = true;
@@ -175,30 +176,34 @@ class PropertyController extends Controller
             ->firstOrFail();
 
         $summary = $this->propertyService->getPropertySummary($property);
+        $propertyData = (new PropertyResource($property))->toArray(request());
+
+        // Merge property resource data with summary
+        $propertyData = array_merge($propertyData, $summary);
 
         // Add user share and ownership context
-        $summary['user_share'] = $this->calculateUserShare($property, $user->id);
-        $summary['full_value'] = (float) $property->current_value;
-        $summary['is_primary_owner'] = $this->isPrimaryOwner($property, $user->id);
-        $summary['is_shared'] = $this->isSharedOwnership($property);
+        $propertyData['user_share'] = $this->calculateUserShare($property, $user->id);
+        $propertyData['full_value'] = (float) $property->current_value;
+        $propertyData['is_primary_owner'] = $this->isPrimaryOwner($property, $user->id);
+        $propertyData['is_shared'] = $this->isSharedOwnership($property);
 
         // Add owner names for joint/TiC properties
         $owner = $property->user;
         $jointOwner = $property->jointOwner;
-        $summary['owner_name'] = $owner ? trim(($owner->first_name ?? '').' '.($owner->surname ?? '')) : null;
-        $summary['joint_owner_name'] = $jointOwner ? trim(($jointOwner->first_name ?? '').' '.($jointOwner->surname ?? '')) : ($property->joint_owner_name ?? null);
+        $propertyData['owner_name'] = $owner ? trim(($owner->first_name ?? '').' '.($owner->surname ?? '')) : null;
+        $propertyData['joint_owner_name'] = $jointOwner ? trim(($jointOwner->first_name ?? '').' '.($jointOwner->surname ?? '')) : ($property->joint_owner_name ?? null);
 
         // Calculate user's mortgage share if mortgages exist
         if ($property->mortgages && $property->mortgages->count() > 0) {
             $mortgage = $property->mortgages->first();
-            $summary['mortgage_user_share'] = $this->calculateUserMortgageShare($mortgage, $user->id);
-            $summary['mortgage_full_balance'] = (float) $mortgage->outstanding_balance;
+            $propertyData['mortgage_user_share'] = $this->calculateUserMortgageShare($mortgage, $user->id);
+            $propertyData['mortgage_full_balance'] = (float) $mortgage->outstanding_balance;
         }
 
         return response()->json([
             'success' => true,
             'data' => [
-                'property' => $summary,
+                'property' => $propertyData,
             ],
         ]);
     }
@@ -250,18 +255,22 @@ class PropertyController extends Controller
         $this->syncUserRentalIncome($user);
 
         $summary = $this->propertyService->getPropertySummary($property);
+        $propertyData = (new PropertyResource($property))->toArray(request());
+
+        // Merge property resource data with summary
+        $propertyData = array_merge($propertyData, $summary);
 
         // Add calculated fields
-        $summary['user_share'] = $this->calculateUserShare($property, $user->id);
-        $summary['full_value'] = (float) $property->current_value;
-        $summary['is_primary_owner'] = true;
-        $summary['is_shared'] = $this->isSharedOwnership($property);
+        $propertyData['user_share'] = $this->calculateUserShare($property, $user->id);
+        $propertyData['full_value'] = (float) $property->current_value;
+        $propertyData['is_primary_owner'] = true;
+        $propertyData['is_shared'] = $this->isSharedOwnership($property);
 
         return response()->json([
             'success' => true,
             'message' => 'Property updated successfully',
             'data' => [
-                'property' => $summary,
+                'property' => $propertyData,
             ],
         ]);
     }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -97,12 +98,12 @@ class ErasureRequest extends Model
         ]);
     }
 
-    public function scopePending($query)
+    public function scopePending(Builder $query): Builder
     {
         return $query->where('status', self::STATUS_PENDING);
     }
 
-    public function scopeProcessing($query)
+    public function scopeProcessing(Builder $query): Builder
     {
         return $query->where('status', self::STATUS_PROCESSING);
     }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -126,17 +127,17 @@ class DataExport extends Model
         return $this->isCompleted() && ! $this->isExpired() && $this->file_path;
     }
 
-    public function scopePending($query)
+    public function scopePending(Builder $query): Builder
     {
         return $query->where('status', self::STATUS_PENDING);
     }
 
-    public function scopeCompleted($query)
+    public function scopeCompleted(Builder $query): Builder
     {
         return $query->where('status', self::STATUS_COMPLETED);
     }
 
-    public function scopeExpired($query)
+    public function scopeExpired(Builder $query): Builder
     {
         return $query->where('expires_at', '<', now())
             ->where('status', '!=', self::STATUS_EXPIRED);

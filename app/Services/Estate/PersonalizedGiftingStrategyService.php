@@ -18,8 +18,8 @@ use Illuminate\Support\Collection;
 class PersonalizedGiftingStrategyService
 {
     public function __construct(
-        private AssetLiquidityAnalyzer $liquidityAnalyzer,
-        private TaxConfigService $taxConfig
+        private readonly AssetLiquidityAnalyzer $liquidityAnalyzer,
+        private readonly TaxConfigService $taxConfig
     ) {}
 
     /**

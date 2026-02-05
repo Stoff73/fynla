@@ -18,9 +18,9 @@ use App\Services\TaxConfigService;
 class AssetLocationOptimizer
 {
     public function __construct(
-        private TaxDragCalculator $taxDragCalculator,
-        private AccountTypeRecommender $recommender,
-        private TaxConfigService $taxConfig
+        private readonly TaxDragCalculator $taxDragCalculator,
+        private readonly AccountTypeRecommender $recommender,
+        private readonly TaxConfigService $taxConfig
     ) {}
 
     /**

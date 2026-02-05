@@ -17,18 +17,9 @@ use Illuminate\Support\Collection;
  */
 class ContributionOptimizer
 {
-    /**
-     * Tax configuration service
-     */
-    private TaxConfigService $taxConfig;
-
-    /**
-     * Constructor
-     */
-    public function __construct(TaxConfigService $taxConfig)
-    {
-        $this->taxConfig = $taxConfig;
-    }
+    public function __construct(
+        private readonly TaxConfigService $taxConfig
+    ) {}
 
     /**
      * Optimize pension contributions based on retirement profile and goals.

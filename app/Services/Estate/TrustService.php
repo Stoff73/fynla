@@ -11,18 +11,9 @@ use Illuminate\Support\Collection;
 
 class TrustService
 {
-    /**
-     * Tax configuration service
-     */
-    private TaxConfigService $taxConfig;
-
-    /**
-     * Constructor
-     */
-    public function __construct(TaxConfigService $taxConfig)
-    {
-        $this->taxConfig = $taxConfig;
-    }
+    public function __construct(
+        private readonly TaxConfigService $taxConfig
+    ) {}
 
     /**
      * Calculate the next periodic charge date for a relevant property trust

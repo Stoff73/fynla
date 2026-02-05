@@ -7,9 +7,9 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Chattel\StoreChattelRequest;
 use App\Http\Requests\Chattel\UpdateChattelRequest;
+use App\Http\Resources\ChattelResource;
 use App\Models\Chattel;
 use App\Services\Chattel\ChattelCGTService;
-use App\Traits\CalculatesOwnershipShare;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -25,8 +25,6 @@ use Illuminate\Http\Request;
  */
 class ChattelController extends Controller
 {
-    use CalculatesOwnershipShare;
-
     public function __construct(
         private ChattelCGTService $cgtService
     ) {}
@@ -51,12 +49,7 @@ class ChattelController extends Controller
             ->orderBy('current_value', 'desc')
             ->get();
 
-        // Add calculated fields for each chattel
-        $chattels = $chattels->map(function ($chattel) use ($user) {
-            return $this->enrichChattelData($chattel, $user->id);
-        });
-
-        return response()->json($chattels);
+        return response()->json(ChattelResource::collection($chattels));
     }
 
     /**
@@ -88,9 +81,7 @@ class ChattelController extends Controller
         $chattel = Chattel::create($validated);
         $chattel->load(['jointOwner', 'trust']);
 
-        $chattelData = $this->enrichChattelData($chattel, $user->id);
-
-        return response()->json($chattelData, 201);
+        return response()->json(new ChattelResource($chattel), 201);
     }
 
     /**
@@ -113,7 +104,8 @@ class ChattelController extends Controller
             ->with(['jointOwner', 'trust', 'household'])
             ->firstOrFail();
 
-        $chattelData = $this->enrichChattelData($chattel, $user->id);
+        $chattelResource = new ChattelResource($chattel);
+        $chattelData = $chattelResource->toArray($request);
 
         // Add CGT exemption status
         $chattelData['cgt_status'] = $this->cgtService->wouldBeExempt($chattel, (float) $chattel->current_value);
@@ -162,12 +154,10 @@ class ChattelController extends Controller
         $chattel->update($validated);
         $chattel->load(['jointOwner', 'trust']);
 
-        $chattelData = $this->enrichChattelData($chattel, $user->id);
-
         return response()->json([
             'success' => true,
             'message' => 'Chattel updated successfully',
-            'data' => $chattelData,
+            'data' => new ChattelResource($chattel),
         ]);
     }
 
@@ -190,10 +180,7 @@ class ChattelController extends Controller
 
         $chattel->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Chattel deleted successfully',
-        ]);
+        return response()->noContent();
     }
 
     /**
@@ -229,22 +216,5 @@ class ChattelController extends Controller
             'success' => true,
             'data' => $cgt,
         ]);
-    }
-
-    /**
-     * Enrich chattel data with calculated fields
-     */
-    private function enrichChattelData(Chattel $chattel, int $userId): array
-    {
-        $chattelData = $chattel->toArray();
-
-        // Calculate user's share from full value
-        $chattelData['user_share'] = $this->calculateUserShare($chattel, $userId);
-        $chattelData['full_value'] = (float) $chattel->current_value;
-        $chattelData['is_primary_owner'] = $this->isPrimaryOwner($chattel, $userId);
-        $chattelData['is_shared'] = $this->isSharedOwnership($chattel);
-        $chattelData['is_wasting_asset'] = $this->cgtService->isWastingAsset($chattel);
-
-        return $chattelData;
     }
 }

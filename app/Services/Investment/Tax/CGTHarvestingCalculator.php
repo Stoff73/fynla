@@ -23,18 +23,9 @@ use Illuminate\Support\Collection;
  */
 class CGTHarvestingCalculator
 {
-    /**
-     * Tax configuration service
-     */
-    private TaxConfigService $taxConfig;
-
-    /**
-     * Constructor
-     */
-    public function __construct(TaxConfigService $taxConfig)
-    {
-        $this->taxConfig = $taxConfig;
-    }
+    public function __construct(
+        private readonly TaxConfigService $taxConfig
+    ) {}
 
     /**
      * Calculate tax-loss harvesting opportunities

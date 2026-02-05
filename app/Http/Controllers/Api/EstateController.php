@@ -24,10 +24,10 @@ class EstateController extends Controller
     use SanitizedErrorResponse;
 
     public function __construct(
-        private NetWorthAnalyzer $netWorthAnalyzer,
-        private CashFlowProjector $cashFlowProjector,
-        private \App\Services\Estate\ComprehensiveEstatePlanService $comprehensiveEstatePlan,
-        private TaxConfigService $taxConfig
+        private readonly NetWorthAnalyzer $netWorthAnalyzer,
+        private readonly CashFlowProjector $cashFlowProjector,
+        private readonly \App\Services\Estate\ComprehensiveEstatePlanService $comprehensiveEstatePlan,
+        private readonly TaxConfigService $taxConfig
     ) {}
 
     /**

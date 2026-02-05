@@ -5,25 +5,23 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\Estate;
 
 use App\Http\Controllers\Controller;
-use App\Models\Estate\Liability;
 use App\Models\Estate\Will;
 use App\Models\LifeInsurancePolicy;
-use App\Models\Mortgage;
 use App\Models\User;
 use App\Services\Estate\EstateAssetAggregatorService;
 use App\Services\Estate\IHTCalculationService;
+use App\Services\Estate\IHTFormattingService;
 use App\Services\TaxConfigService;
-use App\Traits\CalculatesOwnershipShare;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class IHTController extends Controller
 {
-    use CalculatesOwnershipShare;
     public function __construct(
-        private IHTCalculationService $ihtCalculationService,
-        private EstateAssetAggregatorService $assetAggregator,
-        private TaxConfigService $taxConfig
+        private readonly IHTCalculationService $ihtCalculationService,
+        private readonly EstateAssetAggregatorService $assetAggregator,
+        private readonly TaxConfigService $taxConfig,
+        private readonly IHTFormattingService $formattingService
     ) {}
 
     /**
@@ -51,16 +49,16 @@ class IHTController extends Controller
                 ? $this->assetAggregator->gatherUserAssets($spouse)
                 : collect();
 
-            $assetsBreakdown = $this->formatAssetsBreakdown(
+            $assetsBreakdown = $this->formattingService->formatAssetsBreakdown(
                 $userAssets,
                 $spouseAssets,
                 $dataSharingEnabled,
                 $user,
                 $spouse,
-                $calculation // Pass calculation for asset-specific projections
+                $calculation
             );
 
-            $liabilitiesBreakdown = $this->formatLiabilitiesBreakdown(
+            $liabilitiesBreakdown = $this->formattingService->formatLiabilitiesBreakdown(
                 $user,
                 $spouse,
                 $dataSharingEnabled
@@ -140,7 +138,7 @@ class IHTController extends Controller
             ];
 
             // Add cash projection breakdown for transparency
-            $response['cash_projection_breakdown'] = $this->generateCashProjectionBreakdown(
+            $response['cash_projection_breakdown'] = $this->formattingService->generateCashProjectionBreakdown(
                 $user,
                 $spouse,
                 $dataSharingEnabled,
@@ -160,342 +158,6 @@ class IHTController extends Controller
                 'message' => 'An error occurred calculating IHT: '.$e->getMessage(),
             ], 500);
         }
-    }
-
-    /**
-     * Format assets breakdown for response
-     *
-     * Uses asset-specific projection methods from IHTCalculationService:
-     * - Cash: Income/expense surplus model (service provides total)
-     * - Investments: Monte Carlo (80% confidence) or custom rate
-     * - Properties: Configurable growth rate (default 3%)
-     */
-    private function formatAssetsBreakdown($userAssets, $spouseAssets = null, bool $includeSpouse = false, ?User $user = null, ?User $spouse = null, array $calculation = []): array
-    {
-        // Get years to project from calculation
-        $yearsToProject = $calculation['years_to_death'] ?? 25;
-
-        // Get asset-specific projected totals from calculation service
-        $projectedCash = $calculation['projected_cash'] ?? 0;
-        $projectedInvestments = $calculation['projected_investments'] ?? 0;
-        $projectedProperties = $calculation['projected_properties'] ?? 0;
-
-        // Calculate current totals by asset type to determine projection factors
-        $currentCashTotal = 0;
-        $currentInvestmentTotal = 0;
-        $currentPropertyTotal = 0;
-
-        foreach ($userAssets as $asset) {
-            if ($asset->is_iht_exempt || $asset->current_value <= 0) {
-                continue;
-            }
-            match ($asset->asset_type) {
-                'cash' => $currentCashTotal += $asset->current_value,
-                'investment' => $currentInvestmentTotal += $asset->current_value,
-                'property' => $currentPropertyTotal += $asset->current_value,
-                default => null,
-            };
-        }
-
-        if ($includeSpouse && $spouseAssets) {
-            foreach ($spouseAssets as $asset) {
-                if ($asset->is_iht_exempt || $asset->current_value <= 0) {
-                    continue;
-                }
-                match ($asset->asset_type) {
-                    'cash' => $currentCashTotal += $asset->current_value,
-                    'investment' => $currentInvestmentTotal += $asset->current_value,
-                    'property' => $currentPropertyTotal += $asset->current_value,
-                    default => null,
-                };
-            }
-        }
-
-        // Calculate projection factors for each asset type
-        // Cash uses surplus model - can't apply factor to individual accounts
-        // Instead, distribute projected total proportionally
-        $cashProjectionFactor = $currentCashTotal > 0 ? $projectedCash / $currentCashTotal : 1;
-        $investmentProjectionFactor = $currentInvestmentTotal > 0 ? $projectedInvestments / $currentInvestmentTotal : 1;
-        $propertyProjectionFactor = $currentPropertyTotal > 0 ? $projectedProperties / $currentPropertyTotal : 1;
-
-        $userAssetsForIHT = [
-            'investment' => [],
-            'property' => [],
-            'cash' => [],
-            'business' => [],
-            'chattel' => [],
-        ];
-        $userAssetsTotal = 0;
-        $userAssetsProjectedTotal = 0;
-
-        // Process user assets
-        foreach ($userAssets as $asset) {
-            if ($asset->is_iht_exempt || $asset->current_value <= 0) {
-                continue;
-            }
-
-            if (in_array($asset->asset_type, ['investment', 'property', 'cash', 'business', 'chattel'])) {
-                $isJoint = ($asset->ownership_type ?? 'individual') === 'joint';
-                $displayValue = $asset->current_value;
-
-                // Use asset-specific projection factor
-                // Chattels (personal valuables) and business assets stay at current value
-                // as they don't reliably appreciate and aren't included in service projections
-                $projectedValue = match ($asset->asset_type) {
-                    'cash' => $displayValue * $cashProjectionFactor,
-                    'investment' => $displayValue * $investmentProjectionFactor,
-                    'property' => $displayValue * $propertyProjectionFactor,
-                    'chattel', 'business' => $displayValue, // No growth - keep at current value
-                    default => $displayValue,
-                };
-
-                $userAssetsForIHT[$asset->asset_type][] = [
-                    'name' => $asset->asset_name,
-                    'value' => $displayValue,
-                    'projected_value' => $projectedValue,
-                    'is_joint' => $isJoint,
-                    'ownership_type' => $asset->ownership_type,
-                    'ownership_percentage' => $asset->ownership_percentage ?? 100,
-                ];
-                $userAssetsTotal += $displayValue;
-                $userAssetsProjectedTotal += $projectedValue;
-            }
-        }
-
-        $userName = $user ? (trim(($user->first_name ?? '').' '.($user->last_name ?? '')) ?: $user->name) : 'User';
-
-        $breakdown = [
-            'user' => [
-                'name' => $userName,
-                'assets' => $userAssetsForIHT,
-                'total' => $userAssetsTotal,
-                'projected_total' => $userAssetsProjectedTotal,
-            ],
-            'spouse' => null,
-        ];
-
-        // Add spouse assets if applicable
-        if ($includeSpouse && $spouseAssets && $spouseAssets->isNotEmpty()) {
-            $spouseAssetsForIHT = [
-                'investment' => [],
-                'property' => [],
-                'cash' => [],
-                'business' => [],
-                'chattel' => [],
-            ];
-            $spouseAssetsTotal = 0;
-            $spouseAssetsProjectedTotal = 0;
-
-            foreach ($spouseAssets as $asset) {
-                if ($asset->is_iht_exempt || $asset->current_value <= 0) {
-                    continue;
-                }
-
-                if (in_array($asset->asset_type, ['investment', 'property', 'cash', 'business', 'chattel'])) {
-                    $isJoint = ($asset->ownership_type ?? 'individual') === 'joint';
-                    $displayValue = $asset->current_value;
-
-                    // Use same asset-specific projection factors
-                    // Chattels and business assets stay at current value
-                    $projectedValue = match ($asset->asset_type) {
-                        'cash' => $displayValue * $cashProjectionFactor,
-                        'investment' => $displayValue * $investmentProjectionFactor,
-                        'property' => $displayValue * $propertyProjectionFactor,
-                        'chattel', 'business' => $displayValue,
-                        default => $displayValue,
-                    };
-
-                    $spouseAssetsForIHT[$asset->asset_type][] = [
-                        'name' => $asset->asset_name,
-                        'value' => $displayValue,
-                        'projected_value' => $projectedValue,
-                        'is_joint' => $isJoint,
-                        'ownership_type' => $asset->ownership_type,
-                        'ownership_percentage' => $asset->ownership_percentage ?? 100,
-                    ];
-                    $spouseAssetsTotal += $displayValue;
-                    $spouseAssetsProjectedTotal += $projectedValue;
-                }
-            }
-
-            $spouseName = $spouse ? (trim(($spouse->first_name ?? '').' '.($spouse->last_name ?? '')) ?: $spouse->name) : 'Spouse';
-
-            $breakdown['spouse'] = [
-                'name' => $spouseName,
-                'assets' => $spouseAssetsForIHT,
-                'total' => $spouseAssetsTotal,
-                'projected_total' => $spouseAssetsProjectedTotal,
-            ];
-        }
-
-        return $breakdown;
-    }
-
-    /**
-     * Format liabilities breakdown for response
-     *
-     * IMPORTANT: Mortgages are assumed to be paid off by age 70
-     */
-    private function formatLiabilitiesBreakdown(User $user, ?User $spouse = null, bool $includeSpouse = false): array
-    {
-        // Get mortgages where user is primary owner OR joint owner
-        $userMortgages = Mortgage::where(function ($query) use ($user) {
-            $query->where('user_id', $user->id)
-                  ->orWhere('joint_owner_id', $user->id);
-        })->with('property')->get();
-        $userLiabilities = Liability::where('user_id', $user->id)->get();
-
-        $userMortgagesFormatted = [];
-        $userLiabilitiesFormatted = [];
-        $userMortgagesTotal = 0;
-        $userLiabilitiesTotal = 0;
-        $userMortgagesProjectedTotal = 0;
-        $userLiabilitiesProjectedTotal = 0;
-
-        // Calculate user age at death for mortgage projections
-        $userAge = $user->date_of_birth ? \Carbon\Carbon::parse($user->date_of_birth)->age : 50;
-        $yearsToProjectedDeath = max(0, 85 - $userAge); // Assume life expectancy of 85
-        $userAgeAtDeath = $userAge + $yearsToProjectedDeath;
-
-        foreach ($userMortgages as $mortgage) {
-            if ($mortgage->outstanding_balance > 0) {
-                $propertyName = $mortgage->property ? $mortgage->property->address_line_1 : 'Unknown Property';
-                $isJoint = ($mortgage->ownership_type ?? 'individual') === 'joint';
-
-                // Calculate user's share of the mortgage using trait method
-                $userShare = $this->calculateUserMortgageShare($mortgage, $user->id);
-
-                // Skip if user has no share (shouldn't happen but safety check)
-                if ($userShare <= 0) {
-                    continue;
-                }
-
-                // Mortgages are assumed to be paid off by age 70
-                $projectedBalance = ($userAgeAtDeath >= 70) ? 0 : $userShare;
-
-                $userMortgagesFormatted[] = [
-                    'property_address' => $propertyName,
-                    'outstanding_balance' => $userShare,
-                    'full_balance' => (float) $mortgage->outstanding_balance,
-                    'projected_balance' => $projectedBalance,
-                    'mortgage_type' => $mortgage->mortgage_type ?? 'repayment',
-                    'is_joint' => $isJoint,
-                    'ownership_percentage' => $isJoint ? ($mortgage->user_id === $user->id ? $mortgage->ownership_percentage : (100 - $mortgage->ownership_percentage)) : 100,
-                ];
-                $userMortgagesTotal += $userShare;
-                $userMortgagesProjectedTotal += $projectedBalance;
-            }
-        }
-
-        foreach ($userLiabilities as $liability) {
-            if ($liability->current_balance > 0) {
-                // Other liabilities persist at current value
-                $userLiabilitiesFormatted[] = [
-                    'type' => ucwords(str_replace('_', ' ', $liability->liability_type)),
-                    'institution' => $liability->liability_name ?? ucwords(str_replace('_', ' ', $liability->liability_type)),
-                    'current_balance' => $liability->current_balance,
-                    'projected_balance' => $liability->current_balance,
-                    'is_joint' => ($liability->ownership_type ?? 'individual') === 'joint',
-                ];
-                $userLiabilitiesTotal += $liability->current_balance;
-                $userLiabilitiesProjectedTotal += $liability->current_balance;
-            }
-        }
-
-        $breakdown = [
-            'user' => [
-                'name' => trim(($user->first_name ?? '').' '.($user->last_name ?? '')) ?: $user->name,
-                'liabilities' => [
-                    'mortgages' => $userMortgagesFormatted,
-                    'other_liabilities' => $userLiabilitiesFormatted,
-                ],
-                'mortgages_total' => $userMortgagesTotal,
-                'liabilities_total' => $userLiabilitiesTotal,
-                'total' => $userMortgagesTotal + $userLiabilitiesTotal,
-                'projected_total' => $userMortgagesProjectedTotal + $userLiabilitiesProjectedTotal,
-            ],
-            'spouse' => null,
-        ];
-
-        if ($includeSpouse && $spouse) {
-            // Get mortgages where spouse is primary owner OR joint owner
-            $spouseMortgages = Mortgage::where(function ($query) use ($spouse) {
-                $query->where('user_id', $spouse->id)
-                      ->orWhere('joint_owner_id', $spouse->id);
-            })->with('property')->get();
-            $spouseLiabilities = Liability::where('user_id', $spouse->id)->get();
-
-            $spouseMortgagesFormatted = [];
-            $spouseLiabilitiesFormatted = [];
-            $spouseMortgagesTotal = 0;
-            $spouseLiabilitiesTotal = 0;
-            $spouseMortgagesProjectedTotal = 0;
-            $spouseLiabilitiesProjectedTotal = 0;
-
-            // Calculate spouse age at death for mortgage projections
-            $spouseAge = $spouse->date_of_birth ? \Carbon\Carbon::parse($spouse->date_of_birth)->age : 50;
-            $spouseYearsToProjectedDeath = max(0, 85 - $spouseAge);
-            $spouseAgeAtDeath = $spouseAge + $spouseYearsToProjectedDeath;
-
-            foreach ($spouseMortgages as $mortgage) {
-                if ($mortgage->outstanding_balance > 0) {
-                    $propertyName = $mortgage->property ? $mortgage->property->address_line_1 : 'Unknown Property';
-                    $isJoint = ($mortgage->ownership_type ?? 'individual') === 'joint';
-
-                    // Calculate spouse's share of the mortgage using trait method
-                    $spouseShare = $this->calculateUserMortgageShare($mortgage, $spouse->id);
-
-                    // Skip if spouse has no share (shouldn't happen but safety check)
-                    if ($spouseShare <= 0) {
-                        continue;
-                    }
-
-                    // Mortgages are assumed to be paid off by age 70
-                    $projectedBalance = ($spouseAgeAtDeath >= 70) ? 0 : $spouseShare;
-
-                    $spouseMortgagesFormatted[] = [
-                        'property_address' => $propertyName,
-                        'outstanding_balance' => $spouseShare,
-                        'full_balance' => (float) $mortgage->outstanding_balance,
-                        'projected_balance' => $projectedBalance,
-                        'mortgage_type' => $mortgage->mortgage_type ?? 'repayment',
-                        'is_joint' => $isJoint,
-                        'ownership_percentage' => $isJoint ? ($mortgage->user_id === $spouse->id ? $mortgage->ownership_percentage : (100 - $mortgage->ownership_percentage)) : 100,
-                    ];
-                    $spouseMortgagesTotal += $spouseShare;
-                    $spouseMortgagesProjectedTotal += $projectedBalance;
-                }
-            }
-
-            foreach ($spouseLiabilities as $liability) {
-                if ($liability->current_balance > 0) {
-                    // Other liabilities persist at current value
-                    $spouseLiabilitiesFormatted[] = [
-                        'type' => ucwords(str_replace('_', ' ', $liability->liability_type)),
-                        'institution' => $liability->liability_name ?? ucwords(str_replace('_', ' ', $liability->liability_type)),
-                        'current_balance' => $liability->current_balance,
-                        'projected_balance' => $liability->current_balance,
-                        'is_joint' => ($liability->ownership_type ?? 'individual') === 'joint',
-                    ];
-                    $spouseLiabilitiesTotal += $liability->current_balance;
-                    $spouseLiabilitiesProjectedTotal += $liability->current_balance;
-                }
-            }
-
-            $breakdown['spouse'] = [
-                'name' => trim(($spouse->first_name ?? '').' '.($spouse->last_name ?? '')) ?: $spouse->name,
-                'liabilities' => [
-                    'mortgages' => $spouseMortgagesFormatted,
-                    'other_liabilities' => $spouseLiabilitiesFormatted,
-                ],
-                'mortgages_total' => $spouseMortgagesTotal,
-                'liabilities_total' => $spouseLiabilitiesTotal,
-                'total' => $spouseMortgagesTotal + $spouseLiabilitiesTotal,
-                'projected_total' => $spouseMortgagesProjectedTotal + $spouseLiabilitiesProjectedTotal,
-            ];
-        }
-
-        return $breakdown;
     }
 
     /**
@@ -568,34 +230,6 @@ class IHTController extends Controller
     }
 
     /**
-     * Calculate life expectancy for projection using actuarial tables
-     * Matches logic in IHTCalculationService
-     */
-    private function calculateLifeExpectancyForProjection(User $user): int
-    {
-        if (! $user->date_of_birth || ! $user->gender) {
-            return 25; // Default fallback
-        }
-
-        $currentAge = \Carbon\Carbon::parse($user->date_of_birth)->age;
-
-        // Query actuarial table for life expectancy
-        $lifeExpectancy = \DB::table('actuarial_life_tables')
-            ->where('age', '<=', $currentAge)
-            ->where('gender', $user->gender)
-            ->where('table_year', '2020-2022')
-            ->orderBy('age', 'desc')
-            ->first();
-
-        if ($lifeExpectancy) {
-            return (int) round((float) $lifeExpectancy->life_expectancy_years);
-        }
-
-        // Fallback if no actuarial data
-        return max(1, 85 - $currentAge);
-    }
-
-    /**
      * DEPRECATED: Backward compatibility alias
      * This method now just calls the unified calculateIHT()
      *
@@ -604,160 +238,5 @@ class IHTController extends Controller
     public function calculateSecondDeathIHTPlanning(Request $request): JsonResponse
     {
         return $this->calculateIHT($request);
-    }
-
-    /**
-     * Generate year-by-year cash projection breakdown
-     */
-    private function generateCashProjectionBreakdown(
-        User $user,
-        ?User $spouse,
-        bool $dataSharingEnabled,
-        array $calculation
-    ): array {
-        $currentAge = $user->date_of_birth
-            ? \Carbon\Carbon::parse($user->date_of_birth)->age
-            : 50;
-        $retirementAge = $calculation['retirement_age'] ?? 68;
-        $deathAge = $calculation['estimated_age_at_death'] ?? 85;
-
-        // Get current cash
-        $currentCash = (float) $user->savingsAccounts()->sum('current_balance');
-        if ($dataSharingEnabled && $spouse) {
-            $currentCash += (float) $spouse->savingsAccounts()->sum('current_balance');
-        }
-
-        // Calculate income values
-        $preRetIncome = (float) ($user->annual_employment_income ?? 0)
-            + (float) ($user->annual_self_employment_income ?? 0)
-            + (float) ($user->annual_rental_income ?? 0)
-            + (float) ($user->annual_dividend_income ?? 0)
-            + (float) ($user->annual_interest_income ?? 0)
-            + (float) ($user->annual_other_income ?? 0);
-
-        if ($dataSharingEnabled && $spouse) {
-            $preRetIncome += (float) ($spouse->annual_employment_income ?? 0)
-                + (float) ($spouse->annual_self_employment_income ?? 0)
-                + (float) ($spouse->annual_rental_income ?? 0)
-                + (float) ($spouse->annual_dividend_income ?? 0)
-                + (float) ($spouse->annual_interest_income ?? 0)
-                + (float) ($spouse->annual_other_income ?? 0);
-        }
-
-        // Calculate expenses (70% fallback if no profile)
-        $userExpProfile = $user->expenditureProfile;
-        $preRetExpenses = $userExpProfile?->total_monthly_expenditure
-            ? (float) $userExpProfile->total_monthly_expenditure * 12
-            : $preRetIncome * 0.70;
-
-        if ($dataSharingEnabled && $spouse) {
-            $spouseExpProfile = $spouse->expenditureProfile;
-            if ($spouseExpProfile?->total_monthly_expenditure) {
-                $preRetExpenses += (float) $spouseExpProfile->total_monthly_expenditure * 12;
-            }
-            // If no spouse profile but user has profile, add spouse portion
-            elseif ($userExpProfile?->total_monthly_expenditure) {
-                $spouseIncome = (float) ($spouse->annual_employment_income ?? 0)
-                    + (float) ($spouse->annual_self_employment_income ?? 0);
-                $preRetExpenses += $spouseIncome * 0.70;
-            }
-        }
-
-        // Retirement income
-        $retirementIncome = (float) ($user->retirementProfile?->target_retirement_income ?? 0);
-        $userStatePension = (float) ($user->statePension?->estimated_annual_amount ?? 0);
-
-        if ($dataSharingEnabled && $spouse) {
-            $retirementIncome += (float) ($spouse->retirementProfile?->target_retirement_income ?? 0);
-        }
-
-        // Retirement expenses
-        $retExpUser = (float) ($user->retirementProfile?->essential_expenditure ?? 0)
-            + (float) ($user->retirementProfile?->lifestyle_expenditure ?? 0);
-        if ($retExpUser <= 0 && $user->retirementProfile?->target_retirement_income > 0) {
-            $retExpUser = (float) $user->retirementProfile->target_retirement_income;
-        } elseif ($retExpUser <= 0) {
-            $userIncome = (float) ($user->annual_employment_income ?? 0);
-            $retExpUser = $userIncome * 0.50;
-        }
-
-        $retirementExpenses = $retExpUser;
-        if ($dataSharingEnabled && $spouse) {
-            $retExpSpouse = (float) ($spouse->retirementProfile?->essential_expenditure ?? 0)
-                + (float) ($spouse->retirementProfile?->lifestyle_expenditure ?? 0);
-            if ($retExpSpouse <= 0) {
-                $spouseIncome = (float) ($spouse->annual_employment_income ?? 0);
-                $retExpSpouse = $spouseIncome * 0.50;
-            }
-            $retirementExpenses += $retExpSpouse;
-        }
-
-        // State pension age
-        $statePensionAge = $user->state_pension_age ?? 67;
-        $spouseStatePensionAge = $spouse?->state_pension_age ?? 67;
-        $spouseStatePension = $dataSharingEnabled && $spouse
-            ? (float) ($spouse->statePension?->estimated_annual_amount ?? 0)
-            : 0;
-
-        // Generate year-by-year breakdown
-        $years = [];
-        $runningTotal = (float) $currentCash;
-
-        for ($age = $currentAge; $age < $deathAge; $age++) {
-            $year = $age - $currentAge + 1;
-
-            if ($age < $retirementAge) {
-                $phase = 'Pre-Retirement';
-                $income = $preRetIncome;
-                $expenses = $preRetExpenses;
-            } else {
-                $phase = 'Retired';
-                $income = $retirementIncome;
-
-                // Add state pension when applicable
-                if ($age >= $statePensionAge) {
-                    $income += $userStatePension;
-                }
-                if ($dataSharingEnabled && $spouse) {
-                    $spouseAge = $spouse->date_of_birth
-                        ? \Carbon\Carbon::parse($spouse->date_of_birth)->age + ($age - $currentAge)
-                        : $age;
-                    if ($spouseAge >= $spouseStatePensionAge) {
-                        $income += $spouseStatePension;
-                    }
-                }
-
-                $expenses = $retirementExpenses;
-            }
-
-            $surplus = $income - $expenses;
-            $runningTotal += $surplus;
-
-            $years[] = [
-                'year' => $year,
-                'age' => $age,
-                'phase' => $phase,
-                'income' => round($income, 0),
-                'expenses' => round($expenses, 0),
-                'surplus' => round($surplus, 0),
-                'running_total' => round($runningTotal, 0),
-            ];
-        }
-
-        return [
-            'starting_cash' => round($currentCash, 0),
-            'pre_retirement_income' => round($preRetIncome, 0),
-            'pre_retirement_expenses' => round($preRetExpenses, 0),
-            'retirement_income' => round($retirementIncome, 0),
-            'retirement_expenses' => round($retirementExpenses, 0),
-            'state_pension_user' => round($userStatePension, 0),
-            'state_pension_spouse' => round($spouseStatePension, 0),
-            'retirement_age' => $retirementAge,
-            'state_pension_age' => $statePensionAge,
-            'death_age' => $deathAge,
-            'final_cash_raw' => round($runningTotal, 0),
-            'final_cash_capped' => round(max(0, $runningTotal), 0),
-            'years' => $years,
-        ];
     }
 }

@@ -24,7 +24,7 @@ use Illuminate\Support\Collection;
 class ChildBenefitService
 {
     public function __construct(
-        private TaxConfigService $taxConfig
+        private readonly TaxConfigService $taxConfig
     ) {}
 
     /**
@@ -61,7 +61,7 @@ class ChildBenefitService
 
             $breakdown[] = [
                 'child_id' => $child->id,
-                'child_name' => $child->name ?? $child->first_name . ' ' . $child->last_name,
+                'child_name' => $child->name ?? $child->first_name.' '.$child->last_name,
                 'is_eldest' => $isFirst,
                 'annual_amount' => $rate,
                 'weekly_amount' => $isFirst
@@ -70,7 +70,7 @@ class ChildBenefitService
             ];
 
             if ($isFirst) {
-                $eldestChildName = $child->name ?? $child->first_name . ' ' . $child->last_name;
+                $eldestChildName = $child->name ?? $child->first_name.' '.$child->last_name;
             }
 
             $totalAnnual += $rate;

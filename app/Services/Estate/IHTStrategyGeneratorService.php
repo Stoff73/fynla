@@ -15,18 +15,9 @@ use App\Services\TaxConfigService;
  */
 class IHTStrategyGeneratorService
 {
-    /**
-     * Tax configuration service
-     */
-    private TaxConfigService $taxConfig;
-
-    /**
-     * Constructor
-     */
-    public function __construct(TaxConfigService $taxConfig)
-    {
-        $this->taxConfig = $taxConfig;
-    }
+    public function __construct(
+        private readonly TaxConfigService $taxConfig
+    ) {}
 
     /**
      * Generate default gifting strategy for users without linked spouse

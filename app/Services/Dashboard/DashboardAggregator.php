@@ -12,10 +12,10 @@ use App\Agents\SavingsAgent;
 class DashboardAggregator
 {
     public function __construct(
-        private ProtectionAgent $protectionAgent,
-        private SavingsAgent $savingsAgent,
-        private InvestmentAgent $investmentAgent,
-        private RetirementAgent $retirementAgent
+        private readonly ProtectionAgent $protectionAgent,
+        private readonly SavingsAgent $savingsAgent,
+        private readonly InvestmentAgent $investmentAgent,
+        private readonly RetirementAgent $retirementAgent
     ) {}
 
     /**

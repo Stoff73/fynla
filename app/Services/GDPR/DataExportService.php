@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Storage;
 class DataExportService
 {
     public function __construct(
-        private AuditService $auditService
+        private readonly AuditService $auditService
     ) {}
 
     /**

@@ -38,8 +38,8 @@ class ProtectionController extends Controller
      * Create a new controller instance.
      */
     public function __construct(
-        private ProtectionAgent $protectionAgent,
-        private \App\Services\Protection\ComprehensiveProtectionPlanService $comprehensiveProtectionPlan
+        private readonly ProtectionAgent $protectionAgent,
+        private readonly \App\Services\Protection\ComprehensiveProtectionPlanService $comprehensiveProtectionPlan
     ) {}
 
     /**

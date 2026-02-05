@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -200,7 +201,7 @@ class Document extends Model
     /**
      * Scope to filter by user.
      */
-    public function scopeForUser($query, int $userId)
+    public function scopeForUser(Builder $query, int $userId): Builder
     {
         return $query->where('user_id', $userId);
     }
@@ -208,7 +209,7 @@ class Document extends Model
     /**
      * Scope to filter by status.
      */
-    public function scopeWithStatus($query, string $status)
+    public function scopeWithStatus(Builder $query, string $status): Builder
     {
         return $query->where('status', $status);
     }
@@ -216,7 +217,7 @@ class Document extends Model
     /**
      * Scope to filter by document type.
      */
-    public function scopeOfType($query, string $type)
+    public function scopeOfType(Builder $query, string $type): Builder
     {
         return $query->where('document_type', $type);
     }

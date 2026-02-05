@@ -30,7 +30,7 @@ class AssumptionsService
     private const VALID_ASSUMPTION_TYPES = ['pensions', 'investments', 'estate_planning'];
 
     public function __construct(
-        private RiskPreferenceService $riskService
+        private readonly RiskPreferenceService $riskService
     ) {}
 
     /**

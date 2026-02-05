@@ -25,7 +25,7 @@ class IHTCalculator
     private array $ihtConfig;
 
     public function __construct(
-        private TaxConfigService $taxConfig
+        private readonly TaxConfigService $taxConfig
     ) {
         $this->ihtConfig = $this->taxConfig->getInheritanceTax();
     }

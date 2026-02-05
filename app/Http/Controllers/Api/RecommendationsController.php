@@ -17,7 +17,7 @@ class RecommendationsController extends Controller
     use SanitizedErrorResponse;
 
     public function __construct(
-        private RecommendationsAggregatorService $aggregatorService
+        private readonly RecommendationsAggregatorService $aggregatorService
     ) {}
 
     /**

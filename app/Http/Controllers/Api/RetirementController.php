@@ -38,13 +38,13 @@ class RetirementController extends Controller
     use SanitizedErrorResponse;
 
     public function __construct(
-        private RetirementAgent $agent,
-        private AnnualAllowanceChecker $allowanceChecker,
-        private RetirementProjectionService $projectionService,
-        private RetirementStrategyService $strategyService,
-        private RetirementIncomeService $retirementIncomeService,
-        private DiversificationAnalyzer $diversificationAnalyzer,
-        private RequiredCapitalCalculator $requiredCapitalCalculator
+        private readonly RetirementAgent $agent,
+        private readonly AnnualAllowanceChecker $allowanceChecker,
+        private readonly RetirementProjectionService $projectionService,
+        private readonly RetirementStrategyService $strategyService,
+        private readonly RetirementIncomeService $retirementIncomeService,
+        private readonly DiversificationAnalyzer $diversificationAnalyzer,
+        private readonly RequiredCapitalCalculator $requiredCapitalCalculator
     ) {}
 
     /**

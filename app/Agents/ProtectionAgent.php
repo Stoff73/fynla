@@ -18,11 +18,11 @@ class ProtectionAgent extends BaseAgent
      * Create a new Protection Agent instance.
      */
     public function __construct(
-        private CoverageGapAnalyzer $gapAnalyzer,
-        private AdequacyScorer $adequacyScorer,
-        private RecommendationEngine $recommendationEngine,
-        private ScenarioBuilder $scenarioBuilder,
-        private ProfileCompletenessChecker $completenessChecker
+        private readonly CoverageGapAnalyzer $gapAnalyzer,
+        private readonly AdequacyScorer $adequacyScorer,
+        private readonly RecommendationEngine $recommendationEngine,
+        private readonly ScenarioBuilder $scenarioBuilder,
+        private readonly ProfileCompletenessChecker $completenessChecker
     ) {}
 
     /**

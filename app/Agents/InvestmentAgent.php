@@ -21,12 +21,12 @@ use Illuminate\Support\Facades\Cache;
 class InvestmentAgent extends BaseAgent
 {
     public function __construct(
-        private PortfolioAnalyzer $portfolioAnalyzer,
-        private MonteCarloSimulator $monteCarloSimulator,
-        private AssetAllocationOptimizer $allocationOptimizer,
-        private FeeAnalyzer $feeAnalyzer,
-        private TaxEfficiencyCalculator $taxCalculator,
-        private TaxConfigService $taxConfig
+        private readonly PortfolioAnalyzer $portfolioAnalyzer,
+        private readonly MonteCarloSimulator $monteCarloSimulator,
+        private readonly AssetAllocationOptimizer $allocationOptimizer,
+        private readonly FeeAnalyzer $feeAnalyzer,
+        private readonly TaxEfficiencyCalculator $taxCalculator,
+        private readonly TaxConfigService $taxConfig
     ) {}
 
     /**

@@ -10,18 +10,9 @@ use App\Services\TaxConfigService;
 
 class PropertyTaxService
 {
-    /**
-     * Tax configuration service
-     */
-    private TaxConfigService $taxConfig;
-
-    /**
-     * Constructor
-     */
-    public function __construct(TaxConfigService $taxConfig)
-    {
-        $this->taxConfig = $taxConfig;
-    }
+    public function __construct(
+        private readonly TaxConfigService $taxConfig
+    ) {}
 
     /**
      * Calculate Stamp Duty Land Tax (SDLT) for UK property purchase

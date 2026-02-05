@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Retirement;
 
-use App\Models\RetirementProfile;
 use App\Models\User;
 use App\Services\Settings\AssumptionsService;
 use App\Services\UserProfile\UserProfileService;
@@ -35,8 +34,8 @@ class RequiredCapitalCalculator
     private const DEFAULT_RETIREMENT_AGE = 68;
 
     public function __construct(
-        private AssumptionsService $assumptionsService,
-        private UserProfileService $userProfileService
+        private readonly AssumptionsService $assumptionsService,
+        private readonly UserProfileService $userProfileService
     ) {}
 
     /**

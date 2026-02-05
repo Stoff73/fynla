@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Laravel\Sanctum\PersonalAccessToken;
@@ -146,7 +147,7 @@ class UserSession extends Model
     /**
      * Scope to get sessions for a user
      */
-    public function scopeForUser($query, int $userId)
+    public function scopeForUser(Builder $query, int $userId): Builder
     {
         return $query->where('user_id', $userId);
     }
@@ -154,7 +155,7 @@ class UserSession extends Model
     /**
      * Scope to order by most recent activity
      */
-    public function scopeLatestActivity($query)
+    public function scopeLatestActivity(Builder $query): Builder
     {
         return $query->orderByDesc('last_activity_at');
     }

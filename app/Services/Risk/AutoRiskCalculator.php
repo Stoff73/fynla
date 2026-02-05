@@ -29,7 +29,7 @@ use Carbon\Carbon;
 class AutoRiskCalculator
 {
     public function __construct(
-        private NetWorthService $netWorthService
+        private readonly NetWorthService $netWorthService
     ) {}
 
     /**
@@ -196,7 +196,7 @@ class AutoRiskCalculator
             'icon' => 'academic-cap',
             'components' => [
                 'education_level' => $educationLevel,
-                'has_degree' => !in_array($educationLevel, $nonDegree, true),
+                'has_degree' => ! in_array($educationLevel, $nonDegree, true),
             ],
         ];
     }

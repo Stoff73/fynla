@@ -26,13 +26,13 @@ use Illuminate\Support\Facades\Cache;
 class EstateAgent extends BaseAgent
 {
     public function __construct(
-        private IHTCalculationService $ihtCalculator,
-        private EstateAssetAggregatorService $assetAggregator,
-        private ComprehensiveEstatePlanService $estatePlanService,
-        private GiftingStrategyOptimizer $giftingOptimizer,
-        private PersonalizedTrustStrategyService $trustStrategyService,
-        private WillAnalysisService $willAnalysisService,
-        private TaxConfigService $taxConfig
+        private readonly IHTCalculationService $ihtCalculator,
+        private readonly EstateAssetAggregatorService $assetAggregator,
+        private readonly ComprehensiveEstatePlanService $estatePlanService,
+        private readonly GiftingStrategyOptimizer $giftingOptimizer,
+        private readonly PersonalizedTrustStrategyService $trustStrategyService,
+        private readonly WillAnalysisService $willAnalysisService,
+        private readonly TaxConfigService $taxConfig
     ) {}
 
     /**

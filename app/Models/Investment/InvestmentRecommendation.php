@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models\Investment;
 
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -58,7 +59,7 @@ class InvestmentRecommendation extends Model
     /**
      * Scope for pending recommendations
      */
-    public function scopePending($query)
+    public function scopePending(Builder $query): Builder
     {
         return $query->where('status', 'pending');
     }
@@ -66,7 +67,7 @@ class InvestmentRecommendation extends Model
     /**
      * Scope for completed recommendations
      */
-    public function scopeCompleted($query)
+    public function scopeCompleted(Builder $query): Builder
     {
         return $query->where('status', 'completed');
     }
@@ -74,7 +75,7 @@ class InvestmentRecommendation extends Model
     /**
      * Scope for high priority recommendations
      */
-    public function scopeHighPriority($query)
+    public function scopeHighPriority(Builder $query): Builder
     {
         return $query->where('priority', '<=', 3)->orderBy('priority');
     }

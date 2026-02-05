@@ -17,12 +17,9 @@ class ContributionEstimatorService
     // Fallback ISA allowance if TaxConfigService unavailable
     private const ISA_ALLOWANCE_FALLBACK = 20000;
 
-    private TaxConfigService $taxConfig;
-
-    public function __construct(TaxConfigService $taxConfig)
-    {
-        $this->taxConfig = $taxConfig;
-    }
+    public function __construct(
+        private readonly TaxConfigService $taxConfig
+    ) {}
 
     /**
      * Get ISA annual allowance from TaxConfigService

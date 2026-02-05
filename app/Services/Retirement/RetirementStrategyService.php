@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Services\Retirement;
 
-use App\Models\User;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\SavingsAccount;
+use App\Models\User;
 use App\Services\TaxConfigService;
 use App\Services\UKTaxCalculator;
 use App\Services\UserProfile\UserProfileService;
@@ -25,13 +25,13 @@ class RetirementStrategyService
     private const ON_TRACK_PROBABILITY = 95;
 
     public function __construct(
-        private TaxConfigService $taxConfig,
-        private UserProfileService $userProfileService,
-        private UKTaxCalculator $taxCalculator,
-        private RetirementProjectionService $projectionService,
-        private AnnualAllowanceChecker $allowanceChecker,
-        private RequiredCapitalCalculator $requiredCapitalCalculator,
-        private RetirementIncomeService $retirementIncomeService
+        private readonly TaxConfigService $taxConfig,
+        private readonly UserProfileService $userProfileService,
+        private readonly UKTaxCalculator $taxCalculator,
+        private readonly RetirementProjectionService $projectionService,
+        private readonly AnnualAllowanceChecker $allowanceChecker,
+        private readonly RequiredCapitalCalculator $requiredCapitalCalculator,
+        private readonly RetirementIncomeService $retirementIncomeService
     ) {}
 
     /**

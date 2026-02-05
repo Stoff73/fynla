@@ -31,17 +31,17 @@ class RetirementAgent extends BaseAgent
     protected int $cacheTtl = 3600; // 1 hour cache for retirement analysis
 
     public function __construct(
-        private PensionProjector $projector,
-        private AnnualAllowanceChecker $allowanceChecker,
-        private ContributionOptimizer $optimizer,
-        private DecumulationPlanner $planner,
-        private PensionPortfolioAnalyzer $pensionPortfolioAnalyzer,
+        private readonly PensionProjector $projector,
+        private readonly AnnualAllowanceChecker $allowanceChecker,
+        private readonly ContributionOptimizer $optimizer,
+        private readonly DecumulationPlanner $planner,
+        private readonly PensionPortfolioAnalyzer $pensionPortfolioAnalyzer,
         // Portfolio optimization services (shared with Investment module)
-        private PortfolioAnalyzer $portfolioAnalyzer,
-        private MonteCarloSimulator $monteCarloSimulator,
-        private AssetAllocationOptimizer $allocationOptimizer,
-        private FeeAnalyzer $feeAnalyzer,
-        private TaxEfficiencyCalculator $taxCalculator
+        private readonly PortfolioAnalyzer $portfolioAnalyzer,
+        private readonly MonteCarloSimulator $monteCarloSimulator,
+        private readonly AssetAllocationOptimizer $allocationOptimizer,
+        private readonly FeeAnalyzer $feeAnalyzer,
+        private readonly TaxEfficiencyCalculator $taxCalculator
     ) {}
 
     /**

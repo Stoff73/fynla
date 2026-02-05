@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 class LoginAttempt extends Model
@@ -78,7 +79,7 @@ class LoginAttempt extends Model
     /**
      * Scope to filter by email
      */
-    public function scopeByEmail($query, string $email)
+    public function scopeByEmail(Builder $query, string $email): Builder
     {
         return $query->where('email', $email);
     }
@@ -86,7 +87,7 @@ class LoginAttempt extends Model
     /**
      * Scope to filter by IP
      */
-    public function scopeByIp($query, string $ip)
+    public function scopeByIp(Builder $query, string $ip): Builder
     {
         return $query->where('ip_address', $ip);
     }
@@ -94,7 +95,7 @@ class LoginAttempt extends Model
     /**
      * Scope for failed attempts
      */
-    public function scopeFailed($query)
+    public function scopeFailed(Builder $query): Builder
     {
         return $query->where('successful', false);
     }
@@ -102,7 +103,7 @@ class LoginAttempt extends Model
     /**
      * Scope for successful attempts
      */
-    public function scopeSuccessful($query)
+    public function scopeSuccessful(Builder $query): Builder
     {
         return $query->where('successful', true);
     }
@@ -110,7 +111,7 @@ class LoginAttempt extends Model
     /**
      * Scope for recent attempts
      */
-    public function scopeRecent($query, int $minutes = 60)
+    public function scopeRecent(Builder $query, int $minutes = 60): Builder
     {
         return $query->where('created_at', '>=', now()->subMinutes($minutes));
     }
