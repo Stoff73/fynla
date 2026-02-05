@@ -254,14 +254,12 @@ class PortfolioStrategyService
             $actionType = match ($opportunity['type']) {
                 'isa_underutilization' => 'isa_transfer',
                 'bed_and_isa' => 'bed_and_isa',
-                'tax_loss_harvesting' => 'harvest_loss',
                 default => 'info',
             };
 
             $modal = match ($opportunity['type']) {
                 'isa_underutilization' => 'ISATransferModal',
                 'bed_and_isa' => 'BedAndISAWizardModal',
-                'tax_loss_harvesting' => 'HarvestLossModal',
                 default => null,
             };
 
