@@ -278,29 +278,7 @@ class TaxOptimizationAnalyzer
             ];
         }
 
-        // 2. Tax-Loss Harvesting
-        if ($currentPosition['unrealized_losses'] > 0) {
-            $opportunities[] = [
-                'type' => 'tax_loss_harvesting',
-                'priority' => 'medium',
-                'title' => 'Tax-Loss Harvesting Opportunity',
-                'description' => sprintf(
-                    'Realize £%s in losses to offset future gains',
-                    number_format($currentPosition['unrealized_losses'], 2)
-                ),
-                'potential_saving' => $currentPosition['unrealized_losses'] * 0.20, // 20% CGT rate
-                'action' => 'Harvest losses before year-end',
-                'details' => [
-                    'unrealized_losses' => $currentPosition['unrealized_losses'],
-                    'offsettable_gains' => min(
-                        $currentPosition['unrealized_gains'],
-                        $currentPosition['unrealized_losses']
-                    ),
-                ],
-            ];
-        }
-
-        // 3. CGT Allowance Utilization
+        // 2. CGT Allowance Utilization
         if ($currentPosition['unrealized_gains'] > $currentPosition['cgt_allowance']) {
             $excessGains = $currentPosition['unrealized_gains'] - $currentPosition['cgt_allowance'];
             $opportunities[] = [

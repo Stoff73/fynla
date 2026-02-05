@@ -81,7 +81,7 @@
                     rows="4"
                     required
                     maxlength="5000"
-                    class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                    class="w-full rounded-md border border-gray-300 shadow-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm"
                     placeholder="Describe what happened. Be as specific as possible..."
                   ></textarea>
                   <p class="mt-1 text-xs text-gray-500">{{ form.description.length }}/5000 characters</p>
@@ -97,7 +97,7 @@
                     v-model="form.expectedBehaviour"
                     rows="2"
                     maxlength="2000"
-                    class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                    class="w-full rounded-md border border-gray-300 shadow-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm"
                     placeholder="Describe what you expected to happen instead..."
                   ></textarea>
                 </div>

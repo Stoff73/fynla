@@ -53,8 +53,8 @@ class BusinessInterestResource extends JsonResource
             'updated_at' => $this->updated_at?->toIso8601String(),
 
             // Relationships
-            'user' => new UserResource($this->whenLoaded('user')),
-            'joint_owner' => new UserResource($this->whenLoaded('jointOwner')),
+            'user' => $this->when($this->relationLoaded('user'), fn () => new UserResource($this->user)),
+            'joint_owner' => $this->when($this->relationLoaded('jointOwner'), fn () => new UserResource($this->jointOwner)),
             'household' => $this->whenLoaded('household'),
             'trust' => $this->whenLoaded('trust'),
 

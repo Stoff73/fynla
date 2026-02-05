@@ -1,7 +1,7 @@
 <template>
   <div>
       <!-- Header -->
-      <h3 class="text-lg font-semibold text-gray-900 mb-4">Recommended Actions</h3>
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">Items for Review</h3>
 
       <!-- Actions List -->
       <div v-if="displayedActions.length > 0" class="space-y-2">

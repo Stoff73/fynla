@@ -119,18 +119,56 @@
             >
               <div
                 v-if="userDropdownOpen"
-                class="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50"
+                class="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50"
               >
                 <div class="py-1">
+                  <!-- Valuable Info items shown directly for tablet+ -->
                   <router-link
-                    to="/valuable-info"
+                    to="/valuable-info?section=letter"
+                    class="flex items-center px-4 py-2 text-body-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    Letter to Spouse
+                  </router-link>
+                  <router-link
+                    to="/valuable-info?section=will"
                     class="flex items-center px-4 py-2 text-body-sm text-gray-700 hover:bg-gray-100"
                   >
                     <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
-                    Valuable Info
+                    Will
                   </router-link>
+                  <router-link
+                    to="/valuable-info?section=income"
+                    class="flex items-center px-4 py-2 text-body-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Income
+                  </router-link>
+                  <router-link
+                    to="/valuable-info?section=expenditure"
+                    class="flex items-center px-4 py-2 text-body-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    Expenditure
+                  </router-link>
+                  <router-link
+                    to="/valuable-info?section=risk"
+                    class="flex items-center px-4 py-2 text-body-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                    Risk Profile
+                  </router-link>
+                  <div class="border-t border-gray-100 my-1"></div>
                   <router-link
                     to="/profile"
                     class="flex items-center px-4 py-2 text-body-sm text-gray-700 hover:bg-gray-100"

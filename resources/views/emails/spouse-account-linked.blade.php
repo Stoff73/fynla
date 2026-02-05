@@ -21,17 +21,6 @@
             overflow: hidden;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
-        .header {
-            background-color: #4F46E5;
-            color: #ffffff;
-            padding: 30px;
-            text-align: center;
-        }
-        .header h1 {
-            margin: 0;
-            font-size: 24px;
-            font-weight: 600;
-        }
         .content {
             padding: 30px;
         }
@@ -39,8 +28,9 @@
             margin: 0 0 15px 0;
         }
         .info-box {
-            background-color: #eff6ff;
-            border-left: 4px solid #3b82f6;
+            background-color: #f0f9ff;
+            border: 1px solid #3b82f6;
+            border-radius: 6px;
             padding: 15px;
             margin: 20px 0;
         }
@@ -50,13 +40,26 @@
         }
         .btn {
             display: inline-block;
-            background-color: #4F46E5;
+            background-color: #3b82f6;
             color: #ffffff !important;
             text-decoration: none;
             padding: 12px 30px;
             border-radius: 6px;
             font-weight: 600;
             margin: 20px 0;
+        }
+        .sign-off {
+            margin-top: 30px;
+        }
+        .sign-off p {
+            margin: 5px 0;
+        }
+        .logo {
+            margin-top: 20px;
+        }
+        .logo img {
+            max-width: 120px;
+            height: auto;
         }
         .footer {
             background-color: #f9fafb;
@@ -68,16 +71,19 @@
         .footer p {
             margin: 5px 0;
         }
+        .footer a {
+            color: #3b82f6;
+            text-decoration: none;
+        }
+        .footer a:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>Account Linked Notification</h1>
-        </div>
-
         <div class="content">
-            <p>Hello {{ $spouse->name }},</p>
+            <p>Dear {{ $spouse->first_name ?? $spouse->name }},</p>
 
             <p>{{ $linkedBy->name }} has linked their Fynla account to yours as your spouse.</p>
 
@@ -105,14 +111,21 @@
                 <li>Continue managing your financial planning independently</li>
             </ul>
 
-            <p style="margin-top: 30px;">If you did not expect this account linkage or have any questions, please contact {{ $linkedBy->name }} directly or reach out to our support team.</p>
+            <p style="margin-top: 30px;">If you did not expect this account linkage or have any questions, please contact {{ $linkedBy->name }} directly or <a href="mailto:support@fynla.org" style="color: #3b82f6;">contact support</a>.</p>
 
-            <p>Best regards,<br>The Fynla Team</p>
+            <div class="sign-off">
+                <p>Kindest regards,</p>
+                <p><strong>The Fynla Team (Chris & Brett)</strong></p>
+                <div class="logo">
+                    <img src="{{ config('app.url') }}/images/logoMain.png" alt="Fynla">
+                </div>
+            </div>
         </div>
 
         <div class="footer">
             <p>&copy; {{ date('Y') }} Fynla. All rights reserved.</p>
             <p>This is an automated message. Please do not reply to this email.</p>
+            <p>Need help? <a href="mailto:support@fynla.org">Contact Support</a></p>
         </div>
     </div>
 </body>

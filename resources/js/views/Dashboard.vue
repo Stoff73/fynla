@@ -249,7 +249,7 @@
                 <span class="font-semibold text-primary-600">{{ formatCurrency(protectionData.totalCoverage) }}</span>
               </div>
               <div class="flex justify-between text-sm">
-                <span class="text-gray-600">Monthly Premium</span>
+                <span class="text-gray-600">Total Monthly Premium</span>
                 <span class="font-medium text-gray-900">{{ formatCurrency(protectionData.premiumTotal) }}/mo</span>
               </div>
             </div>
@@ -548,7 +548,7 @@ export default {
     protectionData() {
       return {
         totalCoverage: this.protectionTotalCoverage || 0,
-        premiumTotal: (this.protectionTotalPremium || 0) / 12, // Monthly premium
+        premiumTotal: this.protectionTotalPremium || 0, // Already monthly from store getter
       };
     },
 
@@ -613,7 +613,7 @@ export default {
         investments: 'Investments',
         cash: 'Cash & Savings',
         business: 'Business Interests',
-        chattels: 'Chattels',
+        chattels: 'Personal Valuables',
       };
       return categoryLabels[category] || category.charAt(0).toUpperCase() + category.slice(1).replace(/_/g, ' ');
     },
