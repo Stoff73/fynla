@@ -24,7 +24,13 @@
         <div v-if="hasSpouse" class="column-value"></div>
       </div>
 
-      <!-- Asset Breakdown Rows -->
+      <!-- Asset Breakdown Rows - Order: Pensions, Property, Investments, Cash, Business, Personal Valuables -->
+      <router-link v-if="showAssetRow('pensions')" :to="getAssetLink('pensions')" class="summary-row breakdown-row clickable-row">
+        <div class="row-label">Pensions</div>
+        <div class="column-value">{{ formatCurrency(userBreakdown.pensions) }}</div>
+        <div v-if="hasSpouse" class="column-value">{{ formatCurrency(spouseBreakdown.pensions) }}</div>
+        <div v-if="hasSpouse" class="column-value total-column">{{ formatCurrency(userBreakdown.pensions + (spouseBreakdown.pensions || 0)) }}</div>
+      </router-link>
       <router-link v-if="showAssetRow('property')" :to="getAssetLink('property')" class="summary-row breakdown-row clickable-row">
         <div class="row-label">Property</div>
         <div class="column-value">{{ formatCurrency(userBreakdown.property) }}</div>
@@ -42,12 +48,6 @@
         <div class="column-value">{{ formatCurrency(userBreakdown.cash) }}</div>
         <div v-if="hasSpouse" class="column-value">{{ formatCurrency(spouseBreakdown.cash) }}</div>
         <div v-if="hasSpouse" class="column-value total-column">{{ formatCurrency(userBreakdown.cash + (spouseBreakdown.cash || 0)) }}</div>
-      </router-link>
-      <router-link v-if="showAssetRow('pensions')" :to="getAssetLink('pensions')" class="summary-row breakdown-row clickable-row">
-        <div class="row-label">Pensions</div>
-        <div class="column-value">{{ formatCurrency(userBreakdown.pensions) }}</div>
-        <div v-if="hasSpouse" class="column-value">{{ formatCurrency(spouseBreakdown.pensions) }}</div>
-        <div v-if="hasSpouse" class="column-value total-column">{{ formatCurrency(userBreakdown.pensions + (spouseBreakdown.pensions || 0)) }}</div>
       </router-link>
       <router-link v-if="showAssetRow('business')" :to="getAssetLink('business')" class="summary-row breakdown-row clickable-row">
         <div class="row-label">Business</div>

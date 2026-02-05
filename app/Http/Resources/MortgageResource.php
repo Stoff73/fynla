@@ -65,8 +65,8 @@ class MortgageResource extends JsonResource
             'updated_at' => $this->updated_at?->toIso8601String(),
 
             // Relationships
-            'property' => new PropertyResource($this->whenLoaded('property')),
-            'user' => new UserResource($this->whenLoaded('user')),
+            'property' => $this->when($this->relationLoaded('property'), fn () => new PropertyResource($this->property)),
+            'user' => $this->when($this->relationLoaded('user'), fn () => new UserResource($this->user)),
 
             // Links
             'links' => [

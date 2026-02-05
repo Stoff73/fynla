@@ -613,7 +613,7 @@ export default {
         investments: 'Investments',
         cash: 'Cash & Savings',
         business: 'Business Interests',
-        chattels: 'Chattels',
+        chattels: 'Personal Valuables',
       };
       return categoryLabels[category] || category.charAt(0).toUpperCase() + category.slice(1).replace(/_/g, ' ');
     },
