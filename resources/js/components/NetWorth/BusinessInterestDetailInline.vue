@@ -194,22 +194,20 @@
 
             <div v-else-if="taxDeadlines && taxDeadlines.length > 0">
               <h3 class="text-lg font-semibold text-gray-800 mb-4">Upcoming Tax Deadlines</h3>
-              <div class="space-y-4">
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div
                   v-for="(deadline, index) in taxDeadlines"
                   :key="index"
-                  class="p-4 rounded-lg border"
+                  class="p-4 rounded-lg border flex flex-col"
                   :class="getDeadlineUrgencyClass(deadline.date)"
                 >
-                  <div class="flex justify-between items-start">
-                    <div>
-                      <p class="font-medium text-gray-900">{{ deadline.name }}</p>
-                      <p class="text-sm text-gray-600 mt-1">{{ deadline.description }}</p>
-                    </div>
-                    <div class="text-right">
-                      <p class="font-bold" :class="getDeadlineDateClass(deadline.date)">{{ formatDate(deadline.date) }}</p>
-                      <p class="text-sm text-gray-500">{{ getDaysUntil(deadline.date) }}</p>
-                    </div>
+                  <div class="flex-1">
+                    <p class="font-medium text-gray-900">{{ deadline.name }}</p>
+                    <p class="text-sm text-gray-600 mt-1">{{ deadline.description }}</p>
+                  </div>
+                  <div class="mt-3 pt-3 border-t border-gray-200">
+                    <p class="font-bold" :class="getDeadlineDateClass(deadline.date)">{{ formatDate(deadline.date) }}</p>
+                    <p class="text-sm text-gray-500">{{ getDaysUntil(deadline.date) }}</p>
                   </div>
                 </div>
               </div>

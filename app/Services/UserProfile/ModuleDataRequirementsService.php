@@ -535,8 +535,29 @@ class ModuleDataRequirementsService
             return ! $user->income_needs_update;
         }
 
+        // Special handling for annual_employment_income - also check pension income
+        // Users with pension income don't need employment income
+        if ($fieldKey === 'annual_employment_income') {
+            // Has employment income
+            if ($value !== null) {
+                return true;
+            }
+            // Check for pension income sources
+            $hasStatePensionIncome = $user->statePension()->where('annual_amount', '>', 0)->exists();
+            $hasDBPensionIncome = $user->dbPensions()->where('accrued_annual_pension', '>', 0)->exists();
+            $hasDCPensionIncome = $user->employment_status === 'retired' && $user->dcPensions()->exists();
+
+            return $hasStatePensionIncome || $hasDBPensionIncome || $hasDCPensionIncome;
+        }
+
+        // Special handling for domicile_status - check if it's a valid value
+        // (not null, not empty string, and not the placeholder 'not_set')
+        if ($fieldKey === 'domicile_status') {
+            return $value !== null && $value !== '' && $value !== 'not_set';
+        }
+
         // For numeric fields, 0 is valid
-        if (in_array($fieldKey, ['annual_employment_income', 'monthly_expenditure', 'target_retirement_age'])) {
+        if (in_array($fieldKey, ['monthly_expenditure', 'target_retirement_age'])) {
             return $value !== null;
         }
 
@@ -549,12 +570,14 @@ class ModuleDataRequirementsService
     private function isRelationshipFilled(User $user, string $relationKey): bool
     {
         return match ($relationKey) {
-            'properties' => $user->properties()->exists(),
+            // Properties is "filled" if user has properties OR is paying rent (renter, not owner)
+            'properties' => $user->properties()->exists() || ($user->rent > 0),
             'mortgages' => $user->mortgages()->exists(),
             'liabilities' => $user->liabilities()->exists(),
             'savings_accounts' => $user->savingsAccounts()->exists(),
             'investment_accounts' => $user->investmentAccounts()->exists(),
-            'dc_pensions' => $user->dcPensions()->exists(),
+            // DC pensions: filled if user has them, OR if user is retired (they may only have DB/State)
+            'dc_pensions' => $user->dcPensions()->exists() || $user->employment_status === 'retired',
             'db_pensions' => $user->dbPensions()->exists(),
             'state_pension' => $user->statePension()->exists(),
             'family_members' => $user->familyMembers()->exists(),

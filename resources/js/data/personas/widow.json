@@ -29,6 +29,10 @@
       "city": "Bourton-on-the-Water",
       "county": "Gloucestershire",
       "postcode": "GL54 2BY"
+    },
+    "domicile": {
+      "country_of_birth": "United Kingdom",
+      "domicile_status": "uk_domiciled"
     }
   },
 

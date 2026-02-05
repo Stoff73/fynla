@@ -44,6 +44,10 @@
             <svg v-else-if="area.icon === 'currency'" class="w-4 h-4" :class="area.iconClass" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
+            <!-- Home Icon -->
+            <svg v-else-if="area.icon === 'home'" class="w-4 h-4" :class="area.iconClass" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
           </div>
           <div class="min-w-0">
             <span class="text-sm font-medium text-gray-900 block truncate">{{ area.title }}</span>
@@ -87,6 +91,8 @@ export default {
     return {
       hasLetterContent: false,
       letterLoaded: false,
+      willData: null,
+      willLoaded: false,
     };
   },
 
@@ -96,6 +102,7 @@ export default {
     ...mapState('savings', { cashAccounts: 'accounts' }),
     ...mapState('goals', ['dashboardOverview']),
     ...mapState('userProfile', ['profile', 'incomeOccupation']),
+    ...mapState('netWorth', ['overview']),
     ...mapGetters('protection', {
       protectionLifePolicies: 'lifePolicies',
       protectionCriticalIllnessPolicies: 'criticalIllnessPolicies',
@@ -108,6 +115,22 @@ export default {
 
     isMarried() {
       return this.user?.marital_status === 'married';
+    },
+
+    isRetired() {
+      return this.user?.employment_status === 'retired';
+    },
+
+    userAge() {
+      if (!this.user?.date_of_birth) return null;
+      const dob = new Date(this.user.date_of_birth);
+      const today = new Date();
+      let age = today.getFullYear() - dob.getFullYear();
+      const monthDiff = today.getMonth() - dob.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+        age--;
+      }
+      return age;
     },
 
     // Check for GAPS and missing items, not just "has any data"
@@ -128,12 +151,18 @@ export default {
         });
       }
 
-      // 2. Will - if user doesn't have one
-      if (this.user && !this.user.has_will) {
+      // 2. Will - if user doesn't have one (check will data loaded from API)
+      // Use truthy check since API may return 1 or true
+      const hasWill = this.willLoaded && !!this.willData?.has_will;
+      if (this.willLoaded && !hasWill) {
+        // Different message for single vs married/partnered users
+        const willDescription = this.isMarried
+          ? 'Protect your family\'s future'
+          : 'Ensure your wishes are followed for your assets';
         areas.push({
           id: 'will',
           title: 'Will',
-          description: 'Protect your family\'s future',
+          description: willDescription,
           route: '/valuable-info?section=will',
           icon: 'document',
           iconBgClass: 'bg-gray-100',
@@ -143,7 +172,9 @@ export default {
       }
 
       // 3. Critical Illness - if NO policies
-      if (!this.protectionCriticalIllnessPolicies || this.protectionCriticalIllnessPolicies.length === 0) {
+      // Don't suggest for users over 50 (policies often unavailable/unaffordable) or retired users
+      const criticalIllnessAppropriate = !this.isRetired && (this.userAge === null || this.userAge <= 50);
+      if (criticalIllnessAppropriate && (!this.protectionCriticalIllnessPolicies || this.protectionCriticalIllnessPolicies.length === 0)) {
         areas.push({
           id: 'critical-illness',
           title: 'Critical Illness Cover',
@@ -157,7 +188,8 @@ export default {
       }
 
       // 4. Income Protection - if NO policies
-      if (!this.protectionIncomeProtectionPolicies || this.protectionIncomeProtectionPolicies.length === 0) {
+      // Don't suggest for retired users (they have pension income, not employment income to protect)
+      if (!this.isRetired && (!this.protectionIncomeProtectionPolicies || this.protectionIncomeProtectionPolicies.length === 0)) {
         areas.push({
           id: 'income-protection',
           title: 'Income Protection',
@@ -170,18 +202,23 @@ export default {
         });
       }
 
-      // 5. Life Insurance - if NO policies
-      if (!this.protectionLifePolicies || this.protectionLifePolicies.length === 0) {
-        areas.push({
-          id: 'life-insurance',
-          title: 'Life Insurance',
-          description: 'Protect your dependents',
-          route: '/protection',
-          icon: 'shield',
-          iconBgClass: 'bg-green-100',
-          iconClass: 'text-green-600',
-          priority: 5,
-        });
+      // 5. Life Insurance - if NO policies (only show for married users or those with dependants)
+      // Single users without dependants typically don't need life insurance
+      // Don't suggest for retired users (too old for meaningful coverage)
+      if (!this.isRetired && (!this.protectionLifePolicies || this.protectionLifePolicies.length === 0)) {
+        // Only recommend life insurance for married/partnered users who likely have dependants
+        if (this.isMarried) {
+          areas.push({
+            id: 'life-insurance',
+            title: 'Life Insurance',
+            description: 'Protect your family if something happens',
+            route: '/protection',
+            icon: 'shield',
+            iconBgClass: 'bg-green-100',
+            iconClass: 'text-green-600',
+            priority: 5,
+          });
+        }
       }
 
       // 6. Pensions - if none at all
@@ -246,13 +283,20 @@ export default {
       }
 
       // 10. Income - if not recorded
-      const hasIncome = this.incomeOccupation && (
+      // Check employment income
+      const hasEmploymentIncome = this.incomeOccupation && (
         (this.incomeOccupation.annual_employment_income || 0) +
         (this.incomeOccupation.annual_self_employment_income || 0) +
         (this.incomeOccupation.annual_rental_income || 0) +
         (this.incomeOccupation.annual_dividend_income || 0) +
         (this.incomeOccupation.annual_other_income || 0)
       ) > 0;
+      // Check pension income (state pension, DB pensions, or DC pensions for retired users)
+      const hasStatePensionIncome = this.statePension?.annual_amount > 0;
+      const hasDBPensionIncome = this.dbPensions?.some(p => p.accrued_annual_pension > 0);
+      const hasDCPensionIncome = this.isRetired && this.dcPensions?.length > 0;
+      const hasPensionIncome = hasStatePensionIncome || hasDBPensionIncome || hasDCPensionIncome;
+      const hasIncome = hasEmploymentIncome || hasPensionIncome;
       if (!hasIncome) {
         areas.push({
           id: 'income',
@@ -263,6 +307,24 @@ export default {
           iconBgClass: 'bg-teal-100',
           iconClass: 'text-teal-600',
           priority: 10,
+        });
+      }
+
+      // 11. Properties - if no properties AND not renting
+      // Users who are renting (paying rent) don't need a prompt to add properties
+      // Check overview breakdown for property value (overview is loaded by Dashboard)
+      const hasProperties = (this.overview?.breakdown?.property || 0) > 0;
+      const isPayingRent = (this.user?.rent || 0) > 0;
+      if (!hasProperties && !isPayingRent) {
+        areas.push({
+          id: 'properties',
+          title: 'Your Properties',
+          description: 'Track your property assets',
+          route: '/net-worth',
+          icon: 'home',
+          iconBgClass: 'bg-slate-100',
+          iconClass: 'text-slate-600',
+          priority: 11,
         });
       }
 
@@ -280,7 +342,11 @@ export default {
   },
 
   async mounted() {
-    await this.loadLetterData();
+    // Load letter and will data in parallel
+    await Promise.all([
+      this.loadLetterData(),
+      this.loadWillData(),
+    ]);
   },
 
   methods: {
@@ -293,6 +359,18 @@ export default {
         this.hasLetterContent = false;
       } finally {
         this.letterLoaded = true;
+      }
+    },
+
+    async loadWillData() {
+      try {
+        const response = await api.get('/estate/will');
+        this.willData = response.data.data || null;
+      } catch (error) {
+        // Will might not exist yet, that's fine
+        this.willData = null;
+      } finally {
+        this.willLoaded = true;
       }
     },
 

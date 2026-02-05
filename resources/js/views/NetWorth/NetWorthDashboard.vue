@@ -97,10 +97,14 @@ export default {
   },
 
   computed: {
-    ...mapState('netWorth', ['loading']),
+    ...mapState('netWorth', ['loading', 'spouseOverview']),
 
     isPreviewMode() {
       return this.$route.path.startsWith('/preview');
+    },
+
+    hasSpouse() {
+      return this.spouseOverview !== null && this.spouseOverview !== undefined;
     },
 
     basePath() {
@@ -159,8 +163,22 @@ export default {
       immediate: true,
       handler(section) {
         // Auto-collapse sidebar on certain tabs for more screen space
-        if (section === 'investments' || section === 'cash' || section === 'retirement' || section === 'property') {
+        // Only collapse wealth-summary for users with spouse (more columns)
+        const alwaysCollapse = ['investments', 'cash', 'retirement', 'property'];
+        if (alwaysCollapse.includes(section)) {
           this.sidebarCollapsed = true;
+        } else if (section === 'wealth-summary' && this.hasSpouse) {
+          this.sidebarCollapsed = true;
+        } else if (section === 'wealth-summary' && !this.hasSpouse) {
+          this.sidebarCollapsed = false;
+        }
+      },
+    },
+    // Re-evaluate sidebar collapse when spouse data loads
+    hasSpouse: {
+      handler(hasSpouse) {
+        if (this.currentSection === 'wealth-summary') {
+          this.sidebarCollapsed = hasSpouse;
         }
       },
     },

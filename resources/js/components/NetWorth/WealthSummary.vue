@@ -346,7 +346,7 @@ export default {
   font-size: 18px;
   font-weight: 600;
   @apply text-gray-900;
-  margin: 0 0 24px 0;
+  margin: 0 0 16px 0;
 }
 
 /* Table-like layout */
@@ -354,23 +354,32 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 0;
+  min-width: 0;
 }
 
 .summary-row {
   display: grid;
-  grid-template-columns: 200px 1fr;
+  grid-template-columns: 1fr minmax(120px, 200px);
   gap: 16px;
   align-items: center;
+  min-width: 0;
 }
 
 .summary-content.has-spouse .summary-row {
-  grid-template-columns: 200px 1fr 1fr 1fr;
+  grid-template-columns: 200px minmax(100px, 1fr) minmax(100px, 1fr) minmax(100px, 1fr);
+}
+
+.column-value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Header row */
 .header-row {
-  margin-bottom: 16px;
-  padding-bottom: 12px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
   @apply border-b-2 border-gray-200;
 }
 
@@ -379,7 +388,6 @@ export default {
   font-weight: 600;
   @apply text-gray-900;
   text-align: right;
-  padding-right: 16px;
 }
 
 /* Row labels */
@@ -413,8 +421,8 @@ export default {
 
 /* Section header rows */
 .section-header-row {
-  margin-top: 20px;
-  margin-bottom: 12px;
+  margin-top: 14px;
+  margin-bottom: 8px;
 }
 
 .section-header-row .section-label {
@@ -429,7 +437,7 @@ export default {
 }
 
 .liabilities-header {
-  margin-top: 24px;
+  margin-top: 16px;
 }
 
 .section-icon {
@@ -492,8 +500,8 @@ export default {
 
 /* Net worth row styling */
 .net-worth-row {
-  margin-top: 16px;
-  padding-top: 16px;
+  margin-top: 12px;
+  padding-top: 12px;
   @apply border-t-2 border-gray-200;
 }
 
@@ -548,25 +556,25 @@ export default {
   }
 
   .summary-row {
-    grid-template-columns: 120px 1fr;
+    grid-template-columns: 1fr minmax(80px, 140px);
     gap: 8px;
   }
 
   .summary-content.has-spouse .summary-row {
-    grid-template-columns: 100px 1fr 1fr 1fr;
+    grid-template-columns: 90px minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+    gap: 6px;
   }
 
   .column-header {
-    font-size: 12px;
-    padding-right: 4px;
+    font-size: 11px;
   }
 
   .row-label {
-    font-size: 12px;
+    font-size: 11px;
   }
 
   .section-header-row .section-label {
-    font-size: 11px;
+    font-size: 10px;
   }
 
   .section-icon {
@@ -575,40 +583,61 @@ export default {
   }
 
   .breakdown-row .column-value {
-    padding: 4px 6px;
-    font-size: 11px;
+    padding: 4px 4px;
+    font-size: 10px;
   }
 
   .total-row .column-value.total-value {
-    padding: 8px 6px;
-    font-size: 12px;
+    padding: 6px 4px;
+    font-size: 11px;
   }
 
   .net-worth-row .column-value.net-worth-value {
-    font-size: 14px;
+    font-size: 12px;
+    padding: 8px 4px;
   }
 
   .net-worth-row .row-label.net-worth-label {
-    font-size: 12px;
+    font-size: 11px;
+  }
+
+  .clickable-row {
+    margin: 0 -4px;
+    padding: 6px 4px;
   }
 }
 
 @media (max-width: 480px) {
   .summary-row {
-    grid-template-columns: 80px 1fr;
+    grid-template-columns: 1fr minmax(70px, 120px);
   }
 
   .summary-content.has-spouse .summary-row {
-    grid-template-columns: 80px 1fr 1fr 1fr;
+    grid-template-columns: 65px minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+    gap: 4px;
   }
 
   .column-header {
+    font-size: 9px;
+  }
+
+  .row-label {
     font-size: 10px;
   }
 
   .breakdown-row .column-value {
-    padding: 3px 4px;
+    padding: 3px 3px;
+    font-size: 9px;
+  }
+
+  .total-row .column-value.total-value {
+    padding: 5px 3px;
     font-size: 10px;
+  }
+
+  .net-worth-row .column-value.net-worth-value {
+    font-size: 11px;
+    padding: 6px 3px;
   }
 }
 </style>

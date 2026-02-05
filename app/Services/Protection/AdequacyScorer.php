@@ -80,7 +80,7 @@ class AdequacyScorer
     /**
      * Generate score insights.
      */
-    public function generateScoreInsights(int $score, array $gaps, array $needs = []): array
+    public function generateScoreInsights(int $score, array $gaps, array $needs = [], bool $hasDependants = false): array
     {
         $category = $this->categorizeScore($score);
         $color = $this->getScoreColor($score);
@@ -92,9 +92,13 @@ class AdequacyScorer
         } elseif ($score >= 60) {
             $insights[] = 'Your protection coverage is good, but there are some areas for improvement.';
         } elseif ($score >= 40) {
-            $insights[] = 'Your protection coverage is fair. Consider increasing coverage to better protect your family.';
+            $insights[] = $hasDependants
+                ? 'Your protection coverage is fair. Consider increasing coverage to better protect your family.'
+                : 'Your protection coverage is fair. Consider increasing coverage to improve your financial security.';
         } else {
-            $insights[] = 'Your protection coverage is critical. Immediate action is recommended to protect your family.';
+            $insights[] = $hasDependants
+                ? 'Your protection coverage is critical. Immediate action is recommended to protect your family.'
+                : 'Your protection coverage is critical. Immediate action is recommended to address these gaps.';
         }
 
         // Add specific gap insights

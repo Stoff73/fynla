@@ -108,6 +108,8 @@ class User extends Authenticatable
         'gifts_charity' => 'float',
         'regular_savings' => 'float',
         'other_expenditure' => 'float',
+        'rent' => 'float',
+        'utilities' => 'float',
         'charitable_bequest' => 'boolean',
         'liabilities_reviewed' => 'boolean',
         'onboarding_completed' => 'boolean',

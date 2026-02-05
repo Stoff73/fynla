@@ -11,6 +11,7 @@ use App\Models\DBPension;
 use App\Models\DCPension;
 use App\Models\Estate\Bequest;
 use App\Models\Estate\Gift;
+use App\Models\Estate\IHTProfile;
 use App\Models\Estate\Liability;
 use App\Models\Estate\Trust;
 use App\Models\Estate\Will;
@@ -142,6 +143,9 @@ class PreviewUserSeeder extends Seeder
         // Create gifts
         $this->createGifts($user, $spouse, $data['gifts'] ?? []);
 
+        // Create IHT profiles (for widows with transferred allowances)
+        $this->createIHTProfiles($user, $spouse, $data['iht_profile'] ?? null);
+
         // Create business interests
         $this->createBusinessInterests($user, $data['business_interests'] ?? []);
 
@@ -243,6 +247,7 @@ class PreviewUserSeeder extends Seeder
         // Delete profiles
         RiskProfile::where('user_id', $user->id)->delete();
         RetirementProfile::where('user_id', $user->id)->delete();
+        IHTProfile::where('user_id', $user->id)->delete();
 
         // Delete letters to spouse
         LetterToSpouse::where('user_id', $user->id)->delete();
@@ -311,6 +316,8 @@ class PreviewUserSeeder extends Seeder
             $user->gifts_charity = round(($categories['gifts_charity'] ?? 0) * $share);
             $user->regular_savings = round(($categories['regular_savings'] ?? 0) * $share);
             $user->other_expenditure = round(($categories['other_expenditure'] ?? $categories['other'] ?? 0) * $share);
+            $user->rent = round(($categories['rent'] ?? $categories['housing'] ?? 0) * $share);
+            $user->utilities = round(($categories['utilities'] ?? 0) * $share);
         } else {
             // Set defaults if no expenditure data provided
             $share = ($userData['marital_status'] ?? 'single') === 'married' ? 0.5 : 1.0;
@@ -335,6 +342,8 @@ class PreviewUserSeeder extends Seeder
             $user->gifts_charity = 0;
             $user->regular_savings = 0;
             $user->other_expenditure = 0;
+            $user->rent = 0;
+            $user->utilities = 0;
         }
 
         // Address
@@ -420,6 +429,8 @@ class PreviewUserSeeder extends Seeder
             $spouse->gifts_charity = round(($categories['gifts_charity'] ?? 0) * $share);
             $spouse->regular_savings = round(($categories['regular_savings'] ?? 0) * $share);
             $spouse->other_expenditure = round(($categories['other_expenditure'] ?? $categories['other'] ?? 0) * $share);
+            $spouse->rent = round(($categories['rent'] ?? $categories['housing'] ?? 0) * $share);
+            $spouse->utilities = round(($categories['utilities'] ?? 0) * $share);
         } else {
             // No expenditure data - set all to 0
             $spouse->monthly_expenditure = 0;
@@ -443,6 +454,8 @@ class PreviewUserSeeder extends Seeder
             $spouse->gifts_charity = 0;
             $spouse->regular_savings = 0;
             $spouse->other_expenditure = 0;
+            $spouse->rent = 0;
+            $spouse->utilities = 0;
         }
 
         // Domicile information (spouse can have their own domicile data)
@@ -1259,6 +1272,43 @@ class PreviewUserSeeder extends Seeder
                 'status' => $gift['status'] ?? 'within_7_years',
                 'taper_relief_applicable' => $gift['taper_relief_applicable'] ?? false,
                 'notes' => $gift['notes'] ?? null,
+            ]);
+        }
+    }
+
+    /**
+     * Create IHT profiles for users.
+     * Used primarily for widows/widowers with transferred allowances from deceased spouse.
+     */
+    private function createIHTProfiles(User $user, ?User $spouse, ?array $ihtData): void
+    {
+        if (! $ihtData) {
+            return;
+        }
+
+        // Create IHT profile for primary user
+        IHTProfile::create([
+            'user_id' => $user->id,
+            'marital_status' => $ihtData['marital_status'] ?? $user->marital_status ?? 'single',
+            'has_spouse' => ! empty($spouse) || ($ihtData['has_spouse'] ?? false),
+            'own_home' => $ihtData['own_home'] ?? true,
+            'home_value' => $ihtData['home_value'] ?? null,
+            'nrb_transferred_from_spouse' => $ihtData['transferred_nrb'] ?? 0,
+            'rnrb_transferred_from_spouse' => $ihtData['transferred_rnrb'] ?? 0,
+            'charitable_giving_percent' => $ihtData['charitable_giving_percent'] ?? 0,
+        ]);
+
+        // Create IHT profile for spouse if they have IHT data (e.g., married couples)
+        if ($spouse && ! empty($ihtData['marital_status']) && $ihtData['marital_status'] === 'married') {
+            IHTProfile::create([
+                'user_id' => $spouse->id,
+                'marital_status' => 'married',
+                'has_spouse' => true,
+                'own_home' => $ihtData['own_home'] ?? true,
+                'home_value' => $ihtData['home_value'] ?? null,
+                'nrb_transferred_from_spouse' => 0,
+                'rnrb_transferred_from_spouse' => 0,
+                'charitable_giving_percent' => $ihtData['charitable_giving_percent'] ?? 0,
             ]);
         }
     }

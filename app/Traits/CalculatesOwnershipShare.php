@@ -34,23 +34,52 @@ trait CalculatesOwnershipShare
         $fullValue = (float) ($asset->current_value ?? $asset->current_balance ?? $asset->current_valuation ?? $asset->outstanding_balance ?? 0);
 
         $ownershipType = $asset->ownership_type ?? 'individual';
+        $percentage = (float) ($asset->ownership_percentage ?? 100);
 
-        // Individual ownership - full value belongs to owner
+        // Business interests: ownership_percentage always applies (represents shareholding)
+        // Detect business interest by checking for current_valuation field AND business_name
+        $isBusinessInterest = isset($asset->current_valuation) && isset($asset->business_name);
+
+        if ($isBusinessInterest) {
+            // Trust ownership - trustee/business controlled by trust
+            if ($ownershipType === 'trust') {
+                return $asset->user_id === $userId ? $fullValue : 0.0;
+            }
+
+            // Individual ownership - use ownership_percentage for shareholding
+            // (e.g., owning 60% of a company individually)
+            if ($ownershipType === 'individual') {
+                return $asset->user_id === $userId ? $fullValue * ($percentage / 100) : 0.0;
+            }
+
+            // Joint ownership - split between user and joint_owner based on percentage
+            if ($asset->user_id === $userId) {
+                return $fullValue * ($percentage / 100);
+            }
+
+            if (($asset->joint_owner_id ?? null) === $userId) {
+                return $fullValue * ((100 - $percentage) / 100);
+            }
+
+            return 0.0;
+        }
+
+        // Non-business assets: individual/trust means 100% ownership
         if ($ownershipType === 'individual' || $ownershipType === 'trust') {
             return $asset->user_id === $userId ? $fullValue : 0.0;
         }
 
-        // Joint or tenants_in_common ownership
-        $percentage = (float) ($asset->ownership_percentage ?? 50);
+        // Joint or tenants_in_common ownership - use ownership_percentage (default 50)
+        $jointPercentage = $percentage !== 100.0 ? $percentage : 50.0;
 
         if ($asset->user_id === $userId) {
             // Primary owner gets their ownership_percentage
-            return $fullValue * ($percentage / 100);
+            return $fullValue * ($jointPercentage / 100);
         }
 
         if (($asset->joint_owner_id ?? null) === $userId) {
             // Secondary owner gets the complementary share
-            return $fullValue * ((100 - $percentage) / 100);
+            return $fullValue * ((100 - $jointPercentage) / 100);
         }
 
         // User not associated with this asset

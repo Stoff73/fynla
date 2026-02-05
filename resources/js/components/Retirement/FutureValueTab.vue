@@ -50,7 +50,7 @@
       <!-- Pension Pot Projection Chart -->
       <div class="chart-card">
         <div class="chart-header">
-          <h3 class="chart-title">Pension Pot Projection</h3>
+          <h3 class="chart-title">Pension Pot Projection <span class="text-sm font-normal">(using high probability of 80% of achieving {{ projections.pension_pot_projection?.expected_return }}% returns)</span></h3>
           <!-- Retirement Age Info -->
           <div class="retirement-age-info">
             <div class="retirement-age-item">

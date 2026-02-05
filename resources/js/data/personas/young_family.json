@@ -30,6 +30,10 @@
       "line_1": "42 Oak Avenue",
       "city": "Birmingham",
       "postcode": "B15 2TT"
+    },
+    "domicile": {
+      "country_of_birth": "United Kingdom",
+      "domicile_status": "uk_domiciled"
     }
   },
 

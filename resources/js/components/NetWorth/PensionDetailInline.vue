@@ -550,7 +550,7 @@ export default {
 
     formatDCPensionType(type) {
       const types = {
-        occupational: 'Occupational',
+        occupational: 'Work Pension',
         sipp: 'SIPP',
         personal: 'Personal',
         stakeholder: 'Stakeholder',

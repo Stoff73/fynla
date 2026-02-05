@@ -26,8 +26,8 @@
       />
     </div>
 
-    <!-- Year-by-Year Table -->
-    <div class="mt-6">
+    <!-- Year-by-Year Table (Hidden from view - logic retained) -->
+    <div v-if="false" class="mt-6">
       <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200 text-sm">
           <thead>

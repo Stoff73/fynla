@@ -35,8 +35,8 @@ class InvestmentAgent extends BaseAgent
     public function analyze(int $userId): array
     {
         return $this->remember("investment_analysis_{$userId}", function () use ($userId) {
-            // Get all user data
-            $accounts = InvestmentAccount::where('user_id', $userId)->get();
+            // Get all user data (eager load holdings to avoid lazy loading)
+            $accounts = InvestmentAccount::where('user_id', $userId)->with('holdings')->get();
             $holdings = $accounts->flatMap->holdings;
             $riskProfile = RiskProfile::where('user_id', $userId)->first();
             $goals = InvestmentGoal::where('user_id', $userId)->get();

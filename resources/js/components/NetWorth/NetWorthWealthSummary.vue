@@ -1,36 +1,39 @@
 <template>
   <div class="net-worth-wealth-summary">
-    <div class="chart-full-width">
-      <WealthSummary
-        :breakdown="overview.breakdown"
-        :liabilities-breakdown="overview.liabilitiesBreakdown"
-        :total-assets="overview.totalAssets"
-        :total-liabilities="overview.totalLiabilities"
-        :spouse-data="filteredSpouseOverview"
-        :user-name="currentUserName"
-        :spouse-name="filteredSpouseName"
-      />
-    </div>
-
-    <!-- Asset Allocation Cards - 3 inline -->
-    <div class="allocation-cards-grid">
-      <div class="chart-item">
-        <AssetAllocationDonut
+    <div class="main-layout">
+      <!-- Wealth Summary Card - Left Side -->
+      <div class="wealth-summary-column">
+        <WealthSummary
           :breakdown="overview.breakdown"
-          :title="`${currentUserName}'s Asset Allocation`"
+          :liabilities-breakdown="overview.liabilitiesBreakdown"
+          :total-assets="overview.totalAssets"
+          :total-liabilities="overview.totalLiabilities"
+          :spouse-data="filteredSpouseOverview"
+          :user-name="currentUserName"
+          :spouse-name="filteredSpouseName"
         />
       </div>
-      <div v-if="filteredSpouseOverview" class="chart-item chart-item-center">
-        <AssetAllocationDonut
-          :breakdown="filteredSpouseOverview.breakdown || {}"
-          :title="`${filteredSpouseName}'s Asset Allocation`"
-        />
-      </div>
-      <div v-if="filteredSpouseOverview" class="chart-item">
-        <AssetAllocationDonut
-          :breakdown="combinedBreakdown"
-          title="Combined Asset Allocation"
-        />
+
+      <!-- Asset Allocation Cards - Right Side (Stacked Vertically) -->
+      <div class="allocation-cards-column">
+        <div class="chart-item">
+          <AssetAllocationDonut
+            :breakdown="overview.breakdown"
+            :title="`${currentUserName}'s Asset Allocation`"
+          />
+        </div>
+        <div v-if="filteredSpouseOverview" class="chart-item">
+          <AssetAllocationDonut
+            :breakdown="filteredSpouseOverview.breakdown || {}"
+            :title="`${filteredSpouseName}'s Asset Allocation`"
+          />
+        </div>
+        <div v-if="filteredSpouseOverview" class="chart-item">
+          <AssetAllocationDonut
+            :breakdown="combinedBreakdown"
+            title="Combined Asset Allocation"
+          />
+        </div>
       </div>
     </div>
 
@@ -151,15 +154,21 @@ export default {
   overflow: visible;
 }
 
-.chart-full-width {
-  width: 100%;
+.main-layout {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 24px;
+  align-items: start;
 }
 
-.allocation-cards-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+.wealth-summary-column {
+  min-width: 0;
+}
+
+.allocation-cards-column {
+  display: flex;
+  flex-direction: column;
   gap: 16px;
-  padding: 0 8px;
 }
 
 .chart-item {
@@ -180,15 +189,27 @@ export default {
   @apply text-gray-500;
 }
 
-/* Mobile responsive */
+/* Tablet responsive - stack layout */
 @media (max-width: 1200px) {
-  .allocation-cards-grid {
+  .main-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .allocation-cards-column {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+}
+
+@media (max-width: 900px) {
+  .allocation-cards-column {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
-@media (max-width: 768px) {
-  .allocation-cards-grid {
+@media (max-width: 640px) {
+  .allocation-cards-column {
     grid-template-columns: 1fr;
   }
 }

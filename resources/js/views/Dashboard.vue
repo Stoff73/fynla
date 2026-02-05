@@ -259,11 +259,52 @@
         <!-- Retirement Card -->
         <DashboardCard
           v-if="hasRetirementData"
-          title="Retirement"
+          :title="retirementCardTitle"
           :loading="loading.retirement"
           @click="navigateTo('/net-worth/retirement')"
         >
-          <div class="space-y-4">
+          <!-- RETIRED USER: Show income breakdown -->
+          <div v-if="isRetired" class="space-y-3">
+            <!-- Income Sources Breakdown -->
+            <div v-if="retiredIncomeData.pensionDrawdown > 0" class="flex justify-between items-center">
+              <span class="text-sm text-gray-600">Pension Drawdown</span>
+              <span class="text-sm font-semibold text-gray-900">{{ formatCurrency(retiredIncomeData.pensionDrawdown) }}/yr</span>
+            </div>
+            <div v-if="retiredIncomeData.dbPensionIncome > 0" class="flex justify-between items-center">
+              <span class="text-sm text-gray-600">DB Pension</span>
+              <span class="text-sm font-semibold text-gray-900">{{ formatCurrency(retiredIncomeData.dbPensionIncome) }}/yr</span>
+            </div>
+            <div v-if="retiredIncomeData.statePensionIncome > 0" class="flex justify-between items-center">
+              <span class="text-sm text-gray-600">State Pension</span>
+              <span class="text-sm font-semibold text-gray-900">{{ formatCurrency(retiredIncomeData.statePensionIncome) }}/yr</span>
+            </div>
+
+            <!-- Total Income -->
+            <div class="flex justify-between items-center pt-3 border-t border-gray-200">
+              <span class="text-sm font-medium text-gray-700">Total Income</span>
+              <span class="text-sm font-bold text-green-600">{{ formatCurrency(retiredIncomeData.totalIncome) }}/yr</span>
+            </div>
+
+            <!-- Income Need -->
+            <div class="flex justify-between items-center">
+              <span class="text-sm text-gray-600">Income Need</span>
+              <span class="text-sm font-semibold text-gray-900">{{ formatCurrency(retirementData.targetIncome) }}/yr</span>
+            </div>
+
+            <!-- Surplus/Shortfall aligned right -->
+            <div class="flex justify-between items-center">
+              <span class="text-sm text-gray-600">{{ retiredIncomeData.totalIncome >= retirementData.targetIncome ? 'Surplus' : 'Shortfall' }}</span>
+              <span
+                class="text-sm font-semibold"
+                :class="retiredIncomeData.totalIncome >= retirementData.targetIncome ? 'text-green-600' : 'text-blue-600'"
+              >
+                {{ formatCurrency(Math.abs(retiredIncomeData.totalIncome - retirementData.targetIncome)) }}/yr
+              </span>
+            </div>
+          </div>
+
+          <!-- NON-RETIRED USER: Show projections -->
+          <div v-else class="space-y-4">
             <!-- Income row: Projected and Required inline -->
             <div class="flex justify-between border-b border-gray-200 pb-4">
               <div>
@@ -418,7 +459,17 @@ export default {
   },
 
   computed: {
-    ...mapGetters('auth', ['isAdmin']),
+    ...mapGetters('auth', ['isAdmin', 'currentUser']),
+
+    // Check if the user is currently retired
+    isRetired() {
+      return this.currentUser?.employment_status === 'retired';
+    },
+
+    // Dynamic title for retirement card
+    retirementCardTitle() {
+      return this.isRetired ? 'Retirement Income' : 'Retirement';
+    },
 
     showMFABanner() {
       const user = this.$store.state.auth.user;
@@ -495,6 +546,31 @@ export default {
       return (this.dcPensions && this.dcPensions.length > 0) ||
              (this.dbPensions && this.dbPensions.length > 0) ||
              !!this.statePension;
+    },
+
+    // Retired user income breakdown - calculates actual income from pension sources
+    retiredIncomeData() {
+      // Pension Drawdown: DC pension wealth × 4% safe withdrawal rate
+      const dcWealth = this.totalPensionWealth || 0;
+      const pensionDrawdown = dcWealth * 0.04;
+
+      // DB Pension: Sum of accrued annual pension from all DB schemes
+      const dbPensionIncome = (this.dbPensions || []).reduce((sum, pension) => {
+        return sum + parseFloat(pension.accrued_annual_pension || 0);
+      }, 0);
+
+      // State Pension: Use configured amount or UK default (£11,502 for 2024/25)
+      const statePensionIncome = parseFloat(this.statePension?.annual_amount || 0) || 11502;
+
+      // Total retirement income
+      const totalIncome = pensionDrawdown + dbPensionIncome + statePensionIncome;
+
+      return {
+        pensionDrawdown,
+        dbPensionIncome,
+        statePensionIncome,
+        totalIncome,
+      };
     },
 
     // Investment & Savings data
