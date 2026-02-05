@@ -4,7 +4,7 @@
       <div class="max-w-7xl mx-auto">
         <!-- Header -->
         <div class="mb-8">
-          <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2">Goals & Financial Planning</h1>
+          <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2">Goals & Life Events</h1>
           <p class="text-gray-600">
             Set financial goals, track your progress, and stay on track to achieve what matters most
           </p>

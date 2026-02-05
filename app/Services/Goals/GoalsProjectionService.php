@@ -352,6 +352,8 @@ class GoalsProjectionService
                 'peak_age' => 0,
                 'total_income_events' => 0,
                 'total_expense_events' => 0,
+                'income_event_count' => 0,
+                'expense_event_count' => 0,
                 'goal_count' => 0,
                 'life_event_count' => 0,
             ];
@@ -372,6 +374,8 @@ class GoalsProjectionService
             'peak_age' => $yearlyData[$peakIndex]['age'],
             'total_income_events' => array_sum(array_column($incomeEvents, 'amount')),
             'total_expense_events' => array_sum(array_column($expenseEvents, 'amount')),
+            'income_event_count' => count($incomeEvents),
+            'expense_event_count' => count($expenseEvents),
             'goal_count' => count($goalEvents),
             'life_event_count' => count($lifeEventList),
         ];

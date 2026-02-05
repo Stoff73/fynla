@@ -1,31 +1,31 @@
 <template>
   <div class="goals-overview">
-    <!-- Empty State -->
-    <div v-if="!hasGoals" class="text-center py-12">
-      <div class="mx-auto w-16 h-16 rounded-full bg-primary-100 flex items-center justify-center mb-4">
-        <svg class="w-8 h-8 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <!-- Projection Chart - Always shown -->
+    <div class="mb-8">
+      <GoalsProjectionChart />
+    </div>
+
+    <!-- Empty State Prompt - shown below chart when no goals -->
+    <div v-if="!hasGoals" class="mb-8 p-6 bg-blue-50 border border-blue-200 rounded-lg text-center">
+      <div class="mx-auto w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mb-3">
+        <svg class="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
         </svg>
       </div>
-      <h3 class="text-lg font-semibold text-gray-900 mb-2">Set Your First Financial Goal</h3>
-      <p class="text-gray-600 mb-6 max-w-md mx-auto">
-        People with structured financial plans are 78% more likely to feel on track.
-        Start by setting a clear goal with a timeline.
+      <h3 class="text-base font-semibold text-gray-900 mb-1">Add Your First Goal or Life Event</h3>
+      <p class="text-sm text-gray-600 mb-4 max-w-md mx-auto">
+        The chart above shows your projected net worth. Add goals and life events to see how they impact your future finances.
       </p>
       <button
         @click="$emit('create-goal')"
-        class="px-6 py-3 text-base font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors"
+        class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors"
       >
         Create Your First Goal
       </button>
     </div>
 
-    <!-- Overview Content -->
-    <div v-else>
-      <!-- Projection Chart -->
-      <div class="mb-8">
-        <GoalsProjectionChart />
-      </div>
+    <!-- Goals Content - shown when goals exist -->
+    <div v-if="hasGoals">
 
       <!-- Streak Banner -->
       <div

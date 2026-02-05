@@ -1111,3 +1111,92 @@ cd ~/www/fynla.org/public_html
 php artisan db:seed --class=PreviewUserSeeder --force
 php artisan cache:clear && php artisan route:clear && php artisan config:clear
 ```
+
+---
+
+### 24. Goals & Life Events Module Improvements
+
+**Status:** Pending
+
+**Description:** Multiple improvements to the Goals & Life Events module including renamed headings, enhanced Life Events summary card, and chart visibility for new users.
+
+**What was done:**
+
+**1. Rename Module Heading (GoalsDashboard.vue):**
+
+- Changed "Goals & Financial Planning" to "Goals & Life Events"
+
+**2. Rename Summary Card Headings (ProjectionSummaryCards.vue):**
+
+- "Projected at {age}" → "Projected Net Worth at {age}"
+- "Peak Net Worth" → "Projected Peak Net Worth"
+
+**3. Life Events Card Enhancement (ProjectionSummaryCards.vue):**
+
+- Removed "X planned" count display
+- Added "{count} cash inflow events {value}" line
+- Added "{count} cash outflow events {value}" line
+- Right-aligned the currency values
+- Added `income_event_count` and `expense_event_count` to computed defaults
+
+**4. Backend: Add Event Counts to Summary (GoalsProjectionService.php):**
+
+- Added `income_event_count` - count of income life events
+- Added `expense_event_count` - count of expense life events
+- Updated both empty summary return and calculated summary return
+
+**5. Chart Always Visible for New Users (GoalsOverview.vue):**
+
+- Removed conditional that hid chart when no goals existed
+- Chart now always shows (projection based on net worth)
+- Added prompt below chart: "Add Your First Goal or Life Event" when no goals
+- Goals content (Top Goals, Status Summary) still conditional on having goals
+
+**6. Refresh Projection on Goal CRUD (goals.js store):**
+
+- Added `dispatch('fetchProjection')` to `createGoal` action
+- Added `dispatch('fetchProjection')` to `updateGoal` action
+- Added `dispatch('fetchProjection')` to `deleteGoal` action
+- Chart now updates when goals are created, updated, or deleted
+
+**Modified Files (6):**
+
+```text
+app/Services/Goals/GoalsProjectionService.php
+resources/js/views/Goals/GoalsDashboard.vue
+resources/js/components/Goals/GoalsOverview.vue
+resources/js/components/Goals/ProjectionSummaryCards.vue
+resources/js/store/modules/goals.js
+```
+
+---
+
+## Deployment Summary (Section 24)
+
+### 1. Build Locally
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+### 2. Upload via SiteGround File Manager
+
+**Frontend Build:**
+
+```text
+public/build/ → ~/www/fynla.org/public_html/public/build/
+```
+
+**PHP Files:**
+
+```text
+app/Services/Goals/GoalsProjectionService.php
+```
+
+### 3. SSH - Clear Caches
+
+```bash
+ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
+cd ~/www/fynla.org/public_html
+php artisan cache:clear && php artisan route:clear && php artisan config:clear
+```
