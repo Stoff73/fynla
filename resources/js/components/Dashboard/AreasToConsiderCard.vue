@@ -44,6 +44,10 @@
             <svg v-else-if="area.icon === 'currency'" class="w-4 h-4" :class="area.iconClass" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
+            <!-- Home Icon -->
+            <svg v-else-if="area.icon === 'home'" class="w-4 h-4" :class="area.iconClass" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
           </div>
           <div class="min-w-0">
             <span class="text-sm font-medium text-gray-900 block truncate">{{ area.title }}</span>
@@ -96,6 +100,7 @@ export default {
     ...mapState('savings', { cashAccounts: 'accounts' }),
     ...mapState('goals', ['dashboardOverview']),
     ...mapState('userProfile', ['profile', 'incomeOccupation']),
+    ...mapState('netWorth', ['properties']),
     ...mapGetters('protection', {
       protectionLifePolicies: 'lifePolicies',
       protectionCriticalIllnessPolicies: 'criticalIllnessPolicies',
@@ -130,10 +135,14 @@ export default {
 
       // 2. Will - if user doesn't have one
       if (this.user && !this.user.has_will) {
+        // Different message for single vs married/partnered users
+        const willDescription = this.isMarried
+          ? 'Protect your family\'s future'
+          : 'Ensure your wishes are followed for your assets';
         areas.push({
           id: 'will',
           title: 'Will',
-          description: 'Protect your family\'s future',
+          description: willDescription,
           route: '/valuable-info?section=will',
           icon: 'document',
           iconBgClass: 'bg-gray-100',
@@ -170,18 +179,22 @@ export default {
         });
       }
 
-      // 5. Life Insurance - if NO policies
+      // 5. Life Insurance - if NO policies (only show for married users or those with dependants)
+      // Single users without dependants typically don't need life insurance
       if (!this.protectionLifePolicies || this.protectionLifePolicies.length === 0) {
-        areas.push({
-          id: 'life-insurance',
-          title: 'Life Insurance',
-          description: 'Protect your dependents',
-          route: '/protection',
-          icon: 'shield',
-          iconBgClass: 'bg-green-100',
-          iconClass: 'text-green-600',
-          priority: 5,
-        });
+        // Only recommend life insurance for married/partnered users who likely have dependants
+        if (this.isMarried) {
+          areas.push({
+            id: 'life-insurance',
+            title: 'Life Insurance',
+            description: 'Protect your family if something happens',
+            route: '/protection',
+            icon: 'shield',
+            iconBgClass: 'bg-green-100',
+            iconClass: 'text-green-600',
+            priority: 5,
+          });
+        }
       }
 
       // 6. Pensions - if none at all
@@ -263,6 +276,23 @@ export default {
           iconBgClass: 'bg-teal-100',
           iconClass: 'text-teal-600',
           priority: 10,
+        });
+      }
+
+      // 11. Properties - if no properties AND not renting
+      // Users who are renting (paying rent) don't need a prompt to add properties
+      const hasProperties = this.properties?.length > 0;
+      const isPayingRent = (this.user?.rent || 0) > 0;
+      if (!hasProperties && !isPayingRent) {
+        areas.push({
+          id: 'properties',
+          title: 'Your Properties',
+          description: 'Track your property assets',
+          route: '/net-worth',
+          icon: 'home',
+          iconBgClass: 'bg-slate-100',
+          iconClass: 'text-slate-600',
+          priority: 11,
         });
       }
 

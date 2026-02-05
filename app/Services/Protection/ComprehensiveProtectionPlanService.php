@@ -165,7 +165,8 @@ class ComprehensiveProtectionPlanService
                 $adequacyScore['overall_score'] ?? 0,
                 $adequacyScore['life_insurance_score'] ?? 0,
                 $adequacyScore['critical_illness_score'] ?? 0,
-                $adequacyScore['income_protection_score'] ?? 0
+                $adequacyScore['income_protection_score'] ?? 0,
+                ($profile->number_of_dependents ?? 0) > 0
             ),
         ];
     }
@@ -485,8 +486,9 @@ class ComprehensiveProtectionPlanService
 
         $totalGap = $gaps['total_gap'] ?? 0;
 
-        // Priority 1: Life Insurance (if gap exists)
-        if ($totalGap > 10000) {
+        // Priority 1: Life Insurance (if gap exists and user has dependants)
+        $hasDependants = ($profile->number_of_dependents ?? 0) > 0;
+        if ($totalGap > 10000 && $hasDependants) {
             $estimatedMonthlyPremium = $this->estimateLifePremium(
                 $totalGap,
                 $profile->age ?? 40,
@@ -497,7 +499,7 @@ class ComprehensiveProtectionPlanService
                 'priority' => 1,
                 'category' => 'Life Insurance',
                 'action' => 'Increase Life Insurance Coverage',
-                'details' => 'Add £'.number_format($totalGap, 0).' life insurance coverage to protect your family',
+                'details' => 'Add £'.number_format($totalGap, 0).' life insurance coverage to protect your dependants',
                 'coverage_amount' => $totalGap,
                 'estimated_monthly_cost' => $estimatedMonthlyPremium,
                 'timeframe' => 'Immediate',
@@ -660,7 +662,7 @@ class ComprehensiveProtectionPlanService
 
     // Helper methods
 
-    private function getRecommendedAction(float $overallScore, float $lifeScore, float $ciScore, float $ipScore): string
+    private function getRecommendedAction(float $overallScore, float $lifeScore, float $ciScore, float $ipScore, bool $hasDependants = false): string
     {
         $missingCoverage = [];
 
@@ -693,7 +695,9 @@ class ComprehensiveProtectionPlanService
 
         // If no life coverage at all (score = 0)
         if ($lifeScore === 0) {
-            return 'Critical: No life insurance coverage detected. Immediate action required to protect your family\'s financial future.';
+            return $hasDependants
+                ? 'Critical: No life insurance coverage detected. Immediate action required to protect your family\'s financial future.'
+                : 'Critical: No life insurance coverage detected. Consider adding cover to protect your loved ones and cover outstanding debts.';
         }
 
         // All coverage types present and adequate
@@ -705,9 +709,13 @@ class ComprehensiveProtectionPlanService
         if ($overallScore >= 60) {
             return 'Your protection coverage is adequate but could be improved. Consider addressing the gaps identified.';
         } elseif ($overallScore >= 40) {
-            return 'Your protection coverage has significant gaps. Priority action required to protect your family.';
+            return $hasDependants
+                ? 'Your protection coverage has significant gaps. Priority action required to protect your family.'
+                : 'Your protection coverage has significant gaps. Priority action recommended to address these.';
         } else {
-            return 'Your protection coverage is critically inadequate. Urgent action required to secure your family\'s financial future.';
+            return $hasDependants
+                ? 'Your protection coverage is critically inadequate. Urgent action required to secure your family\'s financial future.'
+                : 'Your protection coverage is critically inadequate. Urgent action required to improve your financial security.';
         }
     }
 

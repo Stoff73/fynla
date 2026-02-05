@@ -549,7 +549,8 @@ class ModuleDataRequirementsService
     private function isRelationshipFilled(User $user, string $relationKey): bool
     {
         return match ($relationKey) {
-            'properties' => $user->properties()->exists(),
+            // Properties is "filled" if user has properties OR is paying rent (renter, not owner)
+            'properties' => $user->properties()->exists() || ($user->rent > 0),
             'mortgages' => $user->mortgages()->exists(),
             'liabilities' => $user->liabilities()->exists(),
             'savings_accounts' => $user->savingsAccounts()->exists(),

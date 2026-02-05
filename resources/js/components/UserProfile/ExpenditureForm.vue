@@ -1245,6 +1245,8 @@ export default {
 
     // Field definitions
     const essentialFields = [
+      { key: 'rent', label: 'Rent', placeholder: '0', hint: 'Monthly rent if not a homeowner' },
+      { key: 'utilities', label: 'Utilities', placeholder: '150', hint: 'Gas, electricity, water, council tax' },
       { key: 'food_groceries', label: 'Food & Groceries', placeholder: '400' },
       { key: 'transport_fuel', label: 'Transport & Fuel', placeholder: '200', hint: 'Petrol, public transport, parking' },
       { key: 'healthcare_medical', label: 'Healthcare & Medical', placeholder: '50', hint: 'Prescriptions, dental, optician' },
@@ -1279,6 +1281,8 @@ export default {
     ];
 
     const formData = ref({
+      rent: 0,
+      utilities: 0,
       food_groceries: 0,
       transport_fuel: 0,
       healthcare_medical: 0,
@@ -1301,6 +1305,8 @@ export default {
     });
 
     const spouseFormData = ref({
+      rent: 0,
+      utilities: 0,
       food_groceries: 0,
       transport_fuel: 0,
       healthcare_medical: 0,
@@ -1449,6 +1455,8 @@ export default {
 
     const retiredBudgetFields = computed(() => ({
       essential: [
+        { key: 'rent', label: 'Rent', hint: 'May be £0 if mortgage paid off or homeowner' },
+        { key: 'utilities', label: 'Utilities', hint: 'Gas, electricity, water, council tax' },
         { key: 'food_groceries', label: 'Food & Groceries', hint: 'May reduce slightly - more time to cook at home' },
         { key: 'transport_fuel', label: 'Transport & Fuel', hint: 'Usually reduces significantly - no commuting' },
         { key: 'healthcare_medical', label: 'Healthcare & Medical', hint: 'May increase with age' },
@@ -1726,6 +1734,8 @@ export default {
     // Widowed Budget Logic
     const widowedBudgetFields = computed(() => ({
       essential: [
+        { key: 'rent', label: 'Rent', hint: 'May continue or reduce depending on housing' },
+        { key: 'utilities', label: 'Utilities', hint: 'May reduce slightly for single person' },
         { key: 'food_groceries', label: 'Food & Groceries', hint: 'Typically reduces to ~60% for single person' },
         { key: 'transport_fuel', label: 'Transport & Fuel', hint: 'May reduce - one car instead of two' },
         { key: 'healthcare_medical', label: 'Healthcare & Medical' },
@@ -1765,6 +1775,7 @@ export default {
     ]);
 
     const widowedAdjustmentRules = {
+      utilities: { factor: 0.75, reason: 'Reduced by 25% - single person uses less' },
       food_groceries: { factor: 0.6, reason: 'Reduced by 40% - single person household' },
       transport_fuel: { factor: 0.6, reason: 'Reduced by 40% - one car/person' },
       mobile_phones: { factor: 0.5, reason: 'Reduced by 50% - one phone contract' },

@@ -142,9 +142,12 @@ class ScenarioBuilder
     ): array {
         $insights = [];
 
+        $hasDependants = ($profile->number_of_dependents ?? 0) > 0;
         if ($remainingFunds <= 0) {
             $insights[] = 'Warning: Life insurance may not fully cover outstanding debts.';
-            $insights[] = 'Consider increasing coverage to ensure debts are cleared and dependents are provided for.';
+            $insights[] = $hasDependants
+                ? 'Consider increasing coverage to ensure debts are cleared and dependants are provided for.'
+                : 'Consider increasing coverage to ensure debts are cleared.';
         } elseif ($monthsOfSupport < 24) {
             $insights[] = sprintf(
                 'Coverage would provide approximately %.1f months of support at current expenditure levels.',
@@ -159,7 +162,9 @@ class ScenarioBuilder
             $insights[] = 'This provides moderate protection but may need supplementing.';
         } else {
             $insights[] = sprintf(
-                'Excellent: Coverage would provide %.1f years of support for dependents.',
+                $hasDependants
+                    ? 'Excellent: Coverage would provide %.1f years of support for dependants.'
+                    : 'Excellent: Coverage would provide %.1f years of financial security.',
                 $monthsOfSupport / 12
             );
         }

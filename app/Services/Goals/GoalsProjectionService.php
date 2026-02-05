@@ -452,10 +452,23 @@ class GoalsProjectionService
 
     /**
      * Get projection end age (life expectancy or default).
+     *
+     * For users with more than 25 years to retirement, cap the projection
+     * at retirement age to keep the graph focused and readable.
+     * For users closer to or past retirement, project to life expectancy (90).
      */
     private function getProjectionEndAge(User $user): int
     {
-        // Could use actuarial tables, but for simplicity use fixed age
+        $currentAge = $this->getCurrentAge($user);
+        $retirementAge = $this->getRetirementAge($user);
+        $yearsToRetirement = $retirementAge - $currentAge;
+
+        // If more than 25 years to retirement, cap at retirement age
+        if ($yearsToRetirement > 25) {
+            return $retirementAge;
+        }
+
+        // Otherwise, project to life expectancy
         return self::DEFAULT_PROJECTION_END_AGE;
     }
 

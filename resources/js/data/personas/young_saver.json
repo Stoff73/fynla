@@ -173,7 +173,7 @@
   "expenditure": {
     "total_monthly": 1833,
     "categories": {
-      "housing": 650,
+      "rent": 650,
       "utilities": 150,
       "food_groceries": 250,
       "transport_fuel": 85,

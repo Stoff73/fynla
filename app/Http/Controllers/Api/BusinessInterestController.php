@@ -60,7 +60,8 @@ class BusinessInterestController extends Controller
             $resource['user_share'] = $this->businessService->calculateUserShare($business, $user->id);
             $resource['full_value'] = (float) $business->current_valuation;
             $resource['is_primary_owner'] = $this->isPrimaryOwner($business, $user->id);
-            $resource['is_shared'] = $this->isSharedOwnership($business);
+            // For business interests, is_shared is true when ownership < 100% (partial shareholding)
+            $resource['is_shared'] = ((float) ($business->ownership_percentage ?? 100)) < 100;
             $resource['business_type_label'] = $this->getBusinessTypeLabel($business->business_type);
 
             return $resource;
@@ -103,7 +104,8 @@ class BusinessInterestController extends Controller
         $resource['user_share'] = $this->businessService->calculateUserShare($business, $user->id);
         $resource['full_value'] = (float) $business->current_valuation;
         $resource['is_primary_owner'] = true;
-        $resource['is_shared'] = $this->isSharedOwnership($business);
+        // For business interests, is_shared is true when ownership < 100% (partial shareholding)
+        $resource['is_shared'] = ((float) ($business->ownership_percentage ?? 100)) < 100;
         $resource['business_type_label'] = $this->getBusinessTypeLabel($business->business_type);
 
         return response()->json($resource, 201);
@@ -141,7 +143,8 @@ class BusinessInterestController extends Controller
         $businessData['user_share'] = $this->businessService->calculateUserShare($business, $user->id);
         $businessData['full_value'] = (float) $business->current_valuation;
         $businessData['is_primary_owner'] = $this->isPrimaryOwner($business, $user->id);
-        $businessData['is_shared'] = $this->isSharedOwnership($business);
+        // For business interests, is_shared is true when ownership < 100% (partial shareholding)
+        $businessData['is_shared'] = ((float) ($business->ownership_percentage ?? 100)) < 100;
 
         // Add flat fields for Vue component compatibility (matches index response)
         $businessData['current_valuation'] = (float) $business->current_valuation;
@@ -219,7 +222,8 @@ class BusinessInterestController extends Controller
         $businessData['user_share'] = $this->businessService->calculateUserShare($business, $user->id);
         $businessData['full_value'] = (float) $business->current_valuation;
         $businessData['is_primary_owner'] = true;
-        $businessData['is_shared'] = $this->isSharedOwnership($business);
+        // For business interests, is_shared is true when ownership < 100% (partial shareholding)
+        $businessData['is_shared'] = ((float) ($business->ownership_percentage ?? 100)) < 100;
 
         // Add flat fields for Vue component compatibility (matches index response)
         $businessData['current_valuation'] = (float) $business->current_valuation;

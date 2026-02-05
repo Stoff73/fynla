@@ -72,18 +72,32 @@ class BusinessInterestService
 
     /**
      * Calculate user's share of the business value.
+     *
+     * Business interests differ from other assets because:
+     * - Individual ownership can still mean partial share (e.g., 60% of company shares)
+     * - Joint ownership with spouse uses ownership_percentage to split between user_id and joint_owner_id
+     *
+     * Unlike properties/savings where 'individual' = 100%, business ownership_percentage
+     * represents the user's actual shareholding regardless of ownership_type.
      */
     public function calculateUserShare(BusinessInterest $business, int $userId): float
     {
         $fullValue = (float) ($business->current_valuation ?? 0);
         $ownershipType = $business->ownership_type ?? 'individual';
+        $percentage = (float) ($business->ownership_percentage ?? 100);
 
-        if ($ownershipType === 'individual' || $ownershipType === 'trust') {
+        // Trust ownership - trustee/business controlled by trust
+        if ($ownershipType === 'trust') {
             return $business->user_id === $userId ? $fullValue : 0.0;
         }
 
-        $percentage = (float) ($business->ownership_percentage ?? 50);
+        // Individual ownership - use ownership_percentage for shareholding
+        // (e.g., owning 60% of a company individually)
+        if ($ownershipType === 'individual') {
+            return $business->user_id === $userId ? $fullValue * ($percentage / 100) : 0.0;
+        }
 
+        // Joint ownership - split between user and joint_owner based on percentage
         if ($business->user_id === $userId) {
             return $fullValue * ($percentage / 100);
         }

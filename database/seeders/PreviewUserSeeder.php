@@ -311,6 +311,8 @@ class PreviewUserSeeder extends Seeder
             $user->gifts_charity = round(($categories['gifts_charity'] ?? 0) * $share);
             $user->regular_savings = round(($categories['regular_savings'] ?? 0) * $share);
             $user->other_expenditure = round(($categories['other_expenditure'] ?? $categories['other'] ?? 0) * $share);
+            $user->rent = round(($categories['rent'] ?? $categories['housing'] ?? 0) * $share);
+            $user->utilities = round(($categories['utilities'] ?? 0) * $share);
         } else {
             // Set defaults if no expenditure data provided
             $share = ($userData['marital_status'] ?? 'single') === 'married' ? 0.5 : 1.0;
@@ -335,6 +337,8 @@ class PreviewUserSeeder extends Seeder
             $user->gifts_charity = 0;
             $user->regular_savings = 0;
             $user->other_expenditure = 0;
+            $user->rent = 0;
+            $user->utilities = 0;
         }
 
         // Address
@@ -420,6 +424,8 @@ class PreviewUserSeeder extends Seeder
             $spouse->gifts_charity = round(($categories['gifts_charity'] ?? 0) * $share);
             $spouse->regular_savings = round(($categories['regular_savings'] ?? 0) * $share);
             $spouse->other_expenditure = round(($categories['other_expenditure'] ?? $categories['other'] ?? 0) * $share);
+            $spouse->rent = round(($categories['rent'] ?? $categories['housing'] ?? 0) * $share);
+            $spouse->utilities = round(($categories['utilities'] ?? 0) * $share);
         } else {
             // No expenditure data - set all to 0
             $spouse->monthly_expenditure = 0;
@@ -443,6 +449,8 @@ class PreviewUserSeeder extends Seeder
             $spouse->gifts_charity = 0;
             $spouse->regular_savings = 0;
             $spouse->other_expenditure = 0;
+            $spouse->rent = 0;
+            $spouse->utilities = 0;
         }
 
         // Domicile information (spouse can have their own domicile data)

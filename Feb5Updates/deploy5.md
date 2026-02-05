@@ -1,7 +1,8 @@
 # Deployment - 5 February 2026
 
-## Build Required: YES
-## Reseed Required: NO
+## Build Required: YES (Completed)
+## Reseed Required: YES (Completed)
+## Migration Required: YES (Completed)
 
 ---
 
@@ -498,3 +499,143 @@ tests/Unit/Agents/GoalsAgentTest.php
 tests/Unit/Agents/ProtectionAgentTest.php
 tests/Unit/Agents/SavingsAgentTest.php
 ```
+
+---
+
+### 10. Net Worth Wealth Summary Layout Redesign
+
+**Status:** Deployed
+
+**Description:** Redesigned Wealth Summary tab layout with side-by-side arrangement and improved mobile responsiveness.
+
+**What was done:**
+
+- Sidebar auto-collapses on Wealth Summary tab only for users with spouse data
+- Added watcher on `hasSpouse` to re-evaluate sidebar collapse when spouse data loads
+- WealthSummary card now on left, asset allocation charts stacked vertically on right
+- Fixed mobile overflow issue with grid columns using `minmax(0, 1fr)`
+- Single user layout: value column positioned on right side of card (not stretched full width)
+- Reduced whitespace on table headings and section dividers
+- Right-aligned column headers and all values
+- Removed horizontal scrollbar from wealth summary table
+- Responsive: on tablet/mobile, charts stack below and display horizontally
+
+**Modified Files (3):**
+
+```text
+resources/js/views/NetWorth/NetWorthDashboard.vue
+resources/js/components/NetWorth/NetWorthWealthSummary.vue
+resources/js/components/NetWorth/WealthSummary.vue
+```
+
+---
+
+### 11. Business Interests Fixes
+
+**Status:** Deployed
+
+**Description:** Fixed incorrect "Your Share" values and 500 error when viewing business interest details.
+
+**What was done:**
+
+- Fixed `calculateUserShare` to handle partial individual ownership (e.g., owning 60% of a company)
+- Previously, 'individual' ownership always returned 100% of value, ignoring ownership_percentage
+- Now correctly calculates: Chen Tech Consulting £750k × 60% = £450k, TechAngel Ventures £400k × 25% = £100k
+- Fixed `is_shared` flag to be true when ownership_percentage < 100 (not just for 'joint' ownership type)
+- Fixed 500 error in BusinessInterestResource when jointOwner relationship is loaded but null
+- Changed Tax Deadlines tab to 3-column responsive grid layout
+
+**Modified Files (4):**
+
+```text
+app/Services/Business/BusinessInterestService.php
+app/Http/Controllers/Api/BusinessInterestController.php
+app/Http/Resources/BusinessInterestResource.php
+resources/js/components/NetWorth/BusinessInterestDetailInline.vue
+```
+
+---
+
+### 12. Goals Projection Chart - Cap at Retirement for Young Users
+
+**Status:** Deployed
+
+**Description:** For users with more than 25 years to retirement, the Goals & Life Events projection chart now ends at retirement age instead of extending to age 90.
+
+**What was done:**
+
+- Modified `getProjectionEndAge()` to check years until retirement
+- If years to retirement > 25, cap projection at retirement age
+- If years to retirement ≤ 25, continue to project to age 90 (life expectancy)
+- Example: John Morgan (age 25, retires at 67) now sees chart ending at 67 instead of 90
+- Example: David Mitchell (age 49, retires at 60) still sees chart to age 90
+
+**Modified Files (1):**
+
+```text
+app/Services/Goals/GoalsProjectionService.php
+```
+
+### 13. Protection Recommendation Logic - Dependant-Aware Text
+
+**Status:** Deployed
+
+**Description:** Fixed protection recommendations to only suggest life cover for users with dependants, and made recommendation text context-aware based on family status.
+
+**What was done:**
+
+- RecommendationEngine: Life insurance gap only triggers recommendation if user has dependants
+- ComprehensiveProtectionPlanService: Life insurance strategy only generated if user has dependants; headline messages now conditional (emotive "protect your family" for those with dependants, generic text for others)
+- AreasToConsiderCard: Will description shows "Protect your family's future" for married users, "Ensure your wishes are followed for your assets" for single users
+- AreasToConsiderCard: Life insurance suggestion only shown for married users (who likely have family to protect)
+- AdequacyScorer: Score insights now conditional - "protect your family" for users with dependants, "improve your financial security" for those without
+- ScenarioBuilder: Made dependant-related text conditional based on actual dependant count
+- ProtectionAgent: Updated to pass dependants info to AdequacyScorer
+
+**Modified Files (6):**
+
+```text
+app/Services/Protection/RecommendationEngine.php
+app/Services/Protection/ComprehensiveProtectionPlanService.php
+app/Services/Protection/AdequacyScorer.php
+app/Services/Protection/ScenarioBuilder.php
+app/Agents/ProtectionAgent.php
+resources/js/components/Dashboard/AreasToConsiderCard.vue
+```
+
+---
+
+### 14. Rent Expense Category & Property Suggestion Logic
+
+**Status:** Deployed
+
+**Description:** Added rent and utilities as expense categories. Property suggestions now hide for renters.
+
+**What was done:**
+
+- Added `rent` and `utilities` columns to users table
+- Updated User model with float casts for new columns
+- Updated PreviewUserSeeder to map `housing` → `rent` and handle `utilities`
+- Updated young_saver.json to use `rent: 650` instead of `housing`
+- Added "Your Properties" suggestion to AreasToConsiderCard (priority 11)
+- Property suggestion only shows if user has NO properties AND is NOT paying rent
+- Added home icon SVG to AreasToConsiderCard for properties
+- Updated ModuleDataRequirementsService: properties relationship counts as "filled" if user pays rent
+
+**New Files (1):**
+
+```text
+database/migrations/2026_02_05_120000_add_rent_and_utilities_to_users_table.php
+```
+
+**Modified Files (6):**
+
+```text
+app/Models/User.php
+app/Services/UserProfile/ModuleDataRequirementsService.php
+database/seeders/PreviewUserSeeder.php
+resources/js/components/Dashboard/AreasToConsiderCard.vue
+resources/js/components/UserProfile/ExpenditureForm.vue
+resources/js/data/personas/young_saver.json
+```
+

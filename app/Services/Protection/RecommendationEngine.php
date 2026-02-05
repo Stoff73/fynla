@@ -15,14 +15,15 @@ class RecommendationEngine
     {
         $recommendations = [];
 
-        // Life insurance gap
-        if ($gaps['gaps_by_category']['human_capital_gap'] > 10000) {
+        // Life insurance gap - only recommend if user has dependants
+        $hasDependants = ($profile->number_of_dependents ?? 0) > 0;
+        if ($gaps['gaps_by_category']['human_capital_gap'] > 10000 && $hasDependants) {
             $recommendations[] = $this->createRecommendation(
                 priority: $this->calculatePriority($gaps['gaps_by_category']['human_capital_gap'], $profile),
                 category: 'Life Insurance',
                 action: 'Increase life insurance coverage',
                 rationale: sprintf(
-                    'Current coverage falls short by £%s. This gap could leave your dependents financially vulnerable.',
+                    'Current coverage falls short by £%s. This gap could leave your dependants financially vulnerable.',
                     number_format($gaps['gaps_by_category']['human_capital_gap'], 2)
                 ),
                 impact: 'High',
