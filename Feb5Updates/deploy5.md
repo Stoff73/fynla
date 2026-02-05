@@ -287,9 +287,42 @@ resources/js/components/Navbar.vue
 
 ---
 
+### 9. Email Template Redesign
+
+**Status:** Ready to Deploy
+
+**Description:** Redesigned all user-facing email templates with consistent branding and improved styling.
+
+**What was done:**
+
+- Removed colored header blocks - emails now start with "Dear {user}"
+- Replaced amber/orange warning boxes with blue styling (#f0f9ff, #3b82f6)
+- Changed all boxes to use consistent single-color borders (removed border-left only pattern)
+- Added sign-off: "Kindest regards, The Fynla Team (Chris & Brett)" with logo
+- Added mailto:support@fynla.org links for all "contact support" text
+- Added "Need help? Contact Support" link in footer
+
+**New Files (1):**
+
+```text
+public/images/logoMain.png
+```
+
+**Modified Files (5):**
+
+```text
+resources/views/emails/verification-code.blade.php
+resources/views/emails/spouse-account-created.blade.php
+resources/views/emails/spouse-account-linked.blade.php
+resources/views/emails/password-reset-code.blade.php
+resources/views/emails/deletion-verification-code.blade.php
+```
+
+---
+
 ## Summary: All Files to Upload
 
-### New Files (23 total)
+### New Files (24 total)
 
 ```text
 app/Http/Requests/Investment/AccountProjectionsRequest.php
@@ -315,9 +348,10 @@ app/Http/Resources/PropertyResource.php
 app/Http/Resources/SavingsAccountResource.php
 app/Http/Resources/UserResource.php
 app/Services/Estate/IHTFormattingService.php
+public/images/logoMain.png
 ```
 
-### Modified Files (96 total)
+### Modified Files (101 total)
 
 ```text
 app/Agents/CoordinatingAgent.php
@@ -422,6 +456,11 @@ resources/js/components/Dashboard/ActionsOverviewCard.vue
 resources/js/components/Navbar.vue
 resources/js/components/NetWorth/WealthSummary.vue
 resources/js/views/Dashboard.vue
+resources/views/emails/deletion-verification-code.blade.php
+resources/views/emails/password-reset-code.blade.php
+resources/views/emails/spouse-account-created.blade.php
+resources/views/emails/spouse-account-linked.blade.php
+resources/views/emails/verification-code.blade.php
 ```
 
 ---
