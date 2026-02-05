@@ -9,7 +9,7 @@
 
 ### 1. Laravel Best Practices Audit
 
-**Status:** Ready to Deploy
+**Status:** Deployed
 
 **Description:** Comprehensive Laravel best practices audit improving code quality from 85/100 to 94/100.
 
@@ -150,7 +150,7 @@ app/Services/UserProfile/UserProfileService.php
 
 ### 2. Bug Report Modal Focus Style
 
-**Status:** Ready to Deploy
+**Status:** Deployed
 
 **Description:** Replaced thick black browser focus border with thin blue border on text inputs.
 
@@ -169,7 +169,7 @@ resources/js/components/BugReportModal.vue
 
 ### 3. Dashboard Protection Premium Fix
 
-**Status:** Ready to Deploy
+**Status:** Deployed
 
 **Description:** Fixed protection premium showing incorrect value and clarified label.
 
@@ -187,7 +187,7 @@ resources/js/views/Dashboard.vue
 
 ### 4. Actions Card Improvements
 
-**Status:** Ready to Deploy
+**Status:** Deployed
 
 **Description:** Renamed card and removed US-specific tax concept.
 
@@ -208,7 +208,7 @@ app/Services/Investment/Tax/TaxOptimizationAnalyzer.php
 
 ### 5. Consistent Asset Ordering
 
-**Status:** Ready to Deploy
+**Status:** Deployed
 
 **Description:** Standardised asset order across the application.
 
@@ -227,7 +227,7 @@ resources/js/components/NetWorth/WealthSummary.vue
 
 ### 6. Rename Chattels to Personal Valuables
 
-**Status:** Ready to Deploy
+**Status:** Deployed
 
 **Description:** Updated terminology from "Chattels" to "Personal Valuables" in Dashboard.
 
@@ -244,7 +244,7 @@ resources/js/views/Dashboard.vue
 
 ### 7. API Resource Null Handling Fix
 
-**Status:** Ready to Deploy
+**Status:** Deployed
 
 **Description:** Fixed 500 errors when relationships are not eager loaded.
 
@@ -269,7 +269,7 @@ app/Http/Resources/SavingsAccountResource.php
 
 ### 8. Navbar Valuable Info Dropdown
 
-**Status:** Ready to Deploy
+**Status:** Deployed
 
 **Description:** Show Valuable Info items directly in dropdown for tablet and larger screens.
 
@@ -289,7 +289,7 @@ resources/js/components/Navbar.vue
 
 ### 9. Email Template Redesign
 
-**Status:** Ready to Deploy
+**Status:** Deployed
 
 **Description:** Redesigned all user-facing email templates with consistent branding and improved styling.
 
