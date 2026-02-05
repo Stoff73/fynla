@@ -371,8 +371,9 @@ const actions = {
             const response = await goalsService.createGoal(goalData);
             if (response.success) {
                 commit('ADD_GOAL', response.data);
-                // Refresh analysis to update summaries
+                // Refresh analysis and projection chart
                 dispatch('fetchDashboardOverview');
+                dispatch('fetchProjection');
             }
             return response;
         } catch (error) {
@@ -415,8 +416,9 @@ const actions = {
             const response = await goalsService.updateGoal(goalId, goalData);
             if (response.success) {
                 commit('UPDATE_GOAL', response.data);
-                // Refresh analysis
+                // Refresh analysis and projection chart
                 dispatch('fetchDashboardOverview');
+                dispatch('fetchProjection');
             }
             return response;
         } catch (error) {
@@ -438,8 +440,9 @@ const actions = {
             const response = await goalsService.deleteGoal(goalId);
             if (response.success) {
                 commit('REMOVE_GOAL', goalId);
-                // Refresh analysis
+                // Refresh analysis and projection chart
                 dispatch('fetchDashboardOverview');
+                dispatch('fetchProjection');
             }
             return response;
         } catch (error) {

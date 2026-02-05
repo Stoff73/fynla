@@ -11,7 +11,7 @@
 
     <!-- Projected Net Worth -->
     <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-      <p class="text-sm text-blue-600 font-medium">Projected at {{ projection.projection_end_age }}</p>
+      <p class="text-sm text-blue-600 font-medium">Projected Net Worth at {{ projection.projection_end_age }}</p>
       <p class="text-xl sm:text-2xl font-bold text-blue-900 mt-1">
         {{ formatCurrency(summary.ending_net_worth) }}
       </p>
@@ -22,7 +22,7 @@
 
     <!-- Peak Net Worth -->
     <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-      <p class="text-sm text-green-600 font-medium">Peak Net Worth</p>
+      <p class="text-sm text-green-600 font-medium">Projected Peak Net Worth</p>
       <p class="text-xl sm:text-2xl font-bold text-green-900 mt-1">
         {{ formatCurrency(summary.peak_net_worth) }}
       </p>
@@ -32,24 +32,22 @@
     <!-- Events Summary -->
     <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
       <p class="text-sm text-purple-600 font-medium">Life Events</p>
-      <div class="flex items-baseline gap-2 mt-1">
-        <p class="text-xl sm:text-2xl font-bold text-purple-900">
-          {{ totalEventCount }}
-        </p>
-        <span class="text-xs text-purple-600">planned</span>
+      <div class="mt-2 space-y-1">
+        <div class="flex justify-between text-sm">
+          <span>
+            <span class="font-semibold text-green-700">{{ summary.income_event_count || 0 }}</span>
+            <span class="text-gray-600"> cash inflow events</span>
+          </span>
+          <span class="font-semibold text-green-700">{{ formatCompact(summary.total_income_events) }}</span>
+        </div>
+        <div class="flex justify-between text-sm">
+          <span>
+            <span class="font-semibold text-red-700">{{ summary.expense_event_count || 0 }}</span>
+            <span class="text-gray-600"> cash outflow events</span>
+          </span>
+          <span class="font-semibold text-red-700">{{ formatCompact(summary.total_expense_events) }}</span>
+        </div>
       </div>
-      <p class="text-xs text-purple-600 mt-1">
-        <span v-if="summary.total_income_events > 0" class="text-green-600">
-          +{{ formatCompact(summary.total_income_events) }}
-        </span>
-        <span v-if="summary.total_income_events > 0 && summary.total_expense_events > 0"> / </span>
-        <span v-if="summary.total_expense_events > 0" class="text-red-600">
-          -{{ formatCompact(summary.total_expense_events) }}
-        </span>
-        <span v-if="!summary.total_income_events && !summary.total_expense_events">
-          {{ summary.goal_count }} goals
-        </span>
-      </p>
     </div>
   </div>
 </template>
@@ -81,6 +79,8 @@ export default {
         peak_age: 0,
         total_income_events: 0,
         total_expense_events: 0,
+        income_event_count: 0,
+        expense_event_count: 0,
         goal_count: 0,
         life_event_count: 0,
       };
