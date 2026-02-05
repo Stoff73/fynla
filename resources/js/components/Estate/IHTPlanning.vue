@@ -363,8 +363,8 @@
       </div>
     </div>
 
-    <!-- Cash Projection Breakdown Table -->
-    <div v-if="!loading && cashProjectionBreakdown" class="bg-white rounded-lg border border-gray-200 p-6 mb-8">
+    <!-- Cash Projection Breakdown Table (Hidden from view - logic retained) -->
+    <div v-if="false && !loading && cashProjectionBreakdown" class="bg-white rounded-lg border border-gray-200 p-6 mb-8">
       <div class="flex items-center justify-between mb-4">
         <h3 class="text-lg font-semibold text-gray-900">Cash Projection Methodology</h3>
         <button
@@ -1321,17 +1321,18 @@ export default {
           },
         },
         allowances: {
-          nrb: this.ihtData?.nrb_available || 325000,
-          nrbFromSpouse: 0,
+          nrb: this.ihtData?.nrb_individual || 325000,
+          nrbFromSpouse: this.ihtData?.nrb_transferred || 0,
           totalNrb: this.ihtData?.nrb_available || 325000,
-          rnrbIndividual: this.ihtData?.rnrb_available || 0,
-          rnrbFromSpouse: 0,
+          rnrbIndividual: this.ihtData?.rnrb_individual || 0,
+          rnrbFromSpouse: this.ihtData?.rnrb_transferred || 0,
           totalRnrb: this.ihtData?.rnrb_available || 0,
           rnrbEligible: (this.ihtData?.rnrb_available || 0) > 0,
           rnrbTapered: false,
           rnrbTaperThreshold: 2000000,
           rnrbTaperAmount: 0,
-          showSeparateSpouseAllowances: false,
+          // Show breakdown for widows with transferred allowances
+          showSeparateSpouseAllowances: (this.ihtData?.is_widowed && (this.ihtData?.nrb_transferred > 0 || this.ihtData?.rnrb_transferred > 0)) || false,
         },
         estateAfterNRB: {
           now: this.estateAfterNRB,
@@ -1494,14 +1495,16 @@ export default {
               net_estate_value: response.iht_summary.current.net_estate,
               gross_estate_value: response.calculation?.total_gross_assets || response.iht_summary.current.net_estate, // Fallback to net_estate
               nrb_available: response.iht_summary.current.nrb_available,
+              nrb_individual: response.iht_summary.current.nrb_individual || response.iht_summary.current.nrb_available,
+              nrb_transferred: response.iht_summary.current.nrb_transferred || 0,
               nrb: response.iht_summary.current.nrb_available, // Legacy alias
               nrb_message: response.iht_summary.current.nrb_message,
               rnrb_available: response.iht_summary.current.rnrb_available,
               rnrb_eligible: response.iht_summary.current.rnrb_available > 0, // Eligible if RNRB > 0
-              rnrb_individual: response.iht_summary.current.rnrb_available, // Legacy alias (combined now)
-              nrb_from_spouse: 0, // Not separately tracked in new system
-              rnrb_from_spouse: 0, // Not separately tracked in new system
+              rnrb_individual: response.iht_summary.current.rnrb_individual || 0,
+              rnrb_transferred: response.iht_summary.current.rnrb_transferred || 0,
               rnrb_status: response.iht_summary.current.rnrb_status,
+              is_widowed: response.iht_summary.is_widowed || false,
               rnrb_message: response.iht_summary.current.rnrb_message,
               total_allowance: response.iht_summary.current.total_allowances,
               taxable_estate: response.iht_summary.current.taxable_estate,

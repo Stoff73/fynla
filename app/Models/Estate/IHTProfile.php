@@ -22,6 +22,7 @@ class IHTProfile extends Model
         'own_home',
         'home_value',
         'nrb_transferred_from_spouse',
+        'rnrb_transferred_from_spouse',
         'charitable_giving_percent',
     ];
 
@@ -30,6 +31,7 @@ class IHTProfile extends Model
         'own_home' => 'boolean',
         'home_value' => 'float',
         'nrb_transferred_from_spouse' => 'float',
+        'rnrb_transferred_from_spouse' => 'float',
         'charitable_giving_percent' => 'float',
     ];
 

@@ -40,7 +40,7 @@
       <!-- Header Section -->
       <div class="header-section">
         <div class="header-left">
-          <h3 class="section-title">Capital Adequacy Planner</h3>
+          <h3 class="section-title">Am I saving enough for retirement?</h3>
           <p class="section-subtitle">Track your pension contributions and capital progress towards retirement at age {{ retirementAge }}</p>
         </div>
       </div>

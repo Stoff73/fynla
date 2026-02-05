@@ -31,6 +31,10 @@
       "city": "Guildford",
       "county": "Surrey",
       "postcode": "GU1 4RH"
+    },
+    "domicile": {
+      "country_of_birth": "United Kingdom",
+      "domicile_status": "uk_domiciled"
     }
   },
 

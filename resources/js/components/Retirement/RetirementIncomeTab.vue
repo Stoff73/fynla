@@ -46,7 +46,7 @@
       <!-- Header Section -->
       <div class="header-section">
         <div class="header-left">
-          <h3 class="section-title">Retirement Income Planner</h3>
+          <h3 class="section-title">Will I have enough income for retirement?</h3>
           <p class="section-subtitle">Model your tax-optimised drawdown strategy from age {{ retirementAge }}</p>
         </div>
         <!-- Spouse toggle hidden - functionality exists in backend but not exposed to users at this time -->
@@ -288,8 +288,8 @@
         :retirement-age="retirementAge"
       />
 
-      <!-- Year-by-Year Projection Table -->
-      <div v-if="requiredCapital?.year_by_year?.length > 0" class="table-section">
+      <!-- Year-by-Year Projection Table (Hidden from view - logic retained) -->
+      <div v-if="false && requiredCapital?.year_by_year?.length > 0" class="table-section">
         <h4 class="table-title">Year-by-Year Projection</h4>
         <div class="table-container">
           <table class="projection-table">

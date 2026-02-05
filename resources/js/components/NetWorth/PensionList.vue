@@ -149,8 +149,8 @@
               </div>
             </div>
 
-            <!-- Fund Depletion Warning -->
-            <div v-if="fundDepletionAge" class="depletion-warning-standalone">
+            <!-- Fund Depletion Warning (hide for retired users - not relevant) -->
+            <div v-if="fundDepletionAge && !isRetired" class="depletion-warning-standalone">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
               </svg>
@@ -166,13 +166,100 @@
               <p>Running Monte Carlo simulation...</p>
             </div>
 
-            <!-- No DC Pensions for Projections -->
-            <div v-else-if="!projections || !projections.pension_pot_projection?.dc_pension_count" class="empty-projections">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="empty-icon">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
-              </svg>
-              <p>Add DC pensions to see projections</p>
-              <p class="empty-subtitle">Monte Carlo simulations show how your pension pot may grow over time</p>
+            <!-- No DC Pensions - Show Guaranteed Income Summary Instead -->
+            <div v-else-if="!projections || !projections.pension_pot_projection?.dc_pension_count" class="guaranteed-income-summary">
+              <!-- If user has DB/State pensions, show detailed summary -->
+              <template v-if="hasOnlyGuaranteedPensions">
+                <div class="guaranteed-income-header">
+                  <div class="guaranteed-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 class="guaranteed-title">Guaranteed Retirement Income</h3>
+                    <p class="guaranteed-subtitle">Your secure pension income from DB schemes and State Pension</p>
+                  </div>
+                </div>
+
+                <!-- Total Guaranteed Income -->
+                <div class="guaranteed-total">
+                  <span class="guaranteed-total-label">Total Annual Income</span>
+                  <span class="guaranteed-total-value">{{ formatCurrency(guaranteedIncome) }}/year</span>
+                </div>
+
+                <!-- Income Breakdown -->
+                <div class="guaranteed-breakdown">
+                  <!-- DB Pensions Detail -->
+                  <div v-for="pension in dbPensions" :key="'detail-db-' + pension.id" class="guaranteed-item">
+                    <div class="guaranteed-item-header">
+                      <span class="badge badge-db">{{ formatDBPensionType(pension.scheme_type) }}</span>
+                      <span class="guaranteed-item-name">{{ pension.scheme_name || 'DB Pension' }}</span>
+                    </div>
+                    <div class="guaranteed-item-details">
+                      <div class="guaranteed-detail-row">
+                        <span>Annual Pension</span>
+                        <span class="font-semibold">{{ formatCurrency(pension.accrued_annual_pension) }}</span>
+                      </div>
+                      <div v-if="pension.lump_sum_entitlement" class="guaranteed-detail-row">
+                        <span>Tax-Free Lump Sum</span>
+                        <span class="font-semibold text-purple-600">{{ formatCurrency(pension.lump_sum_entitlement) }}</span>
+                      </div>
+                      <div v-if="pension.normal_retirement_age" class="guaranteed-detail-row">
+                        <span>Normal Retirement Age</span>
+                        <span class="font-semibold">{{ pension.normal_retirement_age }}</span>
+                      </div>
+                      <div v-if="pension.spouse_pension_percentage" class="guaranteed-detail-row">
+                        <span>Spouse Pension</span>
+                        <span class="font-semibold">{{ pension.spouse_pension_percentage }}%</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- State Pension Detail -->
+                  <div v-if="statePension" class="guaranteed-item">
+                    <div class="guaranteed-item-header">
+                      <span class="badge badge-state">State Pension</span>
+                      <span class="guaranteed-item-name">UK State Pension</span>
+                    </div>
+                    <div class="guaranteed-item-details">
+                      <div class="guaranteed-detail-row">
+                        <span>Annual Pension</span>
+                        <span class="font-semibold">{{ formatCurrency(statePension.state_pension_forecast_annual || 0) }}</span>
+                      </div>
+                      <div v-if="statePension.state_pension_age" class="guaranteed-detail-row">
+                        <span>State Pension Age</span>
+                        <span class="font-semibold">{{ statePension.state_pension_age }}</span>
+                      </div>
+                      <div v-if="statePension.ni_years" class="guaranteed-detail-row">
+                        <span>NI Years</span>
+                        <span class="font-semibold">{{ statePension.ni_years }} years</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Income vs Need -->
+                <div v-if="targetIncome > 0" class="guaranteed-comparison">
+                  <div class="comparison-row">
+                    <span>Income Need</span>
+                    <span class="font-semibold">{{ formatCurrency(targetIncome) }}/year</span>
+                  </div>
+                  <div class="comparison-row" :class="guaranteedIncome >= targetIncome ? 'text-green-600' : 'text-blue-600'">
+                    <span>{{ guaranteedIncome >= targetIncome ? 'Surplus' : 'Shortfall' }}</span>
+                    <span class="font-semibold">{{ formatCurrency(Math.abs(guaranteedIncome - targetIncome)) }}/year</span>
+                  </div>
+                </div>
+              </template>
+
+              <!-- No pensions at all - show add message -->
+              <template v-else>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="empty-icon">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+                </svg>
+                <p>Add DC pensions to see projections</p>
+                <p class="empty-subtitle">Monte Carlo simulations show how your pension pot may grow over time</p>
+              </template>
             </div>
 
             <!-- Projections Content -->
@@ -187,12 +274,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
                       </svg>
                     </div>
-                    <h3 class="planner-card-title">Retirement Income Planner</h3>
-                    <div class="planner-card-arrow">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                      </svg>
-                    </div>
+                    <h3 class="planner-card-title">Will I have enough income for retirement?</h3>
                   </div>
                   <div class="planner-card-metrics">
                     <div class="planner-metric">
@@ -201,7 +283,7 @@
                     </div>
                     <div class="planner-metric">
                       <span class="planner-metric-label">Projected Net Income</span>
-                      <span class="planner-metric-value green">{{ formatCurrency(projectedNetIncome) }}</span>
+                      <span class="planner-metric-value" :class="projectedNetIncome >= targetIncome * 0.9 ? 'green' : 'red'">{{ formatCurrency(projectedNetIncome) }}</span>
                     </div>
                   </div>
                 </div>
@@ -214,24 +296,19 @@
                         <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
                       </svg>
                     </div>
-                    <h3 class="planner-card-title">Capital Adequacy Planner</h3>
-                    <div class="planner-card-arrow">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                      </svg>
-                    </div>
+                    <h3 class="planner-card-title">Am I saving enough for retirement?</h3>
                   </div>
                   <div class="planner-card-metrics three-col">
                     <div class="planner-metric">
-                      <span class="planner-metric-label">Required Capital</span>
+                      <span class="planner-metric-label">You will need about:</span>
                       <span class="planner-metric-value">{{ formatCurrency(requiredCapitalValue) }}</span>
                     </div>
                     <div class="planner-metric">
-                      <span class="planner-metric-label">Projected Capital</span>
+                      <span class="planner-metric-label">Current pension potential growth:</span>
                       <span class="planner-metric-value" :class="projectedCapitalClass">{{ formatCurrency(projectedCapitalValue) }}</span>
                     </div>
                     <div class="planner-metric">
-                      <span class="planner-metric-label">Allowance Used</span>
+                      <span class="planner-metric-label">Annual Pension Allowance</span>
                       <span class="planner-metric-value">{{ formatCurrency(allowanceUsedThisYear) }}</span>
                     </div>
                   </div>
@@ -241,7 +318,7 @@
               <!-- Monte Carlo Chart -->
               <div class="chart-card">
                 <div class="chart-header">
-                  <h3 class="chart-title">Pension Pot Projection</h3>
+                  <h3 class="chart-title">Pension Pot Projection <span class="text-sm font-normal">(using high probability of 80% of achieving {{ projections.pension_pot_projection?.expected_return }}% returns)</span></h3>
                   <span class="risk-badge-corner">{{ formatRiskLevel(projections.pension_pot_projection?.risk_level) }} Risk</span>
                 </div>
                 <div class="summary-row three-col">
@@ -414,7 +491,7 @@
 </template>
 
 <script>
-import { mapState, mapActions } from 'vuex';
+import { mapState, mapActions, mapGetters } from 'vuex';
 import PensionDetailInline from './PensionDetailInline.vue';
 import UnifiedPensionForm from '@/components/Retirement/UnifiedPensionForm.vue';
 import DocumentUploadModal from '@/components/Shared/DocumentUploadModal.vue';
@@ -472,6 +549,22 @@ export default {
       'requiredCapital',
       'retirementIncome',
     ]),
+    ...mapGetters('auth', ['currentUser']),
+
+    // Check if user is retired
+    isRetired() {
+      return this.currentUser?.employment_status === 'retired';
+    },
+
+    // Check if user has any DC pensions
+    hasDCPensions() {
+      return this.dcPensions && this.dcPensions.length > 0;
+    },
+
+    // Check if user has only DB/State pensions (no DC)
+    hasOnlyGuaranteedPensions() {
+      return !this.hasDCPensions && (this.dbPensions?.length > 0 || this.statePension);
+    },
 
     allPensions() {
       const all = [...this.dcPensions, ...this.dbPensions];
@@ -587,7 +680,12 @@ export default {
     },
 
     showStrategies() {
-      // Always show strategies section if we have projections
+      // Don't show strategies for retired users or users without DC pensions
+      // (contribution strategies only apply to DC pensions)
+      if (this.isRetired || !this.hasDCPensions) {
+        return false;
+      }
+      // Show strategies section if we have projections
       return !!this.projections?.income_drawdown;
     },
 
@@ -783,7 +881,7 @@ export default {
 
     formatDCPensionType(type) {
       const types = {
-        occupational: 'Occupational',
+        occupational: 'Work Pension',
         sipp: 'SIPP',
         personal: 'Personal',
         stakeholder: 'Stakeholder',
@@ -1204,6 +1302,126 @@ export default {
   @apply text-gray-400;
   font-size: 14px;
   font-weight: 400;
+}
+
+/* Guaranteed Income Summary (for DB/State pension only users) */
+.guaranteed-income-summary {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  @apply border border-gray-200;
+}
+
+.guaranteed-income-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.guaranteed-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  @apply bg-green-100 text-green-600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.guaranteed-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.guaranteed-title {
+  font-size: 18px;
+  font-weight: 600;
+  @apply text-gray-900;
+  margin: 0 0 4px 0;
+}
+
+.guaranteed-subtitle {
+  font-size: 14px;
+  @apply text-gray-500;
+  margin: 0;
+}
+
+.guaranteed-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-radius: 8px;
+  @apply bg-green-50 border border-green-200;
+  margin-bottom: 24px;
+}
+
+.guaranteed-total-label {
+  font-size: 14px;
+  font-weight: 500;
+  @apply text-green-800;
+}
+
+.guaranteed-total-value {
+  font-size: 24px;
+  font-weight: 700;
+  @apply text-green-600;
+}
+
+.guaranteed-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.guaranteed-item {
+  padding: 16px;
+  border-radius: 8px;
+  @apply bg-gray-50 border border-gray-200;
+}
+
+.guaranteed-item-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.guaranteed-item-name {
+  font-size: 14px;
+  font-weight: 600;
+  @apply text-gray-900;
+}
+
+.guaranteed-item-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.guaranteed-detail-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  @apply text-gray-600;
+}
+
+.guaranteed-comparison {
+  padding-top: 16px;
+  @apply border-t border-gray-200;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.comparison-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  @apply text-gray-600;
 }
 
 /* Clickable Cards */

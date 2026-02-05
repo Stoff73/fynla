@@ -305,18 +305,35 @@ const actions = {
         commit('CLEAR_ERROR');
 
         try {
-            const response = await netWorthService.refresh();
+            // First, invalidate cache and recalculate on backend
+            const refreshResponse = await netWorthService.refresh();
 
-            if (response.success) {
-                commit('SET_OVERVIEW', response.data);
-                // Also refresh related data
-                await Promise.all([
-                    dispatch('fetchAssetsSummary'),
-                    dispatch('fetchTrend'),
-                ]);
-            } else {
-                throw new Error(response.message || 'Failed to refresh net worth');
+            if (!refreshResponse.success) {
+                throw new Error(refreshResponse.message || 'Failed to refresh net worth');
             }
+
+            // Then fetch the complete overview (includes spouse data)
+            // This ensures all data is properly synced
+            const overviewResponse = await netWorthService.getOverview();
+
+            if (overviewResponse.success) {
+                commit('SET_OVERVIEW', overviewResponse.data);
+                // Set spouse data if it exists
+                if (overviewResponse.spouse_data) {
+                    commit('SET_SPOUSE_OVERVIEW', overviewResponse.spouse_data);
+                } else {
+                    commit('SET_SPOUSE_OVERVIEW', null);
+                }
+            } else {
+                // Fall back to refresh response data if overview fails
+                commit('SET_OVERVIEW', refreshResponse.data);
+            }
+
+            // Also refresh related data
+            await Promise.all([
+                dispatch('fetchAssetsSummary'),
+                dispatch('fetchTrend'),
+            ]);
         } catch (error) {
             const errorMessage = error.response?.data?.message || error.message || 'Failed to refresh net worth';
             commit('SET_ERROR', errorMessage);

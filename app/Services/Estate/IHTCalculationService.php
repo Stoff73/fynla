@@ -59,6 +59,10 @@ class IHTCalculationService
         // 2. Get tax config
         $ihtConfig = $this->taxConfig->getInheritanceTax();
         $isMarried = in_array($user->marital_status, ['married']) && $spouse !== null;
+        $isWidowed = $user->marital_status === 'widowed';
+
+        // Get IHT profile for transferred allowances (widows/widowers)
+        $ihtProfile = IHTProfile::where('user_id', $user->id)->first();
 
         // 3. Fetch and sum assets (exclude IHT-exempt assets like pensions)
         $userAssets = $this->aggregator->gatherUserAssets($user);
@@ -86,16 +90,23 @@ class IHTCalculationService
         $spouseNetEstate = $spouseGrossAssets - $spouseLiabilities;
         $totalNetEstate = $totalGrossAssets - $totalLiabilities;
 
-        // 6. Calculate NRB with message
+        // 6. Calculate NRB with message (includes transferred NRB for widows)
         $nrbSingle = $ihtConfig['nil_rate_band']; // £325,000
-        $nrbAvailable = $isMarried ? ($nrbSingle * 2) : $nrbSingle;
+        $nrbTransferred = (float) ($ihtProfile?->nrb_transferred_from_spouse ?? 0);
 
-        $nrbMessage = $isMarried
-            ? 'Combined Nil Rate Band of £'.number_format($nrbAvailable).' available (£'.number_format($nrbSingle).' each). Transfers between spouses are exempt from IHT on first death.'
-            : 'Nil Rate Band of £'.number_format($nrbAvailable).' available for single person.';
+        if ($isMarried) {
+            $nrbAvailable = $nrbSingle * 2;
+            $nrbMessage = 'Combined Nil Rate Band of £'.number_format($nrbAvailable).' available (£'.number_format($nrbSingle).' each). Transfers between spouses are exempt from IHT on first death.';
+        } elseif ($isWidowed && $nrbTransferred > 0) {
+            $nrbAvailable = $nrbSingle + $nrbTransferred;
+            $nrbMessage = 'Combined Nil Rate Band of £'.number_format($nrbAvailable).' available (own £'.number_format($nrbSingle).' + £'.number_format($nrbTransferred).' transferred from late spouse\'s estate).';
+        } else {
+            $nrbAvailable = $nrbSingle;
+            $nrbMessage = 'Nil Rate Band of £'.number_format($nrbAvailable).' available for single person.';
+        }
 
         // 7. Calculate RNRB with message (ALWAYS calculate, even if £0)
-        $rnrbData = $this->calculateRNRB($totalNetEstate, $user, $spouse, $ihtConfig, $isMarried);
+        $rnrbData = $this->calculateRNRB($totalNetEstate, $user, $spouse, $ihtConfig, $isMarried, $isWidowed, $ihtProfile);
 
         // 8. Calculate taxable estate and IHT (CURRENT values)
         $totalAllowances = $nrbAvailable + $rnrbData['rnrb_available'];
@@ -134,9 +145,13 @@ class IHTCalculationService
             'total_net_estate' => round($totalNetEstate, 2),
 
             'nrb_available' => round($nrbAvailable, 2),
+            'nrb_individual' => round($nrbSingle, 2),
+            'nrb_transferred' => round($nrbTransferred, 2),
             'nrb_message' => $nrbMessage,
 
             'rnrb_available' => round($rnrbData['rnrb_available'], 2),
+            'rnrb_individual' => round($rnrbData['rnrb_individual'] ?? 0, 2),
+            'rnrb_transferred' => round($rnrbData['rnrb_transferred'] ?? 0, 2),
             'rnrb_status' => $rnrbData['rnrb_status'],
             'rnrb_message' => $rnrbData['rnrb_message'],
 
@@ -166,6 +181,7 @@ class IHTCalculationService
             'estimated_age_at_death' => $projectedData['estimated_age_at_death'],
 
             'is_married' => $isMarried,
+            'is_widowed' => $isWidowed,
             'data_sharing_enabled' => $dataSharingEnabled,
         ];
 
@@ -954,39 +970,67 @@ class IHTCalculationService
     /**
      * Calculate RNRB with full explanation message
      *
-     * ALWAYS returns a value (even £0) with explanatory message
+     * ALWAYS returns a value (even £0) with explanatory message.
+     * For widows/widowers, includes transferred RNRB from deceased spouse.
      */
     private function calculateRNRB(
         float $totalNetEstate,
         User $user,
         ?User $spouse,
         array $ihtConfig,
-        bool $isMarried
+        bool $isMarried,
+        bool $isWidowed = false,
+        ?IHTProfile $ihtProfile = null
     ): array {
         $rnrbSingle = $ihtConfig['residence_nil_rate_band']; // £175,000
         $taperThreshold = $ihtConfig['rnrb_taper_threshold']; // £2,000,000
         $taperRate = $ihtConfig['rnrb_taper_rate']; // 0.5 (£1 lost per £2 over threshold)
 
+        // Get transferred RNRB for widows
+        $rnrbTransferred = (float) ($ihtProfile?->rnrb_transferred_from_spouse ?? 0);
+
         // Check eligibility: must own main residence
         $hasMainResidence = $this->hasMainResidence($user, $spouse);
+
+        // Calculate potential max RNRB for messaging
+        $potentialMax = $isMarried ? ($rnrbSingle * 2) : ($isWidowed && $rnrbTransferred > 0 ? $rnrbSingle + $rnrbTransferred : $rnrbSingle);
 
         if (! $hasMainResidence) {
             return [
                 'rnrb_available' => 0,
+                'rnrb_individual' => 0,
+                'rnrb_transferred' => 0,
                 'rnrb_status' => 'none',
-                'rnrb_message' => 'Residence Nil Rate Band not available. You need to own a main residence and leave it to direct descendants to qualify for RNRB of up to £'.number_format($isMarried ? $rnrbSingle * 2 : $rnrbSingle).'.',
+                'rnrb_message' => 'Residence Nil Rate Band not available. You need to own a main residence and leave it to direct descendants to qualify for RNRB of up to £'.number_format($potentialMax).'.',
             ];
         }
 
-        // Calculate full RNRB (single or married)
-        $fullRNRB = $isMarried ? ($rnrbSingle * 2) : $rnrbSingle;
+        // Calculate full RNRB (married gets double, widow with transfer gets own + transferred)
+        if ($isMarried) {
+            $fullRNRB = $rnrbSingle * 2;
+        } elseif ($isWidowed && $rnrbTransferred > 0) {
+            $fullRNRB = $rnrbSingle + $rnrbTransferred;
+        } else {
+            $fullRNRB = $rnrbSingle;
+        }
 
         // Check for taper
         if ($totalNetEstate <= $taperThreshold) {
+            // Build message based on status
+            if ($isMarried) {
+                $rnrbMsg = 'Full Residence Nil Rate Band of £'.number_format($fullRNRB).' available (£'.number_format($rnrbSingle).' each). Your combined estate is below the £'.number_format($taperThreshold).' taper threshold.';
+            } elseif ($isWidowed && $rnrbTransferred > 0) {
+                $rnrbMsg = 'Full Residence Nil Rate Band of £'.number_format($fullRNRB).' available (own £'.number_format($rnrbSingle).' + £'.number_format($rnrbTransferred).' transferred from late spouse\'s estate). Your estate is below the £'.number_format($taperThreshold).' taper threshold.';
+            } else {
+                $rnrbMsg = 'Full Residence Nil Rate Band of £'.number_format($fullRNRB).' available. Your estate is below the £'.number_format($taperThreshold).' taper threshold.';
+            }
+
             return [
                 'rnrb_available' => $fullRNRB,
+                'rnrb_individual' => $rnrbSingle,
+                'rnrb_transferred' => $rnrbTransferred,
                 'rnrb_status' => 'full',
-                'rnrb_message' => 'Full Residence Nil Rate Band of £'.number_format($fullRNRB).' available'.($isMarried ? ' (£'.number_format($rnrbSingle).' each)' : '').'. Your combined estate is below the £'.number_format($taperThreshold).' taper threshold.',
+                'rnrb_message' => $rnrbMsg,
             ];
         }
 
@@ -998,6 +1042,8 @@ class IHTCalculationService
         if ($rnrbAvailable > 0) {
             return [
                 'rnrb_available' => $rnrbAvailable,
+                'rnrb_individual' => $rnrbSingle,
+                'rnrb_transferred' => $rnrbTransferred,
                 'rnrb_status' => 'tapered',
                 'rnrb_message' => 'Residence Nil Rate Band reduced to £'.number_format($rnrbAvailable).' due to estate taper. Your estate of £'.number_format($totalNetEstate).' exceeds £'.number_format($taperThreshold).' by £'.number_format($excess).', reducing RNRB by £'.number_format($reduction).' (£1 reduction per £2 over threshold).',
             ];
@@ -1006,6 +1052,8 @@ class IHTCalculationService
         // Fully tapered away
         return [
             'rnrb_available' => 0,
+            'rnrb_individual' => $rnrbSingle,
+            'rnrb_transferred' => $rnrbTransferred,
             'rnrb_status' => 'tapered',
             'rnrb_message' => 'Residence Nil Rate Band fully tapered away. Your estate of £'.number_format($totalNetEstate).' exceeds the taper threshold of £'.number_format($taperThreshold).' by £'.number_format($excess).', eliminating all RNRB of £'.number_format($fullRNRB).'.',
         ];

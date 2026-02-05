@@ -377,13 +377,15 @@ const actions = {
     },
 
     // Liability actions
-    async createLiability({ commit }, liabilityData) {
+    async createLiability({ commit, dispatch }, liabilityData) {
         commit('setLoading', true);
         commit('setError', null);
 
         try {
             const response = await estateService.createLiability(liabilityData);
             commit('addLiability', response.data.data);
+            // Refresh net worth after adding liability
+            await dispatch('netWorth/refreshNetWorth', null, { root: true });
             return response;
         } catch (error) {
             const errorMessage = error.message || 'Failed to create liability';
@@ -394,13 +396,15 @@ const actions = {
         }
     },
 
-    async updateLiability({ commit }, { id, liabilityData }) {
+    async updateLiability({ commit, dispatch }, { id, liabilityData }) {
         commit('setLoading', true);
         commit('setError', null);
 
         try {
             const response = await estateService.updateLiability(id, liabilityData);
             commit('updateLiability', response.data.data);
+            // Refresh net worth after updating liability
+            await dispatch('netWorth/refreshNetWorth', null, { root: true });
             return response;
         } catch (error) {
             const errorMessage = error.message || 'Failed to update liability';
@@ -411,13 +415,15 @@ const actions = {
         }
     },
 
-    async deleteLiability({ commit }, id) {
+    async deleteLiability({ commit, dispatch }, id) {
         commit('setLoading', true);
         commit('setError', null);
 
         try {
             const response = await estateService.deleteLiability(id);
             commit('removeLiability', id);
+            // Refresh net worth after deleting liability
+            await dispatch('netWorth/refreshNetWorth', null, { root: true });
             return response;
         } catch (error) {
             const errorMessage = error.message || 'Failed to delete liability';

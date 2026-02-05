@@ -171,6 +171,24 @@
                 </tr>
               </template>
             </template>
+            <!-- Single user with transferred allowances (widow/widower) -->
+            <template v-else-if="allowances.showSeparateSpouseAllowances">
+              <tr class="bg-gray-50">
+                <td class="px-4 py-2 text-sm text-gray-700 pl-8">{{ assetsBreakdown.user?.name || 'Your' }} Tax-Free Allowance</td>
+                <td class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.nrb) }}</td>
+                <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.nrb) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.nrb) }}</td>
+                <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.nrb) }}</td>
+              </tr>
+              <tr v-if="allowances.nrbFromSpouse > 0" class="bg-gray-50">
+                <td class="px-4 py-2 text-sm text-gray-700 pl-8">Transferred from Late Spouse's Estate</td>
+                <td class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.nrbFromSpouse) }}</td>
+                <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.nrbFromSpouse) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.nrbFromSpouse) }}</td>
+                <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.nrbFromSpouse) }}</td>
+              </tr>
+            </template>
+            <!-- Single user without transferred allowances -->
             <template v-else>
               <tr class="bg-gray-50">
                 <td class="px-4 py-2 text-sm text-gray-700 pl-8">Tax-Free Allowance (NRB)</td>
@@ -218,6 +236,24 @@
                   <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.totalRnrb / 2) }}</td>
                 </tr>
               </template>
+              <!-- Single user with transferred RNRB (widow/widower) -->
+              <template v-else-if="allowances.showSeparateSpouseAllowances">
+                <tr v-if="allowances.rnrbIndividual > 0" class="bg-gray-50">
+                  <td class="px-4 py-2 text-sm text-gray-700 pl-8">{{ assetsBreakdown.user?.name || 'Your' }} Home Allowance</td>
+                  <td class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.rnrbIndividual) }}</td>
+                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.rnrbIndividual) }}</td>
+                  <td class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.rnrbIndividual) }}</td>
+                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.rnrbIndividual) }}</td>
+                </tr>
+                <tr v-if="allowances.rnrbFromSpouse > 0" class="bg-gray-50">
+                  <td class="px-4 py-2 text-sm text-gray-700 pl-8">Transferred from Late Spouse's Estate</td>
+                  <td class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.rnrbFromSpouse) }}</td>
+                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.rnrbFromSpouse) }}</td>
+                  <td class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.rnrbFromSpouse) }}</td>
+                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.rnrbFromSpouse) }}</td>
+                </tr>
+              </template>
+              <!-- Single user without transferred RNRB -->
               <template v-else>
                 <tr class="bg-gray-50">
                   <td class="px-4 py-2 text-sm text-gray-700 pl-8">Home Allowance (RNRB)</td>

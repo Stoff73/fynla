@@ -102,8 +102,12 @@ class IHTController extends Controller
                     'gross_assets' => $calculation['total_gross_assets'],
                     'liabilities' => $calculation['total_liabilities'],
                     'nrb_available' => $calculation['nrb_available'],
+                    'nrb_individual' => $calculation['nrb_individual'],
+                    'nrb_transferred' => $calculation['nrb_transferred'],
                     'nrb_message' => $calculation['nrb_message'],
                     'rnrb_available' => $calculation['rnrb_available'],
+                    'rnrb_individual' => $calculation['rnrb_individual'],
+                    'rnrb_transferred' => $calculation['rnrb_transferred'],
                     'rnrb_status' => $calculation['rnrb_status'],
                     'rnrb_message' => $calculation['rnrb_message'],
                     'total_allowances' => $calculation['total_allowances'],
@@ -126,6 +130,7 @@ class IHTController extends Controller
                     'properties' => $calculation['projected_properties'] ?? null,
                 ],
                 'is_married' => $calculation['is_married'],
+                'is_widowed' => $calculation['is_widowed'] ?? false,
                 'data_sharing_enabled' => $calculation['data_sharing_enabled'],
             ];
 
