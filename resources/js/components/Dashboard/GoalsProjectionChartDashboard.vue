@@ -6,7 +6,7 @@
     </div>
 
     <!-- Chart -->
-    <div v-else-if="hasData" class="relative">
+    <div v-else-if="hasData && isComponentMounted" class="relative">
       <div class="chart-wrapper" ref="chartWrapper">
         <apexchart
           ref="chart"

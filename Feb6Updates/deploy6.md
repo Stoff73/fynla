@@ -527,54 +527,131 @@ app/Services/Goals/GoalsProjectionService.php
 
 ---
 
-## Deployed Summary (Items 1-19)
+### 22. Fix Undefined Chart Colors and ApexCharts "Element not found" Errors
+
+**Status:** Pending
+**Build Required:** YES
+**Migration Required:** NO
+
+**Description:** Three chart components referenced non-existent color keys (`SUCCESS_COLORS[400]`, `SECONDARY_COLORS[400]`) from the design system, causing "undefined color" warnings in ApexCharts. Additionally, GoalsProjectionChart and GoalsProjectionChartDashboard threw "Element not found" errors when ApexCharts tried to render during reactive state changes before the DOM element was ready.
+
+**What was done:**
+
+- Fixed `SUCCESS_COLORS[400]` to `SUCCESS_COLORS[100]` in PensionPotProjectionChart and InvestmentProjectionChart
+- Fixed `SECONDARY_COLORS[400]` to `SECONDARY_COLORS[500]` in AccumulationChart
+- Added `isComponentMounted` guard to chart `v-else-if` in GoalsProjectionChart and GoalsProjectionChartDashboard to prevent rendering before mount or after unmount
+
+**Modified Files (5):**
+
+```text
+resources/js/components/Retirement/PensionPotProjectionChart.vue
+resources/js/components/Investment/InvestmentProjectionChart.vue
+resources/js/components/Retirement/AccumulationChart.vue
+resources/js/components/Goals/GoalsProjectionChart.vue
+resources/js/components/Dashboard/GoalsProjectionChartDashboard.vue
+```
+
+---
+
+## Pending Deployment Summary (Items 20-22)
+
+**Build Required:** YES
+**Migration Required:** NO
 
 ### PHP Files
 
 ```text
-app/Services/UserProfile/ModuleDataRequirementsService.php
 app/Services/Goals/GoalsProjectionService.php
-app/Services/NetWorth/NetWorthService.php
-app/Http/Controllers/Api/NetWorthController.php
-app/Http/Resources/PropertyResource.php
-app/Http/Resources/GoalResource.php
-app/Http/Resources/ChattelResource.php
-app/Http/Resources/SavingsAccountResource.php
-app/Http/Resources/MortgageResource.php
-app/Http/Resources/GoalContributionResource.php
-app/Http/Resources/InvestmentAccountResource.php
-app/Http/Resources/BusinessInterestResource.php
-database/seeders/PreviewUserSeeder.php
 ```
 
 ### Frontend Files
 
 ```text
-resources/js/components/Shared/DocumentUploadModal.vue
+resources/js/store/modules/estate.js
+resources/js/store/modules/investment.js
+resources/js/store/modules/netWorth.js
+resources/js/store/modules/protection.js
+resources/js/store/modules/retirement.js
+resources/js/store/modules/trusts.js
+resources/js/views/Dashboard.vue
+resources/js/views/Admin/AdminPanel.vue
+resources/js/views/Investment/AccountPerformancePanel.vue
+resources/js/views/Investment/AccountRebalancingPanel.vue
+resources/js/views/Retirement/PortfolioAnalysis.vue
+resources/js/views/Trusts/TrustDetailView.vue
+resources/js/components/Admin/UserManagement.vue
+resources/js/components/Auth/ChangePasswordModal.vue
+resources/js/components/Cash/BalanceTrendChart.vue
+resources/js/components/Cash/SpendingDonutChart.vue
+resources/js/components/Dashboard/AreasToConsiderCard.vue
+resources/js/components/Dashboard/GoalsProjectionChartDashboard.vue
+resources/js/components/Dashboard/GoalsProjectionChartMini.vue
+resources/js/components/Dashboard/TaxOptimisationCard.vue
+resources/js/components/Estate/AssetsLiabilities.vue
+resources/js/components/Estate/CashFlowProjectionChart.vue
+resources/js/components/Estate/GiftingStrategy.vue
+resources/js/components/Estate/GiftingTimelineChart.vue
+resources/js/components/Estate/IHTLiabilityGauge.vue
+resources/js/components/Estate/IHTPlanning.vue
+resources/js/components/Estate/LifePolicyStrategy.vue
+resources/js/components/Estate/NetWorthWaterfallChart.vue
+resources/js/components/Estate/WillPlanning.vue
+resources/js/components/Goals/GoalFormModal.vue
+resources/js/components/Goals/GoalsList.vue
+resources/js/components/Goals/GoalsProjectionChart.vue
+resources/js/components/Goals/LifeEventForm.vue
+resources/js/components/Holistic/CashFlowAllocationChart.vue
+resources/js/components/Holistic/NetWorthProjectionChart.vue
+resources/js/components/Investment/AllocationComparison.vue
+resources/js/components/Investment/AssetAllocationChart.vue
+resources/js/components/Investment/EfficientFrontier.vue
+resources/js/components/Investment/GeographicAllocationMap.vue
+resources/js/components/Investment/Holdings.vue
+resources/js/components/Investment/HoldingsTable.vue
+resources/js/components/Investment/InvestmentProjectionChart.vue
+resources/js/components/Investment/InvestmentRecommendationsTracker.vue
+resources/js/components/Investment/MonteCarloResults.vue
+resources/js/components/Investment/PerformanceLineChart.vue
+resources/js/components/Investment/PortfolioOptimization.vue
+resources/js/components/Investment/PortfolioOverview.vue
+resources/js/components/Investment/Recommendations.vue
+resources/js/components/Investment/TaxFees.vue
+resources/js/components/Investment/WhatIfScenarios.vue
+resources/js/components/NetWorth/AssetAllocationDonut.vue
+resources/js/components/NetWorth/AssetBreakdownBar.vue
+resources/js/components/NetWorth/BusinessInterestForm.vue
 resources/js/components/NetWorth/InvestmentList.vue
 resources/js/components/NetWorth/PensionList.vue
-resources/js/components/NetWorth/WealthSummary.vue
-resources/js/components/NetWorth/NetWorthWealthSummary.vue
-resources/js/components/NetWorth/ChattelCard.vue
-resources/js/components/Goals/GoalsOverview.vue
-resources/js/components/Goals/GoalsProjectionChart.vue
-resources/js/components/Goals/ProjectionSummaryCards.vue
-resources/js/components/Onboarding/steps/PersonalInfoStep.vue
+resources/js/components/NetWorth/PropertyList.vue
+resources/js/components/Onboarding/steps/FamilyInfoStep.vue
+resources/js/components/Protection/CoverageAdequacyGauge.vue
+resources/js/components/Protection/CoverageGapChart.vue
+resources/js/components/Protection/CoverageTimelineChart.vue
+resources/js/components/Protection/CurrentSituation.vue
+resources/js/components/Protection/PolicyDetail.vue
+resources/js/components/Protection/PremiumBreakdownChart.vue
+resources/js/components/Retirement/AccumulationChart.vue
+resources/js/components/Retirement/DrawdownSimulator.vue
+resources/js/components/Retirement/IncomeDrawdownChart.vue
+resources/js/components/Retirement/IncomeProjectionChart.vue
+resources/js/components/Retirement/PensionPotProjectionChart.vue
+resources/js/components/Retirement/TargetIncomeDrawdownChart.vue
+resources/js/components/Savings/EmergencyFundGauge.vue
+resources/js/components/Savings/InterestRateComparisonChart.vue
+resources/js/components/Shared/CountrySelector.vue
+resources/js/components/Shared/DocumentUploadModal.vue
+resources/js/components/Shared/OccupationAutocomplete.vue
+resources/js/components/UserProfile/DomicileInformation.vue
+resources/js/components/UserProfile/ExpenditureForm.vue
+resources/js/components/UserProfile/ExpenditureOverview.vue
+resources/js/components/UserProfile/FamilyMembers.vue
+resources/js/components/UserProfile/IncomeOccupation.vue
+resources/js/components/UserProfile/LetterToSpouse.vue
 resources/js/components/UserProfile/PersonalInformation.vue
-resources/js/components/NetWorth/Property/PropertyForm.vue
-resources/js/components/Estate/AssetForm.vue
-resources/js/views/Dashboard.vue
-resources/js/views/Goals/GoalsDashboard.vue
-resources/js/store/modules/netWorth.js
-resources/js/data/personas/peak_earners.json
-resources/js/data/personas/retired_couple.json
-resources/js/data/personas/young_family.json
 ```
 
-### Server Commands Run
+### Server Commands
 
 ```bash
-php artisan db:seed --class=OccupationCodeSeeder --force
-php artisan db:seed --class=PreviewUserSeeder --force
 php artisan cache:clear && php artisan route:clear && php artisan config:clear
 ```

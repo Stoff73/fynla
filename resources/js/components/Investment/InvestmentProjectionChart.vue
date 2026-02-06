@@ -135,7 +135,7 @@ export default {
           },
         },
         // Blue and green gradient for more contrast
-        colors: [PRIMARY_COLORS[900], PRIMARY_COLORS[600], SUCCESS_COLORS[500], SUCCESS_COLORS[400]],
+        colors: [PRIMARY_COLORS[900], PRIMARY_COLORS[600], SUCCESS_COLORS[500], SUCCESS_COLORS[100]],
         stroke: {
           curve: 'smooth',
           width: [1, 1, 1, 1],

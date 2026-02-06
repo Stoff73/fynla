@@ -30,7 +30,7 @@
     </div>
 
     <!-- Content -->
-    <div v-else-if="projection">
+    <div v-else-if="projection && isComponentMounted">
       <!-- Summary cards -->
       <ProjectionSummaryCards
         :projection="projection"

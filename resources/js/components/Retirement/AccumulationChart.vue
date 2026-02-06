@@ -146,7 +146,7 @@ export default {
           width: [3, 2],
           dashArray: [0, 5],
         },
-        colors: [PRIMARY_COLORS[500], SECONDARY_COLORS[400]], // Blue for growth, Gray for contributions only
+        colors: [PRIMARY_COLORS[500], SECONDARY_COLORS[500]], // Blue for growth, Gray for contributions only
         xaxis: {
           categories: this.ages,
           title: {
