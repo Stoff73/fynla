@@ -32,8 +32,8 @@ class GoalContributionResource extends JsonResource
             'updated_at' => $this->updated_at?->toIso8601String(),
 
             // Relationships
-            'user' => $this->when($this->relationLoaded('user'), fn () => new UserResource($this->user)),
-            'goal' => $this->when($this->relationLoaded('goal'), fn () => new GoalResource($this->goal)),
+            'user' => $this->whenLoaded('user', fn () => new UserResource($this->user)),
+            'goal' => $this->whenLoaded('goal', fn () => new GoalResource($this->goal)),
         ];
     }
 }

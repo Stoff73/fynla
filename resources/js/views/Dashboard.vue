@@ -375,7 +375,7 @@
           @click="navigateTo('/goals')"
         >
           <!-- Bar chart with event icons - simplified for dashboard -->
-          <div v-if="goalsData.hasProjection || goalsData.hasGoals" @click.stop>
+          <div v-if="goalsData.hasProjection || goalsData.hasGoals" class="cursor-pointer">
             <GoalsProjectionChartDashboard />
           </div>
 

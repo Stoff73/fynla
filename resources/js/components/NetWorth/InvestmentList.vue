@@ -41,6 +41,17 @@
         </div>
       </div>
 
+      <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-5">
+        <div class="flex items-start">
+          <svg class="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+          </svg>
+          <p class="ml-3 text-sm text-blue-800">
+            We will be connecting this section to Bloomberg, Morningstar or FE Analytics to give an in-depth view of investments and holdings. For now we offer a Monte Carlo (1,000 iterations) for a simple forward look, once connected we can include the past data for your account and holdings.
+          </p>
+        </div>
+      </div>
+
       <div v-if="loading" class="loading-state">
         <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         <p class="mt-3">Loading investments...</p>

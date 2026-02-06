@@ -51,8 +51,8 @@ class PropertyResource extends JsonResource
 
             // Relationships
             'mortgages' => MortgageResource::collection($this->whenLoaded('mortgages')),
-            'user' => $this->when($this->relationLoaded('user'), fn () => new UserResource($this->user)),
-            'joint_owner' => $this->when($this->relationLoaded('jointOwner'), fn () => new UserResource($this->jointOwner)),
+            'user' => $this->whenLoaded('user', fn () => new UserResource($this->user)),
+            'joint_owner' => $this->whenLoaded('jointOwner', fn () => new UserResource($this->jointOwner)),
 
             // Links
             'links' => [

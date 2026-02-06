@@ -104,14 +104,6 @@
           Address
         </h4>
 
-        <!-- Postcode Lookup -->
-        <PostcodeLookup
-          v-model="formData.postcode"
-          label="Find Address by Postcode"
-          class="mb-4"
-          @address-selected="handleAddressSelected"
-        />
-
         <div class="grid grid-cols-1 gap-4">
           <div>
             <label for="address_line_1" class="label">
@@ -290,14 +282,12 @@
 import { ref, computed, onMounted } from 'vue';
 import { useStore } from 'vuex';
 import OnboardingStep from '../OnboardingStep.vue';
-import PostcodeLookup from '@/components/Shared/PostcodeLookup.vue';
 
 export default {
   name: 'PersonalInfoStep',
 
   components: {
     OnboardingStep,
-    PostcodeLookup,
   },
 
   emits: ['next', 'back', 'skip'],

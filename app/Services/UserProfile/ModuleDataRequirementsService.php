@@ -543,7 +543,7 @@ class ModuleDataRequirementsService
                 return true;
             }
             // Check for pension income sources
-            $hasStatePensionIncome = $user->statePension()->where('annual_amount', '>', 0)->exists();
+            $hasStatePensionIncome = $user->statePension()->where('state_pension_forecast_annual', '>', 0)->exists();
             $hasDBPensionIncome = $user->dbPensions()->where('accrued_annual_pension', '>', 0)->exists();
             $hasDCPensionIncome = $user->employment_status === 'retired' && $user->dcPensions()->exists();
 

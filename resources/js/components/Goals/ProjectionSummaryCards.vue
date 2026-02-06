@@ -9,24 +9,21 @@
       <p class="text-xs text-gray-500 mt-1">Age {{ projection.current_age }}</p>
     </div>
 
-    <!-- Projected Net Worth -->
+    <!-- Projected Net Worth at Retirement -->
     <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-      <p class="text-sm text-blue-600 font-medium">Projected Net Worth at {{ projection.projection_end_age }}</p>
+      <p class="text-sm text-blue-600 font-medium">Projected Net Worth at {{ summary.retirement_age }}</p>
       <p class="text-xl sm:text-2xl font-bold text-blue-900 mt-1">
-        {{ formatCurrency(summary.ending_net_worth) }}
+        {{ formatCurrency(summary.retirement_net_worth) }}
       </p>
-      <p class="text-xs text-blue-600 mt-1">
-        {{ growthPercentage > 0 ? '+' : '' }}{{ growthPercentage }}% growth
-      </p>
+      <p class="text-xs text-blue-600 mt-1">Retirement age</p>
     </div>
 
-    <!-- Peak Net Worth -->
+    <!-- Projected Net Worth at 90 -->
     <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-      <p class="text-sm text-green-600 font-medium">Projected Peak Net Worth</p>
+      <p class="text-sm text-green-600 font-medium">Projected Net Worth at {{ projection.projection_end_age }}</p>
       <p class="text-xl sm:text-2xl font-bold text-green-900 mt-1">
-        {{ formatCurrency(summary.peak_net_worth) }}
+        {{ formatCurrency(summary.ending_net_worth) }}
       </p>
-      <p class="text-xs text-green-600 mt-1">At age {{ summary.peak_age }}</p>
     </div>
 
     <!-- Events Summary -->

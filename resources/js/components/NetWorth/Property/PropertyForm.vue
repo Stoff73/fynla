@@ -86,14 +86,6 @@
               </select>
             </div>
 
-            <!-- Postcode Lookup (UK only) -->
-            <PostcodeLookup
-              v-if="form.country === 'United Kingdom'"
-              v-model="form.postcode"
-              label="Find Address by Postcode"
-              @address-selected="handleAddressSelected"
-            />
-
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label for="address_line_1" class="block text-sm font-medium text-gray-700 mb-1">Address Line 1 <span class="text-red-500">*</span></label>
@@ -1316,7 +1308,6 @@
 
 <script>
 import CountrySelector from '@/components/Shared/CountrySelector.vue';
-import PostcodeLookup from '@/components/Shared/PostcodeLookup.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
@@ -1326,7 +1317,6 @@ export default {
 
   components: {
     CountrySelector,
-    PostcodeLookup,
   },
 
   props: {

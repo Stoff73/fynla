@@ -69,7 +69,8 @@ php artisan cache:clear && php artisan config:clear && php artisan view:clear &&
 
 ```bash
 cd ~/www/fynla.orgpublic_html                                                                             
-  php artisan db:seed --force                                                                            
+  php artisan db:seed --force      
+                                                                        
   php artisan cache:clear && php artisan config:clear && php artisan view:clear && php artisan route:clear && php artisan optimize
   ```
 

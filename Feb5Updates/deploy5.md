@@ -1116,7 +1116,7 @@ php artisan cache:clear && php artisan route:clear && php artisan config:clear
 
 ### 24. Goals & Life Events Module Improvements
 
-**Status:** Pending
+**Status:** Deployed
 
 **Description:** Multiple improvements to the Goals & Life Events module including renamed headings, enhanced Life Events summary card, and chart visibility for new users.
 

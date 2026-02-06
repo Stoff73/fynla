@@ -14,9 +14,6 @@
           <option value="asset_breakdown">Asset Breakdown</option>
         </select>
 
-        <!-- Chart type toggle (line/bar) -->
-        <ChartTypeToggle v-model="chartType" />
-
         <!-- Household toggle (if spouse permission) -->
         <ViewToggle
           v-if="hasSpousePermission"
@@ -53,6 +50,7 @@
         <div class="chart-wrapper relative" ref="chartWrapper">
           <!-- ApexChart -->
           <apexchart
+            :key="`chart-${computedChartType}-${chartView}`"
             ref="chart"
             :type="computedChartType"
             :options="chartOptions"
@@ -132,7 +130,6 @@ import {
   BORDER_COLORS,
   ASSET_COLORS,
 } from '@/constants/designSystem';
-import ChartTypeToggle from './ChartTypeToggle.vue';
 import ViewToggle from '../Shared/ViewToggle.vue';
 import ProjectionSummaryCards from './ProjectionSummaryCards.vue';
 import EventIconLegend from './EventIconLegend.vue';
@@ -144,7 +141,6 @@ export default {
   mixins: [currencyMixin],
 
   components: {
-    ChartTypeToggle,
     ViewToggle,
     ProjectionSummaryCards,
     EventIconLegend,

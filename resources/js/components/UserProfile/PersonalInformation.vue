@@ -289,14 +289,6 @@
         <div class="border-t border-gray-200 pt-6">
           <h3 class="text-h5 font-semibold text-gray-900 mb-4">Address</h3>
 
-          <!-- Postcode Lookup -->
-          <PostcodeLookup
-            v-model="form.postcode"
-            label="Find Address by Postcode"
-            class="mb-4"
-            @address-selected="handleAddressSelected"
-          />
-
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
             <!-- Address Line 1 -->
             <div class="sm:col-span-2">
@@ -536,7 +528,6 @@
 <script>
 import { ref, computed, watch } from 'vue';
 import { useStore } from 'vuex';
-import PostcodeLookup from '@/components/Shared/PostcodeLookup.vue';
 import CountrySelector from '@/components/Shared/CountrySelector.vue';
 import OccupationAutocomplete from '@/components/Shared/OccupationAutocomplete.vue';
 
@@ -547,7 +538,6 @@ export default {
   name: 'PersonalInformation',
 
   components: {
-    PostcodeLookup,
     CountrySelector,
     OccupationAutocomplete,
   },

@@ -152,15 +152,6 @@
       <div v-if="formData.asset_type === 'property'" class="conditional-fields">
         <h4 class="section-title">Property Details</h4>
 
-        <!-- Postcode Lookup -->
-        <div class="form-group">
-          <PostcodeLookup
-            v-model="postcodeValue"
-            label="Find Address by Postcode"
-            @address-selected="handleAddressSelected"
-          />
-        </div>
-
         <div class="form-row">
           <div class="form-group">
             <label for="property_address">Property Address</label>
@@ -234,14 +225,11 @@
 </template>
 
 <script>
-import PostcodeLookup from '@/components/Shared/PostcodeLookup.vue';
 
 export default {
   name: 'AssetForm',
 
-  components: {
-    PostcodeLookup,
-  },
+  components: {},
 
   props: {
     asset: {
