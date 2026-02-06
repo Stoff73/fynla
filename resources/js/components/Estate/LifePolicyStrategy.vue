@@ -140,6 +140,7 @@
 </template>
 
 <script>
+import { mapGetters } from 'vuex';
 import estateService from '../../services/estateService';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
@@ -159,6 +160,8 @@ export default {
   },
 
   computed: {
+    ...mapGetters('estate', ['assets', 'investmentAccounts', 'liabilities']),
+
     isPreviewMode() {
       return this.$store.getters['preview/isPreviewMode'];
     },
@@ -174,24 +177,20 @@ export default {
 
   methods: {
     computePreviewStrategy() {
-      // Get IHT data from estate store or compute it
-      const estateState = this.$store.state.estate;
-      const previewData = this.$store.state.preview?.personaData;
-
       // Calculate total assets from estate store
-      const assetsValue = estateState.assets?.reduce((sum, a) => sum + parseFloat(a.current_value || 0), 0) || 0;
-      const investmentsValue = estateState.investmentAccounts?.reduce((sum, i) => sum + parseFloat(i.current_value || 0), 0) || 0;
+      const assetsValue = this.assets?.reduce((sum, a) => sum + parseFloat(a.current_value || 0), 0) || 0;
+      const investmentsValue = this.investmentAccounts?.reduce((sum, i) => sum + parseFloat(i.current_value || 0), 0) || 0;
       const totalAssets = assetsValue + investmentsValue;
 
       // Calculate total liabilities
-      const totalLiabilities = estateState.liabilities?.reduce((sum, l) => sum + parseFloat(l.current_balance || 0), 0) || 0;
+      const totalLiabilities = this.liabilities?.reduce((sum, l) => sum + parseFloat(l.current_balance || 0), 0) || 0;
 
       // Calculate net estate
       const netEstate = totalAssets - totalLiabilities;
 
       // IHT allowances (UK 2025/26)
       const nrb = 325000;
-      const hasMainResidence = estateState.assets?.some(a => a.asset_type === 'property') || false;
+      const hasMainResidence = this.assets?.some(a => a.asset_type === 'property') || false;
       const rnrb = hasMainResidence ? 175000 : 0;
       const totalAllowance = nrb + rnrb;
 
@@ -199,8 +198,8 @@ export default {
       const taxableEstate = Math.max(0, netEstate - totalAllowance);
       const ihtLiability = taxableEstate * 0.40;
 
-      // Get user data
-      const user = previewData?.user;
+      // Get user data - personaData was always undefined, use null
+      const user = null;
       const currentAge = user?.age || 40;
       const estimatedDeathAge = user?.gender === 'female' ? 84 : 81;
       const yearsUntilDeath = estimatedDeathAge - currentAge;
@@ -222,7 +221,7 @@ export default {
         cover_amount: ihtLiability,
         current_age: currentAge,
         years_until_death: yearsUntilDeath,
-        is_joint_policy: previewData?.user?.marital_status === 'married',
+        is_joint_policy: null,
         whole_of_life_policy: {
           policy_type: 'Whole of Life Insurance',
           description: 'Guaranteed payout on death to cover Inheritance Tax liability',

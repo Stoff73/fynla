@@ -94,6 +94,8 @@ const state = {
 };
 
 const getters = {
+    policies: (state) => state.policies,
+
     // Get adequacy score from analysis
     adequacyScore: (state) => {
         return state.analysis?.data?.adequacy_score || 0;

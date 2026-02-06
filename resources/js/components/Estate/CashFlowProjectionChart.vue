@@ -40,6 +40,7 @@
     <div v-if="hasData" class="chart-container">
       <apexchart
         v-if="mounted"
+        :key="chartKey"
         type="bar"
         height="400"
         :options="chartOptions"
@@ -133,6 +134,10 @@ export default {
   },
 
   computed: {
+    chartKey() {
+      return `cashflow-proj-${this.projectionYears}-${this.growthRate}-${Math.round(this.currentIncome)}`;
+    },
+
     hasData() {
       return this.currentIncome > 0 || this.currentExpenses > 0;
     },

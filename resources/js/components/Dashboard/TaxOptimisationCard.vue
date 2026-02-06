@@ -107,11 +107,11 @@ export default {
     ...mapState('investment', { investmentAccounts: 'accounts' }),
     ...mapState('retirement', ['annualAllowance', 'dcPensions']),
     ...mapGetters('investment', ['totalISAContributions']),
-    ...mapGetters('userProfile', ['totalAnnualIncome']),
+    ...mapGetters('userProfile', ['totalAnnualIncome', 'incomeOccupation']),
 
     // Check if user has dividend income
     hasDividendIncome() {
-      const annualDividends = this.$store.state.userProfile?.incomeOccupation?.annual_dividend_income || 0;
+      const annualDividends = this.incomeOccupation?.annual_dividend_income || 0;
       return annualDividends > 0;
     },
 
@@ -187,7 +187,7 @@ export default {
 
     // Dividend usage from user profile
     dividendUsed() {
-      const annualDividends = this.$store.state.userProfile?.incomeOccupation?.annual_dividend_income || 0;
+      const annualDividends = this.incomeOccupation?.annual_dividend_income || 0;
       return Math.min(annualDividends, this.dividendLimit);
     },
 

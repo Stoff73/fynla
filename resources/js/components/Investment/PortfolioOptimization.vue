@@ -165,6 +165,7 @@ export default {
       showApplyModal: false,
       showSuccessNotification: false,
       pendingAllocation: null,
+      notificationTimeout: null,
 
       sections: [
         { id: 'frontier', label: 'Efficient Frontier' },
@@ -172,6 +173,10 @@ export default {
         { id: 'correlation', label: 'Correlation Analysis' },
       ],
     };
+  },
+
+  beforeUnmount() {
+    if (this.notificationTimeout) clearTimeout(this.notificationTimeout);
   },
 
   methods: {
@@ -195,7 +200,8 @@ export default {
         this.showSuccessNotification = true;
 
         // Hide notification after 3 seconds
-        setTimeout(() => {
+        if (this.notificationTimeout) clearTimeout(this.notificationTimeout);
+        this.notificationTimeout = setTimeout(() => {
           this.showSuccessNotification = false;
         }, 3000);
 

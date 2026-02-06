@@ -107,7 +107,7 @@
 </template>
 
 <script>
-import { ref, reactive } from 'vue';
+import { ref, reactive, onBeforeUnmount } from 'vue';
 import authService from '../../services/authService';
 
 export default {
@@ -130,6 +130,7 @@ export default {
     const submitting = ref(false);
     const error = ref('');
     const success = ref('');
+    let successTimeout = null;
 
     const form = reactive({
       current_password: '',
@@ -161,7 +162,8 @@ export default {
           form.new_password_confirmation = '';
 
           // Emit success event after a short delay to show the success message
-          setTimeout(() => {
+          if (successTimeout) clearTimeout(successTimeout);
+          successTimeout = setTimeout(() => {
             emit('success');
           }, 1500);
         } else {
@@ -183,6 +185,10 @@ export default {
         submitting.value = false;
       }
     };
+
+    onBeforeUnmount(() => {
+      if (successTimeout) clearTimeout(successTimeout);
+    });
 
     return {
       submitting,

@@ -663,6 +663,7 @@ export default {
   computed: {
     ...mapState('estate', ['analysis', 'gifts']),
     ...mapGetters('estate', ['netWorthValue', 'ihtLiability', 'ihtExemptAssets']),
+    ...mapGetters('auth', ['currentUser']),
 
     hasSpouseLinked() {
       return this.hasSpouse;
@@ -1404,7 +1405,7 @@ export default {
     },
 
     checkUserMaritalStatus() {
-      const user = this.$store.state.auth?.user;
+      const user = this.currentUser;
       if (user) {
         this.isMarried = user.marital_status === 'married';
         // Widowed and divorced users should not see spouse options
@@ -1415,7 +1416,7 @@ export default {
     },
 
     getCurrentAge() {
-      const user = this.$store.state.auth?.user;
+      const user = this.currentUser;
       if (user?.date_of_birth) {
         const dob = new Date(user.date_of_birth);
         const today = new Date();
@@ -1450,7 +1451,7 @@ export default {
     },
 
     loadCharitableBequest() {
-      const user = this.$store.state.auth?.user;
+      const user = this.currentUser;
       if (user) {
         this.charitableBequest = user.charitable_bequest;
       }

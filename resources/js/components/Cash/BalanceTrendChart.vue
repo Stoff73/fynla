@@ -4,6 +4,7 @@
 
     <div v-if="chartReady" class="chart-container">
       <apexchart
+        :key="chartKey"
         type="area"
         :options="chartOptions"
         :series="series"
@@ -29,10 +30,16 @@ export default {
     return {
       chartReady: false,
       trendData: [],
+      renderTimeout: null,
     };
   },
 
   computed: {
+    chartKey() {
+      const lastVal = this.trendData[this.trendData.length - 1]?.value || 0;
+      return `balance-${this.trendData.length}-${Math.round(lastVal)}`;
+    },
+
     series() {
       return [
         {
@@ -134,10 +141,14 @@ export default {
 
   mounted() {
     this.$nextTick(() => {
-      setTimeout(() => {
+      this.renderTimeout = setTimeout(() => {
         this.chartReady = true;
       }, 100);
     });
+  },
+
+  beforeUnmount() {
+    if (this.renderTimeout) clearTimeout(this.renderTimeout);
   },
 };
 </script>

@@ -345,7 +345,7 @@
 </template>
 
 <script>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onBeforeUnmount } from 'vue';
 import { useStore } from 'vuex';
 import TaxIncomeCard from './TaxIncomeCard.vue';
 
@@ -362,6 +362,8 @@ export default {
     const submitting = ref(false);
     const successMessage = ref('');
     const errorMessage = ref('');
+
+    let messageTimeout = null;
 
     const incomeOccupation = computed(() => store.getters['userProfile/incomeOccupation']);
     const detailedTaxBreakdown = computed(() => incomeOccupation.value?.detailed_tax_breakdown || null);
@@ -514,7 +516,8 @@ export default {
         }
 
         // Clear success message after 3 seconds
-        setTimeout(() => {
+        if (messageTimeout) clearTimeout(messageTimeout);
+        messageTimeout = setTimeout(() => {
           successMessage.value = '';
         }, 3000);
       } catch (error) {
@@ -535,6 +538,10 @@ export default {
       isEditing.value = false;
       errorMessage.value = '';
     };
+
+    onBeforeUnmount(() => {
+      if (messageTimeout) clearTimeout(messageTimeout);
+    });
 
     const formatCurrency = (amount) => {
       return new Intl.NumberFormat('en-GB', {

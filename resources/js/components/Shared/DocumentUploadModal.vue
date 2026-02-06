@@ -280,6 +280,7 @@ export default {
       isSaving: false,
       errorTitle: '',
       errorMessage: '',
+      delayTimeout: null,
     };
   },
 
@@ -322,6 +323,10 @@ export default {
       }
       return this.documentTypeLabel;
     },
+  },
+
+  beforeUnmount() {
+    if (this.delayTimeout) clearTimeout(this.delayTimeout);
   },
 
   methods: {
@@ -374,7 +379,10 @@ export default {
           this.processingStep = 'extracting';
 
           // Small delay to show extracting step
-          await new Promise(resolve => setTimeout(resolve, 500));
+          await new Promise(resolve => {
+            if (this.delayTimeout) clearTimeout(this.delayTimeout);
+            this.delayTimeout = setTimeout(resolve, 500);
+          });
           this.processingStep = 'mapping';
 
           // Store results

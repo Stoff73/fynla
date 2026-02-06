@@ -226,11 +226,6 @@ export default {
   },
 
   watch: {
-    isOpen(newVal) {
-      if (newVal) {
-        this.initForm();
-      }
-    },
     event: {
       handler() {
         this.initForm();

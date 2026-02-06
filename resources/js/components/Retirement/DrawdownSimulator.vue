@@ -128,6 +128,7 @@
       <!-- Chart -->
       <div>
         <apexchart
+          :key="chartKey"
           type="line"
           :options="chartOptions"
           :series="chartSeries"
@@ -192,6 +193,11 @@ export default {
   computed: {
     annualWithdrawal() {
       return Math.round((this.simulatorData.initialPot * this.simulatorData.withdrawalRate) / 100);
+    },
+
+    chartKey() {
+      const values = this.simulationResults?.portfolioValues;
+      return `drawdown-sim-${values?.length || 0}-${Math.round(values?.[values?.length - 1] || 0)}`;
     },
 
     chartSeries() {

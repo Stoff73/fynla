@@ -722,6 +722,8 @@ const actions = {
 };
 
 const getters = {
+    overview: (state) => state.overview,
+
     netWorth: (state) => state.overview.netWorth,
 
     totalAssets: (state) => state.overview.totalAssets,

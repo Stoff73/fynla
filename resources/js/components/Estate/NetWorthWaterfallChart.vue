@@ -2,6 +2,7 @@
   <div class="net-worth-waterfall-chart">
     <apexchart
       v-if="chartOptions && mounted"
+      :key="chartKey"
       ref="chart"
       type="bar"
       height="350"
@@ -36,6 +37,7 @@ export default {
   data() {
     return {
       mounted: false,
+      renderTimeout: null,
     };
   },
 
@@ -43,17 +45,22 @@ export default {
     // Wait for next tick to ensure DOM is ready
     // Use setTimeout to give ApexCharts extra time
     this.$nextTick(() => {
-      setTimeout(() => {
+      this.renderTimeout = setTimeout(() => {
         this.mounted = true;
       }, 100);
     });
   },
 
   beforeUnmount() {
+    if (this.renderTimeout) clearTimeout(this.renderTimeout);
     this.mounted = false;
   },
 
   computed: {
+    chartKey() {
+      return `waterfall-${Math.round(this.totalAssets)}-${Math.round(this.totalLiabilities)}`;
+    },
+
     totalAssets() {
       return this.assets.reduce((sum, asset) => sum + parseFloat(asset.current_value || 0), 0);
     },

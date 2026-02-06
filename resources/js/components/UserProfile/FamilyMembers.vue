@@ -218,7 +218,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useStore } from 'vuex';
 import FamilyMemberFormModal from './FamilyMemberFormModal.vue';
 import ConfirmationModal from '@/components/Common/ConfirmationModal.vue';
@@ -252,6 +252,9 @@ export default {
     const spouseEmail = ref(null);
     const temporaryPassword = ref(null);
     const familyMembers = ref([]);
+    let successTimeout = null;
+    let errorTimeout = null;
+    let deleteSuccessTimeout = null;
 
     // Watch for changes in the store's familyMembers and update local ref
     const storeFamilyMembers = computed(() => store.state.userProfile.familyMembers);
@@ -403,7 +406,8 @@ export default {
 
         // Clear success message after 5 seconds
         if (successMessage.value) {
-          setTimeout(() => {
+          if (successTimeout) clearTimeout(successTimeout);
+          successTimeout = setTimeout(() => {
             successMessage.value = '';
           }, 5000);
         }
@@ -414,7 +418,8 @@ export default {
         closeModal();
 
         // Clear error after 8 seconds
-        setTimeout(() => {
+        if (errorTimeout) clearTimeout(errorTimeout);
+        errorTimeout = setTimeout(() => {
           errorMessage.value = '';
         }, 8000);
       }
@@ -446,7 +451,8 @@ export default {
         await store.dispatch('userProfile/fetchProfile');
 
         // Clear success message after 3 seconds
-        setTimeout(() => {
+        if (deleteSuccessTimeout) clearTimeout(deleteSuccessTimeout);
+        deleteSuccessTimeout = setTimeout(() => {
           successMessage.value = '';
         }, 3000);
       } catch (error) {
@@ -454,6 +460,12 @@ export default {
         showDeleteConfirm.value = false;
       }
     };
+
+    onBeforeUnmount(() => {
+      if (successTimeout) clearTimeout(successTimeout);
+      if (errorTimeout) clearTimeout(errorTimeout);
+      if (deleteSuccessTimeout) clearTimeout(deleteSuccessTimeout);
+    });
 
     onMounted(async () => {
       await loadFamilyMembers();

@@ -30,6 +30,7 @@
     <!-- Chart -->
     <div class="bg-white border border-gray-200 rounded-lg p-6">
       <apexchart
+        :key="chartKey"
         type="bar"
         height="350"
         :options="chartOptions"
@@ -109,6 +110,11 @@ export default {
   },
 
   computed: {
+    chartKey() {
+      const total = this.chartSeries?.[0]?.data?.reduce((a, b) => a + b, 0) || 0;
+      return `cashflow-${this.chartSeries?.[0]?.data?.length || 0}-${Math.round(total)}`;
+    },
+
     hasShortfall() {
       return this.cashflowData.shortfall_analysis?.has_shortfall || false;
     },

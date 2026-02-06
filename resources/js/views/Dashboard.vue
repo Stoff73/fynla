@@ -472,7 +472,7 @@ export default {
     },
 
     showMFABanner() {
-      const user = this.$store.state.auth.user;
+      const user = this.currentUser;
       if (!user) return false;
       if (user.is_preview_user) return false;
       if (this.mfaBannerDismissed) return false;
@@ -484,6 +484,7 @@ export default {
       netWorthValue: 'netWorth',
       netWorthAssets: 'totalAssets',
       netWorthLiabilities: 'totalLiabilities',
+      netWorthOverview: 'overview',
     }),
 
     netWorthData() {
@@ -496,7 +497,7 @@ export default {
 
     // Breakdown of assets and liabilities by category
     netWorthBreakdown() {
-      const overview = this.$store.state.netWorth.overview;
+      const overview = this.netWorthOverview;
       // Filter out categories with zero values
       const assets = {};
       const liabilities = {};
@@ -785,7 +786,7 @@ export default {
     },
 
     async loadAllData() {
-      const user = this.$store.state.auth.user;
+      const user = this.currentUser;
       const isMarried = user && user.marital_status === 'married';
       const estateCalculationAction = isMarried
         ? 'estate/calculateSecondDeathIHTPlanning'
@@ -864,7 +865,7 @@ export default {
   },
 
   watch: {
-    '$store.state.auth.user': {
+    currentUser: {
       immediate: true,
       handler(user) {
         if (user && !this.dataLoaded) {

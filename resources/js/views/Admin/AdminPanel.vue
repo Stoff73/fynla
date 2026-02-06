@@ -63,6 +63,7 @@
 </template>
 
 <script>
+import { mapGetters } from 'vuex';
 import AppLayout from '../../layouts/AppLayout.vue';
 import AdminDashboard from '../../components/Admin/AdminDashboard.vue';
 import UserManagement from '../../components/Admin/UserManagement.vue';
@@ -104,6 +105,10 @@ export default {
     };
   },
 
+  computed: {
+    ...mapGetters('auth', ['currentUser']),
+  },
+
   methods: {
     getTabIcon(tabId) {
       const icons = {
@@ -128,7 +133,7 @@ export default {
 
   mounted() {
     // Check if user is admin
-    const user = this.$store.state.auth?.user;
+    const user = this.currentUser;
     if (!user || !user.is_admin) {
       this.$router.push('/dashboard');
     }

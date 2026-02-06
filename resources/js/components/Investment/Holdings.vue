@@ -137,6 +137,7 @@ export default {
       error: null,
       successMessage: null,
       deleting: false,
+      successTimeout: null,
     };
   },
 
@@ -144,11 +145,8 @@ export default {
     ...mapGetters('investment', [
       'allHoldings',
       'accounts',
+      'loading',
     ]),
-
-    loading() {
-      return this.$store.state.investment.loading;
-    },
 
     filteredHoldings() {
       // If a specific account is selected, filter holdings by that account
@@ -169,6 +167,10 @@ export default {
       }
       return null;
     },
+  },
+
+  beforeUnmount() {
+    if (this.successTimeout) clearTimeout(this.successTimeout);
   },
 
   methods: {
@@ -216,7 +218,8 @@ export default {
         await this.fetchInvestmentData();
 
         // Auto-hide success message after 5 seconds
-        setTimeout(() => {
+        if (this.successTimeout) clearTimeout(this.successTimeout);
+        this.successTimeout = setTimeout(() => {
           this.successMessage = null;
         }, 5000);
       } catch (error) {
@@ -247,7 +250,8 @@ export default {
         await this.fetchInvestmentData();
 
         // Auto-hide success message after 5 seconds
-        setTimeout(() => {
+        if (this.successTimeout) clearTimeout(this.successTimeout);
+        this.successTimeout = setTimeout(() => {
           this.successMessage = null;
         }, 5000);
       } catch (error) {

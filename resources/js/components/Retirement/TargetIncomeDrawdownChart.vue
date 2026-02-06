@@ -2,6 +2,7 @@
   <div class="target-income-drawdown-chart">
     <apexchart
       v-if="isReady && series.length > 0"
+      :key="chartKey"
       type="bar"
       :options="chartOptions"
       :series="series"
@@ -37,6 +38,7 @@ export default {
   data() {
     return {
       isReady: false,
+      renderTimeout: null,
     };
   },
 
@@ -44,6 +46,12 @@ export default {
     ages() {
       if (!this.data?.yearly_income) return [];
       return this.data.yearly_income.map(y => `Age ${y.age}`);
+    },
+
+    chartKey() {
+      const yearly = this.data?.yearly_income;
+      const total = yearly?.reduce((sum, y) => sum + (y.total_income || 0), 0) || 0;
+      return `target-drawdown-${yearly?.length || 0}-${Math.round(total)}`;
     },
 
     series() {
@@ -215,10 +223,14 @@ export default {
 
   mounted() {
     this.$nextTick(() => {
-      setTimeout(() => {
+      this.renderTimeout = setTimeout(() => {
         this.isReady = true;
       }, 100);
     });
+  },
+
+  beforeUnmount() {
+    if (this.renderTimeout) clearTimeout(this.renderTimeout);
   },
 
   methods: {

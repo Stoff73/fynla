@@ -50,6 +50,7 @@
       <!-- Chart -->
       <div class="bg-white rounded-lg border border-gray-200 p-6">
         <apexchart
+          :key="chartKey"
           type="scatter"
           :options="chartOptions"
           :series="chartSeries"
@@ -236,6 +237,11 @@ export default {
     },
     hasData() {
       return this.frontierData && this.frontierData.frontier_points && this.frontierData.frontier_points.length > 0;
+    },
+
+    chartKey() {
+      const points = this.frontierData?.frontier_points;
+      return `frontier-${points?.length || 0}-${Math.round((this.frontierData?.current_portfolio?.expected_return || 0) * 10000)}`;
     },
 
     chartSeries() {

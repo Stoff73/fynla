@@ -17,6 +17,10 @@ const state = {
 };
 
 const getters = {
+    assets: (state) => state.assets,
+    investmentAccounts: (state) => state.investmentAccounts,
+    liabilities: (state) => state.liabilities,
+
     // All assets (manual + investment accounts)
     allAssets: (state) => {
         const manualAssets = Array.isArray(state.assets) ? state.assets : [];

@@ -165,6 +165,7 @@ export default {
       },
       originalForm: {},
       yearsResident: null,
+      messageTimeout: null,
     };
   },
 
@@ -213,6 +214,10 @@ export default {
       },
       deep: true,
     },
+  },
+
+  beforeUnmount() {
+    if (this.messageTimeout) clearTimeout(this.messageTimeout);
   },
 
   mounted() {
@@ -327,7 +332,8 @@ export default {
           this.$emit('updated', response.data.data.user);
 
           // Clear success message after 5 seconds
-          setTimeout(() => {
+          if (this.messageTimeout) clearTimeout(this.messageTimeout);
+          this.messageTimeout = setTimeout(() => {
             this.successMessage = '';
           }, 5000);
         }

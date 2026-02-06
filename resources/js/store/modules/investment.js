@@ -339,6 +339,10 @@ const getters = {
         return state.portfolioProjections.portfolio.projections[state.selectedProjectionPeriod];
     },
 
+    // Raw state accessors for mapGetters usage
+    analysis: (state) => state.analysis,
+    recommendations: (state) => state.recommendations,
+
     loading: (state) => state.loading,
     error: (state) => state.error,
 };

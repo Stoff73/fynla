@@ -59,6 +59,7 @@
         </h3>
         <div class="flex justify-center">
           <apexchart
+            :key="chartKey"
             type="donut"
             :options="chartOptions"
             :series="chartSeries"
@@ -400,6 +401,11 @@ export default {
     sortedByValue() {
       return [...this.filteredHoldings]
         .sort((a, b) => (b.current_value || 0) - (a.current_value || 0));
+    },
+
+    chartKey() {
+      const total = this.chartSeries?.reduce((a, b) => a + b, 0) || 0;
+      return `holdings-donut-${this.chartSeries?.length || 0}-${Math.round(total)}`;
     },
 
     // Chart series data (current values of ALL holdings)

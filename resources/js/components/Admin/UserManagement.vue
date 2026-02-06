@@ -254,7 +254,13 @@ export default {
       showDeleteDialog: false,
       userToDelete: null,
       searchTimeout: null,
+      messageTimeout: null,
     };
+  },
+
+  beforeUnmount() {
+    if (this.searchTimeout) clearTimeout(this.searchTimeout);
+    if (this.messageTimeout) clearTimeout(this.messageTimeout);
   },
 
   mounted() {
@@ -329,7 +335,8 @@ export default {
         this.loadUsers();
 
         // Clear success message after 3 seconds
-        setTimeout(() => {
+        if (this.messageTimeout) clearTimeout(this.messageTimeout);
+        this.messageTimeout = setTimeout(() => {
           this.successMessage = null;
         }, 3000);
       } catch (error) {
@@ -365,7 +372,8 @@ export default {
         this.loadUsers();
 
         // Clear success message after 3 seconds
-        setTimeout(() => {
+        if (this.messageTimeout) clearTimeout(this.messageTimeout);
+        this.messageTimeout = setTimeout(() => {
           this.successMessage = null;
         }, 3000);
       } catch (error) {

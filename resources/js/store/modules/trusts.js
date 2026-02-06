@@ -12,6 +12,7 @@ const state = {
 };
 
 const getters = {
+  trusts: (state) => state.trusts,
   activeTrusts: (state) => state.trusts.filter(t => t.is_active),
   inactiveTrusts: (state) => state.trusts.filter(t => !t.is_active),
   relevantPropertyTrusts: (state) => state.trusts.filter(t => t.is_relevant_property_trust),

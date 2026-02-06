@@ -17,6 +17,7 @@
 
     <div v-else-if="hasData && !loading && chartReady" class="chart-container">
       <apexchart
+        :key="chartKey"
         type="bar"
         :options="chartOptions"
         :series="series"
@@ -68,6 +69,7 @@ export default {
   data() {
     return {
       chartReady: false,
+      renderTimeout: null,
     };
   },
 
@@ -87,6 +89,11 @@ export default {
           value: typeof data === 'object' ? data.value : 0,
         }))
         .sort((a, b) => b.percentage - a.percentage);
+    },
+
+    chartKey() {
+      const total = this.sortedRegions.reduce((sum, r) => sum + (r.percentage || 0), 0);
+      return `geo-alloc-${this.sortedRegions.length}-${Math.round(total)}`;
     },
 
     series() {
@@ -227,10 +234,14 @@ export default {
   mounted() {
     this.$nextTick(() => {
       // Delay chart rendering to ensure DOM is ready
-      setTimeout(() => {
+      this.renderTimeout = setTimeout(() => {
         this.chartReady = true;
       }, 100);
     });
+  },
+
+  beforeUnmount() {
+    if (this.renderTimeout) clearTimeout(this.renderTimeout);
   },
 };
 </script>

@@ -477,6 +477,7 @@ export default {
       annualExemption: 3000,
       successMessage: '',
       errorMessage: '',
+      messageTimeout: null,
       plannedStrategy: null,
       loadingStrategy: false,
       strategyError: null,
@@ -531,6 +532,10 @@ export default {
              s.strategy_name !== 'Annual Exemption'
       );
     },
+  },
+
+  beforeUnmount() {
+    if (this.messageTimeout) clearTimeout(this.messageTimeout);
   },
 
   mounted() {
@@ -829,7 +834,8 @@ export default {
         this.closeGiftForm();
 
         // Show success message briefly
-        setTimeout(() => {
+        if (this.messageTimeout) clearTimeout(this.messageTimeout);
+        this.messageTimeout = setTimeout(() => {
           this.successMessage = '';
         }, 3000);
       } catch (error) {
@@ -846,7 +852,8 @@ export default {
           await this.deleteGift(id);
           this.successMessage = 'Gift deleted successfully';
 
-          setTimeout(() => {
+          if (this.messageTimeout) clearTimeout(this.messageTimeout);
+          this.messageTimeout = setTimeout(() => {
             this.successMessage = '';
           }, 3000);
         } catch (error) {

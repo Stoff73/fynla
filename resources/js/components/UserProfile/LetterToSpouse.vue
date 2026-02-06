@@ -787,6 +787,7 @@
 </template>
 
 <script>
+import { mapGetters } from 'vuex';
 import api from '@/services/api';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import logoImage from '@/assets/images/logoTransparent.png';
@@ -848,10 +849,14 @@ export default {
       },
       myLetterData: null,
       spouseLetterData: null,
+      printTimeout: null,
+      closeTimeout: null,
     };
   },
 
   computed: {
+    ...mapGetters('auth', ['currentUser']),
+
     isPreviewMode() {
       return this.$store.getters['preview/isPreviewMode'];
     },
@@ -877,7 +882,7 @@ export default {
     },
 
     userName() {
-      return this.$store.state.auth?.user?.name || 'User';
+      return this.currentUser?.name || 'User';
     },
 
     currentDate() {
@@ -936,6 +941,11 @@ export default {
       this.checkSpouse(),
       this.loadWillData(),
     ]);
+  },
+
+  beforeUnmount() {
+    if (this.printTimeout) clearTimeout(this.printTimeout);
+    if (this.closeTimeout) clearTimeout(this.closeTimeout);
   },
 
   methods: {
@@ -1122,14 +1132,16 @@ export default {
 
       // Wait for content to load, then print
       printWindow.onload = () => {
-        setTimeout(() => {
+        if (this.printTimeout) clearTimeout(this.printTimeout);
+        this.printTimeout = setTimeout(() => {
           printWindow.print();
           // Close the window after printing (or if cancelled)
           printWindow.onafterprint = () => {
             printWindow.close();
           };
           // Fallback: close after a delay if onafterprint not supported
-          setTimeout(() => {
+          if (this.closeTimeout) clearTimeout(this.closeTimeout);
+          this.closeTimeout = setTimeout(() => {
             if (!printWindow.closed) {
               printWindow.close();
             }

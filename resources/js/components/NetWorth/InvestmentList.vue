@@ -304,6 +304,8 @@ export default {
       editingAccount: null,
       successMessage: null,
       errorMessage: null,
+      successTimeout: null,
+      errorTimeout: null,
       activePortfolioTab: 'holdings',
       portfolioTabs: [
         { id: 'holdings', label: 'Holdings' },
@@ -468,7 +470,8 @@ export default {
       this.setDetailView(false);
       this.loadData();
       this.successMessage = 'Investment account deleted successfully';
-      setTimeout(() => {
+      if (this.successTimeout) clearTimeout(this.successTimeout);
+      this.successTimeout = setTimeout(() => {
         this.successMessage = null;
       }, 5000);
     },
@@ -512,13 +515,15 @@ export default {
         }
 
         this.successMessage = 'Investment account saved successfully';
-        setTimeout(() => {
+        if (this.successTimeout) clearTimeout(this.successTimeout);
+        this.successTimeout = setTimeout(() => {
           this.successMessage = null;
         }, 5000);
       } catch (error) {
         console.error('Failed to save account:', error);
         this.errorMessage = 'Failed to save account. Please try again.';
-        setTimeout(() => {
+        if (this.errorTimeout) clearTimeout(this.errorTimeout);
+        this.errorTimeout = setTimeout(() => {
           this.errorMessage = null;
         }, 5000);
       }
@@ -792,6 +797,11 @@ export default {
 
       return Math.max(0, Math.min(100, score));
     },
+  },
+
+  beforeUnmount() {
+    if (this.successTimeout) clearTimeout(this.successTimeout);
+    if (this.errorTimeout) clearTimeout(this.errorTimeout);
   },
 
   async mounted() {

@@ -157,11 +157,8 @@ export default {
   },
 
   watch: {
-    filters: {
-      handler(newFilters) {
-        this.localFilters = { ...newFilters };
-      },
-      deep: true,
+    filters(newFilters) {
+      this.localFilters = { ...newFilters };
     },
   },
 

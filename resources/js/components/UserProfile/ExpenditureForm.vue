@@ -1143,7 +1143,7 @@
 </template>
 
 <script>
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import { useStore } from 'vuex';
 import api from '@/services/api';
 import CurrencyInputField from '@/components/Shared/CurrencyInputField.vue';
@@ -2098,18 +2098,28 @@ export default {
     watch(() => props.initialData, initializeFromProps, { deep: true });
     watch(() => props.spouseData, initializeFromProps, { deep: true });
 
+    let budgetDebounceTimeout = null;
     watch([formData, spouseFormData], () => {
-      initializeRetiredBudget();
-      initializeWidowedBudget();
+      if (budgetDebounceTimeout) clearTimeout(budgetDebounceTimeout);
+      budgetDebounceTimeout = setTimeout(() => {
+        initializeRetiredBudget();
+        initializeWidowedBudget();
+      }, 150);
     }, { deep: true });
 
+    const mountTimeout = ref(null);
     onMounted(() => {
       initializeFromProps();
       fetchCommitments();
-      setTimeout(() => {
+      mountTimeout.value = setTimeout(() => {
         initializeRetiredBudget();
         initializeWidowedBudget();
       }, 100);
+    });
+
+    onBeforeUnmount(() => {
+      if (budgetDebounceTimeout) clearTimeout(budgetDebounceTimeout);
+      if (mountTimeout.value) clearTimeout(mountTimeout.value);
     });
 
     return {

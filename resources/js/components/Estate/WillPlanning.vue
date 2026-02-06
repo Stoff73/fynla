@@ -334,6 +334,7 @@
 </template>
 
 <script>
+import { mapGetters } from 'vuex';
 import api from '@/services/api';
 import IntestacyRules from './IntestacyRules.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
@@ -374,16 +375,20 @@ export default {
       successMessage: '',
       errorMessage: '',
       netEstateValue: 0,
+      successTimeout: null,
+      errorTimeout: null,
     };
   },
 
   computed: {
+    ...mapGetters('auth', ['currentUser']),
+
     isPreviewMode() {
       return this.$store.getters['preview/isPreviewMode'];
     },
 
     isMarried() {
-      return this.$store.state.auth?.user?.marital_status === 'married' && this.$store.state.auth?.user?.spouse_id;
+      return this.currentUser?.marital_status === 'married' && this.currentUser?.spouse_id;
     },
 
     spouseAmount() {
@@ -397,6 +402,11 @@ export default {
     today() {
       return new Date().toISOString().split('T')[0];
     },
+  },
+
+  beforeUnmount() {
+    if (this.successTimeout) clearTimeout(this.successTimeout);
+    if (this.errorTimeout) clearTimeout(this.errorTimeout);
   },
 
   mounted() {
@@ -444,7 +454,8 @@ export default {
       } catch (error) {
         console.error('Failed to load will:', error);
         this.errorMessage = 'Failed to load will details';
-        setTimeout(() => this.errorMessage = '', 3000);
+        if (this.errorTimeout) clearTimeout(this.errorTimeout);
+        this.errorTimeout = setTimeout(() => this.errorMessage = '', 3000);
       } finally {
         this.loading = false;
       }
@@ -513,14 +524,16 @@ export default {
         this.successMessage = 'Will saved successfully';
         this.isEditing = false;
         this.originalForm = JSON.parse(JSON.stringify(this.form));
-        setTimeout(() => this.successMessage = '', 3000);
+        if (this.successTimeout) clearTimeout(this.successTimeout);
+        this.successTimeout = setTimeout(() => this.successMessage = '', 3000);
 
         await this.loadWill();
         this.$emit('will-updated');
       } catch (error) {
         console.error('Failed to save will:', error);
         this.errorMessage = error.response?.data?.message || 'Failed to save will';
-        setTimeout(() => this.errorMessage = '', 3000);
+        if (this.errorTimeout) clearTimeout(this.errorTimeout);
+        this.errorTimeout = setTimeout(() => this.errorMessage = '', 3000);
       } finally {
         this.saving = false;
       }
@@ -544,12 +557,14 @@ export default {
       try {
         await api.delete(`/estate/bequests/${id}`);
         this.successMessage = 'Bequest deleted successfully';
-        setTimeout(() => this.successMessage = '', 3000);
+        if (this.successTimeout) clearTimeout(this.successTimeout);
+        this.successTimeout = setTimeout(() => this.successMessage = '', 3000);
         await this.loadBequests();
       } catch (error) {
         console.error('Failed to delete bequest:', error);
         this.errorMessage = 'Failed to delete bequest';
-        setTimeout(() => this.errorMessage = '', 3000);
+        if (this.errorTimeout) clearTimeout(this.errorTimeout);
+        this.errorTimeout = setTimeout(() => this.errorMessage = '', 3000);
       }
     },
 

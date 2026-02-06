@@ -3,6 +3,7 @@
     <h3 class="chart-title">{{ title }}</h3>
     <div v-if="hasData" class="chart-container">
       <apexchart
+        :key="chartKey"
         type="donut"
         :options="chartOptions"
         :series="filteredSeries"
@@ -36,6 +37,11 @@ export default {
   },
 
   computed: {
+    chartKey() {
+      const total = this.filteredSeries?.reduce((a, b) => a + b, 0) || 0;
+      return `donut-${this.filteredSeries?.length || 0}-${Math.round(total)}`;
+    },
+
     hasData() {
       return this.filteredSeries.some(value => value > 0);
     },

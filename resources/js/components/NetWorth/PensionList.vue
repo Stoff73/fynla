@@ -530,6 +530,8 @@ export default {
       initialPensionType: null,
       successMessage: null,
       errorMessage: null,
+      successTimeout: null,
+      errorTimeout: null,
     };
   },
 
@@ -758,6 +760,11 @@ export default {
     },
   },
 
+  beforeUnmount() {
+    if (this.successTimeout) clearTimeout(this.successTimeout);
+    if (this.errorTimeout) clearTimeout(this.errorTimeout);
+  },
+
   methods: {
     ...mapActions('retirement', [
       'fetchRetirementData',
@@ -803,7 +810,8 @@ export default {
       this.setDetailView(false);
       this.fetchRetirementData();
       this.successMessage = 'Pension deleted successfully';
-      setTimeout(() => {
+      if (this.successTimeout) clearTimeout(this.successTimeout);
+      this.successTimeout = setTimeout(() => {
         this.successMessage = null;
       }, 5000);
     },
@@ -839,13 +847,15 @@ export default {
         await this.fetchRetirementData();
         await this.loadProjectionsAndStrategies();
         this.successMessage = 'Pension saved successfully';
-        setTimeout(() => {
+        if (this.successTimeout) clearTimeout(this.successTimeout);
+        this.successTimeout = setTimeout(() => {
           this.successMessage = null;
         }, 5000);
       } catch (error) {
         console.error('Failed to save pension:', error);
         this.errorMessage = 'Failed to save pension. Please try again.';
-        setTimeout(() => {
+        if (this.errorTimeout) clearTimeout(this.errorTimeout);
+        this.errorTimeout = setTimeout(() => {
           this.errorMessage = null;
         }, 5000);
       }

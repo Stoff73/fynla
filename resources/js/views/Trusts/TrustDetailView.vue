@@ -149,7 +149,7 @@
 </template>
 
 <script>
-import { mapState, mapActions } from 'vuex';
+import { mapState, mapActions, mapGetters } from 'vuex';
 import api from '@/services/api';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
@@ -172,6 +172,7 @@ export default {
 
   computed: {
     ...mapState('preview', ['isPreviewMode']),
+    ...mapGetters('trusts', { storeTrusts: 'trusts' }),
 
     trustId() {
       return this.$route.params.id;
@@ -228,7 +229,7 @@ export default {
       this.error = null;
 
       try {
-        const stored = this.$store.state.trusts?.trusts?.find(
+        const stored = this.storeTrusts?.find(
           t => t.id === parseInt(this.trustId)
         );
 

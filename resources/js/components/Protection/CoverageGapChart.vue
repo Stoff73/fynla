@@ -2,6 +2,7 @@
   <div class="coverage-gap-chart">
     <apexchart
       v-if="isReady"
+      :key="chartKey"
       type="heatmap"
       :options="chartOptions"
       :series="series"
@@ -37,6 +38,10 @@ export default {
   },
 
   computed: {
+    chartKey() {
+      return `heatmap-${this.series?.length || 0}-${this.gaps?.length || 0}`;
+    },
+
     hasData() {
       return this.gaps && this.gaps.length > 0;
     },

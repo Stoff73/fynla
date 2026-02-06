@@ -17,6 +17,7 @@
 
     <div v-else-if="hasData && !loading && chartReady" class="chart-container">
       <apexchart
+        :key="chartKey"
         type="donut"
         :options="chartOptions"
         :series="series"
@@ -85,12 +86,18 @@ export default {
   data() {
     return {
       chartReady: false,
+      renderTimeout: null,
     };
   },
 
   computed: {
     hasData() {
       return this.allocation && Object.keys(this.allocation).length > 0;
+    },
+
+    chartKey() {
+      const total = this.series?.reduce((a, b) => a + b, 0) || 0;
+      return `asset-donut-${this.series?.length || 0}-${Math.round(total)}`;
     },
 
     series() {
@@ -204,10 +211,14 @@ export default {
   mounted() {
     this.$nextTick(() => {
       // Delay chart rendering to ensure DOM is ready
-      setTimeout(() => {
+      this.renderTimeout = setTimeout(() => {
         this.chartReady = true;
       }, 100);
     });
+  },
+
+  beforeUnmount() {
+    if (this.renderTimeout) clearTimeout(this.renderTimeout);
   },
 };
 </script>

@@ -526,7 +526,7 @@
 </template>
 
 <script>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onBeforeUnmount } from 'vue';
 import { useStore } from 'vuex';
 import CountrySelector from '@/components/Shared/CountrySelector.vue';
 import OccupationAutocomplete from '@/components/Shared/OccupationAutocomplete.vue';
@@ -550,6 +550,7 @@ export default {
     const errorMessage = ref('');
     const yearsResident = ref(null);
     const originalEmploymentStatus = ref(null); // Track original status for change detection
+    let messageTimeout = null;
 
     const profile = computed(() => store.getters['userProfile/profile']);
     const personalInfo = computed(() => store.getters['userProfile/personalInfo']);
@@ -873,7 +874,8 @@ export default {
         originalEmploymentStatus.value = form.value.employment_status;
 
         // Clear success message after delay (longer if status changed)
-        setTimeout(() => {
+        if (messageTimeout) clearTimeout(messageTimeout);
+        messageTimeout = setTimeout(() => {
           successMessage.value = '';
         }, statusChange.hasSignificantChange ? 8000 : (isPreviewMode ? 5000 : 3000));
       } catch (error) {
@@ -894,6 +896,10 @@ export default {
       isEditing.value = false;
       errorMessage.value = '';
     };
+
+    onBeforeUnmount(() => {
+      if (messageTimeout) clearTimeout(messageTimeout);
+    });
 
     const handleAddressSelected = (address) => {
       form.value.address_line_1 = address.line_1 || '';

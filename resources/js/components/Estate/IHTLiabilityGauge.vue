@@ -8,6 +8,7 @@
     <div class="gauge-container">
       <apexchart
         v-if="mounted"
+        :key="chartKey"
         type="radialBar"
         height="300"
         :options="chartOptions"
@@ -82,6 +83,10 @@ export default {
   },
 
   computed: {
+    chartKey() {
+      return `iht-gauge-${Math.round(this.ihtPercentage)}`;
+    },
+
     ihtPercentage() {
       if (this.estateValue === 0) return 0;
       return (this.ihtLiability / this.estateValue) * 100;

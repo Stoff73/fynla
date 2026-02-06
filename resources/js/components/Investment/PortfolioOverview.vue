@@ -227,6 +227,8 @@ export default {
       'taxEfficiencyScore',
       'isaAllowancePercentage',
       'accounts',
+      'analysis',
+      'loading',
     ]),
 
     formattedTotalValue() {
@@ -246,11 +248,11 @@ export default {
     },
 
     riskMetrics() {
-      return this.$store.state.investment.analysis?.risk_metrics;
+      return this.analysis?.risk_metrics;
     },
 
     taxEfficiency() {
-      return this.$store.state.investment.analysis?.tax_efficiency;
+      return this.analysis?.tax_efficiency;
     },
 
     allocationForChart() {
@@ -267,8 +269,7 @@ export default {
 
     geographicAllocationForChart() {
       // Get geographic allocation from analysis
-      const analysis = this.$store.state.investment.analysis;
-      const geographicAllocation = analysis?.geographic_allocation;
+      const geographicAllocation = this.analysis?.geographic_allocation;
 
       if (!geographicAllocation || Object.keys(geographicAllocation).length === 0) {
         return {};
@@ -277,9 +278,6 @@ export default {
       return geographicAllocation;
     },
 
-    loading() {
-      return this.$store.state.investment.loading;
-    },
   },
 
   methods: {

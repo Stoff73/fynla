@@ -62,6 +62,7 @@
               <h4 class="text-lg font-semibold text-gray-900 mb-4">Portfolio Value Projections</h4>
               <apexchart
                 v-if="series && series.length > 0"
+                :key="chartKey"
                 type="area"
                 :options="chartOptions"
                 :series="series"
@@ -243,6 +244,11 @@ export default {
       } else {
         return 'Off track. Your current strategy is unlikely to meet the goal. Significant changes are needed: increase contributions materially, reduce target amount, or extend timeline considerably.';
       }
+    },
+
+    chartKey() {
+      const projections = this.results?.projections;
+      return `montecarlo-${projections?.length || 0}-${Math.round(this.results?.median_outcome || 0)}`;
     },
 
     series() {

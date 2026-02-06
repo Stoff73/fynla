@@ -348,6 +348,7 @@ export default {
       loadingRebalancing: false,
       taxInfo: null,
       loadingTaxInfo: false,
+      renderTimeout: null,
     };
   },
 
@@ -625,6 +626,10 @@ export default {
     },
   },
 
+  beforeUnmount() {
+    if (this.renderTimeout) clearTimeout(this.renderTimeout);
+  },
+
   mounted() {
     // Fetch retirement data (includes profile) if not already loaded
     if (!this.profile) {
@@ -666,7 +671,8 @@ export default {
       } finally {
         this.loading = false;
         this.$nextTick(() => {
-          setTimeout(() => {
+          if (this.renderTimeout) clearTimeout(this.renderTimeout);
+          this.renderTimeout = setTimeout(() => {
             this.isChartReady = true;
           }, 100);
         });
@@ -700,7 +706,8 @@ export default {
         }
         this.isChartReady = false;
         this.$nextTick(() => {
-          setTimeout(() => {
+          if (this.renderTimeout) clearTimeout(this.renderTimeout);
+          this.renderTimeout = setTimeout(() => {
             this.isChartReady = true;
           }, 100);
         });

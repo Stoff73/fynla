@@ -115,6 +115,7 @@ export default {
       uniqueId: `country-selector-${Math.random().toString(36).substr(2, 9)}`,
       searchQuery: this.modelValue || '',
       showDropdown: false,
+      blurTimeout: null,
       countries: [
         // Top 5 priority countries
         'England',
@@ -345,6 +346,10 @@ export default {
     },
   },
 
+  beforeUnmount() {
+    if (this.blurTimeout) clearTimeout(this.blurTimeout);
+  },
+
   mounted() {
     // If no value is set and we have a default, use it
     if (!this.modelValue && this.defaultCountry) {
@@ -368,7 +373,8 @@ export default {
 
     handleBlur() {
       // Small delay to allow click events on dropdown items
-      setTimeout(() => {
+      if (this.blurTimeout) clearTimeout(this.blurTimeout);
+      this.blurTimeout = setTimeout(() => {
         this.showDropdown = false;
 
         // If search query doesn't match a country, revert to current value

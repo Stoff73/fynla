@@ -57,7 +57,7 @@
 </template>
 
 <script>
-import { ref, watch, computed } from 'vue';
+import { ref, watch, computed, onBeforeUnmount } from 'vue';
 import occupationService from '@/services/occupationService';
 
 export default {
@@ -96,6 +96,7 @@ export default {
     const showDropdown = ref(false);
     const highlightedIndex = ref(-1);
     let debounceTimer = null;
+    let blurTimeout = null;
 
     // Sync with v-model
     watch(() => props.modelValue, (newVal) => {
@@ -140,7 +141,8 @@ export default {
 
     const handleBlur = () => {
       // Delay to allow click on suggestion
-      setTimeout(() => {
+      if (blurTimeout) clearTimeout(blurTimeout);
+      blurTimeout = setTimeout(() => {
         showDropdown.value = false;
       }, 200);
     };
@@ -173,6 +175,11 @@ export default {
         selectSuggestion(suggestions.value[highlightedIndex.value]);
       }
     };
+
+    onBeforeUnmount(() => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      if (blurTimeout) clearTimeout(blurTimeout);
+    });
 
     const closeDropdown = () => {
       showDropdown.value = false;

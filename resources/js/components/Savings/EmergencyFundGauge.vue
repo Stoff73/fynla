@@ -1,6 +1,7 @@
 <template>
   <div class="emergency-fund-gauge">
     <apexchart
+      :key="chartKey"
       type="radialBar"
       :options="chartOptions"
       :series="[runwayPercentage]"
@@ -28,6 +29,10 @@ export default {
   },
 
   computed: {
+    chartKey() {
+      return `gauge-${Math.round(this.runwayPercentage)}`;
+    },
+
     runwayPercentage() {
       return Math.min((this.runwayMonths / this.targetMonths) * 100, 100);
     },

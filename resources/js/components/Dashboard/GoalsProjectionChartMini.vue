@@ -9,6 +9,7 @@
     <div v-else-if="hasData" class="relative">
       <apexchart
         ref="chart"
+        :key="chartKey"
         type="area"
         :options="chartOptions"
         :series="chartSeries"
@@ -41,6 +42,11 @@ export default {
 
     hasData() {
       return this.projectionData?.yearly_data?.length > 0;
+    },
+
+    chartKey() {
+      const data = this.projectionData?.yearly_data;
+      return `mini-${data?.length || 0}-${Math.round(data?.[data?.length - 1]?.net_worth || 0)}`;
     },
 
     chartSeries() {

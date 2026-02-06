@@ -158,6 +158,7 @@ export default {
       activeTooltip: null,
       tooltipPosition: { x: 0, y: 0 },
       isComponentMounted: false,
+      markerTimeout: null,
     };
   },
 
@@ -491,6 +492,7 @@ export default {
 
   beforeUnmount() {
     this.isComponentMounted = false;
+    if (this.markerTimeout) clearTimeout(this.markerTimeout);
   },
 
   methods: {
@@ -777,20 +779,18 @@ export default {
         }
       });
     },
-    projection: {
-      handler() {
-        if (!this.isComponentMounted) return;
-        this.$nextTick(() => {
-          if (this.isComponentMounted) {
-            setTimeout(() => {
-              if (this.isComponentMounted) {
-                this.updateEventMarkers();
-              }
-            }, 100);
-          }
-        });
-      },
-      deep: true,
+    projection() {
+      if (!this.isComponentMounted) return;
+      this.$nextTick(() => {
+        if (this.isComponentMounted) {
+          if (this.markerTimeout) clearTimeout(this.markerTimeout);
+          this.markerTimeout = setTimeout(() => {
+            if (this.isComponentMounted) {
+              this.updateEventMarkers();
+            }
+          }, 100);
+        }
+      });
     },
   },
 };

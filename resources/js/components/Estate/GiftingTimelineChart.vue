@@ -8,6 +8,7 @@
     <div v-if="gifts && gifts.length > 0" class="chart-container">
       <apexchart
         v-if="mounted"
+        :key="chartKey"
         type="rangeBar"
         height="400"
         :options="chartOptions"
@@ -123,6 +124,11 @@ export default {
   },
 
   computed: {
+    chartKey() {
+      const totalValue = this.gifts?.reduce((sum, g) => sum + (g.gift_value || 0), 0) || 0;
+      return `gifting-${this.gifts?.length || 0}-${Math.round(totalValue)}`;
+    },
+
     series() {
       if (!this.gifts || this.gifts.length === 0) {
         return [];

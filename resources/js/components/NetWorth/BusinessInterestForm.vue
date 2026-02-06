@@ -665,12 +665,6 @@ export default {
     },
   },
 
-  mounted() {
-    if (this.business) {
-      this.populateForm();
-    }
-  },
-
   methods: {
     populateForm() {
       this.form.business_name = this.business.business_name || '';

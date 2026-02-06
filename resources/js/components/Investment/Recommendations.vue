@@ -80,6 +80,7 @@
 </template>
 
 <script>
+import { mapGetters } from 'vuex';
 import InvestmentRecommendationsTracker from './InvestmentRecommendationsTracker.vue';
 
 export default {
@@ -94,19 +95,22 @@ export default {
       loading: false,
       error: null,
       showTracker: false,
+      delayTimeout: null,
     };
   },
 
   computed: {
+    ...mapGetters('investment', ['recommendations', 'accounts']),
+
     // Check if recommendations already exist in the store
     hasExistingRecommendations() {
-      return this.$store.state.investment.recommendations?.recommendations?.length > 0;
+      return this.recommendations?.recommendations?.length > 0;
     },
   },
 
   async mounted() {
     // Load investment data if not already loaded
-    const hasAccounts = this.$store.state.investment.accounts?.length > 0;
+    const hasAccounts = this.accounts?.length > 0;
     if (!hasAccounts) {
       try {
         await this.$store.dispatch('investment/fetchInvestmentData');
@@ -121,17 +125,24 @@ export default {
     }
   },
 
+  beforeUnmount() {
+    if (this.delayTimeout) clearTimeout(this.delayTimeout);
+  },
+
   methods: {
     async loadRecommendations() {
       this.loading = true;
       this.error = null;
 
       // Simulate a delay to show that it's working
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => {
+        if (this.delayTimeout) clearTimeout(this.delayTimeout);
+        this.delayTimeout = setTimeout(resolve, 500);
+      });
 
       try {
         // Check if we have the necessary data
-        const hasAccounts = this.$store.state.investment.accounts?.length > 0;
+        const hasAccounts = this.accounts?.length > 0;
 
         if (!hasAccounts) {
           this.error = 'Please add investment accounts first to generate strategies';

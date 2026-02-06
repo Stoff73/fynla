@@ -10,6 +10,7 @@
       <div class="chart-wrapper" ref="chartWrapper">
         <apexchart
           ref="chart"
+          :key="chartKey"
           type="bar"
           :options="chartOptions"
           :series="chartSeries"
@@ -88,6 +89,7 @@ export default {
       isComponentMounted: false,
       activeTooltip: null,
       tooltipPosition: { x: 0, y: 0 },
+      markerTimeout: null,
     };
   },
 
@@ -104,6 +106,11 @@ export default {
 
     projection() {
       return this.projectionData;
+    },
+
+    chartKey() {
+      const data = this.projectionData?.yearly_data;
+      return `dashboard-${data?.length || 0}-${Math.round(data?.[data?.length - 1]?.net_worth || 0)}`;
     },
 
     chartSeries() {
@@ -245,6 +252,7 @@ export default {
 
   beforeUnmount() {
     this.isComponentMounted = false;
+    if (this.markerTimeout) clearTimeout(this.markerTimeout);
   },
 
   methods: {
@@ -421,7 +429,8 @@ export default {
         if (!this.isComponentMounted) return;
         this.$nextTick(() => {
           if (this.isComponentMounted) {
-            setTimeout(() => {
+            if (this.markerTimeout) clearTimeout(this.markerTimeout);
+            this.markerTimeout = setTimeout(() => {
               if (this.isComponentMounted) {
                 this.updateEventMarkers();
               }

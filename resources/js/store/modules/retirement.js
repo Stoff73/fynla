@@ -712,6 +712,8 @@ const getters = {
     },
 
     // Portfolio Analysis Getters
+    portfolioAnalysis: (state) => state.portfolioAnalysis,
+
     hasPortfolioData: (state) => {
         return state.portfolioAnalysis?.has_portfolio_data || false;
     },

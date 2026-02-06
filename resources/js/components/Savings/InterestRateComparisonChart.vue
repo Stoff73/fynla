@@ -1,6 +1,7 @@
 <template>
   <div class="interest-rate-comparison-chart">
     <apexchart
+      :key="chartKey"
       type="bar"
       :options="chartOptions"
       :series="chartSeries"
@@ -113,6 +114,11 @@ export default {
       // Get unique account types from user's accounts
       const types = [...new Set(this.accounts.map((acc) => acc.account_type))];
       return types.map((type) => this.formatAccountType(type));
+    },
+
+    chartKey() {
+      const total = this.chartSeries?.[0]?.data?.reduce((a, b) => a + b, 0) || 0;
+      return `rate-comparison-${this.accounts.length}-${Math.round(total)}`;
     },
 
     chartSeries() {

@@ -80,6 +80,7 @@
 </template>
 
 <script>
+import { mapGetters } from 'vuex';
 import WhatIfScenariosBuilder from './WhatIfScenariosBuilder.vue';
 
 export default {
@@ -94,7 +95,16 @@ export default {
       loading: false,
       error: null,
       showBuilder: false,
+      delayTimeout: null,
     };
+  },
+
+  computed: {
+    ...mapGetters('investment', ['accounts']),
+  },
+
+  beforeUnmount() {
+    if (this.delayTimeout) clearTimeout(this.delayTimeout);
   },
 
   methods: {
@@ -103,11 +113,14 @@ export default {
       this.error = null;
 
       // Simulate a delay to show that it's working
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => {
+        if (this.delayTimeout) clearTimeout(this.delayTimeout);
+        this.delayTimeout = setTimeout(resolve, 500);
+      });
 
       try {
         // Check if we have the necessary data
-        const hasAccounts = this.$store.state.investment.accounts?.length > 0;
+        const hasAccounts = this.accounts?.length > 0;
 
         if (!hasAccounts) {
           this.error = 'Please add investment accounts first to create scenarios';

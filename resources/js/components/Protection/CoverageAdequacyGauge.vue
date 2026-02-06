@@ -1,6 +1,7 @@
 <template>
   <div class="coverage-adequacy-gauge">
     <apexchart
+      :key="chartKey"
       type="radialBar"
       :options="chartOptions"
       :series="[score]"
@@ -25,6 +26,10 @@ export default {
   },
 
   computed: {
+    chartKey() {
+      return `adequacy-${Math.round(this.score)}`;
+    },
+
     scoreColour() {
       // Use design system threshold-based color helper
       return getColorByThreshold(this.score, { success: 80, warning: 60 });

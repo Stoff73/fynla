@@ -1,6 +1,7 @@
 <template>
   <div class="income-projection-chart">
     <apexchart
+      :key="chartKey"
       type="area"
       :options="chartOptions"
       :series="series"
@@ -53,6 +54,11 @@ export default {
         ages.push(age);
       }
       return ages;
+    },
+
+    chartKey() {
+      const dcTotal = this.dcPensions.reduce((sum, p) => sum + parseFloat(p.current_fund_value || 0), 0);
+      return `income-proj-${this.ages.length}-${Math.round(dcTotal)}`;
     },
 
     dcIncomeData() {

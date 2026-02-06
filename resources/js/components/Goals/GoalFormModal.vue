@@ -370,11 +370,6 @@ export default {
   },
 
   watch: {
-    isOpen(newVal) {
-      if (newVal) {
-        this.initForm();
-      }
-    },
     goal: {
       handler() {
         this.initForm();

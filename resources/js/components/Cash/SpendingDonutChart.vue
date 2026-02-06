@@ -5,6 +5,7 @@
     <template v-if="hasExpenditureData">
       <div v-if="chartReady" class="chart-container">
         <apexchart
+          :key="chartKey"
           type="donut"
           :options="chartOptions"
           :series="series"
@@ -44,11 +45,17 @@ export default {
   data() {
     return {
       chartReady: false,
+      renderTimeout: null,
     };
   },
 
   computed: {
     ...mapState('savings', ['expenditureProfile']),
+
+    chartKey() {
+      const total = this.series?.reduce((a, b) => a + b, 0) || 0;
+      return `spending-${this.series?.length || 0}-${Math.round(total)}`;
+    },
 
     // Pro-rata factor for current month (day of month / days in month)
     monthProRata() {
@@ -243,10 +250,14 @@ export default {
 
   mounted() {
     this.$nextTick(() => {
-      setTimeout(() => {
+      this.renderTimeout = setTimeout(() => {
         this.chartReady = true;
       }, 100);
     });
+  },
+
+  beforeUnmount() {
+    if (this.renderTimeout) clearTimeout(this.renderTimeout);
   },
 };
 </script>

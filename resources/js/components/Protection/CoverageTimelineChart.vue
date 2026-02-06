@@ -2,6 +2,7 @@
   <div class="coverage-timeline-chart">
     <apexchart
       v-if="hasData && isReady"
+      :key="chartKey"
       type="rangeBar"
       :options="chartOptions"
       :series="series"
@@ -40,6 +41,10 @@ export default {
   },
 
   computed: {
+    chartKey() {
+      return `timeline-${this.policies.length}-${this.policies[0]?.id || 0}`;
+    },
+
     hasData() {
       return this.policies && this.policies.length > 0;
     },

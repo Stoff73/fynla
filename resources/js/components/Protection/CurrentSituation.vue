@@ -521,6 +521,7 @@ export default {
       fetchedEmploymentIncome: 0,
       fetchedSelfEmploymentIncome: 0,
       spouseName: null,
+      delayTimeout: null,
     };
   },
 
@@ -529,12 +530,17 @@ export default {
     await this.fetchUserData();
   },
 
+  beforeUnmount() {
+    if (this.delayTimeout) clearTimeout(this.delayTimeout);
+  },
+
   computed: {
     ...mapState('protection', ['policies', 'profile', 'analysis']),
     ...mapGetters('protection', [
       'allPolicies',
       'totalPremium',
     ]),
+    ...mapGetters('auth', ['currentUser']),
 
     isPreviewMode() {
       return this.$store.getters['preview/isPreviewMode'];
@@ -542,7 +548,7 @@ export default {
 
     // Get user from auth store for fallback income data
     authUser() {
-      return this.$store.state.auth?.user || {};
+      return this.currentUser || {};
     },
 
     hasNoPolicies() {
@@ -853,7 +859,10 @@ export default {
 
 
         // Wait a moment to ensure the database transaction is committed
-        await new Promise(resolve => setTimeout(resolve, 500));
+        if (this.delayTimeout) clearTimeout(this.delayTimeout);
+        await new Promise(resolve => {
+          this.delayTimeout = setTimeout(resolve, 500);
+        });
 
         // Force page reload to refresh all completeness calculations
         window.location.reload();

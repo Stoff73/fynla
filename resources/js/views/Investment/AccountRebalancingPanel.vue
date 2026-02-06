@@ -283,6 +283,7 @@ export default {
       editableThreshold: 10,
       thresholdSaving: false,
       thresholdSaved: false,
+      thresholdSavedTimeout: null,
       assetClasses: [
         { key: 'equities', label: 'Equities' },
         { key: 'bonds', label: 'Bonds' },
@@ -363,6 +364,10 @@ export default {
     },
   },
 
+  beforeUnmount() {
+    if (this.thresholdSavedTimeout) clearTimeout(this.thresholdSavedTimeout);
+  },
+
   watch: {
     account: {
       handler() {
@@ -408,7 +413,8 @@ export default {
         this.thresholdSaved = true;
         // Reload to get updated needs_rebalancing status
         await this.loadRebalancingData();
-        setTimeout(() => {
+        if (this.thresholdSavedTimeout) clearTimeout(this.thresholdSavedTimeout);
+        this.thresholdSavedTimeout = setTimeout(() => {
           this.thresholdSaved = false;
         }, 2000);
       } catch (err) {

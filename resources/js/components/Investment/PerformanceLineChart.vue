@@ -29,6 +29,7 @@
     <div v-else-if="hasData && !loading" class="chart-container">
       <apexchart
         v-if="hasData"
+        :key="chartKey"
         type="line"
         :options="chartOptions"
         :series="series"
@@ -89,6 +90,10 @@ export default {
   computed: {
     hasData() {
       return this.performanceData && this.performanceData.length > 0;
+    },
+
+    chartKey() {
+      return `perf-line-${this.selectedPeriod}-${this.filteredData?.length || 0}-${Math.round(this.filteredData?.[this.filteredData?.length - 1]?.value || 0)}`;
     },
 
     filteredData() {

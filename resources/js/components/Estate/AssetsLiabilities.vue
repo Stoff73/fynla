@@ -281,6 +281,8 @@ export default {
       editingLiability: null,
       successMessage: '',
       errorMessage: '',
+      successTimeout: null,
+      errorTimeout: null,
     };
   },
 
@@ -311,6 +313,11 @@ export default {
     },
   },
 
+  beforeUnmount() {
+    if (this.successTimeout) clearTimeout(this.successTimeout);
+    if (this.errorTimeout) clearTimeout(this.errorTimeout);
+  },
+
   methods: {
     ...mapActions('estate', ['createAsset', 'updateAsset', 'deleteAsset', 'createLiability', 'updateLiability', 'deleteLiability']),
 
@@ -335,7 +342,8 @@ export default {
         this.closeAssetForm();
 
         // Clear success message after 3 seconds
-        setTimeout(() => {
+        if (this.successTimeout) clearTimeout(this.successTimeout);
+        this.successTimeout = setTimeout(() => {
           this.successMessage = '';
         }, 3000);
       } catch (error) {
@@ -343,7 +351,8 @@ export default {
         console.error('Failed to save asset:', error);
 
         // Clear error message after 5 seconds
-        setTimeout(() => {
+        if (this.errorTimeout) clearTimeout(this.errorTimeout);
+        this.errorTimeout = setTimeout(() => {
           this.errorMessage = '';
         }, 5000);
       }
@@ -360,14 +369,16 @@ export default {
           await this.deleteAsset(id);
           this.successMessage = 'Asset deleted successfully';
 
-          setTimeout(() => {
+          if (this.successTimeout) clearTimeout(this.successTimeout);
+          this.successTimeout = setTimeout(() => {
             this.successMessage = '';
           }, 3000);
         } catch (error) {
           this.errorMessage = error.message || 'Failed to delete asset';
           console.error('Failed to delete asset:', error);
 
-          setTimeout(() => {
+          if (this.errorTimeout) clearTimeout(this.errorTimeout);
+          this.errorTimeout = setTimeout(() => {
             this.errorMessage = '';
           }, 5000);
         }
@@ -395,7 +406,8 @@ export default {
         this.closeLiabilityForm();
 
         // Clear success message after 3 seconds
-        setTimeout(() => {
+        if (this.successTimeout) clearTimeout(this.successTimeout);
+        this.successTimeout = setTimeout(() => {
           this.successMessage = '';
         }, 3000);
       } catch (error) {
@@ -403,7 +415,8 @@ export default {
         console.error('Failed to save liability:', error);
 
         // Clear error message after 5 seconds
-        setTimeout(() => {
+        if (this.errorTimeout) clearTimeout(this.errorTimeout);
+        this.errorTimeout = setTimeout(() => {
           this.errorMessage = '';
         }, 5000);
       }
@@ -420,14 +433,16 @@ export default {
           await this.deleteLiability(id);
           this.successMessage = 'Liability deleted successfully';
 
-          setTimeout(() => {
+          if (this.successTimeout) clearTimeout(this.successTimeout);
+          this.successTimeout = setTimeout(() => {
             this.successMessage = '';
           }, 3000);
         } catch (error) {
           this.errorMessage = error.message || 'Failed to delete liability';
           console.error('Failed to delete liability:', error);
 
-          setTimeout(() => {
+          if (this.errorTimeout) clearTimeout(this.errorTimeout);
+          this.errorTimeout = setTimeout(() => {
             this.errorMessage = '';
           }, 5000);
         }

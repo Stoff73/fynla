@@ -254,10 +254,11 @@ export default {
       'investmentRecommendations',
       'recommendationStats',
     ]),
+    ...mapGetters('investment', { storeRecommendations: 'recommendations' }),
 
     // Get dynamic recommendations from analyseInvestment (shown on Strategies card)
     dynamicRecommendations() {
-      return this.$store.state.investment.recommendations?.recommendations || [];
+      return this.storeRecommendations?.recommendations || [];
     },
 
     recommendations() {

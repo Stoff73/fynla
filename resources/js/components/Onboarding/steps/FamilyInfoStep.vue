@@ -117,7 +117,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useStore } from 'vuex';
 import OnboardingStep from '../OnboardingStep.vue';
 import FamilyMemberFormModal from '@/components/UserProfile/FamilyMemberFormModal.vue';
@@ -149,6 +149,8 @@ export default {
 
     const loading = ref(false);
     const error = ref(null);
+    let successTimeout = null;
+    let errorTimeout = null;
 
     const calculateAge = (dateOfBirth) => {
       if (!dateOfBirth) return 0;
@@ -242,7 +244,8 @@ export default {
 
         // Clear success message after 5 seconds
         if (successMessage.value) {
-          setTimeout(() => {
+          if (successTimeout) clearTimeout(successTimeout);
+          successTimeout = setTimeout(() => {
             successMessage.value = '';
           }, 5000);
         }
@@ -253,7 +256,8 @@ export default {
         closeModal();
 
         // Clear error after 8 seconds
-        setTimeout(() => {
+        if (errorTimeout) clearTimeout(errorTimeout);
+        errorTimeout = setTimeout(() => {
           error.value = null;
         }, 8000);
       }
@@ -272,7 +276,8 @@ export default {
           await familyMembersService.deleteFamilyMember(id);
           await loadFamilyMembers();
           successMessage.value = 'Family member deleted successfully!';
-          setTimeout(() => {
+          if (successTimeout) clearTimeout(successTimeout);
+          successTimeout = setTimeout(() => {
             successMessage.value = '';
           }, 3000);
         } catch (err) {
@@ -293,6 +298,11 @@ export default {
     const handleSkip = () => {
       emit('skip');
     };
+
+    onBeforeUnmount(() => {
+      if (successTimeout) clearTimeout(successTimeout);
+      if (errorTimeout) clearTimeout(errorTimeout);
+    });
 
     onMounted(async () => {
       // Ensure we have latest user data from backend

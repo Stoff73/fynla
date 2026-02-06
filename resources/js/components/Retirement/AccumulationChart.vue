@@ -1,6 +1,7 @@
 <template>
   <div class="accumulation-chart">
     <apexchart
+      :key="chartKey"
       type="line"
       :options="chartOptions"
       :series="series"
@@ -18,6 +19,11 @@ export default {
 
   computed: {
     ...mapState('retirement', ['dcPensions', 'profile']),
+
+    chartKey() {
+      const finalValue = this.projectionData?.[this.projectionData?.length - 1] || 0;
+      return `accumulation-${this.ages.length}-${Math.round(finalValue)}`;
+    },
 
     currentAge() {
       return this.profile?.current_age || 40;

@@ -8,6 +8,7 @@
       <!-- Chart -->
       <div v-if="chartData" class="mb-6">
         <apexchart
+          :key="chartKey"
           type="bar"
           height="350"
           :options="chartOptions"
@@ -161,6 +162,10 @@ export default {
         current: this.allocations.map(a => (a.current_weight * 100).toFixed(2)),
         target: this.allocations.map(a => (a.target_weight * 100).toFixed(2)),
       };
+    },
+
+    chartKey() {
+      return `alloc-compare-${this.allocations.length}-${Math.round(this.allocations.reduce((sum, a) => sum + (a.current_value || 0), 0))}`;
     },
 
     chartSeries() {

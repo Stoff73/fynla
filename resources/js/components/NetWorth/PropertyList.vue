@@ -66,7 +66,7 @@
 </template>
 
 <script>
-import { mapActions, mapState } from 'vuex';
+import { mapActions, mapState, mapGetters } from 'vuex';
 import PropertyCard from './PropertyCard.vue';
 import PropertyForm from './Property/PropertyForm.vue';
 import PropertyDetailInline from '@/components/NetWorth/Property/PropertyDetailInline.vue';
@@ -91,11 +91,14 @@ export default {
       editingProperty: null,
       successMessage: null,
       errorMessage: null,
+      successTimeout: null,
+      errorTimeout: null,
     };
   },
 
   computed: {
     ...mapState('netWorth', ['isDetailView']),
+    ...mapGetters('auth', ['currentUser']),
 
     isPreviewMode() {
       return this.$store.getters['preview/isPreviewMode'];
@@ -107,7 +110,7 @@ export default {
     },
 
     userAddress() {
-      const user = this.$store.state.auth?.user;
+      const user = this.currentUser;
       if (!user) return null;
       // Only return address if at least one field is populated
       if (!user.address_line_1 && !user.city && !user.postcode) return null;
@@ -131,6 +134,11 @@ export default {
     },
   },
 
+  beforeUnmount() {
+    if (this.successTimeout) clearTimeout(this.successTimeout);
+    if (this.errorTimeout) clearTimeout(this.errorTimeout);
+  },
+
   methods: {
     ...mapActions('netWorth', ['setDetailView']),
 
@@ -152,7 +160,8 @@ export default {
       this.setDetailView(false);
       this.fetchProperties();
       this.successMessage = 'Property deleted successfully';
-      setTimeout(() => {
+      if (this.successTimeout) clearTimeout(this.successTimeout);
+      this.successTimeout = setTimeout(() => {
         this.successMessage = null;
       }, 5000);
     },
@@ -219,7 +228,8 @@ export default {
         this.closePropertyForm();
 
         // Auto-hide success message after 5 seconds
-        setTimeout(() => {
+        if (this.successTimeout) clearTimeout(this.successTimeout);
+        this.successTimeout = setTimeout(() => {
           this.successMessage = null;
         }, 5000);
       } catch (error) {
@@ -227,7 +237,8 @@ export default {
         this.errorMessage = error.response?.data?.message || 'Failed to save property. Please try again.';
 
         // Auto-hide error message after 5 seconds
-        setTimeout(() => {
+        if (this.errorTimeout) clearTimeout(this.errorTimeout);
+        this.errorTimeout = setTimeout(() => {
           this.errorMessage = null;
         }, 5000);
       }

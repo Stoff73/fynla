@@ -108,9 +108,10 @@ export default {
       protectionCriticalIllnessPolicies: 'criticalIllnessPolicies',
       protectionIncomeProtectionPolicies: 'incomeProtectionPolicies',
     }),
+    ...mapGetters('auth', ['currentUser']),
 
     user() {
-      return this.$store.state.auth.user;
+      return this.currentUser;
     },
 
     isMarried() {

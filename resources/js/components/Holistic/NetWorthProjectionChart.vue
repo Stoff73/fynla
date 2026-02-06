@@ -23,6 +23,7 @@
     <!-- Chart -->
     <div class="bg-white border border-gray-200 rounded-lg p-6">
       <apexchart
+        :key="chartKey"
         type="area"
         height="400"
         :options="chartOptions"
@@ -79,6 +80,11 @@ export default {
   },
 
   computed: {
+    chartKey() {
+      const baselineLen = this.projectionData.baseline_projections?.length || 0;
+      return `projection-${baselineLen}-${Math.round(this.finalBaselineValue)}`;
+    },
+
     projectionYears() {
       return this.projectionData.baseline_projections?.length - 1 || 20;
     },

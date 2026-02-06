@@ -305,7 +305,7 @@
 </template>
 
 <script>
-import { mapState, mapActions } from 'vuex';
+import { mapState, mapActions, mapGetters } from 'vuex';
 import AppLayout from '@/layouts/AppLayout.vue';
 import PolicyFormModal from './PolicyFormModal.vue';
 import ConfirmationModal from '../Common/ConfirmationModal.vue';
@@ -335,6 +335,8 @@ export default {
   },
 
   computed: {
+    ...mapGetters('protection', ['policies']),
+
     tabs() {
       const baseTabs = [
         { id: 'overview', label: 'Overview' },
@@ -504,7 +506,7 @@ export default {
         await this.$store.dispatch('protection/fetchProtectionData');
 
         // Get the specific policy from the store
-        const policies = this.$store.state.protection.policies;
+        const policies = this.policies;
         const policyArray = policies[this.policyType] || [];
         let foundPolicy = policyArray.find(p => p.id === this.policyId);
 

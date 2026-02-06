@@ -2,6 +2,7 @@
   <div class="premium-breakdown-chart">
     <apexchart
       v-if="hasData && isReady"
+      :key="chartKey"
       type="pie"
       :options="chartOptions"
       :series="series"
@@ -46,6 +47,11 @@ export default {
   },
 
   computed: {
+    chartKey() {
+      const total = this.series?.reduce((a, b) => a + b, 0) || 0;
+      return `premium-${this.series?.length || 0}-${Math.round(total)}`;
+    },
+
     series() {
       // Ensure premiums object exists and has valid structure
       const validPremiums = this.premiums && typeof this.premiums === 'object' ? this.premiums : {};

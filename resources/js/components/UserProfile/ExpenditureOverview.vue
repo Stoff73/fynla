@@ -37,7 +37,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useStore } from 'vuex';
 import ExpenditureForm from './ExpenditureForm.vue';
 
@@ -53,6 +53,7 @@ export default {
     const error = ref(null);
     const successMessage = ref(null);
     const spouse = ref({});
+    let messageTimeout = null;
 
     const user = computed(() => store.getters['auth/currentUser']);
     const profile = computed(() => store.getters['userProfile/profile']);
@@ -114,7 +115,8 @@ export default {
           ? 'Expenditure saved for this session only (preview mode).'
           : 'Expenditure updated successfully';
 
-        setTimeout(() => {
+        if (messageTimeout) clearTimeout(messageTimeout);
+        messageTimeout = setTimeout(() => {
           successMessage.value = null;
         }, isPreviewMode ? 5000 : 3000);
       } catch (err) {
@@ -129,6 +131,10 @@ export default {
       error.value = null;
       successMessage.value = null;
     };
+
+    onBeforeUnmount(() => {
+      if (messageTimeout) clearTimeout(messageTimeout);
+    });
 
     onMounted(() => {
       // Load data for all users (including preview mode)

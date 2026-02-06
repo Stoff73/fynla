@@ -282,10 +282,11 @@ export default {
       'portfolioDiversificationScore',
       'portfolioFeeAnalysis',
       'pensionsWithHoldings',
+      'portfolioAnalysis',
     ]),
 
     portfolioSummary() {
-      return this.$store.state.retirement.portfolioAnalysis?.portfolio_summary || {};
+      return this.portfolioAnalysis?.portfolio_summary || {};
     },
 
     riskMetrics() {

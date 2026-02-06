@@ -2,6 +2,7 @@
   <div class="pension-pot-chart">
     <apexchart
       v-if="isReady && series.length > 0"
+      :key="chartKey"
       type="area"
       :options="chartOptions"
       :series="series"
@@ -50,6 +51,7 @@ export default {
   data() {
     return {
       isReady: false,
+      renderTimeout: null,
     };
   },
 
@@ -57,6 +59,11 @@ export default {
     years() {
       if (!this.data?.year_by_year) return [];
       return this.data.year_by_year.map(y => y.year);
+    },
+
+    chartKey() {
+      const yearByYear = this.data?.year_by_year;
+      return `pension-pot-${yearByYear?.length || 0}-${Math.round(yearByYear?.[yearByYear?.length - 1]?.percentile_10 || 0)}`;
     },
 
     series() {
@@ -199,10 +206,14 @@ export default {
 
   mounted() {
     this.$nextTick(() => {
-      setTimeout(() => {
+      this.renderTimeout = setTimeout(() => {
         this.isReady = true;
       }, 100);
     });
+  },
+
+  beforeUnmount() {
+    if (this.renderTimeout) clearTimeout(this.renderTimeout);
   },
 
   methods: {

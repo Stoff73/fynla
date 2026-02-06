@@ -3,6 +3,7 @@
     <h3 class="chart-title">Asset Breakdown</h3>
     <div v-if="hasData" class="chart-container">
       <apexchart
+        :key="chartKey"
         type="bar"
         :options="chartOptions"
         :series="series"
@@ -32,6 +33,11 @@ export default {
   },
 
   computed: {
+    chartKey() {
+      const total = this.series[0]?.data?.reduce((a, b) => a + b, 0) || 0;
+      return `asset-bar-${this.series[0]?.data?.length || 0}-${Math.round(total)}`;
+    },
+
     hasData() {
       return this.series[0].data.some(value => value > 0);
     },

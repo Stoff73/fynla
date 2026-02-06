@@ -150,16 +150,15 @@ export default {
       'taxEfficiencyScore',
       'totalISAContributions',
       'isaAllowancePercentage',
+      'analysis',
     ]),
 
     feeBreakdown() {
-      const analysis = this.$store.state.investment.analysis;
-      return analysis?.fee_analysis?.fee_breakdown || null;
+      return this.analysis?.fee_analysis?.fee_breakdown || null;
     },
 
     taxOptimizations() {
-      const analysis = this.$store.state.investment.analysis;
-      return analysis?.tax_efficiency?.optimization_opportunities || [];
+      return this.analysis?.tax_efficiency?.optimization_opportunities || [];
     },
 
     isaUsed() {
