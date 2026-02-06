@@ -10,6 +10,7 @@ const state = {
         breakdown: {},
         liabilitiesBreakdown: {},
         asOfDate: null,
+        hasDbPensions: false,
     },
     spouseOverview: null,
     trend: [],
@@ -48,6 +49,7 @@ const mutations = {
             breakdown: overview.breakdown || {},
             liabilitiesBreakdown: overview.liabilities_breakdown || {},
             asOfDate: overview.as_of_date || null,
+            hasDbPensions: overview.has_db_pensions || false,
         };
     },
 
@@ -95,6 +97,7 @@ const mutations = {
             breakdown: {},
             liabilitiesBreakdown: {},
             asOfDate: null,
+            hasDbPensions: false,
         };
         state.spouseOverview = null;
         state.trend = [];

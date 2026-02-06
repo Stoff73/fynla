@@ -48,6 +48,7 @@ class NetWorthController extends Controller
                         'netWorth' => $spouseNetWorth['net_worth'],
                         'breakdown' => $spouseNetWorth['breakdown'],
                         'liabilitiesBreakdown' => $spouseNetWorth['liabilities_breakdown'],
+                        'hasDbPensions' => $spouseNetWorth['has_db_pensions'] ?? false,
                     ];
                 }
             }

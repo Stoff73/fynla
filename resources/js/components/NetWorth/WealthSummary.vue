@@ -25,11 +25,38 @@
       </div>
 
       <!-- Asset Breakdown Rows - Order: Pensions, Property, Investments, Cash, Business, Personal Valuables -->
-      <router-link v-if="showAssetRow('pensions')" :to="getAssetLink('pensions')" class="summary-row breakdown-row clickable-row">
+      <!-- Pensions row: show DC values with per-user DB note inline -->
+      <router-link v-if="showAssetRow('pensions') || anyDbPensions" :to="getAssetLink('pensions')" class="summary-row breakdown-row clickable-row">
         <div class="row-label">Pensions</div>
-        <div class="column-value">{{ formatCurrency(userBreakdown.pensions) }}</div>
-        <div v-if="hasSpouse" class="column-value">{{ formatCurrency(spouseBreakdown.pensions) }}</div>
-        <div v-if="hasSpouse" class="column-value total-column">{{ formatCurrency(userBreakdown.pensions + (spouseBreakdown.pensions || 0)) }}</div>
+        <div class="column-value">
+          <template v-if="userBreakdown.pensions > 0">
+            {{ formatCurrency(userBreakdown.pensions) }}
+            <span v-if="hasDbPensions" class="db-pension-note">(not incl. DB pensions)</span>
+          </template>
+          <template v-else-if="hasDbPensions">
+            <span class="db-only-message">DB only</span>
+          </template>
+          <template v-else>{{ formatCurrency(0) }}</template>
+        </div>
+        <div v-if="hasSpouse" class="column-value">
+          <template v-if="(spouseBreakdown.pensions || 0) > 0">
+            {{ formatCurrency(spouseBreakdown.pensions) }}
+            <span v-if="spouseHasDbPensions" class="db-pension-note">(not incl. DB pensions)</span>
+          </template>
+          <template v-else-if="spouseHasDbPensions">
+            <span class="db-only-message">DB only</span>
+          </template>
+          <template v-else>{{ formatCurrency(0) }}</template>
+        </div>
+        <div v-if="hasSpouse" class="column-value total-column">
+          <template v-if="pensionsHaveDcValue">
+            {{ formatCurrency(userBreakdown.pensions + (spouseBreakdown.pensions || 0)) }}
+            <span v-if="anyDbPensions" class="db-pension-note">(not incl. DB pensions)</span>
+          </template>
+          <template v-else>
+            <span class="db-only-message">DB only</span>
+          </template>
+        </div>
       </router-link>
       <router-link v-if="showAssetRow('property')" :to="getAssetLink('property')" class="summary-row breakdown-row clickable-row">
         <div class="row-label">Property</div>
@@ -169,6 +196,14 @@ export default {
       type: String,
       default: 'Spouse Wealth',
     },
+    hasDbPensions: {
+      type: Boolean,
+      default: false,
+    },
+    spouseHasDbPensions: {
+      type: Boolean,
+      default: false,
+    },
   },
 
   computed: {
@@ -284,6 +319,16 @@ export default {
       }
       return '';
     },
+
+    anyDbPensions() {
+      return this.hasDbPensions || this.spouseHasDbPensions;
+    },
+
+    pensionsHaveDcValue() {
+      const userValue = this.userBreakdown.pensions || 0;
+      const spouseValue = this.hasSpouse ? (this.spouseBreakdown.pensions || 0) : 0;
+      return userValue > 0 || spouseValue > 0;
+    },
   },
 
   methods: {
@@ -359,20 +404,18 @@ export default {
 
 .summary-row {
   display: grid;
-  grid-template-columns: 1fr minmax(120px, 200px);
+  grid-template-columns: 1fr auto;
   gap: 16px;
   align-items: center;
   min-width: 0;
 }
 
 .summary-content.has-spouse .summary-row {
-  grid-template-columns: 200px minmax(100px, 1fr) minmax(100px, 1fr) minmax(100px, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
 }
 
 .column-value {
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -479,10 +522,10 @@ export default {
 
 .total-row .column-value.total-value {
   text-align: right;
-  padding: 12px 16px;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 700;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
   @apply text-gray-900;
 }
 
@@ -506,14 +549,12 @@ export default {
 }
 
 .net-worth-row .row-label.net-worth-label {
-  font-size: 16px;
   font-weight: 700;
 }
 
 .net-worth-row .column-value.net-worth-value {
   background: linear-gradient(135deg, theme('colors.sky.50') 0%, white 100%);
   @apply border-2 border-primary-500;
-  font-size: 20px;
 }
 
 .net-worth-value.positive {
@@ -522,6 +563,23 @@ export default {
 
 .net-worth-value.negative {
   @apply text-red-500;
+}
+
+/* DB pension note - inline within value cell */
+.db-pension-note {
+  display: block;
+  font-size: 9px;
+  font-weight: 400;
+  @apply text-gray-400;
+  line-height: 1.2;
+  margin-top: 1px;
+}
+
+.db-only-message {
+  font-size: 11px;
+  font-weight: 500;
+  font-style: italic;
+  @apply text-gray-400;
 }
 
 .no-data {
@@ -556,12 +614,11 @@ export default {
   }
 
   .summary-row {
-    grid-template-columns: 1fr minmax(80px, 140px);
     gap: 8px;
   }
 
   .summary-content.has-spouse .summary-row {
-    grid-template-columns: 90px minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
     gap: 6px;
   }
 
@@ -583,22 +640,17 @@ export default {
   }
 
   .breakdown-row .column-value {
-    padding: 4px 4px;
-    font-size: 10px;
+    padding: 4px 6px;
+    font-size: clamp(9px, 1.8vw, 13px);
   }
 
   .total-row .column-value.total-value {
-    padding: 6px 4px;
-    font-size: 11px;
+    padding: 4px 6px;
+    font-size: clamp(9px, 1.8vw, 13px);
   }
 
   .net-worth-row .column-value.net-worth-value {
-    font-size: 12px;
-    padding: 8px 4px;
-  }
-
-  .net-worth-row .row-label.net-worth-label {
-    font-size: 11px;
+    padding: 4px 6px;
   }
 
   .clickable-row {
@@ -608,13 +660,9 @@ export default {
 }
 
 @media (max-width: 480px) {
-  .summary-row {
-    grid-template-columns: 1fr minmax(70px, 120px);
-  }
-
   .summary-content.has-spouse .summary-row {
-    grid-template-columns: 65px minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
-    gap: 4px;
+    grid-template-columns: minmax(0, 0.7fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+    gap: 3px;
   }
 
   .column-header {
@@ -626,18 +674,15 @@ export default {
   }
 
   .breakdown-row .column-value {
-    padding: 3px 3px;
-    font-size: 9px;
+    padding: 3px 4px;
   }
 
   .total-row .column-value.total-value {
-    padding: 5px 3px;
-    font-size: 10px;
+    padding: 3px 4px;
   }
 
   .net-worth-row .column-value.net-worth-value {
-    font-size: 11px;
-    padding: 6px 3px;
+    padding: 3px 4px;
   }
 }
 </style>

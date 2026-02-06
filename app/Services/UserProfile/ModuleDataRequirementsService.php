@@ -576,8 +576,8 @@ class ModuleDataRequirementsService
             'liabilities' => $user->liabilities()->exists(),
             'savings_accounts' => $user->savingsAccounts()->exists(),
             'investment_accounts' => $user->investmentAccounts()->exists(),
-            // DC pensions: filled if user has them, OR if user is retired (they may only have DB/State)
-            'dc_pensions' => $user->dcPensions()->exists() || $user->employment_status === 'retired',
+            // DC pensions: filled if user has them, OR if user has DB pensions (may legitimately not have DC), OR if retired
+            'dc_pensions' => $user->dcPensions()->exists() || $user->dbPensions()->exists() || $user->employment_status === 'retired',
             'db_pensions' => $user->dbPensions()->exists(),
             'state_pension' => $user->statePension()->exists(),
             'family_members' => $user->familyMembers()->exists(),

@@ -45,8 +45,9 @@ class NetWorthService
         $businessValue = $this->calculateBusinessValue($userId);
         $chattelValue = $this->calculateChattelValue($userId);
 
-        // Calculate pension values
-        $pensionValue = $this->calculatePensionValue($userId);
+        // Calculate pension values (DC only - DB excluded as not accessible capital, same as State Pension)
+        $pensionBreakdown = $this->calculatePensionBreakdown($userId);
+        $pensionValue = $pensionBreakdown['dc'];
 
         $totalAssets = $propertyValue + $investmentValue + $cashValue + $pensionValue + $businessValue + $chattelValue;
 
@@ -77,6 +78,7 @@ class NetWorthService
                 'business' => round($businessValue, 2),
                 'chattels' => round($chattelValue, 2),
             ],
+            'has_db_pensions' => $pensionBreakdown['has_db'],
             'liabilities_breakdown' => [
                 'mortgages' => round($liabilitiesBreakdown['mortgages'], 2),
                 'loans' => round($liabilitiesBreakdown['loans'], 2),
@@ -189,31 +191,24 @@ class NetWorthService
     }
 
     /**
-     * Calculate total pension value (DC + DB capital equivalent)
-     * Note: State Pension is excluded as it cannot be accessed as a capital sum
+     * Calculate pension values split by DC and DB.
+     *
+     * DC pensions are included as accessible capital (fund value).
+     * DB pensions are excluded from net worth (not accessible as a capital sum,
+     * same rationale as State Pension). A flag is returned so the frontend
+     * can display an appropriate note.
      */
-    private function calculatePensionValue(int $userId): float
+    private function calculatePensionBreakdown(int $userId): array
     {
-        // DC Pensions - use current fund value
-        $dcValue = DCPension::where('user_id', $userId)
+        $dcValue = (float) DCPension::where('user_id', $userId)
             ->sum('current_fund_value');
 
-        // DB Pensions - calculate capital equivalent
-        // Use 20x annual pension as a rough capital value (standard actuarial multiplier)
-        $dbValue = DBPension::where('user_id', $userId)
-            ->get()
-            ->sum(function ($dbPension) {
-                $annualPension = $dbPension->accrued_annual_pension ?? 0;
-                $lumpSum = $dbPension->lump_sum_entitlement ?? 0;
+        $hasDB = DBPension::where('user_id', $userId)->exists();
 
-                // Capital value = (Annual pension × 20) + Lump sum
-                return ($annualPension * 20) + $lumpSum;
-            });
-
-        // Note: State Pension is NOT included in Net Worth calculation
-        // as it is not accessible as a capital sum
-
-        return (float) ($dcValue + $dbValue);
+        return [
+            'dc' => $dcValue,
+            'has_db' => $hasDB,
+        ];
     }
 
     /**
@@ -289,7 +284,7 @@ class NetWorthService
         return [
             'pensions' => [
                 'count' => $pensionCount,
-                'total_value' => $this->calculatePensionValue($userId),
+                'total_value' => $this->calculatePensionBreakdown($userId)['dc'],
                 'breakdown' => [
                     'dc' => $dcCount,
                     'db' => $dbCount,

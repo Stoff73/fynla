@@ -19,6 +19,7 @@
     "former_employer": "NHS",
     "occupation": "Retired Nurse Manager",
     "target_retirement_age": 60,
+    "target_retirement_income": 35000,
     "monthly_expenditure": 2660,
     "health_status": "yes",
     "smoking_status": "never",
@@ -52,7 +53,9 @@
     "occupation": "Retired Civil Servant",
     "health_status": "yes_previous",
     "smoking_status": "quit_long_ago",
-    "education_level": "a_level"
+    "education_level": "a_level",
+    "target_retirement_age": 65,
+    "target_retirement_income": 30000
   },
 
   "family_members": [

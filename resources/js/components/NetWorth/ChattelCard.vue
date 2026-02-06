@@ -69,7 +69,7 @@ export default {
     },
 
     isJoint() {
-      return this.chattel.ownership_percentage && this.chattel.ownership_percentage < 100;
+      return this.chattel.is_shared || this.chattel.ownership_type === 'joint' || this.chattel.ownership_type === 'tenants_in_common';
     },
 
     isVehicle() {

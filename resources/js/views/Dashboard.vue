@@ -168,7 +168,7 @@
                 class="flex justify-between text-sm"
               >
                 <span class="text-gray-600 truncate mr-2">{{ account.account_name }}</span>
-                <span class="font-medium text-gray-900 whitespace-nowrap">{{ formatCurrency(account.current_value) }}</span>
+                <span class="font-medium text-gray-900 whitespace-nowrap">{{ formatCurrency(ownershipValue(account, 'current_value')) }}</span>
               </div>
               <div class="flex justify-between text-sm pt-2 border-t border-gray-100">
                 <span class="text-gray-700 font-medium">Total Investments</span>
@@ -185,7 +185,7 @@
                 class="flex justify-between text-sm"
               >
                 <span class="text-gray-600 truncate mr-2">{{ formatCashAccountName(account) }}</span>
-                <span class="font-medium text-gray-900 whitespace-nowrap">{{ formatCurrency(account.current_balance) }}</span>
+                <span class="font-medium text-gray-900 whitespace-nowrap">{{ formatCurrency(ownershipValue(account, 'current_balance')) }}</span>
               </div>
               <div class="flex justify-between text-sm pt-2 border-t border-gray-100">
                 <span class="text-gray-700 font-medium">Total Cash</span>
@@ -532,8 +532,19 @@ export default {
       // Use real data from API - NOT made up calculations
       const requiredCapital = this.requiredCapital || {};
 
+      // Use analysis projected income if available
+      let projected = this.projectedIncome || 0;
+
+      // If analysis hasn't run (no retirement profile) but user has DB/State pensions,
+      // calculate guaranteed income directly from pension records
+      if (projected === 0 && (this.dbPensions?.length > 0 || this.statePension)) {
+        const dbIncome = (this.dbPensions || []).reduce((sum, p) => sum + parseFloat(p.accrued_annual_pension || 0), 0);
+        const stateIncome = parseFloat(this.statePension?.annual_amount || 0);
+        projected = dbIncome + stateIncome;
+      }
+
       return {
-        projectedIncome: this.projectedIncome || 0,
+        projectedIncome: projected,
         targetIncome: requiredCapital.required_income || 0,
         projectedCapital: this.totalPensionWealth || 0,
         capitalRequired: requiredCapital.required_capital_at_retirement || 0,
@@ -589,14 +600,14 @@ export default {
     },
 
     investmentData() {
-      // Total investments from investment accounts
+      // Total investments from investment accounts (adjusted for ownership)
       const totalInvestments = this.investmentAccountsList.reduce((sum, account) => {
-        return sum + parseFloat(account.current_value || 0);
+        return sum + this.ownershipValue(account, 'current_value');
       }, 0);
 
-      // Total cash from savings accounts
+      // Total cash from savings accounts (adjusted for ownership)
       const totalCash = this.cashAccountsList.reduce((sum, account) => {
-        return sum + parseFloat(account.current_balance || 0);
+        return sum + this.ownershipValue(account, 'current_balance');
       }, 0);
 
       return {
@@ -706,6 +717,15 @@ export default {
     },
 
     // Format cash account name from institution and account type
+    ownershipValue(account, valueField) {
+      const value = parseFloat(account[valueField] || 0);
+      if (account.ownership_type === 'joint' || account.ownership_type === 'tenants_in_common') {
+        const percentage = account.ownership_percentage ?? 50;
+        return value * (percentage / 100);
+      }
+      return value;
+    },
+
     formatCashAccountName(account) {
       const typeLabels = {
         current_account: 'Current',

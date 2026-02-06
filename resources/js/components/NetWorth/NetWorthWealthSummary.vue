@@ -11,6 +11,8 @@
           :spouse-data="filteredSpouseOverview"
           :user-name="currentUserName"
           :spouse-name="filteredSpouseName"
+          :has-db-pensions="overview.hasDbPensions"
+          :spouse-has-db-pensions="filteredSpouseOverview?.hasDbPensions || false"
         />
       </div>
 

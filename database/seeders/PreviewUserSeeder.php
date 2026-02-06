@@ -1326,7 +1326,8 @@ class PreviewUserSeeder extends Seeder
                 'company_number' => $business['company_number'] ?? null,
                 'industry_sector' => $business['industry_sector'] ?? null,
                 'ownership_type' => $business['ownership_type'] ?? 'individual',
-                'ownership_percentage' => $business['ownership_percentage'] ?? 100,
+                'ownership_percentage' => $business['ownership_percentage']
+                    ?? (in_array($business['ownership_type'] ?? 'individual', ['joint', 'tenants_in_common'], true) ? 50 : 100),
                 'current_valuation' => $business['current_valuation'] ?? $business['current_value'] ?? 0,
                 'valuation_date' => $business['valuation_date'] ?? null,
                 'valuation_method' => $business['valuation_method'] ?? null,
@@ -1383,7 +1384,8 @@ class PreviewUserSeeder extends Seeder
                 'purchase_date' => $chattel['purchase_date'] ?? null,
                 'valuation_date' => $chattel['valuation_date'] ?? now()->toDateString(),
                 'ownership_type' => $chattel['ownership_type'] ?? 'individual',
-                'ownership_percentage' => $chattel['ownership_percentage'] ?? 100,
+                'ownership_percentage' => $chattel['ownership_percentage']
+                    ?? (in_array($chattel['ownership_type'] ?? 'individual', ['joint', 'tenants_in_common'], true) ? 50 : 100),
                 'make' => $chattel['make'] ?? null,
                 'model' => $chattel['model'] ?? null,
                 'year' => $chattel['year'] ?? null,

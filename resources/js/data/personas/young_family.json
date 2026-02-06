@@ -49,7 +49,9 @@
     "occupation": "Marketing Manager",
     "health_status": "yes",
     "smoking_status": "never",
-    "education_level": "undergraduate"
+    "education_level": "undergraduate",
+    "target_retirement_age": 65,
+    "target_retirement_income": 30000
   },
 
   "family_members": [

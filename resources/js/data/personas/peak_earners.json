@@ -50,7 +50,9 @@
     "occupation": "GP Partner",
     "health_status": "yes",
     "smoking_status": "never",
-    "education_level": "postgraduate"
+    "education_level": "postgraduate",
+    "target_retirement_age": 60,
+    "target_retirement_income": 55000
   },
 
   "family_members": [
@@ -545,6 +547,7 @@
       "lump_sum_entitlement": 105000,
       "spouse_benefit_percentage": 50,
       "years_of_service": 18,
+      "owner": "spouse",
       "notes": "Sarah's NHS pension - 2015 scheme"
     }
   ],
