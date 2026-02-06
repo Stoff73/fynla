@@ -47,7 +47,7 @@ class GoalsProjectionService
         $cacheKey = "goals_projection_{$userId}_".($household ? 'household' : 'individual');
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($userId, $household) {
-            $user = User::with(['goals', 'spouse'])->findOrFail($userId);
+            $user = User::with(['goals', 'spouse', 'investmentAccounts.holdings'])->findOrFail($userId);
 
             // Check household permission
             if ($household && ! $user->hasAcceptedSpousePermission()) {

@@ -400,6 +400,133 @@ resources/js/data/personas/young_family.json
 
 ---
 
+### 20. Vue Best Practices - Chart Keys, mapGetters, Watcher Fixes, setTimeout Cleanup
+
+**Status:** Pending
+**Build Required:** YES
+**Migration Required:** NO
+
+**Description:** Applied 5 priority actions from the Vue best practices audit across ~100 files to improve performance and prevent memory leaks.
+
+**What was done:**
+
+1. **Chart `:key` pattern (32 files):** Added `chartKey` computed properties and `:key="chartKey"` bindings to all ApexCharts components. Keys use lightweight data identity (array lengths, rounded totals) to prevent unnecessary re-renders from new object references in computed properties.
+
+2. **Replace `$store.state` with `mapState`/`mapGetters` (19 components + 6 store modules):** Replaced direct `this.$store.state.module.prop` access with proper `mapGetters` spread in computed sections. Added missing getters to estate, investment, netWorth, protection, retirement, and trusts store modules.
+
+3. **Fix deep watchers (3 files):** Removed unnecessary `deep: true` from GoalsList and GoalsProjectionChart watchers (props replaced as new objects, shallow watch suffices). Added 150ms debounce to ExpenditureForm's formData deep watcher.
+
+4. **setTimeout cleanup (36 files):** Stored all setTimeout return values in named data properties/refs, added `clearTimeout` in `beforeUnmount`/`onBeforeUnmount` to prevent memory leaks from stale callbacks.
+
+5. **Consolidate duplicate init watchers (3 files):** Removed redundant `isOpen` watchers from GoalFormModal and LifeEventForm (kept `goal`/`event` immediate watchers). Removed redundant `mounted()` call from BusinessInterestForm.
+
+**Modified Files (81 Vue + 6 store modules):**
+
+```text
+resources/js/store/modules/estate.js
+resources/js/store/modules/investment.js
+resources/js/store/modules/netWorth.js
+resources/js/store/modules/protection.js
+resources/js/store/modules/retirement.js
+resources/js/store/modules/trusts.js
+resources/js/views/Dashboard.vue
+resources/js/views/Admin/AdminPanel.vue
+resources/js/views/Investment/AccountPerformancePanel.vue
+resources/js/views/Investment/AccountRebalancingPanel.vue
+resources/js/views/Retirement/PortfolioAnalysis.vue
+resources/js/views/Trusts/TrustDetailView.vue
+resources/js/components/Admin/UserManagement.vue
+resources/js/components/Auth/ChangePasswordModal.vue
+resources/js/components/Cash/BalanceTrendChart.vue
+resources/js/components/Cash/SpendingDonutChart.vue
+resources/js/components/Dashboard/AreasToConsiderCard.vue
+resources/js/components/Dashboard/GoalsProjectionChartDashboard.vue
+resources/js/components/Dashboard/GoalsProjectionChartMini.vue
+resources/js/components/Dashboard/TaxOptimisationCard.vue
+resources/js/components/Estate/AssetsLiabilities.vue
+resources/js/components/Estate/CashFlowProjectionChart.vue
+resources/js/components/Estate/GiftingStrategy.vue
+resources/js/components/Estate/GiftingTimelineChart.vue
+resources/js/components/Estate/IHTLiabilityGauge.vue
+resources/js/components/Estate/IHTPlanning.vue
+resources/js/components/Estate/LifePolicyStrategy.vue
+resources/js/components/Estate/NetWorthWaterfallChart.vue
+resources/js/components/Estate/WillPlanning.vue
+resources/js/components/Goals/GoalFormModal.vue
+resources/js/components/Goals/GoalsList.vue
+resources/js/components/Goals/GoalsProjectionChart.vue
+resources/js/components/Goals/LifeEventForm.vue
+resources/js/components/Holistic/CashFlowAllocationChart.vue
+resources/js/components/Holistic/NetWorthProjectionChart.vue
+resources/js/components/Investment/AllocationComparison.vue
+resources/js/components/Investment/AssetAllocationChart.vue
+resources/js/components/Investment/EfficientFrontier.vue
+resources/js/components/Investment/GeographicAllocationMap.vue
+resources/js/components/Investment/Holdings.vue
+resources/js/components/Investment/HoldingsTable.vue
+resources/js/components/Investment/InvestmentProjectionChart.vue
+resources/js/components/Investment/InvestmentRecommendationsTracker.vue
+resources/js/components/Investment/MonteCarloResults.vue
+resources/js/components/Investment/PerformanceLineChart.vue
+resources/js/components/Investment/PortfolioOptimization.vue
+resources/js/components/Investment/PortfolioOverview.vue
+resources/js/components/Investment/Recommendations.vue
+resources/js/components/Investment/TaxFees.vue
+resources/js/components/Investment/WhatIfScenarios.vue
+resources/js/components/NetWorth/AssetAllocationDonut.vue
+resources/js/components/NetWorth/AssetBreakdownBar.vue
+resources/js/components/NetWorth/BusinessInterestForm.vue
+resources/js/components/NetWorth/InvestmentList.vue
+resources/js/components/NetWorth/PensionList.vue
+resources/js/components/NetWorth/PropertyList.vue
+resources/js/components/Onboarding/steps/FamilyInfoStep.vue
+resources/js/components/Protection/CoverageAdequacyGauge.vue
+resources/js/components/Protection/CoverageGapChart.vue
+resources/js/components/Protection/CoverageTimelineChart.vue
+resources/js/components/Protection/CurrentSituation.vue
+resources/js/components/Protection/PolicyDetail.vue
+resources/js/components/Protection/PremiumBreakdownChart.vue
+resources/js/components/Retirement/AccumulationChart.vue
+resources/js/components/Retirement/DrawdownSimulator.vue
+resources/js/components/Retirement/IncomeDrawdownChart.vue
+resources/js/components/Retirement/IncomeProjectionChart.vue
+resources/js/components/Retirement/PensionPotProjectionChart.vue
+resources/js/components/Retirement/TargetIncomeDrawdownChart.vue
+resources/js/components/Savings/EmergencyFundGauge.vue
+resources/js/components/Savings/InterestRateComparisonChart.vue
+resources/js/components/Shared/CountrySelector.vue
+resources/js/components/Shared/DocumentUploadModal.vue
+resources/js/components/Shared/OccupationAutocomplete.vue
+resources/js/components/UserProfile/DomicileInformation.vue
+resources/js/components/UserProfile/ExpenditureForm.vue
+resources/js/components/UserProfile/ExpenditureOverview.vue
+resources/js/components/UserProfile/FamilyMembers.vue
+resources/js/components/UserProfile/IncomeOccupation.vue
+resources/js/components/UserProfile/LetterToSpouse.vue
+resources/js/components/UserProfile/PersonalInformation.vue
+```
+
+---
+
+### 21. Fix Goals Projection 500 Error - Lazy Loading InvestmentAccount
+
+**Status:** Pending
+**Build Required:** NO (PHP only)
+**Migration Required:** NO
+
+**Description:** The Goals projection endpoint (`GET /api/goals/projection`) returned a 500 error: "Attempted to lazy load [holdings] on model [InvestmentAccount] but lazy loading is disabled." The `GoalsProjectionService` loaded the User with only `['goals', 'spouse']` eager loaded, but `AssumptionsService::calculateWeightedFees()` accesses `$user->investmentAccounts` and then `$account->holdings`.
+
+**What was done:**
+- Added `investmentAccounts.holdings` to the eager load in `GoalsProjectionService::generateProjection()`
+
+**Modified Files (1):**
+
+```text
+app/Services/Goals/GoalsProjectionService.php
+```
+
+---
+
 ## Deployed Summary (Items 1-19)
 
 ### PHP Files
