@@ -357,6 +357,7 @@
     <PersonaSelectionModal
       :is-open="showSelectionModal"
       :personas="availablePersonas"
+      :error="previewError"
       @close="cancelPreview"
       @select="handlePersonaSelect"
     />
@@ -381,6 +382,7 @@ export default {
     return {
       enteringPreview: false,
       showSelectionModal: false,
+      previewError: '',
       heroWords: [
         { word: 'Financial', color: 'text-primary-400' },
         { word: 'Retirement', color: 'text-emerald-400' },
@@ -449,16 +451,19 @@ export default {
     },
 
     enterPreviewMode() {
+      this.previewError = '';
       this.showSelectionModal = true;
     },
 
     cancelPreview() {
       this.showSelectionModal = false;
+      this.previewError = '';
     },
 
     async handlePersonaSelect(persona) {
       if (this.enteringPreview) return;
       this.enteringPreview = true;
+      this.previewError = '';
 
       try {
         await this.$store.dispatch('preview/loadPersona', persona.id);
@@ -466,8 +471,7 @@ export default {
         this.$router.push('/dashboard');
       } catch (error) {
         console.error('Failed to enter preview mode:', error);
-        alert('Failed to load demo: ' + error.message);
-        this.showSelectionModal = false;
+        this.previewError = 'Unable to load demo. Please try again or check your connection.';
         this.enteringPreview = false;
       }
     },

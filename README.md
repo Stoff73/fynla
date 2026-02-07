@@ -14,14 +14,14 @@ A comprehensive financial planning web application designed for UK individuals a
 
 | Metric | Count |
 |--------|-------|
-| Vue Components | 245 |
-| PHP Services | 124 |
-| PHP Controllers | 56 |
-| Eloquent Models | 54 |
-| API Endpoints | 379 |
-| Vuex Store Modules | 20 |
+| Vue Components | 372 |
+| PHP Services | 141 |
+| PHP Controllers | 66 |
+| Eloquent Models | 68 |
+| API Endpoints | 400+ |
+| Vuex Store Modules | 21 |
+| Agents | 8 |
 | Test Cases | 1,075 |
-| Test Assertions | 5,139 |
 
 ---
 
@@ -62,9 +62,9 @@ A comprehensive financial planning web application designed for UK individuals a
 
 ## Current Status
 
-**Version**: v0.4.5
-**Last Updated**: January 6, 2026
-**Test Suite**: 1,075 tests passing (5,139 assertions)
+**Version**: v0.7.0
+**Last Updated**: February 6, 2026
+**Test Suite**: 1,075 tests passing
 
 ### Completion Status
 
@@ -76,7 +76,9 @@ A comprehensive financial planning web application designed for UK individuals a
 | User Management | 100% | Spouse accounts, joint ownership, data sharing |
 | Admin Panel | 100% | User management, backups, tax configuration |
 | Document Upload | 100% | AI-powered extraction (Claude Sonnet) |
-| Preview Mode | 100% | Database-backed personas |
+| Security Compliance | 100% | TOTP MFA, GDPR, audit logging, RBAC |
+| Preview Mode | 100% | 6 database-backed personas |
+| Goals & Life Events | 100% | Goal tracking, projections, life events |
 | Email Verification | 100% | 6-digit code verification for registration/login |
 | Mobile Responsive | 90% | Dashboard and key views optimized |
 
@@ -87,8 +89,13 @@ A comprehensive financial planning web application designed for UK individuals a
 ### Authentication & Security
 
 - **Email Verification**: 6-digit code verification for registration and login
+- **TOTP Multi-Factor Authentication**: QR code setup, recovery codes, verification modal
+- **Failed Login Tracking**: Progressive lockout (1min - 5min - 30min - 24hr)
+- **Session Management**: View active sessions, revoke from Security Settings
+- **GDPR Compliance**: Data export (JSON/CSV), data erasure, consent tracking
+- **Audit Logging**: Auditable trait on 15 financial models
+- **RBAC**: Role-based access (User, Support, Admin) with granular permissions
 - **Secure Authentication**: Laravel Sanctum token-based API authentication
-- **Password Requirements**: 8+ chars, uppercase, lowercase, number, special character
 - **Rate Limiting**: 300 requests/minute for API, 5/minute for auth endpoints
 - **Preview Mode**: Try the app without registration
 
@@ -145,6 +152,8 @@ Try the full application with realistic financial data:
 | David & Sarah Mitchell | Peak earners, BTL property, complex pensions | ~£2.3m |
 | Margaret Thompson | Retired widow with estate planning needs | ~£2.2m |
 | Alex Chen | Single tech entrepreneur with SIPP | ~£550k |
+| John Morgan | Young adult saver, LISA, Cash ISA, student loan | ~£25k |
+| Patricia & Harold Bennett | Retired couple, DB pensions, IHT planning | ~£1.8m |
 
 ---
 
@@ -232,6 +241,21 @@ Try the full application with realistic financial data:
 - Residence Nil Rate Band: £175,000
 - Married couples: Combined £650,000 NRB + £350,000 RNRB
 
+### Goals & Life Events Module
+
+**Purpose**: Financial goal tracking with projections and life event planning
+
+**Features**:
+- Centralised goal management with automatic module assignment
+- 8 goal types: Emergency fund, property, education, retirement, wealth, wedding, holiday, custom
+- Visual progress bars and milestone tracker (25/50/75/100%)
+- Contribution streak tracking with badges
+- Life event management (income/expense impacts)
+- Net worth projection chart using Future Value calculations
+- Cash flow view with income, expenditure, and surplus
+- Household view toggle for joint goals
+- Dashboard integration with projection chart
+
 ---
 
 ## Technology Stack
@@ -264,21 +288,21 @@ Try the full application with realistic financial data:
 ┌─────────────────────────────────────┐
 │ Presentation Layer                  │
 │ Vue.js 3 + ApexCharts + Tailwind   │
-│ 245 Components + 20 Store Modules   │
+│ 372 Components + 21 Store Modules   │
 └─────────────────┬───────────────────┘
-                  │ REST API (379 endpoints)
+                  │ REST API (400+ endpoints)
                   ↓
 ┌─────────────────────────────────────┐
 │ Application Layer                   │
-│ 56 Controllers + 5 Agents           │
-│ 124 Services + Business Logic       │
+│ 66 Controllers + 8 Agents           │
+│ 141 Services + Business Logic       │
 │ Claude AI (Document Extraction)     │
 └─────────────────┬───────────────────┘
                   │ Eloquent ORM
                   ↓
 ┌─────────────────────────────────────┐
 │ Data Layer                          │
-│ MySQL 8.0+ (54 Models)             │
+│ MySQL 8.0+ (68 Models)             │
 │ Memcached (calculation caching)    │
 └─────────────────────────────────────┘
 ```
@@ -293,7 +317,10 @@ Each module has an intelligent agent that orchestrates analysis:
 | SavingsAgent | Emergency fund & ISA tracking |
 | InvestmentAgent | Portfolio analysis & Monte Carlo |
 | RetirementAgent | Pension projections & readiness |
+| EstateAgent | IHT calculation & estate strategy |
+| GoalsAgent | Goals projection & life events |
 | CoordinatingAgent | Cross-module holistic planning |
+| RiskAgent | Automated risk profile calculation |
 
 ---
 
@@ -465,7 +492,8 @@ php artisan route:clear
 | Document | Purpose |
 |----------|---------|
 | `CLAUDE.md` | Development guidelines for Claude Code |
-| `Jan6Updates/README.md` | Latest changes documentation |
+| `Feb6Updates/deploy6.md` | v0.7.0 deployment changes |
+| `Feb5Updates/deploy5.md` | v0.7.0 deployment changes |
 | `deploy/README.md` | Deployment configuration |
 | `preview.md` | Preview mode architecture |
 
@@ -473,41 +501,34 @@ php artisan route:clear
 
 ## Recent Updates
 
-### January 6, 2026 - Code Quality & Test Fixes
+### February 5-6, 2026 - v0.7.0
 
-**Code Quality Audit** (Score: 82/100):
-- Vuex Protection Store refactored (712→431 lines, 40% reduction)
-- Action factory pattern for policy CRUD operations
-- Dead code removal (unused handlers, console.log statements)
-- Structured logging added to agents and services
-- Form Request consolidation with BasePolicyRequest
+- Laravel best practices audit: 12 Form Requests, 10 API Resources, IHTController extraction (code quality 85 to 94)
+- Goals projections rewritten with simple FV calculation using user's own assumptions
+- Goals cash flow chart now shows actual net income (was zero)
+- Retirement planner: income tax slider, decumulation graph, DB/State pension fallback
+- Wealth summary: excludes DB pensions, responsive values, joint ownership accuracy
+- Fixed 500 errors across 8 API Resources (null safety on eager-loaded relationships)
+- Fixed mortgage display, occupation lookup, info guide errors
+- Removed postcode lookup (GetAddress.io shutdown)
+- Contribution streaks, life event management, household view for goals
 
-**Test Suite**:
-- Fixed registration tests for PendingRegistration flow
-- All 1,075 tests passing
+### January 19, 2026 - v0.6.2
 
-### January 2-5, 2026 - Registration & Onboarding
+- TOTP MFA, failed login tracking, session management, GDPR compliance, audit logging, RBAC
+- Goals-based planning module with 8 goal types
+- Automated risk profile calculator (7-factor analysis)
+- Financial statements: balance sheet, income statement, cash flow
+- Investment dashboard redesign with strategy cards
+- Young Adult Saver and Retired Couple personas
+- 134 new security tests
 
-- Email verification system with 6-digit codes
-- Pending registration flow (verify before account creation)
-- Risk profile persistence fixes
-- Preview mode persona data improvements
-- Mobile responsive improvements
+### January 16, 2026 - v0.5.1
 
-### December 30, 2025 - Investment Module Enhancements
-
-- Portfolio strategy recommendations
-- Fee breakdown analysis (platform, advisor, OCF)
-- Annualized return calculations
-- Account detail panels (holdings, performance, rebalancing)
-- Bond wrapper recommendations for tax optimization
-
-### December 23, 2025 - Business Interests Module
-
-- Business interests CRUD with valuation tracking
-- Business Relief assessment
-- Capital Gains Tax calculator
-- Exit calculation projections
+- Security & Privacy page, landing page enhancements
+- Estate dashboard redesign, retirement dashboard 3-column layout
+- Draggable dashboard widgets, auto-collapse sidebar
+- IHT terminology update, tax projection columns
 
 ---
 
@@ -526,7 +547,7 @@ This project is proprietary software. All rights reserved.
 
 ---
 
-**Version**: v0.4.5 | **Last Updated**: January 6, 2026 | **Status**: Production Ready
+**Version**: v0.7.0 | **Last Updated**: February 6, 2026 | **Status**: Production Ready
 
 Built with [Claude Code](https://claude.com/claude-code)
 

@@ -46,10 +46,11 @@ function sleep(ms) {
 
 // Create axios instance with default config
 // Use environment-specific base URL (production or local development)
-// For local development, use the same hostname as the current page to avoid CORS issues
+// For production, always use window.location.origin to avoid CORS issues when users
+// access via www.fynla.org vs fynla.org (the hardcoded VITE_API_BASE_URL may not match)
 const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 const localHost = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
-const apiBaseURL = isLocal ? `http://${localHost}:8000` : (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000');
+const apiBaseURL = isLocal ? `http://${localHost}:8000` : (window.location?.origin || import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000');
 const api = axios.create({
   baseURL: `${apiBaseURL}/api`,
   headers: {

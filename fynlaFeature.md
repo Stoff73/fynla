@@ -1,7 +1,7 @@
 # Fynla Financial Planning Application - Complete Feature Documentation
 
-**Version**: v0.6.2
-**Last Updated**: January 28, 2026
+**Version**: v0.7.0
+**Last Updated**: February 6, 2026
 **Modules**: Protection, Savings, Investment, Retirement, Estate Planning, Goals, Net Worth, User Profile
 
 ---

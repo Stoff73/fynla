@@ -33,3 +33,9 @@ yarn-error.log
 # macOS system files
 .DS_Store
 **/.DS_Store
+
+# build files
+/public/build/
+
+# update folders
+/*Updates/  

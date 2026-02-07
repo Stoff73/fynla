@@ -48,6 +48,14 @@
 
                             <!-- Persona Grid -->
                             <div class="p-6">
+                                <!-- Error Banner -->
+                                <div v-if="error" class="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 flex items-start gap-3">
+                                    <svg class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.072 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                    </svg>
+                                    <p class="text-sm text-red-700">{{ error }}</p>
+                                </div>
+
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <button
                                         v-for="persona in personas"
@@ -155,6 +163,10 @@ export default {
             type: Array,
             default: () => [],
         },
+        error: {
+            type: String,
+            default: '',
+        },
     },
 
     emits: ['close', 'select'],
@@ -169,6 +181,12 @@ export default {
         isOpen(newVal) {
             if (!newVal) {
                 // Reset loading state when modal closes
+                this.loadingPersonaId = null;
+            }
+        },
+        error(newVal) {
+            if (newVal) {
+                // Reset loading state so user can retry
                 this.loadingPersonaId = null;
             }
         },
