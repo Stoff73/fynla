@@ -1,6 +1,6 @@
 # Fynla - UK Financial Planning System
 
-A comprehensive financial planning web application designed for UK individuals and families, covering five integrated modules: Protection, Savings, Investment, Retirement, and Estate Planning.
+A comprehensive financial planning web application designed for UK individuals and families, covering five integrated modules: Protection, Savings, Investment, Retirement, and Estate Planning. Switched to fynlaAdvisory 9th Februaru 2026, to start on full financial planning trres and UI design.
 
 ![Laravel](https://img.shields.io/badge/Laravel-10.x-red?logo=laravel)
 ![Vue.js](https://img.shields.io/badge/Vue.js-3.x-green?logo=vue.js)
