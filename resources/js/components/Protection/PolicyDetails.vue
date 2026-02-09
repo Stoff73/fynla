@@ -12,7 +12,7 @@
       <button
         v-preview-disabled="'add'"
         @click="showAddPolicyModal = true"
-        class="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+        class="px-4 py-2 bg-primary-600 text-white font-medium rounded-button hover:bg-primary-700 transition-colors flex items-center gap-2"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -41,7 +41,7 @@
         :class="[
           'px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap',
           selectedFilter === filter.value
-            ? 'bg-blue-600 text-white'
+            ? 'bg-primary-600 text-white'
             : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
         ]"
       >
@@ -93,7 +93,7 @@
       <button
         v-preview-disabled="'add'"
         @click="showAddPolicyModal = true"
-        class="mt-4 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+        class="mt-4 px-4 py-2 bg-primary-600 text-white font-medium rounded-button hover:bg-primary-700 transition-colors"
       >
         Add Your First Policy
       </button>
@@ -121,7 +121,7 @@
       title="Delete Policy"
       message="Are you sure you want to delete this policy? This action cannot be undone."
       confirm-text="Delete"
-      confirm-class="bg-red-600 hover:bg-red-700"
+      confirm-class="bg-error-600 hover:bg-error-700"
       @confirm="confirmDelete"
       @cancel="showDeleteModal = false"
     />

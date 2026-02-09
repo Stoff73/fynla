@@ -293,7 +293,7 @@
           <button
             @click="handleSave"
             :disabled="saving"
-            class="px-4 py-2 bg-pink-600 text-white rounded-md hover:bg-pink-700 transition-colors disabled:opacity-50"
+            class="px-4 py-2 bg-pink-600 text-white rounded-button hover:bg-pink-700 transition-colors disabled:opacity-50"
           >
             {{ saving ? 'Saving...' : (isEditing ? 'Save Changes' : 'Add Valuable') }}
           </button>

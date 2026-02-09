@@ -164,7 +164,7 @@
                 v-else
                 v-model="selectedProjectionYears"
                 @change="updateProjectionData"
-                class="px-2 py-1 text-xs border border-blue-200 rounded bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="px-2 py-1 text-xs border border-blue-200 rounded bg-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
                 <option
                   v-for="option in projectionYearOptions"
@@ -902,7 +902,7 @@ export default {
       const classes = {
         exempt: 'bg-green-600 text-white',
         taxable: 'bg-slate-600 text-white',
-        deferred: 'bg-blue-600 text-white',
+        deferred: 'bg-primary-600 text-white',
         relief: 'bg-purple-600 text-white',
         limit: 'bg-gray-600 text-white',
       };

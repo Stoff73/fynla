@@ -12,7 +12,7 @@
             id="company_legal_name"
             v-model="modelValue.company_legal_name"
             type="text"
-            class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
             :class="{ 'border-red-500': errors.company_legal_name }"
             placeholder="e.g., Acme Technologies Ltd"
           />
@@ -27,7 +27,7 @@
               id="company_trading_name"
               v-model="modelValue.company_trading_name"
               type="text"
-              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
               placeholder="If different from legal name"
             />
           </div>
@@ -39,7 +39,7 @@
               id="company_registration_number"
               v-model="modelValue.company_registration_number"
               type="text"
-              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
               placeholder="e.g., 12345678"
             />
           </div>
@@ -52,7 +52,7 @@
             <select
               id="company_sector"
               v-model="modelValue.company_sector"
-              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
             >
               <option value="">Select sector</option>
               <option value="technology">Technology</option>
@@ -72,7 +72,7 @@
               id="company_website"
               v-model="modelValue.company_website"
               type="url"
-              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
               placeholder="https://example.com"
             />
           </div>
@@ -84,7 +84,7 @@
           <select
             id="crowdfunding_platform"
             v-model="modelValue.crowdfunding_platform"
-            class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
             :class="{ 'border-red-500': errors.crowdfunding_platform }"
           >
             <option value="">Select platform</option>
@@ -112,7 +112,7 @@
               id="investment_date"
               v-model="modelValue.investment_date"
               type="date"
-              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
               :class="{ 'border-red-500': errors.investment_date }"
             />
             <p v-if="errors.investment_date" class="mt-1 text-sm text-red-600">{{ errors.investment_date }}</p>
@@ -129,7 +129,7 @@
                 type="number"
                 min="0"
                 step="100"
-                class="w-full border border-gray-300 rounded-md pl-8 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="w-full border border-gray-300 rounded-md pl-8 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
                 :class="{ 'border-red-500': errors.investment_amount }"
                 placeholder="10000"
               />
@@ -145,7 +145,7 @@
             <select
               id="funding_round"
               v-model="modelValue.funding_round"
-              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
             >
               <option value="">Select round</option>
               <option value="pre_seed">Pre-Seed</option>
@@ -165,7 +165,7 @@
             <select
               id="instrument_type"
               v-model="modelValue.instrument_type"
-              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
               :class="{ 'border-red-500': errors.instrument_type }"
             >
               <option value="">Select type</option>
@@ -189,7 +189,7 @@
               v-model.number="modelValue.number_of_shares"
               type="number"
               min="0"
-              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
               placeholder="1000"
             />
           </div>
@@ -205,7 +205,7 @@
                 type="number"
                 min="0"
                 step="0.01"
-                class="w-full border border-gray-300 rounded-md pl-8 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="w-full border border-gray-300 rounded-md pl-8 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
                 placeholder="10.00"
               />
             </div>
@@ -223,7 +223,7 @@
                 v-model.number="modelValue.pre_money_valuation"
                 type="number"
                 min="0"
-                class="w-full border border-gray-300 rounded-md pl-8 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="w-full border border-gray-300 rounded-md pl-8 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
                 placeholder="1000000"
               />
             </div>
@@ -239,7 +239,7 @@
                 v-model.number="modelValue.post_money_valuation"
                 type="number"
                 min="0"
-                class="w-full border border-gray-300 rounded-md pl-8 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="w-full border border-gray-300 rounded-md pl-8 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
                 placeholder="1500000"
               />
             </div>
@@ -261,7 +261,7 @@
               id="share_class"
               v-model="modelValue.share_class"
               type="text"
-              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
               placeholder="e.g., A Ordinary"
             />
           </div>
@@ -272,7 +272,7 @@
             <select
               id="holding_structure"
               v-model="modelValue.holding_structure"
-              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
             >
               <option value="direct">Direct Shareholding</option>
               <option value="nominee">Nominee Held</option>
@@ -287,7 +287,7 @@
             id="nominee_name"
             v-model="modelValue.nominee_name"
             type="text"
-            class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
             :class="{ 'border-red-500': errors.nominee_name }"
             placeholder="e.g., Seedrs Nominees Ltd"
           />
@@ -298,7 +298,7 @@
             <input
               v-model="modelValue.has_voting_rights"
               type="checkbox"
-              class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              class="rounded border-gray-300 text-blue-600 focus:ring-primary-500"
             />
             <span class="ml-2 text-sm text-gray-700">Voting Rights</span>
           </label>
@@ -306,7 +306,7 @@
             <input
               v-model="modelValue.has_dividend_rights"
               type="checkbox"
-              class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              class="rounded border-gray-300 text-blue-600 focus:ring-primary-500"
             />
             <span class="ml-2 text-sm text-gray-700">Dividend Rights</span>
           </label>
@@ -314,7 +314,7 @@
             <input
               v-model="modelValue.has_anti_dilution"
               type="checkbox"
-              class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              class="rounded border-gray-300 text-blue-600 focus:ring-primary-500"
             />
             <span class="ml-2 text-sm text-gray-700">Anti-Dilution Protection</span>
           </label>
@@ -331,7 +331,7 @@
               min="0"
               max="100"
               step="0.1"
-              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
               placeholder="8.0"
             />
           </div>
@@ -343,7 +343,7 @@
               id="maturity_date"
               v-model="modelValue.maturity_date"
               type="date"
-              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
           </div>
         </div>
@@ -362,7 +362,7 @@
             <select
               id="tax_relief_type"
               v-model="modelValue.tax_relief_type"
-              class="w-full border border-blue-200 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              class="w-full border border-blue-200 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
             >
               <option value="">No tax relief</option>
               <option value="eis">EIS (30% relief)</option>
@@ -382,7 +382,7 @@
                   id="eis3_certificate_number"
                   v-model="modelValue.eis3_certificate_number"
                   type="text"
-                  class="w-full border border-blue-200 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  class="w-full border border-blue-200 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
                   placeholder="Certificate number"
                 />
               </div>
@@ -394,7 +394,7 @@
                   id="hmrc_reference"
                   v-model="modelValue.hmrc_reference"
                   type="text"
-                  class="w-full border border-blue-200 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  class="w-full border border-blue-200 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
                   placeholder="HMRC reference"
                 />
               </div>
@@ -408,7 +408,7 @@
                   id="relief_claimed_date"
                   v-model="modelValue.relief_claimed_date"
                   type="date"
-                  class="w-full border border-blue-200 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  class="w-full border border-blue-200 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
                 />
               </div>
               <div>
@@ -422,7 +422,7 @@
                     v-model.number="modelValue.relief_amount_claimed"
                     type="number"
                     min="0"
-                    class="w-full border border-blue-200 rounded-md pl-8 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    class="w-full border border-blue-200 rounded-md pl-8 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
                     placeholder="3000"
                   />
                 </div>
@@ -438,7 +438,7 @@
               <input
                 v-model="modelValue.clawback_risk"
                 type="checkbox"
-                class="rounded border-blue-300 text-blue-600 focus:ring-blue-500"
+                class="rounded border-blue-300 text-blue-600 focus:ring-primary-500"
               />
               <span class="ml-2 text-sm text-blue-800">Clawback Risk Flag</span>
             </label>
@@ -588,7 +588,7 @@
             <select
               id="company_status"
               v-model="modelValue.company_status"
-              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
             >
               <option value="active">Active</option>
               <option value="distressed">Distressed</option>
@@ -608,7 +608,7 @@
               min="0"
               max="100"
               step="0.01"
-              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
               placeholder="0.5"
             />
           </div>
@@ -625,7 +625,7 @@
                 v-model.number="modelValue.latest_valuation"
                 type="number"
                 min="0"
-                class="w-full border border-gray-300 rounded-md pl-8 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="w-full border border-gray-300 rounded-md pl-8 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
                 placeholder="Your share value"
               />
             </div>
@@ -638,7 +638,7 @@
               id="latest_valuation_date"
               v-model="modelValue.latest_valuation_date"
               type="date"
-              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
           </div>
         </div>
@@ -657,7 +657,7 @@
             <select
               id="exit_type"
               v-model="modelValue.exit_type"
-              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
             >
               <option value="">Select exit type</option>
               <option value="acquisition">Acquisition</option>
@@ -675,7 +675,7 @@
               id="exit_date"
               v-model="modelValue.exit_date"
               type="date"
-              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
           </div>
         </div>
@@ -691,7 +691,7 @@
                 v-model.number="modelValue.exit_gross_proceeds"
                 type="number"
                 min="0"
-                class="w-full border border-gray-300 rounded-md pl-8 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="w-full border border-gray-300 rounded-md pl-8 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
           </div>
@@ -706,7 +706,7 @@
                 v-model.number="modelValue.exit_fees"
                 type="number"
                 min="0"
-                class="w-full border border-gray-300 rounded-md pl-8 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="w-full border border-gray-300 rounded-md pl-8 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
           </div>
@@ -721,7 +721,7 @@
                 v-model.number="modelValue.exit_net_proceeds"
                 type="number"
                 min="0"
-                class="w-full border border-gray-300 rounded-md pl-8 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="w-full border border-gray-300 rounded-md pl-8 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
           </div>
@@ -731,7 +731,7 @@
             <input
               v-model="modelValue.loss_relief_eligible"
               type="checkbox"
-              class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              class="rounded border-gray-300 text-blue-600 focus:ring-primary-500"
             />
             <span class="ml-2 text-sm text-gray-700">Loss Relief Eligible</span>
           </label>
@@ -739,7 +739,7 @@
             <input
               v-model="modelValue.negligible_value_claim"
               type="checkbox"
-              class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              class="rounded border-gray-300 text-blue-600 focus:ring-primary-500"
             />
             <span class="ml-2 text-sm text-gray-700">Negligible Value Claim Filed</span>
           </label>
@@ -755,7 +755,7 @@
               v-model.number="modelValue.capital_loss_amount"
               type="number"
               min="0"
-              class="w-full border border-gray-300 rounded-md pl-8 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full border border-gray-300 rounded-md pl-8 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
           </div>
         </div>

@@ -43,7 +43,7 @@
             step="0.01"
             min="0"
             required
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
           />
         </div>
 
@@ -55,7 +55,7 @@
             id="sdlt_property_type"
             v-model="sdltForm.property_type"
             required
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
           >
             <option value="main_residence">Main Residence</option>
             <option value="secondary_residence">Secondary Residence / Additional Property</option>
@@ -81,7 +81,7 @@
         <button
           type="submit"
           :disabled="calculatingSDLT"
-          class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
+          class="w-full px-4 py-2 bg-primary-600 text-white rounded-button hover:bg-primary-700 transition-colors disabled:opacity-50"
         >
           {{ calculatingSDLT ? 'Calculating...' : 'Calculate SDLT' }}
         </button>
@@ -147,7 +147,7 @@
             step="0.01"
             min="0"
             required
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
           />
         </div>
 
@@ -163,7 +163,7 @@
               step="0.01"
               min="0"
               placeholder="Legal fees, estate agent fees"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
           </div>
 
@@ -178,7 +178,7 @@
               step="0.01"
               min="0"
               placeholder="Extensions, renovations"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
           </div>
         </div>
@@ -186,7 +186,7 @@
         <button
           type="submit"
           :disabled="calculatingCGT"
-          class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
+          class="w-full px-4 py-2 bg-primary-600 text-white rounded-button hover:bg-primary-700 transition-colors disabled:opacity-50"
         >
           {{ calculatingCGT ? 'Calculating...' : 'Calculate CGT' }}
         </button>
@@ -249,7 +249,7 @@
       <button
         @click="calculateRentalTax"
         :disabled="calculatingRental"
-        class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
+        class="w-full px-4 py-2 bg-primary-600 text-white rounded-button hover:bg-primary-700 transition-colors disabled:opacity-50"
       >
         {{ calculatingRental ? 'Calculating...' : 'Calculate Rental Income Tax' }}
       </button>

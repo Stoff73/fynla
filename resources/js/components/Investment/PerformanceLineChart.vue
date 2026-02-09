@@ -8,7 +8,7 @@
         <select
           id="time-period"
           v-model="selectedPeriod"
-          class="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
         >
           <option value="1m">1 Month</option>
           <option value="3m">3 Months</option>

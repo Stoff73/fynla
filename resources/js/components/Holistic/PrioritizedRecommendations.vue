@@ -15,7 +15,7 @@
           ]"
         >
           {{ timeline.label }}
-          <span v-if="getTimelineCount(timeline.id) > 0" class="ml-2 px-2 py-0.5 bg-blue-600 text-white rounded-full text-xs">
+          <span v-if="getTimelineCount(timeline.id) > 0" class="ml-2 px-2 py-0.5 bg-primary-600 text-white rounded-full text-xs">
             {{ getTimelineCount(timeline.id) }}
           </span>
         </button>
@@ -75,12 +75,12 @@
                   v-model="editingNotes[rec.id]"
                   placeholder="Add notes about this recommendation..."
                   rows="3"
-                  class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 ></textarea>
                 <div class="mt-2 flex justify-end">
                   <button
                     @click="saveNotes(rec.id)"
-                    class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700"
+                    class="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-button hover:bg-primary-700"
                   >
                     Save Notes
                   </button>

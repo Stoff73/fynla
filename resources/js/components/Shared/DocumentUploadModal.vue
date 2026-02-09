@@ -56,7 +56,7 @@
               <div
                 v-if="index < steps.length - 1"
                 class="w-8 h-0.5 mx-4"
-                :class="currentStepIndex > index ? 'bg-blue-600' : 'bg-gray-200'"
+                :class="currentStepIndex > index ? 'bg-primary-600' : 'bg-gray-200'"
               />
             </div>
           </div>
@@ -151,7 +151,7 @@
                     <input
                       v-model="editedFields[key]"
                       type="text"
-                      class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                      class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-primary-500 sm:text-sm"
                       :class="getFieldClass(key)"
                     />
                     <ConfidenceBadge
@@ -185,7 +185,7 @@
               </button>
               <button
                 type="button"
-                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700"
                 @click="$emit('manual-entry')"
               >
                 Enter Manually
@@ -206,7 +206,7 @@
           <button
             v-if="currentStep === 'upload' && selectedFile"
             type="button"
-            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700"
             @click="startUpload"
           >
             Upload & Analyse
@@ -214,7 +214,7 @@
           <button
             v-if="currentStep === 'review'"
             type="button"
-            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700"
             :disabled="isSaving"
             @click="handleSave"
           >
@@ -332,7 +332,7 @@ export default {
   methods: {
     getStepClass(index) {
       if (this.currentStepIndex > index) {
-        return 'bg-blue-600 text-white';
+        return 'bg-primary-600 text-white';
       }
       if (this.currentStepIndex === index) {
         return 'bg-blue-100 text-blue-600 border-2 border-blue-600';

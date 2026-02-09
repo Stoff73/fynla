@@ -20,7 +20,7 @@
   <teleport to="body">
     <div
       v-if="showModal"
-      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
       @click.self="closeModal"
     >
       <div class="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-hidden">
@@ -768,7 +768,7 @@
           </p>
           <button
             @click="closeModal"
-            class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+            class="px-4 py-2 bg-primary-600 text-white rounded-button hover:bg-primary-700 transition-colors"
           >
             Close
           </button>

@@ -957,7 +957,7 @@ backdrop-filter: blur(4px); /* optional glassmorphism */
 ### Top Navbar
 
 ```html
-<nav class="bg-white shadow-sm border-b border-gray-200">
+<nav class="bg-gray-50 shadow-sm border-b border-gray-200" style="background-color: #F9FAFB;">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="flex justify-between h-16">
       <!-- Logo and primary nav -->
@@ -1523,6 +1523,78 @@ When creating new components, ensure:
 - [ ] Animations are 200-300ms
 - [ ] Meets accessibility requirements
 - [ ] Works on mobile (responsive)
+
+---
+
+## Goals Projection Bar Chart
+
+The Goals Projection Chart (`GoalsProjectionChart.vue`) is a specialised component with unique design patterns that extend the standard chart configuration. It supports three distinct views with event icon overlays.
+
+### Chart Views & Color Schemes
+
+| View | Series | Colors | Bar Width | Border Radius | Stacked |
+|------|--------|--------|-----------|---------------|---------|
+| Net Worth | 1 (Net Worth) | `#A8B8D8` (muted periwinkle) | `50%` | `3px` (end only) | No |
+| Cash Flow | 2 (Income, Expenditure) | `SUCCESS_COLORS[500]`, `ERROR_COLORS[500]` | `70%` | `2px` | No |
+| Asset Breakdown | 4 (Pensions, Property, Investments, Cash) | `#1257A0`, `#15803D`, `#475569`, `#60A5FA` | `80%` | `2px` | Yes |
+
+### Asset Breakdown Series Colors
+
+| Series | Hex | Source |
+|--------|-----|--------|
+| Pensions | `#1257A0` | Trust Blue (Chart 1) |
+| Property | `#15803D` | Green (Chart 3) |
+| Investments | `#475569` | Slate (Chart 2) |
+| Cash | `#60A5FA` | Light Blue (Chart 4) |
+
+### Event Icon Overlay System
+
+The chart features floating event icons positioned above bars at calculated coordinates:
+
+| Property | Value | Purpose |
+|----------|-------|---------|
+| Icon size | `26px` | Standard event icon dimension |
+| Icon gap | `8px` | Vertical spacing between stacked icons |
+| Float gap | `20px` | Distance above bar top |
+| Hover effect | `transform hover:scale-110` | Interactive feedback |
+| Pointer events | `auto` | Ensures click interaction |
+
+Icons stack vertically when multiple events occur at the same age. Positioning is calculated using SVG chart coordinates converted to viewport pixels, and updates responsively on chart resize.
+
+### Retirement Age Annotation
+
+A vertical dashed line marks the retirement age:
+
+- **Line colour:** `PRIMARY_COLORS[600]` (`#1257A0`)
+- **Style:** Dashed
+- **Label:** Positioned above the chart area with matching background colour
+
+### Grid & Axis Configuration
+
+| Element | Style |
+|---------|-------|
+| Grid lines | `strokeDashArray: 4` (dashed), `BORDER_COLORS.default` |
+| Extra top padding | `120px` (accommodates floating event icons) |
+| X-axis labels | `11px`, `gray-600` |
+| Y-axis labels | `11px`, `gray-600`, compact format (K/M) |
+| X-axis title | "Age", `12px`, `gray-600` |
+
+### Custom Tooltip
+
+The chart uses a custom HTML tooltip (not ApexCharts default) with:
+
+- Inline styles for cross-browser consistency
+- Series values with coloured indicator dots
+- Separated sections for goals vs life events
+- Impact display (income/expense) with colour coding
+- Age-based labelling ("Age {number}")
+
+### Design System Compliance
+
+- All colours sourced from `designSystem.js` constants
+- No amber/orange per forbidden colours rule
+- Inter font family throughout
+- Standard Tailwind spacing (p-4, p-6, mb-6)
 
 ---
 

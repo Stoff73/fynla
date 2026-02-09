@@ -61,13 +61,13 @@ export default {
           900: '#450A0A',
         },
         warning: {
-          50: '#FFFFFF',
-          100: '#FFF7ED',
-          500: '#F97316',     // Solid Orange
-          600: '#EA580C',
-          700: '#C2410C',
-          800: '#9A3412',
-          900: '#7C2D12',
+          50: '#EFF6FF',      // blue-50
+          100: '#DBEAFE',     // blue-100
+          500: '#3B82F6',     // blue-500
+          600: '#2563EB',     // blue-600
+          700: '#1D4ED8',     // blue-700
+          800: '#1E40AF',     // blue-800
+          900: '#1E3A8A',     // blue-900
         },
         info: {
           50: '#FFFFFF',
@@ -83,10 +83,10 @@ export default {
           1: '#1257A0', // Trust Blue
           2: '#475569', // Slate
           3: '#15803D', // Green
-          4: '#EA580C', // Orange
+          4: '#60A5FA', // Blue - Neutral/caution
           5: '#B91C1C', // Red
           6: '#7C3AED', // Purple (kept only for charts)
-          7: '#C2410C', // Orange
+          7: '#3B82F6', // Blue - Tertiary
           8: '#0F172A', // Navy
         },
       },

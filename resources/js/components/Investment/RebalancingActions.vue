@@ -14,7 +14,7 @@
             <button
               v-if="!hideControls && !readonly"
               @click="$emit('save-actions')"
-              class="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              class="px-3 py-1.5 text-sm font-medium text-white bg-primary-600 rounded-button hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
             >
               Save Actions
             </button>

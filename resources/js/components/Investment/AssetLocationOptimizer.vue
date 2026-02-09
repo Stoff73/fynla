@@ -291,7 +291,7 @@
 
         <div class="space-y-3">
           <div v-for="(step, index) in analysis.action_plan" :key="index" class="flex items-start p-4 bg-gray-50 rounded-lg border border-gray-200">
-            <div class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold mr-4">
+            <div class="flex-shrink-0 w-8 h-8 bg-primary-600 text-white rounded-full flex items-center justify-center font-semibold mr-4">
               {{ index + 1 }}
             </div>
             <div class="flex-1">

@@ -45,7 +45,7 @@
               </label>
               <select
                 v-model="formData.policyType"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
                 <option value="">Select policy type...</option>
                 <option value="life">Life Insurance</option>
@@ -63,7 +63,7 @@
               </label>
               <select
                 v-model="formData.life_policy_type"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
                 <option value="">Select life policy type...</option>
                 <option value="decreasing_term">Decreasing Life Policy</option>
@@ -80,7 +80,7 @@
               <input
                 v-model="formData.provider"
                 type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="e.g., Aviva, Legal & General"
               />
             </div>
@@ -93,7 +93,7 @@
               <input
                 v-model="formData.policy_number"
                 type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="Policy reference number"
               />
             </div>
@@ -110,7 +110,7 @@
                   type="number"
                   :step="isIncomeProtection ? 100 : 1000"
                   min="0"
-                  class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="0"
                 />
               </div>
@@ -135,7 +135,7 @@
                     type="number"
                     step="1000"
                     min="0"
-                    class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     placeholder="e.g., 500000"
                   />
                 </div>
@@ -154,7 +154,7 @@
                     step="0.01"
                     min="0"
                     max="100"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     placeholder="e.g., 5.0"
                   />
                   <span class="absolute right-3 top-2.5 text-gray-500">%</span>
@@ -176,7 +176,7 @@
                     type="number"
                     step="0.01"
                     min="0"
-                    class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     placeholder="0.00"
                   />
                 </div>
@@ -188,7 +188,7 @@
                 </label>
                 <select
                   v-model="formData.premium_frequency"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 >
                   <option value="monthly">Monthly</option>
                   <option value="annual">Annual</option>
@@ -204,7 +204,7 @@
               <input
                 v-model="formData.start_date"
                 type="date"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               />
             </div>
 
@@ -217,7 +217,7 @@
                 v-model.number="formData.term_years"
                 type="number"
                 min="1"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="e.g., 20"
               />
             </div>
@@ -230,7 +230,7 @@
               <input
                 v-model="formData.end_date"
                 type="date"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               />
               <p class="text-xs text-gray-500 mt-1">
                 When does this policy expire? Leave blank if policy has no end date.
@@ -244,7 +244,7 @@
                   id="in_trust"
                   v-model="formData.in_trust"
                   type="checkbox"
-                  class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  class="h-4 w-4 text-blue-600 focus:ring-primary-500 border-gray-300 rounded"
                 />
                 <label for="in_trust" class="ml-2 block text-sm font-medium text-gray-700">
                   Is this policy in Trust?
@@ -262,7 +262,7 @@
                   id="is_mortgage_protection"
                   v-model="formData.is_mortgage_protection"
                   type="checkbox"
-                  class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  class="h-4 w-4 text-blue-600 focus:ring-primary-500 border-gray-300 rounded"
                 />
                 <label for="is_mortgage_protection" class="ml-2 block text-sm font-medium text-gray-700">
                   Is this to pay off your mortgage?
@@ -286,7 +286,7 @@
                   id="beneficiary_selection"
                   v-model="beneficiarySelection"
                   @change="handleBeneficiarySelection"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 >
                   <option value="">Select beneficiary...</option>
                   <option v-if="spouseOption" :value="'linked_' + spouseOption.id">
@@ -306,7 +306,7 @@
                   v-model="formData.beneficiary_name"
                   type="text"
                   placeholder="Enter beneficiary's full name"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 />
                 <p class="text-xs text-gray-500 mt-1">
                   Note: This person doesn't have an account in the system.
@@ -324,7 +324,7 @@
                   type="number"
                   min="1"
                   max="100"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 />
                 <p class="text-xs text-gray-500 mt-1">
                   Enter the percentage share for this beneficiary (1-100%).
@@ -359,7 +359,7 @@
                   id="additional_beneficiaries"
                   v-model="formData.additional_beneficiaries"
                   rows="2"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="e.g., Children: 30% split, Charity: 10%"
                 ></textarea>
                 <p class="text-xs text-gray-500 mt-1">
@@ -379,7 +379,7 @@
               </label>
               <select
                 v-model="formData.benefit_frequency"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
                 <option value="monthly">Monthly</option>
                 <option value="weekly">Weekly</option>
@@ -396,7 +396,7 @@
                 v-model.number="formData.deferred_period_weeks"
                 type="number"
                 min="0"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="e.g., 4"
               />
             </div>
@@ -410,7 +410,7 @@
                 v-model.number="formData.benefit_period_months"
                 type="number"
                 min="1"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="e.g., 24"
               />
             </div>
@@ -422,7 +422,7 @@
               </label>
               <select
                 v-model="formData.coverage_type"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
                 <option value="accident_only">Accident Only</option>
                 <option value="accident_and_sickness">Accident and Sickness</option>
@@ -437,7 +437,7 @@
               <textarea
                 v-model="formData.notes"
                 rows="3"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="Any additional information about this policy..."
               ></textarea>
             </div>
@@ -448,7 +448,7 @@
             <button
               type="submit"
               :disabled="submitting"
-              class="flex-1 px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+              class="flex-1 px-6 py-3 bg-primary-600 text-white font-medium rounded-button hover:bg-primary-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
             >
               {{ submitting ? 'Saving...' : (isEditing ? 'Update Policy' : 'Add Policy') }}
             </button>

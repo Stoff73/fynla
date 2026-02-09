@@ -97,7 +97,7 @@
             <button
               @click="handleDelete"
               :disabled="deleting"
-              class="px-4 py-2 bg-red-600 text-white rounded-md text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              class="px-4 py-2 bg-error-600 text-white rounded-button text-sm font-medium hover:bg-error-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {{ deleting ? 'Deleting...' : 'Delete' }}
             </button>

@@ -265,14 +265,14 @@
             <button
               type="button"
               @click="close"
-              class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+              class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-button hover:bg-gray-50"
             >
               Cancel
             </button>
             <button
               type="submit"
               :disabled="loading"
-              class="px-4 py-2 text-sm font-medium text-white bg-primary-600 border border-transparent rounded-md hover:bg-primary-700 disabled:opacity-50"
+              class="px-4 py-2 text-sm font-medium text-white bg-primary-600 border border-transparent rounded-button hover:bg-primary-700 disabled:opacity-50"
             >
               {{ loading ? 'Saving...' : (isEditing ? 'Update Goal' : 'Create Goal') }}
             </button>

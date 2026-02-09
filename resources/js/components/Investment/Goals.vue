@@ -27,7 +27,7 @@
         </p>
         <button
           @click="openGoalModal"
-          class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          class="px-6 py-3 bg-primary-600 text-white rounded-button hover:bg-primary-700 transition-colors font-medium"
         >
           Create Your First Goal
         </button>
@@ -44,7 +44,7 @@
         </div>
         <button
           @click="openGoalModal"
-          class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
+          class="px-4 py-2 bg-primary-600 text-white rounded-button hover:bg-primary-700 transition-colors font-medium text-sm"
         >
           + Add Goal
         </button>

@@ -187,7 +187,7 @@
                 type="number"
                 step="1000"
                 min="0"
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 @input="calculateComparison"
               />
             </div>
@@ -237,7 +237,7 @@
               </label>
               <select
                 v-model="calculator.taxBand"
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 @change="calculateComparison"
               >
                 <option value="basic">Basic Rate (20%)</option>
@@ -390,7 +390,7 @@
               <span class="text-sm font-semibold text-gray-600">£60,000</span>
             </div>
             <div class="w-full bg-gray-200 rounded-full h-3 mb-2">
-              <div class="h-3 bg-blue-600 rounded-full" style="width: 30%"></div>
+              <div class="h-3 bg-primary-600 rounded-full" style="width: 30%"></div>
             </div>
             <div class="flex justify-between text-xs text-gray-600">
               <span>Used: £18,000</span>

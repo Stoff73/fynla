@@ -212,7 +212,7 @@
                 <td class="text-center py-3 px-4">
                   <button
                     @click="openHarvestModal(opp)"
-                    class="px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600"
+                    class="px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-primary-600"
                   >
                     Harvest Loss
                   </button>
@@ -277,7 +277,7 @@
 
         <button
           @click="showBedAndISAModal = true"
-          class="mt-4 w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
+          class="mt-4 w-full px-4 py-3 bg-primary-600 text-white rounded-button hover:bg-primary-700 font-medium"
         >
           View Execution Plan
         </button>

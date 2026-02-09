@@ -313,7 +313,7 @@ export default {
 }
 
 .add-property-button:hover {
-  @apply bg-blue-600;
+  @apply bg-primary-600;
 }
 
 .button-icon {

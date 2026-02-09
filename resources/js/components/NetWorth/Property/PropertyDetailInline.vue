@@ -22,7 +22,7 @@
       <p class="text-red-600">{{ error }}</p>
       <button
         @click="loadProperty"
-        class="mt-4 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+        class="mt-4 px-4 py-2 bg-error-600 text-white rounded-button hover:bg-error-700 transition-colors"
       >
         Retry
       </button>
@@ -41,14 +41,14 @@
             <button
               v-preview-disabled="'edit'"
               @click="openEditModal"
-              class="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              class="w-full sm:w-auto px-4 py-2 bg-primary-600 text-white rounded-button hover:bg-primary-700 transition-colors"
             >
               Edit
             </button>
             <button
               v-preview-disabled="'delete'"
               @click="confirmDelete"
-              class="w-full sm:w-auto px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+              class="w-full sm:w-auto px-4 py-2 bg-error-600 text-white rounded-button hover:bg-error-700 transition-colors"
             >
               Delete
             </button>
@@ -211,7 +211,7 @@
               <button
                 v-preview-disabled="'add'"
                 @click="showEditModal = true"
-                class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                class="px-4 py-2 bg-primary-600 text-white rounded-button hover:bg-primary-700 transition-colors"
               >
                 Add Mortgage
               </button>
@@ -236,7 +236,7 @@
                   <button
                     v-preview-disabled="'delete'"
                     @click="deleteMortgageConfirm(mortgage.id)"
-                    class="px-3 py-1 text-sm bg-red-600 text-white rounded-md hover:bg-red-700"
+                    class="px-3 py-1 text-sm bg-error-600 text-white rounded-button hover:bg-error-700"
                   >
                     Delete
                   </button>

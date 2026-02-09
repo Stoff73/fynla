@@ -76,13 +76,13 @@
     <div class="flex space-x-2">
       <button
         @click="navigateToSavings"
-        class="flex-1 px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors"
+        class="flex-1 px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-button hover:bg-blue-100 transition-colors"
       >
         Manage Cash ISAs
       </button>
       <button
         @click="navigateToInvestment"
-        class="flex-1 px-4 py-2 text-sm font-medium text-green-600 bg-green-50 rounded-md hover:bg-green-100 transition-colors"
+        class="flex-1 px-4 py-2 text-sm font-medium text-green-600 bg-green-50 rounded-button hover:bg-green-100 transition-colors"
       >
         Manage S&S ISAs
       </button>

@@ -12,7 +12,7 @@
       <p class="text-red-600">{{ error }}</p>
       <button
         @click="loadPolicy"
-        class="mt-4 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+        class="mt-4 px-4 py-2 bg-error-600 text-white rounded-button hover:bg-error-700 transition-colors"
       >
         Retry
       </button>
@@ -65,13 +65,13 @@
           <div class="flex flex-col sm:flex-row gap-2 sm:space-x-2 w-full sm:w-auto">
             <button
               @click="showEditModal = true"
-              class="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              class="w-full sm:w-auto px-4 py-2 bg-primary-600 text-white rounded-button hover:bg-primary-700 transition-colors"
             >
               Edit
             </button>
             <button
               @click="confirmDelete"
-              class="w-full sm:w-auto px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+              class="w-full sm:w-auto px-4 py-2 bg-error-600 text-white rounded-button hover:bg-error-700 transition-colors"
             >
               Delete
             </button>

@@ -531,7 +531,7 @@
               type="button"
               @click="previousStep"
               v-show="currentStep > 1"
-              class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
+              class="px-4 py-2 bg-gray-200 text-gray-700 rounded-button hover:bg-gray-300 transition-colors"
             >
               Previous
             </button>
@@ -540,7 +540,7 @@
               <button
                 type="button"
                 @click="$emit('close')"
-                class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+                class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-button hover:bg-gray-50 transition-colors"
               >
                 Cancel
               </button>
@@ -549,7 +549,7 @@
                 v-if="currentStep < totalSteps && !isEditMode"
                 type="button"
                 @click="nextStep"
-                class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors"
+                class="px-4 py-2 bg-purple-600 text-white rounded-button hover:bg-purple-700 transition-colors"
               >
                 Next
               </button>
@@ -558,7 +558,7 @@
                 v-if="currentStep < totalSteps && isEditMode"
                 type="button"
                 @click="nextStep"
-                class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
+                class="px-4 py-2 bg-gray-200 text-gray-700 rounded-button hover:bg-gray-300 transition-colors"
               >
                 Next Step
               </button>
@@ -567,7 +567,7 @@
                 v-if="currentStep >= totalSteps || isEditMode"
                 type="submit"
                 :disabled="submitting"
-                class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                class="px-4 py-2 bg-primary-600 text-white rounded-button hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {{ submitting ? 'Saving...' : 'Save Business' }}
               </button>

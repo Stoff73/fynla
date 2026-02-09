@@ -23,7 +23,7 @@
           <input
             v-model="hasNoPolicies"
             type="checkbox"
-            class="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            class="mt-1 h-4 w-4 text-blue-600 focus:ring-primary-500 border-gray-300 rounded"
             @change="handleNoPoliciesChange"
           >
           <div>
@@ -114,7 +114,7 @@
         <button
           v-preview-disabled="'upload'"
           type="button"
-          class="inline-flex items-center px-4 py-2 border-2 border-blue-600 text-blue-600 bg-white rounded-md hover:bg-blue-50 transition-colors text-sm font-medium"
+          class="inline-flex items-center px-4 py-2 border-2 border-blue-600 text-blue-600 bg-white rounded-button hover:bg-blue-50 transition-colors text-sm font-medium"
           @click="showUploadModal = true"
         >
           <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

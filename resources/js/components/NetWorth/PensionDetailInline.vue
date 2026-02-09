@@ -30,7 +30,7 @@
             <button
               v-preview-disabled="'edit'"
               @click="showEditModal = true"
-              class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              class="px-4 py-2 bg-primary-600 text-white rounded-button hover:bg-primary-700 transition-colors"
             >
               Edit
             </button>
@@ -38,7 +38,7 @@
               v-if="pensionType !== 'state'"
               v-preview-disabled="'delete'"
               @click="confirmDelete"
-              class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+              class="px-4 py-2 bg-error-600 text-white rounded-button hover:bg-error-700 transition-colors"
             >
               Delete
             </button>

@@ -9,7 +9,7 @@
       <button
         v-if="!showTracker"
         @click="loadRecommendations"
-        class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors duration-200"
+        class="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-button transition-colors duration-200"
       >
         Load Strategies
       </button>
@@ -33,7 +33,7 @@
       <p class="text-sm text-red-600 mb-4">{{ error }}</p>
       <button
         @click="loadRecommendations"
-        class="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors duration-200"
+        class="px-4 py-2 text-sm font-medium text-white bg-error-600 hover:bg-error-700 rounded-button transition-colors duration-200"
       >
         Try Again
       </button>
@@ -55,7 +55,7 @@
       </p>
       <button
         @click="loadRecommendations"
-        class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+        class="px-6 py-3 bg-primary-600 text-white rounded-button hover:bg-primary-700 transition-colors font-medium"
       >
         Generate Strategies
       </button>

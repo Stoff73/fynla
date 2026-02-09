@@ -17,7 +17,7 @@
         </button>
         <button
           @click="$emit('view-optimiser')"
-          class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+          class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-button hover:bg-primary-700"
         >
           Optimise Portfolio
         </button>
@@ -88,7 +88,7 @@
         <div class="bg-gray-50 rounded-lg p-4">
           <div class="flex items-center justify-between mb-3">
             <h4 class="text-sm font-semibold text-blue-900">Optimal Portfolio</h4>
-            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-600 text-white">
+            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary-600 text-white">
               Max Sharpe
             </span>
           </div>
@@ -191,7 +191,7 @@
         </p>
         <button
           @click="$emit('add-holdings')"
-          class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700"
+          class="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-button hover:bg-primary-700"
         >
           Add Holdings
         </button>

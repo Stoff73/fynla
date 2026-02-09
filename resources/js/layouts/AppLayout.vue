@@ -5,8 +5,8 @@
     <!-- Preview Mode Banner -->
     <PreviewBanner v-if="isPreviewMode" />
 
-    <main class="flex-grow bg-white">
-      <div class="max-w-7xl mx-auto py-4 sm:py-6 px-4 sm:px-6 lg:px-8">
+    <main class="flex-grow bg-gray-50">
+      <div class="max-w-7xl mx-auto py-2 sm:py-3 px-4 sm:px-6 lg:px-8">
         <slot />
       </div>
     </main>

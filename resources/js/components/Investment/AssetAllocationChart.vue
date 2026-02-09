@@ -37,7 +37,7 @@
         </p>
         <button
           @click="$emit('add-holding')"
-          class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+          class="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-button hover:bg-primary-700 transition-colors"
         >
           Add Your First Holding
         </button>

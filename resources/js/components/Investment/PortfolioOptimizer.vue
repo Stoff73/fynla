@@ -40,7 +40,7 @@
                 <div :class="[
                   'w-5 h-5 rounded-full border-2 flex items-center justify-center',
                   selectedStrategy === strategy.value
-                    ? 'border-blue-600 bg-blue-600'
+                    ? 'border-blue-600 bg-primary-600'
                     : 'border-gray-300'
                 ]">
                   <div v-if="selectedStrategy === strategy.value" class="w-2 h-2 bg-white rounded-full"></div>
@@ -67,7 +67,7 @@
             step="0.01"
             min="0"
             max="1"
-            class="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            class="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             placeholder="0.08"
           />
           <span class="text-sm text-gray-600">
@@ -96,7 +96,7 @@
                 step="0.01"
                 min="0"
                 max="1"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="0.00"
               />
               <span class="text-sm text-gray-600 whitespace-nowrap">
@@ -117,7 +117,7 @@
                 step="0.01"
                 min="0"
                 max="1"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="1.00"
               />
               <span class="text-sm text-gray-600 whitespace-nowrap">
@@ -137,7 +137,7 @@
         <button
           @click="runOptimization"
           :disabled="loading || !isFormValid"
-          class="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          class="px-6 py-3 bg-primary-600 text-white font-medium rounded-button hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {{ loading ? 'Optimising...' : 'Run Optimization' }}
         </button>

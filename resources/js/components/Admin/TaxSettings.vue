@@ -10,7 +10,7 @@
       </div>
       <button
         @click="showCreateModal = true"
-        class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+        class="px-4 py-2 bg-primary-600 text-white rounded-button hover:bg-primary-700 transition-colors"
       >
         Create New Tax Year
       </button>
@@ -77,7 +77,7 @@
           <button
             v-if="!isEditing"
             @click="startEditing"
-            class="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
+            class="px-3 py-1 bg-primary-600 text-white text-sm rounded hover:bg-primary-700 transition-colors"
           >
             Edit Configuration
           </button>
@@ -1217,7 +1217,7 @@
     <!-- Create/Duplicate Modal -->
     <div
       v-if="showCreateModal || showDuplicateModal"
-      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
       @click.self="closeModals"
     >
       <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">

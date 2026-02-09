@@ -152,7 +152,7 @@
                 id="will_last_updated"
                 v-model="form.will_last_updated"
                 type="date"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-blue-500"
                 :max="today"
               />
               <p class="mt-1 text-xs text-gray-500">
@@ -169,7 +169,7 @@
                 id="executor_name"
                 v-model="form.executor_name"
                 type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-blue-500"
                 placeholder="Enter executor name"
               />
             </div>
@@ -184,8 +184,8 @@
                   type="button"
                   @click="form.spouse_primary_beneficiary = !form.spouse_primary_beneficiary"
                   :class="[
-                    form.spouse_primary_beneficiary ? 'bg-blue-600' : 'bg-gray-200',
-                    'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
+                    form.spouse_primary_beneficiary ? 'bg-primary-600' : 'bg-gray-200',
+                    'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2'
                   ]"
                 >
                   <span
@@ -237,7 +237,7 @@
               <textarea
                 v-model="form.executor_notes"
                 rows="3"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-blue-500"
                 placeholder="Any special instructions or notes for your executor..."
               ></textarea>
             </div>
@@ -258,7 +258,7 @@
           <button
             v-preview-disabled="'add'"
             @click="showBequestModal = true"
-            class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm"
+            class="px-4 py-2 bg-primary-600 text-white rounded-button hover:bg-primary-700 text-sm"
           >
             Add Bequest
           </button>
@@ -580,7 +580,7 @@ input[type="range"]::-webkit-slider-thumb {
   appearance: none;
   width: 20px;
   height: 20px;
-  @apply bg-blue-600;
+  @apply bg-primary-600;
   cursor: pointer;
   border-radius: 50%;
 }
@@ -588,7 +588,7 @@ input[type="range"]::-webkit-slider-thumb {
 input[type="range"]::-moz-range-thumb {
   width: 20px;
   height: 20px;
-  @apply bg-blue-600;
+  @apply bg-primary-600;
   cursor: pointer;
   border-radius: 50%;
   border: none;

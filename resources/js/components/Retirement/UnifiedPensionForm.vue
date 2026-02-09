@@ -1,7 +1,7 @@
 <template>
   <div>
     <!-- Pension Type Selection Modal -->
-    <div v-if="!mainPensionType" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div v-if="!mainPensionType" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div class="bg-white rounded-lg shadow-xl max-w-3xl w-full p-8">
         <div class="flex items-center justify-between mb-6">
           <h3 class="text-2xl font-semibold text-gray-900">Add Pension</h3>

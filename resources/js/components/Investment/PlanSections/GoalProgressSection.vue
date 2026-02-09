@@ -138,8 +138,8 @@ export default {
 
     getProgressBarClass(percentage) {
       if (percentage >= 80) return 'bg-green-600';
-      if (percentage >= 50) return 'bg-blue-600';
-      if (percentage >= 30) return 'bg-blue-600';
+      if (percentage >= 50) return 'bg-primary-600';
+      if (percentage >= 30) return 'bg-primary-600';
       return 'bg-red-600';
     },
   },

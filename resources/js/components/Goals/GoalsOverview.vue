@@ -4,7 +4,7 @@
     <div class="flex flex-wrap gap-3 mb-6">
       <button
         @click="$emit('create-goal')"
-        class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors"
+        class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-button hover:bg-primary-700 transition-colors"
       >
         <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -40,7 +40,7 @@
       </p>
       <button
         @click="$emit('create-goal')"
-        class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors"
+        class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-button hover:bg-primary-700 transition-colors"
       >
         Create Your First Goal
       </button>
@@ -69,7 +69,7 @@
           <h3 class="text-lg font-semibold text-gray-900">Top Goals</h3>
           <button
             @click="$emit('create-goal')"
-            class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2"
+            class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-button hover:bg-primary-700 transition-colors flex items-center gap-2"
           >
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />

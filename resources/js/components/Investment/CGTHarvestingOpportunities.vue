@@ -159,7 +159,7 @@
       <div class="mt-6 flex justify-end">
         <button
           @click="$emit('refresh')"
-          class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors duration-200"
+          class="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-button hover:bg-primary-700 transition-colors duration-200"
         >
           Refresh Analysis
         </button>

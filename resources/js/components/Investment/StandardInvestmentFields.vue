@@ -9,7 +9,7 @@
         id="provider"
         v-model="localData.provider"
         type="text"
-        class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
         :class="{ 'border-red-500': errors.provider }"
         placeholder="e.g., Vanguard, Hargreaves Lansdown, Interactive Investor"
       />
@@ -35,7 +35,7 @@
         id="platform"
         v-model="localData.platform"
         type="text"
-        class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
         placeholder="e.g., Investment Account, ISA"
       />
       <p class="mt-1 text-xs text-gray-500">Optional: Specific platform or product name</p>
@@ -52,7 +52,7 @@
         type="number"
         step="0.01"
         min="0"
-        class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
         :class="{ 'border-red-500': errors.current_value }"
         placeholder="0.00"
       />
@@ -73,7 +73,7 @@
           id="bond_purchase_date"
           v-model="localData.bond_purchase_date"
           type="date"
-          class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
         />
         <p class="mt-1 text-xs text-gray-500">
           The date you purchased this bond (used to calculate 5% withdrawal allowance)
@@ -91,7 +91,7 @@
           type="number"
           step="0.01"
           min="0"
-          class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
           placeholder="0.00"
         />
         <p class="mt-1 text-xs text-gray-500">
@@ -133,7 +133,7 @@
               type="number"
               step="0.01"
               min="0"
-              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
               placeholder="0.00"
             />
           </div>
@@ -141,7 +141,7 @@
             <select
               id="contribution_frequency"
               v-model="localData.contribution_frequency"
-              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
             >
               <option value="monthly">Monthly</option>
               <option value="quarterly">Quarterly</option>
@@ -167,7 +167,7 @@
               type="number"
               step="0.01"
               min="0"
-              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
               placeholder="0.00"
             />
           </div>
@@ -176,7 +176,7 @@
               id="planned_lump_sum_date"
               v-model="localData.planned_lump_sum_date"
               type="date"
-              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
           </div>
         </div>
@@ -199,7 +199,7 @@
             type="number"
             step="0.01"
             min="0"
-            class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
             :placeholder="localData.platform_fee_type === 'percentage' ? 'e.g., 0.45' : 'e.g., 50.00'"
           />
         </div>
@@ -207,7 +207,7 @@
           <select
             id="platform_fee_type"
             v-model="localData.platform_fee_type"
-            class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
           >
             <option value="percentage">%</option>
             <option value="fixed">£</option>
@@ -217,7 +217,7 @@
           <select
             id="platform_fee_frequency"
             v-model="localData.platform_fee_frequency"
-            class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
           >
             <option value="monthly">Monthly</option>
             <option value="quarterly">Quarterly</option>
@@ -234,7 +234,7 @@
           You have entered <strong>{{ localData.platform_fee_percent }}%</strong> as a percentage fee. Did you mean <strong>£{{ localData.platform_fee_percent }}</strong> instead?
         </p>
         <div class="mt-2 flex gap-2">
-          <button type="button" @click="$emit('confirm-fee')" class="px-3 py-1 text-xs font-medium bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">
+          <button type="button" @click="$emit('confirm-fee')" class="px-3 py-1 text-xs font-medium bg-primary-600 text-white rounded hover:bg-primary-700 transition-colors">
             Yes, it's {{ localData.platform_fee_percent }}%
           </button>
           <button type="button" @click="switchFeeToFixed" class="px-3 py-1 text-xs font-medium border border-blue-600 text-blue-700 rounded hover:bg-blue-100 transition-colors">
@@ -306,8 +306,8 @@
           type="number"
           step="0.01"
           min="0"
-          max="20000"
-          class="w-full border border-blue-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+          :max="ISA_ALLOWANCE"
+          class="w-full border border-blue-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
           placeholder="0.00"
         />
         <p class="mt-1 text-xs text-blue-700">
@@ -328,7 +328,7 @@
               type="number"
               step="0.01"
               min="0"
-              class="w-full border border-blue-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              class="w-full border border-blue-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
               :class="{ 'border-red-500': errors.isa_contribution_exceeds }"
               placeholder="0.00"
             />
@@ -337,7 +337,7 @@
             <select
               id="isa_contribution_frequency"
               v-model="localData.contribution_frequency"
-              class="w-full border border-blue-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              class="w-full border border-blue-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
             >
               <option value="monthly">Monthly</option>
               <option value="quarterly">Quarterly</option>
@@ -363,7 +363,7 @@
               type="number"
               step="0.01"
               min="0"
-              class="w-full border border-blue-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              class="w-full border border-blue-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
               :class="{ 'border-red-500': errors.isa_contribution_exceeds }"
               placeholder="0.00"
             />
@@ -373,7 +373,7 @@
               id="isa_planned_lump_sum_date"
               v-model="localData.planned_lump_sum_date"
               type="date"
-              class="w-full border border-blue-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              class="w-full border border-blue-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
             />
           </div>
         </div>
@@ -462,7 +462,7 @@
         <select
           id="ownership_type"
           v-model="localData.ownership_type"
-          class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
         >
           <option value="individual">Individual Owner</option>
           <option value="joint">Joint Owner</option>
@@ -478,7 +478,7 @@
         <select
           id="joint_owner_id"
           v-model="localData.joint_owner_id"
-          class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
         >
           <option value="">Select joint owner</option>
           <option v-if="spouse" :value="spouse.id">{{ spouse.name }} (Spouse - Linked Account)</option>
@@ -497,7 +497,7 @@
         <select
           id="trust_id"
           v-model="localData.trust_id"
-          class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
         >
           <option value="">Select trust</option>
           <!-- Trust options would be loaded from store/API -->

@@ -34,7 +34,7 @@
                 step="50"
                 min="0"
                 required
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="e.g., 500"
               />
               <p class="text-xs text-gray-500 mt-1">Amount available for investment after expenses</p>
@@ -49,7 +49,7 @@
                 type="number"
                 step="100"
                 min="0"
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="e.g., 10000"
               />
               <p class="text-xs text-gray-500 mt-1">Optional one-time investment</p>
@@ -65,7 +65,7 @@
               <select
                 v-model.number="formData.time_horizon_years"
                 required
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
                 <option :value="5">5 years</option>
                 <option :value="10">10 years</option>
@@ -83,7 +83,7 @@
               <select
                 v-model="formData.risk_tolerance"
                 required
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
                 <option value="conservative">Conservative (Lower risk/return)</option>
                 <option value="moderately_conservative">Moderately Conservative</option>
@@ -102,7 +102,7 @@
             <select
               v-model="formData.income_tax_band"
               required
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             >
               <option value="basic">Basic Rate (20%)</option>
               <option value="higher">Higher Rate (40%)</option>
@@ -115,7 +115,7 @@
             <button
               type="submit"
               :disabled="optimising"
-              class="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              class="px-6 py-3 bg-primary-600 text-white font-medium rounded-button hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               <span v-if="optimising">Optimising...</span>
               <span v-else>Optimise My Contributions</span>
@@ -380,7 +380,7 @@
             <div class="w-full bg-gray-200 rounded-full h-3">
               <div
                 class="h-3 rounded-full transition-all duration-300"
-                :class="(optimizationResult.isa_status.used / optimizationResult.isa_status.limit * 100) > 90 ? 'bg-red-600' : 'bg-blue-600'"
+                :class="(optimizationResult.isa_status.used / optimizationResult.isa_status.limit * 100) > 90 ? 'bg-red-600' : 'bg-primary-600'"
                 :style="{ width: Math.min(100, (optimizationResult.isa_status.used / optimizationResult.isa_status.limit * 100)) + '%' }"
               ></div>
             </div>

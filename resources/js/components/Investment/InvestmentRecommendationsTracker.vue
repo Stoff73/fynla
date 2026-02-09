@@ -6,7 +6,7 @@
         <h2 class="text-2xl font-bold text-gray-900">Investment Strategies</h2>
         <button
           @click="refreshRecommendations"
-          class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors duration-200"
+          class="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-button transition-colors duration-200"
           :disabled="loading"
         >
           {{ loading ? 'Loading...' : 'Refresh' }}
@@ -194,7 +194,7 @@
     <!-- Dismiss Modal -->
     <div
       v-if="showDismissModal"
-      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
       @click.self="closeDismissModal"
     >
       <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
@@ -203,20 +203,20 @@
           <p class="text-gray-700 mb-4">Please provide a reason for dismissing this strategy:</p>
           <textarea
             v-model="dismissalReason"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             rows="4"
             placeholder="Enter dismissal reason..."
           ></textarea>
           <div class="flex justify-end gap-3 mt-4">
             <button
               @click="closeDismissModal"
-              class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors duration-200"
+              class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-button transition-colors duration-200"
             >
               Cancel
             </button>
             <button
               @click="confirmDismiss"
-              class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors duration-200"
+              class="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-button transition-colors duration-200"
               :disabled="!dismissalReason"
             >
               Dismiss

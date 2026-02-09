@@ -8,8 +8,12 @@
 
 /* Base Styles */
 @layer base {
+  html, body {
+    background-color: #F9FAFB !important;
+  }
+
   body {
-    @apply font-sans text-gray-900 bg-gray-50;
+    @apply font-sans text-gray-900;
   }
 
   h1 {

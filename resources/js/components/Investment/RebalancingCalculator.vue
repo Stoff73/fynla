@@ -21,7 +21,7 @@
           </label>
           <select
             v-model="source"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
             @change="onSourceChange"
           >
             <option value="optimization">From Portfolio Optimisation</option>
@@ -42,7 +42,7 @@
             type="number"
             min="0"
             step="50"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
           />
           <p class="mt-1 text-xs text-gray-500">
             Ignore trades smaller than this amount
@@ -56,7 +56,7 @@
               v-model="optimiseForCGT"
               type="checkbox"
               id="optimiseCGT"
-              class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              class="h-4 w-4 text-blue-600 focus:ring-primary-500 border-gray-300 rounded"
             />
             <label for="optimiseCGT" class="ml-2 block text-sm font-medium text-gray-700">
               Optimise for Capital Gains Tax
@@ -78,7 +78,7 @@
               type="number"
               min="0"
               step="100"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
             <p class="mt-1 text-xs text-gray-500">
               UK: £3,000 for 2025/26
@@ -91,7 +91,7 @@
             </label>
             <select
               v-model.number="taxRate"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
             >
               <option :value="0.10">10% (Basic Rate)</option>
               <option :value="0.20">20% (Higher Rate)</option>
@@ -107,7 +107,7 @@
               type="number"
               min="0"
               step="100"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
             <p class="mt-1 text-xs text-gray-500">
               Capital losses carried forward from previous tax years
@@ -121,7 +121,7 @@
         <button
           @click="calculateRebalancing"
           :disabled="loading || !canCalculate"
-          class="w-full px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-300 disabled:cursor-not-allowed"
+          class="w-full px-4 py-2 text-white bg-primary-600 rounded-button hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:bg-gray-300 disabled:cursor-not-allowed"
         >
           <span v-if="loading" class="flex items-center justify-center">
             <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -177,13 +177,13 @@
       <div class="flex justify-end space-x-3">
         <button
           @click="clearResults"
-          class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-button hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
         >
           Clear
         </button>
         <button
           @click="exportResults"
-          class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-button hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
         >
           Export to CSV
         </button>

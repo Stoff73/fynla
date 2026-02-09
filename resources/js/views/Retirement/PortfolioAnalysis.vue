@@ -183,7 +183,7 @@
             </p>
             <router-link
               to="/investment?tab=scenarios"
-              class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
+              class="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-button hover:bg-primary-700 transition-colors font-medium text-sm"
             >
               View Simulations
               <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -205,7 +205,7 @@
             </p>
             <router-link
               to="/investment?tab=optimization"
-              class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium text-sm"
+              class="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-button hover:bg-primary-700 transition-colors font-medium text-sm"
             >
               View Analysis
               <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -26,14 +26,14 @@
             <div class="flex gap-3">
               <button
                 @click="$router.push('/protection')"
-                class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium text-sm"
+                class="px-4 py-2 bg-primary-600 text-white rounded-button hover:bg-primary-700 transition-colors font-medium text-sm"
               >
                 View Gap Analysis →
               </button>
               <button
                 v-preview-disabled="'add'"
                 @click="$emit('add-policy')"
-                class="px-4 py-2 bg-white text-blue-600 border border-blue-600 rounded-md hover:bg-blue-50 transition-colors font-medium text-sm"
+                class="px-4 py-2 bg-white text-blue-600 border border-blue-600 rounded-button hover:bg-blue-50 transition-colors font-medium text-sm"
               >
                 I Have Protection to Add
               </button>
@@ -47,7 +47,7 @@
                   v-model="hasNoPoliciesChecked"
                   v-preview-disabled="'edit'"
                   type="checkbox"
-                  class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-primary-500"
                   @change="updateHasNoPoliciesFlag"
                 />
               </div>
@@ -76,7 +76,7 @@
           <button
             v-preview-disabled="'add'"
             @click="$emit('add-policy')"
-            class="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+            class="px-4 py-2 bg-primary-600 text-white font-medium rounded-button hover:bg-primary-700 transition-colors flex items-center gap-2"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"

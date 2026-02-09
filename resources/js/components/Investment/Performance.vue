@@ -27,7 +27,7 @@
         </p>
         <button
           @click="navigateToTab('accounts')"
-          class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          class="px-6 py-3 bg-primary-600 text-white rounded-button hover:bg-primary-700 transition-colors font-medium"
         >
           Add Investment Account
         </button>

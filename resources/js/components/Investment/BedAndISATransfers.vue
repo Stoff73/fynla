@@ -137,7 +137,7 @@
             class="flex items-start p-3 bg-gray-50 rounded-md border border-gray-200"
           >
             <div class="flex-shrink-0 mr-3">
-              <span class="inline-flex items-center justify-center h-8 w-8 rounded-full bg-blue-600 text-white text-sm font-bold">
+              <span class="inline-flex items-center justify-center h-8 w-8 rounded-full bg-primary-600 text-white text-sm font-bold">
                 {{ index + 1 }}
               </span>
             </div>
@@ -210,7 +210,7 @@
       <div class="mt-6 flex justify-end">
         <button
           @click="$emit('refresh')"
-          class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors duration-200"
+          class="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-button hover:bg-primary-700 transition-colors duration-200"
         >
           Refresh Analysis
         </button>

@@ -196,7 +196,7 @@
       <div class="mt-6 flex justify-end space-x-3">
         <button
           @click="$emit('refresh')"
-          class="px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-300 transition-colors duration-200"
+          class="px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-button hover:bg-gray-300 transition-colors duration-200"
         >
           Refresh
         </button>
@@ -242,8 +242,8 @@ export default {
 
     getAllowanceBarClass(utilization) {
       if (utilization > 100) return 'bg-red-600';
-      if (utilization > 80) return 'bg-blue-600';
-      return 'bg-blue-600';
+      if (utilization > 80) return 'bg-primary-600';
+      return 'bg-primary-600';
     },
 
     getPriorityClass(priority) {

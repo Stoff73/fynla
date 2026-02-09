@@ -34,7 +34,7 @@
               <select
                 id="account_id"
                 v-model="formData.investment_account_id"
-                class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
                 :class="{ 'border-red-500': errors.investment_account_id }"
                 :disabled="accounts.length === 0"
               >
@@ -58,7 +58,7 @@
                 id="security_name"
                 v-model="formData.security_name"
                 type="text"
-                class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
                 :class="{ 'border-red-500': errors.security_name }"
                 placeholder="e.g., Vanguard FTSE All-World"
               />
@@ -75,7 +75,7 @@
                   id="ticker"
                   v-model="formData.ticker"
                   type="text"
-                  class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
                   placeholder="e.g., VWRL"
                 />
               </div>
@@ -87,7 +87,7 @@
                   id="isin"
                   v-model="formData.isin"
                   type="text"
-                  class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
                   placeholder="e.g., IE00B3RBWM25"
                 />
               </div>
@@ -101,7 +101,7 @@
               <select
                 id="asset_type"
                 v-model="formData.asset_type"
-                class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
                 :class="{ 'border-red-500': errors.asset_type }"
               >
                 <option value="">Select asset type</option>
@@ -132,7 +132,7 @@
                     step="0.01"
                     min="0"
                     max="100"
-                    class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-8"
+                    class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 pr-8"
                     :class="{ 'border-red-500': errors.allocation_percent }"
                     placeholder="e.g., 25.5"
                   />
@@ -151,7 +151,7 @@
                   type="number"
                   step="0.01"
                   min="0"
-                  class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
                   :class="{ 'border-red-500': errors.purchase_price }"
                   placeholder="0.00"
                 />
@@ -171,7 +171,7 @@
                   type="number"
                   step="0.01"
                   min="0"
-                  class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
                   :class="{ 'border-red-500': errors.current_price }"
                   placeholder="0.00"
                 />
@@ -185,7 +185,7 @@
                   id="purchase_date"
                   v-model="formData.purchase_date"
                   type="date"
-                  class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
                   :class="{ 'border-red-500': errors.purchase_date }"
                   :max="today"
                 />
@@ -205,7 +205,7 @@
                 step="0.01"
                 min="0"
                 max="10"
-                class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
                 placeholder="e.g., 0.22"
               />
               <p class="mt-1 text-xs text-gray-500">Annual management fee as a percentage</p>
@@ -243,7 +243,7 @@
             <button
               type="submit"
               :disabled="submitting"
-              class="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              class="px-4 py-2 bg-primary-600 text-white rounded-button text-sm font-medium hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {{ submitting ? 'Saving...' : (isEditMode ? 'Update Holding' : 'Add Holding') }}
             </button>

@@ -15,7 +15,7 @@
       <p class="text-sm text-red-600 mb-4">{{ error }}</p>
       <button
         @click="loadPlan"
-        class="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors duration-200"
+        class="px-4 py-2 text-sm font-medium text-white bg-error-600 hover:bg-error-700 rounded-button transition-colors duration-200"
       >
         Try Again
       </button>
@@ -276,7 +276,7 @@
                 </p>
                 <router-link
                   to="/investment?tab=scenarios"
-                  class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                  class="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-button hover:bg-primary-700 transition-colors font-medium"
                 >
                   View Monte Carlo Analysis
                   <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -301,7 +301,7 @@
                 </p>
                 <router-link
                   to="/investment?tab=optimization"
-                  class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+                  class="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-button hover:bg-primary-700 transition-colors font-medium"
                 >
                   View Efficient Frontier
                   <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -689,9 +689,9 @@ export default {
     getUrgencyBgClass(urgency) {
       const urgencyMap = {
         'Critical': 'bg-red-600',
-        'High': 'bg-blue-600',
+        'High': 'bg-primary-600',
         'Medium': 'bg-yellow-600',
-        'Low': 'bg-blue-600',
+        'Low': 'bg-primary-600',
       };
       return urgencyMap[urgency] || 'bg-gray-600';
     },

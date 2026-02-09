@@ -30,7 +30,7 @@
                 class="w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all cursor-pointer hover:opacity-80"
                 :class="
                   currentStep === index + 1
-                    ? 'bg-blue-600 border-blue-600 text-white'
+                    ? 'bg-primary-600 border-blue-600 text-white'
                     : (isEditMode || currentStep > index + 1)
                     ? 'bg-green-600 border-green-600 text-white'
                     : 'bg-white border-gray-300 text-gray-400'
@@ -77,7 +77,7 @@
                 id="property_type"
                 name="property_type"
                 v-model="form.property_type"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
                 <option value="">Select property type</option>
                 <option value="main_residence">Main Residence</option>
@@ -94,7 +94,7 @@
                   name="address_line_1"
                   v-model="form.address_line_1"
                   type="text"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
 
@@ -105,7 +105,7 @@
                   name="address_line_2"
                   v-model="form.address_line_2"
                   type="text"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
 
@@ -116,7 +116,7 @@
                   name="city"
                   v-model="form.city"
                   type="text"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
 
@@ -127,7 +127,7 @@
                   name="county"
                   v-model="form.county"
                   type="text"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
 
@@ -139,7 +139,7 @@
                   v-model="form.postcode"
                   type="text"
                   pattern="^[A-Z]{1,2}[0-9]{1,2}[A-Z]?\s?[0-9][A-Z]{2}$"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 uppercase"
                   placeholder="SW1A 1AA"
                 />
               </div>
@@ -174,7 +174,7 @@
                   name="purchase_date"
                   v-model="form.purchase_date"
                   type="date"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
 
@@ -187,7 +187,7 @@
                   type="number"
                   step="any"
                   min="0"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
 
@@ -202,7 +202,7 @@
                   type="number"
                   step="any"
                   min="0"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
                 <p v-if="isJointPropertyEdit" class="text-xs text-blue-600 mt-1">
                   Enter the full property value. Your {{ form.ownership_percentage }}% share will be calculated automatically.
@@ -216,7 +216,7 @@
                   name="valuation_date"
                   v-model="form.valuation_date"
                   type="date"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
             </div>
@@ -281,7 +281,7 @@
                   type="number"
                   min="1"
                   max="999"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
                 <p v-if="form.lease_remaining_years && form.lease_remaining_years < 80" class="text-xs text-blue-600 mt-1">
                   ⚠️ Properties with less than 80 years remaining may be difficult to mortgage
@@ -299,7 +299,7 @@
                   id="lease_expiry_date"
                   v-model="form.lease_expiry_date"
                   type="date"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
             </div>
@@ -392,7 +392,7 @@
                   id="joint_owner_selection"
                   v-model="jointOwnerSelection"
                   @change="handleJointOwnerSelection"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 >
                   <option value="">Select joint owner</option>
                   <option v-if="spouse" :value="'linked_' + spouse.id">{{ spouse.name }} (Spouse - Linked Account)</option>
@@ -410,7 +410,7 @@
                   v-model="form.joint_owner_name"
                   type="text"
                   placeholder="Enter joint owner's full name"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
                 <p class="text-xs text-gray-500 mt-1">
                   Note: This person doesn't have an account in the system. The property will only appear in your account.
@@ -585,7 +585,7 @@
                 id="lender_name"
                 v-model="mortgageForm.lender_name"
                 type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
 
@@ -595,7 +595,7 @@
                 id="mortgage_account_number"
                 v-model="mortgageForm.mortgage_account_number"
                 type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
 
@@ -604,7 +604,7 @@
               <select
                 id="mortgage_type"
                 v-model="mortgageForm.mortgage_type"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
                 <option value="">Select mortgage type</option>
                 <option value="repayment">Repayment</option>
@@ -639,7 +639,7 @@
                     step="0.01"
                     min="0"
                     max="100"
-                    class="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    class="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
                     placeholder="e.g., 40"
                   />
                   <p class="text-xs text-blue-700 mt-1">Percentage on repayment basis</p>
@@ -656,7 +656,7 @@
                     step="0.01"
                     min="0"
                     max="100"
-                    class="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    class="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
                     placeholder="e.g., 60"
                   />
                   <p class="text-xs text-blue-700 mt-1">Percentage on interest-only basis</p>
@@ -680,7 +680,7 @@
                   type="number"
                   step="0.01"
                   min="0"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
 
@@ -694,7 +694,7 @@
                   type="number"
                   step="0.01"
                   min="0"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
                 <p v-if="isJointPropertyEdit" class="text-xs text-blue-600 mt-1">
                   Enter the full mortgage balance. Your {{ form.ownership_percentage }}% share will be calculated automatically.
@@ -713,7 +713,7 @@
                   step="0.01"
                   min="0"
                   max="100"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
 
@@ -722,7 +722,7 @@
                 <select
                   id="rate_type"
                   v-model="mortgageForm.rate_type"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 >
                   <option value="">Select rate type</option>
                   <option value="fixed">Fixed</option>
@@ -740,7 +740,7 @@
                 id="rate_fix_end_date"
                 v-model="mortgageForm.rate_fix_end_date"
                 type="date"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
 
@@ -848,7 +848,7 @@
                 type="number"
                 step="0.01"
                 min="0"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
               <p class="text-sm text-gray-500 mt-1">Enter your monthly mortgage payment amount</p>
             </div>
@@ -863,7 +863,7 @@
                 type="number"
                 step="0.01"
                 min="0"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
               <p class="text-sm text-gray-500 mt-1">The interest portion of your monthly repayment, used for Section 24 tax credit calculation</p>
             </div>
@@ -875,7 +875,7 @@
                   id="start_date"
                   v-model="mortgageForm.start_date"
                   type="date"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
 
@@ -885,7 +885,7 @@
                   id="maturity_date"
                   v-model="mortgageForm.maturity_date"
                   type="date"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
                 <p class="text-xs text-gray-500 mt-1">If no end date specified, chosen retirement date will be used</p>
               </div>
@@ -902,7 +902,7 @@
                 <select
                   id="mortgage_ownership_type"
                   v-model="mortgageForm.ownership_type"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 >
                   <option value="individual">Individual Owner</option>
                   <option value="joint">Joint Owner</option>
@@ -917,7 +917,7 @@
                   id="mortgage_joint_owner_selection"
                   v-model="mortgageJointOwnerSelection"
                   @change="handleMortgageJointOwnerSelection"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 >
                   <option value="">Select joint owner</option>
                   <option v-if="spouse" :value="'linked_' + spouse.id">{{ spouse.name }} (Spouse - Linked Account)</option>
@@ -934,7 +934,7 @@
                   id="mortgage_joint_owner_name"
                   v-model="mortgageForm.joint_owner_name"
                   type="text"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                   placeholder="Enter joint owner's name"
                 />
               </div>
@@ -971,7 +971,7 @@
                   type="number"
                   step="0.01"
                   min="0"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
 
@@ -984,7 +984,7 @@
                   type="number"
                   step="0.01"
                   min="0"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
 
@@ -997,7 +997,7 @@
                   type="number"
                   step="0.01"
                   min="0"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
 
@@ -1010,7 +1010,7 @@
                   type="number"
                   step="0.01"
                   min="0"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
 
@@ -1023,7 +1023,7 @@
                   type="number"
                   step="0.01"
                   min="0"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
 
@@ -1036,7 +1036,7 @@
                   type="number"
                   step="0.01"
                   min="0"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
 
@@ -1059,7 +1059,7 @@
                   type="number"
                   step="0.01"
                   min="0"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
 
@@ -1082,7 +1082,7 @@
                   type="number"
                   step="0.01"
                   min="0"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
 
@@ -1095,7 +1095,7 @@
                   type="number"
                   step="0.01"
                   min="0"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
             </div>
@@ -1132,7 +1132,7 @@
                     type="number"
                     step="any"
                     min="0"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                   />
                 </div>
 
@@ -1142,7 +1142,7 @@
                     id="tenant_name"
                     v-model="form.tenant_name"
                     type="text"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                   />
                 </div>
 
@@ -1152,7 +1152,7 @@
                     id="tenant_email"
                     v-model="form.tenant_email"
                     type="email"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                     placeholder="tenant@example.com"
                   />
                   <p class="text-xs text-gray-500 mt-1">This information is used in the Letter to Spouse section of the app</p>
@@ -1164,7 +1164,7 @@
                     id="lease_start_date"
                     v-model="form.lease_start_date"
                     type="date"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                   />
                 </div>
 
@@ -1174,7 +1174,7 @@
                     id="lease_end_date"
                     v-model="form.lease_end_date"
                     type="date"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                   />
                 </div>
               </div>
@@ -1191,7 +1191,7 @@
                       id="managing_agent_name"
                       v-model="form.managing_agent_name"
                       type="text"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                       placeholder="e.g., John Smith"
                     />
                   </div>
@@ -1202,7 +1202,7 @@
                       id="managing_agent_company"
                       v-model="form.managing_agent_company"
                       type="text"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                       placeholder="e.g., ABC Property Management Ltd"
                     />
                   </div>
@@ -1213,7 +1213,7 @@
                       id="managing_agent_email"
                       v-model="form.managing_agent_email"
                       type="email"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                       placeholder="agent@propertymanagement.com"
                     />
                   </div>
@@ -1224,7 +1224,7 @@
                       id="managing_agent_phone"
                       v-model="form.managing_agent_phone"
                       type="tel"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                       placeholder="e.g., 020 1234 5678"
                     />
                   </div>
@@ -1237,7 +1237,7 @@
                       type="number"
                       step="0.01"
                       min="0"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                       placeholder="e.g., 150.00"
                     />
                   </div>
@@ -1258,7 +1258,7 @@
             type="button"
             @click="previousStep"
             v-show="currentStep > 1"
-            class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
+            class="px-4 py-2 bg-gray-200 text-gray-700 rounded-button hover:bg-gray-300 transition-colors"
           >
             Previous
           </button>
@@ -1267,7 +1267,7 @@
             <button
               type="button"
               @click="$emit('close')"
-              class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+              class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-button hover:bg-gray-50 transition-colors"
             >
               Cancel
             </button>
@@ -1276,7 +1276,7 @@
               v-if="currentStep < totalSteps && !isEditMode"
               type="button"
               @click="nextStep"
-              class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              class="px-4 py-2 bg-primary-600 text-white rounded-button hover:bg-primary-700 transition-colors"
             >
               Next
             </button>
@@ -1285,7 +1285,7 @@
               v-if="currentStep < totalSteps && isEditMode"
               type="button"
               @click="nextStep"
-              class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
+              class="px-4 py-2 bg-gray-200 text-gray-700 rounded-button hover:bg-gray-300 transition-colors"
             >
               Next Step
             </button>
@@ -1294,7 +1294,7 @@
               v-if="currentStep >= totalSteps || isEditMode"
               type="submit"
               :disabled="submitting"
-              class="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              class="px-4 py-2 bg-primary-600 text-white rounded-button text-sm font-medium hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {{ submitting ? 'Saving...' : 'Save Property' }}
             </button>

@@ -22,7 +22,7 @@
               type="text"
               id="trust_name"
               required
-              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-primary-500"
               placeholder="e.g., Smith Family Trust"
             />
           </div>
@@ -34,7 +34,7 @@
               id="trust_type"
               required
               @change="onTrustTypeChange"
-              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-primary-500"
             >
               <option value="">Select trust type...</option>
               <option value="bare">Bare Trust</option>
@@ -67,7 +67,7 @@
               type="date"
               id="trust_creation_date"
               required
-              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-primary-500"
             />
           </div>
 
@@ -80,7 +80,7 @@
               required
               min="0"
               step="0.01"
-              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-primary-500"
             />
           </div>
 
@@ -93,7 +93,7 @@
               required
               min="0"
               step="0.01"
-              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-primary-500"
             />
           </div>
         </div>
@@ -110,7 +110,7 @@
                 id="discount_amount"
                 min="0"
                 step="0.01"
-                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-primary-500"
               />
               <p class="mt-1 text-xs text-gray-500">Actuarial value of retained income stream</p>
             </div>
@@ -123,7 +123,7 @@
                 id="retained_income_annual"
                 min="0"
                 step="0.01"
-                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-primary-500"
               />
               <p class="mt-1 text-xs text-gray-500">Annual income retained by settlor</p>
             </div>
@@ -142,7 +142,7 @@
                 id="loan_amount"
                 min="0"
                 step="0.01"
-                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-primary-500"
               />
               <p class="mt-1 text-xs text-gray-500">Outstanding loan balance</p>
             </div>
@@ -152,7 +152,7 @@
                 <input
                   v-model="form.loan_interest_bearing"
                   type="checkbox"
-                  class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-primary-500"
                 />
                 <span class="ml-2 text-sm text-gray-700">Interest Bearing</span>
               </label>
@@ -167,7 +167,7 @@
                 min="0"
                 max="100"
                 step="0.01"
-                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-primary-500"
               />
             </div>
           </div>
@@ -185,7 +185,7 @@
                 id="sum_assured"
                 min="0"
                 step="0.01"
-                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-primary-500"
               />
               <p class="mt-1 text-xs text-gray-500">Life insurance policy payout</p>
             </div>
@@ -198,7 +198,7 @@
                 id="annual_premium"
                 min="0"
                 step="0.01"
-                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-primary-500"
               />
             </div>
           </div>
@@ -212,7 +212,7 @@
               v-model="form.beneficiaries"
               id="beneficiaries"
               rows="3"
-              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-primary-500"
               placeholder="List beneficiaries..."
             ></textarea>
           </div>
@@ -223,7 +223,7 @@
               v-model="form.trustees"
               id="trustees"
               rows="3"
-              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-primary-500"
               placeholder="List trustees..."
             ></textarea>
           </div>
@@ -236,7 +236,7 @@
             v-model="form.purpose"
             id="purpose"
             rows="2"
-            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-primary-500"
             placeholder="Purpose of the trust..."
           ></textarea>
         </div>
@@ -247,7 +247,7 @@
             v-model="form.notes"
             id="notes"
             rows="2"
-            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-primary-500"
             placeholder="Additional notes..."
           ></textarea>
         </div>
@@ -258,7 +258,7 @@
             <input
               v-model="form.is_active"
               type="checkbox"
-              class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-primary-500"
             />
             <span class="ml-2 text-sm text-gray-700">Trust is Active</span>
           </label>
@@ -274,14 +274,14 @@
           <button
             type="button"
             @click="$emit('close')"
-            class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+            class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-button hover:bg-gray-50"
             :disabled="submitting"
           >
             Cancel
           </button>
           <button
             type="submit"
-            class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 disabled:opacity-50"
+            class="px-4 py-2 text-sm font-medium text-white bg-primary-600 border border-transparent rounded-button hover:bg-primary-700 disabled:opacity-50"
             :disabled="submitting"
           >
             {{ submitting ? 'Saving...' : (isEdit ? 'Update Trust' : 'Create Trust') }}

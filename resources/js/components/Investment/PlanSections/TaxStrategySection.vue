@@ -185,15 +185,15 @@ export default {
 
     getIsaBarColour(utilization) {
       if (utilization > 100) return 'bg-red-600';
-      if (utilization > 80) return 'bg-blue-600';
-      return 'bg-blue-600';
+      if (utilization > 80) return 'bg-primary-600';
+      return 'bg-primary-600';
     },
 
     getPriorityClass(priority) {
       const classes = {
         high: 'bg-red-600',
-        medium: 'bg-blue-600',
-        low: 'bg-blue-600',
+        medium: 'bg-primary-600',
+        low: 'bg-primary-600',
       };
       return classes[priority] || 'bg-gray-600';
     },

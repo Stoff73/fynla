@@ -885,7 +885,7 @@ export default {
 }
 
 .add-account-button:hover {
-  @apply bg-blue-600;
+  @apply bg-primary-600;
 }
 
 .upload-button {

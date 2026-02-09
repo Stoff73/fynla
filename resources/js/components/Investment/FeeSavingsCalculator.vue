@@ -26,7 +26,7 @@
                 step="1000"
                 min="0"
                 required
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="e.g., 100000"
                 @input="calculateSavings"
               />
@@ -42,7 +42,7 @@
                 type="number"
                 step="50"
                 min="0"
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="e.g., 500"
                 @input="calculateSavings"
               />
@@ -101,7 +101,7 @@
               </label>
               <select
                 v-model.number="calculator.expectedReturn"
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 @change="calculateSavings"
               >
                 <option :value="0.04">4% (Conservative)</option>
@@ -119,7 +119,7 @@
               </label>
               <select
                 v-model.number="calculator.years"
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 @change="calculateSavings"
               >
                 <option :value="10">10 years</option>

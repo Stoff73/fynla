@@ -296,7 +296,7 @@
         <p><strong>Score Interpretation:</strong></p>
         <code class="block bg-gray-50 p-3 rounded text-xs font-mono">
           90-100%: On track (green)
-          <br>70-89%: Nearly there (orange)
+          <br>70-89%: Nearly there (blue)
           <br>Below 70%: Action needed (red)
         </code>
 

@@ -135,7 +135,7 @@ export default {
       if (this.emergencyFundRunway >= 6) {
         return 'bg-green-600';
       } else if (this.emergencyFundRunway >= 3) {
-        return 'bg-blue-600';
+        return 'bg-primary-600';
       } else {
         return 'bg-red-600';
       }

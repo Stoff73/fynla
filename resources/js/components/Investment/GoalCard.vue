@@ -119,7 +119,7 @@
       <!-- View Chart Button -->
       <button
         @click="$emit('view-chart', goal)"
-        class="w-full mt-4 bg-blue-500 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-600 transition-colors"
+        class="w-full mt-4 bg-blue-500 text-white px-4 py-2 rounded-button text-sm font-medium hover:bg-primary-600 transition-colors"
       >
         View Detailed Chart
       </button>
@@ -135,7 +135,7 @@
         <button
           @click="$emit('run-monte-carlo', goal)"
           :disabled="runningMonteCarlo"
-          class="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          class="bg-primary-600 text-white px-4 py-2 rounded-button text-sm font-medium hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {{ runningMonteCarlo ? 'Running...' : 'Run Monte Carlo Simulation' }}
         </button>
@@ -196,7 +196,7 @@ export default {
 
     progressBarClass() {
       if (this.progressPercent >= 100) return 'bg-green-600';
-      if (this.progressPercent >= 75) return 'bg-blue-600';
+      if (this.progressPercent >= 75) return 'bg-primary-600';
       if (this.progressPercent >= 50) return 'bg-yellow-500';
       return 'bg-blue-500';
     },
@@ -234,7 +234,7 @@ export default {
 
     probabilityBarClass() {
       if (this.successProbability >= 80) return 'bg-green-600';
-      if (this.successProbability >= 60) return 'bg-blue-600';
+      if (this.successProbability >= 60) return 'bg-primary-600';
       if (this.successProbability >= 40) return 'bg-yellow-500';
       return 'bg-red-600';
     },
@@ -269,7 +269,7 @@ export default {
       if (this.progressPercent >= 100) return 'bg-green-600';
       if (this.monteCarloResult) {
         if (this.successProbability >= 80) return 'bg-green-600';
-        if (this.successProbability >= 60) return 'bg-blue-600';
+        if (this.successProbability >= 60) return 'bg-primary-600';
         if (this.successProbability >= 40) return 'bg-yellow-500';
         return 'bg-red-600';
       }

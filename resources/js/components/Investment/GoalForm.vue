@@ -35,7 +35,7 @@
                 id="goal_name"
                 v-model="formData.goal_name"
                 type="text"
-                class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
                 :class="{ 'border-red-500': errors.goal_name }"
                 placeholder="e.g., Retirement Fund, House Deposit, Children's Education"
               />
@@ -54,7 +54,7 @@
                   type="number"
                   step="1000"
                   min="0"
-                  class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
                   :class="{ 'border-red-500': errors.target_amount }"
                   placeholder="e.g., 500000"
                 />
@@ -68,7 +68,7 @@
                   id="target_date"
                   v-model="formData.target_date"
                   type="date"
-                  class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
                   :class="{ 'border-red-500': errors.target_date }"
                   :min="minDate"
                 />
@@ -84,7 +84,7 @@
               <select
                 id="goal_type"
                 v-model="formData.goal_type"
-                class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
                 :class="{ 'border-red-500': errors.goal_type }"
               >
                 <option value="">Select goal type</option>
@@ -104,7 +104,7 @@
               <select
                 id="priority"
                 v-model="formData.priority"
-                class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
                 <option value="high">High</option>
                 <option value="medium">Medium</option>
@@ -138,7 +138,7 @@
             <button
               type="submit"
               :disabled="submitting"
-              class="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              class="px-4 py-2 bg-primary-600 text-white rounded-button text-sm font-medium hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {{ submitting ? 'Saving...' : (isEditMode ? 'Update Goal' : 'Create Goal') }}
             </button>

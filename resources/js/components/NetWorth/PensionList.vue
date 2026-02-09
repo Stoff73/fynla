@@ -1000,7 +1000,7 @@ export default {
 }
 
 .add-pension-button:hover {
-  @apply bg-blue-600;
+  @apply bg-primary-600;
 }
 
 .upload-button {
@@ -1236,7 +1236,7 @@ export default {
 }
 
 .add-first-btn:hover {
-  @apply bg-blue-600;
+  @apply bg-primary-600;
 }
 
 /* Center Panel - Projections */

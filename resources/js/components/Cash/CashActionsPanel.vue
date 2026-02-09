@@ -353,7 +353,7 @@ export default {
 }
 
 .alert-item.info .alert-dot {
-  @apply bg-blue-600;
+  @apply bg-primary-600;
 }
 
 .alert-message {

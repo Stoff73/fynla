@@ -31,7 +31,7 @@
       <div class="flex flex-wrap gap-3">
         <select
           v-model="categoryFilter"
-          class="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
         >
           <option value="">All Categories</option>
           <option value="rebalancing">Rebalancing</option>
@@ -44,7 +44,7 @@
 
         <select
           v-model="priorityFilter"
-          class="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
         >
           <option value="">All Priorities</option>
           <option value="high">High Priority</option>
@@ -80,7 +80,7 @@
                   <span class="px-2 py-1 text-xs font-semibold bg-gray-200 text-gray-700 rounded mr-2">
                     {{ rec.category }}
                   </span>
-                  <span class="px-2 py-1 text-xs font-bold bg-red-600 text-white rounded">HIGH</span>
+                  <span class="px-2 py-1 text-xs font-bold bg-error-600 text-white rounded">HIGH</span>
                 </div>
                 <p class="text-md font-semibold text-gray-800 mb-1">{{ rec.title }}</p>
                 <p class="text-sm text-gray-700">{{ rec.description }}</p>
@@ -124,7 +124,7 @@
                   <span class="px-2 py-1 text-xs font-semibold bg-gray-200 text-gray-700 rounded mr-2">
                     {{ rec.category }}
                   </span>
-                  <span class="px-2 py-1 text-xs font-bold bg-blue-600 text-white rounded">MEDIUM</span>
+                  <span class="px-2 py-1 text-xs font-bold bg-primary-600 text-white rounded">MEDIUM</span>
                 </div>
                 <p class="text-md font-semibold text-gray-800 mb-1">{{ rec.title }}</p>
                 <p class="text-sm text-gray-700">{{ rec.description }}</p>
@@ -168,7 +168,7 @@
                   <span class="px-2 py-1 text-xs font-semibold bg-gray-200 text-gray-700 rounded mr-2">
                     {{ rec.category }}
                   </span>
-                  <span class="px-2 py-1 text-xs font-bold bg-blue-600 text-white rounded">LOW</span>
+                  <span class="px-2 py-1 text-xs font-bold bg-primary-600 text-white rounded">LOW</span>
                 </div>
                 <p class="text-md font-semibold text-gray-800 mb-1">{{ rec.title }}</p>
                 <p class="text-sm text-gray-700">{{ rec.description }}</p>

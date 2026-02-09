@@ -9,7 +9,7 @@
         </div>
         <button
           @click="showCreateModal = true"
-          class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors duration-200"
+          class="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-button transition-colors duration-200"
         >
           + Create Scenario
         </button>
@@ -46,7 +46,7 @@
           <select
             v-model="filters.status"
             @change="applyFilters"
-            class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           >
             <option value="">All Statuses</option>
             <option value="draft">Draft</option>
@@ -61,7 +61,7 @@
           <select
             v-model="filters.type"
             @change="applyFilters"
-            class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           >
             <option value="">All Types</option>
             <option value="custom">Custom</option>
@@ -76,7 +76,7 @@
               type="checkbox"
               v-model="filters.saved_only"
               @change="applyFilters"
-              class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-primary-500"
             />
             <span class="ml-2 text-sm font-medium text-gray-700">Saved only</span>
           </label>
@@ -85,7 +85,7 @@
         <div class="flex items-end">
           <button
             @click="clearFilters"
-            class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors duration-200"
+            class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-button transition-colors duration-200"
           >
             Clear Filters
           </button>
@@ -113,7 +113,7 @@
         <p class="mt-2 text-gray-500">Create your first what-if scenario to explore different outcomes.</p>
         <button
           @click="showCreateModal = true"
-          class="mt-4 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors duration-200"
+          class="mt-4 px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-button transition-colors duration-200"
         >
           Create Scenario
         </button>
@@ -241,13 +241,13 @@
           <button
             @click="compareSelectedScenarios"
             :disabled="selectedForComparison.length < 2"
-            class="px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed rounded-lg transition-colors duration-200"
+            class="px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed rounded-button transition-colors duration-200"
           >
             Compare
           </button>
           <button
             @click="selectedForComparison = []"
-            class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors duration-200"
+            class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-button transition-colors duration-200"
           >
             Clear
           </button>
@@ -258,7 +258,7 @@
     <!-- Create Scenario Modal -->
     <div
       v-if="showCreateModal"
-      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
       @click.self="closeCreateModal"
     >
       <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -297,7 +297,7 @@
               <input
                 v-model="newScenario.scenario_name"
                 type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="e.g., Early Retirement Scenario"
               />
             </div>
@@ -306,7 +306,7 @@
               <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
               <textarea
                 v-model="newScenario.description"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 rows="3"
                 placeholder="Describe what this scenario models..."
               ></textarea>
@@ -324,14 +324,14 @@
           <div class="flex justify-end gap-3 mt-6">
             <button
               @click="closeCreateModal"
-              class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors duration-200"
+              class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-button transition-colors duration-200"
             >
               Cancel
             </button>
             <button
               @click="createScenario"
               :disabled="!newScenario.scenario_name"
-              class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed rounded-lg transition-colors duration-200"
+              class="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 disabled:bg-gray-300 disabled:cursor-not-allowed rounded-button transition-colors duration-200"
             >
               Create Scenario
             </button>

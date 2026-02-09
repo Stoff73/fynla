@@ -10,7 +10,7 @@
       </div>
       <button
         @click="showAddGoalModal = true"
-        class="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+        class="px-4 py-2 bg-primary-600 text-white font-medium rounded-button hover:bg-primary-700 transition-colors flex items-center gap-2"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -93,7 +93,7 @@
         <div class="flex gap-3">
           <button
             @click="handleUpdateProgress(goal.id)"
-            class="flex-1 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700"
+            class="flex-1 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-button hover:bg-primary-700"
           >
             Update Progress
           </button>
@@ -134,7 +134,7 @@
       </p>
       <button
         @click="showAddGoalModal = true"
-        class="mt-4 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700"
+        class="mt-4 px-4 py-2 bg-primary-600 text-white font-medium rounded-button hover:bg-primary-700"
       >
         Create Goal
       </button>
@@ -211,7 +211,7 @@ export default {
     getProgressBarColour(goal) {
       const status = this.getStatusLabel(goal);
       if (status === 'Completed') return 'bg-green-600';
-      if (status === 'On Track') return 'bg-blue-600';
+      if (status === 'On Track') return 'bg-primary-600';
       return 'bg-red-600';
     },
 

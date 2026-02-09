@@ -25,7 +25,7 @@
       <div v-if="showActions" class="flex gap-1 ml-3">
         <button
           @click="$emit('edit', goal)"
-          class="p-1.5 text-gray-400 hover:text-blue-600 rounded-md hover:bg-gray-100"
+          class="p-1.5 text-gray-400 hover:text-blue-600 rounded-button hover:bg-gray-100"
           title="Edit goal"
         >
           <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -34,7 +34,7 @@
         </button>
         <button
           @click="$emit('delete', goal)"
-          class="p-1.5 text-gray-400 hover:text-red-600 rounded-md hover:bg-gray-100"
+          class="p-1.5 text-gray-400 hover:text-red-600 rounded-button hover:bg-gray-100"
           title="Delete goal"
         >
           <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

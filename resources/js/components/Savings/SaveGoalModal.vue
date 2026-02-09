@@ -46,7 +46,7 @@
               <input
                 v-model="formData.goal_name"
                 type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="e.g., Emergency Fund, House Deposit, Wedding"
               />
             </div>
@@ -63,7 +63,7 @@
                   type="number"
                   step="0.01"
                   min="0"
-                  class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="0.00"
                 />
               </div>
@@ -81,7 +81,7 @@
                   type="number"
                   step="0.01"
                   min="0"
-                  class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="0.00"
                 />
               </div>
@@ -97,7 +97,7 @@
                 v-model="formData.target_date"
                 type="date"
                 :min="minDate"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               />
               <p v-if="monthsToTarget > 0" class="text-xs text-gray-600 mt-1">
                 {{ monthsToTarget }} months away - Requires ~{{ formatCurrency(requiredMonthlySavings) }}/month
@@ -111,7 +111,7 @@
               </label>
               <select
                 v-model="formData.priority"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
                 <option value="high">High Priority</option>
                 <option value="medium">Medium Priority</option>
@@ -126,7 +126,7 @@
               </label>
               <select
                 v-model="formData.linked_account_id"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
                 <option :value="null">Not linked to any account</option>
                 <option
@@ -154,7 +154,7 @@
                   type="number"
                   step="0.01"
                   min="0"
-                  class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="0.00"
                 />
               </div>
@@ -169,7 +169,7 @@
             <button
               type="submit"
               :disabled="submitting"
-              class="flex-1 px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+              class="flex-1 px-6 py-3 bg-primary-600 text-white font-medium rounded-button hover:bg-primary-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
             >
               {{ submitting ? 'Saving...' : (isEditing ? 'Update Goal' : 'Create Goal') }}
             </button>

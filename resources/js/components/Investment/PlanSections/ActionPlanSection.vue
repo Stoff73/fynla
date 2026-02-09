@@ -44,7 +44,7 @@
             class="p-4 bg-gray-50 rounded-lg"
           >
             <div class="flex items-start">
-              <span class="flex-shrink-0 inline-flex items-center justify-center h-7 w-7 rounded-full bg-red-600 text-white text-sm font-bold mr-3">
+              <span class="flex-shrink-0 inline-flex items-center justify-center h-7 w-7 rounded-full bg-error-600 text-white text-sm font-bold mr-3">
                 {{ index + 1 }}
               </span>
               <div class="flex-1">
@@ -85,7 +85,7 @@
             class="p-4 bg-gray-50 rounded-lg"
           >
             <div class="flex items-start">
-              <span class="flex-shrink-0 inline-flex items-center justify-center h-7 w-7 rounded-full bg-blue-600 text-white text-sm font-bold mr-3">
+              <span class="flex-shrink-0 inline-flex items-center justify-center h-7 w-7 rounded-full bg-primary-600 text-white text-sm font-bold mr-3">
                 {{ index + 1 }}
               </span>
               <div class="flex-1">
@@ -126,7 +126,7 @@
             class="p-4 bg-gray-50 rounded-lg"
           >
             <div class="flex items-start">
-              <span class="flex-shrink-0 inline-flex items-center justify-center h-7 w-7 rounded-full bg-blue-600 text-white text-sm font-bold mr-3">
+              <span class="flex-shrink-0 inline-flex items-center justify-center h-7 w-7 rounded-full bg-primary-600 text-white text-sm font-bold mr-3">
                 {{ index + 1 }}
               </span>
               <div class="flex-1">

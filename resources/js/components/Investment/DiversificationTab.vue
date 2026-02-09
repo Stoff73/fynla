@@ -12,7 +12,7 @@
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
       </svg>
       <p class="text-gray-600 font-medium">{{ error }}</p>
-      <button @click="loadData" class="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition">
+      <button @click="loadData" class="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-primary-600 transition">
         Try Again
       </button>
     </div>
@@ -24,7 +24,7 @@
       </svg>
       <h3 class="text-lg font-medium text-blue-800 mb-2">No Holdings Recorded</h3>
       <p class="text-blue-600 mb-4">Add holdings to this {{ accountType === 'pension' ? 'pension' : 'account' }} to see diversification analysis.</p>
-      <button v-if="showAddHoldings" v-preview-disabled="'add'" @click="$emit('add-holdings')" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+      <button v-if="showAddHoldings" v-preview-disabled="'add'" @click="$emit('add-holdings')" class="px-4 py-2 bg-primary-600 text-white rounded-button hover:bg-primary-700 transition">
         Add Holdings
       </button>
     </div>

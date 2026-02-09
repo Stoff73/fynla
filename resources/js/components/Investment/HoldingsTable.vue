@@ -9,7 +9,7 @@
         <select
           id="account-filter"
           v-model="selectedAccountId"
-          class="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
         >
           <option value="">All Accounts</option>
           <option v-for="account in accounts" :key="account.id" :value="account.id">
@@ -21,7 +21,7 @@
         <select
           id="asset-type-filter"
           v-model="selectedAssetType"
-          class="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
         >
           <option value="">All Asset Types</option>
           <option value="uk_equity">UK Equity</option>
@@ -36,7 +36,7 @@
 
       <button
         @click="$emit('add-holding')"
-        class="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
+        class="bg-primary-600 text-white px-4 py-2 rounded-button text-sm font-medium hover:bg-primary-700 transition-colors"
       >
         + Add Holding
       </button>
@@ -304,7 +304,7 @@
       </p>
       <button
         @click="$emit('add-holding')"
-        class="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
+        class="bg-primary-600 text-white px-4 py-2 rounded-button text-sm font-medium hover:bg-primary-700 transition-colors"
       >
         + Add Holding
       </button>

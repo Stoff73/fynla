@@ -493,7 +493,7 @@ textarea.form-control {
 }
 
 .btn-primary:hover:not(:disabled) {
-  @apply bg-blue-600;
+  @apply bg-primary-600;
 }
 
 .btn-secondary {

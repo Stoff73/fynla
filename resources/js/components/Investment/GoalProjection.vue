@@ -25,7 +25,7 @@
           <select
             v-model="selectedGoalId"
             @change="loadGoalProjection"
-            class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           >
             <option value="" disabled>Select a goal...</option>
             <option v-for="goal in goals" :key="goal.id" :value="goal.id">
@@ -103,7 +103,7 @@
                 </span>
               </div>
               <div class="w-full bg-gray-200 rounded-full h-2">
-                <div class="h-2 bg-blue-600 rounded-full" style="width: 50%"></div>
+                <div class="h-2 bg-primary-600 rounded-full" style="width: 50%"></div>
               </div>
             </div>
 
@@ -292,7 +292,7 @@
             :key="index"
             class="flex items-start p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
           >
-            <div class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold mr-4">
+            <div class="flex-shrink-0 w-8 h-8 bg-primary-600 text-white rounded-full flex items-center justify-center font-semibold mr-4">
               {{ index + 1 }}
             </div>
             <div class="flex-1">

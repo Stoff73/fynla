@@ -1087,7 +1087,7 @@ export default {
 }
 
 .retry-button:hover {
-  @apply bg-blue-600;
+  @apply bg-primary-600;
 }
 
 /* Empty State */
@@ -1540,7 +1540,7 @@ export default {
 }
 
 .btn-primary:hover {
-  @apply bg-blue-600;
+  @apply bg-primary-600;
 }
 
 @media (max-width: 1024px) {
@@ -1628,7 +1628,7 @@ export default {
   font-size: 14px;
   font-weight: 600;
   @apply text-white;
-  @apply bg-blue-600;
+  @apply bg-primary-600;
   padding: 6px 12px;
   border-radius: 6px;
   border: none;

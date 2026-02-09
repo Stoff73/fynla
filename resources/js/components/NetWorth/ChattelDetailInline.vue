@@ -39,7 +39,7 @@
               v-if="chattel.is_primary_owner !== false"
               v-preview-disabled="'edit'"
               @click="$emit('edit', chattel)"
-              class="px-4 py-2 bg-pink-600 text-white rounded-md hover:bg-pink-700 transition-colors"
+              class="px-4 py-2 bg-pink-600 text-white rounded-button hover:bg-pink-700 transition-colors"
             >
               Edit
             </button>
@@ -47,7 +47,7 @@
               v-if="chattel.is_primary_owner !== false"
               v-preview-disabled="'delete'"
               @click="confirmDelete"
-              class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+              class="px-4 py-2 bg-error-600 text-white rounded-button hover:bg-error-700 transition-colors"
             >
               Delete
             </button>
@@ -246,7 +246,7 @@
               <button
                 @click="calculateCGT"
                 :disabled="!cgtForm.disposal_price || calculatingCGT"
-                class="px-4 py-2 bg-pink-600 text-white rounded-md hover:bg-pink-700 transition-colors disabled:opacity-50"
+                class="px-4 py-2 bg-pink-600 text-white rounded-button hover:bg-pink-700 transition-colors disabled:opacity-50"
               >
                 {{ calculatingCGT ? 'Calculating...' : 'Calculate CGT' }}
               </button>

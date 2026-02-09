@@ -10,7 +10,7 @@
       <!-- Modal panel -->
       <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
         <!-- Header -->
-        <div class="bg-blue-600 px-6 py-4">
+        <div class="bg-primary-600 px-6 py-4">
           <div class="flex items-center justify-between">
             <div class="flex items-center">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 text-white mr-3">
@@ -198,7 +198,7 @@
             href="https://www.gov.uk/guidance/life-insurance-policies-gains-on-uk-bonds"
             target="_blank"
             rel="noopener noreferrer"
-            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"
+            class="px-4 py-2 bg-primary-600 text-white rounded-button hover:bg-primary-700 flex items-center"
           >
             HMRC Guidance
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 ml-2">

@@ -25,7 +25,7 @@
           <button
             v-if="!hasExpenditure"
             @click="navigateToAddExpenditure"
-            class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+            class="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-button hover:bg-primary-700 transition-colors"
           >
             Add Expenditure
           </button>
@@ -63,7 +63,7 @@
             </div>
             <div class="w-full bg-gray-200 rounded-full h-2">
               <div
-                class="h-2 rounded-full bg-blue-600"
+                class="h-2 rounded-full bg-primary-600"
                 style="width: 100%"
               ></div>
             </div>
@@ -200,7 +200,7 @@ export default {
 
     currentAmountBarColour() {
       if (this.currentAmountPercentage >= 100) return 'bg-green-600';
-      if (this.currentAmountPercentage >= 50) return 'bg-blue-600';
+      if (this.currentAmountPercentage >= 50) return 'bg-primary-600';
       return 'bg-red-600';
     },
 

@@ -96,7 +96,7 @@
       <div class="flex gap-3 mt-4">
         <button
           @click="handleMarkDone"
-          class="flex-1 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+          class="flex-1 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-button hover:bg-primary-700 transition-colors"
         >
           Mark as Done
         </button>

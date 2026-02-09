@@ -487,7 +487,7 @@ export default {
 }
 
 .add-account-btn:hover {
-  @apply bg-blue-600;
+  @apply bg-primary-600;
 }
 
 .upload-btn {
@@ -640,7 +640,7 @@ export default {
 }
 
 .add-account-button:hover {
-  @apply bg-blue-600;
+  @apply bg-primary-600;
 }
 
 @media (max-width: 768px) {

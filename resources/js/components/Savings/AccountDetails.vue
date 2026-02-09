@@ -11,7 +11,7 @@
       <button
         v-preview-disabled="'add'"
         @click="handleAddAccount"
-        class="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+        class="px-4 py-2 bg-primary-600 text-white font-medium rounded-button hover:bg-primary-700 transition-colors flex items-center gap-2"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -117,7 +117,7 @@
       <button
         v-preview-disabled="'add'"
         @click="handleAddAccount"
-        class="mt-4 px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-2"
+        class="mt-4 px-6 py-3 bg-primary-600 text-white font-medium rounded-button hover:bg-primary-700 transition-colors inline-flex items-center gap-2"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"

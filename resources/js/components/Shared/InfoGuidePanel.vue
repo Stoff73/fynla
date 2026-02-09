@@ -152,7 +152,7 @@
               type="checkbox"
               v-model="guideEnabled"
               @change="onToggleChange"
-              class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 h-4 w-4"
+              class="rounded border-gray-300 text-blue-600 focus:ring-primary-500 h-4 w-4"
             />
             <span class="ml-2 text-gray-600">Show this help button</span>
           </label>

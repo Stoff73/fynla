@@ -457,7 +457,7 @@ export default {
 }
 
 .btn-primary:hover:not(:disabled) {
-  @apply bg-blue-600;
+  @apply bg-primary-600;
 }
 
 .btn-primary:disabled {

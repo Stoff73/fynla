@@ -116,8 +116,8 @@ export default {
       selectedPriority: 'all',
       priorities: [
         { value: 'all', label: 'All', activeClass: 'bg-indigo-600 text-white' },
-        { value: 'High', label: 'High', activeClass: 'bg-red-600 text-white' },
-        { value: 'Medium', label: 'Medium', activeClass: 'bg-blue-600 text-white' },
+        { value: 'High', label: 'High', activeClass: 'bg-error-600 text-white' },
+        { value: 'Medium', label: 'Medium', activeClass: 'bg-primary-600 text-white' },
         { value: 'Low', label: 'Low', activeClass: 'bg-green-600 text-white' },
       ],
     };
@@ -138,7 +138,7 @@ export default {
     getPriorityBgClass(priority) {
       const classes = {
         High: 'bg-red-600',
-        Medium: 'bg-blue-600',
+        Medium: 'bg-primary-600',
         Low: 'bg-green-600',
       };
       return classes[priority] || 'bg-gray-600';

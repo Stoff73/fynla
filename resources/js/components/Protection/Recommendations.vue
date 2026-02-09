@@ -77,17 +77,17 @@ export default {
         {
           value: 'all',
           label: 'All',
-          activeClass: 'bg-blue-600 text-white',
+          activeClass: 'bg-primary-600 text-white',
         },
         {
           value: 'high',
           label: 'High',
-          activeClass: 'bg-red-600 text-white',
+          activeClass: 'bg-error-600 text-white',
         },
         {
           value: 'medium',
           label: 'Medium',
-          activeClass: 'bg-blue-600 text-white',
+          activeClass: 'bg-primary-600 text-white',
         },
         {
           value: 'low',

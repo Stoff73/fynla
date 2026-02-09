@@ -473,7 +473,7 @@ export default {
 }
 
 .retry-button:hover {
-  @apply bg-blue-600;
+  @apply bg-primary-600;
 }
 
 /* On Track Banner */

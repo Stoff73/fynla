@@ -34,7 +34,7 @@
               <select
                 id="account_type"
                 v-model="formData.account_type"
-                class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
                 :class="{ 'border-red-500': errors.account_type }"
               >
                 <option value="">Select account type</option>
@@ -65,7 +65,7 @@
                 id="account_type_other"
                 v-model="formData.account_type_other"
                 type="text"
-                class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
                 :class="{ 'border-red-500': errors.account_type_other }"
                 placeholder="e.g., Gold, Cryptocurrency, Classic Cars, Art Collection"
               />
@@ -120,7 +120,7 @@
             <button
               type="submit"
               :disabled="submitting"
-              class="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              class="px-4 py-2 bg-primary-600 text-white rounded-button text-sm font-medium hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {{ submitting ? 'Saving...' : (isEditMode ? 'Update Account' : 'Add Account') }}
             </button>

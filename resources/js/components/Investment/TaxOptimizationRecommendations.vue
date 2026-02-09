@@ -6,7 +6,7 @@
     <div class="flex flex-wrap gap-3 mb-6">
       <select
         v-model="priorityFilter"
-        class="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        class="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
         @change="filterRecommendations"
       >
         <option value="">All Priorities</option>
@@ -17,7 +17,7 @@
 
       <select
         v-model="typeFilter"
-        class="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        class="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
         @change="filterRecommendations"
       >
         <option value="">All Types</option>
@@ -85,7 +85,7 @@
                 <p class="text-md font-semibold text-gray-800 mb-1">{{ rec.action }}</p>
                 <p class="text-sm text-gray-700">{{ rec.reason }}</p>
               </div>
-              <span class="px-3 py-1 text-xs font-bold bg-red-600 text-white rounded-full ml-3">HIGH</span>
+              <span class="px-3 py-1 text-xs font-bold bg-error-600 text-white rounded-full ml-3">HIGH</span>
             </div>
             <div v-if="rec.potential_saving || rec.tax_saving" class="mt-3 flex items-center">
               <svg class="w-4 h-4 text-green-600 mr-1" fill="currentColor" viewBox="0 0 20 20">
@@ -121,7 +121,7 @@
                 <p class="text-md font-semibold text-gray-800 mb-1">{{ rec.action }}</p>
                 <p class="text-sm text-gray-700">{{ rec.reason }}</p>
               </div>
-              <span class="px-3 py-1 text-xs font-bold bg-blue-600 text-white rounded-full ml-3">MEDIUM</span>
+              <span class="px-3 py-1 text-xs font-bold bg-primary-600 text-white rounded-full ml-3">MEDIUM</span>
             </div>
             <div v-if="rec.potential_saving || rec.tax_saving" class="mt-3 flex items-center">
               <svg class="w-4 h-4 text-green-600 mr-1" fill="currentColor" viewBox="0 0 20 20">
@@ -157,7 +157,7 @@
                 <p class="text-md font-semibold text-gray-800 mb-1">{{ rec.action }}</p>
                 <p class="text-sm text-gray-700">{{ rec.reason }}</p>
               </div>
-              <span class="px-3 py-1 text-xs font-bold bg-blue-600 text-white rounded-full ml-3">LOW</span>
+              <span class="px-3 py-1 text-xs font-bold bg-primary-600 text-white rounded-full ml-3">LOW</span>
             </div>
             <div v-if="rec.potential_saving || rec.tax_saving" class="mt-3 flex items-center">
               <svg class="w-4 h-4 text-green-600 mr-1" fill="currentColor" viewBox="0 0 20 20">
@@ -179,7 +179,7 @@
     <div class="mt-6 flex justify-end">
       <button
         @click="$emit('refresh')"
-        class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors duration-200"
+        class="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-button hover:bg-primary-700 transition-colors duration-200"
       >
         Refresh Recommendations
       </button>

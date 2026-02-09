@@ -115,7 +115,7 @@
               </div>
               <div class="w-full bg-gray-200 rounded-full h-2">
                 <div
-                  class="bg-blue-600 h-2 rounded-full"
+                  class="bg-primary-600 h-2 rounded-full"
                   :style="{ width: getComponentScore('isa') + '%' }"
                 ></div>
               </div>
@@ -127,7 +127,7 @@
               </div>
               <div class="w-full bg-gray-200 rounded-full h-2">
                 <div
-                  class="bg-blue-600 h-2 rounded-full"
+                  class="bg-primary-600 h-2 rounded-full"
                   :style="{ width: getComponentScore('cgt') + '%' }"
                 ></div>
               </div>
@@ -205,7 +205,7 @@
       <div class="mt-6 flex justify-end">
         <button
           @click="$emit('refresh')"
-          class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors duration-200"
+          class="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-button hover:bg-primary-700 transition-colors duration-200"
         >
           Refresh Analysis
         </button>
@@ -241,8 +241,8 @@ export default {
     getPriorityClass(priority) {
       const classes = {
         high: 'bg-red-600',
-        medium: 'bg-blue-600',
-        low: 'bg-blue-600',
+        medium: 'bg-primary-600',
+        low: 'bg-primary-600',
       };
       return classes[priority] || 'bg-gray-600';
     },

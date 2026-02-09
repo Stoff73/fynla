@@ -106,7 +106,7 @@
                 leave-to-class="opacity-0"
             >
                 <div v-if="showConfirmModal" class="fixed inset-0 z-50 overflow-y-auto">
-                    <div class="fixed inset-0 bg-black/30" @click="cancelSwitch" />
+                    <div class="fixed inset-0 bg-black/50" @click="cancelSwitch" />
                     <div class="flex min-h-full items-center justify-center p-4">
                         <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6" @click.stop>
                             <h3 class="text-lg font-semibold text-gray-900 mb-2">Switch Personas?</h3>
@@ -190,8 +190,8 @@ export default {
                 // Use persona-specific darker shade for the selector button
                 // Use basePersonaId to maintain consistent color when viewing as spouse
                 const darkColors = {
-                    young_family: 'bg-blue-600 hover:bg-blue-700 text-white',
-                    peak_earners: 'bg-green-600 hover:bg-green-700 text-white',
+                    young_family: 'bg-primary-600 hover:bg-primary-700 text-white',
+                    peak_earners: 'bg-green-700 hover:bg-green-800 text-white',
                     widow: 'bg-purple-600 hover:bg-purple-700 text-white',
                     entrepreneur: 'bg-fuchsia-600 hover:bg-fuchsia-700 text-white',
                     young_saver: 'bg-cyan-600 hover:bg-cyan-700 text-white',

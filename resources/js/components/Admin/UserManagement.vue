@@ -216,7 +216,7 @@
       title="Delete User"
       :message="`Are you sure you want to delete ${userToDelete?.name}? This action cannot be undone.`"
       confirm-button-text="Delete User"
-      confirm-button-class="bg-red-600 hover:bg-red-700"
+      confirm-button-class="bg-error-600 hover:bg-error-700"
       @confirm="deleteUser"
       @cancel="cancelDelete"
     />

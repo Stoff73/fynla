@@ -39,7 +39,7 @@
               v-if="business.is_primary_owner !== false"
               v-preview-disabled="'edit'"
               @click="$emit('edit', business)"
-              class="w-full sm:w-auto px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors"
+              class="w-full sm:w-auto px-4 py-2 bg-purple-600 text-white rounded-button hover:bg-purple-700 transition-colors"
             >
               Edit
             </button>
@@ -47,7 +47,7 @@
               v-if="business.is_primary_owner !== false"
               v-preview-disabled="'delete'"
               @click="confirmDelete"
-              class="w-full sm:w-auto px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+              class="w-full sm:w-auto px-4 py-2 bg-error-600 text-white rounded-button hover:bg-error-700 transition-colors"
             >
               Delete
             </button>

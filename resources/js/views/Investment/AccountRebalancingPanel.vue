@@ -14,7 +14,7 @@
         </svg>
       </div>
       <p class="text-gray-700 font-medium">{{ error }}</p>
-      <button @click="loadRebalancingData" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+      <button @click="loadRebalancingData" class="mt-4 px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700">
         Retry
       </button>
     </div>

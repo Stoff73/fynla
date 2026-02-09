@@ -126,7 +126,7 @@
         </p>
         <button
           @click="$emit('create-will')"
-          class="px-6 py-2 bg-white text-blue-700 rounded-md hover:bg-blue-50 font-semibold transition-colors"
+          class="px-6 py-2 bg-white text-blue-700 rounded-button hover:bg-blue-50 font-semibold transition-colors"
         >
           Create Your Will
         </button>

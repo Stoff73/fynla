@@ -102,7 +102,7 @@
       <div v-if="disabilityPolicies.length > 0" class="section-breakdown">
         <div class="section-header-with-badge">
           <span class="section-header">Disability Insurance</span>
-          <span class="policy-count-badge policy-count-badge-orange">
+          <span class="policy-count-badge policy-count-badge-blue">
             {{ disabilityPolicies.length }} {{ disabilityPolicies.length === 1 ? 'policy' : 'policies' }}
           </span>
         </div>
@@ -117,14 +117,14 @@
                 <span class="provider-name">{{ policy.provider_name }}</span>
                 <span
                   v-if="policy.is_joint"
-                  class="joint-badge joint-badge-orange"
+                  class="joint-badge joint-badge-blue-alt"
                 >
                   Joint
                 </span>
               </div>
               <p class="policy-details">Disability coverage</p>
             </div>
-            <span class="policy-premium policy-premium-orange">{{ formatCurrency(policy.premium_amount) }}/mo</span>
+            <span class="policy-premium policy-premium-blue-alt">{{ formatCurrency(policy.premium_amount) }}/mo</span>
           </div>
         </div>
       </div>
@@ -537,7 +537,7 @@ export default {
   @apply bg-white text-teal-800 border-2 border-teal-500;
 }
 
-.policy-count-badge-orange {
+.policy-count-badge-blue {
   @apply bg-white text-blue-800 border-2 border-blue-500;
 }
 
@@ -584,7 +584,7 @@ export default {
 }
 
 .joint-badge-blue {
-  @apply bg-blue-600;
+  @apply bg-primary-600;
 }
 
 .joint-badge-purple {
@@ -595,7 +595,7 @@ export default {
   @apply bg-teal-500;
 }
 
-.joint-badge-orange {
+.joint-badge-blue-alt {
   @apply bg-blue-500;
 }
 
@@ -622,7 +622,7 @@ export default {
   @apply text-teal-800;
 }
 
-.policy-premium-orange {
+.policy-premium-blue-alt {
   @apply text-blue-800;
 }
 

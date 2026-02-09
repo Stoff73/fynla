@@ -7,7 +7,7 @@
       </div>
       <button
         @click="downloadCSV"
-        class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors flex items-center space-x-2"
+        class="px-4 py-2 bg-primary-600 text-white rounded-button hover:bg-primary-700 transition-colors flex items-center space-x-2"
       >
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -27,7 +27,7 @@
       <p class="text-red-600">{{ error }}</p>
       <button
         @click="loadSchedule"
-        class="mt-4 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+        class="mt-4 px-4 py-2 bg-error-600 text-white rounded-button hover:bg-error-700 transition-colors"
       >
         Retry
       </button>
@@ -81,7 +81,7 @@
           <button
             @click="previousPage"
             :disabled="currentPage === 1"
-            class="px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            class="px-3 py-1 bg-gray-200 text-gray-700 rounded-button hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Previous
           </button>
@@ -91,7 +91,7 @@
           <button
             @click="nextPage"
             :disabled="currentPage === totalPages"
-            class="px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            class="px-3 py-1 bg-gray-200 text-gray-700 rounded-button hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Next
           </button>
@@ -134,7 +134,7 @@
           <button
             @click="previousPage"
             :disabled="currentPage === 1"
-            class="px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            class="px-3 py-1 bg-gray-200 text-gray-700 rounded-button hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Previous
           </button>
@@ -144,7 +144,7 @@
           <button
             @click="nextPage"
             :disabled="currentPage === totalPages"
-            class="px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            class="px-3 py-1 bg-gray-200 text-gray-700 rounded-button hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Next
           </button>

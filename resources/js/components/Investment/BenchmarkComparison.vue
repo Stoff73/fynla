@@ -27,7 +27,7 @@
               v-model="selectedBenchmarks"
               multiple
               size="4"
-              class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             >
               <option value="ftse_all_share">FTSE All-Share</option>
               <option value="ftse_100">FTSE 100</option>
@@ -40,7 +40,7 @@
             <select
               v-model="selectedPeriod"
               @change="loadComparisonData"
-              class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             >
               <option value="1m">1 Month</option>
               <option value="3m">3 Months</option>
@@ -53,7 +53,7 @@
             <button
               @click="compareSelected"
               :disabled="selectedBenchmarks.length === 0"
-              class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              class="px-6 py-2 bg-primary-600 text-white rounded-button hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Compare
             </button>

@@ -9,7 +9,7 @@
       </label>
       <select
         v-model="selectedScenario"
-        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
         @change="loadScenarioTemplate"
       >
         <option value="">Select a scenario...</option>
@@ -40,7 +40,7 @@
             v-model.number="additionalCoverage"
             type="number"
             step="1000"
-            class="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            class="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             placeholder="0"
           />
         </div>
@@ -86,7 +86,7 @@
         </label>
         <select
           v-model.number="benefitPeriod"
-          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
         >
           <option :value="12">12 months</option>
           <option :value="24">24 months</option>
@@ -114,7 +114,7 @@
         <button
           @click="runScenario"
           :disabled="!canRunScenario"
-          class="flex-1 px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+          class="flex-1 px-6 py-3 bg-primary-600 text-white font-medium rounded-button hover:bg-primary-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
         >
           Run Scenario
         </button>

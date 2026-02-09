@@ -46,7 +46,7 @@
               <input
                 v-model="formData.institution"
                 type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="e.g., Halifax, Barclays, Marcus"
               />
             </div>
@@ -58,7 +58,7 @@
               </label>
               <select
                 v-model="formData.account_type"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
                 <option value="">Select product type...</option>
                 <optgroup label="Bank Accounts">
@@ -92,7 +92,7 @@
                   type="number"
                   step="0.01"
                   min="0"
-                  class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="0.00"
                 />
               </div>
@@ -110,7 +110,7 @@
                   step="0.01"
                   min="0"
                   max="20"
-                  class="w-full pr-8 pl-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  class="w-full pr-8 pl-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="0.00"
                 />
                 <span class="absolute right-3 top-2.5 text-gray-500">%</span>
@@ -127,7 +127,7 @@
               </label>
               <select
                 v-model="formData.access_type"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
                 <option value="immediate">Immediate</option>
                 <option value="notice">Notice Required</option>
@@ -144,7 +144,7 @@
                 v-model.number="formData.notice_period_days"
                 type="number"
                 min="1"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="e.g., 30, 60, 90"
               />
             </div>
@@ -157,7 +157,7 @@
               <input
                 v-model="formData.maturity_date"
                 type="date"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               />
             </div>
 
@@ -167,7 +167,7 @@
                 v-model="formData.is_emergency_fund"
                 type="checkbox"
                 id="is_emergency_fund"
-                class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                class="h-4 w-4 text-blue-600 focus:ring-primary-500 border-gray-300 rounded"
               />
               <label for="is_emergency_fund" class="ml-2 block text-sm text-gray-700">
                 This forms part of my emergency fund
@@ -180,7 +180,7 @@
                 v-model="formData.is_isa"
                 type="checkbox"
                 id="is_isa"
-                class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                class="h-4 w-4 text-blue-600 focus:ring-primary-500 border-gray-300 rounded"
               />
               <label for="is_isa" class="ml-2 block text-sm text-gray-700">
                 This is a tax-free savings account (ISA)
@@ -222,7 +222,7 @@
                 </label>
                 <select
                   v-model="formData.beneficiary_id"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   @change="handleBeneficiaryChange"
                 >
                   <option value="">Select beneficiary...</option>
@@ -253,7 +253,7 @@
                   <input
                     v-model="formData.beneficiary_name"
                     type="text"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     placeholder="Enter child's full name"
                   />
                 </div>
@@ -265,7 +265,7 @@
                     v-model="formData.beneficiary_dob"
                     type="date"
                     :max="maxBeneficiaryDob"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   />
                   <p class="text-xs text-gray-500 mt-1">Required to show correct ISA guidance</p>
                 </div>
@@ -282,7 +282,7 @@
                 </label>
                 <select
                   v-model="formData.isa_subscription_year"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 >
                   <option value="">Select tax year...</option>
                   <option value="2025/26">2025/26</option>
@@ -303,8 +303,8 @@
                     type="number"
                     step="0.01"
                     min="0"
-                    :max="isJuniorISA ? 9000 : 20000"
-                    class="w-full pl-8 pr-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                    :max="isJuniorISA ? JUNIOR_ISA_ALLOWANCE : ISA_ALLOWANCE"
+                    class="w-full pl-8 pr-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white"
                     placeholder="0.00"
                   />
                 </div>
@@ -326,7 +326,7 @@
                       type="number"
                       step="0.01"
                       min="0"
-                      class="w-full pl-8 pr-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                      class="w-full pl-8 pr-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white"
                       :class="{ 'border-red-500': isaAllowanceError }"
                       placeholder="0.00"
                     />
@@ -334,7 +334,7 @@
                   <div class="w-32">
                     <select
                       v-model="formData.contribution_frequency"
-                      class="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                      class="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white"
                     >
                       <option value="monthly">Monthly</option>
                       <option value="quarterly">Quarterly</option>
@@ -360,7 +360,7 @@
                       type="number"
                       step="0.01"
                       min="0"
-                      class="w-full pl-8 pr-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                      class="w-full pl-8 pr-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white"
                       :class="{ 'border-red-500': isaAllowanceError }"
                       placeholder="0.00"
                     />
@@ -369,7 +369,7 @@
                     <input
                       v-model="formData.planned_lump_sum_date"
                       type="date"
-                      class="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                      class="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white"
                     />
                   </div>
                 </div>
@@ -457,7 +457,7 @@
                 </label>
                 <select
                   v-model="formData.ownership_type"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 >
                   <option value="individual">Individual Owner</option>
                   <option value="joint">Joint Owner</option>
@@ -471,7 +471,7 @@
                 </label>
                 <select
                   v-model="formData.joint_owner_id"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 >
                   <option value="">Select joint owner</option>
                   <option v-if="spouse" :value="spouse.id">{{ spouse.name }} (Spouse - Linked Account)</option>
@@ -492,7 +492,7 @@
                 v-model="formData.account_number"
                 type="text"
                 maxlength="4"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="Optional - for reference only"
               />
             </div>
@@ -510,7 +510,7 @@
             <button
               type="submit"
               :disabled="submitting"
-              class="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              class="px-4 py-2 bg-primary-600 text-white rounded-button text-sm font-medium hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {{ submitting ? 'Saving...' : (isEditing ? 'Update Account' : 'Add Account') }}
             </button>
