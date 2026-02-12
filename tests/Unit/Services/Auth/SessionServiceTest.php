@@ -92,6 +92,9 @@ describe('revokeAllSessions', function () {
 
         expect($this->sessionService->getSessionCount($this->user))->toBe(3);
 
+        // Refresh user to clear any cached relationships before revoking
+        $this->user->refresh();
+
         $revokedCount = $this->sessionService->revokeAllSessions($this->user);
 
         expect($revokedCount)->toBe(3);
@@ -167,15 +170,24 @@ describe('getSessionCount', function () {
 
 describe('cleanupOrphanedSessions', function () {
     it('deletes sessions without tokens', function () {
-        // Create a session without a valid token
-        UserSession::create([
+        // Create a real token and session
+        $token = $this->user->createToken('orphan_token');
+        $tokenId = $token->accessToken->id;
+
+        $session = UserSession::create([
             'user_id' => $this->user->id,
-            'token_id' => 99999, // Non-existent token
+            'token_id' => $tokenId,
             'device_name' => 'Orphaned Device',
             'ip_address' => '127.0.0.1',
             'user_agent' => 'Test Agent',
             'last_activity_at' => now(),
         ]);
+
+        // Disable FK checks, set token_id to a non-existent value, re-enable FK checks
+        // This simulates an orphaned session without cascading deletes
+        \Illuminate\Support\Facades\DB::statement('SET FOREIGN_KEY_CHECKS=0');
+        $session->update(['token_id' => 999999]);
+        \Illuminate\Support\Facades\DB::statement('SET FOREIGN_KEY_CHECKS=1');
 
         $count = $this->sessionService->cleanupOrphanedSessions();
 

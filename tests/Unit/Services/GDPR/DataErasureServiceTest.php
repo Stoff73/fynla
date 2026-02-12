@@ -144,51 +144,57 @@ describe('processErasure', function () {
             ->toThrow(RuntimeException::class);
     });
 
-    it('processes erasure request and anonymizes user', function () {
+    it('processes erasure request and hard deletes user and request', function () {
         $request = ErasureRequest::create([
             'user_id' => $this->user->id,
             'status' => ErasureRequest::STATUS_PROCESSING,
             'confirmed_at' => now(),
         ]);
+
+        $requestId = $request->id;
+        $userId = $this->user->id;
 
         $this->erasureService->processErasure($request);
 
-        $request->refresh();
-        expect($request->status)->toBe(ErasureRequest::STATUS_COMPLETED);
-        expect($request->completed_at)->not->toBeNull();
-        expect($request->data_categories_deleted)->toBeArray();
+        // Request should be force-deleted
+        expect(ErasureRequest::find($requestId))->toBeNull();
 
-        $this->user->refresh();
-        expect($this->user->email)->toContain('anonymized.local');
-        expect($this->user->first_name)->toBe('Deleted');
-        expect($this->user->surname)->toBe('User');
+        // User should be hard-deleted
+        expect(User::find($userId))->toBeNull();
     });
 
-    it('logs erasure completion', function () {
+    it('hard deletes both request and user during erasure', function () {
         $request = ErasureRequest::create([
             'user_id' => $this->user->id,
             'status' => ErasureRequest::STATUS_PROCESSING,
             'confirmed_at' => now(),
         ]);
 
-        $this->auditService->shouldReceive('logGDPR')
-            ->once()
-            ->with(AuditLog::ACTION_ERASURE_COMPLETED, $this->user->id, Mockery::any());
+        $requestId = $request->id;
+        $userId = $this->user->id;
 
         $this->erasureService->processErasure($request);
+
+        // Both the request and user are hard-deleted (no audit log for completion)
+        expect(ErasureRequest::find($requestId))->toBeNull();
+        expect(User::find($userId))->toBeNull();
     });
 
-    it('records processed_by when provided', function () {
+    it('hard deletes request and user when processed_by is provided', function () {
         $request = ErasureRequest::create([
             'user_id' => $this->user->id,
             'status' => ErasureRequest::STATUS_PROCESSING,
             'confirmed_at' => now(),
         ]);
+
+        $requestId = $request->id;
+        $userId = $this->user->id;
 
         $this->erasureService->processErasure($request, 'admin@example.com');
 
-        $request->refresh();
-        expect($request->processed_by)->toBe('admin@example.com');
+        // Request and user are hard-deleted
+        expect(ErasureRequest::find($requestId))->toBeNull();
+        expect(User::find($userId))->toBeNull();
     });
 });
 

@@ -34,6 +34,7 @@ beforeEach(function () {
     $this->property = Property::factory()->create([
         'user_id' => $this->user->id,
         'current_value' => 500000.00,
+        'ownership_type' => 'individual',
         'ownership_percentage' => 100.00,
         'annual_service_charge' => 2000.00,
         'annual_ground_rent' => 500.00,
@@ -54,6 +55,7 @@ beforeEach(function () {
     $this->investment = InvestmentAccount::factory()->create([
         'user_id' => $this->user->id,
         'current_value' => 50000.00,
+        'ownership_type' => 'individual',
         'ownership_percentage' => 100.00,
     ]);
 
@@ -61,6 +63,7 @@ beforeEach(function () {
     $this->cashAccount = SavingsAccount::factory()->create([
         'user_id' => $this->user->id,
         'current_balance' => 25000.00,
+        'ownership_type' => 'individual',
         'ownership_percentage' => 100.00,
     ]);
 });
@@ -344,6 +347,7 @@ describe('calculateBalanceSheet', function () {
         Property::factory()->create([
             'user_id' => $userNoLiabilities->id,
             'current_value' => 300000.00,
+            'ownership_type' => 'individual',
             'ownership_percentage' => 100.00,
         ]);
 

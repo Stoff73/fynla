@@ -64,7 +64,7 @@ describe('Savings Integration Tests', function () {
             expect($data['accounts'])->toHaveCount(1);
             expect($data['goals'])->toHaveCount(1);
             expect($data['expenditure_profile'])->not->toBeNull();
-            expect($data['accounts'][0]['institution'])->toBe('Test Bank');
+            expect($data['accounts'][0]['provider'])->toBe('Test Bank');
             expect($data['goals'][0]['goal_name'])->toBe('House Deposit');
         });
     });
@@ -137,7 +137,7 @@ describe('Savings Integration Tests', function () {
                 ->assertJsonStructure([
                     'success',
                     'message',
-                    'data' => ['id', 'account_type', 'institution'],
+                    'data' => ['id', 'account_type', 'provider'],
                 ]);
 
             $accountId = $createResponse->json('data.id');
@@ -151,7 +151,7 @@ describe('Savings Integration Tests', function () {
 
             $accounts = $fetchResponse->json('data.accounts');
             expect($accounts)->toHaveCount(1);
-            expect($accounts[0]['institution'])->toBe('New Bank');
+            expect($accounts[0]['provider'])->toBe('New Bank');
         });
 
         it('creates ISA account and updates ISA allowance', function () {

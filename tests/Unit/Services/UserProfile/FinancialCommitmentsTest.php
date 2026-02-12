@@ -168,24 +168,27 @@ test('calculates individual property expenses correctly', function () {
         // Breakdown only includes keys with non-zero values
         ->and($result['commitments']['properties'][0]['breakdown'])->toHaveKey('mortgage', 450.00)
         ->and($result['commitments']['properties'][0]['breakdown'])->toHaveKey('council_tax', 200.00)
-        ->and($result['commitments']['properties'][0]['breakdown'])->toHaveKey('utilities', 215.00)
-        ->and($result['commitments']['properties'][0]['breakdown'])->toHaveKey('insurance', 80.00)
+        ->and($result['commitments']['properties'][0]['breakdown'])->toHaveKey('gas', 80.00)
+        ->and($result['commitments']['properties'][0]['breakdown'])->toHaveKey('electricity', 95.00)
+        ->and($result['commitments']['properties'][0]['breakdown'])->toHaveKey('water', 40.00)
+        ->and($result['commitments']['properties'][0]['breakdown'])->toHaveKey('building_insurance', 50.00)
+        ->and($result['commitments']['properties'][0]['breakdown'])->toHaveKey('contents_insurance', 30.00)
         ->and($result['totals']['properties'])->toBe(945.00);
 });
 
-test('joint property expenses use database values directly (already users share)', function () {
+test('joint property expenses are split by ownership percentage', function () {
     $spouse = User::factory()->create();
     $this->user->update(['spouse_id' => $spouse->id]);
 
-    // Database values ARE ALREADY the user's share - no splitting at service level
-    // User owns 50% of joint property, so council_tax 200 is their share
+    // Database values are the FULL amounts - service applies ownership split
+    // User owns 50% of joint property, so service halves the values
     Property::factory()->create([
         'user_id' => $this->user->id,
         'address_line_1' => 'Joint Property',
         'ownership_type' => 'joint',
         'ownership_percentage' => 50.00,
         'joint_owner_id' => $spouse->id,
-        'monthly_council_tax' => 200.00, // User's 50% share stored directly
+        'monthly_council_tax' => 400.00, // Full amount; user gets 50% = 200
         'monthly_gas' => 0.00,
         'monthly_electricity' => 0.00,
         'monthly_water' => 0.00,
@@ -196,17 +199,16 @@ test('joint property expenses use database values directly (already users share)
     \App\Models\Mortgage::factory()->create([
         'property_id' => Property::first()->id,
         'user_id' => $this->user->id,
-        'monthly_payment' => 450.00, // User's 50% share stored directly
+        'monthly_payment' => 900.00, // Full amount; user gets 50% = 450
         'ownership_type' => 'joint',
     ]);
 
     $result = $this->service->getFinancialCommitments($this->user);
 
-    // Service uses values directly from database (already user's share)
-    // User's share: 450 (mortgage) + 200 (council tax) = 650
+    // Service applies 50% ownership split: (900 * 0.5) + (400 * 0.5) = 450 + 200 = 650
     expect($result['commitments']['properties'])->toHaveCount(1)
         ->and($result['commitments']['properties'][0])->toMatchArray([
-            'monthly_amount' => 650.00, // Values from DB are already user's share
+            'monthly_amount' => 650.00,
             'is_joint' => true,
         ])
         ->and($result['totals']['properties'])->toBe(650.00);
@@ -237,6 +239,7 @@ test('uses first mortgage on property (service takes first mortgage only)', func
     $property = Property::factory()->create([
         'user_id' => $this->user->id,
         'address_line_1' => 'Property with Mortgage',
+        'ownership_type' => 'individual',
         'monthly_council_tax' => 200.00,
     ]);
 
@@ -447,6 +450,7 @@ test('calculates total commitments across all categories', function () {
     // Property
     $property = Property::factory()->create([
         'user_id' => $this->user->id,
+        'ownership_type' => 'individual',
         'monthly_council_tax' => 200.00,
     ]);
     \App\Models\Mortgage::factory()->create([
@@ -478,29 +482,28 @@ test('calculates total commitments across all categories', function () {
         ->and($result['totals']['total'])->toBe(1700.00);
 });
 
-test('joint property uses database values directly (already users share)', function () {
+test('joint property values are split by ownership percentage', function () {
     $spouse = User::factory()->create();
     $this->user->update(['spouse_id' => $spouse->id]);
 
-    // Database values ARE ALREADY user's share - no splitting at service level
+    // Database values are FULL amounts - service applies ownership split
     $property = Property::factory()->create([
         'user_id' => $this->user->id,
         'ownership_type' => 'joint',
         'ownership_percentage' => 50.00,
         'joint_owner_id' => $spouse->id,
-        'monthly_council_tax' => 200.00, // User's 50% share stored directly
+        'monthly_council_tax' => 400.00, // Full amount; user gets 50% = 200
     ]);
     \App\Models\Mortgage::factory()->create([
         'property_id' => $property->id,
         'user_id' => $this->user->id,
         'ownership_type' => 'joint',
-        'monthly_payment' => 800.00, // User's 50% share stored directly
+        'monthly_payment' => 1600.00, // Full amount; user gets 50% = 800
     ]);
 
     $userCommitments = $this->service->getFinancialCommitments($this->user);
 
-    // Service uses values directly from database (already user's share)
-    // User's share: 800 (mortgage) + 200 (council tax) = 1000
+    // Service applies 50% ownership split: (1600 * 0.5) + (400 * 0.5) = 800 + 200 = 1000
     expect($userCommitments['commitments']['properties'][0])->toMatchArray([
         'monthly_amount' => 1000.00,
         'is_joint' => true,
@@ -518,19 +521,19 @@ test('handles mixed individual and joint commitments correctly', function () {
         'monthly_contribution_amount' => 300.00,
     ]);
 
-    // Joint property - values stored as user's share
+    // Joint property - full amounts, service applies 50% split
     $property = Property::factory()->create([
         'user_id' => $this->user->id,
         'ownership_type' => 'joint',
         'ownership_percentage' => 50.00,
         'joint_owner_id' => $spouse->id,
-        'monthly_council_tax' => 200.00, // User's 50% share
+        'monthly_council_tax' => 400.00, // Full amount; user gets 50% = 200
     ]);
     \App\Models\Mortgage::factory()->create([
         'property_id' => $property->id,
         'user_id' => $this->user->id,
         'ownership_type' => 'joint',
-        'monthly_payment' => 800.00, // User's 50% share
+        'monthly_payment' => 1600.00, // Full amount; user gets 50% = 800
     ]);
 
     // User's individual liability
@@ -545,7 +548,7 @@ test('handles mixed individual and joint commitments correctly', function () {
 
     // Breakdown:
     // - Individual pension: 300 (full amount)
-    // - Joint property: 1000 (values already user's share in DB)
+    // - Joint property: (1600 * 0.5) + (400 * 0.5) = 800 + 200 = 1000
     // - Individual liability: 200 (full amount)
     // Total: 1500
 

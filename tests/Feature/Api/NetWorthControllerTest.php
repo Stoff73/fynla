@@ -22,6 +22,7 @@ test('get overview endpoint returns net worth data', function () {
     Property::factory()->create([
         'user_id' => $this->user->id,
         'current_value' => 400000,
+        'ownership_type' => 'individual',
         'ownership_percentage' => 100,
     ]);
 
@@ -53,12 +54,14 @@ test('get breakdown endpoint returns asset percentages', function () {
     Property::factory()->create([
         'user_id' => $this->user->id,
         'current_value' => 400000,
+        'ownership_type' => 'individual',
         'ownership_percentage' => 100,
     ]);
 
     InvestmentAccount::factory()->create([
         'user_id' => $this->user->id,
         'current_value' => 100000,
+        'ownership_type' => 'individual',
         'ownership_percentage' => 100,
     ]);
 
@@ -111,12 +114,14 @@ test('get assets summary endpoint returns counts and totals', function () {
     Property::factory()->count(2)->create([
         'user_id' => $this->user->id,
         'current_value' => 200000,
+        'ownership_type' => 'individual',
         'ownership_percentage' => 100,
     ]);
 
     SavingsAccount::factory()->create([
         'user_id' => $this->user->id,
         'current_balance' => 25000,
+        'ownership_type' => 'individual',
     ]);
 
     $response = $this->getJson('/api/net-worth/assets-summary');
@@ -149,8 +154,8 @@ test('get joint assets endpoint returns only joint assets', function () {
     Property::factory()->create([
         'user_id' => $this->user->id,
         'current_value' => 200000,
-        'ownership_percentage' => 100,
         'ownership_type' => 'individual',
+        'ownership_percentage' => 100,
     ]);
 
     $response = $this->getJson('/api/net-worth/joint-assets');
@@ -169,6 +174,7 @@ test('refresh endpoint invalidates cache and recalculates', function () {
     Property::factory()->create([
         'user_id' => $this->user->id,
         'current_value' => 400000,
+        'ownership_type' => 'individual',
         'ownership_percentage' => 100,
     ]);
 
@@ -187,6 +193,7 @@ test('user can only access their own net worth', function () {
     Property::factory()->create([
         'user_id' => $otherUser->id,
         'current_value' => 1000000,
+        'ownership_type' => 'individual',
         'ownership_percentage' => 100,
     ]);
 

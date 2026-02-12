@@ -146,7 +146,7 @@ describe('analyze', function () {
 
         $this->adequacyScorer->shouldReceive('generateScoreInsights')
             ->once()
-            ->with(46, $mockGaps, $mockNeeds)
+            ->with(46, $mockGaps, $mockNeeds, true)
             ->andReturn($mockScoreInsights);
 
         $this->recommendationEngine->shouldReceive('generateRecommendations')

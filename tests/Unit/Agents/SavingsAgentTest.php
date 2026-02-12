@@ -115,7 +115,7 @@ describe('analyze', function () {
 
         $this->rateComparator
             ->shouldReceive('compareToMarketRates')
-            ->once()
+            ->twice()
             ->andReturn([
                 'account_rate' => 0.04,
                 'market_rate' => 0.045,
@@ -143,7 +143,7 @@ describe('analyze', function () {
         $this->goalProgressCalculator
             ->shouldReceive('prioritizeGoals')
             ->once()
-            ->andReturn(collect([$goal]));
+            ->andReturn(new \Illuminate\Database\Eloquent\Collection([$goal]));
 
         $result = $this->agent->analyze($user->id);
 
@@ -243,7 +243,7 @@ describe('analyze', function () {
         $this->goalProgressCalculator
             ->shouldReceive('prioritizeGoals')
             ->once()
-            ->andReturn(collect());
+            ->andReturn(new \Illuminate\Database\Eloquent\Collection());
 
         $result = $this->agent->analyze($user->id);
 
@@ -338,7 +338,7 @@ describe('analyze', function () {
 
         $this->rateComparator
             ->shouldReceive('compareToMarketRates')
-            ->twice()
+            ->times(4)
             ->andReturn([
                 'account_rate' => 0.04,
                 'market_rate' => 0.045,

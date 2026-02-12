@@ -50,6 +50,7 @@ test('calculate net worth with investments', function () {
     InvestmentAccount::factory()->create([
         'user_id' => $this->user->id,
         'current_value' => 50000,
+        'ownership_type' => 'individual',
         'ownership_percentage' => 100,
     ]);
 
@@ -74,13 +75,13 @@ test('calculate net worth with cash accounts', function () {
 });
 
 test('calculate net worth with business interests', function () {
-    // Note: Business interests are NOT in the single-record pattern scope.
-    // They still store user's share directly in current_valuation.
-    // So we store 75000 (user's 75% share of £100k business)
+    // Single-record pattern: Database stores FULL business valuation
+    // ownership_percentage represents shareholding (e.g., 75% of £100k = £75k share)
     BusinessInterest::factory()->create([
         'user_id' => $this->user->id,
-        'current_valuation' => 75000, // User's 75% share stored directly
-        'ownership_percentage' => 75,
+        'current_valuation' => 100000, // Full business valuation
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 75, // User's 75% shareholding
     ]);
 
     $result = $this->service->calculateNetWorth($this->user);
@@ -93,6 +94,7 @@ test('calculate net worth with chattels', function () {
     Chattel::factory()->create([
         'user_id' => $this->user->id,
         'current_value' => 15000,
+        'ownership_type' => 'individual',
         'ownership_percentage' => 100,
     ]);
 
@@ -106,6 +108,7 @@ test('calculate net worth with mortgages reduces net worth', function () {
     $property = Property::factory()->create([
         'user_id' => $this->user->id,
         'current_value' => 400000,
+        'ownership_type' => 'individual',
         'ownership_percentage' => 100,
     ]);
 
@@ -126,12 +129,14 @@ test('calculate net worth with multiple asset types', function () {
     Property::factory()->create([
         'user_id' => $this->user->id,
         'current_value' => 400000,
+        'ownership_type' => 'individual',
         'ownership_percentage' => 100,
     ]);
 
     InvestmentAccount::factory()->create([
         'user_id' => $this->user->id,
         'current_value' => 50000,
+        'ownership_type' => 'individual',
         'ownership_percentage' => 100,
     ]);
 
@@ -139,6 +144,7 @@ test('calculate net worth with multiple asset types', function () {
     SavingsAccount::factory()->create([
         'user_id' => $this->user->id,
         'current_balance' => 25000,
+        'ownership_type' => 'individual',
         'ownership_percentage' => 100,
     ]);
 
@@ -155,12 +161,14 @@ test('get asset breakdown returns percentages', function () {
     Property::factory()->create([
         'user_id' => $this->user->id,
         'current_value' => 400000,
+        'ownership_type' => 'individual',
         'ownership_percentage' => 100,
     ]);
 
     InvestmentAccount::factory()->create([
         'user_id' => $this->user->id,
         'current_value' => 100000,
+        'ownership_type' => 'individual',
         'ownership_percentage' => 100,
     ]);
 
@@ -174,6 +182,7 @@ test('get assets summary returns counts and totals', function () {
     Property::factory()->count(2)->create([
         'user_id' => $this->user->id,
         'current_value' => 200000,
+        'ownership_type' => 'individual',
         'ownership_percentage' => 100,
     ]);
 

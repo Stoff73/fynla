@@ -523,7 +523,10 @@ class InvestmentController extends Controller
             $this->investmentAgent->clearCache($jointOwnerId);
         }
 
-        return response()->noContent();
+        return response()->json([
+            'success' => true,
+            'message' => 'Investment account deleted successfully',
+        ]);
     }
 
     // ==================== Holding CRUD ====================
@@ -672,7 +675,10 @@ class InvestmentController extends Controller
         // Clear optimization caches (efficient frontier, correlation matrix)
         PortfolioOptimizationController::clearUserOptimizationCache($user->id);
 
-        return response()->noContent();
+        return response()->json([
+            'success' => true,
+            'message' => 'Holding deleted successfully',
+        ]);
     }
 
     // ==================== Goal CRUD ====================
@@ -723,7 +729,10 @@ class InvestmentController extends Controller
 
         $goal->delete();
 
-        return response()->noContent();
+        return response()->json([
+            'success' => true,
+            'message' => 'Investment goal deleted successfully',
+        ]);
     }
 
     // ==================== Risk Profile ====================

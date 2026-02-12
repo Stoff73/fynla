@@ -56,7 +56,7 @@ class SessionService
         $currentToken = request()->user()?->currentAccessToken();
         $currentTokenId = $currentToken?->id;
 
-        $sessions = UserSession::forUser($user->id)->get();
+        $sessions = UserSession::forUser($user->id)->with('token')->get();
         $revokedCount = 0;
 
         foreach ($sessions as $session) {
@@ -74,7 +74,7 @@ class SessionService
      */
     public function revokeAllSessions(User $user): int
     {
-        $sessions = UserSession::forUser($user->id)->get();
+        $sessions = UserSession::forUser($user->id)->with('token')->get();
         $revokedCount = 0;
 
         foreach ($sessions as $session) {

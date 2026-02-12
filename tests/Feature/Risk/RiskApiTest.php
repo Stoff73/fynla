@@ -221,7 +221,7 @@ describe('GET /api/investment/risk/allowed-levels', function () {
         expect($response->json('data.allowed_levels'))->toHaveCount(5);
     });
 
-    test('returns main level +/- 1 when profile exists', function () {
+    test('returns all 5 levels when profile exists (no restriction to adjacent)', function () {
         RiskProfile::create([
             'user_id' => $this->user->id,
             'risk_level' => 'medium',
@@ -235,15 +235,17 @@ describe('GET /api/investment/risk/allowed-levels', function () {
 
         expect($response->json('data.main_level'))->toBe('medium');
 
-        // allowed_levels is array of objects with 'key' field
+        // All 5 levels are returned as allowed (no +/-1 restriction)
         $allowedKeys = collect($response->json('data.allowed_levels'))->pluck('key')->toArray();
+        expect($allowedKeys)->toContain('low');
         expect($allowedKeys)->toContain('lower_medium');
         expect($allowedKeys)->toContain('medium');
         expect($allowedKeys)->toContain('upper_medium');
-        expect($allowedKeys)->toHaveCount(3);
+        expect($allowedKeys)->toContain('high');
+        expect($allowedKeys)->toHaveCount(5);
     });
 
-    test('returns only 2 levels at low end', function () {
+    test('returns all 5 levels at low end', function () {
         RiskProfile::create([
             'user_id' => $this->user->id,
             'risk_level' => 'low',
@@ -258,12 +260,10 @@ describe('GET /api/investment/risk/allowed-levels', function () {
         expect($response->json('data.main_level'))->toBe('low');
 
         $allowedKeys = collect($response->json('data.allowed_levels'))->pluck('key')->toArray();
-        expect($allowedKeys)->toContain('low');
-        expect($allowedKeys)->toContain('lower_medium');
-        expect($allowedKeys)->toHaveCount(2);
+        expect($allowedKeys)->toHaveCount(5);
     });
 
-    test('returns only 2 levels at high end', function () {
+    test('returns all 5 levels at high end', function () {
         RiskProfile::create([
             'user_id' => $this->user->id,
             'risk_level' => 'high',
@@ -278,9 +278,7 @@ describe('GET /api/investment/risk/allowed-levels', function () {
         expect($response->json('data.main_level'))->toBe('high');
 
         $allowedKeys = collect($response->json('data.allowed_levels'))->pluck('key')->toArray();
-        expect($allowedKeys)->toContain('upper_medium');
-        expect($allowedKeys)->toContain('high');
-        expect($allowedKeys)->toHaveCount(2);
+        expect($allowedKeys)->toHaveCount(5);
     });
 });
 
@@ -349,7 +347,7 @@ describe('POST /api/investment/risk/validate-product-level', function () {
             ]);
     });
 
-    test('rejects product level outside allowed range', function () {
+    test('accepts any product level regardless of main level', function () {
         RiskProfile::create([
             'user_id' => $this->user->id,
             'risk_level' => 'low',
@@ -358,14 +356,14 @@ describe('POST /api/investment/risk/validate-product-level', function () {
         ]);
 
         $response = $this->postJson('/api/investment/risk/validate-product-level', [
-            'risk_level' => 'high', // 3 levels away from 'low'
+            'risk_level' => 'high', // All levels are now allowed
         ]);
 
         $response->assertStatus(200)
             ->assertJson([
                 'success' => true,
                 'data' => [
-                    'is_valid' => false,
+                    'is_valid' => true,
                     'main_level' => 'low',
                     'requested_level' => 'high',
                 ],
