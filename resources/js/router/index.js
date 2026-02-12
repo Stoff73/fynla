@@ -8,6 +8,7 @@ const CalculatorsPage = () => import('@/views/Public/CalculatorsPage.vue');
 const LearningCentre = () => import('@/views/Public/LearningCentre.vue');
 const SecurityPage = () => import('@/views/Public/SecurityPage.vue');
 const AboutPage = () => import('@/views/Public/AboutPage.vue');
+const PricingPage = () => import('@/views/Public/PricingPage.vue');
 const SitemapPage = () => import('@/views/Public/SitemapPage.vue');
 
 // Auth pages
@@ -83,6 +84,12 @@ const routes = [
     path: '/about',
     name: 'About',
     component: AboutPage,
+    meta: { public: true },
+  },
+  {
+    path: '/pricing',
+    name: 'Pricing',
+    component: PricingPage,
     meta: { public: true },
   },
   {
@@ -783,7 +790,7 @@ router.afterEach((to) => {
   }
 
   // Skip for public/auth pages
-  const publicRoutes = ['/login', '/register', '/', '/calculators', '/learning-centre', '/about'];
+  const publicRoutes = ['/login', '/register', '/', '/calculators', '/learning-centre', '/about', '/pricing'];
   if (publicRoutes.some(route => to.path === route || to.path.startsWith('/forgot') || to.path.startsWith('/reset'))) {
     return;
   }
