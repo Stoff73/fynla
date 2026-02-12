@@ -16,12 +16,25 @@
           </svg>
         </div>
       </div>
-      <button @click="openCreateModal" class="btn-primary whitespace-nowrap">
-        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-        </svg>
-        Create User
-      </button>
+      <div class="flex items-center gap-3">
+        <select
+          v-model="statusFilter"
+          @change="currentPage = 1; loadUsers()"
+          class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+        >
+          <option value="">All Statuses</option>
+          <option value="trialing">Trialing</option>
+          <option value="active">Active</option>
+          <option value="expired">Expired</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+        <button @click="openCreateModal" class="btn-primary whitespace-nowrap">
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+          Create User
+        </button>
+      </div>
     </div>
 
     <!-- Loading State -->
@@ -40,6 +53,10 @@
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Spouse</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Plan</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trial</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
               <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>
@@ -73,6 +90,32 @@
                 </span>
                 <span v-else class="text-gray-400">-</span>
               </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <span :class="planBadgeClass(user.plan)">
+                  {{ user.plan || 'free' }}
+                </span>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <span v-if="user.subscription" :class="statusBadgeClass(user.subscription.status)">
+                  {{ user.subscription.status }}
+                </span>
+                <span v-else class="text-gray-400 text-sm">-</span>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                <template v-if="user.subscription && user.subscription.status === 'trialing'">
+                  Day {{ trialDay(user.subscription) }}/7
+                </template>
+                <template v-else-if="user.subscription && user.subscription.status === 'expired'">
+                  Ended
+                </template>
+                <template v-else>-</template>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                <template v-if="lastPayment(user)">
+                  {{ formatDate(lastPayment(user).created_at) }} &middot; £{{ (lastPayment(user).amount / 100).toFixed(2) }}
+                </template>
+                <template v-else>-</template>
+              </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                 {{ formatDate(user.created_at) }}
               </td>
@@ -99,7 +142,7 @@
               </td>
             </tr>
             <tr v-if="users.length === 0">
-              <td colspan="7" class="px-6 py-8 text-center text-gray-500">
+              <td colspan="11" class="px-6 py-8 text-center text-gray-500">
                 No users found
               </td>
             </tr>
@@ -253,6 +296,7 @@ export default {
       isEditing: false,
       showDeleteDialog: false,
       userToDelete: null,
+      statusFilter: '',
       searchTimeout: null,
       messageTimeout: null,
     };
@@ -400,6 +444,50 @@ export default {
         this.currentPage++;
         this.loadUsers();
       }
+    },
+
+    planBadgeClass(plan) {
+      const base = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize';
+      const colors = {
+        free: 'bg-gray-100 text-gray-800',
+        student: 'bg-blue-100 text-blue-800',
+        standard: 'bg-blue-200 text-blue-900',
+        pro: 'bg-emerald-100 text-emerald-800',
+      };
+      return `${base} ${colors[plan] || colors.free}`;
+    },
+
+    statusBadgeClass(status) {
+      const base = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize';
+      const colors = {
+        trialing: 'bg-blue-100 text-blue-800',
+        active: 'bg-green-100 text-green-800',
+        expired: 'bg-red-100 text-red-800',
+        cancelled: 'bg-gray-100 text-gray-800',
+        past_due: 'bg-red-100 text-red-800',
+      };
+      return `${base} ${colors[status] || 'bg-gray-100 text-gray-800'}`;
+    },
+
+    trialDay(subscription) {
+      if (!subscription.trial_started_at) return '?';
+      const start = new Date(subscription.trial_started_at);
+      const now = new Date();
+      const diffMs = now - start;
+      const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+      return Math.min(Math.max(diffDays, 1), 7);
+    },
+
+    lastPayment(user) {
+      if (!user.subscription || !user.subscription.payments || user.subscription.payments.length === 0) return null;
+      const completed = user.subscription.payments.filter(p => p.status === 'completed');
+      if (completed.length === 0) return null;
+      return completed.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+    },
+
+    filteredUsers() {
+      if (!this.statusFilter) return this.users;
+      return this.users.filter(u => u.subscription?.status === this.statusFilter);
     },
 
     formatDate(dateString) {

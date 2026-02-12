@@ -126,6 +126,12 @@ const routes = [
     ],
   },
   {
+    path: '/checkout',
+    name: 'Checkout',
+    component: () => import('@/views/Auth/CheckoutPage.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
     path: '/dashboard',
     name: 'Dashboard',
     component: Dashboard,

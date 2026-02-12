@@ -2,6 +2,9 @@
   <div class="min-h-screen flex flex-col">
     <Navbar />
 
+    <!-- Trial Countdown Banner (non-preview users only) -->
+    <TrialCountdownBanner v-if="isAuthenticated && !isPreviewMode" />
+
     <!-- Preview Mode Banner -->
     <PreviewBanner v-if="isPreviewMode" />
 
@@ -24,6 +27,7 @@ import { mapGetters, mapActions } from 'vuex';
 import Navbar from '@/components/Navbar.vue';
 import Footer from '@/components/Footer.vue';
 import PreviewBanner from '@/components/Preview/PreviewBanner.vue';
+import TrialCountdownBanner from '@/components/Trial/TrialCountdownBanner.vue';
 import InfoGuideButton from '@/components/Shared/InfoGuideButton.vue';
 import InfoGuidePanel from '@/components/Shared/InfoGuidePanel.vue';
 
@@ -34,6 +38,7 @@ export default {
     Navbar,
     Footer,
     PreviewBanner,
+    TrialCountdownBanner,
     InfoGuideButton,
     InfoGuidePanel,
   },

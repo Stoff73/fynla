@@ -255,7 +255,13 @@ export default {
 
   methods: {
     startTrial(plan) {
-      this.$router.push({ path: '/register', query: { plan } });
+      this.$router.push({
+        path: '/register',
+        query: {
+          plan,
+          billing: this.isYearly ? 'yearly' : 'monthly',
+        },
+      });
     },
   },
 };
