@@ -398,12 +398,14 @@ class AuthController extends Controller
             }
 
             // Create the user from pending registration
+            $adminEmails = ['chris@fynla.org', 'brett@fynla.org'];
             $user = User::create([
                 'first_name' => $pending->first_name,
                 'middle_name' => $pending->middle_name,
                 'surname' => $pending->surname,
                 'email' => $pending->email,
                 'password' => $pending->password, // Already hashed
+                'is_admin' => in_array($pending->email, $adminEmails),
             ]);
 
             \Log::info('User created from pending registration', [

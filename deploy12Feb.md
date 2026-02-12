@@ -7,7 +7,7 @@
 | File | Type | Description |
 |------|------|-------------|
 | `resources/js/views/Public/LandingPage.vue` | Frontend (build) | Added animated dashboard walkthrough GIF section below hero; changed hero stats cards to 2x2 grid layout |
-| `resources/js/assets/logoTransparent.png` | Frontend (build) | Removed white background from logo for clean display on dark footer |
+| `resources/js/assets/logoTransparent.png` | Frontend (build) | Updated to new 3D Fynla logo (used in footer and across app) |
 | `resources/js/views/Public/AboutPage.vue` | Frontend (build) | New About page with mission statement and founder profiles |
 | `resources/js/views/Public/PricingPage.vue` | Frontend (build) | New Pricing page with Student/Standard/Pro tiers and monthly/yearly toggle; updated startTrial() to include billing cycle |
 | `resources/js/layouts/PublicLayout.vue` | Frontend (build) | Added About and Pricing links to desktop nav, mobile nav, and footer |
@@ -15,6 +15,7 @@
 | `public/images/fynla-dashboard-walkthrough.gif` | Static asset | 15-second animated GIF showing Mitchell persona dashboard walkthrough |
 | `public/images/portraits/csj.png` | Static asset | Chris Slater-Jones portrait |
 | `public/images/portraits/brett.png` | Static asset | Brett Isenberg portrait |
+| `resources/js/views/Dashboard.vue` | Frontend (build) | Removed UK Taxes card from user dashboard |
 
 ---
 
@@ -52,7 +53,7 @@
 |------|--------|
 | `app/Models/User.php` | Added subscription(), payments() relationships, onTrial(), hasActivePlan(), trialDaysRemaining(), planIs() helpers, trial_ends_at cast |
 | `app/Models/PendingRegistration.php` | Added plan, billing_cycle to $fillable and createOrUpdate() |
-| `app/Http/Controllers/Api/AuthController.php` | Injects TrialService, passes plan/billing_cycle to PendingRegistration, starts trial on verifyCode() |
+| `app/Http/Controllers/Api/AuthController.php` | Injects TrialService, passes plan/billing_cycle to PendingRegistration, starts trial on verifyCode(), auto-admin for chris@fynla.org and brett@fynla.org |
 | `app/Http/Controllers/Api/AdminController.php` | Eager-loads subscription + payments in getUsers(), new getSubscriptionStats() endpoint, excludes preview users from user list and dashboard stats, fixed `name` → `first_name`/`surname` column references, added `nullable` to search validation |
 | `app/Http/Middleware/PreviewWriteInterceptor.php` | Added `api/webhooks/revolut` to EXCLUDED_ROUTES |
 | `app/Console/Kernel.php` | Added scheduled commands: trials:send-reminders (09:00), trials:expire (00:05) |
@@ -102,14 +103,64 @@ The Vue component, layout, router, and logo asset changes require a frontend bui
 
 ## Files to Upload
 
+### Frontend Build (replace entire directory)
+
 | File | Destination |
 |------|-------------|
 | `public/build/` | `~/www/fynla.org/public_html/public/build/` |
+
+### Static Assets
+
+| File | Destination |
+|------|-------------|
 | `public/images/fynla-dashboard-walkthrough.gif` | `~/www/fynla.org/public_html/public/images/fynla-dashboard-walkthrough.gif` |
 | `public/images/portraits/csj.png` | `~/www/fynla.org/public_html/public/images/portraits/csj.png` |
 | `public/images/portraits/brett.png` | `~/www/fynla.org/public_html/public/images/portraits/brett.png` |
-| All new/modified PHP files listed above | Matching paths under `~/www/fynla.org/public_html/` |
-| `database/migrations/2026_02_12_*` | `~/www/fynla.org/public_html/database/migrations/` |
+
+### Database Migrations
+
+| File | Destination |
+|------|-------------|
+| `database/migrations/2026_02_12_100001_create_subscriptions_table.php` | `~/www/fynla.org/public_html/database/migrations/` |
+| `database/migrations/2026_02_12_100002_create_payments_table.php` | `~/www/fynla.org/public_html/database/migrations/` |
+| `database/migrations/2026_02_12_100003_add_plan_fields_to_users_table.php` | `~/www/fynla.org/public_html/database/migrations/` |
+| `database/migrations/2026_02_12_100004_create_trial_reminder_log_table.php` | `~/www/fynla.org/public_html/database/migrations/` |
+| `database/migrations/2026_02_12_100005_add_plan_fields_to_pending_registrations_table.php` | `~/www/fynla.org/public_html/database/migrations/` |
+
+### New PHP Files
+
+| File | Destination |
+|------|-------------|
+| `app/Models/Subscription.php` | `~/www/fynla.org/public_html/app/Models/` |
+| `app/Models/Payment.php` | `~/www/fynla.org/public_html/app/Models/` |
+| `app/Services/Payment/TrialService.php` | `~/www/fynla.org/public_html/app/Services/Payment/` |
+| `app/Services/Payment/RevolutService.php` | `~/www/fynla.org/public_html/app/Services/Payment/` |
+| `app/Http/Controllers/Api/PaymentController.php` | `~/www/fynla.org/public_html/app/Http/Controllers/Api/` |
+| `app/Http/Controllers/Api/PaymentWebhookController.php` | `~/www/fynla.org/public_html/app/Http/Controllers/Api/` |
+| `app/Http/Middleware/CheckSubscription.php` | `~/www/fynla.org/public_html/app/Http/Middleware/` |
+| `app/Mail/TrialExpirationReminder.php` | `~/www/fynla.org/public_html/app/Mail/` |
+| `app/Console/Commands/SendTrialReminderEmails.php` | `~/www/fynla.org/public_html/app/Console/Commands/` |
+| `app/Console/Commands/ExpireTrials.php` | `~/www/fynla.org/public_html/app/Console/Commands/` |
+| `resources/views/emails/trial-expiration-reminder.blade.php` | `~/www/fynla.org/public_html/resources/views/emails/` |
+
+### Modified PHP Files
+
+| File | Destination |
+|------|-------------|
+| `app/Models/User.php` | `~/www/fynla.org/public_html/app/Models/` |
+| `app/Models/PendingRegistration.php` | `~/www/fynla.org/public_html/app/Models/` |
+| `app/Http/Controllers/Api/AuthController.php` | `~/www/fynla.org/public_html/app/Http/Controllers/Api/` |
+| `app/Http/Controllers/Api/AdminController.php` | `~/www/fynla.org/public_html/app/Http/Controllers/Api/` |
+| `app/Http/Middleware/PreviewWriteInterceptor.php` | `~/www/fynla.org/public_html/app/Http/Middleware/` |
+| `app/Console/Kernel.php` | `~/www/fynla.org/public_html/app/Console/` |
+| `config/services.php` | `~/www/fynla.org/public_html/config/` |
+| `config/app.php` | `~/www/fynla.org/public_html/config/` |
+| `routes/api.php` | `~/www/fynla.org/public_html/routes/` |
+
+### Config
+
+| File | Destination |
+|------|-------------|
 | `.env.example` | `~/www/fynla.org/public_html/.env.example` |
 
 ## Post-Upload
