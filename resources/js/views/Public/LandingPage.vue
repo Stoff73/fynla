@@ -14,94 +14,87 @@
       <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0wIDBoNjB2NjBIMHoiLz48cGF0aCBkPSJNMzAgMzBtLTEgMGExIDEgMCAxIDAgMiAwYTEgMSAwIDEgMCAtMiAwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMSkiLz48L2c+PC9zdmc+')] opacity-30"></div>
 
       <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div class="text-center">
-          <!-- Badge -->
-          <button
-            type="button"
-            @click="enterPreviewMode"
-            class="inline-flex items-center px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-blue-200 text-sm font-medium mb-6 hover:bg-white/20 transition-all cursor-pointer"
-          >
-            <span class="w-2 h-2 bg-blue-400 rounded-full mr-2 animate-pulse"></span>
-            Interactive Demo - No Sign-up Required
-          </button>
-
-          <h1 class="text-5xl md:text-7xl font-bold text-white mb-4 leading-tight">
-            Your Complete<br />
-            <span class="hero-word-container">
-              <transition name="hero-fade" mode="out-in">
-                <span
-                  :class="['hero-word', currentWordColor]"
-                  :key="currentWord"
-                >{{ currentWord }}</span>
-              </transition>
-            </span>&nbsp;<span :class="['hero-word', currentWordColor]">Planning</span><br />
-            Platform
-          </h1>
-
-          <p class="text-xl md:text-2xl text-slate-300 mb-6 max-w-3xl mx-auto leading-relaxed">
-            Comprehensive tools designed for UK individuals and families to plan protection, savings, investments, retirement, and estate with confidence.
-          </p>
-
-          <div class="flex flex-col sm:flex-row justify-center gap-4 mb-6">
+        <div class="flex flex-col lg:flex-row lg:items-start lg:gap-12">
+          <!-- Left: Hero Content -->
+          <div class="lg:flex-1 text-center lg:text-left">
+            <!-- Badge -->
             <button
               type="button"
               @click="enterPreviewMode"
-              :disabled="enteringPreview"
-              class="group px-8 py-4 bg-blue-500 text-slate-900 rounded-xl font-semibold text-lg hover:bg-blue-400 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-wait"
+              class="inline-flex items-center px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-blue-200 text-sm font-medium mb-6 hover:bg-white/20 transition-all cursor-pointer"
             >
-              <span class="flex items-center justify-center">
-                <svg v-if="enteringPreview" class="w-5 h-5 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <svg v-else class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                </svg>
-                {{ enteringPreview ? 'Loading...' : 'Try the Demo' }}
-                <svg v-if="!enteringPreview" class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-              </span>
+              <span class="w-2 h-2 bg-blue-400 rounded-full mr-2 animate-pulse"></span>
+              Interactive Demo - No Sign-up Required
             </button>
-            <button
-              type="button"
-              @click="enterPreviewMode"
-              :disabled="enteringPreview"
-              class="group px-8 py-4 bg-white/10 backdrop-blur-md text-white rounded-xl font-semibold text-lg hover:bg-white/20 transition-all border border-white/20 disabled:opacity-50 disabled:cursor-wait"
-            >
-              <span class="flex items-center justify-center">
-                Get Started Free
-                <svg class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-              </span>
-            </button>
-            <router-link
-              to="/login"
-              class="px-8 py-4 bg-transparent text-white rounded-xl font-semibold text-lg hover:bg-white/10 transition-all border border-white/20"
-            >
-              Sign In
-            </router-link>
+
+            <h1 class="text-5xl md:text-7xl font-bold text-white mb-4 leading-tight">
+              Your Complete<br />
+              <span class="text-emerald-400">Financial Planning</span><br />
+              Platform
+            </h1>
+
+            <p class="text-xl md:text-2xl text-slate-300 mb-6 max-w-2xl leading-relaxed">
+              Comprehensive tools designed for UK individuals and families to plan protection, savings, investments, retirement, and estate with confidence.
+            </p>
+
+            <div class="flex flex-col sm:flex-row justify-center lg:justify-start gap-4 mb-6">
+              <button
+                type="button"
+                @click="enterPreviewMode"
+                :disabled="enteringPreview"
+                class="group px-8 py-4 bg-blue-500 text-slate-900 rounded-xl font-semibold text-lg hover:bg-blue-400 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-wait"
+              >
+                <span class="flex items-center justify-center">
+                  <svg v-if="enteringPreview" class="w-5 h-5 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <svg v-else class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                  {{ enteringPreview ? 'Loading...' : 'Try the Demo' }}
+                  <svg v-if="!enteringPreview" class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                </span>
+              </button>
+              <button
+                type="button"
+                @click="enterPreviewMode"
+                :disabled="enteringPreview"
+                class="group px-8 py-4 bg-white/10 backdrop-blur-md text-white rounded-xl font-semibold text-lg hover:bg-white/20 transition-all border border-white/20 disabled:opacity-50 disabled:cursor-wait"
+              >
+                <span class="flex items-center justify-center">
+                  Get Started Free
+                  <svg class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                </span>
+              </button>
+              <router-link
+                to="/login"
+                class="px-8 py-4 bg-transparent text-white rounded-xl font-semibold text-lg hover:bg-white/10 transition-all border border-white/20"
+              >
+                Sign In
+              </router-link>
+            </div>
+
+            <!-- Wishlist Link -->
+            <div class="mb-8 text-center lg:text-left">
+              <a
+                href="https://docs.google.com/forms/d/e/1FAIpQLSds1-zixuMDTjkBCZ3lEl-q5NzA0pwXyvb8cJIuNrz2fwjSXg/viewform?usp=publish-editor"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex items-center gap-2 px-5 py-2.5 bg-white/10 backdrop-blur-md text-blue-200 rounded-full font-medium text-sm hover:bg-white/20 transition-all border border-white/20"
+              >
+                Join waitlist for priority access on release
+              </a>
+            </div>
           </div>
 
-          <!-- Wishlist Link -->
-          <div class="mb-8 text-center">
-            <a
-              href="https://docs.google.com/forms/d/e/1FAIpQLSds1-zixuMDTjkBCZ3lEl-q5NzA0pwXyvb8cJIuNrz2fwjSXg/viewform?usp=publish-editor"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="inline-flex items-center gap-2 px-5 py-2.5 bg-white/10 backdrop-blur-md text-blue-200 rounded-full font-medium text-sm hover:bg-white/20 transition-all border border-white/20"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-              </svg>
-              Wishlist for priority access on release
-            </a>
-          </div>
-
-          <!-- Stats in glass cards -->
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
+          <!-- Right: Stats cards stacked vertically -->
+          <div class="flex flex-col gap-4 lg:w-72 lg:pt-16 text-center">
             <div
               @click="scrollToSection('planning-modules')"
               class="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20 cursor-pointer hover:bg-white/20 hover:border-white/30 transition-all"
@@ -131,13 +124,13 @@
               <div class="text-slate-300 text-sm">Demo Access</div>
             </div>
           </div>
+        </div>
 
-          <!-- Scroll Indicator -->
-          <div class="flex justify-center mt-8 animate-bounce">
-            <svg class="w-6 h-6 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-            </svg>
-          </div>
+        <!-- Scroll Indicator -->
+        <div class="flex justify-center mt-8 animate-bounce">
+          <svg class="w-6 h-6 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+          </svg>
         </div>
       </div>
     </div>
@@ -383,30 +376,15 @@ export default {
       enteringPreview: false,
       showSelectionModal: false,
       previewError: '',
-      heroWords: [
-        { word: 'Financial', color: 'text-primary-400' },
-        { word: 'Retirement', color: 'text-emerald-400' },
-        { word: 'Investment', color: 'text-blue-400' },
-        { word: 'Estate', color: 'text-rose-400' },
-      ],
-      currentWordIndex: 0,
-      heroWordInterval: null,
     };
   },
 
   computed: {
     ...mapGetters('preview', ['availablePersonas']),
 
-    currentWord() {
-      return this.heroWords[this.currentWordIndex].word;
-    },
-    currentWordColor() {
-      return this.heroWords[this.currentWordIndex].color;
-    },
   },
 
   mounted() {
-    this.startHeroWordRotation();
     this.checkDemoParam();
   },
 
@@ -420,12 +398,6 @@ export default {
     },
   },
 
-  beforeUnmount() {
-    if (this.heroWordInterval) {
-      clearInterval(this.heroWordInterval);
-    }
-  },
-
   methods: {
     ...mapActions('preview', ['loadPersona']),
 
@@ -435,12 +407,6 @@ export default {
         // Clear the query parameter from URL
         this.$router.replace({ path: '/', query: {} });
       }
-    },
-
-    startHeroWordRotation() {
-      this.heroWordInterval = setInterval(() => {
-        this.currentWordIndex = (this.currentWordIndex + 1) % this.heroWords.length;
-      }, 3000);
     },
 
     scrollToSection(sectionId) {
@@ -479,29 +445,3 @@ export default {
 };
 </script>
 
-<style scoped>
-.hero-word-container {
-  display: inline-block;
-  min-width: 280px;
-  text-align: right;
-}
-
-.hero-word {
-  display: inline-block;
-}
-
-.hero-fade-enter-active,
-.hero-fade-leave-active {
-  transition: all 0.5s ease;
-}
-
-.hero-fade-enter-from {
-  opacity: 0;
-  transform: translateY(20px);
-}
-
-.hero-fade-leave-to {
-  opacity: 0;
-  transform: translateY(-20px);
-}
-</style>
