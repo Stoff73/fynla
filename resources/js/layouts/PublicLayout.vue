@@ -36,6 +36,12 @@
               >
                 Security
               </router-link>
+              <router-link
+                to="/about"
+                class="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-500 hover:text-blue-600 transition-colors"
+              >
+                About
+              </router-link>
             </div>
           </div>
 
@@ -102,6 +108,13 @@
             Security
           </router-link>
           <router-link
+            to="/about"
+            class="block pl-3 pr-4 py-2 text-base font-medium text-gray-700 hover:bg-gray-50 hover:text-blue-600"
+            @click="mobileMenuOpen = false"
+          >
+            About
+          </router-link>
+          <router-link
             to="/login"
             class="block pl-3 pr-4 py-2 text-base font-medium text-gray-700 hover:bg-gray-50 hover:text-blue-600"
             @click="mobileMenuOpen = false"
@@ -149,6 +162,7 @@
             <ul class="space-y-2">
               <li><router-link to="/calculators" class="text-gray-400 hover:text-white text-sm">Calculators</router-link></li>
               <li><router-link to="/learning-centre" class="text-gray-400 hover:text-white text-sm">Learning Centre</router-link></li>
+              <li><router-link to="/about" class="text-gray-400 hover:text-white text-sm">About Us</router-link></li>
               <li><a href="https://www.fca.org.uk" target="_blank" class="text-gray-400 hover:text-white text-sm">FCA Website</a></li>
             </ul>
           </div>
