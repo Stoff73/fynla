@@ -93,34 +93,34 @@
             </div>
           </div>
 
-          <!-- Right: Stats cards stacked vertically -->
-          <div class="flex flex-col gap-4 lg:w-72 lg:pt-16 text-center">
+          <!-- Right: Stats cards 2x2 grid -->
+          <div class="grid grid-cols-2 gap-3 lg:w-80 lg:my-auto text-center">
             <div
               @click="scrollToSection('planning-modules')"
-              class="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20 cursor-pointer hover:bg-white/20 hover:border-white/30 transition-all"
+              class="bg-white/10 backdrop-blur-md rounded-xl px-3 py-5 border border-white/20 cursor-pointer hover:bg-white/20 hover:border-white/30 transition-all"
             >
-              <div class="text-3xl md:text-4xl font-bold text-white mb-1">5</div>
+              <div class="text-3xl font-bold text-white mb-0.5">5</div>
               <div class="text-slate-300 text-sm">Planning Modules</div>
             </div>
             <div
               @click="scrollToSection('key-features')"
-              class="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20 cursor-pointer hover:bg-white/20 hover:border-white/30 transition-all"
+              class="bg-white/10 backdrop-blur-md rounded-xl px-3 py-5 border border-white/20 cursor-pointer hover:bg-white/20 hover:border-white/30 transition-all"
             >
-              <div class="text-3xl md:text-4xl font-bold text-white mb-1">UK</div>
+              <div class="text-3xl font-bold text-white mb-0.5">UK</div>
               <div class="text-slate-300 text-sm">Tax Optimised</div>
             </div>
             <router-link
               to="/security"
-              class="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20 cursor-pointer hover:bg-white/20 hover:border-white/30 transition-all block"
+              class="bg-white/10 backdrop-blur-md rounded-xl px-3 py-5 border border-white/20 cursor-pointer hover:bg-white/20 hover:border-white/30 transition-all block"
             >
-              <div class="text-3xl md:text-4xl font-bold text-white mb-1">100%</div>
+              <div class="text-3xl font-bold text-white mb-0.5">100%</div>
               <div class="text-slate-300 text-sm">Secure & Private</div>
             </router-link>
             <div
               @click="enterPreviewMode"
-              class="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20 cursor-pointer hover:bg-white/20 hover:border-white/30 transition-all"
+              class="bg-white/10 backdrop-blur-md rounded-xl px-3 py-5 border border-white/20 cursor-pointer hover:bg-white/20 hover:border-white/30 transition-all"
             >
-              <div class="text-3xl md:text-4xl font-bold text-white mb-1">Free</div>
+              <div class="text-3xl font-bold text-white mb-0.5">Free</div>
               <div class="text-slate-300 text-sm">Demo Access</div>
             </div>
           </div>
