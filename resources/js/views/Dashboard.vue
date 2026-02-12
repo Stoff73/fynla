@@ -398,15 +398,7 @@
           <AreasToConsiderCard :limit="5" />
         </div>
 
-        <!-- Admin Taxes (only for admins) -->
-        <DashboardCard
-          v-if="isAdmin"
-          title="UK Taxes"
-          :loading="loading.taxAllowances"
-          @click="navigateTo('/uk-taxes')"
-        >
-          <UKTaxesOverviewCard />
-        </DashboardCard>
+        <!-- UK Taxes card removed — accessible via /uk-taxes route and admin panel -->
       </div>
     </div>
   </AppLayout>
@@ -417,7 +409,6 @@ import { mapGetters, mapState, mapActions } from 'vuex';
 import AppLayout from '@/layouts/AppLayout.vue';
 import DashboardCard from '@/components/Dashboard/DashboardCard.vue';
 import GoalsProjectionChartDashboard from '@/components/Dashboard/GoalsProjectionChartDashboard.vue';
-import UKTaxesOverviewCard from '@/components/Dashboard/UKTaxesOverviewCard.vue';
 import ActionsOverviewCard from '@/components/Dashboard/ActionsOverviewCard.vue';
 import AreasToConsiderCard from '@/components/Dashboard/AreasToConsiderCard.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
@@ -430,7 +421,6 @@ export default {
     AppLayout,
     DashboardCard,
     GoalsProjectionChartDashboard,
-    UKTaxesOverviewCard,
     ActionsOverviewCard,
     AreasToConsiderCard,
   },

@@ -79,6 +79,7 @@
 | `resources/js/services/adminService.js` | Added getSubscriptionStats() method |
 | `resources/js/components/Admin/UserManagement.vue` | Added Plan, Status, Trial, Payment columns + status filter |
 | `resources/js/components/Admin/AdminDashboard.vue` | Added subscription stats cards (trialing, active, expired, revenue) |
+| `resources/js/views/Dashboard.vue` | Removed UK Taxes card from user dashboard (accessible via /uk-taxes route) |
 
 ### Environment Variables (add to server .env)
 
