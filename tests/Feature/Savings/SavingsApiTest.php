@@ -70,7 +70,7 @@ describe('Savings API', function () {
                     'data' => [
                         'id',
                         'account_type',
-                        'institution',
+                        'provider',
                     ],
                 ]);
 

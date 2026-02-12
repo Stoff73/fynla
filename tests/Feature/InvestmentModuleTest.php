@@ -99,7 +99,7 @@ describe('Investment Account Management', function () {
         $response->assertStatus(200)
             ->assertJson([
                 'success' => true,
-                'message' => 'Account deleted successfully',
+                'message' => 'Investment account deleted successfully',
             ]);
 
         $this->assertDatabaseMissing('investment_accounts', [

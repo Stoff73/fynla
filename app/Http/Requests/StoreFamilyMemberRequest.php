@@ -48,11 +48,16 @@ class StoreFamilyMemberRequest extends FormRequest
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
-            if (!$this->date_of_birth) {
+            if (!$this->date_of_birth || $validator->errors()->has('date_of_birth')) {
                 return;
             }
 
-            $dob = \Carbon\Carbon::parse($this->date_of_birth);
+            try {
+                $dob = \Carbon\Carbon::parse($this->date_of_birth);
+            } catch (\Exception $e) {
+                $validator->errors()->add('date_of_birth', 'Please provide a valid date.');
+                return;
+            }
             $age = $dob->diffInYears(now());
 
             // Spouse validation - must be 16+

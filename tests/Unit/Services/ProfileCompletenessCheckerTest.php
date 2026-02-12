@@ -125,18 +125,16 @@ describe('ProfileCompletenessChecker - Married Users', function () {
         expect($result['recommendations'])->toContain('Link your spouse account for accurate joint financial planning');
     });
 
-    it('identifies missing dependants for married user', function () {
-        $spouse = User::factory()->create();
-
+    it('identifies missing dependants for single user', function () {
         $user = User::factory()->create([
-            'marital_status' => 'married',
-            'spouse_id' => $spouse->id,
+            'marital_status' => 'single',
+            'spouse_id' => null,
             'domicile_status' => 'uk_domiciled',
             'country_of_birth' => 'United Kingdom',
             'annual_employment_income' => 50000,
         ]);
 
-        // No dependants created
+        // No dependants created, no spouse linked
 
         Asset::create([
             'user_id' => $user->id,

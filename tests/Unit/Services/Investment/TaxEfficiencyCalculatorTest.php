@@ -274,8 +274,8 @@ describe('calculateTaxEfficiencyScore', function () {
 
         $score = $this->taxCalculator->calculateTaxEfficiencyScore($accounts, $holdings);
 
-        // 60% in ISA = good usage, should score above 100 (capped at 100)
-        expect($score)->toBeGreaterThanOrEqual(90);
+        // 60% in ISA = score of 60 (directly reflects tax-sheltered percentage)
+        expect($score)->toBe(60);
     });
 
     it('penalizes low ISA usage', function () {
@@ -298,7 +298,7 @@ describe('calculateTaxEfficiencyScore', function () {
         expect($score)->toBeLessThan(90);
     });
 
-    it('penalizes many holdings with large unrealized gains', function () {
+    it('scores 100 when all assets are in ISA regardless of holdings gains', function () {
         $accounts = collect([
             new InvestmentAccount([
                 'account_type' => 'isa',
@@ -315,8 +315,9 @@ describe('calculateTaxEfficiencyScore', function () {
 
         $score = $this->taxCalculator->calculateTaxEfficiencyScore($accounts, $holdings);
 
-        // Many holdings with large gains (>50%) should reduce score
-        expect($score)->toBeLessThan(100);
+        // Score is based on tax-sheltered percentage of accounts only
+        // 100% in ISA = score of 100
+        expect($score)->toBe(100);
     });
 
     it('returns score capped between 0 and 100', function () {

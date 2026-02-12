@@ -249,7 +249,7 @@ describe('generateScoreInsights', function () {
 
         expect($result['category'])->toBe('Fair');
         expect($result['color'])->toBe('orange');
-        expect($result['insights'])->toContain('Your protection coverage is fair. Consider increasing coverage to better protect your family.');
+        expect($result['insights'])->toContain('Your protection coverage is fair. Consider increasing coverage to improve your financial security.');
     });
 
     it('generates insights for critical score', function () {
@@ -265,7 +265,7 @@ describe('generateScoreInsights', function () {
 
         expect($result['category'])->toBe('Critical');
         expect($result['color'])->toBe('red');
-        expect($result['insights'])->toContain('Your protection coverage is critical. Immediate action is recommended to protect your family.');
+        expect($result['insights'])->toContain('Your protection coverage is critical. Immediate action is recommended to address these gaps.');
     });
 
     it('adds insight for human capital gap', function () {
@@ -308,7 +308,7 @@ describe('generateScoreInsights', function () {
         $result = $this->scorer->generateScoreInsights($score, $gaps);
 
         expect($result['insights'])->toHaveCount(3);
-        expect($result['insights'])->toContain('Your protection coverage is critical. Immediate action is recommended to protect your family.');
+        expect($result['insights'])->toContain('Your protection coverage is critical. Immediate action is recommended to address these gaps.');
         expect($result['insights'])->toContain('There is a significant gap in life insurance coverage.');
         expect($result['insights'])->toContain('Consider adding income protection to cover loss of earnings.');
     });

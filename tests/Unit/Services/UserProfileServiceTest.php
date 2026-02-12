@@ -7,6 +7,7 @@ use App\Models\Household;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\Property;
 use App\Models\User;
+use App\Services\Benefits\ChildBenefitService;
 use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\TaxConfigService;
 use App\Services\UKTaxCalculator;
@@ -55,9 +56,20 @@ beforeEach(function () {
         ]);
     $mockTaxConfig->shouldReceive('getTaxYear')
         ->andReturn('2025/26');
+    $mockTaxConfig->shouldReceive('getChildBenefit')
+        ->andReturn([
+            'eldest_child_weekly' => 26.05,
+            'additional_child_weekly' => 17.25,
+            'eldest_child_annual' => 1354.60,
+            'additional_child_annual' => 897.00,
+            'high_income_charge_threshold' => 60000,
+            'high_income_full_clawback' => 80000,
+            'clawback_increment' => 200,
+        ]);
 
     $taxCalculator = new UKTaxCalculator($mockTaxConfig);
-    $this->service = new UserProfileService($aggregator, $taxCalculator);
+    $childBenefitService = new ChildBenefitService($mockTaxConfig);
+    $this->service = new UserProfileService($aggregator, $taxCalculator, $childBenefitService);
 
     // Create a household
     $this->household = Household::factory()->create();
@@ -86,16 +98,27 @@ beforeEach(function () {
     ]);
 
     // Create assets - include monthly_rental_income so rental income is calculated from properties
+    // Set all expense fields to 0 so taxable rental income = gross rental income
     $this->property = Property::factory()->create([
         'user_id' => $this->user->id,
         'current_value' => 500000.00,
+        'ownership_type' => 'individual',
         'ownership_percentage' => 100.00,
+        'property_type' => 'buy_to_let',
         'monthly_rental_income' => 1000.00, // 12000/year to match user's annual_rental_income
+        'monthly_gas' => 0,
+        'monthly_electricity' => 0,
+        'monthly_water' => 0,
+        'monthly_building_insurance' => 0,
+        'monthly_contents_insurance' => 0,
+        'monthly_service_charge' => 0,
+        'managing_agent_fee' => 0,
     ]);
 
     $this->investment = InvestmentAccount::factory()->create([
         'user_id' => $this->user->id,
         'current_value' => 50000.00,
+        'ownership_type' => 'individual',
         'ownership_percentage' => 100.00,
     ]);
 });

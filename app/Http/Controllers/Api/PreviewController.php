@@ -126,9 +126,11 @@ class PreviewController extends Controller
             \Illuminate\Support\Facades\Auth::guard('web')->logout();
         }
 
-        // Invalidate the session and regenerate CSRF token
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+        // Invalidate the session and regenerate CSRF token (if session is available)
+        if ($request->hasSession()) {
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        }
 
         // Find the preview user for this persona
         $previewUser = User::where('is_preview_user', true)
