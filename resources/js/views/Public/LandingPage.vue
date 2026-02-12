@@ -93,34 +93,34 @@
             </div>
           </div>
 
-          <!-- Right: Stats cards stacked vertically -->
-          <div class="flex flex-col gap-4 lg:w-72 lg:pt-16 text-center">
+          <!-- Right: Stats cards 2x2 grid -->
+          <div class="grid grid-cols-2 gap-3 lg:w-80 lg:my-auto text-center">
             <div
               @click="scrollToSection('planning-modules')"
-              class="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20 cursor-pointer hover:bg-white/20 hover:border-white/30 transition-all"
+              class="bg-white/10 backdrop-blur-md rounded-xl px-3 py-5 border border-white/20 cursor-pointer hover:bg-white/20 hover:border-white/30 transition-all"
             >
-              <div class="text-3xl md:text-4xl font-bold text-white mb-1">5</div>
+              <div class="text-3xl font-bold text-white mb-0.5">5</div>
               <div class="text-slate-300 text-sm">Planning Modules</div>
             </div>
             <div
               @click="scrollToSection('key-features')"
-              class="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20 cursor-pointer hover:bg-white/20 hover:border-white/30 transition-all"
+              class="bg-white/10 backdrop-blur-md rounded-xl px-3 py-5 border border-white/20 cursor-pointer hover:bg-white/20 hover:border-white/30 transition-all"
             >
-              <div class="text-3xl md:text-4xl font-bold text-white mb-1">UK</div>
+              <div class="text-3xl font-bold text-white mb-0.5">UK</div>
               <div class="text-slate-300 text-sm">Tax Optimised</div>
             </div>
             <router-link
               to="/security"
-              class="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20 cursor-pointer hover:bg-white/20 hover:border-white/30 transition-all block"
+              class="bg-white/10 backdrop-blur-md rounded-xl px-3 py-5 border border-white/20 cursor-pointer hover:bg-white/20 hover:border-white/30 transition-all block"
             >
-              <div class="text-3xl md:text-4xl font-bold text-white mb-1">100%</div>
+              <div class="text-3xl font-bold text-white mb-0.5">100%</div>
               <div class="text-slate-300 text-sm">Secure & Private</div>
             </router-link>
             <div
               @click="enterPreviewMode"
-              class="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20 cursor-pointer hover:bg-white/20 hover:border-white/30 transition-all"
+              class="bg-white/10 backdrop-blur-md rounded-xl px-3 py-5 border border-white/20 cursor-pointer hover:bg-white/20 hover:border-white/30 transition-all"
             >
-              <div class="text-3xl md:text-4xl font-bold text-white mb-1">Free</div>
+              <div class="text-3xl font-bold text-white mb-0.5">Free</div>
               <div class="text-slate-300 text-sm">Demo Access</div>
             </div>
           </div>
@@ -131,6 +131,33 @@
           <svg class="w-6 h-6 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
           </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dashboard Preview GIF -->
+    <div class="relative bg-gradient-to-b from-slate-900 to-slate-800 py-16 overflow-hidden">
+      <div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-8">
+          <h2 class="text-3xl md:text-4xl font-bold text-white mb-3">
+            Your Financial Dashboard
+          </h2>
+          <p class="text-lg text-slate-400 max-w-2xl mx-auto">
+            Navigate seamlessly between modules to manage your complete financial picture
+          </p>
+        </div>
+        <div class="rounded-2xl overflow-hidden border border-white/15 shadow-2xl shadow-black/40 bg-slate-900/50 backdrop-blur-md">
+          <div class="flex items-center gap-2 px-4 py-2.5 bg-slate-800/80 border-b border-white/10">
+            <span class="w-3 h-3 rounded-full bg-red-500/80"></span>
+            <span class="w-3 h-3 rounded-full bg-yellow-500/80"></span>
+            <span class="w-3 h-3 rounded-full bg-green-500/80"></span>
+            <span class="ml-3 text-xs text-slate-400 font-mono">fynla.org</span>
+          </div>
+          <img
+            :src="dashboardGifUrl"
+            alt="Fynla dashboard walkthrough showing net worth, pensions, investments, protection, and estate planning modules"
+            class="w-full h-auto block"
+          />
         </div>
       </div>
     </div>
@@ -376,6 +403,7 @@ export default {
       enteringPreview: false,
       showSelectionModal: false,
       previewError: '',
+      dashboardGifUrl: '/images/fynla-dashboard-walkthrough.gif',
     };
   },
 
