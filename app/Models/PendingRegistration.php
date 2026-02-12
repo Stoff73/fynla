@@ -28,6 +28,8 @@ class PendingRegistration extends Model
         'verification_code',
         'registration_source',
         'preview_persona_id',
+        'plan',
+        'billing_cycle',
     ];
 
     protected $hidden = [
@@ -59,6 +61,8 @@ class PendingRegistration extends Model
                 'verification_code' => self::generateCode(),
                 'registration_source' => $data['registration_source'] ?? null,
                 'preview_persona_id' => $data['preview_persona_id'] ?? null,
+                'plan' => $data['plan'] ?? null,
+                'billing_cycle' => $data['billing_cycle'] ?? null,
             ]
         );
     }

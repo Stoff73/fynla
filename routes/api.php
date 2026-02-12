@@ -937,6 +937,16 @@ Route::middleware('auth:sanctum')->prefix('tax-info')->group(function () {
     Route::get('/summary', [\App\Http\Controllers\Api\TaxProductInfoController::class, 'getTaxSummary']);
 });
 
+// Payment routes
+Route::middleware('auth:sanctum')->prefix('payment')->group(function () {
+    Route::post('/create-order', [\App\Http\Controllers\Api\PaymentController::class, 'createOrder']);
+    Route::get('/order/{id}/status', [\App\Http\Controllers\Api\PaymentController::class, 'orderStatus']);
+    Route::get('/trial-status', [\App\Http\Controllers\Api\PaymentController::class, 'trialStatus']);
+});
+
+// Revolut Webhook (public, signature-verified)
+Route::post('/webhooks/revolut', [\App\Http\Controllers\Api\PaymentWebhookController::class, 'handle']);
+
 // User Settings routes
 Route::middleware('auth:sanctum')->prefix('settings')->group(function () {
     // Planning Assumptions
@@ -959,6 +969,9 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     Route::post('/users', [\App\Http\Controllers\Api\AdminController::class, 'createUser']);
     Route::put('/users/{id}', [\App\Http\Controllers\Api\AdminController::class, 'updateUser']);
     Route::delete('/users/{id}', [\App\Http\Controllers\Api\AdminController::class, 'deleteUser']);
+
+    // Subscription stats
+    Route::get('/subscriptions/stats', [\App\Http\Controllers\Api\AdminController::class, 'getSubscriptionStats']);
 
     // Database backup and restore (rate limited for security)
     Route::middleware('throttle:3,1')->group(function () {

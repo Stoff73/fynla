@@ -18,6 +18,7 @@ use App\Services\Audit\AuditService;
 use App\Services\Auth\LoginLockoutService;
 use App\Services\Auth\MFAService;
 use App\Services\Auth\SessionService;
+use App\Services\Payment\TrialService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -31,7 +32,8 @@ class AuthController extends Controller
         private LoginLockoutService $lockoutService,
         private MFAService $mfaService,
         private SessionService $sessionService,
-        private AuditService $auditService
+        private AuditService $auditService,
+        private TrialService $trialService
     ) {}
 
     /**
@@ -62,6 +64,8 @@ class AuthController extends Controller
             'password' => Hash::make($request->password),
             'registration_source' => $request->registration_source ?? null,
             'preview_persona_id' => $request->preview_persona_id ?? null,
+            'plan' => $request->plan ?? null,
+            'billing_cycle' => $request->billing_cycle ?? null,
         ]);
 
         \Log::info('Pending registration created', [
@@ -406,6 +410,12 @@ class AuthController extends Controller
                 'user_id' => $user->id,
                 'pending_id' => $pending->id,
             ]);
+
+            // Start trial if a plan was selected during registration
+            if ($pending->plan && in_array($pending->plan, ['student', 'standard', 'pro'])) {
+                $billingCycle = in_array($pending->billing_cycle, ['monthly', 'yearly']) ? $pending->billing_cycle : 'yearly';
+                $this->trialService->startTrial($user, $pending->plan, $billingCycle);
+            }
 
             // Audit log - new user registration
             $this->auditService->logAuth(AuditLog::ACTION_LOGIN_SUCCESS, $user, [

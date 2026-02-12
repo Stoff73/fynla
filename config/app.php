@@ -31,6 +31,8 @@ return [
 
     'env' => env('APP_ENV', 'production'),
 
+    'payment_enabled' => env('PAYMENT_ENABLED', false),
+
     /*
     |--------------------------------------------------------------------------
     | Application Debug Mode

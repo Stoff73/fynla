@@ -232,6 +232,11 @@ export default {
 
     const loading = computed(() => store.getters['auth/loading'] || isSubmitting.value);
 
+    // Capture plan/billing from query params (from PricingPage)
+    const route = router.currentRoute.value;
+    const selectedPlan = route.query.plan || null;
+    const selectedBilling = route.query.billing || null;
+
     const handleRegister = async () => {
       // Guard against double submission
       if (isSubmitting.value) {
@@ -249,6 +254,15 @@ export default {
           surname: form.value.last_name,
         };
         delete payload.last_name;
+
+        // Include plan/billing if coming from pricing page
+        if (selectedPlan) {
+          payload.plan = selectedPlan;
+        }
+        if (selectedBilling) {
+          payload.billing_cycle = selectedBilling;
+        }
+
         const response = await api.post('/auth/register', payload);
 
         // Check if verification is required

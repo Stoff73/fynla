@@ -6,6 +6,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Traits\SanitizedErrorResponse;
+use App\Models\Payment;
+use App\Models\Subscription;
 use App\Models\User;
 use App\Services\Admin\DatabaseMetricsService;
 use Illuminate\Http\JsonResponse;
@@ -26,11 +28,12 @@ class AdminController extends Controller
     public function dashboard(): JsonResponse
     {
         try {
+            $realUsers = User::where('is_preview_user', false);
             $stats = [
-                'total_users' => User::count(),
-                'admin_users' => User::where('is_admin', true)->count(),
-                'linked_spouses' => User::whereNotNull('spouse_id')->count() / 2, // Divided by 2 since it's bidirectional
-                'recent_users' => User::latest()->take(5)->get(['id', 'name', 'email', 'created_at']),
+                'total_users' => (clone $realUsers)->count(),
+                'admin_users' => (clone $realUsers)->where('is_admin', true)->count(),
+                'linked_spouses' => (clone $realUsers)->whereNotNull('spouse_id')->count() / 2,
+                'recent_users' => (clone $realUsers)->latest()->take(5)->get(['id', 'first_name', 'surname', 'email', 'created_at']),
                 'database_size' => $this->databaseMetrics->getDatabaseSize(),
                 'last_backup' => $this->getLastBackupTime(),
             ];
@@ -45,6 +48,29 @@ class AdminController extends Controller
     }
 
     /**
+     * Get subscription and trial statistics for admin dashboard.
+     */
+    public function getSubscriptionStats(): JsonResponse
+    {
+        try {
+            $stats = [
+                'trialing' => Subscription::where('status', 'trialing')->count(),
+                'active' => Subscription::where('status', 'active')->count(),
+                'expired' => Subscription::where('status', 'expired')->count(),
+                'cancelled' => Subscription::where('status', 'cancelled')->count(),
+                'total_revenue' => Payment::where('status', 'completed')->sum('amount'),
+            ];
+
+            return response()->json([
+                'success' => true,
+                'data' => $stats,
+            ]);
+        } catch (\Exception $e) {
+            return $this->safeErrorResponse('Failed to load subscription stats', $e);
+        }
+    }
+
+    /**
      * Get all users with pagination
      */
     public function getUsers(Request $request): JsonResponse
@@ -52,7 +78,7 @@ class AdminController extends Controller
         try {
             $validator = Validator::make($request->all(), [
                 'per_page' => 'sometimes|integer|min:1|max:100',
-                'search' => 'sometimes|string|max:100',
+                'search' => 'sometimes|nullable|string|max:100',
             ]);
 
             if ($validator->fails()) {
@@ -66,14 +92,16 @@ class AdminController extends Controller
             $perPage = min((int) $request->query('per_page', 15), 100);
             $search = $request->query('search');
 
-            $query = User::with('spouse:id,name,email');
+            $query = User::with(['spouse:id,first_name,surname,email', 'subscription', 'subscription.payments'])
+                ->where('is_preview_user', false);
 
             if ($search) {
                 $search = substr($search, 0, 100); // Extra safety: truncate to max 100 chars
                 // Escape LIKE wildcards to prevent unintended matches
                 $search = str_replace(['%', '_'], ['\\%', '\\_'], $search);
                 $query->where(function ($q) use ($search) {
-                    $q->where('name', 'like', "%{$search}%")
+                    $q->where('first_name', 'like', "%{$search}%")
+                        ->orWhere('surname', 'like', "%{$search}%")
                         ->orWhere('email', 'like', "%{$search}%");
                 });
             }

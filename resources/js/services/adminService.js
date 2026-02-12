@@ -23,6 +23,11 @@ export default {
     return api.delete(`/admin/users/${userId}`);
   },
 
+  // Subscription Stats
+  getSubscriptionStats() {
+    return api.get('/admin/subscriptions/stats');
+  },
+
   // Database Backup
   createBackup() {
     return api.post('/admin/backup/create');

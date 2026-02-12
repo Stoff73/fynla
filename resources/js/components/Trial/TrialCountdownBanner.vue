@@ -1,0 +1,114 @@
+<template>
+  <div
+    v-if="shouldShow"
+    class="bg-blue-50 border-b border-blue-200"
+  >
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+      <div class="flex items-center justify-between gap-4 flex-wrap">
+        <div class="flex items-center gap-3 flex-1 min-w-0">
+          <div class="flex-shrink-0">
+            <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div class="min-w-0">
+            <p class="text-sm font-medium text-blue-800">
+              Your {{ planName }} trial ends in {{ daysRemaining }} {{ daysRemaining === 1 ? 'day' : 'days' }}
+            </p>
+            <div class="mt-1 w-full max-w-xs">
+              <div class="bg-blue-200 rounded-full h-1.5">
+                <div
+                  class="bg-blue-500 h-1.5 rounded-full transition-all duration-500"
+                  :style="{ width: progress + '%' }"
+                ></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <router-link
+            to="/checkout"
+            class="inline-flex items-center px-4 py-1.5 text-sm font-semibold text-white bg-blue-500 rounded-lg hover:bg-blue-600 transition-colors"
+          >
+            Upgrade Now
+          </router-link>
+          <button
+            v-if="canDismiss"
+            @click="dismiss"
+            class="p-1 text-blue-400 hover:text-blue-600 transition-colors"
+            aria-label="Dismiss"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import api from '@/services/api';
+
+export default {
+  name: 'TrialCountdownBanner',
+
+  data() {
+    return {
+      trialData: null,
+      dismissed: false,
+      loading: false,
+    };
+  },
+
+  computed: {
+    shouldShow() {
+      if (!this.trialData || this.trialData.status !== 'trialing') return false;
+      if (this.dismissed && this.canDismiss) return false;
+      return true;
+    },
+
+    planName() {
+      if (!this.trialData) return '';
+      return this.trialData.plan.charAt(0).toUpperCase() + this.trialData.plan.slice(1);
+    },
+
+    daysRemaining() {
+      return this.trialData?.days_remaining ?? 0;
+    },
+
+    progress() {
+      return this.trialData?.progress ?? 0;
+    },
+
+    canDismiss() {
+      // Cannot dismiss in final 2 days
+      return this.daysRemaining > 2;
+    },
+  },
+
+  mounted() {
+    this.fetchTrialStatus();
+  },
+
+  methods: {
+    async fetchTrialStatus() {
+      this.loading = true;
+      try {
+        const response = await api.get('/payment/trial-status');
+        this.trialData = response.data;
+      } catch {
+        // Silently fail — banner just won't show
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    dismiss() {
+      this.dismissed = true;
+    },
+  },
+};
+</script>
