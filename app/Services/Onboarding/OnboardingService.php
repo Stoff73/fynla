@@ -948,6 +948,63 @@ class OnboardingService
     }
 
     /**
+     * Skip all remaining steps and complete onboarding
+     */
+    public function skipToDashboard(int $userId): User
+    {
+        $user = User::findOrFail($userId);
+
+        if (! $user->onboarding_focus_area) {
+            throw new \Exception('Focus area not set');
+        }
+
+        $steps = $this->getOnboardingSteps($user->onboarding_focus_area, $userId);
+        $skippedSteps = $user->onboarding_skipped_steps ?? [];
+
+        // Get completed step names from progress records
+        $completedStepNames = OnboardingProgress::where('user_id', $userId)
+            ->where('focus_area', $user->onboarding_focus_area)
+            ->where('completed', true)
+            ->pluck('step_name')
+            ->toArray();
+
+        // Mark all uncompleted/unskipped steps as skipped (except completion step)
+        foreach ($steps as $step) {
+            $stepName = $step['name'] ?? $step;
+            if ($stepName === 'completion') {
+                continue;
+            }
+
+            $isCompleted = in_array($stepName, $completedStepNames);
+            $isSkipped = in_array($stepName, $skippedSteps);
+
+            if (! $isCompleted && ! $isSkipped) {
+                $skippedSteps[] = $stepName;
+
+                OnboardingProgress::updateOrCreate(
+                    [
+                        'user_id' => $userId,
+                        'focus_area' => $user->onboarding_focus_area,
+                        'step_name' => $stepName,
+                    ],
+                    [
+                        'skipped' => true,
+                        'skip_reason_shown' => true,
+                    ]
+                );
+            }
+        }
+
+        $user->update([
+            'onboarding_skipped_steps' => $skippedSteps,
+            'onboarding_completed' => true,
+            'onboarding_completed_at' => Carbon::now(),
+        ]);
+
+        return $user->fresh();
+    }
+
+    /**
      * Complete the onboarding process
      */
     public function completeOnboarding(int $userId): User

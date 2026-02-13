@@ -262,6 +262,34 @@ const actions = {
     }
   },
 
+  async skipToDashboard({ commit, dispatch }) {
+    commit('SET_LOADING', true);
+    commit('SET_ERROR', null);
+
+    try {
+      const response = await onboardingService.skipToDashboard();
+      const data = response.data;
+
+      commit('SET_STATUS', {
+        completed: true,
+        skippedSteps: data.skipped_steps || [],
+        hasSkippedSteps: true,
+        fullyCompleted: false,
+      });
+
+      // Refresh user data
+      await dispatch('auth/fetchUser', null, { root: true });
+
+      return data;
+    } catch (error) {
+      const errorMessage = error.message || 'Failed to skip to dashboard';
+      commit('SET_ERROR', errorMessage);
+      throw error;
+    } finally {
+      commit('SET_LOADING', false);
+    }
+  },
+
   async completeOnboarding({ commit, dispatch }) {
     commit('SET_LOADING', true);
     commit('SET_ERROR', null);

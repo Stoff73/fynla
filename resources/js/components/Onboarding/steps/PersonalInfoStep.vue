@@ -279,7 +279,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useStore } from 'vuex';
 import OnboardingStep from '../OnboardingStep.vue';
 
@@ -314,6 +314,20 @@ export default {
     const loading = ref(false);
     const error = ref(null);
     const fieldErrors = ref({});
+
+    // Clear individual field errors as the user provides input
+    watch(formData, (newVal) => {
+      const requiredFields = ['date_of_birth', 'gender', 'marital_status', 'address_line_1', 'city', 'postcode'];
+      for (const field of requiredFields) {
+        if (fieldErrors.value[field] && newVal[field] && String(newVal[field]).trim()) {
+          delete fieldErrors.value[field];
+        }
+      }
+      // Clear the general error message when all field errors are resolved
+      if (Object.keys(fieldErrors.value).length === 0 && error.value === 'Please complete all required fields marked with *') {
+        error.value = null;
+      }
+    }, { deep: true });
 
     const maxDob = computed(() => {
       // Max DOB is 18 years ago (minimum age)

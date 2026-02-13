@@ -188,6 +188,32 @@ class OnboardingController extends Controller
     }
 
     /**
+     * Skip all remaining steps and go to dashboard
+     */
+    public function skipToDashboard(Request $request): JsonResponse
+    {
+        try {
+            $user = $this->onboardingService->skipToDashboard($request->user()->id);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'onboarding_completed' => $user->onboarding_completed,
+                    'skipped_steps' => $user->onboarding_skipped_steps,
+                    'completed_at' => $user->onboarding_completed_at?->toISOString(),
+                ],
+                'message' => 'Skipped to dashboard successfully',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to skip to dashboard',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Complete the onboarding process
      */
     public function completeOnboarding(Request $request): JsonResponse

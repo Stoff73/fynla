@@ -12,6 +12,7 @@ const state = {
     analysis: null,
     recommendations: [],
     secondDeathPlanning: null, // Second death IHT planning data
+    willInfo: null, // Will information from IHT calculation
     loading: false,
     error: null,
 };
@@ -280,6 +281,10 @@ const actions = {
             const response = await estateService.calculateIHT(data);
             // Response has iht_summary structure - use same state as married users
             commit('setSecondDeathPlanning', response);
+            // Extract will info from response
+            if (response?.will_info) {
+                commit('setWillInfo', response.will_info);
+            }
             return response;
         } catch (error) {
             const errorMessage = error.message || 'IHT calculation failed';
@@ -498,6 +503,10 @@ const actions = {
         try {
             const response = await estateService.calculateSecondDeathIHTPlanning();
             commit('setSecondDeathPlanning', response);
+            // Extract will info from response
+            if (response?.will_info) {
+                commit('setWillInfo', response.will_info);
+            }
 
             // If spouse is not linked, the backend returns user_iht_calculation
             // Store this in analysis state so the dashboard getters can access it
@@ -512,6 +521,20 @@ const actions = {
             throw error;
         } finally {
             commit('setLoading', false);
+        }
+    },
+
+    // Save will information
+    async saveWill({ commit }, willData) {
+        try {
+            const response = await estateService.saveWill(willData);
+            commit('setWillInfo', {
+                has_will: willData.has_will,
+                will_answered: true,
+            });
+            return response;
+        } catch (error) {
+            throw error;
         }
     },
 
@@ -628,6 +651,10 @@ const mutations = {
 
     setSecondDeathPlanning(state, secondDeathPlanning) {
         state.secondDeathPlanning = secondDeathPlanning;
+    },
+
+    setWillInfo(state, willInfo) {
+        state.willInfo = willInfo;
     },
 
     addAsset(state, asset) {

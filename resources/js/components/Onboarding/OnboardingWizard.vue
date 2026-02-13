@@ -43,6 +43,16 @@
             </div>
           </div>
         </div>
+        <!-- Skip to Dashboard link -->
+        <div v-if="!isCompletionStep" class="mt-3 text-center">
+          <button
+            type="button"
+            class="text-sm text-gray-500 hover:text-primary-600 transition-colors underline"
+            @click="showSkipToDashboardModal = true"
+          >
+            Skip to Dashboard
+          </button>
+        </div>
       </div>
     </div>
 
@@ -74,6 +84,13 @@
       @cancel="hideSkipModal"
       @skip="confirmSkip"
     />
+
+    <!-- Skip to Dashboard Modal -->
+    <SkipToDashboardModal
+      :show="showSkipToDashboardModal"
+      @continue="showSkipToDashboardModal = false"
+      @skip-to-dashboard="handleSkipToDashboard"
+    />
   </div>
 </template>
 
@@ -83,6 +100,7 @@ import { useStore } from 'vuex';
 import { useRouter } from 'vue-router';
 import FocusAreaSelection from './FocusAreaSelection.vue';
 import SkipConfirmationModal from './SkipConfirmationModal.vue';
+import SkipToDashboardModal from './SkipToDashboardModal.vue';
 import PersonalInfoStep from './steps/PersonalInfoStep.vue';
 import IncomeStep from './steps/IncomeStep.vue';
 import ExpenditureStep from './steps/ExpenditureStep.vue';
@@ -101,6 +119,7 @@ export default {
   components: {
     FocusAreaSelection,
     SkipConfirmationModal,
+    SkipToDashboardModal,
     PersonalInfoStep,
     IncomeStep,
     ExpenditureStep,
@@ -121,6 +140,7 @@ export default {
     const showSkipModal = ref(false);
     const skipReason = ref('');
     const pendingSkipStep = ref(null);
+    const showSkipToDashboardModal = ref(false);
 
     const focusArea = computed(() => store.state.onboarding.focusArea);
     const currentStep = computed(() => store.getters['onboarding/currentStep']);
@@ -195,6 +215,10 @@ export default {
       return labelMap[step.name] || step.title || step.name;
     };
 
+    const isCompletionStep = computed(() => {
+      return currentStep.value?.name === 'completion';
+    });
+
     const currentStepComponent = computed(() => {
       if (!currentStep.value) return null;
 
@@ -251,6 +275,12 @@ export default {
       hideSkipModal();
     };
 
+    const handleSkipToDashboard = async () => {
+      showSkipToDashboardModal.value = false;
+      await store.dispatch('onboarding/skipToDashboard');
+      router.push('/dashboard');
+    };
+
     onMounted(async () => {
       // Fetch onboarding status on mount
       await store.dispatch('onboarding/fetchOnboardingStatus');
@@ -276,12 +306,15 @@ export default {
       currentStepComponent,
       showSkipModal,
       skipReason,
+      showSkipToDashboardModal,
+      isCompletionStep,
       handleFocusAreaSelected,
       handleNext,
       handleBack,
       handleSkipRequest,
       hideSkipModal,
       confirmSkip,
+      handleSkipToDashboard,
       isStepCompleted,
       isStepSkipped,
       isCurrentStep,

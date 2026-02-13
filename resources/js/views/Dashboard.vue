@@ -50,14 +50,18 @@
 
       <!-- Three-column dashboard grid -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        <!-- Areas to Complete Card (shown first when user has skipped steps) -->
+        <div v-if="hasAreasToComplete" class="bg-white rounded-lg border border-gray-200 p-6">
+          <AreasToCompleteCard />
+        </div>
+
         <!-- Net Worth Card -->
         <DashboardCard
-          v-if="hasNetWorthData"
           title="Net Worth"
           :loading="loading.netWorth"
           @click="navigateTo('/net-worth/wealth-summary')"
         >
-          <div class="space-y-4">
+          <div v-if="hasNetWorthData" class="space-y-4">
             <!-- Primary value - no heading, just the value -->
             <div class="border-b border-gray-200 pb-4">
               <span
@@ -102,16 +106,27 @@
               </div>
             </div>
           </div>
+
+          <!-- Empty state when no assets or liabilities -->
+          <div v-else class="space-y-4">
+            <div class="border-b border-gray-200 pb-4">
+              <span class="text-3xl font-bold text-gray-400">
+                {{ formatCurrency(0) }}
+              </span>
+            </div>
+            <p class="text-sm text-gray-500">
+              Add your assets and liabilities to see your net worth here.
+            </p>
+          </div>
         </DashboardCard>
 
         <!-- Estate Planning Card -->
         <DashboardCard
-          v-if="hasEstateData"
           title="Estate Planning"
           :loading="loading.estate"
-          @click="navigateTo('/estate')"
+          @click="hasEstateData ? navigateTo('/estate') : null"
         >
-          <div class="space-y-4">
+          <div v-if="hasEstateData" class="space-y-4">
             <!-- Taxable Estate Now -->
             <div class="border-b border-gray-200 pb-4">
               <span class="text-sm text-gray-500">Taxable Estate on Joint Death Now</span>
@@ -148,6 +163,47 @@
                 </div>
               </div>
             </div>
+          </div>
+
+          <!-- Empty state when no estate data -->
+          <div v-else class="space-y-4">
+            <div class="border-b border-gray-200 pb-4">
+              <span class="text-sm text-gray-500">Taxable Estate</span>
+              <div class="mt-1">
+                <span class="text-3xl font-bold text-gray-400">
+                  {{ formatCurrency(0) }}
+                </span>
+              </div>
+            </div>
+            <p class="text-sm text-gray-500">
+              Add your assets and liabilities to see your estate value and inheritance tax position.
+            </p>
+          </div>
+
+          <!-- Will question when not yet answered -->
+          <div v-if="!willAnswered" class="mt-4 pt-4 border-t border-gray-200" @click.stop>
+            <div class="text-sm font-semibold text-gray-900 mb-2">Do you currently have a valid will?</div>
+            <div class="flex gap-3">
+              <button
+                type="button"
+                class="flex-1 py-2 px-3 text-sm font-medium rounded-button border transition-colors"
+                :class="willSelection === true ? 'bg-primary-600 text-white border-primary-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'"
+                @click="selectWill(true)"
+              >
+                Yes
+              </button>
+              <button
+                type="button"
+                class="flex-1 py-2 px-3 text-sm font-medium rounded-button border transition-colors"
+                :class="willSelection === false ? 'bg-primary-600 text-white border-primary-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'"
+                @click="selectWill(false)"
+              >
+                No
+              </button>
+            </div>
+            <p v-if="willSelection === false" class="mt-2 text-xs text-gray-500">
+              A valid will ensures your estate is distributed according to your wishes.
+            </p>
           </div>
         </DashboardCard>
 
@@ -411,6 +467,7 @@ import DashboardCard from '@/components/Dashboard/DashboardCard.vue';
 import GoalsProjectionChartDashboard from '@/components/Dashboard/GoalsProjectionChartDashboard.vue';
 import ActionsOverviewCard from '@/components/Dashboard/ActionsOverviewCard.vue';
 import AreasToConsiderCard from '@/components/Dashboard/AreasToConsiderCard.vue';
+import AreasToCompleteCard from '@/components/Dashboard/AreasToCompleteCard.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import userProfileService from '@/services/userProfileService';
 
@@ -423,6 +480,7 @@ export default {
     GoalsProjectionChartDashboard,
     ActionsOverviewCard,
     AreasToConsiderCard,
+    AreasToCompleteCard,
   },
 
   mixins: [currencyMixin],
@@ -445,11 +503,17 @@ export default {
       dataLoaded: false,
       mfaBannerDismissed: localStorage.getItem('mfaBannerDismissed') === 'true',
       financialCommitmentsData: null,
+      willSelection: null,
     };
   },
 
   computed: {
     ...mapGetters('auth', ['isAdmin', 'currentUser']),
+
+    hasAreasToComplete() {
+      const skippedSteps = this.currentUser?.onboarding_skipped_steps || [];
+      return skippedSteps.length > 0;
+    },
 
     // Check if the user is currently retired
     isRetired() {
@@ -642,6 +706,7 @@ export default {
 
     // Estate data
     ...mapGetters('estate', ['ihtLiability', 'taxableEstate']),
+    ...mapState('estate', { willInfo: 'willInfo' }),
     ...mapState('trusts', { trusts: 'trusts' }),
 
     estateData() {
@@ -657,6 +722,10 @@ export default {
 
     hasEstateData() {
       return this.taxableEstate > 0 || this.ihtLiability > 0;
+    },
+
+    willAnswered() {
+      return this.willInfo?.will_answered === true;
     },
 
     goalsData() {
@@ -760,7 +829,18 @@ export default {
     },
 
     navigateTo(path) {
-      this.$router.push(path);
+      if (path) {
+        this.$router.push(path);
+      }
+    },
+
+    async selectWill(hasWill) {
+      this.willSelection = hasWill;
+      try {
+        await this.$store.dispatch('estate/saveWill', { has_will: hasWill });
+      } catch (error) {
+        console.error('Failed to save will information:', error);
+      }
     },
 
     async loadFinancialCommitments() {

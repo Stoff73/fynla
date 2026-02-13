@@ -167,6 +167,7 @@ Route::middleware('auth:sanctum')->prefix('onboarding')->group(function () {
     Route::post('/step', [OnboardingController::class, 'saveStepProgress']);
     Route::post('/skip-step', [OnboardingController::class, 'skipStep']);
     Route::get('/skip-reason/{step}', [OnboardingController::class, 'getSkipReason']);
+    Route::post('/skip-to-dashboard', [OnboardingController::class, 'skipToDashboard']);
     Route::post('/complete', [OnboardingController::class, 'completeOnboarding']);
     Route::post('/restart', [OnboardingController::class, 'restartOnboarding']);
 });

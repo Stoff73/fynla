@@ -65,6 +65,14 @@ const onboardingService = {
   },
 
   /**
+   * Skip all remaining steps and go to dashboard
+   */
+  async skipToDashboard() {
+    const response = await api.post('/onboarding/skip-to-dashboard');
+    return response.data;
+  },
+
+  /**
    * Complete the onboarding process
    */
   async completeOnboarding() {
