@@ -11,6 +11,7 @@ Frontend build already completed locally. Upload `public/build/` directory.
 app/Services/Onboarding/OnboardingService.php
 app/Http/Controllers/Api/OnboardingController.php
 app/Http/Controllers/Api/Estate/IHTController.php
+app/Http/Controllers/Api/Estate/WillController.php
 routes/api.php
 ```
 
@@ -110,6 +111,26 @@ The Estate Planning dashboard card now always displays, even when users have no 
 - `resources/js/views/Dashboard.vue` - always show estate card, empty state, will question
 - `resources/js/store/modules/estate.js` - willInfo state management
 - `resources/js/services/estateService.js` - saveWill API call
+
+---
+
+## 5. Fix £500k Phantom Estate Value on Will Tab
+
+### Summary
+The Valuable Information > Will tab showed a hardcoded £500,000 estate value for users with no assets. This was caused by a fallback in `WillController::calculateIntestacy()` that defaulted to £500k when estate value was 0. Now correctly shows £0 with a message to add assets.
+
+### What Changed
+
+**WillController.php**
+- Removed hardcoded `$estateValue = 500000` fallback in `calculateIntestacy()` - now uses the actual estate value (0 for empty users)
+
+**WillPlanning.vue**
+- Added guard to only show `IntestacyRules` component when `netEstateValue > 0`
+- Added empty state message when no estate data: "Add your assets and liabilities to see how your estate would be distributed under UK intestacy rules."
+
+### Frontend Changes (included in build)
+
+- `resources/js/components/Estate/WillPlanning.vue` - conditional intestacy display with empty state
 
 ---
 

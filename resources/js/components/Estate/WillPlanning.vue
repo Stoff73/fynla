@@ -36,12 +36,20 @@
 
     <!-- Main Content -->
     <div v-else>
-      <!-- Intestacy Rules Display (shown when has_will is false or null AND not editing) -->
+      <!-- Intestacy Rules Display (shown when has_will is false or null AND not editing AND has estate data) -->
       <IntestacyRules
-        v-if="(form.has_will === false || form.has_will === null) && !isEditing"
+        v-if="(form.has_will === false || form.has_will === null) && !isEditing && netEstateValue > 0"
         :estate-value="netEstateValue"
         @create-will="createWill"
       />
+
+      <!-- Empty estate message (shown when no will and no estate data) -->
+      <div v-else-if="(form.has_will === false || form.has_will === null) && !isEditing && netEstateValue === 0" class="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-2">How Your Estate Would Be Distributed</h3>
+        <p class="text-sm text-gray-600">
+          Add your assets and liabilities to see how your estate would be distributed under UK intestacy rules.
+        </p>
+      </div>
 
       <!-- Will Planning Card -->
       <div class="bg-white rounded-lg border border-gray-200 p-6 mb-6">
