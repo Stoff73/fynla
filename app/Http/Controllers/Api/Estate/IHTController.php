@@ -138,6 +138,7 @@ class IHTController extends Controller
             $will = Will::where('user_id', $user->id)->first();
             $response['will_info'] = [
                 'has_will' => $will?->has_will ?? false,
+                'will_answered' => $will !== null,
                 'last_updated' => $will?->will_last_updated?->toIso8601String(),
                 'executor_name' => $will?->executor_name,
             ];

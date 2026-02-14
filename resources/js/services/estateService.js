@@ -323,6 +323,16 @@ const estateService = {
         const response = await api.post('/estate/calculate-discount', data);
         return response.data;
     },
+
+    /**
+     * Save or update will information
+     * @param {Object} willData - Will data (has_will, will_last_updated, executor_name)
+     * @returns {Promise} Saved will
+     */
+    async saveWill(willData) {
+        const response = await api.post('/estate/will', willData);
+        return response.data;
+    },
 };
 
 export default estateService;

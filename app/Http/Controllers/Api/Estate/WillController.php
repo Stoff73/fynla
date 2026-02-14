@@ -236,14 +236,8 @@ class WillController extends Controller
         $user = $request->user();
         $validated = $request->validated();
 
-        // If estate value not provided, calculate from user's assets
+        // Use the estate value provided by the frontend (which calls calculate-iht first)
         $estateValue = $validated['estate_value'] ?? 0;
-
-        if ($estateValue === 0) {
-            // Calculate from user's actual estate
-            // This could be improved to use NetWorthAnalyzer service
-            $estateValue = 500000; // Default for demonstration
-        }
 
         try {
             $distribution = $this->intestacyCalculator->calculateDistribution($user->id, $estateValue);
