@@ -1079,25 +1079,53 @@ export default {
       printWindow.document.write(letterHtml);
       printWindow.document.close();
 
-      // Wait for content to load, then print
-      printWindow.onload = () => {
-        if (this.printTimeout) clearTimeout(this.printTimeout);
-        this.printTimeout = setTimeout(() => {
-          printWindow.print();
-          // Close the window after printing (or if cancelled)
-          printWindow.onafterprint = () => {
+      // Function to trigger print
+      const triggerPrint = () => {
+        printWindow.print();
+        // Close the window after printing (or if cancelled)
+        printWindow.onafterprint = () => {
+          printWindow.close();
+        };
+        // Fallback: close after a delay if onafterprint not supported
+        if (this.closeTimeout) clearTimeout(this.closeTimeout);
+        this.closeTimeout = setTimeout(() => {
+          if (!printWindow.closed) {
             printWindow.close();
-          };
-          // Fallback: close after a delay if onafterprint not supported
-          if (this.closeTimeout) clearTimeout(this.closeTimeout);
-          this.closeTimeout = setTimeout(() => {
-            if (!printWindow.closed) {
-              printWindow.close();
-            }
-          }, 1000);
-          this.generatingPdf = false;
-        }, 250);
+          }
+        }, 1000);
+        this.generatingPdf = false;
       };
+
+      // Wait for logo image to load explicitly
+      const logoImg = printWindow.document.querySelector('.logo');
+      if (logoImg) {
+        // Image exists, wait for it to load or error
+        let imageHandled = false;
+
+        const handleImageLoad = () => {
+          if (!imageHandled) {
+            imageHandled = true;
+            setTimeout(triggerPrint, 250);
+          }
+        };
+
+        logoImg.addEventListener('load', handleImageLoad);
+        logoImg.addEventListener('error', () => {
+          console.warn('Logo failed to load, proceeding with print anyway');
+          handleImageLoad();
+        });
+
+        // Failsafe: If image doesn't load/error within 3 seconds, proceed anyway
+        setTimeout(() => {
+          if (!imageHandled) {
+            console.warn('Logo load timeout, proceeding with print anyway');
+            handleImageLoad();
+          }
+        }, 3000);
+      } else {
+        // No logo image, print immediately
+        setTimeout(triggerPrint, 250);
+      }
     },
 
     buildLetterHtml() {
