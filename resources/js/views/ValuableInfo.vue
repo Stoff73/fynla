@@ -1,14 +1,6 @@
 <template>
   <AppLayout>
     <div class="max-w-7xl mx-auto py-4 sm:py-8">
-      <!-- Header -->
-      <div class="mb-8">
-        <h1 class="text-h2 font-display text-gray-900">Valuable Information</h1>
-        <p class="mt-2 text-body-base text-gray-600">
-          Important documents and information for your loved ones
-        </p>
-      </div>
-
       <!-- Tab Navigation -->
       <div class="bg-white rounded-lg shadow-sm mb-6">
         <div class="border-b border-gray-200">
