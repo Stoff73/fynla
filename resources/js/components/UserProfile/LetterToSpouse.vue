@@ -1127,7 +1127,7 @@ export default {
   <style>
     @page {
       size: A4;
-      margin: 12mm 0 0 0;
+      margin: 12mm 0 18mm 0;
     }
 
     @page :first {
@@ -1201,6 +1201,14 @@ export default {
       padding-bottom: 6px;
       margin-bottom: 12px;
       border-bottom: 2px solid #e2e8f0;
+      page-break-after: avoid;
+    }
+
+    .section-subtitle {
+      font-size: 10px;
+      color: #64748b;
+      margin-top: -8px;
+      margin-bottom: 12px;
       page-break-after: avoid;
     }
 
@@ -1392,6 +1400,7 @@ export default {
   <!-- Part 1: What to Do Immediately -->
   <div class="section">
     <div class="section-title">Part 1: What to Do Immediately</div>
+    <div class="section-subtitle">Critical first steps and key contacts</div>
 
     ${this.formData.immediate_actions ? `
     <div class="subsection-title">Immediate Actions</div>
@@ -1450,6 +1459,7 @@ export default {
   <!-- Part 2: Financial Overview -->
   <div class="section">
     <div class="section-title">Part 2: Financial Overview</div>
+    <div class="section-subtitle">Your current financial position (automatically updated)</div>
 
     ${this.buildFinancialHtml('Bank Accounts & Savings', this.profileData.savings, this.profileData.totalSavings, 'savings')}
     ${this.buildFinancialHtml('Pensions', this.profileData.pensions, this.profileData.totalPensions, 'pensions')}
@@ -1463,6 +1473,7 @@ export default {
   <!-- Part 3: Additional Information -->
   <div class="section">
     <div class="section-title">Part 3: Additional Information</div>
+    <div class="section-subtitle">Important details not captured elsewhere</div>
     <div class="card-grid">
       ${this.buildInfoCardHtml('Password Manager / Online Access', this.formData.password_manager_info)}
       ${this.buildInfoCardHtml('Estate Documents Location', this.formData.estate_documents_location)}
@@ -1477,6 +1488,7 @@ export default {
   <!-- Part 4: Funeral and Final Wishes -->
   <div class="section">
     <div class="section-title">Part 4: Funeral and Final Wishes</div>
+    <div class="section-subtitle">Your preferences for final arrangements</div>
     <div class="card-grid-3">
       ${this.buildInfoCardHtml('Funeral Service Details', this.formData.funeral_service_details)}
       ${this.buildInfoCardHtml('Obituary Wishes', this.formData.obituary_wishes)}
