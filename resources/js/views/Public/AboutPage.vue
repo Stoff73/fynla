@@ -1,7 +1,7 @@
 <template>
   <PublicLayout>
-    <!-- Hero Section -->
-    <div class="relative min-h-[40vh] flex items-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 overflow-hidden">
+    <!-- Hero Section with Why We Built This - Two Column Layout -->
+    <div class="relative bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 overflow-hidden py-20">
       <!-- Background Elements -->
       <div class="absolute inset-0 overflow-hidden">
         <div class="absolute top-1/4 left-1/4 w-72 h-72 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
@@ -11,35 +11,36 @@
       <!-- Grid Pattern Overlay -->
       <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0wIDBoNjB2NjBIMHoiLz48cGF0aCBkPSJNMzAgMzBtLTEgMGExIDEgMCAxIDAgMiAwYTEgMSAwIDEgMCAtMiAwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMSkiLz48L2c+PC9zdmc+')] opacity-40"></div>
 
-      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center w-full">
-        <h1 class="text-4xl md:text-6xl font-bold text-white mb-6">
-          About
-          <span class="bg-gradient-to-r from-emerald-400 to-blue-400 bg-clip-text text-transparent">
-            Fynla
-          </span>
-        </h1>
-        <p class="text-xl text-slate-300 max-w-3xl mx-auto">
-          Built by financial professionals who believe clarity shouldn't be a luxury
-        </p>
-      </div>
-    </div>
+      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <!-- Left Column: Hero Heading -->
+          <div class="text-center lg:text-left">
+            <h1 class="text-4xl md:text-6xl font-bold text-white mb-6">
+              About
+              <span class="bg-gradient-to-r from-emerald-400 to-blue-400 bg-clip-text text-transparent">
+                Fynla
+              </span>
+            </h1>
+            <p class="text-xl text-slate-300">
+              Built by financial professionals who believe clarity shouldn't be a luxury
+            </p>
+          </div>
 
-    <!-- Why We Built This -->
-    <div class="relative bg-gradient-to-b from-slate-900 to-slate-800 py-20 overflow-hidden">
-      <div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-10">
-          <h2 class="text-3xl md:text-4xl font-bold text-white mb-6">Why We Built This</h2>
-        </div>
-        <div class="space-y-6 text-lg text-slate-300 leading-relaxed">
-          <p>
-            We didn't build Fynla because the world needed another fintech app; we built it because, after 40 combined years in the heart of the financial industry, we saw a gap that shouldn't exist.
-          </p>
-          <p>
-            Between us, we have advised thousands of families, steered global companies through complex mergers, and navigated the highest levels of UK financial regulation. Yet, we both kept noticing the same problem: the tools required to actually plan a financial future were either locked behind expensive professional gatekeepers or too complex for a kitchen-table conversation.
-          </p>
-          <p>
-            We believe financial clarity shouldn't be a luxury for the wealthy. Whether you are a graduate facing student debt, a squeezed family managing a mortgage, or a retiree navigating new tax laws, you deserve a flight simulator for your life. Fynla is our way of taking the professional-grade tools we've used in boardrooms and advisory offices and putting them into your hands.
-          </p>
+          <!-- Right Column: Why We Built This -->
+          <div>
+            <h2 class="text-3xl md:text-4xl font-bold text-white mb-6">Why We Built This</h2>
+            <div class="space-y-6 text-lg text-slate-300 leading-relaxed">
+              <p>
+                We didn't build Fynla because the world needed another fintech app; we built it because, after 40 combined years in the heart of the financial industry, we saw a gap that shouldn't exist.
+              </p>
+              <p>
+                Between us, we have advised thousands of families, steered global companies through complex mergers, and navigated the highest levels of UK financial regulation. Yet, we both kept noticing the same problem: the tools required to actually plan a financial future were either locked behind expensive professional gatekeepers or too complex for a kitchen-table conversation.
+              </p>
+              <p>
+                We believe financial clarity shouldn't be a luxury for the wealthy. Whether you are a graduate facing student debt, a squeezed family managing a mortgage, or a retiree navigating new tax laws, you deserve a flight simulator for your life. Fynla is our way of taking the professional-grade tools we've used in boardrooms and advisory offices and putting them into your hands.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -95,6 +96,26 @@
               </p>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- About Fynla Section -->
+    <div class="relative bg-gradient-to-b from-slate-900 to-slate-800 py-20 overflow-hidden">
+      <div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-10">
+          <h2 class="text-3xl md:text-4xl font-bold text-white mb-6">About Fynla</h2>
+        </div>
+        <div class="space-y-6 text-lg text-slate-300 leading-relaxed">
+          <p>
+            Fynla is a comprehensive UK financial planning platform designed to give you clarity and control over your financial future. We bring together all aspects of your finances—from pensions and investments to property and protection—into one unified dashboard.
+          </p>
+          <p>
+            Built by financial professionals with decades of experience, Fynla combines professional-grade planning tools with an intuitive interface that makes complex financial decisions accessible to everyone.
+          </p>
+          <p>
+            Whether you're planning for retirement, protecting your family, or coordinating finances with your spouse, Fynla provides the insights and projections you need to make informed decisions about your financial life.
+          </p>
         </div>
       </div>
     </div>
