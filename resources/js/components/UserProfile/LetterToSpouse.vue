@@ -1118,20 +1118,25 @@ export default {
       const userName = this.userName;
       const date = this.currentDate;
 
+      const documentTitle = this.isExpressionOfWishes ? 'Expression of Wishes' : `Letter to ${this.spouseNameForLetter || 'Spouse'}`;
+
       return `
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
-  <title> </title>
+  <title>${documentTitle}</title>
   <style>
     @page {
       size: A4;
-      margin: 12mm 0 18mm 0;
+      margin: 0;
     }
 
-    @page :first {
-      margin-top: 0;
+    @media print {
+      html, body {
+        margin: 0;
+        padding: 0;
+      }
     }
 
     * {
@@ -1146,9 +1151,11 @@ export default {
       line-height: 1.4;
       color: #1f2937;
       background: white;
-      padding: 15mm 12mm;
+      padding: 15mm 15mm 22mm 15mm;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
+      position: relative;
+      min-height: 100vh;
     }
 
     .header {
@@ -1156,6 +1163,7 @@ export default {
       padding-bottom: 15px;
       margin-bottom: 20px;
       min-height: 130px;
+      page-break-after: avoid;
     }
 
     .logo {
@@ -1186,12 +1194,14 @@ export default {
     .section {
       margin-bottom: 18px;
       page-break-inside: auto;
+      padding-bottom: 25mm; /* Space for footer */
     }
 
     /* Start each Part section on a new page (except the first one) */
     .section:not(:first-of-type) {
       page-break-before: always;
       break-before: page;
+      padding-top: 5mm; /* Space from top of page */
     }
 
     .section-title {
@@ -1202,6 +1212,7 @@ export default {
       margin-bottom: 12px;
       border-bottom: 2px solid #e2e8f0;
       page-break-after: avoid;
+      page-break-inside: avoid;
     }
 
     .section-subtitle {
@@ -1210,6 +1221,7 @@ export default {
       margin-top: -8px;
       margin-bottom: 12px;
       page-break-after: avoid;
+      page-break-inside: avoid;
     }
 
     .subsection-title {
@@ -1364,14 +1376,15 @@ export default {
       bottom: 0;
       left: 0;
       right: 0;
-      padding: 8px 12mm;
-      border-top: 1px solid #e2e8f0;
-      background: white;
       display: flex;
       justify-content: space-between;
       align-items: center;
       font-size: 9px;
       color: #94a3b8;
+      padding: 10px 15mm;
+      border-top: 1px solid #e2e8f0;
+      background: white;
+      z-index: 1000;
     }
 
     .footer-left {
