@@ -36,7 +36,7 @@
           </div>
 
           <!-- Right Column: Security Cards -->
-          <div class="space-y-6">
+          <div class="space-y-6 max-w-md mx-auto">
             <div class="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20">
               <div class="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center mb-4">
                 <svg class="w-6 h-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
