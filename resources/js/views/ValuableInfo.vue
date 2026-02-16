@@ -101,8 +101,17 @@ export default {
       const maritalStatus = user.value?.marital_status;
       const isExpressionOfWishes = expressionOfWishesStatuses.includes(maritalStatus);
 
+      // Get spouse's first name for personalized tab label
+      let letterLabel = 'Letter to Spouse';
+      if (isExpressionOfWishes) {
+        letterLabel = 'Expression of Wishes';
+      } else if (user.value?.spouse?.name) {
+        const spouseFirstName = user.value.spouse.name.split(' ')[0];
+        letterLabel = `Letter to ${spouseFirstName}`;
+      }
+
       return [
-        { id: 'letter', label: isExpressionOfWishes ? 'Expression of Wishes' : 'Letter to Spouse' },
+        { id: 'letter', label: letterLabel },
         { id: 'will', label: 'Will' },
         { id: 'income', label: 'Income' },
         { id: 'expenditure', label: 'Expenditure' },
