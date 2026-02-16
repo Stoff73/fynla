@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php artisan:*)",
+      "Bash(composer install:*)",
+      "Bash(export PATH=\"/usr/local/opt/node@22/bin:$PATH\")",
+      "Bash(npm install)",
+      "Bash(npx vite build --mode development)",
+      "Bash(PATH=\"/usr/local/opt/node@22/bin:$PATH\" npx vite build:*)",
+      "Bash(php -d memory_limit=512M ./vendor/bin/pest:*)",
+      "Bash(curl:*)",
+      "Bash(git checkout:*)",
+      "Bash(ls:*)",
+      "Bash(git status:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git config:*)",
+      "Bash(gh pr create:*)",
+      "Bash(gh pr merge:*)",
+      "Bash(git pull:*)",
+      "WebFetch(domain:developer.revolut.com)",
+      "Bash(grep:*)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "Bash(lsof:*)",
+      "Bash(xargs kill:*)",
+      "Bash(./deploy/fynla-org/build.sh:*)",
+      "Bash(./dev.sh:*)",
+      "Bash(kill:*)",
+      "Bash(git branch:*)",
+      "Bash(Spouse\". Extracts spouse''s first name from user.spouse.name.\n\nFalls back to \"Letter to Spouse\" if no spouse name available.\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git fetch:*)"
+    ]
+  }
+}
