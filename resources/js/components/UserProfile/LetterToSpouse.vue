@@ -1211,6 +1211,12 @@ export default {
       page-break-inside: auto;
     }
 
+    /* Start each Part section on a new page (except the first one) */
+    .section:not(:first-of-type) {
+      page-break-before: always;
+      break-before: page;
+    }
+
     .section-title {
       font-size: 15px;
       font-weight: 700;
