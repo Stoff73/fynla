@@ -699,17 +699,6 @@
           <template v-if="!isEditing">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div class="bg-white rounded-lg border border-gray-200 p-4">
-                <h4 class="text-sm font-semibold text-gray-900 mb-2">Funeral Preference</h4>
-                <span :class="[
-                  'inline-flex items-center px-3 py-1 rounded-full text-sm font-medium',
-                  formData.funeral_preference === 'burial' ? 'bg-blue-100 text-blue-800' :
-                  formData.funeral_preference === 'cremation' ? 'bg-green-100 text-green-800' :
-                  'bg-gray-100 text-gray-700'
-                ]">
-                  {{ formatFuneralPreference(formData.funeral_preference) }}
-                </span>
-              </div>
-              <div class="bg-white rounded-lg border border-gray-200 p-4">
                 <h4 class="text-sm font-semibold text-gray-900 mb-2">Funeral Service Details</h4>
                 <p class="text-sm text-gray-700 whitespace-pre-line">{{ formData.funeral_service_details || 'Not specified' }}</p>
               </div>
@@ -727,17 +716,6 @@
           <!-- EDIT MODE -->
           <template v-else>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label class="block text-body-sm font-medium text-gray-700 mb-2">Funeral Preference</label>
-                <select
-                  v-model="formData.funeral_preference"
-                  class="input-field"
-                >
-                  <option value="not_specified">Not Specified</option>
-                  <option value="burial">Burial</option>
-                  <option value="cremation">Cremation</option>
-                </select>
-              </div>
               <div>
                 <label class="block text-body-sm font-medium text-gray-700 mb-2">Funeral Service Details</label>
                 <textarea
@@ -811,7 +789,6 @@ export default {
         valuable_items_info: '',
         cryptocurrency_info: '',
         recurring_bills_info: '',
-        funeral_preference: 'not_specified',
         funeral_service_details: '',
         obituary_wishes: '',
         additional_wishes: '',
@@ -1500,13 +1477,7 @@ export default {
   <!-- Part 4: Funeral and Final Wishes -->
   <div class="section">
     <div class="section-title">Part 4: Funeral and Final Wishes</div>
-    <div class="card-grid">
-      <div class="card">
-        <div class="card-label">Funeral Preference</div>
-        <div class="mt-8">
-          <span class="badge ${this.formData.funeral_preference === 'cremation' ? 'badge-green' : this.formData.funeral_preference === 'burial' ? 'badge-blue' : ''}">${this.formatFuneralPreference(this.formData.funeral_preference)}</span>
-        </div>
-      </div>
+    <div class="card-grid-3">
       ${this.buildInfoCardHtml('Funeral Service Details', this.formData.funeral_service_details)}
       ${this.buildInfoCardHtml('Obituary Wishes', this.formData.obituary_wishes)}
       ${this.buildInfoCardHtml('Additional Wishes', this.formData.additional_wishes)}
@@ -1676,15 +1647,6 @@ export default {
           <div class="card-grid-3">${itemsHtml}</div>
         </div>
       `;
-    },
-
-    formatFuneralPreference(value) {
-      const options = {
-        not_specified: 'Not Specified',
-        burial: 'Burial',
-        cremation: 'Cremation',
-      };
-      return options[value] || 'Not Specified';
     },
 
     formatPropertyType(type) {
