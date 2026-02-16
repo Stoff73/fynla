@@ -25,30 +25,28 @@
           </svg>
           {{ generatingPdf ? 'Preparing...' : 'Print / Save PDF' }}
         </button>
-        <template v-if="!isReadOnly">
+        <button
+          v-if="!isEditing"
+          @click="isEditing = true"
+          class="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+        >
+          Edit
+        </button>
+        <template v-else>
           <button
-            v-if="!isEditing"
-            @click="isEditing = true"
+            @click="cancelEditing"
             class="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+            :disabled="saving"
           >
-            Edit
+            Cancel
           </button>
-          <template v-else>
-            <button
-              @click="cancelEditing"
-              class="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition-colors"
-              :disabled="saving"
-            >
-              Cancel
-            </button>
-            <button
-              @click="saveLetter"
-              :disabled="saving"
-              class="px-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors disabled:opacity-50"
-            >
-              {{ saving ? 'Saving...' : 'Save' }}
-            </button>
-          </template>
+          <button
+            @click="saveLetter"
+            :disabled="saving"
+            class="px-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors disabled:opacity-50"
+          >
+            {{ saving ? 'Saving...' : 'Save' }}
+          </button>
         </template>
       </div>
     </div>
@@ -65,41 +63,17 @@
       </div>
     </div>
 
-    <!-- View Toggle -->
-    <div v-if="hasSpouse" class="flex space-x-3">
-      <button
-        @click="switchToMyLetter"
-        :class="[
-          'px-4 py-2 rounded-lg font-medium transition-colors',
-          viewMode === 'my'
-            ? 'bg-primary-600 text-white'
-            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-        ]"
-      >
-        My Letter
-      </button>
-      <button
-        @click="loadSpouseLetter"
-        :class="[
-          'px-4 py-2 rounded-lg font-medium transition-colors',
-          viewMode === 'spouse'
-            ? 'bg-primary-600 text-white'
-            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-        ]"
-      >
-        {{ spouseName }}'s Letter
-      </button>
-    </div>
-
-    <!-- Read-only Banner for Spouse View -->
-    <div v-if="viewMode === 'spouse'" class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-      <div class="flex items-center">
-        <svg class="h-5 w-5 text-blue-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+    <!-- Helpful hint for adding custom information -->
+    <div v-if="!isEditing" class="bg-green-50 border border-green-200 rounded-lg p-4">
+      <div class="flex items-start">
+        <svg class="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
           <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
         </svg>
-        <p class="text-sm text-blue-800 font-medium">
-          Viewing {{ spouseName }}'s letter (read-only)
-        </p>
+        <div class="ml-3">
+          <p class="text-sm text-green-800">
+            <strong>Need to add more information?</strong> Click the <strong>Edit</strong> button above to add custom information boxes for topics like business contacts, pet care instructions, digital assets, or any other important details.
+          </p>
+        </div>
       </div>
     </div>
 
@@ -118,7 +92,7 @@
         </div>
         <div class="p-6 space-y-6">
           <!-- VIEW MODE -->
-          <template v-if="!isEditing || isReadOnly">
+          <template v-if="!isEditing">
             <!-- Immediate Actions Checklist -->
             <div>
               <h4 class="text-sm font-semibold text-gray-900 mb-3">Immediate Actions Checklist</h4>
@@ -547,7 +521,7 @@
         </div>
         <div class="p-6 space-y-4">
           <!-- VIEW MODE -->
-          <template v-if="!isEditing || isReadOnly">
+          <template v-if="!isEditing">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div class="bg-white rounded-lg border border-gray-200 p-4">
                 <h4 class="text-sm font-semibold text-gray-900 mb-2">Password Manager / Online Access</h4>
@@ -709,7 +683,7 @@
         </div>
         <div class="p-6 space-y-4">
           <!-- VIEW MODE -->
-          <template v-if="!isEditing || isReadOnly">
+          <template v-if="!isEditing">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div class="bg-white rounded-lg border border-gray-200 p-4">
                 <h4 class="text-sm font-semibold text-gray-900 mb-2">Funeral Preference</h4>
@@ -802,9 +776,6 @@ export default {
       saving: false,
       generatingPdf: false,
       isEditing: false,
-      viewMode: 'my',
-      hasSpouse: false,
-      spouseName: '',
       isExpressionOfWishes: false,
       originalFormData: null,
       willData: null,
@@ -847,8 +818,7 @@ export default {
         totalCoverage: 0,
         totalLiabilities: 0,
       },
-      myLetterData: null,
-      spouseLetterData: null,
+      letterData: null,
       printTimeout: null,
       closeTimeout: null,
     };
@@ -859,10 +829,6 @@ export default {
 
     isPreviewMode() {
       return this.$store.getters['preview/isPreviewMode'];
-    },
-
-    isReadOnly() {
-      return this.viewMode === 'spouse';
     },
 
     pageTitle() {
@@ -936,9 +902,9 @@ export default {
 
   async mounted() {
     await Promise.all([
-      this.loadMyLetter(),
+      this.loadLetter(),
       this.loadProfileData(),
-      this.checkSpouse(),
+      this.checkMaritalStatus(),
       this.loadWillData(),
     ]);
   },
@@ -949,13 +915,11 @@ export default {
   },
 
   methods: {
-    async loadMyLetter() {
+    async loadLetter() {
       try {
         const response = await api.get('/user/letter-to-spouse');
-        this.myLetterData = response.data.data;
-        if (this.viewMode === 'my') {
-          this.populateForm(this.myLetterData);
-        }
+        this.letterData = response.data.data;
+        this.populateForm(this.letterData);
       } catch (error) {
         console.error('Error loading letter:', error);
       }
@@ -1014,22 +978,16 @@ export default {
       }
     },
 
-    async checkSpouse() {
+    async checkMaritalStatus() {
       try {
         const userResponse = await api.get('/auth/user');
         const user = userResponse.data.data?.user || userResponse.data;
 
-        // Single, widowed and divorced users see "Expression of Wishes" instead
+        // Single, widowed and divorced users see "Expression of Wishes" instead of "Letter to Spouse"
         const expressionOfWishesStatuses = ['single', 'widowed', 'divorced'];
         this.isExpressionOfWishes = expressionOfWishesStatuses.includes(user.marital_status);
-
-        // Only show spouse toggle for users with a spouse
-        if (!this.isExpressionOfWishes && user.spouse_id && user.spouse) {
-          this.spouseName = user.spouse.name;
-          this.hasSpouse = true;
-        }
       } catch (error) {
-        console.error('Error checking spouse:', error);
+        console.error('Error checking marital status:', error);
       }
     },
 
@@ -1048,33 +1006,6 @@ export default {
       }
     },
 
-    switchToMyLetter() {
-      this.viewMode = 'my';
-      this.populateForm(this.myLetterData);
-    },
-
-    async loadSpouseLetter() {
-      if (this.viewMode === 'spouse' && this.spouseLetterData) {
-        return;
-      }
-
-      this.loading = true;
-      this.viewMode = 'spouse';
-
-      try {
-        const response = await api.get('/user/letter-to-spouse/spouse');
-        this.spouseLetterData = response.data.data;
-        this.spouseName = response.data.spouse_name;
-        this.populateForm(this.spouseLetterData);
-      } catch (error) {
-        console.error('Error loading spouse letter:', error);
-        this.viewMode = 'my';
-        this.populateForm(this.myLetterData);
-      } finally {
-        this.loading = false;
-      }
-    },
-
     populateForm(data) {
       if (!data) return;
       Object.keys(this.formData).forEach(key => {
@@ -1086,13 +1017,10 @@ export default {
     },
 
     async saveLetter() {
-      // Allow save in preview mode for testing (backend returns fake success)
-      if (this.isReadOnly) return;
-
       this.saving = true;
       try {
         const response = await api.put('/user/letter-to-spouse', this.formData);
-        this.myLetterData = response.data.data;
+        this.letterData = response.data.data;
         this.originalFormData = JSON.parse(JSON.stringify(this.formData));
         this.isEditing = false;
         this.$emit('success', 'Letter saved successfully');
