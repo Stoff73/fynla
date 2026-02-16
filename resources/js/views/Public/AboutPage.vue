@@ -99,6 +99,26 @@
         </div>
       </div>
     </div>
+
+    <!-- About Fynla Section -->
+    <div class="relative bg-gradient-to-b from-slate-900 to-slate-800 py-20 overflow-hidden">
+      <div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-10">
+          <h2 class="text-3xl md:text-4xl font-bold text-white mb-6">About Fynla</h2>
+        </div>
+        <div class="space-y-6 text-lg text-slate-300 leading-relaxed">
+          <p>
+            Fynla is a comprehensive UK financial planning platform designed to give you clarity and control over your financial future. We bring together all aspects of your finances—from pensions and investments to property and protection—into one unified dashboard.
+          </p>
+          <p>
+            Built by financial professionals with decades of experience, Fynla combines professional-grade planning tools with an intuitive interface that makes complex financial decisions accessible to everyone.
+          </p>
+          <p>
+            Whether you're planning for retirement, protecting your family, or coordinating finances with your spouse, Fynla provides the insights and projections you need to make informed decisions about your financial life.
+          </p>
+        </div>
+      </div>
+    </div>
   </PublicLayout>
 </template>
 
