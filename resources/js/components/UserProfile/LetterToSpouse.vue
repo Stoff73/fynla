@@ -3,8 +3,7 @@
     <!-- Header -->
     <div class="flex justify-between items-start">
       <div>
-        <h2 class="text-2xl font-semibold text-gray-900">{{ pageTitle }}</h2>
-        <p class="mt-1 text-sm text-gray-600">
+        <p class="text-sm text-gray-600">
           {{ pageDescription }}
         </p>
       </div>
@@ -25,30 +24,28 @@
           </svg>
           {{ generatingPdf ? 'Preparing...' : 'Print / Save PDF' }}
         </button>
-        <template v-if="!isReadOnly">
+        <button
+          v-if="!isEditing"
+          @click="isEditing = true"
+          class="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+        >
+          Edit
+        </button>
+        <template v-else>
           <button
-            v-if="!isEditing"
-            @click="isEditing = true"
+            @click="cancelEditing"
             class="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+            :disabled="saving"
           >
-            Edit
+            Cancel
           </button>
-          <template v-else>
-            <button
-              @click="cancelEditing"
-              class="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition-colors"
-              :disabled="saving"
-            >
-              Cancel
-            </button>
-            <button
-              @click="saveLetter"
-              :disabled="saving"
-              class="px-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors disabled:opacity-50"
-            >
-              {{ saving ? 'Saving...' : 'Save' }}
-            </button>
-          </template>
+          <button
+            @click="saveLetter"
+            :disabled="saving"
+            class="px-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors disabled:opacity-50"
+          >
+            {{ saving ? 'Saving...' : 'Save' }}
+          </button>
         </template>
       </div>
     </div>
@@ -65,41 +62,17 @@
       </div>
     </div>
 
-    <!-- View Toggle -->
-    <div v-if="hasSpouse" class="flex space-x-3">
-      <button
-        @click="switchToMyLetter"
-        :class="[
-          'px-4 py-2 rounded-lg font-medium transition-colors',
-          viewMode === 'my'
-            ? 'bg-primary-600 text-white'
-            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-        ]"
-      >
-        My Letter
-      </button>
-      <button
-        @click="loadSpouseLetter"
-        :class="[
-          'px-4 py-2 rounded-lg font-medium transition-colors',
-          viewMode === 'spouse'
-            ? 'bg-primary-600 text-white'
-            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-        ]"
-      >
-        {{ spouseName }}'s Letter
-      </button>
-    </div>
-
-    <!-- Read-only Banner for Spouse View -->
-    <div v-if="viewMode === 'spouse'" class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-      <div class="flex items-center">
-        <svg class="h-5 w-5 text-blue-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+    <!-- Helpful hint for adding custom information -->
+    <div v-if="!isEditing" class="bg-green-50 border border-green-200 rounded-lg p-4">
+      <div class="flex items-start">
+        <svg class="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
           <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
         </svg>
-        <p class="text-sm text-blue-800 font-medium">
-          Viewing {{ spouseName }}'s letter (read-only)
-        </p>
+        <div class="ml-3">
+          <p class="text-sm text-green-800">
+            <strong>Need to add more information?</strong> Click the <strong>Edit</strong> button above to add custom information boxes for topics like business contacts, pet care instructions, digital assets, or any other important details.
+          </p>
+        </div>
       </div>
     </div>
 
@@ -118,7 +91,7 @@
         </div>
         <div class="p-6 space-y-6">
           <!-- VIEW MODE -->
-          <template v-if="!isEditing || isReadOnly">
+          <template v-if="!isEditing">
             <!-- Immediate Actions Checklist -->
             <div>
               <h4 class="text-sm font-semibold text-gray-900 mb-3">Immediate Actions Checklist</h4>
@@ -353,7 +326,11 @@
                     <div class="font-medium text-gray-900">{{ account.account_name || account.provider }}</div>
                     <div class="text-sm text-gray-500">{{ account.institution || account.provider }}</div>
                   </div>
-                  <span v-if="account.is_isa || account.account_type === 'cash_isa'" class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">ISA</span>
+                  <div class="flex flex-col gap-1 items-end">
+                    <span v-if="account.is_isa || account.account_type === 'cash_isa'" class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">ISA</span>
+                    <span v-if="account.ownership_type === 'joint'" class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">Joint</span>
+                    <span v-else-if="account.ownership_type === 'tenants_in_common'" class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">Tenants in Common</span>
+                  </div>
                 </div>
                 <div class="mt-2 text-lg font-semibold text-gray-900">{{ formatCurrency(account.current_balance) }}</div>
               </div>
@@ -378,9 +355,6 @@
                     <div class="font-medium text-gray-900">{{ pension.scheme_name || pension.provider }}</div>
                     <div class="text-sm text-gray-500">{{ pension.provider }}</div>
                   </div>
-                  <span :class="getPensionTypeBadgeClass(pension.pension_type)" class="text-xs px-2 py-0.5 rounded">
-                    {{ formatPensionType(pension.pension_type) }}
-                  </span>
                 </div>
                 <div class="mt-2">
                   <div class="text-lg font-semibold text-gray-900">{{ formatCurrency(pension.current_value || pension.current_fund_value) }}</div>
@@ -408,8 +382,12 @@
                     <div class="font-medium text-gray-900">{{ account.account_name || account.provider }}</div>
                     <div class="text-sm text-gray-500">{{ account.provider }}</div>
                   </div>
-                  <span v-if="account.account_type === 'stocks_and_shares_isa'" class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">ISA</span>
-                  <span v-else-if="account.account_type === 'gia'" class="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded">GIA</span>
+                  <div class="flex flex-col gap-1 items-end">
+                    <span v-if="account.account_type === 'stocks_and_shares_isa'" class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">ISA</span>
+                    <span v-else-if="account.account_type === 'gia'" class="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded">GIA</span>
+                    <span v-if="account.ownership_type === 'joint'" class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">Joint</span>
+                    <span v-else-if="account.ownership_type === 'tenants_in_common'" class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">Tenants in Common</span>
+                  </div>
                 </div>
                 <div class="mt-2 text-lg font-semibold text-gray-900">{{ formatCurrency(account.current_value) }}</div>
               </div>
@@ -492,8 +470,16 @@
                 :key="liability.id"
                 class="bg-white rounded-lg p-4 border border-gray-200"
               >
-                <div class="font-medium text-gray-900">{{ liability.liability_name }}</div>
-                <div class="text-sm text-gray-500">{{ formatLiabilityType(liability.liability_type) }}</div>
+                <div class="flex justify-between items-start">
+                  <div>
+                    <div class="font-medium text-gray-900">{{ liability.liability_name }}</div>
+                    <div class="text-sm text-gray-500">{{ formatLiabilityType(liability.liability_type) }}</div>
+                  </div>
+                  <div class="flex flex-col gap-1 items-end">
+                    <span v-if="liability.ownership_type === 'joint'" class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">Joint</span>
+                    <span v-else-if="liability.ownership_type === 'tenants_in_common'" class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">TIC</span>
+                  </div>
+                </div>
                 <div class="mt-2 font-semibold text-red-600">{{ formatCurrency(liability.current_balance) }}</div>
               </div>
             </div>
@@ -547,7 +533,7 @@
         </div>
         <div class="p-6 space-y-4">
           <!-- VIEW MODE -->
-          <template v-if="!isEditing || isReadOnly">
+          <template v-if="!isEditing">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div class="bg-white rounded-lg border border-gray-200 p-4">
                 <h4 class="text-sm font-semibold text-gray-900 mb-2">Password Manager / Online Access</h4>
@@ -709,19 +695,8 @@
         </div>
         <div class="p-6 space-y-4">
           <!-- VIEW MODE -->
-          <template v-if="!isEditing || isReadOnly">
+          <template v-if="!isEditing">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div class="bg-white rounded-lg border border-gray-200 p-4">
-                <h4 class="text-sm font-semibold text-gray-900 mb-2">Funeral Preference</h4>
-                <span :class="[
-                  'inline-flex items-center px-3 py-1 rounded-full text-sm font-medium',
-                  formData.funeral_preference === 'burial' ? 'bg-blue-100 text-blue-800' :
-                  formData.funeral_preference === 'cremation' ? 'bg-green-100 text-green-800' :
-                  'bg-gray-100 text-gray-700'
-                ]">
-                  {{ formatFuneralPreference(formData.funeral_preference) }}
-                </span>
-              </div>
               <div class="bg-white rounded-lg border border-gray-200 p-4">
                 <h4 class="text-sm font-semibold text-gray-900 mb-2">Funeral Service Details</h4>
                 <p class="text-sm text-gray-700 whitespace-pre-line">{{ formData.funeral_service_details || 'Not specified' }}</p>
@@ -740,17 +715,6 @@
           <!-- EDIT MODE -->
           <template v-else>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label class="block text-body-sm font-medium text-gray-700 mb-2">Funeral Preference</label>
-                <select
-                  v-model="formData.funeral_preference"
-                  class="input-field"
-                >
-                  <option value="not_specified">Not Specified</option>
-                  <option value="burial">Burial</option>
-                  <option value="cremation">Cremation</option>
-                </select>
-              </div>
               <div>
                 <label class="block text-body-sm font-medium text-gray-700 mb-2">Funeral Service Details</label>
                 <textarea
@@ -802,9 +766,6 @@ export default {
       saving: false,
       generatingPdf: false,
       isEditing: false,
-      viewMode: 'my',
-      hasSpouse: false,
-      spouseName: '',
       isExpressionOfWishes: false,
       originalFormData: null,
       willData: null,
@@ -827,7 +788,6 @@ export default {
         valuable_items_info: '',
         cryptocurrency_info: '',
         recurring_bills_info: '',
-        funeral_preference: 'not_specified',
         funeral_service_details: '',
         obituary_wishes: '',
         additional_wishes: '',
@@ -847,8 +807,7 @@ export default {
         totalCoverage: 0,
         totalLiabilities: 0,
       },
-      myLetterData: null,
-      spouseLetterData: null,
+      letterData: null,
       printTimeout: null,
       closeTimeout: null,
     };
@@ -861,12 +820,14 @@ export default {
       return this.$store.getters['preview/isPreviewMode'];
     },
 
-    isReadOnly() {
-      return this.viewMode === 'spouse';
-    },
-
     pageTitle() {
-      return this.isExpressionOfWishes ? 'Expression of Wishes' : 'Letter to Spouse';
+      if (this.isExpressionOfWishes) {
+        return 'Expression of Wishes';
+      } else if (this.spouseNameForLetter) {
+        return `Letter to ${this.spouseNameForLetter}`;
+      } else {
+        return 'Letter to Spouse';
+      }
     },
 
     pageDescription() {
@@ -883,6 +844,14 @@ export default {
 
     userName() {
       return this.currentUser?.name || 'User';
+    },
+
+    spouseNameForLetter() {
+      // For married users, use spouse's first name
+      if (!this.isExpressionOfWishes && this.currentUser?.spouse?.name) {
+        return this.currentUser.spouse.name.split(' ')[0]; // Get first name only
+      }
+      return null;
     },
 
     currentDate() {
@@ -936,9 +905,9 @@ export default {
 
   async mounted() {
     await Promise.all([
-      this.loadMyLetter(),
+      this.loadLetter(),
       this.loadProfileData(),
-      this.checkSpouse(),
+      this.checkMaritalStatus(),
       this.loadWillData(),
     ]);
   },
@@ -949,13 +918,11 @@ export default {
   },
 
   methods: {
-    async loadMyLetter() {
+    async loadLetter() {
       try {
         const response = await api.get('/user/letter-to-spouse');
-        this.myLetterData = response.data.data;
-        if (this.viewMode === 'my') {
-          this.populateForm(this.myLetterData);
-        }
+        this.letterData = response.data.data;
+        this.populateForm(this.letterData);
       } catch (error) {
         console.error('Error loading letter:', error);
       }
@@ -1014,22 +981,16 @@ export default {
       }
     },
 
-    async checkSpouse() {
+    async checkMaritalStatus() {
       try {
         const userResponse = await api.get('/auth/user');
         const user = userResponse.data.data?.user || userResponse.data;
 
-        // Single, widowed and divorced users see "Expression of Wishes" instead
+        // Single, widowed and divorced users see "Expression of Wishes" instead of "Letter to Spouse"
         const expressionOfWishesStatuses = ['single', 'widowed', 'divorced'];
         this.isExpressionOfWishes = expressionOfWishesStatuses.includes(user.marital_status);
-
-        // Only show spouse toggle for users with a spouse
-        if (!this.isExpressionOfWishes && user.spouse_id && user.spouse) {
-          this.spouseName = user.spouse.name;
-          this.hasSpouse = true;
-        }
       } catch (error) {
-        console.error('Error checking spouse:', error);
+        console.error('Error checking marital status:', error);
       }
     },
 
@@ -1048,33 +1009,6 @@ export default {
       }
     },
 
-    switchToMyLetter() {
-      this.viewMode = 'my';
-      this.populateForm(this.myLetterData);
-    },
-
-    async loadSpouseLetter() {
-      if (this.viewMode === 'spouse' && this.spouseLetterData) {
-        return;
-      }
-
-      this.loading = true;
-      this.viewMode = 'spouse';
-
-      try {
-        const response = await api.get('/user/letter-to-spouse/spouse');
-        this.spouseLetterData = response.data.data;
-        this.spouseName = response.data.spouse_name;
-        this.populateForm(this.spouseLetterData);
-      } catch (error) {
-        console.error('Error loading spouse letter:', error);
-        this.viewMode = 'my';
-        this.populateForm(this.myLetterData);
-      } finally {
-        this.loading = false;
-      }
-    },
-
     populateForm(data) {
       if (!data) return;
       Object.keys(this.formData).forEach(key => {
@@ -1086,13 +1020,10 @@ export default {
     },
 
     async saveLetter() {
-      // Allow save in preview mode for testing (backend returns fake success)
-      if (this.isReadOnly) return;
-
       this.saving = true;
       try {
         const response = await api.put('/user/letter-to-spouse', this.formData);
-        this.myLetterData = response.data.data;
+        this.letterData = response.data.data;
         this.originalFormData = JSON.parse(JSON.stringify(this.formData));
         this.isEditing = false;
         this.$emit('success', 'Letter saved successfully');
@@ -1130,46 +1061,87 @@ export default {
       printWindow.document.write(letterHtml);
       printWindow.document.close();
 
-      // Wait for content to load, then print
-      printWindow.onload = () => {
-        if (this.printTimeout) clearTimeout(this.printTimeout);
-        this.printTimeout = setTimeout(() => {
-          printWindow.print();
-          // Close the window after printing (or if cancelled)
-          printWindow.onafterprint = () => {
+      // Function to trigger print
+      const triggerPrint = () => {
+        printWindow.print();
+        // Close the window after printing (or if cancelled)
+        printWindow.onafterprint = () => {
+          printWindow.close();
+        };
+        // Fallback: close after a delay if onafterprint not supported
+        if (this.closeTimeout) clearTimeout(this.closeTimeout);
+        this.closeTimeout = setTimeout(() => {
+          if (!printWindow.closed) {
             printWindow.close();
-          };
-          // Fallback: close after a delay if onafterprint not supported
-          if (this.closeTimeout) clearTimeout(this.closeTimeout);
-          this.closeTimeout = setTimeout(() => {
-            if (!printWindow.closed) {
-              printWindow.close();
-            }
-          }, 1000);
-          this.generatingPdf = false;
-        }, 250);
+          }
+        }, 1000);
+        this.generatingPdf = false;
       };
+
+      // Wait for logo image to load explicitly
+      const logoImg = printWindow.document.querySelector('.logo');
+      if (logoImg) {
+        // Image exists, wait for it to load or error
+        let imageHandled = false;
+
+        const handleImageLoad = () => {
+          if (!imageHandled) {
+            imageHandled = true;
+            setTimeout(triggerPrint, 250);
+          }
+        };
+
+        logoImg.addEventListener('load', handleImageLoad);
+        logoImg.addEventListener('error', () => {
+          console.warn('Logo failed to load, proceeding with print anyway');
+          handleImageLoad();
+        });
+
+        // Failsafe: If image doesn't load/error within 3 seconds, proceed anyway
+        setTimeout(() => {
+          if (!imageHandled) {
+            console.warn('Logo load timeout, proceeding with print anyway');
+            handleImageLoad();
+          }
+        }, 3000);
+      } else {
+        // No logo image, print immediately
+        setTimeout(triggerPrint, 250);
+      }
     },
 
     buildLetterHtml() {
-      const title = this.isExpressionOfWishes ? 'Expression of Wishes' : 'Letter to Spouse';
+      // Personalize title with spouse name if available
+      let title;
+      if (this.isExpressionOfWishes) {
+        title = 'Expression of Wishes';
+      } else if (this.spouseNameForLetter) {
+        title = `Letter to ${this.spouseNameForLetter}`;
+      } else {
+        title = 'Letter to Spouse';
+      }
       const userName = this.userName;
       const date = this.currentDate;
+
+      const documentTitle = this.isExpressionOfWishes ? 'Expression of Wishes' : `Letter to ${this.spouseNameForLetter || 'Spouse'}`;
 
       return `
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
-  <title> </title>
+  <title>${documentTitle}</title>
   <style>
     @page {
       size: A4;
-      margin: 12mm 0 0 0;
+      margin: 0;
     }
 
-    @page :first {
-      margin-top: 0;
+    @media print {
+      html, body {
+        margin: 0;
+        padding: 0;
+      }
     }
 
     * {
@@ -1184,46 +1156,57 @@ export default {
       line-height: 1.4;
       color: #1f2937;
       background: white;
-      padding: 15mm 12mm;
+      padding: 15mm 15mm 22mm 15mm;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
+      position: relative;
+      min-height: 100vh;
     }
 
     .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
+      position: relative;
       padding-bottom: 15px;
       margin-bottom: 20px;
-      border-bottom: 3px solid #0ea5e9;
-    }
-
-    .header-left h1 {
-      font-size: 26px;
-      font-weight: 700;
-      color: #0f172a;
-      margin-bottom: 4px;
-    }
-
-    .header-left .subtitle {
-      font-size: 13px;
-      color: #64748b;
-    }
-
-    .header-left .date {
-      font-size: 11px;
-      color: #94a3b8;
-      margin-top: 2px;
+      min-height: 130px;
+      page-break-after: avoid;
     }
 
     .logo {
-      height: 120px;
+      position: absolute;
+      top: -5px;
+      right: -5px;
+      height: 110px;
       width: auto;
+    }
+
+    .header-content {
+      text-align: center;
+      padding-top: 350px; /* Center the title on first page */
+    }
+
+    .header-content h1 {
+      font-size: 28px;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 8px;
+    }
+
+    .header-content .date {
+      font-size: 12px;
+      color: #64748b;
     }
 
     .section {
       margin-bottom: 18px;
       page-break-inside: auto;
+      padding-bottom: 25mm; /* Space for footer */
+    }
+
+    /* Start each Part section on a new page (except the first one) */
+    .section:not(:first-of-type) {
+      page-break-before: always;
+      break-before: page;
+      padding-top: 10mm; /* Space from top of page (doubled) */
     }
 
     .section-title {
@@ -1234,6 +1217,16 @@ export default {
       margin-bottom: 12px;
       border-bottom: 2px solid #e2e8f0;
       page-break-after: avoid;
+      page-break-inside: avoid;
+    }
+
+    .section-subtitle {
+      font-size: 10px;
+      color: #64748b;
+      margin-top: -8px;
+      margin-bottom: 12px;
+      page-break-after: avoid;
+      page-break-inside: avoid;
     }
 
     .subsection-title {
@@ -1314,21 +1307,27 @@ export default {
     .info-box {
       background: white;
       border: 1px solid #d1d5db;
-      border-left: 3px solid #0ea5e9;
       padding: 10px 12px;
       margin-bottom: 12px;
-      border-radius: 0 6px 6px 0;
+      border-radius: 6px;
+    }
+
+    .actions-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 16px;
     }
 
     .action-item {
       display: flex;
       align-items: flex-start;
-      margin-bottom: 6px;
+      margin-bottom: 0;
+      break-inside: avoid;
     }
 
     .action-number {
-      background: #0ea5e9;
-      color: white;
+      background: #f3f4f6;
+      color: #374151;
       width: 18px;
       height: 18px;
       border-radius: 50%;
@@ -1344,6 +1343,7 @@ export default {
     .action-text {
       font-size: 11px;
       color: #374151;
+      line-height: 1.4;
     }
 
     .badge {
@@ -1377,12 +1377,29 @@ export default {
     }
 
     .footer {
-      margin-top: 30px;
-      padding-top: 12px;
-      border-top: 1px solid #e2e8f0;
-      text-align: center;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       font-size: 9px;
       color: #94a3b8;
+      padding: 10px 15mm;
+      border-top: 1px solid #e2e8f0;
+      background: white;
+      z-index: 1000;
+    }
+
+    .footer-left {
+      text-align: left;
+    }
+
+    .footer-right {
+      text-align: right;
+      font-size: 10px;
+      color: #64748b;
     }
 
     .mt-8 { margin-top: 8px; }
@@ -1391,27 +1408,29 @@ export default {
 </head>
 <body>
   <div class="header">
-    <div class="header-left">
-      <h1>${title}</h1>
-      <div class="subtitle">Prepared by ${userName}</div>
-      <div class="date">Generated: ${date}</div>
-    </div>
     <img src="${this.logoUrl}" alt="Fynla" class="logo" />
+    <div class="header-content">
+      <h1>${title}</h1>
+      <div class="date">${date}</div>
+    </div>
   </div>
 
   <!-- Part 1: What to Do Immediately -->
   <div class="section">
     <div class="section-title">Part 1: What to Do Immediately</div>
+    <div class="section-subtitle">Critical first steps and key contacts</div>
 
     ${this.formData.immediate_actions ? `
     <div class="subsection-title">Immediate Actions</div>
     <div class="info-box">
-      ${this.parsedImmediateActions.map((action, i) => `
-        <div class="action-item">
-          <div class="action-number">${i + 1}</div>
-          <div class="action-text">${action}</div>
-        </div>
-      `).join('')}
+      <div class="actions-grid">
+        ${this.parsedImmediateActions.map((action, i) => `
+          <div class="action-item">
+            <div class="action-number">${i + 1}</div>
+            <div class="action-text">${action}</div>
+          </div>
+        `).join('')}
+      </div>
     </div>
     ` : ''}
 
@@ -1458,6 +1477,7 @@ export default {
   <!-- Part 2: Financial Overview -->
   <div class="section">
     <div class="section-title">Part 2: Financial Overview</div>
+    <div class="section-subtitle">Your current financial position (automatically updated)</div>
 
     ${this.buildFinancialHtml('Bank Accounts & Savings', this.profileData.savings, this.profileData.totalSavings, 'savings')}
     ${this.buildFinancialHtml('Pensions', this.profileData.pensions, this.profileData.totalPensions, 'pensions')}
@@ -1471,6 +1491,7 @@ export default {
   <!-- Part 3: Additional Information -->
   <div class="section">
     <div class="section-title">Part 3: Additional Information</div>
+    <div class="section-subtitle">Important details not captured elsewhere</div>
     <div class="card-grid">
       ${this.buildInfoCardHtml('Password Manager / Online Access', this.formData.password_manager_info)}
       ${this.buildInfoCardHtml('Estate Documents Location', this.formData.estate_documents_location)}
@@ -1485,13 +1506,8 @@ export default {
   <!-- Part 4: Funeral and Final Wishes -->
   <div class="section">
     <div class="section-title">Part 4: Funeral and Final Wishes</div>
-    <div class="card-grid">
-      <div class="card">
-        <div class="card-label">Funeral Preference</div>
-        <div class="mt-8">
-          <span class="badge ${this.formData.funeral_preference === 'cremation' ? 'badge-green' : this.formData.funeral_preference === 'burial' ? 'badge-blue' : ''}">${this.formatFuneralPreference(this.formData.funeral_preference)}</span>
-        </div>
-      </div>
+    <div class="section-subtitle">Your preferences for final arrangements</div>
+    <div class="card-grid-3">
       ${this.buildInfoCardHtml('Funeral Service Details', this.formData.funeral_service_details)}
       ${this.buildInfoCardHtml('Obituary Wishes', this.formData.obituary_wishes)}
       ${this.buildInfoCardHtml('Additional Wishes', this.formData.additional_wishes)}
@@ -1499,7 +1515,12 @@ export default {
   </div>
 
   <div class="footer">
-    This document was generated by Fynla Financial Planning Software &bull; www.fynla.org
+    <div class="footer-left">
+      This document was generated by Fynla Financial Planning Software &bull; www.fynla.org
+    </div>
+    <div class="footer-right">
+      Prepared by ${userName}
+    </div>
   </div>
 </body>
 </html>`;
@@ -1530,24 +1551,56 @@ export default {
             name = item.account_name || item.provider;
             value = item.current_balance;
             subtext = item.institution || item.provider;
-            if (item.is_isa || item.account_type === 'cash_isa') badge = '<span class="badge badge-green">ISA</span>';
+            // Add ISA and ownership badges
+            const savingsBadges = [];
+            if (item.is_isa || item.account_type === 'cash_isa') {
+              savingsBadges.push('<span class="badge badge-green">ISA</span>');
+            }
+            if (item.ownership_type === 'joint') {
+              savingsBadges.push('<span class="badge badge-blue">Joint</span>');
+            } else if (item.ownership_type === 'tenants_in_common') {
+              savingsBadges.push('<span class="badge badge-purple">Tenants in Common</span>');
+            }
+            if (savingsBadges.length > 0) {
+              badge = savingsBadges.join(' ');
+            }
             break;
           case 'pensions':
             name = item.scheme_name || item.provider;
             value = item.current_value || item.current_fund_value;
             subtext = item.provider;
-            badge = item.pension_type === 'db' ? '<span class="badge badge-indigo">DB</span>' : '<span class="badge badge-blue">DC</span>';
+            // No badge needed for pensions
             break;
           case 'investments':
             name = item.account_name || item.provider;
             value = item.current_value;
             subtext = item.provider;
-            if (item.account_type === 'stocks_and_shares_isa') badge = '<span class="badge badge-green">ISA</span>';
+            // Add account type and ownership badges
+            const investmentBadges = [];
+            if (item.account_type === 'stocks_and_shares_isa') {
+              investmentBadges.push('<span class="badge badge-green">ISA</span>');
+            } else if (item.account_type === 'gia') {
+              investmentBadges.push('<span class="badge badge-gray">GIA</span>');
+            }
+            if (item.ownership_type === 'joint') {
+              investmentBadges.push('<span class="badge badge-blue">Joint</span>');
+            } else if (item.ownership_type === 'tenants_in_common') {
+              investmentBadges.push('<span class="badge badge-purple">Tenants in Common</span>');
+            }
+            if (investmentBadges.length > 0) {
+              badge = investmentBadges.join(' ');
+            }
             break;
           case 'properties':
             name = item.property_name || item.address_line_1;
             value = item.current_value;
             subtext = this.formatPropertyType(item.property_type);
+            // Add ownership badge
+            if (item.ownership_type === 'joint') {
+              badge = '<span class="badge badge-blue">Joint</span>';
+            } else if (item.ownership_type === 'tenants_in_common') {
+              badge = '<span class="badge badge-purple">Tenants in Common</span>';
+            }
             break;
           case 'policies':
             name = item.provider;
@@ -1558,6 +1611,12 @@ export default {
             name = item.liability_name;
             value = item.current_balance;
             subtext = this.formatLiabilityType(item.liability_type);
+            // Add ownership badge for joint liabilities
+            if (item.ownership_type === 'joint') {
+              badge = '<span class="badge badge-blue">Joint</span>';
+            } else if (item.ownership_type === 'tenants_in_common') {
+              badge = '<span class="badge badge-purple">Tenants in Common</span>';
+            }
             break;
         }
 
@@ -1620,22 +1679,13 @@ export default {
       `;
     },
 
-    formatFuneralPreference(value) {
-      const options = {
-        not_specified: 'Not Specified',
-        burial: 'Burial',
-        cremation: 'Cremation',
-      };
-      return options[value] || 'Not Specified';
-    },
-
     formatPropertyType(type) {
       const types = { main_residence: 'Main Residence', secondary_residence: 'Secondary', buy_to_let: 'Buy to Let' };
       return types[type] || type;
     },
 
     formatOwnershipType(type) {
-      const types = { individual: 'Sole', joint: 'Joint', tenants_in_common: 'TIC' };
+      const types = { individual: 'Sole', joint: 'Joint', tenants_in_common: 'Tenants in Common' };
       return types[type] || type;
     },
 
