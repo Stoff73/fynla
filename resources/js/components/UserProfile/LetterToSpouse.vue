@@ -327,7 +327,11 @@
                     <div class="font-medium text-gray-900">{{ account.account_name || account.provider }}</div>
                     <div class="text-sm text-gray-500">{{ account.institution || account.provider }}</div>
                   </div>
-                  <span v-if="account.is_isa || account.account_type === 'cash_isa'" class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">ISA</span>
+                  <div class="flex flex-col gap-1 items-end">
+                    <span v-if="account.is_isa || account.account_type === 'cash_isa'" class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">ISA</span>
+                    <span v-if="account.ownership_type === 'joint'" class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">Joint</span>
+                    <span v-else-if="account.ownership_type === 'tenants_in_common'" class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">Tenants in Common</span>
+                  </div>
                 </div>
                 <div class="mt-2 text-lg font-semibold text-gray-900">{{ formatCurrency(account.current_balance) }}</div>
               </div>
@@ -352,9 +356,6 @@
                     <div class="font-medium text-gray-900">{{ pension.scheme_name || pension.provider }}</div>
                     <div class="text-sm text-gray-500">{{ pension.provider }}</div>
                   </div>
-                  <span :class="getPensionTypeBadgeClass(pension.pension_type)" class="text-xs px-2 py-0.5 rounded">
-                    {{ formatPensionType(pension.pension_type) }}
-                  </span>
                 </div>
                 <div class="mt-2">
                   <div class="text-lg font-semibold text-gray-900">{{ formatCurrency(pension.current_value || pension.current_fund_value) }}</div>
@@ -382,8 +383,12 @@
                     <div class="font-medium text-gray-900">{{ account.account_name || account.provider }}</div>
                     <div class="text-sm text-gray-500">{{ account.provider }}</div>
                   </div>
-                  <span v-if="account.account_type === 'stocks_and_shares_isa'" class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">ISA</span>
-                  <span v-else-if="account.account_type === 'gia'" class="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded">GIA</span>
+                  <div class="flex flex-col gap-1 items-end">
+                    <span v-if="account.account_type === 'stocks_and_shares_isa'" class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">ISA</span>
+                    <span v-else-if="account.account_type === 'gia'" class="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded">GIA</span>
+                    <span v-if="account.ownership_type === 'joint'" class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">Joint</span>
+                    <span v-else-if="account.ownership_type === 'tenants_in_common'" class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">Tenants in Common</span>
+                  </div>
                 </div>
                 <div class="mt-2 text-lg font-semibold text-gray-900">{{ formatCurrency(account.current_value) }}</div>
               </div>
@@ -466,8 +471,16 @@
                 :key="liability.id"
                 class="bg-white rounded-lg p-4 border border-gray-200"
               >
-                <div class="font-medium text-gray-900">{{ liability.liability_name }}</div>
-                <div class="text-sm text-gray-500">{{ formatLiabilityType(liability.liability_type) }}</div>
+                <div class="flex justify-between items-start">
+                  <div>
+                    <div class="font-medium text-gray-900">{{ liability.liability_name }}</div>
+                    <div class="text-sm text-gray-500">{{ formatLiabilityType(liability.liability_type) }}</div>
+                  </div>
+                  <div class="flex flex-col gap-1 items-end">
+                    <span v-if="liability.ownership_type === 'joint'" class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">Joint</span>
+                    <span v-else-if="liability.ownership_type === 'tenants_in_common'" class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">TIC</span>
+                  </div>
+                </div>
                 <div class="mt-2 font-semibold text-red-600">{{ formatCurrency(liability.current_balance) }}</div>
               </div>
             </div>
@@ -1503,24 +1516,56 @@ export default {
             name = item.account_name || item.provider;
             value = item.current_balance;
             subtext = item.institution || item.provider;
-            if (item.is_isa || item.account_type === 'cash_isa') badge = '<span class="badge badge-green">ISA</span>';
+            // Add ISA and ownership badges
+            const savingsBadges = [];
+            if (item.is_isa || item.account_type === 'cash_isa') {
+              savingsBadges.push('<span class="badge badge-green">ISA</span>');
+            }
+            if (item.ownership_type === 'joint') {
+              savingsBadges.push('<span class="badge badge-blue">Joint</span>');
+            } else if (item.ownership_type === 'tenants_in_common') {
+              savingsBadges.push('<span class="badge badge-purple">Tenants in Common</span>');
+            }
+            if (savingsBadges.length > 0) {
+              badge = savingsBadges.join(' ');
+            }
             break;
           case 'pensions':
             name = item.scheme_name || item.provider;
             value = item.current_value || item.current_fund_value;
             subtext = item.provider;
-            badge = item.pension_type === 'db' ? '<span class="badge badge-indigo">DB</span>' : '<span class="badge badge-blue">DC</span>';
+            // No badge needed for pensions
             break;
           case 'investments':
             name = item.account_name || item.provider;
             value = item.current_value;
             subtext = item.provider;
-            if (item.account_type === 'stocks_and_shares_isa') badge = '<span class="badge badge-green">ISA</span>';
+            // Add account type and ownership badges
+            const investmentBadges = [];
+            if (item.account_type === 'stocks_and_shares_isa') {
+              investmentBadges.push('<span class="badge badge-green">ISA</span>');
+            } else if (item.account_type === 'gia') {
+              investmentBadges.push('<span class="badge badge-gray">GIA</span>');
+            }
+            if (item.ownership_type === 'joint') {
+              investmentBadges.push('<span class="badge badge-blue">Joint</span>');
+            } else if (item.ownership_type === 'tenants_in_common') {
+              investmentBadges.push('<span class="badge badge-purple">Tenants in Common</span>');
+            }
+            if (investmentBadges.length > 0) {
+              badge = investmentBadges.join(' ');
+            }
             break;
           case 'properties':
             name = item.property_name || item.address_line_1;
             value = item.current_value;
             subtext = this.formatPropertyType(item.property_type);
+            // Add ownership badge
+            if (item.ownership_type === 'joint') {
+              badge = '<span class="badge badge-blue">Joint</span>';
+            } else if (item.ownership_type === 'tenants_in_common') {
+              badge = '<span class="badge badge-purple">Tenants in Common</span>';
+            }
             break;
           case 'policies':
             name = item.provider;
@@ -1531,6 +1576,12 @@ export default {
             name = item.liability_name;
             value = item.current_balance;
             subtext = this.formatLiabilityType(item.liability_type);
+            // Add ownership badge for joint liabilities
+            if (item.ownership_type === 'joint') {
+              badge = '<span class="badge badge-blue">Joint</span>';
+            } else if (item.ownership_type === 'tenants_in_common') {
+              badge = '<span class="badge badge-purple">Tenants in Common</span>';
+            }
             break;
         }
 
@@ -1608,7 +1659,7 @@ export default {
     },
 
     formatOwnershipType(type) {
-      const types = { individual: 'Sole', joint: 'Joint', tenants_in_common: 'TIC' };
+      const types = { individual: 'Sole', joint: 'Joint', tenants_in_common: 'Tenants in Common' };
       return types[type] || type;
     },
 
