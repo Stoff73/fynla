@@ -1176,7 +1176,7 @@ export default {
 
     .header-content {
       text-align: center;
-      padding-top: 115px;
+      padding-top: 350px; /* Center the title on first page */
     }
 
     .header-content h1 {
@@ -1201,7 +1201,7 @@ export default {
     .section:not(:first-of-type) {
       page-break-before: always;
       break-before: page;
-      padding-top: 5mm; /* Space from top of page */
+      padding-top: 10mm; /* Space from top of page (doubled) */
     }
 
     .section-title {
