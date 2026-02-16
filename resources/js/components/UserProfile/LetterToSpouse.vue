@@ -851,6 +851,14 @@ export default {
       return this.currentUser?.name || 'User';
     },
 
+    spouseNameForLetter() {
+      // For married users, use spouse's first name
+      if (!this.isExpressionOfWishes && this.currentUser?.spouse?.name) {
+        return this.currentUser.spouse.name.split(' ')[0]; // Get first name only
+      }
+      return null;
+    },
+
     currentDate() {
       return new Date().toLocaleDateString('en-GB', {
         day: 'numeric',
@@ -1080,7 +1088,15 @@ export default {
     },
 
     buildLetterHtml() {
-      const title = this.isExpressionOfWishes ? 'Expression of Wishes' : 'Letter to Spouse';
+      // Personalize title with spouse name if available
+      let title;
+      if (this.isExpressionOfWishes) {
+        title = 'Expression of Wishes';
+      } else if (this.spouseNameForLetter) {
+        title = `Letter to ${this.spouseNameForLetter}`;
+      } else {
+        title = 'Letter to Spouse';
+      }
       const userName = this.userName;
       const date = this.currentDate;
 
@@ -1118,35 +1134,35 @@ export default {
     }
 
     .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
+      position: relative;
       padding-bottom: 15px;
       margin-bottom: 20px;
-      border-bottom: 3px solid #0ea5e9;
-    }
-
-    .header-left h1 {
-      font-size: 26px;
-      font-weight: 700;
-      color: #0f172a;
-      margin-bottom: 4px;
-    }
-
-    .header-left .subtitle {
-      font-size: 13px;
-      color: #64748b;
-    }
-
-    .header-left .date {
-      font-size: 11px;
-      color: #94a3b8;
-      margin-top: 2px;
+      min-height: 130px;
     }
 
     .logo {
-      height: 120px;
+      position: absolute;
+      top: -5px;
+      right: -5px;
+      height: 110px;
       width: auto;
+    }
+
+    .header-content {
+      text-align: center;
+      padding-top: 115px;
+    }
+
+    .header-content h1 {
+      font-size: 28px;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 8px;
+    }
+
+    .header-content .date {
+      font-size: 12px;
+      color: #64748b;
     }
 
     .section {
@@ -1242,21 +1258,27 @@ export default {
     .info-box {
       background: white;
       border: 1px solid #d1d5db;
-      border-left: 3px solid #0ea5e9;
       padding: 10px 12px;
       margin-bottom: 12px;
-      border-radius: 0 6px 6px 0;
+      border-radius: 6px;
+    }
+
+    .actions-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 16px;
     }
 
     .action-item {
       display: flex;
       align-items: flex-start;
-      margin-bottom: 6px;
+      margin-bottom: 0;
+      break-inside: avoid;
     }
 
     .action-number {
-      background: #0ea5e9;
-      color: white;
+      background: #f3f4f6;
+      color: #374151;
       width: 18px;
       height: 18px;
       border-radius: 50%;
@@ -1272,6 +1294,7 @@ export default {
     .action-text {
       font-size: 11px;
       color: #374151;
+      line-height: 1.4;
     }
 
     .badge {
@@ -1305,12 +1328,28 @@ export default {
     }
 
     .footer {
-      margin-top: 30px;
-      padding-top: 12px;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 8px 12mm;
       border-top: 1px solid #e2e8f0;
-      text-align: center;
+      background: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       font-size: 9px;
       color: #94a3b8;
+    }
+
+    .footer-left {
+      text-align: left;
+    }
+
+    .footer-right {
+      text-align: right;
+      font-size: 10px;
+      color: #64748b;
     }
 
     .mt-8 { margin-top: 8px; }
@@ -1319,12 +1358,11 @@ export default {
 </head>
 <body>
   <div class="header">
-    <div class="header-left">
-      <h1>${title}</h1>
-      <div class="subtitle">Prepared by ${userName}</div>
-      <div class="date">Generated: ${date}</div>
-    </div>
     <img src="${this.logoUrl}" alt="Fynla" class="logo" />
+    <div class="header-content">
+      <h1>${title}</h1>
+      <div class="date">${date}</div>
+    </div>
   </div>
 
   <!-- Part 1: What to Do Immediately -->
@@ -1334,12 +1372,14 @@ export default {
     ${this.formData.immediate_actions ? `
     <div class="subsection-title">Immediate Actions</div>
     <div class="info-box">
-      ${this.parsedImmediateActions.map((action, i) => `
-        <div class="action-item">
-          <div class="action-number">${i + 1}</div>
-          <div class="action-text">${action}</div>
-        </div>
-      `).join('')}
+      <div class="actions-grid">
+        ${this.parsedImmediateActions.map((action, i) => `
+          <div class="action-item">
+            <div class="action-number">${i + 1}</div>
+            <div class="action-text">${action}</div>
+          </div>
+        `).join('')}
+      </div>
     </div>
     ` : ''}
 
@@ -1427,7 +1467,12 @@ export default {
   </div>
 
   <div class="footer">
-    This document was generated by Fynla Financial Planning Software &bull; www.fynla.org
+    <div class="footer-left">
+      This document was generated by Fynla Financial Planning Software &bull; www.fynla.org
+    </div>
+    <div class="footer-right">
+      Prepared by ${userName}
+    </div>
   </div>
 </body>
 </html>`;
