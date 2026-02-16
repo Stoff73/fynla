@@ -24,22 +24,41 @@
       </div>
     </div>
 
-    <!-- Why We Built This -->
+    <!-- About Fynla & Why We Built This - Side by Side -->
     <div class="relative bg-gradient-to-b from-slate-900 to-slate-800 py-20 overflow-hidden">
-      <div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-10">
-          <h2 class="text-3xl md:text-4xl font-bold text-white mb-6">Why We Built This</h2>
-        </div>
-        <div class="space-y-6 text-lg text-slate-300 leading-relaxed">
-          <p>
-            We didn't build Fynla because the world needed another fintech app; we built it because, after 40 combined years in the heart of the financial industry, we saw a gap that shouldn't exist.
-          </p>
-          <p>
-            Between us, we have advised thousands of families, steered global companies through complex mergers, and navigated the highest levels of UK financial regulation. Yet, we both kept noticing the same problem: the tools required to actually plan a financial future were either locked behind expensive professional gatekeepers or too complex for a kitchen-table conversation.
-          </p>
-          <p>
-            We believe financial clarity shouldn't be a luxury for the wealthy. Whether you are a graduate facing student debt, a squeezed family managing a mortgage, or a retiree navigating new tax laws, you deserve a flight simulator for your life. Fynla is our way of taking the professional-grade tools we've used in boardrooms and advisory offices and putting them into your hands.
-          </p>
+      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+          <!-- About Fynla -->
+          <div>
+            <h2 class="text-3xl md:text-4xl font-bold text-white mb-6">About Fynla</h2>
+            <div class="space-y-6 text-lg text-slate-300 leading-relaxed">
+              <p>
+                Fynla is a comprehensive UK financial planning platform designed to give you clarity and control over your financial future. We bring together all aspects of your finances—from pensions and investments to property and protection—into one unified dashboard.
+              </p>
+              <p>
+                Built by financial professionals with decades of experience, Fynla combines professional-grade planning tools with an intuitive interface that makes complex financial decisions accessible to everyone.
+              </p>
+              <p>
+                Whether you're planning for retirement, protecting your family, or coordinating finances with your spouse, Fynla provides the insights and projections you need to make informed decisions about your financial life.
+              </p>
+            </div>
+          </div>
+
+          <!-- Why We Built This -->
+          <div>
+            <h2 class="text-3xl md:text-4xl font-bold text-white mb-6">Why We Built This</h2>
+            <div class="space-y-6 text-lg text-slate-300 leading-relaxed">
+              <p>
+                We didn't build Fynla because the world needed another fintech app; we built it because, after 40 combined years in the heart of the financial industry, we saw a gap that shouldn't exist.
+              </p>
+              <p>
+                Between us, we have advised thousands of families, steered global companies through complex mergers, and navigated the highest levels of UK financial regulation. Yet, we both kept noticing the same problem: the tools required to actually plan a financial future were either locked behind expensive professional gatekeepers or too complex for a kitchen-table conversation.
+              </p>
+              <p>
+                We believe financial clarity shouldn't be a luxury for the wealthy. Whether you are a graduate facing student debt, a squeezed family managing a mortgage, or a retiree navigating new tax laws, you deserve a flight simulator for your life. Fynla is our way of taking the professional-grade tools we've used in boardrooms and advisory offices and putting them into your hands.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
