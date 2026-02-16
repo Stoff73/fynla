@@ -3,8 +3,7 @@
     <!-- Header -->
     <div class="flex justify-between items-start">
       <div>
-        <h2 class="text-2xl font-semibold text-gray-900">{{ pageTitle }}</h2>
-        <p class="mt-1 text-sm text-gray-600">
+        <p class="text-sm text-gray-600">
           {{ pageDescription }}
         </p>
       </div>
@@ -822,7 +821,13 @@ export default {
     },
 
     pageTitle() {
-      return this.isExpressionOfWishes ? 'Expression of Wishes' : 'Letter to Spouse';
+      if (this.isExpressionOfWishes) {
+        return 'Expression of Wishes';
+      } else if (this.spouseNameForLetter) {
+        return `Letter to ${this.spouseNameForLetter}`;
+      } else {
+        return 'Letter to Spouse';
+      }
     },
 
     pageDescription() {
