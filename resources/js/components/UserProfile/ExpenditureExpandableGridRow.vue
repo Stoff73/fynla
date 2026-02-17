@@ -56,21 +56,24 @@
         :class="['col-value text-body-sm py-1 text-gray-600', item.hasBreakdown ? 'cursor-pointer' : '']"
         @click="item.hasBreakdown && toggleItemExpanded(item.id)"
       >
-        {{ formatCurrency(item.userAmount) }}
+        <div>{{ formatCurrency(item.userAmount) }}</div>
+        <div v-if="item.userLumpSum > 0" class="text-xs text-gray-400">+ {{ formatCurrency(item.userLumpSum) }} lump sum</div>
       </div>
       <div
         v-if="isMarried"
         :class="['col-value-mid text-body-sm py-1 text-gray-600', item.hasBreakdown ? 'cursor-pointer' : '']"
         @click="item.hasBreakdown && toggleItemExpanded(item.id)"
       >
-        {{ formatCurrency(item.spouseAmount) }}
+        <div>{{ formatCurrency(item.spouseAmount) }}</div>
+        <div v-if="item.spouseLumpSum > 0" class="text-xs text-gray-400">+ {{ formatCurrency(item.spouseLumpSum) }} lump sum</div>
       </div>
       <div
         v-if="isMarried"
         :class="['col-total text-body-sm py-1 text-gray-600', item.hasBreakdown ? 'cursor-pointer' : '']"
         @click="item.hasBreakdown && toggleItemExpanded(item.id)"
       >
-        {{ formatCurrency(item.userAmount + item.spouseAmount) }}
+        <div>{{ formatCurrency(item.userAmount + item.spouseAmount) }}</div>
+        <div v-if="item.userLumpSum + item.spouseLumpSum > 0" class="text-xs text-gray-400">+ {{ formatCurrency(item.userLumpSum + item.spouseLumpSum) }} lump sum</div>
       </div>
 
       <!-- Breakdown rows (third level) -->
@@ -171,6 +174,9 @@ export default {
             ownership_percentage: item.ownership_percentage,
             userAmount: item.monthly_amount || 0,
             spouseAmount: 0,
+            userLumpSum: item.lump_sum_amount || 0,
+            spouseLumpSum: 0,
+            lumpSumDate: item.lump_sum_date || null,
             breakdown: item.breakdown || null,
             spouseBreakdown: null,
             hasBreakdown,
@@ -185,6 +191,7 @@ export default {
             // Joint item - update spouse amount
             const existing = itemMap.get(item.id);
             existing.spouseAmount = item.monthly_amount || 0;
+            existing.spouseLumpSum = item.lump_sum_amount || 0;
             existing.spouseBreakdown = item.breakdown || null;
           } else {
             // Spouse-only item
@@ -196,6 +203,9 @@ export default {
               ownership_percentage: item.ownership_percentage,
               userAmount: 0,
               spouseAmount: item.monthly_amount || 0,
+              userLumpSum: 0,
+              spouseLumpSum: item.lump_sum_amount || 0,
+              lumpSumDate: item.lump_sum_date || null,
               breakdown: null,
               spouseBreakdown: item.breakdown || null,
               hasBreakdown,
