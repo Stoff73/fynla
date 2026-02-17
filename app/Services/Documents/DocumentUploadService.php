@@ -41,7 +41,7 @@ class DocumentUploadService
         $this->validateFile($file);
 
         // Generate secure filename using UUID
-        $extension = $file->getClientOriginalExtension() ?: $this->getExtensionFromMime($file->getMimeType());
+        $extension = $this->getExtensionFromMime($file->getMimeType()) ?: $file->getClientOriginalExtension();
         $storedFilename = Str::uuid()->toString().'.'.$extension;
 
         // Store in user-specific directory

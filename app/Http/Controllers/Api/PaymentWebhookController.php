@@ -65,7 +65,10 @@ class PaymentWebhookController extends Controller
             'amount' => $subscription->amount,
             'currency' => 'GBP',
             'status' => 'completed',
-            'revolut_payment_data' => $orderData,
+            'revolut_payment_data' => array_intersect_key($orderData, array_flip([
+                'id', 'type', 'state', 'created_at', 'completed_at',
+                'order_amount', 'settlement_amount', 'email',
+            ])),
         ]);
 
         $subscription->user()->update(['plan' => $subscription->plan]);
@@ -100,7 +103,14 @@ class PaymentWebhookController extends Controller
     {
         $secret = config('services.revolut.webhook_secret');
         if (empty($secret)) {
-            return true; // Skip verification in dev if no secret configured
+            // Fail closed - only skip verification in local development
+            if (app()->environment('local', 'testing')) {
+                return true;
+            }
+
+            Log::critical('Revolut webhook secret not configured in non-local environment');
+
+            return false;
         }
 
         $signature = $request->header('Revolut-Signature') ?? $request->header('X-Revolut-Signature');

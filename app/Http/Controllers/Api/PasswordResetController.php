@@ -132,7 +132,13 @@ class PasswordResetController extends Controller
     {
         $request->validate([
             'token' => 'required|string|size:64',
-            'password' => 'required|string|min:8|confirmed',
+            'password' => [
+                'required',
+                'string',
+                'min:8',
+                'confirmed',
+                'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).+$/',
+            ],
         ]);
 
         $session = PasswordResetSession::findByToken($request->token);

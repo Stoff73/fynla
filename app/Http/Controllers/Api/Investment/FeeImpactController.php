@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\Investment;
 
 use App\Http\Controllers\Controller;
+use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\Investment\Holding;
 use App\Services\Investment\FeeAnalyzer;
 use App\Services\Investment\Fees\OCFImpactCalculator;
@@ -21,6 +22,8 @@ use Illuminate\Support\Facades\Validator;
  */
 class FeeImpactController extends Controller
 {
+    use SanitizedErrorResponse;
+
     public function __construct(
         private FeeAnalyzer $feeAnalyzer,
         private OCFImpactCalculator $ocfCalculator,
@@ -52,17 +55,7 @@ class FeeImpactController extends Controller
                 'data' => $result,
             ]);
         } catch (\Exception $e) {
-            Log::error('Fee analysis failed', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to analyze fees',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Portfolio fee analysis');
         }
     }
 
@@ -87,16 +80,7 @@ class FeeImpactController extends Controller
                 'data' => $result,
             ]);
         } catch (\Exception $e) {
-            Log::error('Holding fee analysis failed', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to analyze holding fees',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Holding fee analysis');
         }
     }
 
@@ -145,16 +129,7 @@ class FeeImpactController extends Controller
                 'data' => $result,
             ]);
         } catch (\Exception $e) {
-            Log::error('OCF impact calculation failed', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to calculate OCF impact',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'OCF impact calculation');
         }
     }
 
@@ -183,16 +158,7 @@ class FeeImpactController extends Controller
                 'data' => $result,
             ]);
         } catch (\Exception $e) {
-            Log::error('Active vs passive comparison failed', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to compare active vs passive',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Active vs passive comparison');
         }
     }
 
@@ -218,17 +184,7 @@ class FeeImpactController extends Controller
                 'data' => $result,
             ]);
         } catch (\Exception $e) {
-            Log::error('Alternative search failed', [
-                'user_id' => $user->id,
-                'holding_id' => $holdingId,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to find alternatives',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Alternative fund search');
         }
     }
 
@@ -269,16 +225,7 @@ class FeeImpactController extends Controller
                 'data' => $result,
             ]);
         } catch (\Exception $e) {
-            Log::error('Platform comparison failed', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to compare platforms',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Platform comparison');
         }
     }
 
@@ -322,16 +269,7 @@ class FeeImpactController extends Controller
                 'data' => $result,
             ]);
         } catch (\Exception $e) {
-            Log::error('Specific platform comparison failed', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to compare platforms',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Specific platform comparison');
         }
     }
 
@@ -358,16 +296,7 @@ class FeeImpactController extends Controller
                 'message' => 'Fee analysis cache cleared',
             ]);
         } catch (\Exception $e) {
-            Log::error('Cache clearing failed', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to clear cache',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Fee cache clearing');
         }
     }
 

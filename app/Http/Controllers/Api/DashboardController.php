@@ -38,11 +38,7 @@ class DashboardController extends Controller
                 'data' => $data,
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to fetch dashboard data',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Fetching dashboard data');
         }
     }
 
@@ -65,11 +61,7 @@ class DashboardController extends Controller
                 'data' => $data,
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to calculate financial health score',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Calculating financial health score');
         }
     }
 
@@ -92,11 +84,7 @@ class DashboardController extends Controller
                 'data' => $data,
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to fetch alerts',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Fetching alerts');
         }
     }
 
@@ -117,11 +105,7 @@ class DashboardController extends Controller
                 'message' => 'Alert dismissed successfully',
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to dismiss alert',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Dismissing alert');
         }
     }
 
@@ -142,11 +126,7 @@ class DashboardController extends Controller
                 'message' => 'Dashboard cache invalidated successfully',
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to invalidate cache',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Invalidating dashboard cache');
         }
     }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\Settings;
 
 use App\Http\Controllers\Controller;
+use App\Http\Traits\SanitizedErrorResponse;
 use App\Services\Settings\AssumptionsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,6 +18,8 @@ use Illuminate\Support\Facades\Auth;
  */
 class AssumptionsController extends Controller
 {
+    use SanitizedErrorResponse;
+
     public function __construct(
         private AssumptionsService $assumptionsService
     ) {}
@@ -36,11 +39,7 @@ class AssumptionsController extends Controller
                 'data' => $assumptions,
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to fetch assumptions',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Fetching assumptions');
         }
     }
 
@@ -115,16 +114,9 @@ class AssumptionsController extends Controller
                 'data' => $assumptions,
             ]);
         } catch (\InvalidArgumentException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], 422);
+            return $this->errorResponse($e, 'Assumptions validation', 422);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update assumptions',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Updating assumptions');
         }
     }
 }

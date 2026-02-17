@@ -409,7 +409,7 @@ class GoalsController extends Controller
         ]);
 
         try {
-            $costs = $this->assignmentService->calculatePropertyCosts($request->all());
+            $costs = $this->assignmentService->calculatePropertyCosts($request->validated());
 
             return response()->json([
                 'success' => true,

@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\Investment;
 
 use App\Http\Controllers\Controller;
+use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\Investment\InvestmentAccount;
 use App\Services\Investment\Analytics\EfficientFrontierCalculator;
 use App\Services\Investment\Analytics\PortfolioStatisticsCalculator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
 /**
@@ -19,6 +19,8 @@ use Illuminate\Support\Facades\Validator;
  */
 class EfficientFrontierController extends Controller
 {
+    use SanitizedErrorResponse;
+
     public function __construct(
         private EfficientFrontierCalculator $frontierCalculator,
         private PortfolioStatisticsCalculator $statsCalculator
@@ -62,15 +64,7 @@ class EfficientFrontierController extends Controller
                 'data' => $result,
             ]);
         } catch (\Exception $e) {
-            Log::error('Efficient frontier calculation failed', [
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to calculate efficient frontier',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Calculating efficient frontier');
         }
     }
 
@@ -111,15 +105,7 @@ class EfficientFrontierController extends Controller
                 'note' => 'Using default UK market assumptions',
             ]);
         } catch (\Exception $e) {
-            Log::error('Default efficient frontier calculation failed', [
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to calculate efficient frontier',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Calculating default efficient frontier');
         }
     }
 
@@ -160,15 +146,7 @@ class EfficientFrontierController extends Controller
                 'data' => $result,
             ]);
         } catch (\Exception $e) {
-            Log::error('Optimal portfolio by return calculation failed', [
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to find optimal portfolio',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Finding optimal portfolio by return');
         }
     }
 
@@ -209,15 +187,7 @@ class EfficientFrontierController extends Controller
                 'data' => $result,
             ]);
         } catch (\Exception $e) {
-            Log::error('Optimal portfolio by risk calculation failed', [
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to find optimal portfolio',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Finding optimal portfolio by risk');
         }
     }
 
@@ -271,15 +241,7 @@ class EfficientFrontierController extends Controller
                 'data' => $result,
             ]);
         } catch (\Exception $e) {
-            Log::error('Efficient frontier comparison failed', [
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to compare with efficient frontier',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Comparing with efficient frontier');
         }
     }
 
@@ -339,15 +301,7 @@ class EfficientFrontierController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Portfolio statistics calculation failed', [
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to calculate portfolio statistics',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Calculating portfolio statistics');
         }
     }
 
@@ -367,15 +321,7 @@ class EfficientFrontierController extends Controller
                 'note' => 'Default UK market assumptions based on historical data',
             ]);
         } catch (\Exception $e) {
-            Log::error('Failed to get default assumptions', [
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to get default assumptions',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Fetching default assumptions');
         }
     }
 
@@ -475,16 +421,7 @@ class EfficientFrontierController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Current portfolio analysis failed', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to analyze current portfolio',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Analysing current portfolio', 500, ['user_id' => $user->id]);
         }
     }
 

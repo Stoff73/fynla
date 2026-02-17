@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\Investment;
 
 use App\Http\Controllers\Controller;
+use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\Investment\InvestmentAccount;
 use App\Services\Investment\Rebalancing\RebalancingStrategyService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
 /**
@@ -18,6 +18,8 @@ use Illuminate\Support\Facades\Validator;
  */
 class RebalancingStrategiesController extends Controller
 {
+    use SanitizedErrorResponse;
+
     public function __construct(
         private RebalancingStrategyService $strategyService
     ) {}
@@ -110,16 +112,7 @@ class RebalancingStrategiesController extends Controller
                 'data' => $result,
             ]);
         } catch (\Exception $e) {
-            Log::error('Strategy evaluation failed', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to evaluate strategies',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Evaluating rebalancing strategies', 500, ['user_id' => $user->id]);
         }
     }
 
@@ -160,15 +153,7 @@ class RebalancingStrategiesController extends Controller
                 'data' => $result,
             ]);
         } catch (\Exception $e) {
-            Log::error('Frequency recommendation failed', [
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to recommend frequency',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Recommending rebalancing frequency');
         }
     }
 
@@ -243,16 +228,7 @@ class RebalancingStrategiesController extends Controller
                 'data' => $result,
             ]);
         } catch (\Exception $e) {
-            Log::error('Threshold strategy evaluation failed', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to evaluate threshold strategy',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Evaluating threshold strategy', 500, ['user_id' => $user->id]);
         }
     }
 
@@ -289,15 +265,7 @@ class RebalancingStrategiesController extends Controller
                 'data' => $result,
             ]);
         } catch (\Exception $e) {
-            Log::error('Calendar strategy evaluation failed', [
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to evaluate calendar strategy',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Evaluating calendar strategy');
         }
     }
 
@@ -373,16 +341,7 @@ class RebalancingStrategiesController extends Controller
                 'data' => $result,
             ]);
         } catch (\Exception $e) {
-            Log::error('Opportunistic strategy evaluation failed', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to evaluate opportunistic strategy',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Evaluating opportunistic strategy', 500, ['user_id' => $user->id]);
         }
     }
 

@@ -14,29 +14,27 @@ class EnsureMFAVerified
      * Handle an incoming request.
      *
      * Ensures that if a user has MFA enabled, they have verified it for this session.
-     * Note: This middleware is primarily for sensitive operations.
-     * The main MFA verification happens during login flow.
+     * For API token requests, MFA was verified at login before the token was issued.
+     * For session-based requests, checks the session flag set during MFA verification.
      */
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
 
         if (! $user) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthenticated.',
-            ], 401);
+            return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
-        // If user has MFA enabled but hasn't verified in this session
-        // This is checked via session flag set during MFA verification
+        // For API token requests, MFA was verified at login before token was issued
+        if ($request->bearerToken()) {
+            return $next($request);
+        }
+
+        // For session-based requests, check session flag
         if ($user->mfa_enabled && ! session('mfa_verified', false)) {
-            // For API requests, we rely on the token being created after MFA verification
-            // This middleware is an additional safeguard for session-based requests
             return response()->json([
-                'success' => false,
                 'message' => 'MFA verification required.',
-                'requires_mfa' => true,
+                'mfa_required' => true,
             ], 403);
         }
 

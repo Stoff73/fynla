@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\Investment;
 
 use App\Http\Controllers\Controller;
+use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\Investment\InvestmentPlan;
 use App\Services\Investment\InvestmentPlanGenerator;
 use Illuminate\Http\JsonResponse;
@@ -18,6 +19,8 @@ use Illuminate\Support\Facades\Log;
  */
 class InvestmentPlanController extends Controller
 {
+    use SanitizedErrorResponse;
+
     public function __construct(
         private InvestmentPlanGenerator $planGenerator
     ) {}
@@ -45,16 +48,7 @@ class InvestmentPlanController extends Controller
                 'data' => $result,
             ], 201);
         } catch (\Exception $e) {
-            Log::error('Investment plan generation failed', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to generate investment plan',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Generating investment plan', 500, ['user_id' => $user->id]);
         }
     }
 
@@ -97,16 +91,7 @@ class InvestmentPlanController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Failed to retrieve investment plan', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve investment plan',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Retrieving investment plan', 500, ['user_id' => $user->id]);
         }
     }
 
@@ -143,17 +128,7 @@ class InvestmentPlanController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Failed to retrieve investment plan', [
-                'user_id' => $user->id,
-                'plan_id' => $id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve investment plan',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Retrieving investment plan', 500, ['user_id' => $user->id, 'plan_id' => $id]);
         }
     }
 
@@ -186,16 +161,7 @@ class InvestmentPlanController extends Controller
                 'count' => $plans->count(),
             ]);
         } catch (\Exception $e) {
-            Log::error('Failed to retrieve investment plans', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve investment plans',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Retrieving investment plans', 500, ['user_id' => $user->id]);
         }
     }
 
@@ -230,17 +196,7 @@ class InvestmentPlanController extends Controller
                 'message' => 'Investment plan deleted successfully',
             ]);
         } catch (\Exception $e) {
-            Log::error('Failed to delete investment plan', [
-                'user_id' => $user->id,
-                'plan_id' => $id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to delete investment plan',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Deleting investment plan', 500, ['user_id' => $user->id, 'plan_id' => $id]);
         }
     }
 

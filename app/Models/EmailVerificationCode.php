@@ -130,6 +130,7 @@ class EmailVerificationCode extends Model
             ->where('code', $code)
             ->where('type', $type)
             ->whereNull('verified_at')
+            ->where('expires_at', '>', now())
             ->first();
     }
 

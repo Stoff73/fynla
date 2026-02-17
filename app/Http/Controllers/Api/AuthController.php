@@ -148,9 +148,7 @@ class AuthController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'No account found with this email address.',
-                'user_not_found' => true,
-                'register_url' => '/register',
+                'message' => 'Invalid email or password.',
             ], 401);
         }
 
@@ -171,7 +169,7 @@ class AuthController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Invalid password. Please try again.',
+                'message' => 'Invalid email or password.',
             ], 401);
         }
 
@@ -398,7 +396,7 @@ class AuthController extends Controller
             }
 
             // Create the user from pending registration
-            $adminEmails = ['chris@fynla.org', 'brett@fynla.org'];
+            $adminEmails = config('auth.admin_emails', []);
             $user = User::create([
                 'first_name' => $pending->first_name,
                 'middle_name' => $pending->middle_name,

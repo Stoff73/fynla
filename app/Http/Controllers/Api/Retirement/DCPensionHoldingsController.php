@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\Retirement;
 
 use App\Http\Controllers\Controller;
+use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\DCPension;
 use App\Models\Investment\Holding;
 use Illuminate\Http\JsonResponse;
@@ -20,6 +21,7 @@ use Illuminate\Support\Facades\Validator;
  */
 class DCPensionHoldingsController extends Controller
 {
+    use SanitizedErrorResponse;
     /**
      * Get all holdings for a DC pension
      */
@@ -250,11 +252,7 @@ class DCPensionHoldingsController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update holdings',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Bulk updating pension holdings');
         }
     }
 }

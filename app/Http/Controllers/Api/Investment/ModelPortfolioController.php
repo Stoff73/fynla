@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\Investment;
 
 use App\Http\Controllers\Controller;
+use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\Investment\InvestmentAccount;
 use App\Services\Investment\ModelPortfolio\AssetAllocationOptimizer;
 use App\Services\Investment\ModelPortfolio\FundSelector;
 use App\Services\Investment\ModelPortfolio\ModelPortfolioBuilder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
 /**
@@ -20,6 +20,8 @@ use Illuminate\Support\Facades\Validator;
  */
 class ModelPortfolioController extends Controller
 {
+    use SanitizedErrorResponse;
+
     public function __construct(
         private ModelPortfolioBuilder $builder,
         private AssetAllocationOptimizer $optimizer,
@@ -66,16 +68,7 @@ class ModelPortfolioController extends Controller
                 'data' => $portfolio,
             ]);
         } catch (\Exception $e) {
-            Log::error('Failed to get model portfolio', [
-                'risk_level' => $riskLevel,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to get model portfolio',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Fetching model portfolio', 500, ['risk_level' => $riskLevel]);
         }
     }
 
@@ -94,15 +87,7 @@ class ModelPortfolioController extends Controller
                 'data' => $portfolios,
             ]);
         } catch (\Exception $e) {
-            Log::error('Failed to get all portfolios', [
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to get portfolios',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Fetching all portfolios');
         }
     }
 
@@ -157,16 +142,7 @@ class ModelPortfolioController extends Controller
                 'data' => $comparison,
             ]);
         } catch (\Exception $e) {
-            Log::error('Portfolio comparison failed', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to compare with model',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Comparing portfolio with model', 500, ['user_id' => $user->id]);
         }
     }
 
@@ -203,15 +179,7 @@ class ModelPortfolioController extends Controller
                 'data' => $result,
             ]);
         } catch (\Exception $e) {
-            Log::error('Age-based optimization failed', [
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to optimize by age',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Optimising by age');
         }
     }
 
@@ -250,15 +218,7 @@ class ModelPortfolioController extends Controller
                 'data' => $result,
             ]);
         } catch (\Exception $e) {
-            Log::error('Time horizon optimization failed', [
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to optimize by time horizon',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Optimising by time horizon');
         }
     }
 
@@ -291,15 +251,7 @@ class ModelPortfolioController extends Controller
                 'data' => $result,
             ]);
         } catch (\Exception $e) {
-            Log::error('Glide path calculation failed', [
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to calculate glide path',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Calculating glide path');
         }
     }
 
@@ -344,15 +296,7 @@ class ModelPortfolioController extends Controller
                 'data' => $result,
             ]);
         } catch (\Exception $e) {
-            Log::error('Fund recommendations failed', [
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to get fund recommendations',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Fetching fund recommendations');
         }
     }
 }

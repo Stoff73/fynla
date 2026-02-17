@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\Plans;
 
 use App\Http\Controllers\Controller;
+use App\Http\Traits\SanitizedErrorResponse;
 use App\Services\Plans\InvestmentSavingsPlanService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -12,6 +13,8 @@ use Illuminate\Support\Facades\Cache;
 
 class InvestmentSavingsPlanController extends Controller
 {
+    use SanitizedErrorResponse;
+
     public function __construct(
         private InvestmentSavingsPlanService $planService
     ) {}
@@ -37,10 +40,7 @@ class InvestmentSavingsPlanController extends Controller
                 'data' => $plan,
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to generate plan: '.$e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Generating investment savings plan');
         }
     }
 
