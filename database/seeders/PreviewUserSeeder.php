@@ -723,6 +723,10 @@ class PreviewUserSeeder extends Seeder
                 }
             }
 
+            // Determine regular contribution amount and frequency
+            $monthlyContribution = $account['monthly_contribution'] ?? 0;
+            $contributionFrequency = ($monthlyContribution > 0) ? ($account['contribution_frequency'] ?? 'monthly') : null;
+
             SavingsAccount::create([
                 'user_id' => $owner->id,
                 'account_name' => $account['account_name'] ?? null,
@@ -734,6 +738,8 @@ class PreviewUserSeeder extends Seeder
                 'isa_type' => $isaType,
                 'isa_subscription_amount' => $isaSubscriptionAmount,
                 'isa_subscription_year' => $isaSubscriptionYear,
+                'regular_contribution_amount' => $monthlyContribution > 0 ? $monthlyContribution : null,
+                'contribution_frequency' => $contributionFrequency,
                 'access_type' => $account['access_type'] ?? 'immediate',
                 'ownership_type' => $account['ownership_type'] ?? 'individual',
                 'ownership_percentage' => $isJoint ? 50 : 100,
@@ -771,9 +777,9 @@ class PreviewUserSeeder extends Seeder
             $accountType = $account['account_type'] ?? 'gia';
             $annualContribution = $account['annual_contribution'] ?? 0;
 
-            // For ISA accounts, set isa_subscription_current_year
+            // For ISA and LISA accounts, set isa_subscription_current_year
             $isaSubscription = null;
-            if ($accountType === 'isa') {
+            if (in_array($accountType, ['isa', 'lisa'])) {
                 $isaSubscription = $account['isa_subscription_current_year'] ?? $annualContribution;
             }
 
