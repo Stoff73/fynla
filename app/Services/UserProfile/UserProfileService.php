@@ -823,22 +823,21 @@ class UserProfileService
                 };
             }
 
-            // Calculate monthly equivalent of planned lump sum (spread over 12 months if within current year)
-            $monthlyLumpSum = 0;
+            // Track lump sum as a one-off amount (not spread monthly)
+            $lumpSumAmount = 0;
             if ($account->planned_lump_sum_amount > 0 && $account->planned_lump_sum_date) {
                 $lumpSumDate = \Carbon\Carbon::parse($account->planned_lump_sum_date);
-                $now = \Carbon\Carbon::now();
 
                 // Only include if lump sum is planned within the next 12 months
-                if ($lumpSumDate->isFuture() && $lumpSumDate->diffInMonths($now) <= 12) {
-                    $monthsUntilLumpSum = max(1, $lumpSumDate->diffInMonths($now));
-                    $monthlyLumpSum = $account->planned_lump_sum_amount / $monthsUntilLumpSum;
+                if ($lumpSumDate->isFuture() && $lumpSumDate->diffInMonths(\Carbon\Carbon::now()) <= 12) {
+                    $lumpSumAmount = $account->planned_lump_sum_amount;
                 }
             }
 
-            $totalMonthly = ($monthlyContribution + $monthlyLumpSum) * $ownershipMultiplier;
+            $totalMonthly = $monthlyContribution * $ownershipMultiplier;
+            $totalLumpSum = $lumpSumAmount * $ownershipMultiplier;
 
-            if ($totalMonthly > 0) {
+            if ($totalMonthly > 0 || $totalLumpSum > 0) {
                 // Apply ownership filter
                 if (! $this->shouldIncludeByOwnership($isJoint, $ownershipFilter)) {
                     continue;
@@ -849,10 +848,8 @@ class UserProfileService
                     'name' => $account->account_name ?? $account->provider ?? 'Investment Account',
                     'type' => $account->account_type ?? 'investment',
                     'monthly_amount' => $totalMonthly,
-                    'breakdown' => [
-                        'regular_contribution' => $monthlyContribution * $ownershipMultiplier,
-                        'lump_sum_monthly' => $monthlyLumpSum * $ownershipMultiplier,
-                    ],
+                    'lump_sum_amount' => $totalLumpSum,
+                    'lump_sum_date' => $account->planned_lump_sum_date,
                     'is_joint' => $isJoint,
                     'ownership_type' => $account->ownership_type,
                     'ownership_percentage' => $ownershipPercentage,
@@ -1021,6 +1018,10 @@ class UserProfileService
         ];
 
         $totals['total'] = array_sum($totals);
+
+        // Lump sum totals (one-off amounts, not monthly)
+        $totals['investments_lump_sum'] = collect($commitments['investments'])->sum('lump_sum_amount');
+        $totals['annual_lump_sum'] = $totals['investments_lump_sum'];
 
         return [
             'commitments' => $commitments,

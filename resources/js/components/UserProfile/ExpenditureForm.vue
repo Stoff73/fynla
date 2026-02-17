@@ -585,9 +585,12 @@
               >
                 <div>
                   <p class="text-body text-gray-900">{{ investment.name }}</p>
-                  <p v-if="investment.is_joint" class="text-body-sm text-primary-600">50% of joint contribution</p>
+                  <p v-if="investment.is_joint" class="text-body-sm text-primary-600">Your {{ investment.ownership_percentage || 50 }}% share</p>
                 </div>
-                <p class="text-body font-medium text-gray-900">{{ formatCurrency(investment.monthly_amount) }}/month</p>
+                <div class="text-right">
+                  <p v-if="investment.monthly_amount > 0" class="text-body font-medium text-gray-900">{{ formatCurrency(investment.monthly_amount) }}/month</p>
+                  <p v-if="investment.lump_sum_amount > 0" class="text-body-sm text-gray-600">{{ formatCurrency(investment.lump_sum_amount) }} lump sum</p>
+                </div>
               </div>
             </div>
           </div>
@@ -1243,8 +1246,17 @@ export default {
     const user = computed(() => store.getters['auth/currentUser']);
     const userName = computed(() => user.value?.name?.split(' ')[0] || 'You');
 
-    // Field definitions
-    const essentialFields = [
+    // Property ownership detection
+    const properties = ref([]);
+    const hasMainResidence = computed(() => properties.value.some(p => p.property_type === 'main_residence'));
+    const hasOnlyBuyToLet = computed(() =>
+      properties.value.length > 0 &&
+      !hasMainResidence.value &&
+      properties.value.some(p => p.property_type === 'buy_to_let')
+    );
+
+    // Field definitions - full list used for data init/save
+    const allEssentialFields = [
       { key: 'rent', label: 'Rent', placeholder: '0', hint: 'Monthly rent if not a homeowner' },
       { key: 'utilities', label: 'Utilities', placeholder: '150', hint: 'Gas, electricity, water, council tax' },
       { key: 'food_groceries', label: 'Food & Groceries', placeholder: '400' },
@@ -1252,6 +1264,22 @@ export default {
       { key: 'healthcare_medical', label: 'Healthcare & Medical', placeholder: '50', hint: 'Prescriptions, dental, optician' },
       { key: 'insurance', label: 'Insurance (non-property)', placeholder: '150', hint: 'Car, private medical, mobile phone etc.' },
     ];
+
+    // Filtered essential fields based on property ownership
+    const essentialFields = computed(() => {
+      if (hasMainResidence.value) {
+        return allEssentialFields.filter(f => f.key !== 'rent' && f.key !== 'utilities');
+      }
+      if (hasOnlyBuyToLet.value) {
+        return allEssentialFields.map(f => {
+          if (f.key === 'utilities') {
+            return { ...f, hint: 'Utilities for your rented home, not for properties owned' };
+          }
+          return f;
+        });
+      }
+      return allEssentialFields;
+    });
 
     const communicationFields = [
       { key: 'mobile_phones', label: 'Mobile Phones', placeholder: '50' },
@@ -1358,13 +1386,13 @@ export default {
       return fields.reduce((sum, field) => sum + (data[field.key] || 0), 0);
     };
 
-    const essentialTotal = computed(() => calculateSubtotal(essentialFields, formData.value));
+    const essentialTotal = computed(() => calculateSubtotal(essentialFields.value, formData.value));
     const communicationTotal = computed(() => calculateSubtotal(communicationFields, formData.value));
     const lifestyleTotal = computed(() => calculateSubtotal(lifestyleFields, formData.value));
     const childrenTotal = computed(() => calculateSubtotal(childrenFields, formData.value));
     const otherTotal = computed(() => calculateSubtotal(otherFields, formData.value));
 
-    const spouseEssentialTotal = computed(() => calculateSubtotal(essentialFields, spouseFormData.value));
+    const spouseEssentialTotal = computed(() => calculateSubtotal(essentialFields.value, spouseFormData.value));
     const spouseCommunicationTotal = computed(() => calculateSubtotal(communicationFields, spouseFormData.value));
     const spouseLifestyleTotal = computed(() => calculateSubtotal(lifestyleFields, spouseFormData.value));
     const spouseChildrenTotal = computed(() => calculateSubtotal(childrenFields, spouseFormData.value));
@@ -1392,19 +1420,21 @@ export default {
     });
 
     const commitmentsTotal = computed(() => financialCommitments.value?.totals?.total || 0);
+    const commitmentsLumpSumTotal = computed(() => financialCommitments.value?.totals?.annual_lump_sum || 0);
     const spouseCommitmentsTotal = computed(() => spouseFinancialCommitments.value?.totals?.total || 0);
+    const spouseCommitmentsLumpSumTotal = computed(() => spouseFinancialCommitments.value?.totals?.annual_lump_sum || 0);
 
     const totalMonthlyWithCommitments = computed(() => totalMonthlyExpenditure.value + commitmentsTotal.value);
-    const totalAnnualWithCommitments = computed(() => totalMonthlyWithCommitments.value * 12);
+    const totalAnnualWithCommitments = computed(() => (totalMonthlyWithCommitments.value * 12) + commitmentsLumpSumTotal.value);
 
     const spouseTotalMonthlyWithCommitments = computed(() => spouseTotalMonthlyExpenditure.value + spouseCommitmentsTotal.value);
-    const spouseTotalAnnualWithCommitments = computed(() => spouseTotalMonthlyWithCommitments.value * 12);
+    const spouseTotalAnnualWithCommitments = computed(() => (spouseTotalMonthlyWithCommitments.value * 12) + spouseCommitmentsLumpSumTotal.value);
 
     const householdTotalMonthlyWithCommitments = computed(() => {
       if (!props.isMarried) return totalMonthlyWithCommitments.value;
       return totalMonthlyWithCommitments.value + spouseTotalMonthlyWithCommitments.value;
     });
-    const householdTotalAnnualWithCommitments = computed(() => householdTotalMonthlyWithCommitments.value * 12);
+    const householdTotalAnnualWithCommitments = computed(() => (householdTotalMonthlyWithCommitments.value * 12) + commitmentsLumpSumTotal.value + (props.isMarried ? spouseCommitmentsLumpSumTotal.value : 0));
 
     const getHouseholdValue = (key) => {
       const userVal = formData.value[key] || 0;
@@ -1853,6 +1883,7 @@ export default {
           // Same item exists - add amounts together
           const existing = itemMap.get(key);
           existing.monthly_amount = (existing.monthly_amount || 0) + (item.monthly_amount || 0);
+          existing.lump_sum_amount = (existing.lump_sum_amount || 0) + (item.lump_sum_amount || 0);
           // Add breakdown values
           if (item.breakdown) {
             if (!existing.breakdown) existing.breakdown = {};
@@ -2036,7 +2067,7 @@ export default {
         useSimpleEntry.value = props.initialData.expenditure_entry_mode === 'simple';
         simpleMonthlyExpenditure.value = props.initialData.monthly_expenditure || 0;
 
-        const allFields = [...essentialFields, ...communicationFields, ...lifestyleFields, ...childrenFields, ...otherFields];
+        const allFields = [...allEssentialFields, ...communicationFields, ...lifestyleFields, ...childrenFields, ...otherFields];
         allFields.forEach(field => {
           formData.value[field.key] = props.initialData[field.key] || 0;
         });
@@ -2044,7 +2075,7 @@ export default {
 
       if (props.spouseData) {
         spouseSimpleMonthlyExpenditure.value = props.spouseData.monthly_expenditure || 0;
-        const allFields = [...essentialFields, ...communicationFields, ...lifestyleFields, ...childrenFields, ...otherFields];
+        const allFields = [...allEssentialFields, ...communicationFields, ...lifestyleFields, ...childrenFields, ...otherFields];
         allFields.forEach(field => {
           spouseFormData.value[field.key] = props.spouseData[field.key] || 0;
         });
@@ -2052,7 +2083,7 @@ export default {
     };
 
     const handleSave = () => {
-      const allFields = [...essentialFields, ...communicationFields, ...lifestyleFields, ...childrenFields, ...otherFields];
+      const allFields = [...allEssentialFields, ...communicationFields, ...lifestyleFields, ...childrenFields, ...otherFields];
 
       const saveData = {
         use_simple_entry: useSimpleEntry.value,
@@ -2111,6 +2142,9 @@ export default {
     onMounted(() => {
       initializeFromProps();
       fetchCommitments();
+      api.get('/properties').then(res => {
+        properties.value = res.data || [];
+      }).catch(() => {});
       mountTimeout.value = setTimeout(() => {
         initializeRetiredBudget();
         initializeWidowedBudget();
