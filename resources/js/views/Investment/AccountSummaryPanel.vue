@@ -68,8 +68,8 @@
           <span class="detail-value" :class="isaRemainingClass">{{ formatCurrency(isaRemaining) }}</span>
         </div>
         <div class="detail-item">
-          <span class="detail-label">Annual Allowance</span>
-          <span class="detail-value">{{ formatCurrency(20000) }}</span>
+          <span class="detail-label">{{ lisaEligible ? 'Annual Allowance (excl. Lifetime ISA)' : 'Annual Allowance' }}</span>
+          <span class="detail-value">{{ formatCurrency(isaAnnualAllowance) }}</span>
         </div>
         <div class="detail-item">
           <span class="detail-label">Tax Year</span>
@@ -126,6 +126,7 @@
 <script>
 import { TAX_CONFIG } from '@/constants/taxConfig';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { mapGetters, mapState } from 'vuex';
 
 export default {
   name: 'AccountSummaryPanel',
@@ -139,6 +140,31 @@ export default {
   },
 
   computed: {
+    ...mapGetters('auth', ['currentUser']),
+    ...mapState('netWorth', ['overview']),
+
+    userAge() {
+      const dob = this.currentUser?.date_of_birth;
+      if (!dob) return null;
+      const birth = new Date(dob);
+      const now = new Date();
+      let age = now.getFullYear() - birth.getFullYear();
+      const m = now.getMonth() - birth.getMonth();
+      if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) age--;
+      return age;
+    },
+
+    lisaEligible() {
+      if (this.userAge === null) return false;
+      if (this.userAge >= 40) return false;
+      const overviewData = this.overview || {};
+      return !(overviewData.breakdown?.property > 0);
+    },
+
+    isaAnnualAllowance() {
+      return this.lisaEligible ? 16000 : TAX_CONFIG.ISA_ANNUAL_ALLOWANCE;
+    },
+
     displayValue() {
       // current_value IS the full value (single-record pattern)
       return this.account.current_value;
@@ -157,7 +183,7 @@ export default {
     },
 
     isaRemaining() {
-      return Math.max(0, TAX_CONFIG.ISA_ANNUAL_ALLOWANCE - this.isaContributions);
+      return Math.max(0, this.isaAnnualAllowance - this.isaContributions);
     },
 
     isaRemainingClass() {
