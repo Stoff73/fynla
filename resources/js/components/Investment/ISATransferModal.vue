@@ -39,7 +39,7 @@
               >
                 <div>
                   <p class="font-medium text-gray-800">{{ holding.security_name }}</p>
-                  <p class="text-xs text-gray-500">Gain: {{ formatCurrency(holding.gain) }} (within CGT allowance)</p>
+                  <p class="text-xs text-gray-500">Gain: {{ formatCurrency(holding.gain) }} (within Capital Gains Tax allowance)</p>
                 </div>
                 <span class="font-semibold text-gray-700">{{ formatCurrency(holding.current_value) }}</span>
               </div>
@@ -56,7 +56,7 @@
             <h4 class="font-semibold text-blue-800 mb-3">How to Execute</h4>
             <ol class="text-sm text-blue-700 space-y-2 list-decimal list-inside">
               <li>Log in to your investment platform</li>
-              <li>Sell the selected holdings in your GIA</li>
+              <li>Sell the selected holdings in your General Investment Account</li>
               <li>Wait for settlement (usually T+2)</li>
               <li>Transfer cash to your Stocks & Shares ISA</li>
               <li>Repurchase the same or similar holdings in your ISA</li>
@@ -69,7 +69,7 @@
             <ul class="text-sm text-blue-700 space-y-1 list-disc list-inside">
               <li>The 30-day rule does not apply to Bed & ISA (only to Bed & Breakfast)</li>
               <li>You can repurchase the same securities immediately in your ISA</li>
-              <li>Any gains realised will use your CGT allowance</li>
+              <li>Any gains realised will use your Capital Gains Tax allowance</li>
               <li>Ensure you have sufficient ISA allowance before selling</li>
             </ul>
           </div>

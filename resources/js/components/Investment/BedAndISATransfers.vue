@@ -11,8 +11,8 @@
         <div class="flex-1">
           <p class="text-sm font-medium text-gray-800 mb-1">What is Bed and ISA?</p>
           <p class="text-sm text-gray-700">
-            Sell holdings from your General Investment Account (GIA) and immediately repurchase them in an ISA wrapper.
-            This protects future growth from CGT while utilizing your CGT allowance and ISA allowance efficiently.
+            Sell holdings from your General Investment Account and immediately repurchase them in an ISA wrapper.
+            This protects future growth from Capital Gains Tax while utilising your Capital Gains Tax allowance and ISA allowance efficiently.
           </p>
         </div>
       </div>
@@ -24,7 +24,7 @@
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
       <p>No Bed and ISA opportunities found</p>
-      <p class="text-sm mt-2">Either ISA allowance or CGT allowance fully utilized</p>
+      <p class="text-sm mt-2">Either ISA allowance or Capital Gains Tax allowance fully utilized</p>
     </div>
 
     <!-- Bed and ISA Content -->
@@ -36,7 +36,7 @@
           <p class="text-2xl font-bold text-blue-600">£{{ formatNumber(opportunities.isa_allowance_remaining) }}</p>
         </div>
         <div class="bg-gray-50 rounded-lg p-4">
-          <p class="text-sm text-gray-600 mb-1">CGT Allowance</p>
+          <p class="text-sm text-gray-600 mb-1">Capital Gains Tax Allowance</p>
           <p class="text-2xl font-bold text-gray-800">£{{ formatNumber(opportunities.cgt_allowance) }}</p>
         </div>
         <div class="bg-gray-50 rounded-lg p-4">
@@ -60,7 +60,7 @@
             </p>
           </div>
           <div>
-            <p class="text-xs text-gray-600 mb-1">CGT Liability</p>
+            <p class="text-xs text-gray-600 mb-1">Capital Gains Tax Liability</p>
             <p class="text-lg font-bold text-blue-600">
               £{{ formatNumber(opportunities.transfer_strategy.total_cgt_liability) }}
             </p>
@@ -111,7 +111,7 @@
                 </p>
               </div>
               <div>
-                <p class="text-xs text-gray-600">CGT Payable</p>
+                <p class="text-xs text-gray-600">Capital Gains Tax Payable</p>
                 <p class="text-sm font-semibold text-blue-600">£{{ formatNumber(transfer.cgt_liability) }}</p>
               </div>
               <div>
@@ -164,7 +164,7 @@
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Security</th>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Value</th>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gain</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CGT</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Capital Gains Tax</th>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Annual Saving</th>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Suitability</th>
             </tr>
@@ -200,7 +200,7 @@
         <ul class="text-sm text-gray-700 space-y-1">
           <li>• Execute sales and purchases on same day to minimize market risk</li>
           <li>• Check with your broker - some platforms offer "Bed and ISA" service</li>
-          <li>• Any CGT payable is due by January 31 following the tax year</li>
+          <li>• Any Capital Gains Tax payable is due by January 31 following the tax year</li>
           <li>• ISA allowance is "use it or lose it" - resets April 6 each year</li>
           <li>• Consider transaction costs when executing transfers</li>
         </ul>

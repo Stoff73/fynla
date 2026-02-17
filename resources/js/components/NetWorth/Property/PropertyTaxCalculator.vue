@@ -28,8 +28,8 @@
 
     <!-- SDLT Calculator -->
     <div v-show="activeCalculator === 'sdlt'" class="space-y-4">
-      <h3 class="text-lg font-semibold text-gray-800">Stamp Duty Land Tax (SDLT) Calculator</h3>
-      <p class="text-sm text-gray-600">Calculate SDLT based on 2025/26 rates</p>
+      <h3 class="text-lg font-semibold text-gray-800">Stamp Duty Land Tax Calculator</h3>
+      <p class="text-sm text-gray-600">Calculate Stamp Duty Land Tax based on 2025/26 rates</p>
 
       <form @submit.prevent="calculateSDLT" class="space-y-4">
         <div>
@@ -83,17 +83,17 @@
           :disabled="calculatingSDLT"
           class="w-full px-4 py-2 bg-primary-600 text-white rounded-button hover:bg-primary-700 transition-colors disabled:opacity-50"
         >
-          {{ calculatingSDLT ? 'Calculating...' : 'Calculate SDLT' }}
+          {{ calculatingSDLT ? 'Calculating...' : 'Calculate Stamp Duty' }}
         </button>
       </form>
 
       <!-- SDLT Results -->
       <div v-if="sdltResult" class="mt-6 space-y-4">
         <div class="bg-gray-50 rounded-lg p-6">
-          <h4 class="text-xl font-semibold text-green-800 mb-2">SDLT Calculation Result</h4>
+          <h4 class="text-xl font-semibold text-green-800 mb-2">Stamp Duty Calculation Result</h4>
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <p class="text-sm text-green-700">Total SDLT</p>
+              <p class="text-sm text-green-700">Total Stamp Duty</p>
               <p class="text-3xl font-bold text-green-900">{{ formatCurrency(sdltResult.total_sdlt) }}</p>
             </div>
             <div>
@@ -126,12 +126,12 @@
 
     <!-- CGT Calculator -->
     <div v-show="activeCalculator === 'cgt'" class="space-y-4">
-      <h3 class="text-lg font-semibold text-gray-800">Capital Gains Tax (CGT) Calculator</h3>
+      <h3 class="text-lg font-semibold text-gray-800">Capital Gains Tax Calculator</h3>
 
       <div v-if="property.property_type === 'main_residence'" class="bg-gray-50 rounded-md p-4">
         <p class="text-sm text-blue-800">
           <strong>Note:</strong> As a main residence, this property may qualify for Private Residence Relief,
-          which could reduce or eliminate CGT liability.
+          which could reduce or eliminate Capital Gains Tax liability.
         </p>
       </div>
 
@@ -188,14 +188,14 @@
           :disabled="calculatingCGT"
           class="w-full px-4 py-2 bg-primary-600 text-white rounded-button hover:bg-primary-700 transition-colors disabled:opacity-50"
         >
-          {{ calculatingCGT ? 'Calculating...' : 'Calculate CGT' }}
+          {{ calculatingCGT ? 'Calculating...' : 'Calculate Capital Gains Tax' }}
         </button>
       </form>
 
       <!-- CGT Results -->
       <div v-if="cgtResult" class="mt-6 space-y-4">
         <div class="bg-gray-50 rounded-lg p-6">
-          <h4 class="text-xl font-semibold text-green-800 mb-4">CGT Calculation Result</h4>
+          <h4 class="text-xl font-semibold text-green-800 mb-4">Capital Gains Tax Calculation Result</h4>
           <dl class="space-y-2">
             <div class="flex justify-between">
               <dt class="text-sm text-green-700">Disposal Price:</dt>
@@ -224,11 +224,11 @@
               <dd class="text-sm font-bold text-green-900">{{ formatCurrency(cgtResult.taxable_gain) }}</dd>
             </div>
             <div class="flex justify-between">
-              <dt class="text-sm text-green-700">CGT Rate:</dt>
+              <dt class="text-sm text-green-700">Capital Gains Tax Rate:</dt>
               <dd class="text-sm font-medium text-green-900">{{ cgtResult.cgt_rate }}%</dd>
             </div>
             <div class="flex justify-between border-t border-green-300 pt-2 mt-2">
-              <dt class="text-lg font-bold text-green-700">CGT Liability:</dt>
+              <dt class="text-lg font-bold text-green-700">Capital Gains Tax Liability:</dt>
               <dd class="text-2xl font-bold text-green-900">{{ formatCurrency(cgtResult.cgt_liability) }}</dd>
             </div>
           </dl>
@@ -325,8 +325,8 @@ export default {
     return {
       activeCalculator: 'sdlt',
       calculatorTabs: [
-        { id: 'sdlt', label: 'SDLT' },
-        { id: 'cgt', label: 'CGT' },
+        { id: 'sdlt', label: 'Stamp Duty' },
+        { id: 'cgt', label: 'Capital Gains Tax' },
         { id: 'rental', label: 'Rental Income Tax' },
       ],
       sdltForm: {
@@ -370,7 +370,7 @@ export default {
           is_first_home: this.sdltForm.is_first_home,
         });
       } catch (error) {
-        this.error = 'Failed to calculate SDLT. Please try again.';
+        this.error = 'Failed to calculate Stamp Duty Land Tax. Please try again.';
       } finally {
         this.calculatingSDLT = false;
       }
@@ -391,7 +391,7 @@ export default {
           },
         });
       } catch (error) {
-        this.error = 'Failed to calculate CGT. Please try again.';
+        this.error = 'Failed to calculate Capital Gains Tax. Please try again.';
       } finally {
         this.calculatingCGT = false;
       }

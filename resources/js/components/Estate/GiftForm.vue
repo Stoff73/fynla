@@ -72,8 +72,8 @@
           :class="{ 'is-invalid': errors.gift_type }"
         >
           <option value="">Select gift type...</option>
-          <option value="pet">Potentially Exempt Transfer (PET)</option>
-          <option value="clt">Chargeable Lifetime Transfer (CLT)</option>
+          <option value="pet">Potentially Exempt Transfer</option>
+          <option value="clt">Chargeable Lifetime Transfer</option>
           <option value="exempt">Exempt Gift</option>
           <option value="small_gift">Small Gift Exemption (£250 limit)</option>
           <option value="annual_exemption">Annual Exemption (£3,000)</option>
@@ -112,7 +112,7 @@
             ✓ You can use your Annual Exemption (£3,000 per tax year)
           </li>
           <li v-if="!qualifiesForSmallGift && formData.gift_value > 3000">
-            ⚠️ This gift exceeds typical exemptions and will be a PET (subject to 7-year rule)
+            ⚠️ This gift exceeds typical exemptions and will be a Potentially Exempt Transfer (subject to 7-year rule)
           </li>
         </ul>
       </div>
@@ -242,7 +242,7 @@ export default {
 
       // Gift date is required for IHT 7-year rule calculations
       if (!this.formData.gift_date) {
-        this.errors.gift_date = 'Gift date is required for IHT planning';
+        this.errors.gift_date = 'Gift date is required for Inheritance Tax planning';
       }
 
       // Recipient is required

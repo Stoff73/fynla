@@ -15,7 +15,7 @@
       <div class="flex items-center justify-between mb-4">
         <div>
           <h2 class="text-xl sm:text-2xl font-bold text-gray-900">Planned Trust Strategy</h2>
-          <p class="text-sm sm:text-base text-gray-600 mt-1">Explore trust planning options with CLT taxation rules</p>
+          <p class="text-sm sm:text-base text-gray-600 mt-1">Explore trust planning options with Chargeable Lifetime Transfer taxation rules</p>
         </div>
       </div>
 

@@ -97,7 +97,7 @@
                 <p class="type-description">{{ trustType.description }}</p>
                 <div class="type-details">
                   <p><span class="detail-label">Income Tax:</span> {{ trustType.incomeTax }}</p>
-                  <p><span class="detail-label">IHT:</span> {{ trustType.iht }}</p>
+                  <p><span class="detail-label">Inheritance Tax:</span> {{ trustType.iht }}</p>
                 </div>
                 <span v-if="trustType.isRPT" class="rpt-badge">
                   Relevant Property Trust
@@ -107,11 +107,11 @@
 
             <!-- IHT Charges Info -->
             <div class="iht-charges-info">
-              <h3 class="section-title">IHT Charges for Relevant Property Trusts</h3>
+              <h3 class="section-title">Inheritance Tax Charges for Relevant Property Trusts</h3>
               <div class="charges-grid">
                 <div class="charge-item">
                   <p class="charge-label">Entry Charge</p>
-                  <p class="charge-value">20% on gifts exceeding £325,000 NRB</p>
+                  <p class="charge-value">20% on gifts exceeding £325,000 Nil Rate Band</p>
                 </div>
                 <div class="charge-item">
                   <p class="charge-label">Periodic Charge</p>
@@ -242,7 +242,7 @@ export default {
           name: 'Bare Trust',
           description: 'Beneficiary has absolute right to capital and income. Simple and tax-efficient.',
           incomeTax: 'Beneficiary\'s personal rates',
-          iht: 'PET (exempt after 7 years)',
+          iht: 'Potentially Exempt Transfer (exempt after 7 years)',
           isRPT: false,
         },
         {
@@ -264,7 +264,7 @@ export default {
         {
           type: 'life_insurance',
           name: 'Life Insurance Trust',
-          description: 'Holds life policy proceeds outside the estate for IHT.',
+          description: 'Holds life policy proceeds outside the estate for Inheritance Tax.',
           incomeTax: 'N/A (no regular income)',
           iht: 'Outside estate',
           isRPT: false,
@@ -272,9 +272,9 @@ export default {
         {
           type: 'discounted_gift',
           name: 'Discounted Gift Trust',
-          description: 'Gift capital while retaining income. Immediate IHT reduction.',
+          description: 'Gift capital while retaining income. Immediate Inheritance Tax reduction.',
           incomeTax: 'Settlor\'s rates on retained income',
-          iht: 'Partial PET (discounted value)',
+          iht: 'Partial Potentially Exempt Transfer (discounted value)',
           isRPT: false,
         },
         {
@@ -399,7 +399,7 @@ export default {
           this.$router.push(`/trusts/${trust.id}?tab=tax`);
         }
       } catch (error) {
-        this.error = error.message || 'Failed to calculate IHT impact';
+        this.error = error.message || 'Failed to calculate Inheritance Tax impact';
       }
     },
 

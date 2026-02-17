@@ -219,9 +219,9 @@ export default {
         stocks_and_shares_isa: 'ISA',
         cash_isa: 'Cash ISA',
         isa: 'ISA',
-        sipp: 'SIPP',
-        gia: 'GIA',
-        general_investment_account: 'GIA',
+        sipp: 'Self-Invested Personal Pension',
+        gia: 'General Investment Account',
+        general_investment_account: 'General Investment Account',
         trading: 'Trading',
         pension: 'Pension',
       };

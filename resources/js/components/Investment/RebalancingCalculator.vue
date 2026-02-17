@@ -63,7 +63,7 @@
             </label>
           </div>
           <p class="mt-1 ml-6 text-xs text-gray-500">
-            Minimize CGT liability by optimising the order of buy/sell actions
+            Minimize Capital Gains Tax liability by optimising the order of buy/sell actions
           </p>
         </div>
 
@@ -71,7 +71,7 @@
         <template v-if="optimiseForCGT">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
-              CGT Annual Allowance (£)
+              Capital Gains Tax Annual Allowance (£)
             </label>
             <input
               v-model.number="cgtAllowance"
@@ -87,7 +87,7 @@
 
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
-              CGT Tax Rate (%)
+              Capital Gains Tax Rate (%)
             </label>
             <select
               v-model.number="taxRate"
@@ -355,7 +355,7 @@ export default {
       ];
 
       if (this.optimiseForCGT) {
-        headers.push('CGT Cost Basis', 'CGT Gain/Loss', 'CGT Liability');
+        headers.push('Capital Gains Tax Cost Basis', 'Capital Gains Tax Gain/Loss', 'Capital Gains Tax Liability');
       }
 
       const rows = this.result.actions.map(action => {

@@ -497,12 +497,12 @@
                   />
                   <div>
                     <span class="text-sm font-medium text-gray-700">Business Property Relief (BPR) Eligible</span>
-                    <p class="text-xs text-gray-500">For IHT purposes - typically 100% relief for qualifying trading businesses owned 2+ years</p>
+                    <p class="text-xs text-gray-500">For Inheritance Tax purposes - typically 100% relief for qualifying trading businesses owned 2+ years</p>
                   </div>
                 </label>
 
                 <div v-if="form.bpr_eligible" class="text-sm text-green-800">
-                  <p class="font-medium">BPR can reduce the IHT value of this business interest to zero if:</p>
+                  <p class="font-medium">BPR can reduce the Inheritance Tax value of this business interest to zero if:</p>
                   <ul class="list-disc ml-5 mt-1 space-y-1">
                     <li>The business is a trading business (not mainly investment)</li>
                     <li>You've owned it for at least 2 years</li>

@@ -375,7 +375,7 @@ Route::middleware('auth:sanctum')->prefix('savings')->group(function () {
     Route::post('/scenarios', [SavingsController::class, 'scenarios']);
 
     // ISA allowance tracking
-    Route::get('/isa-allowance/{taxYear}', [SavingsController::class, 'isaAllowance']);
+    Route::get('/isa-allowance/{taxYear}', [SavingsController::class, 'isaAllowance'])->where('taxYear', '.*');
 
     // Savings accounts
     Route::prefix('accounts')->group(function () {
@@ -856,7 +856,7 @@ Route::middleware('auth:sanctum')->prefix('retirement')->group(function () {
     Route::get('/portfolio-analysis/{dcPensionId}', [RetirementController::class, 'analyzeDCPensionPortfolio']);
 
     // Annual allowance checking
-    Route::get('/annual-allowance/{taxYear}', [RetirementController::class, 'checkAnnualAllowance']);
+    Route::get('/annual-allowance/{taxYear}', [RetirementController::class, 'checkAnnualAllowance'])->where('taxYear', '.*');
 
     // Retirement strategies
     Route::get('/strategies', [RetirementController::class, 'getStrategies']);

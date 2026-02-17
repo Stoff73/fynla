@@ -33,14 +33,14 @@ export default {
 
     sourceTypeLabel() {
       const labels = {
-        pension_pot_pcls: 'PCLS',
+        pension_pot_pcls: 'Pension Commencement Lump Sum',
         pension_pot_drawdown: 'Pension Pot',
-        dc_pension_pcls: 'PCLS',
+        dc_pension_pcls: 'Pension Commencement Lump Sum',
         dc_pension_drawdown: 'Pension',
-        db_pension: 'DB Pension',
+        db_pension: 'Defined Benefit Pension',
         state_pension: 'State Pension',
         isa: 'ISA',
-        gia: 'GIA',
+        gia: 'General Investment Account',
         onshore_bond: 'Onshore Bond',
         offshore_bond: 'Offshore Bond',
         bond: 'Bond',

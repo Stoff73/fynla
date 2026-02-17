@@ -207,7 +207,7 @@
             <p class="text-xs text-gray-500">of £3,000 annual allowance</p>
           </div>
           <div class="text-center p-4 rounded-lg border" :class="rebalancingData.cgt_analysis.cgt_liability > 0 ? 'bg-red-50 border-red-200' : 'bg-gray-100 border-gray-200'">
-            <p class="text-sm text-gray-600 mb-1">CGT Liability</p>
+            <p class="text-sm text-gray-600 mb-1">Capital Gains Tax Liability</p>
             <p class="text-2xl font-bold" :class="rebalancingData.cgt_analysis.cgt_liability > 0 ? 'text-red-600' : 'text-gray-600'">
               {{ formatCurrency(rebalancingData.cgt_analysis.cgt_liability) }}
             </p>
@@ -360,7 +360,7 @@ export default {
 
     accountTypeName() {
       const type = this.rebalancingData?.account_type?.toUpperCase() || 'Investment';
-      return type === 'ISA' ? 'ISA' : type === 'SIPP' ? 'SIPP' : type === 'LISA' ? 'LISA' : type;
+      return type === 'ISA' ? 'ISA' : type === 'SIPP' ? 'Self-Invested Personal Pension' : type === 'LISA' ? 'Lifetime ISA' : type;
     },
   },
 

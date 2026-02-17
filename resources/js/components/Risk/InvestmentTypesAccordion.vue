@@ -260,7 +260,7 @@
               <div class="mt-3 flex flex-wrap gap-2">
                 <span class="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded">Gold</span>
                 <span class="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded">Commodities</span>
-                <span class="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded">VCT/EIS</span>
+                <span class="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded">Venture Capital Trust / Enterprise Investment Scheme</span>
                 <span class="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded">Hedge funds</span>
               </div>
               <div class="mt-3 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-800">

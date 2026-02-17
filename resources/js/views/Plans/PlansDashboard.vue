@@ -67,7 +67,7 @@
               </div>
             </div>
             <p class="text-gray-600 mb-4">
-              IHT planning, gifting strategies, life policy optimisation, and asset protection for your estate
+              Inheritance Tax planning, gifting strategies, life policy optimisation, and asset protection for your estate
             </p>
           </div>
         </div>

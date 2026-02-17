@@ -31,11 +31,11 @@
       <div class="mt-6 flex flex-wrap items-center justify-center gap-4">
         <div class="flex items-center">
           <div class="w-4 h-4 bg-blue-500 rounded mr-2"></div>
-          <span class="text-sm text-gray-700">DC Pension</span>
+          <span class="text-sm text-gray-700">Defined Contribution Pension</span>
         </div>
         <div class="flex items-center">
           <div class="w-4 h-4 bg-purple-500 rounded mr-2"></div>
-          <span class="text-sm text-gray-700">DB Pension</span>
+          <span class="text-sm text-gray-700">Defined Benefit Pension</span>
         </div>
         <div class="flex items-center">
           <div class="w-4 h-4 bg-green-500 rounded mr-2"></div>
@@ -53,7 +53,7 @@
       <h3 class="text-lg font-semibold text-gray-900 mb-6">Pension Pot Accumulation</h3>
       <AccumulationChart />
       <p class="text-sm text-gray-500 mt-4 text-center">
-        Shows projected DC pension fund value growth to retirement
+        Shows projected Defined Contribution pension fund value growth to retirement
       </p>
     </div>
 
@@ -92,7 +92,7 @@
           </svg>
         </div>
         <p class="text-3xl font-bold text-gray-900">{{ formatCurrency(projectedPot) }}</p>
-        <p class="text-sm text-gray-500 mt-1">DC pensions only</p>
+        <p class="text-sm text-gray-500 mt-1">Defined Contribution pensions only</p>
       </div>
     </div>
 

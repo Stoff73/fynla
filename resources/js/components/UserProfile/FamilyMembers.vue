@@ -178,7 +178,7 @@
         <div>
           <p class="text-body text-gray-700 mb-1">Do you wish to leave anything to charity?</p>
           <p class="text-body-sm text-gray-500">
-            Leaving 10% or more to charity can reduce your IHT rate from 40% to 36%
+            Leaving 10% or more to charity can reduce your Inheritance Tax rate from 40% to 36%
           </p>
         </div>
         <div class="text-body font-medium" :class="charitableBequest ? 'text-green-600' : 'text-gray-600'">

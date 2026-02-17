@@ -349,7 +349,7 @@
                   <h4 class="text-lg font-bold text-green-900 mb-2">Personal Pension</h4>
                   <p class="text-2xl font-bold text-green-600 mb-2">20-45% relief</p>
                   <p class="text-green-800 text-sm">
-                    SIPPs offer more investment control. Get 20-45% tax relief on contributions.
+                    Self-Invested Personal Pensions offer more investment control. Get 20-45% tax relief on contributions.
                   </p>
                 </div>
               </div>
@@ -371,7 +371,7 @@
                     <p class="text-xs text-blue-800">Reduced for high earners (income over £260,000)</p>
                   </div>
                   <div class="bg-white/70 rounded-xl p-3">
-                    <p class="font-semibold text-blue-900 text-sm">MPAA</p>
+                    <p class="font-semibold text-blue-900 text-sm">Money Purchase Annual Allowance</p>
                     <p class="text-xs text-blue-800">£10,000 limit if you've accessed pension flexibly</p>
                   </div>
                 </div>
@@ -422,12 +422,12 @@
                 Estate planning ensures your assets pass to your chosen beneficiaries in a tax-efficient manner. Without proper planning, your estate could face a significant inheritance tax bill and may not be distributed as you wish.
               </p>
 
-              <h3 class="text-2xl font-bold text-slate-900 mt-10 mb-6">Inheritance Tax (IHT) Basics</h3>
+              <h3 class="text-2xl font-bold text-slate-900 mt-10 mb-6">Inheritance Tax Basics</h3>
 
               <div class="bg-gradient-to-r from-red-50 to-red-100 rounded-2xl p-6 border border-red-200">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <p class="text-sm text-red-700 font-medium mb-1">IHT Rate</p>
+                    <p class="text-sm text-red-700 font-medium mb-1">Inheritance Tax Rate</p>
                     <p class="text-4xl font-bold text-red-600">40%</p>
                     <p class="text-sm text-red-800 mt-2">Charged on estates above the nil rate band. Reduced to 36% if 10%+ left to charity.</p>
                   </div>
@@ -442,15 +442,15 @@
 
               <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-6 border border-blue-200 text-center">
-                  <h4 class="text-lg font-bold text-blue-900 mb-2">Nil Rate Band (NRB)</h4>
+                  <h4 class="text-lg font-bold text-blue-900 mb-2">Nil Rate Band</h4>
                   <p class="text-4xl font-bold text-blue-600 mb-2">£325,000</p>
                   <p class="text-blue-800 text-sm">
-                    The standard IHT-free threshold. Transferable to surviving spouse/civil partner.
+                    The standard Inheritance Tax-free threshold. Transferable to surviving spouse/civil partner.
                   </p>
                 </div>
 
                 <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-6 border border-green-200 text-center">
-                  <h4 class="text-lg font-bold text-green-900 mb-2">Residence Nil Rate Band (RNRB)</h4>
+                  <h4 class="text-lg font-bold text-green-900 mb-2">Residence Nil Rate Band</h4>
                   <p class="text-4xl font-bold text-green-600 mb-2">£175,000</p>
                   <p class="text-green-800 text-sm">
                     Additional allowance when home left to direct descendants. Also transferable to spouse.
@@ -464,11 +464,11 @@
                   Combined allowance: up to <span class="text-3xl font-bold text-indigo-600">£1 million</span>
                 </p>
                 <p class="text-indigo-800 text-sm">
-                  (£325k NRB + £175k RNRB for each spouse). Transfers between spouses are always IHT-free. Unused allowances transfer to the surviving spouse.
+                  (£325k Nil Rate Band + £175k Residence Nil Rate Band for each spouse). Transfers between spouses are always Inheritance Tax-free. Unused allowances transfer to the surviving spouse.
                 </p>
               </div>
 
-              <h3 class="text-2xl font-bold text-slate-900 mt-10 mb-6">IHT Mitigation Strategies</h3>
+              <h3 class="text-2xl font-bold text-slate-900 mt-10 mb-6">Inheritance Tax Mitigation Strategies</h3>
 
               <div class="space-y-4">
                 <div class="bg-white border-l-4 border-green-600 rounded-r-xl p-5 shadow-sm">
@@ -487,7 +487,7 @@
                       <p class="text-green-700">£5,000</p>
                     </div>
                     <div class="bg-green-50 rounded-lg p-3">
-                      <p class="font-semibold text-green-900">PETs</p>
+                      <p class="font-semibold text-green-900">Potentially Exempt Transfers</p>
                       <p class="text-green-700">Exempt after 7 years</p>
                     </div>
                   </div>
@@ -510,7 +510,7 @@
                 <div class="bg-white border-l-4 border-red-600 rounded-r-xl p-5 shadow-sm">
                   <h4 class="text-lg font-bold text-slate-900 mb-2">4. Pension Death Benefits</h4>
                   <p class="text-slate-700 text-sm">
-                    Pensions are usually outside your estate for IHT. Nominate beneficiaries to ensure proceeds go where you intend. If you die before 75, benefits are usually tax-free.
+                    Pensions are usually outside your estate for Inheritance Tax. Nominate beneficiaries to ensure proceeds go where you intend. If you die before 75, benefits are usually tax-free.
                   </p>
                 </div>
               </div>
@@ -598,7 +598,7 @@
                   <ul class="space-y-2 text-purple-800 text-sm">
                     <li class="flex items-center"><span class="w-2 h-2 bg-purple-600 rounded-full mr-2"></span>Tax-free growth and withdrawals</li>
                     <li class="flex items-center"><span class="w-2 h-2 bg-purple-600 rounded-full mr-2"></span>No capital gains tax or income tax</li>
-                    <li class="flex items-center"><span class="w-2 h-2 bg-purple-600 rounded-full mr-2"></span>Can hold cash or investments (S&S ISA)</li>
+                    <li class="flex items-center"><span class="w-2 h-2 bg-purple-600 rounded-full mr-2"></span>Can hold cash or investments (Stocks & Shares ISA)</li>
                     <li class="flex items-center"><span class="w-2 h-2 bg-purple-600 rounded-full mr-2"></span>Flexible access to your money</li>
                   </ul>
                 </div>
@@ -785,7 +785,7 @@
                 <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
                   <h4 class="text-lg font-bold text-slate-900 mb-2">4. Harvest Capital Gains</h4>
                   <p class="text-slate-700 text-sm">
-                    Use your £3,000 CGT allowance each year. Sell and repurchase investments to "crystallise" gains within your allowance.
+                    Use your £3,000 Capital Gains Tax allowance each year. Sell and repurchase investments to "crystallise" gains within your allowance.
                   </p>
                 </div>
 

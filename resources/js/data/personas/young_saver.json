@@ -74,7 +74,7 @@
     },
     {
       "id": 3,
-      "account_name": "Cash ISA",
+      "account_name": "John's Cash ISA",
       "provider_name": "Marcus",
       "account_type": "cash_isa",
       "current_balance": 3200,

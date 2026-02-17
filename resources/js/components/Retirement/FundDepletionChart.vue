@@ -229,7 +229,7 @@ export default {
 
       if (this.activeFundTypes.includes('gia')) {
         series.push({
-          name: 'GIA',
+          name: 'General Investment Account',
           data: this.projections.map(p => Math.round(p.gia || 0)),
         });
       }
@@ -346,12 +346,12 @@ export default {
   methods: {
     formatFundName(fund) {
       const names = {
-        pcls: 'PCLS',
+        pcls: 'Pension Commencement Lump Sum',
         drawdown: 'Drawdown',
         pension_pot: 'Pension Pot',
         dc_pension: 'Pension',
         isa: 'ISA',
-        gia: 'GIA',
+        gia: 'General Investment Account',
         bond: 'Bond',
         savings: 'Savings',
         total: 'All Funds',

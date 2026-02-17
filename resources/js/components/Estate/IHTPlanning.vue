@@ -96,7 +96,7 @@
         <!-- Combined Summary Card -->
         <div class="bg-white rounded-lg p-5 border border-gray-200">
           <p class="text-sm text-gray-600 font-medium mb-3">
-            IHT Summary
+            Inheritance Tax Summary
             <span v-if="charitableBequest" class="ml-1 text-xs text-green-600">({{ effectiveIHTRateLabel }} rate)</span>
           </p>
           <div class="grid grid-cols-2 gap-4">
@@ -108,7 +108,7 @@
             </div>
             <!-- Tax Liability -->
             <div>
-              <p class="text-xs text-gray-500 mb-1">IHT Liability</p>
+              <p class="text-xs text-gray-500 mb-1">Inheritance Tax Liability</p>
               <p class="text-sm font-bold" :class="charitableBequest ? 'text-green-700' : 'text-gray-900'">{{ formatCurrency(charitableBequest ? adjustedIHTLiability : projection.now.iht_liability) }}</p>
               <p class="text-xs text-gray-400 mt-1">Age {{ ihtData.estimated_age_at_death }}: {{ formatCurrency(charitableBequest ? adjustedIHTLiabilityProjected : projection.at_death.iht_liability) }}</p>
             </div>
@@ -169,7 +169,7 @@
               <p class="text-lg font-bold text-green-700">£3,000</p>
             </div>
             <div class="text-xs">
-              <p class="text-gray-600">IHT Liability:</p>
+              <p class="text-gray-600">Inheritance Tax Liability:</p>
               <p class="text-sm font-semibold text-gray-900">{{ formatCurrency(projection?.now?.iht_liability || 0) }}</p>
             </div>
           </div>
@@ -227,12 +227,12 @@
               </div>
             </div>
             <div v-if="charitableBequest" class="text-xs">
-              <p class="text-gray-600">Potential IHT Savings:</p>
+              <p class="text-gray-600">Potential Inheritance Tax Savings:</p>
               <p class="text-lg font-bold text-pink-700">{{ formatCurrency(charitableBequestSavings) }}</p>
               <p class="text-xs text-gray-500 mt-1">Rate reduces from 40% to 36%</p>
             </div>
             <div v-else class="text-xs text-gray-500">
-              <p>Leaving 10%+ to charity reduces the IHT rate from 40% to 36%</p>
+              <p>Leaving 10%+ to charity reduces the Inheritance Tax rate from 40% to 36%</p>
             </div>
           </div>
         </div>
@@ -516,7 +516,7 @@
               Your estate has a potential Inheritance Tax liability of {{ formatCurrency(ihtData?.iht_liability || 0) }}. Consider these strategies:
             </p>
             <ul class="list-disc list-inside space-y-1">
-              <li>Regular gifting using PET and annual exemptions (£3,000/year)</li>
+              <li>Regular gifting using Potentially Exempt Transfers and annual exemptions (£3,000/year)</li>
               <li>Charitable giving (can reduce Inheritance Tax rate from 40% to 36% if ≥10% to charity)</li>
               <li>Trust planning to remove assets from your estate</li>
               <li>Life insurance policies written in trust to cover Inheritance Tax liability</li>

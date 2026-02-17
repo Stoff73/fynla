@@ -656,6 +656,7 @@ class UserProfileService
             'retirement' => [],
             'properties' => [],
             'investments' => [],
+            'savings' => [],
             'protection' => [],
             'liabilities' => [],
         ];
@@ -857,7 +858,48 @@ class UserProfileService
             }
         }
 
-        // 4. Protection Premiums
+        // 4. Savings Account Contributions
+        // Include accounts owned by user OR where user is the joint owner
+        $savingsAccounts = \App\Models\SavingsAccount::where(function ($query) use ($user) {
+            $query->where('user_id', $user->id)
+                ->orWhere('joint_owner_id', $user->id);
+        })->where('regular_contribution_amount', '>', 0)->get();
+        foreach ($savingsAccounts as $account) {
+            $isJoint = in_array($account->ownership_type, ['joint', 'tenants_in_common']);
+            $userIsOwner = $account->user_id === $user->id;
+            $ownershipPercentage = $isJoint
+                ? ($userIsOwner ? ($account->ownership_percentage ?? 50) : (100 - ($account->ownership_percentage ?? 50)))
+                : 100;
+            $ownershipMultiplier = $ownershipPercentage / 100;
+
+            // Calculate monthly contribution based on frequency
+            $monthlyContribution = match ($account->contribution_frequency) {
+                'quarterly' => $account->regular_contribution_amount / 3,
+                'annually' => $account->regular_contribution_amount / 12,
+                default => $account->regular_contribution_amount, // monthly
+            };
+
+            $totalMonthly = $monthlyContribution * $ownershipMultiplier;
+
+            if ($totalMonthly > 0) {
+                // Apply ownership filter
+                if (! $this->shouldIncludeByOwnership($isJoint, $ownershipFilter)) {
+                    continue;
+                }
+
+                $commitments['savings'][] = [
+                    'id' => $account->id,
+                    'name' => $account->account_name ?? $account->institution ?? 'Savings Account',
+                    'type' => $account->account_type ?? 'savings',
+                    'monthly_amount' => $totalMonthly,
+                    'is_joint' => $isJoint,
+                    'ownership_type' => $account->ownership_type,
+                    'ownership_percentage' => $ownershipPercentage,
+                ];
+            }
+        }
+
+        // 5. Protection Premiums
         // Life Insurance
         $lifeInsurancePolicies = \App\Models\LifeInsurancePolicy::where('user_id', $user->id)->get();
         foreach ($lifeInsurancePolicies as $policy) {
@@ -973,7 +1015,7 @@ class UserProfileService
             }
         }
 
-        // 5. Liability Payments (excluding mortgages - they're in properties)
+        // 6. Liability Payments (excluding mortgages - they're in properties)
         // Include liabilities owned by user OR where user is the joint owner
         $liabilities = \App\Models\Estate\Liability::where(function ($query) use ($user) {
             $query->where('user_id', $user->id)
@@ -1013,6 +1055,7 @@ class UserProfileService
             'retirement' => collect($commitments['retirement'])->sum('monthly_amount'),
             'properties' => collect($commitments['properties'])->sum('monthly_amount'),
             'investments' => collect($commitments['investments'])->sum('monthly_amount'),
+            'savings' => collect($commitments['savings'])->sum('monthly_amount'),
             'protection' => collect($commitments['protection'])->sum('monthly_amount'),
             'liabilities' => collect($commitments['liabilities'])->sum('monthly_amount'),
         ];

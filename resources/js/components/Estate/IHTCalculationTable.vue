@@ -191,7 +191,7 @@
             <!-- Single user without transferred allowances -->
             <template v-else>
               <tr class="bg-gray-50">
-                <td class="px-4 py-2 text-sm text-gray-700 pl-8">Tax-Free Allowance (NRB)</td>
+                <td class="px-4 py-2 text-sm text-gray-700 pl-8">Tax-Free Allowance (Nil Rate Band)</td>
                 <td class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.totalNrb) }}</td>
                 <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.totalNrb) }}</td>
                 <td class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.totalNrb) }}</td>
@@ -256,7 +256,7 @@
               <!-- Single user without transferred RNRB -->
               <template v-else>
                 <tr class="bg-gray-50">
-                  <td class="px-4 py-2 text-sm text-gray-700 pl-8">Home Allowance (RNRB)</td>
+                  <td class="px-4 py-2 text-sm text-gray-700 pl-8">Home Allowance (Residence Nil Rate Band)</td>
                   <td class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.totalRnrb) }}</td>
                   <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.totalRnrb) }}</td>
                   <td class="px-4 py-2 text-sm text-right text-gray-600">-{{ formatCurrency(allowances.totalRnrb) }}</td>
@@ -265,7 +265,7 @@
               </template>
             </template>
 
-            <!-- RNRB Not Available Message -->
+            <!-- Residence Nil Rate Band Not Available Message -->
             <tr v-if="!allowances.rnrbEligible" class="bg-gray-50">
               <td :colspan="columnCount" class="px-4 py-2 text-xs text-gray-600 pl-8">
                 <strong>Note:</strong> Home allowance not available - no main residence identified or not left to direct descendants
@@ -302,7 +302,7 @@
             <td class="px-4 py-3 text-sm font-semibold text-gray-900">
               <span class="inline-flex items-center">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-gray-400 transition-transform mr-1" :class="{ 'rotate-90': expandedNRB }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-                Less: Tax-Free Allowance (NRB)
+                Less: Tax-Free Allowance (Nil Rate Band)
               </span>
             </td>
             <td class="px-4 py-3 text-sm text-right font-semibold text-gray-900">-{{ formatCurrency(allowances.totalNrb) }}</td>
@@ -380,7 +380,7 @@
               <td class="px-4 py-3 text-sm font-semibold text-gray-900">
                 <span class="inline-flex items-center">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-gray-400 transition-transform mr-1" :class="{ 'rotate-90': expandedRNRB }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-                  Less: Home Allowance (RNRB)
+                  Less: Home Allowance (Residence Nil Rate Band)
                 </span>
               </td>
               <td class="px-4 py-3 text-sm text-right font-semibold text-gray-900">-{{ formatCurrency(allowances.totalRnrb) }}</td>
@@ -447,7 +447,7 @@
             </template>
           </template>
 
-          <!-- RNRB Not Available Message -->
+          <!-- Residence Nil Rate Band Not Available Message -->
           <tr v-else class="bg-gray-50">
             <td :colspan="columnCount" class="px-4 py-2 text-xs text-gray-600">
               <strong>Note:</strong> Home allowance not available - no main residence identified or not left to direct descendants

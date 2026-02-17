@@ -5,8 +5,8 @@
         <span class="chattel-type-badge" :class="typeClass">
           {{ chattelTypeLabel }}
         </span>
-        <span v-if="chattel.is_wasting_asset" class="wasting-badge" title="CGT exempt - wasting asset">
-          CGT Exempt
+        <span v-if="chattel.is_wasting_asset" class="wasting-badge" title="Capital Gains Tax exempt - wasting asset">
+          Capital Gains Tax Exempt
         </span>
       </div>
       <span v-if="isJoint" class="ownership-badge">

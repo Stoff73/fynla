@@ -56,7 +56,7 @@ class FeeAnalyzer
 
         // Calculate fund OCF (Ongoing Charges Figure)
         $fundFees = $holdings->sum(function ($holding) {
-            return $holding->current_value * ($holding->ocf_percent / 100);
+            return $holding->current_value * (($holding->ocf_percent ?? 0) / 100);
         });
 
         // Estimated transaction costs (simplified)
@@ -120,7 +120,7 @@ class FeeAnalyzer
 
         // Calculate current weighted average OCF
         $currentOCF = $holdings->sum(function ($holding) use ($totalValue) {
-            return ($holding->current_value / $totalValue) * $holding->ocf_percent;
+            return ($holding->current_value / $totalValue) * ($holding->ocf_percent ?? 0);
         });
 
         // Assume low-cost index funds average 0.15% OCF

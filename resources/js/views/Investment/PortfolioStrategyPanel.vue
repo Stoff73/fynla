@@ -421,7 +421,7 @@ export default {
         stocks_shares_isa: 'Stocks & Shares ISA',
         gia: 'General Investment Account',
         general: 'General Investment Account',
-        sipp: 'SIPP',
+        sipp: 'Self-Invested Personal Pension',
         pension: 'Pension',
         onshore_bond: 'Onshore Bond',
         offshore_bond: 'Offshore Bond',

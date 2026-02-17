@@ -236,10 +236,10 @@
               </svg>
             </div>
             <h3 class="text-xl font-bold text-white mb-2">Retirement</h3>
-            <p class="text-slate-400 mb-4">DC, DB, and State Pension tracking with retirement income projections.</p>
+            <p class="text-slate-400 mb-4">Defined Contribution, Defined Benefit, and State Pension tracking with retirement income projections.</p>
             <div class="flex flex-wrap gap-2">
-              <span class="px-3 py-1 bg-white/10 text-slate-300 text-xs font-medium rounded-full">DC Pensions</span>
-              <span class="px-3 py-1 bg-white/10 text-slate-300 text-xs font-medium rounded-full">DB Pensions</span>
+              <span class="px-3 py-1 bg-white/10 text-slate-300 text-xs font-medium rounded-full">Defined Contribution Pensions</span>
+              <span class="px-3 py-1 bg-white/10 text-slate-300 text-xs font-medium rounded-full">Defined Benefit Pensions</span>
               <span class="px-3 py-1 bg-white/10 text-slate-300 text-xs font-medium rounded-full">State Pension</span>
             </div>
           </div>
@@ -252,11 +252,11 @@
               </svg>
             </div>
             <h3 class="text-xl font-bold text-white mb-2">Estate</h3>
-            <p class="text-slate-400 mb-4">IHT calculations, gifting strategies, and estate value projections.</p>
+            <p class="text-slate-400 mb-4">Inheritance Tax calculations, gifting strategies, and estate value projections.</p>
             <div class="flex flex-wrap gap-2">
-              <span class="px-3 py-1 bg-white/10 text-slate-300 text-xs font-medium rounded-full">IHT Calculator</span>
+              <span class="px-3 py-1 bg-white/10 text-slate-300 text-xs font-medium rounded-full">Inheritance Tax Calculator</span>
               <span class="px-3 py-1 bg-white/10 text-slate-300 text-xs font-medium rounded-full">Gifting</span>
-              <span class="px-3 py-1 bg-white/10 text-slate-300 text-xs font-medium rounded-full">NRB/RNRB</span>
+              <span class="px-3 py-1 bg-white/10 text-slate-300 text-xs font-medium rounded-full">Nil Rate Band / Residence Nil Rate Band</span>
             </div>
           </div>
 
@@ -309,7 +309,7 @@
               </svg>
             </div>
             <h3 class="text-xl font-bold text-white mb-3">UK Tax Optimised</h3>
-            <p class="text-slate-400">2025/26 tax rates, ISA allowances, pension limits, and IHT thresholds built-in.</p>
+            <p class="text-slate-400">2025/26 tax rates, ISA allowances, pension limits, and Inheritance Tax thresholds built-in.</p>
           </div>
 
           <div class="bg-white/5 backdrop-blur-md rounded-2xl p-8 border border-white/10 text-center">

@@ -22,7 +22,7 @@
           <div>
             <p class="text-sm font-medium text-blue-900 mb-1">25% Tax-Free Cash</p>
             <p class="text-sm text-blue-800">
-              You can typically take up to 25% of your DC pension pot as a tax-free lump sum (PCLS).
+              You can typically take up to 25% of your Defined Contribution pension pot as a tax-free lump sum (Pension Commencement Lump Sum).
               This is sometimes called "tax-free cash".
             </p>
           </div>
@@ -32,7 +32,7 @@
       <div class="space-y-4">
         <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
           <div>
-            <p class="text-sm text-gray-600">Total DC Pension Pot</p>
+            <p class="text-sm text-gray-600">Total Defined Contribution Pension Pot</p>
             <p class="text-2xl font-bold text-gray-900">{{ formatCurrency(totalDCPot) }}</p>
           </div>
           <div class="text-right">

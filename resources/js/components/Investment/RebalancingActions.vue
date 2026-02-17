@@ -146,7 +146,7 @@
                     </p>
                   </div>
                   <div>
-                    <p class="text-gray-500">CGT Liability</p>
+                    <p class="text-gray-500">Capital Gains Tax Liability</p>
                     <p class="font-medium text-gray-900">
                       £{{ formatCurrency(action.cgt_liability || 0) }}
                     </p>
@@ -228,7 +228,7 @@
             </p>
           </div>
           <div>
-            <p class="text-xs text-blue-600 uppercase tracking-wide">CGT Liability</p>
+            <p class="text-xs text-blue-600 uppercase tracking-wide">Capital Gains Tax Liability</p>
             <p
               :class="[
                 'text-lg font-semibold mt-1',

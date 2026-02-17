@@ -53,7 +53,7 @@
                 <h4 class="font-semibold text-red-800">30-Day Rule Warning</h4>
                 <p class="text-sm text-red-700 mt-1">
                   If you sell this holding and repurchase substantially the same security within 30 days,
-                  the loss will be disallowed for CGT purposes. This is known as the "bed-and-breakfasting" rule.
+                  the loss will be disallowed for Capital Gains Tax purposes. This is known as the "bed-and-breakfasting" rule.
                 </p>
               </div>
             </div>
@@ -63,7 +63,7 @@
           <div class="bg-gray-50 rounded-lg p-4">
             <h4 class="font-semibold text-blue-800 mb-3">How to Harvest This Loss</h4>
             <ol class="text-sm text-blue-700 space-y-2 list-decimal list-inside">
-              <li>Sell the holding in your GIA account</li>
+              <li>Sell the holding in your General Investment Account</li>
               <li>Record the loss for your tax records</li>
               <li>Wait at least 30 days before repurchasing (or use in Bed & ISA)</li>
               <li>Consider purchasing a similar but not identical investment to maintain exposure</li>

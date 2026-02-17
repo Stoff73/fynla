@@ -63,7 +63,7 @@
             {{ formatCurrency(currentPosition.net_unrealized_gains) }}
           </p>
           <p class="text-xs text-gray-500 mt-1">
-            CGT allowance: {{ formatCurrency(currentPosition.cgt_allowance) }}
+            Capital Gains Tax allowance: {{ formatCurrency(currentPosition.cgt_allowance) }}
           </p>
         </div>
 
@@ -138,7 +138,7 @@
             <p class="text-xl font-bold" :class="netPositionClass">{{ formatCurrency(currentPosition.net_unrealized_gains) }}</p>
           </div>
           <div class="text-center p-4 bg-gray-50 rounded-lg">
-            <p class="text-sm text-gray-600 mb-1">CGT Allowance</p>
+            <p class="text-sm text-gray-600 mb-1">Capital Gains Tax Allowance</p>
             <p class="text-xl font-bold text-blue-600">{{ formatCurrency(currentPosition.cgt_allowance) }}</p>
           </div>
         </div>
@@ -150,9 +150,9 @@
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
             </svg>
             <div>
-              <p class="font-semibold text-red-800">Gains Exceed CGT Allowance</p>
+              <p class="font-semibold text-red-800">Gains Exceed Capital Gains Tax Allowance</p>
               <p class="text-sm text-red-700">
-                Your unrealised gains exceed the annual CGT allowance by {{ formatCurrency(cgtExcess) }}.
+                Your unrealised gains exceed the annual Capital Gains Tax allowance by {{ formatCurrency(cgtExcess) }}.
                 If realised, this would result in approximately {{ formatCurrency(cgtExcess * 0.20) }} in Capital Gains Tax.
               </p>
             </div>
@@ -165,9 +165,9 @@
               <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <div>
-              <p class="font-semibold text-green-800">Within CGT Allowance</p>
+              <p class="font-semibold text-green-800">Within Capital Gains Tax Allowance</p>
               <p class="text-sm text-green-700">
-                Your net gains are within the annual CGT allowance. You can realise up to {{ formatCurrency(cgtAllowanceRemaining) }} more in gains tax-free this year.
+                Your net gains are within the annual Capital Gains Tax allowance. You can realise up to {{ formatCurrency(cgtAllowanceRemaining) }} more in gains tax-free this year.
               </p>
             </div>
           </div>
@@ -238,8 +238,8 @@
         </div>
 
         <p class="text-sm text-gray-600 mb-4">
-          Transfer holdings from your GIA to your ISA to shelter future growth and dividends from tax.
-          The holdings below have gains within your CGT allowance, so the transfer would be tax-free.
+          Transfer holdings from your General Investment Account to your ISA to shelter future growth and dividends from tax.
+          The holdings below have gains within your Capital Gains Tax allowance, so the transfer would be tax-free.
         </p>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
@@ -252,7 +252,7 @@
             <p class="text-xl font-bold text-green-600">{{ formatCurrency(bedAndISAOpportunity.potential_annual_saving) }}</p>
           </div>
           <div class="text-center p-4 bg-gray-100 rounded-lg border border-gray-200">
-            <p class="text-sm text-gray-600 mb-1">CGT on Transfer</p>
+            <p class="text-sm text-gray-600 mb-1">Capital Gains Tax on Transfer</p>
             <p class="text-xl font-bold text-gray-800">{{ formatCurrency(bedAndISAOpportunity.cgt_on_transfer || 0) }}</p>
           </div>
         </div>

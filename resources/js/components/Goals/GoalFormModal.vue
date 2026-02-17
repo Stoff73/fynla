@@ -217,7 +217,7 @@
                   id="first-time-buyer"
                   class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
                 />
-                <label for="first-time-buyer" class="ml-2 text-sm text-gray-700">First-time buyer (SDLT relief)</label>
+                <label for="first-time-buyer" class="ml-2 text-sm text-gray-700">First-time buyer (Stamp Duty relief)</label>
               </div>
 
               <!-- Property Cost Estimate -->

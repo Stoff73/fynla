@@ -2,7 +2,35 @@
   <div class="isa-allowance-tracker bg-white rounded-lg border border-gray-200 p-6">
     <div class="flex justify-between items-center mb-4">
       <h3 class="text-lg font-semibold text-gray-900">Tax-Free Savings Allowance {{ currentTaxYear }}</h3>
-      <span class="text-sm text-gray-600">{{ formatCurrency(totalAllowance) }} total</span>
+      <span class="text-sm text-gray-600">{{ formatCurrency(overallAllowance) }} total</span>
+    </div>
+
+    <!-- Lifetime ISA Section (eligible users only) -->
+    <div v-if="lisaEligible" class="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+      <div class="flex justify-between items-baseline mb-2">
+        <span class="text-sm font-semibold text-gray-700">Lifetime ISA</span>
+        <span class="text-xs text-gray-500">{{ formatCurrency(4000) }} limit</span>
+      </div>
+      <div class="w-full bg-gray-200 rounded-full h-2 mb-2">
+        <div
+          class="h-2 rounded-full transition-all"
+          :class="lisaBarClass"
+          :style="{ width: Math.min(lisaPercentUsed, 100) + '%' }"
+        ></div>
+      </div>
+      <div class="flex justify-between text-sm">
+        <span class="text-gray-600">{{ formatCurrency(lisaUsed) }} used</span>
+        <span class="text-green-600 font-medium">{{ formatCurrency(lisaRemaining) }} remaining</span>
+      </div>
+      <div class="text-xs text-gray-500 mt-1">
+        25% bonus: {{ formatCurrency(lisaBonusEarned) }} earned of {{ formatCurrency(1000) }} max
+      </div>
+    </div>
+
+    <!-- ISA Allowance label when LISA eligible -->
+    <div v-if="lisaEligible" class="flex justify-between items-baseline mb-2">
+      <span class="text-sm font-semibold text-gray-700">Other ISAs</span>
+      <span class="text-xs text-gray-500">{{ formatCurrency(totalAllowance) }} limit</span>
     </div>
 
     <!-- Progress Bar -->
@@ -52,7 +80,13 @@
     <!-- Info Message -->
     <div class="p-3 bg-gray-50 rounded-lg">
       <p class="text-sm text-gray-700">
-        <span class="font-medium">Tax year {{ currentTaxYear }}:</span> You can save up to £20,000 across all tax-free savings accounts (ISAs).
+        <span class="font-medium">Tax year {{ currentTaxYear }}:</span>
+        <template v-if="lisaEligible">
+          You can save up to {{ formatCurrency(overallAllowance) }} across all ISAs ({{ formatCurrency(4000) }} Lifetime ISA + {{ formatCurrency(totalAllowance) }} other ISAs).
+        </template>
+        <template v-else>
+          You can save up to {{ formatCurrency(totalAllowance) }} across all tax-free savings accounts (ISAs).
+        </template>
         Any unused allowance cannot be carried forward to the next year.
       </p>
     </div>
@@ -70,19 +104,43 @@ export default {
   computed: {
     ...mapState('savings', ['isaAllowance']),
     ...mapGetters('savings', ['isaAllowanceRemaining']),
+    ...mapGetters('auth', ['currentUser']),
+    ...mapState('netWorth', ['overview']),
+    ...mapState('investment', { investmentAccounts: 'accounts' }),
 
+    userAge() {
+      const dob = this.currentUser?.date_of_birth;
+      if (!dob) return null;
+      const birth = new Date(dob);
+      const now = new Date();
+      let age = now.getFullYear() - birth.getFullYear();
+      const m = now.getMonth() - birth.getMonth();
+      if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) age--;
+      return age;
+    },
+
+    lisaEligible() {
+      if (this.userAge === null) return false;
+      if (this.userAge >= 40) return false;
+      const overviewData = this.overview || {};
+      return !(overviewData.breakdown?.property > 0);
+    },
+
+    // The full £20k ISA allowance
+    overallAllowance() {
+      return 20000;
+    },
+
+    // The ISA allowance excluding LISA (£16k when LISA-eligible, £20k otherwise)
     totalAllowance() {
-      return 20000; // UK ISA allowance
+      return this.lisaEligible ? 16000 : 20000;
     },
 
     currentTaxYear() {
-      // Calculate current UK tax year (April 6 - April 5)
       const now = new Date();
       const year = now.getFullYear();
-      const month = now.getMonth(); // 0-indexed
+      const month = now.getMonth();
       const day = now.getDate();
-
-      // If before April 6, we're in previous tax year
       if (month < 3 || (month === 3 && day < 6)) {
         return `${year - 1}/${String(year).slice(-2)}`;
       }
@@ -108,9 +166,37 @@ export default {
     stocksISAPercent() {
       return (this.stocksISAUsed / this.totalAllowance) * 100;
     },
-  },
 
-  // formatCurrency provided by currencyMixin
+    // LISA computeds
+    lisaUsed() {
+      const lisaAccounts = (this.investmentAccounts || []).filter(a => {
+        const type = (a.account_type || '').toLowerCase();
+        return type === 'lisa' || type === 'lifetime_isa';
+      });
+      const used = lisaAccounts.reduce((sum, a) => {
+        return sum + parseFloat(a.isa_subscription_current_year || a.annual_contribution || 0);
+      }, 0);
+      return Math.min(used, 4000);
+    },
+
+    lisaRemaining() {
+      return 4000 - this.lisaUsed;
+    },
+
+    lisaPercentUsed() {
+      return (this.lisaUsed / 4000) * 100;
+    },
+
+    lisaBonusEarned() {
+      return this.lisaUsed * 0.25;
+    },
+
+    lisaBarClass() {
+      if (this.lisaPercentUsed >= 95) return 'bg-red-500';
+      if (this.lisaPercentUsed >= 75) return 'bg-blue-500';
+      return 'bg-green-500';
+    },
+  },
 };
 </script>
 

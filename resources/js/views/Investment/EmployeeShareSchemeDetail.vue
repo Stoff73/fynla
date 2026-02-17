@@ -81,7 +81,7 @@
           <span class="detail-value">{{ account.parent_company_name }}</span>
         </div>
         <div v-if="account.ers_scheme_reference" class="detail-item">
-          <span class="detail-label">ERS Reference</span>
+          <span class="detail-label">Employment Related Securities Reference</span>
           <span class="detail-value">{{ account.ers_scheme_reference }}</span>
         </div>
       </div>
@@ -241,9 +241,9 @@
       <div v-if="isTaxAdvantaged" class="alert alert-success mb-4">
         <p class="font-medium">Tax-Advantaged Scheme</p>
         <p class="text-sm">
-          <template v-if="isSAYE">SAYE: No Income Tax or NI on exercise if held to maturity</template>
+          <template v-if="isSAYE">SAYE: No Income Tax or National Insurance on exercise if held to maturity</template>
           <template v-else-if="isCSOPScheme">CSOP: No Income Tax on exercise between 3-10 years from grant</template>
-          <template v-else>EMI: CGT rates apply on disposal (with potential Business Asset Disposal Relief)</template>
+          <template v-else>EMI: Capital Gains Tax rates apply on disposal (with potential Business Asset Disposal Relief)</template>
         </p>
       </div>
 
@@ -251,7 +251,7 @@
       <div v-if="isCSOPScheme && csopThreeYearDate" class="mb-4">
         <div v-if="isInCsopTaxWindow" class="alert alert-success">
           <p class="font-medium">In CSOP Tax-Advantaged Window</p>
-          <p class="text-sm">Exercise now for CGT treatment only (no Income Tax)</p>
+          <p class="text-sm">Exercise now for Capital Gains Tax treatment only (no Income Tax)</p>
         </div>
         <div v-else-if="daysToCsopTaxWindow" class="alert alert-warning">
           <p class="font-medium">{{ daysToCsopTaxWindow }} days until tax-advantaged window</p>

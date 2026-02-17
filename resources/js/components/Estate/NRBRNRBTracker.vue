@@ -9,7 +9,7 @@
     <div class="allowance-section">
       <div class="allowance-header">
         <div class="allowance-title">
-          <h4>Nil Rate Band (NRB)</h4>
+          <h4>Nil Rate Band</h4>
           <span class="info-icon" title="Standard Inheritance Tax allowance for all estates">
             <i class="fas fa-info-circle"></i>
           </span>
@@ -46,7 +46,7 @@
     <div class="allowance-section">
       <div class="allowance-header">
         <div class="allowance-title">
-          <h4>Residence Nil Rate Band (RNRB)</h4>
+          <h4>Residence Nil Rate Band</h4>
           <span class="info-icon" title="Additional allowance for main residence passed to direct descendants">
             <i class="fas fa-info-circle"></i>
           </span>
@@ -109,16 +109,16 @@
       </div>
       <ul>
         <li v-if="!isRnrbEligible">
-          RNRB only applies when leaving main residence to direct descendants (children, grandchildren)
+          Residence Nil Rate Band only applies when leaving main residence to direct descendants (children, grandchildren)
         </li>
         <li v-if="rnrbTapered">
-          RNRB is reduced by £1 for every £2 estate value exceeds £2 million
+          Residence Nil Rate Band is reduced by £1 for every £2 estate value exceeds £2 million
         </li>
         <li v-if="hasSpouseTransfer">
-          Any unused NRB from deceased spouse can be transferred
+          Any unused Nil Rate Band from deceased spouse can be transferred
         </li>
         <li v-if="canClaimRnrbTransfer">
-          Unused RNRB from deceased spouse may be transferable
+          Unused Residence Nil Rate Band from deceased spouse may be transferable
         </li>
       </ul>
     </div>

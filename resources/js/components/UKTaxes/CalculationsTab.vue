@@ -52,7 +52,7 @@
         <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
         </svg>
-        Inheritance Tax (IHT) Calculation
+        Inheritance Tax Calculation
       </h3>
       <div class="space-y-3 text-sm">
         <p><strong>Step 1:</strong> Calculate Gross Estate Value</p>
@@ -63,34 +63,34 @@
 
         <p><strong>Step 2:</strong> Determine Available Allowances</p>
         <code class="block bg-gray-50 p-3 rounded text-xs font-mono">
-          NRB Available = £325,000 × (1 + spouse_nrb_transferred)
+          Nil Rate Band Available = £325,000 × (1 + spouse_nrb_transferred)
           <br><br>If property asset AND passing to descendants:
-          <br>&nbsp;&nbsp;RNRB Available = £175,000 × (1 + spouse_rnrb_transferred)
+          <br>&nbsp;&nbsp;Residence Nil Rate Band Available = £175,000 × (1 + spouse_rnrb_transferred)
           <br>&nbsp;&nbsp;If estate > £2,000,000:
-          <br>&nbsp;&nbsp;&nbsp;&nbsp;RNRB Reduction = (estate - £2,000,000) / 2
-          <br>&nbsp;&nbsp;&nbsp;&nbsp;RNRB Available = max(0, RNRB Available - RNRB Reduction)
+          <br>&nbsp;&nbsp;&nbsp;&nbsp;Residence Nil Rate Band Reduction = (estate - £2,000,000) / 2
+          <br>&nbsp;&nbsp;&nbsp;&nbsp;Residence Nil Rate Band Available = max(0, Residence Nil Rate Band Available - Residence Nil Rate Band Reduction)
         </code>
 
         <p><strong>Step 3:</strong> Calculate Taxable Estate</p>
         <code class="block bg-gray-50 p-3 rounded text-xs font-mono">
-          Total Allowances = NRB Available + RNRB Available
+          Total Allowances = Nil Rate Band Available + Residence Nil Rate Band Available
           <br>Taxable Estate = max(0, Gross Estate - Total Allowances)
         </code>
 
-        <p><strong>Step 4:</strong> Calculate IHT Liability</p>
+        <p><strong>Step 4:</strong> Calculate Inheritance Tax Liability</p>
         <code class="block bg-gray-50 p-3 rounded text-xs font-mono">
-          IHT Liability = Taxable Estate × 40%
+          Inheritance Tax Liability = Taxable Estate × 40%
           <br>(Or 36% if 10%+ of net estate left to charity)
         </code>
 
         <p><strong>Example:</strong> Estate worth £800,000 with property, no spouse transfers</p>
         <code class="block bg-blue-50 p-3 rounded text-xs font-mono">
           Gross Estate: £800,000
-          <br>NRB Available: £325,000
-          <br>RNRB Available: £175,000 (property present)
+          <br>Nil Rate Band Available: £325,000
+          <br>Residence Nil Rate Band Available: £175,000 (property present)
           <br>Total Allowances: £500,000
           <br>Taxable Estate: £800,000 - £500,000 = £300,000
-          <br>IHT Liability: £300,000 × 40% = £120,000
+          <br>Inheritance Tax Liability: £300,000 × 40% = £120,000
         </code>
       </div>
     </div>
@@ -101,7 +101,7 @@
         <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
         </svg>
-        Capital Gains Tax (CGT) Calculation
+        Capital Gains Tax Calculation
       </h3>
       <div class="space-y-3 text-sm">
         <p><strong>Step 1:</strong> Calculate Capital Gain</p>
@@ -115,7 +115,7 @@
           Taxable Gain = max(0, Capital Gain - £3,000)
         </code>
 
-        <p><strong>Step 3:</strong> Determine CGT Rate</p>
+        <p><strong>Step 3:</strong> Determine Capital Gains Tax Rate</p>
         <code class="block bg-gray-50 p-3 rounded text-xs font-mono">
           General Assets (shares, funds):
           <br>&nbsp;&nbsp;Basic Rate Taxpayer: 10%
@@ -125,9 +125,9 @@
           <br>&nbsp;&nbsp;Higher/Additional Rate: 24%
         </code>
 
-        <p><strong>Step 4:</strong> Calculate CGT Due</p>
+        <p><strong>Step 4:</strong> Calculate Capital Gains Tax Due</p>
         <code class="block bg-gray-50 p-3 rounded text-xs font-mono">
-          CGT Due = Taxable Gain × Applicable Rate
+          Capital Gains Tax Due = Taxable Gain × Applicable Rate
         </code>
 
         <p><strong>Example:</strong> Higher rate taxpayer sells shares</p>
@@ -138,8 +138,8 @@
           <br>Capital Gain: £50,000 - £30,000 - £500 = £19,500
           <br>Annual Exempt Amount: £3,000
           <br>Taxable Gain: £19,500 - £3,000 = £16,500
-          <br>CGT Rate: 20% (higher rate taxpayer, general asset)
-          <br>CGT Due: £16,500 × 20% = £3,300
+          <br>Capital Gains Tax Rate: 20% (higher rate taxpayer, general asset)
+          <br>Capital Gains Tax Due: £16,500 × 20% = £3,300
         </code>
       </div>
     </div>
@@ -155,7 +155,7 @@
       <div class="space-y-3 text-sm">
         <p><strong>Step 1:</strong> Determine Base Allowance</p>
         <code class="block bg-gray-50 p-3 rounded text-xs font-mono">
-          If accessed pension flexibly: £10,000 (MPAA)
+          If accessed pension flexibly: £10,000 (Money Purchase Annual Allowance)
           <br>Otherwise: £60,000 (Standard Annual Allowance)
         </code>
 
@@ -276,9 +276,9 @@
       <div class="space-y-3 text-sm">
         <p><strong>Step 1:</strong> Calculate Projected Retirement Income</p>
         <code class="block bg-gray-50 p-3 rounded text-xs font-mono">
-          DC Pension Pot at Retirement = Current Value × (1 + growth_rate)^years
-          <br>DC Annual Income = Pot × Safe Withdrawal Rate (typically 4%)
-          <br>Total Projected Income = DC Income + DB Income + State Pension
+          Defined Contribution Pension Pot at Retirement = Current Value × (1 + growth_rate)^years
+          <br>Defined Contribution Annual Income = Pot × Safe Withdrawal Rate (typically 4%)
+          <br>Total Projected Income = Defined Contribution Income + Defined Benefit Income + State Pension
         </code>
 
         <p><strong>Step 2:</strong> Determine Target Retirement Income</p>
@@ -302,10 +302,10 @@
 
         <p><strong>Example:</strong> 20 years to retirement</p>
         <code class="block bg-blue-50 p-3 rounded text-xs font-mono">
-          Current DC Pot: £150,000
+          Current Defined Contribution Pot: £150,000
           <br>Growth Rate: 5% per year
           <br>Future Pot: £150,000 × 1.05^20 = £397,989
-          <br>DC Income: £397,989 × 4% = £15,920
+          <br>Defined Contribution Income: £397,989 × 4% = £15,920
           <br>State Pension: £11,502
           <br>Total Projected: £27,422
           <br>Target Income: £40,000 (67% of £60,000 current income)

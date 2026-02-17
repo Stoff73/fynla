@@ -17,7 +17,7 @@
           <div class="flex-1">
             <h3 class="text-sm font-semibold text-green-800">Secure Your Account with Two-Factor Authentication</h3>
             <p class="mt-1 text-sm text-green-700">
-              Protect your financial data by enabling 2FA. It adds an extra layer of security using an authenticator app on your phone.
+              Protect your financial data by enabling two-factor authentication. It adds an extra layer of security using an authenticator app on your phone.
             </p>
             <div class="mt-3 flex items-center gap-3">
               <router-link
@@ -27,7 +27,7 @@
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
-                Enable 2FA Now
+                Enable Two-Factor Authentication
               </router-link>
               <button
                 @click="dismissMFABanner"
@@ -61,48 +61,25 @@
           :loading="loading.netWorth"
           @click="navigateTo('/net-worth/wealth-summary')"
         >
-          <div v-if="hasNetWorthData" class="space-y-4">
-            <!-- Primary value - no heading, just the value -->
-            <div class="border-b border-gray-200 pb-4">
-              <span
-                class="text-3xl font-bold"
-                :class="netWorthData.netWorth >= 0 ? 'text-green-600' : 'text-red-600'"
-              >
-                {{ formatCurrency(netWorthData.netWorth) }}
-              </span>
-            </div>
+          <div v-if="hasNetWorthData">
+            <!-- Donut chart -->
+            <apexchart
+              :key="netWorthChartKey"
+              type="donut"
+              :options="netWorthChartOptions"
+              :series="netWorthChartSeries"
+              height="260"
+            />
 
-            <!-- Assets breakdown by category -->
-            <div v-if="netWorthData.totalAssets > 0" class="space-y-2">
-              <div class="text-sm font-semibold text-gray-700">Assets</div>
-              <div
-                v-for="(value, category) in netWorthBreakdown.assets"
-                :key="category"
-                class="flex justify-between text-sm"
-              >
-                <span class="text-gray-600">{{ formatAssetCategory(category) }}</span>
-                <span class="font-medium text-gray-900">{{ formatCurrency(value) }}</span>
+            <!-- Assets / Liabilities summary -->
+            <div class="flex justify-between text-sm mt-2">
+              <div>
+                <span class="text-gray-500">Assets</span>
+                <div class="font-semibold text-blue-600">{{ formatCurrency(netWorthData.totalAssets) }}</div>
               </div>
-              <div class="flex justify-between text-sm pt-2 border-t border-gray-100">
-                <span class="text-gray-700 font-medium">Total Assets</span>
-                <span class="font-semibold text-blue-600">{{ formatCurrency(netWorthData.totalAssets) }}</span>
-              </div>
-            </div>
-
-            <!-- Liabilities breakdown by category -->
-            <div v-if="netWorthData.totalLiabilities > 0" class="space-y-2">
-              <div class="text-sm font-semibold text-gray-700">Liabilities</div>
-              <div
-                v-for="(value, category) in netWorthBreakdown.liabilities"
-                :key="category"
-                class="flex justify-between text-sm"
-              >
-                <span class="text-gray-600">{{ formatLiabilityCategory(category) }}</span>
-                <span class="font-medium text-gray-900">{{ formatCurrency(value) }}</span>
-              </div>
-              <div class="flex justify-between text-sm pt-2 border-t border-gray-100">
-                <span class="text-gray-700 font-medium">Total Liabilities</span>
-                <span class="font-semibold text-red-600">{{ formatCurrency(netWorthData.totalLiabilities) }}</span>
+              <div class="text-right">
+                <span class="text-gray-500">Liabilities</span>
+                <div class="font-semibold text-red-600">{{ formatCurrency(netWorthData.totalLiabilities) }}</div>
               </div>
             </div>
           </div>
@@ -122,9 +99,10 @@
 
         <!-- Estate Planning Card -->
         <DashboardCard
+          v-if="hasEstateData"
           title="Estate Planning"
           :loading="loading.estate"
-          @click="hasEstateData ? navigateTo('/estate') : null"
+          @click="navigateTo('/estate')"
         >
           <div v-if="hasEstateData" class="space-y-4">
             <!-- Taxable Estate Now -->
@@ -312,9 +290,9 @@
           </div>
         </DashboardCard>
 
-        <!-- Retirement Card -->
+        <!-- Retirement Card (hidden for users under 35) -->
         <DashboardCard
-          v-if="hasRetirementData"
+          v-if="hasRetirementData && (userAge === null || userAge >= 35)"
           :title="retirementCardTitle"
           :loading="loading.retirement"
           @click="navigateTo('/net-worth/retirement')"
@@ -327,7 +305,7 @@
               <span class="text-sm font-semibold text-gray-900">{{ formatCurrency(retiredIncomeData.pensionDrawdown) }}/yr</span>
             </div>
             <div v-if="retiredIncomeData.dbPensionIncome > 0" class="flex justify-between items-center">
-              <span class="text-sm text-gray-600">DB Pension</span>
+              <span class="text-sm text-gray-600">Defined Benefit Pension</span>
               <span class="text-sm font-semibold text-gray-900">{{ formatCurrency(retiredIncomeData.dbPensionIncome) }}/yr</span>
             </div>
             <div v-if="retiredIncomeData.statePensionIncome > 0" class="flex justify-between items-center">
@@ -417,10 +395,145 @@
           </div>
         </DashboardCard>
 
-        <!-- Actions Card - fills 3rd slot in row 2 -->
-        <div class="bg-white rounded-lg border border-gray-200 p-6">
-          <ActionsOverviewCard :compact="true" :limit="5" />
-        </div>
+        <!-- Allowances Card -->
+        <DashboardCard
+          title="Allowances"
+          :loading="loading.taxAllowances"
+        >
+          <div v-if="hasAllowancesData" class="space-y-4">
+            <!-- Lifetime ISA Allowance (eligible users only) -->
+            <template v-if="lisaAllowanceData">
+              <div>
+                <div class="flex justify-between items-baseline mb-1">
+                  <span class="text-sm font-semibold text-gray-700">Lifetime ISA</span>
+                  <span class="text-xs text-gray-500">{{ currentTaxYear }}</span>
+                </div>
+                <div class="w-full bg-gray-100 rounded-full h-2 mb-2">
+                  <div
+                    class="h-2 rounded-full transition-all"
+                    :class="allowanceBarClass(lisaAllowanceData.percentUsed, false)"
+                    :style="{ width: Math.min(lisaAllowanceData.percentUsed, 100) + '%' }"
+                  ></div>
+                </div>
+                <div class="flex justify-between text-sm">
+                  <span class="text-gray-600">{{ formatCurrency(lisaAllowanceData.used) }} used</span>
+                  <span class="text-green-600 font-medium">
+                    {{ formatCurrency(lisaAllowanceData.remaining) }} remaining
+                  </span>
+                </div>
+                <div class="text-xs text-gray-500 mt-1">
+                  25% bonus: {{ formatCurrency(lisaAllowanceData.bonusEarned) }} earned of {{ formatCurrency(lisaAllowanceData.maxBonus) }} max
+                </div>
+              </div>
+              <div class="border-t border-gray-100"></div>
+            </template>
+
+            <!-- ISA Allowance -->
+            <div v-if="isaAllowanceData">
+              <div class="flex justify-between items-baseline mb-1">
+                <span class="text-sm font-semibold text-gray-700">{{ lisaAllowanceData ? 'ISA Allowance (excl. Lifetime ISA)' : 'ISA Allowance' }}</span>
+                <span class="text-xs text-gray-500">2025/26</span>
+              </div>
+              <!-- Progress bar -->
+              <div class="w-full bg-gray-100 rounded-full h-2 mb-2">
+                <div
+                  class="h-2 rounded-full transition-all"
+                  :class="allowanceBarClass(isaAllowanceData.percentUsed, false)"
+                  :style="{ width: Math.min(isaAllowanceData.percentUsed, 100) + '%' }"
+                ></div>
+              </div>
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-600">{{ formatCurrency(isaAllowanceData.totalUsed) }} used</span>
+                <span :class="isaAllowanceData.remaining >= 0 ? 'text-green-600' : 'text-red-600'" class="font-medium">
+                  {{ formatCurrency(isaAllowanceData.remaining) }} remaining
+                </span>
+              </div>
+              <!-- Cash / Stocks & Shares breakdown -->
+              <div v-if="isaAllowanceData.cashUsed > 0 || isaAllowanceData.ssUsed > 0" class="flex gap-4 mt-1 text-xs text-gray-500">
+                <span v-if="isaAllowanceData.cashUsed > 0">Cash ISA: {{ formatCurrency(isaAllowanceData.cashUsed) }}</span>
+                <span v-if="isaAllowanceData.ssUsed > 0">Stocks &amp; Shares ISA: {{ formatCurrency(isaAllowanceData.ssUsed) }}</span>
+              </div>
+            </div>
+
+            <!-- Divider -->
+            <div v-if="isaAllowanceData && pensionAllowanceData" class="border-t border-gray-100"></div>
+
+            <!-- Pension Annual Allowance -->
+            <div v-if="pensionAllowanceData">
+              <div class="flex justify-between items-baseline mb-1">
+                <div class="flex items-center gap-2">
+                  <span class="text-sm font-semibold text-gray-700">Pension Annual Allowance</span>
+                  <span
+                    v-if="pensionAllowanceData.isTapered"
+                    class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700"
+                  >Tapered</span>
+                  <span
+                    v-if="pensionAllowanceData.mpaaTriggered"
+                    class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700"
+                  >Money Purchase Annual Allowance</span>
+                </div>
+                <span class="text-xs text-gray-500">{{ currentTaxYear }}</span>
+              </div>
+              <!-- Progress bar -->
+              <div class="w-full bg-gray-100 rounded-full h-2 mb-2">
+                <div
+                  class="h-2 rounded-full transition-all"
+                  :class="allowanceBarClass(pensionStandardPercent, false)"
+                  :style="{ width: Math.min(pensionStandardPercent, 100) + '%' }"
+                ></div>
+              </div>
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-600">{{ formatCurrency(pensionStandardUsed) }} used</span>
+                <span class="text-green-600 font-medium">
+                  {{ formatCurrency(pensionStandardRemaining) }} remaining
+                </span>
+              </div>
+              <div class="text-xs text-gray-500 mt-1">
+                of {{ formatCurrency(pensionAllowanceData.availableAllowance) }} allowance
+              </div>
+            </div>
+
+            <!-- Carry Forward (only when contributions exceed standard allowance) -->
+            <template v-if="pensionAllowanceData && carryForwardData">
+              <div class="border-t border-gray-100"></div>
+              <div>
+                <div class="flex justify-between items-baseline mb-1">
+                  <span class="text-sm font-semibold text-gray-700">Carry Forward</span>
+                  <span class="text-xs text-gray-500">{{ carryForwardTaxYear }}</span>
+                </div>
+                <div class="w-full bg-gray-100 rounded-full h-2 mb-2">
+                  <div
+                    class="h-2 rounded-full transition-all"
+                    :class="allowanceBarClass(carryForwardData.percentUsed, false)"
+                    :style="{ width: Math.min(carryForwardData.percentUsed, 100) + '%' }"
+                  ></div>
+                </div>
+                <div class="flex justify-between text-sm">
+                  <span class="text-gray-600">{{ formatCurrency(carryForwardData.used) }} used</span>
+                  <span class="text-green-600 font-medium">
+                    {{ formatCurrency(carryForwardData.remaining) }} remaining
+                  </span>
+                </div>
+                <div class="text-xs text-gray-500 mt-1">
+                  of {{ formatCurrency(pensionAllowanceData.availableAllowance) }} allowance
+                </div>
+              </div>
+            </template>
+          </div>
+
+          <!-- Empty state -->
+          <div v-else class="text-center py-4">
+            <div class="mx-auto w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center mb-3">
+              <svg class="w-6 h-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <h3 class="text-sm font-semibold text-gray-900 mb-1">No Allowance Data</h3>
+            <p class="text-xs text-gray-500">
+              Add savings or pension accounts to track your tax allowances.
+            </p>
+          </div>
+        </DashboardCard>
 
         <!-- Goals & Events Card (spans 2 columns on larger screens) -->
         <DashboardCard
@@ -465,10 +578,10 @@ import { mapGetters, mapState, mapActions } from 'vuex';
 import AppLayout from '@/layouts/AppLayout.vue';
 import DashboardCard from '@/components/Dashboard/DashboardCard.vue';
 import GoalsProjectionChartDashboard from '@/components/Dashboard/GoalsProjectionChartDashboard.vue';
-import ActionsOverviewCard from '@/components/Dashboard/ActionsOverviewCard.vue';
 import AreasToConsiderCard from '@/components/Dashboard/AreasToConsiderCard.vue';
 import AreasToCompleteCard from '@/components/Dashboard/AreasToCompleteCard.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { ASSET_COLORS, TEXT_COLORS } from '@/constants/designSystem';
 import userProfileService from '@/services/userProfileService';
 
 export default {
@@ -478,7 +591,6 @@ export default {
     AppLayout,
     DashboardCard,
     GoalsProjectionChartDashboard,
-    ActionsOverviewCard,
     AreasToConsiderCard,
     AreasToCompleteCard,
   },
@@ -518,6 +630,19 @@ export default {
     // Check if the user is currently retired
     isRetired() {
       return this.currentUser?.employment_status === 'retired';
+    },
+
+    userAge() {
+      const dob = this.currentUser?.date_of_birth;
+      if (!dob) return null;
+      const birth = new Date(dob);
+      const now = new Date();
+      let age = now.getFullYear() - birth.getFullYear();
+      const monthDiff = now.getMonth() - birth.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < birth.getDate())) {
+        age--;
+      }
+      return age;
     },
 
     // Dynamic title for retirement card
@@ -579,29 +704,136 @@ export default {
       return this.netWorthData.totalAssets > 0 || this.netWorthData.totalLiabilities > 0;
     },
 
+    // Net Worth donut chart data
+    netWorthChartCategories() {
+      const LIABILITY_COLORS = {
+        mortgages: '#B91C1C',
+        loans: '#991B1B',
+        credit_cards: '#DC2626',
+        other: '#7F1D1D',
+      };
+
+      const categories = [];
+
+      // Asset categories
+      Object.entries(this.netWorthBreakdown.assets).forEach(([key, value]) => {
+        if (value > 0) {
+          categories.push({
+            label: this.formatAssetCategory(key),
+            value,
+            color: ASSET_COLORS[key] || '#94A3B8',
+          });
+        }
+      });
+
+      // Liability categories
+      Object.entries(this.netWorthBreakdown.liabilities).forEach(([key, value]) => {
+        if (value > 0) {
+          categories.push({
+            label: this.formatLiabilityCategory(key),
+            value,
+            color: LIABILITY_COLORS[key] || '#B91C1C',
+          });
+        }
+      });
+
+      return categories;
+    },
+
+    netWorthChartSeries() {
+      return this.netWorthChartCategories.map(c => c.value);
+    },
+
+    netWorthChartLabels() {
+      return this.netWorthChartCategories.map(c => c.label);
+    },
+
+    netWorthChartColors() {
+      return this.netWorthChartCategories.map(c => c.color);
+    },
+
+    netWorthChartKey() {
+      const total = this.netWorthChartSeries.reduce((a, b) => a + b, 0);
+      return `nw-donut-${this.netWorthChartSeries.length}-${Math.round(total)}`;
+    },
+
+    netWorthChartOptions() {
+      const netWorth = this.netWorthData.netWorth;
+      const vm = this;
+
+      return {
+        chart: {
+          type: 'donut',
+          fontFamily: 'Inter, system-ui, sans-serif',
+        },
+        labels: this.netWorthChartLabels,
+        colors: this.netWorthChartColors,
+        legend: { show: false },
+        dataLabels: { enabled: false },
+        plotOptions: {
+          pie: {
+            donut: {
+              size: '65%',
+              labels: {
+                show: true,
+                name: {
+                  show: false,
+                },
+                value: {
+                  show: true,
+                  fontSize: '16px',
+                  fontWeight: 700,
+                  color: netWorth >= 0 ? '#16A34A' : '#DC2626',
+                  offsetY: 24,
+                  formatter: () => vm.formatCurrency(netWorth),
+                },
+                total: {
+                  show: true,
+                  showAlways: true,
+                  label: '',
+                  fontSize: '16px',
+                  fontWeight: 700,
+                  color: netWorth >= 0 ? '#16A34A' : '#DC2626',
+                  formatter: () => vm.formatCurrency(netWorth),
+                },
+              },
+            },
+          },
+        },
+        tooltip: {
+          y: {
+            formatter: (val) => {
+              const total = vm.netWorthChartSeries.reduce((a, b) => a + b, 0);
+              const percent = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
+              return `${vm.formatCurrency(val)} (${percent}%)`;
+            },
+          },
+        },
+        responsive: [
+          {
+            breakpoint: 768,
+            options: {
+              chart: { height: 240 },
+            },
+          },
+        ],
+      };
+    },
+
     // Retirement data - using real API data
-    ...mapState('retirement', ['dcPensions', 'dbPensions', 'statePension', 'profile', 'requiredCapital', 'analysis']),
+    ...mapState('retirement', ['dcPensions', 'dbPensions', 'statePension', 'profile', 'requiredCapital', 'analysis', 'annualAllowance', 'projections']),
     ...mapGetters('retirement', ['totalPensionWealth', 'yearsToRetirement', 'projectedIncome']),
 
     retirementData() {
-      // Use real data from API - NOT made up calculations
+      // Use the SAME data sources as the pension tab (projections from Monte Carlo)
       const requiredCapital = this.requiredCapital || {};
-
-      // Use analysis projected income if available
-      let projected = this.projectedIncome || 0;
-
-      // If analysis hasn't run (no retirement profile) but user has DB/State pensions,
-      // calculate guaranteed income directly from pension records
-      if (projected === 0 && (this.dbPensions?.length > 0 || this.statePension)) {
-        const dbIncome = (this.dbPensions || []).reduce((sum, p) => sum + parseFloat(p.accrued_annual_pension || 0), 0);
-        const stateIncome = parseFloat(this.statePension?.annual_amount || 0);
-        projected = dbIncome + stateIncome;
-      }
+      const potProjection = this.projections?.pension_pot_projection;
+      const incomeDrawdown = this.projections?.income_drawdown;
 
       return {
-        projectedIncome: projected,
-        targetIncome: requiredCapital.required_income || 0,
-        projectedCapital: this.totalPensionWealth || 0,
+        projectedIncome: incomeDrawdown?.yearly_income?.[0]?.total_income || this.projectedIncome || 0,
+        targetIncome: incomeDrawdown?.target_income || requiredCapital.required_income || 0,
+        projectedCapital: potProjection?.percentile_20_at_retirement || this.totalPensionWealth || 0,
         capitalRequired: requiredCapital.required_capital_at_retirement || 0,
         retirementAge: this.profile?.target_retirement_age || null,
         yearsToRetirement: this.yearsToRetirement || null,
@@ -642,7 +874,7 @@ export default {
     // Investment & Savings data
     ...mapState('investment', { investmentAccounts: 'accounts', investmentAnalysis: 'analysis' }),
     ...mapGetters('investment', ['totalPortfolioValue']),
-    ...mapState('savings', ['expenditureProfile', 'accounts']),
+    ...mapState('savings', ['expenditureProfile', 'accounts', 'isaAllowance']),
 
     // Investment accounts list (for line items)
     investmentAccountsList() {
@@ -721,6 +953,7 @@ export default {
     },
 
     hasEstateData() {
+      if (this.userAge !== null && this.userAge <= 35) return false;
       return this.taxableEstate > 0 || this.ihtLiability > 0;
     },
 
@@ -745,6 +978,164 @@ export default {
     hasGoalsData() {
       // Always show goals card - it has empty state
       return true;
+    },
+
+    // ISA Allowance computed — uses server-calculated tracking data
+    // Lifetime ISA eligibility: under 40 and no main residence property
+    lisaEligible() {
+      if (this.userAge === null) return false;
+      if (this.userAge >= 40) return false;
+      // No property = likely first-time buyer
+      return !this.netWorthBreakdown.assets.property;
+    },
+
+    lisaAllowanceData() {
+      if (!this.lisaEligible) return null;
+
+      const lisaLimit = 4000;
+      const maxBonus = 1000; // 25% of £4,000
+
+      // Find LISA contributions from investment accounts
+      const lisaAccounts = (this.investmentAccounts || []).filter(a => {
+        const type = (a.account_type || '').toLowerCase();
+        return type === 'lisa' || type === 'lifetime_isa';
+      });
+
+      const used = lisaAccounts.reduce((sum, a) => {
+        return sum + parseFloat(a.isa_subscription_current_year || a.annual_contribution || 0);
+      }, 0);
+
+      const capped = Math.min(used, lisaLimit);
+      const remaining = lisaLimit - capped;
+      const percentUsed = (capped / lisaLimit) * 100;
+      const bonusEarned = capped * 0.25;
+
+      return { used: capped, remaining, percentUsed, bonusEarned, maxBonus };
+    },
+
+    isaAllowanceData() {
+      if (!this.isaAllowance) return null;
+      const fullAllowance = this.isaAllowance.total_allowance || 20000;
+      const totalAllowance = this.lisaAllowanceData ? fullAllowance - 4000 : fullAllowance;
+      const cashUsed = parseFloat(this.isaAllowance.cash_isa_used || 0);
+      const ssUsed = parseFloat(this.isaAllowance.stocks_shares_isa_used || 0);
+      const totalUsed = parseFloat(this.isaAllowance.total_used || 0) || (cashUsed + ssUsed);
+      const remaining = totalAllowance - totalUsed;
+      const percentUsed = this.isaAllowance.percentage_used || (totalAllowance > 0 ? (totalUsed / totalAllowance) * 100 : 0);
+
+      return {
+        totalAllowance,
+        cashUsed,
+        ssUsed,
+        totalUsed,
+        remaining,
+        percentUsed,
+      };
+    },
+
+    // Pension Annual Allowance computed
+    pensionAllowanceData() {
+      if (this.annualAllowance) {
+        const available = this.annualAllowance.available_allowance || 60000;
+        const contributions = this.annualAllowance.total_contributions || 0;
+        const remaining = this.annualAllowance.remaining_allowance || (available - contributions);
+        const percentUsed = available > 0 ? (contributions / available) * 100 : 0;
+
+        return {
+          availableAllowance: available,
+          totalContributions: contributions,
+          remaining,
+          percentUsed,
+          isTapered: this.annualAllowance.is_tapered || false,
+          mpaaTriggered: false,
+          hasExcess: this.annualAllowance.has_excess || false,
+        };
+      }
+
+      // Fallback: calculate from DC pensions if annual allowance API didn't return data
+      if (this.dcPensions && this.dcPensions.length > 0) {
+        const totalContributions = this.dcPensions.reduce((sum, p) => {
+          const employee = parseFloat(p.employee_contribution_amount || 0);
+          const employer = parseFloat(p.employer_contribution_amount || 0);
+          // Annualise monthly contributions
+          const freq = (p.contribution_frequency || 'monthly').toLowerCase();
+          const multiplier = freq === 'annual' || freq === 'annually' ? 1 : 12;
+          return sum + (employee + employer) * multiplier;
+        }, 0);
+
+        if (totalContributions > 0) {
+          const available = 60000;
+          const remaining = available - totalContributions;
+          const percentUsed = (totalContributions / available) * 100;
+
+          return {
+            availableAllowance: available,
+            totalContributions,
+            remaining,
+            percentUsed,
+            isTapered: false,
+            mpaaTriggered: false,
+            hasExcess: totalContributions > available,
+          };
+        }
+      }
+
+      return null;
+    },
+
+    // Pension standard used (capped at available allowance)
+    pensionStandardUsed() {
+      if (!this.pensionAllowanceData) return 0;
+      return Math.min(this.pensionAllowanceData.totalContributions, this.pensionAllowanceData.availableAllowance);
+    },
+
+    pensionStandardPercent() {
+      if (!this.pensionAllowanceData) return 0;
+      return (this.pensionStandardUsed / this.pensionAllowanceData.availableAllowance) * 100;
+    },
+
+    pensionStandardRemaining() {
+      if (!this.pensionAllowanceData) return 0;
+      return Math.max(0, this.pensionAllowanceData.availableAllowance - this.pensionStandardUsed);
+    },
+
+    // Carry forward data (only shown when contributions exceed standard allowance)
+    carryForwardData() {
+      if (!this.pensionAllowanceData) return null;
+      const excess = this.pensionAllowanceData.totalContributions - this.pensionAllowanceData.availableAllowance;
+      if (excess <= 0) return null;
+
+      const carryForwardAvailable = this.annualAllowance?.carry_forward_available || this.annualAllowance?.carry_forward || 0;
+      if (carryForwardAvailable <= 0) return null;
+
+      const used = Math.min(carryForwardAvailable, excess);
+      const remaining = this.pensionAllowanceData.availableAllowance - used;
+      const percentUsed = (used / this.pensionAllowanceData.availableAllowance) * 100;
+
+      return { used, remaining, percentUsed };
+    },
+
+    currentTaxYear() {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth();
+      const day = now.getDate();
+      const taxYearStart = (month > 3 || (month === 3 && day >= 6)) ? year : year - 1;
+      return `${taxYearStart}/${String(taxYearStart + 1).slice(-2)}`;
+    },
+
+    carryForwardTaxYear() {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth();
+      const day = now.getDate();
+      const taxYearStart = (month > 3 || (month === 3 && day >= 6)) ? year : year - 1;
+      const cfStart = taxYearStart - 3;
+      return `${cfStart}/${String(cfStart + 1).slice(-2)}`;
+    },
+
+    hasAllowancesData() {
+      return !!this.lisaAllowanceData || !!this.isaAllowanceData || !!this.pensionAllowanceData;
     },
   },
 
@@ -787,20 +1178,14 @@ export default {
     },
 
     formatCashAccountName(account) {
-      const typeLabels = {
-        current_account: 'Current',
-        savings_account: 'Savings',
-        cash_isa: 'Cash ISA',
-        fixed_term: 'Fixed Term',
-        notice_account: 'Notice',
-        money_market: 'Money Market',
-      };
-      const type = typeLabels[account.account_type] || account.account_type || '';
-      const institution = account.institution || '';
-      if (institution && type) {
-        return `${institution} ${type}`;
-      }
-      return institution || type || 'Cash Account';
+      const isJoint = account.ownership_type === 'joint' || account.ownership_type === 'tenants_in_common';
+      const jointLabel = isJoint ? ' (Joint)' : '';
+      const name = account.account_name || '';
+      const provider = account.institution || account.provider_name || '';
+
+      if (name) return name + jointLabel;
+      if (provider) return provider + jointLabel;
+      return 'Cash Account' + jointLabel;
     },
 
     // Format protection policy name from provider and policy type
@@ -821,6 +1206,12 @@ export default {
         return `${provider} ${formattedType}`;
       }
       return provider || formattedType || fallbackType;
+    },
+
+    allowanceBarClass(percentUsed, isOverLimit) {
+      if (isOverLimit || percentUsed >= 95) return 'bg-red-500';
+      if (percentUsed >= 75) return 'bg-blue-500';
+      return 'bg-green-500';
     },
 
     dismissMFABanner() {
@@ -872,9 +1263,11 @@ export default {
         { name: 'retirement', action: 'retirement/fetchRetirementData' },
         { name: 'retirement', action: 'retirement/fetchRequiredCapital' },
         { name: 'retirement', action: 'retirement/analyseRetirement' },
+        { name: 'retirement', action: 'retirement/fetchProjections' },
         { name: 'investment', action: 'investment/fetchInvestmentData' },
         { name: 'investment', action: 'investment/analyseInvestment' },
         { name: 'taxAllowances', action: 'savings/fetchSavingsData' },
+        { name: 'taxAllowances', action: 'retirement/fetchAnnualAllowance', payload: '2025/26' },
         { name: 'goals', action: 'goals/fetchDashboardOverview' },
       ];
 

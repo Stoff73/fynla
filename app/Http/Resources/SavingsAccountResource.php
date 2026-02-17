@@ -21,8 +21,9 @@ class SavingsAccountResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'account_name' => $this->account_type,
+            'account_name' => $this->account_name,
             'provider' => $this->institution,
+            'institution' => $this->institution,
             'account_type' => $this->account_type,
             'current_balance' => $this->current_balance,
             'interest_rate' => $this->interest_rate,

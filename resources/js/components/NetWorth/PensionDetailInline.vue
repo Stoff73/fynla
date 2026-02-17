@@ -266,7 +266,7 @@
                   <h3 class="text-lg font-semibold text-gray-800 mb-3">National Insurance Record</h3>
                   <dl class="space-y-2">
                     <div class="flex justify-between">
-                      <dt class="text-sm text-gray-600">NI Years Completed:</dt>
+                      <dt class="text-sm text-gray-600">National Insurance Years Completed:</dt>
                       <dd class="text-sm font-medium text-gray-900">{{ pension.ni_years_completed || 0 }}</dd>
                     </div>
                     <div class="flex justify-between">
@@ -551,12 +551,12 @@ export default {
     formatDCPensionType(type) {
       const types = {
         occupational: 'Work Pension',
-        sipp: 'SIPP',
+        sipp: 'Self-Invested Personal Pension',
         personal: 'Personal',
         stakeholder: 'Stakeholder',
         workplace: 'Workplace',
       };
-      return types[type] || 'DC Pension';
+      return types[type] || 'Defined Contribution Pension';
     },
 
     formatDBSchemeType(type) {
@@ -565,7 +565,7 @@ export default {
         career_average: 'Career Average',
         public_sector: 'Public Sector',
       };
-      return types[type] || 'DB Pension';
+      return types[type] || 'Defined Benefit Pension';
     },
 
     confirmDelete() {

@@ -19,7 +19,7 @@
     <div v-else class="space-y-6">
       <!-- Wrapper Comparison Header -->
       <div class="bg-white rounded-lg shadow-md p-6">
-        <h2 class="text-xl font-semibold text-gray-800 mb-6">Wrapper Comparison: ISA vs GIA vs Pension</h2>
+        <h2 class="text-xl font-semibold text-gray-800 mb-6">Wrapper Comparison: ISA vs General Investment Account vs Pension</h2>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
           <!-- ISA Wrapper -->
@@ -74,7 +74,7 @@
           <!-- GIA Wrapper -->
           <div class="bg-gray-50 rounded-lg p-6 shadow-sm">
             <div class="flex items-center justify-between mb-4">
-              <h3 class="text-lg font-semibold text-gray-800">GIA</h3>
+              <h3 class="text-lg font-semibold text-gray-800">General Investment Account</h3>
               <span class="px-3 py-1 bg-yellow-500 text-white text-xs font-semibold rounded-full">TAXABLE</span>
             </div>
 
@@ -85,7 +85,7 @@
               </div>
               <div class="flex justify-between items-center">
                 <span class="text-sm text-gray-600">Tax on Growth:</span>
-                <span class="font-semibold text-blue-600">CGT (10-20%)</span>
+                <span class="font-semibold text-blue-600">Capital Gains Tax (10-20%)</span>
               </div>
               <div class="flex justify-between items-center">
                 <span class="text-sm text-gray-600">Tax on Income:</span>
@@ -106,7 +106,7 @@
                 </li>
                 <li class="flex items-start">
                   <span class="mr-1">✓</span>
-                  <span>Growth stocks (CGT efficient)</span>
+                  <span>Growth stocks (Capital Gains Tax efficient)</span>
                 </li>
                 <li class="flex items-start">
                   <span class="mr-1">✓</span>
@@ -286,7 +286,7 @@
 
           <!-- GIA Result -->
           <div class="bg-gray-50 rounded-lg p-4">
-            <h4 class="text-sm font-semibold text-gray-800 mb-3">GIA (Taxable)</h4>
+            <h4 class="text-sm font-semibold text-gray-800 mb-3">General Investment Account (Taxable)</h4>
             <p class="text-2xl font-bold text-blue-600 mb-2">
               £{{ formatNumber(comparisonResults.gia.finalValue) }}
             </p>
@@ -300,7 +300,7 @@
                 <span>£{{ formatNumber(comparisonResults.gia.grossGrowth) }}</span>
               </div>
               <div class="flex justify-between font-semibold text-red-600">
-                <span>Tax Paid (CGT):</span>
+                <span>Tax Paid (Capital Gains Tax):</span>
                 <span>£{{ formatNumber(comparisonResults.gia.taxPaid) }}</span>
               </div>
             </div>
@@ -341,7 +341,7 @@
               <p class="text-lg font-bold" :class="getWinnerTextClass()">{{ getWinner() }}</p>
             </div>
             <div class="text-right">
-              <p class="text-sm text-gray-600">Advantage over GIA:</p>
+              <p class="text-sm text-gray-600">Advantage over General Investment Account:</p>
               <p class="text-xl font-bold text-green-600">£{{ formatNumber(getAdvantage()) }}</p>
             </div>
           </div>
@@ -371,7 +371,7 @@
           <!-- CGT Allowance -->
           <div>
             <div class="flex justify-between items-center mb-2">
-              <h4 class="text-sm font-semibold text-gray-700">CGT Allowance</h4>
+              <h4 class="text-sm font-semibold text-gray-700">Capital Gains Tax Allowance</h4>
               <span class="text-sm font-semibold text-gray-600">£3,000</span>
             </div>
             <div class="w-full bg-gray-200 rounded-full h-3 mb-2">
@@ -426,9 +426,9 @@
           </div>
 
           <div class="bg-gray-50 p-4 rounded-lg">
-            <h4 class="font-semibold text-gray-800 mb-2">Step 3: Use GIA (Priority 3)</h4>
+            <h4 class="font-semibold text-gray-800 mb-2">Step 3: Use General Investment Account (Priority 3)</h4>
             <p class="text-sm text-gray-700 mb-2">
-              After ISA limit exhausted, use GIA. Optimise with growth stocks (CGT-efficient) and index funds.
+              After ISA limit exhausted, use a General Investment Account. Optimise with growth stocks (Capital Gains Tax-efficient) and index funds.
             </p>
             <p class="text-xs text-gray-600">
               <strong>Best for:</strong> Large portfolios, growth investing, after ISA/Pension limits reached
@@ -490,7 +490,7 @@ export default {
           },
         },
         xaxis: {
-          categories: ['ISA', 'GIA', 'Pension'],
+          categories: ['ISA', 'General Investment Account', 'Pension'],
         },
         yaxis: {
           labels: {

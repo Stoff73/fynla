@@ -39,7 +39,7 @@
               <div class="ml-3">
                 <h4 class="font-medium text-blue-800">Recommendation</h4>
                 <p class="text-sm text-blue-700 mt-1">
-                  Your GIA balance of <strong>{{ formatCurrency(data.gia_balance) }}</strong> may benefit from
+                  Your General Investment Account balance of <strong>{{ formatCurrency(data.gia_balance) }}</strong> may benefit from
                   {{ wrapperTypeLabel }} wrapper, potentially saving
                   <strong class="text-green-600">{{ formatCurrency(data.tax_deferral_benefit) }}/year</strong>
                   in tax deferral.
@@ -52,7 +52,7 @@
           <div>
             <h4 class="font-semibold text-gray-800 mb-3">What is an Investment Bond?</h4>
             <p class="text-sm text-gray-600 mb-4">
-              An investment bond is a tax-efficient wrapper for your investments. Unlike a GIA where you pay tax annually
+              An investment bond is a tax-efficient wrapper for your investments. Unlike a General Investment Account where you pay tax annually
               on gains and dividends, a bond allows your investments to grow with tax deferred until you make a withdrawal.
             </p>
 
@@ -200,7 +200,7 @@
             rel="noopener noreferrer"
             class="px-4 py-2 bg-primary-600 text-white rounded-button hover:bg-primary-700 flex items-center"
           >
-            HMRC Guidance
+            HM Revenue & Customs Guidance
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 ml-2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
             </svg>

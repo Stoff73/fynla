@@ -25,7 +25,7 @@
                 {{ formatChattelType(chattel.chattel_type) }}
               </span>
               <span v-if="chattel.is_wasting_asset" class="badge badge-green">
-                CGT Exempt
+                Capital Gains Tax Exempt
               </span>
               <span v-if="chattel.is_shared" class="badge badge-indigo">
                 {{ chattel.ownership_percentage }}% Ownership
@@ -91,7 +91,7 @@
             <svg class="w-5 h-5 text-blue-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
             </svg>
-            <p class="text-sm font-medium text-blue-800">Below £6,000 threshold - Currently exempt from CGT if sold at this value</p>
+            <p class="text-sm font-medium text-blue-800">Below £6,000 threshold - Currently exempt from Capital Gains Tax if sold at this value</p>
           </div>
         </div>
       </div>
@@ -195,20 +195,20 @@
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
                 <div>
-                  <h3 class="text-lg font-semibold text-green-800">Wasting Asset - CGT Exempt</h3>
+                  <h3 class="text-lg font-semibold text-green-800">Wasting Asset - Capital Gains Tax Exempt</h3>
                   <p class="text-sm text-green-700 mt-2">
                     Vehicles are classified as wasting assets (predictable life of 50 years or less) and are completely exempt from Capital Gains Tax.
-                    No CGT will be due regardless of the sale price.
+                    No Capital Gains Tax will be due regardless of the sale price.
                   </p>
                 </div>
               </div>
             </div>
 
             <div v-else>
-              <h3 class="text-lg font-semibold text-gray-800 mb-4">Calculate CGT on Disposal</h3>
+              <h3 class="text-lg font-semibold text-gray-800 mb-4">Calculate Capital Gains Tax on Disposal</h3>
               <p class="text-sm text-gray-600 mb-6">
                 Enter the expected sale price to calculate potential Capital Gains Tax liability.
-                CGT applies to personal valuables sold for over £6,000, with marginal relief available for sales between £6,000 and £15,000.
+                Capital Gains Tax applies to personal valuables sold for over £6,000, with marginal relief available for sales between £6,000 and £15,000.
               </p>
 
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -248,15 +248,15 @@
                 :disabled="!cgtForm.disposal_price || calculatingCGT"
                 class="px-4 py-2 bg-pink-600 text-white rounded-button hover:bg-pink-700 transition-colors disabled:opacity-50"
               >
-                {{ calculatingCGT ? 'Calculating...' : 'Calculate CGT' }}
+                {{ calculatingCGT ? 'Calculating...' : 'Calculate Capital Gains Tax' }}
               </button>
 
               <!-- CGT Result -->
               <div v-if="cgtResult" class="mt-6">
                 <div v-if="cgtResult.is_exempt" class="bg-gray-50 rounded-lg p-6">
-                  <h4 class="text-lg font-semibold text-green-800">CGT Exempt</h4>
+                  <h4 class="text-lg font-semibold text-green-800">Capital Gains Tax Exempt</h4>
                   <p class="text-sm text-green-700 mt-2">{{ cgtResult.exemption_reason }}</p>
-                  <p class="text-2xl font-bold text-green-600 mt-3">CGT Liability: £0</p>
+                  <p class="text-2xl font-bold text-green-600 mt-3">Capital Gains Tax Liability: £0</p>
                 </div>
 
                 <div v-else-if="cgtResult.is_loss" class="bg-gray-50 rounded-lg p-6">
@@ -277,7 +277,7 @@
                 </div>
 
                 <div v-else class="bg-gray-50 rounded-lg p-6 border border-gray-200">
-                  <h4 class="text-lg font-semibold text-gray-800 mb-4">CGT Calculation Breakdown</h4>
+                  <h4 class="text-lg font-semibold text-gray-800 mb-4">Capital Gains Tax Calculation Breakdown</h4>
                   <dl class="space-y-3">
                     <div class="flex justify-between pb-2 border-b border-gray-200">
                       <dt class="text-sm text-gray-600">Disposal Price</dt>
@@ -308,11 +308,11 @@
                       <dd class="text-sm font-bold text-gray-900">{{ formatCurrency(cgtResult.taxable_gain) }}</dd>
                     </div>
                     <div class="flex justify-between">
-                      <dt class="text-sm text-gray-600">CGT Rate</dt>
+                      <dt class="text-sm text-gray-600">Capital Gains Tax Rate</dt>
                       <dd class="text-sm font-medium text-gray-900">{{ cgtResult.cgt_rate }}%</dd>
                     </div>
                     <div class="flex justify-between pt-3 border-t-2 border-gray-300 mt-3">
-                      <dt class="text-base font-semibold text-gray-800">CGT Liability</dt>
+                      <dt class="text-base font-semibold text-gray-800">Capital Gains Tax Liability</dt>
                       <dd class="text-xl font-bold text-pink-600">{{ formatCurrency(cgtResult.cgt_liability) }}</dd>
                     </div>
                   </dl>
@@ -384,7 +384,7 @@ export default {
       calculatingCGT: false,
       tabs: [
         { id: 'overview', label: 'Overview' },
-        { id: 'cgt', label: 'CGT Calculator' },
+        { id: 'cgt', label: 'Capital Gains Tax Calculator' },
         { id: 'notes', label: 'Notes' },
       ],
     };

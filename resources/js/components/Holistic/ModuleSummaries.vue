@@ -149,7 +149,7 @@
             <p class="text-lg font-semibold text-gray-900 mt-1">{{ formatCurrency(summaries.estate?.net_worth || 0) }}</p>
           </div>
           <div>
-            <span class="text-sm text-gray-600">IHT Liability</span>
+            <span class="text-sm text-gray-600">Inheritance Tax Liability</span>
             <p class="text-lg font-semibold text-gray-900 mt-1">{{ formatCurrency(summaries.estate?.iht_liability || 0) }}</p>
           </div>
           <div class="md:col-span-1">

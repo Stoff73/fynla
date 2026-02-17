@@ -365,10 +365,10 @@
               class="w-full border border-blue-200 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
             >
               <option value="">No tax relief</option>
-              <option value="eis">EIS (30% relief)</option>
+              <option value="eis">Enterprise Investment Scheme (30% relief)</option>
               <option value="seis">SEIS (50% relief)</option>
               <option value="sitr">SITR</option>
-              <option value="vct">VCT</option>
+              <option value="vct">Venture Capital Trust</option>
               <option value="none">None / Not Eligible</option>
             </select>
           </div>
@@ -388,7 +388,7 @@
               </div>
               <div>
                 <label for="hmrc_reference" class="block text-sm font-medium text-blue-800 mb-1">
-                  HMRC Reference
+                  HM Revenue & Customs Reference
                 </label>
                 <input
                   id="hmrc_reference"
@@ -430,7 +430,7 @@
             </div>
             <div class="bg-yellow-50 border border-yellow-200 rounded-md p-3">
               <p class="text-xs text-yellow-800">
-                <strong>Note:</strong> EIS/SEIS investments must be held for at least 3 years to retain tax relief.
+                <strong>Note:</strong> Enterprise Investment Scheme / Seed Enterprise Investment Scheme investments must be held for at least 3 years to retain tax relief.
                 The disposal restriction date will be automatically calculated from your investment date.
               </p>
             </div>

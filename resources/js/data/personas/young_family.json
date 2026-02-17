@@ -151,7 +151,7 @@
     },
     {
       "id": 3,
-      "account_name": "Joint Savings Account",
+      "account_name": "Carter Savings Account",
       "provider_name": "Marcus",
       "account_type": "instant_access",
       "current_balance": 8500,
@@ -170,6 +170,7 @@
       "current_balance": 2800,
       "interest_rate": 0,
       "is_isa": true,
+      "isa_subscription_current_year": 1200,
       "ownership_type": "individual",
       "monthly_contribution": 100,
       "notes": "For Oliver's future education"
@@ -182,6 +183,7 @@
       "current_balance": 1400,
       "interest_rate": 0,
       "is_isa": true,
+      "isa_subscription_current_year": 1200,
       "ownership_type": "individual",
       "monthly_contribution": 100,
       "notes": "For Sophie's future education"
@@ -198,6 +200,7 @@
       "annual_contribution": 4800,
       "monthly_contribution_amount": 400,
       "contribution_frequency": "monthly",
+      "isa_subscription_current_year": 4800,
       "ownership_type": "individual",
       "platform_fee_percent": 0.15,
       "advisor_fee_percent": 0,

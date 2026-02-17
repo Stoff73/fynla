@@ -46,7 +46,7 @@
     <div class="taper-relief-info">
       <h4>Taper Relief Rates</h4>
       <p class="relief-note">
-        <strong>Note:</strong> Gifts to your spouse or civil partner are exempt from Inheritance Tax under the unlimited spouse exemption and do not need to survive 7 years. The 7-year rule only applies to Potentially Exempt Transfers (PETs) to other individuals.
+        <strong>Note:</strong> Gifts to your spouse or civil partner are exempt from Inheritance Tax under the unlimited spouse exemption and do not need to survive 7 years. The 7-year rule only applies to Potentially Exempt Transfers to other individuals.
       </p>
       <table class="relief-table">
         <thead>
@@ -348,8 +348,8 @@ export default {
 
     formatGiftType(type) {
       const types = {
-        pet: 'PET (Potentially Exempt Transfer)',
-        clt: 'CLT (Chargeable Lifetime Transfer)',
+        pet: 'Potentially Exempt Transfer',
+        clt: 'Chargeable Lifetime Transfer',
         exempt: 'Exempt (Spouse/Charity)',
         small_gift: 'Small Gift Exemption',
         annual_exemption: 'Annual Exemption',

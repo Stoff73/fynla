@@ -84,7 +84,7 @@
         @click="navigateToInvestment"
         class="flex-1 px-4 py-2 text-sm font-medium text-green-600 bg-green-50 rounded-button hover:bg-green-100 transition-colors"
       >
-        Manage S&S ISAs
+        Manage Stocks & Shares ISAs
       </button>
     </div>
 

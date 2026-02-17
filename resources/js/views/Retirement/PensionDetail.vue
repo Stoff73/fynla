@@ -153,13 +153,25 @@
                   <dt class="text-sm text-gray-600">Employer Contribution:</dt>
                   <dd class="text-sm font-medium text-gray-900">{{ pension.employer_contribution_percent || 0 }}%</dd>
                 </div>
+                <div v-if="pension.scheme_type === 'workplace' && pension.annual_salary > 0" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
+                  <dt class="text-sm text-gray-600">Employee Monthly:</dt>
+                  <dd class="text-sm font-medium text-gray-900">{{ formatCurrency((pension.employee_contribution_percent * pension.annual_salary) / 100 / 12) }}</dd>
+                </div>
+                <div v-if="pension.scheme_type === 'workplace' && pension.annual_salary > 0" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
+                  <dt class="text-sm text-gray-600">Employer Monthly:</dt>
+                  <dd class="text-sm font-medium text-gray-900">{{ formatCurrency((pension.employer_contribution_percent * pension.annual_salary) / 100 / 12) }}</dd>
+                </div>
+                <div v-if="pension.scheme_type === 'workplace' && pension.annual_salary > 0" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
+                  <dt class="text-sm text-gray-600">Total Monthly:</dt>
+                  <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(((pension.employee_contribution_percent + pension.employer_contribution_percent) * pension.annual_salary) / 100 / 12) }}</dd>
+                </div>
                 <div v-if="pension.scheme_type !== 'workplace'" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                   <dt class="text-sm text-gray-600">Monthly Contribution:</dt>
                   <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(pension.monthly_contribution_amount || 0) }}</dd>
                 </div>
                 <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                   <dt class="text-sm text-gray-600">Current Salary:</dt>
-                  <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(pension.current_salary || 0) }}</dd>
+                  <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(pension.annual_salary || 0) }}</dd>
                 </div>
               </dl>
             </div>
@@ -433,7 +445,7 @@ export default {
     formatSchemeType(type) {
       const types = {
         workplace: 'Workplace Pension',
-        sipp: 'SIPP',
+        sipp: 'Self-Invested Personal Pension',
         personal: 'Personal Pension',
         stakeholder: 'Stakeholder Pension',
       };

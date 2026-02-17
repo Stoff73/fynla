@@ -54,7 +54,7 @@
         <div v-if="trustTypeInfo" class="bg-blue-50 border border-blue-200 rounded-md p-4">
           <h4 class="text-sm font-semibold text-blue-900 mb-2">{{ trustTypeInfo.name }}</h4>
           <p class="text-xs text-blue-800 mb-2">{{ trustTypeInfo.description }}</p>
-          <p class="text-xs text-blue-700"><strong>IHT Treatment:</strong> {{ trustTypeInfo.iht_treatment }}</p>
+          <p class="text-xs text-blue-700"><strong>Inheritance Tax Treatment:</strong> {{ trustTypeInfo.iht_treatment }}</p>
           <p class="text-xs text-blue-700 mt-1"><strong>Best For:</strong> {{ trustTypeInfo.best_for }}</p>
         </div>
 
@@ -397,7 +397,7 @@ export default {
         interest_in_possession: {
           name: 'Interest in Possession Trust',
           description: 'Beneficiary entitled to income, trustees hold capital',
-          iht_treatment: 'Qualifying IIP: counts in life tenant estate',
+          iht_treatment: 'Qualifying Interest in Possession: counts in life tenant estate',
           best_for: 'Providing income to spouse while preserving capital for children',
         },
         discretionary: {
@@ -416,7 +416,7 @@ export default {
           name: 'Life Insurance Trust',
           description: 'Life insurance policy written in trust',
           iht_treatment: 'Policy proceeds outside estate if written in trust from inception',
-          best_for: 'Providing liquid funds to pay IHT liability',
+          best_for: 'Providing liquid funds to pay Inheritance Tax liability',
         },
         discounted_gift: {
           name: 'Discounted Gift Trust',

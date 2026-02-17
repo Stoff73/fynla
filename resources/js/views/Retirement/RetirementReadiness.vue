@@ -323,12 +323,12 @@ export default {
     formatDCPensionType(type) {
       const types = {
         occupational: 'Occupational',
-        sipp: 'SIPP',
+        sipp: 'Self-Invested Personal Pension',
         personal: 'Personal',
         stakeholder: 'Stakeholder',
         workplace: 'Workplace',
       };
-      return types[type] || 'DC Pension';
+      return types[type] || 'Defined Contribution Pension';
     },
 
     formatDBPensionType(type) {
@@ -337,7 +337,7 @@ export default {
         career_average: 'Career Average',
         public_sector: 'Public Sector',
       };
-      return types[type] || 'DB Pension';
+      return types[type] || 'Defined Benefit Pension';
     },
 
     closePensionForm() {

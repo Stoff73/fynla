@@ -18,6 +18,7 @@ class SavingsAccount extends Model
 
     protected $fillable = [
         'user_id',
+        'account_name',
         'account_type',
         'institution',
         'account_number',

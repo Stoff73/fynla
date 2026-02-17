@@ -1,6 +1,6 @@
 <template>
   <div class="cgt-harvesting-opportunities">
-    <h3 class="text-lg font-semibold text-gray-800 mb-4">CGT Tax-Loss Harvesting</h3>
+    <h3 class="text-lg font-semibold text-gray-800 mb-4">Capital Gains Tax-Loss Harvesting</h3>
 
     <!-- No Data State -->
     <div v-if="!opportunities || opportunities.opportunities.length === 0" class="text-center py-12 text-gray-500">
@@ -16,7 +16,7 @@
       <!-- Summary Cards -->
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div class="bg-white rounded-lg p-4 border-l-4 border-blue-500">
-          <p class="text-sm text-gray-600 mb-1">CGT Allowance</p>
+          <p class="text-sm text-gray-600 mb-1">Capital Gains Tax Allowance</p>
           <p class="text-2xl font-bold text-gray-800">£{{ formatNumber(opportunities.cgt_allowance) }}</p>
         </div>
         <div class="bg-white rounded-lg p-4 border-l-4 border-red-500">

@@ -98,12 +98,12 @@
             <span class="font-medium text-gray-900">{{ formatCurrency(unrealisedGains) }}</span>
           </div>
           <div class="flex justify-between">
-            <span class="text-gray-600">Potential CGT Liability:</span>
+            <span class="text-gray-600">Potential Capital Gains Tax Liability:</span>
             <span class="font-medium text-gray-900">{{ formatCurrency(calculateCGT(unrealisedGains)) }}</span>
           </div>
         </div>
         <p class="text-xs text-gray-500 mt-4">
-          * Assumes higher rate taxpayer (20% CGT rate)
+          * Assumes higher rate taxpayer (20% Capital Gains Tax rate)
         </p>
       </div>
     </div>

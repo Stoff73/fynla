@@ -191,7 +191,7 @@ export default {
           // Get life cover strategy if has recommendation
           if (data?.life_cover_strategy?.recommendation) {
             strategies.push({
-              strategy_name: 'Life Insurance for IHT',
+              strategy_name: 'Life Insurance for Inheritance Tax',
               description: data.life_cover_strategy.recommendation,
               iht_saved: data.life_cover_strategy.cover_required,
               category: 'life_cover',
