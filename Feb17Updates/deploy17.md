@@ -1,6 +1,6 @@
 # Deploy 17 February 2026
 
-**Status:** PENDING DEPLOYMENT
+**Status:** DEPLOYED 17 February 2026
 
 ---
 
@@ -112,10 +112,11 @@ Yes - frontend Vue components changed.
 2. `app/Services/UserProfile/UserProfileService.php`
 3. `app/Http/Resources/SavingsAccountResource.php`
 4. `app/Models/SavingsAccount.php`
-5. `database/migrations/2026_02_17_120040_add_account_name_to_savings_accounts_table.php`
-6. `database/seeders/PreviewUserSeeder.php`
-7. `routes/api.php`
-8. `CLAUDE.md`
+5. `database/migrations/2026_01_26_000001_add_contribution_fields_to_savings_accounts.php`
+6. `database/migrations/2026_02_17_120040_add_account_name_to_savings_accounts_table.php`
+7. `database/seeders/PreviewUserSeeder.php`
+8. `routes/api.php`
+9. `CLAUDE.md`
 
 ---
 
