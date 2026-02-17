@@ -38,10 +38,10 @@
         </p>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
           <div class="bg-white rounded-lg p-4">
-            <h4 class="font-semibold text-purple-800 mb-2">Chargeable Lifetime Transfers (CLTs)</h4>
+            <h4 class="font-semibold text-purple-800 mb-2">Chargeable Lifetime Transfers</h4>
             <ul class="space-y-1 text-gray-700">
               <li>• Transfers to most trusts are immediately chargeable</li>
-              <li>• <strong>20% tax</strong> on amounts exceeding £325,000 NRB</li>
+              <li>• <strong>20% tax</strong> on amounts exceeding £325,000 Nil Rate Band</li>
               <li>• <strong>25% effective rate</strong> if settlor pays the tax</li>
               <li>• 7-year rolling window for cumulative transfers</li>
             </ul>
@@ -52,7 +52,7 @@
               <li>• Tax recalculated at <strong>40% death rate</strong></li>
               <li>• Credit given for 20% already paid</li>
               <li>• Taper relief applies if death 3-7 years later</li>
-              <li>• After 7 years: CLT fully effective</li>
+              <li>• After 7 years: Chargeable Lifetime Transfer fully effective</li>
             </ul>
           </div>
         </div>
@@ -175,7 +175,7 @@
 
             <!-- CLT Cycle Schedule (for multi-cycle strategy) -->
             <div v-if="strategy.clt_schedule && strategy.clt_schedule.length > 0" class="mb-6">
-              <h5 class="font-semibold text-gray-900 mb-3">CLT Cycle Schedule</h5>
+              <h5 class="font-semibold text-gray-900 mb-3">Chargeable Lifetime Transfer Cycle Schedule</h5>
               <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
                 <table class="min-w-full divide-y divide-gray-200">
                   <thead class="bg-gray-50">
@@ -362,7 +362,7 @@
             <p class="mt-2 text-sm text-blue-700">
               Trust planning is complex and has significant legal and tax implications. The strategies shown are for educational purposes only.
               You must consult a qualified solicitor and tax adviser before implementing any trust strategy. Professional trust drafting is essential
-              to ensure the trust achieves your objectives and complies with HMRC requirements.
+              to ensure the trust achieves your objectives and complies with HM Revenue & Customs requirements.
             </p>
           </div>
         </div>

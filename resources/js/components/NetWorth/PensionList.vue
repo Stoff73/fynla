@@ -90,7 +90,7 @@
                 <span class="badge badge-dc">{{ formatDCPensionType(pension.pension_type) }}</span>
               </div>
               <div class="card-content">
-                <h4 class="pension-provider">{{ pension.scheme_name || 'DC Pension' }}</h4>
+                <h4 class="pension-provider">{{ pension.scheme_name || 'Defined Contribution Pension' }}</h4>
                 <div class="pension-details">
                   <div class="detail-row">
                     <span class="detail-label">Current Value</span>
@@ -115,7 +115,7 @@
                 <span class="badge badge-db">{{ formatDBPensionType(pension.scheme_type) }}</span>
               </div>
               <div class="card-content">
-                <h4 class="pension-provider">{{ pension.scheme_name || 'DB Pension' }}</h4>
+                <h4 class="pension-provider">{{ pension.scheme_name || 'Defined Benefit Pension' }}</h4>
                 <div class="pension-details">
                   <div class="detail-row">
                     <span class="detail-label">Annual Pension</span>
@@ -154,7 +154,7 @@
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
               </svg>
-              <span>DC fund depletes at age {{ fundDepletionAge }}</span>
+              <span>Defined Contribution fund depletes at age {{ fundDepletionAge }}</span>
             </div>
           </div>
 
@@ -178,7 +178,7 @@
                   </div>
                   <div>
                     <h3 class="guaranteed-title">Guaranteed Retirement Income</h3>
-                    <p class="guaranteed-subtitle">Your secure pension income from DB schemes and State Pension</p>
+                    <p class="guaranteed-subtitle">Your secure pension income from Defined Benefit schemes and State Pension</p>
                   </div>
                 </div>
 
@@ -194,7 +194,7 @@
                   <div v-for="pension in dbPensions" :key="'detail-db-' + pension.id" class="guaranteed-item">
                     <div class="guaranteed-item-header">
                       <span class="badge badge-db">{{ formatDBPensionType(pension.scheme_type) }}</span>
-                      <span class="guaranteed-item-name">{{ pension.scheme_name || 'DB Pension' }}</span>
+                      <span class="guaranteed-item-name">{{ pension.scheme_name || 'Defined Benefit Pension' }}</span>
                     </div>
                     <div class="guaranteed-item-details">
                       <div class="guaranteed-detail-row">
@@ -232,7 +232,7 @@
                         <span class="font-semibold">{{ statePension.state_pension_age }}</span>
                       </div>
                       <div v-if="statePension.ni_years" class="guaranteed-detail-row">
-                        <span>NI Years</span>
+                        <span>National Insurance Years</span>
                         <span class="font-semibold">{{ statePension.ni_years }} years</span>
                       </div>
                     </div>
@@ -257,7 +257,7 @@
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="empty-icon">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
                 </svg>
-                <p>Add DC pensions to see projections</p>
+                <p>Add Defined Contribution pensions to see projections</p>
                 <p class="empty-subtitle">Monte Carlo simulations show how your pension pot may grow over time</p>
               </template>
             </div>
@@ -892,12 +892,12 @@ export default {
     formatDCPensionType(type) {
       const types = {
         occupational: 'Work Pension',
-        sipp: 'SIPP',
+        sipp: 'Self-Invested Personal Pension',
         personal: 'Personal',
         stakeholder: 'Stakeholder',
         workplace: 'Workplace',
       };
-      return types[type] || 'DC';
+      return types[type] || 'Defined Contribution';
     },
 
     formatDBPensionType(type) {
@@ -906,7 +906,7 @@ export default {
         career_average: 'Career Average',
         public_sector: 'Public Sector',
       };
-      return types[type] || 'DB';
+      return types[type] || 'Defined Benefit';
     },
 
     formatRiskLevel(level) {

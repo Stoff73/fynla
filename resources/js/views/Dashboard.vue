@@ -17,7 +17,7 @@
           <div class="flex-1">
             <h3 class="text-sm font-semibold text-green-800">Secure Your Account with Two-Factor Authentication</h3>
             <p class="mt-1 text-sm text-green-700">
-              Protect your financial data by enabling 2FA. It adds an extra layer of security using an authenticator app on your phone.
+              Protect your financial data by enabling two-factor authentication. It adds an extra layer of security using an authenticator app on your phone.
             </p>
             <div class="mt-3 flex items-center gap-3">
               <router-link
@@ -27,7 +27,7 @@
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
-                Enable 2FA Now
+                Enable Two-Factor Authentication
               </router-link>
               <button
                 @click="dismissMFABanner"
@@ -304,7 +304,7 @@
               <span class="text-sm font-semibold text-gray-900">{{ formatCurrency(retiredIncomeData.pensionDrawdown) }}/yr</span>
             </div>
             <div v-if="retiredIncomeData.dbPensionIncome > 0" class="flex justify-between items-center">
-              <span class="text-sm text-gray-600">DB Pension</span>
+              <span class="text-sm text-gray-600">Defined Benefit Pension</span>
               <span class="text-sm font-semibold text-gray-900">{{ formatCurrency(retiredIncomeData.dbPensionIncome) }}/yr</span>
             </div>
             <div v-if="retiredIncomeData.statePensionIncome > 0" class="flex justify-between items-center">
@@ -394,10 +394,91 @@
           </div>
         </DashboardCard>
 
-        <!-- Actions Card - fills 3rd slot in row 2 -->
-        <div class="bg-white rounded-lg border border-gray-200 p-6">
-          <ActionsOverviewCard :compact="true" :limit="5" />
-        </div>
+        <!-- Allowances Card -->
+        <DashboardCard
+          title="Allowances"
+          :loading="loading.taxAllowances"
+        >
+          <div v-if="hasAllowancesData" class="space-y-4">
+            <!-- ISA Allowance -->
+            <div v-if="isaAllowanceData">
+              <div class="flex justify-between items-baseline mb-1">
+                <span class="text-sm font-semibold text-gray-700">ISA Allowance</span>
+                <span class="text-xs text-gray-500">2025/26</span>
+              </div>
+              <!-- Progress bar -->
+              <div class="w-full bg-gray-100 rounded-full h-2 mb-2">
+                <div
+                  class="h-2 rounded-full transition-all"
+                  :class="allowanceBarClass(isaAllowanceData.percentUsed, false)"
+                  :style="{ width: Math.min(isaAllowanceData.percentUsed, 100) + '%' }"
+                ></div>
+              </div>
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-600">{{ formatCurrency(isaAllowanceData.totalUsed) }} used</span>
+                <span :class="isaAllowanceData.remaining >= 0 ? 'text-green-600' : 'text-red-600'" class="font-medium">
+                  {{ formatCurrency(isaAllowanceData.remaining) }} remaining
+                </span>
+              </div>
+              <!-- Cash / Stocks & Shares breakdown -->
+              <div v-if="isaAllowanceData.cashUsed > 0 || isaAllowanceData.ssUsed > 0" class="flex gap-4 mt-1 text-xs text-gray-500">
+                <span v-if="isaAllowanceData.cashUsed > 0">Cash ISA: {{ formatCurrency(isaAllowanceData.cashUsed) }}</span>
+                <span v-if="isaAllowanceData.ssUsed > 0">Stocks &amp; Shares ISA: {{ formatCurrency(isaAllowanceData.ssUsed) }}</span>
+              </div>
+            </div>
+
+            <!-- Divider -->
+            <div v-if="isaAllowanceData && pensionAllowanceData" class="border-t border-gray-100"></div>
+
+            <!-- Pension Annual Allowance -->
+            <div v-if="pensionAllowanceData">
+              <div class="flex justify-between items-baseline mb-1">
+                <div class="flex items-center gap-2">
+                  <span class="text-sm font-semibold text-gray-700">Pension Annual Allowance</span>
+                  <span
+                    v-if="pensionAllowanceData.isTapered"
+                    class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700"
+                  >Tapered</span>
+                  <span
+                    v-if="pensionAllowanceData.mpaaTriggered"
+                    class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700"
+                  >Money Purchase Annual Allowance</span>
+                </div>
+                <span class="text-xs text-gray-500">2025/26</span>
+              </div>
+              <!-- Progress bar -->
+              <div class="w-full bg-gray-100 rounded-full h-2 mb-2">
+                <div
+                  class="h-2 rounded-full transition-all"
+                  :class="allowanceBarClass(pensionAllowanceData.percentUsed, pensionAllowanceData.hasExcess)"
+                  :style="{ width: Math.min(pensionAllowanceData.percentUsed, 100) + '%' }"
+                ></div>
+              </div>
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-600">{{ formatCurrency(pensionAllowanceData.totalContributions) }} used</span>
+                <span :class="pensionAllowanceData.remaining >= 0 ? 'text-green-600' : 'text-red-600'" class="font-medium">
+                  {{ formatCurrency(pensionAllowanceData.remaining) }} remaining
+                </span>
+              </div>
+              <div class="text-xs text-gray-500 mt-1">
+                of {{ formatCurrency(pensionAllowanceData.availableAllowance) }} allowance
+              </div>
+            </div>
+          </div>
+
+          <!-- Empty state -->
+          <div v-else class="text-center py-4">
+            <div class="mx-auto w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center mb-3">
+              <svg class="w-6 h-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <h3 class="text-sm font-semibold text-gray-900 mb-1">No Allowance Data</h3>
+            <p class="text-xs text-gray-500">
+              Add savings or pension accounts to track your tax allowances.
+            </p>
+          </div>
+        </DashboardCard>
 
         <!-- Goals & Events Card (spans 2 columns on larger screens) -->
         <DashboardCard
@@ -442,7 +523,6 @@ import { mapGetters, mapState, mapActions } from 'vuex';
 import AppLayout from '@/layouts/AppLayout.vue';
 import DashboardCard from '@/components/Dashboard/DashboardCard.vue';
 import GoalsProjectionChartDashboard from '@/components/Dashboard/GoalsProjectionChartDashboard.vue';
-import ActionsOverviewCard from '@/components/Dashboard/ActionsOverviewCard.vue';
 import AreasToConsiderCard from '@/components/Dashboard/AreasToConsiderCard.vue';
 import AreasToCompleteCard from '@/components/Dashboard/AreasToCompleteCard.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
@@ -456,7 +536,6 @@ export default {
     AppLayout,
     DashboardCard,
     GoalsProjectionChartDashboard,
-    ActionsOverviewCard,
     AreasToConsiderCard,
     AreasToCompleteCard,
   },
@@ -674,7 +753,7 @@ export default {
     },
 
     // Retirement data - using real API data
-    ...mapState('retirement', ['dcPensions', 'dbPensions', 'statePension', 'profile', 'requiredCapital', 'analysis']),
+    ...mapState('retirement', ['dcPensions', 'dbPensions', 'statePension', 'profile', 'requiredCapital', 'analysis', 'annualAllowance']),
     ...mapGetters('retirement', ['totalPensionWealth', 'yearsToRetirement', 'projectedIncome']),
 
     retirementData() {
@@ -736,7 +815,7 @@ export default {
     // Investment & Savings data
     ...mapState('investment', { investmentAccounts: 'accounts', investmentAnalysis: 'analysis' }),
     ...mapGetters('investment', ['totalPortfolioValue']),
-    ...mapState('savings', ['expenditureProfile', 'accounts']),
+    ...mapState('savings', ['expenditureProfile', 'accounts', 'isaAllowance']),
 
     // Investment accounts list (for line items)
     investmentAccountsList() {
@@ -840,6 +919,80 @@ export default {
       // Always show goals card - it has empty state
       return true;
     },
+
+    // ISA Allowance computed — uses server-calculated tracking data
+    isaAllowanceData() {
+      if (!this.isaAllowance) return null;
+      const totalAllowance = this.isaAllowance.total_allowance || 20000;
+      const cashUsed = parseFloat(this.isaAllowance.cash_isa_used || 0);
+      const ssUsed = parseFloat(this.isaAllowance.stocks_shares_isa_used || 0);
+      const totalUsed = parseFloat(this.isaAllowance.total_used || 0) || (cashUsed + ssUsed);
+      const remaining = totalAllowance - totalUsed;
+      const percentUsed = this.isaAllowance.percentage_used || (totalAllowance > 0 ? (totalUsed / totalAllowance) * 100 : 0);
+
+      return {
+        totalAllowance,
+        cashUsed,
+        ssUsed,
+        totalUsed,
+        remaining,
+        percentUsed,
+      };
+    },
+
+    // Pension Annual Allowance computed
+    pensionAllowanceData() {
+      if (this.annualAllowance) {
+        const available = this.annualAllowance.available_allowance || 60000;
+        const contributions = this.annualAllowance.total_contributions || 0;
+        const remaining = this.annualAllowance.remaining_allowance || (available - contributions);
+        const percentUsed = available > 0 ? (contributions / available) * 100 : 0;
+
+        return {
+          availableAllowance: available,
+          totalContributions: contributions,
+          remaining,
+          percentUsed,
+          isTapered: this.annualAllowance.is_tapered || false,
+          mpaaTriggered: false,
+          hasExcess: this.annualAllowance.has_excess || false,
+        };
+      }
+
+      // Fallback: calculate from DC pensions if annual allowance API didn't return data
+      if (this.dcPensions && this.dcPensions.length > 0) {
+        const totalContributions = this.dcPensions.reduce((sum, p) => {
+          const employee = parseFloat(p.employee_contribution_amount || 0);
+          const employer = parseFloat(p.employer_contribution_amount || 0);
+          // Annualise monthly contributions
+          const freq = (p.contribution_frequency || 'monthly').toLowerCase();
+          const multiplier = freq === 'annual' || freq === 'annually' ? 1 : 12;
+          return sum + (employee + employer) * multiplier;
+        }, 0);
+
+        if (totalContributions > 0) {
+          const available = 60000;
+          const remaining = available - totalContributions;
+          const percentUsed = (totalContributions / available) * 100;
+
+          return {
+            availableAllowance: available,
+            totalContributions,
+            remaining,
+            percentUsed,
+            isTapered: false,
+            mpaaTriggered: false,
+            hasExcess: totalContributions > available,
+          };
+        }
+      }
+
+      return null;
+    },
+
+    hasAllowancesData() {
+      return !!this.isaAllowanceData || !!this.pensionAllowanceData;
+    },
   },
 
   methods: {
@@ -881,20 +1034,14 @@ export default {
     },
 
     formatCashAccountName(account) {
-      const typeLabels = {
-        current_account: 'Current',
-        savings_account: 'Savings',
-        cash_isa: 'Cash ISA',
-        fixed_term: 'Fixed Term',
-        notice_account: 'Notice',
-        money_market: 'Money Market',
-      };
-      const type = typeLabels[account.account_type] || account.account_type || '';
-      const institution = account.institution || '';
-      if (institution && type) {
-        return `${institution} ${type}`;
-      }
-      return institution || type || 'Cash Account';
+      const isJoint = account.ownership_type === 'joint' || account.ownership_type === 'tenants_in_common';
+      const jointLabel = isJoint ? ' (Joint)' : '';
+      const name = account.account_name || '';
+      const provider = account.institution || account.provider_name || '';
+
+      if (name) return name + jointLabel;
+      if (provider) return provider + jointLabel;
+      return 'Cash Account' + jointLabel;
     },
 
     // Format protection policy name from provider and policy type
@@ -915,6 +1062,12 @@ export default {
         return `${provider} ${formattedType}`;
       }
       return provider || formattedType || fallbackType;
+    },
+
+    allowanceBarClass(percentUsed, isOverLimit) {
+      if (isOverLimit || percentUsed >= 95) return 'bg-red-500';
+      if (percentUsed >= 75) return 'bg-blue-500';
+      return 'bg-green-500';
     },
 
     dismissMFABanner() {
@@ -969,6 +1122,7 @@ export default {
         { name: 'investment', action: 'investment/fetchInvestmentData' },
         { name: 'investment', action: 'investment/analyseInvestment' },
         { name: 'taxAllowances', action: 'savings/fetchSavingsData' },
+        { name: 'taxAllowances', action: 'retirement/fetchAnnualAllowance', payload: '2025/26' },
         { name: 'goals', action: 'goals/fetchDashboardOverview' },
       ];
 

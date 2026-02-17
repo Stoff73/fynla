@@ -212,12 +212,12 @@ export default {
   methods: {
     getSourceTypeLabel(sourceType) {
       const labels = {
-        dc_pension_pcls: 'PCLS',
+        dc_pension_pcls: 'Pension Commencement Lump Sum',
         dc_pension_drawdown: 'Pension',
-        db_pension: 'DB Pension',
+        db_pension: 'Defined Benefit Pension',
         state_pension: 'State Pension',
         isa: 'ISA',
-        gia: 'GIA',
+        gia: 'General Investment Account',
         bond: 'Bond',
         savings: 'Savings',
       };

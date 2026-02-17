@@ -61,7 +61,7 @@
 
       <!-- Transfer Recommendations -->
       <div v-if="strategy.transfer_recommendations && strategy.transfer_recommendations.length > 0" class="mb-6">
-        <h4 class="text-md font-semibold text-gray-800 mb-3">Transfer Recommendations (GIA → ISA)</h4>
+        <h4 class="text-md font-semibold text-gray-800 mb-3">Transfer Recommendations (General Investment Account → ISA)</h4>
         <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
           <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">

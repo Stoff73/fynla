@@ -4,7 +4,7 @@
       <!-- Header -->
       <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
         <h3 class="text-xl font-semibold text-gray-900">
-          {{ isEdit ? 'Edit' : 'Add' }} DB Pension
+          {{ isEdit ? 'Edit' : 'Add' }} Defined Benefit Pension
         </h3>
         <button @click="$emit('close')" class="text-gray-400 hover:text-gray-600 transition-colors">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -19,11 +19,11 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
         </svg>
         <div>
-          <p class="text-sm font-bold text-blue-900">Important Notice About DB Pensions</p>
+          <p class="text-sm font-bold text-blue-900">Important Notice About Defined Benefit Pensions</p>
           <p class="text-sm text-blue-800 mt-2">
-            DB pension information is captured for <strong>income projection only</strong>.
-            This system does <strong>not provide DB to DC transfer advice</strong>.
-            DB pension transfers are complex and may not be suitable.
+            Defined Benefit pension information is captured for <strong>income projection only</strong>.
+            This system does <strong>not provide Defined Benefit to Defined Contribution transfer advice</strong>.
+            Defined Benefit pension transfers are complex and may not be suitable.
             You should seek specialist financial advice before considering any transfer.
           </p>
         </div>

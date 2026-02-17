@@ -30,7 +30,7 @@
       <div class="space-y-6">
         <!-- DC Pensions Contributions -->
         <div>
-          <h4 class="text-md font-medium text-gray-700 mb-4">DC Pension Contributions</h4>
+          <h4 class="text-md font-medium text-gray-700 mb-4">Defined Contribution Pension Contributions</h4>
           <div v-if="dcPensions.length > 0" class="space-y-3">
             <div
               v-for="pension in dcPensions"
@@ -48,7 +48,7 @@
                     Personal Pension: {{ formatCurrency(parseFloat(pension.monthly_contribution_amount || 0)) }}/month
                   </span>
                   <span v-else-if="pension.scheme_type === 'sipp'">
-                    SIPP: {{ formatCurrency(parseFloat(pension.monthly_contribution_amount || 0)) }}/month
+                    Self-Invested Personal Pension: {{ formatCurrency(parseFloat(pension.monthly_contribution_amount || 0)) }}/month
                   </span>
                 </p>
               </div>
@@ -61,7 +61,7 @@
             </div>
           </div>
           <div v-else class="text-center text-gray-500 py-4">
-            No DC pensions with contributions
+            No Defined Contribution pensions with contributions
           </div>
         </div>
 
@@ -94,7 +94,7 @@
           <p class="text-sm font-medium text-green-900 mb-2">Benefits:</p>
           <ul class="text-sm text-green-800 space-y-1">
             <li>• Save on National Insurance contributions</li>
-            <li>• Employer saves NI too (often passed on)</li>
+            <li>• Employer saves National Insurance too (often passed on)</li>
             <li>• More cost-effective than regular contributions</li>
           </ul>
         </div>
@@ -118,7 +118,7 @@
             <span class="font-semibold text-gray-900">£10,000</span>
           </div>
           <div class="flex items-center justify-between p-3 bg-gray-50 rounded">
-            <span class="text-sm text-gray-600">MPAA (if triggered)</span>
+            <span class="text-sm text-gray-600">Money Purchase Annual Allowance (if triggered)</span>
             <span class="font-semibold text-gray-900">£10,000</span>
           </div>
           <div class="flex items-center justify-between p-3 bg-gray-50 rounded">

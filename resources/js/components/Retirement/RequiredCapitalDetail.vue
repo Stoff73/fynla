@@ -65,9 +65,9 @@
         <p class="section-note">Values projected to age {{ data.retirement_info.retirement_age }} (80% confidence)</p>
         <div class="asset-cards">
           <div v-for="pension in dcPensions" :key="pension.id" class="asset-card pension">
-            <span class="asset-name">{{ pension.scheme_name || pension.provider || 'DC Pension' }}</span>
+            <span class="asset-name">{{ pension.scheme_name || pension.provider || 'Defined Contribution Pension' }}</span>
             <span class="asset-value">{{ formatCurrency(projectedPotAtRetirement) }}</span>
-            <span class="asset-type">DC Pension - Projected (80% confidence)</span>
+            <span class="asset-type">Defined Contribution Pension - Projected (80% confidence)</span>
           </div>
           <div v-for="account in includedInvestments" :key="'inv-' + account.id" class="asset-card investment">
             <span class="asset-name">{{ account.account_name || account.provider || formatAccountType(account.account_type) }}</span>
@@ -533,16 +533,16 @@ export default {
       if (!type) return 'Investment';
       const typeMap = {
         isa: 'ISA',
-        sipp: 'SIPP',
-        gia: 'GIA',
-        lisa: 'LISA',
-        jisa: 'JISA',
+        sipp: 'Self-Invested Personal Pension',
+        gia: 'General Investment Account',
+        lisa: 'Lifetime ISA',
+        jisa: 'Junior ISA',
         private_company: 'Private Company',
         crowdfunding: 'Crowdfunding',
-        saye: 'SAYE',
-        csop: 'CSOP',
-        emi: 'EMI',
-        rsu: 'RSU',
+        saye: 'Save As You Earn',
+        csop: 'Company Share Option Plan',
+        emi: 'Enterprise Management Incentive',
+        rsu: 'Restricted Stock Units',
         unapproved_options: 'Unapproved Options',
       };
       return typeMap[type] || type.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());

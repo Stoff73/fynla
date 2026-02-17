@@ -702,13 +702,38 @@ class PreviewUserSeeder extends Seeder
             }
 
             // Single-record pattern: Store FULL balance directly (no splitting)
+            $isIsa = $account['is_isa'] ?? false;
+            $accountType = $account['account_type'] ?? 'instant_access';
+            $isaType = null;
+            $isaSubscriptionAmount = null;
+            $isaSubscriptionYear = null;
+
+            if ($isIsa) {
+                // Determine ISA type from account_type
+                if ($accountType === 'cash_isa') {
+                    $isaType = 'cash';
+                } elseif ($accountType === 'lisa') {
+                    $isaType = 'LISA';
+                }
+
+                // Set subscription data if available
+                $isaSubscriptionAmount = $account['isa_subscription_current_year'] ?? $account['isa_subscription_amount'] ?? null;
+                if ($isaSubscriptionAmount !== null) {
+                    $isaSubscriptionYear = '2025/26';
+                }
+            }
+
             SavingsAccount::create([
                 'user_id' => $owner->id,
+                'account_name' => $account['account_name'] ?? null,
                 'institution' => $account['provider_name'] ?? '',
-                'account_type' => $account['account_type'] ?? 'instant_access',
+                'account_type' => $accountType,
                 'current_balance' => $totalBalance, // FULL balance
                 'interest_rate' => $account['interest_rate'] ?? null,
-                'is_isa' => $account['is_isa'] ?? false,
+                'is_isa' => $isIsa,
+                'isa_type' => $isaType,
+                'isa_subscription_amount' => $isaSubscriptionAmount,
+                'isa_subscription_year' => $isaSubscriptionYear,
                 'access_type' => $account['access_type'] ?? 'immediate',
                 'ownership_type' => $account['ownership_type'] ?? 'individual',
                 'ownership_percentage' => $isJoint ? 50 : 100,
@@ -764,7 +789,7 @@ class PreviewUserSeeder extends Seeder
                 'planned_lump_sum_amount' => $account['planned_lump_sum_amount'] ?? null,
                 'planned_lump_sum_date' => isset($account['planned_lump_sum_date']) ? $account['planned_lump_sum_date'] : null,
                 'isa_subscription_current_year' => $isaSubscription,
-                'tax_year' => '2024/25',
+                'tax_year' => '2025/26',
                 'ownership_type' => $account['ownership_type'] ?? 'individual',
                 'ownership_percentage' => $isJoint ? 50 : 100,
                 'joint_owner_id' => $jointOwnerId,

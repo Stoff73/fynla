@@ -53,7 +53,7 @@
 
       <div v-if="formData.has_trusts" class="bg-blue-50 p-4 rounded-lg border border-blue-200">
         <p class="text-body-sm text-blue-800">
-          Trusts can affect your IHT calculation due to Potentially Exempt Transfers (PETs) and Chargeable Lifetime Transfers (CLTs).
+          Trusts can affect your Inheritance Tax calculation due to Potentially Exempt Transfers and Chargeable Lifetime Transfers.
         </p>
       </div>
 

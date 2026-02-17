@@ -74,7 +74,7 @@
           <!-- Vehicle Details (conditional) -->
           <div v-if="form.chattel_type === 'vehicle'" class="space-y-4 p-4 bg-gray-50 rounded-lg">
             <h4 class="font-medium text-blue-900">Vehicle Details</h4>
-            <p class="text-xs text-blue-700 mb-3">Vehicles are classified as wasting assets and are CGT exempt.</p>
+            <p class="text-xs text-blue-700 mb-3">Vehicles are classified as wasting assets and are Capital Gains Tax exempt.</p>
             <div class="grid grid-cols-2 gap-4">
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Make</label>

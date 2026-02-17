@@ -34,7 +34,7 @@
       <!-- Strategy Summary -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div class="bg-white rounded-lg p-4 border-2 border-red-500">
-          <p class="text-sm text-red-700 mb-1 font-medium">Current IHT Liability</p>
+          <p class="text-sm text-red-700 mb-1 font-medium">Current Inheritance Tax Liability</p>
           <p class="text-lg sm:text-xl lg:text-2xl font-bold text-red-900">{{ formatCurrency(personalizedStrategy.summary.original_iht_liability) }}</p>
           <p class="text-xs text-red-600">At projected death</p>
         </div>
@@ -49,7 +49,7 @@
           <p class="text-xs text-purple-600">Via recommended strategies</p>
         </div>
         <div class="bg-white rounded-lg p-4 border-2 border-green-500">
-          <p class="text-sm text-green-700 mb-1 font-medium">IHT Saved</p>
+          <p class="text-sm text-green-700 mb-1 font-medium">Inheritance Tax Saved</p>
           <p class="text-lg sm:text-xl lg:text-2xl font-bold text-green-900">{{ formatCurrency(personalizedStrategy.summary.total_iht_saved) }}</p>
           <p class="text-xs text-green-600">{{ personalizedStrategy.summary.reduction_percentage }}% reduction</p>
         </div>
@@ -144,10 +144,10 @@
             <p class="text-xs font-medium text-purple-600 mb-2">Tax Considerations:</p>
             <div class="text-xs text-gray-700 space-y-1">
               <p v-if="strategy.tax_considerations.cgt_rate">
-                <span class="font-medium">CGT:</span> {{ strategy.tax_considerations.cgt_rate }}
+                <span class="font-medium">Capital Gains Tax:</span> {{ strategy.tax_considerations.cgt_rate }}
               </p>
               <p v-if="strategy.tax_considerations.sdlt">
-                <span class="font-medium">SDLT:</span> {{ strategy.tax_considerations.sdlt }}
+                <span class="font-medium">Stamp Duty:</span> {{ strategy.tax_considerations.sdlt }}
               </p>
               <p v-if="strategy.tax_considerations.iht_treatment">
                 <span class="font-medium">Inheritance Tax:</span> {{ strategy.tax_considerations.iht_treatment }}
@@ -278,7 +278,7 @@
     <!-- Actual Gifts Section Header -->
     <div class="mb-6">
       <h2 class="text-2xl font-bold text-gray-900 mb-2">Gifts Made (Actual)</h2>
-      <p class="text-gray-600">Track gifts you've actually made and monitor their PET status</p>
+      <p class="text-gray-600">Track gifts you've actually made and monitor their Potentially Exempt Transfer status</p>
     </div>
 
     <!-- Gifting Summary -->
@@ -314,10 +314,10 @@
           </svg>
         </div>
         <div class="ml-3 flex-1">
-          <h3 class="text-sm font-semibold text-blue-900">HMRC 7-Year Rule & Taper Relief</h3>
+          <h3 class="text-sm font-semibold text-blue-900">HM Revenue & Customs 7-Year Rule & Taper Relief</h3>
           <div class="mt-2 text-sm text-blue-800">
             <p class="mb-2">
-              Potentially Exempt Transfers (PETs) become completely exempt from Inheritance Tax if you survive for 7 years after making the gift.
+              Potentially Exempt Transfers become completely exempt from Inheritance Tax if you survive for 7 years after making the gift.
             </p>
             <p class="font-medium mb-1">If death occurs within 7 years, taper relief applies:</p>
             <ul class="list-disc list-inside space-y-1 ml-2">
@@ -670,8 +670,8 @@ export default {
 
     formatGiftType(type) {
       const types = {
-        pet: 'PET',
-        clt: 'CLT',
+        pet: 'Potentially Exempt Transfer',
+        clt: 'Chargeable Lifetime Transfer',
         exempt: 'Exempt',
         small_gift: 'Small Gift',
         annual_exemption: 'Annual Exemption',

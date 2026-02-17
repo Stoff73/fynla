@@ -169,7 +169,7 @@
 
             <!-- GIA Contribution -->
             <div class="border border-gray-200 rounded-lg p-4">
-              <p class="text-sm text-gray-600 mb-1">GIA (Taxable)</p>
+              <p class="text-sm text-gray-600 mb-1">General Investment Account (Taxable)</p>
               <p class="text-2xl font-bold text-gray-600">
                 £{{ formatNumber(optimizationResult.wrapper_allocation.gia_contribution) }}
               </p>

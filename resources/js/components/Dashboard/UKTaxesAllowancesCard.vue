@@ -206,19 +206,19 @@
           <!-- IHT Tab -->
           <div v-if="activeTab === 'iht'" class="space-y-6">
             <div>
-              <h3 class="text-h3 text-gray-900 mb-4">Inheritance Tax (IHT)</h3>
+              <h3 class="text-h3 text-gray-900 mb-4">Inheritance Tax</h3>
 
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div class="bg-green-50 border border-green-200 rounded-lg p-4">
                   <p class="text-sm text-green-900">
-                    <strong>Nil Rate Band (NRB):</strong> £{{ formatNumber(taxConfig.inheritance_tax.nil_rate_band) }}
+                    <strong>Nil Rate Band:</strong> £{{ formatNumber(taxConfig.inheritance_tax.nil_rate_band) }}
                     <br>
                     <em class="text-xs">Transferable between spouses/civil partners</em>
                   </p>
                 </div>
                 <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <p class="text-sm text-blue-900">
-                    <strong>Residence NRB (RNRB):</strong> £{{ formatNumber(taxConfig.inheritance_tax.residence_nil_rate_band) }}
+                    <strong>Residence Nil Rate Band:</strong> £{{ formatNumber(taxConfig.inheritance_tax.residence_nil_rate_band) }}
                     <br>
                     <em class="text-xs">For main residence passed to direct descendants</em>
                   </p>
@@ -227,24 +227,24 @@
 
               <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
                 <p class="text-sm text-red-900">
-                  <strong>Standard IHT Rate:</strong> {{ (taxConfig.inheritance_tax.standard_rate * 100).toFixed(0) }}%
+                  <strong>Standard Inheritance Tax Rate:</strong> {{ (taxConfig.inheritance_tax.standard_rate * 100).toFixed(0) }}%
                   <br>
                   <strong>Reduced Rate (10%+ to charity):</strong> {{ (taxConfig.inheritance_tax.reduced_rate_charity * 100).toFixed(0) }}%
                 </p>
               </div>
 
-              <h4 class="text-h4 text-gray-900 mb-3 mt-6">RNRB Taper</h4>
+              <h4 class="text-h4 text-gray-900 mb-3 mt-6">Residence Nil Rate Band Taper</h4>
               <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
                 <p class="text-sm text-blue-900">
-                  RNRB tapers by £1 for every £2 the estate exceeds £{{ formatNumber(taxConfig.inheritance_tax.rnrb_taper_threshold) }}
+                  Residence Nil Rate Band tapers by £1 for every £2 the estate exceeds £{{ formatNumber(taxConfig.inheritance_tax.rnrb_taper_threshold) }}
                   <br>
-                  <em class="text-xs">RNRB is fully lost when estate reaches £{{ formatNumber(taxConfig.inheritance_tax.rnrb_taper_threshold + taxConfig.inheritance_tax.residence_nil_rate_band * 2) }}</em>
+                  <em class="text-xs">Residence Nil Rate Band is fully lost when estate reaches £{{ formatNumber(taxConfig.inheritance_tax.rnrb_taper_threshold + taxConfig.inheritance_tax.residence_nil_rate_band * 2) }}</em>
                 </p>
               </div>
             </div>
 
             <div>
-              <h4 class="text-h4 text-gray-900 mb-3">Potentially Exempt Transfers (PETs)</h4>
+              <h4 class="text-h4 text-gray-900 mb-3">Potentially Exempt Transfers</h4>
               <p class="text-sm text-gray-600 mb-3">
                 Gifts become fully exempt after 7 years. Taper relief applies if donor dies between years 3-7:
               </p>
@@ -252,7 +252,7 @@
                 <thead class="bg-gray-50">
                   <tr>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Years Since Gift</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">IHT Rate</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Inheritance Tax Rate</th>
                   </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
@@ -273,7 +273,7 @@
             </div>
 
             <div>
-              <h4 class="text-h4 text-gray-900 mb-3">IHT Gifting Exemptions</h4>
+              <h4 class="text-h4 text-gray-900 mb-3">Inheritance Tax Gifting Exemptions</h4>
               <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                   <tr>
@@ -586,7 +586,7 @@
                 <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                 </svg>
-                Inheritance Tax (IHT) Calculation
+                Inheritance Tax Calculation
               </h4>
               <div class="space-y-3 text-sm">
                 <p><strong>Step 1:</strong> Calculate Gross Estate Value</p>
@@ -597,34 +597,34 @@
 
                 <p><strong>Step 2:</strong> Determine Available Allowances</p>
                 <code class="block bg-gray-50 p-3 rounded text-xs">
-                  NRB Available = £325,000 × (1 + spouse_nrb_transferred)
+                  Nil Rate Band Available = £325,000 × (1 + spouse_nrb_transferred)
                   <br><br>If property asset AND passing to descendants:
-                  <br>&nbsp;&nbsp;RNRB Available = £175,000 × (1 + spouse_rnrb_transferred)
+                  <br>&nbsp;&nbsp;Residence Nil Rate Band Available = £175,000 × (1 + spouse_rnrb_transferred)
                   <br>&nbsp;&nbsp;If estate > £2,000,000:
-                  <br>&nbsp;&nbsp;&nbsp;&nbsp;RNRB Reduction = (estate - £2,000,000) / 2
-                  <br>&nbsp;&nbsp;&nbsp;&nbsp;RNRB Available = max(0, RNRB Available - RNRB Reduction)
+                  <br>&nbsp;&nbsp;&nbsp;&nbsp;Residence Nil Rate Band Reduction = (estate - £2,000,000) / 2
+                  <br>&nbsp;&nbsp;&nbsp;&nbsp;Residence Nil Rate Band Available = max(0, Residence Nil Rate Band Available - Residence Nil Rate Band Reduction)
                 </code>
 
                 <p><strong>Step 3:</strong> Calculate Taxable Estate</p>
                 <code class="block bg-gray-50 p-3 rounded text-xs">
-                  Total Allowances = NRB Available + RNRB Available
+                  Total Allowances = Nil Rate Band Available + Residence Nil Rate Band Available
                   <br>Taxable Estate = max(0, Gross Estate - Total Allowances)
                 </code>
 
-                <p><strong>Step 4:</strong> Calculate IHT Liability</p>
+                <p><strong>Step 4:</strong> Calculate Inheritance Tax Liability</p>
                 <code class="block bg-gray-50 p-3 rounded text-xs">
-                  IHT Liability = Taxable Estate × 40%
+                  Inheritance Tax Liability = Taxable Estate × 40%
                   <br>(Or 36% if 10%+ of net estate left to charity)
                 </code>
 
                 <p><strong>Example:</strong> Estate worth £800,000 with property, no spouse transfers</p>
                 <code class="block bg-blue-50 p-3 rounded text-xs">
                   Gross Estate: £800,000
-                  <br>NRB Available: £325,000
-                  <br>RNRB Available: £175,000 (property present)
+                  <br>Nil Rate Band Available: £325,000
+                  <br>Residence Nil Rate Band Available: £175,000 (property present)
                   <br>Total Allowances: £500,000
                   <br>Taxable Estate: £800,000 - £500,000 = £300,000
-                  <br>IHT Liability: £300,000 × 40% = £120,000
+                  <br>Inheritance Tax Liability: £300,000 × 40% = £120,000
                 </code>
               </div>
             </div>
@@ -635,7 +635,7 @@
                 <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                 </svg>
-                Capital Gains Tax (CGT) Calculation
+                Capital Gains Tax Calculation
               </h4>
               <div class="space-y-3 text-sm">
                 <p><strong>Step 1:</strong> Calculate Capital Gain</p>
@@ -649,7 +649,7 @@
                   Taxable Gain = max(0, Capital Gain - £3,000)
                 </code>
 
-                <p><strong>Step 3:</strong> Determine CGT Rate</p>
+                <p><strong>Step 3:</strong> Determine Capital Gains Tax Rate</p>
                 <code class="block bg-gray-50 p-3 rounded text-xs">
                   General Assets (shares, funds):
                   <br>&nbsp;&nbsp;Basic Rate Taxpayer: 10%
@@ -659,9 +659,9 @@
                   <br>&nbsp;&nbsp;Higher/Additional Rate: 24%
                 </code>
 
-                <p><strong>Step 4:</strong> Calculate CGT Due</p>
+                <p><strong>Step 4:</strong> Calculate Capital Gains Tax Due</p>
                 <code class="block bg-gray-50 p-3 rounded text-xs">
-                  CGT Due = Taxable Gain × Applicable Rate
+                  Capital Gains Tax Due = Taxable Gain × Applicable Rate
                 </code>
 
                 <p><strong>Example:</strong> Higher rate taxpayer sells shares</p>
@@ -672,8 +672,8 @@
                   <br>Capital Gain: £50,000 - £30,000 - £500 = £19,500
                   <br>Annual Exempt Amount: £3,000
                   <br>Taxable Gain: £19,500 - £3,000 = £16,500
-                  <br>CGT Rate: 20% (higher rate taxpayer, general asset)
-                  <br>CGT Due: £16,500 × 20% = £3,300
+                  <br>Capital Gains Tax Rate: 20% (higher rate taxpayer, general asset)
+                  <br>Capital Gains Tax Due: £16,500 × 20% = £3,300
                 </code>
               </div>
             </div>
@@ -689,7 +689,7 @@
               <div class="space-y-3 text-sm">
                 <p><strong>Step 1:</strong> Determine Base Allowance</p>
                 <code class="block bg-gray-50 p-3 rounded text-xs">
-                  If accessed pension flexibly: £10,000 (MPAA)
+                  If accessed pension flexibly: £10,000 (Money Purchase Annual Allowance)
                   <br>Otherwise: £60,000 (Standard Annual Allowance)
                 </code>
 

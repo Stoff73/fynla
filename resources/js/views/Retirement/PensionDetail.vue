@@ -433,7 +433,7 @@ export default {
     formatSchemeType(type) {
       const types = {
         workplace: 'Workplace Pension',
-        sipp: 'SIPP',
+        sipp: 'Self-Invested Personal Pension',
         personal: 'Personal Pension',
         stakeholder: 'Stakeholder Pension',
       };

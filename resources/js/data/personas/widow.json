@@ -200,7 +200,7 @@
     },
     {
       "id": 2,
-      "account_name": "Cash ISA",
+      "account_name": "Margaret's Cash ISA",
       "provider_name": "Nationwide",
       "account_type": "cash_isa",
       "current_balance": 85000,

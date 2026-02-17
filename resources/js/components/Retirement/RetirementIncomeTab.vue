@@ -912,8 +912,8 @@ export default {
         isa: 'ISA',
         stocks_shares_isa: 'Stocks & Shares ISA',
         lifetime_isa: 'Lifetime ISA',
-        sipp: 'SIPP',
-        gia: 'GIA',
+        sipp: 'Self-Invested Personal Pension',
+        gia: 'General Investment Account',
         onshore_bond: 'Onshore Bond',
         offshore_bond: 'Offshore Bond',
       };

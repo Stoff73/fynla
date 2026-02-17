@@ -136,7 +136,10 @@ When adding new auth-related POST routes, add them to `EXCLUDED_ROUTES` in `app/
 ### 9. No Amber or Orange Color
 The amber (`amber-*`) and orange (`orange-*`) colors are banned from the application. Use blue (`blue-*`) instead for warnings and caution states. See `designStyle.md` for the full color system.
 
-### 10. Design System Compliance
+### 10. No Acronyms in User-Facing Text
+All acronyms must be spelled out in user-facing text. Write "Annual Allowance" not "AA", "Stocks & Shares" not "S&S", "Defined Benefit" not "DB", "Defined Contribution" not "DC", "Money Purchase Annual Allowance" not "MPAA", etc. The only exception is **ISA**, which may remain abbreviated.
+
+### 11. Design System Compliance
 **CRITICAL:** Before changing, updating, or implementing anything related to the UI, you MUST read and follow `designStyle.md`. This includes:
 - Colors (especially risk level colors, semantic colors, and forbidden colors)
 - Typography and spacing

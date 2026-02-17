@@ -1,7 +1,7 @@
 <template>
   <OnboardingStep
     title="Domicile Information"
-    description="Your domicile status affects your UK tax liability and IHT calculations"
+    description="Your domicile status affects your UK tax liability and Inheritance Tax calculations"
     :can-go-back="true"
     :can-skip="false"
     :loading="loading"
@@ -12,7 +12,7 @@
     <div class="space-y-6">
       <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <p class="text-body-sm text-blue-800">
-          <strong>Why this matters:</strong> UK domicile status determines which assets are subject to UK Inheritance Tax. Non-UK domiciled individuals only pay IHT on UK assets, while UK domiciled individuals pay IHT on worldwide assets.
+          <strong>Why this matters:</strong> UK domicile status determines which assets are subject to UK Inheritance Tax. Non-UK domiciled individuals only pay Inheritance Tax on UK assets, while UK domiciled individuals pay Inheritance Tax on worldwide assets.
         </p>
       </div>
 
@@ -65,10 +65,10 @@
               <strong>Domicile Status:</strong> {{ domicileStatusLabel }}
             </p>
             <p v-if="isDeemedDomiciled" class="mt-2 text-body-sm text-blue-700">
-              You are considered deemed domiciled in the UK because you have been resident for at least 15 of the last 20 tax years. This means you are subject to UK IHT on your worldwide assets.
+              You are considered deemed domiciled in the UK because you have been resident for at least 15 of the last 20 tax years. This means you are subject to UK Inheritance Tax on your worldwide assets.
             </p>
             <p v-else class="mt-2 text-body-sm text-blue-700">
-              You are not yet deemed domiciled. You only pay UK IHT on UK assets. You will need {{ 15 - yearsResident }} more year(s) of UK residence to become deemed domiciled.
+              You are not yet deemed domiciled. You only pay UK Inheritance Tax on UK assets. You will need {{ 15 - yearsResident }} more year(s) of UK residence to become deemed domiciled.
             </p>
           </div>
         </div>

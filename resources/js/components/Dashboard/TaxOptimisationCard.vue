@@ -37,7 +37,7 @@
       <!-- CGT Allowance (only if user has non-ISA investments) -->
       <div v-if="hasNonIsaInvestments" class="allowance-item cursor-pointer hover:bg-gray-50 rounded-lg p-2 -m-2 transition-colors" @click="navigateTo('/investment')">
         <div class="flex justify-between items-center mb-1">
-          <span class="text-sm font-medium text-gray-700">CGT</span>
+          <span class="text-sm font-medium text-gray-700">Capital Gains Tax</span>
           <span class="text-xs text-gray-500">{{ formatCurrency(cgtUsed) }} / {{ formatCurrency(cgtLimit) }}</span>
         </div>
         <div class="h-2 rounded-full overflow-hidden bg-gray-200">
@@ -237,7 +237,7 @@ export default {
 
       // CGT (if applicable)
       if (this.hasNonIsaInvestments && this.cgtRemaining > 1000) {
-        messages.push(`${this.formatCurrency(this.cgtRemaining)} CGT`);
+        messages.push(`${this.formatCurrency(this.cgtRemaining)} Capital Gains Tax`);
       }
 
       // Dividend (if applicable)

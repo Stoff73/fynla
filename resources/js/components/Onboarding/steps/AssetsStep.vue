@@ -614,7 +614,7 @@ export default {
     }
 
     async function deletePension(type, id) {
-      const confirmMessage = `Are you sure you want to delete this ${type === 'dc' ? 'DC' : 'DB'} pension?`;
+      const confirmMessage = `Are you sure you want to delete this ${type === 'dc' ? 'Defined Contribution' : 'Defined Benefit'} pension?`;
       if (confirm(confirmMessage)) {
         try {
           if (type === 'dc') {
@@ -913,12 +913,12 @@ export default {
     const formatDCPensionType = (type) => {
       const types = {
         occupational: 'Occupational',
-        sipp: 'SIPP',
+        sipp: 'Self-Invested Personal Pension',
         personal: 'Personal',
         stakeholder: 'Stakeholder',
         workplace: 'Workplace',
       };
-      return types[type] || 'DC Pension';
+      return types[type] || 'Defined Contribution Pension';
     };
 
     const formatDBPensionType = (type) => {
@@ -927,21 +927,21 @@ export default {
         career_average: 'Career Average',
         public_sector: 'Public Sector',
       };
-      return types[type] || 'DB Pension';
+      return types[type] || 'Defined Benefit Pension';
     };
 
     // Investment account helper functions
     const formatInvestmentAccountType = (type) => {
       const types = {
         'isa': 'ISA',
-        'sipp': 'SIPP',
-        'gia': 'GIA',
+        'sipp': 'Self-Invested Personal Pension',
+        'gia': 'General Investment Account',
         'pension': 'Pension',
-        'nsi': 'NS&I',
+        'nsi': 'National Savings & Investments',
         'onshore_bond': 'Onshore Bond',
         'offshore_bond': 'Offshore Bond',
-        'vct': 'VCT',
-        'eis': 'EIS',
+        'vct': 'Venture Capital Trust',
+        'eis': 'Enterprise Investment Scheme',
         'other': 'Other',
       };
       return types[type] || type;

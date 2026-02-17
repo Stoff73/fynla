@@ -29,7 +29,7 @@
             >
               <option value="">Select pension type...</option>
               <option value="occupational">Occupational (Workplace)</option>
-              <option value="sipp">Self-Invested Personal Pension (SIPP)</option>
+              <option value="sipp">Self-Invested Personal Pension</option>
               <option value="personal">Personal Pension</option>
               <option value="stakeholder">Stakeholder Pension</option>
             </select>

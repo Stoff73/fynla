@@ -174,7 +174,7 @@
     <div v-if="property.sdlt_paid" class="bg-white border border-gray-200 rounded-lg p-6">
       <h4 class="text-md font-semibold text-gray-700 mb-4">Stamp Duty Land Tax</h4>
       <div class="flex justify-between items-center">
-        <span class="text-sm text-gray-600">SDLT Paid at Purchase:</span>
+        <span class="text-sm text-gray-600">Stamp Duty Paid at Purchase:</span>
         <span class="text-lg font-bold text-gray-900">{{ formatCurrency(property.sdlt_paid) }}</span>
       </div>
     </div>

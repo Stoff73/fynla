@@ -411,7 +411,7 @@
               v-if="otherStocksISAUsed > 0"
               class="bg-purple-500 h-full"
               :style="{ width: (otherStocksISAUsed / ISA_ALLOWANCE * 100) + '%' }"
-              :title="`Other S&S ISAs: ${formatCurrency(otherStocksISAUsed)}`"
+              :title="`Other Stocks & Shares ISAs: ${formatCurrency(otherStocksISAUsed)}`"
             ></div>
             <!-- This account's subscription -->
             <div
@@ -436,7 +436,7 @@
           </div>
           <div class="flex items-center gap-1">
             <div class="w-2 h-2 rounded-full bg-purple-500"></div>
-            <span class="text-gray-600">Other S&S ISAs: {{ formatCurrency(otherStocksISAUsed) }}</span>
+            <span class="text-gray-600">Other Stocks & Shares ISAs: {{ formatCurrency(otherStocksISAUsed) }}</span>
           </div>
           <div class="flex items-center gap-1">
             <div class="w-2 h-2 rounded-full bg-green-500"></div>

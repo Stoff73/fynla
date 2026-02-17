@@ -22,7 +22,7 @@
       >
         <option value="">All Types</option>
         <option value="isa">ISA</option>
-        <option value="cgt">CGT Harvesting</option>
+        <option value="cgt">Capital Gains Tax Harvesting</option>
         <option value="bed_and_isa">Bed & ISA</option>
         <option value="dividend">Dividend</option>
       </select>

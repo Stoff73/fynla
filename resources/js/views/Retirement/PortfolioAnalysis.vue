@@ -9,7 +9,7 @@
 
     <div class="mb-6 opacity-50">
       <h2 class="text-2xl font-bold text-gray-900">Portfolio Analysis</h2>
-      <p class="text-gray-600 mt-1">Advanced portfolio optimisation for your DC pension holdings</p>
+      <p class="text-gray-600 mt-1">Advanced portfolio optimisation for your Defined Contribution pension holdings</p>
     </div>
 
     <!-- Loading State -->
@@ -25,7 +25,7 @@
       </svg>
       <h3 class="text-lg font-semibold text-gray-900 mb-2">No Holdings Data</h3>
       <p class="text-gray-600 mb-4">
-        Add individual holdings to your DC pensions to unlock advanced portfolio analysis including risk metrics,
+        Add individual holdings to your Defined Contribution pensions to unlock advanced portfolio analysis including risk metrics,
         diversification scoring, and fee optimisation.
       </p>
       <router-link

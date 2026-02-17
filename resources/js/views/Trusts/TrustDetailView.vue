@@ -105,7 +105,7 @@
                 <dd class="detail-value">{{ getCGTDisplay(trust.trust_type) }}</dd>
               </div>
               <div class="detail-row">
-                <dt class="detail-label">IHT Treatment</dt>
+                <dt class="detail-label">Inheritance Tax Treatment</dt>
                 <dd class="detail-value">{{ getIHTDisplay(trust.trust_type) }}</dd>
               </div>
             </dl>
@@ -134,10 +134,10 @@
             <h2 class="rpt-title">Relevant Property Trust - Tax Implications</h2>
           </div>
           <ul class="rpt-list">
-            <li>Subject to 10-year periodic IHT charges (maximum 6%)</li>
+            <li>Subject to 10-year periodic Inheritance Tax charges (maximum 6%)</li>
             <li>Exit charges may apply when assets leave the trust</li>
             <li>Trust income taxed at 45% (39.35% for dividends)</li>
-            <li>CGT at 24% with £1,500 annual exemption</li>
+            <li>Capital Gains Tax at 24% with £1,500 annual exemption</li>
           </ul>
           <p v-if="nextPeriodicChargeDate" class="next-charge">
             <strong>Next 10-year anniversary:</strong> {{ nextPeriodicChargeDate }}
@@ -320,12 +320,12 @@ export default {
 
     getIHTDisplay(type) {
       const treatments = {
-        bare: 'PET (exempt after 7 years)',
+        bare: 'Potentially Exempt Transfer (exempt after 7 years)',
         interest_in_possession: 'May be in life tenant\'s estate',
         discretionary: '10-year and exit charges',
         accumulation_maintenance: '10-year and exit charges',
         life_insurance: 'Outside estate',
-        discounted_gift: 'Partial PET (discounted value)',
+        discounted_gift: 'Partial Potentially Exempt Transfer (discounted value)',
         loan: 'Loan in estate, growth outside',
         mixed: 'Depends on trust structure',
         settlor_interested: 'In settlor\'s estate',

@@ -84,7 +84,7 @@
                 <span class="row-value">{{ formatCurrency(taxShelteredValue) }}</span>
               </div>
               <div class="analysis-row">
-                <span class="row-label">Taxable (GIA)</span>
+                <span class="row-label">Taxable (General Investment Account)</span>
                 <span class="row-value">{{ formatCurrency(taxableValue) }}</span>
               </div>
               <div class="analysis-row">
@@ -431,8 +431,8 @@ export default {
     formatAccountType(type) {
       const types = {
         isa: 'Stocks & Shares ISA',
-        sipp: 'SIPP',
-        gia: 'General Investment',
+        sipp: 'Self-Invested Personal Pension',
+        gia: 'General Investment Account',
         pension: 'Pension',
         other: 'Other',
       };

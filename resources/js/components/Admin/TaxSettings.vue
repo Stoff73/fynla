@@ -504,7 +504,7 @@
                 <h4 class="text-sm font-semibold text-gray-800 mb-3">Trusts</h4>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label class="block text-sm text-gray-700 mb-1">Trust CGT Rate (%)</label>
+                    <label class="block text-sm text-gray-700 mb-1">Trust Capital Gains Tax Rate (%)</label>
                     <input
                       v-if="isEditing"
                       v-model.number="editableConfig.capital_gains_tax.trust_rate"
@@ -700,7 +700,7 @@
                   <p v-else class="font-medium">£{{ formatNumber(currentConfig.pension.annual_allowance) }}</p>
                 </div>
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Money Purchase Annual Allowance (MPAA) (£)</label>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Money Purchase Annual Allowance (£)</label>
                   <input
                     v-if="isEditing"
                     v-model.number="editableConfig.pension.money_purchase_annual_allowance"
@@ -778,12 +778,12 @@
         <div v-if="activeTab === 'inheritance-tax'">
           <div class="card">
             <div class="px-6 py-4 border-b border-gray-200">
-              <h3 class="text-lg font-semibold text-gray-900">Inheritance Tax (IHT)</h3>
+              <h3 class="text-lg font-semibold text-gray-900">Inheritance Tax</h3>
             </div>
             <div class="px-6 py-4 space-y-4">
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Nil Rate Band (NRB) (£)</label>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Nil Rate Band (£)</label>
                   <input
                     v-if="isEditing"
                     v-model.number="editableConfig.inheritance_tax.nil_rate_band"
@@ -794,7 +794,7 @@
                   <p v-else class="font-medium">£{{ formatNumber(currentConfig.inheritance_tax.nil_rate_band) }}</p>
                 </div>
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Residence Nil Rate Band (RNRB) (£)</label>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Residence Nil Rate Band (£)</label>
                   <input
                     v-if="isEditing"
                     v-model.number="editableConfig.inheritance_tax.residence_nil_rate_band"
@@ -805,7 +805,7 @@
                   <p v-else class="font-medium">£{{ formatNumber(currentConfig.inheritance_tax.residence_nil_rate_band) }}</p>
                 </div>
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">RNRB Taper Threshold (£)</label>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Residence Nil Rate Band Taper Threshold (£)</label>
                   <input
                     v-if="isEditing"
                     v-model.number="editableConfig.inheritance_tax.rnrb_taper_threshold"
@@ -872,7 +872,7 @@
               </div>
 
               <div class="border-t pt-4">
-                <h4 class="font-medium text-gray-900 mb-3">Potentially Exempt Transfers (PET)</h4>
+                <h4 class="font-medium text-gray-900 mb-3">Potentially Exempt Transfers</h4>
                 <div class="mb-4">
                   <label class="block text-sm text-gray-700 mb-1">Years to Full Exemption</label>
                   <input
@@ -907,7 +907,7 @@
                       <p v-else class="text-sm font-medium">{{ relief.years }} years</p>
                     </div>
                     <div>
-                      <label class="block text-xs text-gray-600 mb-1">IHT Rate (as decimal)</label>
+                      <label class="block text-xs text-gray-600 mb-1">Inheritance Tax Rate (as decimal)</label>
                       <input
                         v-if="isEditing"
                         v-model.number="editableConfig.inheritance_tax.potentially_exempt_transfers.taper_relief[index].rate"
@@ -925,7 +925,7 @@
 
               <!-- Trust IHT Charges -->
               <div class="border-t pt-4">
-                <h4 class="font-medium text-gray-900 mb-3">Trust IHT Charges</h4>
+                <h4 class="font-medium text-gray-900 mb-3">Trust Inheritance Tax Charges</h4>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <label class="block text-sm text-gray-700 mb-1">Entry Charge (as decimal)</label>
@@ -999,7 +999,7 @@
           <!-- Standard Residential SDLT -->
           <div class="card">
             <div class="px-6 py-4 border-b border-gray-200">
-              <h3 class="text-lg font-semibold text-gray-900">Standard Residential SDLT</h3>
+              <h3 class="text-lg font-semibold text-gray-900">Standard Residential Stamp Duty Land Tax</h3>
             </div>
             <div class="px-6 py-4">
               <div v-for="(band, index) in (isEditing ? editableConfig.stamp_duty?.residential?.standard?.bands : currentConfig.stamp_duty?.residential?.standard?.bands)" :key="index" class="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 bg-gray-50 rounded-lg mb-3">
@@ -1034,7 +1034,7 @@
           <!-- Additional Properties SDLT -->
           <div class="card">
             <div class="px-6 py-4 border-b border-gray-200">
-              <h3 class="text-lg font-semibold text-gray-900">Additional Properties SDLT</h3>
+              <h3 class="text-lg font-semibold text-gray-900">Additional Properties Stamp Duty Land Tax</h3>
               <p class="text-sm text-gray-600 mt-1">Second homes and buy-to-let properties</p>
             </div>
             <div class="px-6 py-4 space-y-4">
@@ -1053,7 +1053,7 @@
               </div>
 
               <div>
-                <h4 class="text-sm font-medium text-gray-900 mb-3">SDLT Bands</h4>
+                <h4 class="text-sm font-medium text-gray-900 mb-3">Stamp Duty Land Tax Bands</h4>
                 <div v-for="(band, index) in (isEditing ? editableConfig.stamp_duty?.residential?.additional_properties?.bands : currentConfig.stamp_duty?.residential?.additional_properties?.bands)" :key="index" class="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 bg-gray-50 rounded-lg mb-3">
                   <div>
                     <label class="block text-xs text-gray-600 mb-1">Threshold (£)</label>
@@ -1116,7 +1116,7 @@
               </div>
 
               <div>
-                <h4 class="text-sm font-medium text-gray-900 mb-3">FTB SDLT Bands</h4>
+                <h4 class="text-sm font-medium text-gray-900 mb-3">First-Time Buyer Stamp Duty Land Tax Bands</h4>
                 <div v-for="(band, index) in (isEditing ? editableConfig.stamp_duty?.residential?.first_time_buyers?.bands : currentConfig.stamp_duty?.residential?.first_time_buyers?.bands)" :key="index" class="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 bg-gray-50 rounded-lg mb-3">
                   <div>
                     <label class="block text-xs text-gray-600 mb-1">Threshold (£)</label>
@@ -1310,11 +1310,11 @@ export default {
       },
       validationErrors: [],
       tabs: [
-        { id: 'income-ni', label: 'Income Tax & NI' },
+        { id: 'income-ni', label: 'Income Tax & National Insurance' },
         { id: 'savings-investments', label: 'Savings & Investments' },
         { id: 'pensions', label: 'Pensions' },
         { id: 'inheritance-tax', label: 'Inheritance Tax' },
-        { id: 'property', label: 'Property/SDLT' },
+        { id: 'property', label: 'Property/Stamp Duty Land Tax' },
         { id: 'versions', label: 'Version Management' },
       ],
     };
@@ -1429,11 +1429,11 @@ export default {
 
       // Validate IHT rates (decimals 0-1)
       if (config.inheritance_tax?.standard_rate && (config.inheritance_tax.standard_rate < 0 || config.inheritance_tax.standard_rate > 1)) {
-        errors.push('IHT standard rate must be between 0 and 1');
+        errors.push('Inheritance Tax standard rate must be between 0 and 1');
       }
 
       if (config.inheritance_tax?.reduced_rate_charity && (config.inheritance_tax.reduced_rate_charity < 0 || config.inheritance_tax.reduced_rate_charity > 1)) {
-        errors.push('IHT reduced rate must be between 0 and 1');
+        errors.push('Inheritance Tax reduced rate must be between 0 and 1');
       }
 
       // Validate positive amounts
@@ -1442,7 +1442,7 @@ export default {
         { value: config.pension?.annual_allowance, name: 'Pension annual allowance' },
         { value: config.inheritance_tax?.nil_rate_band, name: 'Nil rate band' },
         { value: config.inheritance_tax?.residence_nil_rate_band, name: 'Residence nil rate band' },
-        { value: config.capital_gains_tax?.annual_exempt_amount, name: 'CGT annual exempt amount' },
+        { value: config.capital_gains_tax?.annual_exempt_amount, name: 'Capital Gains Tax annual exempt amount' },
       ];
 
       positiveFields.forEach(field => {
@@ -1456,7 +1456,7 @@ export default {
         const bands = config.stamp_duty.residential.standard.bands;
         for (let i = 1; i < bands.length; i++) {
           if (bands[i].threshold <= bands[i - 1].threshold) {
-            errors.push('SDLT standard bands must be in ascending order');
+            errors.push('Stamp Duty Land Tax standard bands must be in ascending order');
             break;
           }
         }
@@ -1466,7 +1466,7 @@ export default {
         const bands = config.stamp_duty.residential.additional_properties.bands;
         for (let i = 1; i < bands.length; i++) {
           if (bands[i].threshold <= bands[i - 1].threshold) {
-            errors.push('SDLT additional property bands must be in ascending order');
+            errors.push('Stamp Duty Land Tax additional property bands must be in ascending order');
             break;
           }
         }
@@ -1477,7 +1477,7 @@ export default {
       if (config.stamp_duty?.residential?.standard?.bands) {
         config.stamp_duty.residential.standard.bands.forEach((band, i) => {
           if (band.rate < 0 || band.rate > 1) {
-            errors.push(`SDLT standard band ${i + 1} rate must be between 0 and 1`);
+            errors.push(`Stamp Duty Land Tax standard band ${i + 1} rate must be between 0 and 1`);
           }
         });
       }
@@ -1485,7 +1485,7 @@ export default {
       if (config.stamp_duty?.residential?.additional_properties?.surcharge) {
         const surcharge = config.stamp_duty.residential.additional_properties.surcharge;
         if (surcharge < 0 || surcharge > 1) {
-          errors.push('SDLT additional dwelling surcharge must be between 0 and 1');
+          errors.push('Stamp Duty Land Tax additional dwelling surcharge must be between 0 and 1');
         }
       }
 
@@ -1500,7 +1500,7 @@ export default {
           // Check that years are in ascending order
           for (let i = 1; i < reliefSchedule.length; i++) {
             if (reliefSchedule[i].years <= reliefSchedule[i - 1].years) {
-              errors.push('PET taper relief years must be in ascending order');
+              errors.push('Potentially Exempt Transfer taper relief years must be in ascending order');
               break;
             }
           }
@@ -1509,14 +1509,14 @@ export default {
           if (reliefSchedule.length > 0) {
             const lastYear = reliefSchedule[reliefSchedule.length - 1].years;
             if (lastYear !== yearsToExemption) {
-              errors.push(`PET taper relief schedule must end at ${yearsToExemption} years (years to exemption)`);
+              errors.push(`Potentially Exempt Transfer taper relief schedule must end at ${yearsToExemption} years (years to exemption)`);
             }
           }
 
           // Validate rates are between 0-1
           reliefSchedule.forEach((relief, i) => {
             if (relief.rate < 0 || relief.rate > 1) {
-              errors.push(`PET taper relief year ${relief.years} rate must be between 0 and 1`);
+              errors.push(`Potentially Exempt Transfer taper relief year ${relief.years} rate must be between 0 and 1`);
             }
           });
         }

@@ -164,7 +164,7 @@
   "savings_accounts": [
     {
       "id": 1,
-      "account_name": "Joint Current Account",
+      "account_name": "Bennett Current Account",
       "provider_name": "Nationwide",
       "account_type": "current_account",
       "current_balance": 8500,
@@ -206,7 +206,7 @@
     },
     {
       "id": 4,
-      "account_name": "Premium Bonds",
+      "account_name": "Bennett Premium Bonds",
       "provider_name": "NS&I",
       "account_type": "premium_bonds",
       "current_balance": 50000,

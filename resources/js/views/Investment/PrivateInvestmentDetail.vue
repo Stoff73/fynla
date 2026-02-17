@@ -201,7 +201,7 @@
           <span class="detail-value">{{ account.eis3_certificate_number }}</span>
         </div>
         <div v-if="account.hmrc_reference" class="detail-item">
-          <span class="detail-label">HMRC Reference</span>
+          <span class="detail-label">HM Revenue & Customs Reference</span>
           <span class="detail-value">{{ account.hmrc_reference }}</span>
         </div>
         <div v-if="account.disposal_restriction_date" class="detail-item">
@@ -221,15 +221,15 @@
 
     <!-- Business Asset Disposal Relief (if applicable) -->
     <div v-if="hasBadrPotential" class="details-section bg-green-50 border-green-200">
-      <h3 class="section-title text-green-800">Business Asset Disposal Relief (BADR)</h3>
+      <h3 class="section-title text-green-800">Business Asset Disposal Relief</h3>
 
       <!-- Eligibility Status Banner -->
       <div v-if="badrFullyQualified" class="alert bg-green-100 border border-green-300 text-green-800 mb-4">
-        <p class="font-medium">Potentially Eligible for BADR</p>
+        <p class="font-medium">Potentially Eligible for Business Asset Disposal Relief</p>
         <p class="text-sm">All qualifying conditions appear to be met. Tax rate: 14% (from 6 April 2025)</p>
       </div>
       <div v-else class="alert bg-blue-100 border border-blue-300 text-blue-800 mb-4">
-        <p class="font-medium">BADR Flagged - Review Conditions</p>
+        <p class="font-medium">Business Asset Disposal Relief Flagged - Review Conditions</p>
         <p class="text-sm">Some qualifying conditions may not be met. Review the checklist below.</p>
       </div>
 
@@ -249,7 +249,7 @@
         <div class="detail-item">
           <span class="detail-label">5% Shareholding</span>
           <span class="detail-value" :class="account.badr_5_percent_holding || account.badr_emi_shares ? 'text-green-600' : 'text-gray-400'">
-            {{ account.badr_emi_shares ? '✓ N/A (EMI)' : (account.badr_5_percent_holding ? '✓ Yes' : '✗ Not confirmed') }}
+            {{ account.badr_emi_shares ? '✓ N/A (Enterprise Management Incentive)' : (account.badr_5_percent_holding ? '✓ Yes' : '✗ Not confirmed') }}
           </span>
         </div>
         <div class="detail-item">
@@ -259,7 +259,7 @@
           </span>
         </div>
         <div v-if="account.badr_emi_shares" class="detail-item">
-          <span class="detail-label">EMI Shares</span>
+          <span class="detail-label">Enterprise Management Incentive Shares</span>
           <span class="detail-value text-green-600">✓ Yes</span>
         </div>
         <div class="detail-item">
@@ -283,8 +283,8 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <div class="text-xs text-green-800">
-            <p class="font-medium">About BADR</p>
-            <p class="mt-1">Business Asset Disposal Relief reduces CGT to 14% (from 6 April 2025) on qualifying gains up to a £1m lifetime limit. Claims must be submitted via Self Assessment by 31 January following the tax year of disposal.</p>
+            <p class="font-medium">About Business Asset Disposal Relief</p>
+            <p class="mt-1">Business Asset Disposal Relief reduces Capital Gains Tax to 14% (from 6 April 2025) on qualifying gains up to a £1m lifetime limit. Claims must be submitted via Self Assessment by 31 January following the tax year of disposal.</p>
           </div>
         </div>
       </div>
@@ -416,10 +416,10 @@ export default {
 
     taxReliefLabel() {
       const labels = {
-        'eis': 'EIS (30%)',
-        'seis': 'SEIS (50%)',
+        'eis': 'Enterprise Investment Scheme (30%)',
+        'seis': 'Seed Enterprise Investment Scheme (50%)',
         'sitr': 'SITR',
-        'vct': 'VCT',
+        'vct': 'Venture Capital Trust',
       };
       return labels[this.account.tax_relief_type] || 'None';
     },

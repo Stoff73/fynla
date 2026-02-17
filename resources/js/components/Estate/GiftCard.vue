@@ -136,8 +136,8 @@ export default {
 
     giftTypeDisplay() {
       const typeMap = {
-        pet: 'Potentially Exempt Transfer (PET)',
-        clt: 'Chargeable Lifetime Transfer (CLT)',
+        pet: 'Potentially Exempt Transfer',
+        clt: 'Chargeable Lifetime Transfer',
         exempt: 'Exempt Gift',
         small_gift: 'Small Gift Exemption',
         annual_exemption: 'Annual Exemption',

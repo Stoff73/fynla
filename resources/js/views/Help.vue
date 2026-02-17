@@ -259,9 +259,9 @@
                   Track gifts made in the last 7 years. Gifts older than 7 years are outside the estate for inheritance tax purposes. The timeline shows:
                 </p>
                 <ul class="list-disc list-inside space-y-1 text-body-base text-gray-700 ml-4">
-                  <li><strong>Potentially Exempt Transfers (PETs):</strong> Gifts to individuals, exempt after 7 years</li>
-                  <li><strong>Chargeable Lifetime Transfers:</strong> Gifts to trusts, subject to inheritance tax immediately</li>
-                  <li><strong>Taper Relief:</strong> Reduces inheritance tax on gifts made 3-7 years before death</li>
+                  <li><strong>Potentially Exempt Transfers:</strong> Gifts to individuals, exempt after 7 years</li>
+                  <li><strong>Chargeable Lifetime Transfers:</strong> Gifts to trusts, subject to Inheritance Tax immediately</li>
+                  <li><strong>Taper Relief:</strong> Reduces Inheritance Tax on gifts made 3-7 years before death</li>
                 </ul>
               </div>
 
@@ -342,7 +342,7 @@
                   Manage investment accounts and holdings with portfolio analysis:
                 </p>
                 <ul class="list-disc list-inside space-y-1 text-body-base text-gray-700 ml-4">
-                  <li><strong>Account Types:</strong> ISA, GIA, NS&I, Onshore/Offshore Bonds, VCT, EIS</li>
+                  <li><strong>Account Types:</strong> ISA, General Investment Account, National Savings & Investments, Onshore/Offshore Bonds, Venture Capital Trust, Enterprise Investment Scheme</li>
                   <li><strong>Holdings:</strong> Individual fund/share holdings with ISIN codes</li>
                   <li><strong>Portfolio Analysis:</strong> Risk metrics, asset allocation, fee analysis</li>
                   <li><strong>Monte Carlo Simulation:</strong> 1,000 iterations projecting portfolio growth</li>

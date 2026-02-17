@@ -186,19 +186,19 @@
         <!-- IHT Tab -->
         <div v-if="activeTab === 'iht'" class="space-y-6">
           <div class="card">
-            <h2 class="text-h2 text-gray-900 mb-4">Inheritance Tax (IHT)</h2>
+            <h2 class="text-h2 text-gray-900 mb-4">Inheritance Tax</h2>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
               <div class="bg-green-50 border border-green-200 rounded-lg p-4">
                 <p class="text-sm text-green-900">
-                  <strong>Nil Rate Band (NRB):</strong> £{{ formatNumber(taxConfig.inheritance_tax.nil_rate_band) }}
+                  <strong>Nil Rate Band:</strong> £{{ formatNumber(taxConfig.inheritance_tax.nil_rate_band) }}
                   <br>
                   <em class="text-xs">Transferable between spouses/civil partners</em>
                 </p>
               </div>
               <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <p class="text-sm text-blue-900">
-                  <strong>Residence NRB (RNRB):</strong> £{{ formatNumber(taxConfig.inheritance_tax.residence_nil_rate_band) }}
+                  <strong>Residence Nil Rate Band:</strong> £{{ formatNumber(taxConfig.inheritance_tax.residence_nil_rate_band) }}
                   <br>
                   <em class="text-xs">For main residence passed to direct descendants</em>
                 </p>
@@ -207,22 +207,22 @@
 
             <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
               <p class="text-sm text-red-900">
-                <strong>Standard IHT Rate:</strong> {{ (taxConfig.inheritance_tax.standard_rate * 100).toFixed(0) }}%
+                <strong>Standard Inheritance Tax Rate:</strong> {{ (taxConfig.inheritance_tax.standard_rate * 100).toFixed(0) }}%
                 <br>
                 <strong>Reduced Rate (10%+ to charity):</strong> {{ (taxConfig.inheritance_tax.reduced_rate_charity * 100).toFixed(0) }}%
               </p>
             </div>
 
-            <h3 class="text-h3 text-gray-900 mb-3">RNRB Taper</h3>
+            <h3 class="text-h3 text-gray-900 mb-3">Residence Nil Rate Band Taper</h3>
             <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
               <p class="text-sm text-blue-900">
-                RNRB tapers by £1 for every £2 the estate exceeds £{{ formatNumber(taxConfig.inheritance_tax.rnrb_taper_threshold) }}
+                Residence Nil Rate Band tapers by £1 for every £2 the estate exceeds £{{ formatNumber(taxConfig.inheritance_tax.rnrb_taper_threshold) }}
                 <br>
-                <em class="text-xs">RNRB is fully lost when estate reaches £{{ formatNumber(taxConfig.inheritance_tax.rnrb_taper_threshold + taxConfig.inheritance_tax.residence_nil_rate_band * 2) }}</em>
+                <em class="text-xs">Residence Nil Rate Band is fully lost when estate reaches £{{ formatNumber(taxConfig.inheritance_tax.rnrb_taper_threshold + taxConfig.inheritance_tax.residence_nil_rate_band * 2) }}</em>
               </p>
             </div>
 
-            <h3 class="text-h3 text-gray-900 mb-3">Potentially Exempt Transfers (PETs)</h3>
+            <h3 class="text-h3 text-gray-900 mb-3">Potentially Exempt Transfers</h3>
             <p class="text-sm text-gray-600 mb-3">
               Gifts become fully exempt after 7 years. Taper relief applies if donor dies between years 3-7:
             </p>
@@ -231,7 +231,7 @@
                 <thead class="bg-gray-50">
                   <tr>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Years Since Gift</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">IHT Rate</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Inheritance Tax Rate</th>
                   </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
@@ -253,7 +253,7 @@
           </div>
 
           <div class="card">
-            <h2 class="text-h2 text-gray-900 mb-4">IHT Gifting Exemptions</h2>
+            <h2 class="text-h2 text-gray-900 mb-4">Inheritance Tax Gifting Exemptions</h2>
             <div class="overflow-x-auto">
               <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
@@ -320,7 +320,7 @@
               </div>
               <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <p class="text-sm text-blue-900">
-                  <strong>MPAA (Money Purchase Annual Allowance):</strong> £{{ formatNumber(taxConfig.pension.money_purchase_annual_allowance) }}
+                  <strong>Money Purchase Annual Allowance:</strong> £{{ formatNumber(taxConfig.pension.money_purchase_annual_allowance) }}
                   <br>
                   <em class="text-xs">After accessing pension flexibly</em>
                 </p>
@@ -661,8 +661,8 @@ export default {
     };
 
     const tabs = [
-      { id: 'income', label: 'Income Tax & NI' },
-      { id: 'cgt', label: 'CGT & Dividends' },
+      { id: 'income', label: 'Income Tax & National Insurance' },
+      { id: 'cgt', label: 'Capital Gains Tax & Dividends' },
       { id: 'iht', label: 'Inheritance Tax' },
       { id: 'pensions', label: 'Pensions' },
       { id: 'isas', label: 'ISAs' },

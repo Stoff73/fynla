@@ -384,7 +384,7 @@
                   </div>
                   <div class="flex flex-col gap-1 items-end">
                     <span v-if="account.account_type === 'stocks_and_shares_isa'" class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">ISA</span>
-                    <span v-else-if="account.account_type === 'gia'" class="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded">GIA</span>
+                    <span v-else-if="account.account_type === 'gia'" class="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded">General Investment Account</span>
                     <span v-if="account.ownership_type === 'joint'" class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">Joint</span>
                     <span v-else-if="account.ownership_type === 'tenants_in_common'" class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">Tenants in Common</span>
                   </div>
@@ -1580,7 +1580,7 @@ export default {
             if (item.account_type === 'stocks_and_shares_isa') {
               investmentBadges.push('<span class="badge badge-green">ISA</span>');
             } else if (item.account_type === 'gia') {
-              investmentBadges.push('<span class="badge badge-gray">GIA</span>');
+              investmentBadges.push('<span class="badge badge-gray">General Investment Account</span>');
             }
             if (item.ownership_type === 'joint') {
               investmentBadges.push('<span class="badge badge-blue">Joint</span>');
@@ -1710,9 +1710,9 @@ export default {
 
     formatPensionType(type) {
       const types = {
-        dc: 'DC Pension',
-        db: 'DB Pension',
-        sipp: 'SIPP',
+        dc: 'Defined Contribution Pension',
+        db: 'Defined Benefit Pension',
+        sipp: 'Self-Invested Personal Pension',
         personal: 'Personal Pension',
         workplace: 'Workplace',
       };

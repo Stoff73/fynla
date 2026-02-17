@@ -177,7 +177,7 @@
                 </div>
                 <div>
                   <p class="font-medium text-gray-900 text-sm">{{ product.name }}</p>
-                  <p class="text-xs text-gray-500">{{ product.type === 'investment' ? 'Investment Account' : 'DC Pension' }}</p>
+                  <p class="text-xs text-gray-500">{{ product.type === 'investment' ? 'Investment Account' : 'Defined Contribution Pension' }}</p>
                 </div>
               </div>
               <RiskBadge
@@ -325,7 +325,7 @@ export default {
             .map((p) => ({
               id: `pen-${p.id}`,
               type: 'pension',
-              name: p.scheme_name || p.provider || 'DC Pension',
+              name: p.scheme_name || p.provider || 'Defined Contribution Pension',
               risk_preference: p.risk_preference,
             })),
         ];

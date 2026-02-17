@@ -140,7 +140,7 @@
             class="form-checkbox"
           />
           <label for="is_iht_exempt" class="checkbox-label">
-            This asset is IHT-exempt
+            This asset is Inheritance Tax-exempt
           </label>
         </div>
         <small class="form-text">
@@ -190,7 +190,7 @@
                 class="form-checkbox"
               />
               <label for="is_main_residence" class="checkbox-label">
-                Main Residence (eligible for RNRB)
+                Main Residence (eligible for Residence Nil Rate Band)
               </label>
             </div>
           </div>
@@ -279,7 +279,7 @@ export default {
     assetNamePlaceholder() {
       const placeholders = {
         property: 'e.g., Main Residence, Buy-to-Let Property',
-        pension: 'e.g., Workplace Pension, SIPP',
+        pension: 'e.g., Workplace Pension, Self-Invested Personal Pension',
         investment: 'e.g., ISA, Investment Account',
         savings: 'e.g., Current Account, Premium Bonds',
         business: 'e.g., Company Shares, Partnership Interest',
@@ -295,19 +295,19 @@ export default {
         individual: 'You are the sole owner - passes via your will',
         joint_tenants: 'Automatically passes to surviving owner on death',
         tenants_in_common: 'Your share passes via your will',
-        trust: 'Held in trust - special IHT treatment may apply',
+        trust: 'Held in trust - special Inheritance Tax treatment may apply',
       };
       return descriptions[this.formData.ownership_type] || 'Select ownership type to see description';
     },
 
     ihtExemptDescription() {
       const exemptions = {
-        pension: 'Pensions are typically IHT-exempt if left to beneficiaries',
-        life_insurance: 'Policies written in trust are IHT-exempt',
+        pension: 'Pensions are typically Inheritance Tax-exempt if left to beneficiaries',
+        life_insurance: 'Policies written in trust are Inheritance Tax-exempt',
         business: 'Business Relief may apply (50% or 100% relief)',
         property: 'May qualify for Agricultural Relief in specific cases',
       };
-      return exemptions[this.formData.asset_type] || 'Check this if asset qualifies for IHT exemptions (e.g., spouse transfers, charities, BPR, APR)';
+      return exemptions[this.formData.asset_type] || 'Check this if asset qualifies for Inheritance Tax exemptions (e.g., spouse transfers, charities, Business Property Relief, Agricultural Property Relief)';
     },
   },
 

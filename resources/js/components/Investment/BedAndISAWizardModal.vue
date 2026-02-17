@@ -54,7 +54,7 @@
           <div v-if="currentStep === 0">
             <h4 class="font-semibold text-gray-800 mb-4">Review Holdings for Transfer</h4>
             <p class="text-sm text-gray-600 mb-4">
-              These holdings in your GIA have gains within your CGT allowance and can be transferred tax-free:
+              These holdings in your General Investment Account have gains within your Capital Gains Tax allowance and can be transferred tax-free:
             </p>
 
             <div class="space-y-3 max-h-64 overflow-y-auto">
@@ -134,7 +134,7 @@
                 <p class="text-xl font-bold text-gray-800">{{ formatCurrency(totalGains) }}</p>
               </div>
               <div class="p-4 bg-gray-50 rounded-lg">
-                <p class="text-sm text-gray-500">CGT Liability</p>
+                <p class="text-sm text-gray-500">Capital Gains Tax Liability</p>
                 <p class="text-xl font-bold text-green-600">{{ formatCurrency(opportunity?.cgt_on_transfer || 0) }}</p>
               </div>
             </div>
@@ -147,7 +147,7 @@
                 <div>
                   <p class="font-semibold text-green-800">Tax-Free Transfer</p>
                   <p class="text-sm text-green-700">
-                    The gains on these holdings are within your annual CGT allowance, so no Capital Gains Tax is due.
+                    The gains on these holdings are within your annual Capital Gains Tax allowance, so no Capital Gains Tax is due.
                   </p>
                 </div>
               </div>
@@ -156,7 +156,7 @@
             <div class="mt-4 p-4 bg-gray-50 rounded-lg">
               <h5 class="font-semibold text-blue-800 mb-2">Annual Tax Savings (Once in ISA)</h5>
               <p class="text-sm text-blue-700">
-                By holding these investments in your ISA instead of your GIA, you will save approximately
+                By holding these investments in your ISA instead of your General Investment Account, you will save approximately
                 <strong>{{ formatCurrency(opportunity?.potential_annual_saving) }}</strong> per year in tax on dividends and future capital gains.
               </p>
             </div>
@@ -253,12 +253,12 @@ export default {
       steps: [
         { title: 'Review' },
         { title: 'ISA' },
-        { title: 'CGT' },
+        { title: 'Capital Gains Tax' },
         { title: 'Execute' },
       ],
       executionChecklist: [
         {
-          title: 'Sell holdings in GIA',
+          title: 'Sell holdings in General Investment Account',
           description: 'Log into your platform and place sell orders for the selected holdings.',
         },
         {
@@ -267,7 +267,7 @@ export default {
         },
         {
           title: 'Transfer cash to ISA',
-          description: 'Move the proceeds from your GIA to your Stocks & Shares ISA.',
+          description: 'Move the proceeds from your General Investment Account to your Stocks & Shares ISA.',
         },
         {
           title: 'Repurchase in ISA',

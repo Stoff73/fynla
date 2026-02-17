@@ -467,7 +467,7 @@ export default {
     formatAccountType(type) {
       const types = {
         isa: 'ISA',
-        sipp: 'SIPP',
+        sipp: 'Self-Invested Personal Pension',
         gia: 'General Investment Account',
         pension: 'Pension',
       };

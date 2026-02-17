@@ -164,7 +164,7 @@ export default {
       tabs: [
         { id: 'overview', name: 'Overview' },
         { id: 'isa', name: 'ISA Strategy' },
-        { id: 'cgt', name: 'CGT Harvesting' },
+        { id: 'cgt', name: 'Capital Gains Tax Harvesting' },
         { id: 'bed-isa', name: 'Bed & ISA' },
         { id: 'recommendations', name: 'Recommendations' },
       ],

@@ -183,11 +183,11 @@ export default {
               <div class="custom-tooltip">
                 <div class="tooltip-header">Age ${yearData.age}</div>
                 <div class="tooltip-row">
-                  <span>DC Drawdown:</span>
+                  <span>Defined Contribution Drawdown:</span>
                   <strong>${this.formatCurrency(yearData.dc_drawdown)}</strong>
                 </div>
                 <div class="tooltip-row">
-                  <span>DB Income:</span>
+                  <span>Defined Benefit Income:</span>
                   <strong>${this.formatCurrency(yearData.db_income)}</strong>
                 </div>
                 <div class="tooltip-row">

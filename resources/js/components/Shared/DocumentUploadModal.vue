@@ -309,8 +309,8 @@ export default {
     detectedTypeLabel() {
       if (this.detectedSubtype) {
         const subtypeLabels = {
-          dc_pension: 'DC Pension',
-          db_pension: 'DB Pension',
+          dc_pension: 'Defined Contribution Pension',
+          db_pension: 'Defined Benefit Pension',
           state_pension: 'State Pension',
           life_insurance: 'Life Insurance',
           critical_illness: 'Critical Illness',

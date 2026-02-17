@@ -272,14 +272,14 @@ export default {
     formatAccountType(type) {
       const types = {
         isa: 'ISA',
-        sipp: 'SIPP',
-        gia: 'GIA',
+        sipp: 'Self-Invested Personal Pension',
+        gia: 'General Investment Account',
         pension: 'Pension',
-        nsi: 'NS&I',
+        nsi: 'National Savings & Investments',
         onshore_bond: 'Onshore Bond',
         offshore_bond: 'Offshore Bond',
-        vct: 'VCT',
-        eis: 'EIS',
+        vct: 'Venture Capital Trust',
+        eis: 'Enterprise Investment Scheme',
         other: 'Other',
       };
       return types[type] || type;

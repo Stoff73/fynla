@@ -102,11 +102,11 @@ export default {
     series() {
       return [
         {
-          name: 'DC Pension',
+          name: 'Defined Contribution Pension',
           data: this.dcIncomeData,
         },
         {
-          name: 'DB Pension',
+          name: 'Defined Benefit Pension',
           data: this.dbIncomeData,
         },
         {

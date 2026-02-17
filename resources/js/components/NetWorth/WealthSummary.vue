@@ -31,30 +31,30 @@
         <div class="column-value">
           <template v-if="userBreakdown.pensions > 0">
             {{ formatCurrency(userBreakdown.pensions) }}
-            <span v-if="hasDbPensions" class="db-pension-note">(not incl. DB pensions)</span>
+            <span v-if="hasDbPensions" class="db-pension-note">(not incl. Defined Benefit pensions)</span>
           </template>
           <template v-else-if="hasDbPensions">
-            <span class="db-only-message">DB only</span>
+            <span class="db-only-message">Defined Benefit only</span>
           </template>
           <template v-else>{{ formatCurrency(0) }}</template>
         </div>
         <div v-if="hasSpouse" class="column-value">
           <template v-if="(spouseBreakdown.pensions || 0) > 0">
             {{ formatCurrency(spouseBreakdown.pensions) }}
-            <span v-if="spouseHasDbPensions" class="db-pension-note">(not incl. DB pensions)</span>
+            <span v-if="spouseHasDbPensions" class="db-pension-note">(not incl. Defined Benefit pensions)</span>
           </template>
           <template v-else-if="spouseHasDbPensions">
-            <span class="db-only-message">DB only</span>
+            <span class="db-only-message">Defined Benefit only</span>
           </template>
           <template v-else>{{ formatCurrency(0) }}</template>
         </div>
         <div v-if="hasSpouse" class="column-value total-column">
           <template v-if="pensionsHaveDcValue">
             {{ formatCurrency(userBreakdown.pensions + (spouseBreakdown.pensions || 0)) }}
-            <span v-if="anyDbPensions" class="db-pension-note">(not incl. DB pensions)</span>
+            <span v-if="anyDbPensions" class="db-pension-note">(not incl. Defined Benefit pensions)</span>
           </template>
           <template v-else>
-            <span class="db-only-message">DB only</span>
+            <span class="db-only-message">Defined Benefit only</span>
           </template>
         </div>
       </router-link>

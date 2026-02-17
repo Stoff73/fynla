@@ -134,7 +134,7 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
               <!-- IHT Liabilities Card -->
               <div class="bg-red-50 rounded-lg p-6 border border-red-200">
-                <p class="text-sm text-red-600 font-medium mb-3">IHT Liability</p>
+                <p class="text-sm text-red-600 font-medium mb-3">Inheritance Tax Liability</p>
 
                 <!-- Show both NOW and PROJECTED if available -->
                 <div v-if="plan.executive_summary.iht_liabilities.projected" class="space-y-3">
@@ -156,7 +156,7 @@
               </div>
 
               <div class="bg-green-50 rounded-lg p-6 border border-green-200">
-                <p class="text-sm text-green-600 font-medium mb-1">Potential IHT Saving</p>
+                <p class="text-sm text-green-600 font-medium mb-1">Potential Inheritance Tax Saving</p>
                 <p class="text-3xl font-bold text-green-700">{{ formatCurrency(plan.executive_summary.potential_saving) }}</p>
                 <p class="text-xs text-green-600 mt-2">Annual Cost: {{ formatCurrency(plan.executive_summary.annual_cost) }}</p>
               </div>
@@ -234,7 +234,7 @@
 
           <!-- Estate Overview -->
           <section class="mb-12 pdf-page-break">
-            <h3 class="text-2xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-primary-600">Estate Overview for IHT</h3>
+            <h3 class="text-2xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-primary-600">Estate Overview for Inheritance Tax</h3>
 
             <!-- User Estate Section -->
             <div v-if="plan.estate_breakdown && plan.estate_breakdown.user" class="mb-8">
@@ -271,7 +271,7 @@
                       <div class="flex items-center gap-3">
                         <span class="text-gray-900">{{ asset.name }}</span>
                         <span v-if="asset.is_iht_exempt" class="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full">
-                          IHT Exempt
+                          Inheritance Tax Exempt
                         </span>
                       </div>
                       <span class="font-semibold text-gray-900">{{ formatCurrency(asset.value) }}</span>
@@ -338,7 +338,7 @@
                       <div class="flex items-center gap-3">
                         <span class="text-gray-900">{{ asset.name }}</span>
                         <span v-if="asset.is_iht_exempt" class="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full">
-                          IHT Exempt
+                          Inheritance Tax Exempt
                         </span>
                       </div>
                       <span class="font-semibold text-gray-900">{{ formatCurrency(asset.value) }}</span>
@@ -405,7 +405,7 @@
                       <div class="flex items-center gap-3">
                         <span class="text-gray-900">{{ asset.name }}</span>
                         <span v-if="asset.is_iht_exempt" class="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full">
-                          IHT Exempt
+                          Inheritance Tax Exempt
                         </span>
                       </div>
                       <span class="font-semibold text-gray-900">{{ formatCurrency(asset.value) }}</span>
@@ -440,7 +440,7 @@
 
           <!-- Current IHT Position -->
           <section class="mb-12 pdf-page-break">
-            <h3 class="text-2xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-primary-600">IHT Position</h3>
+            <h3 class="text-2xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-primary-600">Inheritance Tax Position</h3>
 
             <!-- Married Couple - Show NOW and PROJECTED -->
             <div v-if="plan.current_iht_position.has_projection" class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -462,19 +462,19 @@
                       <span class="font-bold text-gray-900">{{ formatCurrency(plan.current_iht_position.now.net_estate) }}</span>
                     </div>
                     <div class="flex justify-between items-center pb-3 border-b">
-                      <span class="text-gray-700 text-sm">NRB (User)</span>
+                      <span class="text-gray-700 text-sm">Nil Rate Band (User)</span>
                       <span class="font-bold text-green-600">-{{ formatCurrency(plan.current_iht_position.now.user_nrb) }}</span>
                     </div>
                     <div class="flex justify-between items-center pb-3 border-b">
-                      <span class="text-gray-700 text-sm">NRB (Spouse)</span>
+                      <span class="text-gray-700 text-sm">Nil Rate Band (Spouse)</span>
                       <span class="font-bold text-green-600">-{{ formatCurrency(plan.current_iht_position.now.spouse_nrb) }}</span>
                     </div>
                     <div v-if="plan.current_iht_position.now.user_rnrb > 0" class="flex justify-between items-center pb-3 border-b">
-                      <span class="text-gray-700 text-sm">RNRB (User)</span>
+                      <span class="text-gray-700 text-sm">Residence Nil Rate Band (User)</span>
                       <span class="font-bold text-green-600">-{{ formatCurrency(plan.current_iht_position.now.user_rnrb) }}</span>
                     </div>
                     <div v-if="plan.current_iht_position.now.spouse_rnrb > 0" class="flex justify-between items-center pb-3 border-b">
-                      <span class="text-gray-700 text-sm">RNRB (Spouse)</span>
+                      <span class="text-gray-700 text-sm">Residence Nil Rate Band (Spouse)</span>
                       <span class="font-bold text-green-600">-{{ formatCurrency(plan.current_iht_position.now.spouse_rnrb) }}</span>
                     </div>
                     <div class="flex justify-between items-center pb-3 border-b bg-blue-50 -mx-6 px-6 py-3">
@@ -482,7 +482,7 @@
                       <span class="font-bold text-blue-700">{{ formatCurrency(plan.current_iht_position.now.taxable_estate) }}</span>
                     </div>
                     <div class="flex justify-between items-center bg-red-50 -mx-6 px-6 py-3 rounded">
-                      <span class="font-semibold text-red-900">IHT Liability (40%)</span>
+                      <span class="font-semibold text-red-900">Inheritance Tax Liability (40%)</span>
                       <span class="font-bold text-red-700 text-xl">{{ formatCurrency(plan.current_iht_position.now.iht_liability) }}</span>
                     </div>
                   </div>
@@ -507,19 +507,19 @@
                       <span class="font-bold text-gray-900">{{ formatCurrency(plan.current_iht_position.projected.net_estate) }}</span>
                     </div>
                     <div class="flex justify-between items-center pb-3 border-b">
-                      <span class="text-gray-700 text-sm">NRB (User)</span>
+                      <span class="text-gray-700 text-sm">Nil Rate Band (User)</span>
                       <span class="font-bold text-green-600">-{{ formatCurrency(plan.current_iht_position.projected.user_nrb) }}</span>
                     </div>
                     <div class="flex justify-between items-center pb-3 border-b">
-                      <span class="text-gray-700 text-sm">NRB (Spouse)</span>
+                      <span class="text-gray-700 text-sm">Nil Rate Band (Spouse)</span>
                       <span class="font-bold text-green-600">-{{ formatCurrency(plan.current_iht_position.projected.spouse_nrb) }}</span>
                     </div>
                     <div v-if="plan.current_iht_position.projected.user_rnrb > 0" class="flex justify-between items-center pb-3 border-b">
-                      <span class="text-gray-700 text-sm">RNRB (User)</span>
+                      <span class="text-gray-700 text-sm">Residence Nil Rate Band (User)</span>
                       <span class="font-bold text-green-600">-{{ formatCurrency(plan.current_iht_position.projected.user_rnrb) }}</span>
                     </div>
                     <div v-if="plan.current_iht_position.projected.spouse_rnrb > 0" class="flex justify-between items-center pb-3 border-b">
-                      <span class="text-gray-700 text-sm">RNRB (Spouse)</span>
+                      <span class="text-gray-700 text-sm">Residence Nil Rate Band (Spouse)</span>
                       <span class="font-bold text-green-600">-{{ formatCurrency(plan.current_iht_position.projected.spouse_rnrb) }}</span>
                     </div>
                     <div class="flex justify-between items-center pb-3 border-b bg-blue-50 -mx-6 px-6 py-3">
@@ -527,7 +527,7 @@
                       <span class="font-bold text-blue-700">{{ formatCurrency(plan.current_iht_position.projected.taxable_estate) }}</span>
                     </div>
                     <div class="flex justify-between items-center bg-red-50 -mx-6 px-6 py-3 rounded">
-                      <span class="font-semibold text-red-900">IHT Liability (40%)</span>
+                      <span class="font-semibold text-red-900">Inheritance Tax Liability (40%)</span>
                       <span class="font-bold text-red-700 text-xl">{{ formatCurrency(plan.current_iht_position.projected.iht_liability) }}</span>
                     </div>
                   </div>
@@ -543,11 +543,11 @@
                   <span class="font-bold text-gray-900">{{ formatCurrency(plan.current_iht_position.gross_estate) }}</span>
                 </div>
                 <div class="flex justify-between items-center pb-3 border-b">
-                  <span class="text-gray-700">Available NRB</span>
+                  <span class="text-gray-700">Available Nil Rate Band</span>
                   <span class="font-bold text-green-600">-{{ formatCurrency(plan.current_iht_position.available_nrb) }}</span>
                 </div>
                 <div v-if="plan.current_iht_position.rnrb > 0" class="flex justify-between items-center pb-3 border-b">
-                  <span class="text-gray-700">RNRB</span>
+                  <span class="text-gray-700">Residence Nil Rate Band</span>
                   <span class="font-bold text-green-600">-{{ formatCurrency(plan.current_iht_position.rnrb) }}</span>
                 </div>
                 <div class="flex justify-between items-center pb-3 border-b bg-blue-50 -mx-6 px-6 py-3">
@@ -555,11 +555,11 @@
                   <span class="font-bold text-blue-700">{{ formatCurrency(plan.current_iht_position.taxable_estate) }}</span>
                 </div>
                 <div class="flex justify-between items-center bg-red-50 -mx-6 px-6 py-3 rounded">
-                  <span class="font-semibold text-red-900">IHT Liability (40%)</span>
+                  <span class="font-semibold text-red-900">Inheritance Tax Liability (40%)</span>
                   <span class="font-bold text-red-700 text-xl">{{ formatCurrency(plan.current_iht_position.iht_liability) }}</span>
                 </div>
                 <div class="flex justify-between items-center pt-2">
-                  <span class="text-sm text-gray-600">Effective IHT Rate</span>
+                  <span class="text-sm text-gray-600">Effective Inheritance Tax Rate</span>
                   <span class="text-sm font-medium text-gray-700">{{ plan.current_iht_position.effective_rate.toFixed(1) }}%</span>
                 </div>
               </div>
@@ -575,7 +575,7 @@
 
               <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                 <div class="bg-white rounded-lg p-4">
-                  <p class="text-xs text-gray-600 mb-1">Total IHT Saving</p>
+                  <p class="text-xs text-gray-600 mb-1">Total Inheritance Tax Saving</p>
                   <p class="text-xl font-bold text-green-600">{{ formatCurrency(plan.optimized_recommendation.summary.total_iht_saving) }}</p>
                 </div>
                 <div class="bg-white rounded-lg p-4">
@@ -622,7 +622,7 @@
                       <p class="text-sm text-gray-700 mb-3">{{ action.details }}</p>
                       <div class="grid grid-cols-3 gap-4 text-sm">
                         <div>
-                          <span class="text-gray-600">IHT Saving:</span>
+                          <span class="text-gray-600">Inheritance Tax Saving:</span>
                           <span class="font-semibold text-green-600 ml-2">
                             {{ typeof action.iht_saving === 'number' ? formatCurrency(action.iht_saving) : action.iht_saving }}
                           </span>

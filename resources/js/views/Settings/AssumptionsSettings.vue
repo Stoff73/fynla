@@ -153,7 +153,7 @@
             <span v-else class="status-badge default">Defaults</span>
           </div>
           <p class="section-description">
-            These assumptions are used to project the future value of your investment accounts (ISAs, GIAs, etc.).
+            These assumptions are used to project the future value of your investment accounts (ISAs, General Investment Accounts, etc.).
           </p>
 
           <div class="assumptions-grid">
@@ -275,7 +275,7 @@
             <span v-else class="status-badge default">Defaults</span>
           </div>
           <p class="section-description">
-            These assumptions are used to project future estate values for IHT planning.
+            These assumptions are used to project future estate values for Inheritance Tax planning.
           </p>
 
           <div class="assumptions-grid">
