@@ -45,8 +45,6 @@ class User extends Authenticatable
         'remember_token',
         'mfa_secret',
         'mfa_recovery_codes',
-        'is_admin',
-        'is_preview_user',
         'failed_login_count',
         'locked_until',
         'last_failed_login_at',
