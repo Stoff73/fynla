@@ -61,48 +61,25 @@
           :loading="loading.netWorth"
           @click="navigateTo('/net-worth/wealth-summary')"
         >
-          <div v-if="hasNetWorthData" class="space-y-4">
-            <!-- Primary value - no heading, just the value -->
-            <div class="border-b border-gray-200 pb-4">
-              <span
-                class="text-3xl font-bold"
-                :class="netWorthData.netWorth >= 0 ? 'text-green-600' : 'text-red-600'"
-              >
-                {{ formatCurrency(netWorthData.netWorth) }}
-              </span>
-            </div>
+          <div v-if="hasNetWorthData">
+            <!-- Donut chart -->
+            <apexchart
+              :key="netWorthChartKey"
+              type="donut"
+              :options="netWorthChartOptions"
+              :series="netWorthChartSeries"
+              height="260"
+            />
 
-            <!-- Assets breakdown by category -->
-            <div v-if="netWorthData.totalAssets > 0" class="space-y-2">
-              <div class="text-sm font-semibold text-gray-700">Assets</div>
-              <div
-                v-for="(value, category) in netWorthBreakdown.assets"
-                :key="category"
-                class="flex justify-between text-sm"
-              >
-                <span class="text-gray-600">{{ formatAssetCategory(category) }}</span>
-                <span class="font-medium text-gray-900">{{ formatCurrency(value) }}</span>
+            <!-- Assets / Liabilities summary -->
+            <div class="flex justify-between text-sm mt-2">
+              <div>
+                <span class="text-gray-500">Assets</span>
+                <div class="font-semibold text-blue-600">{{ formatCurrency(netWorthData.totalAssets) }}</div>
               </div>
-              <div class="flex justify-between text-sm pt-2 border-t border-gray-100">
-                <span class="text-gray-700 font-medium">Total Assets</span>
-                <span class="font-semibold text-blue-600">{{ formatCurrency(netWorthData.totalAssets) }}</span>
-              </div>
-            </div>
-
-            <!-- Liabilities breakdown by category -->
-            <div v-if="netWorthData.totalLiabilities > 0" class="space-y-2">
-              <div class="text-sm font-semibold text-gray-700">Liabilities</div>
-              <div
-                v-for="(value, category) in netWorthBreakdown.liabilities"
-                :key="category"
-                class="flex justify-between text-sm"
-              >
-                <span class="text-gray-600">{{ formatLiabilityCategory(category) }}</span>
-                <span class="font-medium text-gray-900">{{ formatCurrency(value) }}</span>
-              </div>
-              <div class="flex justify-between text-sm pt-2 border-t border-gray-100">
-                <span class="text-gray-700 font-medium">Total Liabilities</span>
-                <span class="font-semibold text-red-600">{{ formatCurrency(netWorthData.totalLiabilities) }}</span>
+              <div class="text-right">
+                <span class="text-gray-500">Liabilities</span>
+                <div class="font-semibold text-red-600">{{ formatCurrency(netWorthData.totalLiabilities) }}</div>
               </div>
             </div>
           </div>
@@ -469,6 +446,7 @@ import ActionsOverviewCard from '@/components/Dashboard/ActionsOverviewCard.vue'
 import AreasToConsiderCard from '@/components/Dashboard/AreasToConsiderCard.vue';
 import AreasToCompleteCard from '@/components/Dashboard/AreasToCompleteCard.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { ASSET_COLORS, TEXT_COLORS } from '@/constants/designSystem';
 import userProfileService from '@/services/userProfileService';
 
 export default {
@@ -577,6 +555,122 @@ export default {
 
     hasNetWorthData() {
       return this.netWorthData.totalAssets > 0 || this.netWorthData.totalLiabilities > 0;
+    },
+
+    // Net Worth donut chart data
+    netWorthChartCategories() {
+      const LIABILITY_COLORS = {
+        mortgages: '#B91C1C',
+        loans: '#991B1B',
+        credit_cards: '#DC2626',
+        other: '#7F1D1D',
+      };
+
+      const categories = [];
+
+      // Asset categories
+      Object.entries(this.netWorthBreakdown.assets).forEach(([key, value]) => {
+        if (value > 0) {
+          categories.push({
+            label: this.formatAssetCategory(key),
+            value,
+            color: ASSET_COLORS[key] || '#94A3B8',
+          });
+        }
+      });
+
+      // Liability categories
+      Object.entries(this.netWorthBreakdown.liabilities).forEach(([key, value]) => {
+        if (value > 0) {
+          categories.push({
+            label: this.formatLiabilityCategory(key),
+            value,
+            color: LIABILITY_COLORS[key] || '#B91C1C',
+          });
+        }
+      });
+
+      return categories;
+    },
+
+    netWorthChartSeries() {
+      return this.netWorthChartCategories.map(c => c.value);
+    },
+
+    netWorthChartLabels() {
+      return this.netWorthChartCategories.map(c => c.label);
+    },
+
+    netWorthChartColors() {
+      return this.netWorthChartCategories.map(c => c.color);
+    },
+
+    netWorthChartKey() {
+      const total = this.netWorthChartSeries.reduce((a, b) => a + b, 0);
+      return `nw-donut-${this.netWorthChartSeries.length}-${Math.round(total)}`;
+    },
+
+    netWorthChartOptions() {
+      const netWorth = this.netWorthData.netWorth;
+      const vm = this;
+
+      return {
+        chart: {
+          type: 'donut',
+          fontFamily: 'Inter, system-ui, sans-serif',
+        },
+        labels: this.netWorthChartLabels,
+        colors: this.netWorthChartColors,
+        legend: { show: false },
+        dataLabels: { enabled: false },
+        plotOptions: {
+          pie: {
+            donut: {
+              size: '65%',
+              labels: {
+                show: true,
+                name: {
+                  show: false,
+                },
+                value: {
+                  show: true,
+                  fontSize: '16px',
+                  fontWeight: 700,
+                  color: netWorth >= 0 ? '#16A34A' : '#DC2626',
+                  offsetY: 24,
+                  formatter: () => vm.formatCurrency(netWorth),
+                },
+                total: {
+                  show: true,
+                  showAlways: true,
+                  label: '',
+                  fontSize: '16px',
+                  fontWeight: 700,
+                  color: netWorth >= 0 ? '#16A34A' : '#DC2626',
+                  formatter: () => vm.formatCurrency(netWorth),
+                },
+              },
+            },
+          },
+        },
+        tooltip: {
+          y: {
+            formatter: (val) => {
+              const total = vm.netWorthChartSeries.reduce((a, b) => a + b, 0);
+              const percent = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
+              return `${vm.formatCurrency(val)} (${percent}%)`;
+            },
+          },
+        },
+        responsive: [
+          {
+            breakpoint: 768,
+            options: {
+              chart: { height: 240 },
+            },
+          },
+        ],
+      };
     },
 
     // Retirement data - using real API data
