@@ -1,6 +1,6 @@
 # Deployment Notes - 13 February 2026 (Air)
 
-### Status: Pending
+### Status: Deployed
 
 ### Rebuild Required: Yes
 Frontend build already completed locally. Upload `public/build/` directory.
