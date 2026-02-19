@@ -28,6 +28,7 @@ use App\Models\Mortgage;
 use App\Models\Property;
 use App\Models\RetirementProfile;
 use App\Models\SavingsAccount;
+use App\Models\SpousePermission;
 use App\Models\StatePension;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -476,6 +477,42 @@ class PreviewUserSeeder extends Seeder
 
         $spouse->spouse_id = $primaryUser->id;
         $spouse->save();
+
+        // Create bidirectional spouse data sharing permissions
+        SpousePermission::updateOrCreate(
+            ['user_id' => $primaryUser->id, 'spouse_id' => $spouse->id],
+            ['status' => 'accepted', 'responded_at' => now()]
+        );
+        SpousePermission::updateOrCreate(
+            ['user_id' => $spouse->id, 'spouse_id' => $primaryUser->id],
+            ['status' => 'accepted', 'responded_at' => now()]
+        );
+
+        // Create bidirectional spouse family member records with linked_user_id
+        FamilyMember::updateOrCreate(
+            ['user_id' => $primaryUser->id, 'relationship' => 'spouse'],
+            [
+                'name' => trim(($spouse->first_name ?? '').' '.($spouse->surname ?? '')),
+                'first_name' => $spouse->first_name ?? '',
+                'last_name' => $spouse->surname ?? '',
+                'date_of_birth' => $spouse->date_of_birth,
+                'gender' => $spouse->gender,
+                'linked_user_id' => $spouse->id,
+                'is_dependent' => false,
+            ]
+        );
+        FamilyMember::updateOrCreate(
+            ['user_id' => $spouse->id, 'relationship' => 'spouse'],
+            [
+                'name' => trim(($primaryUser->first_name ?? '').' '.($primaryUser->surname ?? '')),
+                'first_name' => $primaryUser->first_name ?? '',
+                'last_name' => $primaryUser->surname ?? '',
+                'date_of_birth' => $primaryUser->date_of_birth,
+                'gender' => $primaryUser->gender,
+                'linked_user_id' => $primaryUser->id,
+                'is_dependent' => false,
+            ]
+        );
 
         return $spouse;
     }
