@@ -11,8 +11,11 @@ use App\Http\Traits\SanitizedErrorResponse;
 use App\Mail\SpouseAccountCreated;
 use App\Mail\SpouseAccountLinked;
 use App\Models\FamilyMember;
+use App\Models\SpousePermission;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 
 class FamilyMembersController extends Controller
@@ -232,6 +235,7 @@ class FamilyMembersController extends Controller
                 $familyMember = FamilyMember::create([
                     'user_id' => $currentUser->id,
                     'household_id' => $currentUser->household_id,
+                    'linked_user_id' => $spouseUser->id,
                     'relationship' => 'spouse',
                     'first_name' => $data['first_name'],
                     'middle_name' => $data['middle_name'] ?? null,
@@ -257,92 +261,98 @@ class FamilyMembersController extends Controller
                 ], 201);
             }
 
-            // Link both users
-            $currentUser->spouse_id = $spouseUser->id;
-            $currentUser->marital_status = 'married';
-            $currentUser->save();
+            // Link both users inside a transaction for atomicity
+            $familyMember = DB::transaction(function () use ($currentUser, $spouseUser, $data) {
+                $currentUser->spouse_id = $spouseUser->id;
+                $currentUser->marital_status = 'married';
+                $currentUser->save();
 
-            $spouseUser->spouse_id = $currentUser->id;
-            $spouseUser->marital_status = 'married';
-            // Update spouse user's income if provided in family member data
-            if (isset($data['annual_income']) && $data['annual_income'] > 0) {
-                $spouseUser->annual_employment_income = $data['annual_income'];
-            }
-            // Copy address from current user if spouse doesn't have one
-            if (! $spouseUser->address_line_1 && $currentUser->address_line_1) {
-                $spouseUser->address_line_1 = $currentUser->address_line_1;
-                $spouseUser->address_line_2 = $currentUser->address_line_2;
-                $spouseUser->city = $currentUser->city;
-                $spouseUser->county = $currentUser->county;
-                $spouseUser->postcode = $currentUser->postcode;
-            }
-            $spouseUser->save();
+                $spouseUser->spouse_id = $currentUser->id;
+                $spouseUser->marital_status = 'married';
+                // Update spouse user's income if provided in family member data
+                if (isset($data['annual_income']) && $data['annual_income'] > 0) {
+                    $spouseUser->annual_employment_income = $data['annual_income'];
+                }
+                // Copy address from current user if spouse doesn't have one
+                if (! $spouseUser->address_line_1 && $currentUser->address_line_1) {
+                    $spouseUser->address_line_1 = $currentUser->address_line_1;
+                    $spouseUser->address_line_2 = $currentUser->address_line_2;
+                    $spouseUser->city = $currentUser->city;
+                    $spouseUser->county = $currentUser->county;
+                    $spouseUser->postcode = $currentUser->postcode;
+                }
+                $spouseUser->save();
 
-            // Clear cached protection analysis for both users since spouse linkage affects completeness
-            \Illuminate\Support\Facades\Cache::forget("protection_analysis_{$currentUser->id}");
-            \Illuminate\Support\Facades\Cache::forget("protection_analysis_{$spouseUser->id}");
+                // Clear cached protection analysis for both users since spouse linkage affects completeness
+                Cache::forget("protection_analysis_{$currentUser->id}");
+                Cache::forget("protection_analysis_{$spouseUser->id}");
 
-            // Create bidirectional spouse data sharing permissions
-            \App\Models\SpousePermission::updateOrCreate(
-                [
+                // Create bidirectional spouse data sharing permissions
+                SpousePermission::updateOrCreate(
+                    [
+                        'user_id' => $currentUser->id,
+                        'spouse_id' => $spouseUser->id,
+                    ],
+                    [
+                        'status' => 'accepted',
+                        'responded_at' => now(),
+                    ]
+                );
+
+                SpousePermission::updateOrCreate(
+                    [
+                        'user_id' => $spouseUser->id,
+                        'spouse_id' => $currentUser->id,
+                    ],
+                    [
+                        'status' => 'accepted',
+                        'responded_at' => now(),
+                    ]
+                );
+
+                // Create family member record for current user
+                $fullName = trim(($data['first_name'] ?? '').' '.(isset($data['middle_name']) && $data['middle_name'] ? $data['middle_name'].' ' : '').($data['last_name'] ?? ''));
+                $familyMember = FamilyMember::create([
                     'user_id' => $currentUser->id,
-                    'spouse_id' => $spouseUser->id,
-                ],
-                [
-                    'status' => 'accepted',
-                    'responded_at' => now(),
-                ]
-            );
+                    'household_id' => $currentUser->household_id,
+                    'linked_user_id' => $spouseUser->id,
+                    'relationship' => 'spouse',
+                    'first_name' => $data['first_name'],
+                    'middle_name' => $data['middle_name'] ?? null,
+                    'last_name' => $data['last_name'],
+                    'date_of_birth' => $data['date_of_birth'] ?? null,
+                    'gender' => $data['gender'] ?? null,
+                    'national_insurance_number' => $data['national_insurance_number'] ?? null,
+                    'annual_income' => $data['annual_income'] ?? null,
+                    'is_dependent' => $data['is_dependent'] ?? false,
+                    'notes' => $data['notes'] ?? null,
+                    'name' => $fullName,
+                ]);
 
-            \App\Models\SpousePermission::updateOrCreate(
-                [
+                // Create reciprocal family member record for spouse
+                $currentUserNameParts = explode(' ', $currentUser->name);
+                $currentUserFirstName = $currentUserNameParts[0] ?? '';
+                $currentUserLastName = implode(' ', array_slice($currentUserNameParts, 1)) ?: '';
+
+                FamilyMember::create([
                     'user_id' => $spouseUser->id,
-                    'spouse_id' => $currentUser->id,
-                ],
-                [
-                    'status' => 'accepted',
-                    'responded_at' => now(),
-                ]
-            );
+                    'household_id' => $spouseUser->household_id,
+                    'linked_user_id' => $currentUser->id,
+                    'relationship' => 'spouse',
+                    'first_name' => $currentUserFirstName,
+                    'last_name' => $currentUserLastName,
+                    'date_of_birth' => $currentUser->date_of_birth,
+                    'gender' => $currentUser->gender,
+                    'national_insurance_number' => $currentUser->national_insurance_number,
+                    'annual_income' => $currentUser->employment_income ?? 0,
+                    'is_dependent' => false,
+                    'name' => $currentUser->name,
+                ]);
 
-            // Create family member record for current user
-            $fullName = trim(($data['first_name'] ?? '').' '.(isset($data['middle_name']) && $data['middle_name'] ? $data['middle_name'].' ' : '').($data['last_name'] ?? ''));
-            $familyMember = FamilyMember::create([
-                'user_id' => $currentUser->id,
-                'household_id' => $currentUser->household_id,
-                'relationship' => 'spouse',
-                'first_name' => $data['first_name'],
-                'middle_name' => $data['middle_name'] ?? null,
-                'last_name' => $data['last_name'],
-                'date_of_birth' => $data['date_of_birth'] ?? null,
-                'gender' => $data['gender'] ?? null,
-                'national_insurance_number' => $data['national_insurance_number'] ?? null,
-                'annual_income' => $data['annual_income'] ?? null,
-                'is_dependent' => $data['is_dependent'] ?? false,
-                'notes' => $data['notes'] ?? null,
-                'name' => $fullName,  // Construct full name for legacy field (set last to override)
-            ]);
+                return $familyMember;
+            });
 
-            // Create reciprocal family member record for spouse
-            $currentUserNameParts = explode(' ', $currentUser->name);
-            $currentUserFirstName = $currentUserNameParts[0] ?? '';
-            $currentUserLastName = implode(' ', array_slice($currentUserNameParts, 1)) ?: '';
-
-            FamilyMember::create([
-                'user_id' => $spouseUser->id,
-                'household_id' => $spouseUser->household_id,
-                'relationship' => 'spouse',
-                'first_name' => $currentUserFirstName,
-                'last_name' => $currentUserLastName,
-                'date_of_birth' => $currentUser->date_of_birth,
-                'gender' => $currentUser->gender,
-                'national_insurance_number' => $currentUser->national_insurance_number,
-                'annual_income' => $currentUser->employment_income ?? 0,
-                'is_dependent' => false,
-                'name' => $currentUser->name,
-            ]);
-
-            // Send email notification to spouse
+            // Send email notification to spouse (outside transaction)
             try {
                 Mail::to($spouseUser->email)->send(new SpouseAccountLinked($spouseUser, $currentUser));
             } catch (\Exception $e) {
@@ -360,91 +370,118 @@ class FamilyMembersController extends Controller
             ], 201);
         }
 
-        // Spouse doesn't exist - create new user account
+        // Spouse doesn't exist - create new user account inside a transaction
         $temporaryPassword = \Illuminate\Support\Str::random(16);
 
-        // Construct full name from name parts
-        $fullName = trim(($data['first_name'] ?? '').' '.
-            (isset($data['middle_name']) && $data['middle_name'] ? $data['middle_name'].' ' : '').
-            ($data['last_name'] ?? ''));
+        [$familyMember, $spouseUser] = DB::transaction(function () use ($currentUser, $data, $spouseEmail, $temporaryPassword) {
+            // Construct full name from name parts
+            $fullName = trim(($data['first_name'] ?? '').' '.
+                (isset($data['middle_name']) && $data['middle_name'] ? $data['middle_name'].' ' : '').
+                ($data['last_name'] ?? ''));
 
-        $spouseUser = \App\Models\User::create([
-            'first_name' => $data['first_name'] ?? '',
-            'surname' => $data['last_name'] ?? '',
-            'name' => $fullName,
-            'email' => $spouseEmail,
-            'password' => \Illuminate\Support\Facades\Hash::make($temporaryPassword),
-            'must_change_password' => true,
-            'date_of_birth' => $data['date_of_birth'] ?? null,
-            'gender' => $data['gender'] ?? null,
-            'marital_status' => 'married',
-            'spouse_id' => $currentUser->id,
-            'household_id' => $currentUser->household_id,
-            'is_primary_account' => false,
-            'national_insurance_number' => $data['national_insurance_number'] ?? null,
-            // Populate income fields - treat family member annual_income as employment income
-            'annual_employment_income' => $data['annual_income'] ?? 0,
-            // Copy address from current user (main residence)
-            'address_line_1' => $currentUser->address_line_1,
-            'address_line_2' => $currentUser->address_line_2,
-            'city' => $currentUser->city,
-            'county' => $currentUser->county,
-            'postcode' => $currentUser->postcode,
-        ]);
+            $spouseUser = \App\Models\User::create([
+                'first_name' => $data['first_name'] ?? '',
+                'surname' => $data['last_name'] ?? '',
+                'name' => $fullName,
+                'email' => $spouseEmail,
+                'password' => \Illuminate\Support\Facades\Hash::make($temporaryPassword),
+                'must_change_password' => true,
+                'date_of_birth' => $data['date_of_birth'] ?? null,
+                'gender' => $data['gender'] ?? null,
+                'marital_status' => 'married',
+                'spouse_id' => $currentUser->id,
+                'household_id' => $currentUser->household_id,
+                'is_primary_account' => false,
+                'national_insurance_number' => $data['national_insurance_number'] ?? null,
+                'annual_employment_income' => $data['annual_income'] ?? 0,
+                'address_line_1' => $currentUser->address_line_1,
+                'address_line_2' => $currentUser->address_line_2,
+                'city' => $currentUser->city,
+                'county' => $currentUser->county,
+                'postcode' => $currentUser->postcode,
+            ]);
 
-        // Update current user
-        $currentUser->spouse_id = $spouseUser->id;
-        $currentUser->marital_status = 'married';
-        $currentUser->save();
+            // Update current user
+            $currentUser->spouse_id = $spouseUser->id;
+            $currentUser->marital_status = 'married';
+            $currentUser->save();
 
-        // Clear cached protection analysis for current user since spouse linkage affects completeness
-        \Illuminate\Support\Facades\Cache::forget("protection_analysis_{$currentUser->id}");
+            // Clear cached protection analysis for both users since spouse linkage affects completeness
+            Cache::forget("protection_analysis_{$currentUser->id}");
+            Cache::forget("protection_analysis_{$spouseUser->id}");
 
-        // Create family member record for current user
-        $fullName = trim(($data['first_name'] ?? '').' '.(isset($data['middle_name']) && $data['middle_name'] ? $data['middle_name'].' ' : '').($data['last_name'] ?? ''));
-        $familyMember = FamilyMember::create([
-            'user_id' => $currentUser->id,
-            'household_id' => $currentUser->household_id,
-            'relationship' => 'spouse',
-            'first_name' => $data['first_name'],
-            'middle_name' => $data['middle_name'] ?? null,
-            'last_name' => $data['last_name'],
-            'date_of_birth' => $data['date_of_birth'] ?? null,
-            'gender' => $data['gender'] ?? null,
-            'national_insurance_number' => $data['national_insurance_number'] ?? null,
-            'annual_income' => $data['annual_income'] ?? null,
-            'is_dependent' => $data['is_dependent'] ?? false,
-            'notes' => $data['notes'] ?? null,
-            'name' => $fullName,  // Construct full name for legacy field (set last to override)
-        ]);
+            // Create bidirectional spouse data sharing permissions
+            SpousePermission::updateOrCreate(
+                [
+                    'user_id' => $currentUser->id,
+                    'spouse_id' => $spouseUser->id,
+                ],
+                [
+                    'status' => 'accepted',
+                    'responded_at' => now(),
+                ]
+            );
 
-        // Create reciprocal family member record for new spouse
-        $currentUserNameParts = explode(' ', $currentUser->name);
-        $currentUserFirstName = $currentUserNameParts[0] ?? '';
-        $currentUserLastName = implode(' ', array_slice($currentUserNameParts, 1)) ?: '';
+            SpousePermission::updateOrCreate(
+                [
+                    'user_id' => $spouseUser->id,
+                    'spouse_id' => $currentUser->id,
+                ],
+                [
+                    'status' => 'accepted',
+                    'responded_at' => now(),
+                ]
+            );
 
-        FamilyMember::create([
-            'user_id' => $spouseUser->id,
-            'household_id' => $spouseUser->household_id,
-            'relationship' => 'spouse',
-            'first_name' => $currentUserFirstName,
-            'last_name' => $currentUserLastName,
-            'date_of_birth' => $currentUser->date_of_birth,
-            'gender' => $currentUser->gender,
-            'national_insurance_number' => $currentUser->national_insurance_number,
-            'annual_income' => $currentUser->employment_income ?? 0,
-            'is_dependent' => false,
-            'name' => $currentUser->name,
-        ]);
+            // Create family member record for current user
+            $fullName = trim(($data['first_name'] ?? '').' '.(isset($data['middle_name']) && $data['middle_name'] ? $data['middle_name'].' ' : '').($data['last_name'] ?? ''));
+            $familyMember = FamilyMember::create([
+                'user_id' => $currentUser->id,
+                'household_id' => $currentUser->household_id,
+                'linked_user_id' => $spouseUser->id,
+                'relationship' => 'spouse',
+                'first_name' => $data['first_name'],
+                'middle_name' => $data['middle_name'] ?? null,
+                'last_name' => $data['last_name'],
+                'date_of_birth' => $data['date_of_birth'] ?? null,
+                'gender' => $data['gender'] ?? null,
+                'national_insurance_number' => $data['national_insurance_number'] ?? null,
+                'annual_income' => $data['annual_income'] ?? null,
+                'is_dependent' => $data['is_dependent'] ?? false,
+                'notes' => $data['notes'] ?? null,
+                'name' => $fullName,
+            ]);
 
-        // Send email to spouse with temporary password
+            // Create reciprocal family member record for new spouse
+            $currentUserNameParts = explode(' ', $currentUser->name);
+            $currentUserFirstName = $currentUserNameParts[0] ?? '';
+            $currentUserLastName = implode(' ', array_slice($currentUserNameParts, 1)) ?: '';
+
+            FamilyMember::create([
+                'user_id' => $spouseUser->id,
+                'household_id' => $spouseUser->household_id,
+                'linked_user_id' => $currentUser->id,
+                'relationship' => 'spouse',
+                'first_name' => $currentUserFirstName,
+                'last_name' => $currentUserLastName,
+                'date_of_birth' => $currentUser->date_of_birth,
+                'gender' => $currentUser->gender,
+                'national_insurance_number' => $currentUser->national_insurance_number,
+                'annual_income' => $currentUser->employment_income ?? 0,
+                'is_dependent' => false,
+                'name' => $currentUser->name,
+            ]);
+
+            return [$familyMember, $spouseUser];
+        });
+
+        // Send email to spouse with temporary password (outside transaction)
         $emailSent = false;
         try {
             Mail::to($spouseEmail)->send(new SpouseAccountCreated($spouseUser, $currentUser, $temporaryPassword));
             $emailSent = true;
         } catch (\Exception $e) {
             \Log::error('Failed to send spouse account created email: '.$e->getMessage());
-            // Note: Password is NOT logged for security - user must request password reset if email fails
         }
 
         return response()->json([
@@ -585,6 +622,17 @@ class FamilyMembersController extends Controller
                 FamilyMember::where('user_id', $spouseUser->id)
                     ->where('relationship', 'spouse')
                     ->delete();
+
+                // Delete bidirectional spouse permissions
+                SpousePermission::where(function ($query) use ($user, $spouseUser) {
+                    $query->where('user_id', $user->id)->where('spouse_id', $spouseUser->id);
+                })->orWhere(function ($query) use ($user, $spouseUser) {
+                    $query->where('user_id', $spouseUser->id)->where('spouse_id', $user->id);
+                })->delete();
+
+                // Clear cached protection analysis for both users
+                Cache::forget("protection_analysis_{$user->id}");
+                Cache::forget("protection_analysis_{$spouseUser->id}");
 
                 // Clear spouse linkage for both users
                 $spouseUser->spouse_id = null;

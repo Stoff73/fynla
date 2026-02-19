@@ -304,69 +304,73 @@ class OnboardingService
                 return;
             }
 
-            // Link the accounts bidirectionally
-            $user->update([
-                'spouse_id' => $spouseAccount->id,
-                'marital_status' => 'married',
-            ]);
-
-            $spouseAccount->update([
-                'spouse_id' => $user->id,
-                'marital_status' => 'married',
-            ]);
-
-            // Clear cached protection analysis for both users since spouse linkage affects completeness
-            \Illuminate\Support\Facades\Cache::forget("protection_analysis_{$user->id}");
-            \Illuminate\Support\Facades\Cache::forget("protection_analysis_{$spouseAccount->id}");
-
-            // Create bidirectional spouse data sharing permissions
-            \App\Models\SpousePermission::updateOrCreate(
-                [
-                    'user_id' => $user->id,
+            DB::transaction(function () use ($user, $spouseAccount, $spouseData) {
+                // Link the accounts bidirectionally
+                $user->update([
                     'spouse_id' => $spouseAccount->id,
-                ],
-                [
-                    'status' => 'accepted',
-                    'responded_at' => now(),
-                ]
-            );
+                    'marital_status' => 'married',
+                ]);
 
-            \App\Models\SpousePermission::updateOrCreate(
-                [
-                    'user_id' => $spouseAccount->id,
+                $spouseAccount->update([
                     'spouse_id' => $user->id,
-                ],
-                [
-                    'status' => 'accepted',
-                    'responded_at' => now(),
-                ]
-            );
+                    'marital_status' => 'married',
+                ]);
 
-            // Create family member record for the current user
-            \App\Models\FamilyMember::updateOrCreate(
-                [
-                    'user_id' => $user->id,
-                    'relationship' => 'spouse',
-                ],
-                [
-                    'name' => $spouseAccount->name,
-                    'date_of_birth' => $spouseData['date_of_birth'] ?? $spouseAccount->date_of_birth,
-                    'is_dependent' => false,
-                ]
-            );
+                // Clear cached protection analysis for both users since spouse linkage affects completeness
+                \Illuminate\Support\Facades\Cache::forget("protection_analysis_{$user->id}");
+                \Illuminate\Support\Facades\Cache::forget("protection_analysis_{$spouseAccount->id}");
 
-            // Create reciprocal family member record for spouse
-            \App\Models\FamilyMember::updateOrCreate(
-                [
-                    'user_id' => $spouseAccount->id,
-                    'relationship' => 'spouse',
-                ],
-                [
-                    'name' => $user->name,
-                    'date_of_birth' => $user->date_of_birth,
-                    'is_dependent' => false,
-                ]
-            );
+                // Create bidirectional spouse data sharing permissions
+                \App\Models\SpousePermission::updateOrCreate(
+                    [
+                        'user_id' => $user->id,
+                        'spouse_id' => $spouseAccount->id,
+                    ],
+                    [
+                        'status' => 'accepted',
+                        'responded_at' => now(),
+                    ]
+                );
+
+                \App\Models\SpousePermission::updateOrCreate(
+                    [
+                        'user_id' => $spouseAccount->id,
+                        'spouse_id' => $user->id,
+                    ],
+                    [
+                        'status' => 'accepted',
+                        'responded_at' => now(),
+                    ]
+                );
+
+                // Create family member record for the current user
+                \App\Models\FamilyMember::updateOrCreate(
+                    [
+                        'user_id' => $user->id,
+                        'relationship' => 'spouse',
+                    ],
+                    [
+                        'name' => $spouseAccount->name,
+                        'linked_user_id' => $spouseAccount->id,
+                        'date_of_birth' => $spouseData['date_of_birth'] ?? $spouseAccount->date_of_birth,
+                        'is_dependent' => false,
+                    ]
+                );
+
+                // Create reciprocal family member record for spouse
+                \App\Models\FamilyMember::updateOrCreate(
+                    [
+                        'user_id' => $spouseAccount->id,
+                        'relationship' => 'spouse',
+                    ],
+                    [
+                        'name' => $user->name,
+                        'linked_user_id' => $user->id,
+                        'date_of_birth' => $user->date_of_birth,
+                        'is_dependent' => false,
+                    ]
+                );
+            });
         } else {
             // Account doesn't exist yet - just create family member record
             \App\Models\FamilyMember::updateOrCreate(

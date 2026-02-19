@@ -28,6 +28,7 @@ class FamilyMember extends Model
         'is_dependent',
         'education_status',
         'receives_child_benefit',
+        'linked_user_id',
         'notes',
     ];
 
@@ -52,6 +53,14 @@ class FamilyMember extends Model
     public function household(): BelongsTo
     {
         return $this->belongsTo(Household::class);
+    }
+
+    /**
+     * Get the linked user account (for spouse records that map to a real user).
+     */
+    public function linkedUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'linked_user_id');
     }
 
     /**

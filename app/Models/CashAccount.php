@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Traits\HasJointOwnership;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CashAccount extends Model
 {
-    use HasFactory;
+    use HasFactory, HasJointOwnership;
 
     protected $fillable = [
         'user_id',
@@ -25,6 +26,7 @@ class CashAccount extends Model
         'ownership_type',
         'country',
         'ownership_percentage',
+        'joint_owner_id',
         'current_balance',
         'interest_rate',
         'rate_valid_until',
@@ -65,5 +67,13 @@ class CashAccount extends Model
     public function trust(): BelongsTo
     {
         return $this->belongsTo(Trust::class);
+    }
+
+    /**
+     * Get the joint owner of this cash account.
+     */
+    public function jointOwner(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'joint_owner_id');
     }
 }
