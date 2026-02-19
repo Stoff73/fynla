@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\Investment;
 
 use App\Http\Controllers\Controller;
+use App\Http\Traits\SanitizedErrorResponse;
 use App\Services\Investment\Performance\AlphaBetaCalculator;
 use App\Services\Investment\Performance\BenchmarkComparator;
 use App\Services\Investment\Performance\PerformanceAttributionAnalyzer;
@@ -20,6 +21,8 @@ use Illuminate\Support\Facades\Validator;
  */
 class PerformanceAttributionController extends Controller
 {
+    use SanitizedErrorResponse;
+
     public function __construct(
         private PerformanceAttributionAnalyzer $attributionAnalyzer,
         private BenchmarkComparator $benchmarkComparator,
@@ -65,17 +68,7 @@ class PerformanceAttributionController extends Controller
                 'data' => $result,
             ]);
         } catch (\Exception $e) {
-            Log::error('Performance attribution failed', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to analyze performance',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Performance attribution analysis');
         }
     }
 
@@ -112,16 +105,7 @@ class PerformanceAttributionController extends Controller
                 'data' => $result,
             ]);
         } catch (\Exception $e) {
-            Log::error('Benchmark comparison failed', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to compare with benchmark',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Benchmark comparison');
         }
     }
 
@@ -156,16 +140,7 @@ class PerformanceAttributionController extends Controller
                 'data' => $result,
             ]);
         } catch (\Exception $e) {
-            Log::error('Multi-benchmark comparison failed', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to compare with multiple benchmarks',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Multi-benchmark comparison');
         }
     }
 
@@ -210,16 +185,7 @@ class PerformanceAttributionController extends Controller
                 'data' => $result,
             ]);
         } catch (\Exception $e) {
-            Log::error('Risk metrics calculation failed', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to calculate risk metrics',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Risk metrics calculation');
         }
     }
 
@@ -249,16 +215,7 @@ class PerformanceAttributionController extends Controller
                 'message' => 'Performance caches cleared',
             ]);
         } catch (\Exception $e) {
-            Log::error('Cache clearing failed', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to clear caches',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Performance cache clearing');
         }
     }
 

@@ -99,9 +99,10 @@
 
         <!-- Estate Planning Card -->
         <DashboardCard
+          v-if="hasEstateData"
           title="Estate Planning"
           :loading="loading.estate"
-          @click="hasEstateData ? navigateTo('/estate') : null"
+          @click="navigateTo('/estate')"
         >
           <div v-if="hasEstateData" class="space-y-4">
             <!-- Taxable Estate Now -->
@@ -289,9 +290,9 @@
           </div>
         </DashboardCard>
 
-        <!-- Retirement Card -->
+        <!-- Retirement Card (hidden for users under 35) -->
         <DashboardCard
-          v-if="hasRetirementData"
+          v-if="hasRetirementData && (userAge === null || userAge >= 35)"
           :title="retirementCardTitle"
           :loading="loading.retirement"
           @click="navigateTo('/net-worth/retirement')"
@@ -400,10 +401,37 @@
           :loading="loading.taxAllowances"
         >
           <div v-if="hasAllowancesData" class="space-y-4">
+            <!-- Lifetime ISA Allowance (eligible users only) -->
+            <template v-if="lisaAllowanceData">
+              <div>
+                <div class="flex justify-between items-baseline mb-1">
+                  <span class="text-sm font-semibold text-gray-700">Lifetime ISA</span>
+                  <span class="text-xs text-gray-500">{{ currentTaxYear }}</span>
+                </div>
+                <div class="w-full bg-gray-100 rounded-full h-2 mb-2">
+                  <div
+                    class="h-2 rounded-full transition-all"
+                    :class="allowanceBarClass(lisaAllowanceData.percentUsed, false)"
+                    :style="{ width: Math.min(lisaAllowanceData.percentUsed, 100) + '%' }"
+                  ></div>
+                </div>
+                <div class="flex justify-between text-sm">
+                  <span class="text-gray-600">{{ formatCurrency(lisaAllowanceData.used) }} used</span>
+                  <span class="text-green-600 font-medium">
+                    {{ formatCurrency(lisaAllowanceData.remaining) }} remaining
+                  </span>
+                </div>
+                <div class="text-xs text-gray-500 mt-1">
+                  25% bonus: {{ formatCurrency(lisaAllowanceData.bonusEarned) }} earned of {{ formatCurrency(lisaAllowanceData.maxBonus) }} max
+                </div>
+              </div>
+              <div class="border-t border-gray-100"></div>
+            </template>
+
             <!-- ISA Allowance -->
             <div v-if="isaAllowanceData">
               <div class="flex justify-between items-baseline mb-1">
-                <span class="text-sm font-semibold text-gray-700">ISA Allowance</span>
+                <span class="text-sm font-semibold text-gray-700">{{ lisaAllowanceData ? 'ISA Allowance (excl. Lifetime ISA)' : 'ISA Allowance' }}</span>
                 <span class="text-xs text-gray-500">2025/26</span>
               </div>
               <!-- Progress bar -->
@@ -602,6 +630,19 @@ export default {
     // Check if the user is currently retired
     isRetired() {
       return this.currentUser?.employment_status === 'retired';
+    },
+
+    userAge() {
+      const dob = this.currentUser?.date_of_birth;
+      if (!dob) return null;
+      const birth = new Date(dob);
+      const now = new Date();
+      let age = now.getFullYear() - birth.getFullYear();
+      const monthDiff = now.getMonth() - birth.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < birth.getDate())) {
+        age--;
+      }
+      return age;
     },
 
     // Dynamic title for retirement card
@@ -912,6 +953,7 @@ export default {
     },
 
     hasEstateData() {
+      if (this.userAge !== null && this.userAge <= 35) return false;
       return this.taxableEstate > 0 || this.ihtLiability > 0;
     },
 
@@ -939,9 +981,42 @@ export default {
     },
 
     // ISA Allowance computed — uses server-calculated tracking data
+    // Lifetime ISA eligibility: under 40 and no main residence property
+    lisaEligible() {
+      if (this.userAge === null) return false;
+      if (this.userAge >= 40) return false;
+      // No property = likely first-time buyer
+      return !this.netWorthBreakdown.assets.property;
+    },
+
+    lisaAllowanceData() {
+      if (!this.lisaEligible) return null;
+
+      const lisaLimit = 4000;
+      const maxBonus = 1000; // 25% of £4,000
+
+      // Find LISA contributions from investment accounts
+      const lisaAccounts = (this.investmentAccounts || []).filter(a => {
+        const type = (a.account_type || '').toLowerCase();
+        return type === 'lisa' || type === 'lifetime_isa';
+      });
+
+      const used = lisaAccounts.reduce((sum, a) => {
+        return sum + parseFloat(a.isa_subscription_current_year || a.annual_contribution || 0);
+      }, 0);
+
+      const capped = Math.min(used, lisaLimit);
+      const remaining = lisaLimit - capped;
+      const percentUsed = (capped / lisaLimit) * 100;
+      const bonusEarned = capped * 0.25;
+
+      return { used: capped, remaining, percentUsed, bonusEarned, maxBonus };
+    },
+
     isaAllowanceData() {
       if (!this.isaAllowance) return null;
-      const totalAllowance = this.isaAllowance.total_allowance || 20000;
+      const fullAllowance = this.isaAllowance.total_allowance || 20000;
+      const totalAllowance = this.lisaAllowanceData ? fullAllowance - 4000 : fullAllowance;
       const cashUsed = parseFloat(this.isaAllowance.cash_isa_used || 0);
       const ssUsed = parseFloat(this.isaAllowance.stocks_shares_isa_used || 0);
       const totalUsed = parseFloat(this.isaAllowance.total_used || 0) || (cashUsed + ssUsed);
@@ -1060,7 +1135,7 @@ export default {
     },
 
     hasAllowancesData() {
-      return !!this.isaAllowanceData || !!this.pensionAllowanceData;
+      return !!this.lisaAllowanceData || !!this.isaAllowanceData || !!this.pensionAllowanceData;
     },
   },
 

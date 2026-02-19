@@ -40,15 +40,7 @@ class RiskPreferenceController extends Controller
                 'data' => $levels,
             ]);
         } catch (\Exception $e) {
-            Log::error('Failed to retrieve risk levels', [
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve risk levels',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Risk levels retrieval');
         }
     }
 
@@ -84,16 +76,7 @@ class RiskPreferenceController extends Controller
                 'auto_calculated' => false,
             ]);
         } catch (\Exception $e) {
-            Log::error('Failed to retrieve risk profile', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve risk profile',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Risk profile retrieval');
         }
     }
 
@@ -134,17 +117,7 @@ class RiskPreferenceController extends Controller
                 'data' => $profile,
             ]);
         } catch (\Exception $e) {
-            Log::error('Failed to set risk profile', [
-                'user_id' => $user->id,
-                'risk_level' => $validated['risk_level'],
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to set risk profile',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Risk profile update');
         }
     }
 
@@ -166,17 +139,7 @@ class RiskPreferenceController extends Controller
                 'data' => $result,
             ]);
         } catch (\Exception $e) {
-            Log::error('Failed to recalculate risk profile', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to recalculate risk profile',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Risk profile recalculation');
         }
     }
 
@@ -201,16 +164,7 @@ class RiskPreferenceController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Failed to retrieve allowed risk levels', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve allowed risk levels',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Allowed risk levels retrieval');
         }
     }
 
@@ -257,17 +211,7 @@ class RiskPreferenceController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Failed to validate product risk level', [
-                'user_id' => $user->id,
-                'risk_level' => $validated['risk_level'],
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to validate risk level',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Product risk level validation');
         }
     }
 
@@ -286,22 +230,9 @@ class RiskPreferenceController extends Controller
                 'data' => $config,
             ]);
         } catch (\InvalidArgumentException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid risk level',
-                'error' => $e->getMessage(),
-            ], 422);
+            return $this->errorResponse($e, 'Risk level validation', 422);
         } catch (\Exception $e) {
-            Log::error('Failed to retrieve risk config', [
-                'level' => $level,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve risk configuration',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Risk configuration retrieval');
         }
     }
 }

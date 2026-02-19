@@ -271,11 +271,7 @@ class UserProfileController extends Controller
                 'data' => $commitments,
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to fetch financial commitments',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Fetching financial commitments');
         }
     }
 
@@ -305,11 +301,7 @@ class UserProfileController extends Controller
                 'data' => $commitments,
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to fetch spouse financial commitments',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Fetching spouse financial commitments');
         }
     }
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\Investment;
 
 use App\Http\Controllers\Controller;
+use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\Investment\InvestmentScenario;
 use App\Services\Investment\ScenarioService;
 use Illuminate\Http\JsonResponse;
@@ -13,6 +14,8 @@ use Illuminate\Support\Facades\Validator;
 
 class InvestmentScenarioController extends Controller
 {
+    use SanitizedErrorResponse;
+
     public function __construct(
         private readonly ScenarioService $scenarioService
     ) {}
@@ -119,10 +122,7 @@ class InvestmentScenarioController extends Controller
                 'message' => 'Scenario created successfully',
             ], 201);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create scenario: '.$e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Creating scenario');
         }
     }
 
@@ -198,10 +198,7 @@ class InvestmentScenarioController extends Controller
                 'message' => 'Scenario simulation started',
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to run scenario: '.$e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Running scenario');
         }
     }
 
@@ -284,10 +281,7 @@ class InvestmentScenarioController extends Controller
                 'data' => $comparison,
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to compare scenarios: '.$e->getMessage(),
-            ], 400);
+            return $this->errorResponse($e, 'Comparing scenarios', 400);
         }
     }
 

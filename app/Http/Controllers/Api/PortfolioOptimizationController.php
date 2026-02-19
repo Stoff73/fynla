@@ -74,17 +74,7 @@ class PortfolioOptimizationController extends Controller
                 'data' => $result,
             ]);
         } catch (\Exception $e) {
-            Log::error('Efficient frontier calculation failed', [
-                'user_id' => $userId,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to calculate efficient frontier',
-                'error' => config('app.debug') ? $e->getMessage() : null,
-            ], 500);
+            return $this->errorResponse($e, 'Efficient frontier calculation');
         }
     }
 
@@ -147,17 +137,7 @@ class PortfolioOptimizationController extends Controller
                 'data' => $result,
             ]);
         } catch (\Exception $e) {
-            Log::error('Minimum variance optimization failed', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to optimize portfolio',
-                'error' => config('app.debug') ? $e->getMessage() : null,
-            ], 500);
+            return $this->errorResponse($e, 'Minimum variance optimisation');
         }
     }
 
@@ -223,17 +203,7 @@ class PortfolioOptimizationController extends Controller
                 'data' => $result,
             ]);
         } catch (\Exception $e) {
-            Log::error('Maximum Sharpe optimization failed', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to optimize portfolio',
-                'error' => config('app.debug') ? $e->getMessage() : null,
-            ], 500);
+            return $this->errorResponse($e, 'Maximum Sharpe optimisation');
         }
     }
 
@@ -299,17 +269,7 @@ class PortfolioOptimizationController extends Controller
                 'data' => $result,
             ]);
         } catch (\Exception $e) {
-            Log::error('Target return optimization failed', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to optimize portfolio',
-                'error' => config('app.debug') ? $e->getMessage() : null,
-            ], 500);
+            return $this->errorResponse($e, 'Target return optimisation');
         }
     }
 
@@ -366,17 +326,7 @@ class PortfolioOptimizationController extends Controller
                 'data' => $result,
             ]);
         } catch (\Exception $e) {
-            Log::error('Risk parity optimization failed', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to calculate risk parity portfolio',
-                'error' => config('app.debug') ? $e->getMessage() : null,
-            ], 500);
+            return $this->errorResponse($e, 'Risk parity optimisation');
         }
     }
 
@@ -411,16 +361,7 @@ class PortfolioOptimizationController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Current position calculation failed', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to calculate current position',
-                'error' => config('app.debug') ? $e->getMessage() : null,
-            ], 500);
+            return $this->errorResponse($e, 'Current position calculation');
         }
     }
 
@@ -499,17 +440,7 @@ class PortfolioOptimizationController extends Controller
                 'data' => $result['data'],
             ]);
         } catch (\Exception $e) {
-            Log::error('Correlation matrix calculation failed', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to calculate correlation matrix',
-                'error' => config('app.debug') ? $e->getMessage() : null,
-            ], 500);
+            return $this->errorResponse($e, 'Correlation matrix calculation');
         }
     }
 

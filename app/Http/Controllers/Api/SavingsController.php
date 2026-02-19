@@ -243,10 +243,7 @@ class SavingsController extends Controller
                 'data' => $accountData,
             ], 201);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create account: '.$e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Creating savings account');
         }
     }
 
@@ -291,10 +288,7 @@ class SavingsController extends Controller
                 'message' => 'Account not found',
             ], 404);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to fetch account: '.$e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Fetching savings account');
         }
     }
 
@@ -366,10 +360,7 @@ class SavingsController extends Controller
                 'message' => 'Account not found or unauthorized',
             ], 404);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update account: '.$e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Updating savings account');
         }
     }
 
@@ -414,10 +405,7 @@ class SavingsController extends Controller
                 'message' => 'Account not found or unauthorized',
             ], 404);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to delete account: '.$e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Deleting savings account');
         }
     }
 
@@ -468,10 +456,7 @@ class SavingsController extends Controller
                 'message' => 'Account not found or unauthorized',
             ], 404);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to toggle retirement inclusion: '.$e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Toggling retirement inclusion');
         }
     }
 
@@ -512,10 +497,7 @@ class SavingsController extends Controller
                 'data' => $goal->load('linkedAccount'),
             ], 201);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create goal: '.$e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Creating savings goal');
         }
     }
 
@@ -547,10 +529,7 @@ class SavingsController extends Controller
                 'message' => 'Goal not found or unauthorized',
             ], 404);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update goal: '.$e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Updating savings goal');
         }
     }
 
@@ -581,10 +560,7 @@ class SavingsController extends Controller
                 'message' => 'Goal not found or unauthorized',
             ], 404);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to delete goal: '.$e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Deleting savings goal');
         }
     }
 
@@ -621,10 +597,7 @@ class SavingsController extends Controller
                 'message' => 'Goal not found or unauthorized',
             ], 404);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update goal progress: '.$e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Updating goal progress');
         }
     }
 }

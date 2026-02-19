@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\Estate;
 
 use App\Http\Controllers\Controller;
+use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\Estate\Asset;
 use App\Models\Estate\IHTProfile;
 use App\Services\Estate\CashFlowProjector;
@@ -19,6 +20,8 @@ use Illuminate\Http\Request;
 
 class GiftingController extends Controller
 {
+    use SanitizedErrorResponse;
+
     public function __construct(
         private IHTController $ihtController,
         private CashFlowProjector $cashFlowProjector,
@@ -205,10 +208,7 @@ class GiftingController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to calculate planned gifting strategy: '.$e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Calculating planned gifting strategy');
         }
     }
 
@@ -302,10 +302,7 @@ class GiftingController extends Controller
                 'data' => $personalizedStrategy,
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to generate personalized gifting strategy: '.$e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Generating personalised gifting strategy');
         }
     }
 
@@ -396,10 +393,7 @@ class GiftingController extends Controller
                 'data' => $trustStrategy,
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to generate personalized trust strategy: '.$e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Generating personalised trust strategy');
         }
     }
 

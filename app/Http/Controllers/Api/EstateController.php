@@ -101,17 +101,7 @@ class EstateController extends Controller
                 'data' => $plan,
             ]);
         } catch (\Exception $e) {
-            \Log::error('Comprehensive Estate Plan Error:', [
-                'message' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to generate comprehensive estate plan: '.$e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Comprehensive estate plan generation');
         }
     }
 
@@ -130,10 +120,7 @@ class EstateController extends Controller
                 'data' => $netWorth,
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to calculate net worth: '.$e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Net worth calculation');
         }
     }
 
@@ -153,10 +140,7 @@ class EstateController extends Controller
                 'data' => $cashFlow,
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to get cash flow: '.$e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Cash flow retrieval');
         }
     }
 
@@ -197,10 +181,7 @@ class EstateController extends Controller
                 'data' => $asset,
             ], 201);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create asset: '.$e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Asset creation');
         }
     }
 
@@ -247,10 +228,7 @@ class EstateController extends Controller
                 'message' => 'Asset not found or unauthorized',
             ], 404);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update asset: '.$e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Asset update');
         }
     }
 
@@ -281,10 +259,7 @@ class EstateController extends Controller
                 'message' => 'Asset not found or unauthorized',
             ], 404);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to delete asset: '.$e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Asset deletion');
         }
     }
 
@@ -324,15 +299,7 @@ class EstateController extends Controller
                 'data' => $liability,
             ], 201);
         } catch (\Exception $e) {
-            \Log::error('Failed to create liability', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create liability: '.$e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Liability creation');
         }
     }
 
@@ -378,10 +345,7 @@ class EstateController extends Controller
                 'message' => 'Liability not found or unauthorized',
             ], 404);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update liability: '.$e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Liability update');
         }
     }
 
@@ -412,10 +376,7 @@ class EstateController extends Controller
                 'message' => 'Liability not found or unauthorized',
             ], 404);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to delete liability: '.$e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Liability deletion');
         }
     }
 
@@ -451,10 +412,7 @@ class EstateController extends Controller
                 'data' => $gift,
             ], 201);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create gift: '.$e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Gift creation');
         }
     }
 
@@ -496,10 +454,7 @@ class EstateController extends Controller
                 'message' => 'Gift not found or unauthorized',
             ], 404);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update gift: '.$e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Gift update');
         }
     }
 
@@ -530,10 +485,7 @@ class EstateController extends Controller
                 'message' => 'Gift not found or unauthorized',
             ], 404);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to delete gift: '.$e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Gift deletion');
         }
     }
 }

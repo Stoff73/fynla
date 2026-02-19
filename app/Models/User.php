@@ -45,6 +45,9 @@ class User extends Authenticatable
         'remember_token',
         'mfa_secret',
         'mfa_recovery_codes',
+        'failed_login_count',
+        'locked_until',
+        'last_failed_login_at',
     ];
 
     /**

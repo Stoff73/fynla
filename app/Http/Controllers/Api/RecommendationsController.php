@@ -80,10 +80,7 @@ class RecommendationsController extends Controller
                 'count' => count($recommendations),
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to fetch recommendations: '.$e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Fetching recommendations');
         }
     }
 
@@ -104,10 +101,7 @@ class RecommendationsController extends Controller
                 'data' => $summary,
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to fetch summary: '.$e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Fetching recommendations summary');
         }
     }
 
@@ -142,10 +136,7 @@ class RecommendationsController extends Controller
                 'count' => count($recommendations),
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to fetch top recommendations: '.$e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Fetching top recommendations');
         }
     }
 
@@ -185,10 +176,7 @@ class RecommendationsController extends Controller
                 'data' => $tracking,
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to mark recommendation as done: '.$e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Marking recommendation as done');
         }
     }
 
@@ -227,10 +215,7 @@ class RecommendationsController extends Controller
                 'data' => $tracking,
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to mark recommendation as in progress: '.$e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Marking recommendation as in progress');
         }
     }
 
@@ -269,10 +254,7 @@ class RecommendationsController extends Controller
                 'data' => $tracking,
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to dismiss recommendation: '.$e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Dismissing recommendation');
         }
     }
 
@@ -312,10 +294,7 @@ class RecommendationsController extends Controller
                 'data' => $tracking,
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update notes: '.$e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Updating recommendation notes');
         }
     }
 
@@ -340,10 +319,7 @@ class RecommendationsController extends Controller
                 'count' => $completed->count(),
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to fetch completed recommendations: '.$e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Fetching completed recommendations');
         }
     }
 }

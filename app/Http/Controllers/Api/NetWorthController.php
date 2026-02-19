@@ -64,11 +64,7 @@ class NetWorthController extends Controller
 
             return response()->json($response);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to calculate net worth',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Calculating net worth');
         }
     }
 
@@ -94,11 +90,7 @@ class NetWorthController extends Controller
                 'data' => $breakdown,
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to get asset breakdown',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Fetching asset breakdown');
         }
     }
 
@@ -133,11 +125,7 @@ class NetWorthController extends Controller
                 'data' => $trend,
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to get net worth trend',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Fetching net worth trend');
         }
     }
 
@@ -163,11 +151,7 @@ class NetWorthController extends Controller
                 'data' => $summary,
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to get assets summary',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Fetching assets summary');
         }
     }
 
@@ -193,11 +177,7 @@ class NetWorthController extends Controller
                 'data' => $jointAssets,
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to get joint assets',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Fetching joint assets');
         }
     }
 
@@ -224,11 +204,7 @@ class NetWorthController extends Controller
                 'data' => $summary,
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to get assets summary with details',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Fetching assets summary with details');
         }
     }
 
@@ -259,11 +235,7 @@ class NetWorthController extends Controller
                 'message' => 'Net worth refreshed successfully',
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to refresh net worth',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Refreshing net worth');
         }
     }
 }

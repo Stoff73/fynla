@@ -139,18 +139,10 @@ class MFAController extends Controller
         $request->validate([
             'code' => 'required|string|size:6',
             'mfa_token' => 'required|string',
-            // Keep user_id for backwards compatibility but prefer mfa_token
-            'user_id' => 'sometimes|integer',
         ]);
 
-        // Prefer secure mfa_token, fall back to user_id for backwards compatibility
-        $userId = null;
-        if ($request->filled('mfa_token')) {
-            $userId = $this->validateChallengeToken($request->mfa_token);
-        } elseif ($request->filled('user_id')) {
-            // Backwards compatibility - will be deprecated
-            $userId = $request->user_id;
-        }
+        // Validate secure challenge token
+        $userId = $this->validateChallengeToken($request->mfa_token);
 
         // Use consistent error message to prevent user enumeration
         $genericError = response()->json([
@@ -213,18 +205,10 @@ class MFAController extends Controller
         $request->validate([
             'recovery_code' => 'required|string',
             'mfa_token' => 'required|string',
-            // Keep user_id for backwards compatibility but prefer mfa_token
-            'user_id' => 'sometimes|integer',
         ]);
 
-        // Prefer secure mfa_token, fall back to user_id for backwards compatibility
-        $userId = null;
-        if ($request->filled('mfa_token')) {
-            $userId = $this->validateChallengeToken($request->mfa_token);
-        } elseif ($request->filled('user_id')) {
-            // Backwards compatibility - will be deprecated
-            $userId = $request->user_id;
-        }
+        // Validate secure challenge token
+        $userId = $this->validateChallengeToken($request->mfa_token);
 
         // Use consistent error message to prevent user enumeration
         $genericError = response()->json([

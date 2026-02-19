@@ -95,14 +95,6 @@ class SanitizeInput
             $value = strip_tags($value);
         }
 
-        // Encode special HTML characters as additional protection
-        // This converts < > & " ' to their HTML entities
-        $value = htmlspecialchars($value, ENT_QUOTES | ENT_HTML5, 'UTF-8', false);
-
-        // Decode back for storage (we want clean text, not entities)
-        // The encoding step above catches any remaining malicious content
-        $value = htmlspecialchars_decode($value, ENT_QUOTES | ENT_HTML5);
-
         return $value;
     }
 }

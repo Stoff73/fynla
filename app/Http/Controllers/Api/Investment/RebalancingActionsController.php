@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\Investment;
 
 use App\Http\Controllers\Controller;
+use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\Investment\RebalancingAction;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
 /**
@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Validator;
  */
 class RebalancingActionsController extends Controller
 {
+    use SanitizedErrorResponse;
     /**
      * Save rebalancing actions
      *
@@ -73,16 +74,7 @@ class RebalancingActionsController extends Controller
                 'message' => sprintf('%d rebalancing action(s) saved', count($savedActions)),
             ], 201);
         } catch (\Exception $e) {
-            Log::error('Failed to save rebalancing actions', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to save rebalancing actions',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Saving rebalancing actions', 500, ['user_id' => $user->id]);
         }
     }
 
@@ -179,17 +171,7 @@ class RebalancingActionsController extends Controller
                 'message' => 'Rebalancing action updated',
             ]);
         } catch (\Exception $e) {
-            Log::error('Failed to update rebalancing action', [
-                'user_id' => $user->id,
-                'action_id' => $id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update rebalancing action',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Updating rebalancing action', 500, ['user_id' => $user->id, 'action_id' => $id]);
         }
     }
 
@@ -221,17 +203,7 @@ class RebalancingActionsController extends Controller
                 'message' => 'Rebalancing action deleted',
             ]);
         } catch (\Exception $e) {
-            Log::error('Failed to delete rebalancing action', [
-                'user_id' => $user->id,
-                'action_id' => $id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to delete rebalancing action',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Deleting rebalancing action', 500, ['user_id' => $user->id, 'action_id' => $id]);
         }
     }
 }

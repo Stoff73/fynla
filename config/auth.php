@@ -114,6 +114,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Admin Emails
+    |--------------------------------------------------------------------------
+    |
+    | Email addresses that should be granted admin privileges on registration.
+    | Set via ADMIN_EMAILS env variable as a comma-separated list.
+    |
+    */
+
+    'admin_emails' => array_filter(explode(',', env('ADMIN_EMAILS', ''))),
+
+    /*
+    |--------------------------------------------------------------------------
     | Login Lockout Configuration
     |--------------------------------------------------------------------------
     |

@@ -93,15 +93,6 @@ class RetirementIncomeService
         // All assets are projected to retirement age
         $availableAccounts = $this->getAvailableAccounts($userId, $includeSpouse, $projectedPensionPot, $yearsToRetirement);
 
-        // DEBUG: Log available accounts to trace toggle issues
-        $accountTypes = array_map(fn ($a) => $a['type'] ?? 'unknown', $availableAccounts);
-        \Log::debug('RetirementIncomeService::getRetirementIncomeConfig - Available accounts', [
-            'user_id' => $userId,
-            'account_count' => count($availableAccounts),
-            'account_types' => $accountTypes,
-            'has_bonds' => in_array('onshore_bond', $accountTypes) || in_array('offshore_bond', $accountTypes),
-        ]);
-
         // Total funds = projected pension pot + other drawable assets
         $totalFunds = $this->calculateTotalFunds($availableAccounts);
 
@@ -128,31 +119,8 @@ class RetirementIncomeService
             $statePensionStatus
         );
 
-        // DEBUG: Log allocations to trace toggle issues
-        $allocationTypes = array_map(fn ($a) => [
-            'type' => $a['source_type'] ?? 'unknown',
-            'amount' => $a['annual_amount'] ?? 0,
-        ], $defaultAllocations);
-        \Log::debug('RetirementIncomeService::getRetirementIncomeConfig - Calculated allocations', [
-            'user_id' => $userId,
-            'target_income' => $optimisedIncome,
-            'allocation_count' => count($defaultAllocations),
-            'allocations' => $allocationTypes,
-            'total_allocated' => array_sum(array_column($defaultAllocations, 'annual_amount')),
-        ]);
-
         // Calculate tax breakdown accounting for state pension timing
         $taxBreakdown = $this->calculateTaxBreakdown($defaultAllocations, $statePensionStatus);
-
-        // DEBUG: Log tax breakdown
-        \Log::debug('RetirementIncomeService::getRetirementIncomeConfig - Tax breakdown', [
-            'user_id' => $userId,
-            'gross_income' => $taxBreakdown['gross_income'] ?? 0,
-            'tax_free_total' => $taxBreakdown['tax_free_total'] ?? 0,
-            'taxable_total' => $taxBreakdown['taxable_total'] ?? 0,
-            'total_tax' => $taxBreakdown['total_tax'] ?? 0,
-            'net_income' => $taxBreakdown['net_income'] ?? 0,
-        ]);
 
         // Project fund depletion (with all assets projected to retirement age)
         // Pass availableAccounts to ensure consistent values between PMT calculation and projection
@@ -933,15 +901,6 @@ class RetirementIncomeService
         // Pass availableAccounts to ensure values match what was used for PMT calculation
         $fundBalances = $this->initializeFundBalancesWithPclsSplit($userId, $incomeAllocations, $projectedPensionPot, $yearsToRetirement, $availableAccounts);
 
-        // DEBUG: Log initialized fund balances
-        $bondKeys = array_filter(array_keys($fundBalances), fn ($k) => str_contains($k, 'bond'));
-        \Log::debug('projectFundDepletion - Fund balances initialized', [
-            'total_fund_keys' => count($fundBalances),
-            'fund_keys' => array_keys($fundBalances),
-            'bond_keys' => $bondKeys,
-            'total_balance' => array_sum($fundBalances),
-        ]);
-
         // Calculate total starting funds
         $totalStartingFunds = array_sum($fundBalances);
 
@@ -1265,19 +1224,6 @@ class RetirementIncomeService
             $taxPaid = $taxableAmount * $basicRate;
             $yearData['tax_paid'] = round($taxPaid, 2);
 
-            // DEBUG: Log first year projection for tracing
-            if ($age === $retirementAge) {
-                \Log::debug('projectFundDepletion - First year projection', [
-                    'age' => $age,
-                    'total_income' => $yearData['total_income'],
-                    'withdrawals' => $yearData['withdrawals'],
-                    'state_pension' => $yearData['state_pension'],
-                    'db_pension' => $yearData['db_pension'],
-                    'taxable_drawdown' => $yearData['taxable_drawdown'],
-                    'tax_paid' => $yearData['tax_paid'],
-                    'bond_balance' => $yearData['bond'] ?? 0,
-                ]);
-            }
 
             $projections[] = $yearData;
         }
@@ -1606,13 +1552,6 @@ class RetirementIncomeService
             }
         }
 
-        // DEBUG: Log bond allocation calculation
-        \Log::debug('calculateDefaultAllocations - Bond calculation', [
-            'bond_accounts_found' => count($bondAccounts),
-            'total_bond_pmt' => $totalBondPmt,
-            'remaining_target' => $remainingTarget,
-        ]);
-
         // 2c: ISA PMT = Calculate withdrawal to deplete at age 100 (4% growth for S&S ISA, 0% for cash)
         $isaAccounts = [];
         $totalIsaPmt = 0;
@@ -1881,18 +1820,6 @@ class RetirementIncomeService
                 }
             }
         }
-
-        // DEBUG: Log final allocations
-        $finalAllocationSummary = array_map(fn ($a) => [
-            'type' => $a['source_type'] ?? 'unknown',
-            'amount' => $a['annual_amount'] ?? 0,
-            'tax_treatment' => $a['tax_treatment'] ?? 'unknown',
-        ], $allocations);
-        \Log::debug('calculateDefaultAllocations - Final allocations', [
-            'total_allocations' => count($allocations),
-            'remaining_target' => $remainingTarget,
-            'allocations' => $finalAllocationSummary,
-        ]);
 
         return $allocations;
     }

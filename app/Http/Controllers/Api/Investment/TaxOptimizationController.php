@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\Investment;
 
 use App\Http\Controllers\Controller;
+use App\Http\Traits\SanitizedErrorResponse;
 use App\Services\Investment\Tax\BedAndISACalculator;
 use App\Services\Investment\Tax\CGTHarvestingCalculator;
 use App\Services\Investment\Tax\ISAAllowanceOptimizer;
@@ -21,6 +22,8 @@ use Illuminate\Support\Facades\Validator;
  */
 class TaxOptimizationController extends Controller
 {
+    use SanitizedErrorResponse;
+
     public function __construct(
         private TaxOptimizationAnalyzer $taxOptimizer,
         private ISAAllowanceOptimizer $isaOptimizer,
@@ -71,17 +74,7 @@ class TaxOptimizationController extends Controller
                 'data' => $result,
             ]);
         } catch (\Exception $e) {
-            Log::error('Tax optimization analysis failed', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to analyze tax position',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Tax position analysis');
         }
     }
 
@@ -124,16 +117,7 @@ class TaxOptimizationController extends Controller
                 'data' => $result,
             ]);
         } catch (\Exception $e) {
-            Log::error('ISA strategy calculation failed', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to calculate ISA strategy',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'ISA strategy calculation');
         }
     }
 
@@ -171,16 +155,7 @@ class TaxOptimizationController extends Controller
                 'data' => $result,
             ]);
         } catch (\Exception $e) {
-            Log::error('CGT harvesting calculation failed', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to calculate CGT harvesting opportunities',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'CGT harvesting calculation');
         }
     }
 
@@ -217,16 +192,7 @@ class TaxOptimizationController extends Controller
                 'data' => $result,
             ]);
         } catch (\Exception $e) {
-            Log::error('Bed and ISA calculation failed', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to calculate Bed and ISA opportunities',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Bed and ISA calculation');
         }
     }
 
@@ -266,16 +232,7 @@ class TaxOptimizationController extends Controller
                 'data' => $result,
             ]);
         } catch (\Exception $e) {
-            Log::error('Tax efficiency score calculation failed', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to calculate tax efficiency score',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Tax efficiency score calculation');
         }
     }
 
@@ -350,16 +307,7 @@ class TaxOptimizationController extends Controller
                 'data' => $result,
             ]);
         } catch (\Exception $e) {
-            Log::error('Tax recommendations fetch failed', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to fetch tax recommendations',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Tax recommendations retrieval');
         }
     }
 
@@ -457,16 +405,7 @@ class TaxOptimizationController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Potential savings calculation failed', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to calculate potential savings',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Potential savings calculation');
         }
     }
 
@@ -498,16 +437,7 @@ class TaxOptimizationController extends Controller
                 'message' => 'Tax optimization caches cleared',
             ]);
         } catch (\Exception $e) {
-            Log::error('Cache clearing failed', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to clear caches',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Tax cache clearing');
         }
     }
 

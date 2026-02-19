@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\Estate;
 
 use App\Http\Controllers\Controller;
+use App\Http\Traits\SanitizedErrorResponse;
 use App\Services\Estate\LifePolicyStrategyService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class LifePolicyController extends Controller
 {
+    use SanitizedErrorResponse;
+
     public function __construct(
         private IHTController $ihtController,
         private LifePolicyStrategyService $lifePolicyStrategy
@@ -126,10 +129,7 @@ class LifePolicyController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to calculate life policy strategy: '.$e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Calculating life policy strategy');
         }
     }
 }

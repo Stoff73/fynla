@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\Investment;
 
 use App\Http\Controllers\Controller;
+use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\Investment\InvestmentAccount;
 use App\Services\Investment\Rebalancing\DriftAnalyzer;
 use App\Services\Investment\Rebalancing\RebalancingCalculator;
@@ -20,6 +21,8 @@ use Illuminate\Support\Facades\Validator;
  */
 class RebalancingCalculationController extends Controller
 {
+    use SanitizedErrorResponse;
+
     public function __construct(
         private RebalancingCalculator $rebalancingCalculator,
         private TaxAwareRebalancer $taxAwareRebalancer,
@@ -144,17 +147,7 @@ class RebalancingCalculationController extends Controller
                 'data' => $result,
             ]);
         } catch (\Exception $e) {
-            Log::error('Rebalancing calculation failed', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to calculate rebalancing',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Rebalancing calculation');
         }
     }
 
@@ -273,16 +266,7 @@ class RebalancingCalculationController extends Controller
                 'data' => $comparison,
             ]);
         } catch (\Exception $e) {
-            Log::error('CGT strategy comparison failed', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to compare CGT strategies',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'CGT strategy comparison');
         }
     }
 
@@ -356,16 +340,7 @@ class RebalancingCalculationController extends Controller
                 'data' => $result,
             ]);
         } catch (\Exception $e) {
-            Log::error('CGT-constrained rebalancing failed', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to calculate CGT-constrained rebalancing',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'CGT-constrained rebalancing');
         }
     }
 
@@ -526,17 +501,7 @@ class RebalancingCalculationController extends Controller
                 'data' => $response,
             ]);
         } catch (\Exception $e) {
-            Log::error('Account rebalancing analysis failed', [
-                'user_id' => $user->id,
-                'account_id' => $accountId,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to analyze account rebalancing',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Account rebalancing analysis');
         }
     }
 
@@ -585,16 +550,7 @@ class RebalancingCalculationController extends Controller
                 'message' => 'Rebalancing threshold updated successfully',
             ]);
         } catch (\Exception $e) {
-            Log::error('Failed to update rebalancing threshold', [
-                'user_id' => $user->id,
-                'account_id' => $accountId,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update threshold',
-            ], 500);
+            return $this->errorResponse($e, 'Rebalancing threshold update');
         }
     }
 
@@ -736,16 +692,7 @@ class RebalancingCalculationController extends Controller
                 'data' => $result,
             ]);
         } catch (\Exception $e) {
-            Log::error('Drift analysis failed', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to analyze drift',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Drift analysis');
         }
     }
 }

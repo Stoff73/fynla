@@ -200,14 +200,7 @@ class InvestmentController extends Controller
             // Re-throw validation exceptions to let Laravel handle them (422 response)
             throw $e;
         } catch (\Exception $e) {
-            \Log::error('Monte Carlo error: '.$e->getMessage(), [
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to start Monte Carlo simulation: '.$e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Monte Carlo simulation start');
         }
     }
 
@@ -844,10 +837,7 @@ class InvestmentController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to generate projections: '.$e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Investment account projections');
         }
     }
 

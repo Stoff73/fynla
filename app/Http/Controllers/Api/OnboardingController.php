@@ -32,11 +32,7 @@ class OnboardingController extends Controller
                 'data' => $status,
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve onboarding status',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Onboarding status retrieval');
         }
     }
 
@@ -73,11 +69,7 @@ class OnboardingController extends Controller
                 'message' => 'Focus area set successfully',
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to set focus area',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Focus area setting');
         }
     }
 
@@ -127,16 +119,7 @@ class OnboardingController extends Controller
                 'message' => 'Step progress saved successfully',
             ]);
         } catch (\Exception $e) {
-            \Log::error('Failed to save step progress', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to save step progress',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Step progress save');
         }
     }
 
@@ -179,11 +162,7 @@ class OnboardingController extends Controller
                 'message' => 'Step skipped successfully',
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to skip step',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Step skip');
         }
     }
 
@@ -205,11 +184,7 @@ class OnboardingController extends Controller
                 'message' => 'Skipped to dashboard successfully',
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to skip to dashboard',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Skip to dashboard');
         }
     }
 
@@ -230,11 +205,7 @@ class OnboardingController extends Controller
                 'message' => 'Onboarding completed successfully',
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to complete onboarding',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Onboarding completion');
         }
     }
 
@@ -255,11 +226,7 @@ class OnboardingController extends Controller
                 'message' => 'Onboarding restarted successfully',
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to restart onboarding',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Onboarding restart');
         }
     }
 
@@ -270,37 +237,15 @@ class OnboardingController extends Controller
     {
         try {
             $userId = $request->user()->id;
-            $userEmail = $request->user()->email;
-            $token = $request->bearerToken();
-
-            \Log::info('SECURITY AUDIT: getStepData called', [
-                'user_id' => $userId,
-                'user_email' => $userEmail,
-                'step' => $step,
-                'token_preview' => substr($token, 0, 20).'...',
-                'authenticated_user' => $request->user()->toArray(),
-            ]);
 
             $stepData = $this->onboardingService->getStepData($userId, $step);
-
-            \Log::info('SECURITY AUDIT: getStepData returning', [
-                'user_id' => $userId,
-                'user_email' => $userEmail,
-                'step' => $step,
-                'has_data' => ! empty($stepData),
-                'data_keys' => $stepData ? array_keys($stepData) : [],
-            ]);
 
             return response()->json([
                 'success' => true,
                 'data' => $stepData,
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve step data',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Step data retrieval');
         }
     }
 
@@ -332,11 +277,7 @@ class OnboardingController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve steps',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Steps retrieval');
         }
     }
 
@@ -367,11 +308,7 @@ class OnboardingController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve skip reason',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Skip reason retrieval');
         }
     }
 }

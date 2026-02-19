@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api\Estate;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Estate\CalculateIntestacyRequest;
+use App\Http\Traits\SanitizedErrorResponse;
 use App\Http\Requests\Estate\StoreBequestRequest;
 use App\Http\Requests\Estate\StoreWillRequest;
 use App\Http\Requests\Estate\UpdateBequestRequest;
@@ -20,6 +21,8 @@ use Illuminate\Support\Facades\Cache;
 
 class WillController extends Controller
 {
+    use SanitizedErrorResponse;
+
     public function __construct(
         private IHTPeriodicChargeCalculator $periodicChargeCalculator,
         private IntestacyCalculator $intestacyCalculator
@@ -247,10 +250,7 @@ class WillController extends Controller
                 'data' => $distribution,
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to calculate intestacy distribution: '.$e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Calculating intestacy distribution');
         }
     }
 }

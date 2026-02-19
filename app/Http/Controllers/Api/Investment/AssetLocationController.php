@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\Investment;
 
 use App\Http\Controllers\Controller;
+use App\Http\Traits\SanitizedErrorResponse;
 use App\Services\Investment\AssetLocation\AccountTypeRecommender;
 use App\Services\Investment\AssetLocation\AssetLocationOptimizer;
 use App\Services\Investment\AssetLocation\TaxDragCalculator;
@@ -20,6 +21,8 @@ use Illuminate\Support\Facades\Validator;
  */
 class AssetLocationController extends Controller
 {
+    use SanitizedErrorResponse;
+
     public function __construct(
         private AssetLocationOptimizer $optimizer,
         private TaxDragCalculator $taxDragCalculator,
@@ -69,17 +72,7 @@ class AssetLocationController extends Controller
                 'data' => $result,
             ]);
         } catch (\Exception $e) {
-            Log::error('Asset location analysis failed', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to analyze asset location',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Asset location analysis');
         }
     }
 
@@ -134,16 +127,7 @@ class AssetLocationController extends Controller
                 'data' => $result,
             ]);
         } catch (\Exception $e) {
-            Log::error('Asset location recommendations failed', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to generate recommendations',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Asset location recommendations');
         }
     }
 
@@ -165,16 +149,7 @@ class AssetLocationController extends Controller
                 'data' => $result,
             ]);
         } catch (\Exception $e) {
-            Log::error('Tax drag calculation failed', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to calculate tax drag',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Tax drag calculation');
         }
     }
 
@@ -214,16 +189,7 @@ class AssetLocationController extends Controller
                 'data' => $result,
             ]);
         } catch (\Exception $e) {
-            Log::error('Optimization score calculation failed', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to calculate optimization score',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Optimisation score calculation');
         }
     }
 
@@ -264,17 +230,7 @@ class AssetLocationController extends Controller
                 'data' => $comparison,
             ]);
         } catch (\Exception $e) {
-            Log::error('Account type comparison failed', [
-                'user_id' => $user->id,
-                'holding_id' => $validated['holding_id'] ?? null,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to compare account types',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Account type comparison');
         }
     }
 
@@ -302,16 +258,7 @@ class AssetLocationController extends Controller
                 'message' => 'Asset location caches cleared',
             ]);
         } catch (\Exception $e) {
-            Log::error('Cache clearing failed', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to clear caches',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Asset location cache clearing');
         }
     }
 

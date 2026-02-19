@@ -139,10 +139,7 @@ class ProtectionController extends Controller
 
             return response()->json($scenarios);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to build scenarios: '.$e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Building protection scenarios', 500, ['user_id' => $userId]);
         }
     }
 
@@ -170,10 +167,7 @@ class ProtectionController extends Controller
                 'data' => $profile,
             ], 201);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to save protection profile: '.$e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Saving protection profile');
         }
     }
 
@@ -210,10 +204,7 @@ class ProtectionController extends Controller
                 'data' => $profile,
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update protection profile: '.$e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Updating protection profile');
         }
     }
 
@@ -432,10 +423,7 @@ class ProtectionController extends Controller
                 'data' => $plan,
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to generate comprehensive protection plan: '.$e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Generating comprehensive protection plan');
         }
     }
 }

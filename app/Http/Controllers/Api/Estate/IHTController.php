@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\Estate;
 
 use App\Http\Controllers\Controller;
+use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\Estate\Will;
 use App\Models\LifeInsurancePolicy;
 use App\Models\User;
@@ -17,6 +18,8 @@ use Illuminate\Http\Request;
 
 class IHTController extends Controller
 {
+    use SanitizedErrorResponse;
+
     public function __construct(
         private readonly IHTCalculationService $ihtCalculationService,
         private readonly EstateAssetAggregatorService $assetAggregator,
@@ -153,16 +156,7 @@ class IHTController extends Controller
 
             return response()->json($response);
         } catch (\Exception $e) {
-            \Log::error('IHT Calculation Error:', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'An error occurred calculating IHT: '.$e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'IHT calculation');
         }
     }
 

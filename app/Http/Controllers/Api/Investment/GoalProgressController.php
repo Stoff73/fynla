@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\Investment;
 
 use App\Http\Controllers\Controller;
+use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\Investment\InvestmentGoal;
 use App\Services\Investment\Goals\GoalProbabilityCalculator;
 use App\Services\Investment\Goals\GoalProgressAnalyzer;
@@ -21,6 +22,8 @@ use Illuminate\Support\Facades\Validator;
  */
 class GoalProgressController extends Controller
 {
+    use SanitizedErrorResponse;
+
     public function __construct(
         private GoalProgressAnalyzer $progressAnalyzer,
         private ShortfallAnalyzer $shortfallAnalyzer,
@@ -57,18 +60,7 @@ class GoalProgressController extends Controller
                 'data' => $result,
             ]);
         } catch (\Exception $e) {
-            Log::error('Goal progress analysis failed', [
-                'user_id' => $user->id,
-                'goal_id' => $goalId,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to analyze goal progress',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Goal progress analysis');
         }
     }
 
@@ -97,16 +89,7 @@ class GoalProgressController extends Controller
                 'data' => $result,
             ]);
         } catch (\Exception $e) {
-            Log::error('All goals progress analysis failed', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to analyze goals progress',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'All goals progress analysis');
         }
     }
 
@@ -139,17 +122,7 @@ class GoalProgressController extends Controller
                 'data' => $result,
             ]);
         } catch (\Exception $e) {
-            Log::error('Shortfall analysis failed', [
-                'user_id' => $user->id,
-                'goal_id' => $goalId,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to analyze shortfall',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Shortfall analysis');
         }
     }
 
@@ -199,17 +172,7 @@ class GoalProgressController extends Controller
                 'data' => $result,
             ]);
         } catch (\Exception $e) {
-            Log::error('What-if scenario generation failed', [
-                'user_id' => $user->id,
-                'goal_id' => $goalId,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to generate what-if scenarios',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'What-if scenario generation');
         }
     }
 
@@ -262,16 +225,7 @@ class GoalProgressController extends Controller
                 'data' => $result,
             ]);
         } catch (\Exception $e) {
-            Log::error('Probability calculation failed', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to calculate probability',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Goal probability calculation');
         }
     }
 
@@ -320,16 +274,7 @@ class GoalProgressController extends Controller
                 'data' => $result,
             ]);
         } catch (\Exception $e) {
-            Log::error('Required contribution calculation failed', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to calculate required contribution',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Required contribution calculation');
         }
     }
 
@@ -368,16 +313,7 @@ class GoalProgressController extends Controller
                 'data' => $result,
             ]);
         } catch (\Exception $e) {
-            Log::error('Glide path calculation failed', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to calculate glide path',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Glide path calculation');
         }
     }
 
@@ -410,16 +346,7 @@ class GoalProgressController extends Controller
                 'cleared_count' => count($cacheKeys),
             ]);
         } catch (\Exception $e) {
-            Log::error('Cache clearing failed', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to clear caches',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse($e, 'Goal cache clearing');
         }
     }
 
