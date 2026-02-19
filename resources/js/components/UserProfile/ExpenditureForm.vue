@@ -278,6 +278,19 @@
               />
             </template>
 
+            <template v-if="hasSavingsCommitments || spouseHasSavingsCommitments">
+              <ExpenditureExpandableGridRow
+                label="Savings Contributions"
+                :value="financialCommitments?.totals?.savings || 0"
+                :spouse-value="spouseFinancialCommitments?.totals?.savings || 0"
+                :household-value="(financialCommitments?.totals?.savings || 0) + (spouseFinancialCommitments?.totals?.savings || 0)"
+                :is-married="isMarried"
+                :items="financialCommitments?.commitments?.savings || []"
+                :spouse-items="spouseFinancialCommitments?.commitments?.savings || []"
+                indent
+              />
+            </template>
+
             <template v-if="hasProtectionCommitments || spouseHasProtectionCommitments">
               <ExpenditureExpandableGridRow
                 label="Protection Premiums"
@@ -595,6 +608,24 @@
             </div>
           </div>
 
+          <!-- Savings -->
+          <div v-if="hasSavingsCommitments" class="mb-4">
+            <h5 class="text-body font-medium text-gray-900 mb-2">Savings Contributions</h5>
+            <div class="space-y-2">
+              <div
+                v-for="saving in financialCommitments.commitments.savings"
+                :key="saving.id"
+                class="flex justify-between items-center p-3 bg-white rounded-lg"
+              >
+                <div>
+                  <p class="text-body text-gray-900">{{ saving.name }}</p>
+                  <p v-if="saving.is_joint" class="text-body-sm text-primary-600">Your {{ saving.ownership_percentage || 50 }}% share</p>
+                </div>
+                <p class="text-body font-medium text-gray-900">{{ formatCurrency(saving.monthly_amount) }}/month</p>
+              </div>
+            </div>
+          </div>
+
           <!-- Protection -->
           <div v-if="hasProtectionCommitments" class="mb-4">
             <h5 class="text-body font-medium text-gray-900 mb-2">Protection Premiums</h5>
@@ -815,6 +846,20 @@
               />
             </template>
 
+            <!-- Savings Contributions - kept in retirement -->
+            <template v-if="hasSavingsCommitments || spouseHasSavingsCommitments">
+              <ExpenditureExpandableGridRow
+                label="Savings Contributions"
+                :value="financialCommitments?.totals?.savings || 0"
+                :spouse-value="spouseFinancialCommitments?.totals?.savings || 0"
+                :household-value="(financialCommitments?.totals?.savings || 0) + (spouseFinancialCommitments?.totals?.savings || 0)"
+                :is-married="isMarried"
+                :items="financialCommitments?.commitments?.savings || []"
+                :spouse-items="spouseFinancialCommitments?.commitments?.savings || []"
+                indent
+              />
+            </template>
+
             <!-- Protection Premiums - kept in retirement -->
             <template v-if="hasProtectionCommitments || spouseHasProtectionCommitments">
               <ExpenditureExpandableGridRow
@@ -1007,9 +1052,9 @@
           <ExpenditureSection
             title="Financial Commitments"
             :is-expanded="isSectionExpanded('widowed', 'commitments')"
-            :user-total="widowedCommitments.propertyAmount + widowedCommitments.protectionAmount + widowedCommitments.investmentsAmount + widowedCommitments.loansAmount"
+            :user-total="widowedCommitments.propertyAmount + widowedCommitments.protectionAmount + widowedCommitments.investmentsAmount + widowedCommitments.savingsAmount + widowedCommitments.loansAmount"
             :spouse-total="0"
-            :household-total="widowedCommitments.propertyAmount + widowedCommitments.protectionAmount + widowedCommitments.investmentsAmount + widowedCommitments.loansAmount"
+            :household-total="widowedCommitments.propertyAmount + widowedCommitments.protectionAmount + widowedCommitments.investmentsAmount + widowedCommitments.savingsAmount + widowedCommitments.loansAmount"
             :is-married="false"
             @toggle="toggleSection('widowed', 'commitments')"
           >
@@ -1042,6 +1087,20 @@
                 :household-value="widowedCommitments.investmentsAmount"
                 :is-married="false"
                 :items="widowedCommitments.investmentItems"
+                :spouse-items="[]"
+                indent
+              />
+            </template>
+
+            <!-- Savings Contributions - combined household -->
+            <template v-if="hasSavingsCommitments || spouseHasSavingsCommitments">
+              <ExpenditureExpandableGridRow
+                label="Savings Contributions"
+                :value="widowedCommitments.savingsAmount"
+                :spouse-value="0"
+                :household-value="widowedCommitments.savingsAmount"
+                :is-married="false"
+                :items="widowedCommitments.savingsItems"
                 :spouse-items="[]"
                 indent
               />
@@ -1446,13 +1505,15 @@ export default {
     const hasRetirementCommitments = computed(() => financialCommitments.value?.commitments?.retirement?.length > 0);
     const hasPropertyCommitments = computed(() => financialCommitments.value?.commitments?.properties?.length > 0);
     const hasInvestmentCommitments = computed(() => financialCommitments.value?.commitments?.investments?.length > 0);
+    const hasSavingsCommitments = computed(() => financialCommitments.value?.commitments?.savings?.length > 0);
     const hasProtectionCommitments = computed(() => financialCommitments.value?.commitments?.protection?.length > 0);
     const hasLiabilityCommitments = computed(() => financialCommitments.value?.commitments?.liabilities?.length > 0);
-    const hasAnyCommitments = computed(() => hasRetirementCommitments.value || hasPropertyCommitments.value || hasInvestmentCommitments.value || hasProtectionCommitments.value || hasLiabilityCommitments.value);
+    const hasAnyCommitments = computed(() => hasRetirementCommitments.value || hasPropertyCommitments.value || hasInvestmentCommitments.value || hasSavingsCommitments.value || hasProtectionCommitments.value || hasLiabilityCommitments.value);
 
     const spouseHasRetirementCommitments = computed(() => spouseFinancialCommitments.value?.commitments?.retirement?.length > 0);
     const spouseHasPropertyCommitments = computed(() => spouseFinancialCommitments.value?.commitments?.properties?.length > 0);
     const spouseHasInvestmentCommitments = computed(() => spouseFinancialCommitments.value?.commitments?.investments?.length > 0);
+    const spouseHasSavingsCommitments = computed(() => spouseFinancialCommitments.value?.commitments?.savings?.length > 0);
     const spouseHasProtectionCommitments = computed(() => spouseFinancialCommitments.value?.commitments?.protection?.length > 0);
     const spouseHasLiabilityCommitments = computed(() => spouseFinancialCommitments.value?.commitments?.liabilities?.length > 0);
 
@@ -1920,6 +1981,8 @@ export default {
       const spouseProperty = spouseFinancialCommitments.value?.totals?.properties || 0;
       const userInvestments = financialCommitments.value?.totals?.investments || 0;
       const spouseInvestments = spouseFinancialCommitments.value?.totals?.investments || 0;
+      const userSavings = financialCommitments.value?.totals?.savings || 0;
+      const spouseSavings = spouseFinancialCommitments.value?.totals?.savings || 0;
       const userProtection = financialCommitments.value?.totals?.protection || 0;
       const spouseProtection = spouseFinancialCommitments.value?.totals?.protection || 0;
       const userLoans = financialCommitments.value?.totals?.liabilities || 0;
@@ -1934,6 +1997,10 @@ export default {
         financialCommitments.value?.commitments?.investments,
         spouseFinancialCommitments.value?.commitments?.investments
       );
+      const savingsItems = mergeToHouseholdItems(
+        financialCommitments.value?.commitments?.savings,
+        spouseFinancialCommitments.value?.commitments?.savings
+      );
       const protectionItems = mergeToHouseholdItems(
         financialCommitments.value?.commitments?.protection,
         spouseFinancialCommitments.value?.commitments?.protection
@@ -1947,10 +2014,12 @@ export default {
         propertyAmount: userProperty + spouseProperty,
         protectionAmount: userProtection + spouseProtection,
         investmentsAmount: userInvestments + spouseInvestments,
+        savingsAmount: userSavings + spouseSavings,
         loansAmount: userLoans + spouseLoans,
         // Include merged items for display
         propertyItems,
         investmentItems,
+        savingsItems,
         protectionItems,
         liabilityItems,
       };
@@ -1964,6 +2033,7 @@ export default {
       total += widowedCommitments.value.propertyAmount;
       total += widowedCommitments.value.protectionAmount;
       total += widowedCommitments.value.investmentsAmount;
+      total += widowedCommitments.value.savingsAmount;
       total += widowedCommitments.value.loansAmount;
       return total;
     });
@@ -2203,12 +2273,14 @@ export default {
       hasRetirementCommitments,
       hasPropertyCommitments,
       hasInvestmentCommitments,
+      hasSavingsCommitments,
       hasProtectionCommitments,
       hasLiabilityCommitments,
       hasAnyCommitments,
       spouseHasRetirementCommitments,
       spouseHasPropertyCommitments,
       spouseHasInvestmentCommitments,
+      spouseHasSavingsCommitments,
       spouseHasProtectionCommitments,
       spouseHasLiabilityCommitments,
       formatCurrency,

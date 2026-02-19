@@ -21,17 +21,33 @@
       <!-- Pension Annual Allowance -->
       <div class="allowance-item cursor-pointer hover:bg-gray-50 rounded-lg p-2 -m-2 transition-colors" @click="navigateTo('/net-worth/retirement')">
         <div class="flex justify-between items-center mb-1">
-          <span class="text-sm font-medium text-gray-700">Pension</span>
-          <span class="text-xs text-gray-500">{{ formatCurrency(pensionUsed) }} / {{ formatCurrency(pensionLimit) }}</span>
+          <span class="text-sm font-medium text-gray-700">Pension ({{ currentTaxYear }})</span>
+          <span class="text-xs text-gray-500">{{ formatCurrency(pensionStandardUsed) }} / {{ formatCurrency(pensionLimit) }}</span>
         </div>
         <div class="h-2 rounded-full overflow-hidden bg-gray-200">
           <div
             class="h-full rounded-full transition-all duration-300"
-            :class="getProgressBarClass(pensionPercent)"
-            :style="{ width: Math.min(pensionPercent, 100) + '%' }"
+            :class="getProgressBarClass(pensionStandardPercent)"
+            :style="{ width: Math.min(pensionStandardPercent, 100) + '%' }"
           ></div>
         </div>
-        <div class="text-xs text-gray-500 mt-1">{{ formatCurrency(pensionRemaining) }} remaining</div>
+        <div class="text-xs text-gray-500 mt-1">{{ formatCurrency(pensionStandardRemaining) }} remaining</div>
+      </div>
+
+      <!-- Pension Carry Forward (only when exceeding standard allowance) -->
+      <div v-if="pensionExceedsStandard && pensionCarryForwardUsed > 0" class="allowance-item cursor-pointer hover:bg-gray-50 rounded-lg p-2 -m-2 transition-colors" @click="navigateTo('/net-worth/retirement')">
+        <div class="flex justify-between items-center mb-1">
+          <span class="text-sm font-medium text-gray-700">Carry Forward ({{ carryForwardTaxYear }})</span>
+          <span class="text-xs text-gray-500">{{ formatCurrency(pensionCarryForwardUsed) }} / {{ formatCurrency(pensionLimit) }}</span>
+        </div>
+        <div class="h-2 rounded-full overflow-hidden bg-gray-200">
+          <div
+            class="h-full rounded-full transition-all duration-300"
+            :class="getProgressBarClass(carryForwardPercent)"
+            :style="{ width: Math.min(carryForwardPercent, 100) + '%' }"
+          ></div>
+        </div>
+        <div class="text-xs text-gray-500 mt-1">{{ formatCurrency(carryForwardRemaining) }} remaining</div>
       </div>
 
       <!-- CGT Allowance (only if user has non-ISA investments) -->
@@ -156,12 +172,70 @@ export default {
       }
       // Fallback: sum DC pension contributions
       return (this.dcPensions || []).reduce((sum, p) => {
-        const monthlyContrib = parseFloat(p.monthly_contribution_amount || 0);
-        const employerContrib = parseFloat(p.employer_contribution_amount || 0);
-        return sum + (monthlyContrib + employerContrib) * 12;
+        if (p.scheme_type === 'personal' || p.scheme_type === 'sipp') {
+          return sum + parseFloat(p.monthly_contribution_amount || 0) * 12;
+        }
+        // Workplace pensions: calculate from percentage of salary
+        const employeePercent = parseFloat(p.employee_contribution_percent || 0);
+        const employerPercent = parseFloat(p.employer_contribution_percent || 0);
+        const salary = parseFloat(p.annual_salary || 0);
+        return sum + (salary * (employeePercent + employerPercent)) / 100;
       }, 0);
     },
 
+    pensionCarryForward() {
+      return this.annualAllowance?.carry_forward_available || this.annualAllowance?.carry_forward || 0;
+    },
+
+    pensionExceedsStandard() {
+      return this.pensionUsed > this.pensionLimit;
+    },
+
+    pensionStandardUsed() {
+      return Math.min(this.pensionUsed, this.pensionLimit);
+    },
+
+    pensionStandardPercent() {
+      return (this.pensionStandardUsed / this.pensionLimit) * 100;
+    },
+
+    pensionStandardRemaining() {
+      return Math.max(0, this.pensionLimit - this.pensionStandardUsed);
+    },
+
+    pensionCarryForwardUsed() {
+      return Math.min(this.pensionCarryForward, Math.max(0, this.pensionUsed - this.pensionLimit));
+    },
+
+    carryForwardPercent() {
+      return (this.pensionCarryForwardUsed / this.pensionLimit) * 100;
+    },
+
+    carryForwardRemaining() {
+      return this.pensionLimit - this.pensionCarryForwardUsed;
+    },
+
+    currentTaxYear() {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth(); // 0-indexed
+      const day = now.getDate();
+      // Tax year starts April 6
+      const taxYearStart = (month > 3 || (month === 3 && day >= 6)) ? year : year - 1;
+      return `${taxYearStart}/${String(taxYearStart + 1).slice(-2)}`;
+    },
+
+    carryForwardTaxYear() {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth();
+      const day = now.getDate();
+      const taxYearStart = (month > 3 || (month === 3 && day >= 6)) ? year : year - 1;
+      const cfStart = taxYearStart - 3;
+      return `${cfStart}/${String(cfStart + 1).slice(-2)}`;
+    },
+
+    // Keep original for backward compatibility with expiring message
     pensionRemaining() {
       return Math.max(0, this.pensionLimit - this.pensionUsed);
     },

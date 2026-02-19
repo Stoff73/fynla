@@ -268,7 +268,7 @@
       "isa_subscription_current_year": 10000,
       "access_type": "immediate",
       "ownership_type": "individual",
-      "monthly_contribution": 0
+      "monthly_contribution": 833
     },
     {
       "id": 5,
@@ -282,7 +282,7 @@
       "access_type": "immediate",
       "ownership_type": "individual",
       "owner": "spouse",
-      "monthly_contribution": 0
+      "monthly_contribution": 833
     },
     {
       "id": 6,
@@ -305,8 +305,8 @@
       "provider_name": "Hargreaves Lansdown",
       "account_type": "isa",
       "current_value": 95000,
-      "annual_contribution": 0,
-      "monthly_contribution_amount": 0,
+      "annual_contribution": 10000,
+      "monthly_contribution_amount": 833,
       "contribution_frequency": "monthly",
       "isa_subscription_current_year": 10000,
       "planned_lump_sum_amount": 5000,
@@ -365,8 +365,8 @@
       "provider_name": "Hargreaves Lansdown",
       "account_type": "isa",
       "current_value": 85000,
-      "annual_contribution": 0,
-      "monthly_contribution_amount": 0,
+      "annual_contribution": 10000,
+      "monthly_contribution_amount": 833,
       "contribution_frequency": "monthly",
       "isa_subscription_current_year": 10000,
       "ownership_type": "individual",
