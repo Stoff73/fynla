@@ -10,6 +10,7 @@ use App\Services\Audit\AuditService;
 use App\Services\Auth\SessionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 
 class SessionController extends Controller
 {
@@ -72,11 +73,25 @@ class SessionController extends Controller
     }
 
     /**
-     * Revoke all sessions except current
+     * Revoke all sessions except current.
+     *
+     * Requires password re-authentication to prevent abuse with a stolen token.
      */
     public function destroyOthers(Request $request): JsonResponse
     {
+        $request->validate([
+            'current_password' => 'required|string',
+        ]);
+
         $user = $request->user();
+
+        if (! Hash::check($request->current_password, $user->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Current password is incorrect.',
+            ], 422);
+        }
+
         $revokedCount = $this->sessionService->revokeAllExceptCurrent($user);
 
         // Audit log

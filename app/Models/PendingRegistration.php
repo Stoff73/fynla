@@ -11,13 +11,18 @@ use Illuminate\Database\Eloquent\Model;
  * Pending Registration Model
  *
  * Stores registration data until email is verified.
- * - No expiry timer - user can verify at any time
+ * - Expires after 24 hours
  * - Same email can re-register (overwrites previous pending)
  * - Once verified, user is created and pending record deleted
  */
 class PendingRegistration extends Model
 {
     use HasFactory;
+
+    /**
+     * Pending registration expiry in hours.
+     */
+    public const EXPIRY_HOURS = 24;
 
     protected $fillable = [
         'email',
@@ -30,11 +35,16 @@ class PendingRegistration extends Model
         'preview_persona_id',
         'plan',
         'billing_cycle',
+        'expires_at',
     ];
 
     protected $hidden = [
         'password',
         'verification_code',
+    ];
+
+    protected $casts = [
+        'expires_at' => 'datetime',
     ];
 
     /**
@@ -63,18 +73,33 @@ class PendingRegistration extends Model
                 'preview_persona_id' => $data['preview_persona_id'] ?? null,
                 'plan' => $data['plan'] ?? null,
                 'billing_cycle' => $data['billing_cycle'] ?? null,
+                'expires_at' => now()->addHours(self::EXPIRY_HOURS),
             ]
         );
     }
 
     /**
-     * Verify the code and return the pending registration if valid.
+     * Check if this pending registration has expired.
+     */
+    public function isExpired(): bool
+    {
+        return $this->expires_at && $this->expires_at->isPast();
+    }
+
+    /**
+     * Verify the code and return the pending registration if valid and not expired.
      */
     public static function verify(string $email, string $code): ?self
     {
-        return self::where('email', $email)
+        $pending = self::where('email', $email)
             ->where('verification_code', $code)
             ->first();
+
+        if ($pending && $pending->isExpired()) {
+            return null;
+        }
+
+        return $pending;
     }
 
     /**

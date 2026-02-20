@@ -393,7 +393,21 @@ class AuthController extends Controller
         if ($request->type === 'registration') {
             $pending = PendingRegistration::find($request->pending_id);
 
-            if (! $pending || $pending->verification_code !== $request->code) {
+            if (! $pending) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid verification code',
+                ], 422);
+            }
+
+            if ($pending->isExpired()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Verification code has expired. Please register again.',
+                ], 422);
+            }
+
+            if ($pending->verification_code !== $request->code) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Invalid verification code',
@@ -500,6 +514,13 @@ class AuthController extends Controller
                     'success' => false,
                     'message' => 'Registration not found. Please start over.',
                 ], 404);
+            }
+
+            if ($pending->isExpired()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Registration has expired. Please register again.',
+                ], 422);
             }
 
             // Regenerate the code

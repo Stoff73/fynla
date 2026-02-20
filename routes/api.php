@@ -99,7 +99,7 @@ Route::prefix('auth')->group(function () {
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
-        Route::get('/user', [AuthController::class, 'user']);
+        Route::get('/user', [AuthController::class, 'user'])->middleware('throttle:60,1');
         Route::post('/change-password', [AuthController::class, 'changePassword'])->middleware('throttle:5,1');
 
         // MFA management (requires full authentication)

@@ -59,11 +59,15 @@ class PermissionService
     }
 
     /**
-     * Check if user is admin via RBAC role
+     * Check if user is admin via RBAC role or legacy is_admin boolean.
+     *
+     * Unified check: returns true if EITHER the is_admin boolean is set
+     * OR the user has the RBAC admin role. This ensures consistent
+     * admin determination across all middleware and service checks.
      */
     public function isAdmin(User $user): bool
     {
-        return $this->hasRole($user, Role::ROLE_ADMIN);
+        return $user->is_admin || $this->hasRole($user, Role::ROLE_ADMIN);
     }
 
     /**

@@ -37,7 +37,6 @@ return [
         'Authorization',
         'Content-Type',
         'X-Requested-With',
-        'X-XSRF-TOKEN',
     ],
 
     // Expose rate limit headers so frontend can handle them
