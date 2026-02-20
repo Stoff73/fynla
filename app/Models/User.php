@@ -133,6 +133,21 @@ class User extends Authenticatable
     ];
 
     /**
+     * Sync is_admin flag when role_id changes.
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (User $user) {
+            if ($user->isDirty('role_id') && $user->role_id) {
+                $role = Role::find($user->role_id);
+                if ($role) {
+                    $user->is_admin = $role->name === Role::ROLE_ADMIN;
+                }
+            }
+        });
+    }
+
+    /**
      * Get the user's subscription.
      */
     public function subscription(): HasOne

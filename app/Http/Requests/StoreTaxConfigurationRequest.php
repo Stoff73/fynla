@@ -13,8 +13,9 @@ class StoreTaxConfigurationRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        // Only admin users should be able to modify tax configurations
-        return $this->user() && $this->user()->is_admin;
+        $permissionService = app(\App\Services\Auth\PermissionService::class);
+
+        return $this->user() && $permissionService->hasPermission($this->user(), \App\Models\Permission::ADMIN_TAX_CONFIG);
     }
 
     /**

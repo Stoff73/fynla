@@ -9,7 +9,7 @@
         </p>
       </div>
       <button
-        @click="showCreateModal = true"
+        @click="duplicateCurrentConfig"
         class="px-4 py-2 bg-primary-600 text-white rounded-button hover:bg-primary-700 transition-colors"
       >
         Create New Tax Year
@@ -1214,15 +1214,15 @@
       </div>
     </div>
 
-    <!-- Create/Duplicate Modal -->
+    <!-- Duplicate Modal -->
     <div
-      v-if="showCreateModal || showDuplicateModal"
+      v-if="showDuplicateModal"
       class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
       @click.self="closeModals"
     >
       <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">
-          {{ showDuplicateModal ? 'Duplicate Tax Configuration' : 'Create New Tax Configuration' }}
+          Create New Tax Year
         </h3>
 
         <div class="space-y-4">
@@ -1264,7 +1264,7 @@
             Cancel
           </button>
           <button
-            @click="showDuplicateModal ? submitDuplicate() : submitCreate()"
+            @click="submitDuplicate()"
             :disabled="creating || !isNewConfigFormValid"
             :class="[
               'px-4 py-2 text-white rounded-lg transition-colors',
@@ -1272,7 +1272,7 @@
             ]"
             :title="!isNewConfigFormValid ? 'Please fill in all required fields with valid data' : ''"
           >
-            {{ creating ? 'Creating...' : (showDuplicateModal ? 'Duplicate' : 'Create') }}
+            {{ creating ? 'Creating...' : 'Create' }}
           </button>
         </div>
       </div>
@@ -1300,7 +1300,6 @@ export default {
       saving: false,
       creating: false,
       activeTab: 'income-ni',
-      showCreateModal: false,
       showDuplicateModal: false,
       configToDuplicate: null,
       newConfigForm: {
@@ -1591,6 +1590,12 @@ export default {
       }
     },
 
+    duplicateCurrentConfig() {
+      if (this.currentConfig) {
+        this.duplicateConfig(this.currentConfig);
+      }
+    },
+
     duplicateConfig(config) {
       this.configToDuplicate = config;
       this.showDuplicateModal = true;
@@ -1635,22 +1640,6 @@ export default {
       }
     },
 
-    async submitCreate() {
-      this.creating = true;
-      this.error = null;
-
-      try {
-        // For now, create will use current config as template
-        // In future, this could be enhanced with a full form
-        this.error = 'Create from scratch not yet implemented. Please use Duplicate instead.';
-      } catch (error) {
-        console.error('Failed to create configuration:', error);
-        this.error = error.response?.data?.message || error.message || 'Failed to create configuration';
-      } finally {
-        this.creating = false;
-      }
-    },
-
     async deleteConfig(configId) {
       if (!confirm('Are you sure you want to delete this tax configuration? This action cannot be undone.')) {
         return;
@@ -1672,7 +1661,6 @@ export default {
     },
 
     closeModals() {
-      this.showCreateModal = false;
       this.showDuplicateModal = false;
       this.configToDuplicate = null;
       this.newConfigForm = {

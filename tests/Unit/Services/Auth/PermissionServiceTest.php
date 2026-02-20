@@ -41,6 +41,12 @@ beforeEach(function () {
 
     // Assign permissions to support role
     $this->supportRole->syncPermissions([$this->viewUsersPermission->id]);
+
+    // Assign all permissions to admin role
+    $this->adminRole->syncPermissions([
+        $this->viewUsersPermission->id,
+        $this->editUsersPermission->id,
+    ]);
 });
 
 describe('hasRole', function () {
@@ -78,8 +84,8 @@ describe('hasAnyRole', function () {
 });
 
 describe('hasPermission', function () {
-    it('returns true for admin users regardless of permission', function () {
-        $user = User::factory()->create(['is_admin' => true, 'role_id' => null]);
+    it('returns true for admin role regardless of specific permission', function () {
+        $user = User::factory()->create(['role_id' => $this->adminRole->id]);
 
         expect($this->permissionService->hasPermission($user, Permission::USERS_EDIT))->toBeTrue();
     });
@@ -104,14 +110,8 @@ describe('hasPermission', function () {
 });
 
 describe('isAdmin', function () {
-    it('returns true when user has is_admin flag', function () {
-        $user = User::factory()->create(['is_admin' => true]);
-
-        expect($this->permissionService->isAdmin($user))->toBeTrue();
-    });
-
     it('returns true when user has admin role', function () {
-        $user = User::factory()->create(['is_admin' => false, 'role_id' => $this->adminRole->id]);
+        $user = User::factory()->create(['role_id' => $this->adminRole->id]);
 
         expect($this->permissionService->isAdmin($user))->toBeTrue();
     });
@@ -124,8 +124,8 @@ describe('isAdmin', function () {
 });
 
 describe('isSupport', function () {
-    it('returns true for admins', function () {
-        $user = User::factory()->create(['is_admin' => true]);
+    it('returns true for admin role', function () {
+        $user = User::factory()->create(['role_id' => $this->adminRole->id]);
 
         expect($this->permissionService->isSupport($user))->toBeTrue();
     });
@@ -175,8 +175,8 @@ describe('removeRole', function () {
 });
 
 describe('getUserPermissions', function () {
-    it('returns all permissions for admin users', function () {
-        $user = User::factory()->create(['is_admin' => true]);
+    it('returns all permissions for admin role', function () {
+        $user = User::factory()->create(['role_id' => $this->adminRole->id]);
 
         $permissions = $this->permissionService->getUserPermissions($user);
 

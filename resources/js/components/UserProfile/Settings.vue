@@ -35,7 +35,7 @@
             <div class="grid grid-cols-1 gap-2 text-body-sm">
               <div class="flex justify-between">
                 <span class="text-gray-600">Account Type:</span>
-                <span class="font-medium text-gray-900">{{ currentUser?.role || 'User' }}</span>
+                <span class="font-medium text-gray-900">{{ accountType }}</span>
               </div>
               <div class="flex justify-between">
                 <span class="text-gray-600">Member Since:</span>
@@ -133,6 +133,13 @@ export default {
 
     const currentUser = computed(() => store.getters['auth/currentUser']);
 
+    const accountType = computed(() => {
+      const role = store.getters['auth/role'];
+      if (role === 'admin') return 'Administrator';
+      if (role === 'support') return 'Support';
+      return 'User';
+    });
+
     const userInitials = computed(() => {
       if (!currentUser.value?.name) return 'U';
       const names = currentUser.value.name.split(' ');
@@ -171,6 +178,7 @@ export default {
 
     return {
       currentUser,
+      accountType,
       userInitials,
       loggingOut,
       formatDate,

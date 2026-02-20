@@ -31,11 +31,6 @@ class PermissionService
      */
     public function hasPermission(User $user, string $permissionName): bool
     {
-        // Admins have all permissions
-        if ($user->is_admin) {
-            return true;
-        }
-
         return $user->role?->hasPermission($permissionName) ?? false;
     }
 
@@ -44,10 +39,6 @@ class PermissionService
      */
     public function hasAnyPermission(User $user, array $permissions): bool
     {
-        if ($user->is_admin) {
-            return true;
-        }
-
         return $user->role?->hasAnyPermission($permissions) ?? false;
     }
 
@@ -56,10 +47,6 @@ class PermissionService
      */
     public function hasAllPermissions(User $user, array $permissions): bool
     {
-        if ($user->is_admin) {
-            return true;
-        }
-
         return $user->role?->hasAllPermissions($permissions) ?? false;
     }
 
@@ -68,19 +55,15 @@ class PermissionService
      */
     public function isAtLeastLevel(User $user, int $level): bool
     {
-        if ($user->is_admin) {
-            return true;
-        }
-
         return $user->role?->isAtLeast($level) ?? false;
     }
 
     /**
-     * Check if user is admin (either via is_admin flag or admin role)
+     * Check if user is admin via RBAC role
      */
     public function isAdmin(User $user): bool
     {
-        return $user->is_admin || $this->hasRole($user, Role::ROLE_ADMIN);
+        return $this->hasRole($user, Role::ROLE_ADMIN);
     }
 
     /**
@@ -112,14 +95,10 @@ class PermissionService
     }
 
     /**
-     * Get all permissions for a user
+     * Get all permissions for a user based on their role
      */
     public function getUserPermissions(User $user): array
     {
-        if ($user->is_admin) {
-            return Permission::all()->pluck('name')->toArray();
-        }
-
         return $user->role?->permissions?->pluck('name')->toArray() ?? [];
     }
 
@@ -162,13 +141,13 @@ class PermissionService
             [Permission::USERS_VIEW, 'View Users', Permission::CATEGORY_USERS],
             [Permission::USERS_EDIT, 'Edit Users', Permission::CATEGORY_USERS],
             [Permission::USERS_DELETE, 'Delete Users', Permission::CATEGORY_USERS],
-            [Permission::USERS_IMPERSONATE, 'Impersonate Users', Permission::CATEGORY_USERS],
 
             // Admin permissions
             [Permission::ADMIN_ACCESS, 'Access Admin Panel', Permission::CATEGORY_ADMIN],
             [Permission::ADMIN_AUDIT_VIEW, 'View Audit Logs', Permission::CATEGORY_ADMIN],
             [Permission::ADMIN_TAX_CONFIG, 'Manage Tax Configuration', Permission::CATEGORY_ADMIN],
             [Permission::ADMIN_ERASURE_PROCESS, 'Process Erasure Requests', Permission::CATEGORY_ADMIN],
+            [Permission::ADMIN_BACKUP, 'Manage Database Backups', Permission::CATEGORY_ADMIN],
 
             // Settings permissions
             [Permission::SETTINGS_VIEW, 'View Settings', Permission::CATEGORY_SETTINGS],

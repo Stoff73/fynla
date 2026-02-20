@@ -9,11 +9,17 @@ use Laravel\Sanctum\Sanctum;
 beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
     // Create admin and regular users (set is_preview_user to skip email verification)
+    // Seed roles and permissions
+    $this->seed(\Database\Seeders\RolesPermissionsSeeder::class);
+
+    $adminRole = \App\Models\Role::findByName(\App\Models\Role::ROLE_ADMIN);
+    $userRole = \App\Models\Role::findByName(\App\Models\Role::ROLE_USER);
+
     $this->adminUser = User::factory()->create([
         'first_name' => 'Admin',
         'surname' => 'User',
         'email' => 'admin@test.com',
-        'role' => 'admin',
+        'role_id' => $adminRole->id,
         'is_admin' => true,
         'is_preview_user' => true,
     ]);
@@ -22,13 +28,13 @@ beforeEach(function () {
         'first_name' => 'Regular',
         'surname' => 'User',
         'email' => 'user@test.com',
-        'role' => 'user',
+        'role_id' => $userRole->id,
         'is_preview_user' => true,
     ]);
 });
 
 describe('Admin User Authentication', function () {
-    test('admin user login returns role field', function () {
+    test('admin user login returns user data', function () {
         $response = $this->postJson('/api/auth/login', [
             'email' => 'admin@test.com',
             'password' => 'password',
@@ -43,27 +49,14 @@ describe('Admin User Authentication', function () {
                         'id',
                         'name',
                         'email',
-                        'role',
                     ],
                     'access_token',
                     'token_type',
                 ],
             ]);
-
-        expect($response->json('data.user.role'))->toBe('admin');
     });
 
-    test('regular user login returns role field', function () {
-        $response = $this->postJson('/api/auth/login', [
-            'email' => 'user@test.com',
-            'password' => 'password',
-        ]);
-
-        $response->assertStatus(200);
-        expect($response->json('data.user.role'))->toBe('user');
-    });
-
-    test('authenticated admin user endpoint returns role', function () {
+    test('authenticated admin user endpoint returns admin role', function () {
         Sanctum::actingAs($this->adminUser);
 
         $response = $this->getJson('/api/auth/user');
@@ -72,14 +65,22 @@ describe('Admin User Authentication', function () {
             ->assertJsonStructure([
                 'success',
                 'data' => [
-                    'user' => [
-                        'id',
-                        'role',
-                    ],
+                    'user',
+                    'role',
+                    'permissions',
                 ],
             ]);
 
-        expect($response->json('data.user.role'))->toBe('admin');
+        expect($response->json('data.role'))->toBe('admin');
+    });
+
+    test('authenticated regular user endpoint returns user role', function () {
+        Sanctum::actingAs($this->regularUser);
+
+        $response = $this->getJson('/api/auth/user');
+
+        $response->assertStatus(200);
+        expect($response->json('data.role'))->toBe('user');
     });
 });
 
@@ -100,7 +101,6 @@ describe('Admin-Only Routes Protection', function () {
         $response->assertStatus(403)
             ->assertJson([
                 'success' => false,
-                'message' => 'Unauthorized. Admin access required.',
             ]);
     });
 
@@ -145,7 +145,8 @@ describe('Admin Seeder', function () {
         $admin = User::where('email', 'admin@fps.com')->first();
 
         expect($admin)->not->toBeNull();
-        expect($admin->role)->toBe('admin');
+        expect($admin->is_admin)->toBeTrue();
+        expect($admin->role()->first()?->name)->toBe('admin');
         expect($admin->name)->toBe('Admin User');
     });
 
@@ -159,6 +160,5 @@ describe('Admin Seeder', function () {
         ]);
 
         $response->assertStatus(200);
-        expect($response->json('data.user.role'))->toBe('admin');
     });
 });

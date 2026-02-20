@@ -3,6 +3,8 @@ import authService from '@/services/authService';
 const state = {
   token: authService.getToken(),
   user: null, // NEVER cache user in state - always fetch fresh from API
+  role: null,
+  permissions: [],
   loading: false,
   error: null,
 };
@@ -11,7 +13,11 @@ const getters = {
   isAuthenticated: (state) => !!state.token,
   currentUser: (state) => state.user,
   user: (state) => state.user, // Alias for currentUser
-  isAdmin: (state) => state.user?.is_admin === true || state.user?.is_admin === 1,
+  isAdmin: (state) => state.role === 'admin',
+  isSupport: (state) => state.role === 'support',
+  role: (state) => state.role,
+  permissions: (state) => state.permissions,
+  hasPermission: (state) => (perm) => state.permissions.includes(perm),
   loading: (state) => state.loading,
   error: (state) => state.error,
 };
@@ -114,9 +120,11 @@ const actions = {
     commit('setError', null);
 
     try {
-      const user = await authService.getUser();
-      commit('setUser', user);
-      return user;
+      const data = await authService.getUser();
+      commit('setUser', data.user);
+      commit('setRole', data.role);
+      commit('setPermissions', data.permissions || []);
+      return data.user;
     } catch (error) {
       const errorMessage = error.message || 'Failed to fetch user';
       commit('setError', errorMessage);
@@ -151,9 +159,19 @@ const mutations = {
     state.user = user;
   },
 
+  setRole(state, role) {
+    state.role = role;
+  },
+
+  setPermissions(state, permissions) {
+    state.permissions = permissions;
+  },
+
   clearAuth(state) {
     state.token = null;
     state.user = null;
+    state.role = null;
+    state.permissions = [];
   },
 
   setLoading(state, loading) {

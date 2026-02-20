@@ -955,27 +955,37 @@ Route::middleware('auth:sanctum')->prefix('settings')->group(function () {
     Route::put('/assumptions/{type}', [AssumptionsController::class, 'update']);
 });
 
-// UK Taxes & Allowances routes (Admin only)
-Route::middleware(['auth:sanctum', 'admin'])->prefix('uk-taxes')->group(function () {
+// UK Taxes & Allowances routes (requires tax config permission)
+Route::middleware(['auth:sanctum', 'permission:admin.tax_config'])->prefix('uk-taxes')->group(function () {
     Route::get('/', [UKTaxesController::class, 'index']);
 });
 
-// Admin Panel routes
-Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
+// Admin Panel routes (RBAC-protected)
+Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin')->group(function () {
     // Dashboard
     Route::get('/dashboard', [\App\Http\Controllers\Api\AdminController::class, 'dashboard']);
 
-    // User management
+    // Roles list (for user management dropdowns)
+    Route::get('/roles', [\App\Http\Controllers\Api\AdminController::class, 'getRoles']);
+
+    // User management - view (support + admin via admin.access)
     Route::get('/users', [\App\Http\Controllers\Api\AdminController::class, 'getUsers']);
-    Route::post('/users', [\App\Http\Controllers\Api\AdminController::class, 'createUser']);
-    Route::put('/users/{id}', [\App\Http\Controllers\Api\AdminController::class, 'updateUser']);
-    Route::delete('/users/{id}', [\App\Http\Controllers\Api\AdminController::class, 'deleteUser']);
+
+    // User management - create/update (requires users.edit)
+    Route::middleware('permission:users.edit')->group(function () {
+        Route::post('/users', [\App\Http\Controllers\Api\AdminController::class, 'createUser']);
+        Route::put('/users/{id}', [\App\Http\Controllers\Api\AdminController::class, 'updateUser']);
+    });
+
+    // User management - delete (requires users.delete)
+    Route::delete('/users/{id}', [\App\Http\Controllers\Api\AdminController::class, 'deleteUser'])
+        ->middleware('permission:users.delete');
 
     // Subscription stats
     Route::get('/subscriptions/stats', [\App\Http\Controllers\Api\AdminController::class, 'getSubscriptionStats']);
 
-    // Database backup and restore (rate limited for security)
-    Route::middleware('throttle:3,1')->group(function () {
+    // Database backup and restore (requires admin.backup, rate limited)
+    Route::middleware(['permission:admin.backup', 'throttle:3,1'])->group(function () {
         Route::post('/backup/create', [\App\Http\Controllers\Api\AdminController::class, 'createBackup']);
         Route::get('/backup/list', [\App\Http\Controllers\Api\AdminController::class, 'listBackups']);
         Route::post('/backup/restore', [\App\Http\Controllers\Api\AdminController::class, 'restoreBackup']);
@@ -983,8 +993,8 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     });
 });
 
-// Tax Settings routes (Admin only)
-Route::middleware(['auth:sanctum', 'admin'])->prefix('tax-settings')->group(function () {
+// Tax Settings routes (requires tax config permission)
+Route::middleware(['auth:sanctum', 'permission:admin.tax_config'])->prefix('tax-settings')->group(function () {
     Route::get('/current', [\App\Http\Controllers\Api\TaxSettingsController::class, 'getCurrent']);
     Route::get('/all', [\App\Http\Controllers\Api\TaxSettingsController::class, 'getAll']);
     Route::get('/calculations', [\App\Http\Controllers\Api\TaxSettingsController::class, 'getCalculations']);

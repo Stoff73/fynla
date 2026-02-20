@@ -305,6 +305,12 @@ class OnboardingService
             }
 
             DB::transaction(function () use ($user, $spouseAccount, $spouseData) {
+                // Lock spouse row to prevent concurrent linking by another user
+                $spouseAccount = User::lockForUpdate()->find($spouseAccount->id);
+                if ($spouseAccount->spouse_id && $spouseAccount->spouse_id !== $user->id) {
+                    return;
+                }
+
                 // Link the accounts bidirectionally
                 $user->update([
                     'spouse_id' => $spouseAccount->id,

@@ -23,6 +23,11 @@ export default {
     return api.delete(`/admin/users/${userId}`);
   },
 
+  // Roles
+  getRoles() {
+    return api.get('/admin/roles');
+  },
+
   // Subscription Stats
   getSubscriptionStats() {
     return api.get('/admin/subscriptions/stats');

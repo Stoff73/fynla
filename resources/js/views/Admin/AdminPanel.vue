@@ -106,7 +106,7 @@ export default {
   },
 
   computed: {
-    ...mapGetters('auth', ['currentUser']),
+    ...mapGetters('auth', ['currentUser', 'isAdmin']),
   },
 
   methods: {
@@ -131,13 +131,6 @@ export default {
     },
   },
 
-  mounted() {
-    // Check if user is admin
-    const user = this.currentUser;
-    if (!user || !user.is_admin) {
-      this.$router.push('/dashboard');
-    }
-  },
 };
 </script>
 

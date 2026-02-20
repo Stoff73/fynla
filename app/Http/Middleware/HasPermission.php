@@ -31,11 +31,6 @@ class HasPermission
             ], 401);
         }
 
-        // Admins always have all permissions
-        if ($user->is_admin) {
-            return $next($request);
-        }
-
         if ($this->permissionService->hasAnyPermission($user, $permissions)) {
             return $next($request);
         }
