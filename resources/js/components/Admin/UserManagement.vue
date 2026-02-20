@@ -69,11 +69,14 @@
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ user.email }}</td>
               <td class="px-6 py-4 whitespace-nowrap">
-                <span v-if="user.is_admin" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                <span v-if="user.role?.name === 'admin'" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
                   <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                   </svg>
                   Admin
+                </span>
+                <span v-else-if="user.role?.name === 'support'" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                  Support
                 </span>
                 <span v-else class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                   User
@@ -133,7 +136,7 @@
                   @click="confirmDeleteUser(user)"
                   class="text-red-600 hover:text-red-900"
                   title="Delete user"
-                  :disabled="user.is_admin && totalAdmins === 1"
+                  :disabled="user.role?.name === 'admin' && totalAdmins === 1"
                 >
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -246,9 +249,9 @@
 
     <!-- User Form Modal -->
     <UserFormModal
-      v-if="showModal"
+      :show="showModal"
       :user="selectedUser"
-      :is-editing="isEditing"
+      :available-roles="availableRoles"
       @save="saveUser"
       @close="closeModal"
     />
@@ -299,6 +302,7 @@ export default {
       statusFilter: '',
       searchTimeout: null,
       messageTimeout: null,
+      availableRoles: [],
     };
   },
 
@@ -309,6 +313,7 @@ export default {
 
   mounted() {
     this.loadUsers();
+    this.loadRoles();
   },
 
   methods: {
@@ -329,8 +334,8 @@ export default {
           this.totalPages = response.data.data.last_page;
           this.currentPage = response.data.data.current_page;
 
-          // Count admins
-          this.totalAdmins = this.users.filter(u => u.is_admin).length;
+          // Count admins by role
+          this.totalAdmins = this.users.filter(u => u.role?.name === 'admin').length;
         } else {
           this.error = response.data.message;
         }
@@ -339,6 +344,17 @@ export default {
         this.error = error.response?.data?.message || 'Failed to load users';
       } finally {
         this.loading = false;
+      }
+    },
+
+    async loadRoles() {
+      try {
+        const response = await adminService.getRoles();
+        if (response.data.success) {
+          this.availableRoles = response.data.data;
+        }
+      } catch (error) {
+        console.error('Failed to load roles:', error);
       }
     },
 
@@ -396,7 +412,7 @@ export default {
     },
 
     confirmDeleteUser(user) {
-      if (user.is_admin && this.totalAdmins === 1) {
+      if (user.role?.name === 'admin' && this.totalAdmins === 1) {
         this.error = 'Cannot delete the last admin user';
         return;
       }

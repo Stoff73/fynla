@@ -261,8 +261,14 @@ class FamilyMembersController extends Controller
                 ], 201);
             }
 
-            // Link both users inside a transaction for atomicity
+            // Link both users inside a transaction with pessimistic locking
             $familyMember = DB::transaction(function () use ($currentUser, $spouseUser, $data) {
+                // Lock spouse row to prevent concurrent linking by another user
+                $spouseUser = \App\Models\User::lockForUpdate()->find($spouseUser->id);
+                if ($spouseUser->spouse_id && $spouseUser->spouse_id !== $currentUser->id) {
+                    return null;
+                }
+
                 $currentUser->spouse_id = $spouseUser->id;
                 $currentUser->marital_status = 'married';
                 $currentUser->save();
@@ -351,6 +357,14 @@ class FamilyMembersController extends Controller
 
                 return $familyMember;
             });
+
+            // Race condition: spouse was linked by another user during our transaction
+            if ($familyMember === null) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This user is already linked to another spouse',
+                ], 422);
+            }
 
             // Send email notification to spouse (outside transaction)
             try {

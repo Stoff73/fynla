@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\Payment;
+use App\Models\Role;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Services\Admin\DatabaseMetricsService;
@@ -29,13 +30,15 @@ class AdminController extends Controller
     {
         try {
             $realUsers = User::where('is_preview_user', false);
+            $adminRoleId = Role::findByName(Role::ROLE_ADMIN)?->id;
             $stats = [
                 'total_users' => (clone $realUsers)->count(),
-                'admin_users' => (clone $realUsers)->where('is_admin', true)->count(),
+                'admin_users' => $adminRoleId ? (clone $realUsers)->where('role_id', $adminRoleId)->count() : 0,
                 'linked_spouses' => (clone $realUsers)->whereNotNull('spouse_id')->count() / 2,
                 'recent_users' => (clone $realUsers)->latest()->take(5)->get(['id', 'first_name', 'surname', 'email', 'created_at']),
                 'database_size' => $this->databaseMetrics->getDatabaseSize(),
                 'last_backup' => $this->getLastBackupTime(),
+                'table_statistics' => $this->databaseMetrics->getTableStatistics(),
             ];
 
             return response()->json([
@@ -92,7 +95,7 @@ class AdminController extends Controller
             $perPage = min((int) $request->query('per_page', 15), 100);
             $search = $request->query('search');
 
-            $query = User::with(['spouse:id,first_name,surname,email', 'subscription', 'subscription.payments'])
+            $query = User::with(['role', 'spouse:id,first_name,surname,email', 'subscription', 'subscription.payments'])
                 ->where('is_preview_user', false);
 
             if ($search) {
@@ -123,7 +126,8 @@ class AdminController extends Controller
     public function createUser(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
+            'first_name' => 'required|string|max:255',
+            'surname' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => [
                 'required',
@@ -131,7 +135,7 @@ class AdminController extends Controller
                 'min:8',
                 'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).+$/',
             ],
-            'is_admin' => 'boolean',
+            'role_id' => 'sometimes|exists:roles,id',
         ], [
             'password.regex' => 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.',
         ]);
@@ -145,12 +149,21 @@ class AdminController extends Controller
         }
 
         try {
-            $user = User::create([
-                'name' => $request->name,
-                'email' => $request->email,
-                'password' => Hash::make($request->password),
-                'is_admin' => $request->is_admin ?? false,
-            ]);
+            $role = $request->role_id
+                ? Role::find($request->role_id)
+                : Role::findByName(Role::ROLE_USER);
+
+            $user = new User();
+            $user->first_name = $request->first_name;
+            $user->surname = $request->surname;
+            $user->name = trim($request->first_name.' '.$request->surname);
+            $user->email = $request->email;
+            $user->password = Hash::make($request->password);
+            $user->role_id = $role?->id;
+            $user->is_admin = $role?->name === Role::ROLE_ADMIN;
+            $user->save();
+
+            $user->load('role');
 
             return response()->json([
                 'success' => true,
@@ -177,7 +190,8 @@ class AdminController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'name' => 'sometimes|string|max:255',
+            'first_name' => 'sometimes|string|max:255',
+            'surname' => 'sometimes|string|max:255',
             'email' => 'sometimes|string|email|max:255|unique:users,email,'.$id,
             'password' => [
                 'sometimes',
@@ -185,7 +199,7 @@ class AdminController extends Controller
                 'min:8',
                 'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).+$/',
             ],
-            'is_admin' => 'sometimes|boolean',
+            'role_id' => 'sometimes|exists:roles,id',
         ], [
             'password.regex' => 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.',
         ]);
@@ -199,8 +213,14 @@ class AdminController extends Controller
         }
 
         try {
-            if ($request->has('name')) {
-                $user->name = $request->name;
+            if ($request->has('first_name')) {
+                $user->first_name = $request->first_name;
+            }
+            if ($request->has('surname')) {
+                $user->surname = $request->surname;
+            }
+            if ($request->has('first_name') || $request->has('surname')) {
+                $user->name = trim(($user->first_name ?? '').' '.($user->surname ?? ''));
             }
             if ($request->has('email')) {
                 $user->email = $request->email;
@@ -208,11 +228,14 @@ class AdminController extends Controller
             if ($request->has('password')) {
                 $user->password = Hash::make($request->password);
             }
-            if ($request->has('is_admin')) {
-                $user->is_admin = $request->is_admin;
+            if ($request->has('role_id')) {
+                $role = Role::find($request->role_id);
+                $user->role_id = $role?->id;
+                $user->is_admin = $role?->name === Role::ROLE_ADMIN;
             }
 
             $user->save();
+            $user->load('role');
 
             return response()->json([
                 'success' => true,
@@ -239,7 +262,8 @@ class AdminController extends Controller
         }
 
         // Prevent deleting the last admin
-        if ($user->is_admin && User::where('is_admin', true)->count() === 1) {
+        $adminRoleId = Role::findByName(Role::ROLE_ADMIN)?->id;
+        if ($adminRoleId && $user->role_id === $adminRoleId && User::where('role_id', $adminRoleId)->count() === 1) {
             return response()->json([
                 'success' => false,
                 'message' => 'Cannot delete the last admin user',
@@ -255,6 +279,23 @@ class AdminController extends Controller
             ]);
         } catch (\Exception $e) {
             return $this->safeErrorResponse('Failed to delete user', $e);
+        }
+    }
+
+    /**
+     * Get available roles
+     */
+    public function getRoles(): JsonResponse
+    {
+        try {
+            $roles = Role::orderBy('level')->get(['id', 'name', 'display_name', 'level']);
+
+            return response()->json([
+                'success' => true,
+                'data' => $roles,
+            ]);
+        } catch (\Exception $e) {
+            return $this->safeErrorResponse('Failed to fetch roles', $e);
         }
     }
 

@@ -56,8 +56,8 @@ const authService = {
   async getUser() {
     const response = await api.get('/auth/user');
     if (response.data.success) {
-      // Return user data but DO NOT cache in localStorage
-      return response.data.data.user;
+      // Return full data object (user, role, permissions) but DO NOT cache in localStorage
+      return response.data.data;
     }
   },
 

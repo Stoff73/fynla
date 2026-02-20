@@ -54,21 +54,38 @@
               </div>
             </div>
 
-            <!-- Name Field -->
+            <!-- First Name Field -->
             <div>
-              <label for="name" class="block text-sm font-medium text-gray-700">
-                Name
+              <label for="first_name" class="block text-sm font-medium text-gray-700">
+                First Name
               </label>
               <input
-                id="name"
-                v-model="formData.name"
+                id="first_name"
+                v-model="formData.first_name"
                 type="text"
                 required
                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-                :class="{ 'border-red-300': errors.name }"
-                placeholder="John Doe"
+                :class="{ 'border-red-300': errors.first_name }"
+                placeholder="John"
               />
-              <p v-if="errors.name" class="mt-1 text-sm text-red-600">{{ errors.name }}</p>
+              <p v-if="errors.first_name" class="mt-1 text-sm text-red-600">{{ errors.first_name }}</p>
+            </div>
+
+            <!-- Surname Field -->
+            <div>
+              <label for="surname" class="block text-sm font-medium text-gray-700">
+                Surname
+              </label>
+              <input
+                id="surname"
+                v-model="formData.surname"
+                type="text"
+                required
+                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                :class="{ 'border-red-300': errors.surname }"
+                placeholder="Doe"
+              />
+              <p v-if="errors.surname" class="mt-1 text-sm text-red-600">{{ errors.surname }}</p>
             </div>
 
             <!-- Email Field -->
@@ -123,24 +140,23 @@
               <p v-if="errors.password_confirmation" class="mt-1 text-sm text-red-600">{{ errors.password_confirmation }}</p>
             </div>
 
-            <!-- Admin Role Checkbox -->
-            <div class="flex items-start">
-              <div class="flex items-center h-5">
-                <input
-                  id="is_admin"
-                  v-model="formData.is_admin"
-                  type="checkbox"
-                  class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                />
-              </div>
-              <div class="ml-3">
-                <label for="is_admin" class="font-medium text-gray-700">
-                  Administrator
-                </label>
-                <p class="text-sm text-gray-500">
-                  Grant this user administrator privileges (access to admin panel, user management, database backups)
-                </p>
-              </div>
+            <!-- Role Dropdown -->
+            <div>
+              <label for="role_id" class="block text-sm font-medium text-gray-700">
+                Role
+              </label>
+              <select
+                id="role_id"
+                v-model="formData.role_id"
+                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+              >
+                <option v-for="role in availableRoles" :key="role.id" :value="role.id">
+                  {{ role.display_name || role.name }}
+                </option>
+              </select>
+              <p class="mt-1 text-xs text-gray-500">
+                Determines access level and permissions for this user
+              </p>
             </div>
 
             <!-- Edit Mode: Password Reset Option -->
@@ -223,16 +239,21 @@ export default {
       type: Object,
       default: null,
     },
+    availableRoles: {
+      type: Array,
+      default: () => [],
+    },
   },
 
   data() {
     return {
       formData: {
-        name: '',
+        first_name: '',
+        surname: '',
         email: '',
         password: '',
         password_confirmation: '',
-        is_admin: false,
+        role_id: null,
         reset_password: false,
       },
       errors: {},
@@ -244,6 +265,11 @@ export default {
   computed: {
     isEditMode() {
       return this.user !== null && this.user.id;
+    },
+
+    defaultRoleId() {
+      const userRole = this.availableRoles.find(r => r.name === 'user');
+      return userRole ? userRole.id : null;
     },
   },
 
@@ -261,11 +287,12 @@ export default {
   methods: {
     resetForm() {
       this.formData = {
-        name: '',
+        first_name: '',
+        surname: '',
         email: '',
         password: '',
         password_confirmation: '',
-        is_admin: false,
+        role_id: this.defaultRoleId,
         reset_password: false,
       };
       this.errors = {};
@@ -275,9 +302,10 @@ export default {
 
     loadUserData() {
       if (this.user) {
-        this.formData.name = this.user.name || '';
+        this.formData.first_name = this.user.first_name || '';
+        this.formData.surname = this.user.surname || '';
         this.formData.email = this.user.email || '';
-        this.formData.is_admin = this.user.is_admin || false;
+        this.formData.role_id = this.user.role_id || this.user.role?.id || this.defaultRoleId;
       }
     },
 
@@ -285,9 +313,14 @@ export default {
       this.errors = {};
       this.error = null;
 
-      // Name validation
-      if (!this.formData.name || this.formData.name.trim() === '') {
-        this.errors.name = 'Name is required';
+      // First Name validation
+      if (!this.formData.first_name || this.formData.first_name.trim() === '') {
+        this.errors.first_name = 'First name is required';
+      }
+
+      // Surname validation
+      if (!this.formData.surname || this.formData.surname.trim() === '') {
+        this.errors.surname = 'Surname is required';
       }
 
       // Email validation
@@ -330,16 +363,20 @@ export default {
 
       try {
         const payload = {
-          name: this.formData.name.trim(),
+          first_name: this.formData.first_name.trim(),
+          surname: this.formData.surname.trim(),
           email: this.formData.email.trim(),
-          is_admin: this.formData.is_admin,
+          role_id: this.formData.role_id,
         };
 
         if (!this.isEditMode) {
           payload.password = this.formData.password;
           payload.password_confirmation = this.formData.password_confirmation;
-        } else if (this.formData.reset_password) {
-          payload.reset_password = true;
+        } else {
+          payload.id = this.user.id;
+          if (this.formData.reset_password) {
+            payload.reset_password = true;
+          }
         }
 
         this.$emit('save', payload);

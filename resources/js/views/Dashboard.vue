@@ -62,26 +62,42 @@
           @click="navigateTo('/net-worth/wealth-summary')"
         >
           <div v-if="hasNetWorthData">
-            <!-- Donut chart -->
-            <apexchart
-              :key="netWorthChartKey"
-              type="donut"
-              :options="netWorthChartOptions"
-              :series="netWorthChartSeries"
-              height="260"
-            />
+            <!-- Mobile: Bar chart (assets vs liabilities) -->
+            <template v-if="isMobile">
+              <apexchart
+                :key="'nw-bar-' + netWorthChartKey"
+                type="bar"
+                :options="netWorthBarChartOptions"
+                :series="netWorthBarChartSeries"
+                height="280"
+              />
+              <div class="text-center text-sm mt-1">
+                <span class="font-semibold" :class="netWorthData.netWorth >= 0 ? 'text-green-600' : 'text-red-600'">
+                  Net Worth: {{ formatCurrency(netWorthData.netWorth) }}
+                </span>
+              </div>
+            </template>
 
-            <!-- Assets / Liabilities summary -->
-            <div class="flex justify-between text-sm mt-2">
-              <div>
-                <span class="text-gray-500">Assets</span>
-                <div class="font-semibold text-blue-600">{{ formatCurrency(netWorthData.totalAssets) }}</div>
+            <!-- Desktop: Donut chart with category breakdown -->
+            <template v-else>
+              <apexchart
+                :key="netWorthChartKey"
+                type="donut"
+                :options="netWorthChartOptions"
+                :series="netWorthChartSeries"
+                height="260"
+              />
+              <div class="flex justify-between text-sm mt-2">
+                <div>
+                  <span class="text-gray-500">Assets</span>
+                  <div class="font-semibold text-blue-600">{{ formatCurrency(netWorthData.totalAssets) }}</div>
+                </div>
+                <div class="text-right">
+                  <span class="text-gray-500">Liabilities</span>
+                  <div class="font-semibold text-red-600">{{ formatCurrency(netWorthData.totalLiabilities) }}</div>
+                </div>
               </div>
-              <div class="text-right">
-                <span class="text-gray-500">Liabilities</span>
-                <div class="font-semibold text-red-600">{{ formatCurrency(netWorthData.totalLiabilities) }}</div>
-              </div>
-            </div>
+            </template>
           </div>
 
           <!-- Empty state when no assets or liabilities -->
@@ -616,6 +632,7 @@ export default {
       mfaBannerDismissed: localStorage.getItem('mfaBannerDismissed') === 'true',
       financialCommitmentsData: null,
       willSelection: null,
+      isMobile: window.innerWidth < 768,
     };
   },
 
@@ -817,6 +834,66 @@ export default {
             },
           },
         ],
+      };
+    },
+
+    // Mobile bar chart for net worth (each asset/liability category as a bar)
+    netWorthBarChartSeries() {
+      return [{
+        name: 'Value',
+        data: this.netWorthChartCategories.map(c => c.value),
+      }];
+    },
+
+    netWorthBarChartOptions() {
+      const vm = this;
+      const categories = this.netWorthChartCategories;
+      return {
+        chart: {
+          type: 'bar',
+          fontFamily: 'Inter, system-ui, sans-serif',
+          toolbar: { show: false },
+          offsetY: 0,
+        },
+        plotOptions: {
+          bar: {
+            borderRadius: 4,
+            columnWidth: '60%',
+            distributed: true,
+          },
+        },
+        colors: categories.map(c => c.color),
+        dataLabels: { enabled: false },
+        legend: { show: false },
+        xaxis: {
+          categories: categories.map(c => c.label),
+          labels: {
+            style: {
+              fontSize: '11px',
+              fontWeight: 500,
+              colors: categories.map(c => c.color),
+            },
+            rotate: -45,
+            rotateAlways: categories.length > 4,
+            trim: false,
+            maxHeight: 80,
+          },
+        },
+        yaxis: {
+          labels: {
+            formatter: (val) => vm.formatCurrency(val),
+            style: { fontSize: '10px' },
+          },
+        },
+        tooltip: {
+          y: {
+            formatter: (val) => vm.formatCurrency(val),
+          },
+        },
+        grid: {
+          borderColor: '#E2E8F0',
+          strokeDashArray: 4,
+        },
       };
     },
 
@@ -1325,6 +1402,19 @@ export default {
         // Projection is optional, don't block
       }
     },
+  },
+
+  mounted() {
+    this._handleResize = () => {
+      this.isMobile = window.innerWidth < 768;
+    };
+    window.addEventListener('resize', this._handleResize);
+  },
+
+  beforeUnmount() {
+    if (this._handleResize) {
+      window.removeEventListener('resize', this._handleResize);
+    }
   },
 
   watch: {

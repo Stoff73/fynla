@@ -35,11 +35,6 @@ class HasRole
             return $next($request);
         }
 
-        // Also allow if user is admin (legacy support)
-        if ($user->is_admin && in_array('admin', $roles, true)) {
-            return $next($request);
-        }
-
         return response()->json([
             'success' => false,
             'message' => 'Access denied. Required role: '.implode(' or ', $roles),

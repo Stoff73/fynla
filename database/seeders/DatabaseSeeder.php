@@ -36,6 +36,9 @@ class DatabaseSeeder extends Seeder
             // Actuarial life tables - life expectancy data for estate/retirement projections
             ActuarialLifeTablesSeeder::class,
 
+            // Roles and permissions (must run before AdminUserSeeder)
+            RolesPermissionsSeeder::class,
+
             // Admin account (demo@fps.com, admin@fps.com)
             AdminUserSeeder::class,
 
@@ -68,6 +71,7 @@ class DatabaseSeeder extends Seeder
             TaxConfigurationSeeder::class,
             TaxProductReferenceSeeder::class,
             ActuarialLifeTablesSeeder::class,
+            RolesPermissionsSeeder::class,
             AdminUserSeeder::class,
             PreviewUserSeeder::class,
         ]);

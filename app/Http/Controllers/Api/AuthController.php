@@ -12,6 +12,7 @@ use App\Models\AuditLog;
 use App\Models\EmailVerificationCode;
 use App\Models\LoginAttempt;
 use App\Models\PendingRegistration;
+use App\Models\Role;
 use App\Models\User;
 use App\Models\UserSession;
 use App\Services\Audit\AuditService;
@@ -311,15 +312,19 @@ class AuthController extends Controller
     {
         $user = $request->user();
 
-        // Load spouse relationship if spouse_id exists
+        // Load spouse and role relationships
+        $relations = ['role.permissions'];
         if ($user->spouse_id) {
-            $user->load('spouse');
+            $relations[] = 'spouse';
         }
+        $user->load($relations);
 
         return response()->json([
             'success' => true,
             'data' => [
                 'user' => $user,
+                'role' => $user->role?->name,
+                'permissions' => $user->role?->permissions?->pluck('name')->toArray() ?? [],
             ],
         ]);
     }
@@ -397,14 +402,23 @@ class AuthController extends Controller
 
             // Create the user from pending registration
             $adminEmails = config('auth.admin_emails', []);
+            $isAdmin = in_array($pending->email, $adminEmails);
+            $role = $isAdmin
+                ? Role::findByName(Role::ROLE_ADMIN)
+                : Role::findByName(Role::ROLE_USER);
+
             $user = User::create([
                 'first_name' => $pending->first_name,
                 'middle_name' => $pending->middle_name,
                 'surname' => $pending->surname,
                 'email' => $pending->email,
                 'password' => $pending->password, // Already hashed
-                'is_admin' => in_array($pending->email, $adminEmails),
+                'role_id' => $role?->id,
             ]);
+
+            // Sync is_admin flag (bypasses guarded)
+            $user->is_admin = $isAdmin;
+            $user->save();
 
             \Log::info('User created from pending registration', [
                 'user_id' => $user->id,
