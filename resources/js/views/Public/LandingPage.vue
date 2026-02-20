@@ -13,24 +13,14 @@
       <!-- Grid Pattern Overlay -->
       <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0wIDBoNjB2NjBIMHoiLz48cGF0aCBkPSJNMzAgMzBtLTEgMGExIDEgMCAxIDAgMiAwYTEgMSAwIDEgMCAtMiAwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMSkiLz48L2c+PC9zdmc+')] opacity-30"></div>
 
-      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
         <div class="flex flex-col lg:flex-row lg:items-start lg:gap-12">
           <!-- Left: Hero Content -->
           <div class="lg:flex-1 text-center lg:text-left">
-            <!-- Badge -->
-            <button
-              type="button"
-              @click="enterPreviewMode"
-              class="inline-flex items-center px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-blue-200 text-sm font-medium mb-6 hover:bg-white/20 transition-all cursor-pointer"
-            >
-              <span class="w-2 h-2 bg-blue-400 rounded-full mr-2 animate-pulse"></span>
-              Interactive Demo - No Sign-up Required
-            </button>
-
+            <p class="text-xl md:text-2xl text-slate-300 font-medium mb-3">Democratising financial planning for everyone</p>
             <h1 class="text-5xl md:text-7xl font-bold text-white mb-4 leading-tight">
-              Your Complete<br />
-              <span class="text-emerald-400">Financial Planning</span><br />
-              Platform
+              Map Your Path to<br />
+              <span class="text-emerald-400">Financial Freedom</span>
             </h1>
 
             <p class="text-xl md:text-2xl text-slate-300 mb-6 max-w-2xl leading-relaxed">
@@ -44,44 +34,18 @@
                 :disabled="enteringPreview"
                 class="group px-8 py-4 bg-blue-500 text-slate-900 rounded-xl font-semibold text-lg hover:bg-blue-400 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-wait"
               >
-                <span class="flex items-center justify-center">
-                  <svg v-if="enteringPreview" class="w-5 h-5 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  <svg v-else class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                  </svg>
-                  {{ enteringPreview ? 'Loading...' : 'Try the Demo' }}
-                  <svg v-if="!enteringPreview" class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
-                </span>
-              </button>
-              <button
-                type="button"
-                @click="enterPreviewMode"
-                :disabled="enteringPreview"
-                class="group px-8 py-4 bg-white/10 backdrop-blur-md text-white rounded-xl font-semibold text-lg hover:bg-white/20 transition-all border border-white/20 disabled:opacity-50 disabled:cursor-wait"
-              >
-                <span class="flex items-center justify-center">
-                  Get Started Free
-                  <svg class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
-                </span>
+                {{ enteringPreview ? 'Loading...' : 'Try the Demo' }}
               </button>
               <router-link
                 to="/login"
-                class="px-8 py-4 bg-transparent text-white rounded-xl font-semibold text-lg hover:bg-white/10 transition-all border border-white/20"
+                class="inline-flex items-center justify-center px-8 py-4 bg-success-600 text-white rounded-xl font-semibold text-lg hover:bg-success-700 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5"
               >
                 Sign In
               </router-link>
             </div>
 
             <!-- Wishlist Link -->
-            <div class="mb-8 text-center lg:text-left">
+            <div class="mt-12 mb-8 text-center lg:text-left">
               <a
                 href="https://docs.google.com/forms/d/e/1FAIpQLSds1-zixuMDTjkBCZ3lEl-q5NzA0pwXyvb8cJIuNrz2fwjSXg/viewform?usp=publish-editor"
                 target="_blank"
@@ -93,36 +57,13 @@
             </div>
           </div>
 
-          <!-- Right: Stats cards 2x2 grid -->
-          <div class="grid grid-cols-2 gap-3 lg:w-80 lg:my-auto text-center">
-            <div
-              @click="scrollToSection('planning-modules')"
-              class="bg-white/10 backdrop-blur-md rounded-xl px-3 py-5 border border-white/20 cursor-pointer hover:bg-white/20 hover:border-white/30 transition-all"
-            >
-              <div class="text-3xl font-bold text-white mb-0.5">5</div>
-              <div class="text-slate-300 text-sm">Planning Modules</div>
-            </div>
-            <div
-              @click="scrollToSection('key-features')"
-              class="bg-white/10 backdrop-blur-md rounded-xl px-3 py-5 border border-white/20 cursor-pointer hover:bg-white/20 hover:border-white/30 transition-all"
-            >
-              <div class="text-3xl font-bold text-white mb-0.5">UK</div>
-              <div class="text-slate-300 text-sm">Tax Optimised</div>
-            </div>
-            <router-link
-              to="/security"
-              class="bg-white/10 backdrop-blur-md rounded-xl px-3 py-5 border border-white/20 cursor-pointer hover:bg-white/20 hover:border-white/30 transition-all block"
-            >
-              <div class="text-3xl font-bold text-white mb-0.5">100%</div>
-              <div class="text-slate-300 text-sm">Secure & Private</div>
-            </router-link>
-            <div
-              @click="enterPreviewMode"
-              class="bg-white/10 backdrop-blur-md rounded-xl px-3 py-5 border border-white/20 cursor-pointer hover:bg-white/20 hover:border-white/30 transition-all"
-            >
-              <div class="text-3xl font-bold text-white mb-0.5">Free</div>
-              <div class="text-slate-300 text-sm">Demo Access</div>
-            </div>
+          <!-- Right: Financial Freedom Wheel -->
+          <div class="lg:w-[32rem] lg:my-auto lg:ml-auto flex items-center justify-center">
+            <img
+              :src="'/images/financial-freedom-wheel.png'"
+              alt="Financial Freedom - Optimise your Tax, Invest Wisely, Plan for Retirement, Establish Passive Income, Reduce Debt, Build Savings"
+              class="w-full max-w-lg"
+            />
           </div>
         </div>
 
