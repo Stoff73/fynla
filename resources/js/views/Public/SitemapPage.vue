@@ -46,6 +46,18 @@
                 </router-link>
               </li>
               <li>
+                <router-link to="/privacy" class="text-blue-600 hover:text-blue-800 hover:underline flex items-center">
+                  <span class="w-2 h-2 bg-blue-400 rounded-full mr-3"></span>
+                  Privacy Policy
+                </router-link>
+              </li>
+              <li>
+                <router-link to="/terms" class="text-blue-600 hover:text-blue-800 hover:underline flex items-center">
+                  <span class="w-2 h-2 bg-blue-400 rounded-full mr-3"></span>
+                  Terms of Service
+                </router-link>
+              </li>
+              <li>
                 <router-link to="/version" class="text-blue-600 hover:text-blue-800 hover:underline flex items-center">
                   <span class="w-2 h-2 bg-blue-400 rounded-full mr-3"></span>
                   Version History

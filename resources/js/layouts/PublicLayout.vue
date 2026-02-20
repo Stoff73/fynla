@@ -161,7 +161,7 @@
               <img :src="logoUrl" alt="Fynla" class="h-80 w-auto" />
             </div>
             <p class="text-gray-400 text-sm mb-4">
-              Financial Planning System - Your comprehensive solution for UK financial planning.
+              Financial Freedom Mapping - Your comprehensive solution for UK financial freedom.
               Educational tool for demonstration purposes only.
             </p>
             <p class="text-xs text-gray-500">
@@ -184,9 +184,8 @@
           <div>
             <h3 class="text-sm font-semibold uppercase tracking-wider mb-4">Legal</h3>
             <ul class="space-y-2">
-              <li><a href="#" class="text-gray-400 hover:text-white text-sm">Privacy Policy</a></li>
-              <li><a href="#" class="text-gray-400 hover:text-white text-sm">Terms of Service</a></li>
-              <li><a href="#" class="text-gray-400 hover:text-white text-sm">Cookie Policy</a></li>
+              <li><router-link to="/privacy" class="text-gray-400 hover:text-white text-sm">Privacy Policy</router-link></li>
+              <li><router-link to="/terms" class="text-gray-400 hover:text-white text-sm">Terms of Service</router-link></li>
               <li><router-link to="/sitemap" class="text-gray-400 hover:text-white text-sm">Sitemap</router-link></li>
             </ul>
           </div>
@@ -194,7 +193,7 @@
 
         <div class="border-t border-gray-800 mt-8 pt-8 text-center">
           <p class="text-sm text-gray-400">
-            &copy; 2026 Fynla - Financial Planning System.
+            &copy; 2026 Fynla - Financial Freedom Mapping.
             <router-link to="/version" class="ml-2 text-primary-400 hover:text-primary-300">v0.7.0</router-link>
             <span class="mx-2">|</span>
             <a href="https://fynla.org" target="_blank" rel="noopener noreferrer" class="text-primary-400 hover:text-primary-300">fynla.org</a>

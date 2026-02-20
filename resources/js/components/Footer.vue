@@ -3,7 +3,7 @@
     <div class="max-w-7xl mx-auto py-4 sm:py-6 px-4 sm:px-6 lg:px-8">
       <div class="flex flex-col lg:flex-row justify-between items-center space-y-4 lg:space-y-0">
         <div class="text-body-sm text-gray-500 text-center lg:text-left">
-          <span class="block sm:inline">&copy; {{ currentYear }} Fynla - Financial Planning System.</span>
+          <span class="block sm:inline">&copy; {{ currentYear }} Fynla - Financial Freedom Mapping.</span>
           <span class="hidden sm:inline"> For demonstration purposes only.</span>
           <span class="block sm:hidden text-xs mt-1">For demonstration purposes only.</span>
           <span class="hidden sm:inline ml-2 text-gray-400">|</span>
@@ -16,12 +16,12 @@
           </a>
         </div>
         <div class="flex flex-wrap justify-center gap-4 sm:gap-6">
-          <a href="#" class="text-body-sm text-gray-500 hover:text-gray-700">
+          <router-link to="/privacy" class="text-body-sm text-gray-500 hover:text-gray-700">
             Privacy Policy
-          </a>
-          <a href="#" class="text-body-sm text-gray-500 hover:text-gray-700">
+          </router-link>
+          <router-link to="/terms" class="text-body-sm text-gray-500 hover:text-gray-700">
             Terms of Service
-          </a>
+          </router-link>
           <router-link to="/help" class="text-body-sm text-gray-500 hover:text-gray-700">
             Help
           </router-link>

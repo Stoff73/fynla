@@ -10,6 +10,8 @@ const SecurityPage = () => import('@/views/Public/SecurityPage.vue');
 const AboutPage = () => import('@/views/Public/AboutPage.vue');
 const PricingPage = () => import('@/views/Public/PricingPage.vue');
 const SitemapPage = () => import('@/views/Public/SitemapPage.vue');
+const PrivacyPolicyPage = () => import('@/views/Public/PrivacyPolicyPage.vue');
+const TermsOfServicePage = () => import('@/views/Public/TermsOfServicePage.vue');
 
 // Auth pages
 const Login = () => import('@/views/Login.vue');
@@ -96,6 +98,18 @@ const routes = [
     path: '/sitemap',
     name: 'Sitemap',
     component: SitemapPage,
+    meta: { public: true },
+  },
+  {
+    path: '/privacy',
+    name: 'PrivacyPolicy',
+    component: PrivacyPolicyPage,
+    meta: { public: true },
+  },
+  {
+    path: '/terms',
+    name: 'TermsOfService',
+    component: TermsOfServicePage,
     meta: { public: true },
   },
 
