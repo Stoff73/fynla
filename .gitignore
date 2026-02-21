@@ -25,11 +25,6 @@ yarn-error.log
 # Administrative files (documentation, dev tools, design mockups)
 /.admin
 
-# Agent and skill config
-.agent/
-.agents/
-.claude/skills/
-
 # macOS system files
 .DS_Store
 **/.DS_Store
@@ -37,5 +32,3 @@ yarn-error.log
 # build files
 /public/build/
 
-# update folders
-/*Updates/  

@@ -196,7 +196,9 @@ database/migrations/2026_02_21_200005_add_verification_attempt_counters.php
 ### Modified PHP Files
 
 ```
+app/Console/Commands/EncryptExistingData.php
 app/Http/Controllers/Api/AuthController.php
+app/Http/Controllers/Api/BugReportController.php
 app/Http/Controllers/Api/MFAController.php
 app/Http/Middleware/HasPermission.php
 app/Http/Middleware/HasRole.php
@@ -294,11 +296,46 @@ SESSION_SECURE_COOKIE=true
 
 ## Data Re-encryption (Separate Step)
 
-After deployment, existing plaintext data in encrypted columns needs re-encryption. This requires a one-time artisan command (not included in this branch) to:
-1. Read existing plaintext values from `cash_accounts.account_number`, `cash_accounts.sort_code`, `mortgages.mortgage_account_number`, `investment_accounts.account_number`, `family_members.national_insurance_number`
-2. Encrypt each value and write it back
+After deployment, existing plaintext data in encrypted columns needs re-encryption. The `data:encrypt` artisan command (`app/Console/Commands/EncryptExistingData.php`) handles this.
 
-**Important:** Run this before users access the affected data, or they will see garbled values where plaintext was expected.
+**Fields added in this security fix:**
+
+| Model | Fields |
+|-------|--------|
+| CashAccount | `account_number`, `sort_code` |
+| Mortgage | `mortgage_account_number` |
+| InvestmentAccount | `account_number` |
+| FamilyMember | `national_insurance_number` |
+
+**Step 1: Dry run** (shows what would be encrypted without making changes):
+
+```bash
+php artisan data:encrypt --dry-run
+```
+
+**Step 2: Encrypt specific models** (recommended over encrypting everything at once):
+
+```bash
+php artisan data:encrypt --model=CashAccount
+php artisan data:encrypt --model=Mortgage
+php artisan data:encrypt --model=InvestmentAccount
+php artisan data:encrypt --model=FamilyMember
+```
+
+**Step 3: Or encrypt all models at once:**
+
+```bash
+php artisan data:encrypt
+```
+
+The command:
+- Processes records in batches of 100 (configurable with `--batch=50`)
+- Skips values that are already encrypted (detects base64 JSON prefix)
+- Reads raw plaintext via `getRawOriginal()`, sets it back via the property (triggers the encrypted mutator), then saves
+
+**Important:** Run this after deployment and before users access the affected data, or they will see garbled values where plaintext was expected.
+
+**File to upload:** `app/Console/Commands/EncryptExistingData.php`
 
 ---
 
