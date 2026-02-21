@@ -18,6 +18,12 @@ use App\Http\Requests\Protection\UpdateDisabilityPolicyRequest;
 use App\Http\Requests\Protection\UpdateIncomeProtectionPolicyRequest;
 use App\Http\Requests\Protection\UpdateLifePolicyRequest;
 use App\Http\Requests\Protection\UpdateSicknessIllnessPolicyRequest;
+use App\Http\Resources\Protection\CriticalIllnessPolicyResource;
+use App\Http\Resources\Protection\DisabilityPolicyResource;
+use App\Http\Resources\Protection\IncomeProtectionPolicyResource;
+use App\Http\Resources\Protection\LifeInsurancePolicyResource;
+use App\Http\Resources\Protection\ProtectionProfileResource;
+use App\Http\Resources\Protection\SicknessIllnessPolicyResource;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\CriticalIllnessPolicy;
 use App\Models\DisabilityPolicy;
@@ -81,13 +87,13 @@ class ProtectionController extends Controller
         return response()->json([
             'success' => true,
             'data' => [
-                'profile' => $profile,
+                'profile' => new ProtectionProfileResource($profile),
                 'policies' => [
-                    'life_insurance' => $lifePolicies,
-                    'critical_illness' => $criticalIllnessPolicies,
-                    'income_protection' => $incomeProtectionPolicies,
-                    'disability' => $disabilityPolicies,
-                    'sickness_illness' => $sicknessIllnessPolicies,
+                    'life_insurance' => LifeInsurancePolicyResource::collection($lifePolicies),
+                    'critical_illness' => CriticalIllnessPolicyResource::collection($criticalIllnessPolicies),
+                    'income_protection' => IncomeProtectionPolicyResource::collection($incomeProtectionPolicies),
+                    'disability' => DisabilityPolicyResource::collection($disabilityPolicies),
+                    'sickness_illness' => SicknessIllnessPolicyResource::collection($sicknessIllnessPolicies),
                 ],
             ],
         ]);
@@ -164,7 +170,7 @@ class ProtectionController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Protection profile saved successfully.',
-                'data' => $profile,
+                'data' => new ProtectionProfileResource($profile),
             ], 201);
         } catch (\Exception $e) {
             return $this->errorResponse($e, 'Saving protection profile');
@@ -201,7 +207,7 @@ class ProtectionController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Protection profile updated successfully.',
-                'data' => $profile,
+                'data' => new ProtectionProfileResource($profile),
             ]);
         } catch (\Exception $e) {
             return $this->errorResponse($e, 'Updating protection profile');
@@ -217,7 +223,8 @@ class ProtectionController extends Controller
             LifeInsurancePolicy::class,
             $request->validated(),
             $request->user()->id,
-            'Life insurance'
+            'Life insurance',
+            LifeInsurancePolicyResource::class
         );
     }
 
@@ -231,7 +238,8 @@ class ProtectionController extends Controller
             $request->validated(),
             $request->user()->id,
             $id,
-            'Life insurance'
+            'Life insurance',
+            LifeInsurancePolicyResource::class
         );
     }
 
@@ -257,7 +265,8 @@ class ProtectionController extends Controller
             CriticalIllnessPolicy::class,
             $request->validated(),
             $request->user()->id,
-            'Critical illness'
+            'Critical illness',
+            CriticalIllnessPolicyResource::class
         );
     }
 
@@ -271,7 +280,8 @@ class ProtectionController extends Controller
             $request->validated(),
             $request->user()->id,
             $id,
-            'Critical illness'
+            'Critical illness',
+            CriticalIllnessPolicyResource::class
         );
     }
 
@@ -297,7 +307,8 @@ class ProtectionController extends Controller
             IncomeProtectionPolicy::class,
             $request->validated(),
             $request->user()->id,
-            'Income protection'
+            'Income protection',
+            IncomeProtectionPolicyResource::class
         );
     }
 
@@ -311,7 +322,8 @@ class ProtectionController extends Controller
             $request->validated(),
             $request->user()->id,
             $id,
-            'Income protection'
+            'Income protection',
+            IncomeProtectionPolicyResource::class
         );
     }
 
@@ -337,7 +349,8 @@ class ProtectionController extends Controller
             DisabilityPolicy::class,
             $request->validated(),
             $request->user()->id,
-            'Disability'
+            'Disability',
+            DisabilityPolicyResource::class
         );
     }
 
@@ -351,7 +364,8 @@ class ProtectionController extends Controller
             $request->validated(),
             $request->user()->id,
             $id,
-            'Disability'
+            'Disability',
+            DisabilityPolicyResource::class
         );
     }
 
@@ -377,7 +391,8 @@ class ProtectionController extends Controller
             SicknessIllnessPolicy::class,
             $request->validated(),
             $request->user()->id,
-            'Sickness/Illness'
+            'Sickness/Illness',
+            SicknessIllnessPolicyResource::class
         );
     }
 
@@ -391,7 +406,8 @@ class ProtectionController extends Controller
             $request->validated(),
             $request->user()->id,
             $id,
-            'Sickness/Illness'
+            'Sickness/Illness',
+            SicknessIllnessPolicyResource::class
         );
     }
 

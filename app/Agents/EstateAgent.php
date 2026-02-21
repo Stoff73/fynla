@@ -62,6 +62,13 @@ class EstateAgent extends BaseAgent
                 ->where('in_trust', true)
                 ->get();
 
+            // Load non-trust life policies for trust placement recommendations
+            $lifePoliciesNotInTrust = LifeInsurancePolicy::where('user_id', $userId)
+                ->where(function ($q) {
+                    $q->where('in_trust', false)->orWhereNull('in_trust');
+                })
+                ->get();
+
             $spouseLifeCoverInTrust = 0;
             if ($user->spouse) {
                 $spouseLifeCoverInTrust = LifeInsurancePolicy::where('user_id', $user->spouse->id)
@@ -153,7 +160,9 @@ class EstateAgent extends BaseAgent
                         'user_cover_in_trust' => (float) $lifePoliciesInTrust->sum('sum_assured'),
                         'spouse_cover_in_trust' => (float) $spouseLifeCoverInTrust,
                         'total_cover_in_trust' => (float) $lifePoliciesInTrust->sum('sum_assured') + $spouseLifeCoverInTrust,
+                        'total_cover_not_in_trust' => (float) $lifePoliciesNotInTrust->sum('sum_assured'),
                         'policy_count' => $lifePoliciesInTrust->count(),
+                        'policies_not_in_trust_count' => $lifePoliciesNotInTrust->count(),
                     ],
                     'profile' => [
                         'current_age' => $currentAge,
@@ -221,6 +230,9 @@ class EstateAgent extends BaseAgent
             }
             if ($lifeCoverData['recommendation']) {
                 $recommendations[] = $lifeCoverData['recommendation'];
+            }
+            if ($lifeCoverData['trust_placement_recommendation'] ?? null) {
+                $recommendations[] = $lifeCoverData['trust_placement_recommendation'];
             }
 
             // STEP 4: Annual Gifting Strategy (First Resort)
@@ -406,10 +418,29 @@ class EstateAgent extends BaseAgent
             ];
         }
 
+        $trustPlacementRecommendation = null;
+        $notInTrustCount = $lifeCover['policies_not_in_trust_count'] ?? 0;
+        if ($notInTrustCount > 0) {
+            $trustPlacementRecommendation = [
+                'category' => 'trust_planning',
+                'priority' => 'medium',
+                'step' => 3,
+                'title' => 'Place Life Policies in Trust',
+                'description' => sprintf(
+                    'You have %d life insurance %s totalling %s not written in trust. Policies in trust bypass the estate for Inheritance Tax purposes.',
+                    $notInTrustCount,
+                    $notInTrustCount === 1 ? 'policy' : 'policies',
+                    $this->formatCurrency($lifeCover['total_cover_not_in_trust'] ?? 0)
+                ),
+                'actions' => ['Contact your insurance provider to place existing policies in trust'],
+            ];
+        }
+
         return [
             'existing_cover' => $existingCover,
             'usable_cover' => $usableCover,
             'recommendation' => $recommendation,
+            'trust_placement_recommendation' => $trustPlacementRecommendation,
         ];
     }
 

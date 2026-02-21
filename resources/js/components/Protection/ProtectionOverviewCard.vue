@@ -21,7 +21,7 @@
           >
             <div class="policy-info">
               <div class="policy-provider">
-                <span class="provider-name">{{ policy.provider_name }}</span>
+                <span class="provider-name">{{ policy.provider || policy.provider_name }}</span>
                 <span
                   v-if="policy.is_joint"
                   class="joint-badge joint-badge-blue"
@@ -52,7 +52,7 @@
           >
             <div class="policy-info">
               <div class="policy-provider">
-                <span class="provider-name">{{ policy.provider_name }}</span>
+                <span class="provider-name">{{ policy.provider || policy.provider_name }}</span>
                 <span
                   v-if="policy.is_joint"
                   class="joint-badge joint-badge-purple"
@@ -83,7 +83,7 @@
           >
             <div class="policy-info">
               <div class="policy-provider">
-                <span class="provider-name">{{ policy.provider_name }}</span>
+                <span class="provider-name">{{ policy.provider || policy.provider_name }}</span>
                 <span
                   v-if="policy.is_joint"
                   class="joint-badge joint-badge-teal"
@@ -114,7 +114,7 @@
           >
             <div class="policy-info">
               <div class="policy-provider">
-                <span class="provider-name">{{ policy.provider_name }}</span>
+                <span class="provider-name">{{ policy.provider || policy.provider_name }}</span>
                 <span
                   v-if="policy.is_joint"
                   class="joint-badge joint-badge-blue-alt"
@@ -122,9 +122,40 @@
                   Joint
                 </span>
               </div>
-              <p class="policy-details">Disability coverage</p>
+              <p class="policy-details">Benefit: {{ formatCurrency(policy.benefit_amount) }}/mo • {{ policy.deferred_period_weeks || 0 }} weeks waiting</p>
             </div>
             <span class="policy-premium policy-premium-blue-alt">{{ formatCurrency(policy.premium_amount) }}/mo</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sickness/Illness Policies -->
+      <div v-if="sicknessIllnessPolicies.length > 0" class="section-breakdown">
+        <div class="section-header-with-badge">
+          <span class="section-header">Sickness/Illness</span>
+          <span class="policy-count-badge policy-count-badge-teal">
+            {{ sicknessIllnessPolicies.length }} {{ sicknessIllnessPolicies.length === 1 ? 'policy' : 'policies' }}
+          </span>
+        </div>
+        <div class="policy-list">
+          <div
+            v-for="policy in sicknessIllnessPolicies"
+            :key="policy.id"
+            class="policy-item"
+          >
+            <div class="policy-info">
+              <div class="policy-provider">
+                <span class="provider-name">{{ policy.provider || policy.provider_name }}</span>
+                <span
+                  v-if="policy.is_joint"
+                  class="joint-badge joint-badge-teal"
+                >
+                  Joint
+                </span>
+              </div>
+              <p class="policy-details">Benefit: {{ formatCurrency(policy.benefit_amount) }}/mo • {{ policy.deferred_period_weeks || 0 }} weeks waiting</p>
+            </div>
+            <span class="policy-premium policy-premium-teal">{{ formatCurrency(policy.premium_amount) }}/mo</span>
           </div>
         </div>
       </div>

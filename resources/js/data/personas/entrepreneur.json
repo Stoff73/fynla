@@ -416,7 +416,23 @@
 
   "income_protection_policies": [],
 
-  "disability_policies": [],
+  "disability_policies": [
+    {
+      "owner": "user",
+      "provider_name": "Aviva",
+      "policy_reference": "AV-PA-2022-AC",
+      "benefit_amount": 9000,
+      "benefit_frequency": "monthly",
+      "deferred_period_weeks": 4,
+      "benefit_period_months": 12,
+      "premium_amount": 85,
+      "premium_frequency": "monthly",
+      "occupation_class": "2",
+      "coverage_type": "accident_only",
+      "policy_start_date": "2022-03-15",
+      "policy_term_years": 5
+    }
+  ],
 
   "sickness_illness_policies": [],
 

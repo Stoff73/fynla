@@ -17,7 +17,9 @@ use App\Models\Estate\Trust;
 use App\Models\Estate\Will;
 use App\Models\FamilyMember;
 use App\Models\Goal;
+use App\Models\DisabilityPolicy;
 use App\Models\IncomeProtectionPolicy;
+use App\Models\SicknessIllnessPolicy;
 use App\Models\LifeEvent;
 use App\Models\Investment\Holding;
 use App\Models\Investment\InvestmentAccount;
@@ -125,6 +127,8 @@ class PreviewUserSeeder extends Seeder
         $this->createLifeInsurancePolicies($user, $spouse, $data['life_insurance_policies'] ?? []);
         $this->createCriticalIllnessPolicies($user, $spouse, $data['critical_illness_policies'] ?? []);
         $this->createIncomeProtectionPolicies($user, $spouse, $data['income_protection_policies'] ?? []);
+        $this->createDisabilityPolicies($user, $spouse, $data['disability_policies'] ?? []);
+        $this->createSicknessIllnessPolicies($user, $spouse, $data['sickness_illness_policies'] ?? []);
 
         // Create liabilities
         $this->createLiabilities($user, $spouse, $data['liabilities'] ?? []);
@@ -226,6 +230,8 @@ class PreviewUserSeeder extends Seeder
         LifeInsurancePolicy::where('user_id', $user->id)->delete();
         CriticalIllnessPolicy::where('user_id', $user->id)->delete();
         IncomeProtectionPolicy::where('user_id', $user->id)->delete();
+        DisabilityPolicy::where('user_id', $user->id)->delete();
+        SicknessIllnessPolicy::where('user_id', $user->id)->delete();
 
         // Delete estate data
         Liability::where('user_id', $user->id)->delete();
@@ -1103,6 +1109,58 @@ class PreviewUserSeeder extends Seeder
                 'premium_amount' => $policy['premium_amount'] ?? null,
                 'policy_start_date' => $policy['policy_start_date'] ?? null,
                 'policy_number' => $policy['policy_reference'] ?? null,
+            ]);
+        }
+    }
+
+    /**
+     * Create disability policies.
+     */
+    private function createDisabilityPolicies(User $user, ?User $spouse, array $policies): void
+    {
+        foreach ($policies as $policy) {
+            $owner = ($policy['owner'] ?? 'user') === 'spouse' && $spouse ? $spouse : $user;
+
+            DisabilityPolicy::create([
+                'user_id' => $owner->id,
+                'provider' => $policy['provider_name'] ?? '',
+                'policy_number' => $policy['policy_reference'] ?? null,
+                'benefit_amount' => $policy['benefit_amount'] ?? 0,
+                'benefit_frequency' => $policy['benefit_frequency'] ?? 'monthly',
+                'deferred_period_weeks' => $policy['deferred_period_weeks'] ?? null,
+                'benefit_period_months' => $policy['benefit_period_months'] ?? null,
+                'premium_amount' => $policy['premium_amount'] ?? null,
+                'premium_frequency' => $policy['premium_frequency'] ?? 'monthly',
+                'occupation_class' => $policy['occupation_class'] ?? null,
+                'coverage_type' => $policy['coverage_type'] ?? 'accident_and_sickness',
+                'policy_start_date' => $policy['policy_start_date'] ?? null,
+                'policy_term_years' => $policy['policy_term_years'] ?? null,
+            ]);
+        }
+    }
+
+    /**
+     * Create sickness/illness policies.
+     */
+    private function createSicknessIllnessPolicies(User $user, ?User $spouse, array $policies): void
+    {
+        foreach ($policies as $policy) {
+            $owner = ($policy['owner'] ?? 'user') === 'spouse' && $spouse ? $spouse : $user;
+
+            SicknessIllnessPolicy::create([
+                'user_id' => $owner->id,
+                'provider' => $policy['provider_name'] ?? '',
+                'policy_number' => $policy['policy_reference'] ?? null,
+                'benefit_amount' => $policy['benefit_amount'] ?? 0,
+                'benefit_frequency' => $policy['benefit_frequency'] ?? 'monthly',
+                'deferred_period_weeks' => $policy['deferred_period_weeks'] ?? null,
+                'benefit_period_months' => $policy['benefit_period_months'] ?? null,
+                'premium_amount' => $policy['premium_amount'] ?? null,
+                'premium_frequency' => $policy['premium_frequency'] ?? 'monthly',
+                'conditions_covered' => $policy['conditions_covered'] ?? null,
+                'exclusions' => $policy['exclusions'] ?? null,
+                'policy_start_date' => $policy['policy_start_date'] ?? null,
+                'policy_term_years' => $policy['policy_term_years'] ?? null,
             ]);
         }
     }

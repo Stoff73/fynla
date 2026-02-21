@@ -28,7 +28,8 @@ trait PolicyCRUDTrait
         string $modelClass,
         array $validated,
         int $userId,
-        string $policyTypeName
+        string $policyTypeName,
+        ?string $resourceClass = null
     ): JsonResponse {
         $validated['user_id'] = $userId;
 
@@ -38,10 +39,12 @@ trait PolicyCRUDTrait
             // Invalidate cache
             $this->protectionAgent->invalidateCache($userId);
 
+            $responseData = $resourceClass ? new $resourceClass($policy) : $policy;
+
             return response()->json([
                 'success' => true,
                 'message' => "{$policyTypeName} policy created successfully.",
-                'data' => $policy,
+                'data' => $responseData,
             ], 201);
         } catch (\Exception $e) {
             return response()->json([
@@ -65,7 +68,8 @@ trait PolicyCRUDTrait
         array $validated,
         int $userId,
         int $id,
-        string $policyTypeName
+        string $policyTypeName,
+        ?string $resourceClass = null
     ): JsonResponse {
         try {
             $policy = $modelClass::where('user_id', $userId)
@@ -76,10 +80,12 @@ trait PolicyCRUDTrait
             // Invalidate cache
             $this->protectionAgent->invalidateCache($userId);
 
+            $responseData = $resourceClass ? new $resourceClass($policy) : $policy;
+
             return response()->json([
                 'success' => true,
                 'message' => "{$policyTypeName} policy updated successfully.",
-                'data' => $policy,
+                'data' => $responseData,
             ]);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json([

@@ -597,9 +597,41 @@
 
   "income_protection_policies": [],
 
-  "disability_policies": [],
+  "disability_policies": [
+    {
+      "owner": "user",
+      "provider_name": "Global Finance Corp Group Scheme",
+      "policy_reference": "GFC-AS-2020-DM",
+      "benefit_amount": 7250,
+      "benefit_frequency": "monthly",
+      "deferred_period_weeks": 13,
+      "benefit_period_months": 24,
+      "premium_amount": 0,
+      "premium_frequency": "monthly",
+      "occupation_class": "1",
+      "coverage_type": "accident_and_sickness",
+      "policy_start_date": "2020-04-01",
+      "policy_term_years": null
+    }
+  ],
 
-  "sickness_illness_policies": [],
+  "sickness_illness_policies": [
+    {
+      "owner": "spouse",
+      "provider_name": "NHS Permanent Health Insurance",
+      "policy_reference": "NHS-PHI-SM-2015",
+      "benefit_amount": 3500,
+      "benefit_frequency": "monthly",
+      "deferred_period_weeks": 26,
+      "benefit_period_months": null,
+      "premium_amount": 0,
+      "premium_frequency": "monthly",
+      "conditions_covered": "All sickness and injury conditions",
+      "exclusions": "Pre-existing conditions (first 2 years)",
+      "policy_start_date": "2015-09-01",
+      "policy_term_years": null
+    }
+  ],
 
   "liabilities": [],
 

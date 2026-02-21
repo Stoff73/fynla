@@ -170,10 +170,24 @@ class CoverageGapAnalyzer
         $educationCovered = min($excessAfterFinalExpenses, $needs['education_funding']);
         $educationGap = max(0, $needs['education_funding'] - $educationCovered);
 
-        // STEP 5: Income-based policies (Family Income Benefit, etc.) reduce income replacement need
+        // STEP 5: Income-based policies (separate track from life cover allocation)
         $totalIncomeCoverage = $coverage['income_protection_coverage']
                              + $coverage['disability_coverage']
                              + $coverage['sickness_illness_coverage'];
+
+        // Income protection need (60% of gross) vs total income coverage
+        $incomeProtectionNeed = $needs['income_protection_need'] ?? 0;
+        $incomeProtectionGap = max(0, $incomeProtectionNeed - $totalIncomeCoverage);
+
+        // Break down by policy type for granular reporting
+        $ipCoverage = $coverage['income_protection_coverage'] ?? 0;
+        $disabilityCoverage = $coverage['disability_coverage'] ?? 0;
+        $sicknessCoverage = $coverage['sickness_illness_coverage'] ?? 0;
+
+        // Individual gaps (IP is primary; disability and sickness are supplementary)
+        $ipSpecificGap = max(0, $incomeProtectionNeed - $ipCoverage);
+        $disabilityGap = $ipCoverage >= $incomeProtectionNeed ? 0 : max(0, $incomeProtectionGap - $disabilityCoverage);
+        $sicknessGap = ($ipCoverage + $disabilityCoverage) >= $incomeProtectionNeed ? 0 : max(0, $incomeProtectionGap - $disabilityCoverage - $sicknessCoverage);
 
         // Use passed total_coverage (life + CI) for reporting
         $totalCoverage = $coverage['total_coverage'] ?? ($lifeCoverage + ($coverage['critical_illness_coverage'] ?? 0));
@@ -194,9 +208,9 @@ class CoverageGapAnalyzer
                 'debt_protection_gap' => $debtGap,
                 'final_expenses_gap' => $finalExpensesGap,
                 'education_funding_gap' => $educationGap,
-                'income_protection_gap' => 0,
-                'disability_coverage_gap' => 0,
-                'sickness_illness_gap' => 0,
+                'income_protection_gap' => $incomeProtectionGap,
+                'disability_coverage_gap' => $disabilityGap,
+                'sickness_illness_gap' => $sicknessGap,
             ],
             'coverage_allocated' => [
                 'debt_covered' => $debtCovered,
