@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Investment;
 
+use App\Services\Investment\Utilities\MatrixOperations;
 use Illuminate\Support\Facades\DB;
 
 class MonteCarloSimulator
@@ -175,13 +176,141 @@ class MonteCarloSimulator
             ];
         }
 
-        // Calculate statistics
+        $output = $this->aggregateResults($results, $startValue, $monthlyContribution, $years, $iterations);
+
+        // Add single-asset-specific summary fields
+        $output['summary']['expected_return'] = $expectedReturn;
+        $output['summary']['volatility'] = $volatility;
+
+        return $output;
+    }
+
+    /**
+     * Run multi-asset Monte Carlo simulation with correlated returns.
+     *
+     * @param  array  $assetClasses  Array of ['type', 'weight', 'expectedReturn', 'volatility']
+     * @param  array  $correlationMatrix  N x N correlation matrix between asset classes
+     * @param  float  $startValue  Initial portfolio value
+     * @param  float  $monthlyContribution  Monthly contribution
+     * @param  int  $years  Simulation horizon
+     * @param  int  $iterations  Number of simulation runs
+     * @param  string|null  $cacheKey  Optional cache key
+     * @return array  Simulation results with percentiles
+     */
+    public function runMultiAssetSimulation(
+        array $assetClasses,
+        array $correlationMatrix,
+        float $startValue,
+        float $monthlyContribution,
+        int $years,
+        int $iterations = 1000,
+        ?string $cacheKey = null
+    ): array {
+        // Check cache
+        if ($cacheKey !== null) {
+            $cached = $this->getCachedResult($cacheKey);
+            if ($cached !== null) {
+                return $cached;
+            }
+        }
+
+        $matrixOps = new MatrixOperations();
+        $n = count($assetClasses);
+        $totalMonths = $years * 12;
+
+        // Build covariance matrix from correlation matrix and volatilities
+        $covarianceMatrix = $this->buildCovarianceMatrix($assetClasses, $correlationMatrix);
+
+        // Cholesky decomposition for generating correlated samples
+        $choleskyL = $matrixOps->choleskyDecomposition($covarianceMatrix);
+
+        // Convert annual parameters to monthly
+        $monthlyReturns = array_map(fn ($ac) => $ac['expectedReturn'] / 12, $assetClasses);
+        $weights = array_map(fn ($ac) => $ac['weight'], $assetClasses);
+
+        $results = [];
+
+        for ($i = 0; $i < $iterations; $i++) {
+            $portfolioValue = $startValue;
+            $yearlyValues = [];
+
+            for ($month = 1; $month <= $totalMonths; $month++) {
+                // Generate independent standard normal samples
+                $independentSamples = [];
+                for ($a = 0; $a < $n; $a++) {
+                    $independentSamples[] = $this->generateNormalDistribution(0, 1);
+                }
+
+                // Transform to correlated samples using Cholesky: correlated = L * independent
+                $correlatedSamples = $matrixOps->multiplyVector($choleskyL, $independentSamples);
+
+                // Calculate weighted portfolio return for this month
+                $portfolioReturn = 0.0;
+                for ($a = 0; $a < $n; $a++) {
+                    $monthlyVol = $assetClasses[$a]['volatility'] / sqrt(12);
+                    $assetReturn = $monthlyReturns[$a] + ($correlatedSamples[$a] * $monthlyVol);
+                    $portfolioReturn += $weights[$a] * $assetReturn;
+                }
+
+                $portfolioValue = $portfolioValue * (1 + $portfolioReturn) + $monthlyContribution;
+
+                if ($month % 12 === 0) {
+                    $yearlyValues[] = $portfolioValue;
+                }
+            }
+
+            $results[] = [
+                'final_value' => $portfolioValue,
+                'yearly_values' => $yearlyValues,
+            ];
+        }
+
+        $output = $this->aggregateResults($results, $startValue, $monthlyContribution, $years, $iterations);
+
+        if ($cacheKey !== null) {
+            $this->cacheResult($cacheKey, $output);
+        }
+
+        return $output;
+    }
+
+    /**
+     * Build covariance matrix from asset class volatilities and correlation matrix.
+     *
+     * Cov(i,j) = correlation(i,j) * vol(i) * vol(j)
+     */
+    private function buildCovarianceMatrix(array $assetClasses, array $correlationMatrix): array
+    {
+        $n = count($assetClasses);
+        $cov = [];
+
+        for ($i = 0; $i < $n; $i++) {
+            $cov[$i] = [];
+            for ($j = 0; $j < $n; $j++) {
+                $cov[$i][$j] = $correlationMatrix[$i][$j]
+                    * $assetClasses[$i]['volatility']
+                    * $assetClasses[$j]['volatility'];
+            }
+        }
+
+        return $cov;
+    }
+
+    /**
+     * Aggregate simulation results into percentile statistics.
+     */
+    private function aggregateResults(
+        array $results,
+        float $startValue,
+        float $monthlyContribution,
+        int $years,
+        int $iterations
+    ): array {
         $finalValues = array_column($results, 'final_value');
         sort($finalValues);
 
         $percentiles = $this->calculatePercentiles($finalValues);
 
-        // Calculate year-by-year percentiles
         $yearByYearPercentiles = [];
         for ($year = 1; $year <= $years; $year++) {
             $yearIndex = $year - 1;
@@ -194,15 +323,14 @@ class MonteCarloSimulator
             ];
         }
 
-        $medianValue = $percentiles[2]['value'] ?? 0; // 50th percentile is index 2
+        $totalMonths = $years * 12;
+        $medianValue = $percentiles[2]['value'] ?? 0;
         $totalContributions = $startValue + ($monthlyContribution * $totalMonths);
 
         return [
             'summary' => [
                 'start_value' => round($startValue, 2),
                 'monthly_contribution' => round($monthlyContribution, 2),
-                'expected_return' => $expectedReturn,
-                'volatility' => $volatility,
                 'years' => $years,
                 'iterations' => $iterations,
             ],
@@ -211,6 +339,21 @@ class MonteCarloSimulator
             'final_percentiles' => $percentiles,
             'total_contributions' => round($totalContributions, 2),
             'median_gain' => round($medianValue - $totalContributions, 2),
+        ];
+    }
+
+    /**
+     * Get default correlation matrix for common asset classes.
+     *
+     * @return array  Correlation matrix for [equity, bond, cash]
+     */
+    public static function getDefaultCorrelationMatrix(): array
+    {
+        return [
+            // equity, bond,  cash
+            [1.00, -0.20, 0.05],  // equity
+            [-0.20, 1.00, 0.15],  // bond
+            [0.05, 0.15, 1.00],   // cash
         ];
     }
 

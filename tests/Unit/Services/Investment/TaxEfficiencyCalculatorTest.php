@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\Investment\Holding;
 use App\Models\Investment\InvestmentAccount;
+use App\Services\Investment\DividendTaxCalculator;
 use App\Services\Investment\TaxEfficiencyCalculator;
 use App\Services\TaxConfigService;
 
@@ -32,9 +33,13 @@ beforeEach(function () {
             ['name' => 'Additional Rate', 'threshold' => 125140, 'rate' => 0.45],
         ],
         'personal_allowance' => 12570,
+        'basic_rate_limit' => 37700,
+        'higher_rate_threshold' => 50270,
+        'additional_rate_threshold' => 125140,
     ]);
 
-    $this->taxCalculator = new TaxEfficiencyCalculator($this->taxConfig);
+    $this->dividendTaxCalculator = new DividendTaxCalculator($this->taxConfig);
+    $this->taxCalculator = new TaxEfficiencyCalculator($this->taxConfig, $this->dividendTaxCalculator);
 });
 
 describe('calculateUnrealizedGains', function () {

@@ -38,11 +38,11 @@ describe('calculateTotalFees', function () {
 
         // Platform fees: (100000 * 0.0025) + (50000 * 0.0035) = 250 + 175 = 425
         // Fund fees: (60000 * 0.005) + (40000 * 0.0015) = 300 + 60 = 360
-        // Transaction costs: 150000 * 0.001 = 150
-        // Total: 425 + 360 + 150 = 935
+        // Transaction costs: estimateTransactionCosts(150000, 0.10) = 150000 * 0.10 * 0.001 = 15
+        // Total: 425 + 360 + 15 = 800
 
         expect($result['portfolio_value'])->toBe(150000.0)
-            ->and($result['total_annual_fees'])->toBe(935.0)
+            ->and($result['total_annual_fees'])->toBe(800.0)
             ->and($result['fee_breakdown'])->toHaveCount(3)
             ->and($result['fee_drag_percent'])->toBeGreaterThan(0);
     });

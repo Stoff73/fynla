@@ -59,8 +59,8 @@ class FeeAnalyzer
             return $holding->current_value * (($holding->ocf_percent ?? 0) / 100);
         });
 
-        // Estimated transaction costs (simplified)
-        $transactionCosts = $portfolioValue * 0.001; // 0.1% estimated
+        // Estimated transaction costs
+        $transactionCosts = $this->estimateTransactionCosts($portfolioValue, 0.10);
 
         $totalFees = $platformFees + $fundFees + $transactionCosts;
         $feeDragPercent = ($totalFees / $portfolioValue) * 100;
@@ -341,7 +341,7 @@ class FeeAnalyzer
 
         // Calculate transaction costs (estimated) - only if holdings exist
         $transactionCosts = $holdings->isNotEmpty()
-            ? $this->estimateTransactionCosts($accountValue, $account->turnover_rate ?? 0.10)
+            ? $this->estimateTransactionCosts($accountValue, $account->turnover_rate ?? 0.10, $account->platform_name ?? null)
             : 0;
 
         // Advisory fees (if applicable)
@@ -523,14 +523,29 @@ class FeeAnalyzer
     }
 
     /**
-     * Estimate annual transaction costs
+     * Estimate annual transaction costs, using platform-specific dealing charges when available.
      */
-    private function estimateTransactionCosts(float $portfolioValue, float $turnoverRate): float
+    private function estimateTransactionCosts(float $portfolioValue, float $turnoverRate, ?string $platform = null): float
     {
-        $costPerTransaction = 0.001;
+        if ($platform !== null) {
+            $platformKey = strtolower(str_replace([' ', '-'], '_', $platform));
+            $platformConfig = config("investment_platforms.platforms.{$platformKey}");
+
+            if ($platformConfig) {
+                // Estimate ~12 trades per year per £100k at the given turnover rate
+                $estimatedTrades = max(1, (int) round(($portfolioValue / 100000) * $turnoverRate * 12));
+                // Average of fund and equity dealing costs
+                $avgDealingCost = ($platformConfig['fund_dealing_cost'] + $platformConfig['equity_dealing_cost']) / 2;
+
+                return $estimatedTrades * $avgDealingCost;
+            }
+        }
+
+        // Fallback: percentage-based estimate
+        $defaultCostPercent = config('investment_platforms.default_cost_percent', 0.001);
         $annualTradedValue = $portfolioValue * $turnoverRate;
 
-        return $annualTradedValue * $costPerTransaction;
+        return $annualTradedValue * $defaultCostPercent;
     }
 
     /**

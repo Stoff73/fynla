@@ -186,6 +186,62 @@ class MatrixOperations
     }
 
     /**
+     * Cholesky decomposition: decompose symmetric positive-definite matrix A into L * L^T.
+     *
+     * @param  array  $matrix  Symmetric positive-definite matrix
+     * @return array  Lower triangular matrix L
+     *
+     * @throws \InvalidArgumentException If matrix is not positive-definite
+     */
+    public function choleskyDecomposition(array $matrix): array
+    {
+        $n = count($matrix);
+        $L = array_fill(0, $n, array_fill(0, $n, 0.0));
+
+        for ($i = 0; $i < $n; $i++) {
+            for ($j = 0; $j <= $i; $j++) {
+                $sum = 0.0;
+                for ($k = 0; $k < $j; $k++) {
+                    $sum += $L[$i][$k] * $L[$j][$k];
+                }
+
+                if ($i === $j) {
+                    $diag = $matrix[$i][$i] - $sum;
+                    if ($diag <= 0) {
+                        throw new \InvalidArgumentException('Matrix is not positive-definite');
+                    }
+                    $L[$i][$j] = sqrt($diag);
+                } else {
+                    $L[$i][$j] = ($matrix[$i][$j] - $sum) / $L[$j][$j];
+                }
+            }
+        }
+
+        return $L;
+    }
+
+    /**
+     * Multiply a matrix by a vector: result = M * v
+     *
+     * @param  array  $matrix  Matrix (n x m)
+     * @param  array  $vector  Vector (m elements)
+     * @return array  Result vector (n elements)
+     */
+    public function multiplyVector(array $matrix, array $vector): array
+    {
+        $result = [];
+        foreach ($matrix as $row) {
+            $sum = 0.0;
+            foreach ($row as $j => $value) {
+                $sum += $value * $vector[$j];
+            }
+            $result[] = $sum;
+        }
+
+        return $result;
+    }
+
+    /**
      * Calculate quadratic form: x^T * A * x
      * Used for portfolio variance calculation
      *
