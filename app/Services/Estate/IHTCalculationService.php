@@ -1219,8 +1219,9 @@ class IHTCalculationService
 
         // Check if hashes match (data hasn't changed)
         if ($cached->assets_hash === $currentHashes['assets_hash'] &&
-            $cached->liabilities_hash === $currentHashes['liabilities_hash']) {
-            return $cached->toArray();
+            $cached->liabilities_hash === $currentHashes['liabilities_hash'] &&
+            $cached->result_json) {
+            return $cached->result_json;
         }
 
         return null;
@@ -1293,6 +1294,7 @@ class IHTCalculationService
             'projected_investments' => $result['projected_investments'] ?? null,
             'projected_properties' => $result['projected_properties'] ?? null,
             'retirement_age' => $result['retirement_age'] ?? null,
+            'result_json' => $result,
             'years_to_death' => $result['years_to_death'],
             'estimated_age_at_death' => $result['estimated_age_at_death'],
             'calculation_date' => now(),
