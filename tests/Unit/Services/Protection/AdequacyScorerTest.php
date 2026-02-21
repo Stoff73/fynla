@@ -179,14 +179,14 @@ describe('getScoreColor', function () {
         expect($result)->toBe('blue');
     });
 
-    it('returns orange for score 59', function () {
+    it('returns blue for score 59', function () {
         $result = $this->scorer->getScoreColor(59);
-        expect($result)->toBe('orange');
+        expect($result)->toBe('blue');
     });
 
-    it('returns orange for score 40', function () {
+    it('returns blue for score 40', function () {
         $result = $this->scorer->getScoreColor(40);
-        expect($result)->toBe('orange');
+        expect($result)->toBe('blue');
     });
 
     it('returns red for score 39', function () {
@@ -248,7 +248,7 @@ describe('generateScoreInsights', function () {
         $result = $this->scorer->generateScoreInsights($score, $gaps);
 
         expect($result['category'])->toBe('Fair');
-        expect($result['color'])->toBe('orange');
+        expect($result['color'])->toBe('blue');
         expect($result['insights'])->toContain('Your protection coverage is fair. Consider increasing coverage to improve your financial security.');
     });
 

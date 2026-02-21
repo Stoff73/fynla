@@ -45,7 +45,7 @@ class AdequacyScorer
         return match (true) {
             $score >= 80 => 'green',
             $score >= 60 => 'blue',
-            $score >= 40 => 'orange',
+            $score >= 40 => 'blue',
             default => 'red',
         };
     }
@@ -62,13 +62,15 @@ class AdequacyScorer
         $lifeGap = ($gapsByCategory['human_capital_gap'] ?? 0) + ($gapsByCategory['debt_protection_gap'] ?? 0) + ($gapsByCategory['final_expenses_gap'] ?? 0);
         $lifeScore = $lifeNeed > 0 ? (int) round((($lifeNeed - $lifeGap) / $lifeNeed) * 100) : 100;
 
-        // Critical illness score (placeholder - based on CI coverage percentage)
-        // This would need CI-specific needs calculation in future
-        $ciScore = 0; // Placeholder for now
+        // Critical illness score: CI need = 3x annual gross income
+        $ciNeed = ($needs['gross_income'] ?? 0) * 3;
+        $ciCoverage = $needs['critical_illness_coverage'] ?? 0;
+        $ciScore = $ciNeed > 0 ? (int) round(min($ciCoverage, $ciNeed) / $ciNeed * 100) : 100;
 
-        // Income protection score (placeholder - based on IP coverage percentage)
-        // This would need IP-specific needs calculation in future
-        $ipScore = 0; // Placeholder for now
+        // Income protection score: IP need = 60% of gross income
+        $ipNeed = $needs['income_protection_need'] ?? 0;
+        $ipCoverage = $gaps['income_replacement_coverage'] ?? 0;
+        $ipScore = $ipNeed > 0 ? (int) round(min($ipCoverage, $ipNeed) / $ipNeed * 100) : 100;
 
         return [
             'life_insurance_score' => max(0, min(100, $lifeScore)),

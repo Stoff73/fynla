@@ -47,7 +47,7 @@ class RecommendationEngine
         }
 
         // Critical illness gap
-        if ($gaps['gaps_by_category']['human_capital_gap'] > 0 && empty($profile->user->criticalIllnessPolicies)) {
+        if ($gaps['gaps_by_category']['human_capital_gap'] > 0 && $profile->user->criticalIllnessPolicies->isEmpty()) {
             $recommendations[] = $this->createRecommendation(
                 priority: 2,
                 category: 'Critical Illness',

@@ -292,6 +292,32 @@
               </div>
             </div>
 
+            <!-- Disability policies -->
+            <div v-if="protectionDisabilityPolicies.length > 0" class="space-y-2">
+              <div class="text-sm font-semibold text-gray-700">Disability</div>
+              <div
+                v-for="policy in protectionDisabilityPolicies"
+                :key="'dis-' + policy.id"
+                class="flex justify-between text-sm"
+              >
+                <span class="text-gray-600 truncate mr-2">{{ formatPolicyName(policy, 'Disability') }}</span>
+                <span class="font-medium text-gray-900 whitespace-nowrap">{{ formatCurrency(policy.benefit_amount) }}/mo</span>
+              </div>
+            </div>
+
+            <!-- Sickness/Illness policies -->
+            <div v-if="protectionSicknessIllnessPolicies.length > 0" class="space-y-2">
+              <div class="text-sm font-semibold text-gray-700">Sickness/Illness</div>
+              <div
+                v-for="policy in protectionSicknessIllnessPolicies"
+                :key="'si-' + policy.id"
+                class="flex justify-between text-sm"
+              >
+                <span class="text-gray-600 truncate mr-2">{{ formatPolicyName(policy, 'Sickness/Illness') }}</span>
+                <span class="font-medium text-gray-900 whitespace-nowrap">{{ formatCurrency(policy.benefit_amount) }}/mo</span>
+              </div>
+            </div>
+
             <!-- Total coverage and premium -->
             <div class="pt-2 border-t border-gray-100 space-y-2">
               <div class="flex justify-between text-sm">
@@ -994,6 +1020,8 @@ export default {
       protectionLifePolicies: 'lifePolicies',
       protectionCriticalIllnessPolicies: 'criticalIllnessPolicies',
       protectionIncomeProtectionPolicies: 'incomeProtectionPolicies',
+      protectionDisabilityPolicies: 'disabilityPolicies',
+      protectionSicknessIllnessPolicies: 'sicknessIllnessPolicies',
     }),
 
     protectionData() {
@@ -1006,7 +1034,9 @@ export default {
     hasProtectionData() {
       return (this.protectionLifePolicies?.length || 0) +
              (this.protectionCriticalIllnessPolicies?.length || 0) +
-             (this.protectionIncomeProtectionPolicies?.length || 0) > 0;
+             (this.protectionIncomeProtectionPolicies?.length || 0) +
+             (this.protectionDisabilityPolicies?.length || 0) +
+             (this.protectionSicknessIllnessPolicies?.length || 0) > 0;
     },
 
     // Goals data

@@ -71,6 +71,10 @@ class ProtectionAgent extends BaseAgent
             // Calculate adequacy score
             $adequacyScore = $this->adequacyScorer->calculateAdequacyScore($gaps, $needs);
             $hasDependants = ($profile->number_of_dependents ?? 0) > 0;
+
+            // Augment needs with coverage data for individual score calculation
+            $needs['critical_illness_coverage'] = $coverage['critical_illness_coverage'] ?? 0;
+
             $scoreInsights = $this->adequacyScorer->generateScoreInsights($adequacyScore, $gaps, $needs, $hasDependants);
 
             // Generate recommendations
