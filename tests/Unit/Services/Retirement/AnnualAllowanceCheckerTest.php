@@ -64,11 +64,11 @@ test('returns standard allowance when adjusted income below threshold', function
     expect($taperedAllowance)->toBe(60000.0);
 });
 
-test('calculates carry forward allowance', function () {
+test('returns zero carry forward when no prior year data entered', function () {
     $carryForward = $this->checker->getCarryForward(1, '2024/25');
 
-    // Simplified implementation returns £60,000
-    expect($carryForward)->toBe(60000.0);
+    // Conservative default: returns 0 when no data is entered
+    expect($carryForward)->toBe(0.0);
 });
 
 test('checks MPAA status when not triggered', function () {

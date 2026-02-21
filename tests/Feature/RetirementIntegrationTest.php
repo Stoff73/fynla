@@ -29,7 +29,7 @@ describe('Full Retirement Analysis Flow', function () {
             'essential_expenditure' => 18000,
             'lifestyle_expenditure' => 12000,
             'life_expectancy' => 85,
-            'risk_tolerance' => 'balanced',
+            'prior_year_unused_allowance' => null,
         ]);
 
         // Step 2: Add DC pension
@@ -411,7 +411,7 @@ describe('Complex Integration Scenarios', function () {
             'lifestyle_expenditure' => 17000,
             'life_expectancy' => 88,
             'spouse_life_expectancy' => 90,
-            'risk_tolerance' => 'balanced',
+            'prior_year_unused_allowance' => null,
         ]);
 
         // Multiple DC pensions

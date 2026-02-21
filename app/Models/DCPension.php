@@ -45,6 +45,8 @@ class DCPension extends Model
         'has_custom_risk',
         'beneficiary_id',
         'beneficiary_name',
+        'has_flexibly_accessed',
+        'flexible_access_date',
     ];
 
     protected $casts = [
@@ -60,6 +62,8 @@ class DCPension extends Model
         'expected_return_percent' => 'decimal:2',
         'projected_value_at_retirement' => 'decimal:2',
         'has_custom_risk' => 'boolean',
+        'has_flexibly_accessed' => 'boolean',
+        'flexible_access_date' => 'date',
     ];
 
     protected $attributes = [

@@ -37,7 +37,7 @@ class RetirementProfileFactory extends Factory
             'lifestyle_expenditure' => $this->faker->randomFloat(2, 5000, 30000),
             'life_expectancy' => $this->faker->numberBetween(80, 95),
             'spouse_life_expectancy' => $this->faker->optional(0.6)->numberBetween(80, 95),
-            'risk_tolerance' => $this->faker->randomElement(['cautious', 'balanced', 'adventurous']),
+            'prior_year_unused_allowance' => null,
         ];
     }
 }

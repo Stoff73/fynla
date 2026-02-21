@@ -30,7 +30,7 @@ use App\Services\TaxConfigService;
  */
 class RetirementIncomeService
 {
-    private const DEFAULT_RETIREMENT_AGE = 68;
+    private const DEFAULT_RETIREMENT_AGE = 67;
 
     private const DEFAULT_GROWTH_RATE = 0.04;
 

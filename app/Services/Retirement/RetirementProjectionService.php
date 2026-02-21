@@ -18,7 +18,7 @@ use App\Services\UserProfile\UserProfileService;
  */
 class RetirementProjectionService
 {
-    private const DEFAULT_RETIREMENT_AGE = 68;
+    private const DEFAULT_RETIREMENT_AGE = 67;
 
     private const SUSTAINABLE_WITHDRAWAL_RATE = 0.047; // 4.7%
 

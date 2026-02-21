@@ -31,7 +31,7 @@ class RequiredCapitalCalculator
 
     private const TARGET_INCOME_PERCENT = 0.75; // 75% of net income
 
-    private const DEFAULT_RETIREMENT_AGE = 68;
+    private const DEFAULT_RETIREMENT_AGE = 67;
 
     public function __construct(
         private readonly AssumptionsService $assumptionsService,

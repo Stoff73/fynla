@@ -13,10 +13,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  *
  * Represents a user's retirement planning profile including target retirement age
  * and income requirements.
- *
- * @property string|null $risk_tolerance DEPRECATED. Use RiskPreferenceService::getRiskProfile() for user's main risk level.
- *                                       This field is kept for backward compatibility only.
- *                                       New code should use the Risk module (RiskProfile model via RiskPreferenceService).
  */
 class RetirementProfile extends Model
 {
@@ -34,7 +30,7 @@ class RetirementProfile extends Model
         'lifestyle_expenditure',
         'life_expectancy',
         'spouse_life_expectancy',
-        'risk_tolerance',
+        'prior_year_unused_allowance',
     ];
 
     protected $casts = [
@@ -46,6 +42,7 @@ class RetirementProfile extends Model
         'lifestyle_expenditure' => 'decimal:2',
         'life_expectancy' => 'integer',
         'spouse_life_expectancy' => 'integer',
+        'prior_year_unused_allowance' => 'array',
     ];
 
     /**
