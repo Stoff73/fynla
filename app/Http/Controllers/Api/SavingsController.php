@@ -462,6 +462,8 @@ class SavingsController extends Controller
 
     /**
      * Get all goals for authenticated user
+     *
+     * @deprecated Use Goals module (GoalsController) instead. Retained for backwards compatibility.
      */
     public function indexGoals(Request $request): JsonResponse
     {
@@ -476,6 +478,8 @@ class SavingsController extends Controller
 
     /**
      * Store a new savings goal
+     *
+     * @deprecated Use Goals module (GoalsController) instead. Retained for backwards compatibility.
      */
     public function storeGoal(StoreSavingsGoalRequest $request): JsonResponse
     {
@@ -503,6 +507,8 @@ class SavingsController extends Controller
 
     /**
      * Update a savings goal
+     *
+     * @deprecated Use Goals module (GoalsController) instead. Retained for backwards compatibility.
      */
     public function updateGoal(UpdateSavingsGoalRequest $request, int $id): JsonResponse
     {
@@ -535,6 +541,8 @@ class SavingsController extends Controller
 
     /**
      * Delete a savings goal
+     *
+     * @deprecated Use Goals module (GoalsController) instead. Retained for backwards compatibility.
      */
     public function destroyGoal(Request $request, int $id): JsonResponse
     {
@@ -566,6 +574,8 @@ class SavingsController extends Controller
 
     /**
      * Update progress for a savings goal
+     *
+     * @deprecated Use Goals module (GoalsController) instead. Retained for backwards compatibility.
      */
     public function updateGoalProgress(Request $request, int $id): JsonResponse
     {

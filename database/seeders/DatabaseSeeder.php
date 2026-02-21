@@ -44,6 +44,9 @@ class DatabaseSeeder extends Seeder
 
             // Preview personas (young_family, peak_earners, etc.)
             PreviewUserSeeder::class,
+
+            // Savings market benchmark rates
+            SavingsMarketRatesSeeder::class,
         ]);
 
         // ============================================================

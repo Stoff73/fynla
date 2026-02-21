@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Agents;
 
-use App\Models\ExpenditureProfile;
 use App\Models\SavingsAccount;
 use App\Models\SavingsGoal;
 use App\Models\User;
@@ -13,9 +12,11 @@ use App\Services\Savings\GoalProgressCalculator;
 use App\Services\Savings\ISATracker;
 use App\Services\Savings\LiquidityAnalyzer;
 use App\Services\Savings\RateComparator;
+use App\Traits\ResolvesExpenditure;
 
 class SavingsAgent extends BaseAgent
 {
+    use ResolvesExpenditure;
     protected int $cacheTtl = 1800; // 30 minutes
 
     public function __construct(
@@ -36,20 +37,12 @@ class SavingsAgent extends BaseAgent
             $accounts = SavingsAccount::where('user_id', $userId)->get();
             $goals = SavingsGoal::where('user_id', $userId)->get();
             $user = User::find($userId);
-            $expenditureProfile = ExpenditureProfile::where('user_id', $userId)->first();
 
             $totalSavings = $accounts->sum('current_balance');
 
-            // Get monthly expenditure - try ExpenditureProfile first, then fall back to User model
-            $monthlyExpenditure = 0.0;
-            if ($expenditureProfile && $expenditureProfile->total_monthly_expenditure > 0) {
-                $monthlyExpenditure = (float) $expenditureProfile->total_monthly_expenditure;
-            } elseif ($user && $user->monthly_expenditure > 0) {
-                $monthlyExpenditure = (float) $user->monthly_expenditure;
-            } elseif ($user && $user->annual_expenditure > 0) {
-                // Fall back to annual expenditure divided by 12
-                $monthlyExpenditure = (float) ($user->annual_expenditure / 12);
-            }
+            // Resolve monthly expenditure using standardised fallback chain
+            $resolved = $user ? $this->resolveMonthlyExpenditure($user) : ['amount' => 0.0, 'source' => 'none', 'label' => 'Not Set'];
+            $monthlyExpenditure = $resolved['amount'];
 
             // Emergency Fund Analysis
             $runway = $this->emergencyFundCalculator->calculateRunway(
@@ -99,6 +92,8 @@ class SavingsAgent extends BaseAgent
                     'total_accounts' => $accounts->count(),
                     'total_goals' => $goals->count(),
                     'monthly_expenditure' => $this->roundToPenny($monthlyExpenditure),
+                    'expenditure_source' => $resolved['source'],
+                    'expenditure_label' => $resolved['label'],
                 ],
                 'emergency_fund' => [
                     'runway_months' => $runway,
