@@ -1,5 +1,20 @@
 <template>
   <div class="savings-goals">
+    <!-- Goals Module Migration Banner -->
+    <div class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-start gap-3">
+      <svg class="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <div>
+        <p class="text-sm font-medium text-blue-900">Goals are now managed in the Goals module</p>
+        <p class="text-xs text-blue-700 mt-1">
+          For a more comprehensive view of your financial goals, including investment and retirement targets, visit the
+          <router-link to="/goals" class="text-blue-600 underline hover:text-blue-800 font-medium">Goals &amp; Life Events</router-link>
+          section. These legacy savings goals remain available for reference.
+        </p>
+      </div>
+    </div>
+
     <!-- Header with Add Button -->
     <div class="mb-6 flex justify-between items-center">
       <div>

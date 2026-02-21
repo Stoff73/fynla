@@ -4,7 +4,15 @@ declare(strict_types=1);
 
 namespace App\Services\Coordination;
 
+use App\Models\CriticalIllnessPolicy;
+use App\Models\DCPension;
+use App\Models\DisabilityPolicy;
+use App\Models\IncomeProtectionPolicy;
+use App\Models\LifeInsurancePolicy;
+use App\Models\SavingsAccount;
+use App\Models\SicknessIllnessPolicy;
 use App\Models\User;
+use App\Traits\ResolvesExpenditure;
 
 /**
  * CashFlowCoordinator
@@ -14,6 +22,8 @@ use App\Models\User;
  */
 class CashFlowCoordinator
 {
+    use ResolvesExpenditure;
+
     /**
      * Calculate available monthly surplus
      *
@@ -21,11 +31,19 @@ class CashFlowCoordinator
      */
     public function calculateAvailableSurplus(int $userId): float
     {
-        // Get user data
-        // Note: In full implementation, this would query a PersonalFinance or CashFlow table
-        // For now, return a placeholder value that can be overridden by passing data directly
+        $user = User::find($userId);
+        if (! $user) {
+            return 0.0;
+        }
 
-        return 1000; // Placeholder - £1000 monthly surplus
+        $monthlyIncome = $this->calculateMonthlyIncome($user);
+        $resolved = $this->resolveMonthlyExpenditure($user);
+        $monthlyExpenditure = $resolved['amount'];
+        $committedContributions = $this->calculateCommittedContributions($userId);
+
+        $surplus = $monthlyIncome - $monthlyExpenditure - $committedContributions;
+
+        return max(0.0, round($surplus, 2));
     }
 
     /**
@@ -161,22 +179,88 @@ class CashFlowCoordinator
     }
 
     /**
-     * Get current contributions across all modules
-     *
-     * @return float Total current monthly contributions
+     * Calculate monthly income from employment and other sources.
      */
-    private function getCurrentContributions(int $userId): float
+    private function calculateMonthlyIncome(User $user): float
     {
-        $total = 0;
+        $annualIncome = 0.0;
 
-        // This would sum up:
-        // - Current protection premiums
-        // - Current savings contributions
-        // - Current investment contributions
-        // - Current pension contributions
-        // For now, return 0 (would need to query each module's data)
+        // Primary employment income
+        if ($user->annual_employment_income > 0) {
+            $annualIncome += (float) $user->annual_employment_income;
+        }
+
+        // Rental income (if tracked on user)
+        if (property_exists($user, 'annual_rental_income') && $user->annual_rental_income > 0) {
+            $annualIncome += (float) $user->annual_rental_income;
+        }
+
+        return round($annualIncome / 12, 2);
+    }
+
+    /**
+     * Calculate total committed monthly contributions across all modules.
+     */
+    private function calculateCommittedContributions(int $userId): float
+    {
+        $total = 0.0;
+
+        // Pension contributions (DC pensions with monthly contributions)
+        $total += (float) DCPension::where('user_id', $userId)
+            ->sum('monthly_contribution_amount');
+
+        // Protection premiums (convert to monthly based on frequency)
+        $total += $this->sumMonthlyPremiums(LifeInsurancePolicy::class, $userId);
+        $total += $this->sumMonthlyPremiums(CriticalIllnessPolicy::class, $userId);
+        $total += $this->sumMonthlyPremiums(IncomeProtectionPolicy::class, $userId);
+        $total += $this->sumMonthlyPremiums(DisabilityPolicy::class, $userId);
+        $total += $this->sumMonthlyPremiums(SicknessIllnessPolicy::class, $userId);
+
+        // Regular savings contributions (monthly equivalent)
+        $savingsAccounts = SavingsAccount::where('user_id', $userId)
+            ->whereNotNull('regular_contribution_amount')
+            ->where('regular_contribution_amount', '>', 0)
+            ->get();
+
+        foreach ($savingsAccounts as $account) {
+            $total += $this->toMonthly(
+                (float) $account->regular_contribution_amount,
+                $account->contribution_frequency ?? 'monthly'
+            );
+        }
+
+        return round($total, 2);
+    }
+
+    /**
+     * Sum monthly-equivalent premiums for a protection policy model.
+     */
+    private function sumMonthlyPremiums(string $modelClass, int $userId): float
+    {
+        $policies = $modelClass::where('user_id', $userId)->get();
+        $total = 0.0;
+
+        foreach ($policies as $policy) {
+            $amount = (float) ($policy->premium_amount ?? 0);
+            $frequency = $policy->premium_frequency ?? 'monthly';
+            $total += $this->toMonthly($amount, $frequency);
+        }
 
         return $total;
+    }
+
+    /**
+     * Convert an amount to monthly based on payment frequency.
+     */
+    private function toMonthly(float $amount, string $frequency): float
+    {
+        return match ($frequency) {
+            'monthly' => $amount,
+            'quarterly' => $amount / 3,
+            'annually', 'annual' => $amount / 12,
+            'weekly' => $amount * 52 / 12,
+            default => $amount,
+        };
     }
 
     /**
@@ -216,9 +300,10 @@ class CashFlowCoordinator
      */
     public function createCashFlowChartData(int $userId, array $allocation): array
     {
-        // Note: In full implementation, fetch from PersonalFinance model
-        $monthlyIncome = 4500; // Placeholder
-        $monthlyExpenses = 3200; // Placeholder
+        $user = User::find($userId);
+        $monthlyIncome = $user ? $this->calculateMonthlyIncome($user) : 0.0;
+        $resolved = $user ? $this->resolveMonthlyExpenditure($user) : ['amount' => 0.0, 'source' => 'none', 'label' => 'Not Set'];
+        $monthlyExpenses = $resolved['amount'];
 
         $categories = [];
         $allocatedAmounts = [];

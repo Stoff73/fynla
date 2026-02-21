@@ -64,6 +64,9 @@
       <div class="text-center p-3 bg-gray-50 rounded-lg">
         <p class="text-sm text-gray-600 mb-1">Cash ISA</p>
         <p class="text-lg font-bold text-blue-700">{{ formatCurrency(cashISAUsed) }}</p>
+        <p v-if="projectedCashISA > cashISAUsed" class="text-xs text-gray-500 mt-1">
+          Projected: {{ formatCurrency(projectedCashISA) }}
+        </p>
       </div>
 
       <div class="text-center p-3 bg-gray-50 rounded-lg">
@@ -74,6 +77,9 @@
       <div class="text-center p-3 bg-gray-50 rounded-lg">
         <p class="text-sm text-gray-600 mb-1">Remaining</p>
         <p class="text-lg font-bold text-green-700">{{ formatCurrency(remaining) }}</p>
+        <p v-if="projectedRemaining !== null && projectedRemaining < remaining" class="text-xs text-gray-500 mt-1">
+          Projected: {{ formatCurrency(projectedRemaining) }}
+        </p>
       </div>
     </div>
 
@@ -165,6 +171,15 @@ export default {
 
     stocksISAPercent() {
       return (this.stocksISAUsed / this.totalAllowance) * 100;
+    },
+
+    projectedCashISA() {
+      return this.isaAllowance?.projected_usage?.cash_isa_projected || this.cashISAUsed;
+    },
+
+    projectedRemaining() {
+      const projected = this.isaAllowance?.projected_usage?.projected_remaining;
+      return projected !== undefined ? projected : null;
     },
 
     // LISA computeds

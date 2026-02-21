@@ -5,9 +5,13 @@ declare(strict_types=1);
 namespace App\Services\Savings;
 
 use App\Models\SavingsAccount;
+use App\Models\SavingsMarketRate;
 
 class RateComparator
 {
+    public function __construct(
+        private readonly ISATracker $isaTracker
+    ) {}
     /**
      * Compare account rate to market benchmarks
      *
@@ -43,26 +47,38 @@ class RateComparator
     }
 
     /**
-     * Get market benchmark rates by account type
+     * Get market benchmark rates by account type from database.
+     *
+     * Falls back to sensible defaults if no rates are seeded.
      *
      * @return array<string, float>
      */
-    public function getMarketBenchmarks(): array
+    public function getMarketBenchmarks(?string $taxYear = null): array
     {
-        // These are typical UK market rates for 2024/25
-        // In production, these could be updated periodically from external sources
-        return [
-            'easy_access' => 0.0450, // 4.50%
-            'easy_access_isa' => 0.0475, // 4.75%
-            'notice' => 0.0500, // 5.00%
-            'notice_isa' => 0.0525, // 5.25%
-            'fixed_1_year' => 0.0525, // 5.25%
-            'fixed_1_year_isa' => 0.0550, // 5.50%
-            'fixed_2_year' => 0.0500, // 5.00%
-            'fixed_2_year_isa' => 0.0525, // 5.25%
-            'fixed_3_year' => 0.0475, // 4.75%
-            'fixed_3_year_isa' => 0.0500, // 5.00%
-        ];
+        $taxYear = $taxYear ?? $this->isaTracker->getCurrentTaxYear();
+
+        $rates = SavingsMarketRate::where('tax_year', $taxYear)
+            ->pluck('rate', 'rate_key')
+            ->map(fn ($rate) => (float) $rate)
+            ->toArray();
+
+        // Fall back to defaults if no rates seeded
+        if (empty($rates)) {
+            return [
+                'easy_access' => 0.0400,
+                'easy_access_isa' => 0.0400,
+                'notice' => 0.0400,
+                'notice_isa' => 0.0400,
+                'fixed_1_year' => 0.0400,
+                'fixed_1_year_isa' => 0.0400,
+                'fixed_2_year' => 0.0400,
+                'fixed_2_year_isa' => 0.0400,
+                'fixed_3_year' => 0.0400,
+                'fixed_3_year_isa' => 0.0400,
+            ];
+        }
+
+        return $rates;
     }
 
     /**

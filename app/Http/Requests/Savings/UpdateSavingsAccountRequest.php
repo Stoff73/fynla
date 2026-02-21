@@ -19,7 +19,17 @@ class UpdateSavingsAccountRequest extends FormRequest
         return [
             'account_type' => 'sometimes|string|max:255',
             'institution' => 'sometimes|string|max:255',
-            'account_number' => 'nullable|string|max:255',
+            'account_number' => [
+                'nullable',
+                'string',
+                'max:20',
+                function (string $attribute, mixed $value, \Closure $fail) {
+                    $cleaned = preg_replace('/[\s\-]/', '', $value);
+                    if (! preg_match('/^[A-Za-z0-9]{4,20}$/', $cleaned)) {
+                        $fail('The account number format is invalid. UK accounts should be 8 digits.');
+                    }
+                },
+            ],
             'current_balance' => 'sometimes|numeric|min:0',
             'interest_rate' => 'sometimes|numeric|min:0|max:20',
             'access_type' => 'sometimes|in:immediate,notice,fixed',

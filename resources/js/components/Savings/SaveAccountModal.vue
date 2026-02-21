@@ -345,6 +345,10 @@
                 <p class="text-xs text-blue-700 mt-1">
                   As of {{ todaysDate }}, you have {{ paymentsRemainingThisTaxYear }} contributions remaining for the {{ currentTaxYear }} tax year.
                 </p>
+                <!-- Projected ISA subscription advisory -->
+                <div v-if="projectedSubscription > 0" class="mt-2 p-2 bg-blue-50 border border-blue-100 rounded text-xs text-blue-800">
+                  Based on your regular contributions, your projected ISA subscription this year is <strong>{{ formatCurrency(projectedSubscription) }}</strong>.
+                </div>
               </div>
 
               <!-- Planned Lump Sum (for non-Junior ISAs) -->
@@ -707,6 +711,27 @@ export default {
       }
 
       return Math.max(0, paymentsPerYear - this.paymentsMadeThisTaxYear);
+    },
+
+    // Projected total ISA subscription based on regular contributions for the full tax year
+    projectedSubscription() {
+      const amount = this.formData.regular_contribution_amount || 0;
+      if (amount <= 0) return 0;
+
+      const frequency = this.formData.contribution_frequency || 'monthly';
+      let paymentsPerYear;
+      if (frequency === 'monthly') paymentsPerYear = 12;
+      else if (frequency === 'quarterly') paymentsPerYear = 4;
+      else paymentsPerYear = 1;
+
+      let projected = amount * paymentsPerYear;
+
+      // Add planned lump sum if set
+      if (this.formData.planned_lump_sum_amount) {
+        projected += this.formData.planned_lump_sum_amount;
+      }
+
+      return projected;
     },
 
     // Calculate remaining contributions for the rest of the tax year
