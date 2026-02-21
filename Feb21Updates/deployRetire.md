@@ -2,6 +2,7 @@
 
 ## Branch: retirement
 ## Date: 2026-02-21
+## Status: DEPLOYED 21 February 2026
 
 ## Summary
 7 fixes from retirement module audit (17.1-17.7): removed hardcoded tax values, proper DB pension revaluation, MPAA tracking, 3-year carry forward, standardised default retirement age to 67, state pension from TaxConfigService, removed deprecated risk_tolerance column.

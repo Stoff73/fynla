@@ -2,6 +2,7 @@
 
 ## Branch: networth
 ## Date: 2026-02-21
+## Status: DEPLOYED 21 February 2026
 
 ## Summary
 6 fixes from net worth module audit: soft deletes for business interests and chattels, dead trend pipeline removal (eliminates 12 redundant calculateNetWorth() calls per page load), cache invalidation for business/chattel controllers, joint savings query implementation, ChattelResource trait refactor, and FK constraints on joint_owner_id.
