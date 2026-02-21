@@ -15,7 +15,18 @@ class Subscription extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $guarded = ['id'];
+    protected $fillable = [
+        'user_id',
+        'plan',
+        'billing_cycle',
+        'status',
+        'amount',
+        'trial_started_at',
+        'trial_ends_at',
+        'current_period_start',
+        'current_period_end',
+        'revolut_order_id',
+    ];
 
     protected $casts = [
         'trial_started_at' => 'datetime',

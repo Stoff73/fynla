@@ -943,8 +943,9 @@ Route::middleware('auth:sanctum')->prefix('payment')->group(function () {
     Route::get('/trial-status', [\App\Http\Controllers\Api\PaymentController::class, 'trialStatus']);
 });
 
-// Revolut Webhook (public, signature-verified)
-Route::post('/webhooks/revolut', [\App\Http\Controllers\Api\PaymentWebhookController::class, 'handle']);
+// Revolut Webhook (public, signature-verified, rate-limited)
+Route::post('/webhooks/revolut', [\App\Http\Controllers\Api\PaymentWebhookController::class, 'handle'])
+    ->middleware('throttle:30,1');
 
 // User Settings routes
 Route::middleware('auth:sanctum')->prefix('settings')->group(function () {

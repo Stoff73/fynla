@@ -37,7 +37,7 @@ class HasRole
 
         return response()->json([
             'success' => false,
-            'message' => 'Access denied. Required role: '.implode(' or ', $roles),
+            'message' => 'Access denied. Insufficient permissions.',
         ], 403);
     }
 }

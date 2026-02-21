@@ -16,6 +16,9 @@ import { previewDisabled } from './directives/previewDisabled';
 // Import session lifecycle service for security
 import { initSessionLifecycle } from './services/sessionLifecycleService';
 
+// One-time cleanup: remove legacy auth_token from localStorage (now sessionStorage only)
+localStorage.removeItem('auth_token');
+
 // Create Vue app instance
 const app = createApp(App);
 

@@ -88,7 +88,7 @@ trait Auditable
      */
     protected function getAuditExcludeFields(): array
     {
-        $defaults = ['created_at', 'updated_at', 'remember_token', 'password'];
+        $defaults = ['created_at', 'updated_at', 'remember_token', 'password', 'mfa_secret', 'mfa_recovery_codes'];
 
         if (property_exists($this, 'auditExcludeFields')) {
             return array_merge($defaults, $this->auditExcludeFields);

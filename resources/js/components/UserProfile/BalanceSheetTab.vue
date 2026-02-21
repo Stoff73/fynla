@@ -394,20 +394,7 @@ export default {
           if (response.data.spouse_data?.balance_sheet) {
             spouseData.value = response.data.spouse_data.balance_sheet;
           }
-          // Debug logging
-          const rawData = JSON.parse(JSON.stringify({
-            userData: userData.value,
-            spouseData: spouseData.value,
-          }));
-          console.log('Balance Sheet Data:', rawData);
-          console.log('User Assets by category:', rawData.userData?.assets?.reduce((acc, a) => {
-            acc[a.category] = (acc[a.category] || 0) + a.amount;
-            return acc;
-          }, {}));
-          console.log('Spouse Assets by category:', rawData.spouseData?.assets?.reduce((acc, a) => {
-            acc[a.category] = (acc[a.category] || 0) + a.amount;
-            return acc;
-          }, {}));
+          // Data loaded successfully
         }
       } catch (error) {
         console.error('Failed to load balance sheet:', error);

@@ -23,8 +23,10 @@ use App\Services\Payment\TrialService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 use Laravel\Sanctum\PersonalAccessToken;
 
 class AuthController extends Controller
@@ -47,13 +49,20 @@ class AuthController extends Controller
     public function register(RegisterRequest $request): JsonResponse
     {
         // Check if email is already registered as a verified user
+        // Return same response shape to prevent account enumeration
         $existingUser = User::where('email', $request->email)->first();
         if ($existingUser) {
+            \Log::info('Registration attempted with existing email', ['email_masked' => $this->maskEmail($request->email)]);
+
             return response()->json([
-                'success' => false,
-                'message' => 'This email is already registered.',
-                'errors' => ['email' => ['This email is already registered.']],
-            ], 422);
+                'success' => true,
+                'message' => 'Please check your email for verification code.',
+                'requires_verification' => true,
+                'data' => [
+                    'pending_id' => 0,
+                    'email' => $this->maskEmail($request->email),
+                ],
+            ], 201);
         }
 
         // Create or update pending registration (allows re-registration)
@@ -71,7 +80,7 @@ class AuthController extends Controller
 
         \Log::info('Pending registration created', [
             'pending_id' => $pending->id,
-            'email' => $pending->email,
+            'email_masked' => $this->maskEmail($pending->email),
         ]);
 
         // Send verification email
@@ -81,10 +90,10 @@ class AuthController extends Controller
                 $pending->verification_code,
                 'registration'
             ));
-            \Log::info('Verification email sent', ['email' => $pending->email]);
+            \Log::info('Verification email sent', ['email_masked' => $this->maskEmail($pending->email)]);
         } catch (\Exception $e) {
             \Log::error('Failed to send verification email', [
-                'email' => $pending->email,
+                'email_masked' => $this->maskEmail($pending->email),
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
@@ -210,6 +219,9 @@ class AuthController extends Controller
         // Generate verification code and send email for regular users
         $verificationCode = EmailVerificationCode::generate($user->id, 'login');
 
+        // Generate secure challenge token to avoid exposing user_id
+        $challengeToken = self::generateLoginChallengeToken($user->id);
+
         try {
             Mail::to($user->email)->send(new VerificationCode($user, $verificationCode->code, 'login'));
         } catch (\Exception $e) {
@@ -224,7 +236,8 @@ class AuthController extends Controller
             'message' => 'Please check your email for verification code.',
             'requires_verification' => true,
             'data' => [
-                'user_id' => $user->id,
+                'user_id' => $user->id, // Kept for backwards compatibility
+                'challenge_token' => $challengeToken,
                 'email' => $this->maskEmail($user->email),
             ],
         ]);
@@ -384,8 +397,9 @@ class AuthController extends Controller
         $request->validate([
             'code' => 'required|string|size:6',
             'type' => 'required|string|in:login,registration',
-            // For login, user_id is required. For registration, pending_id or email is required.
-            'user_id' => 'required_if:type,login|integer',
+            // For login: challenge_token preferred, user_id for backwards compatibility
+            'challenge_token' => 'nullable|string',
+            'user_id' => 'nullable|integer',
             'pending_id' => 'required_if:type,registration|integer',
         ]);
 
@@ -407,7 +421,19 @@ class AuthController extends Controller
                 ], 422);
             }
 
+            // Check if too many failed attempts
+            if ($pending->verification_attempts >= 5) {
+                $pending->delete();
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Too many failed attempts. Please register again.',
+                ], 422);
+            }
+
             if ($pending->verification_code !== $request->code) {
+                $pending->increment('verification_attempts');
+
                 return response()->json([
                     'success' => false,
                     'message' => 'Invalid verification code',
@@ -459,13 +485,25 @@ class AuthController extends Controller
         }
 
         // Handle login verification (existing flow)
+        // Resolve user_id from challenge_token (preferred) or direct user_id (backwards compat)
+        $userId = $this->resolveLoginUserId($request);
+        if (! $userId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid or expired verification session',
+            ], 422);
+        }
+
         $verification = EmailVerificationCode::findValidCode(
-            $request->user_id,
+            $userId,
             $request->code,
             $request->type
         );
 
         if (! $verification) {
+            // Record failed attempt to enforce attempt limit
+            EmailVerificationCode::recordFailedAttempt($userId, $request->type);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid or expired verification code',
@@ -476,7 +514,7 @@ class AuthController extends Controller
         $verification->markAsVerified();
 
         // Get user and create token
-        $user = User::findOrFail($request->user_id);
+        $user = User::findOrFail($userId);
 
         // Record successful login
         $this->lockoutService->recordSuccessfulLogin($user->email);
@@ -501,7 +539,8 @@ class AuthController extends Controller
     {
         $request->validate([
             'type' => 'required|string|in:login,registration',
-            'user_id' => 'required_if:type,login|integer',
+            'challenge_token' => 'nullable|string',
+            'user_id' => 'nullable|integer',
             'pending_id' => 'required_if:type,registration|integer',
         ]);
 
@@ -533,10 +572,10 @@ class AuthController extends Controller
                     $newCode,
                     'registration'
                 ));
-                \Log::info('Resent verification email', ['email' => $pending->email]);
+                \Log::info('Resent verification email', ['email_masked' => $this->maskEmail($pending->email)]);
             } catch (\Exception $e) {
                 \Log::error('Failed to resend verification email', [
-                    'email' => $pending->email,
+                    'email_masked' => $this->maskEmail($pending->email),
                     'error' => $e->getMessage(),
                 ]);
 
@@ -556,7 +595,16 @@ class AuthController extends Controller
         }
 
         // Handle login resend (existing flow)
-        $user = User::findOrFail($request->user_id);
+        // Resolve user_id from challenge_token (preferred) or direct user_id (backwards compat)
+        $userId = $this->resolveLoginUserId($request);
+        if (! $userId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid or expired verification session',
+            ], 422);
+        }
+
+        $user = User::findOrFail($userId);
 
         // Get the latest code for this user and type
         $existingCode = EmailVerificationCode::getLatest($user->id, $request->type);
@@ -679,5 +727,40 @@ class AuthController extends Controller
             'message' => $message,
             'data' => $data,
         ]);
+    }
+
+    /**
+     * Generate a cache-backed challenge token for login email verification.
+     * Avoids exposing raw user_id in the API response.
+     */
+    public static function generateLoginChallengeToken(int $userId): string
+    {
+        $token = Str::random(64);
+        $cacheKey = "login_challenge:{$token}";
+
+        // Store challenge for 15 minutes (matches verification code expiry)
+        Cache::put($cacheKey, [
+            'user_id' => $userId,
+            'created_at' => now()->timestamp,
+        ], 900);
+
+        return $token;
+    }
+
+    /**
+     * Resolve user_id from challenge_token or fall back to direct user_id.
+     */
+    private function resolveLoginUserId(Request $request): ?int
+    {
+        // Prefer challenge_token if provided
+        if ($request->filled('challenge_token')) {
+            $cacheKey = "login_challenge:{$request->challenge_token}";
+            $data = Cache::get($cacheKey);
+
+            return $data['user_id'] ?? null;
+        }
+
+        // Fall back to direct user_id for backwards compatibility
+        return $request->user_id ? (int) $request->user_id : null;
     }
 }

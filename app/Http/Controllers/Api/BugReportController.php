@@ -24,7 +24,7 @@ class BugReportController extends Controller
         $validated = $request->validate([
             'description' => 'required|string|max:5000',
             'expected_behaviour' => 'nullable|string|max:2000',
-            'console_logs' => 'nullable|string|max:50000',
+            'console_logs' => 'nullable|string|max:10000',
             'page_url' => 'nullable|string|max:500',
             'user_agent' => 'nullable|string|max:500',
             'screen_size' => 'nullable|string|max:50',

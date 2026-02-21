@@ -37,7 +37,7 @@ class HasPermission
 
         return response()->json([
             'success' => false,
-            'message' => 'Access denied. Required permission: '.implode(' or ', $permissions),
+            'message' => 'Access denied. Insufficient permissions.',
         ], 403);
     }
 }

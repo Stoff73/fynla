@@ -63,8 +63,7 @@ const api = axios.create({
 // Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
-    // Read from sessionStorage (primary) with fallback to localStorage (legacy)
-    const token = sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token');
+    const token = sessionStorage.getItem('auth_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
