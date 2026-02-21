@@ -22,6 +22,17 @@ class GoalRiskService
     ];
 
     /**
+     * Mapping from the main 5-level string risk system to goal numeric 1-5 system.
+     */
+    private const RISK_LEVEL_STRING_MAP = [
+        'low' => 1,
+        'lower_medium' => 2,
+        'medium' => 3,
+        'upper_medium' => 4,
+        'high' => 5,
+    ];
+
+    /**
      * Get risk parameters for a goal.
      */
     public function getRiskParameters(Goal $goal, ?RiskProfile $globalRiskProfile = null): array
@@ -30,7 +41,8 @@ class GoalRiskService
         $riskLevel = $goal->risk_preference;
 
         if ($goal->use_global_risk_profile && $globalRiskProfile) {
-            $riskLevel = $globalRiskProfile->risk_level ?? 3;
+            $globalLevel = $globalRiskProfile->risk_level;
+            $riskLevel = self::RISK_LEVEL_STRING_MAP[$globalLevel] ?? 3;
         }
 
         // Default to balanced if no preference set

@@ -117,10 +117,16 @@ class RiskPreferenceService
             throw new \InvalidArgumentException("Invalid risk level: {$riskLevel}");
         }
 
+        // Recalculate factor breakdown for audit accuracy
+        $calculator = app(AutoRiskCalculator::class);
+        $user = User::findOrFail($userId);
+        $calculated = $calculator->calculateRiskProfile($user);
+
         $riskProfile = RiskProfile::updateOrCreate(
             ['user_id' => $userId],
             [
                 'risk_level' => $riskLevel,
+                'factor_breakdown' => $calculated['factor_breakdown'],
                 'risk_assessed_at' => now(),
                 'is_self_assessed' => true,
             ]
