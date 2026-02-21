@@ -775,8 +775,6 @@ Route::middleware('auth:sanctum')->prefix('estate')->group(function () {
 
     // IHT calculation and net worth
     Route::post('/calculate-iht', [IHTController::class, 'calculateIHT']);
-    Route::post('/calculate-surviving-spouse-iht', [IHTController::class, 'calculateSurvivingSpouseIHT']);
-    Route::post('/calculate-second-death-iht-planning', [IHTController::class, 'calculateSecondDeathIHTPlanning']);
     Route::get('/net-worth', [EstateController::class, 'getNetWorth']);
     Route::get('/cash-flow', [EstateController::class, 'getCashFlow']);
 

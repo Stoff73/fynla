@@ -154,7 +154,7 @@ export default {
         const [investmentData, protectionData, estateData] = await Promise.allSettled([
           investmentService.getPortfolioStrategy(),
           protectionService.getRecommendations(),
-          estateService.calculateSecondDeathIHTPlanning(),
+          estateService.calculateIHTPlanning(),
         ]);
 
         // Process investment strategies

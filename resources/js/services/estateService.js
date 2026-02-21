@@ -54,12 +54,12 @@ const estateService = {
     },
 
     /**
-     * Calculate comprehensive second death IHT planning for married couples
-     * @returns {Promise} Second death analysis with gifting strategy, life cover, and mitigation strategies
+     * Calculate comprehensive IHT planning (covers both single and married couples)
+     * @returns {Promise} IHT analysis with gifting strategy, life cover, and mitigation strategies
      */
-    async calculateSecondDeathIHTPlanning() {
+    async calculateIHTPlanning() {
         // Add cache-busting timestamp to force fresh calculation
-        const response = await api.post('/estate/calculate-second-death-iht-planning', {
+        const response = await api.post('/estate/calculate-iht', {
             _timestamp: Date.now()
         });
         return response.data;

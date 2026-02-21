@@ -173,20 +173,31 @@ class ComprehensiveEstatePlanService
     }
 
     /**
-     * Calculate years until death based on life expectancy
+     * Calculate years until death based on actuarial life tables
      */
     private function calculateYearsUntilDeath(User $user): int
     {
         if (! $user->date_of_birth) {
-            return 20; // Default
+            return 20;
         }
 
         $age = $user->age ?? \Carbon\Carbon::parse($user->date_of_birth)->age;
+        $gender = $user->gender ?? 'male';
 
-        // UK life expectancy tables (simplified)
-        $lifeExpectancy = $user->gender === 'female' ? 83 : 79;
+        // Query actuarial life tables (same approach as IHTCalculationService)
+        $lifeExpectancy = \DB::table('actuarial_life_tables')
+            ->where('gender', $gender)
+            ->where('age', '<=', $age)
+            ->where('table_year', '2020-2022')
+            ->orderBy('age', 'desc')
+            ->value('life_expectancy_years');
 
-        return max(1, $lifeExpectancy - $age);
+        if ($lifeExpectancy) {
+            return max(1, (int) ceil((float) $lifeExpectancy));
+        }
+
+        // Fallback if no actuarial data
+        return max(1, 85 - $age);
     }
 
     /**

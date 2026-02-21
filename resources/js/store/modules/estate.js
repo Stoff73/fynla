@@ -495,13 +495,13 @@ const actions = {
         }
     },
 
-    // Second Death IHT Planning action
-    async calculateSecondDeathIHTPlanning({ commit }) {
+    // IHT Planning action (covers single and married couples)
+    async calculateIHTPlanning({ commit }) {
         commit('setLoading', true);
         commit('setError', null);
 
         try {
-            const response = await estateService.calculateSecondDeathIHTPlanning();
+            const response = await estateService.calculateIHTPlanning();
             commit('setSecondDeathPlanning', response);
             // Extract will info from response
             if (response?.will_info) {
@@ -516,7 +516,7 @@ const actions = {
 
             return response;
         } catch (error) {
-            const errorMessage = error.response?.data?.message || error.message || 'Failed to calculate second death IHT planning';
+            const errorMessage = error.response?.data?.message || error.message || 'Failed to calculate IHT planning';
             commit('setError', errorMessage);
             throw error;
         } finally {

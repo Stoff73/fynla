@@ -5,6 +5,12 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Estate\StoreAssetRequest;
+use App\Http\Requests\Estate\StoreGiftRequest;
+use App\Http\Requests\Estate\StoreLiabilityRequest;
+use App\Http\Requests\Estate\UpdateAssetRequest;
+use App\Http\Requests\Estate\UpdateGiftRequest;
+use App\Http\Requests\Estate\UpdateLiabilityRequest;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\Estate\Asset;
 use App\Models\Estate\Gift;
@@ -149,24 +155,10 @@ class EstateController extends Controller
     /**
      * Store a new asset
      */
-    public function storeAsset(Request $request): JsonResponse
+    public function storeAsset(StoreAssetRequest $request): JsonResponse
     {
         $user = $request->user();
-
-        $validated = $request->validate([
-            'asset_type' => 'required|in:property,pension,investment,savings,business,life_insurance,personal,other',
-            'asset_name' => 'required|string|max:255',
-            'current_value' => 'required|numeric|min:0',
-            'ownership_type' => 'required|in:individual,joint,trust',
-            'beneficiary_designation' => 'nullable|string|max:255',
-            'is_iht_exempt' => 'boolean',
-            'exemption_reason' => 'nullable|string|max:255',
-            'valuation_date' => 'required|date',
-            'property_address' => 'nullable|string|max:500',
-            'mortgage_outstanding' => 'nullable|numeric|min:0',
-            'is_main_residence' => 'boolean',
-            'notes' => 'nullable|string',
-        ]);
+        $validated = $request->validated();
 
         try {
             $validated['user_id'] = $user->id;
@@ -188,24 +180,10 @@ class EstateController extends Controller
     /**
      * Update an asset
      */
-    public function updateAsset(Request $request, int $id): JsonResponse
+    public function updateAsset(UpdateAssetRequest $request, int $id): JsonResponse
     {
         $user = $request->user();
-
-        $validated = $request->validate([
-            'asset_type' => 'sometimes|in:property,pension,investment,savings,business,life_insurance,personal,other',
-            'asset_name' => 'sometimes|string|max:255',
-            'current_value' => 'sometimes|numeric|min:0',
-            'ownership_type' => 'sometimes|in:individual,joint,trust',
-            'beneficiary_designation' => 'nullable|string|max:255',
-            'is_iht_exempt' => 'boolean',
-            'exemption_reason' => 'nullable|string|max:255',
-            'valuation_date' => 'sometimes|date',
-            'property_address' => 'nullable|string|max:500',
-            'mortgage_outstanding' => 'nullable|numeric|min:0',
-            'is_main_residence' => 'boolean',
-            'notes' => 'nullable|string',
-        ]);
+        $validated = $request->validated();
 
         try {
             $asset = Asset::where('id', $id)
@@ -268,23 +246,10 @@ class EstateController extends Controller
     /**
      * Store a new liability
      */
-    public function storeLiability(Request $request): JsonResponse
+    public function storeLiability(StoreLiabilityRequest $request): JsonResponse
     {
         $user = $request->user();
-
-        $validated = $request->validate([
-            'liability_type' => 'required|in:mortgage,secured_loan,personal_loan,credit_card,overdraft,hire_purchase,student_loan,business_loan,other',
-            'liability_name' => 'required|string|max:255',
-            'current_balance' => 'required|numeric|min:0',
-            'monthly_payment' => 'nullable|numeric|min:0',
-            'interest_rate' => 'nullable|numeric|min:0|max:100',
-            'maturity_date' => 'nullable|date',
-            'secured_against' => 'nullable|string|max:255',
-            'is_priority_debt' => 'boolean',
-            'mortgage_type' => 'nullable|string|max:50',
-            'fixed_until' => 'nullable|date',
-            'notes' => 'nullable|string',
-        ]);
+        $validated = $request->validated();
 
         try {
             $validated['user_id'] = $user->id;
@@ -306,23 +271,10 @@ class EstateController extends Controller
     /**
      * Update a liability
      */
-    public function updateLiability(Request $request, int $id): JsonResponse
+    public function updateLiability(UpdateLiabilityRequest $request, int $id): JsonResponse
     {
         $user = $request->user();
-
-        $validated = $request->validate([
-            'liability_type' => 'sometimes|in:mortgage,secured_loan,personal_loan,credit_card,overdraft,hire_purchase,student_loan,business_loan,other',
-            'liability_name' => 'sometimes|string|max:255',
-            'current_balance' => 'sometimes|numeric|min:0',
-            'monthly_payment' => 'nullable|numeric|min:0',
-            'interest_rate' => 'nullable|numeric|min:0|max:100',
-            'maturity_date' => 'nullable|date',
-            'secured_against' => 'nullable|string|max:255',
-            'is_priority_debt' => 'boolean',
-            'mortgage_type' => 'nullable|string|max:50',
-            'fixed_until' => 'nullable|date',
-            'notes' => 'nullable|string',
-        ]);
+        $validated = $request->validated();
 
         try {
             $liability = Liability::where('id', $id)
@@ -385,19 +337,10 @@ class EstateController extends Controller
     /**
      * Store a new gift
      */
-    public function storeGift(Request $request): JsonResponse
+    public function storeGift(StoreGiftRequest $request): JsonResponse
     {
         $user = $request->user();
-
-        $validated = $request->validate([
-            'gift_date' => 'required|date|before_or_equal:today',
-            'recipient' => 'required|string|max:255',
-            'gift_type' => 'required|in:pet,clt,exempt,small_gift,annual_exemption',
-            'gift_value' => 'required|numeric|min:0',
-            'status' => 'sometimes|in:within_7_years,survived_7_years',
-            'taper_relief_applicable' => 'boolean',
-            'notes' => 'nullable|string',
-        ]);
+        $validated = $request->validated();
 
         try {
             $validated['user_id'] = $user->id;
@@ -419,19 +362,10 @@ class EstateController extends Controller
     /**
      * Update a gift
      */
-    public function updateGift(Request $request, int $id): JsonResponse
+    public function updateGift(UpdateGiftRequest $request, int $id): JsonResponse
     {
         $user = $request->user();
-
-        $validated = $request->validate([
-            'gift_date' => 'sometimes|date|before_or_equal:today',
-            'recipient' => 'sometimes|string|max:255',
-            'gift_type' => 'sometimes|in:pet,clt,exempt,small_gift,annual_exemption',
-            'gift_value' => 'sometimes|numeric|min:0',
-            'status' => 'sometimes|in:within_7_years,survived_7_years',
-            'taper_relief_applicable' => 'boolean',
-            'notes' => 'nullable|string',
-        ]);
+        $validated = $request->validated();
 
         try {
             $gift = Gift::where('id', $id)

@@ -531,12 +531,14 @@ class IHTCalculationService
      */
     private function getMonteCarloAnnualRate(User $user, ?User $spouse, bool $dataSharingEnabled): float
     {
+        $fallbackRate = $this->getFallbackGrowthRate($user);
+
         // Use a reference projection period to derive annual rate
         $yearsToProject = 10;
         $currentValue = $this->getCurrentInvestmentValue($user, $spouse, $dataSharingEnabled);
 
         if ($currentValue <= 0) {
-            return 0.047; // Default 4.7% if no investments
+            return $fallbackRate;
         }
 
         // Get the Monte Carlo projected value
@@ -550,7 +552,23 @@ class IHTCalculationService
             return max(-0.10, min(0.30, $impliedRate));
         }
 
-        return 0.047; // Default fallback
+        return $fallbackRate;
+    }
+
+    /**
+     * Get fallback investment growth rate from AssumptionsService.
+     * Falls back to 4.7% if no user-specific assumption is configured.
+     */
+    private function getFallbackGrowthRate(User $user): float
+    {
+        $assumptions = $this->assumptionsService->getEstateAssumptions($user);
+
+        if (($assumptions['investment_growth_method'] ?? 'monte_carlo') === 'custom'
+            && isset($assumptions['custom_investment_rate'])) {
+            return (float) $assumptions['custom_investment_rate'] / 100;
+        }
+
+        return 0.047;
     }
 
     /**
@@ -793,6 +811,8 @@ class IHTCalculationService
     ): float {
         $projectedValue = 0;
 
+        $fallbackRate = $this->getFallbackGrowthRate($user);
+
         // Get user's investment projections
         try {
             $userProjections = $this->investmentProjectionService->getPortfolioProjections(
@@ -803,12 +823,14 @@ class IHTCalculationService
             if (isset($userProjections['portfolio']['projections'][$yearsToProject]['percentiles']['p20'])) {
                 $projectedValue += $userProjections['portfolio']['projections'][$yearsToProject]['percentiles']['p20'];
             } else {
-                // Fallback to current value if projection fails
-                $projectedValue += (float) InvestmentAccount::where('user_id', $user->id)->sum('current_value');
+                // Fallback: compound at fallback rate instead of zero growth
+                $currentValue = (float) InvestmentAccount::where('user_id', $user->id)->sum('current_value');
+                $projectedValue += $currentValue * pow(1 + $fallbackRate, $yearsToProject);
             }
         } catch (\Exception $e) {
-            // Fallback to current value
-            $projectedValue += (float) InvestmentAccount::where('user_id', $user->id)->sum('current_value');
+            // Fallback: compound at fallback rate instead of zero growth
+            $currentValue = (float) InvestmentAccount::where('user_id', $user->id)->sum('current_value');
+            $projectedValue += $currentValue * pow(1 + $fallbackRate, $yearsToProject);
         }
 
         // Include spouse's investments
@@ -822,10 +844,12 @@ class IHTCalculationService
                 if (isset($spouseProjections['portfolio']['projections'][$yearsToProject]['percentiles']['p20'])) {
                     $projectedValue += $spouseProjections['portfolio']['projections'][$yearsToProject]['percentiles']['p20'];
                 } else {
-                    $projectedValue += (float) InvestmentAccount::where('user_id', $spouse->id)->sum('current_value');
+                    $currentValue = (float) InvestmentAccount::where('user_id', $spouse->id)->sum('current_value');
+                    $projectedValue += $currentValue * pow(1 + $fallbackRate, $yearsToProject);
                 }
             } catch (\Exception $e) {
-                $projectedValue += (float) InvestmentAccount::where('user_id', $spouse->id)->sum('current_value');
+                $currentValue = (float) InvestmentAccount::where('user_id', $spouse->id)->sum('current_value');
+                $projectedValue += $currentValue * pow(1 + $fallbackRate, $yearsToProject);
             }
         }
 
@@ -1196,12 +1220,7 @@ class IHTCalculationService
         // Check if hashes match (data hasn't changed)
         if ($cached->assets_hash === $currentHashes['assets_hash'] &&
             $cached->liabilities_hash === $currentHashes['liabilities_hash']) {
-            // TEMPORARILY DISABLED: The database schema doesn't include projected_cash,
-            // projected_investments, projected_properties, or retirement_age columns.
-            // Until these are added via migration, we must recalculate every time
-            // to ensure accurate projections for the cash flow methodology display.
-            // TODO: Add migration for these columns, then re-enable caching.
-            // return $cached->toArray();
+            return $cached->toArray();
         }
 
         return null;
@@ -1270,6 +1289,10 @@ class IHTCalculationService
             'projected_net_estate' => $result['projected_net_estate'],
             'projected_taxable_estate' => $result['projected_taxable_estate'],
             'projected_iht_liability' => $result['projected_iht_liability'],
+            'projected_cash' => $result['projected_cash'] ?? null,
+            'projected_investments' => $result['projected_investments'] ?? null,
+            'projected_properties' => $result['projected_properties'] ?? null,
+            'retirement_age' => $result['retirement_age'] ?? null,
             'years_to_death' => $result['years_to_death'],
             'estimated_age_at_death' => $result['estimated_age_at_death'],
             'calculation_date' => now(),
