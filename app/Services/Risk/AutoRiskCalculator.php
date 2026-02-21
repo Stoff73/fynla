@@ -7,6 +7,7 @@ namespace App\Services\Risk;
 use App\Models\DCPension;
 use App\Models\FamilyMember;
 use App\Models\Investment\InvestmentAccount;
+use App\Models\Investment\RiskProfile;
 use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\NetWorth\NetWorthService;
@@ -18,7 +19,7 @@ use Carbon\Carbon;
  * Calculates a user's risk profile based on 7 financial factors:
  * 1. Capacity for Loss - (investments + pensions) / net worth
  * 2. Time Horizon - Years to retirement
- * 3. Education - Education level
+ * 3. Investment Knowledge - Self-assessed knowledge level (novice/intermediate/experienced)
  * 4. Dependants - Number of dependent family members
  * 5. Employment - Employment status
  * 6. Emergency Cash - Emergency fund runway months
@@ -42,7 +43,7 @@ class AutoRiskCalculator
         $factors = [
             $this->calculateCapacityForLoss($user),
             $this->calculateTimeHorizon($user),
-            $this->calculateEducationFactor($user),
+            $this->calculateKnowledgeFactor($user),
             $this->calculateDependantsFactor($user),
             $this->calculateEmploymentFactor($user),
             $this->calculateEmergencyCashFactor($user),
@@ -164,39 +165,42 @@ class AutoRiskCalculator
     }
 
     /**
-     * Factor 3: Education Level
+     * Factor 3: Investment Knowledge
      *
-     * No degree (secondary/a_level) = LOWER_MEDIUM
-     * Degree or higher = MEDIUM
+     * Uses self-assessed knowledge_level from risk profile:
+     * novice (or null) = LOWER_MEDIUM
+     * intermediate = MEDIUM
+     * experienced = UPPER_MEDIUM
      */
-    private function calculateEducationFactor(User $user): array
+    private function calculateKnowledgeFactor(User $user): array
     {
-        $educationLevel = $user->education_level;
+        $riskProfile = RiskProfile::where('user_id', $user->id)->first();
+        $knowledgeLevel = $riskProfile->knowledge_level ?? null;
 
-        // Non-degree levels
-        $nonDegree = ['secondary', 'a_level', 'gcse', 'none', null, ''];
-
-        if (in_array($educationLevel, $nonDegree, true)) {
-            $level = 'lower_medium';
-            $description = 'Without a degree, a more cautious approach to complex investments may be appropriate.';
-            $displayValue = ucwords(str_replace('_', ' ', $educationLevel ?: 'Not specified'));
-        } else {
+        if ($knowledgeLevel === 'experienced') {
+            $level = 'upper_medium';
+            $description = 'Strong investment knowledge and experience supports higher risk tolerance.';
+            $displayValue = 'Experienced';
+        } elseif ($knowledgeLevel === 'intermediate') {
             $level = 'medium';
-            $description = 'Higher education suggests familiarity with complex concepts and information analysis.';
-            $displayValue = ucwords(str_replace('_', ' ', $educationLevel));
+            $description = 'Some investment knowledge allows for a balanced approach to risk.';
+            $displayValue = 'Intermediate';
+        } else {
+            $level = 'lower_medium';
+            $description = 'Limited investment knowledge suggests a more cautious approach.';
+            $displayValue = $knowledgeLevel ? ucfirst($knowledgeLevel) : 'Not specified';
         }
 
         return [
-            'factor' => 'education',
-            'display_name' => 'Education Level',
+            'factor' => 'knowledge_level',
+            'display_name' => 'Investment Knowledge',
             'level' => $level,
             'value' => $displayValue,
-            'raw_value' => $educationLevel,
+            'raw_value' => $knowledgeLevel,
             'description' => $description,
             'icon' => 'academic-cap',
             'components' => [
-                'education_level' => $educationLevel,
-                'has_degree' => ! in_array($educationLevel, $nonDegree, true),
+                'knowledge_level' => $knowledgeLevel,
             ],
         ];
     }
@@ -342,11 +346,11 @@ class AutoRiskCalculator
 
     /**
      * Factor 7: Surplus Cash
-     * Monthly income - expenditure
+     * Monthly income - expenditure, assessed as percentage of income
      *
      * Negative to 0 = LOWER_MEDIUM
-     * 0-500 = MEDIUM
-     * 501+ = UPPER_MEDIUM
+     * 0-10% of income = MEDIUM
+     * >10% of income = UPPER_MEDIUM
      */
     private function calculateSurplusCashFactor(User $user): array
     {
@@ -366,12 +370,17 @@ class AutoRiskCalculator
         if ($surplus <= 0) {
             $level = 'lower_medium';
             $description = 'No monthly surplus means limited ability to top up investments if needed.';
-        } elseif ($surplus <= 500) {
+        } elseif ($monthlyIncome > 0 && ($surplus / $monthlyIncome) > 0.10) {
+            $level = 'upper_medium';
+            $surplusPercent = ($surplus / $monthlyIncome) * 100;
+            $description = sprintf(
+                'Monthly surplus of £%s (%.0f%% of income) allows regular investing and risk tolerance.',
+                number_format($surplus, 0),
+                $surplusPercent
+            );
+        } else {
             $level = 'medium';
             $description = 'Modest monthly surplus provides some capacity for investment contributions.';
-        } else {
-            $level = 'upper_medium';
-            $description = 'Strong monthly surplus allows regular investing and risk tolerance.';
         }
 
         return [
@@ -387,6 +396,7 @@ class AutoRiskCalculator
                 'monthly_income' => round($monthlyIncome, 2),
                 'monthly_expenditure' => round((float) $monthlyExpenditure, 2),
                 'surplus' => round($surplus, 2),
+                'surplus_percent' => $monthlyIncome > 0 ? round(($surplus / $monthlyIncome) * 100, 1) : null,
             ],
         ];
     }

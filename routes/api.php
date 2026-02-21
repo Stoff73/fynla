@@ -663,7 +663,8 @@ Route::middleware('auth:sanctum')->prefix('investment')->group(function () {
         Route::post('/profile', [RiskPreferenceController::class, 'setProfile']);
 
         // Recalculate risk profile from financial factors
-        Route::post('/recalculate', [RiskPreferenceController::class, 'recalculate']);
+        Route::post('/recalculate', [RiskPreferenceController::class, 'recalculate'])
+            ->middleware('throttle:6,1');
 
         // Allowed levels for product override (main level +/- 1)
         Route::get('/allowed-levels', [RiskPreferenceController::class, 'getAllowedLevels']);

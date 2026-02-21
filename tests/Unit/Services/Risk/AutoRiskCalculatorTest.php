@@ -196,41 +196,49 @@ describe('AutoRiskCalculator', function () {
         });
     });
 
-    describe('education factor', function () {
-        it('returns LOWER_MEDIUM for no degree', function () {
-            $user = User::factory()->create(['education_level' => 'secondary']);
+    describe('knowledge level factor', function () {
+        it('returns LOWER_MEDIUM for novice or no knowledge level', function () {
+            $user = User::factory()->create();
 
             $this->netWorthService->shouldReceive('calculateNetWorth')
                 ->andReturn(['net_worth' => 100000]);
 
             $result = $this->calculator->calculateRiskProfile($user);
-            $educationFactor = collect($result['factor_breakdown'])->firstWhere('factor', 'education');
+            $knowledgeFactor = collect($result['factor_breakdown'])->firstWhere('factor', 'knowledge_level');
 
-            expect($educationFactor['level'])->toBe('lower_medium');
+            expect($knowledgeFactor['level'])->toBe('lower_medium');
         });
 
-        it('returns MEDIUM for degree holders', function () {
-            $user = User::factory()->create(['education_level' => 'undergraduate']);
+        it('returns MEDIUM for intermediate knowledge', function () {
+            $user = User::factory()->create();
+            \App\Models\Investment\RiskProfile::factory()->create([
+                'user_id' => $user->id,
+                'knowledge_level' => 'intermediate',
+            ]);
 
             $this->netWorthService->shouldReceive('calculateNetWorth')
                 ->andReturn(['net_worth' => 100000]);
 
             $result = $this->calculator->calculateRiskProfile($user);
-            $educationFactor = collect($result['factor_breakdown'])->firstWhere('factor', 'education');
+            $knowledgeFactor = collect($result['factor_breakdown'])->firstWhere('factor', 'knowledge_level');
 
-            expect($educationFactor['level'])->toBe('medium');
+            expect($knowledgeFactor['level'])->toBe('medium');
         });
 
-        it('returns MEDIUM for postgraduate', function () {
-            $user = User::factory()->create(['education_level' => 'postgraduate']);
+        it('returns UPPER_MEDIUM for experienced', function () {
+            $user = User::factory()->create();
+            \App\Models\Investment\RiskProfile::factory()->create([
+                'user_id' => $user->id,
+                'knowledge_level' => 'experienced',
+            ]);
 
             $this->netWorthService->shouldReceive('calculateNetWorth')
                 ->andReturn(['net_worth' => 100000]);
 
             $result = $this->calculator->calculateRiskProfile($user);
-            $educationFactor = collect($result['factor_breakdown'])->firstWhere('factor', 'education');
+            $knowledgeFactor = collect($result['factor_breakdown'])->firstWhere('factor', 'knowledge_level');
 
-            expect($educationFactor['level'])->toBe('medium');
+            expect($knowledgeFactor['level'])->toBe('upper_medium');
         });
     });
 

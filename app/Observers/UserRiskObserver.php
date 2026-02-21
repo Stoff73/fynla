@@ -9,7 +9,7 @@ use App\Models\User;
 /**
  * Observer that triggers risk recalculation when User profile changes.
  *
- * Monitors: income, education, employment, retirement age, expenditure
+ * Monitors: income, employment, retirement age, expenditure
  */
 class UserRiskObserver extends RiskRecalculationObserver
 {
@@ -25,7 +25,6 @@ class UserRiskObserver extends RiskRecalculationObserver
         'annual_other_income',
         'annual_trust_income',
         'monthly_expenditure',
-        'education_level',
         'employment_status',
         'target_retirement_age',
         'date_of_birth',

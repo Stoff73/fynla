@@ -145,7 +145,7 @@ describe('POST /api/investment/risk/recalculate', function () {
         $factorNames = collect($factors)->pluck('factor')->toArray();
         expect($factorNames)->toContain('capacity_for_loss');
         expect($factorNames)->toContain('time_horizon');
-        expect($factorNames)->toContain('education');
+        expect($factorNames)->toContain('knowledge_level');
         expect($factorNames)->toContain('dependants');
         expect($factorNames)->toContain('employment');
         expect($factorNames)->toContain('emergency_cash');

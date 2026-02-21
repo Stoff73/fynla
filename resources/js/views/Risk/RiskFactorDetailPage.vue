@@ -135,16 +135,12 @@
               <p class="text-xs text-gray-400 text-center">Source: Your profile date of birth &amp; target retirement age</p>
             </template>
 
-            <!-- EDUCATION -->
-            <template v-else-if="factorKey === 'education'">
+            <!-- INVESTMENT KNOWLEDGE -->
+            <template v-else-if="factorKey === 'knowledge_level'">
               <div class="divide-y divide-gray-200">
                 <div class="flex justify-between py-2">
-                  <span class="text-sm text-gray-600">Education level</span>
+                  <span class="text-sm text-gray-600">Investment knowledge</span>
                   <span class="text-sm font-semibold text-gray-900">{{ factorData.value }}</span>
-                </div>
-                <div class="flex justify-between py-2">
-                  <span class="text-sm text-gray-600">Degree-level or above</span>
-                  <span class="text-sm font-semibold text-gray-900">{{ factorData.components?.has_degree ? 'Yes' : 'No' }}</span>
                 </div>
                 <div class="flex justify-between items-center pt-3">
                   <span class="text-sm font-semibold text-gray-900">Result</span>
@@ -156,7 +152,7 @@
                   </span>
                 </div>
               </div>
-              <p class="text-xs text-gray-400 mt-3">Source: Your profile education level</p>
+              <p class="text-xs text-gray-400 mt-3">Source: Your risk profile knowledge level</p>
             </template>
 
             <!-- DEPENDANTS -->
@@ -350,7 +346,7 @@ export default {
       const names = {
         capacity_for_loss: 'Capacity for Loss',
         time_horizon: 'Time Horizon',
-        education: 'Education Level',
+        knowledge_level: 'Investment Knowledge',
         dependants: 'Dependants',
         employment: 'Employment Status',
         emergency_cash: 'Emergency Fund',
@@ -382,12 +378,13 @@ export default {
             { level: 'lower_medium', range: 'Less than 3 years or retired' },
           ],
         },
-        education: {
-          what: 'Your highest level of formal education.',
-          why: 'Higher education correlates with familiarity with complex financial concepts.',
+        knowledge_level: {
+          what: 'Your self-assessed level of investment knowledge and experience.',
+          why: 'Greater investment knowledge supports understanding of risk and complex products.',
           thresholds: [
-            { level: 'medium', range: 'Degree or higher' },
-            { level: 'lower_medium', range: 'Below degree level' },
+            { level: 'upper_medium', range: 'Experienced' },
+            { level: 'medium', range: 'Intermediate' },
+            { level: 'lower_medium', range: 'Novice or not specified' },
           ],
         },
         dependants: {
@@ -417,11 +414,11 @@ export default {
           ],
         },
         surplus_cash: {
-          what: 'Monthly income minus monthly expenditure.',
-          why: 'A surplus means you can regularly invest and have room for error.',
+          what: 'Monthly income minus monthly expenditure, assessed relative to your income.',
+          why: 'A strong surplus relative to income means you can regularly invest and absorb losses.',
           thresholds: [
-            { level: 'upper_medium', range: 'More than £500/month' },
-            { level: 'medium', range: '£1–£500/month' },
+            { level: 'upper_medium', range: 'More than 10% of income' },
+            { level: 'medium', range: '0–10% of income' },
             { level: 'lower_medium', range: '£0 or negative' },
           ],
         },
