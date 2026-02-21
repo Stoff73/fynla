@@ -170,21 +170,24 @@ class ContributionOptimizer
      */
     public function calculateTaxRelief(float $contribution, float $income): float
     {
-        // UK tax bands 2024/25
-        $basicRateThreshold = 50270;
-        $higherRateThreshold = 125140;
+        $incomeTax = $this->taxConfig->getIncomeTax();
+        $pensionConfig = $this->taxConfig->getPensionAllowances();
+
+        $basicRateThreshold = $incomeTax['higher_rate_threshold'] ?? 50270;
+        $higherRateThreshold = $incomeTax['additional_rate_threshold'] ?? 125140;
+
+        $basicRate = $pensionConfig['tax_relief']['basic_rate'] ?? 0.20;
+        $higherRate = $pensionConfig['tax_relief']['higher_rate'] ?? 0.40;
+        $additionalRate = $pensionConfig['tax_relief']['additional_rate'] ?? 0.45;
 
         $taxRelief = 0.0;
 
         if ($income <= $basicRateThreshold) {
-            // Basic rate relief: 20%
-            $taxRelief = $contribution * 0.20;
+            $taxRelief = $contribution * $basicRate;
         } elseif ($income <= $higherRateThreshold) {
-            // Higher rate relief: 40%
-            $taxRelief = $contribution * 0.40;
+            $taxRelief = $contribution * $higherRate;
         } else {
-            // Additional rate relief: 45%
-            $taxRelief = $contribution * 0.45;
+            $taxRelief = $contribution * $additionalRate;
         }
 
         return round($taxRelief, 2);
@@ -199,7 +202,8 @@ class ContributionOptimizer
         $currentContributions = $this->calculateTotalCurrentContributions($pensions);
 
         // Check if user is a higher rate taxpayer
-        $higherRateThreshold = 50270;
+        $incomeTax = $this->taxConfig->getIncomeTax();
+        $higherRateThreshold = $incomeTax['higher_rate_threshold'] ?? 50270;
         $isHigherRateTaxpayer = $income > $higherRateThreshold;
 
         $optimizationAvailable = false;

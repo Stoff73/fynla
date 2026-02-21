@@ -5,10 +5,22 @@ use App\Models\DCPension;
 use App\Models\StatePension;
 use App\Services\Retirement\PensionProjector;
 use App\Services\Risk\RiskPreferenceService;
+use App\Services\TaxConfigService;
 
 beforeEach(function () {
-    // Get PensionProjector from the service container (with RiskPreferenceService injected)
-    $this->projector = app(PensionProjector::class);
+    $mockTaxConfig = Mockery::mock(TaxConfigService::class);
+    $mockTaxConfig->shouldReceive('getPensionAllowances')
+        ->andReturn([
+            'state_pension' => [
+                'full_new_state_pension' => 11973,
+                'qualifying_years' => 35,
+            ],
+        ]);
+
+    $this->projector = new PensionProjector(
+        app(RiskPreferenceService::class),
+        $mockTaxConfig
+    );
 });
 
 test('projects DC pension value correctly', function () {
@@ -48,14 +60,30 @@ test('projects DC pension with zero contributions', function () {
         ->and($projectedValue)->toBeLessThan(110000);
 });
 
-test('projects DB pension correctly', function () {
+test('projects DB pension correctly with no revaluation', function () {
     $pension = new DBPension([
         'accrued_annual_pension' => 15000,
+        'inflation_protection' => 'none',
     ]);
 
-    $projectedIncome = $this->projector->projectDBPension($pension);
+    $projectedIncome = $this->projector->projectDBPension($pension, 67);
 
+    // At retirement age (67), no years to retirement, returns accrued amount
     expect($projectedIncome)->toBe(15000.0);
+});
+
+test('projects DB pension with CPI revaluation', function () {
+    $pension = new DBPension([
+        'accrued_annual_pension' => 15000,
+        'inflation_protection' => 'cpi',
+        'normal_retirement_age' => 67,
+    ]);
+
+    $projectedIncome = $this->projector->projectDBPension($pension, 47);
+
+    // £15,000 * 1.025^20 = ~£24,579
+    expect($projectedIncome)->toBeGreaterThan(24000)
+        ->and($projectedIncome)->toBeLessThan(25000);
 });
 
 test('projects state pension with forecast', function () {
@@ -79,10 +107,10 @@ test('projects state pension without forecast based on NI years', function () {
 
     $projectedIncome = $this->projector->projectStatePension($statePension);
 
-    // 20/35 of full state pension (£11,502)
-    // Expected: approximately £6,572
-    expect($projectedIncome)->toBeGreaterThan(6000)
-        ->and($projectedIncome)->toBeLessThan(7000);
+    // 20/35 of full state pension (£11,973 from TaxConfigService)
+    // Expected: approximately £6,842
+    expect($projectedIncome)->toBeGreaterThan(6500)
+        ->and($projectedIncome)->toBeLessThan(7200);
 });
 
 test('calculates income replacement ratio correctly', function () {

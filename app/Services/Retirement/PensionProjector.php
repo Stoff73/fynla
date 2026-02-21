@@ -9,6 +9,7 @@ use App\Models\DCPension;
 use App\Models\StatePension;
 use App\Models\User;
 use App\Services\Risk\RiskPreferenceService;
+use App\Services\TaxConfigService;
 
 /**
  * Pension Projector Service
@@ -22,7 +23,8 @@ class PensionProjector
     private const DEFAULT_RETIREMENT_AGE = 67;
 
     public function __construct(
-        private readonly RiskPreferenceService $riskService
+        private readonly RiskPreferenceService $riskService,
+        private readonly TaxConfigService $taxConfig
     ) {}
 
     /**
@@ -59,16 +61,64 @@ class PensionProjector
     /**
      * Project DB pension annual income at retirement.
      *
-     * Uses accrued annual pension with revaluation method applied.
+     * Applies compound revaluation based on inflation_protection type
+     * over years to retirement.
      *
      * @return float Projected annual pension income
      */
-    public function projectDBPension(DBPension $pension): float
+    public function projectDBPension(DBPension $pension, ?int $currentAge = null): float
     {
-        // For DB pensions, we use the accrued annual pension
-        // In a real implementation, we would apply revaluation based on scheme rules
-        // For now, we return the accrued amount (conservative estimate)
-        return (float) $pension->accrued_annual_pension;
+        $accruedPension = (float) $pension->accrued_annual_pension;
+
+        if (! $currentAge) {
+            $user = $pension->user;
+            $currentAge = $user?->age ?? $user?->date_of_birth?->age;
+        }
+
+        $retirementAge = $pension->normal_retirement_age ?? self::DEFAULT_RETIREMENT_AGE;
+        $yearsToRetirement = max(0, $retirementAge - ($currentAge ?? 40));
+
+        if ($yearsToRetirement <= 0) {
+            return $accruedPension;
+        }
+
+        $revaluationRate = $this->getRevaluationRate($pension);
+
+        if ($revaluationRate <= 0) {
+            return $accruedPension;
+        }
+
+        return round($accruedPension * pow(1 + $revaluationRate, $yearsToRetirement), 2);
+    }
+
+    /**
+     * Get the annual revaluation rate for a DB pension based on inflation protection type.
+     */
+    private function getRevaluationRate(DBPension $pension): float
+    {
+        return match ($pension->inflation_protection) {
+            'cpi' => 0.025,
+            'rpi' => 0.03,
+            'fixed' => $this->parseFixedRate($pension->revaluation_method),
+            'none' => 0.0,
+            default => 0.02,
+        };
+    }
+
+    /**
+     * Parse a fixed revaluation rate from the revaluation_method string.
+     */
+    private function parseFixedRate(?string $revaluationMethod): float
+    {
+        if (! $revaluationMethod) {
+            return 0.025;
+        }
+
+        if (preg_match('/(\d+(?:\.\d+)?)%/', $revaluationMethod, $matches)) {
+            return (float) $matches[1] / 100;
+        }
+
+        return 0.025;
     }
 
     /**
@@ -83,9 +133,11 @@ class PensionProjector
             return (float) $statePension->state_pension_forecast_annual;
         }
 
-        // Otherwise calculate based on NI years (2024/25 full state pension: £11,502)
-        $fullStatePension = 11502.00; // Per annum
-        $requiredYears = $statePension->ni_years_required;
+        // Calculate based on NI years using active tax year state pension amount
+        $pensionConfig = $this->taxConfig->getPensionAllowances();
+        $fullStatePension = (float) ($pensionConfig['state_pension']['full_new_state_pension'] ?? 11973.00);
+        $requiredYears = $statePension->ni_years_required
+            ?? ($pensionConfig['state_pension']['qualifying_years'] ?? 35);
         $completedYears = min($statePension->ni_years_completed, $requiredYears);
 
         if ($requiredYears > 0) {
@@ -128,9 +180,9 @@ class PensionProjector
             ];
         }
 
-        // Project DB pensions
+        // Project DB pensions (with revaluation)
         foreach ($dbPensions as $dbPension) {
-            $annualIncome = $this->projectDBPension($dbPension);
+            $annualIncome = $this->projectDBPension($dbPension, $currentAge);
             $totalDBIncome += $annualIncome;
         }
 

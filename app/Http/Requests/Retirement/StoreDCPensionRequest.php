@@ -51,6 +51,8 @@ class StoreDCPensionRequest extends FormRequest
             'platform_fee_percent' => ['nullable', 'numeric', 'min:0', 'max:10'],
             'retirement_age' => ['nullable', 'integer', 'min:55', 'max:75'],
             'projected_value_at_retirement' => ['nullable', 'numeric', 'min:0'],
+            'has_flexibly_accessed' => ['nullable', 'boolean'],
+            'flexible_access_date' => ['nullable', 'date', 'before_or_equal:today'],
         ];
 
         return $rules;

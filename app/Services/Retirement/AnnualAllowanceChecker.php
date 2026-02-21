@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Retirement;
 
 use App\Models\DCPension;
+use App\Models\RetirementProfile;
 use App\Services\TaxConfigService;
 
 /**
@@ -152,37 +153,76 @@ class AnnualAllowanceChecker
     /**
      * Get carry forward allowance from previous 3 tax years.
      *
-     * Note: This is a simplified implementation. In reality, we would need to track
-     * actual contributions and unused allowance for each of the previous 3 years.
+     * Uses user-entered prior year unused allowance data from RetirementProfile.
+     * Returns 0 when no data is entered (conservative default to prevent
+     * users unknowingly exceeding their allowance).
      *
      * @return float Total carry forward available
      */
     public function getCarryForward(int $userId, string $taxYear): float
     {
-        // Simplified: Assume unused allowance from previous years
-        // In a full implementation, we would track this in a separate table
-        // For now, return a conservative estimate (1 year's unused allowance)
-        return $this->getStandardAnnualAllowance();
+        $profile = RetirementProfile::where('user_id', $userId)->first();
+
+        if (! $profile || ! $profile->prior_year_unused_allowance) {
+            return 0.0;
+        }
+
+        $priorYears = $profile->prior_year_unused_allowance;
+        $carryForward = 0.0;
+
+        $previousYears = $this->getPrevious3TaxYears($taxYear);
+
+        foreach ($previousYears as $year) {
+            $carryForward += (float) ($priorYears[$year] ?? 0);
+        }
+
+        return $carryForward;
+    }
+
+    /**
+     * Get the previous 3 tax year strings for carry forward lookback.
+     *
+     * @return array e.g. ['2022/23', '2023/24', '2024/25'] for current year '2025/26'
+     */
+    private function getPrevious3TaxYears(string $currentTaxYear): array
+    {
+        $startYear = (int) substr($currentTaxYear, 0, 4);
+
+        return [
+            ($startYear - 3).'/'.substr((string) ($startYear - 2), -2),
+            ($startYear - 2).'/'.substr((string) ($startYear - 1), -2),
+            ($startYear - 1).'/'.substr((string) $startYear, -2),
+        ];
     }
 
     /**
      * Check if user has triggered Money Purchase Annual Allowance (MPAA).
      *
-     * MPAA is triggered when user has flexibly accessed a pension.
+     * MPAA is triggered when user has flexibly accessed any DC pension
+     * (e.g., flexi-access drawdown, UFPLS, or cashing in a small pot).
      */
     public function checkMPAA(int $userId): array
     {
-        // In a full implementation, we would track flexible access events
-        // For now, return false (not triggered)
-        $isTriggered = false;
+        $isTriggered = DCPension::where('user_id', $userId)
+            ->where('has_flexibly_accessed', true)
+            ->exists();
+
         $mpaaAmount = $this->getMPAA();
+
+        $triggerDate = null;
+        if ($isTriggered) {
+            $triggerDate = DCPension::where('user_id', $userId)
+                ->where('has_flexibly_accessed', true)
+                ->min('flexible_access_date');
+        }
 
         return [
             'is_triggered' => $isTriggered,
             'mpaa_amount' => $mpaaAmount,
+            'trigger_date' => $triggerDate,
             'message' => $isTriggered
-                ? 'MPAA triggered - your annual allowance is reduced to £'.number_format($mpaaAmount).' per year.'
-                : 'MPAA not triggered - standard annual allowance applies.',
+                ? 'Money Purchase Annual Allowance triggered - your annual allowance for money purchase contributions is reduced to £'.number_format($mpaaAmount).' per year.'
+                : 'Money Purchase Annual Allowance not triggered - standard annual allowance applies.',
         ];
     }
 
