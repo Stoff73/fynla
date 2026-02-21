@@ -405,6 +405,16 @@ class InvestmentController extends Controller
             $validated['joint_owner_id'] = null;
         }
 
+        // ISA validation: ISAs can only be individually owned (UK tax rule)
+        $newType = $validated['account_type'] ?? $account->account_type;
+        $newOwnership = $validated['ownership_type'] ?? $account->ownership_type;
+        if ($newType === 'isa' && $newOwnership !== 'individual') {
+            return response()->json([
+                'success' => false,
+                'message' => 'ISAs can only be individually owned. Joint or trust ownership is not permitted for ISAs under UK tax rules.',
+            ], 422);
+        }
+
         // Auto-calculate CSOP three-year date on update if grant_date changes
         $accountType = $validated['account_type'] ?? $account->account_type;
         if ($accountType === 'csop' && isset($validated['grant_date'])) {
@@ -476,6 +486,11 @@ class InvestmentController extends Controller
 
         // Clear caches
         $this->investmentAgent->clearCache($user->id);
+
+        // If joint owner, clear their cache too
+        if ($account->joint_owner_id) {
+            $this->investmentAgent->clearCache($account->joint_owner_id);
+        }
 
         return response()->json([
             'success' => true,
@@ -561,6 +576,11 @@ class InvestmentController extends Controller
         // Clear cache
         $this->investmentAgent->clearCache($user->id);
 
+        // If joint owner, clear their cache too
+        if ($account->joint_owner_id) {
+            $this->investmentAgent->clearCache($account->joint_owner_id);
+        }
+
         // Clear optimization caches (efficient frontier, correlation matrix)
         PortfolioOptimizationController::clearUserOptimizationCache($user->id);
 
@@ -634,6 +654,12 @@ class InvestmentController extends Controller
         // Clear cache
         $this->investmentAgent->clearCache($user->id);
 
+        // If joint owner, clear their cache too
+        $holdingAccount = $holding->investmentAccount;
+        if ($holdingAccount && $holdingAccount->joint_owner_id) {
+            $this->investmentAgent->clearCache($holdingAccount->joint_owner_id);
+        }
+
         // Clear optimization caches (efficient frontier, correlation matrix)
         PortfolioOptimizationController::clearUserOptimizationCache($user->id);
 
@@ -665,6 +691,11 @@ class InvestmentController extends Controller
         // Clear cache
         $this->investmentAgent->clearCache($user->id);
 
+        // If joint owner, clear their cache too
+        if ($account->joint_owner_id) {
+            $this->investmentAgent->clearCache($account->joint_owner_id);
+        }
+
         // Clear optimization caches (efficient frontier, correlation matrix)
         PortfolioOptimizationController::clearUserOptimizationCache($user->id);
 
@@ -688,6 +719,9 @@ class InvestmentController extends Controller
 
         $goal = InvestmentGoal::create($validated);
 
+        // Clear cache
+        $this->investmentAgent->clearCache($user->id);
+
         return response()->json([
             'success' => true,
             'data' => $goal,
@@ -706,6 +740,9 @@ class InvestmentController extends Controller
 
         $goal->update($validated);
 
+        // Clear cache
+        $this->investmentAgent->clearCache($user->id);
+
         return response()->json([
             'success' => true,
             'data' => $goal->fresh(),
@@ -721,6 +758,9 @@ class InvestmentController extends Controller
         $goal = InvestmentGoal::where('user_id', $user->id)->findOrFail($id);
 
         $goal->delete();
+
+        // Clear cache
+        $this->investmentAgent->clearCache($user->id);
 
         return response()->json([
             'success' => true,

@@ -10,7 +10,8 @@ use Illuminate\Support\Collection;
 class TaxEfficiencyCalculator
 {
     public function __construct(
-        private readonly TaxConfigService $taxConfig
+        private readonly TaxConfigService $taxConfig,
+        private readonly DividendTaxCalculator $dividendTaxCalculator
     ) {}
 
     /**
@@ -48,39 +49,13 @@ class TaxEfficiencyCalculator
     }
 
     /**
-     * Calculate dividend tax liability
+     * Calculate dividend tax liability using proper UK band-splitting
      */
     public function calculateDividendTax(float $dividendIncome, float $totalIncome): float
     {
-        $dividendConfig = $this->taxConfig->getDividendTax();
-        $allowance = $dividendConfig['allowance'];
+        $nonDividendIncome = $totalIncome - $dividendIncome;
 
-        // Dividend income above allowance
-        $taxableDividends = max(0, $dividendIncome - $allowance);
-
-        if ($taxableDividends == 0) {
-            return 0;
-        }
-
-        // Determine tax band based on total income
-        $incomeTaxConfig = $this->taxConfig->getIncomeTax();
-        $personalAllowance = $incomeTaxConfig['personal_allowance'] ?? 12570;
-
-        // Simplified calculation - in reality would need to work through bands
-        $tax = 0;
-
-        if ($totalIncome <= $personalAllowance + 37700) {
-            // Basic rate
-            $tax = $taxableDividends * $dividendConfig['basic_rate'];
-        } elseif ($totalIncome <= 125140) {
-            // Higher rate
-            $tax = $taxableDividends * $dividendConfig['higher_rate'];
-        } else {
-            // Additional rate
-            $tax = $taxableDividends * $dividendConfig['additional_rate'];
-        }
-
-        return round($tax, 2);
+        return $this->dividendTaxCalculator->calculate($dividendIncome, $nonDividendIncome);
     }
 
     /**
@@ -145,7 +120,7 @@ class TaxEfficiencyCalculator
         return [
             'opportunities_count' => $lossHoldings->count(),
             'total_harvestable_losses' => round($totalLosses, 2),
-            'potential_tax_saving' => round($totalLosses * 0.20, 2), // Assume 20% CGT rate
+            'potential_tax_saving' => round($totalLosses * $this->taxConfig->getCapitalGainsTax()['higher_rate'], 2),
             'holdings' => $lossHoldings->toArray(),
         ];
     }

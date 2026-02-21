@@ -6,6 +6,7 @@ namespace App\Services\Investment;
 
 use App\Models\Investment\Holding;
 use App\Models\Investment\RiskProfile;
+use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
 class PortfolioAnalyzer
@@ -19,7 +20,7 @@ class PortfolioAnalyzer
     }
 
     /**
-     * Calculate portfolio returns (YTD, 1Y, 3Y, 5Y)
+     * Calculate portfolio returns (total, YTD, 1-year)
      */
     public function calculateReturns(Collection $holdings): array
     {
@@ -40,14 +41,56 @@ class PortfolioAnalyzer
         $totalGain = $totalCurrentValue - $totalCostBasis;
         $totalReturnPercent = ($totalGain / $totalCostBasis) * 100;
 
+        // YTD: start of current tax year (6 April) or calendar year
+        $now = Carbon::now();
+        $ytdStart = Carbon::create($now->year, 1, 1);
+
+        // 1-year: 12 months ago
+        $oneYearStart = $now->copy()->subYear();
+
         return [
             'total_cost_basis' => round($totalCostBasis, 2),
             'total_current_value' => round($totalCurrentValue, 2),
             'total_gain' => round($totalGain, 2),
             'total_return_percent' => round($totalReturnPercent, 2),
-            'ytd_return' => round($totalReturnPercent, 2), // Simplified - in production would filter by date
-            'one_year_return' => round($totalReturnPercent, 2), // Simplified
+            'ytd_return' => round($this->calculatePeriodReturn($holdings, $ytdStart), 2),
+            'one_year_return' => round($this->calculatePeriodReturn($holdings, $oneYearStart), 2),
         ];
+    }
+
+    /**
+     * Calculate return for holdings that existed before a given date.
+     *
+     * Uses cost_basis as a conservative start-of-period value approximation
+     * for holdings purchased before the period start.
+     */
+    private function calculatePeriodReturn(Collection $holdings, Carbon $periodStart): float
+    {
+        // Filter to holdings that existed before the period start
+        $eligibleHoldings = $holdings->filter(function ($holding) use ($periodStart) {
+            if (! $holding->purchase_date) {
+                return true; // Include holdings without purchase date (assume they pre-date the period)
+            }
+
+            $purchaseDate = $holding->purchase_date instanceof Carbon
+                ? $holding->purchase_date
+                : Carbon::parse($holding->purchase_date);
+
+            return $purchaseDate->lt($periodStart);
+        });
+
+        if ($eligibleHoldings->isEmpty()) {
+            return 0.0;
+        }
+
+        $periodStartValue = $eligibleHoldings->sum('cost_basis');
+        $currentValue = $eligibleHoldings->sum('current_value');
+
+        if ($periodStartValue <= 0) {
+            return 0.0;
+        }
+
+        return (($currentValue - $periodStartValue) / $periodStartValue) * 100;
     }
 
     /**
@@ -76,6 +119,113 @@ class PortfolioAnalyzer
         usort($byType, fn ($a, $b) => $b['value'] <=> $a['value']);
 
         return $byType;
+    }
+
+    /**
+     * Calculate asset allocation with fund/ETF look-through.
+     *
+     * Direct holdings (equity, bond, cash, etc.) pass through at 100%.
+     * Funds and ETFs are decomposed into underlying asset classes using
+     * a name-based heuristic on security_name.
+     */
+    public function calculateAssetAllocationWithLookThrough(Collection $holdings): array
+    {
+        $totalValue = $holdings->sum('current_value');
+
+        if ($totalValue == 0) {
+            return [];
+        }
+
+        $assetTotals = [];
+
+        foreach ($holdings as $holding) {
+            $breakdown = $this->getAssetBreakdown($holding);
+            $holdingValue = (float) $holding->current_value;
+
+            foreach ($breakdown as $assetType => $weight) {
+                if (! isset($assetTotals[$assetType])) {
+                    $assetTotals[$assetType] = 0.0;
+                }
+                $assetTotals[$assetType] += $holdingValue * $weight;
+            }
+        }
+
+        // Convert to output format
+        $result = [];
+        foreach ($assetTotals as $assetType => $value) {
+            if ($value > 0) {
+                $result[] = [
+                    'asset_type' => $assetType,
+                    'value' => round($value, 2),
+                    'percentage' => round(($value / $totalValue) * 100, 2),
+                ];
+            }
+        }
+
+        // Sort by value descending
+        usort($result, fn ($a, $b) => $b['value'] <=> $a['value']);
+
+        return $result;
+    }
+
+    /**
+     * Get the underlying asset breakdown for a holding.
+     *
+     * Direct asset types pass through at 100%. Fund/ETF types are
+     * decomposed using a name-based heuristic on security_name.
+     *
+     * @return array<string, float> Asset type => weight (0.0 to 1.0)
+     */
+    private function getAssetBreakdown(mixed $holding): array
+    {
+        $assetType = strtolower($holding->asset_type ?? 'unknown');
+
+        // Direct asset types pass through at 100%
+        $directTypes = ['equity', 'bond', 'cash', 'commodity', 'property'];
+        if (in_array($assetType, $directTypes)) {
+            return [$assetType => 1.0];
+        }
+
+        // Fund/ETF: use security_name heuristic
+        if (in_array($assetType, ['fund', 'etf'])) {
+            $name = strtolower($holding->security_name ?? '');
+
+            // Property/REIT funds
+            if (str_contains($name, 'property') || str_contains($name, 'reit') || str_contains($name, 'real estate')) {
+                return ['property' => 1.0];
+            }
+
+            // Money market / cash funds
+            if (str_contains($name, 'money market') || str_contains($name, 'cash fund') || str_contains($name, 'liquidity')) {
+                return ['cash' => 1.0];
+            }
+
+            // Bond / gilt / fixed income funds
+            if (str_contains($name, 'bond') || str_contains($name, 'gilt') || str_contains($name, 'fixed income') || str_contains($name, 'corporate bond')) {
+                return ['bond' => 1.0];
+            }
+
+            // Balanced / multi-asset funds
+            if (str_contains($name, 'balanced') || str_contains($name, 'multi-asset') || str_contains($name, 'multi asset') || str_contains($name, 'lifestyle')) {
+                return ['equity' => 0.60, 'bond' => 0.30, 'cash' => 0.10];
+            }
+
+            // Global/world equity funds
+            if (str_contains($name, 'global equity') || str_contains($name, 'world equity') || str_contains($name, 'all world') || str_contains($name, 'ftse global')) {
+                return ['equity' => 1.0];
+            }
+
+            // Any other equity-related fund
+            if (str_contains($name, 'equity') || str_contains($name, 'stock') || str_contains($name, 'share') || str_contains($name, 'growth')) {
+                return ['equity' => 1.0];
+            }
+
+            // Default: assume equity-dominant fund
+            return ['equity' => 1.0];
+        }
+
+        // Unknown asset types default to equity
+        return ['equity' => 1.0];
     }
 
     /**
