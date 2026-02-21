@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "filepath=\"$CLAUDE_FILE_PATH\"; if [[ \"$filepath\" == *.php ]]; then ./vendor/bin/pint \"$filepath\" --quiet 2>/dev/null; fi"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "filepath=\"$CLAUDE_FILE_PATH\"; for p in .env .env.production composer.lock package-lock.json; do if [[ \"$(basename \"$filepath\")\" == \"$p\" ]]; then echo \"BLOCKED: $p is a protected file. Edit manually if needed.\"; exit 2; fi; done"
+          }
+        ]
+      }
+    ]
+  }
+}

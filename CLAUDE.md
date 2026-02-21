@@ -251,6 +251,8 @@ When working on this codebase, automatically use these without prompting:
 **Skills** (invoke with `/command`):
 
 - `/systematic-debugging` - For any bug, error, or unexpected behaviour investigation
+- `/deploy-checklist` - Before any production deployment, generates file list and SSH commands
+- `/scaffold-feature` - When creating a new feature, scaffolds all required files
 
 **Agents** (invoke automatically when relevant):
 
@@ -258,4 +260,6 @@ When working on this codebase, automatically use these without prompting:
 - `laravel-stack-deployer` - For production deployment tasks
 - `product-manager` - When planning new features or creating user stories
 - `premium-ui-designer` - When polishing UI, adding animations, or improving UX
+- `security-reviewer` - When reviewing auth flows, API endpoints, or code touching sensitive financial data
+- `tax-compliance-reviewer` - When modifying tax calculations, financial projections, or TaxConfigService usage
 - `Explore` - For codebase exploration and understanding
