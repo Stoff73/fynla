@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Services\Goals\GoalCalculationService;
 use App\Traits\Auditable;
 use App\Traits\HasJointOwnership;
 use Illuminate\Database\Eloquent\Builder;
@@ -131,13 +132,7 @@ class Goal extends Model
      */
     public function getProgressPercentageAttribute(): float
     {
-        if ($this->target_amount <= 0) {
-            return 0;
-        }
-
-        $percentage = ($this->current_amount / $this->target_amount) * 100;
-
-        return min(round($percentage, 2), 100);
+        return app(GoalCalculationService::class)->calculateProgressPercentage($this);
     }
 
     /**
@@ -145,13 +140,7 @@ class Goal extends Model
      */
     public function getDaysRemainingAttribute(): int
     {
-        if (! $this->target_date) {
-            return 0;
-        }
-
-        $diff = now()->startOfDay()->diffInDays($this->target_date, false);
-
-        return max(0, (int) $diff);
+        return app(GoalCalculationService::class)->calculateDaysRemaining($this);
     }
 
     /**
@@ -159,13 +148,7 @@ class Goal extends Model
      */
     public function getMonthsRemainingAttribute(): int
     {
-        if (! $this->target_date) {
-            return 0;
-        }
-
-        $diff = now()->startOfMonth()->diffInMonths($this->target_date, false);
-
-        return max(0, (int) ceil($diff));
+        return app(GoalCalculationService::class)->calculateMonthsRemaining($this);
     }
 
     /**
@@ -173,29 +156,7 @@ class Goal extends Model
      */
     public function getIsOnTrackAttribute(): bool
     {
-        if ($this->status !== 'active') {
-            return $this->status === 'completed';
-        }
-
-        // Can't be "on track" if nothing has been saved yet
-        if ((float) $this->current_amount <= 0) {
-            return false;
-        }
-
-        if (! $this->start_date || ! $this->target_date) {
-            return false;
-        }
-
-        $totalDays = $this->start_date->diffInDays($this->target_date);
-        if ($totalDays <= 0) {
-            return $this->progress_percentage >= 100;
-        }
-
-        $daysElapsed = $this->start_date->diffInDays(now());
-        $expectedProgress = min(($daysElapsed / $totalDays) * 100, 100);
-
-        // Allow 10% margin for being "on track"
-        return $this->progress_percentage >= ($expectedProgress - 10);
+        return app(GoalCalculationService::class)->calculateIsOnTrack($this);
     }
 
     /**
@@ -228,7 +189,7 @@ class Goal extends Model
      */
     public function getAmountRemainingAttribute(): float
     {
-        return max(0, (float) $this->target_amount - (float) $this->current_amount);
+        return app(GoalCalculationService::class)->calculateAmountRemaining($this);
     }
 
     /**
@@ -236,12 +197,7 @@ class Goal extends Model
      */
     public function getRequiredMonthlyContributionAttribute(): float
     {
-        $monthsRemaining = $this->months_remaining;
-        if ($monthsRemaining <= 0) {
-            return 0;
-        }
-
-        return round($this->amount_remaining / $monthsRemaining, 2);
+        return app(GoalCalculationService::class)->calculateRequiredMonthlyContribution($this);
     }
 
     /**
@@ -273,22 +229,7 @@ class Goal extends Model
      */
     public function getCurrentMilestoneAttribute(): ?int
     {
-        $progress = $this->progress_percentage;
-
-        if ($progress >= 100) {
-            return 100;
-        }
-        if ($progress >= 75) {
-            return 75;
-        }
-        if ($progress >= 50) {
-            return 50;
-        }
-        if ($progress >= 25) {
-            return 25;
-        }
-
-        return null;
+        return app(GoalCalculationService::class)->calculateCurrentMilestone($this);
     }
 
     /**
@@ -296,22 +237,7 @@ class Goal extends Model
      */
     public function getNextMilestoneAttribute(): ?int
     {
-        $progress = $this->progress_percentage;
-
-        if ($progress >= 100) {
-            return null;
-        }
-        if ($progress >= 75) {
-            return 100;
-        }
-        if ($progress >= 50) {
-            return 75;
-        }
-        if ($progress >= 25) {
-            return 50;
-        }
-
-        return 25;
+        return app(GoalCalculationService::class)->calculateNextMilestone($this);
     }
 
     /**

@@ -181,6 +181,139 @@ describe('calculateDiversificationScore', function () {
     });
 });
 
+describe('calculateAssetAllocationWithLookThrough', function () {
+    it('passes through direct equity holdings unchanged', function () {
+        $holdings = collect([
+            new Holding(['asset_type' => 'equity', 'current_value' => 50000, 'security_name' => 'BP plc']),
+            new Holding(['asset_type' => 'bond', 'current_value' => 30000, 'security_name' => 'UK Gilt']),
+        ]);
+
+        $allocation = $this->analyzer->calculateAssetAllocationWithLookThrough($holdings);
+
+        $equityAlloc = collect($allocation)->firstWhere('asset_type', 'equity');
+        $bondAlloc = collect($allocation)->firstWhere('asset_type', 'bond');
+
+        expect($equityAlloc['value'])->toBe(50000.0);
+        expect($bondAlloc['value'])->toBe(30000.0);
+    });
+
+    it('decomposes balanced fund into underlying asset classes', function () {
+        $holdings = collect([
+            new Holding(['asset_type' => 'fund', 'current_value' => 100000, 'security_name' => 'Vanguard LifeStrategy Balanced Fund']),
+        ]);
+
+        $allocation = $this->analyzer->calculateAssetAllocationWithLookThrough($holdings);
+
+        $equityAlloc = collect($allocation)->firstWhere('asset_type', 'equity');
+        $bondAlloc = collect($allocation)->firstWhere('asset_type', 'bond');
+        $cashAlloc = collect($allocation)->firstWhere('asset_type', 'cash');
+
+        // Balanced fund: 60% equity, 30% bond, 10% cash
+        expect($equityAlloc['value'])->toBe(60000.0);
+        expect($bondAlloc['value'])->toBe(30000.0);
+        expect($cashAlloc['value'])->toBe(10000.0);
+    });
+
+    it('classifies bond fund as bond', function () {
+        $holdings = collect([
+            new Holding(['asset_type' => 'fund', 'current_value' => 50000, 'security_name' => 'iShares Corporate Bond Fund']),
+        ]);
+
+        $allocation = $this->analyzer->calculateAssetAllocationWithLookThrough($holdings);
+
+        expect($allocation)->toHaveCount(1);
+        expect($allocation[0]['asset_type'])->toBe('bond');
+        expect($allocation[0]['value'])->toBe(50000.0);
+    });
+
+    it('classifies property REIT ETF as property', function () {
+        $holdings = collect([
+            new Holding(['asset_type' => 'etf', 'current_value' => 25000, 'security_name' => 'iShares UK Property REIT ETF']),
+        ]);
+
+        $allocation = $this->analyzer->calculateAssetAllocationWithLookThrough($holdings);
+
+        expect($allocation)->toHaveCount(1);
+        expect($allocation[0]['asset_type'])->toBe('property');
+    });
+
+    it('classifies money market fund as cash', function () {
+        $holdings = collect([
+            new Holding(['asset_type' => 'fund', 'current_value' => 20000, 'security_name' => 'Royal London Money Market Fund']),
+        ]);
+
+        $allocation = $this->analyzer->calculateAssetAllocationWithLookThrough($holdings);
+
+        expect($allocation)->toHaveCount(1);
+        expect($allocation[0]['asset_type'])->toBe('cash');
+    });
+
+    it('defaults unknown fund to equity', function () {
+        $holdings = collect([
+            new Holding(['asset_type' => 'fund', 'current_value' => 30000, 'security_name' => 'XYZ Unknown Fund']),
+        ]);
+
+        $allocation = $this->analyzer->calculateAssetAllocationWithLookThrough($holdings);
+
+        expect($allocation)->toHaveCount(1);
+        expect($allocation[0]['asset_type'])->toBe('equity');
+    });
+
+    it('returns empty array for empty holdings', function () {
+        $holdings = collect([]);
+
+        $allocation = $this->analyzer->calculateAssetAllocationWithLookThrough($holdings);
+
+        expect($allocation)->toBe([]);
+    });
+
+    it('combines direct and fund holdings correctly', function () {
+        $holdings = collect([
+            new Holding(['asset_type' => 'equity', 'current_value' => 40000, 'security_name' => 'Lloyds Banking Group']),
+            new Holding(['asset_type' => 'fund', 'current_value' => 100000, 'security_name' => 'Vanguard Multi-Asset Fund']),
+        ]);
+
+        $allocation = $this->analyzer->calculateAssetAllocationWithLookThrough($holdings);
+
+        // Direct equity (40000) + fund equity portion (60000) = 100000
+        $equityAlloc = collect($allocation)->firstWhere('asset_type', 'equity');
+        expect($equityAlloc['value'])->toBe(100000.0);
+    });
+});
+
+describe('calculateReturns period filtering', function () {
+    it('includes ytd_return and one_year_return in results', function () {
+        $holdings = collect([
+            new Holding([
+                'cost_basis' => 10000,
+                'current_value' => 11000,
+                'purchase_date' => now()->subYears(2),
+            ]),
+        ]);
+
+        $returns = $this->analyzer->calculateReturns($holdings);
+
+        expect($returns)->toHaveKey('ytd_return');
+        expect($returns)->toHaveKey('one_year_return');
+    });
+
+    it('returns zero ytd for holdings purchased after year start', function () {
+        // Holding purchased yesterday - should not appear in YTD for pre-period holdings
+        $holdings = collect([
+            new Holding([
+                'cost_basis' => 10000,
+                'current_value' => 10500,
+                'purchase_date' => now()->subDay(),
+            ]),
+        ]);
+
+        $returns = $this->analyzer->calculateReturns($holdings);
+
+        // YTD return is 0 because no holdings existed before Jan 1
+        expect($returns['ytd_return'])->toBe(0.0);
+    });
+});
+
 describe('calculatePortfolioRisk', function () {
     it('estimates portfolio volatility based on asset mix', function () {
         $holdings = collect([

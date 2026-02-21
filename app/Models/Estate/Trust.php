@@ -6,6 +6,7 @@ namespace App\Models\Estate;
 
 use App\Models\Household;
 use App\Models\User;
+use App\Services\Estate\TrustValuationService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -79,50 +80,18 @@ class Trust extends Model
     }
 
     /**
-     * Get the IHT value of this trust (value that counts toward estate)
+     * Get the IHT value of this trust (value that counts toward estate).
      */
     public function getIHTValue(): float
     {
-        switch ($this->trust_type) {
-            case 'bare':
-                // Bare trusts - beneficiary absolutely entitled, counts in beneficiary's estate
-                return 0;
-
-            case 'discounted_gift':
-                // Discounted gift trust - only retained income stream counts
-                return $this->discount_amount ?? 0;
-
-            case 'loan':
-                // Loan trust - outstanding loan counts in estate, growth doesn't
-                return $this->loan_amount ?? 0;
-
-            case 'life_insurance':
-                // Life insurance in trust - outside estate
-                return 0;
-
-            case 'interest_in_possession':
-                // Depends if qualifying or non-qualifying - simplified: assume qualifying
-                // Qualifying IIP - counts in life tenant's estate
-                return $this->current_value;
-
-            case 'discretionary':
-            case 'accumulation_maintenance':
-                // Relevant property trusts - outside settlor's estate but subject to periodic charges
-                return 0;
-
-            default:
-                return 0;
-        }
+        return app(TrustValuationService::class)->calculateIHTValue($this);
     }
 
     /**
-     * Check if trust is a relevant property trust (subject to 10-year charges)
+     * Check if trust is a relevant property trust (subject to 10-year charges).
      */
     public function isRelevantPropertyTrust(): bool
     {
-        return in_array($this->trust_type, [
-            'discretionary',
-            'accumulation_maintenance',
-        ]) || $this->is_relevant_property_trust;
+        return app(TrustValuationService::class)->isRelevantPropertyTrust($this);
     }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Models\Estate\Trust;
+use App\Services\Property\PropertyCalculationService;
 use App\Traits\Auditable;
 use App\Traits\HasJointOwnership;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -183,13 +184,7 @@ class Property extends Model
      */
     public function isLeaseholdExpiringAttribute(): bool
     {
-        if ($this->tenure_type !== 'leasehold') {
-            return false;
-        }
-
-        // Properties with less than 80 years are harder to mortgage
-        // Properties with less than 60 years significantly lose value
-        return $this->lease_remaining_years !== null && $this->lease_remaining_years < 80;
+        return app(PropertyCalculationService::class)->isLeaseholdExpiring($this);
     }
 
     /**
@@ -227,16 +222,6 @@ class Property extends Model
      */
     public function getEquityAttribute(): float
     {
-        $currentValue = (float) ($this->current_value ?? 0);
-
-        // Sum all mortgages for this property (already user's share from database)
-        $totalMortgages = (float) $this->mortgages->sum('outstanding_balance');
-
-        // Fallback to outstanding_mortgage field if mortgages relationship not loaded
-        if ($totalMortgages === 0.0 && $this->outstanding_mortgage) {
-            $totalMortgages = (float) $this->outstanding_mortgage;
-        }
-
-        return $currentValue - $totalMortgages;
+        return app(PropertyCalculationService::class)->calculateEquity($this);
     }
 }
