@@ -8,14 +8,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 | Metric | Count |
 |--------|-------|
-| Vue Components | 313 |
-| PHP Services | 141 |
-| Controllers | 66 |
-| Models | 49 |
+| Vue Components | 315 |
+| PHP Services | 149 |
+| Controllers | 68 |
+| Models | 70 |
 | Vuex Stores | 21 |
 | Agents | 8 |
 
-**Production**: https://fynla.org | **Version**: v0.7.0
+**Production**: https://fynla.org | **Version**: v0.8.0
 
 ## Commands
 
@@ -47,6 +47,17 @@ php artisan migrate && php artisan db:seed
 | Tax Status tab empty | `php artisan db:seed --class=TaxProductReferenceSeeder --force` |
 | Preview personas broken | `php artisan db:seed --class=PreviewUserSeeder --force` |
 | Life expectancy errors | `php artisan db:seed --class=ActuarialLifeTablesSeeder --force` |
+| Savings market rates missing | `php artisan db:seed --class=SavingsMarketRatesSeeder --force` |
+
+**Custom artisan commands:**
+
+| Command | Purpose |
+|---------|---------|
+| `php artisan preview:reset` | Reset all preview persona data |
+| `php artisan audit:purge` | Purge old audit log entries |
+| `php artisan trials:expire` | Expire ended trial subscriptions |
+| `php artisan sessions:cleanup` | Clean up orphaned user sessions |
+| `php artisan registrations:cleanup` | Remove stale pending registrations |
 
 ## Architecture
 
@@ -54,15 +65,32 @@ php artisan migrate && php artisan db:seed
 Vue Component → API Service → Controller → Agent → Services → Models → DB
 ```
 
-**Backend** (`app/`):
+**Backend** (`app/`): See `app/Services/CLAUDE.md` and `app/Http/CLAUDE.md` for detailed conventions.
 - `Agents/` - Module orchestrators (ProtectionAgent, SavingsAgent, InvestmentAgent, RetirementAgent, EstateAgent, GoalsAgent, CoordinatingAgent)
-- `Services/{Module}/` - Domain calculations
-- `Http/Controllers/Api/` - API endpoints
+- `Services/{Module}/` - Domain calculations (141+ services across 15 module directories)
+- `Http/Controllers/Api/` - API endpoints (68 controllers)
+- `Http/Requests/` - Form request validation (150+ classes)
+- `Http/Resources/` - API response transformation
+- `Traits/` - Shared behaviours (`Auditable`, `HasJointOwnership`, `CalculatesOwnershipShare`, `FormatsCurrency`, `StructuredLogging`, `PolicyCRUDTrait`, `ResolvesExpenditure`)
+- `Constants/` - `TaxDefaults`, `ValidationLimits`, `EstateDefaults`
+- `Observers/` - Risk recalculation observers (auto-trigger on model changes)
+- `Exceptions/FinancialCalculationException` - Domain exception with factory methods
 
-**Frontend** (`resources/js/`):
-- `components/{Module}/` - Vue components
-- `store/modules/` - Vuex state management
-- `services/` - API wrappers
+**Frontend** (`resources/js/`): See `resources/js/CLAUDE.md` for detailed conventions.
+- `components/{Module}/` - Vue components (315 across 28 modules)
+- `views/` - Page-level route components (53 views)
+- `store/modules/` - Vuex state management (21 namespaced modules)
+- `services/` - API wrappers (35 services)
+- `mixins/` - `currencyMixin` (formatting), `previewModeMixin` (preview blocking)
+- `utils/` - `currency`, `dateFormatter`, `dates`, `ownership`, `poller`, `asyncAction`, `logger`
+- `constants/` - `designSystem`, `eventIcons`, `taxConfig`
+- `directives/` - `v-preview-disabled` (blocks actions in preview mode)
+- `layouts/` - `AppLayout` (authenticated), `PublicLayout` (public pages)
+- `router/index.js` - Routes with lazy loading, guards, meta flags (`requiresAuth`, `public`, `previewMode`)
+
+**Database** (`database/`): See `database/CLAUDE.md` for detailed conventions.
+
+**Tests** (`tests/`): See `tests/CLAUDE.md` for detailed conventions.
 
 ## Key Rules
 
@@ -79,25 +107,10 @@ $nrb = $this->taxConfig->getInheritanceTax()['nil_rate_band'];
 ```
 
 ### 4. Form Modal Events
-Form modals use a two-part pattern to prevent double submission:
-1. **Internal form element**: Uses `@submit.prevent="handleSubmit"` to prevent page reload
-2. **Emit to parent**: Handler calls `this.$emit('save', formData)` - always emit `save`, not `submit`
-3. **Parent listens**: Uses `@save="handleSave"` to receive the event
-
-```vue
-<!-- Inside form modal component -->
-<form @submit.prevent="handleSubmit">
-  ...
-</form>
-
-<!-- In methods -->
-handleSubmit() {
-  this.$emit('save', this.formData);  // Emit 'save', not 'submit'
-}
-
-<!-- Parent component using the modal -->
-<AccountForm @save="handleAccountSave" @close="closeModal" />
-```
+Form modals emit `save` (not `submit`) to prevent double submission:
+- Internal: `<form @submit.prevent="handleSubmit">` → `this.$emit('save', formData)`
+- Parent: `<AccountForm @save="handleAccountSave" @close="closeModal" />`
+- Parent handles API call and closes modal on success; keeps modal open on error
 
 ### 5. Canonical Enums
 | Type | Values |
@@ -112,23 +125,7 @@ Never use `sole` (use `individual`).
 Always use `currencyMixin` - never define local `formatCurrency()` methods.
 
 ### 7. Joint Assets Pattern
-Joint assets use a SINGLE record with `joint_owner_id` and `ownership_percentage` representing the primary owner's share. The spouse's share is `(100 - ownership_percentage)`:
-```php
-Property::create([
-    'user_id' => $user->id,
-    'joint_owner_id' => $spouse->id,
-    'ownership_type' => 'tenants_in_common',  // or 'joint'
-    'ownership_percentage' => 70,  // Primary owner's share; spouse gets 30%
-    'current_value' => 320000,
-]);
-```
-When querying for the joint owner's share, invert the percentage:
-```php
-$userIsOwner = $property->user_id === $user->id;
-$ownershipMultiplier = $userIsOwner
-    ? ($property->ownership_percentage ?? 50) / 100
-    : (100 - ($property->ownership_percentage ?? 50)) / 100;
-```
+Joint assets use a SINGLE record with `joint_owner_id` and `ownership_percentage` (primary owner's share). The spouse's share is `(100 - ownership_percentage)`. Use `CalculatesOwnershipShare` trait (backend) or `ownership.js` util (frontend) to calculate shares. Never create duplicate records for joint owners. Query with `WHERE user_id = ? OR joint_owner_id = ?`.
 
 ### 8. PreviewWriteInterceptor Middleware
 When adding new auth-related POST routes, add them to `EXCLUDED_ROUTES` in `app/Http/Middleware/PreviewWriteInterceptor.php`. This middleware intercepts all write operations from preview users - any route that must work regardless of preview mode state (login, register, password reset) must be excluded.
@@ -171,7 +168,7 @@ The design system is the single source of truth for all visual decisions. Never 
 ```bash
 ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
 cd ~/www/fynla.org/public_html
-php artisan cache:clear && php artisan route:clear && php artisan config:clear
+php artisan cache:clear && php artisan config:clear && php artisan view:clear && php artisan route:clear && php artisan optimize
 ```
 
 ## Preview Mode
@@ -230,18 +227,33 @@ Check routes: `php artisan route:list --path=endpoint`
 - User-facing text: British (Optimisation, Customise)
 - Code syntax: American (optimize, center)
 
+## Testing
+
+```bash
+./vendor/bin/pest                                          # All tests (1,075+)
+./vendor/bin/pest tests/Unit/Services/Estate/              # Module tests
+./vendor/bin/pest --testsuite=Architecture                 # Code standards
+./vendor/bin/pest --filter="calculateIHTLiability"         # By name
+```
+
+- **Framework**: Pest (PHPUnit-compatible) with `it()` / `describe()` syntax
+- **Suites**: Unit (59), Feature (37), Architecture (6), Integration (2)
+- **Database**: `RefreshDatabase` trait resets between tests; TaxConfiguration auto-seeded in `beforeEach()`
+- **Auth**: `$this->actingAs($user)` or `Sanctum::actingAs($user)`
+- **Factories**: 42 factories in `database/factories/` with state methods
+- **Mocking**: Mockery for service dependencies; always `Mockery::close()` in `afterEach()`
+- See `tests/CLAUDE.md` for full conventions
+
 ## Automatic Tool Usage
 
 When working on this codebase, automatically use these without prompting:
 
 **Skills** (invoke with `/command`):
+
 - `/systematic-debugging` - For any bug, error, or unexpected behaviour investigation
-- `/fps-component-builder` - When creating new Vue components
-- `/fps-feature-builder` - When adding features to existing modules
-- `/fps-module-builder` - When creating new full-stack modules
 
 **Agents** (invoke automatically when relevant):
-- `code-quality-auditor` - After completing multi-file feature work
+
 - `database-optimizer` - When queries are slow or designing new tables/schemas
 - `laravel-stack-deployer` - For production deployment tasks
 - `product-manager` - When planning new features or creating user stories

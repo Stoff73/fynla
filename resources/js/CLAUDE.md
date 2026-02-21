@@ -1,0 +1,148 @@
+# Frontend Conventions
+
+This file supplements the root `CLAUDE.md` with frontend-specific patterns.
+
+## Entry Points
+
+- `app.js` - Bootstraps Vue app with Router, Vuex, VueApexCharts, `v-preview-disabled` directive
+- `App.vue` - Root component, renders `<router-view />`, fetches user data on mount
+- `router/index.js` - All routes with lazy loading (`() => import(...)`)
+- `store/index.js` - 21 namespaced Vuex modules
+
+## Router
+
+**Route meta flags:**
+- `meta: { requiresAuth: true }` - Protected routes (dashboard, modules)
+- `meta: { public: true }` - Public pages (landing, calculators)
+- `meta: { requiresGuest: true }` - Auth pages (login, register)
+- `meta: { previewMode: true }` - Preview persona routes
+
+**Base path:** Configurable via `VITE_ROUTER_BASE` (development: `/`, production: `/` or `/fynla/`)
+
+## Vuex Store Pattern
+
+All 21 modules are `namespaced: true` and follow this structure:
+
+```javascript
+// State: data + loading + error
+const state = { items: [], loading: false, error: null };
+
+// Mutations: set* (setters), add*/update*/remove* (CRUD)
+setItems(state, items) { state.items = items; }
+addItem(state, item) { state.items.push(item); }
+updateItem(state, item) { /* find by id, splice */ }
+removeItem(state, id) { /* find by id, splice */ }
+
+// Actions: async, commit mutations, dispatch cross-module
+async fetchItems({ commit }) {
+  commit('setLoading', true);
+  try {
+    const response = await myService.getItems();
+    commit('setItems', response.data.items);
+  } catch (error) {
+    commit('setError', error.message);
+    throw error;
+  } finally {
+    commit('setLoading', false);
+  }
+}
+
+// Cross-module dispatch
+dispatch('netWorth/refreshNetWorth', null, { root: true });
+```
+
+**Naming:** Actions use British English spelling: `analyse` not `analyze`, `optimise` not `optimize`.
+
+## Mixins
+
+**currencyMixin** - Always use this, never define local `formatCurrency()`:
+```javascript
+import { currencyMixin } from '@/mixins/currencyMixin';
+// Provides: formatCurrency(), formatCurrencyWithPence(), formatCurrencyCompact(),
+//   parseCurrency(), formatPercentage(), formatAccountType(), formatOwnershipType(),
+//   formatNumber(), formatLiability()
+```
+
+**previewModeMixin** - Use for preview mode checks:
+```javascript
+import { previewModeMixin } from '@/mixins/previewModeMixin';
+// Provides: isPreviewMode (computed), previewGuard(action), getPreviewButtonProps(type),
+//   handlePreviewAction(action, type), canOpenModal()
+```
+
+## Utilities (`utils/`)
+
+| Utility | Key Exports |
+|---------|-------------|
+| `currency.js` | `formatCurrency`, `formatCurrencyWithPence`, `formatCurrencyCompact`, `parseCurrency` |
+| `dateFormatter.js` | `formatDate` (DD/MM/YYYY), `formatDateForInput` (YYYY-MM-DD), `formatDateLong`, `calculateAge` |
+| `dates.js` | `getTaxYearStart`, `getTaxYearEnd`, `parseUKDate`, `formatRelativeDate` |
+| `ownership.js` | `calculateUserShare`, `isSharedOwnership`, `OWNERSHIP_TYPES`, `getOwnershipLabel` |
+| `poller.js` | `poll`, `pollMonteCarloJob` - for long-running async operations |
+| `asyncAction.js` | `createAsyncAction` - reduces Vuex action boilerplate |
+| `logger.js` | `logger.info/warn/error/debug` - development-only structured logging |
+
+## Constants (`constants/`)
+
+| File | Purpose |
+|------|---------|
+| `designSystem.js` | `CHART_COLORS`, `ASSET_COLORS`, `PRIMARY_COLORS` - use for consistent chart palettes |
+| `eventIcons.js` | `LIFE_EVENT_ICONS` - maps event types to icon names |
+| `taxConfig.js` | Frontend tax references (prefer backend `TaxConfigService` for calculations) |
+
+## API Services Pattern
+
+All services in `services/` are pure API wrappers with no state management:
+```javascript
+const myService = {
+  async getData() { return (await api.get('/endpoint')).data; },
+  async create(data) { return (await api.post('/endpoint', data)).data; },
+  async update(id, data) { return (await api.put(`/endpoint/${id}`, data)).data; },
+  async delete(id) { return (await api.delete(`/endpoint/${id}`)).data; },
+};
+```
+
+The base `api.js` provides: CSRF injection, auth token from sessionStorage, automatic retry with exponential backoff (5xx, 429), and preview mode detection.
+
+## Component Conventions
+
+**Views** (`views/`): Page-level route components. Handle module initialisation, data fetching. Use layouts.
+
+**Components** (`components/{Module}/`): Reusable sub-page parts. Organised by module.
+
+**Naming:**
+- PascalCase filenames: `TrustFormModal.vue`
+- Multi-word required (not single word)
+- Suffix patterns: `*Modal` (forms in modals), `*Chart` (charts), `*List` (lists), `*Card` (cards)
+
+**Standard component structure:**
+```vue
+<script>
+import { mapGetters, mapActions } from 'vuex';
+import { currencyMixin } from '@/mixins/currencyMixin';
+import { previewModeMixin } from '@/mixins/previewModeMixin';
+
+export default {
+  name: 'MyComponentName',  // Must match filename
+  mixins: [currencyMixin, previewModeMixin],
+  props: { /* typed, required/default */ },
+  data() { return { formData: {}, errors: {}, loading: false }; },
+  computed: { ...mapGetters('module', ['items']) },
+  methods: { ...mapActions('module', ['fetchItems']) },
+};
+</script>
+```
+
+## Directive: `v-preview-disabled`
+
+Blocks element interaction in preview mode. Adds disabled state, tooltip, and click prevention.
+```vue
+<button v-preview-disabled>Edit</button>
+<button v-preview-disabled="'add'">Add Item</button>
+<button v-preview-disabled="'delete'">Delete</button>
+```
+
+## Layouts
+
+- **AppLayout** - Authenticated pages: Navbar, TrialCountdownBanner, PreviewBanner, content slot (`max-w-7xl`), Footer, InfoGuidePanel
+- **PublicLayout** - Public pages: navigation, login/register buttons, footer
