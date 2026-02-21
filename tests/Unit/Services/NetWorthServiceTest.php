@@ -215,13 +215,6 @@ test('get joint assets filters correctly', function () {
         ->and($jointAssets[0]['ownership_percentage'])->toEqual(50);
 });
 
-test('get net worth trend returns 12 months by default', function () {
-    $trend = $this->service->getNetWorthTrend($this->user);
-
-    expect($trend)->toHaveCount(12)
-        ->and($trend[0])->toHaveKeys(['date', 'month', 'net_worth']);
-});
-
 test('cached net worth returns same result', function () {
     Property::factory()->create([
         'user_id' => $this->user->id,

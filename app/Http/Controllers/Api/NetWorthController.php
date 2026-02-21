@@ -95,41 +95,6 @@ class NetWorthController extends Controller
     }
 
     /**
-     * Get net worth trend
-     */
-    public function getTrend(Request $request): JsonResponse
-    {
-        try {
-            $user = $request->user();
-
-            if (! $user) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'User not authenticated',
-                ], 401);
-            }
-
-            $months = (int) $request->query('months', 12);
-
-            if ($months < 1 || $months > 36) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Months must be between 1 and 36',
-                ], 422);
-            }
-
-            $trend = $this->netWorthService->getNetWorthTrend($user, $months);
-
-            return response()->json([
-                'success' => true,
-                'data' => $trend,
-            ]);
-        } catch (\Exception $e) {
-            return $this->errorResponse($e, 'Fetching net worth trend');
-        }
-    }
-
-    /**
      * Get assets summary
      */
     public function getAssetsSummary(Request $request): JsonResponse

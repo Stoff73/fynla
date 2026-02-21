@@ -87,29 +87,6 @@ test('get breakdown endpoint returns asset percentages', function () {
         ->and($data['investments']['percentage'])->toEqual(20.0);
 });
 
-test('get trend endpoint returns 12 months by default', function () {
-    $response = $this->getJson('/api/net-worth/trend');
-
-    $response->assertStatus(200)
-        ->assertJson([
-            'success' => true,
-        ])
-        ->assertJsonCount(12, 'data');
-});
-
-test('get trend endpoint accepts months parameter', function () {
-    $response = $this->getJson('/api/net-worth/trend?months=6');
-
-    $response->assertStatus(200)
-        ->assertJsonCount(6, 'data');
-});
-
-test('get trend endpoint validates months parameter', function () {
-    $response = $this->getJson('/api/net-worth/trend?months=50');
-
-    $response->assertStatus(422);
-});
-
 test('get assets summary endpoint returns counts and totals', function () {
     Property::factory()->count(2)->create([
         'user_id' => $this->user->id,

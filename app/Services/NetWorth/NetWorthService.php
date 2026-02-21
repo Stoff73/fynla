@@ -212,33 +212,6 @@ class NetWorthService
     }
 
     /**
-     * Get net worth trend over specified number of months
-     */
-    public function getNetWorthTrend(User $user, int $months = 12): array
-    {
-        $trend = [];
-        $currentDate = Carbon::now();
-
-        // For now, generate current net worth
-        // In production, this would pull from historical snapshots
-        for ($i = $months - 1; $i >= 0; $i--) {
-            $date = $currentDate->copy()->subMonths($i);
-
-            // Calculate net worth for this month
-            // In production, this would come from stored snapshots
-            $netWorthData = $this->calculateNetWorth($user, $date);
-
-            $trend[] = [
-                'date' => $date->format('Y-m-d'),
-                'month' => $date->format('M Y'),
-                'net_worth' => $netWorthData['net_worth'],
-            ];
-        }
-
-        return $trend;
-    }
-
-    /**
      * Get asset breakdown with percentages
      */
     public function getAssetBreakdown(User $user): array
@@ -527,9 +500,19 @@ class NetWorthService
             });
 
         // Get joint savings accounts
-        // Note: ownership_type validation added to StoreSavingsAccountRequest
-        // Implementation pending: Query SavingsAccount model with ownership_type filter
-        $cashAccounts = collect([]);
+        $cashAccounts = SavingsAccount::where('user_id', $userId)
+            ->where('ownership_type', 'joint')
+            ->get()
+            ->map(function ($account) {
+                return [
+                    'type' => 'savings',
+                    'id' => $account->id,
+                    'description' => trim(($account->institution ?? '').(' - '.($account->account_type ?? '')), ' - '),
+                    'value' => (float) $account->current_balance,
+                    'ownership_percentage' => (float) ($account->ownership_percentage ?? 50),
+                    'co_owner' => $account->jointOwner ? $account->jointOwner->name : null,
+                ];
+            });
 
         // Get joint businesses
         $businesses = BusinessInterest::where('user_id', $userId)

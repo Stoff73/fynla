@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 use App\Models\Estate\Asset;
 use App\Models\Estate\Liability;
-use App\Models\Estate\NetWorthStatement;
 use App\Models\User;
 use App\Services\Estate\NetWorthAnalyzer;
 use App\Services\Shared\CrossModuleAssetAggregator;
@@ -174,42 +173,6 @@ describe('identifyConcentrationRisk', function () {
     });
 });
 
-describe('trackNetWorthTrend', function () {
-    it('returns trend data when historical statements exist', function () {
-        NetWorthStatement::create([
-            'user_id' => $this->user->id,
-            'statement_date' => Carbon::now()->subMonths(6),
-            'total_assets' => 500000,
-            'total_liabilities' => 200000,
-            'net_worth' => 300000,
-        ]);
-
-        NetWorthStatement::create([
-            'user_id' => $this->user->id,
-            'statement_date' => Carbon::now()->subMonths(3),
-            'total_assets' => 550000,
-            'total_liabilities' => 180000,
-            'net_worth' => 370000,
-        ]);
-
-        $result = $this->analyzer->trackNetWorthTrend($this->user->id, 12);
-
-        expect($result['has_history'])->toBe(true)
-            ->and($result['statements_count'])->toBe(2)
-            ->and($result['starting_net_worth'])->toBe(300000.0)
-            ->and($result['ending_net_worth'])->toBe(370000.0)
-            ->and($result['change'])->toBe(70000.0)
-            ->and(round($result['percent_change'], 2))->toBe(23.33);
-    });
-
-    it('returns no history message when no statements exist', function () {
-        $result = $this->analyzer->trackNetWorthTrend($this->user->id, 12);
-
-        expect($result['has_history'])->toBe(false)
-            ->and($result['message'])->toBe('No historical net worth statements found');
-    });
-});
-
 describe('generateSummary', function () {
     it('generates comprehensive net worth summary', function () {
         Asset::create([
@@ -230,7 +193,7 @@ describe('generateSummary', function () {
 
         $result = $this->analyzer->generateSummary($this->user->id);
 
-        expect($result)->toHaveKeys(['net_worth', 'concentration_risk', 'trend', 'health_score'])
+        expect($result)->toHaveKeys(['net_worth', 'concentration_risk', 'health_score'])
             ->and($result['net_worth']['net_worth'])->toBe(300000.0)
             ->and($result['health_score'])->toHaveKeys(['score', 'grade', 'factors']);
     });

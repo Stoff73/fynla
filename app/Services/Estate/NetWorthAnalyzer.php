@@ -6,7 +6,6 @@ namespace App\Services\Estate;
 
 use App\Models\Estate\Asset;
 use App\Models\Estate\Liability;
-use App\Models\Estate\NetWorthStatement;
 use App\Services\Shared\CrossModuleAssetAggregator;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -219,72 +218,6 @@ class NetWorthAnalyzer
     }
 
     /**
-     * Track net worth trend over time
-     */
-    public function trackNetWorthTrend(int $userId, int $months = 12): array
-    {
-        $startDate = Carbon::now()->subMonths($months);
-
-        $statements = NetWorthStatement::where('user_id', $userId)
-            ->where('statement_date', '>=', $startDate)
-            ->orderBy('statement_date', 'asc')
-            ->get();
-
-        if ($statements->isEmpty()) {
-            return [
-                'has_history' => false,
-                'message' => 'No historical net worth statements found',
-                'trend' => [],
-            ];
-        }
-
-        $trend = $statements->map(function ($statement) {
-            return [
-                'date' => $statement->statement_date->format('Y-m-d'),
-                'total_assets' => round($statement->total_assets, 2),
-                'total_liabilities' => round($statement->total_liabilities, 2),
-                'net_worth' => round($statement->net_worth, 2),
-            ];
-        })->toArray();
-
-        // Calculate overall change
-        $firstStatement = $statements->first();
-        $lastStatement = $statements->last();
-
-        $change = $lastStatement->net_worth - $firstStatement->net_worth;
-        $percentChange = $firstStatement->net_worth != 0
-            ? ($change / abs($firstStatement->net_worth)) * 100
-            : 0;
-
-        return [
-            'has_history' => true,
-            'period_months' => $months,
-            'statements_count' => $statements->count(),
-            'first_statement_date' => $firstStatement->statement_date->format('Y-m-d'),
-            'last_statement_date' => $lastStatement->statement_date->format('Y-m-d'),
-            'starting_net_worth' => round($firstStatement->net_worth, 2),
-            'ending_net_worth' => round($lastStatement->net_worth, 2),
-            'change' => round($change, 2),
-            'percent_change' => round($percentChange, 2),
-            'trend' => $trend,
-        ];
-    }
-
-    /**
-     * Save net worth statement
-     */
-    public function saveNetWorthStatement(int $userId, array $data): NetWorthStatement
-    {
-        return NetWorthStatement::create([
-            'user_id' => $userId,
-            'statement_date' => $data['statement_date'] ?? Carbon::now()->format('Y-m-d'),
-            'total_assets' => $data['total_assets'],
-            'total_liabilities' => $data['total_liabilities'],
-            'net_worth' => $data['net_worth'],
-        ]);
-    }
-
-    /**
      * Generate net worth summary
      */
     public function generateSummary(int $userId): array
@@ -292,7 +225,6 @@ class NetWorthAnalyzer
         $netWorth = $this->calculateNetWorth($userId);
         $assets = Asset::where('user_id', $userId)->get();
         $concentrationRisk = $this->identifyConcentrationRisk($assets);
-        $trend = $this->trackNetWorthTrend($userId, 12);
 
         // Calculate health score (0-100)
         $healthScore = $this->calculateNetWorthHealthScore($netWorth, $concentrationRisk);
@@ -300,7 +232,6 @@ class NetWorthAnalyzer
         return [
             'net_worth' => $netWorth,
             'concentration_risk' => $concentrationRisk,
-            'trend' => $trend,
             'health_score' => $healthScore,
         ];
     }

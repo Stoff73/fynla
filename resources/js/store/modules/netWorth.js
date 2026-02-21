@@ -13,7 +13,6 @@ const state = {
         hasDbPensions: false,
     },
     spouseOverview: null,
-    trend: [],
     assetsSummary: {
         pensions: { count: 0, total_value: 0, breakdown: { dc: 0, db: 0, state: 0 } },
         property: { count: 0, total_value: 0 },
@@ -57,10 +56,6 @@ const mutations = {
         state.spouseOverview = spouseData;
     },
 
-    SET_TREND(state, trend) {
-        state.trend = trend;
-    },
-
     SET_ASSETS_SUMMARY(state, summary) {
         state.assetsSummary = summary;
     },
@@ -100,7 +95,6 @@ const mutations = {
             hasDbPensions: false,
         };
         state.spouseOverview = null;
-        state.trend = [];
         state.assetsSummary = {
             pensions: { count: 0, total_value: 0, breakdown: { dc: 0, db: 0, state: 0 } },
             property: { count: 0, total_value: 0 },
@@ -219,27 +213,6 @@ const actions = {
         }
     },
 
-    async fetchTrend({ commit }, months = 12) {
-        commit('SET_LOADING', true);
-        commit('CLEAR_ERROR');
-
-        try {
-            const response = await netWorthService.getTrend(months);
-
-            if (response.success) {
-                commit('SET_TREND', response.data);
-            } else {
-                throw new Error(response.message || 'Failed to fetch net worth trend');
-            }
-        } catch (error) {
-            const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch net worth trend';
-            commit('SET_ERROR', errorMessage);
-            throw error;
-        } finally {
-            commit('SET_LOADING', false);
-        }
-    },
-
     async fetchAssetsSummary({ commit }) {
         commit('SET_LOADING', true);
         commit('CLEAR_ERROR');
@@ -333,10 +306,7 @@ const actions = {
             }
 
             // Also refresh related data
-            await Promise.all([
-                dispatch('fetchAssetsSummary'),
-                dispatch('fetchTrend'),
-            ]);
+            await dispatch('fetchAssetsSummary');
         } catch (error) {
             const errorMessage = error.response?.data?.message || error.message || 'Failed to refresh net worth';
             commit('SET_ERROR', errorMessage);
@@ -369,7 +339,6 @@ const actions = {
     async loadAllData({ dispatch }) {
         await Promise.all([
             dispatch('fetchOverview'),
-            dispatch('fetchTrend'),
             dispatch('fetchAssetsSummary'),
         ]);
     },
@@ -744,12 +713,6 @@ const getters = {
             percentage: ((value / total) * 100).toFixed(2),
         }));
     },
-
-    trendData: (state) => state.trend.map(item => ({
-        date: item.date,
-        month: item.month,
-        value: item.net_worth,
-    })),
 
     hasAssets: (state) => state.overview.totalAssets > 0,
 
