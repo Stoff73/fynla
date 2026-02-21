@@ -188,6 +188,9 @@ const PROBABILITY_COLORS = {
 
 export default {
   name: 'MonteCarloResults',
+
+  emits: ['close'],
+
   mixins: [currencyMixin],
 
   components: {

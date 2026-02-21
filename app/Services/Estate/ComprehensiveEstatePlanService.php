@@ -1207,4 +1207,12 @@ class ComprehensiveEstatePlanService
 
         return $steps;
     }
+
+    /**
+     * Invalidate estate plan cache for a user.
+     */
+    public function invalidateCache(User $user): void
+    {
+        $this->ihtCalculationService->invalidateCache($user);
+    }
 }

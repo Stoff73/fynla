@@ -100,12 +100,27 @@ class EstateController extends Controller
         $user = $request->user();
 
         try {
+            // Eager load relationships needed for IHT calculations
+            $user->load(['investmentAccounts', 'mortgages', 'properties', 'liabilities']);
+
+            // Also load spouse relationships if spouse is involved
+            $spouse = ($user->marital_status === 'married' && $user->spouse_id)
+                ? \App\Models\User::find($user->spouse_id)
+                : null;
+            if ($spouse) {
+                $spouse->load(['investmentAccounts', 'mortgages', 'properties', 'liabilities']);
+            }
+
             $plan = $this->comprehensiveEstatePlan->generateComprehensiveEstatePlan($user);
 
             return response()->json([
                 'success' => true,
                 'data' => $plan,
             ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['success' => false, 'message' => 'Record not found'], 404);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         } catch (\Exception $e) {
             return $this->errorResponse($e, 'Comprehensive estate plan generation');
         }
@@ -125,6 +140,10 @@ class EstateController extends Controller
                 'success' => true,
                 'data' => $netWorth,
             ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['success' => false, 'message' => 'Record not found'], 404);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         } catch (\Exception $e) {
             return $this->errorResponse($e, 'Net worth calculation');
         }
@@ -145,6 +164,10 @@ class EstateController extends Controller
                 'success' => true,
                 'data' => $cashFlow,
             ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['success' => false, 'message' => 'Record not found'], 404);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         } catch (\Exception $e) {
             return $this->errorResponse($e, 'Cash flow retrieval');
         }
@@ -172,6 +195,10 @@ class EstateController extends Controller
                 'message' => 'Asset created successfully',
                 'data' => $asset,
             ], 201);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['success' => false, 'message' => 'Record not found'], 404);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         } catch (\Exception $e) {
             return $this->errorResponse($e, 'Asset creation');
         }
@@ -263,6 +290,10 @@ class EstateController extends Controller
                 'message' => 'Liability created successfully',
                 'data' => $liability,
             ], 201);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['success' => false, 'message' => 'Record not found'], 404);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         } catch (\Exception $e) {
             return $this->errorResponse($e, 'Liability creation');
         }
@@ -354,6 +385,10 @@ class EstateController extends Controller
                 'message' => 'Gift created successfully',
                 'data' => $gift,
             ], 201);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['success' => false, 'message' => 'Record not found'], 404);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         } catch (\Exception $e) {
             return $this->errorResponse($e, 'Gift creation');
         }

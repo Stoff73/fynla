@@ -191,6 +191,8 @@
 export default {
   name: 'TaxOptimizationRecommendations',
 
+  emits: ['refresh', 'filter'],
+
   props: {
     recommendations: {
       type: Object,

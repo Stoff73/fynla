@@ -209,6 +209,8 @@
 export default {
   name: 'ISAOptimizationStrategy',
 
+  emits: ['refresh'],
+
   props: {
     strategy: {
       type: Object,

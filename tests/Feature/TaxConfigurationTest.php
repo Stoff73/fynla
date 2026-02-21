@@ -31,9 +31,21 @@ class TaxConfigurationTest extends TestCase
 
     private User $regularUser;
 
+    private string $currentTaxYear;
+
+    private string $previousTaxYear;
+
+    private string $nextTaxYear;
+
     protected function setUp(): void
     {
         parent::setUp();
+
+        // Calculate dynamic tax years (UK tax year runs April 6 - April 5)
+        $startYear = now()->month >= 4 ? now()->year : now()->year - 1;
+        $this->currentTaxYear = $startYear . '/' . ($startYear + 1 - 2000);
+        $this->previousTaxYear = ($startYear - 1) . '/' . ($startYear - 2000);
+        $this->nextTaxYear = ($startYear + 1) . '/' . ($startYear + 2 - 2000);
 
         // Seed roles and permissions (required for RBAC middleware)
         $this->seed(\Database\Seeders\RolesPermissionsSeeder::class);
@@ -65,12 +77,12 @@ class TaxConfigurationTest extends TestCase
     {
         // Create two tax configurations
         $config2024 = TaxConfiguration::factory()->create([
-            'tax_year' => '2024/25',
+            'tax_year' => $this->previousTaxYear,
             'is_active' => true,
         ]);
 
         $config2025 = TaxConfiguration::factory()->create([
-            'tax_year' => '2025/26',
+            'tax_year' => $this->currentTaxYear,
             'is_active' => false,
         ]);
 
@@ -83,7 +95,7 @@ class TaxConfigurationTest extends TestCase
                 'success' => true,
             ]);
 
-        // Verify 2025/26 is active and 2024/25 is inactive
+        // Verify current tax year is active and previous is inactive
         $this->assertTrue($config2025->fresh()->is_active);
         $this->assertFalse($config2024->fresh()->is_active);
     }
@@ -92,7 +104,7 @@ class TaxConfigurationTest extends TestCase
     {
         // Create two tax configurations with different values
         TaxConfiguration::factory()->create([
-            'tax_year' => '2024/25',
+            'tax_year' => $this->previousTaxYear,
             'is_active' => true,
             'config_data' => [
                 'income_tax' => [
@@ -102,7 +114,7 @@ class TaxConfigurationTest extends TestCase
         ]);
 
         $config2025 = TaxConfiguration::factory()->create([
-            'tax_year' => '2025/26',
+            'tax_year' => $this->currentTaxYear,
             'is_active' => false,
             'config_data' => [
                 'income_tax' => [
@@ -111,7 +123,7 @@ class TaxConfigurationTest extends TestCase
             ],
         ]);
 
-        // Activate 2025/26
+        // Activate current tax year
         $this->actingAs($this->admin)
             ->postJson("/api/tax-settings/{$config2025->id}/activate");
 
@@ -130,7 +142,7 @@ class TaxConfigurationTest extends TestCase
     public function test_tax_config_service_uses_active_config(): void
     {
         TaxConfiguration::factory()->create([
-            'tax_year' => '2025/26',
+            'tax_year' => $this->currentTaxYear,
             'is_active' => true,
         ]);
 
@@ -146,7 +158,7 @@ class TaxConfigurationTest extends TestCase
     public function test_iht_calculator_uses_active_tax_config(): void
     {
         TaxConfiguration::factory()->create([
-            'tax_year' => '2025/26',
+            'tax_year' => $this->currentTaxYear,
             'is_active' => true,
             'config_data' => [
                 'inheritance_tax' => [
@@ -170,12 +182,12 @@ class TaxConfigurationTest extends TestCase
     public function test_isa_tracker_uses_active_tax_config(): void
     {
         TaxConfiguration::factory()->create([
-            'tax_year' => '2025/26',
+            'tax_year' => $this->currentTaxYear,
             'is_active' => true,
         ]);
 
         $isaTracker = app(ISATracker::class);
-        $allowance = $isaTracker->getTotalAllowance('2025/26');
+        $allowance = $isaTracker->getTotalAllowance($this->currentTaxYear);
 
         // Should use ISA allowance from active config (£20,000)
         $this->assertEquals(20000.0, $allowance);
@@ -184,7 +196,7 @@ class TaxConfigurationTest extends TestCase
     public function test_annual_allowance_checker_uses_active_tax_config(): void
     {
         TaxConfiguration::factory()->create([
-            'tax_year' => '2025/26',
+            'tax_year' => $this->currentTaxYear,
             'is_active' => true,
         ]);
 
@@ -206,12 +218,12 @@ class TaxConfigurationTest extends TestCase
     {
         // Create historical and current configs
         $config2024 = TaxConfiguration::factory()->create([
-            'tax_year' => '2024/25',
+            'tax_year' => $this->previousTaxYear,
             'is_active' => false,
         ]);
 
         $config2025 = TaxConfiguration::factory()->create([
-            'tax_year' => '2025/26',
+            'tax_year' => $this->currentTaxYear,
             'is_active' => true,
         ]);
 
@@ -228,8 +240,8 @@ class TaxConfigurationTest extends TestCase
         // Verify both configs are returned
         $data = $response->json('data');
         $taxYears = collect($data)->pluck('tax_year')->toArray();
-        $this->assertContains('2024/25', $taxYears);
-        $this->assertContains('2025/26', $taxYears);
+        $this->assertContains($this->previousTaxYear, $taxYears);
+        $this->assertContains($this->currentTaxYear, $taxYears);
     }
 
     // =========================================================================
@@ -238,12 +250,16 @@ class TaxConfigurationTest extends TestCase
 
     public function test_admin_can_create_tax_config(): void
     {
+        // Calculate effective dates for next tax year
+        $startYear = now()->month >= 4 ? now()->year : now()->year - 1;
+        $nextStartYear = $startYear + 1;
+
         // Use correct endpoint: /api/tax-settings/create
         $response = $this->actingAs($this->admin)
             ->postJson('/api/tax-settings/create', [
-                'tax_year' => '2026/27',
-                'effective_from' => '2026-04-06',
-                'effective_to' => '2027-04-05',
+                'tax_year' => $this->nextTaxYear,
+                'effective_from' => ($nextStartYear) . '-04-06',
+                'effective_to' => ($nextStartYear + 1) . '-04-05',
                 'is_active' => false,
                 'config_data' => [
                     'income_tax' => [
@@ -310,7 +326,7 @@ class TaxConfigurationTest extends TestCase
             ]);
 
         $this->assertDatabaseHas('tax_configurations', [
-            'tax_year' => '2026/27',
+            'tax_year' => $this->nextTaxYear,
             'is_active' => false,
         ]);
     }
@@ -318,7 +334,7 @@ class TaxConfigurationTest extends TestCase
     public function test_admin_can_update_tax_config(): void
     {
         $config = TaxConfiguration::factory()->create([
-            'tax_year' => '2025/26',
+            'tax_year' => $this->currentTaxYear,
             'is_active' => false,
         ]);
 
@@ -341,8 +357,11 @@ class TaxConfigurationTest extends TestCase
 
     public function test_admin_can_delete_inactive_tax_config(): void
     {
+        $startYear = now()->month >= 4 ? now()->year : now()->year - 1;
+        $twoYearsAgo = ($startYear - 2) . '/' . ($startYear - 1 - 2000);
+
         $config = TaxConfiguration::factory()->create([
-            'tax_year' => '2023/24',
+            'tax_year' => $twoYearsAgo,
             'is_active' => false,
         ]);
 
@@ -362,7 +381,7 @@ class TaxConfigurationTest extends TestCase
     public function test_cannot_delete_active_tax_config(): void
     {
         $config = TaxConfiguration::factory()->create([
-            'tax_year' => '2025/26',
+            'tax_year' => $this->currentTaxYear,
             'is_active' => true,
         ]);
 
@@ -381,8 +400,10 @@ class TaxConfigurationTest extends TestCase
 
     public function test_duplicate_tax_config_endpoint(): void
     {
+        $startYear = now()->month >= 4 ? now()->year : now()->year - 1;
+
         $sourceConfig = TaxConfiguration::factory()->create([
-            'tax_year' => '2024/25',
+            'tax_year' => $this->previousTaxYear,
             'is_active' => true,
             'config_data' => [
                 'income_tax' => [
@@ -393,9 +414,9 @@ class TaxConfigurationTest extends TestCase
 
         $response = $this->actingAs($this->admin)
             ->postJson("/api/tax-settings/{$sourceConfig->id}/duplicate", [
-                'new_tax_year' => '2025/26',
-                'effective_from' => '2025-04-06',
-                'effective_to' => '2026-04-05',
+                'new_tax_year' => $this->currentTaxYear,
+                'effective_from' => $startYear . '-04-06',
+                'effective_to' => ($startYear + 1) . '-04-05',
             ]);
 
         $response->assertStatus(201)
@@ -404,7 +425,7 @@ class TaxConfigurationTest extends TestCase
             ]);
 
         // Verify duplicated config exists with same config_data
-        $duplicate = TaxConfiguration::where('tax_year', '2025/26')->first();
+        $duplicate = TaxConfiguration::where('tax_year', $this->currentTaxYear)->first();
         $this->assertNotNull($duplicate);
         $this->assertFalse($duplicate->is_active); // Starts as inactive
         $this->assertEquals(12570, $duplicate->config_data['income_tax']['personal_allowance']);
@@ -430,18 +451,20 @@ class TaxConfigurationTest extends TestCase
 
     public function test_only_one_tax_year_can_be_active(): void
     {
+        $startYear = now()->month >= 4 ? now()->year : now()->year - 1;
+
         // Create first active config
         TaxConfiguration::factory()->create([
-            'tax_year' => '2024/25',
+            'tax_year' => $this->previousTaxYear,
             'is_active' => true,
         ]);
 
         // Try to create second active config
         $response = $this->actingAs($this->admin)
             ->postJson('/api/tax-settings/create', [
-                'tax_year' => '2025/26',
-                'effective_from' => '2025-04-06',
-                'effective_to' => '2026-04-05',
+                'tax_year' => $this->currentTaxYear,
+                'effective_from' => $startYear . '-04-06',
+                'effective_to' => ($startYear + 1) . '-04-05',
                 'is_active' => true,
                 'config_data' => [
                     'income_tax' => [
@@ -508,8 +531,8 @@ class TaxConfigurationTest extends TestCase
         $this->assertEquals(1, TaxConfiguration::where('is_active', true)->count());
 
         // Verify the new config is active and old one is not
-        $this->assertFalse(TaxConfiguration::where('tax_year', '2024/25')->first()->is_active);
-        $this->assertTrue(TaxConfiguration::where('tax_year', '2025/26')->first()->is_active);
+        $this->assertFalse(TaxConfiguration::where('tax_year', $this->previousTaxYear)->first()->is_active);
+        $this->assertTrue(TaxConfiguration::where('tax_year', $this->currentTaxYear)->first()->is_active);
     }
 
     public function test_non_admin_cannot_access_tax_config_endpoints(): void
@@ -517,7 +540,7 @@ class TaxConfigurationTest extends TestCase
         // Test create endpoint
         $response = $this->actingAs($this->regularUser)
             ->postJson('/api/tax-settings/create', [
-                'tax_year' => '2026/27',
+                'tax_year' => $this->nextTaxYear,
             ]);
 
         $response->assertStatus(403);
@@ -525,11 +548,13 @@ class TaxConfigurationTest extends TestCase
 
     public function test_tax_year_format_validation(): void
     {
+        $startYear = now()->month >= 4 ? now()->year : now()->year - 1;
+
         $response = $this->actingAs($this->admin)
             ->postJson('/api/tax-settings/create', [
-                'tax_year' => '2025-2026', // Wrong format
-                'effective_from' => '2025-04-06',
-                'effective_to' => '2026-04-05',
+                'tax_year' => $startYear . '-' . ($startYear + 1), // Wrong format (dash instead of slash)
+                'effective_from' => $startYear . '-04-06',
+                'effective_to' => ($startYear + 1) . '-04-05',
                 'config_data' => [
                     'income_tax' => ['personal_allowance' => 12570, 'bands' => []],
                 ],
@@ -541,11 +566,13 @@ class TaxConfigurationTest extends TestCase
 
     public function test_effective_to_must_be_after_effective_from(): void
     {
+        $startYear = now()->month >= 4 ? now()->year : now()->year - 1;
+
         $response = $this->actingAs($this->admin)
             ->postJson('/api/tax-settings/create', [
-                'tax_year' => '2025/26',
-                'effective_from' => '2026-04-05',
-                'effective_to' => '2025-04-06', // Before effective_from
+                'tax_year' => $this->currentTaxYear,
+                'effective_from' => ($startYear + 1) . '-04-05',
+                'effective_to' => $startYear . '-04-06', // Before effective_from
                 'config_data' => [
                     'income_tax' => ['personal_allowance' => 12570, 'bands' => []],
                 ],
@@ -557,15 +584,17 @@ class TaxConfigurationTest extends TestCase
 
     public function test_tax_year_must_be_unique(): void
     {
+        $startYear = now()->month >= 4 ? now()->year : now()->year - 1;
+
         TaxConfiguration::factory()->create([
-            'tax_year' => '2025/26',
+            'tax_year' => $this->currentTaxYear,
         ]);
 
         $response = $this->actingAs($this->admin)
             ->postJson('/api/tax-settings/create', [
-                'tax_year' => '2025/26', // Duplicate
-                'effective_from' => '2025-04-06',
-                'effective_to' => '2026-04-05',
+                'tax_year' => $this->currentTaxYear, // Duplicate
+                'effective_from' => $startYear . '-04-06',
+                'effective_to' => ($startYear + 1) . '-04-05',
                 'config_data' => [
                     'income_tax' => ['personal_allowance' => 12570, 'bands' => []],
                 ],

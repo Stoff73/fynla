@@ -24,10 +24,10 @@ return [
     'allowed_origins' => array_filter(array_unique(array_merge(
         explode(',', env('ALLOWED_ORIGINS', '')),
         [
-            env('FRONTEND_URL'),
-            env('APP_URL'),
+            env('FRONTEND_URL', ''),
+            env('APP_URL', ''),
         ]
-    ))),
+    )), fn($origin) => !empty($origin) && (env('APP_ENV') === 'local' || !str_contains($origin, '*'))),
 
     'allowed_origins_patterns' => [],
 

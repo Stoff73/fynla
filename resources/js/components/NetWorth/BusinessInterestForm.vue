@@ -583,6 +583,8 @@
 export default {
   name: 'BusinessInterestForm',
 
+  emits: ['save', 'close'],
+
   props: {
     business: {
       type: Object,

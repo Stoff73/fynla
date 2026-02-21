@@ -220,6 +220,8 @@ import { mapGetters } from 'vuex';
 export default {
   name: 'DBPensionForm',
 
+  emits: ['save', 'close'],
+
   props: {
     pension: {
       type: Object,

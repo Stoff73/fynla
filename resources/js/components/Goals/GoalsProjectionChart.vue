@@ -138,6 +138,9 @@ import EventIcon from './EventIcon.vue';
 
 export default {
   name: 'GoalsProjectionChart',
+
+  emits: ['event-click'],
+
   mixins: [currencyMixin],
 
   components: {

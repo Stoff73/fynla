@@ -44,6 +44,9 @@ import { CHART_COLORS, TEXT_COLORS, BORDER_COLORS } from '@/constants/designSyst
 
 export default {
   name: 'GeographicAllocationMap',
+
+  emits: ['view-details'],
+
   mixins: [currencyMixin],
 
   components: {

@@ -227,6 +227,9 @@ import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'TrustPlanning',
+
+  emits: ['switch-tab'],
+
   mixins: [currencyMixin],
 
   components: {

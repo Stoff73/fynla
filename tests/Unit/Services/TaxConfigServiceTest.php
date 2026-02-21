@@ -22,10 +22,19 @@ class TaxConfigServiceTest extends TestCase
 
     private TaxConfigService $service;
 
+    private string $currentTaxYear;
+
+    private string $previousTaxYear;
+
     protected function setUp(): void
     {
         parent::setUp();
         $this->service = new TaxConfigService;
+
+        // Calculate dynamic tax years (UK tax year runs April 6 - April 5)
+        $startYear = now()->month >= 4 ? now()->year : now()->year - 1;
+        $this->currentTaxYear = $startYear . '/' . ($startYear + 1 - 2000);
+        $this->previousTaxYear = ($startYear - 1) . '/' . ($startYear - 2000);
     }
 
     /**
@@ -45,7 +54,7 @@ class TaxConfigServiceTest extends TestCase
         $this->assertArrayHasKey('income_tax', $config);
         $this->assertArrayHasKey('pension', $config);
         $this->assertArrayHasKey('inheritance_tax', $config);
-        $this->assertEquals('2025/26', $config['tax_year']);
+        $this->assertEquals($this->currentTaxYear, $config['tax_year']);
     }
 
     /**
@@ -151,7 +160,7 @@ class TaxConfigServiceTest extends TestCase
         $taxYear = $this->service->getTaxYear();
 
         // Assert
-        $this->assertEquals('2025/26', $taxYear);
+        $this->assertEquals($this->currentTaxYear, $taxYear);
     }
 
     /**
@@ -166,7 +175,8 @@ class TaxConfigServiceTest extends TestCase
         $effectiveFrom = $this->service->getEffectiveFrom();
 
         // Assert
-        $this->assertEquals('2025-04-06', $effectiveFrom);
+        $startYear = now()->month >= 4 ? now()->year : now()->year - 1;
+        $this->assertEquals($startYear . '-04-06', $effectiveFrom);
     }
 
     /**
@@ -181,7 +191,8 @@ class TaxConfigServiceTest extends TestCase
         $effectiveTo = $this->service->getEffectiveTo();
 
         // Assert
-        $this->assertEquals('2026-04-05', $effectiveTo);
+        $startYear = now()->month >= 4 ? now()->year : now()->year - 1;
+        $this->assertEquals(($startYear + 1) . '-04-05', $effectiveTo);
     }
 
     /**
@@ -192,12 +203,14 @@ class TaxConfigServiceTest extends TestCase
         // Arrange
         $this->createActiveTaxConfig();
 
+        $startYear = now()->month >= 4 ? now()->year : now()->year - 1;
+
         // Act & Assert
-        $this->assertTrue($this->service->isInCurrentTaxYear('2025-04-06')); // Start date
-        $this->assertTrue($this->service->isInCurrentTaxYear('2025-10-15')); // Mid-year
-        $this->assertTrue($this->service->isInCurrentTaxYear('2026-04-05')); // End date
-        $this->assertFalse($this->service->isInCurrentTaxYear('2025-04-05')); // Before
-        $this->assertFalse($this->service->isInCurrentTaxYear('2026-04-06')); // After
+        $this->assertTrue($this->service->isInCurrentTaxYear($startYear . '-04-06')); // Start date
+        $this->assertTrue($this->service->isInCurrentTaxYear($startYear . '-10-15')); // Mid-year
+        $this->assertTrue($this->service->isInCurrentTaxYear(($startYear + 1) . '-04-05')); // End date
+        $this->assertFalse($this->service->isInCurrentTaxYear($startYear . '-04-05')); // Before
+        $this->assertFalse($this->service->isInCurrentTaxYear(($startYear + 1) . '-04-06')); // After
     }
 
     /**
@@ -445,8 +458,8 @@ class TaxConfigServiceTest extends TestCase
         $taxYear2 = $this->service->getTaxYear();
 
         // Assert: All should return correct values (proving cache works)
-        $this->assertEquals('2025/26', $taxYear1);
-        $this->assertEquals('2025/26', $taxYear2);
+        $this->assertEquals($this->currentTaxYear, $taxYear1);
+        $this->assertEquals($this->currentTaxYear, $taxYear2);
         $this->assertIsArray($incomeTax);
         $this->assertIsArray($pension);
 
@@ -468,14 +481,14 @@ class TaxConfigServiceTest extends TestCase
 
         // Update the active config to a different year
         TaxConfiguration::where('is_active', true)->update(['is_active' => false]);
-        $this->createActiveTaxConfig('2024/25');
+        $this->createActiveTaxConfig($this->previousTaxYear);
 
         // Get tax year again (should reload from DB)
         $taxYearAfter = $this->service->getTaxYear();
 
         // Assert
-        $this->assertEquals('2025/26', $taxYearBefore);
-        $this->assertEquals('2024/25', $taxYearAfter);
+        $this->assertEquals($this->currentTaxYear, $taxYearBefore);
+        $this->assertEquals($this->previousTaxYear, $taxYearAfter);
     }
 
     /**
@@ -491,7 +504,7 @@ class TaxConfigServiceTest extends TestCase
 
         // Assert
         $this->assertInstanceOf(TaxConfiguration::class, $model);
-        $this->assertEquals('2025/26', $model->tax_year);
+        $this->assertEquals($this->currentTaxYear, $model->tax_year);
         $this->assertTrue($model->is_active);
     }
 
@@ -502,17 +515,25 @@ class TaxConfigServiceTest extends TestCase
     /**
      * Create an active tax configuration for testing
      */
-    private function createActiveTaxConfig(string $taxYear = '2025/26'): TaxConfiguration
+    private function createActiveTaxConfig(?string $taxYear = null): TaxConfiguration
     {
+        $taxYear = $taxYear ?? $this->currentTaxYear;
+
+        // Parse the tax year string (e.g., '2025/26') to derive effective dates
+        $parts = explode('/', $taxYear);
+        $fullStartYear = (int) $parts[0];
+        $effectiveFrom = $fullStartYear . '-04-06';
+        $effectiveTo = ($fullStartYear + 1) . '-04-05';
+
         return TaxConfiguration::create([
             'tax_year' => $taxYear,
-            'effective_from' => $taxYear === '2025/26' ? '2025-04-06' : '2024-04-06',
-            'effective_to' => $taxYear === '2025/26' ? '2026-04-05' : '2025-04-05',
+            'effective_from' => $effectiveFrom,
+            'effective_to' => $effectiveTo,
             'is_active' => true,
             'config_data' => [
                 'tax_year' => $taxYear,
-                'effective_from' => $taxYear === '2025/26' ? '2025-04-06' : '2024-04-06',
-                'effective_to' => $taxYear === '2025/26' ? '2026-04-05' : '2025-04-05',
+                'effective_from' => $effectiveFrom,
+                'effective_to' => $effectiveTo,
 
                 'income_tax' => [
                     'personal_allowance' => 12570,

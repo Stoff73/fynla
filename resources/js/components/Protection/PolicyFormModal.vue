@@ -470,6 +470,8 @@
 export default {
   name: 'PolicyFormModal',
 
+  emits: ['save', 'close'],
+
   props: {
     policy: {
       type: Object,

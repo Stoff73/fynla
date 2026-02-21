@@ -503,6 +503,8 @@ import { currencyMixin } from '@/mixins/currencyMixin';
 export default {
   name: 'CurrentSituation',
 
+  emits: ['add-policy', 'edit-policy', 'refresh-data'],
+
   mixins: [currencyMixin],
 
   components: {

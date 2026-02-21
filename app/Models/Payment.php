@@ -12,10 +12,18 @@ class Payment extends Model
 {
     use HasFactory;
 
-    protected $guarded = ['id'];
+    protected $fillable = [
+        'subscription_id',
+        'user_id',
+        'revolut_order_id',
+        'amount',
+        'currency',
+        'status',
+        'revolut_payment_data',
+    ];
 
     protected $casts = [
-        'amount' => 'integer',
+        'amount' => 'float',
         'revolut_payment_data' => 'array',
     ];
 

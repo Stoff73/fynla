@@ -259,6 +259,9 @@ import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'HoldingForm',
+
+  emits: ['save', 'close'],
+
   mixins: [currencyMixin],
 
   props: {

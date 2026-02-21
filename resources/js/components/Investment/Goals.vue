@@ -183,6 +183,8 @@ import GoalForm from './GoalForm.vue';
 export default {
   name: 'Goals',
 
+  emits: ['view-projection'],
+
   components: {
     GoalForm,
   },

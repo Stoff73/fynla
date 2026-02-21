@@ -92,6 +92,8 @@ import StatePensionForm from './StatePensionForm.vue';
 export default {
   name: 'UnifiedPensionForm',
 
+  emits: ['save', 'close'],
+
   components: {
     DCPensionForm,
     DBPensionForm,

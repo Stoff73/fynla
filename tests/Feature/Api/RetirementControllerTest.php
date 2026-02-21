@@ -135,7 +135,7 @@ describe('DELETE /api/retirement/pensions/dc/{id}', function () {
                 'success' => true,
             ]);
 
-        $this->assertDatabaseMissing('dc_pensions', [
+        $this->assertSoftDeleted('dc_pensions', [
             'id' => $pension->id,
         ]);
     });

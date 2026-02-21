@@ -131,7 +131,7 @@ describe('Life Insurance Policies', function () {
         $response = $this->actingAs($user)->deleteJson("/api/protection/policies/life/{$policy->id}");
 
         $response->assertStatus(200);
-        $this->assertDatabaseMissing('life_insurance_policies', ['id' => $policy->id]);
+        $this->assertSoftDeleted('life_insurance_policies', ['id' => $policy->id]);
     });
 
     it('prevents access to other users policies', function () {

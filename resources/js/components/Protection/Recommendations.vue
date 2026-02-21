@@ -66,6 +66,8 @@ import RecommendationCard from './RecommendationCard.vue';
 export default {
   name: 'Recommendations',
 
+  emits: ['recommendation-completed'],
+
   components: {
     RecommendationCard,
   },

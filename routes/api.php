@@ -91,10 +91,10 @@ Route::prefix('auth')->group(function () {
     Route::prefix('password-reset')->group(function () {
         Route::post('/request', [PasswordResetController::class, 'request'])->middleware('throttle:3,1');
         Route::post('/verify-email', [PasswordResetController::class, 'verifyEmail'])->middleware('throttle:10,1');
-        Route::post('/resend-code', [PasswordResetController::class, 'resendCode'])->middleware('throttle:5,1');
+        Route::post('/resend-code', [PasswordResetController::class, 'resendCode'])->middleware('throttle:3,1');
         Route::post('/verify-mfa', [PasswordResetController::class, 'verifyMfa'])->middleware('throttle:10,1');
-        Route::post('/mfa-recovery', [PasswordResetController::class, 'useMfaRecovery'])->middleware('throttle:5,1');
-        Route::post('/reset', [PasswordResetController::class, 'reset'])->middleware('throttle:5,1');
+        Route::post('/mfa-recovery', [PasswordResetController::class, 'useMfaRecovery'])->middleware('throttle:3,1');
+        Route::post('/reset', [PasswordResetController::class, 'reset'])->middleware('throttle:3,1');
     });
 
     Route::middleware('auth:sanctum')->group(function () {
@@ -451,7 +451,7 @@ Route::middleware('auth:sanctum')->prefix('investment')->group(function () {
     Route::get('/portfolio-strategy/account/{accountId}', [PortfolioStrategyController::class, 'forAccount']);
 
     // Monte Carlo simulation
-    Route::post('/monte-carlo', [InvestmentController::class, 'startMonteCarlo']);
+    Route::post('/monte-carlo', [InvestmentController::class, 'startMonteCarlo'])->middleware('throttle:10,1');
     Route::get('/monte-carlo/{jobId}', [InvestmentController::class, 'getMonteCarloResults']);
 
     // Portfolio projections (Performance tab)
@@ -487,7 +487,7 @@ Route::middleware('auth:sanctum')->prefix('investment')->group(function () {
     Route::post('/risk-profile', [InvestmentController::class, 'storeOrUpdateRiskProfile']);
 
     // Portfolio Optimization & Modern Portfolio Theory
-    Route::prefix('optimization')->group(function () {
+    Route::prefix('optimization')->middleware('throttle:10,1')->group(function () {
         // Efficient frontier calculation
         Route::post('/efficient-frontier', [PortfolioOptimizationController::class, 'calculateEfficientFrontier']);
         Route::get('/current-position', [PortfolioOptimizationController::class, 'getCurrentPosition']);

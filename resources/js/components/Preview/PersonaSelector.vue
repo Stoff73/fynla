@@ -141,6 +141,7 @@ import { mapGetters, mapActions } from 'vuex';
 
 export default {
     name: 'PersonaSelector',
+    emits: ['persona-selected'],
 
     props: {
         variant: {

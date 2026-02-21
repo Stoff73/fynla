@@ -416,7 +416,7 @@ describe('clearCache', function () {
         $this->agent->analyze($this->user->id);
 
         // Verify cache is populated by checking the cache key exists
-        $cacheKey = "goalsagent_{$this->user->id}_analysis";
+        $cacheKey = "v1_goalsagent_{$this->user->id}_analysis";
         expect(Cache::has($cacheKey))->toBeTrue();
 
         // Clear the cache

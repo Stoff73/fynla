@@ -160,6 +160,9 @@ import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'GoalCard',
+
+  emits: ['edit', 'delete', 'run-monte-carlo', 'view-chart'],
+
   mixins: [currencyMixin],
 
   props: {

@@ -230,6 +230,12 @@ class SavingsController extends Controller
             Cache::forget("savings_analysis_{$user->id}");
             $this->netWorthService->invalidateCache($user->id);
 
+            // Also invalidate cache for joint owner if applicable
+            if ($account->joint_owner_id) {
+                Cache::forget("net_worth_overview_{$account->joint_owner_id}");
+                Cache::forget("net_worth_breakdown_{$account->joint_owner_id}");
+            }
+
             // Add calculated fields to response using resource
             $accountData = (new SavingsAccountResource($account))->toArray(request());
             $accountData['user_share'] = $this->calculateUserShare($account, $user->id);
@@ -463,7 +469,7 @@ class SavingsController extends Controller
     /**
      * Get all goals for authenticated user
      *
-     * @deprecated Use Goals module (GoalsController) instead. Retained for backwards compatibility.
+     * @deprecated Since v0.7.0. Use Goals module (GoalsController) instead. Remove by v1.0.0
      */
     public function indexGoals(Request $request): JsonResponse
     {
@@ -479,7 +485,7 @@ class SavingsController extends Controller
     /**
      * Store a new savings goal
      *
-     * @deprecated Use Goals module (GoalsController) instead. Retained for backwards compatibility.
+     * @deprecated Since v0.7.0. Use Goals module (GoalsController) instead. Remove by v1.0.0
      */
     public function storeGoal(StoreSavingsGoalRequest $request): JsonResponse
     {
@@ -508,7 +514,7 @@ class SavingsController extends Controller
     /**
      * Update a savings goal
      *
-     * @deprecated Use Goals module (GoalsController) instead. Retained for backwards compatibility.
+     * @deprecated Since v0.7.0. Use Goals module (GoalsController) instead. Remove by v1.0.0
      */
     public function updateGoal(UpdateSavingsGoalRequest $request, int $id): JsonResponse
     {
@@ -542,7 +548,7 @@ class SavingsController extends Controller
     /**
      * Delete a savings goal
      *
-     * @deprecated Use Goals module (GoalsController) instead. Retained for backwards compatibility.
+     * @deprecated Since v0.7.0. Use Goals module (GoalsController) instead. Remove by v1.0.0
      */
     public function destroyGoal(Request $request, int $id): JsonResponse
     {
@@ -575,7 +581,7 @@ class SavingsController extends Controller
     /**
      * Update progress for a savings goal
      *
-     * @deprecated Use Goals module (GoalsController) instead. Retained for backwards compatibility.
+     * @deprecated Since v0.7.0. Use Goals module (GoalsController) instead. Remove by v1.0.0
      */
     public function updateGoalProgress(Request $request, int $id): JsonResponse
     {

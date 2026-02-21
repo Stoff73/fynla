@@ -318,6 +318,9 @@ import { CHART_COLORS, TEXT_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'HoldingsTable',
+
+  emits: ['add-holding', 'edit-holding', 'delete-holding'],
+
   mixins: [currencyMixin],
 
   props: {

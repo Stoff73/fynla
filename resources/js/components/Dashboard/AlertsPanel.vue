@@ -137,6 +137,7 @@
 <script>
 export default {
   name: 'AlertsPanel',
+  emits: ['dismiss', 'show-all'],
 
   props: {
     alerts: {

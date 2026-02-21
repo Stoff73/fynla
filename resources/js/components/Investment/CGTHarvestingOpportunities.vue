@@ -172,6 +172,8 @@
 export default {
   name: 'CGTHarvestingOpportunities',
 
+  emits: ['refresh'],
+
   props: {
     opportunities: {
       type: Object,

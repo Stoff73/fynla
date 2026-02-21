@@ -105,6 +105,7 @@
 <script>
 export default {
   name: 'ProfileCompletenessAlert',
+  emits: ['dismissed'],
 
   props: {
     completenessData: {

@@ -40,8 +40,12 @@ class PreviewWriteInterceptor
         'api/auth/register',      // Allow preview users to create real accounts
         'api/auth/verify-code',   // Required for registration verification
         'api/auth/resend-code',   // Required for registration verification
-        'api/auth/forgot-password', // Allow password reset
-        'api/auth/reset-password',  // Allow password reset
+        'api/auth/password-reset/request',       // Allow password reset
+        'api/auth/password-reset/verify-email',  // Allow password reset
+        'api/auth/password-reset/resend-code',   // Allow password reset
+        'api/auth/password-reset/verify-mfa',    // Allow password reset
+        'api/auth/password-reset/mfa-recovery',  // Allow password reset
+        'api/auth/password-reset/reset',         // Allow password reset
         'api/onboarding',         // Allow onboarding to work in preview mode
         'api/documents/upload',   // Allow document upload & AI extraction
         'api/documents/upload-only', // Allow document upload without extraction

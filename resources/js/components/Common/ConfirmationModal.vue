@@ -79,6 +79,7 @@
 <script>
 export default {
   name: 'ConfirmationModal',
+  emits: ['confirm', 'cancel'],
 
   props: {
     title: {

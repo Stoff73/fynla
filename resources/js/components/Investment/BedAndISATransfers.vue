@@ -223,6 +223,8 @@
 export default {
   name: 'BedAndISATransfers',
 
+  emits: ['refresh'],
+
   props: {
     opportunities: {
       type: Object,

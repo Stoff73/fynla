@@ -51,7 +51,7 @@ describe('Protection Workflow Integration', function () {
             'sum_assured' => 400000,
             'premium_amount' => 75,
             'premium_frequency' => 'monthly',
-            'policy_start_date' => '2023-01-01',
+            'policy_start_date' => now()->subYears(3)->format('Y-m-d'),
             'policy_term_years' => 25,
             'in_trust' => true,
         ];
@@ -66,7 +66,7 @@ describe('Protection Workflow Integration', function () {
             'sum_assured' => 150000,
             'premium_amount' => 85,
             'premium_frequency' => 'monthly',
-            'policy_start_date' => '2023-06-01',
+            'policy_start_date' => now()->subYears(2)->subMonths(6)->format('Y-m-d'),
             'policy_term_years' => 20,
         ];
 
@@ -82,7 +82,7 @@ describe('Protection Workflow Integration', function () {
             'benefit_period_months' => 24,
             'premium_amount' => 55,
             'premium_frequency' => 'monthly',
-            'policy_start_date' => '2023-03-01',
+            'policy_start_date' => now()->subYears(3)->addMonths(2)->format('Y-m-d'),
         ];
 
         $incomeResponse = $this->actingAs($user)->postJson('/api/protection/policies/income-protection', $incomeData);
@@ -161,7 +161,7 @@ describe('Protection Workflow Integration', function () {
             'deferred_period_weeks' => 8,
             'premium_amount' => 45,
             'premium_frequency' => 'monthly',
-            'policy_start_date' => '2024-01-01',
+            'policy_start_date' => now()->subYears(2)->format('Y-m-d'),
             'coverage_type' => 'accident_and_sickness',
         ];
 

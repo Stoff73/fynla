@@ -52,16 +52,16 @@ class PersonalAccountsController extends Controller
         $user = $request->user();
 
         $startDate = $request->has('start_date')
-            ? Carbon::parse($request->input('start_date'))
-            : Carbon::now()->startOfYear();
+            ? Carbon::parse($request->input('start_date'))->setTimezone(config('app.timezone'))
+            : Carbon::now()->setTimezone(config('app.timezone'))->startOfYear();
 
         $endDate = $request->has('end_date')
-            ? Carbon::parse($request->input('end_date'))
-            : Carbon::now()->endOfYear();
+            ? Carbon::parse($request->input('end_date'))->setTimezone(config('app.timezone'))
+            : Carbon::now()->setTimezone(config('app.timezone'))->endOfYear();
 
         $asOfDate = $request->has('as_of_date')
-            ? Carbon::parse($request->input('as_of_date'))
-            : Carbon::now();
+            ? Carbon::parse($request->input('as_of_date'))->setTimezone(config('app.timezone'))
+            : Carbon::now()->setTimezone(config('app.timezone'));
 
         // Calculate all three statements for the user
         $profitAndLoss = $this->personalAccountsService->calculateProfitAndLoss(

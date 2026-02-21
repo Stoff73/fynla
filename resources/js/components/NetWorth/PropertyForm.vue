@@ -201,10 +201,12 @@
 </template>
 
 <script>
-import axios from 'axios';
+import familyMembersService from '@/services/familyMembersService';
 
 export default {
   name: 'PropertyForm',
+
+  emits: ['close', 'save'],
 
   props: {
     show: {
@@ -277,8 +279,8 @@ export default {
   methods: {
     async loadFamilyMembers() {
       try {
-        const response = await axios.get('/api/family-members');
-        const familyMembers = response.data.data?.family_members || [];
+        const response = await familyMembersService.getFamilyMembers();
+        const familyMembers = response.data?.family_members || response.family_members || [];
         this.familyMembers = familyMembers.filter(member => member.user_id !== null);
       } catch (error) {
         console.error('Error loading family members:', error);

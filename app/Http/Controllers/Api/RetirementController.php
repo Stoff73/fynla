@@ -291,15 +291,7 @@ class RetirementController extends Controller
     public function updateDCPension(StoreDCPensionRequest $request, int $id): JsonResponse
     {
         $user = $request->user();
-        $pension = DCPension::findOrFail($id);
-
-        // Check authorization
-        if ($pension->user_id !== $user->id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized access to this pension',
-            ], 403);
-        }
+        $pension = DCPension::where('user_id', $user->id)->findOrFail($id);
 
         $pension->update($request->validated());
 
@@ -319,15 +311,7 @@ class RetirementController extends Controller
     public function destroyDCPension(Request $request, int $id): JsonResponse
     {
         $user = $request->user();
-        $pension = DCPension::findOrFail($id);
-
-        // Check authorization
-        if ($pension->user_id !== $user->id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized access to this pension',
-            ], 403);
-        }
+        $pension = DCPension::where('user_id', $user->id)->findOrFail($id);
 
         $pension->delete();
 
@@ -367,15 +351,7 @@ class RetirementController extends Controller
     public function updateDBPension(StoreDBPensionRequest $request, int $id): JsonResponse
     {
         $user = $request->user();
-        $pension = DBPension::findOrFail($id);
-
-        // Check authorization
-        if ($pension->user_id !== $user->id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized access to this pension',
-            ], 403);
-        }
+        $pension = DBPension::where('user_id', $user->id)->findOrFail($id);
 
         $pension->update($request->validated());
 
@@ -395,15 +371,7 @@ class RetirementController extends Controller
     public function destroyDBPension(Request $request, int $id): JsonResponse
     {
         $user = $request->user();
-        $pension = DBPension::findOrFail($id);
-
-        // Check authorization
-        if ($pension->user_id !== $user->id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized access to this pension',
-            ], 403);
-        }
+        $pension = DBPension::where('user_id', $user->id)->findOrFail($id);
 
         $pension->delete();
 
@@ -455,13 +423,7 @@ class RetirementController extends Controller
 
         // If a specific pension ID is provided, verify ownership
         if ($dcPensionId) {
-            $pension = DCPension::findOrFail($dcPensionId);
-            if ($pension->user_id !== $user->id) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Unauthorized access to this pension',
-                ], 403);
-            }
+            $pension = DCPension::where('user_id', $user->id)->findOrFail($dcPensionId);
         }
 
         $analysis = $this->agent->analyzeDCPensionPortfolio($user->id, $dcPensionId);

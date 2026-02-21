@@ -463,6 +463,9 @@ import { PRIMARY_COLORS, SUCCESS_COLORS, WARNING_COLORS } from '@/constants/desi
 
 export default {
   name: 'GiftingStrategy',
+
+  emits: ['switch-tab'],
+
   mixins: [currencyMixin],
 
   components: {

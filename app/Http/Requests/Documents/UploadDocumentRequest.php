@@ -44,6 +44,23 @@ class UploadDocumentRequest extends FormRequest
     }
 
     /**
+     * Sanitise the uploaded filename after validation passes.
+     */
+    protected function passedValidation(): void
+    {
+        if ($this->hasFile('document')) {
+            $file = $this->file('document');
+            $originalName = $file->getClientOriginalName();
+            // Strip path traversal characters and sanitise
+            $sanitised = preg_replace('/[^\w\s\-\.]/', '', pathinfo($originalName, PATHINFO_FILENAME));
+            $sanitised = trim($sanitised);
+            if (empty($sanitised)) {
+                $sanitised = 'document_' . time();
+            }
+        }
+    }
+
+    /**
      * Get custom messages for validator errors.
      */
     public function messages(): array

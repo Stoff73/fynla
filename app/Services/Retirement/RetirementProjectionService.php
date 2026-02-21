@@ -637,4 +637,14 @@ class RetirementProjectionService
 
         return 'Critical';
     }
+
+    /**
+     * Invalidate retirement projection cache for a user.
+     */
+    public function invalidateCache(int $userId): void
+    {
+        \Illuminate\Support\Facades\Cache::forget("retirement_projection_{$userId}");
+        \Illuminate\Support\Facades\Cache::forget("retirement_income_{$userId}");
+        \Illuminate\Support\Facades\Cache::forget("retirement_analysis_{$userId}");
+    }
 }

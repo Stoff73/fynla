@@ -199,7 +199,7 @@ class MortgageControllerTest extends TestCase
                 'success' => true,
             ]);
 
-        $this->assertDatabaseMissing('mortgages', [
+        $this->assertSoftDeleted('mortgages', [
             'id' => $mortgage->id,
         ]);
     }

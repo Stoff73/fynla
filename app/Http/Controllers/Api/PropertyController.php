@@ -12,6 +12,7 @@ use App\Models\Property;
 use App\Services\Property\MortgageService;
 use App\Services\Property\PropertyService;
 use App\Services\Property\PropertyTaxService;
+use App\Http\Traits\SanitizedErrorResponse;
 use App\Traits\CalculatesOwnershipShare;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -29,6 +30,7 @@ use Illuminate\Http\Request;
 class PropertyController extends Controller
 {
     use CalculatesOwnershipShare;
+    use SanitizedErrorResponse;
 
     public function __construct(
         private readonly PropertyService $propertyService,
@@ -55,6 +57,7 @@ class PropertyController extends Controller
             ->with(['mortgages', 'user', 'jointOwner'])
             ->orderBy('property_type')
             ->orderBy('created_at', 'desc')
+            ->limit(100)
             ->get();
 
         // Add calculated fields for each property

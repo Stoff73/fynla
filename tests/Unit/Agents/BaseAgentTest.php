@@ -90,21 +90,21 @@ describe('getUserCacheKey', function () {
     it('generates cache key with agent name, user id, and suffix', function () {
         $key = $this->agent->publicGetUserCacheKey(123, 'analysis');
 
-        expect($key)->toBe('testableagent_123_analysis');
+        expect($key)->toBe('v1_testableagent_123_analysis');
     });
 
     it('uses lowercase agent name', function () {
         $key = $this->agent->publicGetUserCacheKey(1, 'test');
 
-        expect($key)->toStartWith('testableagent_');
+        expect($key)->toStartWith('v1_testableagent_');
     });
 
     it('includes different suffixes correctly', function () {
         $analysisKey = $this->agent->publicGetUserCacheKey(1, 'analysis');
         $recommendationsKey = $this->agent->publicGetUserCacheKey(1, 'recommendations');
 
-        expect($analysisKey)->toBe('testableagent_1_analysis');
-        expect($recommendationsKey)->toBe('testableagent_1_recommendations');
+        expect($analysisKey)->toBe('v1_testableagent_1_analysis');
+        expect($recommendationsKey)->toBe('v1_testableagent_1_recommendations');
     });
 });
 
@@ -112,13 +112,13 @@ describe('clearUserCache', function () {
     it('clears cache for default suffixes', function () {
         Cache::shouldReceive('forget')
             ->once()
-            ->with('testableagent_1_analysis');
+            ->with('v1_testableagent_1_analysis');
         Cache::shouldReceive('forget')
             ->once()
-            ->with('testableagent_1_recommendations');
+            ->with('v1_testableagent_1_recommendations');
         Cache::shouldReceive('forget')
             ->once()
-            ->with('testableagent_1_scenarios');
+            ->with('v1_testableagent_1_scenarios');
 
         $this->agent->clearUserCache(1);
     });
@@ -126,10 +126,10 @@ describe('clearUserCache', function () {
     it('clears cache for custom suffixes', function () {
         Cache::shouldReceive('forget')
             ->once()
-            ->with('testableagent_1_custom1');
+            ->with('v1_testableagent_1_custom1');
         Cache::shouldReceive('forget')
             ->once()
-            ->with('testableagent_1_custom2');
+            ->with('v1_testableagent_1_custom2');
 
         $this->agent->clearUserCache(1, ['custom1', 'custom2']);
     });
@@ -138,22 +138,22 @@ describe('clearUserCache', function () {
 describe('invalidateUserCache', function () {
     it('clears all default cache keys for user', function () {
         // Pre-populate cache with values
-        Cache::put('testableagent_1_analysis', 'test_value');
-        Cache::put('testableagent_1_recommendations', 'test_value');
-        Cache::put('testableagent_1_scenarios', 'test_value');
-        Cache::put('testableagent_1_summary', 'test_value');
-        Cache::put('testableagent_1_projection', 'test_value');
-        Cache::put('testableagent_analysis_1', 'test_value');
+        Cache::put('v1_testableagent_1_analysis', 'test_value');
+        Cache::put('v1_testableagent_1_recommendations', 'test_value');
+        Cache::put('v1_testableagent_1_scenarios', 'test_value');
+        Cache::put('v1_testableagent_1_summary', 'test_value');
+        Cache::put('v1_testableagent_1_projection', 'test_value');
+        Cache::put('v1_testableagent_analysis_1', 'test_value');
 
         $this->agent->invalidateUserCache(1);
 
         // Verify cache was cleared
-        expect(Cache::has('testableagent_1_analysis'))->toBeFalse();
-        expect(Cache::has('testableagent_1_recommendations'))->toBeFalse();
-        expect(Cache::has('testableagent_1_scenarios'))->toBeFalse();
-        expect(Cache::has('testableagent_1_summary'))->toBeFalse();
-        expect(Cache::has('testableagent_1_projection'))->toBeFalse();
-        expect(Cache::has('testableagent_analysis_1'))->toBeFalse();
+        expect(Cache::has('v1_testableagent_1_analysis'))->toBeFalse();
+        expect(Cache::has('v1_testableagent_1_recommendations'))->toBeFalse();
+        expect(Cache::has('v1_testableagent_1_scenarios'))->toBeFalse();
+        expect(Cache::has('v1_testableagent_1_summary'))->toBeFalse();
+        expect(Cache::has('v1_testableagent_1_projection'))->toBeFalse();
+        expect(Cache::has('v1_testableagent_analysis_1'))->toBeFalse();
     });
 
     it('clears additional keys when provided', function () {
@@ -170,26 +170,26 @@ describe('invalidateUserCache', function () {
 describe('invalidateCacheForUsers', function () {
     it('invalidates cache for multiple users', function () {
         // Pre-populate cache for multiple users
-        Cache::put('testableagent_1_analysis', 'test_value');
-        Cache::put('testableagent_2_analysis', 'test_value');
-        Cache::put('testableagent_3_analysis', 'test_value');
+        Cache::put('v1_testableagent_1_analysis', 'test_value');
+        Cache::put('v1_testableagent_2_analysis', 'test_value');
+        Cache::put('v1_testableagent_3_analysis', 'test_value');
 
         $this->agent->invalidateCacheForUsers([1, 2, 3]);
 
-        expect(Cache::has('testableagent_1_analysis'))->toBeFalse();
-        expect(Cache::has('testableagent_2_analysis'))->toBeFalse();
-        expect(Cache::has('testableagent_3_analysis'))->toBeFalse();
+        expect(Cache::has('v1_testableagent_1_analysis'))->toBeFalse();
+        expect(Cache::has('v1_testableagent_2_analysis'))->toBeFalse();
+        expect(Cache::has('v1_testableagent_3_analysis'))->toBeFalse();
     });
 
     it('skips null user ids', function () {
-        Cache::put('testableagent_1_analysis', 'test_value');
-        Cache::put('testableagent_3_analysis', 'test_value');
+        Cache::put('v1_testableagent_1_analysis', 'test_value');
+        Cache::put('v1_testableagent_3_analysis', 'test_value');
 
         // Should not throw an exception when null is in the array
         $this->agent->invalidateCacheForUsers([1, null, 3]);
 
-        expect(Cache::has('testableagent_1_analysis'))->toBeFalse();
-        expect(Cache::has('testableagent_3_analysis'))->toBeFalse();
+        expect(Cache::has('v1_testableagent_1_analysis'))->toBeFalse();
+        expect(Cache::has('v1_testableagent_3_analysis'))->toBeFalse();
     });
 });
 

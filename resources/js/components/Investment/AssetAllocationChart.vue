@@ -63,6 +63,8 @@ import { CHART_COLORS, TEXT_COLORS } from '@/constants/designSystem';
 export default {
   name: 'AssetAllocationChart',
 
+  emits: ['view-details', 'add-holding'],
+
   components: {
     apexchart: VueApexCharts,
   },

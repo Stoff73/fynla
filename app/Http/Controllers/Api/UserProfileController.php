@@ -235,6 +235,12 @@ class UserProfileController extends Controller
 
         // Only allow access to spouse data
         if ($currentUser->spouse_id !== $userId) {
+            \Illuminate\Support\Facades\Log::warning('Unauthorized user data access attempt', [
+                'requesting_user_id' => $currentUser->id,
+                'target_user_id' => $userId,
+                'ip' => $request->ip(),
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized access to user data',
@@ -338,6 +344,12 @@ class UserProfileController extends Controller
 
         // Only allow updating spouse's expenditure
         if ($currentUser->spouse_id !== $userId) {
+            \Illuminate\Support\Facades\Log::warning('Unauthorized user data access attempt', [
+                'requesting_user_id' => $currentUser->id,
+                'target_user_id' => $userId,
+                'ip' => $request->ip(),
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized to update this user\'s expenditure',

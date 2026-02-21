@@ -7,16 +7,20 @@ namespace App\Models\Investment;
 use App\Models\Household;
 use App\Models\Trust;
 use App\Models\User;
+use App\Services\Investment\EmployeeSchemeCalculationService;
 use App\Traits\Auditable;
 use App\Traits\HasJointOwnership;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class InvestmentAccount extends Model
 {
-    use Auditable, HasFactory, HasJointOwnership;
+    use Auditable, HasFactory, HasJointOwnership, SoftDeletes;
+
+    protected $auditExcludeFields = ['updated_at', 'created_at'];
 
     protected $fillable = [
         'user_id',
@@ -333,6 +337,30 @@ class InvestmentAccount extends Model
     }
 
     /**
+     * Scope to ISA accounts only.
+     */
+    public function scopeIsa($query)
+    {
+        return $query->where('is_isa', true);
+    }
+
+    /**
+     * Scope to a specific account type.
+     */
+    public function scopeOfType($query, string $type)
+    {
+        return $query->where('account_type', $type);
+    }
+
+    /**
+     * Scope to active accounts only.
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('status', 'active');
+    }
+
+    /**
      * Check if this is a private company or crowdfunding investment.
      */
     public function isPrivateInvestment(): bool
@@ -345,11 +373,7 @@ class InvestmentAccount extends Model
      */
     public function isHoldingPeriodComplete(): bool
     {
-        if (! $this->disposal_restriction_date) {
-            return false;
-        }
-
-        return now()->gte($this->disposal_restriction_date);
+        return app(EmployeeSchemeCalculationService::class)->isHoldingPeriodComplete($this);
     }
 
     /**
@@ -357,11 +381,7 @@ class InvestmentAccount extends Model
      */
     public function getPaperGainLossAttribute(): ?float
     {
-        if (! $this->investment_amount || ! $this->latest_valuation) {
-            return null;
-        }
-
-        return $this->latest_valuation - $this->investment_amount;
+        return app(EmployeeSchemeCalculationService::class)->calculatePaperGainLoss($this);
     }
 
     /**
@@ -369,11 +389,7 @@ class InvestmentAccount extends Model
      */
     public function getPaperReturnPercentAttribute(): ?float
     {
-        if (! $this->investment_amount || $this->investment_amount == 0) {
-            return null;
-        }
-
-        return (($this->latest_valuation - $this->investment_amount) / $this->investment_amount) * 100;
+        return app(EmployeeSchemeCalculationService::class)->calculatePaperReturnPercent($this);
     }
 
     /**
@@ -398,7 +414,7 @@ class InvestmentAccount extends Model
      */
     public function isTaxAdvantagedScheme(): bool
     {
-        return in_array($this->account_type, ['saye', 'csop', 'emi']);
+        return app(EmployeeSchemeCalculationService::class)->isTaxAdvantagedScheme($this);
     }
 
     /**
@@ -407,14 +423,7 @@ class InvestmentAccount extends Model
      */
     public function getIntrinsicValueAttribute(): ?float
     {
-        if (! $this->isOptionsScheme() || ! $this->current_share_price || ! $this->exercise_price) {
-            return null;
-        }
-
-        $spreadPerShare = max(0, (float) $this->current_share_price - (float) $this->exercise_price);
-        $vestedUnits = (int) ($this->units_vested ?? 0);
-
-        return $spreadPerShare * $vestedUnits;
+        return app(EmployeeSchemeCalculationService::class)->calculateIntrinsicValue($this);
     }
 
     /**
@@ -424,19 +433,7 @@ class InvestmentAccount extends Model
      */
     public function getSchemeCurrentValueAttribute(): ?float
     {
-        if (! $this->isEmployeeShareScheme() || ! $this->current_share_price) {
-            return null;
-        }
-
-        $vestedUnits = (int) ($this->units_vested ?? 0);
-
-        if ($this->isOptionsScheme()) {
-            // Options: intrinsic value (gain on exercise)
-            return $this->intrinsic_value;
-        }
-
-        // RSUs: direct share value
-        return (float) $this->current_share_price * $vestedUnits;
+        return app(EmployeeSchemeCalculationService::class)->calculateSchemeCurrentValue($this);
     }
 
     /**
@@ -446,20 +443,7 @@ class InvestmentAccount extends Model
      */
     public function getUnvestedValueAttribute(): ?float
     {
-        if (! $this->isEmployeeShareScheme() || ! $this->current_share_price) {
-            return null;
-        }
-
-        $unvestedUnits = (int) ($this->units_unvested ?? 0);
-
-        if ($this->isOptionsScheme()) {
-            $spreadPerShare = max(0, (float) $this->current_share_price - (float) $this->exercise_price);
-
-            return $spreadPerShare * $unvestedUnits;
-        }
-
-        // RSUs: direct share value
-        return (float) $this->current_share_price * $unvestedUnits;
+        return app(EmployeeSchemeCalculationService::class)->calculateUnvestedValue($this);
     }
 
     /**
@@ -468,19 +452,7 @@ class InvestmentAccount extends Model
      */
     public function isInCsopTaxAdvantageWindow(): bool
     {
-        if ($this->account_type !== 'csop' || ! $this->grant_date) {
-            return false;
-        }
-
-        $grantDate = $this->grant_date instanceof \Carbon\Carbon
-            ? $this->grant_date
-            : \Carbon\Carbon::parse($this->grant_date);
-
-        $now = now();
-        $threeYearsFromGrant = $grantDate->copy()->addYears(3);
-        $tenYearsFromGrant = $grantDate->copy()->addYears(10);
-
-        return $now->gte($threeYearsFromGrant) && $now->lte($tenYearsFromGrant);
+        return app(EmployeeSchemeCalculationService::class)->isInCsopTaxAdvantageWindow($this);
     }
 
     /**
@@ -488,11 +460,6 @@ class InvestmentAccount extends Model
      */
     public function getRemainingUnitsAttribute(): int
     {
-        $granted = (int) ($this->units_granted ?? 0);
-        $exercised = (int) ($this->units_exercised ?? 0);
-        $forfeited = (int) ($this->units_forfeited ?? 0);
-        $expired = (int) ($this->units_expired ?? 0);
-
-        return max(0, $granted - $exercised - $forfeited - $expired);
+        return app(EmployeeSchemeCalculationService::class)->calculateRemainingUnits($this);
     }
 }

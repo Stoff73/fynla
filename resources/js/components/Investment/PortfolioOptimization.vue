@@ -153,6 +153,8 @@ import CorrelationMatrix from '@/components/Investment/CorrelationMatrix.vue';
 export default {
   name: 'PortfolioOptimization',
 
+  emits: ['allocation-applied'],
+
   components: {
     EfficientFrontier,
     PortfolioOptimizer,

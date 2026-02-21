@@ -350,6 +350,8 @@ import { currencyMixin } from '@/mixins/currencyMixin';
 export default {
   name: 'WillPlanning',
 
+  emits: ['will-updated'],
+
   mixins: [currencyMixin],
 
   components: {

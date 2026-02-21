@@ -10,6 +10,7 @@ use App\Http\Requests\UpdateMortgageRequest;
 use App\Models\Mortgage;
 use App\Models\Property;
 use App\Services\Property\MortgageService;
+use App\Http\Traits\SanitizedErrorResponse;
 use App\Traits\CalculatesOwnershipShare;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -26,6 +27,7 @@ use Illuminate\Http\Request;
 class MortgageController extends Controller
 {
     use CalculatesOwnershipShare;
+    use SanitizedErrorResponse;
 
     public function __construct(
         private readonly MortgageService $mortgageService
@@ -95,15 +97,15 @@ class MortgageController extends Controller
         // Set sensible defaults for optional fields
         $validated['ownership_type'] = $validated['ownership_type'] ?? $property->ownership_type ?? 'individual';
         $validated['ownership_percentage'] = $validated['ownership_percentage'] ?? $property->ownership_percentage ?? 100;
-        $validated['lender_name'] = $validated['lender_name'] ?? 'To be completed';
-        $validated['mortgage_type'] = $validated['mortgage_type'] ?? 'repayment';
-        $validated['interest_rate'] = $validated['interest_rate'] ?? 0.0000;
-        $validated['rate_type'] = $validated['rate_type'] ?? 'fixed';
+        $validated['lender_name'] = $validated['lender_name'] ?? config('mortgage.default_lender_name', 'To be completed');
+        $validated['mortgage_type'] = $validated['mortgage_type'] ?? config('mortgage.default_mortgage_type', 'repayment');
+        $validated['interest_rate'] = $validated['interest_rate'] ?? config('mortgage.default_interest_rate', 0.0000);
+        $validated['rate_type'] = $validated['rate_type'] ?? config('mortgage.default_rate_type', 'fixed');
         $validated['start_date'] = $validated['start_date'] ?? now();
 
-        // Calculate maturity date if not provided (assume 25 year term)
+        // Calculate maturity date if not provided
         if (! isset($validated['maturity_date'])) {
-            $validated['maturity_date'] = now()->addYears(25);
+            $validated['maturity_date'] = now()->addYears(config('mortgage.default_term_years', 25));
         }
 
         // Calculate remaining_term_months if not provided but dates are available
@@ -119,7 +121,7 @@ class MortgageController extends Controller
 
             $validated['remaining_term_months'] = $startDate->diffInMonths($maturityDate);
         } else {
-            $validated['remaining_term_months'] = $validated['remaining_term_months'] ?? 300; // 25 years default
+            $validated['remaining_term_months'] = $validated['remaining_term_months'] ?? config('mortgage.default_term_months', 300);
         }
 
         // Single-record pattern: Store FULL values directly (no splitting)
@@ -206,6 +208,13 @@ class MortgageController extends Controller
 
         // Handle both route patterns
         $id = $mortgageId ?? $propertyId;
+
+        if (! $id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Mortgage ID is required',
+            ], 400);
+        }
 
         // Only primary owner can update
         $mortgage = Mortgage::where('id', $id)

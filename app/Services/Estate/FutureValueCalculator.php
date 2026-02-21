@@ -46,6 +46,21 @@ class FutureValueCalculator
     }
 
     /**
+     * Get life expectancy years remaining for a given age and gender.
+     *
+     * Public wrapper around lookupLifeExpectancy for use by other services
+     * that need life expectancy data without a full User object.
+     *
+     * @param  int  $age  Current age
+     * @param  string  $gender  'male' or 'female'
+     * @return float Years remaining
+     */
+    public function getLifeExpectancyYears(int $age, string $gender): float
+    {
+        return $this->lookupLifeExpectancy($age, $gender);
+    }
+
+    /**
      * Lookup life expectancy from actuarial_life_tables database (UK ONS 2020-2022 data)
      *
      * @param  int  $age  Current age
@@ -162,6 +177,9 @@ class FutureValueCalculator
         }
 
         // Fallback: linear amortization
+        if ($remainingTermMonths <= 0) {
+            return max(0.0, $currentBalance);
+        }
         $monthlyReduction = $currentBalance / $remainingTermMonths;
         $projectedBalance = $currentBalance - ($monthlyReduction * $monthsToProject);
 

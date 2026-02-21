@@ -116,6 +116,8 @@ import HoldingForm from './HoldingForm.vue';
 export default {
   name: 'Holdings',
 
+  emits: ['clear-filter'],
+
   components: {
     HoldingsTable,
     HoldingForm,

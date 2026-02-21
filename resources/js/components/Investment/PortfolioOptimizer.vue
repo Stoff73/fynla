@@ -273,6 +273,8 @@ import { CHART_COLORS } from '@/constants/designSystem';
 export default {
   name: 'PortfolioOptimiser',
 
+  emits: ['view-frontier', 'apply-allocation'],
+
   components: {
     apexchart: VueApexCharts,
   },

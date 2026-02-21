@@ -21,7 +21,17 @@ class AdminController extends Controller
 {
     use SanitizedErrorResponse;
 
-    public function __construct(private DatabaseMetricsService $databaseMetrics) {}
+    public function __construct(private DatabaseMetricsService $databaseMetrics)
+    {
+        // Defence-in-depth: explicit admin check in addition to route middleware
+        $this->middleware(function ($request, $next) {
+            if (! $request->user()?->is_admin) {
+                abort(403, 'Admin access required');
+            }
+
+            return $next($request);
+        });
+    }
 
     /**
      * Get admin dashboard statistics

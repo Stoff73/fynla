@@ -247,6 +247,7 @@
 <script>
 export default {
   name: 'TrustFormModal',
+  emits: ['save', 'close'],
 
   props: {
     trust: {
