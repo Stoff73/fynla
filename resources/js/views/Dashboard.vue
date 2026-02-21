@@ -1327,7 +1327,7 @@ export default {
       const user = this.currentUser;
       const isMarried = user && user.marital_status === 'married';
       const estateCalculationAction = isMarried
-        ? 'estate/calculateSecondDeathIHTPlanning'
+        ? 'estate/calculateIHTPlanning'
         : 'estate/calculateIHT';
 
       const moduleLoaders = [

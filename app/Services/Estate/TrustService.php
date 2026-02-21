@@ -331,13 +331,26 @@ class TrustService
     }
 
     /**
-     * Calculate discounted gift trust discount based on age and income
-     * This is a simplified calculation - real calculations use actuarial tables
+     * Calculate discounted gift trust discount based on age, income, and gender
+     * Uses actuarial tables when gender is provided for more accurate estimates
      */
-    public function estimateDiscountedGiftDiscount(int $age, float $giftValue, float $annualIncome): array
+    public function estimateDiscountedGiftDiscount(int $age, float $giftValue, float $annualIncome, ?string $gender = null): array
     {
-        // Life expectancy approximation
-        $lifeExpectancy = max(5, 90 - $age);
+        // Use actuarial tables when gender is available
+        if ($gender) {
+            $actuarialExpectancy = \DB::table('actuarial_life_tables')
+                ->where('gender', $gender)
+                ->where('age', '<=', $age)
+                ->where('table_year', '2020-2022')
+                ->orderBy('age', 'desc')
+                ->value('life_expectancy_years');
+
+            $lifeExpectancy = $actuarialExpectancy
+                ? max(5, (int) ceil((float) $actuarialExpectancy))
+                : max(5, 90 - $age);
+        } else {
+            $lifeExpectancy = max(5, 90 - $age);
+        }
 
         // Total expected income payments
         $totalExpectedIncome = $annualIncome * $lifeExpectancy;

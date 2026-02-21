@@ -52,7 +52,7 @@ class GiftingController extends Controller
 
             // ========== USE EXISTING IHT PLANNING CALCULATION ==========
             // Call the IHTController method instead of duplicating logic
-            $ihtPlanningResponse = $this->ihtController->calculateSecondDeathIHTPlanning($request);
+            $ihtPlanningResponse = $this->ihtController->calculateIHT($request);
             $ihtPlanningData = $ihtPlanningResponse->getData(true);
 
             if (! $ihtPlanningData['success']) {
@@ -247,7 +247,7 @@ class GiftingController extends Controller
             }
 
             // Get IHT planning data to determine current liability
-            $ihtPlanningResponse = $this->ihtController->calculateSecondDeathIHTPlanning($request);
+            $ihtPlanningResponse = $this->ihtController->calculateIHT($request);
             $ihtPlanningData = $ihtPlanningResponse->getData(true);
 
             if (! $ihtPlanningData['success']) {
@@ -343,7 +343,7 @@ class GiftingController extends Controller
             }
 
             // Get IHT planning data to determine current liability
-            $ihtPlanningResponse = $this->ihtController->calculateSecondDeathIHTPlanning($request);
+            $ihtPlanningResponse = $this->ihtController->calculateIHT($request);
             $ihtPlanningData = $ihtPlanningResponse->getData(true);
 
             if (! $ihtPlanningData['success']) {
@@ -404,6 +404,7 @@ class GiftingController extends Controller
     {
         $validated = $request->validate([
             'age' => 'required|integer|min:18|max:100',
+            'gender' => 'sometimes|in:male,female',
             'gift_value' => 'required|numeric|min:1',
             'annual_income' => 'required|numeric|min:0',
         ]);
@@ -411,7 +412,8 @@ class GiftingController extends Controller
         $estimate = $this->trustService->estimateDiscountedGiftDiscount(
             $validated['age'],
             $validated['gift_value'],
-            $validated['annual_income']
+            $validated['annual_income'],
+            $validated['gender'] ?? null
         );
 
         return response()->json([

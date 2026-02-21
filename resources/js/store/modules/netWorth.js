@@ -355,10 +355,10 @@ const actions = {
             // Refresh estate data (for IHT calculations and estate planning)
             await dispatch('estate/fetchEstateData', null, { root: true });
 
-            // Recalculate IHT if user is married (second death planning)
+            // Recalculate IHT planning
             const user = rootGetters['auth/user'];
             if (user?.marital_status === 'married' || user?.marital_status === 'civil_partnership') {
-                await dispatch('estate/calculateSecondDeathIHTPlanning', null, { root: true });
+                await dispatch('estate/calculateIHTPlanning', null, { root: true });
             }
         } catch (error) {
             // Log but don't throw - this is a background sync

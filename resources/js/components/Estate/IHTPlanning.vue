@@ -1398,7 +1398,7 @@ export default {
   },
 
   methods: {
-    ...mapActions('estate', ['calculateIHT', 'calculateSecondDeathIHTPlanning']),
+    ...mapActions('estate', ['calculateIHT', 'calculateIHTPlanning']),
 
     toggleAllowances() {
       this.expandedAllowances = !this.expandedAllowances;
@@ -1483,7 +1483,7 @@ export default {
 
       try {
         // Both married and single users now use the unified calculateIHT endpoint
-        const response = await this.calculateSecondDeathIHTPlanning();
+        const response = await this.calculateIHTPlanning();
 
         if (response && response.success) {
           // Store the full response for detailed breakdown

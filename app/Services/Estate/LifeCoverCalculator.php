@@ -5,10 +5,14 @@ declare(strict_types=1);
 namespace App\Services\Estate;
 
 use App\Models\User;
+use App\Services\Settings\AssumptionsService;
 use Carbon\Carbon;
 
 class LifeCoverCalculator
 {
+    public function __construct(
+        private readonly AssumptionsService $assumptionsService
+    ) {}
     /**
      * Calculate life cover recommendations for IHT liability
      *
@@ -69,10 +73,12 @@ class LifeCoverCalculator
         );
 
         // Scenario 3: Self-Insurance Option
+        $investmentReturn = $this->getInvestmentReturnRate($user);
         $selfInsuranceScenario = $this->calculateSelfInsuranceOption(
             $coverLessGiftingScenario['annual_premium'],
             $yearsUntilDeath,
-            $ihtLiabilityAfterGifting
+            $ihtLiabilityAfterGifting,
+            $investmentReturn
         );
 
         return [
@@ -208,10 +214,9 @@ class LifeCoverCalculator
     private function calculateSelfInsuranceOption(
         float $annualPremium,
         int $years,
-        float $targetAmount
+        float $targetAmount,
+        float $investmentReturn = 0.047
     ): array {
-        // Assume 4.7% average annual return if invested
-        $investmentReturn = 0.047;
 
         // Calculate future value of premiums invested annually
         $futureValue = $this->calculateFutureValueOfAnnuity(
@@ -421,5 +426,21 @@ class LifeCoverCalculator
             'all_recommendations' => $recommendations,
             'summary' => 'Consider combining gifting strategy with reduced life cover for optimal IHT planning',
         ];
+    }
+
+    /**
+     * Get investment return rate from AssumptionsService.
+     * Falls back to 4.7% if no user-specific assumption is configured.
+     */
+    private function getInvestmentReturnRate(User $user): float
+    {
+        $assumptions = $this->assumptionsService->getEstateAssumptions($user);
+
+        if (($assumptions['investment_growth_method'] ?? 'monte_carlo') === 'custom'
+            && isset($assumptions['custom_investment_rate'])) {
+            return (float) $assumptions['custom_investment_rate'] / 100;
+        }
+
+        return 0.047;
     }
 }

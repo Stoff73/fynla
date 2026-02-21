@@ -7,6 +7,7 @@ namespace App\Agents;
 use App\Constants\EstateDefaults;
 use App\Constants\TaxDefaults;
 use App\Models\Estate\Will;
+use App\Models\LifeInsurancePolicy;
 use App\Models\User;
 use App\Services\Estate\ComprehensiveEstatePlanService;
 use App\Services\Estate\EstateAssetAggregatorService;
@@ -55,6 +56,18 @@ class EstateAgent extends BaseAgent
                 'trusts',
                 'gifts',
             ])->findOrFail($userId);
+
+            // Load life insurance policies written in trust (for IHT mitigation)
+            $lifePoliciesInTrust = LifeInsurancePolicy::where('user_id', $userId)
+                ->where('in_trust', true)
+                ->get();
+
+            $spouseLifeCoverInTrust = 0;
+            if ($user->spouse) {
+                $spouseLifeCoverInTrust = LifeInsurancePolicy::where('user_id', $user->spouse->id)
+                    ->where('in_trust', true)
+                    ->sum('sum_assured');
+            }
 
             // Aggregate all estate assets
             $assetSummary = $this->assetAggregator->aggregateEstateAssets($user);
@@ -136,6 +149,12 @@ class EstateAgent extends BaseAgent
                     'gifting_opportunities' => $giftingOpportunities,
                     'trust_wish_triggers' => $trustWishTriggers,
                     'charitable_analysis' => $charitableAnalysis,
+                    'life_cover' => [
+                        'user_cover_in_trust' => (float) $lifePoliciesInTrust->sum('sum_assured'),
+                        'spouse_cover_in_trust' => (float) $spouseLifeCoverInTrust,
+                        'total_cover_in_trust' => (float) $lifePoliciesInTrust->sum('sum_assured') + $spouseLifeCoverInTrust,
+                        'policy_count' => $lifePoliciesInTrust->count(),
+                    ],
                     'profile' => [
                         'current_age' => $currentAge,
                         'marital_status' => $user->marital_status,
@@ -368,10 +387,9 @@ class EstateAgent extends BaseAgent
      */
     private function step3ExistingLifeCover(array $data): array
     {
-        // Query life insurance from protection module would be done here
-        // For now, estimate based on asset data
+        $lifeCover = $data['life_cover'] ?? [];
+        $existingCover = (float) ($lifeCover['total_cover_in_trust'] ?? 0);
         $liabilities = $data['summary']['total_liabilities'] ?? 0;
-        $existingCover = 0; // Would be populated from Protection module
 
         $usableCover = max(0, $existingCover - $liabilities);
 

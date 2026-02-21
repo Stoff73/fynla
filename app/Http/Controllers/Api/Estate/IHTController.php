@@ -229,14 +229,4 @@ class IHTController extends Controller
         ]);
     }
 
-    /**
-     * DEPRECATED: Backward compatibility alias
-     * This method now just calls the unified calculateIHT()
-     *
-     * @deprecated Use calculateIHT() instead
-     */
-    public function calculateSecondDeathIHTPlanning(Request $request): JsonResponse
-    {
-        return $this->calculateIHT($request);
-    }
 }

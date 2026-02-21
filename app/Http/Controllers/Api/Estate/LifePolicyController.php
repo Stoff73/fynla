@@ -44,7 +44,7 @@ class LifePolicyController extends Controller
 
             if ($isMarried) {
                 // For married users, use second death IHT calculation
-                $ihtPlanningResponse = $this->ihtController->calculateSecondDeathIHTPlanning($request);
+                $ihtPlanningResponse = $this->ihtController->calculateIHT($request);
                 $ihtPlanningData = $ihtPlanningResponse->getData(true);
 
                 if (! $ihtPlanningData['success']) {
