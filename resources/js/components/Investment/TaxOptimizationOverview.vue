@@ -218,6 +218,8 @@
 export default {
   name: 'TaxOptimizationOverview',
 
+  emits: ['refresh'],
+
   props: {
     analysis: {
       type: Object,

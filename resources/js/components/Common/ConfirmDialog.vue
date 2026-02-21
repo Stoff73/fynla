@@ -130,6 +130,7 @@
 <script>
 export default {
   name: 'ConfirmDialog',
+  emits: ['confirm', 'cancel'],
 
   props: {
     show: {

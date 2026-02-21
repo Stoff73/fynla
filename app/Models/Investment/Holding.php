@@ -10,10 +10,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Holding extends Model
 {
-    use Auditable, HasFactory;
+    use Auditable, HasFactory, SoftDeletes;
+
+    protected $auditExcludeFields = ['updated_at', 'created_at'];
 
     protected $fillable = [
         'holdable_id',

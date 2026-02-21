@@ -377,6 +377,9 @@ import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'PropertyFinancials',
+
+  emits: ['update-costs'],
+
   mixins: [currencyMixin],
 
   props: {

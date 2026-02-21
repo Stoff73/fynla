@@ -193,6 +193,9 @@ import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'IHTMitigationStrategies',
+
+  emits: ['navigate-to-gifting'],
+
   mixins: [currencyMixin],
 
   props: {

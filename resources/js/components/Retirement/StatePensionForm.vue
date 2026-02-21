@@ -170,6 +170,8 @@
 export default {
   name: 'StatePensionForm',
 
+  emits: ['save', 'close'],
+
   props: {
     statePension: {
       type: Object,

@@ -259,7 +259,7 @@ describe('DC Pension CRUD Endpoints (Authenticated)', function () {
                 'message' => 'DC pension deleted successfully',
             ]);
 
-        $this->assertDatabaseMissing('dc_pensions', [
+        $this->assertSoftDeleted('dc_pensions', [
             'id' => $pension->id,
         ]);
     });
@@ -274,6 +274,7 @@ describe('DC Pension CRUD Endpoints (Authenticated)', function () {
             'current_fund_value' => 100000,
         ]);
 
+        // Request authorize() check returns 403 before controller runs
         $response->assertStatus(403);
     });
 
@@ -283,7 +284,8 @@ describe('DC Pension CRUD Endpoints (Authenticated)', function () {
 
         $response = $this->deleteJson("/api/retirement/pensions/dc/{$pension->id}");
 
-        $response->assertStatus(403);
+        // Scoped query returns 404 (not found for this user) rather than 403
+        $response->assertStatus(404);
     });
 });
 
@@ -351,7 +353,7 @@ describe('DB Pension CRUD Endpoints (Authenticated)', function () {
                 'success' => true,
             ]);
 
-        $this->assertDatabaseMissing('db_pensions', [
+        $this->assertSoftDeleted('db_pensions', [
             'id' => $pension->id,
         ]);
     });
@@ -362,7 +364,8 @@ describe('DB Pension CRUD Endpoints (Authenticated)', function () {
 
         $response = $this->deleteJson("/api/retirement/pensions/db/{$pension->id}");
 
-        $response->assertStatus(403);
+        // Scoped query returns 404 (not found for this user) rather than 403
+        $response->assertStatus(404);
     });
 });
 
@@ -452,7 +455,7 @@ describe('Retirement API Authorization Checks', function () {
         $dcPension = DCPension::factory()->create(['user_id' => $otherUser->id]);
         $dbPension = DBPension::factory()->create(['user_id' => $otherUser->id]);
 
-        // Try to update other user's pensions (with required fields)
+        // DC pension update: Request authorize() returns 403 before controller
         $this->putJson("/api/retirement/pensions/dc/{$dcPension->id}", [
             'scheme_name' => 'Test Scheme',
             'pension_type' => 'occupational',
@@ -460,9 +463,9 @@ describe('Retirement API Authorization Checks', function () {
         ])->assertStatus(403);
 
         $this->deleteJson("/api/retirement/pensions/dc/{$dcPension->id}")
-            ->assertStatus(403);
+            ->assertStatus(404);
 
         $this->deleteJson("/api/retirement/pensions/db/{$dbPension->id}")
-            ->assertStatus(403);
+            ->assertStatus(404);
     });
 });

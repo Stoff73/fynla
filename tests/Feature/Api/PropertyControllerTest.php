@@ -191,7 +191,7 @@ class PropertyControllerTest extends TestCase
                 'success' => true,
             ]);
 
-        $this->assertDatabaseMissing('properties', [
+        $this->assertSoftDeleted('properties', [
             'id' => $property->id,
         ]);
     }

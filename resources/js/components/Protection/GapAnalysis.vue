@@ -413,6 +413,9 @@ import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'GapAnalysis',
+
+  emits: ['add-policy'],
+
   mixins: [currencyMixin],
 
   data() {

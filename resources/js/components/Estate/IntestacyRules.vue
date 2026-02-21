@@ -169,6 +169,9 @@ import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'IntestacyRules',
+
+  emits: ['create-will'],
+
   mixins: [currencyMixin],
 
   props: {

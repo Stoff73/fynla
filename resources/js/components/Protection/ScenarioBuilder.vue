@@ -133,6 +133,8 @@
 export default {
   name: 'ScenarioBuilder',
 
+  emits: ['scenario-run'],
+
   data() {
     return {
       selectedScenario: '',

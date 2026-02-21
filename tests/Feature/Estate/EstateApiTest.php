@@ -253,7 +253,7 @@ describe('Asset CRUD operations', function () {
         $response->assertOk()
             ->assertJsonFragment(['success' => true]);
 
-        $this->assertDatabaseMissing('assets', ['id' => $asset->id]);
+        $this->assertSoftDeleted('assets', ['id' => $asset->id]);
     });
 });
 
@@ -299,7 +299,7 @@ describe('Liability CRUD operations', function () {
         $response = $this->deleteJson("/api/estate/liabilities/{$liability->id}");
 
         $response->assertOk();
-        $this->assertDatabaseMissing('liabilities', ['id' => $liability->id]);
+        $this->assertSoftDeleted('liabilities', ['id' => $liability->id]);
     });
 });
 
@@ -348,7 +348,7 @@ describe('Gift CRUD operations', function () {
         $response = $this->deleteJson("/api/estate/gifts/{$gift->id}");
 
         $response->assertOk();
-        $this->assertDatabaseMissing('gifts', ['id' => $gift->id]);
+        $this->assertSoftDeleted('gifts', ['id' => $gift->id]);
     });
 });
 

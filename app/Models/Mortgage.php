@@ -9,10 +9,11 @@ use App\Traits\HasJointOwnership;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Mortgage extends Model
 {
-    use Auditable, HasFactory, HasJointOwnership;
+    use Auditable, HasFactory, HasJointOwnership, SoftDeletes;
 
     protected $fillable = [
         'property_id',
@@ -77,5 +78,13 @@ class Mortgage extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Scope to a specific mortgage type.
+     */
+    public function scopeOfType($query, string $type)
+    {
+        return $query->where('mortgage_type', $type);
     }
 }

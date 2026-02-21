@@ -193,6 +193,9 @@ import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'SaveGoalModal',
+
+  emits: ['save', 'close'],
+
   mixins: [currencyMixin],
 
   props: {

@@ -380,6 +380,8 @@ import { currencyMixin } from '@/mixins/currencyMixin';
 export default {
   name: 'BusinessInterestDetailInline',
 
+  emits: ['back', 'edit', 'deleted'],
+
   mixins: [currencyMixin],
 
   components: {

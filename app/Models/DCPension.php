@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * DC Pension Model
@@ -18,7 +19,9 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
  */
 class DCPension extends Model
 {
-    use Auditable, HasFactory;
+    use Auditable, HasFactory, SoftDeletes;
+
+    protected $auditExcludeFields = ['updated_at', 'created_at'];
 
     protected $table = 'dc_pensions';
 

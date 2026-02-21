@@ -377,6 +377,9 @@ import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'TrustPlanningStrategy',
+
+  emits: ['navigate-to-assets'],
+
   mixins: [currencyMixin],
 
   data() {

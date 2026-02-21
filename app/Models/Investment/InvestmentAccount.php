@@ -13,10 +13,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class InvestmentAccount extends Model
 {
-    use Auditable, HasFactory, HasJointOwnership;
+    use Auditable, HasFactory, HasJointOwnership, SoftDeletes;
+
+    protected $auditExcludeFields = ['updated_at', 'created_at'];
 
     protected $fillable = [
         'user_id',
@@ -330,6 +333,30 @@ class InvestmentAccount extends Model
     public function trust(): BelongsTo
     {
         return $this->belongsTo(Trust::class);
+    }
+
+    /**
+     * Scope to ISA accounts only.
+     */
+    public function scopeIsa($query)
+    {
+        return $query->where('is_isa', true);
+    }
+
+    /**
+     * Scope to a specific account type.
+     */
+    public function scopeOfType($query, string $type)
+    {
+        return $query->where('account_type', $type);
+    }
+
+    /**
+     * Scope to active accounts only.
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('status', 'active');
     }
 
     /**

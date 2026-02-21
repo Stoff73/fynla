@@ -229,6 +229,7 @@
 <script>
 export default {
   name: 'UserFormModal',
+  emits: ['save', 'close'],
 
   props: {
     show: {

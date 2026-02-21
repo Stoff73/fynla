@@ -103,9 +103,9 @@ class PaymentWebhookController extends Controller
     {
         $secret = config('services.revolut.webhook_secret');
         if (empty($secret)) {
-            // Fail closed - only skip verification in local development
+            // Fail closed - only skip verification in local/testing if no secret configured at all
             if (app()->environment('local', 'testing')) {
-                return true;
+                return true; // Only skip if no secret configured at all
             }
 
             Log::critical('Revolut webhook secret not configured in non-local environment');

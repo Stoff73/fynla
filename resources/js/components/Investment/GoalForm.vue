@@ -154,6 +154,9 @@ import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'GoalForm',
+
+  emits: ['save', 'close'],
+
   mixins: [currencyMixin],
 
   props: {

@@ -124,7 +124,7 @@ describe('DELETE /api/investment/accounts/{id}', function () {
                 'success' => true,
             ]);
 
-        $this->assertDatabaseMissing('investment_accounts', [
+        $this->assertSoftDeleted('investment_accounts', [
             'id' => $account->id,
         ]);
     });

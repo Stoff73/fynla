@@ -26,6 +26,7 @@ use App\Models\Investment\InvestmentGoal;
 use App\Models\Investment\RiskProfile;
 use App\Services\Investment\DiversificationAnalyzer;
 use App\Services\Investment\InvestmentProjectionService;
+use App\Services\Investment\ReturnCalculationService;
 use App\Traits\CalculatesOwnershipShare;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -50,7 +51,8 @@ class InvestmentController extends Controller
     public function __construct(
         private readonly InvestmentAgent $investmentAgent,
         private readonly InvestmentProjectionService $projectionService,
-        private readonly DiversificationAnalyzer $diversificationAnalyzer
+        private readonly DiversificationAnalyzer $diversificationAnalyzer,
+        private readonly ReturnCalculationService $returnCalculationService
     ) {}
 
     /**
@@ -82,7 +84,7 @@ class InvestmentController extends Controller
             $resourceData['is_shared'] = $this->isSharedOwnership($account);
 
             // Calculate annualised return from holdings
-            $resourceData['annualised_return'] = $this->calculateAccountAnnualisedReturn($account);
+            $resourceData['annualised_return'] = $this->returnCalculationService->calculateAnnualisedReturn($account);
 
             // Add owner names for joint accounts
             $owner = $account->user;
@@ -945,65 +947,12 @@ class InvestmentController extends Controller
     }
 
     /**
-     * Calculate annualized return for an account based on holdings.
+     * Calculate annualised return for an account based on holdings.
      *
-     * Uses purchase_date to calculate holding period, defaults to 3 years if not set.
-     *
-     * @param  InvestmentAccount  $account  Account with holdings loaded
-     * @return float|null Annualized return percentage or null if cannot calculate
+     * @deprecated Use ReturnCalculationService::calculateAnnualisedReturn() directly
      */
     private function calculateAccountAnnualisedReturn(InvestmentAccount $account): ?float
     {
-        $holdings = $account->holdings;
-
-        if ($holdings->isEmpty()) {
-            return null;
-        }
-
-        $totalCostBasis = 0;
-        $totalCurrentValue = 0;
-        $weightedYears = 0;
-
-        foreach ($holdings as $holding) {
-            $costBasis = (float) ($holding->cost_basis ?? 0);
-            $currentValue = (float) ($holding->current_value ?? 0);
-
-            if ($costBasis <= 0) {
-                continue;
-            }
-
-            // Calculate years held (default 3 years if no purchase_date)
-            $years = 3.0;
-            if ($holding->purchase_date) {
-                $purchaseDate = $holding->purchase_date instanceof \Carbon\Carbon
-                    ? $holding->purchase_date
-                    : \Carbon\Carbon::parse($holding->purchase_date);
-                $years = max(0.25, $purchaseDate->diffInDays(now()) / 365.25); // Min 3 months
-            }
-
-            $totalCostBasis += $costBasis;
-            $totalCurrentValue += $currentValue;
-            $weightedYears += $costBasis * $years;
-        }
-
-        if ($totalCostBasis <= 0) {
-            return null;
-        }
-
-        // Calculate weighted average holding period
-        $avgYears = $weightedYears / $totalCostBasis;
-
-        // Calculate total return
-        $totalReturn = ($totalCurrentValue - $totalCostBasis) / $totalCostBasis;
-
-        // Annualize the return: ((1 + total_return)^(1/years) - 1) * 100
-        if ($totalReturn <= -1) {
-            // Prevent math errors for total loss
-            return -100.0;
-        }
-
-        $annualizedReturn = (pow(1 + $totalReturn, 1 / $avgYears) - 1) * 100;
-
-        return round($annualizedReturn, 2);
+        return $this->returnCalculationService->calculateAnnualisedReturn($account);
     }
 }

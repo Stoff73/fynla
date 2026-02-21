@@ -11,6 +11,15 @@ use Illuminate\Http\Request;
 
 class PaymentController extends Controller
 {
+    /**
+     * Create a payment order via Revolut for the user's subscription.
+     *
+     * POST /api/payment/order
+     *
+     * @param  Request  $request  The HTTP request containing the authenticated user
+     * @param  RevolutService  $revolutService  Revolut payment gateway service
+     * @return JsonResponse  The order public ID and order ID
+     */
     public function createOrder(Request $request, RevolutService $revolutService): JsonResponse
     {
         $user = $request->user();
@@ -34,6 +43,16 @@ class PaymentController extends Controller
         ]);
     }
 
+    /**
+     * Get the status of an existing payment order.
+     *
+     * GET /api/payment/order/{id}/status
+     *
+     * @param  Request  $request  The HTTP request
+     * @param  string  $id  The Revolut order ID
+     * @param  RevolutService  $revolutService  Revolut payment gateway service
+     * @return JsonResponse  The order status details
+     */
     public function orderStatus(Request $request, string $id, RevolutService $revolutService): JsonResponse
     {
         $order = $revolutService->getOrderStatus($id);
@@ -41,6 +60,14 @@ class PaymentController extends Controller
         return response()->json($order);
     }
 
+    /**
+     * Get the current trial and subscription status for the authenticated user.
+     *
+     * GET /api/payment/trial-status
+     *
+     * @param  Request  $request  The HTTP request containing the authenticated user
+     * @return JsonResponse  Subscription details including trial progress and days remaining
+     */
     public function trialStatus(Request $request): JsonResponse
     {
         $user = $request->user();

@@ -532,6 +532,8 @@ import { currencyMixin } from '@/mixins/currencyMixin';
 export default {
   name: 'SaveAccountModal',
 
+  emits: ['save', 'close'],
+
   mixins: [currencyMixin],
 
   components: {

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Exceptions;
 
-use Exception;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -13,7 +13,7 @@ use Throwable;
  * Provides specific error types for different financial calculation failures,
  * enabling more precise error handling and user-friendly error messages.
  */
-class FinancialCalculationException extends Exception
+class FinancialCalculationException extends RuntimeException
 {
     protected string $calculationType;
 
@@ -39,6 +39,18 @@ class FinancialCalculationException extends Exception
     public function getContext(): array
     {
         return $this->context;
+    }
+
+    /**
+     * Create exception for division by zero in financial calculations.
+     */
+    public static function divisionByZero(string $context): self
+    {
+        return new self(
+            "Division by zero in financial calculation: {$context}",
+            'division_by_zero',
+            ['context' => $context]
+        );
     }
 
     /**

@@ -141,6 +141,8 @@ import { currencyMixin } from '@/mixins/currencyMixin';
 export default {
   name: 'AccountForm',
 
+  emits: ['save', 'close'],
+
   mixins: [currencyMixin],
 
   components: {

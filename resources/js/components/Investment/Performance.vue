@@ -133,6 +133,8 @@ import { currencyMixin } from '@/mixins/currencyMixin';
 export default {
   name: 'Performance',
 
+  emits: ['navigate-to-tab'],
+
   mixins: [currencyMixin],
 
   components: {

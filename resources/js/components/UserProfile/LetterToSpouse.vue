@@ -759,6 +759,7 @@ import logoImage from '@/assets/images/logoTransparent.png';
 export default {
   name: 'LetterToSpouse',
   mixins: [currencyMixin],
+  emits: ['success', 'error'],
 
   data() {
     return {

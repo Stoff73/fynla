@@ -116,6 +116,8 @@ import { currencyMixin } from '@/mixins/currencyMixin';
 export default {
   name: 'RecommendationCard',
 
+  emits: ['mark-done'],
+
   mixins: [currencyMixin],
 
   props: {

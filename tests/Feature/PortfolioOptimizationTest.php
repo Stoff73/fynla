@@ -574,7 +574,7 @@ describe('Holdings CRUD Operations', function () {
         $response = $this->deleteJson("/api/investment/holdings/{$holdingId}");
 
         $response->assertStatus(200);
-        $this->assertDatabaseMissing('holdings', ['id' => $holdingId]);
+        $this->assertSoftDeleted('holdings', ['id' => $holdingId]);
     });
 });
 

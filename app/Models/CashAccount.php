@@ -8,10 +8,11 @@ use App\Traits\HasJointOwnership;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class CashAccount extends Model
 {
-    use HasFactory, HasJointOwnership;
+    use HasFactory, HasJointOwnership, SoftDeletes;
 
     protected $fillable = [
         'user_id',

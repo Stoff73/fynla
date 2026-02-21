@@ -356,6 +356,8 @@ import { currencyMixin } from '@/mixins/currencyMixin';
 export default {
   name: 'DCPensionForm',
 
+  emits: ['save', 'close'],
+
   mixins: [currencyMixin],
 
   components: {

@@ -147,6 +147,8 @@ import { currencyMixin } from '@/mixins/currencyMixin';
 export default {
   name: 'LifePolicyStrategy',
 
+  emits: ['switch-tab'],
+
   mixins: [currencyMixin],
 
   data() {

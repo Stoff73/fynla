@@ -37,7 +37,8 @@ class IHTCalculationService
         private readonly EstateAssetAggregatorService $aggregator,
         private readonly TaxConfigService $taxConfig,
         private readonly AssumptionsService $assumptionsService,
-        private readonly InvestmentProjectionService $investmentProjectionService
+        private readonly InvestmentProjectionService $investmentProjectionService,
+        private readonly FutureValueCalculator $futureValueCalculator
     ) {}
 
     /**
@@ -783,7 +784,7 @@ class IHTCalculationService
         $customRate = ($assumptions['custom_investment_rate'] ?? 5.0) / 100;
         $currentValue = $this->getCurrentInvestmentValue($user, $spouse, $dataSharingEnabled);
 
-        return $currentValue * pow(1 + $customRate, $yearsToProject);
+        return $this->futureValueCalculator->calculateFutureValue($currentValue, $customRate, $yearsToProject);
     }
 
     /**
@@ -825,12 +826,12 @@ class IHTCalculationService
             } else {
                 // Fallback: compound at fallback rate instead of zero growth
                 $currentValue = (float) InvestmentAccount::where('user_id', $user->id)->sum('current_value');
-                $projectedValue += $currentValue * pow(1 + $fallbackRate, $yearsToProject);
+                $projectedValue += $this->futureValueCalculator->calculateFutureValue($currentValue, $fallbackRate, $yearsToProject);
             }
         } catch (\Exception $e) {
             // Fallback: compound at fallback rate instead of zero growth
             $currentValue = (float) InvestmentAccount::where('user_id', $user->id)->sum('current_value');
-            $projectedValue += $currentValue * pow(1 + $fallbackRate, $yearsToProject);
+            $projectedValue += $this->futureValueCalculator->calculateFutureValue($currentValue, $fallbackRate, $yearsToProject);
         }
 
         // Include spouse's investments
@@ -845,11 +846,11 @@ class IHTCalculationService
                     $projectedValue += $spouseProjections['portfolio']['projections'][$yearsToProject]['percentiles']['p20'];
                 } else {
                     $currentValue = (float) InvestmentAccount::where('user_id', $spouse->id)->sum('current_value');
-                    $projectedValue += $currentValue * pow(1 + $fallbackRate, $yearsToProject);
+                    $projectedValue += $this->futureValueCalculator->calculateFutureValue($currentValue, $fallbackRate, $yearsToProject);
                 }
             } catch (\Exception $e) {
                 $currentValue = (float) InvestmentAccount::where('user_id', $spouse->id)->sum('current_value');
-                $projectedValue += $currentValue * pow(1 + $fallbackRate, $yearsToProject);
+                $projectedValue += $this->futureValueCalculator->calculateFutureValue($currentValue, $fallbackRate, $yearsToProject);
             }
         }
 
@@ -879,7 +880,7 @@ class IHTCalculationService
             return $currentPropertyValue;
         }
 
-        return $currentPropertyValue * pow(1 + $propertyGrowthRate, $yearsToProject);
+        return $this->futureValueCalculator->calculateFutureValue($currentPropertyValue, $propertyGrowthRate, $yearsToProject);
     }
 
     /**
@@ -1150,7 +1151,10 @@ class IHTCalculationService
     }
 
     /**
-     * Calculate life expectancy for a user using actuarial tables
+     * Calculate life expectancy for a user using actuarial tables.
+     *
+     * Delegates to FutureValueCalculator::getLifeExpectancyYears() which provides
+     * interpolated lookups from the ONS actuarial life tables.
      */
     private function calculateLifeExpectancy(User $user): int
     {
@@ -1158,22 +1162,10 @@ class IHTCalculationService
             return 25; // Default fallback
         }
 
-        $currentAge = \Carbon\Carbon::parse($user->date_of_birth)->age;
+        $currentAge = Carbon::parse($user->date_of_birth)->age;
+        $gender = strtolower($user->gender);
 
-        // Query actuarial table for life expectancy
-        $lifeExpectancy = \DB::table('actuarial_life_tables')
-            ->where('age', '<=', $currentAge)
-            ->where('gender', $user->gender)
-            ->where('table_year', '2020-2022')
-            ->orderBy('age', 'desc')
-            ->first();
-
-        if ($lifeExpectancy) {
-            return (int) round((float) $lifeExpectancy->life_expectancy_years);
-        }
-
-        // Fallback if no actuarial data
-        return max(1, 85 - $currentAge);
+        return (int) round($this->futureValueCalculator->getLifeExpectancyYears($currentAge, $gender));
     }
 
     /**

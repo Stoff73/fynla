@@ -629,6 +629,8 @@ import { currencyMixin } from '@/mixins/currencyMixin';
 export default {
   name: 'IHTPlanning',
 
+  emits: ['switch-tab'],
+
   mixins: [currencyMixin],
 
   components: {

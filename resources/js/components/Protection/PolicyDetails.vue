@@ -137,6 +137,8 @@ import ConfirmationModal from '../Common/ConfirmationModal.vue';
 export default {
   name: 'PolicyDetails',
 
+  emits: ['modal-closed'],
+
   components: {
     PolicyCard,
     PolicyFormModal,

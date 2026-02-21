@@ -50,6 +50,7 @@
 <script>
 export default {
   name: 'StrategyDisclaimer',
+  emits: ['dismissed'],
   props: {
     variant: {
       type: String,

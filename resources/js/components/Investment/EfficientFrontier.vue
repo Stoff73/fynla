@@ -208,6 +208,8 @@ import { CHART_COLORS, BORDER_COLORS } from '@/constants/designSystem';
 export default {
   name: 'EfficientFrontier',
 
+  emits: ['view-optimiser', 'add-holdings'],
+
   components: {
     apexchart: VueApexCharts,
   },

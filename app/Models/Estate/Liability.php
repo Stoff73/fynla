@@ -9,10 +9,11 @@ use App\Traits\HasJointOwnership;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Liability extends Model
 {
-    use HasFactory, HasJointOwnership;
+    use HasFactory, HasJointOwnership, SoftDeletes;
 
     protected $fillable = [
         'user_id',
@@ -64,5 +65,21 @@ class Liability extends Model
     public function trust(): BelongsTo
     {
         return $this->belongsTo(\App\Models\Estate\Trust::class);
+    }
+
+    /**
+     * Scope to a specific liability type.
+     */
+    public function scopeOfType($query, string $type)
+    {
+        return $query->where('liability_type', $type);
+    }
+
+    /**
+     * Scope to priority debts only.
+     */
+    public function scopePriorityDebt($query)
+    {
+        return $query->where('is_priority_debt', true);
     }
 }

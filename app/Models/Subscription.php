@@ -22,7 +22,7 @@ class Subscription extends Model
         'trial_ends_at' => 'datetime',
         'current_period_start' => 'datetime',
         'current_period_end' => 'datetime',
-        'amount' => 'integer',
+        'amount' => 'float',
     ];
 
     public function user(): BelongsTo

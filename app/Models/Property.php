@@ -11,10 +11,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Property extends Model
 {
-    use Auditable, HasFactory, HasJointOwnership;
+    use Auditable, HasFactory, HasJointOwnership, SoftDeletes;
 
     protected $fillable = [
         'user_id',
@@ -134,6 +135,22 @@ class Property extends Model
     public function jointOwner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'joint_owner_id');
+    }
+
+    /**
+     * Scope to a specific property type.
+     */
+    public function scopeOfType($query, string $type)
+    {
+        return $query->where('property_type', $type);
+    }
+
+    /**
+     * Scope to a specific ownership type.
+     */
+    public function scopeOfOwnership($query, string $type)
+    {
+        return $query->where('ownership_type', $type);
     }
 
     /**

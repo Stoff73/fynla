@@ -227,6 +227,8 @@ import RebalancingActions from './RebalancingActions.vue';
 export default {
   name: 'RebalancingCalculator',
 
+  emits: ['actions-saved'],
+
   components: {
     AllocationComparison,
     RebalancingActions,

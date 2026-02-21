@@ -102,7 +102,7 @@ describe('Investment Account Management', function () {
                 'message' => 'Investment account deleted successfully',
             ]);
 
-        $this->assertDatabaseMissing('investment_accounts', [
+        $this->assertSoftDeleted('investment_accounts', [
             'id' => $account->id,
         ]);
     });
@@ -204,7 +204,7 @@ describe('Holdings Management', function () {
 
         $response->assertStatus(200);
 
-        $this->assertDatabaseMissing('holdings', [
+        $this->assertSoftDeleted('holdings', [
             'id' => $holding->id,
         ]);
     });
