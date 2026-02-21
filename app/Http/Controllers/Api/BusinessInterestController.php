@@ -10,6 +10,7 @@ use App\Http\Requests\BusinessInterest\UpdateBusinessInterestRequest;
 use App\Http\Resources\BusinessInterestResource;
 use App\Models\BusinessInterest;
 use App\Services\Business\BusinessInterestService;
+use App\Services\NetWorth\NetWorthService;
 use App\Traits\CalculatesOwnershipShare;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -29,7 +30,8 @@ class BusinessInterestController extends Controller
     use CalculatesOwnershipShare;
 
     public function __construct(
-        private BusinessInterestService $businessService
+        private BusinessInterestService $businessService,
+        private NetWorthService $netWorthService
     ) {}
 
     /**
@@ -107,6 +109,12 @@ class BusinessInterestController extends Controller
         // For business interests, is_shared is true when ownership < 100% (partial shareholding)
         $resource['is_shared'] = ((float) ($business->ownership_percentage ?? 100)) < 100;
         $resource['business_type_label'] = $this->getBusinessTypeLabel($business->business_type);
+
+        // Invalidate net worth cache
+        $this->netWorthService->invalidateCache($user->id);
+        if ($business->joint_owner_id) {
+            $this->netWorthService->invalidateCache($business->joint_owner_id);
+        }
 
         return response()->json($resource, 201);
     }
@@ -243,6 +251,12 @@ class BusinessInterestController extends Controller
         $businessData['bpr_eligible'] = $business->bpr_eligible ?? false;
         $businessData['business_type_label'] = $this->getBusinessTypeLabel($business->business_type);
 
+        // Invalidate net worth cache
+        $this->netWorthService->invalidateCache($user->id);
+        if ($business->joint_owner_id) {
+            $this->netWorthService->invalidateCache($business->joint_owner_id);
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Business interest updated successfully',
@@ -269,7 +283,16 @@ class BusinessInterestController extends Controller
             ->where('user_id', $user->id)
             ->firstOrFail();
 
+        // Capture joint owner before delete
+        $jointOwnerId = $business->joint_owner_id;
+
         $business->delete();
+
+        // Invalidate net worth cache
+        $this->netWorthService->invalidateCache($user->id);
+        if ($jointOwnerId) {
+            $this->netWorthService->invalidateCache($jointOwnerId);
+        }
 
         return response()->json([
             'success' => true,

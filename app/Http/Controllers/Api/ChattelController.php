@@ -10,6 +10,7 @@ use App\Http\Requests\Chattel\UpdateChattelRequest;
 use App\Http\Resources\ChattelResource;
 use App\Models\Chattel;
 use App\Services\Chattel\ChattelCGTService;
+use App\Services\NetWorth\NetWorthService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -26,7 +27,8 @@ use Illuminate\Http\Request;
 class ChattelController extends Controller
 {
     public function __construct(
-        private ChattelCGTService $cgtService
+        private ChattelCGTService $cgtService,
+        private NetWorthService $netWorthService
     ) {}
 
     /**
@@ -80,6 +82,12 @@ class ChattelController extends Controller
 
         $chattel = Chattel::create($validated);
         $chattel->load(['jointOwner', 'trust']);
+
+        // Invalidate net worth cache
+        $this->netWorthService->invalidateCache($user->id);
+        if ($chattel->joint_owner_id) {
+            $this->netWorthService->invalidateCache($chattel->joint_owner_id);
+        }
 
         return response()->json(new ChattelResource($chattel), 201);
     }
@@ -154,6 +162,12 @@ class ChattelController extends Controller
         $chattel->update($validated);
         $chattel->load(['jointOwner', 'trust']);
 
+        // Invalidate net worth cache
+        $this->netWorthService->invalidateCache($user->id);
+        if ($chattel->joint_owner_id) {
+            $this->netWorthService->invalidateCache($chattel->joint_owner_id);
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Chattel updated successfully',
@@ -178,7 +192,16 @@ class ChattelController extends Controller
             ->where('user_id', $user->id)
             ->firstOrFail();
 
+        // Capture joint owner before delete
+        $jointOwnerId = $chattel->joint_owner_id;
+
         $chattel->delete();
+
+        // Invalidate net worth cache
+        $this->netWorthService->invalidateCache($user->id);
+        if ($jointOwnerId) {
+            $this->netWorthService->invalidateCache($jointOwnerId);
+        }
 
         return response()->noContent();
     }

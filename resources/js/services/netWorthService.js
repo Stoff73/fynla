@@ -20,17 +20,6 @@ export default {
     },
 
     /**
-     * Get net worth trend
-     * @param {number} months - Number of months to retrieve (default: 12)
-     */
-    async getTrend(months = 12) {
-        const response = await api.get(`${API_BASE}/trend`, {
-            params: { months }
-        });
-        return response.data;
-    },
-
-    /**
      * Get assets summary
      */
     async getAssetsSummary() {
