@@ -2,6 +2,7 @@
 
 ## Branch: protection
 ## Date: 2026-02-21
+## Status: DEPLOYED 21 February 2026
 
 ## Summary
 8 fixes from protection module audit: real coverage gap calculations and adequacy scores, Auditable trait consistency, BasePolicyRequest refactor, API Resources for all policy types, disability/sickness policy seeding, EstateAgent non-trust cover surfacing, RecommendationEngine collection fix, score colour fix, and Dashboard/ProtectionOverviewCard integration for all 5 policy types.
