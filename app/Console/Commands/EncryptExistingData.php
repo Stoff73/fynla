@@ -50,7 +50,7 @@ class EncryptExistingData extends Command
             'fields' => ['current_balance'],
         ],
         'InvestmentAccount' => [
-            'class' => \App\Models\InvestmentAccount::class,
+            'class' => \App\Models\Investment\InvestmentAccount::class,
             'fields' => ['current_value', 'account_number'],
         ],
         'FamilyMember' => [
@@ -78,7 +78,7 @@ class EncryptExistingData extends Command
             'fields' => ['current_balance', 'original_amount', 'monthly_payment', 'mortgage_account_number'],
         ],
         'Liability' => [
-            'class' => \App\Models\Liability::class,
+            'class' => \App\Models\Estate\Liability::class,
             'fields' => ['current_balance', 'original_amount', 'monthly_payment'],
         ],
     ];
@@ -166,7 +166,7 @@ class EncryptExistingData extends Command
                                 $record->{$field} = $rawValue;
                             }
                         }
-                        $record->save();
+                        $record->saveQuietly();
                     }
 
                     if ($needsUpdate) {

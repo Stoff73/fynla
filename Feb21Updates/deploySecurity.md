@@ -2,7 +2,7 @@
 
 **Date:** 21 February 2026
 **Branch:** `securityFix`
-**Status:** ALL PHASES COMPLETE (Phase 1, 2, 3 & 4)
+**Status:** DEPLOYED TO PRODUCTION (22 February 2026)
 
 ---
 
@@ -191,6 +191,7 @@ No frontend files changed in Phase 4.
 
 ```
 database/migrations/2026_02_21_200005_add_verification_attempt_counters.php
+database/migrations/2026_02_22_130000_widen_encrypted_columns_to_text.php
 ```
 
 ### Modified PHP Files
@@ -258,7 +259,7 @@ public/build/
 
 ## Database Migrations Required: YES
 
-One migration must run **before** clearing caches:
+Two migrations must run **before** clearing caches:
 
 ```bash
 php artisan migrate --force
@@ -267,6 +268,7 @@ php artisan migrate --force
 This adds:
 - `verification_attempts` column to `pending_registrations`
 - `failed_attempts` column to `email_verification_codes`
+- Widens `national_insurance_number`, `sort_code`, `account_number`, `mortgage_account_number` columns to `TEXT` (required for encrypted values)
 
 ---
 
@@ -307,31 +309,28 @@ After deployment, existing plaintext data in encrypted columns needs re-encrypti
 | InvestmentAccount | `account_number` |
 | FamilyMember | `national_insurance_number` |
 
+**Important:** The column-widening migration (`2026_02_22_130000`) must run before encryption. Encrypted values are ~200 characters and won't fit in `varchar(10)` or `varchar(13)` columns.
+
 **Step 1: Dry run** (shows what would be encrypted without making changes):
 
 ```bash
 php artisan data:encrypt --dry-run
 ```
 
-**Step 2: Encrypt specific models** (recommended over encrypting everything at once):
-
-```bash
-php artisan data:encrypt --model=CashAccount
-php artisan data:encrypt --model=Mortgage
-php artisan data:encrypt --model=InvestmentAccount
-php artisan data:encrypt --model=FamilyMember
-```
-
-**Step 3: Or encrypt all models at once:**
+**Step 2: Encrypt all models:**
 
 ```bash
 php artisan data:encrypt
 ```
 
+The `--model=` flag can be used to resume from a specific model if the command fails partway through (e.g. `php artisan data:encrypt --model=Mortgage`).
+
 The command:
+
 - Processes records in batches of 100 (configurable with `--batch=50`)
 - Skips values that are already encrypted (detects base64 JSON prefix)
-- Reads raw plaintext via `getRawOriginal()`, sets it back via the property (triggers the encrypted mutator), then saves
+- Uses `saveQuietly()` to bypass model events (prevents the `Auditable` trait from calling `getOriginal()` on encrypted accessors with plaintext data, which would throw "The payload is invalid")
+- Fixed `InvestmentAccount` namespace (`App\Models\Investment\InvestmentAccount`) and `Liability` namespace (`App\Models\Estate\Liability`)
 
 **Important:** Run this after deployment and before users access the affected data, or they will see garbled values where plaintext was expected.
 
