@@ -12,6 +12,11 @@ class PasswordResetSession extends Model
 {
     public $timestamps = false;
 
+    protected $hidden = [
+        'token',
+        'email_code',
+    ];
+
     protected $fillable = [
         'user_id',
         'token',

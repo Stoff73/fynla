@@ -97,7 +97,16 @@ class SavingsAccount extends Model
     protected function accountNumber(): Attribute
     {
         return Attribute::make(
-            get: fn (?string $value) => $value ? Crypt::decryptString($value) : null,
+            get: function (?string $value) {
+                if (! $value) {
+                    return null;
+                }
+                try {
+                    return Crypt::decryptString($value);
+                } catch (\Illuminate\Contracts\Encryption\DecryptException $e) {
+                    return $value;
+                }
+            },
             set: fn (?string $value) => $value ? Crypt::encryptString($value) : null,
         );
     }

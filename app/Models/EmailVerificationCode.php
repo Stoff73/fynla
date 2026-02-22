@@ -18,14 +18,20 @@ class EmailVerificationCode extends Model
         'code',
         'type',
         'resend_count',
+        'failed_attempts',
         'expires_at',
         'verified_at',
+    ];
+
+    protected $hidden = [
+        'code',
     ];
 
     protected $casts = [
         'expires_at' => 'datetime',
         'verified_at' => 'datetime',
         'resend_count' => 'integer',
+        'failed_attempts' => 'integer',
     ];
 
     /**
@@ -131,7 +137,20 @@ class EmailVerificationCode extends Model
             ->where('type', $type)
             ->whereNull('verified_at')
             ->where('expires_at', '>', now())
+            ->where('failed_attempts', '<', 5)
             ->first();
+    }
+
+    /**
+     * Record a failed verification attempt for a user and type.
+     */
+    public static function recordFailedAttempt(int $userId, string $type): void
+    {
+        self::where('user_id', $userId)
+            ->where('type', $type)
+            ->whereNull('verified_at')
+            ->where('expires_at', '>', now())
+            ->increment('failed_attempts');
     }
 
     /**

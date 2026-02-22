@@ -6,7 +6,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
+use App\Models\LoginAttempt;
 use App\Services\Audit\AuditService;
+use App\Services\Auth\LoginLockoutService;
 use App\Services\Auth\MFAService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,7 +20,8 @@ class MFAController extends Controller
 {
     public function __construct(
         private MFAService $mfaService,
-        private AuditService $auditService
+        private AuditService $auditService,
+        private LoginLockoutService $lockoutService
     ) {}
 
     /**
@@ -160,7 +163,25 @@ class MFAController extends Controller
             return $genericError;
         }
 
+        // Check if account is locked due to repeated MFA failures
+        if ($this->lockoutService->isLocked($user->email)) {
+            $lockoutInfo = $this->lockoutService->getLockoutInfo($user->email);
+
+            return response()->json([
+                'success' => false,
+                'message' => $lockoutInfo['message'],
+                'locked' => true,
+                'remaining_seconds' => $lockoutInfo['remaining_seconds'],
+            ], 423);
+        }
+
         if (! $this->mfaService->verifyCode($user, $request->code)) {
+            // Record MFA failure against lockout service
+            $this->lockoutService->recordFailedAttempt(
+                $user->email,
+                LoginAttempt::REASON_MFA_FAILED
+            );
+
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid verification code.',

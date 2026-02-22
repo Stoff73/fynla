@@ -10,4 +10,6 @@ use Illuminate\Database\Eloquent\Model;
 class ActuarialLifeTable extends Model
 {
     use HasFactory;
+
+    protected $guarded = ['id'];
 }

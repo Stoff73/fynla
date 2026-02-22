@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Traits\HasJointOwnership;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Crypt;
 
 class CashAccount extends Model
 {
@@ -76,5 +78,45 @@ class CashAccount extends Model
     public function jointOwner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'joint_owner_id');
+    }
+
+    /**
+     * Encrypted account number accessor
+     */
+    protected function accountNumber(): Attribute
+    {
+        return Attribute::make(
+            get: function (?string $value) {
+                if (! $value) {
+                    return null;
+                }
+                try {
+                    return Crypt::decryptString($value);
+                } catch (\Illuminate\Contracts\Encryption\DecryptException $e) {
+                    return $value;
+                }
+            },
+            set: fn (?string $value) => $value ? Crypt::encryptString($value) : null,
+        );
+    }
+
+    /**
+     * Encrypted sort code accessor
+     */
+    protected function sortCode(): Attribute
+    {
+        return Attribute::make(
+            get: function (?string $value) {
+                if (! $value) {
+                    return null;
+                }
+                try {
+                    return Crypt::decryptString($value);
+                } catch (\Illuminate\Contracts\Encryption\DecryptException $e) {
+                    return $value;
+                }
+            },
+            set: fn (?string $value) => $value ? Crypt::encryptString($value) : null,
+        );
     }
 }

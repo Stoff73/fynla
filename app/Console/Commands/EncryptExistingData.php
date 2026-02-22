@@ -41,13 +41,21 @@ class EncryptExistingData extends Command
                 'annual_trust_income',
             ],
         ],
+        'CashAccount' => [
+            'class' => \App\Models\CashAccount::class,
+            'fields' => ['account_number', 'sort_code'],
+        ],
         'SavingsAccount' => [
             'class' => \App\Models\SavingsAccount::class,
             'fields' => ['current_balance'],
         ],
         'InvestmentAccount' => [
-            'class' => \App\Models\InvestmentAccount::class,
-            'fields' => ['current_value'],
+            'class' => \App\Models\Investment\InvestmentAccount::class,
+            'fields' => ['current_value', 'account_number'],
+        ],
+        'FamilyMember' => [
+            'class' => \App\Models\FamilyMember::class,
+            'fields' => ['national_insurance_number'],
         ],
         'DCPension' => [
             'class' => \App\Models\DCPension::class,
@@ -67,10 +75,10 @@ class EncryptExistingData extends Command
         ],
         'Mortgage' => [
             'class' => \App\Models\Mortgage::class,
-            'fields' => ['current_balance', 'original_amount', 'monthly_payment'],
+            'fields' => ['current_balance', 'original_amount', 'monthly_payment', 'mortgage_account_number'],
         ],
         'Liability' => [
-            'class' => \App\Models\Liability::class,
+            'class' => \App\Models\Estate\Liability::class,
             'fields' => ['current_balance', 'original_amount', 'monthly_payment'],
         ],
     ];
@@ -158,7 +166,7 @@ class EncryptExistingData extends Command
                                 $record->{$field} = $rawValue;
                             }
                         }
-                        $record->save();
+                        $record->saveQuietly();
                     }
 
                     if ($needsUpdate) {

@@ -5,13 +5,19 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Traits\Auditable;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Crypt;
 
 class FamilyMember extends Model
 {
     use Auditable, HasFactory;
+
+    protected $hidden = [
+        'national_insurance_number',
+    ];
 
     protected $fillable = [
         'user_id',
@@ -75,5 +81,25 @@ class FamilyMember extends Model
         ]);
 
         return implode(' ', $parts);
+    }
+
+    /**
+     * Encrypted national insurance number accessor
+     */
+    protected function nationalInsuranceNumber(): Attribute
+    {
+        return Attribute::make(
+            get: function (?string $value) {
+                if (! $value) {
+                    return null;
+                }
+                try {
+                    return Crypt::decryptString($value);
+                } catch (\Illuminate\Contracts\Encryption\DecryptException $e) {
+                    return $value;
+                }
+            },
+            set: fn (?string $value) => $value ? Crypt::encryptString($value) : null,
+        );
     }
 }

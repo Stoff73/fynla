@@ -11,6 +11,11 @@ class LoginAttempt extends Model
 {
     public $timestamps = false;
 
+    protected $hidden = [
+        'ip_address',
+        'user_agent',
+    ];
+
     protected $fillable = [
         'email',
         'ip_address',

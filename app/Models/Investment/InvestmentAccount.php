@@ -10,11 +10,13 @@ use App\Models\User;
 use App\Services\Investment\EmployeeSchemeCalculationService;
 use App\Traits\Auditable;
 use App\Traits\HasJointOwnership;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Crypt;
 
 class InvestmentAccount extends Model
 {
@@ -284,6 +286,7 @@ class InvestmentAccount extends Model
         'saye_bonus_amount' => 'float',
         'post_termination_exercise_days' => 'integer',
         'termination_date' => 'date',
+        'exercise_history_json' => 'array',
     ];
 
     protected $attributes = [
@@ -461,5 +464,25 @@ class InvestmentAccount extends Model
     public function getRemainingUnitsAttribute(): int
     {
         return app(EmployeeSchemeCalculationService::class)->calculateRemainingUnits($this);
+    }
+
+    /**
+     * Encrypted account number accessor
+     */
+    protected function accountNumber(): Attribute
+    {
+        return Attribute::make(
+            get: function (?string $value) {
+                if (! $value) {
+                    return null;
+                }
+                try {
+                    return Crypt::decryptString($value);
+                } catch (\Illuminate\Contracts\Encryption\DecryptException $e) {
+                    return $value;
+                }
+            },
+            set: fn (?string $value) => $value ? Crypt::encryptString($value) : null,
+        );
     }
 }

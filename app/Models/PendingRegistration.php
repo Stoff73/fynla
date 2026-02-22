@@ -31,6 +31,7 @@ class PendingRegistration extends Model
         'surname',
         'password',
         'verification_code',
+        'verification_attempts',
         'registration_source',
         'preview_persona_id',
         'plan',

@@ -6,10 +6,12 @@ namespace App\Models;
 
 use App\Traits\Auditable;
 use App\Traits\HasJointOwnership;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Crypt;
 
 class Mortgage extends Model
 {
@@ -86,5 +88,25 @@ class Mortgage extends Model
     public function scopeOfType($query, string $type)
     {
         return $query->where('mortgage_type', $type);
+    }
+
+    /**
+     * Encrypted mortgage account number accessor
+     */
+    protected function mortgageAccountNumber(): Attribute
+    {
+        return Attribute::make(
+            get: function (?string $value) {
+                if (! $value) {
+                    return null;
+                }
+                try {
+                    return Crypt::decryptString($value);
+                } catch (\Illuminate\Contracts\Encryption\DecryptException $e) {
+                    return $value;
+                }
+            },
+            set: fn (?string $value) => $value ? Crypt::encryptString($value) : null,
+        );
     }
 }

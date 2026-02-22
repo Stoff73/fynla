@@ -14,6 +14,13 @@ class LetterToSpouse extends Model
 
     protected $table = 'letters_to_spouse';
 
+    protected $hidden = [
+        'password_manager_info',
+        'bank_accounts_info',
+        'cryptocurrency_info',
+        'investment_accounts_info',
+    ];
+
     protected $fillable = [
         'user_id',
         // Part 1: What to do immediately
