@@ -6,7 +6,7 @@
       <div class="absolute inset-0">
         <div class="absolute inset-0 bg-gradient-to-br from-primary-900/80 to-slate-900/90"></div>
         <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-pulse"></div>
-        <div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-teal-500/20 rounded-full blur-3xl animate-pulse" style="animation-delay: 1s;"></div>
+        <div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl animate-pulse" style="animation-delay: 1s;"></div>
       </div>
 
       <!-- Grid Pattern Overlay -->
@@ -50,12 +50,12 @@
               <svg v-if="calc.id === 'income-tax'" class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
               </svg>
-              <!-- Mortgage Icon - Teal -->
-              <svg v-else-if="calc.id === 'mortgage'" class="w-5 h-5 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <!-- Mortgage Icon - Indigo -->
+              <svg v-else-if="calc.id === 'mortgage'" class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
               </svg>
-              <!-- Loan Icon - Amber -->
-              <svg v-else-if="calc.id === 'loan'" class="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <!-- Loan Icon - Blue -->
+              <svg v-else-if="calc.id === 'loan'" class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <!-- Emergency Fund Icon - Emerald -->
@@ -76,7 +76,7 @@
     <!-- Calculator Content -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <!-- Income Tax Calculator -->
-      <div v-if="activeCalculator === 'income-tax'" class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+      <div v-if="activeCalculator === 'income-tax'" class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden calc-enter" :key="'income-tax'">
         <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-6">
           <h2 class="text-2xl font-bold text-white">Income Tax Calculator</h2>
           <p class="text-blue-100 mt-1">Calculate your UK income tax and National Insurance contributions for 2025/26</p>
@@ -174,10 +174,10 @@
       </div>
 
       <!-- Mortgage Calculator -->
-      <div v-if="activeCalculator === 'mortgage'" class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
-        <div class="bg-gradient-to-r from-teal-600 to-teal-700 px-8 py-6">
+      <div v-if="activeCalculator === 'mortgage'" class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden calc-enter" :key="'mortgage'">
+        <div class="bg-gradient-to-r from-indigo-600 to-indigo-700 px-8 py-6">
           <h2 class="text-2xl font-bold text-white">Mortgage Affordability Calculator</h2>
-          <p class="text-teal-100 mt-1">Calculate how much you can afford to borrow and your monthly repayments</p>
+          <p class="text-indigo-100 mt-1">Calculate how much you can afford to borrow and your monthly repayments</p>
         </div>
 
         <div class="p-8">
@@ -190,7 +190,7 @@
                   <input
                     v-model.number="mortgage.income"
                     type="number"
-                    class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all"
+                    class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
                     placeholder="50,000"
                   />
                 </div>
@@ -203,7 +203,7 @@
                   <input
                     v-model.number="mortgage.propertyValue"
                     type="number"
-                    class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all"
+                    class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
                     placeholder="250,000"
                   />
                 </div>
@@ -216,7 +216,7 @@
                   <input
                     v-model.number="mortgage.deposit"
                     type="number"
-                    class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all"
+                    class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
                     placeholder="25,000"
                   />
                 </div>
@@ -229,7 +229,7 @@
                     v-model.number="mortgage.interestRate"
                     type="number"
                     step="0.1"
-                    class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all"
+                    class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
                     placeholder="5.5"
                   />
                 </div>
@@ -239,7 +239,7 @@
                   <input
                     v-model.number="mortgage.term"
                     type="number"
-                    class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all"
+                    class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
                     placeholder="25"
                   />
                 </div>
@@ -247,7 +247,7 @@
 
               <button
                 @click="calculateMortgage"
-                class="w-full px-6 py-4 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl font-semibold hover:from-teal-700 hover:to-teal-800 transition-all shadow-lg shadow-teal-500/25 hover:shadow-teal-500/40"
+                class="w-full px-6 py-4 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-xl font-semibold hover:from-indigo-700 hover:to-indigo-800 transition-all shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40"
               >
                 Calculate Mortgage
               </button>
@@ -255,7 +255,7 @@
 
             <div v-if="mortgage.result" class="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-6 border border-slate-200">
               <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center">
-                <svg class="w-5 h-5 mr-2 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-5 h-5 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                 </svg>
                 Results
@@ -274,9 +274,9 @@
                   <span class="font-semibold text-slate-900">{{ formatCurrency(mortgage.result.loanAmount) }}</span>
                 </div>
                 <div class="border-t border-slate-300 my-2"></div>
-                <div class="flex justify-between items-center py-3 bg-teal-50 -mx-6 px-6 rounded-lg">
+                <div class="flex justify-between items-center py-3 bg-indigo-50 -mx-6 px-6 rounded-lg">
                   <span class="font-bold text-slate-900">Monthly Payment</span>
-                  <span class="font-bold text-2xl text-teal-600">{{ formatCurrency(mortgage.result.monthlyPayment) }}</span>
+                  <span class="font-bold text-2xl text-indigo-600">{{ formatCurrency(mortgage.result.monthlyPayment) }}</span>
                 </div>
                 <div class="flex justify-between items-center py-2">
                   <span class="text-slate-600">Total Interest</span>
@@ -308,10 +308,10 @@
       </div>
 
       <!-- Loan Repayment Calculator -->
-      <div v-if="activeCalculator === 'loan'" class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
-        <div class="bg-gradient-to-r from-yellow-600 to-yellow-700 px-8 py-6">
+      <div v-if="activeCalculator === 'loan'" class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden calc-enter" :key="'loan'">
+        <div class="bg-gradient-to-r from-slate-600 to-slate-700 px-8 py-6">
           <h2 class="text-2xl font-bold text-white">Loan Repayment Calculator</h2>
-          <p class="text-yellow-100 mt-1">Calculate monthly payments and total interest on personal loans</p>
+          <p class="text-slate-200 mt-1">Calculate monthly payments and total interest on personal loans</p>
         </div>
 
         <div class="p-8">
@@ -324,7 +324,7 @@
                   <input
                     v-model.number="loan.amount"
                     type="number"
-                    class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-all"
+                    class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                     placeholder="10,000"
                   />
                 </div>
@@ -336,7 +336,7 @@
                   v-model.number="loan.rate"
                   type="number"
                   step="0.1"
-                  class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-all"
+                  class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                   placeholder="8.9"
                 />
               </div>
@@ -346,14 +346,14 @@
                 <input
                   v-model.number="loan.term"
                   type="number"
-                  class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-all"
+                  class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                   placeholder="36"
                 />
               </div>
 
               <button
                 @click="calculateLoan"
-                class="w-full px-6 py-4 bg-gradient-to-r from-yellow-600 to-yellow-700 text-white rounded-xl font-semibold hover:from-yellow-700 hover:to-yellow-800 transition-all shadow-lg shadow-yellow-500/25 hover:shadow-yellow-500/40"
+                class="w-full px-6 py-4 bg-gradient-to-r from-slate-600 to-slate-700 text-white rounded-xl font-semibold hover:from-slate-700 hover:to-slate-800 transition-all shadow-lg shadow-slate-500/25 hover:shadow-slate-500/40"
               >
                 Calculate Loan
               </button>
@@ -361,7 +361,7 @@
 
             <div v-if="loan.result" class="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-6 border border-slate-200">
               <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center">
-                <svg class="w-5 h-5 mr-2 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-5 h-5 mr-2 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 Results
@@ -380,9 +380,9 @@
                   <span class="font-semibold text-slate-900">{{ loan.result.term }} months</span>
                 </div>
                 <div class="border-t border-slate-300 my-2"></div>
-                <div class="flex justify-between items-center py-3 bg-yellow-50 -mx-6 px-6 rounded-lg">
+                <div class="flex justify-between items-center py-3 bg-blue-50 -mx-6 px-6 rounded-lg">
                   <span class="font-bold text-slate-900">Monthly Payment</span>
-                  <span class="font-bold text-2xl text-yellow-600">{{ formatCurrency(loan.result.monthlyPayment) }}</span>
+                  <span class="font-bold text-2xl text-blue-600">{{ formatCurrency(loan.result.monthlyPayment) }}</span>
                 </div>
                 <div class="flex justify-between items-center py-2">
                   <span class="text-slate-600">Total Interest</span>
@@ -408,7 +408,7 @@
       </div>
 
       <!-- Emergency Fund Calculator -->
-      <div v-if="activeCalculator === 'emergency-fund'" class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+      <div v-if="activeCalculator === 'emergency-fund'" class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden calc-enter" :key="'emergency-fund'">
         <div class="bg-gradient-to-r from-green-600 to-green-700 px-8 py-6">
           <h2 class="text-2xl font-bold text-white">Emergency Fund Calculator</h2>
           <p class="text-green-100 mt-1">Calculate how much you should save for emergencies (3-6 months of expenses)</p>
@@ -503,13 +503,13 @@
                   'rounded-xl p-4',
                   emergencyFund.result.adequacy === 'Good' ? 'bg-green-50 border border-green-200' :
                   emergencyFund.result.adequacy === 'Adequate' ? 'bg-blue-50 border border-blue-200' :
-                  'bg-yellow-50 border border-yellow-200'
+                  'bg-red-50 border border-red-200'
                 ]">
                   <p :class="[
                     'text-sm font-semibold',
                     emergencyFund.result.adequacy === 'Good' ? 'text-green-900' :
                     emergencyFund.result.adequacy === 'Adequate' ? 'text-blue-900' :
-                    'text-yellow-900'
+                    'text-red-900'
                   ]">
                     Status: {{ emergencyFund.result.adequacy }}
                   </p>
@@ -517,7 +517,7 @@
                     'text-xs mt-1',
                     emergencyFund.result.adequacy === 'Good' ? 'text-green-700' :
                     emergencyFund.result.adequacy === 'Adequate' ? 'text-blue-700' :
-                    'text-yellow-700'
+                    'text-red-700'
                   ]">
                     {{ emergencyFund.result.message }}
                   </p>
@@ -538,7 +538,7 @@
       </div>
 
       <!-- Pension Growth Calculator -->
-      <div v-if="activeCalculator === 'pension'" class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+      <div v-if="activeCalculator === 'pension'" class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden calc-enter" :key="'pension'">
         <div class="bg-gradient-to-r from-purple-600 to-purple-700 px-8 py-6">
           <h2 class="text-2xl font-bold text-white">Pension Growth Calculator</h2>
           <p class="text-purple-100 mt-1">Project your pension pot at retirement with regular contributions</p>
@@ -691,7 +691,7 @@
           <div class="flex flex-col sm:flex-row justify-center gap-4">
             <router-link
               to="/register"
-              class="group px-8 py-4 bg-yellow-500 text-slate-900 rounded-xl font-semibold text-lg hover:bg-yellow-400 transition-all shadow-lg hover:shadow-xl"
+              class="group px-8 py-4 bg-white text-slate-900 rounded-xl font-semibold text-lg hover:bg-blue-50 transition-all shadow-lg hover:shadow-xl"
             >
               <span class="flex items-center justify-center">
                 Get Started Free
@@ -956,4 +956,21 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+.calc-enter {
+  animation: calcFadeIn 0.5s ease-out both;
+}
+
+@keyframes calcFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+</style>
 

@@ -78,7 +78,7 @@
         <!-- Detailed Security Sections -->
         <div class="space-y-8">
           <!-- Authentication & Account Security -->
-          <div class="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
+          <div class="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden security-section">
             <div class="bg-gradient-to-r from-emerald-600 to-teal-600 px-8 py-6">
               <div class="flex items-center">
                 <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center mr-4">
@@ -143,8 +143,8 @@
           </div>
 
           <!-- Data Protection & Encryption -->
-          <div class="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
-            <div class="bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-6">
+          <div class="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden security-section">
+            <div class="bg-gradient-to-r from-emerald-700 to-emerald-800 px-8 py-6">
               <div class="flex items-center">
                 <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center mr-4">
                   <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -153,7 +153,7 @@
                 </div>
                 <div>
                   <h2 class="text-xl font-bold text-white">Data Protection & Encryption</h2>
-                  <p class="text-blue-100 text-sm">How we protect your financial information</p>
+                  <p class="text-emerald-100 text-sm">How we protect your financial information</p>
                 </div>
               </div>
             </div>
@@ -208,8 +208,8 @@
           </div>
 
           <!-- Access Control -->
-          <div class="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
-            <div class="bg-gradient-to-r from-purple-600 to-pink-600 px-8 py-6">
+          <div class="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden security-section">
+            <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-6">
               <div class="flex items-center">
                 <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center mr-4">
                   <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -218,15 +218,15 @@
                 </div>
                 <div>
                   <h2 class="text-xl font-bold text-white">Access Control</h2>
-                  <p class="text-purple-100 text-sm">Role-based permissions and least privilege access</p>
+                  <p class="text-blue-100 text-sm">Role-based permissions and least privilege access</p>
                 </div>
               </div>
             </div>
             <div class="p-8">
               <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="flex items-start">
-                  <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                    <svg class="w-4 h-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
+                    <svg class="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
@@ -236,8 +236,8 @@
                   </div>
                 </div>
                 <div class="flex items-start">
-                  <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                    <svg class="w-4 h-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
+                    <svg class="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
@@ -247,8 +247,8 @@
                   </div>
                 </div>
                 <div class="flex items-start">
-                  <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                    <svg class="w-4 h-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
+                    <svg class="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
@@ -262,7 +262,7 @@
           </div>
 
           <!-- Audit & Monitoring -->
-          <div class="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
+          <div class="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden security-section">
             <div class="bg-gradient-to-r from-blue-600 to-blue-600 px-8 py-6">
               <div class="flex items-center">
                 <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center mr-4">
@@ -316,8 +316,8 @@
           </div>
 
           <!-- GDPR & Privacy -->
-          <div class="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
-            <div class="bg-gradient-to-r from-rose-600 to-red-600 px-8 py-6">
+          <div class="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden security-section">
+            <div class="bg-gradient-to-r from-emerald-600 to-emerald-700 px-8 py-6">
               <div class="flex items-center">
                 <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center mr-4">
                   <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -326,15 +326,15 @@
                 </div>
                 <div>
                   <h2 class="text-xl font-bold text-white">GDPR & Privacy Compliance</h2>
-                  <p class="text-rose-100 text-sm">Your rights under UK/EU data protection law</p>
+                  <p class="text-emerald-100 text-sm">Your rights under UK/EU data protection law</p>
                 </div>
               </div>
             </div>
             <div class="p-8">
               <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="flex items-start">
-                  <div class="w-8 h-8 bg-rose-100 rounded-lg flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                    <svg class="w-4 h-4 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div class="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
+                    <svg class="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
@@ -344,8 +344,8 @@
                   </div>
                 </div>
                 <div class="flex items-start">
-                  <div class="w-8 h-8 bg-rose-100 rounded-lg flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                    <svg class="w-4 h-4 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div class="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
+                    <svg class="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
@@ -355,8 +355,8 @@
                   </div>
                 </div>
                 <div class="flex items-start">
-                  <div class="w-8 h-8 bg-rose-100 rounded-lg flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                    <svg class="w-4 h-4 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div class="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
+                    <svg class="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
@@ -366,8 +366,8 @@
                   </div>
                 </div>
                 <div class="flex items-start">
-                  <div class="w-8 h-8 bg-rose-100 rounded-lg flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                    <svg class="w-4 h-4 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div class="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
+                    <svg class="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
@@ -381,8 +381,8 @@
           </div>
 
           <!-- API Security -->
-          <div class="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
-            <div class="bg-gradient-to-r from-cyan-600 to-blue-600 px-8 py-6">
+          <div class="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden security-section">
+            <div class="bg-gradient-to-r from-blue-700 to-blue-800 px-8 py-6">
               <div class="flex items-center">
                 <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center mr-4">
                   <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -391,15 +391,15 @@
                 </div>
                 <div>
                   <h2 class="text-xl font-bold text-white">API & Application Security</h2>
-                  <p class="text-cyan-100 text-sm">Protecting the technical infrastructure</p>
+                  <p class="text-blue-200 text-sm">Protecting the technical infrastructure</p>
                 </div>
               </div>
             </div>
             <div class="p-8">
               <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="flex items-start">
-                  <div class="w-8 h-8 bg-cyan-100 rounded-lg flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                    <svg class="w-4 h-4 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
+                    <svg class="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
@@ -409,8 +409,8 @@
                   </div>
                 </div>
                 <div class="flex items-start">
-                  <div class="w-8 h-8 bg-cyan-100 rounded-lg flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                    <svg class="w-4 h-4 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
+                    <svg class="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
@@ -420,8 +420,8 @@
                   </div>
                 </div>
                 <div class="flex items-start">
-                  <div class="w-8 h-8 bg-cyan-100 rounded-lg flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                    <svg class="w-4 h-4 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
+                    <svg class="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
@@ -435,7 +435,7 @@
           </div>
 
           <!-- Business Continuity -->
-          <div class="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
+          <div class="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden security-section">
             <div class="bg-gradient-to-r from-slate-600 to-slate-700 px-8 py-6">
               <div class="flex items-center">
                 <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center mr-4">
@@ -515,3 +515,27 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+.security-section {
+  animation: sectionFadeIn 0.6s ease-out both;
+}
+
+.security-section:nth-child(1) { animation-delay: 0s; }
+.security-section:nth-child(2) { animation-delay: 0.1s; }
+.security-section:nth-child(3) { animation-delay: 0.2s; }
+.security-section:nth-child(4) { animation-delay: 0.3s; }
+.security-section:nth-child(5) { animation-delay: 0.4s; }
+.security-section:nth-child(6) { animation-delay: 0.5s; }
+
+@keyframes sectionFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+</style>

@@ -72,7 +72,7 @@
     <!-- Content -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <!-- Financial Planning Basics -->
-      <div v-if="activeCategory === 'basics'" class="space-y-8">
+      <div v-if="activeCategory === 'basics'" class="space-y-8 content-enter" :key="'basics'">
         <div class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
           <div class="bg-gradient-to-r from-indigo-600 to-purple-600 px-8 py-6">
             <h2 class="text-2xl font-bold text-white">What is Financial Planning?</h2>
@@ -208,7 +208,7 @@
       </div>
 
       <!-- Protection Planning -->
-      <div v-if="activeCategory === 'protection'" class="space-y-8">
+      <div v-if="activeCategory === 'protection'" class="space-y-8 content-enter" :key="'protection'">
         <div class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
           <div class="bg-gradient-to-r from-green-600 to-emerald-600 px-8 py-6">
             <h2 class="text-2xl font-bold text-white">Understanding Protection Planning</h2>
@@ -298,7 +298,7 @@
       </div>
 
       <!-- Retirement Planning -->
-      <div v-if="activeCategory === 'retirement'" class="space-y-8">
+      <div v-if="activeCategory === 'retirement'" class="space-y-8 content-enter" :key="'retirement'">
         <div class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
           <div class="bg-gradient-to-r from-blue-600 to-blue-600 px-8 py-6">
             <h2 class="text-2xl font-bold text-white">Retirement Planning in the UK</h2>
@@ -409,7 +409,7 @@
       </div>
 
       <!-- Estate Planning -->
-      <div v-if="activeCategory === 'estate'" class="space-y-8">
+      <div v-if="activeCategory === 'estate'" class="space-y-8 content-enter" :key="'estate'">
         <div class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
           <div class="bg-gradient-to-r from-red-600 to-rose-600 px-8 py-6">
             <h2 class="text-2xl font-bold text-white">Estate Planning & Inheritance Tax</h2>
@@ -520,7 +520,7 @@
       </div>
 
       <!-- Investment Planning -->
-      <div v-if="activeCategory === 'investment'" class="space-y-8">
+      <div v-if="activeCategory === 'investment'" class="space-y-8 content-enter" :key="'investment'">
         <div class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
           <div class="bg-gradient-to-r from-purple-600 to-violet-600 px-8 py-6">
             <h2 class="text-2xl font-bold text-white">Investment Planning Fundamentals</h2>
@@ -662,7 +662,7 @@
       </div>
 
       <!-- Tax Planning -->
-      <div v-if="activeCategory === 'tax'" class="space-y-8">
+      <div v-if="activeCategory === 'tax'" class="space-y-8 content-enter" :key="'tax'">
         <div class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
           <div class="bg-gradient-to-r from-indigo-600 to-blue-600 px-8 py-6">
             <h2 class="text-2xl font-bold text-white">UK Tax Planning Guide</h2>
@@ -925,29 +925,34 @@
     </div>
 
     <!-- CTA Section -->
-    <div class="relative bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 py-16 overflow-hidden">
+    <div class="relative bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 py-16 overflow-hidden">
       <!-- Background Elements -->
       <div class="absolute inset-0">
-        <div class="absolute top-1/4 right-1/4 w-64 h-64 bg-purple-500/20 rounded-full blur-3xl animate-pulse"></div>
-        <div class="absolute bottom-1/4 left-1/4 w-64 h-64 bg-indigo-500/20 rounded-full blur-3xl animate-pulse" style="animation-delay: 1s;"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-500/10 rounded-full blur-3xl"></div>
       </div>
 
-      <div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 p-8 text-center">
-          <h2 class="text-3xl font-bold text-white mb-4">
-            Ready to Put Your Knowledge into Action?
-          </h2>
-          <p class="text-slate-300 mb-8">
-            Create a free account to start planning your financial future with our comprehensive tools.
-          </p>
+      <div class="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <h2 class="text-3xl font-bold text-white mb-4">
+          Ready to Put Your Knowledge into Action?
+        </h2>
+        <p class="text-slate-300 mb-8">
+          Create a free account to start planning your financial future with our comprehensive tools.
+        </p>
+        <div class="flex flex-col sm:flex-row justify-center gap-4">
           <router-link
             to="/register"
-            class="inline-flex items-center px-8 py-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-xl font-semibold hover:from-purple-600 hover:to-indigo-600 transition-all shadow-lg hover:shadow-xl"
+            class="inline-flex items-center justify-center px-8 py-4 bg-white text-slate-900 rounded-xl font-semibold text-lg hover:bg-blue-50 transition-all shadow-lg hover:shadow-xl"
           >
             Get Started Free
             <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
             </svg>
+          </router-link>
+          <router-link
+            to="/calculators"
+            class="inline-flex items-center justify-center px-8 py-4 bg-white/10 backdrop-blur-md text-white rounded-xl font-semibold text-lg hover:bg-white/20 transition-all border border-white/20"
+          >
+            Try Our Calculators
           </router-link>
         </div>
       </div>
@@ -989,5 +994,20 @@ export default {
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+.content-enter {
+  animation: contentFadeIn 0.5s ease-out both;
+}
+
+@keyframes contentFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>
