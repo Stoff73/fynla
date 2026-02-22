@@ -33,7 +33,12 @@
       "WebSearch",
       "WebFetch(domain:developer.revolut.com)",
       "WebFetch(domain:github.com)",
-      "Skill(ralph-loop:ralph-loop)"
+      "Skill(ralph-loop:ralph-loop)",
+      "mcp__mysql__mysql_query"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "mysql",
+    "playwright"
+  ]
 }
