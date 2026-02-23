@@ -98,6 +98,8 @@
         v-for="goal in goals"
         :key="goal.id"
         :goal="goal"
+        :dependency-count="goal.dependency_count || 0"
+        :is-blocked="goal.is_blocked || false"
         @edit="$emit('edit-goal', goal)"
         @delete="$emit('delete-goal', goal)"
         @add-contribution="$emit('add-contribution', goal)"

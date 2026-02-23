@@ -13,6 +13,8 @@ const state = {
     recommendations: [],
     secondDeathPlanning: null, // Second death IHT planning data
     willInfo: null, // Will information from IHT calculation
+    lifeEvents: [],
+    lifeEventImpact: null,
     loading: false,
     error: null,
 };
@@ -207,6 +209,10 @@ const getters = {
         return state.secondDeathPlanning?.second_death_analysis?.iht_calculation?.iht_liability || null;
     },
 
+    // Life events relevant to estate module
+    upcomingLifeEvents: (state) => state.lifeEvents,
+    lifeEventNetImpact: (state) => state.lifeEventImpact?.net_impact || 0,
+
     loading: (state) => state.loading,
     error: (state) => state.error,
 };
@@ -225,6 +231,8 @@ const actions = {
             commit('setGifts', response.data.gifts || []);
             commit('setTrusts', response.data.trusts || []);
             commit('setIHTProfile', response.data.iht_profile);
+            commit('setLifeEvents', response.data.life_events || []);
+            commit('setLifeEventImpact', response.data.life_event_impact || null);
             return response;
         } catch (error) {
             const errorMessage = error.message || 'Failed to fetch estate data';
@@ -631,6 +639,14 @@ const mutations = {
 
     setIHTProfile(state, profile) {
         state.ihtProfile = profile;
+    },
+
+    setLifeEvents(state, events) {
+        state.lifeEvents = events;
+    },
+
+    setLifeEventImpact(state, impact) {
+        state.lifeEventImpact = impact;
     },
 
     setNetWorth(state, netWorth) {

@@ -47,7 +47,7 @@ class GoalsProjectionService
         $cacheKey = "goals_projection_{$userId}_".($household ? 'household' : 'individual');
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($userId, $household) {
-            $user = User::with(['goals', 'spouse', 'investmentAccounts.holdings'])->findOrFail($userId);
+            $user = User::with(['goals', 'spouse', 'spouse.mortgages', 'investmentAccounts.holdings', 'mortgages'])->findOrFail($userId);
 
             // Check household permission
             if ($household && ! $user->hasAcceptedSpousePermission()) {
@@ -136,9 +136,14 @@ class GoalsProjectionService
         $inflationRate = ($assumptions['inflation_rate'] ?? 2.0) / 100;
         $investmentGrowth = ($assumptions['investment_growth'] ?? 5.0) / 100;
         $propertyGrowth = ($assumptions['property_growth'] ?? 3.0) / 100;
+        $cashGrowthRate = ($assumptions['cash_growth_rate'] ?? max(0, ($assumptions['inflation_rate'] ?? 2.0) - 0.5)) / 100;
 
         $realInvestmentRate = $investmentGrowth - $inflationRate;
         $realPropertyRate = $propertyGrowth - $inflationRate;
+        $realCashRate = $cashGrowthRate - $inflationRate;
+
+        // Get mortgage parameters for amortisation
+        $mortgageParams = $this->getMortgageParameters($user, $household);
 
         // Index goals and life events by age
         $goalsByYear = $this->indexEventsByYear($goals, $user, 'target_date');
@@ -147,6 +152,7 @@ class GoalsProjectionService
         for ($age = $currentAge; $age <= $endAge; $age++) {
             $year = $currentYear + ($age - $currentAge);
             $phase = $age >= $retirementAge ? 'retirement' : 'accumulation';
+            $yearsElapsed = $age - $currentAge;
 
             // Deduct annual expenditure from cash
             $cash -= $annualExpenditure;
@@ -183,6 +189,12 @@ class GoalsProjectionService
                 }
             }
 
+            // Calculate mortgage balance using amortisation
+            $mortgage = $this->calculateMortgageBalance(
+                $mortgageParams,
+                $yearsElapsed
+            );
+
             // Record this year's data before applying growth
             $totalAssets = $cash + $investments + $property + $pensions;
             $totalLiabilities = $mortgage;
@@ -212,15 +224,109 @@ class GoalsProjectionService
             $investments *= (1 + $realInvestmentRate);
             $pensions *= (1 + $realInvestmentRate);
             $property *= (1 + $realPropertyRate);
-
-            // Reduce mortgage linearly to retirement
-            if ($mortgage > 0) {
-                $mortgageYearsRemaining = max(1, $retirementAge - $age);
-                $mortgage = max(0, $mortgage - ($mortgage / $mortgageYearsRemaining));
+            if ($cash > 0) {
+                $cash *= (1 + $realCashRate);
             }
         }
 
         return $yearlyData;
+    }
+
+    /**
+     * Get mortgage parameters from the user's actual mortgage records.
+     *
+     * @return array{original_balance: float, annual_rate: float, remaining_years: int, mortgage_type: string}
+     */
+    private function getMortgageParameters(User $user, bool $household): array
+    {
+        $mortgages = $user->mortgages ?? collect();
+
+        if ($household && $user->spouse) {
+            $spouseMortgages = $user->spouse->mortgages ?? collect();
+            $mortgages = $mortgages->merge($spouseMortgages);
+        }
+
+        if ($mortgages->isEmpty()) {
+            return [
+                'original_balance' => 0,
+                'annual_rate' => 0.04,
+                'remaining_years' => 0,
+                'mortgage_type' => 'repayment',
+            ];
+        }
+
+        // Aggregate all mortgages into a weighted average
+        $totalBalance = 0.0;
+        $weightedRate = 0.0;
+        $maxRemainingMonths = 0;
+        $primaryType = 'repayment';
+
+        foreach ($mortgages as $mortgage) {
+            $balance = (float) ($mortgage->outstanding_balance ?? 0);
+            if ($balance <= 0) {
+                continue;
+            }
+
+            $totalBalance += $balance;
+            $rate = (float) ($mortgage->interest_rate ?? 4.0);
+            $weightedRate += $balance * ($rate / 100);
+            $remainingMonths = (int) ($mortgage->remaining_term_months ?? 300);
+            $maxRemainingMonths = max($maxRemainingMonths, $remainingMonths);
+            $primaryType = $mortgage->mortgage_type ?? 'repayment';
+        }
+
+        $annualRate = $totalBalance > 0 ? $weightedRate / $totalBalance : 0.04;
+
+        return [
+            'original_balance' => $totalBalance,
+            'annual_rate' => $annualRate,
+            'remaining_years' => max(0, (int) ceil($maxRemainingMonths / 12)),
+            'mortgage_type' => $primaryType,
+        ];
+    }
+
+    /**
+     * Calculate mortgage balance using proper amortisation.
+     *
+     * For repayment mortgages: B(t) = P * ((1+r)^n - (1+r)^t) / ((1+r)^n - 1)
+     * For interest-only mortgages: balance stays constant until term end.
+     */
+    private function calculateMortgageBalance(array $params, int $yearsElapsed): float
+    {
+        $originalBalance = $params['original_balance'];
+        $remainingYears = $params['remaining_years'];
+        $annualRate = $params['annual_rate'];
+        $mortgageType = $params['mortgage_type'];
+
+        if ($originalBalance <= 0 || $remainingYears <= 0) {
+            return 0.0;
+        }
+
+        // Past the end of the mortgage term
+        if ($yearsElapsed >= $remainingYears) {
+            return 0.0;
+        }
+
+        // Interest-only: balance stays constant until term end
+        if ($mortgageType === 'interest_only') {
+            return $originalBalance;
+        }
+
+        // Repayment (or mixed — treat as repayment for projection purposes)
+        if ($annualRate <= 0) {
+            // Zero rate: simple linear reduction
+            return max(0, $originalBalance * (1 - $yearsElapsed / $remainingYears));
+        }
+
+        $r = $annualRate;
+        $n = $remainingYears;
+        $t = $yearsElapsed;
+
+        $factorN = pow(1 + $r, $n);
+        $factorT = pow(1 + $r, $t);
+        $balance = $originalBalance * ($factorN - $factorT) / ($factorN - 1);
+
+        return max(0, $balance);
     }
 
     /**
@@ -504,10 +610,13 @@ class GoalsProjectionService
             ?? $estateAssumptions['custom_investment_rate']
             ?? 5.0;
 
+        $inflationRate = $estateAssumptions['inflation_rate'] ?? 2.0;
+
         return [
-            'inflation_rate' => $estateAssumptions['inflation_rate'] ?? 2.0,
+            'inflation_rate' => $inflationRate,
             'investment_growth' => $investmentGrowth,
             'property_growth' => $estateAssumptions['property_growth_rate'] ?? 3.0,
+            'cash_growth_rate' => max(0, $inflationRate - 0.5),
         ];
     }
 

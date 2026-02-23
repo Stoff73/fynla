@@ -22,6 +22,7 @@ class GoalResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->goal_name,
+            'goal_name' => $this->goal_name,
             'goal_type' => $this->goal_type,
             'custom_goal_type_name' => $this->when(
                 $this->goal_type === 'custom',
@@ -80,6 +81,10 @@ class GoalResource extends JsonResource
                 $this->isPropertyGoal(),
                 $this->deposit_percentage
             ),
+
+            // Dependencies
+            'dependency_count' => $this->dependsOn()->count(),
+            'is_blocked' => $this->isBlocked(),
 
             'completed_at' => $this->completed_at?->toIso8601String(),
             'created_at' => $this->created_at?->toIso8601String(),

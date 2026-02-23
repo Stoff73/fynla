@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -40,6 +41,7 @@ class Goal extends Model
         'last_contribution_date',
         'linked_account_ids',
         'linked_savings_account_id',
+        'linked_investment_account_id',
         'risk_preference',
         'use_global_risk_profile',
         'ownership_type',
@@ -120,11 +122,50 @@ class Goal extends Model
     }
 
     /**
+     * Linked investment account relationship.
+     */
+    public function linkedInvestmentAccount(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Investment\InvestmentAccount::class, 'linked_investment_account_id');
+    }
+
+    /**
      * Contributions relationship.
      */
     public function contributions(): HasMany
     {
         return $this->hasMany(GoalContribution::class);
+    }
+
+    /**
+     * Goals that this goal depends on (prerequisites).
+     */
+    public function dependsOn(): BelongsToMany
+    {
+        return $this->belongsToMany(self::class, 'goal_dependencies', 'goal_id', 'depends_on_goal_id')
+            ->withPivot('dependency_type', 'notes')
+            ->withTimestamps();
+    }
+
+    /**
+     * Goals that depend on this goal (dependants).
+     */
+    public function dependedOnBy(): BelongsToMany
+    {
+        return $this->belongsToMany(self::class, 'goal_dependencies', 'depends_on_goal_id', 'goal_id')
+            ->withPivot('dependency_type', 'notes')
+            ->withTimestamps();
+    }
+
+    /**
+     * Check if this goal is blocked by any incomplete prerequisite.
+     */
+    public function isBlocked(): bool
+    {
+        return $this->dependsOn()
+            ->wherePivot('dependency_type', 'blocks')
+            ->where('status', '!=', 'completed')
+            ->exists();
     }
 
     /**

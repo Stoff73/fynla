@@ -38,6 +38,10 @@ const state = {
     includeSpouseAssets: false, // Toggle for spouse's assets
     customTargetIncome: null, // Custom target income override
     activeTab: 'current', // Current active tab in PensionList
+    lifeEvents: [],
+    lifeEventImpact: null,
+    goalStrategies: [],
+    goalsSummary: null,
     loading: false,
     error: null,
 };
@@ -181,6 +185,18 @@ const mutations = {
     SET_ACTIVE_TAB(state, tab) {
         state.activeTab = tab;
     },
+    SET_LIFE_EVENTS(state, events) {
+        state.lifeEvents = events;
+    },
+    SET_LIFE_EVENT_IMPACT(state, impact) {
+        state.lifeEventImpact = impact;
+    },
+    SET_GOAL_STRATEGIES(state, strategies) {
+        state.goalStrategies = strategies;
+    },
+    SET_GOALS_SUMMARY(state, summary) {
+        state.goalsSummary = summary;
+    },
 };
 
 const actions = {
@@ -193,6 +209,10 @@ const actions = {
             commit('SET_DB_PENSIONS', response.data.db_pensions || []);
             commit('SET_STATE_PENSION', response.data.state_pension);
             commit('SET_PROFILE', response.data.profile);
+            commit('SET_LIFE_EVENTS', response.data.life_events || []);
+            commit('SET_LIFE_EVENT_IMPACT', response.data.life_event_impact || null);
+            commit('SET_GOAL_STRATEGIES', response.data.goal_strategies || []);
+            commit('SET_GOALS_SUMMARY', response.data.goals_summary || null);
         } catch (error) {
             commit('SET_ERROR', error.response?.data?.message || 'Failed to fetch retirement data');
             throw error;
@@ -770,6 +790,14 @@ const getters = {
     retirementIncomeFundProjections: (state) => state.retirementIncome?.fund_projections || [],
     retirementIncomeDepletionAges: (state) => state.retirementIncome?.depletion_ages || {},
     retirementIncomeAvailableAccounts: (state) => state.retirementIncome?.available_accounts || [],
+
+    // Life events relevant to retirement module
+    upcomingLifeEvents: (state) => state.lifeEvents,
+    lifeEventNetImpact: (state) => state.lifeEventImpact?.net_impact || 0,
+
+    // Goal strategies for retirement module
+    activeGoalStrategies: (state) => state.goalStrategies,
+    totalGoalCommitment: (state) => state.goalsSummary?.total_monthly_commitment || 0,
 };
 
 export default {

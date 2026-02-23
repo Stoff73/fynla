@@ -171,45 +171,6 @@ const investmentService = {
         return response.data;
     },
 
-    // Investment Goals Methods
-    /**
-     * Create a new investment goal
-     * @param {Object} goalData - Goal data
-     * @param {String} goalData.goal_name - Goal name
-     * @param {String} goalData.goal_type - Goal type (retirement, education, wealth, home)
-     * @param {Number} goalData.target_amount - Target amount
-     * @param {String} goalData.target_date - Target date
-     * @param {String} goalData.priority - Priority (high, medium, low)
-     * @param {Boolean} goalData.is_essential - Is essential goal
-     * @param {Array} goalData.linked_account_ids - Linked account IDs
-     * @returns {Promise} Created goal
-     */
-    async createGoal(goalData) {
-        const response = await api.post('/investment/goals', goalData);
-        return response.data;
-    },
-
-    /**
-     * Update an investment goal
-     * @param {Number} id - Goal ID
-     * @param {Object} goalData - Updated goal data
-     * @returns {Promise} Updated goal
-     */
-    async updateGoal(id, goalData) {
-        const response = await api.put(`/investment/goals/${id}`, goalData);
-        return response.data;
-    },
-
-    /**
-     * Delete an investment goal
-     * @param {Number} id - Goal ID
-     * @returns {Promise} Deletion confirmation
-     */
-    async deleteGoal(id) {
-        const response = await api.delete(`/investment/goals/${id}`);
-        return response.data;
-    },
-
     // Risk Profile Methods
     /**
      * Create or update risk profile
@@ -1320,27 +1281,6 @@ const investmentService = {
      */
     async analyzeLumpSumVsDCA(inputs) {
         const response = await api.post('/investment/contribution/lump-sum-vs-dca', inputs);
-        return response.data;
-    },
-
-    // ===================================================================
-    // Phase 2.3: Goal Projection (Enhanced)
-    // ===================================================================
-
-    /**
-     * Project goal with Monte Carlo simulation
-     * POST /api/investment/goals/{goalId}/project
-     * @param {number} goalId Goal ID
-     * @param {Object} params Projection parameters
-     * @param {number} params.current_value Current portfolio value
-     * @param {number} params.monthly_contribution Monthly contribution
-     * @param {number} params.expected_return Expected annual return (decimal)
-     * @param {number} params.volatility Expected volatility (decimal, optional)
-     * @param {number} params.iterations Monte Carlo iterations (optional, default 1000)
-     * @returns {Promise} Goal projection with probability distribution and recommendations
-     */
-    async projectGoal(goalId, params) {
-        const response = await api.post(`/investment/goals/${goalId}/project`, params);
         return response.data;
     },
 

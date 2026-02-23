@@ -179,6 +179,73 @@
               </div>
             </div>
 
+            <!-- Goal Dependencies (edit mode only) -->
+            <div v-if="isEditing" class="border-t border-gray-200 pt-4 mt-4">
+              <h4 class="text-sm font-medium text-gray-900 mb-3">Goal Dependencies</h4>
+              <p class="text-xs text-gray-500 mb-3">Link goals that must be completed before this one can start.</p>
+
+              <!-- Current dependencies -->
+              <div v-if="dependencies.length > 0" class="space-y-2 mb-3">
+                <div
+                  v-for="dep in dependencies"
+                  :key="dep.id"
+                  class="flex items-center justify-between p-2 bg-gray-50 rounded-lg"
+                >
+                  <div class="flex items-center gap-2 flex-1 min-w-0">
+                    <svg class="h-4 w-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                    </svg>
+                    <span class="text-sm text-gray-700 truncate">{{ dep.goal_name }}</span>
+                    <span class="text-xs px-1.5 py-0.5 rounded-full flex-shrink-0" :class="dependencyTypeClass(dep.dependency_type)">
+                      {{ dependencyTypeLabel(dep.dependency_type) }}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    @click="removeDependency(dep.id)"
+                    class="ml-2 p-1 text-gray-400 hover:text-red-500 flex-shrink-0"
+                    title="Remove dependency"
+                  >
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Add dependency -->
+              <div v-if="availableGoalsForDependency.length > 0" class="flex gap-2">
+                <select
+                  v-model="selectedDependencyGoalId"
+                  class="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
+                >
+                  <option value="">Select a goal...</option>
+                  <option v-for="g in availableGoalsForDependency" :key="g.id" :value="g.id">
+                    {{ g.goal_name }}
+                  </option>
+                </select>
+                <select
+                  v-model="selectedDependencyType"
+                  class="w-32 px-2 py-1.5 text-sm border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
+                >
+                  <option value="prerequisite">Prerequisite</option>
+                  <option value="blocks">Blocks</option>
+                  <option value="funds">Funds</option>
+                </select>
+                <button
+                  type="button"
+                  @click="addDependency"
+                  :disabled="!selectedDependencyGoalId"
+                  class="px-3 py-1.5 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 disabled:opacity-50"
+                >
+                  Add
+                </button>
+              </div>
+              <p v-else-if="!dependencies.length" class="text-xs text-gray-400 italic">
+                No other goals available to link as dependencies.
+              </p>
+            </div>
+
             <!-- Property-specific fields -->
             <div v-if="isPropertyGoal" class="border-t border-gray-200 pt-4 mt-4">
               <h4 class="text-sm font-medium text-gray-900 mb-3">Property Details</h4>
@@ -285,7 +352,7 @@
 
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { mapState, mapActions } from 'vuex';
+import { mapState, mapGetters, mapActions } from 'vuex';
 
 export default {
   name: 'GoalFormModal',
@@ -310,6 +377,9 @@ export default {
       loading: false,
       validationErrors: [],
       propertyCosts: null,
+      dependencies: [],
+      selectedDependencyGoalId: '',
+      selectedDependencyType: 'prerequisite',
       priorities: [
         { value: 'critical', label: 'Critical', activeClass: 'border-red-500 bg-red-50 text-red-700' },
         { value: 'high', label: 'High', activeClass: 'border-blue-500 bg-blue-50 text-blue-700' },
@@ -320,7 +390,7 @@ export default {
   },
 
   computed: {
-    ...mapState('goals', ['goalTypes']),
+    ...mapState('goals', ['goalTypes', 'goals']),
 
     isEditing() {
       return !!this.goal;
@@ -367,12 +437,21 @@ export default {
       };
       return classes[this.assignedModule] || 'bg-gray-100 text-gray-700';
     },
+
+    availableGoalsForDependency() {
+      if (!this.goal || !this.goals) return [];
+      const depIds = this.dependencies.map(d => d.id);
+      return this.goals.filter(g =>
+        g.id !== this.goal.id && !depIds.includes(g.id)
+      );
+    },
   },
 
   watch: {
     goal: {
       handler() {
         this.initForm();
+        this.loadDependencies();
       },
       immediate: true,
     },
@@ -383,7 +462,7 @@ export default {
   },
 
   methods: {
-    ...mapActions('goals', ['fetchGoalTypes', 'calculatePropertyCosts']),
+    ...mapActions('goals', ['fetchGoalTypes', 'calculatePropertyCosts', 'fetchDependencies']),
 
     getDefaultForm() {
       return {
@@ -471,6 +550,65 @@ export default {
       } finally {
         this.loading = false;
       }
+    },
+
+    async loadDependencies() {
+      if (!this.goal) {
+        this.dependencies = [];
+        return;
+      }
+      try {
+        const response = await this.fetchDependencies(this.goal.id);
+        if (response.success) {
+          this.dependencies = response.data.depends_on || [];
+        }
+      } catch {
+        this.dependencies = [];
+      }
+    },
+
+    async addDependency() {
+      if (!this.selectedDependencyGoalId || !this.goal) return;
+      try {
+        await this.$store.dispatch('goals/addDependency', {
+          goalId: this.goal.id,
+          dependsOnGoalId: this.selectedDependencyGoalId,
+          dependencyType: this.selectedDependencyType,
+        });
+        this.selectedDependencyGoalId = '';
+        this.selectedDependencyType = 'prerequisite';
+        await this.loadDependencies();
+      } catch (error) {
+        const message = error.response?.data?.message || 'Failed to add dependency';
+        this.validationErrors = [message];
+      }
+    },
+
+    async removeDependency(dependsOnGoalId) {
+      if (!this.goal) return;
+      try {
+        await this.$store.dispatch('goals/removeDependency', {
+          goalId: this.goal.id,
+          dependsOnGoalId,
+        });
+        await this.loadDependencies();
+      } catch (error) {
+        console.error('Failed to remove dependency:', error);
+      }
+    },
+
+    dependencyTypeLabel(type) {
+      const labels = { blocks: 'Blocks', funds: 'Funds', prerequisite: 'Prerequisite' };
+      return labels[type] || 'Prerequisite';
+    },
+
+    dependencyTypeClass(type) {
+      const classes = {
+        blocks: 'bg-red-100 text-red-700',
+        funds: 'bg-emerald-100 text-emerald-700',
+        prerequisite: 'bg-blue-100 text-blue-700',
+      };
+      return classes[type] || 'bg-gray-100 text-gray-700';
     },
 
     close() {

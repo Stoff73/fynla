@@ -16,6 +16,8 @@ use App\Http\Resources\SavingsAccountResource;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\SavingsAccount;
 use App\Models\SavingsGoal;
+use App\Services\Goals\GoalStrategyService;
+use App\Services\Goals\LifeEventIntegrationService;
 use App\Services\NetWorth\NetWorthService;
 use App\Services\Savings\ISATracker;
 use App\Traits\CalculatesOwnershipShare;
@@ -40,7 +42,9 @@ class SavingsController extends Controller
     public function __construct(
         private readonly SavingsAgent $savingsAgent,
         private readonly ISATracker $isaTracker,
-        private readonly NetWorthService $netWorthService
+        private readonly NetWorthService $netWorthService,
+        private readonly LifeEventIntegrationService $lifeEventIntegration,
+        private readonly GoalStrategyService $goalStrategy
     ) {}
 
     /**
@@ -98,6 +102,20 @@ class SavingsController extends Controller
         $currentTaxYear = $this->isaTracker->getCurrentTaxYear();
         $isaAllowance = $this->isaTracker->getISAAllowanceStatus($user->id, $currentTaxYear);
 
+        // Get life events and goal strategies relevant to savings/cash
+        try {
+            $lifeEvents = $this->lifeEventIntegration->getEventsForModule($user->id, 'savings');
+            $lifeEventImpact = $this->lifeEventIntegration->getModuleImpactSummary($user->id, 'savings');
+            $goalStrategies = $this->goalStrategy->getStrategiesForModule($user->id, 'savings');
+            $goalsSummary = $this->goalStrategy->getModuleGoalsSummary($user->id, 'savings');
+        } catch (\Throwable $e) {
+            report($e);
+            $lifeEvents = [];
+            $lifeEventImpact = null;
+            $goalStrategies = [];
+            $goalsSummary = null;
+        }
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -106,6 +124,10 @@ class SavingsController extends Controller
                 'expenditure_profile' => $expenditureProfile,
                 'isa_allowance' => $isaAllowance,
                 'analysis' => null, // Placeholder for analysis data
+                'life_events' => $lifeEvents,
+                'life_event_impact' => $lifeEventImpact,
+                'goal_strategies' => $goalStrategies,
+                'goals_summary' => $goalsSummary,
             ],
         ]);
     }

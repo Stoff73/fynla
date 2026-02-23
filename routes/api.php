@@ -385,14 +385,9 @@ Route::middleware('auth:sanctum')->prefix('savings')->group(function () {
         Route::patch('/{id}/toggle-retirement', [SavingsController::class, 'toggleRetirementInclusion']);
     });
 
-    // Savings goals
-    Route::prefix('goals')->group(function () {
-        Route::get('/', [SavingsController::class, 'indexGoals']);
-        Route::post('/', [SavingsController::class, 'storeGoal']);
-        Route::put('/{id}', [SavingsController::class, 'updateGoal']);
-        Route::delete('/{id}', [SavingsController::class, 'destroyGoal']);
-        Route::patch('/{id}/progress', [SavingsController::class, 'updateGoalProgress']);
-    });
+    // Legacy savings goals - DEPRECATED since v0.7.0
+    // Goals are now managed via unified Goals module: /api/goals?module=savings
+    // See GoalsController for the unified API. Legacy routes removed in v0.8.1.
 });
 
 // Goals module routes (unified goals-based planning)
@@ -405,6 +400,7 @@ Route::middleware('auth:sanctum')->prefix('goals')->group(function () {
     // Projection (net worth chart with events)
     Route::get('/projection', [GoalsController::class, 'getProjection']);
     Route::get('/household-summary', [GoalsController::class, 'getHouseholdSummary']);
+    Route::get('/financial-forecast', [GoalsController::class, 'getFinancialForecast']);
 
     // Reference data
     Route::get('/types', [GoalsController::class, 'getGoalTypes']);
@@ -424,6 +420,11 @@ Route::middleware('auth:sanctum')->prefix('goals')->group(function () {
     Route::get('/{id}/projections', [GoalsController::class, 'getProjections']);
     Route::get('/{id}/scenarios', [GoalsController::class, 'getScenarios']);
     Route::get('/{id}/contributions', [GoalsController::class, 'getContributionHistory']);
+
+    // Goal dependencies
+    Route::get('/{id}/dependencies', [GoalsController::class, 'getDependencies']);
+    Route::post('/{id}/dependencies', [GoalsController::class, 'addDependency']);
+    Route::delete('/{id}/dependencies/{dependsOnId}', [GoalsController::class, 'removeDependency']);
 });
 
 // Life Events routes (future occurrences impacting net worth)
@@ -476,12 +477,9 @@ Route::middleware('auth:sanctum')->prefix('investment')->group(function () {
         Route::delete('/{id}', [InvestmentController::class, 'destroyHolding']);
     });
 
-    // Investment goals
-    Route::prefix('goals')->group(function () {
-        Route::post('/', [InvestmentController::class, 'storeGoal']);
-        Route::put('/{id}', [InvestmentController::class, 'updateGoal']);
-        Route::delete('/{id}', [InvestmentController::class, 'destroyGoal']);
-    });
+    // Legacy investment goals - DEPRECATED since v0.7.0
+    // Goals are now managed via unified Goals module: /api/goals?module=investment
+    // See GoalsController for the unified API. Legacy routes removed in v0.8.1.
 
     // Risk profile
     Route::post('/risk-profile', [InvestmentController::class, 'storeOrUpdateRiskProfile']);

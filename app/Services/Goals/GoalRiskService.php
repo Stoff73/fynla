@@ -7,6 +7,7 @@ namespace App\Services\Goals;
 use App\Models\Goal;
 use App\Models\Investment\RiskProfile;
 use App\Models\User;
+use App\Services\Shared\MonteCarloEngine;
 
 /**
  * Service for goal-based risk assessment and projections for investment goals.
@@ -31,6 +32,20 @@ class GoalRiskService
         'upper_medium' => 4,
         'high' => 5,
     ];
+
+    /**
+     * Minimum years before using full Monte Carlo simulation (below this, use analytical).
+     */
+    private const MONTE_CARLO_MIN_YEARS = 1;
+
+    /**
+     * Default Monte Carlo iterations for goal projections.
+     */
+    private const MONTE_CARLO_ITERATIONS = 500;
+
+    public function __construct(
+        private readonly MonteCarloEngine $monteCarloEngine
+    ) {}
 
     /**
      * Get risk parameters for a goal.
@@ -90,8 +105,8 @@ class GoalRiskService
             $yearsToGoal
         );
 
-        // Calculate probability of reaching goal using simple Monte Carlo approximation
-        $probabilityOfSuccess = $this->estimateProbabilityOfSuccess(
+        // Calculate probability using Monte Carlo simulation for realistic goals
+        $probabilityOfSuccess = $this->calculateProbability(
             $currentAmount,
             $monthlyContribution,
             $targetAmount,
@@ -108,7 +123,7 @@ class GoalRiskService
             $expectedReturn
         );
 
-        // Generate yearly projections
+        // Generate yearly projections with confidence bands
         $yearlyProjections = $this->generateYearlyProjections(
             $currentAmount,
             $monthlyContribution,
@@ -139,6 +154,50 @@ class GoalRiskService
     }
 
     /**
+     * Calculate probability of reaching the goal.
+     *
+     * Uses Monte Carlo simulation via the shared engine for goals with
+     * sufficient time horizon, falls back to analytical approximation
+     * for very short-term goals.
+     */
+    private function calculateProbability(
+        float $currentAmount,
+        float $monthlyContribution,
+        float $targetAmount,
+        float $years,
+        float $expectedReturn,
+        float $volatility
+    ): float {
+        $yearsInt = max(1, (int) ceil($years));
+
+        if ($years >= self::MONTE_CARLO_MIN_YEARS && $volatility > 0) {
+            $result = $this->monteCarloEngine->simulate(
+                $currentAmount,
+                $monthlyContribution,
+                $expectedReturn,
+                $volatility,
+                $yearsInt,
+                self::MONTE_CARLO_ITERATIONS
+            );
+
+            return $this->monteCarloEngine->calculateGoalProbability(
+                $result['final_values'],
+                $targetAmount
+            );
+        }
+
+        // Analytical fallback for very short-term or zero-volatility goals
+        return $this->estimateProbabilityAnalytical(
+            $currentAmount,
+            $monthlyContribution,
+            $targetAmount,
+            $years,
+            $expectedReturn,
+            $volatility
+        );
+    }
+
+    /**
      * Calculate deterministic projection using future value formula.
      */
     private function calculateDeterministicProjection(
@@ -163,9 +222,9 @@ class GoalRiskService
     }
 
     /**
-     * Estimate probability of success using analytical approximation.
+     * Estimate probability of success using analytical log-normal approximation.
      */
-    private function estimateProbabilityOfSuccess(
+    private function estimateProbabilityAnalytical(
         float $currentAmount,
         float $monthlyContribution,
         float $targetAmount,
@@ -180,18 +239,14 @@ class GoalRiskService
             $years
         );
 
-        // Simple approximation: use log-normal distribution properties
         $portfolioVolatility = $volatility * sqrt($years);
         $mu = log($expectedFinalValue) - ($portfolioVolatility * $portfolioVolatility) / 2;
 
-        // Calculate probability that final value exceeds target
         if ($targetAmount <= 0 || $portfolioVolatility <= 0) {
             return $expectedFinalValue >= $targetAmount ? 95 : 50;
         }
 
         $z = (log($targetAmount) - $mu) / $portfolioVolatility;
-
-        // Standard normal CDF approximation
         $probability = 1 - $this->standardNormalCDF($z);
 
         return max(0, min(100, $probability * 100));
@@ -231,17 +286,13 @@ class GoalRiskService
         $monthlyReturn = $expectedReturn / 12;
         $months = (int) ($years * 12);
 
-        // FV of current amount
         $fvCurrent = $currentAmount * pow(1 + $monthlyReturn, $months);
-
-        // Amount needed from contributions
         $amountFromContributions = $targetAmount - $fvCurrent;
 
         if ($amountFromContributions <= 0) {
             return 0;
         }
 
-        // Solve for monthly contribution
         if ($monthlyReturn > 0) {
             return $amountFromContributions * $monthlyReturn / (pow(1 + $monthlyReturn, $months) - 1);
         }
@@ -270,7 +321,6 @@ class GoalRiskService
                 $year
             );
 
-            // Calculate confidence bounds
             $yearVolatility = $volatility * sqrt(max(1, $year));
             $lowerBound = $expectedValue * exp(-1.96 * $yearVolatility);
             $upperBound = $expectedValue * exp(1.96 * $yearVolatility);

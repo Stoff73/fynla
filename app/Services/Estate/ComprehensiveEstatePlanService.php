@@ -7,6 +7,7 @@ namespace App\Services\Estate;
 use App\Models\Estate\IHTProfile;
 use App\Models\FamilyMember;
 use App\Models\User;
+use App\Services\Goals\LifeEventIntegrationService;
 use App\Services\TaxConfigService;
 use App\Services\UserProfile\ProfileCompletenessChecker;
 use App\Traits\CalculatesOwnershipShare;
@@ -31,7 +32,8 @@ class ComprehensiveEstatePlanService
         private readonly IHTCalculationService $ihtCalculationService,
         private readonly EstateAssetAggregatorService $assetAggregator,
         private readonly ProfileCompletenessChecker $completenessChecker,
-        private readonly TaxConfigService $taxConfig
+        private readonly TaxConfigService $taxConfig,
+        private readonly LifeEventIntegrationService $lifeEventIntegration
     ) {}
 
     /**
@@ -150,6 +152,7 @@ class ComprehensiveEstatePlanService
             'gifting_strategy' => $giftingPlan,
             'trust_strategy' => $trustPlan,
             'life_policy_strategy' => $lifePolicyPlan,
+            'life_events_impact' => $this->buildLifeEventsImpact($user, $currentIHTLiability, $ihtAnalysis),
             'optimized_recommendation' => $optimizedStrategy,
             'implementation_timeline' => $this->buildImplementationTimeline($optimizedStrategy),
             'next_steps' => $this->generateNextSteps($optimizedStrategy, $profileCompleteness),
@@ -1206,6 +1209,86 @@ class ComprehensiveEstatePlanService
         }
 
         return $steps;
+    }
+
+    /**
+     * Build life events impact section for the estate plan.
+     *
+     * Lists upcoming life events with estate implications, projected IHT impact,
+     * and recommendations for estate plan review triggers.
+     */
+    private function buildLifeEventsImpact(User $user, float $currentIHTLiability, array $ihtAnalysis): array
+    {
+        $events = $this->lifeEventIntegration->getEventsForModule($user->id, 'estate');
+        $impactSummary = $this->lifeEventIntegration->getModuleImpactSummary($user->id, 'estate');
+
+        $ihtConfig = $this->taxConfig->getInheritanceTax();
+        $ihtRate = $ihtConfig['standard_rate'];
+        $totalAllowances = ($ihtAnalysis['total_allowances'] ?? 0);
+        $currentNetEstate = ($ihtAnalysis['total_net_estate'] ?? 0);
+
+        $eventImpacts = [];
+        $reviewTriggers = [];
+
+        foreach ($events as $event) {
+            $amount = (float) $event['amount'];
+            $isIncome = $event['impact_type'] === 'income';
+
+            // Calculate projected IHT impact of this event
+            $estateAfterEvent = $isIncome
+                ? $currentNetEstate + $amount
+                : $currentNetEstate - $amount;
+
+            $taxableAfterEvent = max(0, $estateAfterEvent - $totalAllowances);
+            $ihtAfterEvent = $taxableAfterEvent * $ihtRate;
+            $ihtChange = $ihtAfterEvent - $currentIHTLiability;
+
+            $eventImpact = [
+                'event_name' => $event['event_name'],
+                'event_type' => $event['event_type'],
+                'amount' => $amount,
+                'impact_type' => $event['impact_type'],
+                'expected_date' => $event['expected_date'],
+                'certainty' => $event['certainty'],
+                'module_context' => $event['module_context'],
+                'projected_iht_change' => round($ihtChange, 2),
+                'projected_iht_after_event' => round($ihtAfterEvent, 2),
+            ];
+
+            $eventImpacts[] = $eventImpact;
+
+            // Flag events that should trigger an estate plan review
+            if ($isIncome && $amount >= 50000) {
+                $reviewTriggers[] = [
+                    'event_name' => $event['event_name'],
+                    'reason' => 'Large incoming amount of £'.number_format($amount).' will increase your taxable estate',
+                    'recommendation' => $ihtChange > 0
+                        ? 'Consider a gifting strategy to mitigate the additional £'.number_format(abs($ihtChange)).' Inheritance Tax liability'
+                        : 'Review your estate plan to ensure the additional funds are efficiently allocated',
+                    'priority' => $ihtChange > 10000 ? 'high' : 'medium',
+                ];
+            } elseif (! $isIncome && $event['event_type'] === 'gift_given' && $amount >= 3000) {
+                $reviewTriggers[] = [
+                    'event_name' => $event['event_name'],
+                    'reason' => 'Planned gift of £'.number_format($amount).' is a Potentially Exempt Transfer',
+                    'recommendation' => 'Ensure this gift is recorded for Inheritance Tax purposes. It will become exempt after 7 years.',
+                    'priority' => 'medium',
+                ];
+            }
+        }
+
+        return [
+            'has_events' => count($eventImpacts) > 0,
+            'event_count' => count($eventImpacts),
+            'events' => $eventImpacts,
+            'summary' => [
+                'total_incoming' => $impactSummary['upcoming_income'],
+                'total_outgoing' => $impactSummary['upcoming_expense'],
+                'net_estate_impact' => $impactSummary['net_impact'],
+            ],
+            'review_triggers' => $reviewTriggers,
+            'next_event' => $impactSummary['next_event'],
+        ];
     }
 
     /**

@@ -31,6 +31,7 @@ use App\Models\IncomeProtectionPolicy;
 use App\Models\LifeInsurancePolicy;
 use App\Models\ProtectionProfile;
 use App\Models\SicknessIllnessPolicy;
+use App\Services\Goals\LifeEventIntegrationService;
 use App\Traits\PolicyCRUDTrait;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -45,7 +46,8 @@ class ProtectionController extends Controller
      */
     public function __construct(
         private readonly ProtectionAgent $protectionAgent,
-        private readonly \App\Services\Protection\ComprehensiveProtectionPlanService $comprehensiveProtectionPlan
+        private readonly \App\Services\Protection\ComprehensiveProtectionPlanService $comprehensiveProtectionPlan,
+        private readonly LifeEventIntegrationService $lifeEventIntegration
     ) {}
 
     /**
@@ -95,6 +97,8 @@ class ProtectionController extends Controller
                     'disability' => DisabilityPolicyResource::collection($disabilityPolicies),
                     'sickness_illness' => SicknessIllnessPolicyResource::collection($sicknessIllnessPolicies),
                 ],
+                'life_events' => rescue(fn () => $this->lifeEventIntegration->getEventsForModule($user->id, 'protection'), [], report: true),
+                'life_event_impact' => rescue(fn () => $this->lifeEventIntegration->getModuleImpactSummary($user->id, 'protection'), null, report: true),
             ],
         ]);
     }

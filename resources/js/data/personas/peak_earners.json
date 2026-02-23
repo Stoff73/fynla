@@ -950,7 +950,7 @@
     },
     {
       "goal_name": "Early Retirement Fund",
-      "goal_type": "retirement",
+      "goal_type": "wealth_accumulation",
       "description": "Build bridge fund to retire at 58 before pensions accessible",
       "target_amount": 200000,
       "current_amount": 95000,

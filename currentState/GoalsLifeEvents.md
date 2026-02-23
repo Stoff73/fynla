@@ -944,7 +944,7 @@ A goal is considered "on track" if:
 
 7. **Probability Approximation:** Monte Carlo probability uses an analytical log-normal approximation rather than full simulation. The Investment module's `GoalProbabilityCalculator` has a more sophisticated implementation.
 
-8. **Missing Schema in `mysql-schema.sql`:** The `goals`, `goal_contributions`, and `life_events` tables are not in the schema dump (they were created after the dump was generated).
+8. ~~**Missing Schema in `mysql-schema.sql`:**~~ **RESOLVED** - Schema dump regenerated on 2026-02-23. Now includes `goals`, `goal_contributions`, `life_events`, and `goal_dependencies` tables.
 
 ---
 

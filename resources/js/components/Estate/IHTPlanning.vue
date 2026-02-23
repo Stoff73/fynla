@@ -612,6 +612,15 @@
         </div>
       </div>
     </div>
+
+    <!-- Life Events Impact on Estate -->
+    <div v-if="estateLifeEvents.length > 0 && ihtData" class="bg-white rounded-lg p-4 sm:p-6 border border-gray-200">
+      <EstateLifeEventsImpact
+        :events="estateLifeEventsWithIHT"
+        :summary="estateLifeEventsSummary"
+        :review-triggers="estateReviewTriggers"
+      />
+    </div>
   </div>
 </template>
 
@@ -622,6 +631,7 @@ import MissingDataAlert from './MissingDataAlert.vue';
 import DualGiftingTimeline from './DualGiftingTimeline.vue';
 import LifeCoverRecommendations from './LifeCoverRecommendations.vue';
 import IHTCalculationTable from './IHTCalculationTable.vue';
+import EstateLifeEventsImpact from './EstateLifeEventsImpact.vue';
 import estateService from '../../services/estateService';
 import userProfileService from '../../services/userProfileService';
 import { currencyMixin } from '@/mixins/currencyMixin';
@@ -639,6 +649,7 @@ export default {
     DualGiftingTimeline,
     LifeCoverRecommendations,
     IHTCalculationTable,
+    EstateLifeEventsImpact,
   },
 
   data() {
@@ -663,7 +674,7 @@ export default {
   },
 
   computed: {
-    ...mapState('estate', ['analysis', 'gifts']),
+    ...mapState('estate', ['analysis', 'gifts', 'lifeEvents', 'lifeEventImpact']),
     ...mapGetters('estate', ['netWorthValue', 'ihtLiability', 'ihtExemptAssets']),
     ...mapGetters('auth', ['currentUser']),
 
@@ -730,6 +741,73 @@ export default {
       if (!total || total === 0) return 0;
       const outsideEstate = this.trustValueOutsideEstate;
       return Math.round((outsideEstate / total) * 100);
+    },
+
+    // Life events with IHT impact calculations
+    estateLifeEvents() {
+      return this.lifeEvents || [];
+    },
+
+    estateLifeEventsWithIHT() {
+      if (!this.ihtData || !this.estateLifeEvents.length) return [];
+
+      const netEstate = this.ihtData.net_estate_value || 0;
+      const totalAllowances = (this.ihtData.nil_rate_band || 325000) + (this.ihtData.rnrb || 0);
+      const ihtRate = 0.4;
+      const currentIHT = Math.max(0, (netEstate - totalAllowances) * ihtRate);
+
+      return this.estateLifeEvents.map(event => {
+        const amount = parseFloat(event.amount) || 0;
+        const isIncome = event.impact_type === 'income';
+        const estateAfter = isIncome ? netEstate + amount : netEstate - amount;
+        const taxableAfter = Math.max(0, estateAfter - totalAllowances);
+        const ihtAfter = taxableAfter * ihtRate;
+        const ihtChange = ihtAfter - currentIHT;
+
+        return {
+          ...event,
+          projected_iht_change: Math.round(ihtChange * 100) / 100,
+          projected_iht_after_event: Math.round(ihtAfter * 100) / 100,
+        };
+      });
+    },
+
+    estateLifeEventsSummary() {
+      if (!this.lifeEventImpact) return null;
+      return {
+        total_incoming: this.lifeEventImpact.upcoming_income || 0,
+        total_outgoing: this.lifeEventImpact.upcoming_expense || 0,
+        net_estate_impact: this.lifeEventImpact.net_impact || 0,
+      };
+    },
+
+    estateReviewTriggers() {
+      if (!this.estateLifeEventsWithIHT.length) return [];
+
+      const triggers = [];
+      this.estateLifeEventsWithIHT.forEach(event => {
+        const amount = parseFloat(event.amount) || 0;
+        const isIncome = event.impact_type === 'income';
+
+        if (isIncome && amount >= 50000) {
+          triggers.push({
+            event_name: event.event_name,
+            reason: 'Large incoming amount of ' + this.formatCurrency(amount) + ' will increase your taxable estate',
+            recommendation: event.projected_iht_change > 0
+              ? 'Consider a gifting strategy to mitigate the additional ' + this.formatCurrency(Math.abs(event.projected_iht_change)) + ' Inheritance Tax liability'
+              : 'Review your estate plan to ensure the additional funds are efficiently allocated',
+            priority: event.projected_iht_change > 10000 ? 'high' : 'medium',
+          });
+        } else if (!isIncome && event.event_type === 'gift_given' && amount >= 3000) {
+          triggers.push({
+            event_name: event.event_name,
+            reason: 'Planned gift of ' + this.formatCurrency(amount) + ' is a Potentially Exempt Transfer',
+            recommendation: 'Ensure this gift is recorded for Inheritance Tax purposes. It will become exempt after 7 years.',
+            priority: 'medium',
+          });
+        }
+      });
+      return triggers;
     },
 
     hasPETGifts() {

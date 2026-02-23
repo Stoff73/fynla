@@ -7,172 +7,358 @@
       </p>
     </div>
 
-    <!-- Loading State -->
-    <div v-if="loading" class="flex justify-center items-center py-12">
-      <div class="text-center">
-        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
-        <p class="mt-4 text-body-base text-gray-600">Loading income statement...</p>
-      </div>
+    <!-- View Toggle -->
+    <div class="flex gap-2 mb-6">
+      <button
+        @click="activeView = 'current'"
+        :class="[
+          'px-4 py-2 text-sm font-medium rounded-lg transition-colors',
+          activeView === 'current'
+            ? 'bg-primary-600 text-white'
+            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+        ]"
+      >
+        Current
+      </button>
+      <button
+        @click="switchToForecast"
+        :class="[
+          'px-4 py-2 text-sm font-medium rounded-lg transition-colors',
+          activeView === 'forecast'
+            ? 'bg-primary-600 text-white'
+            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+        ]"
+      >
+        Forecast
+      </button>
     </div>
 
-    <div v-else-if="hasData" class="space-y-6">
-      <!-- Income Section -->
-      <div class="card p-6 overflow-x-auto">
-        <h3 class="text-h5 font-semibold text-success-700 mb-4">Income</h3>
-        <table class="min-w-full divide-y divide-gray-200">
-          <thead>
-            <tr>
-              <th class="px-3 py-2 text-left text-body-sm font-semibold text-gray-900 w-1/2"></th>
-              <th class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900 w-1/4">{{ currentMonthName }} {{ currentYear }}</th>
-              <th class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900 w-1/4">Forecast Annual</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-200">
-            <tr v-for="(item, index) in incomeItems" :key="'income-' + index">
-              <td class="px-3 py-2 text-body-base text-gray-700 w-1/2">{{ item.line_item }}</td>
-              <td class="px-3 py-2 text-right text-body-base font-medium text-gray-900">
-                {{ formatCurrency(item.monthlyAmount) }}
-              </td>
-              <td class="px-3 py-2 text-right text-body-base font-medium text-gray-900">
-                {{ formatCurrency(item.annualAmount) }}
-              </td>
-            </tr>
-          </tbody>
-          <tfoot>
-            <tr class="bg-success-50 border-t-2 border-success-300">
-              <td class="px-3 py-3 text-body-base font-bold text-success-800 w-1/2">Total Income</td>
-              <td class="px-3 py-3 text-right text-h5 font-bold text-success-700">
-                {{ formatCurrency(totalIncome.monthly) }}
-              </td>
-              <td class="px-3 py-3 text-right text-h5 font-bold text-success-700">
-                {{ formatCurrency(totalIncome.annual) }}
-              </td>
-            </tr>
-          </tfoot>
-        </table>
+    <!-- ==================== CURRENT VIEW ==================== -->
+    <template v-if="activeView === 'current'">
+      <!-- Loading State -->
+      <div v-if="loading" class="flex justify-center items-center py-12">
+        <div class="text-center">
+          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+          <p class="mt-4 text-body-base text-gray-600">Loading income statement...</p>
+        </div>
       </div>
 
-      <!-- Outflows Section -->
-      <div class="card p-6 overflow-x-auto">
-        <h3 class="text-h5 font-semibold text-error-700 mb-4">Outflows</h3>
-        <table class="min-w-full divide-y divide-gray-200">
-          <thead>
-            <tr>
-              <th class="px-3 py-2 text-left text-body-sm font-semibold text-gray-900 w-1/2"></th>
-              <th class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900 w-1/4">{{ currentMonthName }} {{ currentYear }}</th>
-              <th class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900 w-1/4">Forecast Annual</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-200">
-            <tr v-for="(item, index) in outflowItems" :key="'outflow-' + index">
-              <td class="px-3 py-2 text-body-base text-gray-700 w-1/2">{{ item.line_item }}</td>
-              <td class="px-3 py-2 text-right text-body-base font-medium text-gray-900">
-                {{ formatCurrency(item.monthlyAmount) }}
-              </td>
-              <td class="px-3 py-2 text-right text-body-base font-medium text-gray-900">
-                {{ formatCurrency(item.annualAmount) }}
-              </td>
-            </tr>
-          </tbody>
-          <tfoot>
-            <tr class="bg-error-50 border-t-2 border-error-300">
-              <td class="px-3 py-3 text-body-base font-bold text-error-800 w-1/2">Total Outflows</td>
-              <td class="px-3 py-3 text-right text-h5 font-bold text-error-700">
-                {{ formatCurrency(totalOutflows.monthly) }}
-              </td>
-              <td class="px-3 py-3 text-right text-h5 font-bold text-error-700">
-                {{ formatCurrency(totalOutflows.annual) }}
-              </td>
-            </tr>
-          </tfoot>
-        </table>
+      <div v-else-if="hasData" class="space-y-6">
+        <!-- Income Section -->
+        <div class="card p-6 overflow-x-auto">
+          <h3 class="text-h5 font-semibold text-success-700 mb-4">Income</h3>
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead>
+              <tr>
+                <th class="px-3 py-2 text-left text-body-sm font-semibold text-gray-900 w-1/2"></th>
+                <th class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900 w-1/4">{{ currentMonthName }} {{ currentYear }}</th>
+                <th class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900 w-1/4">Forecast Annual</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+              <tr v-for="(item, index) in incomeItems" :key="'income-' + index">
+                <td class="px-3 py-2 text-body-base text-gray-700 w-1/2">{{ item.line_item }}</td>
+                <td class="px-3 py-2 text-right text-body-base font-medium text-gray-900">
+                  {{ formatCurrency(item.monthlyAmount) }}
+                </td>
+                <td class="px-3 py-2 text-right text-body-base font-medium text-gray-900">
+                  {{ formatCurrency(item.annualAmount) }}
+                </td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr class="bg-success-50 border-t-2 border-success-300">
+                <td class="px-3 py-3 text-body-base font-bold text-success-800 w-1/2">Total Income</td>
+                <td class="px-3 py-3 text-right text-h5 font-bold text-success-700">
+                  {{ formatCurrency(totalIncome.monthly) }}
+                </td>
+                <td class="px-3 py-3 text-right text-h5 font-bold text-success-700">
+                  {{ formatCurrency(totalIncome.annual) }}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        <!-- Outflows Section -->
+        <div class="card p-6 overflow-x-auto">
+          <h3 class="text-h5 font-semibold text-error-700 mb-4">Outflows</h3>
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead>
+              <tr>
+                <th class="px-3 py-2 text-left text-body-sm font-semibold text-gray-900 w-1/2"></th>
+                <th class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900 w-1/4">{{ currentMonthName }} {{ currentYear }}</th>
+                <th class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900 w-1/4">Forecast Annual</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+              <tr v-for="(item, index) in outflowItems" :key="'outflow-' + index">
+                <td class="px-3 py-2 text-body-base text-gray-700 w-1/2">{{ item.line_item }}</td>
+                <td class="px-3 py-2 text-right text-body-base font-medium text-gray-900">
+                  {{ formatCurrency(item.monthlyAmount) }}
+                </td>
+                <td class="px-3 py-2 text-right text-body-base font-medium text-gray-900">
+                  {{ formatCurrency(item.annualAmount) }}
+                </td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr class="bg-error-50 border-t-2 border-error-300">
+                <td class="px-3 py-3 text-body-base font-bold text-error-800 w-1/2">Total Outflows</td>
+                <td class="px-3 py-3 text-right text-h5 font-bold text-error-700">
+                  {{ formatCurrency(totalOutflows.monthly) }}
+                </td>
+                <td class="px-3 py-3 text-right text-h5 font-bold text-error-700">
+                  {{ formatCurrency(totalOutflows.annual) }}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        <!-- Cash Flow Section -->
+        <div class="card p-6 bg-gradient-to-r from-primary-50 to-primary-100 overflow-x-auto">
+          <table class="min-w-full">
+            <thead>
+              <tr>
+                <th class="px-3 py-2 text-left text-body-sm font-semibold text-gray-900 w-1/2"></th>
+                <th class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900 w-1/4">{{ currentMonthName }} {{ currentYear }}</th>
+                <th class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900 w-1/4">Forecast Annual</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+              <!-- Cash Flow before Tax -->
+              <tr>
+                <td class="px-3 py-3 text-body-base font-semibold text-gray-900 w-1/2">Cash Flow before Tax for the period</td>
+                <td class="px-3 py-3 text-right">
+                  <p
+                    class="text-h5 font-bold"
+                    :class="cashFlowBeforeTax.monthly >= 0 ? 'text-success-700' : 'text-error-700'"
+                  >
+                    {{ formatCurrency(cashFlowBeforeTax.monthly) }}
+                  </p>
+                </td>
+                <td class="px-3 py-3 text-right">
+                  <p
+                    class="text-h5 font-bold"
+                    :class="cashFlowBeforeTax.annual >= 0 ? 'text-success-700' : 'text-error-700'"
+                  >
+                    {{ formatCurrency(cashFlowBeforeTax.annual) }}
+                  </p>
+                </td>
+              </tr>
+              <!-- Estimated Income Tax -->
+              <tr>
+                <td class="px-3 py-2 text-body-base text-gray-700 pl-4 w-1/2">Estimated Income Tax</td>
+                <td class="px-3 py-2 text-right text-body-base font-medium text-gray-400">-</td>
+                <td class="px-3 py-2 text-right text-body-base font-medium text-error-700">
+                  {{ formatCurrencyNegative(estimatedIncomeTax) }}
+                </td>
+              </tr>
+              <!-- Estimated Capital Gains Tax -->
+              <tr>
+                <td class="px-3 py-2 text-body-base text-gray-700 pl-4 w-1/2">Estimated Capital Gains Tax</td>
+                <td class="px-3 py-2 text-right text-body-base font-medium text-gray-400">-</td>
+                <td class="px-3 py-2 text-right text-body-base font-medium text-error-700">
+                  {{ formatCurrencyNegative(estimatedCapitalGainsTax) }}
+                </td>
+              </tr>
+              <!-- Cash Flow after Tax -->
+              <tr class="border-t-2 border-primary-300">
+                <td class="px-3 py-3 text-body-base font-bold text-gray-900 w-1/2">Cash Flow after Tax for the period</td>
+                <td class="px-3 py-3 text-right">
+                  <p
+                    class="text-h5 font-bold"
+                    :class="cashFlowAfterTax.monthly >= 0 ? 'text-success-700' : 'text-error-700'"
+                  >
+                    {{ formatCurrency(cashFlowAfterTax.monthly) }}
+                  </p>
+                </td>
+                <td class="px-3 py-3 text-right">
+                  <p
+                    class="text-h5 font-bold"
+                    :class="cashFlowAfterTax.annual >= 0 ? 'text-success-700' : 'text-error-700'"
+                  >
+                    {{ formatCurrency(cashFlowAfterTax.annual) }}
+                  </p>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      <!-- Cash Flow Section -->
-      <div class="card p-6 bg-gradient-to-r from-primary-50 to-primary-100 overflow-x-auto">
-        <table class="min-w-full">
-          <thead>
-            <tr>
-              <th class="px-3 py-2 text-left text-body-sm font-semibold text-gray-900 w-1/2"></th>
-              <th class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900 w-1/4">{{ currentMonthName }} {{ currentYear }}</th>
-              <th class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900 w-1/4">Forecast Annual</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-200">
-            <!-- Cash Flow before Tax -->
-            <tr>
-              <td class="px-3 py-3 text-body-base font-semibold text-gray-900 w-1/2">Cash Flow before Tax for the period</td>
-              <td class="px-3 py-3 text-right">
-                <p
-                  class="text-h5 font-bold"
-                  :class="cashFlowBeforeTax.monthly >= 0 ? 'text-success-700' : 'text-error-700'"
-                >
-                  {{ formatCurrency(cashFlowBeforeTax.monthly) }}
-                </p>
-              </td>
-              <td class="px-3 py-3 text-right">
-                <p
-                  class="text-h5 font-bold"
-                  :class="cashFlowBeforeTax.annual >= 0 ? 'text-success-700' : 'text-error-700'"
-                >
-                  {{ formatCurrency(cashFlowBeforeTax.annual) }}
-                </p>
-              </td>
-            </tr>
-            <!-- Estimated Income Tax -->
-            <tr>
-              <td class="px-3 py-2 text-body-base text-gray-700 pl-4 w-1/2">Estimated Income Tax</td>
-              <td class="px-3 py-2 text-right text-body-base font-medium text-gray-400">-</td>
-              <td class="px-3 py-2 text-right text-body-base font-medium text-error-700">
-                {{ formatCurrencyNegative(estimatedIncomeTax) }}
-              </td>
-            </tr>
-            <!-- Estimated Capital Gains Tax -->
-            <tr>
-              <td class="px-3 py-2 text-body-base text-gray-700 pl-4 w-1/2">Estimated Capital Gains Tax</td>
-              <td class="px-3 py-2 text-right text-body-base font-medium text-gray-400">-</td>
-              <td class="px-3 py-2 text-right text-body-base font-medium text-error-700">
-                {{ formatCurrencyNegative(estimatedCapitalGainsTax) }}
-              </td>
-            </tr>
-            <!-- Cash Flow after Tax -->
-            <tr class="border-t-2 border-primary-300">
-              <td class="px-3 py-3 text-body-base font-bold text-gray-900 w-1/2">Cash Flow after Tax for the period</td>
-              <td class="px-3 py-3 text-right">
-                <p
-                  class="text-h5 font-bold"
-                  :class="cashFlowAfterTax.monthly >= 0 ? 'text-success-700' : 'text-error-700'"
-                >
-                  {{ formatCurrency(cashFlowAfterTax.monthly) }}
-                </p>
-              </td>
-              <td class="px-3 py-3 text-right">
-                <p
-                  class="text-h5 font-bold"
-                  :class="cashFlowAfterTax.annual >= 0 ? 'text-success-700' : 'text-error-700'"
-                >
-                  {{ formatCurrency(cashFlowAfterTax.annual) }}
-                </p>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <!-- Empty State -->
+      <div v-else class="card p-8 text-center">
+        <p class="text-body-base text-gray-500">
+          No data available. Please add income and expense information to your profile.
+        </p>
       </div>
-    </div>
+    </template>
 
-    <!-- Empty State -->
-    <div v-else class="card p-8 text-center">
-      <p class="text-body-base text-gray-500">
-        No data available. Please add income and expense information to your profile.
-      </p>
-    </div>
+    <!-- ==================== FORECAST VIEW ==================== -->
+    <template v-if="activeView === 'forecast'">
+      <!-- Granularity Toggle -->
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex gap-2">
+          <button
+            @click="forecastGranularity = 'monthly'"
+            :class="[
+              'px-3 py-1.5 text-xs font-medium rounded transition-colors',
+              forecastGranularity === 'monthly'
+                ? 'bg-primary-100 text-primary-700'
+                : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+            ]"
+          >
+            Monthly (12 months)
+          </button>
+          <button
+            @click="forecastGranularity = 'annual'"
+            :class="[
+              'px-3 py-1.5 text-xs font-medium rounded transition-colors',
+              forecastGranularity === 'annual'
+                ? 'bg-primary-100 text-primary-700'
+                : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+            ]"
+          >
+            Annual (5 years)
+          </button>
+        </div>
+        <p v-if="forecastSummary" class="text-xs text-gray-500">
+          <span v-if="forecastSummary.deficit_months > 0 || forecastSummary.deficit_years > 0" class="text-error-600 font-medium">
+            {{ forecastSummary.deficit_months || forecastSummary.deficit_years }} deficit {{ forecastGranularity === 'monthly' ? 'months' : 'years' }}
+          </span>
+          <span v-else class="text-success-600 font-medium">No deficit periods</span>
+        </p>
+      </div>
+
+      <!-- Forecast Loading -->
+      <div v-if="forecastLoading" class="flex justify-center items-center py-12">
+        <div class="text-center">
+          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+          <p class="mt-4 text-body-base text-gray-600">Loading forecast...</p>
+        </div>
+      </div>
+
+      <!-- Forecast Data -->
+      <div v-else-if="forecastPeriods.length > 0" class="space-y-6">
+        <!-- Summary Card -->
+        <div v-if="forecastSummary" class="card p-6">
+          <h3 class="text-h5 font-semibold text-gray-900 mb-4">Forecast Summary</h3>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div>
+              <p class="text-xs text-gray-500 mb-1">Regular Income</p>
+              <p class="text-sm font-semibold text-success-700">
+                {{ formatCurrency(forecastSummary.monthly_regular_income || forecastSummary.annual_regular_income) }}
+                <span class="text-xs text-gray-500 font-normal">/ {{ forecastGranularity === 'monthly' ? 'month' : 'year' }}</span>
+              </p>
+            </div>
+            <div>
+              <p class="text-xs text-gray-500 mb-1">Regular Expenditure</p>
+              <p class="text-sm font-semibold text-error-700">
+                {{ formatCurrency(forecastSummary.monthly_regular_expenditure || forecastSummary.annual_regular_expenditure) }}
+                <span class="text-xs text-gray-500 font-normal">/ {{ forecastGranularity === 'monthly' ? 'month' : 'year' }}</span>
+              </p>
+            </div>
+            <div>
+              <p class="text-xs text-gray-500 mb-1">Life Event Income</p>
+              <p class="text-sm font-semibold text-success-700">
+                {{ formatCurrency(forecastSummary.total_event_income || 0) }}
+              </p>
+            </div>
+            <div>
+              <p class="text-xs text-gray-500 mb-1">Life Event Expenses</p>
+              <p class="text-sm font-semibold text-error-700">
+                {{ formatCurrency(forecastSummary.total_event_expense || 0) }}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Forecast Table -->
+        <div class="card p-6 overflow-x-auto">
+          <h3 class="text-h5 font-semibold text-gray-900 mb-4">
+            {{ forecastGranularity === 'monthly' ? 'Monthly' : 'Annual' }} Cash Flow Forecast
+          </h3>
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead>
+              <tr>
+                <th class="px-3 py-2 text-left text-body-sm font-semibold text-gray-900">Period</th>
+                <th class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900">Income</th>
+                <th class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900">Expenditure</th>
+                <th class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900">Net Cash Flow</th>
+                <th class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900">Cumulative</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+              <template v-for="(period, index) in forecastPeriods" :key="'period-' + index">
+                <!-- Period row -->
+                <tr :class="period.is_deficit ? 'bg-error-50' : ''">
+                  <td class="px-3 py-2 text-body-base text-gray-900 font-medium">
+                    <div class="flex items-center gap-1.5">
+                      {{ period.month_label || period.year }}
+                      <span v-if="period.has_events" class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-primary-100">
+                        <svg class="w-3 h-3 text-primary-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                          <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
+                        </svg>
+                      </span>
+                    </div>
+                  </td>
+                  <td class="px-3 py-2 text-right text-body-base font-medium text-success-700">
+                    {{ formatCurrency(period.total_income) }}
+                  </td>
+                  <td class="px-3 py-2 text-right text-body-base font-medium text-error-700">
+                    {{ formatCurrency(period.total_expenditure) }}
+                  </td>
+                  <td class="px-3 py-2 text-right text-body-base font-semibold" :class="period.net_cash_flow >= 0 ? 'text-success-700' : 'text-error-700'">
+                    {{ formatCurrency(period.net_cash_flow) }}
+                  </td>
+                  <td class="px-3 py-2 text-right text-body-base font-medium" :class="period.cumulative_surplus >= 0 ? 'text-gray-900' : 'text-error-700'">
+                    {{ formatCurrency(period.cumulative_surplus) }}
+                  </td>
+                </tr>
+
+                <!-- Event detail rows (if period has events) -->
+                <tr v-for="(event, eIdx) in period.events" :key="'event-' + index + '-' + eIdx" class="bg-primary-50">
+                  <td class="px-3 py-1.5 pl-8 text-xs text-primary-700" colspan="2">
+                    <div class="flex items-center gap-1.5">
+                      <svg class="w-3 h-3 text-primary-500 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
+                      </svg>
+                      <span class="font-medium">{{ event.event_name }}</span>
+                      <span class="text-gray-500">({{ event.certainty }})</span>
+                    </div>
+                  </td>
+                  <td class="px-3 py-1.5 text-right text-xs" :class="event.impact_type === 'income' ? 'text-success-600' : 'text-error-600'">
+                    {{ event.impact_type === 'income' ? '+' : '-' }}{{ formatCurrency(event.amount) }}
+                  </td>
+                  <td class="px-3 py-1.5 text-right text-xs text-gray-500" colspan="2">
+                    <span v-if="event.weighted_amount !== event.amount">
+                      Weighted: {{ formatCurrency(event.weighted_amount) }}
+                    </span>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Forecast Empty State -->
+      <div v-else class="card p-8 text-center">
+        <p class="text-body-base text-gray-500">
+          No forecast data available. Please add income and expense information to your profile.
+        </p>
+      </div>
+    </template>
   </div>
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useStore } from 'vuex';
 import userProfileService from '@/services/userProfileService';
+import goalsService from '@/services/goalsService';
 
 export default {
   name: 'IncomeStatementTab',
@@ -184,6 +370,12 @@ export default {
     const cashflowData = ref(null);
     const balanceSheetData = ref(null);
 
+    // View state
+    const activeView = ref('current');
+    const forecastGranularity = ref('monthly');
+    const forecastLoading = ref(false);
+    const forecastData = ref(null);
+
     const now = new Date();
     const currentMonthName = computed(() => {
       return now.toLocaleDateString('en-GB', { month: 'long' });
@@ -191,8 +383,6 @@ export default {
     const currentYear = computed(() => now.getFullYear());
 
     const hasData = computed(() => profitAndLossData.value !== null || cashflowData.value !== null);
-
-    const user = computed(() => store.getters['userProfile/user']);
 
     const formatCurrency = (amount) => {
       if (amount === null || amount === undefined) return '£0';
@@ -311,9 +501,6 @@ export default {
         }
       }
 
-      // Capital gains tax estimate (placeholder - would need actual gains data)
-      // For now, we'll leave this out unless we have CGT data
-
       return taxes;
     });
 
@@ -327,7 +514,6 @@ export default {
 
     const totalOutflows = computed(() => {
       const expensesAnnual = outflowItems.value.reduce((sum, item) => sum + (item.annualAmount || 0), 0);
-      // Taxes are now shown separately in Cash Flow section, not included in Total Outflows
       return {
         monthly: expensesAnnual / 12,
         annual: expensesAnnual,
@@ -355,6 +541,18 @@ export default {
       annual: cashFlowBeforeTax.value.annual - estimatedIncomeTax.value - estimatedCapitalGainsTax.value,
     }));
 
+    // Forecast computed properties
+    const forecastPeriods = computed(() => {
+      if (!forecastData.value) return [];
+      return forecastData.value.months || forecastData.value.years || [];
+    });
+
+    const forecastSummary = computed(() => {
+      if (!forecastData.value) return null;
+      return forecastData.value.summary || null;
+    });
+
+    // Data loading
     const loadData = async () => {
       loading.value = true;
       try {
@@ -383,6 +581,41 @@ export default {
       }
     };
 
+    const loadForecast = async () => {
+      forecastLoading.value = true;
+      try {
+        const options = { view: forecastGranularity.value };
+        if (forecastGranularity.value === 'monthly') {
+          options.months = 12;
+        } else {
+          options.years = 5;
+        }
+
+        const response = await goalsService.getFinancialForecast(options);
+        if (response.success) {
+          forecastData.value = response.data;
+        }
+      } catch (error) {
+        console.error('Failed to load forecast:', error);
+      } finally {
+        forecastLoading.value = false;
+      }
+    };
+
+    const switchToForecast = () => {
+      activeView.value = 'forecast';
+      if (!forecastData.value) {
+        loadForecast();
+      }
+    };
+
+    // Watch granularity changes to reload forecast
+    watch(forecastGranularity, () => {
+      if (activeView.value === 'forecast') {
+        loadForecast();
+      }
+    });
+
     onMounted(() => {
       loadData();
     });
@@ -402,6 +635,12 @@ export default {
       estimatedIncomeTax,
       estimatedCapitalGainsTax,
       cashFlowAfterTax,
+      activeView,
+      forecastGranularity,
+      forecastLoading,
+      forecastPeriods,
+      forecastSummary,
+      switchToForecast,
     };
   },
 };

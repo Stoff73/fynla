@@ -42,6 +42,20 @@
         </div>
       </div>
 
+      <!-- Life Events & Goal Strategies -->
+      <div class="space-y-3 mb-5">
+        <ModuleLifeEvents
+          module="retirement"
+          :events="lifeEvents"
+          :impact-summary="lifeEventImpact"
+        />
+        <ModuleGoalStrategies
+          module="retirement"
+          :strategies="goalStrategies"
+          :summary="goalsSummary"
+        />
+      </div>
+
       <!-- Loading State -->
       <div v-if="loading" class="flex justify-center items-center py-12">
         <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -501,6 +515,8 @@ import FutureValueTab from '@/components/Retirement/FutureValueTab.vue';
 import StrategiesTab from '@/components/Retirement/StrategiesTab.vue';
 import RetirementIncomeTab from '@/components/Retirement/RetirementIncomeTab.vue';
 import CapitalAdequacyTab from '@/components/Retirement/CapitalAdequacyTab.vue';
+import ModuleLifeEvents from '@/components/Shared/ModuleLifeEvents.vue';
+import ModuleGoalStrategies from '@/components/Shared/ModuleGoalStrategies.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
@@ -518,6 +534,8 @@ export default {
     StrategiesTab,
     RetirementIncomeTab,
     CapitalAdequacyTab,
+    ModuleLifeEvents,
+    ModuleGoalStrategies,
   },
 
   data() {
@@ -550,6 +568,10 @@ export default {
       'activeTab',
       'requiredCapital',
       'retirementIncome',
+      'lifeEvents',
+      'lifeEventImpact',
+      'goalStrategies',
+      'goalsSummary',
     ]),
     ...mapGetters('auth', ['currentUser']),
 

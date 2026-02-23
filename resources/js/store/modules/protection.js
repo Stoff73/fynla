@@ -89,6 +89,8 @@ const state = {
     },
     analysis: null,
     recommendations: [],
+    lifeEvents: [],
+    lifeEventImpact: null,
     loading: false,
     error: null,
 };
@@ -191,6 +193,10 @@ const getters = {
         return state.policies.disability && state.policies.disability.length > 0;
     },
 
+    // Life events relevant to protection module
+    upcomingLifeEvents: (state) => state.lifeEvents,
+    lifeEventNetImpact: (state) => state.lifeEventImpact?.net_impact || 0,
+
     loading: (state) => state.loading,
     error: (state) => state.error,
 };
@@ -244,6 +250,8 @@ const actions = {
             const data = response.data || response;
             commit('setProfile', data.profile || null);
             commit('setPolicies', data.policies || {});
+            commit('setLifeEvents', data.life_events || []);
+            commit('setLifeEventImpact', data.life_event_impact || null);
 
             // Also fetch analysis data to get human capital and total debt
             try {
@@ -396,6 +404,14 @@ const mutations = {
 
     setRecommendations(state, recommendations) {
         state.recommendations = recommendations;
+    },
+
+    setLifeEvents(state, events) {
+        state.lifeEvents = events;
+    },
+
+    setLifeEventImpact(state, impact) {
+        state.lifeEventImpact = impact;
     },
 
     addPolicy(state, { type, policy }) {

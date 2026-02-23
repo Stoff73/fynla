@@ -9,6 +9,7 @@ use App\Models\Estate\IHTProfile;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\Property;
 use App\Models\User;
+use App\Services\Goals\LifeEventService;
 use App\Services\Investment\InvestmentProjectionService;
 use App\Services\Settings\AssumptionsService;
 use App\Services\TaxConfigService;
@@ -38,7 +39,8 @@ class IHTCalculationService
         private readonly TaxConfigService $taxConfig,
         private readonly AssumptionsService $assumptionsService,
         private readonly InvestmentProjectionService $investmentProjectionService,
-        private readonly FutureValueCalculator $futureValueCalculator
+        private readonly FutureValueCalculator $futureValueCalculator,
+        private readonly LifeEventService $lifeEventService
     ) {}
 
     /**
@@ -436,6 +438,9 @@ class IHTCalculationService
             $investmentGrowthRate = ($assumptions['custom_investment_rate'] ?? 5.0) / 100;
         }
 
+        // Get life event impacts keyed by age (certainty-weighted)
+        $lifeEventImpacts = $this->getLifeEventImpactsByAge($user, $spouse, $dataSharingEnabled);
+
         // Year-by-year projection
         for ($age = $currentAge; $age < $deathAge; $age++) {
             // Step 1: Calculate cash surplus for this year
@@ -449,6 +454,9 @@ class IHTCalculationService
                 $expenses = $this->getRetirementExpenses($user, $spouse, $dataSharingEnabled);
             }
             $surplus = $income - $expenses;
+
+            // Step 1b: Add life event impacts for this age (income positive, expense negative)
+            $surplus += $lifeEventImpacts[$age] ?? 0;
 
             // Step 2: Update cash balance
             $cashBalance += $surplus;
@@ -1295,6 +1303,66 @@ class IHTCalculationService
             'assets_hash' => hash('sha256', $assetsString),
             'liabilities_hash' => hash('sha256', $liabilitiesString),
         ]);
+    }
+
+    /**
+     * Get life event cash impacts keyed by user age.
+     *
+     * Returns an array where keys are ages and values are the net cash impact
+     * (income events positive, expense events negative) with certainty weighting applied.
+     *
+     * @return array<int, float>
+     */
+    private function getLifeEventImpactsByAge(User $user, ?User $spouse, bool $dataSharingEnabled): array
+    {
+        $impacts = [];
+
+        $userDob = $user->date_of_birth ? Carbon::parse($user->date_of_birth) : null;
+        if (! $userDob) {
+            return $impacts;
+        }
+
+        $certaintyWeights = [
+            'confirmed' => 1.0,
+            'likely' => 0.75,
+            'possible' => 0.5,
+            'speculative' => 0.25,
+        ];
+
+        // Get user's active life events
+        $events = $this->lifeEventService->getActiveEventsForProjection($user->id, false);
+
+        foreach ($events as $event) {
+            $age = (int) $userDob->diffInYears($event->expected_date);
+            $weight = $certaintyWeights[$event->certainty] ?? 0.5;
+            $amount = (float) $event->amount * $weight;
+
+            if ($event->impact_type === 'expense') {
+                $amount = -$amount;
+            }
+
+            $impacts[$age] = ($impacts[$age] ?? 0) + $amount;
+        }
+
+        // Include spouse events if data sharing enabled
+        if ($dataSharingEnabled && $spouse) {
+            $spouseEvents = $this->lifeEventService->getActiveEventsForProjection($spouse->id, false);
+
+            foreach ($spouseEvents as $event) {
+                // Map spouse event date to primary user's age timeline
+                $age = (int) $userDob->diffInYears($event->expected_date);
+                $weight = $certaintyWeights[$event->certainty] ?? 0.5;
+                $amount = (float) $event->amount * $weight;
+
+                if ($event->impact_type === 'expense') {
+                    $amount = -$amount;
+                }
+
+                $impacts[$age] = ($impacts[$age] ?? 0) + $amount;
+            }
+        }
+
+        return $impacts;
     }
 
     /**

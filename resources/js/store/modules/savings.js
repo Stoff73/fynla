@@ -2,11 +2,14 @@ import savingsService from '@/services/savingsService';
 
 const state = {
     accounts: [],
-    goals: [],
     expenditureProfile: null,
     analysis: null,
     isaAllowance: null,
     recommendations: [],
+    lifeEvents: [],
+    lifeEventImpact: null,
+    goalStrategies: [],
+    goalsSummary: null,
     loading: false,
     error: null,
 };
@@ -77,25 +80,6 @@ const getters = {
         return state.isaAllowance?.cash_isa_used || 0;
     },
 
-    // Get goals that are on track
-    goalsOnTrack: (state) => {
-        return state.goals.filter(goal => {
-            const progress = (goal.current_saved / goal.target_amount) * 100;
-            const now = new Date();
-            const targetDate = new Date(goal.target_date);
-            const totalMonths = (targetDate - new Date(goal.created_at)) / (1000 * 60 * 60 * 24 * 30);
-            const elapsedMonths = (now - new Date(goal.created_at)) / (1000 * 60 * 60 * 24 * 30);
-            const expectedProgress = (elapsedMonths / totalMonths) * 100;
-
-            return progress >= expectedProgress;
-        });
-    },
-
-    // Get goals that are off track
-    goalsOffTrack: (state, getters) => {
-        return state.goals.filter(goal => !getters.goalsOnTrack.includes(goal));
-    },
-
     // Get total ISA balances (user's share for joint accounts)
     totalISABalance: (state) => {
         return state.accounts
@@ -133,6 +117,17 @@ const getters = {
         return state.expenditureProfile?.total_monthly_expenditure || 0;
     },
 
+    // Life events relevant to savings module
+    upcomingLifeEvents: (state) => state.lifeEvents,
+    lifeEventNetImpact: (state) => state.lifeEventImpact?.net_impact || 0,
+
+    // Goal strategies for savings module
+    activeGoalStrategies: (state) => state.goalStrategies,
+    totalGoalCommitment: (state) => state.goalsSummary?.total_monthly_commitment || 0,
+    goalsOnTrackCount: (state) => {
+        return state.goalStrategies.filter(s => s.goal?.is_on_track).length;
+    },
+
     loading: (state) => state.loading,
     error: (state) => state.error,
 };
@@ -147,10 +142,13 @@ const actions = {
             const response = await savingsService.getSavingsData();
             const data = response.data || response;
             commit('setAccounts', data.accounts || []);
-            commit('setGoals', data.goals || []);
             commit('setExpenditureProfile', data.expenditure_profile || null);
             commit('setAnalysis', data.analysis || null);
             commit('setISAAllowance', data.isa_allowance || null);
+            commit('setLifeEvents', data.life_events || []);
+            commit('setLifeEventImpact', data.life_event_impact || null);
+            commit('setGoalStrategies', data.goal_strategies || []);
+            commit('setGoalsSummary', data.goals_summary || null);
             return response;
         } catch (error) {
             const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch savings data';
@@ -269,78 +267,6 @@ const actions = {
         }
     },
 
-    // Goal actions
-    async createGoal({ commit }, goalData) {
-        commit('setLoading', true);
-        commit('setError', null);
-
-        try {
-            const response = await savingsService.createGoal(goalData);
-            const goal = response.data || response;
-            commit('addGoal', goal);
-            return response;
-        } catch (error) {
-            const errorMessage = error.message || 'Failed to create goal';
-            commit('setError', errorMessage);
-            throw error;
-        } finally {
-            commit('setLoading', false);
-        }
-    },
-
-    async updateGoal({ commit }, { id, goalData }) {
-        commit('setLoading', true);
-        commit('setError', null);
-
-        try {
-            const response = await savingsService.updateGoal(id, goalData);
-            const goal = response.data || response;
-            commit('updateGoal', goal);
-            return response;
-        } catch (error) {
-            const errorMessage = error.message || 'Failed to update goal';
-            commit('setError', errorMessage);
-            throw error;
-        } finally {
-            commit('setLoading', false);
-        }
-    },
-
-    async deleteGoal({ commit }, id) {
-        commit('setLoading', true);
-        commit('setError', null);
-
-        try {
-            const response = await savingsService.deleteGoal(id);
-            commit('removeGoal', id);
-            return response;
-        } catch (error) {
-            const errorMessage = error.message || 'Failed to delete goal';
-            commit('setError', errorMessage);
-            throw error;
-        } finally {
-            commit('setLoading', false);
-        }
-    },
-
-    async updateGoalProgress({ commit }, { id, amount }) {
-        commit('setLoading', true);
-        commit('setError', null);
-
-        try {
-            const response = await savingsService.updateGoalProgress(id, amount);
-            const goal = response.data || response;
-            commit('updateGoal', goal);
-            return response;
-        } catch (error) {
-            const errorMessage = error.message || 'Failed to update goal progress';
-            commit('setError', errorMessage);
-            throw error;
-        } finally {
-            commit('setLoading', false);
-        }
-    },
-
     // Expenditure profile actions
     async updateExpenditureProfile({ commit }, profileData) {
         commit('setLoading', true);
@@ -365,10 +291,6 @@ const mutations = {
         state.accounts = accounts;
     },
 
-    setGoals(state, goals) {
-        state.goals = goals;
-    },
-
     setExpenditureProfile(state, profile) {
         state.expenditureProfile = profile;
     },
@@ -383,6 +305,22 @@ const mutations = {
 
     setRecommendations(state, recommendations) {
         state.recommendations = recommendations;
+    },
+
+    setLifeEvents(state, events) {
+        state.lifeEvents = events;
+    },
+
+    setLifeEventImpact(state, impact) {
+        state.lifeEventImpact = impact;
+    },
+
+    setGoalStrategies(state, strategies) {
+        state.goalStrategies = strategies;
+    },
+
+    setGoalsSummary(state, summary) {
+        state.goalsSummary = summary;
     },
 
     addAccount(state, account) {
@@ -400,24 +338,6 @@ const mutations = {
         const index = state.accounts.findIndex(a => a.id === id);
         if (index !== -1) {
             state.accounts.splice(index, 1);
-        }
-    },
-
-    addGoal(state, goal) {
-        state.goals.push(goal);
-    },
-
-    updateGoal(state, goal) {
-        const index = state.goals.findIndex(g => g.id === goal.id);
-        if (index !== -1) {
-            state.goals.splice(index, 1, goal);
-        }
-    },
-
-    removeGoal(state, id) {
-        const index = state.goals.findIndex(g => g.id === id);
-        if (index !== -1) {
-            state.goals.splice(index, 1);
         }
     },
 

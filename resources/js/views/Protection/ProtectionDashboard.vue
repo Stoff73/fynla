@@ -48,8 +48,16 @@
         </div>
       </div>
 
-      <!-- Main Content -->
-      <div v-else class="bg-white rounded-lg shadow">
+      <!-- Life Events (protection-relevant events like redundancy/medical) -->
+      <div v-else>
+        <ModuleLifeEvents
+          class="mb-6"
+          module="protection"
+          :events="lifeEvents"
+          :impact-summary="lifeEventImpact"
+        />
+
+      <div class="bg-white rounded-lg shadow">
         <div class="p-6">
           <CurrentSituation
             @add-policy="handleAddPolicy"
@@ -57,7 +65,7 @@
           />
         </div>
       </div>
-      </div>
+      </div> <!-- v-else -->
 
       <!-- Policy Form Modal -->
       <PolicyFormModal
@@ -77,6 +85,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import CurrentSituation from '@/components/Protection/CurrentSituation.vue';
 import ProfileCompletenessAlert from '@/components/Shared/ProfileCompletenessAlert.vue';
 import PolicyFormModal from '@/components/Protection/PolicyFormModal.vue';
+import ModuleLifeEvents from '@/components/Shared/ModuleLifeEvents.vue';
 import protectionService from '@/services/protectionService';
 import userProfileService from '@/services/userProfileService';
 
@@ -88,6 +97,7 @@ export default {
     CurrentSituation,
     ProfileCompletenessAlert,
     PolicyFormModal,
+    ModuleLifeEvents,
   },
 
   data() {
@@ -100,7 +110,7 @@ export default {
   },
 
   computed: {
-    ...mapState('protection', ['loading', 'error']),
+    ...mapState('protection', ['loading', 'error', 'lifeEvents', 'lifeEventImpact']),
 
     isPreviewMode() {
       return this.$store.getters['preview/isPreviewMode'];

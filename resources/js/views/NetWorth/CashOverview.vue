@@ -302,7 +302,7 @@ export default {
   },
 
   computed: {
-    ...mapState('savings', ['accounts', 'goals', 'loading', 'error', 'expenditureProfile']),
+    ...mapState('savings', ['accounts', 'loading', 'error', 'expenditureProfile']),
     ...mapState('userProfile', ['incomeOccupation']),
     ...mapGetters('savings', ['totalSavings']),
     ...mapGetters('userProfile', ['totalAnnualIncome']),

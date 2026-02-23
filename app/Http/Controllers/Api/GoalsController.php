@@ -12,6 +12,7 @@ use App\Http\Resources\GoalContributionResource;
 use App\Http\Resources\GoalResource;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\Goal;
+use App\Services\Goals\FinancialForecastService;
 use App\Services\Goals\GoalAffordabilityService;
 use App\Services\Goals\GoalAssignmentService;
 use App\Services\Goals\GoalProgressService;
@@ -37,7 +38,8 @@ class GoalsController extends Controller
         private readonly GoalProgressService $progressService,
         private readonly GoalRiskService $riskService,
         private readonly GoalsProjectionService $projectionService,
-        private readonly LifeEventService $lifeEventService
+        private readonly LifeEventService $lifeEventService,
+        private readonly FinancialForecastService $forecastService
     ) {}
 
     /**
@@ -584,6 +586,194 @@ class GoalsController extends Controller
             ]);
         } catch (\Exception $e) {
             return $this->errorResponse($e, 'Get household summary', 500, ['user_id' => $user->id]);
+        }
+    }
+
+    /**
+     * Get dependencies for a goal.
+     */
+    public function getDependencies(Request $request, int $id): JsonResponse
+    {
+        $user = $request->user();
+
+        $goal = Goal::where('id', $id)
+            ->where('user_id', $user->id)
+            ->with(['dependsOn:id,goal_name,goal_type,status,target_amount,current_amount,target_date',
+                     'dependedOnBy:id,goal_name,goal_type,status,target_amount,current_amount,target_date'])
+            ->first();
+
+        if (! $goal) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Goal not found.',
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'depends_on' => $goal->dependsOn->map(fn ($dep) => [
+                    'id' => $dep->id,
+                    'goal_name' => $dep->goal_name,
+                    'goal_type' => $dep->goal_type,
+                    'status' => $dep->status,
+                    'progress_percentage' => $dep->progress_percentage,
+                    'dependency_type' => $dep->pivot->dependency_type,
+                    'notes' => $dep->pivot->notes,
+                ]),
+                'depended_on_by' => $goal->dependedOnBy->map(fn ($dep) => [
+                    'id' => $dep->id,
+                    'goal_name' => $dep->goal_name,
+                    'goal_type' => $dep->goal_type,
+                    'status' => $dep->status,
+                    'progress_percentage' => $dep->progress_percentage,
+                    'dependency_type' => $dep->pivot->dependency_type,
+                    'notes' => $dep->pivot->notes,
+                ]),
+                'is_blocked' => $goal->isBlocked(),
+            ],
+        ]);
+    }
+
+    /**
+     * Add a dependency to a goal.
+     */
+    public function addDependency(Request $request, int $id): JsonResponse
+    {
+        $user = $request->user();
+
+        $request->validate([
+            'depends_on_goal_id' => 'required|integer|exists:goals,id',
+            'dependency_type' => 'required|string|in:blocks,funds,prerequisite',
+            'notes' => 'nullable|string|max:500',
+        ]);
+
+        $goal = Goal::where('id', $id)->where('user_id', $user->id)->first();
+        $dependsOnGoal = Goal::where('id', $request->input('depends_on_goal_id'))
+            ->where('user_id', $user->id)
+            ->first();
+
+        if (! $goal || ! $dependsOnGoal) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Goal not found.',
+            ], 404);
+        }
+
+        // Prevent self-dependency
+        if ($goal->id === $dependsOnGoal->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'A goal cannot depend on itself.',
+            ], 422);
+        }
+
+        // Check for circular dependency
+        if ($this->wouldCreateCircularDependency($goal->id, $dependsOnGoal->id)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This dependency would create a circular chain.',
+            ], 422);
+        }
+
+        try {
+            $goal->dependsOn()->syncWithoutDetaching([
+                $dependsOnGoal->id => [
+                    'dependency_type' => $request->input('dependency_type'),
+                    'notes' => $request->input('notes'),
+                ],
+            ]);
+
+            $this->goalsAgent->clearCache($user->id);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Dependency added successfully.',
+            ]);
+        } catch (\Exception $e) {
+            return $this->errorResponse($e, 'Add dependency', 500, ['goal_id' => $id]);
+        }
+    }
+
+    /**
+     * Remove a dependency from a goal.
+     */
+    public function removeDependency(Request $request, int $id, int $dependsOnId): JsonResponse
+    {
+        $user = $request->user();
+
+        $goal = Goal::where('id', $id)->where('user_id', $user->id)->first();
+
+        if (! $goal) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Goal not found.',
+            ], 404);
+        }
+
+        $goal->dependsOn()->detach($dependsOnId);
+        $this->goalsAgent->clearCache($user->id);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Dependency removed successfully.',
+        ]);
+    }
+
+    /**
+     * Check if adding a dependency would create a circular chain.
+     */
+    private function wouldCreateCircularDependency(int $goalId, int $dependsOnId): bool
+    {
+        $visited = [];
+        $queue = [$dependsOnId];
+
+        while (! empty($queue)) {
+            $current = array_shift($queue);
+
+            if ($current === $goalId) {
+                return true;
+            }
+
+            if (in_array($current, $visited)) {
+                continue;
+            }
+            $visited[] = $current;
+
+            $deps = \DB::table('goal_dependencies')
+                ->where('goal_id', $current)
+                ->pluck('depends_on_goal_id')
+                ->toArray();
+
+            $queue = array_merge($queue, $deps);
+        }
+
+        return false;
+    }
+
+    /**
+     * Get financial forecast with life events overlay.
+     */
+    public function getFinancialForecast(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $view = $request->input('view', 'monthly');
+        $months = (int) $request->input('months', 12);
+        $years = (int) $request->input('years', 5);
+
+        try {
+            if ($view === 'annual') {
+                $forecast = $this->forecastService->getAnnualForecast($user->id, $years);
+            } else {
+                $forecast = $this->forecastService->getMonthlyForecast($user->id, $months);
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => $forecast,
+            ]);
+        } catch (\Exception $e) {
+            return $this->errorResponse($e, 'Get financial forecast', 500, ['user_id' => $user->id]);
         }
     }
 }

@@ -3,13 +3,12 @@ import { pollMonteCarloJob } from '@/utils/poller';
 
 const state = {
     accounts: [],
-    goals: [],
     riskProfile: null,
     analysis: null,
     recommendations: null,  // { recommendation_count, recommendations: [] }
     monteCarloResults: {},      // Keyed by jobId
     monteCarloStatus: {},        // Keyed by jobId
-    monteCarloResultsByGoal: {}, // Keyed by goalId
+    monteCarloResultsByGoal: {},
     optimizationResult: null,    // Portfolio optimization result
     scenarios: null,
     investmentPlan: null,        // Latest investment plan
@@ -25,12 +24,15 @@ const state = {
     assetLocationAnalysis: null,       // Phase 2.6: Asset location optimization
     performanceAttribution: null,      // Phase 2.7: Performance attribution
     benchmarkComparison: null,         // Phase 2.7: Benchmark comparison
-    goalProjections: {},               // Phase 2.3: Goal projections by goal ID
     feeAnalysis: null,                 // Phase 2.5: Detailed fee analysis
     portfolioProjections: null,        // Performance tab projections
     projectionsLoading: false,
     projectionsError: null,
     selectedProjectionPeriod: 10,      // Default to 10 years
+    lifeEvents: [],
+    lifeEventImpact: null,
+    goalStrategies: [],
+    goalsSummary: null,
     loading: false,
     error: null,
 };
@@ -51,13 +53,6 @@ const getters = {
      * @returns {Array<Object>} Array of investment account objects
      */
     accounts: (state) => state.accounts,
-
-    /**
-     * Get all investment goals.
-     * @param {InvestmentState} state - Vuex state
-     * @returns {Array<Object>} Array of investment goal objects
-     */
-    goals: (state) => state.goals,
 
     /**
      * Get total portfolio value across all accounts (user's share only for joint accounts).
@@ -227,15 +222,6 @@ const getters = {
         }, 0);
     },
 
-    // Get goals that are on track
-    goalsOnTrack: (state) => {
-        return state.goals.filter(goal => {
-            const progress = (goal.current_value / goal.target_amount) * 100;
-            // Simplified - in real app would calculate based on time elapsed
-            return progress >= 50;
-        });
-    },
-
     // Get Monte Carlo result by job ID
     getMonteCarloResult: (state) => (jobId) => {
         return state.monteCarloResults[jobId] || null;
@@ -321,10 +307,6 @@ const getters = {
 
     benchmarkComparison: (state) => state.benchmarkComparison,
 
-    getGoalProjection: (state) => (goalId) => {
-        return state.goalProjections[goalId] || null;
-    },
-
     feeAnalysis: (state) => state.feeAnalysis,
 
     // Portfolio projections getters
@@ -344,6 +326,14 @@ const getters = {
     recommendations: (state) => state.recommendations,
 
     loading: (state) => state.loading,
+    // Life events relevant to investment module
+    upcomingLifeEvents: (state) => state.lifeEvents,
+    lifeEventNetImpact: (state) => state.lifeEventImpact?.net_impact || 0,
+
+    // Goal strategies for investment module
+    activeGoalStrategies: (state) => state.goalStrategies,
+    totalGoalCommitment: (state) => state.goalsSummary?.total_monthly_commitment || 0,
+
     error: (state) => state.error,
 };
 
@@ -356,8 +346,11 @@ const actions = {
         try {
             const response = await investmentService.getInvestmentData();
             commit('setAccounts', response.data.accounts);
-            commit('setGoals', response.data.goals);
             commit('setRiskProfile', response.data.risk_profile);
+            commit('setLifeEvents', response.data.life_events || []);
+            commit('setLifeEventImpact', response.data.life_event_impact || null);
+            commit('setGoalStrategies', response.data.goal_strategies || []);
+            commit('setGoalsSummary', response.data.goals_summary || null);
             return response;
         } catch (error) {
             const errorMessage = error.message || 'Failed to fetch investment data';
@@ -607,58 +600,6 @@ const actions = {
             return response;
         } catch (error) {
             const errorMessage = error.message || 'Failed to delete holding';
-            commit('setError', errorMessage);
-            throw error;
-        } finally {
-            commit('setLoading', false);
-        }
-    },
-
-    // Goal actions
-    async createGoal({ commit }, goalData) {
-        commit('setLoading', true);
-        commit('setError', null);
-
-        try {
-            const response = await investmentService.createGoal(goalData);
-            commit('addGoal', response.data);
-            return response;
-        } catch (error) {
-            const errorMessage = error.message || 'Failed to create goal';
-            commit('setError', errorMessage);
-            throw error;
-        } finally {
-            commit('setLoading', false);
-        }
-    },
-
-    async updateGoal({ commit }, { id, goalData }) {
-        commit('setLoading', true);
-        commit('setError', null);
-
-        try {
-            const response = await investmentService.updateGoal(id, goalData);
-            commit('updateGoal', response.data);
-            return response;
-        } catch (error) {
-            const errorMessage = error.message || 'Failed to update goal';
-            commit('setError', errorMessage);
-            throw error;
-        } finally {
-            commit('setLoading', false);
-        }
-    },
-
-    async deleteGoal({ commit }, id) {
-        commit('setLoading', true);
-        commit('setError', null);
-
-        try {
-            const response = await investmentService.deleteGoal(id);
-            commit('removeGoal', id);
-            return response;
-        } catch (error) {
-            const errorMessage = error.message || 'Failed to delete goal';
             commit('setError', errorMessage);
             throw error;
         } finally {
@@ -1235,26 +1176,6 @@ const actions = {
         }
     },
 
-    // Phase 2.3: Goal Projection
-    async projectGoal({ commit }, { goalId, params }) {
-        commit('setLoading', true);
-        commit('setError', null);
-
-        try {
-            const response = await investmentService.projectGoal(goalId, params);
-            if (response.success && response.data) {
-                commit('setGoalProjection', { goalId, projection: response.data });
-            }
-            return response;
-        } catch (error) {
-            const errorMessage = error.message || 'Failed to project goal';
-            commit('setError', errorMessage);
-            throw error;
-        } finally {
-            commit('setLoading', false);
-        }
-    },
-
     // Phase 2.5: Fee Analysis
     async analyseFees({ commit }) {
         commit('setLoading', true);
@@ -1313,10 +1234,6 @@ const mutations = {
         state.accounts = accounts;
     },
 
-    setGoals(state, goals) {
-        state.goals = goals;
-    },
-
     setRiskProfile(state, profile) {
         state.riskProfile = profile;
     },
@@ -1327,6 +1244,22 @@ const mutations = {
 
     setRecommendations(state, recommendations) {
         state.recommendations = recommendations;
+    },
+
+    setLifeEvents(state, events) {
+        state.lifeEvents = events;
+    },
+
+    setLifeEventImpact(state, impact) {
+        state.lifeEventImpact = impact;
+    },
+
+    setGoalStrategies(state, strategies) {
+        state.goalStrategies = strategies;
+    },
+
+    setGoalsSummary(state, summary) {
+        state.goalsSummary = summary;
     },
 
     setScenarios(state, scenarios) {
@@ -1411,24 +1344,6 @@ const mutations = {
                     break;
                 }
             }
-        }
-    },
-
-    addGoal(state, goal) {
-        state.goals.push(goal);
-    },
-
-    updateGoal(state, goal) {
-        const index = state.goals.findIndex(g => g.id === goal.id);
-        if (index !== -1) {
-            state.goals.splice(index, 1, goal);
-        }
-    },
-
-    removeGoal(state, id) {
-        const index = state.goals.findIndex(g => g.id === id);
-        if (index !== -1) {
-            state.goals.splice(index, 1);
         }
     },
 
@@ -1545,13 +1460,6 @@ const mutations = {
 
     setBenchmarkComparison(state, data) {
         state.benchmarkComparison = data;
-    },
-
-    setGoalProjection(state, { goalId, projection }) {
-        state.goalProjections = {
-            ...state.goalProjections,
-            [goalId]: projection
-        };
     },
 
     setFeeAnalysis(state, data) {

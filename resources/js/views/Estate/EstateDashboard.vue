@@ -43,6 +43,14 @@
 
       <!-- Main Content -->
       <div v-else>
+        <!-- Life Events relevant to estate planning -->
+        <ModuleLifeEvents
+          class="mb-6"
+          module="estate"
+          :events="lifeEvents"
+          :impact-summary="lifeEventImpact"
+        />
+
         <!-- Tab Content -->
         <div>
           <!-- Inheritance Tax Planning Tab -->
@@ -70,6 +78,7 @@ import IHTPlanning from '@/components/Estate/IHTPlanning.vue';
 import GiftingStrategy from '@/components/Estate/GiftingStrategy.vue';
 import LifePolicyStrategy from '@/components/Estate/LifePolicyStrategy.vue';
 import TrustPlanning from '@/components/Estate/TrustPlanning.vue';
+import ModuleLifeEvents from '@/components/Shared/ModuleLifeEvents.vue';
 
 export default {
   name: 'EstateDashboard',
@@ -80,6 +89,7 @@ export default {
     GiftingStrategy,
     LifePolicyStrategy,
     TrustPlanning,
+    ModuleLifeEvents,
   },
 
   data() {
@@ -96,7 +106,7 @@ export default {
   },
 
   computed: {
-    ...mapState('estate', ['error']),
+    ...mapState('estate', ['error', 'lifeEvents', 'lifeEventImpact']),
 
     isPreviewMode() {
       return this.$store.getters['preview/isPreviewMode'];

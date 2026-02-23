@@ -17,6 +17,8 @@ use App\Models\DCPension;
 use App\Models\Investment\RiskProfile;
 use App\Models\RetirementProfile;
 use App\Models\StatePension;
+use App\Services\Goals\GoalStrategyService;
+use App\Services\Goals\LifeEventIntegrationService;
 use App\Services\Investment\DiversificationAnalyzer;
 use App\Services\Retirement\AnnualAllowanceChecker;
 use App\Services\Retirement\RequiredCapitalCalculator;
@@ -44,7 +46,9 @@ class RetirementController extends Controller
         private readonly RetirementStrategyService $strategyService,
         private readonly RetirementIncomeService $retirementIncomeService,
         private readonly DiversificationAnalyzer $diversificationAnalyzer,
-        private readonly RequiredCapitalCalculator $requiredCapitalCalculator
+        private readonly RequiredCapitalCalculator $requiredCapitalCalculator,
+        private readonly LifeEventIntegrationService $lifeEventIntegration,
+        private readonly GoalStrategyService $goalStrategy
     ) {}
 
     /**
@@ -54,11 +58,29 @@ class RetirementController extends Controller
     {
         $user = $request->user();
 
+        // Get life events and goal strategies
+        try {
+            $lifeEvents = $this->lifeEventIntegration->getEventsForModule($user->id, 'retirement');
+            $lifeEventImpact = $this->lifeEventIntegration->getModuleImpactSummary($user->id, 'retirement');
+            $goalStrategies = $this->goalStrategy->getStrategiesForModule($user->id, 'retirement');
+            $goalsSummary = $this->goalStrategy->getModuleGoalsSummary($user->id, 'retirement');
+        } catch (\Throwable $e) {
+            report($e);
+            $lifeEvents = [];
+            $lifeEventImpact = null;
+            $goalStrategies = [];
+            $goalsSummary = null;
+        }
+
         $data = [
             'profile' => RetirementProfile::where('user_id', $user->id)->first(),
             'dc_pensions' => DCPension::where('user_id', $user->id)->get(),
             'db_pensions' => DBPension::where('user_id', $user->id)->get(),
             'state_pension' => StatePension::where('user_id', $user->id)->first(),
+            'life_events' => $lifeEvents,
+            'life_event_impact' => $lifeEventImpact,
+            'goal_strategies' => $goalStrategies,
+            'goals_summary' => $goalsSummary,
         ];
 
         return response()->json([
