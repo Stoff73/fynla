@@ -100,6 +100,7 @@
         :goal="goal"
         :dependency-count="goal.dependency_count || 0"
         :is-blocked="goal.is_blocked || false"
+        @view="$emit('view-goal', goal)"
         @edit="$emit('edit-goal', goal)"
         @delete="$emit('delete-goal', goal)"
         @add-contribution="$emit('add-contribution', goal)"
@@ -139,7 +140,7 @@ export default {
     },
   },
 
-  emits: ['update-filters', 'edit-goal', 'delete-goal', 'add-contribution', 'create-goal'],
+  emits: ['update-filters', 'view-goal', 'edit-goal', 'delete-goal', 'add-contribution', 'create-goal'],
 
   data() {
     return {

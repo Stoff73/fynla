@@ -44,8 +44,19 @@
           </div>
         </div>
 
+        <!-- Goal Detail View (inline, replaces list) -->
+        <GoalDetailInline
+          v-if="selectedGoal && !loading && !error"
+          :goal-id="selectedGoal.id"
+          @back="closeGoalDetail"
+          @edit="openEditModal"
+          @delete="confirmDeleteGoal"
+          @add-contribution="openContributionModal"
+          @updated="handleGoalUpdated"
+        />
+
         <!-- Main Content -->
-        <div v-else class="bg-white rounded-lg shadow">
+        <div v-else-if="!loading && !error" class="bg-white rounded-lg shadow">
           <!-- Tab Navigation -->
           <div class="border-b border-gray-200">
             <nav class="-mb-px flex overflow-x-auto" aria-label="Tabs">
@@ -156,6 +167,7 @@ import GoalFormModal from '@/components/Goals/GoalFormModal.vue';
 import GoalsOverview from '@/components/Goals/GoalsOverview.vue';
 import ContributionModal from '@/components/Goals/ContributionModal.vue';
 import EventsTab from '@/components/Goals/EventsTab.vue';
+import GoalDetailInline from '@/components/Goals/GoalDetailInline.vue';
 
 export default {
   name: 'GoalsDashboard',
@@ -166,6 +178,7 @@ export default {
     GoalsOverview,
     ContributionModal,
     EventsTab,
+    GoalDetailInline,
   },
 
   data() {
@@ -175,6 +188,7 @@ export default {
         { id: 'overview', label: 'Overview' },
         { id: 'events', label: 'Life Events' },
       ],
+      selectedGoal: null,
       showGoalModal: false,
       editingGoal: null,
       showContributionModal: false,
@@ -261,6 +275,10 @@ export default {
           await this.createGoal(formData);
         }
         this.closeGoalModal();
+        // If editing from detail view, close detail and return to list
+        if (this.selectedGoal) {
+          this.selectedGoal = null;
+        }
         await this.loadGoalsData();
       } catch (error) {
         console.error('Failed to save goal:', error);
@@ -307,6 +325,10 @@ export default {
       try {
         await this.deleteGoal(this.deletingGoal.id);
         this.closeDeleteModal();
+        // Close detail view if deleting from it
+        if (this.selectedGoal && this.selectedGoal.id === this.deletingGoal.id) {
+          this.selectedGoal = null;
+        }
         await this.loadGoalsData();
       } catch (error) {
         console.error('Failed to delete goal:', error);
@@ -320,8 +342,15 @@ export default {
     },
 
     viewGoal(goal) {
-      // For now, open edit modal - could add a detail view later
-      this.openEditModal(goal);
+      this.selectedGoal = goal;
+    },
+
+    closeGoalDetail() {
+      this.selectedGoal = null;
+    },
+
+    async handleGoalUpdated() {
+      await this.loadGoalsData();
     },
   },
 };

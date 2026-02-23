@@ -1,7 +1,8 @@
 <template>
   <div
-    class="goal-card bg-white border border-gray-200 rounded-lg p-5 hover:shadow-md hover:-translate-y-0.5 hover:border-primary-500 transition-all duration-200"
+    class="goal-card bg-white border border-gray-200 rounded-lg p-5 hover:shadow-md hover:-translate-y-0.5 hover:border-primary-500 transition-all duration-200 cursor-pointer"
     :class="{ 'border-l-4': true, [borderColorClass]: true }"
+    @click="$emit('view', goal)"
   >
     <!-- Goal Header -->
     <div class="flex justify-between items-start mb-3">
@@ -42,7 +43,7 @@
       </div>
       <div v-if="showActions" class="flex gap-1 ml-3">
         <button
-          @click="$emit('edit', goal)"
+          @click.stop="$emit('edit', goal)"
           class="p-1.5 text-gray-400 hover:text-blue-600 rounded-button hover:bg-gray-100"
           title="Edit goal"
         >
@@ -51,7 +52,7 @@
           </svg>
         </button>
         <button
-          @click="$emit('delete', goal)"
+          @click.stop="$emit('delete', goal)"
           class="p-1.5 text-gray-400 hover:text-red-600 rounded-button hover:bg-gray-100"
           title="Delete goal"
         >
@@ -106,7 +107,7 @@
       </span>
       <button
         v-if="goal.status === 'active'"
-        @click="$emit('add-contribution', goal)"
+        @click.stop="$emit('add-contribution', goal)"
         class="text-xs font-medium text-primary-600 hover:text-primary-700"
       >
         + Add Contribution
@@ -141,7 +142,7 @@ export default {
     },
   },
 
-  emits: ['edit', 'delete', 'add-contribution'],
+  emits: ['view', 'edit', 'delete', 'add-contribution'],
 
   computed: {
     progressPercent() {

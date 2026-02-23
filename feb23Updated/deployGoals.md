@@ -17,6 +17,8 @@ Bug fix: Mitchell persona "Early Retirement Fund" had goal_type "retirement" but
 
 Bug fix: ModuleGoalStrategies streak display was rendering raw JSON object instead of the formatted label.
 
+Feature: Clicking goal cards and life event cards now opens inline detail views (matching the property/investment detail view pattern) instead of the edit form. Goal detail view shows progress, key metrics, affordability, projections (investment goals), and dependencies tabs. Life event detail view shows event information, planning details, and financial impact analysis.
+
 Fix: `mysql-schema.sql` was not regenerated after migrations. Schema dump now includes `goals`, `goal_contributions`, `life_events`, and `goal_dependencies` tables.
 
 ---
@@ -49,6 +51,8 @@ Upload `public/build/` directory after rebuild.
 
 ### Frontend - New Components (included in rebuild)
 - `resources/js/components/Estate/EstateLifeEventsImpact.vue`
+- `resources/js/components/Goals/GoalDetailInline.vue`
+- `resources/js/components/Goals/LifeEventDetailInline.vue`
 - `resources/js/components/Shared/ModuleGoalStrategies.vue`
 - `resources/js/components/Shared/ModuleLifeEvents.vue`
 
@@ -96,6 +100,7 @@ Upload `public/build/` directory after rebuild.
 - `resources/js/services/savingsService.js`
 
 ### Frontend - Components (modified)
+- `resources/js/components/Goals/EventsTab.vue`
 - `resources/js/components/Goals/GoalCard.vue`
 - `resources/js/components/Goals/GoalFormModal.vue`
 - `resources/js/components/Goals/GoalsList.vue`
@@ -106,6 +111,7 @@ Upload `public/build/` directory after rebuild.
 
 ### Frontend - Views (modified)
 - `resources/js/views/Estate/EstateDashboard.vue`
+- `resources/js/views/Goals/GoalsDashboard.vue`
 - `resources/js/views/NetWorth/CashOverview.vue`
 - `resources/js/views/Protection/ProtectionDashboard.vue`
 - `resources/js/views/Savings/SavingsDashboard.vue`
@@ -175,3 +181,17 @@ php artisan cache:clear && php artisan config:clear && php artisan view:clear &&
 ### Fix - Schema Dump Regenerated
 - `mysql-schema.sql` was stale and missing `goals`, `goal_contributions`, `life_events`, and `goal_dependencies` tables
 - Regenerated via `php artisan schema:dump` to include all current tables
+
+### Goal & Life Event Detail Views
+- Clicking goal cards now opens an inline detail view instead of the edit form
+- GoalDetailInline shows: header with badges, key metrics (progress, time remaining, monthly contribution, amount remaining), progress bar with milestones, and tabbed content (Overview, Affordability, Projections for investment goals, Dependencies)
+- Clicking life event cards now opens an inline detail view instead of the edit form
+- LifeEventDetailInline shows: header with impact/certainty badges, key metrics (amount, expected date, certainty, status), and tabbed content (Details, Impact)
+- Both views include Back, Edit, and Delete buttons following the PropertyDetailInline pattern
+- GoalsDashboard conditionally renders GoalDetailInline when a goal is selected
+- EventsTab conditionally renders LifeEventDetailInline when an event is selected
+- GoalCard made clickable with `.stop` modifiers on action buttons to prevent event propagation
+- Uses direct goalsService API calls (not Vuex actions) to avoid global loading state conflicts
+
+### Fix - ProtectionDashboard Missing Closing Tag
+- `ProtectionDashboard.vue` had a missing `</div>` closing tag for the `protection-dashboard` wrapper, causing a build error

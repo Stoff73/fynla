@@ -76,6 +76,7 @@
         @save="handlePolicySaved"
       />
     </div>
+    </div>
   </AppLayout>
 </template>
 
