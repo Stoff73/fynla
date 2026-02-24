@@ -5,23 +5,20 @@ declare(strict_types=1);
 namespace App\Services\Payment;
 
 use App\Models\Subscription;
+use App\Models\SubscriptionPlan;
 use App\Models\User;
 use Carbon\Carbon;
 
 class TrialService
 {
-    private const TRIAL_DAYS = 7;
-
-    private const PLAN_PRICING = [
-        'student' => ['monthly' => 399, 'yearly' => 3000],
-        'standard' => ['monthly' => 1099, 'yearly' => 10000],
-        'pro' => ['monthly' => 1999, 'yearly' => 20000],
-    ];
-
     public function startTrial(User $user, string $plan, string $billingCycle): Subscription
     {
         $now = Carbon::now();
-        $amount = self::PLAN_PRICING[$plan][$billingCycle] ?? 0;
+        $subscriptionPlan = SubscriptionPlan::findBySlug($plan);
+
+        if (! $subscriptionPlan) {
+            throw new \InvalidArgumentException("Unknown or inactive subscription plan: {$plan}");
+        }
 
         $subscription = Subscription::create([
             'user_id' => $user->id,
@@ -29,8 +26,8 @@ class TrialService
             'billing_cycle' => $billingCycle,
             'status' => 'trialing',
             'trial_started_at' => $now,
-            'trial_ends_at' => $now->copy()->addDays(self::TRIAL_DAYS),
-            'amount' => $amount,
+            'trial_ends_at' => $now->copy()->addDays($subscriptionPlan->trial_days),
+            'amount' => $subscriptionPlan->getPriceForCycle($billingCycle),
         ]);
 
         $user->update([
@@ -43,16 +40,58 @@ class TrialService
 
     public function expireTrials(): int
     {
+        $now = Carbon::now();
+
         $expired = Subscription::where('status', 'trialing')
-            ->where('trial_ends_at', '<', Carbon::now())
+            ->where('trial_ends_at', '<', $now)
+            ->with('user')
             ->get();
 
-        foreach ($expired as $subscription) {
-            $subscription->update(['status' => 'expired']);
-            $subscription->user()->update([
-                'plan' => 'free',
-            ]);
+        $expiredIds = $expired->pluck('id');
+        $userIds = $expired->pluck('user_id');
+
+        // Bulk update for performance. Note: bypasses Eloquent observers (Auditable).
+        // Acceptable because trial expiry is logged via this command's output.
+        Subscription::whereIn('id', $expiredIds)->update([
+            'status' => 'expired',
+            'data_retention_starts_at' => $now,
+        ]);
+        User::whereIn('id', $userIds)->update(['plan' => 'free']);
+
+        return $expired->count();
+    }
+
+    /**
+     * Expire cancelled subscriptions whose current_period_end has passed.
+     *
+     * When a user cancels, they retain access until current_period_end.
+     * Once that date passes, transition to 'expired' and start the
+     * 30-day data retention grace period.
+     */
+    public function expireCancelledSubscriptions(): int
+    {
+        $now = Carbon::now();
+
+        $expired = Subscription::where('status', 'cancelled')
+            ->whereNotNull('current_period_end')
+            ->where('current_period_end', '<', $now)
+            ->whereNull('data_retention_starts_at')
+            ->with('user')
+            ->get();
+
+        if ($expired->isEmpty()) {
+            return 0;
         }
+
+        $expiredIds = $expired->pluck('id');
+        $userIds = $expired->pluck('user_id');
+
+        // Bulk update for performance (same trade-off as expireTrials)
+        Subscription::whereIn('id', $expiredIds)->update([
+            'status' => 'expired',
+            'data_retention_starts_at' => $now,
+        ]);
+        User::whereIn('id', $userIds)->update(['plan' => 'free']);
 
         return $expired->count();
     }

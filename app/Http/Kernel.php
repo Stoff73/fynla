@@ -47,6 +47,7 @@ class Kernel extends HttpKernel
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
             \App\Http\Middleware\SanitizeInput::class, // SECURITY: Sanitize user input to prevent XSS
             \App\Http\Middleware\PreviewWriteInterceptor::class, // Intercept writes for preview users
+            \App\Http\Middleware\CheckSubscription::class, // Feature-flagged subscription enforcement
         ],
     ];
 

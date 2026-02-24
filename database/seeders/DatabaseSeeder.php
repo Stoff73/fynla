@@ -47,6 +47,9 @@ class DatabaseSeeder extends Seeder
 
             // Savings market benchmark rates
             SavingsMarketRatesSeeder::class,
+
+            // Subscription plans (pricing, trial config)
+            SubscriptionPlanSeeder::class,
         ]);
 
         // ============================================================
