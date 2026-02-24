@@ -53,6 +53,10 @@ export default {
       type: String,
       default: null,
     },
+    lifeEvents: {
+      type: Array,
+      default: () => [],
+    },
   },
 
   data() {
@@ -109,6 +113,39 @@ export default {
       return `Using ${levelDisplay} risk profile (${formattedReturn}% expected return)`;
     },
 
+    lifeEventAnnotations() {
+      if (this.compact || !this.lifeEvents || this.lifeEvents.length === 0 || !this.years.length) return [];
+
+      const currentYear = this.years[0];
+
+      return this.lifeEvents
+        .filter(e => {
+          const eventYear = new Date(e.expected_date).getFullYear();
+          return eventYear >= currentYear && eventYear <= this.years[this.years.length - 1];
+        })
+        .map(e => {
+          const eventYear = new Date(e.expected_date).getFullYear();
+          const isIncome = e.impact_type === 'income';
+          return {
+            x: eventYear,
+            borderColor: isIncome ? SUCCESS_COLORS[500] : '#EF4444',
+            strokeDashArray: 4,
+            label: {
+              text: `${e.event_name} (${isIncome ? '+' : '-'}${this.formatCurrencyCompact(e.amount)})`,
+              borderColor: isIncome ? SUCCESS_COLORS[500] : '#EF4444',
+              style: {
+                color: '#fff',
+                background: isIncome ? SUCCESS_COLORS[500] : '#EF4444',
+                fontSize: '10px',
+                padding: { left: 4, right: 4, top: 2, bottom: 2 },
+              },
+              orientation: 'horizontal',
+              position: 'top',
+            },
+          };
+        });
+    },
+
     chartOptions() {
       return {
         chart: {
@@ -148,6 +185,9 @@ export default {
             stops: [0, 90, 100],
           },
         },
+        annotations: {
+          xaxis: this.lifeEventAnnotations,
+        },
         xaxis: {
           categories: this.years,
           title: {
@@ -167,7 +207,7 @@ export default {
             style: { fontWeight: 600, fontSize: '12px' },
           },
           labels: {
-            formatter: (val) => this.formatCurrencyShort(val),
+            formatter: (val) => this.formatCurrencyCompact(val),
             style: { fontSize: '11px' },
           },
         },
@@ -207,13 +247,6 @@ export default {
   },
 
   methods: {
-    formatCurrencyShort(value) {
-      if (value === null || value === undefined) return '£0';
-      if (value >= 1000000) return '£' + (value / 1000000).toFixed(1) + 'M';
-      if (value >= 1000) return '£' + (value / 1000).toFixed(0) + 'K';
-      return this.formatCurrency(value);
-    },
-
     formatRiskLevel(level) {
       const levels = {
         low: 'Low',

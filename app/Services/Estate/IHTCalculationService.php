@@ -1309,7 +1309,7 @@ class IHTCalculationService
      * Get life event cash impacts keyed by user age.
      *
      * Returns an array where keys are ages and values are the net cash impact
-     * (income events positive, expense events negative) with certainty weighting applied.
+     * (income events positive, expense events negative) using raw amounts.
      *
      * @return array<int, float>
      */
@@ -1322,20 +1322,12 @@ class IHTCalculationService
             return $impacts;
         }
 
-        $certaintyWeights = [
-            'confirmed' => 1.0,
-            'likely' => 0.75,
-            'possible' => 0.5,
-            'speculative' => 0.25,
-        ];
-
         // Get user's active life events
         $events = $this->lifeEventService->getActiveEventsForProjection($user->id, false);
 
         foreach ($events as $event) {
             $age = (int) $userDob->diffInYears($event->expected_date);
-            $weight = $certaintyWeights[$event->certainty] ?? 0.5;
-            $amount = (float) $event->amount * $weight;
+            $amount = (float) $event->amount;
 
             if ($event->impact_type === 'expense') {
                 $amount = -$amount;
@@ -1351,8 +1343,7 @@ class IHTCalculationService
             foreach ($spouseEvents as $event) {
                 // Map spouse event date to primary user's age timeline
                 $age = (int) $userDob->diffInYears($event->expected_date);
-                $weight = $certaintyWeights[$event->certainty] ?? 0.5;
-                $amount = (float) $event->amount * $weight;
+                $amount = (float) $event->amount;
 
                 if ($event->impact_type === 'expense') {
                     $amount = -$amount;

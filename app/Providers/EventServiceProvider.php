@@ -7,6 +7,7 @@ namespace App\Providers;
 use App\Models\DCPension;
 use App\Models\FamilyMember;
 use App\Models\Investment\InvestmentAccount;
+use App\Models\LifeEvent;
 use App\Models\Property;
 use App\Models\SavingsAccount;
 use App\Models\User;
@@ -14,6 +15,7 @@ use App\Observers\DCPensionRiskObserver;
 use App\Observers\FamilyMemberRiskObserver;
 use App\Observers\InvestmentAccountGoalObserver;
 use App\Observers\InvestmentAccountRiskObserver;
+use App\Observers\LifeEventMonteCarloObserver;
 use App\Observers\PropertyRiskObserver;
 use App\Observers\SavingsAccountGoalObserver;
 use App\Observers\SavingsAccountRiskObserver;
@@ -48,6 +50,7 @@ class EventServiceProvider extends ServiceProvider
         InvestmentAccount::class => [InvestmentAccountRiskObserver::class, InvestmentAccountGoalObserver::class],
         DCPension::class => [DCPensionRiskObserver::class],
         Property::class => [PropertyRiskObserver::class],
+        LifeEvent::class => [LifeEventMonteCarloObserver::class],
     ];
 
     /**

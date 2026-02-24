@@ -6,6 +6,7 @@ use App\Models\DBPension;
 use App\Models\DCPension;
 use App\Models\StatePension;
 use App\Models\User;
+use App\Services\Goals\LifeEventCashFlowService;
 use App\Services\Investment\MonteCarloSimulator;
 use App\Services\Retirement\RetirementProjectionService;
 use App\Services\Risk\RiskPreferenceService;
@@ -64,10 +65,17 @@ beforeEach(function () {
             'income_occupation' => ['net_income' => 40000],
         ]);
 
+    $this->mockLifeEventCashFlowService = Mockery::mock(LifeEventCashFlowService::class);
+    $this->mockLifeEventCashFlowService->shouldReceive('buildCashFlowMap')->andReturn([]);
+    $this->mockLifeEventCashFlowService->shouldReceive('buildDrawdownCashFlowMap')->andReturn([]);
+    $this->mockLifeEventCashFlowService->shouldReceive('getEventHash')->andReturn('noevents');
+    $this->mockLifeEventCashFlowService->shouldReceive('getAppliedEvents')->andReturn([]);
+
     $this->service = new RetirementProjectionService(
         $this->mockSimulator,
         $this->mockRiskService,
-        $this->mockUserProfileService
+        $this->mockUserProfileService,
+        $this->mockLifeEventCashFlowService
     );
 });
 

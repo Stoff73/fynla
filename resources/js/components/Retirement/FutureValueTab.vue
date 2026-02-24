@@ -68,7 +68,10 @@
             <span class="risk-badge">{{ formatRiskLevel(projections.pension_pot_projection?.risk_level) }} Risk</span>
           </p>
         </div>
-        <PensionPotProjectionChart :data="projections.pension_pot_projection" />
+        <PensionPotProjectionChart
+          :data="projections.pension_pot_projection"
+          :life-events="projections.life_events_applied || []"
+        />
       </div>
 
       <!-- Income Drawdown Chart -->

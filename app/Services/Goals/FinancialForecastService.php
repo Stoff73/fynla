@@ -36,13 +36,6 @@ class FinancialForecastService
         $monthlyIncome = $this->getMonthlyIncome($user);
         $monthlyExpenditure = $this->resolveMonthlyExpenditure($user)['amount'];
 
-        $certaintyWeights = [
-            'confirmed' => 1.0,
-            'likely' => 0.75,
-            'possible' => 0.5,
-            'speculative' => 0.25,
-        ];
-
         $forecast = [];
         $cumulativeSurplus = 0;
         $totalEventIncome = 0;
@@ -59,23 +52,21 @@ class FinancialForecastService
 
             foreach ($events as $event) {
                 if ($event->expected_date->between($monthStart, $monthEnd)) {
-                    $weight = $certaintyWeights[$event->certainty] ?? 0.5;
-                    $weightedAmount = (float) $event->amount * $weight;
+                    $rawAmount = (float) $event->amount;
 
                     $monthEvents[] = [
                         'id' => $event->id,
                         'event_name' => $event->event_name,
                         'event_type' => $event->event_type,
-                        'amount' => (float) $event->amount,
-                        'weighted_amount' => round($weightedAmount, 2),
+                        'amount' => $rawAmount,
                         'impact_type' => $event->impact_type,
                         'certainty' => $event->certainty,
                     ];
 
                     if ($event->impact_type === 'income') {
-                        $monthEventIncome += $weightedAmount;
+                        $monthEventIncome += $rawAmount;
                     } else {
-                        $monthEventExpense += $weightedAmount;
+                        $monthEventExpense += $rawAmount;
                     }
                 }
             }
@@ -132,13 +123,6 @@ class FinancialForecastService
         $annualIncome = $this->getAnnualIncome($user);
         $annualExpenditure = $this->resolveMonthlyExpenditure($user)['amount'] * 12;
 
-        $certaintyWeights = [
-            'confirmed' => 1.0,
-            'likely' => 0.75,
-            'possible' => 0.5,
-            'speculative' => 0.25,
-        ];
-
         $forecast = [];
         $cumulativeSurplus = 0;
 
@@ -157,23 +141,21 @@ class FinancialForecastService
 
             foreach ($events as $event) {
                 if ($event->expected_date->between($yearStart, $yearEnd)) {
-                    $weight = $certaintyWeights[$event->certainty] ?? 0.5;
-                    $weightedAmount = (float) $event->amount * $weight;
+                    $rawAmount = (float) $event->amount;
 
                     $yearEvents[] = [
                         'event_name' => $event->event_name,
                         'event_type' => $event->event_type,
-                        'amount' => (float) $event->amount,
-                        'weighted_amount' => round($weightedAmount, 2),
+                        'amount' => $rawAmount,
                         'impact_type' => $event->impact_type,
                         'certainty' => $event->certainty,
                         'expected_date' => $event->expected_date->toDateString(),
                     ];
 
                     if ($event->impact_type === 'income') {
-                        $yearEventIncome += $weightedAmount;
+                        $yearEventIncome += $rawAmount;
                     } else {
-                        $yearEventExpense += $weightedAmount;
+                        $yearEventExpense += $rawAmount;
                     }
                 }
             }

@@ -363,6 +363,7 @@
                   :risk-source="projections.pension_pot_projection?.risk_source"
                   :expected-return="projections.pension_pot_projection?.expected_return"
                   :risk-level="projections.pension_pot_projection?.risk_level"
+                  :life-events="projections.life_events_applied || []"
                 />
               </div>
             </template>

@@ -33,7 +33,8 @@ class MonteCarloSimulator
         float $volatility,
         int $years,
         int $iterations = 1000,
-        ?string $cacheKey = null
+        ?string $cacheKey = null,
+        array $scheduledInjections = []
     ): array {
         // Check cache if key provided
         if ($cacheKey !== null) {
@@ -50,7 +51,8 @@ class MonteCarloSimulator
             $expectedReturn,
             $volatility,
             $years,
-            $iterations
+            $iterations,
+            $scheduledInjections
         );
 
         // Store in cache if key provided
@@ -77,7 +79,7 @@ class MonteCarloSimulator
             }
         } catch (\Throwable $e) {
             // Log but don't fail if cache table doesn't exist yet
-            \Log::warning("Monte Carlo cache read failed: " . $e->getMessage());
+            \Log::warning('Monte Carlo cache read failed: '.$e->getMessage());
         }
 
         return null;
@@ -101,7 +103,7 @@ class MonteCarloSimulator
             );
         } catch (\Throwable $e) {
             // Log but don't fail if cache table doesn't exist yet
-            \Log::warning("Monte Carlo cache write failed: " . $e->getMessage());
+            \Log::warning('Monte Carlo cache write failed: '.$e->getMessage());
         }
     }
 
@@ -118,7 +120,7 @@ class MonteCarloSimulator
                 DB::table('monte_carlo_cache')->where('expires_at', '<', now())->delete();
             }
         } catch (\Throwable $e) {
-            \Log::warning("Monte Carlo cache clear failed: " . $e->getMessage());
+            \Log::warning('Monte Carlo cache clear failed: '.$e->getMessage());
         }
     }
 
@@ -132,7 +134,7 @@ class MonteCarloSimulator
                 ->where('cache_key', 'like', "user_{$userId}_%")
                 ->delete();
         } catch (\Throwable $e) {
-            \Log::warning("Monte Carlo user cache clear failed: " . $e->getMessage());
+            \Log::warning('Monte Carlo user cache clear failed: '.$e->getMessage());
         }
     }
 
@@ -145,7 +147,8 @@ class MonteCarloSimulator
         float $expectedReturn,
         float $volatility,
         int $years,
-        int $iterations
+        int $iterations,
+        array $scheduledInjections = []
     ): array {
         $results = [];
         $monthlyReturn = $expectedReturn / 12;
@@ -164,8 +167,9 @@ class MonteCarloSimulator
                 // Apply return and add contribution
                 $portfolioValue = $portfolioValue * (1 + $randomReturn) + $monthlyContribution;
 
-                // Store value at end of each year
-                if ($month % 12 == 0) {
+                // Store value at end of each year and apply scheduled injections
+                if ($month % 12 === 0) {
+                    $portfolioValue = $this->applyScheduledInjection($portfolioValue, (int) ($month / 12), $scheduledInjections);
                     $yearlyValues[] = $portfolioValue;
                 }
             }
@@ -195,7 +199,7 @@ class MonteCarloSimulator
      * @param  int  $years  Simulation horizon
      * @param  int  $iterations  Number of simulation runs
      * @param  string|null  $cacheKey  Optional cache key
-     * @return array  Simulation results with percentiles
+     * @return array Simulation results with percentiles
      */
     public function runMultiAssetSimulation(
         array $assetClasses,
@@ -204,7 +208,8 @@ class MonteCarloSimulator
         float $monthlyContribution,
         int $years,
         int $iterations = 1000,
-        ?string $cacheKey = null
+        ?string $cacheKey = null,
+        array $scheduledInjections = []
     ): array {
         // Check cache
         if ($cacheKey !== null) {
@@ -214,7 +219,7 @@ class MonteCarloSimulator
             }
         }
 
-        $matrixOps = new MatrixOperations();
+        $matrixOps = new MatrixOperations;
         $n = count($assetClasses);
         $totalMonths = $years * 12;
 
@@ -255,6 +260,7 @@ class MonteCarloSimulator
                 $portfolioValue = $portfolioValue * (1 + $portfolioReturn) + $monthlyContribution;
 
                 if ($month % 12 === 0) {
+                    $portfolioValue = $this->applyScheduledInjection($portfolioValue, (int) ($month / 12), $scheduledInjections);
                     $yearlyValues[] = $portfolioValue;
                 }
             }
@@ -294,6 +300,19 @@ class MonteCarloSimulator
         }
 
         return $cov;
+    }
+
+    /**
+     * Apply a scheduled injection at a given simulation year boundary.
+     */
+    private function applyScheduledInjection(float $portfolioValue, int $currentYear, array $scheduledInjections): float
+    {
+        if (isset($scheduledInjections[$currentYear])) {
+            $portfolioValue += $scheduledInjections[$currentYear];
+            $portfolioValue = max(0.0, $portfolioValue);
+        }
+
+        return $portfolioValue;
     }
 
     /**
@@ -345,7 +364,7 @@ class MonteCarloSimulator
     /**
      * Get default correlation matrix for common asset classes.
      *
-     * @return array  Correlation matrix for [equity, bond, cash]
+     * @return array Correlation matrix for [equity, bond, cash]
      */
     public static function getDefaultCorrelationMatrix(): array
     {

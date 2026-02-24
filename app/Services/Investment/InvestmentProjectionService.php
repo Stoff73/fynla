@@ -6,6 +6,7 @@ namespace App\Services\Investment;
 
 use App\Models\Investment\InvestmentAccount;
 use App\Models\User;
+use App\Services\Goals\LifeEventCashFlowService;
 use App\Services\Risk\RiskPreferenceService;
 use Illuminate\Support\Collection;
 
@@ -18,7 +19,8 @@ class InvestmentProjectionService
     public function __construct(
         private readonly MonteCarloSimulator $simulator,
         private readonly RiskPreferenceService $riskService,
-        private readonly ContributionEstimatorService $contributionEstimator
+        private readonly ContributionEstimatorService $contributionEstimator,
+        private readonly LifeEventCashFlowService $lifeEventCashFlowService
     ) {}
 
     /**
@@ -68,13 +70,23 @@ class InvestmentProjectionService
         }
 
         // Build projections - caching is handled by MonteCarloSimulator
-        return $this->buildPortfolioProjections(
+        $result = $this->buildPortfolioProjections(
             $user,
             $accounts,
             $projectionPeriods,
             $selectedPeriod,
             $contributionOverrides
         );
+
+        // Add life events applied metadata
+        $maxPeriod = max($projectionPeriods);
+        $result['life_events_applied'] = $this->lifeEventCashFlowService->getAppliedEvents(
+            $user->id,
+            'investment',
+            $maxPeriod
+        );
+
+        return $result;
     }
 
     /**
@@ -132,11 +144,21 @@ class InvestmentProjectionService
         $riskLevel = $this->determineRiskLevel($riskParams['expected_return_typical']);
         $riskSource = $riskResult['source'];
 
+        // Build life event cash flow maps and event hash for cache differentiation
+        $eventHash = $this->lifeEventCashFlowService->getEventHash($user->id, 'investment');
+
         $projections = [];
         foreach ($periods as $years) {
+            // Build cash flow map for this projection period
+            $scheduledInjections = $this->lifeEventCashFlowService->buildCashFlowMap(
+                $user->id,
+                'investment',
+                $years
+            );
+
             // Build cache key for portfolio projection (only if no overrides)
             $cacheKey = empty($contributionOverrides)
-                ? "user_{$user->id}_portfolio_{$years}y"
+                ? "user_{$user->id}_portfolio_{$years}y_e{$eventHash}"
                 : null;
 
             $simulation = $this->simulator->simulate(
@@ -146,7 +168,8 @@ class InvestmentProjectionService
                 $riskParams['volatility'] / 100,
                 $years,
                 self::MONTE_CARLO_ITERATIONS,
-                $cacheKey
+                $cacheKey,
+                $scheduledInjections
             );
 
             $yearByYear = $this->extractProbabilityBands($simulation);

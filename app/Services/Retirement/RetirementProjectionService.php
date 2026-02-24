@@ -6,6 +6,7 @@ namespace App\Services\Retirement;
 
 use App\Models\RetirementProfile;
 use App\Models\User;
+use App\Services\Goals\LifeEventCashFlowService;
 use App\Services\Investment\MonteCarloSimulator;
 use App\Services\Risk\RiskPreferenceService;
 use App\Services\UserProfile\UserProfileService;
@@ -33,7 +34,8 @@ class RetirementProjectionService
     public function __construct(
         private readonly MonteCarloSimulator $simulator,
         private readonly RiskPreferenceService $riskService,
-        private readonly UserProfileService $userProfileService
+        private readonly UserProfileService $userProfileService,
+        private readonly LifeEventCashFlowService $lifeEventCashFlowService
     ) {}
 
     /**
@@ -49,10 +51,20 @@ class RetirementProjectionService
         $incomeDrawdown = $this->projectIncomeDrawdown($user, $potProjection);
         $targetIncomeDrawdown = $this->projectTargetIncomeDrawdown($user, $potProjection);
 
+        // Get life events applied to projections (cover both accumulation and decumulation)
+        $currentAge = $potProjection['current_age'];
+        $totalProjectionYears = self::END_AGE - $currentAge;
+        $appliedEvents = $this->lifeEventCashFlowService->getAppliedEvents(
+            $userId,
+            'retirement',
+            $totalProjectionYears
+        );
+
         return [
             'pension_pot_projection' => $potProjection,
             'income_drawdown' => $incomeDrawdown,
             'target_income_drawdown' => $targetIncomeDrawdown,
+            'life_events_applied' => $appliedEvents,
         ];
     }
 
@@ -88,10 +100,18 @@ class RetirementProjectionService
         $expectedReturn = $riskParams['expected_return_typical'] / 100;
         $volatility = $riskParams['volatility'] / 100;
 
-        // Cache key for aggregated pension pot projection
-        $cacheKey = "user_{$user->id}_pension_pot_{$yearsToRetirement}y";
+        // Build life event cash flow map for MC injection
+        $scheduledInjections = $this->lifeEventCashFlowService->buildCashFlowMap(
+            $user->id,
+            'retirement',
+            $yearsToRetirement
+        );
+        $eventHash = $this->lifeEventCashFlowService->getEventHash($user->id, 'retirement');
 
-        // Run Monte Carlo simulation (cached)
+        // Cache key includes event hash so changes to life events invalidate cache
+        $cacheKey = "user_{$user->id}_pension_pot_{$yearsToRetirement}y_e{$eventHash}";
+
+        // Run Monte Carlo simulation (cached) with life event injections
         $simulation = $this->simulator->simulate(
             $totalCurrentValue,
             $totalMonthlyContribution,
@@ -99,7 +119,8 @@ class RetirementProjectionService
             $volatility,
             $yearsToRetirement,
             self::MONTE_CARLO_ITERATIONS,
-            $cacheKey
+            $cacheKey,
+            $scheduledInjections
         );
 
         // Extract year-by-year data with custom percentiles for probability bands
@@ -232,6 +253,13 @@ class RetirementProjectionService
         $currentNetIncome = $this->getCurrentNetIncome($user);
         $targetIncome = $this->getTargetRetirementIncome($user, $currentNetIncome);
 
+        // Get life event cash flows for the drawdown period (age-indexed)
+        $drawdownCashFlows = $this->lifeEventCashFlowService->buildDrawdownCashFlowMap(
+            $user->id,
+            $retirementAge,
+            self::END_AGE
+        );
+
         // Calculate year-by-year income from retirement to age 100
         $yearlyIncome = [];
         $remainingFund = $potAtRetirement;
@@ -241,6 +269,13 @@ class RetirementProjectionService
         $currentTargetIncome = $targetIncome;
 
         for ($age = $retirementAge; $age <= self::END_AGE; $age++) {
+            // Apply life event cash flows for this age
+            $lifeEventImpact = $drawdownCashFlows[$age] ?? 0;
+            if ($lifeEventImpact != 0) {
+                $remainingFund += $lifeEventImpact;
+                $remainingFund = max(0, $remainingFund);
+            }
+
             // Calculate DC drawdown (4.7% of remaining fund)
             $dcDrawdown = $remainingFund > 0 ? $remainingFund * self::SUSTAINABLE_WITHDRAWAL_RATE : 0;
 
@@ -275,6 +310,7 @@ class RetirementProjectionService
                 'target_income' => round($currentTargetIncome, 2),
                 'remaining_fund' => round(max(0, $remainingFund), 2),
                 'above_target' => $aboveTarget,
+                'life_event_impact' => round($lifeEventImpact, 2),
             ];
 
             // Apply growth then reduce fund by drawdown
@@ -337,6 +373,13 @@ class RetirementProjectionService
         $currentNetIncome = $this->getCurrentNetIncome($user);
         $targetIncome = $this->getTargetRetirementIncome($user, $currentNetIncome);
 
+        // Get life event cash flows for the drawdown period (age-indexed)
+        $drawdownCashFlows = $this->lifeEventCashFlowService->buildDrawdownCashFlowMap(
+            $user->id,
+            $retirementAge,
+            self::END_AGE
+        );
+
         // Calculate year-by-year income drawing target amount
         $yearlyIncome = [];
         $remainingFund = $potAtRetirement;
@@ -344,6 +387,13 @@ class RetirementProjectionService
         $currentTargetIncome = $targetIncome;
 
         for ($age = $retirementAge; $age <= self::END_AGE; $age++) {
+            // Apply life event cash flows for this age
+            $lifeEventImpact = $drawdownCashFlows[$age] ?? 0;
+            if ($lifeEventImpact != 0) {
+                $remainingFund += $lifeEventImpact;
+                $remainingFund = max(0, $remainingFund);
+            }
+
             // State pension may start at a different age
             $statePensionThisYear = $age >= ($user->statePension?->state_pension_age ?? 67)
                 ? $statePensionIncome
@@ -375,6 +425,7 @@ class RetirementProjectionService
                 'target_income' => round($currentTargetIncome, 2),
                 'remaining_fund' => round(max(0, $remainingFund), 2),
                 'fund_depleted' => $fundDepleted,
+                'life_event_impact' => round($lifeEventImpact, 2),
             ];
 
             // Apply growth then reduce fund by drawdown

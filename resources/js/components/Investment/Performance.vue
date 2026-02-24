@@ -96,6 +96,7 @@
             :risk-source="portfolioProjection.risk_source"
             :expected-return="portfolioProjection.expected_return"
             :risk-level="portfolioProjection.risk_level"
+            :life-events="portfolioProjections?.life_events_applied || []"
           />
         </div>
 

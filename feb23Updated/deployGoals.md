@@ -259,3 +259,66 @@ Yes - all changes are frontend (CSS + Vue components). Run:
 ```
 
 Upload `public/build/` directory after rebuild. No new backend files, no migrations, no database changes.
+
+---
+
+## Update - 24 February 2026 (RT1-11: Integrate Life Events into Projections)
+
+### What Changed
+
+**Life events now directly impact all financial projection calculations.** Previously life events were display-only metadata; now they inject cash flows into Monte Carlo simulations and drawdown projections, with chart annotations showing where events occur.
+
+#### Backend - Monte Carlo Integration
+- `MonteCarloSimulator.php`: Added `$scheduledInjections` parameter to `simulate()`, `runSimulation()`, and `runMultiAssetSimulation()`. Extracted `applyScheduledInjection()` private method. Life event cash flows are injected at year boundaries during each simulation run.
+- `RetirementProjectionService.php`: Injected `LifeEventCashFlowService`. Pension pot projection passes scheduled injections to MC simulator. Both drawdown methods (sustainable and target income) apply age-indexed life event cash flows. Event hash included in cache keys. API response includes `life_events_applied` metadata.
+- `InvestmentProjectionService.php`: Injected `LifeEventCashFlowService`. Portfolio projection passes scheduled injections to MC simulator per period. Event hash included in cache keys. API response includes `life_events_applied` metadata.
+
+#### Backend - Certainty Weighting Removal
+- `IHTCalculationService.php`: Removed `$certaintyWeights` array from `getLifeEventImpactsByAge()`. Uses raw `(float) $event->amount` instead of weighted amounts.
+- `FinancialForecastService.php`: Removed `$certaintyWeights` from `getMonthlyForecast()` and `getAnnualForecast()`. Uses raw amounts. Removed `weighted_amount` key from event arrays.
+
+#### Backend - New Services & Observer
+- `LifeEventCashFlowService.php` (NEW): Transforms life events into year-indexed cash flow maps (for MC) and age-indexed maps (for drawdown). Provides `getEventHash()` for cache key differentiation and `getAppliedEvents()` for API metadata. No certainty weighting - raw amounts everywhere.
+- `LifeEventMonteCarloObserver.php` (NEW): Clears MC simulation cache when life events are created, updated, or deleted. Registered in EventServiceProvider.
+
+#### Frontend - Chart Annotations
+- `PensionPotProjectionChart.vue`: Added `lifeEvents` prop and `lifeEventAnnotations` computed. Vertical dashed lines on charts - green for income events, red for expenses, with label showing event name and amount. Replaced local `formatCurrencyShort` with `formatCurrencyCompact` from mixin.
+- `InvestmentProjectionChart.vue`: Same annotation pattern (suppressed in compact mode). Replaced local `formatCurrencyShort` with `formatCurrencyCompact` from mixin.
+- `FutureValueTab.vue`, `Performance.vue`, `PensionList.vue`, `InvestmentProjections.vue`: Pass `life-events` prop through to chart components.
+
+#### Tests
+- `RetirementProjectionServiceTest.php`: Added mock for new `LifeEventCashFlowService` dependency.
+
+### New Files (24 Feb - RT1-11)
+
+| File | Type |
+|------|------|
+| `app/Services/Goals/LifeEventCashFlowService.php` | New service |
+| `app/Observers/LifeEventMonteCarloObserver.php` | New observer |
+
+### Modified Files (24 Feb - RT1-11)
+
+| File | Type |
+|------|------|
+| `app/Providers/EventServiceProvider.php` | Modified (registered observer) |
+| `app/Services/Investment/MonteCarloSimulator.php` | Modified (scheduled injections) |
+| `app/Services/Retirement/RetirementProjectionService.php` | Modified (life event integration) |
+| `app/Services/Investment/InvestmentProjectionService.php` | Modified (life event integration) |
+| `app/Services/Estate/IHTCalculationService.php` | Modified (certainty weighting removal) |
+| `app/Services/Goals/FinancialForecastService.php` | Modified (certainty weighting removal) |
+| `resources/js/components/Retirement/PensionPotProjectionChart.vue` | Modified (annotations) |
+| `resources/js/components/Investment/InvestmentProjectionChart.vue` | Modified (annotations) |
+| `resources/js/components/Retirement/FutureValueTab.vue` | Modified (pass life-events prop) |
+| `resources/js/components/Investment/Performance.vue` | Modified (pass life-events prop) |
+| `resources/js/components/NetWorth/PensionList.vue` | Modified (pass life-events prop) |
+| `resources/js/components/NetWorth/InvestmentProjections.vue` | Modified (pass life-events prop) |
+
+### Rebuild Required
+
+Yes - backend + frontend changes. Run:
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+Upload `public/build/` directory and all new/modified PHP files listed above. No new migrations, no database changes.
