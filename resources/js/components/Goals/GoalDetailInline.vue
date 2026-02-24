@@ -1,7 +1,7 @@
 <template>
-  <div class="goal-detail-inline">
+  <div class="detail-inline">
     <!-- Back Button -->
-    <button @click="$emit('back')" class="back-button mb-4">
+    <button @click="$emit('back')" class="detail-inline-back mb-4">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
         <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
       </svg>
@@ -10,16 +10,16 @@
 
     <!-- Loading State -->
     <div v-if="loading" class="text-center py-12">
-      <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
       <p class="mt-4 text-gray-600">Loading goal details...</p>
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="bg-gray-50 rounded-lg p-6 text-center">
-      <p class="text-red-600">{{ error }}</p>
+    <div v-else-if="error" class="bg-gray-50 rounded-card p-6 text-center border border-gray-200">
+      <p class="text-error-600">{{ error }}</p>
       <button
         @click="loadGoalDetail"
-        class="mt-4 px-4 py-2 bg-error-600 text-white rounded-button hover:bg-error-700 transition-colors"
+        class="mt-4 btn-danger"
       >
         Retry
       </button>
@@ -28,14 +28,14 @@
     <!-- Goal Content -->
     <div v-else-if="goal" class="space-y-6">
       <!-- Header -->
-      <div class="bg-white rounded-lg shadow-md p-6">
+      <div class="bg-white rounded-card border border-gray-200 shadow-sm p-6">
         <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
           <div>
             <div class="flex items-center gap-3 mb-2">
-              <span class="text-2xl">{{ goalTypeIcon }}</span>
+              <span class="text-2xl">{{ getGoalIcon(goal.goal_type) }}</span>
               <div>
                 <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">{{ goal.goal_name }}</h1>
-                <div class="flex items-center gap-2 mt-1">
+                <div class="flex flex-wrap items-center gap-2 mt-1">
                   <span class="text-xs px-2 py-0.5 rounded-full" :class="moduleTagClass">
                     {{ moduleLabel }}
                   </span>
@@ -57,26 +57,26 @@
             </div>
             <p v-if="goal.description" class="text-sm text-gray-600 mt-2">{{ goal.description }}</p>
           </div>
-          <div class="flex flex-col sm:flex-row gap-2 sm:space-x-2 w-full sm:w-auto">
+          <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto shrink-0">
             <button
               v-if="goal.status === 'active'"
               v-preview-disabled="'add'"
               @click="$emit('add-contribution', goal)"
-              class="w-full sm:w-auto px-4 py-2 bg-green-600 text-white rounded-button hover:bg-green-700 transition-colors"
+              class="w-full sm:w-auto px-4 py-2 bg-success-600 text-white rounded-button font-medium hover:bg-success-700 transition-all duration-150 shadow-sm hover:shadow-md"
             >
               + Contribution
             </button>
             <button
               v-preview-disabled="'edit'"
               @click="$emit('edit', goal)"
-              class="w-full sm:w-auto px-4 py-2 bg-primary-600 text-white rounded-button hover:bg-primary-700 transition-colors"
+              class="w-full sm:w-auto btn-primary"
             >
               Edit
             </button>
             <button
               v-preview-disabled="'delete'"
               @click="$emit('delete', goal)"
-              class="w-full sm:w-auto px-4 py-2 bg-error-600 text-white rounded-button hover:bg-error-700 transition-colors"
+              class="w-full sm:w-auto btn-danger"
             >
               Delete
             </button>
@@ -98,7 +98,7 @@
           <div class="bg-gray-50 rounded-lg p-4">
             <p class="text-sm text-gray-600">Monthly Contribution</p>
             <p class="text-2xl font-bold" :class="goal.monthly_contribution > 0 ? 'text-green-600' : 'text-gray-900'">
-              {{ goal.monthly_contribution ? formatCurrency(goal.monthly_contribution) : 'Not set' }}
+              {{ goal.monthly_contribution ? formatCurrency(goal.monthly_contribution) : '\u2014' }}
             </p>
             <p v-if="goal.required_monthly_contribution" class="text-xs text-gray-500 mt-1">
               Required: {{ formatCurrency(goal.required_monthly_contribution) }}
@@ -108,16 +108,16 @@
             <p class="text-sm text-gray-600">Amount Remaining</p>
             <p class="text-2xl font-bold text-gray-900">{{ formatCurrency(goal.amount_remaining || 0) }}</p>
             <p v-if="contributionStreak > 0" class="text-xs text-blue-600 mt-1">
-              🔥 {{ contributionStreak }} month streak
+              {{ contributionStreak }} month streak
             </p>
           </div>
         </div>
 
         <!-- Progress Bar -->
         <div class="mt-4">
-          <div class="w-full bg-gray-200 rounded-full h-3">
+          <div class="w-full bg-gray-200 rounded-full h-2">
             <div
-              class="h-3 rounded-full transition-all duration-500"
+              class="h-2 rounded-full transition-all duration-500"
               :class="progressBarClass"
               :style="{ width: Math.min(progressPercent, 100) + '%' }"
             ></div>
@@ -136,7 +136,7 @@
       </div>
 
       <!-- Tabs -->
-      <div class="bg-white rounded-lg shadow-md">
+      <div class="bg-white rounded-card border border-gray-200 shadow-sm">
         <div class="border-b border-gray-200">
           <nav class="flex -mb-px overflow-x-auto">
             <button
@@ -146,7 +146,7 @@
               class="px-6 py-3 border-b-2 font-medium text-sm transition-colors whitespace-nowrap flex-shrink-0"
               :class="
                 activeTab === tab.id
-                  ? 'border-blue-600 text-blue-600'
+                  ? 'border-primary-600 text-primary-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               "
             >
@@ -161,120 +161,120 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <!-- Goal Details -->
               <div>
-                <h3 class="text-lg font-semibold text-gray-800 mb-3">Goal Details</h3>
+                <h3 class="text-lg font-semibold text-gray-900 mb-3">Goal Details</h3>
                 <dl class="space-y-2">
                   <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-gray-600">Goal Type:</dt>
-                    <dd class="text-sm font-medium text-gray-900">{{ goal.display_goal_type || formatGoalType(goal.goal_type) }}</dd>
+                    <dd class="text-sm font-medium text-gray-900 sm:text-right">{{ goal.display_goal_type || formatGoalType(goal.goal_type) }}</dd>
                   </div>
                   <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-gray-600">Assigned Module:</dt>
-                    <dd class="text-sm font-medium text-gray-900">{{ moduleLabel }}</dd>
+                    <dd class="text-sm font-medium text-gray-900 sm:text-right">{{ moduleLabel || '\u2014' }}</dd>
                   </div>
                   <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-gray-600">Priority:</dt>
-                    <dd class="text-sm font-medium text-gray-900 capitalize">{{ goal.priority || 'Medium' }}</dd>
+                    <dd class="text-sm font-medium text-gray-900 capitalize sm:text-right">{{ goal.priority || 'Medium' }}</dd>
                   </div>
                   <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-gray-600">Essential:</dt>
-                    <dd class="text-sm font-medium text-gray-900">{{ goal.is_essential ? 'Yes' : 'No' }}</dd>
+                    <dd class="text-sm font-medium text-gray-900 sm:text-right">{{ goal.is_essential ? 'Yes' : 'No' }}</dd>
                   </div>
                   <div v-if="goal.start_date" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-gray-600">Start Date:</dt>
-                    <dd class="text-sm font-medium text-gray-900">{{ formatDate(goal.start_date) }}</dd>
+                    <dd class="text-sm font-medium text-gray-900 sm:text-right">{{ formatDate(goal.start_date) }}</dd>
                   </div>
                   <div v-if="goal.target_date" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-gray-600">Target Date:</dt>
-                    <dd class="text-sm font-medium text-gray-900">{{ formatDate(goal.target_date) }}</dd>
+                    <dd class="text-sm font-medium text-gray-900 sm:text-right">{{ formatDate(goal.target_date) }}</dd>
                   </div>
                   <div v-if="goal.created_at" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-gray-600">Created:</dt>
-                    <dd class="text-sm font-medium text-gray-900">{{ formatDate(goal.created_at) }}</dd>
+                    <dd class="text-sm font-medium text-gray-900 sm:text-right">{{ formatDate(goal.created_at) }}</dd>
                   </div>
                 </dl>
               </div>
 
               <!-- Financial Summary -->
               <div>
-                <h3 class="text-lg font-semibold text-gray-800 mb-3">Financial Summary</h3>
+                <h3 class="text-lg font-semibold text-gray-900 mb-3">Financial Summary</h3>
                 <dl class="space-y-2">
                   <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-gray-600">Target Amount:</dt>
-                    <dd class="text-sm font-medium text-blue-600 font-semibold">{{ formatCurrency(goal.target_amount) }}</dd>
+                    <dd class="text-sm font-semibold text-blue-600 sm:text-right">{{ formatCurrency(goal.target_amount) }}</dd>
                   </div>
                   <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-gray-600">Current Amount:</dt>
-                    <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(goal.current_amount) }}</dd>
+                    <dd class="text-sm font-medium text-gray-900 sm:text-right">{{ formatCurrency(goal.current_amount) }}</dd>
                   </div>
                   <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-gray-600">Amount Remaining:</dt>
-                    <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(goal.amount_remaining || 0) }}</dd>
+                    <dd class="text-sm font-medium text-gray-900 sm:text-right">{{ formatCurrency(goal.amount_remaining || 0) }}</dd>
                   </div>
                   <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-gray-600">Monthly Contribution:</dt>
-                    <dd class="text-sm font-medium text-gray-900">{{ goal.monthly_contribution ? formatCurrency(goal.monthly_contribution) : 'Not set' }}</dd>
+                    <dd class="text-sm font-medium text-gray-900 sm:text-right">{{ goal.monthly_contribution ? formatCurrency(goal.monthly_contribution) : '\u2014' }}</dd>
                   </div>
                   <div v-if="goal.required_monthly_contribution" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-gray-600">Required Monthly:</dt>
-                    <dd class="text-sm font-medium" :class="isContributionSufficient ? 'text-green-600' : 'text-red-600'">
+                    <dd class="text-sm font-medium sm:text-right" :class="isContributionSufficient ? 'text-green-600' : 'text-red-600'">
                       {{ formatCurrency(goal.required_monthly_contribution) }}
                     </dd>
                   </div>
                   <div v-if="goal.contribution_frequency" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-gray-600">Contribution Frequency:</dt>
-                    <dd class="text-sm font-medium text-gray-900 capitalize">{{ goal.contribution_frequency }}</dd>
+                    <dd class="text-sm font-medium text-gray-900 capitalize sm:text-right">{{ goal.contribution_frequency }}</dd>
                   </div>
                 </dl>
               </div>
 
               <!-- Property Details (if property goal) -->
               <div v-if="isPropertyGoal">
-                <h3 class="text-lg font-semibold text-gray-800 mb-3">Property Details</h3>
+                <h3 class="text-lg font-semibold text-gray-900 mb-3">Property Details</h3>
                 <dl class="space-y-2">
                   <div v-if="goal.property_location" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-gray-600">Location:</dt>
-                    <dd class="text-sm font-medium text-gray-900">{{ goal.property_location }}</dd>
+                    <dd class="text-sm font-medium text-gray-900 sm:text-right">{{ goal.property_location }}</dd>
                   </div>
                   <div v-if="goal.estimated_property_price" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-gray-600">Estimated Price:</dt>
-                    <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(goal.estimated_property_price) }}</dd>
+                    <dd class="text-sm font-medium text-gray-900 sm:text-right">{{ formatCurrency(goal.estimated_property_price) }}</dd>
                   </div>
                   <div v-if="goal.deposit_percentage" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-gray-600">Deposit Percentage:</dt>
-                    <dd class="text-sm font-medium text-gray-900">{{ goal.deposit_percentage }}%</dd>
+                    <dd class="text-sm font-medium text-gray-900 sm:text-right">{{ goal.deposit_percentage }}%</dd>
                   </div>
                   <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-gray-600">First-Time Buyer:</dt>
-                    <dd class="text-sm font-medium text-gray-900">{{ goal.is_first_time_buyer ? 'Yes' : 'No' }}</dd>
+                    <dd class="text-sm font-medium text-gray-900 sm:text-right">{{ goal.is_first_time_buyer ? 'Yes' : 'No' }}</dd>
                   </div>
                 </dl>
               </div>
 
               <!-- Streak & Milestones -->
               <div>
-                <h3 class="text-lg font-semibold text-gray-800 mb-3">Progress Tracking</h3>
+                <h3 class="text-lg font-semibold text-gray-900 mb-3">Progress Tracking</h3>
                 <dl class="space-y-2">
                   <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-gray-600">Current Streak:</dt>
-                    <dd class="text-sm font-medium text-gray-900">
-                      {{ contributionStreak > 0 ? contributionStreak + ' months' : 'No active streak' }}
+                    <dd class="text-sm font-medium text-gray-900 sm:text-right">
+                      {{ contributionStreak > 0 ? contributionStreak + ' months' : '\u2014' }}
                     </dd>
                   </div>
                   <div v-if="goal.longest_streak" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-gray-600">Longest Streak:</dt>
-                    <dd class="text-sm font-medium text-gray-900">{{ goal.longest_streak }} months</dd>
+                    <dd class="text-sm font-medium text-gray-900 sm:text-right">{{ goal.longest_streak }} months</dd>
                   </div>
                   <div v-if="goal.last_contribution_date" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-gray-600">Last Contribution:</dt>
-                    <dd class="text-sm font-medium text-gray-900">{{ formatDate(goal.last_contribution_date) }}</dd>
+                    <dd class="text-sm font-medium text-gray-900 sm:text-right">{{ formatDate(goal.last_contribution_date) }}</dd>
                   </div>
                   <div v-if="goal.current_milestone" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-gray-600">Current Milestone:</dt>
-                    <dd class="text-sm font-medium text-green-600">{{ goal.current_milestone }}% reached</dd>
+                    <dd class="text-sm font-medium text-green-600 sm:text-right">{{ goal.current_milestone }}% reached</dd>
                   </div>
                   <div v-if="goal.next_milestone" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-gray-600">Next Milestone:</dt>
-                    <dd class="text-sm font-medium text-blue-600">{{ goal.next_milestone }}%</dd>
+                    <dd class="text-sm font-medium text-blue-600 sm:text-right">{{ goal.next_milestone }}%</dd>
                   </div>
                 </dl>
               </div>
@@ -312,7 +312,7 @@
               <!-- Affordability Details -->
               <div v-if="affordability.breakdown" class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <h3 class="text-lg font-semibold text-gray-800 mb-3">Income & Expenses</h3>
+                  <h3 class="text-lg font-semibold text-gray-900 mb-3">Income & Expenses</h3>
                   <dl class="space-y-2">
                     <div v-if="affordability.breakdown.monthly_income" class="flex justify-between">
                       <dt class="text-sm text-gray-600">Monthly Income:</dt>
@@ -329,7 +329,7 @@
                   </dl>
                 </div>
                 <div>
-                  <h3 class="text-lg font-semibold text-gray-800 mb-3">Recommendations</h3>
+                  <h3 class="text-lg font-semibold text-gray-900 mb-3">Recommendations</h3>
                   <ul v-if="affordability.recommendations && affordability.recommendations.length > 0" class="space-y-2">
                     <li v-for="(rec, i) in affordability.recommendations" :key="i" class="flex items-start gap-2 text-sm text-gray-700">
                       <svg class="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -382,7 +382,7 @@
           <!-- Dependencies Tab -->
           <div v-show="activeTab === 'dependencies'" class="space-y-6">
             <div v-if="dependenciesLoading" class="text-center py-8">
-              <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
             </div>
             <div v-else-if="!hasDependencies" class="text-center py-8 text-gray-500">
               <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -394,7 +394,7 @@
             <div v-else>
               <!-- Depends On -->
               <div v-if="dependsOn.length > 0" class="mb-6">
-                <h3 class="text-lg font-semibold text-gray-800 mb-3">This Goal Depends On</h3>
+                <h3 class="text-lg font-semibold text-gray-900 mb-3">This Goal Depends On</h3>
                 <div class="space-y-3">
                   <div
                     v-for="dep in dependsOn"
@@ -420,7 +420,7 @@
 
               <!-- Depended On By -->
               <div v-if="dependedOnBy.length > 0">
-                <h3 class="text-lg font-semibold text-gray-800 mb-3">Goals That Depend On This</h3>
+                <h3 class="text-lg font-semibold text-gray-900 mb-3">Goals That Depend On This</h3>
                 <div class="space-y-3">
                   <div
                     v-for="dep in dependedOnBy"
@@ -472,7 +472,6 @@ export default {
       loading: false,
       error: null,
       goalDetail: null,
-      progress: null,
       milestones: null,
       streak: null,
       affordability: null,
@@ -505,7 +504,8 @@ export default {
 
     progressPercent() {
       if (!this.goal?.target_amount) return 0;
-      return Math.round((parseFloat(this.goal.current_amount) / parseFloat(this.goal.target_amount)) * 100);
+      const current = parseFloat(this.goal.current_amount) || 0;
+      return Math.round((current / parseFloat(this.goal.target_amount)) * 100);
     },
 
     contributionStreak() {
@@ -584,26 +584,9 @@ export default {
       return 'bg-blue-500';
     },
 
-    goalTypeIcon() {
-      const icons = {
-        emergency_fund: '🛡️',
-        property_purchase: '🏠',
-        home_deposit: '🔑',
-        education: '🎓',
-        retirement: '☀️',
-        wealth_accumulation: '📈',
-        wedding: '💍',
-        holiday: '✈️',
-        car_purchase: '🚗',
-        debt_repayment: '💳',
-        custom: '⭐',
-      };
-      return icons[this.goal?.goal_type] || '🎯';
-    },
-
     timeRemaining() {
       const days = this.goal?.days_remaining;
-      if (days === undefined || days === null) return 'N/A';
+      if (days === undefined || days === null) return '\u2014';
       if (days < 0) return 'Overdue';
       if (days === 0) return 'Today';
       if (days === 1) return '1 day';
@@ -632,11 +615,11 @@ export default {
         const response = await goalsService.getGoal(this.goalId);
         if (response.success) {
           this.goalDetail = response.data.goal || response.data;
-          this.progress = response.data.progress || null;
           this.milestones = response.data.milestones || null;
           this.streak = response.data.streak || null;
           this.affordability = response.data.affordability || null;
           this.projections = response.data.projections || null;
+          this.loadDependencies();
         }
       } catch (err) {
         this.error = 'Failed to load goal details. Please try again.';
@@ -644,9 +627,6 @@ export default {
       } finally {
         this.loading = false;
       }
-
-      // Load dependencies in background
-      this.loadDependencies();
     },
 
     async loadDependencies() {
@@ -665,10 +645,10 @@ export default {
     },
 
     formatDate(date) {
-      if (!date) return '';
+      if (!date) return '\u2014';
       return new Date(date).toLocaleDateString('en-GB', {
-        day: '2-digit',
-        month: '2-digit',
+        day: 'numeric',
+        month: 'long',
         year: 'numeric',
       });
     },
@@ -682,7 +662,7 @@ export default {
     },
 
     formatMonthsToGoal(months) {
-      if (!months || months <= 0) return 'N/A';
+      if (!months || months <= 0) return '\u2014';
       if (months < 12) return `${months} months`;
       const years = Math.floor(months / 12);
       const remainingMonths = months % 12;
@@ -709,38 +689,3 @@ export default {
   },
 };
 </script>
-
-<style scoped>
-.goal-detail-inline {
-  animation: fadeIn 0.3s ease-out;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-.back-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  background: white;
-  @apply border border-gray-200;
-  border-radius: 8px;
-  @apply text-gray-700;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.back-button:hover {
-  @apply bg-gray-100;
-  @apply border-gray-300;
-}
-</style>

@@ -1,7 +1,7 @@
 <template>
-  <div class="life-event-detail-inline">
+  <div class="detail-inline">
     <!-- Back Button -->
-    <button @click="$emit('back')" class="back-button mb-4">
+    <button @click="$emit('back')" class="detail-inline-back mb-4">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
         <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
       </svg>
@@ -11,10 +11,10 @@
     <!-- Event Content -->
     <div v-if="event" class="space-y-6">
       <!-- Header -->
-      <div class="bg-white rounded-lg shadow-md p-6">
+      <div class="bg-white rounded-card border border-gray-200 shadow-sm p-6">
         <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
           <div>
-            <div class="flex items-center gap-3 mb-2">
+            <div class="flex items-center gap-3 mb-2 flex-wrap">
               <span
                 class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold"
                 :class="impactBadgeClass"
@@ -31,18 +31,18 @@
             <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">{{ event.event_name }}</h1>
             <p class="text-base sm:text-lg text-gray-600 mt-1">{{ displayEventType }}</p>
           </div>
-          <div class="flex flex-col sm:flex-row gap-2 sm:space-x-2 w-full sm:w-auto">
+          <div class="flex flex-col sm:flex-row gap-2 sm:space-x-2 w-full sm:w-auto shrink-0">
             <button
               v-preview-disabled="'edit'"
               @click="$emit('edit', event)"
-              class="w-full sm:w-auto px-4 py-2 bg-primary-600 text-white rounded-button hover:bg-primary-700 transition-colors"
+              class="btn-primary w-full sm:w-auto"
             >
               Edit
             </button>
             <button
               v-preview-disabled="'delete'"
               @click="$emit('delete', event)"
-              class="w-full sm:w-auto px-4 py-2 bg-error-600 text-white rounded-button hover:bg-error-700 transition-colors"
+              class="btn-danger w-full sm:w-auto"
             >
               Delete
             </button>
@@ -59,7 +59,7 @@
           </div>
           <div class="bg-gray-50 rounded-lg p-4">
             <p class="text-sm text-gray-600">Expected Date</p>
-            <p class="text-2xl font-bold text-gray-900">{{ formatDateShort(event.expected_date) }}</p>
+            <p class="text-2xl font-bold text-gray-900">{{ formatDateDisplay(event.expected_date) }}</p>
             <p v-if="yearsUntil !== null" class="text-xs text-gray-500 mt-1">
               In {{ yearsUntil }} {{ yearsUntil === 1 ? 'year' : 'years' }}
             </p>
@@ -76,17 +76,17 @@
       </div>
 
       <!-- Details Card -->
-      <div class="bg-white rounded-lg shadow-md">
+      <div class="bg-white rounded-card border border-gray-200 shadow-sm">
         <div class="border-b border-gray-200">
-          <nav class="flex -mb-px">
+          <nav class="flex -mb-px overflow-x-auto">
             <button
               v-for="tab in tabs"
               :key="tab.id"
               @click="activeTab = tab.id"
-              class="px-6 py-3 border-b-2 font-medium text-sm transition-colors whitespace-nowrap"
+              class="px-6 py-3 border-b-2 font-medium text-sm transition-colors whitespace-nowrap flex-shrink-0"
               :class="
                 activeTab === tab.id
-                  ? 'border-blue-600 text-blue-600'
+                  ? 'border-primary-600 text-primary-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               "
             >
@@ -101,62 +101,62 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <!-- Event Information -->
               <div>
-                <h3 class="text-lg font-semibold text-gray-800 mb-3">Event Information</h3>
+                <h3 class="text-lg font-semibold text-gray-900 mb-3">Event Information</h3>
                 <dl class="space-y-2">
                   <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-gray-600">Event Name:</dt>
-                    <dd class="text-sm font-medium text-gray-900">{{ event.event_name }}</dd>
+                    <dd class="text-sm font-medium text-gray-900 sm:text-right">{{ event.event_name }}</dd>
                   </div>
                   <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-gray-600">Event Type:</dt>
-                    <dd class="text-sm font-medium text-gray-900">{{ displayEventType }}</dd>
+                    <dd class="text-sm font-medium text-gray-900 sm:text-right">{{ displayEventType }}</dd>
                   </div>
                   <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-gray-600">Impact Type:</dt>
-                    <dd class="text-sm font-medium capitalize" :class="event.impact_type === 'income' ? 'text-green-600' : 'text-red-600'">
+                    <dd class="text-sm font-medium capitalize sm:text-right" :class="event.impact_type === 'income' ? 'text-green-600' : 'text-red-600'">
                       {{ event.impact_type }}
                     </dd>
                   </div>
                   <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-gray-600">Amount:</dt>
-                    <dd class="text-sm font-medium" :class="event.impact_type === 'income' ? 'text-green-600' : 'text-red-600'">
+                    <dd class="text-sm font-medium sm:text-right" :class="event.impact_type === 'income' ? 'text-green-600' : 'text-red-600'">
                       {{ event.impact_type === 'income' ? '+' : '-' }}{{ formatCurrency(event.amount) }}
                     </dd>
                   </div>
                   <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-gray-600">Expected Date:</dt>
-                    <dd class="text-sm font-medium text-gray-900">{{ formatDate(event.expected_date) }}</dd>
+                    <dd class="text-sm font-medium text-gray-900 sm:text-right">{{ formatDateDisplay(event.expected_date) }}</dd>
                   </div>
                   <div v-if="event.age_at_event" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-gray-600">Age at Event:</dt>
-                    <dd class="text-sm font-medium text-gray-900">{{ event.age_at_event }}</dd>
+                    <dd class="text-sm font-medium text-gray-900 sm:text-right">{{ event.age_at_event }}</dd>
                   </div>
                 </dl>
               </div>
 
               <!-- Planning Details -->
               <div>
-                <h3 class="text-lg font-semibold text-gray-800 mb-3">Planning Details</h3>
+                <h3 class="text-lg font-semibold text-gray-900 mb-3">Planning Details</h3>
                 <dl class="space-y-2">
                   <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-gray-600">Certainty:</dt>
-                    <dd class="text-sm font-medium capitalize" :class="certaintyClass">{{ certaintyLabel }}</dd>
+                    <dd class="text-sm font-medium capitalize sm:text-right" :class="certaintyClass">{{ certaintyLabel }}</dd>
                   </div>
                   <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-gray-600">Status:</dt>
-                    <dd class="text-sm font-medium text-gray-900 capitalize">{{ event.status || 'Expected' }}</dd>
+                    <dd class="text-sm font-medium text-gray-900 capitalize sm:text-right">{{ event.status || 'Expected' }}</dd>
                   </div>
                   <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-gray-600">Show in Projection:</dt>
-                    <dd class="text-sm font-medium text-gray-900">{{ event.show_in_projection ? 'Yes' : 'No' }}</dd>
+                    <dd class="text-sm font-medium text-gray-900 sm:text-right">{{ event.show_in_projection ? 'Yes' : 'No' }}</dd>
                   </div>
                   <div v-if="yearsUntil !== null" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-gray-600">Time Until Event:</dt>
-                    <dd class="text-sm font-medium text-gray-900">{{ yearsUntil }} {{ yearsUntil === 1 ? 'year' : 'years' }}</dd>
+                    <dd class="text-sm font-medium text-gray-900 sm:text-right">{{ yearsUntil }} {{ yearsUntil === 1 ? 'year' : 'years' }}</dd>
                   </div>
                   <div v-if="event.created_at" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-gray-600">Created:</dt>
-                    <dd class="text-sm font-medium text-gray-900">{{ formatDate(event.created_at) }}</dd>
+                    <dd class="text-sm font-medium text-gray-900 sm:text-right">{{ formatDateDisplay(event.created_at) }}</dd>
                   </div>
                 </dl>
               </div>
@@ -164,13 +164,13 @@
 
             <!-- Description -->
             <div v-if="event.description">
-              <h3 class="text-lg font-semibold text-gray-800 mb-3">Description</h3>
+              <h3 class="text-lg font-semibold text-gray-900 mb-3">Description</h3>
               <p class="text-sm text-gray-700 bg-gray-50 rounded-lg p-4">{{ event.description }}</p>
             </div>
 
             <!-- Notes -->
             <div v-if="event.notes">
-              <h3 class="text-lg font-semibold text-gray-800 mb-3">Notes</h3>
+              <h3 class="text-lg font-semibold text-gray-900 mb-3">Notes</h3>
               <p class="text-sm text-gray-700 bg-gray-50 rounded-lg p-4">{{ event.notes }}</p>
             </div>
           </div>
@@ -197,7 +197,7 @@
                 {{ event.impact_type === 'income' ? '+' : '-' }}{{ formatCurrency(event.amount) }}
               </p>
               <p class="text-sm text-gray-500 mt-2">
-                Expected {{ formatDateLong(event.expected_date) }}
+                Expected {{ formatDateDisplay(event.expected_date) }}
               </p>
             </div>
 
@@ -314,25 +314,8 @@ export default {
         .join(' ');
     },
 
-    formatDate(date) {
-      if (!date) return '';
-      return new Date(date).toLocaleDateString('en-GB', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-      });
-    },
-
-    formatDateShort(date) {
-      if (!date) return '-';
-      return new Date(date).toLocaleDateString('en-GB', {
-        month: 'short',
-        year: 'numeric',
-      });
-    },
-
-    formatDateLong(date) {
-      if (!date) return '';
+    formatDateDisplay(date) {
+      if (!date) return '\u2014';
       return new Date(date).toLocaleDateString('en-GB', {
         day: 'numeric',
         month: 'long',
@@ -342,38 +325,3 @@ export default {
   },
 };
 </script>
-
-<style scoped>
-.life-event-detail-inline {
-  animation: fadeIn 0.3s ease-out;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-.back-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  background: white;
-  @apply border border-gray-200;
-  border-radius: 8px;
-  @apply text-gray-700;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.back-button:hover {
-  @apply bg-gray-100;
-  @apply border-gray-300;
-}
-</style>

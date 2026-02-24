@@ -189,6 +189,18 @@
   }
 
   /* ==========================================================================
+     INLINE DETAIL VIEW STYLES (shared across all *DetailInline components)
+     ========================================================================== */
+
+  .detail-inline {
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  .detail-inline-back {
+    @apply inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-button text-gray-700 text-sm font-medium cursor-pointer transition-all duration-200 hover:bg-gray-50 hover:border-gray-300;
+  }
+
+  /* ==========================================================================
      CHART CONTAINER STYLES
      ========================================================================== */
 
@@ -258,6 +270,12 @@
   .text-balance {
     text-wrap: balance;
   }
+}
+
+/* Shared keyframes */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 /* PDF Header - hidden on screen, shown when generating PDF */

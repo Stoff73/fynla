@@ -1,9 +1,9 @@
 # Goals & Life Events Cross-Module Integration - Deployment Notes
 
-**Date:** 23 February 2026
+**Date:** 23 February 2026 (updated 24 February 2026)
 **Branch:** goals
 **Status:** PENDING UPLOAD
-**Rebuild Required:** YES (Vue/JS changes)
+**Rebuild Required:** YES (Vue/JS + CSS changes)
 
 ---
 
@@ -195,3 +195,67 @@ php artisan cache:clear && php artisan config:clear && php artisan view:clear &&
 
 ### Fix - ProtectionDashboard Missing Closing Tag
 - `ProtectionDashboard.vue` had a missing `</div>` closing tag for the `protection-dashboard` wrapper, causing a build error
+
+---
+
+## Update - 24 February 2026 (RT1-10: Polish Detail Views)
+
+### What Changed
+
+**Design system compliance pass on GoalDetailInline.vue and LifeEventDetailInline.vue:**
+
+#### Shared CSS (`resources/css/app.css`)
+- Added `.detail-inline` class (fadeIn animation) and `.detail-inline-back` class (back button styling) to `@layer components`
+- Moved `@keyframes fadeIn` to shared location outside `@layer` block
+- These shared classes replace duplicated scoped styles across detail view components
+
+#### GoalDetailInline.vue - Design System Fixes
+- Cards: `rounded-lg shadow-md` changed to `rounded-card border border-gray-200 shadow-sm`
+- Buttons: inline Tailwind classes changed to `btn-primary`, `btn-danger` shared classes
+- Contribution button: `bg-green-600` changed to `bg-success-600`
+- Progress bar: `h-3` changed to `h-2`
+- Tab active state: `border-blue-600 text-blue-600` changed to `border-primary-600 text-primary-600`
+- Tab nav: added `overflow-x-auto` and `flex-shrink-0` for mobile
+- Section headings: `text-gray-800` changed to `text-gray-900`
+- Date format: DD/MM/YYYY changed to long format (e.g. "15 January 2024")
+- Empty values: `"N/A"` and `"Not set"` changed to em dash
+- Spinner: `border-blue-600` changed to `border-primary-600`
+- Error state: added `rounded-card` and `border border-gray-200`
+- Added `sm:text-right` to dd values, `flex-wrap` to badge row, `shrink-0` to button container
+- Removed entire `<style scoped>` block
+
+#### GoalDetailInline.vue - Bug Fixes
+- `progressPercent`: guards against null `current_amount` (was producing `NaN%`)
+- `loadDependencies()`: now only called after successful goal load (was firing on error too)
+- Removed duplicate `goalTypeIcon` computed (now uses `getGoalIcon()` method)
+- Removed unused `progress` data property
+
+#### LifeEventDetailInline.vue - Design System Fixes
+- Cards: `rounded-lg shadow-md` changed to `rounded-card border border-gray-200 shadow-sm`
+- Buttons: inline Tailwind classes changed to `btn-primary`, `btn-danger` shared classes
+- Tab active state: `border-blue-600 text-blue-600` changed to `border-primary-600 text-primary-600`
+- Tab nav: added `overflow-x-auto` and `flex-shrink-0` for mobile
+- Section headings: `text-gray-800` changed to `text-gray-900`
+- Date format: standardised to long format; metric tile changed from abbreviated "Jan 2028" to full format
+- Empty values: standardised to em dash
+- Added `sm:text-right` to dd values, `flex-wrap` to badge row, `shrink-0` to button container
+- Removed entire `<style scoped>` block
+- Removed unused `formatDateShort()` and `formatDateLong()` methods
+
+### Files Changed (24 Feb)
+
+| File | Type |
+|------|------|
+| `resources/css/app.css` | Modified (shared styles) |
+| `resources/js/components/Goals/GoalDetailInline.vue` | Modified (design system + bug fixes) |
+| `resources/js/components/Goals/LifeEventDetailInline.vue` | Modified (design system fixes) |
+
+### Rebuild Required
+
+Yes - all changes are frontend (CSS + Vue components). Run:
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+Upload `public/build/` directory after rebuild. No new backend files, no migrations, no database changes.
