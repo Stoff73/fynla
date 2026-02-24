@@ -6,12 +6,19 @@ namespace App\Services\Goals;
 
 use App\Models\Goal;
 use App\Models\User;
+use App\Services\UKTaxCalculator;
+use Carbon\Carbon;
 
 /**
  * Service for analyzing goal affordability based on user's financial situation.
  */
 class GoalAffordabilityService
 {
+    public function __construct(
+        private readonly UKTaxCalculator $taxCalculator,
+        private readonly LifeEventService $lifeEventService
+    ) {}
+
     /**
      * Analyze affordability of a goal for a user.
      */
@@ -47,17 +54,43 @@ class GoalAffordabilityService
      */
     public function calculateMonthlySurplus(User $user): float
     {
-        $annualIncome = (float) ($user->annual_gross_salary ?? 0);
-        $monthlyIncome = $annualIncome / 12;
+        $annualNetIncome = $this->calculateAnnualNetIncome($user);
+        $monthlyNetIncome = $annualNetIncome / 12;
 
-        // Get monthly expenditure from user profile
         $monthlyExpenditure = $this->getMonthlyExpenditure($user);
 
-        // Estimate tax for a rough net income
-        $estimatedTax = $this->estimateAnnualTax($annualIncome);
-        $monthlyNetIncome = ($annualIncome - $estimatedTax) / 12;
-
         return max(0, $monthlyNetIncome - $monthlyExpenditure);
+    }
+
+    /**
+     * Calculate annual net income using UKTaxCalculator.
+     */
+    private function calculateAnnualNetIncome(User $user): float
+    {
+        $employmentIncome = (float) ($user->annual_employment_income ?? 0);
+        $selfEmploymentIncome = (float) ($user->annual_self_employment_income ?? 0);
+        $rentalIncome = (float) ($user->annual_rental_income ?? 0);
+        $dividendIncome = (float) ($user->annual_dividend_income ?? 0);
+        $interestIncome = (float) ($user->annual_interest_income ?? 0);
+        $otherIncome = (float) ($user->annual_other_income ?? 0) + (float) ($user->annual_trust_income ?? 0);
+
+        $grossIncome = $employmentIncome + $selfEmploymentIncome + $rentalIncome
+            + $dividendIncome + $interestIncome + $otherIncome;
+
+        if ($grossIncome <= 0) {
+            return 0.0;
+        }
+
+        $taxResult = $this->taxCalculator->calculateNetIncome(
+            $employmentIncome,
+            $selfEmploymentIncome,
+            $rentalIncome,
+            $dividendIncome,
+            $interestIncome,
+            $otherIncome
+        );
+
+        return (float) ($taxResult['net_income'] ?? 0);
     }
 
     /**
@@ -79,53 +112,6 @@ class GoalAffordabilityService
         $expenditure += (float) ($user->monthly_debt_repayments ?? 0);
 
         return $expenditure;
-    }
-
-    /**
-     * Estimate annual tax (simplified calculation).
-     */
-    private function estimateAnnualTax(float $annualIncome): float
-    {
-        // Simplified UK tax estimate
-        $personalAllowance = 12570;
-        $basicRateLimit = 50270;
-        $higherRateLimit = 125140;
-
-        if ($annualIncome <= $personalAllowance) {
-            return 0;
-        }
-
-        $tax = 0;
-
-        // Basic rate (20%)
-        if ($annualIncome > $personalAllowance) {
-            $basicBand = min($annualIncome, $basicRateLimit) - $personalAllowance;
-            $tax += $basicBand * 0.20;
-        }
-
-        // Higher rate (40%)
-        if ($annualIncome > $basicRateLimit) {
-            $higherBand = min($annualIncome, $higherRateLimit) - $basicRateLimit;
-            $tax += $higherBand * 0.40;
-        }
-
-        // Additional rate (45%)
-        if ($annualIncome > $higherRateLimit) {
-            $additionalBand = $annualIncome - $higherRateLimit;
-            $tax += $additionalBand * 0.45;
-        }
-
-        // NI estimate (simplified)
-        if ($annualIncome > 12570) {
-            $niablePay = min($annualIncome, 50270) - 12570;
-            $tax += $niablePay * 0.08;
-
-            if ($annualIncome > 50270) {
-                $tax += ($annualIncome - 50270) * 0.02;
-            }
-        }
-
-        return $tax;
     }
 
     /**
@@ -273,6 +259,114 @@ class GoalAffordabilityService
         $suggestedDate = now()->addMonths((int) $monthsNeeded);
 
         return $suggestedDate->format('Y-m-d');
+    }
+
+    /**
+     * Analyze affordability factoring in upcoming life events within the goal's time horizon.
+     *
+     * Large upcoming expenses reduce available surplus for goal contributions.
+     * Large upcoming income events are flagged as lump-sum contribution opportunities.
+     */
+    public function analyzeAffordabilityWithLifeEvents(Goal $goal, User $user): array
+    {
+        $baseAnalysis = $this->analyzeAffordability($goal, $user);
+
+        $events = $this->lifeEventService->getActiveEventsForProjection($user->id);
+        $goalTargetDate = $goal->target_date ? Carbon::parse($goal->target_date) : null;
+
+        if ($events->isEmpty() || ! $goalTargetDate) {
+            return array_merge($baseAnalysis, [
+                'life_event_adjustment' => null,
+                'lump_sum_opportunities' => [],
+                'expense_warnings' => [],
+            ]);
+        }
+
+        $certaintyWeights = [
+            'confirmed' => 1.0,
+            'likely' => 0.75,
+            'possible' => 0.5,
+            'speculative' => 0.25,
+        ];
+
+        $totalExpenseImpact = 0;
+        $totalIncomeOpportunity = 0;
+        $lumpSumOpportunities = [];
+        $expenseWarnings = [];
+
+        foreach ($events as $event) {
+            // Only consider events within the goal's time horizon
+            if ($event->expected_date->gt($goalTargetDate) || $event->expected_date->lt(Carbon::now())) {
+                continue;
+            }
+
+            $weight = $certaintyWeights[$event->certainty] ?? 0.5;
+            $weightedAmount = (float) $event->amount * $weight;
+
+            if ($event->impact_type === 'expense') {
+                $totalExpenseImpact += $weightedAmount;
+
+                // Warn about large expenses that could derail the goal
+                if ($weightedAmount > $baseAnalysis['monthly_surplus'] * 3) {
+                    $expenseWarnings[] = [
+                        'event_name' => $event->event_name,
+                        'amount' => (float) $event->amount,
+                        'weighted_amount' => round($weightedAmount, 2),
+                        'expected_date' => $event->expected_date->toDateString(),
+                        'certainty' => $event->certainty,
+                        'months_of_savings' => $baseAnalysis['monthly_surplus'] > 0
+                            ? round($weightedAmount / $baseAnalysis['monthly_surplus'], 1)
+                            : null,
+                    ];
+                }
+            } else {
+                $totalIncomeOpportunity += $weightedAmount;
+
+                // Flag income events as lump-sum contribution opportunities
+                if ($weightedAmount >= 1000) {
+                    $lumpSumOpportunities[] = [
+                        'event_name' => $event->event_name,
+                        'amount' => (float) $event->amount,
+                        'weighted_amount' => round($weightedAmount, 2),
+                        'expected_date' => $event->expected_date->toDateString(),
+                        'certainty' => $event->certainty,
+                        'suggested_contribution' => round(min($weightedAmount * 0.5, (float) $goal->target_amount - (float) $goal->current_amount), 2),
+                    ];
+                }
+            }
+        }
+
+        // Calculate months in goal horizon
+        $monthsRemaining = max(1, (int) Carbon::now()->diffInMonths($goalTargetDate));
+
+        // Spread expense impact across remaining months to see adjusted surplus
+        $monthlyExpenseImpact = $totalExpenseImpact / $monthsRemaining;
+        $adjustedSurplus = max(0, $baseAnalysis['available_surplus'] - $monthlyExpenseImpact);
+
+        // Recategorize with adjusted surplus
+        $adjustedRatio = $adjustedSurplus > 0
+            ? $baseAnalysis['required_monthly'] / $adjustedSurplus
+            : 0;
+        $adjustedCategory = $this->categorizeAffordability(
+            $adjustedRatio,
+            $adjustedSurplus,
+            $baseAnalysis['required_monthly']
+        );
+
+        return array_merge($baseAnalysis, [
+            'life_event_adjustment' => [
+                'total_expense_impact' => round($totalExpenseImpact, 2),
+                'total_income_opportunity' => round($totalIncomeOpportunity, 2),
+                'monthly_expense_spread' => round($monthlyExpenseImpact, 2),
+                'adjusted_surplus' => round($adjustedSurplus, 2),
+                'adjusted_category' => $adjustedCategory['category'],
+                'adjusted_category_label' => $adjustedCategory['label'],
+                'adjusted_is_achievable' => $adjustedCategory['is_achievable'],
+                'events_in_horizon' => count($expenseWarnings) + count($lumpSumOpportunities),
+            ],
+            'lump_sum_opportunities' => $lumpSumOpportunities,
+            'expense_warnings' => $expenseWarnings,
+        ]);
     }
 
     /**

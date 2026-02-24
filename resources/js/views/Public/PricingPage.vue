@@ -234,6 +234,95 @@
         </div>
       </div>
     </div>
+
+    <!-- Trust Indicators -->
+    <div class="bg-slate-50 py-12 border-t border-slate-200">
+      <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+          <div class="flex flex-col items-center">
+            <div class="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center mb-3">
+              <svg class="w-6 h-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+            </div>
+            <h3 class="text-base font-semibold text-slate-900 mb-1">7-Day Free Trial</h3>
+            <p class="text-sm text-slate-600">Try any plan risk-free. No credit card required to start.</p>
+          </div>
+          <div class="flex flex-col items-center">
+            <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-3">
+              <svg class="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            <h3 class="text-base font-semibold text-slate-900 mb-1">UK Data Security</h3>
+            <p class="text-sm text-slate-600">AES-256 encryption. Data stored in UK data centres. GDPR compliant.</p>
+          </div>
+          <div class="flex flex-col items-center">
+            <div class="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center mb-3">
+              <svg class="w-6 h-6 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+              </svg>
+            </div>
+            <h3 class="text-base font-semibold text-slate-900 mb-1">Cancel Anytime</h3>
+            <p class="text-sm text-slate-600">No lock-in contracts. Downgrade or cancel whenever you like.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FAQ Section -->
+    <div class="bg-white py-16">
+      <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-10">
+          <h2 class="text-3xl font-bold text-slate-900 mb-3">Frequently Asked Questions</h2>
+          <p class="text-slate-600">Everything you need to know about Fynla plans</p>
+        </div>
+
+        <div class="space-y-4">
+          <div
+            v-for="(faq, index) in faqs"
+            :key="index"
+            class="bg-slate-50 rounded-xl border border-slate-200 overflow-hidden"
+          >
+            <button
+              @click="toggleFaq(index)"
+              class="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-slate-100 transition-colors"
+            >
+              <span class="text-base font-semibold text-slate-900">{{ faq.question }}</span>
+              <svg
+                :class="['w-5 h-5 text-slate-400 transition-transform duration-200', openFaq === index ? 'rotate-180' : '']"
+                fill="none" viewBox="0 0 24 24" stroke="currentColor"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <div v-if="openFaq === index" class="px-6 pb-4">
+              <p class="text-sm text-slate-600 leading-relaxed">{{ faq.answer }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CTA Section -->
+    <div class="relative bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 py-16 overflow-hidden">
+      <div class="absolute inset-0">
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-500/10 rounded-full blur-3xl"></div>
+      </div>
+      <div class="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <h2 class="text-3xl font-bold text-white mb-4">Ready to Take Control of Your Finances?</h2>
+        <p class="text-slate-300 mb-8">Start your 7-day free trial today. No credit card required.</p>
+        <router-link
+          to="/register"
+          class="inline-flex items-center px-8 py-4 bg-white text-slate-900 rounded-xl font-semibold text-lg hover:bg-blue-50 transition-all shadow-lg hover:shadow-xl"
+        >
+          Get Started Free
+          <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+          </svg>
+        </router-link>
+      </div>
+    </div>
   </PublicLayout>
 </template>
 
@@ -250,6 +339,33 @@ export default {
   data() {
     return {
       isYearly: true,
+      openFaq: null,
+      faqs: [
+        {
+          question: 'What happens when my free trial ends?',
+          answer: 'After 7 days, you will be asked to choose a plan to continue. If you do not subscribe, your account will become read-only — you can still view your data, but cannot make changes until you activate a plan.',
+        },
+        {
+          question: 'Can I switch plans later?',
+          answer: 'Yes, you can upgrade or downgrade your plan at any time from your account settings. When upgrading, you will be charged the prorated difference. When downgrading, the change takes effect at the end of your current billing period.',
+        },
+        {
+          question: 'What payment methods do you accept?',
+          answer: 'We accept all major credit and debit cards (Visa, Mastercard, American Express) through our secure payment processor Stripe. All payments are processed securely and we never store your card details.',
+        },
+        {
+          question: 'Is my financial data safe?',
+          answer: 'Absolutely. We use AES-256 encryption for sensitive data, store everything in UK-based data centres, and are fully GDPR compliant. Your data is never shared with third parties. You can export or delete your data at any time.',
+        },
+        {
+          question: 'What is the difference between Standard and Pro?',
+          answer: 'Both plans include all platform features — protection, savings, investments, retirement, and estate planning. The key difference is document uploads: Standard allows 1 upload per day (5 per month maximum), while Pro offers unlimited document uploads and priority support.',
+        },
+        {
+          question: 'Can I cancel my subscription?',
+          answer: 'Yes, you can cancel at any time from your account settings. There are no lock-in contracts or cancellation fees. Your access continues until the end of your current billing period.',
+        },
+      ],
     };
   },
 
@@ -262,6 +378,10 @@ export default {
           billing: this.isYearly ? 'yearly' : 'monthly',
         },
       });
+    },
+
+    toggleFaq(index) {
+      this.openFaq = this.openFaq === index ? null : index;
     },
   },
 };

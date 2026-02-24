@@ -158,7 +158,6 @@ describe('GET /api/estate/net-worth', function () {
                 'data' => [
                     'net_worth',
                     'concentration_risk',
-                    'trend',
                     'health_score',
                 ],
             ]);

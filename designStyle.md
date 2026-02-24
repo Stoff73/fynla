@@ -34,6 +34,8 @@ This document is the single source of truth for all design decisions in the Fynl
 22. [Responsive Breakpoints](#responsive-breakpoints)
 23. [Accessibility](#accessibility)
 24. [Do's and Don'ts](#dos-and-donts)
+25. [Public & Marketing Pages](#public--marketing-pages)
+26. [Entrance Animations (Public Pages)](#entrance-animations-public-pages)
 
 ---
 
@@ -1595,6 +1597,213 @@ The chart uses a custom HTML tooltip (not ApexCharts default) with:
 - No amber/orange per forbidden colours rule
 - Inter font family throughout
 - Standard Tailwind spacing (p-4, p-6, mb-6)
+
+---
+
+## Public & Marketing Pages
+
+Public-facing pages (Landing, Calculators, Learning Centre, Security, Pricing) follow distinct patterns from the authenticated app UI. These pages prioritise visual impact and conversion while maintaining brand trust.
+
+### Extended Color Palette (Public Pages)
+
+Public pages may use additional Tailwind colors beyond the core primary/secondary palette, within these approved contexts:
+
+| Color | Approved Usage | Not For |
+|-------|---------------|---------|
+| `indigo-*` | Calculator headers, feature accents, focus rings | Primary buttons, badges |
+| `emerald-*` | Security/trust sections, data protection themes | Status indicators (use green) |
+| `slate-*` | Dark backgrounds, neutral headers, body text on dark | Light mode card borders |
+| `blue-*` | Warnings, loan/finance sections, links | Error states |
+| `green-*` | Success, positive values, growth indicators | General decoration |
+| `red-*` | Errors, negative values, critical alerts | Warnings |
+| `purple-*` | Charts only (Chart 6), account badges (SIPP) | Headers, backgrounds, buttons |
+
+**Still forbidden:** amber-*, orange-*, teal as primary (teal only for risk badges/charts).
+
+### Hero Sections
+
+Every public page starts with a hero section using a dark gradient background:
+
+```html
+<section class="relative overflow-hidden bg-gradient-to-br from-slate-800 via-blue-900 to-slate-900 py-20">
+  <!-- Optional decorative orbs (use approved colors with low opacity) -->
+  <div class="absolute top-20 right-20 w-72 h-72 bg-blue-500/10 rounded-full blur-3xl"></div>
+  <div class="absolute bottom-10 left-10 w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl"></div>
+
+  <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+    <h1 class="text-4xl md:text-5xl font-bold text-white mb-6">Page Title</h1>
+    <p class="text-xl text-blue-100 max-w-3xl mx-auto">Subtitle description text</p>
+  </div>
+</section>
+```
+
+| Element | Specification |
+|---------|--------------|
+| Background | `bg-gradient-to-br from-slate-800 via-blue-900 to-slate-900` |
+| Container | `max-w-7xl mx-auto px-4 sm:px-6 lg:px-8` |
+| Title | `text-4xl md:text-5xl font-bold text-white` |
+| Subtitle | `text-xl text-blue-100` |
+| Vertical padding | `py-20` |
+| Decorative orbs | Max 10-20% opacity, `blur-3xl`, approved colors only |
+
+### Section Headers (Gradient Cards)
+
+Content sections on public pages use gradient header cards to introduce topics:
+
+```html
+<div class="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-6 mb-6 text-white">
+  <div class="flex items-center gap-3 mb-2">
+    <div class="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+      <!-- Icon -->
+    </div>
+    <h2 class="text-xl font-bold">Section Title</h2>
+  </div>
+  <p class="text-blue-100 text-sm">Section description</p>
+</div>
+```
+
+#### Approved Gradient Combinations
+
+| Context | Gradient | Subtitle Text |
+|---------|----------|---------------|
+| Primary/Default | `from-blue-600 to-blue-700` | `text-blue-100` |
+| Secondary | `from-slate-600 to-slate-700` | `text-slate-200` |
+| Trust/Security | `from-emerald-700 to-emerald-800` | `text-emerald-100` |
+| Feature/Accent | `from-indigo-600 to-indigo-700` | `text-indigo-100` |
+
+**Do not use:** purple, pink, cyan, rose, or red gradients for section headers.
+
+### CTA (Call-to-Action) Sections
+
+Every public page ends with a consistent CTA section above the footer:
+
+```html
+<section class="bg-gradient-to-r from-blue-900 to-slate-900 py-16">
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+    <h2 class="text-3xl font-bold text-white mb-4">CTA Heading</h2>
+    <p class="text-xl text-blue-200 mb-8">Supporting description text</p>
+    <div class="flex flex-col sm:flex-row gap-4 justify-center">
+      <!-- Primary CTA -->
+      <router-link to="/register"
+        class="inline-flex items-center px-8 py-3 bg-white text-slate-900 rounded-lg
+               font-semibold hover:bg-gray-100 transition-colors shadow-lg">
+        Primary Action
+      </router-link>
+      <!-- Secondary CTA (optional) -->
+      <router-link to="/secondary"
+        class="inline-flex items-center px-8 py-3 border-2 border-white/30 text-white
+               rounded-lg font-semibold hover:bg-white/10 transition-colors">
+        Secondary Action
+      </router-link>
+    </div>
+  </div>
+</section>
+```
+
+| Element | Specification |
+|---------|--------------|
+| Background | `bg-gradient-to-r from-blue-900 to-slate-900` |
+| Heading | `text-3xl font-bold text-white` |
+| Description | `text-xl text-blue-200` |
+| Primary button | `bg-white text-slate-900 rounded-lg font-semibold shadow-lg` |
+| Secondary button | `border-2 border-white/30 text-white rounded-lg` |
+| Max width | `max-w-4xl` (narrower than content for focus) |
+
+### Trust Indicators
+
+Use trust indicator rows to build confidence near pricing or signup CTAs:
+
+```html
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+  <div class="text-center">
+    <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+      <!-- Icon -->
+    </div>
+    <h3 class="font-semibold text-gray-900 mb-1">Trust Point</h3>
+    <p class="text-sm text-gray-600">Supporting detail</p>
+  </div>
+</div>
+```
+
+### Accordion / FAQ Pattern
+
+For collapsible FAQ or content sections:
+
+```html
+<div class="border border-gray-200 rounded-lg overflow-hidden">
+  <button @click="toggle(index)"
+    class="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50 transition-colors">
+    <span class="font-medium text-gray-900">Question text</span>
+    <svg class="w-5 h-5 text-gray-500 transition-transform duration-200"
+         :class="{ 'rotate-180': isOpen(index) }">
+      <!-- Chevron icon -->
+    </svg>
+  </button>
+  <div v-if="isOpen(index)" class="px-4 pb-4 text-sm text-gray-600">
+    Answer text
+  </div>
+</div>
+```
+
+| Element | Specification |
+|---------|--------------|
+| Container | `border border-gray-200 rounded-lg` |
+| Button padding | `p-4` |
+| Question text | `font-medium text-gray-900` |
+| Answer text | `text-sm text-gray-600` |
+| Icon rotation | `transition-transform duration-200`, `rotate-180` when open |
+| Hover | `hover:bg-gray-50` |
+| Spacing between items | `space-y-3` |
+
+---
+
+## Entrance Animations (Public Pages)
+
+Public pages use CSS keyframe entrance animations for visual polish. These are CSS-only (no JS library required) and respect `prefers-reduced-motion`.
+
+### Standard Entrance Animation
+
+```css
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.entrance-animate {
+  animation: fadeSlideIn 0.5s ease-out forwards;
+}
+```
+
+### Staggered Reveals
+
+For multiple cards or sections that animate in sequence:
+
+```css
+.stagger-item:nth-child(1) { animation-delay: 0s; }
+.stagger-item:nth-child(2) { animation-delay: 0.1s; }
+.stagger-item:nth-child(3) { animation-delay: 0.2s; }
+.stagger-item:nth-child(4) { animation-delay: 0.3s; }
+.stagger-item:nth-child(5) { animation-delay: 0.4s; }
+.stagger-item:nth-child(6) { animation-delay: 0.5s; }
+```
+
+### Guidelines
+
+| Rule | Value |
+|------|-------|
+| Duration | 400-600ms (public pages allow slightly slower than app UI) |
+| Easing | `ease-out` for entrances |
+| Direction | Slide up (`translateY(16px)` to `0`) preferred |
+| Max delay | 0.5s for the last item in a stagger sequence |
+| Reduced motion | Wrap in `@media (prefers-reduced-motion: no-preference)` or ensure `animation-duration: 0.01ms` fallback |
+
+**Do not use entrance animations in the authenticated app UI** - they are reserved for public/marketing pages where first impressions matter. App UI should use transition animations (hover, focus, modal open/close) instead.
 
 ---
 

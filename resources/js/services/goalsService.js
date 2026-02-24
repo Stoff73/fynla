@@ -219,6 +219,45 @@ const goalsService = {
         const response = await api.get('/goals/household-summary');
         return response.data;
     },
+
+    /**
+     * Get financial forecast with life events overlay.
+     * @param {Object} options - { view: 'monthly'|'annual', months: number, years: number }
+     */
+    async getFinancialForecast(options = {}) {
+        const params = new URLSearchParams();
+        if (options.view) params.append('view', options.view);
+        if (options.months) params.append('months', options.months.toString());
+        if (options.years) params.append('years', options.years.toString());
+
+        const queryString = params.toString();
+        const response = await api.get(`/goals/financial-forecast${queryString ? `?${queryString}` : ''}`);
+        return response.data;
+    },
+
+    /**
+     * Get dependencies for a goal.
+     */
+    async getDependencies(goalId) {
+        const response = await api.get(`/goals/${goalId}/dependencies`);
+        return response.data;
+    },
+
+    /**
+     * Add a dependency to a goal.
+     */
+    async addDependency(goalId, data) {
+        const response = await api.post(`/goals/${goalId}/dependencies`, data);
+        return response.data;
+    },
+
+    /**
+     * Remove a dependency from a goal.
+     */
+    async removeDependency(goalId, dependsOnGoalId) {
+        const response = await api.delete(`/goals/${goalId}/dependencies/${dependsOnGoalId}`);
+        return response.data;
+    },
 };
 
 export default goalsService;

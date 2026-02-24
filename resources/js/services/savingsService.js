@@ -115,48 +115,6 @@ const savingsService = {
         return response.data;
     },
 
-    /**
-     * Create a new savings goal
-     * @param {Object} goalData - Goal data
-     * @returns {Promise} Created goal
-     */
-    async createGoal(goalData) {
-        const response = await api.post('/savings/goals', goalData);
-        return response.data;
-    },
-
-    /**
-     * Update a savings goal
-     * @param {Number} id - Goal ID
-     * @param {Object} goalData - Updated goal data
-     * @returns {Promise} Updated goal
-     */
-    async updateGoal(id, goalData) {
-        const response = await api.put(`/savings/goals/${id}`, goalData);
-        return response.data;
-    },
-
-    /**
-     * Delete a savings goal
-     * @param {Number} id - Goal ID
-     * @returns {Promise} Deletion confirmation
-     */
-    async deleteGoal(id) {
-        const response = await api.delete(`/savings/goals/${id}`);
-        return response.data;
-    },
-
-    /**
-     * Update progress on a savings goal
-     * @param {Number} id - Goal ID
-     * @param {Number} amount - Amount to add to current_saved
-     * @returns {Promise} Updated goal
-     */
-    async updateGoalProgress(id, amount) {
-        const response = await api.patch(`/savings/goals/${id}/progress`, { amount });
-        return response.data;
-    },
-
     // Expenditure Profile Methods
     /**
      * Get expenditure profile

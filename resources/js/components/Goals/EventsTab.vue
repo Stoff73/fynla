@@ -1,88 +1,100 @@
 <template>
   <div class="events-tab">
-    <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-      <div>
-        <h3 class="text-lg font-semibold text-gray-900">Life Events</h3>
-        <p class="text-sm text-gray-600 mt-1">
-          Future occurrences that will impact your financial position
-        </p>
-      </div>
-      <button
-        @click="openCreateModal"
-        class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-button hover:bg-primary-700 transition-colors"
-      >
-        <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-        </svg>
-        Add Life Event
-      </button>
-    </div>
-
-    <!-- Summary Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-      <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-        <p class="text-sm text-green-600 font-medium">Expected Income</p>
-        <p class="text-2xl font-bold text-green-900 mt-1">{{ formatCurrency(totalIncome) }}</p>
-        <p class="text-xs text-green-600 mt-1">{{ incomeCount }} event{{ incomeCount !== 1 ? 's' : '' }}</p>
-      </div>
-      <div class="bg-red-50 border border-red-200 rounded-lg p-4">
-        <p class="text-sm text-red-600 font-medium">Expected Expenses</p>
-        <p class="text-2xl font-bold text-red-900 mt-1">{{ formatCurrency(totalExpense) }}</p>
-        <p class="text-xs text-red-600 mt-1">{{ expenseCount }} event{{ expenseCount !== 1 ? 's' : '' }}</p>
-      </div>
-      <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <p class="text-sm text-blue-600 font-medium">Net Impact</p>
-        <p
-          class="text-2xl font-bold mt-1"
-          :class="netImpact >= 0 ? 'text-green-900' : 'text-red-900'"
+    <!-- Header (hidden when detail view is active) -->
+    <template v-if="!selectedEvent">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div>
+          <h3 class="text-lg font-semibold text-gray-900">Life Events</h3>
+          <p class="text-sm text-gray-600 mt-1">
+            Future occurrences that will impact your financial position
+          </p>
+        </div>
+        <button
+          @click="openCreateModal"
+          class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-button hover:bg-primary-700 transition-colors"
         >
-          {{ netImpact >= 0 ? '+' : '' }}{{ formatCurrency(netImpact) }}
-        </p>
-        <p class="text-xs text-blue-600 mt-1">Total life events planned</p>
+          <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+          Add Life Event
+        </button>
       </div>
-    </div>
 
-    <!-- Filter/Sort -->
-    <div class="flex flex-wrap items-center gap-4 mb-4">
-      <select
-        v-model="filterType"
-        class="px-3 py-2 text-sm border border-gray-300 rounded-md"
-      >
-        <option value="all">All Events</option>
-        <option value="income">Income Only</option>
-        <option value="expense">Expenses Only</option>
-      </select>
+      <!-- Summary Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+          <p class="text-sm text-green-600 font-medium">Expected Income</p>
+          <p class="text-2xl font-bold text-green-900 mt-1">{{ formatCurrency(totalIncome) }}</p>
+          <p class="text-xs text-green-600 mt-1">{{ incomeCount }} event{{ incomeCount !== 1 ? 's' : '' }}</p>
+        </div>
+        <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p class="text-sm text-red-600 font-medium">Expected Expenses</p>
+          <p class="text-2xl font-bold text-red-900 mt-1">{{ formatCurrency(totalExpense) }}</p>
+          <p class="text-xs text-red-600 mt-1">{{ expenseCount }} event{{ expenseCount !== 1 ? 's' : '' }}</p>
+        </div>
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <p class="text-sm text-blue-600 font-medium">Net Impact</p>
+          <p
+            class="text-2xl font-bold mt-1"
+            :class="netImpact >= 0 ? 'text-green-900' : 'text-red-900'"
+          >
+            {{ netImpact >= 0 ? '+' : '' }}{{ formatCurrency(netImpact) }}
+          </p>
+          <p class="text-xs text-blue-600 mt-1">Total life events planned</p>
+        </div>
+      </div>
 
-      <select
-        v-model="sortBy"
-        class="px-3 py-2 text-sm border border-gray-300 rounded-md"
-      >
-        <option value="date">Sort by Date</option>
-        <option value="amount">Sort by Amount</option>
-        <option value="certainty">Sort by Certainty</option>
-      </select>
-    </div>
+      <!-- Filter/Sort -->
+      <div class="flex flex-wrap items-center gap-4 mb-4">
+        <select
+          v-model="filterType"
+          class="px-3 py-2 text-sm border border-gray-300 rounded-md"
+        >
+          <option value="all">All Events</option>
+          <option value="income">Income Only</option>
+          <option value="expense">Expenses Only</option>
+        </select>
 
-    <!-- Loading -->
-    <div v-if="loading" class="flex justify-center items-center py-12">
-      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-    </div>
+        <select
+          v-model="sortBy"
+          class="px-3 py-2 text-sm border border-gray-300 rounded-md"
+        >
+          <option value="date">Sort by Date</option>
+          <option value="amount">Sort by Amount</option>
+          <option value="certainty">Sort by Certainty</option>
+        </select>
+      </div>
 
-    <!-- Events List -->
-    <div v-else-if="filteredEvents.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      <LifeEventCard
-        v-for="event in filteredEvents"
-        :key="event.id"
-        :event="event"
-        @click="openEditModal"
-        @edit="openEditModal"
-        @delete="confirmDelete"
-      />
-    </div>
+      <!-- Loading -->
+      <div v-if="loading" class="flex justify-center items-center py-12">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+      </div>
+    </template>
 
-    <!-- Empty State -->
-    <div v-else class="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
+    <!-- Life Event Detail View (inline, replaces list) -->
+    <LifeEventDetailInline
+      v-if="selectedEvent"
+      :event="selectedEvent"
+      @back="closeEventDetail"
+      @edit="handleEditFromDetail"
+      @delete="handleDeleteFromDetail"
+    />
+
+    <!-- Events List (hidden when detail view is active) -->
+    <template v-if="!selectedEvent && !loading">
+      <div v-if="filteredEvents.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <LifeEventCard
+          v-for="event in filteredEvents"
+          :key="event.id"
+          :event="event"
+          @click="viewEvent"
+          @edit="openEditModal"
+          @delete="confirmDelete"
+        />
+      </div>
+
+      <!-- Empty State -->
+      <div v-else class="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
       <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
       </svg>
@@ -99,7 +111,8 @@
         </svg>
         Add Your First Life Event
       </button>
-    </div>
+      </div>
+    </template>
 
     <!-- Life Event Form Modal -->
     <LifeEventForm
@@ -159,6 +172,7 @@ import { mapState, mapActions } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import LifeEventCard from './LifeEventCard.vue';
 import LifeEventForm from './LifeEventForm.vue';
+import LifeEventDetailInline from './LifeEventDetailInline.vue';
 
 export default {
   name: 'EventsTab',
@@ -167,12 +181,14 @@ export default {
   components: {
     LifeEventCard,
     LifeEventForm,
+    LifeEventDetailInline,
   },
 
   data() {
     return {
       filterType: 'all',
       sortBy: 'date',
+      selectedEvent: null,
       showFormModal: false,
       editingEvent: null,
       showDeleteModal: false,
@@ -257,6 +273,22 @@ export default {
       'deleteLifeEvent',
     ]),
 
+    viewEvent(event) {
+      this.selectedEvent = event;
+    },
+
+    closeEventDetail() {
+      this.selectedEvent = null;
+    },
+
+    handleEditFromDetail(event) {
+      this.openEditModal(event);
+    },
+
+    handleDeleteFromDetail(event) {
+      this.confirmDelete(event);
+    },
+
     openCreateModal() {
       this.editingEvent = null;
       this.showFormModal = true;
@@ -283,6 +315,10 @@ export default {
           await this.createLifeEvent(formData);
         }
         this.closeFormModal();
+        // Close detail view after edit so user sees updated list
+        if (this.selectedEvent) {
+          this.selectedEvent = null;
+        }
       } catch (error) {
         console.error('Failed to save life event:', error);
       }
@@ -305,6 +341,10 @@ export default {
       try {
         await this.deleteLifeEvent(this.deletingEvent.id);
         this.closeDeleteModal();
+        // Close detail view if deleting from it
+        if (this.selectedEvent && this.selectedEvent.id === this.deletingEvent.id) {
+          this.selectedEvent = null;
+        }
       } catch (error) {
         console.error('Failed to delete life event:', error);
       } finally {

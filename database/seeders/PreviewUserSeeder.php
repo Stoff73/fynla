@@ -160,6 +160,10 @@ class PreviewUserSeeder extends Seeder
         // Create goals
         $this->createGoals($user, $spouse, $data['goals'] ?? []);
 
+        // Create goal dependencies and link goals to accounts
+        $this->createGoalDependencies($user);
+        $this->linkGoalsToAccounts($user);
+
         // Create life events
         $this->createLifeEvents($user, $spouse, $data['life_events'] ?? []);
 
@@ -1613,6 +1617,107 @@ class PreviewUserSeeder extends Seeder
                 'ownership_percentage' => $event['ownership_percentage'] ?? 100,
                 'status' => $event['status'] ?? 'expected',
             ]);
+        }
+    }
+
+    /**
+     * Create goal dependencies for a user based on logical goal relationships.
+     *
+     * Links goals where one naturally precedes another:
+     * - Emergency fund blocks property/wealth goals
+     * - Education goals fund from wealth goals
+     */
+    private function createGoalDependencies(User $user): void
+    {
+        $goals = Goal::where('user_id', $user->id)->get()->keyBy('goal_type');
+
+        // Emergency fund blocks property and wealth goals
+        $emergencyFund = $goals->get('emergency_fund');
+        if ($emergencyFund) {
+            $blockedTypes = ['property_purchase', 'home_deposit', 'wealth_accumulation'];
+            foreach ($blockedTypes as $type) {
+                $blockedGoal = $goals->get($type);
+                if ($blockedGoal) {
+                    $blockedGoal->dependsOn()->syncWithoutDetaching([
+                        $emergencyFund->id => ['dependency_type' => 'blocks'],
+                    ]);
+                }
+            }
+        }
+
+        // Retirement goals depend on wealth accumulation (funds relationship)
+        $wealthGoal = $goals->get('wealth_accumulation');
+        $retirementGoal = $goals->get('retirement');
+        if ($wealthGoal && $retirementGoal) {
+            $retirementGoal->dependsOn()->syncWithoutDetaching([
+                $wealthGoal->id => ['dependency_type' => 'funds'],
+            ]);
+        }
+
+        // Education goals are prerequisite for custom goals (if both exist)
+        $educationGoals = Goal::where('user_id', $user->id)
+            ->where('goal_type', 'education')
+            ->get();
+        $customGoals = Goal::where('user_id', $user->id)
+            ->where('goal_type', 'custom')
+            ->get();
+
+        if ($educationGoals->isNotEmpty() && $customGoals->isNotEmpty()) {
+            // Link first education goal as prerequisite for first custom goal
+            $customGoals->first()->dependsOn()->syncWithoutDetaching([
+                $educationGoals->first()->id => ['dependency_type' => 'prerequisite'],
+            ]);
+        }
+    }
+
+    /**
+     * Link goals to savings and investment accounts where appropriate.
+     *
+     * Matches goals to accounts by module assignment and name patterns.
+     */
+    private function linkGoalsToAccounts(User $user): void
+    {
+        $goals = Goal::where('user_id', $user->id)->where('status', 'active')->get();
+        $savingsAccounts = SavingsAccount::where('user_id', $user->id)->get();
+        $investmentAccounts = InvestmentAccount::where('user_id', $user->id)->get();
+
+        foreach ($goals as $goal) {
+            // Link emergency fund to the main savings account (highest balance, non-ISA)
+            if ($goal->goal_type === 'emergency_fund' && $savingsAccounts->isNotEmpty()) {
+                $savingsAccount = $savingsAccounts
+                    ->filter(fn ($a) => ! str_contains(strtolower($a->account_name ?? ''), 'isa')
+                        && ! str_contains(strtolower($a->account_name ?? ''), 'current')
+                        && ! str_contains(strtolower($a->account_name ?? ''), 'junior'))
+                    ->sortByDesc('current_balance')
+                    ->first();
+
+                if ($savingsAccount) {
+                    $goal->update(['linked_savings_account_id' => $savingsAccount->id]);
+                }
+            }
+
+            // Link wealth/investment goals to the primary ISA investment account
+            if (in_array($goal->goal_type, ['wealth_accumulation', 'retirement']) && $investmentAccounts->isNotEmpty()) {
+                $isaAccount = $investmentAccounts
+                    ->filter(fn ($a) => str_contains(strtolower($a->account_name ?? ''), 'isa'))
+                    ->sortByDesc('current_value')
+                    ->first();
+
+                if ($isaAccount && ! $goal->linked_investment_account_id) {
+                    $goal->update(['linked_investment_account_id' => $isaAccount->id]);
+                }
+            }
+
+            // Link education goals to Junior ISA savings accounts
+            if ($goal->goal_type === 'education' && $savingsAccounts->isNotEmpty()) {
+                $juniorIsa = $savingsAccounts
+                    ->filter(fn ($a) => str_contains(strtolower($a->account_name ?? ''), 'junior'))
+                    ->first();
+
+                if ($juniorIsa && ! $goal->linked_savings_account_id) {
+                    $goal->update(['linked_savings_account_id' => $juniorIsa->id]);
+                }
+            }
         }
     }
 

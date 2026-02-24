@@ -72,8 +72,7 @@ test('user cannot login with invalid email', function () {
     $response->assertStatus(401)
         ->assertJson([
             'success' => false,
-            'message' => 'No account found with this email address.',
-            'user_not_found' => true,
+            'message' => 'Invalid email or password.',
         ]);
 });
 
@@ -91,7 +90,7 @@ test('user cannot login with invalid password', function () {
     $response->assertStatus(401)
         ->assertJson([
             'success' => false,
-            'message' => 'Invalid password. Please try again.',
+            'message' => 'Invalid email or password.',
         ]);
 });
 

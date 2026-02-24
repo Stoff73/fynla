@@ -12,8 +12,10 @@ use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Observers\DCPensionRiskObserver;
 use App\Observers\FamilyMemberRiskObserver;
+use App\Observers\InvestmentAccountGoalObserver;
 use App\Observers\InvestmentAccountRiskObserver;
 use App\Observers\PropertyRiskObserver;
+use App\Observers\SavingsAccountGoalObserver;
 use App\Observers\SavingsAccountRiskObserver;
 use App\Observers\UserRiskObserver;
 use Illuminate\Auth\Events\Registered;
@@ -42,8 +44,8 @@ class EventServiceProvider extends ServiceProvider
     protected $observers = [
         User::class => [UserRiskObserver::class],
         FamilyMember::class => [FamilyMemberRiskObserver::class],
-        SavingsAccount::class => [SavingsAccountRiskObserver::class],
-        InvestmentAccount::class => [InvestmentAccountRiskObserver::class],
+        SavingsAccount::class => [SavingsAccountRiskObserver::class, SavingsAccountGoalObserver::class],
+        InvestmentAccount::class => [InvestmentAccountRiskObserver::class, InvestmentAccountGoalObserver::class],
         DCPension::class => [DCPensionRiskObserver::class],
         Property::class => [PropertyRiskObserver::class],
     ];

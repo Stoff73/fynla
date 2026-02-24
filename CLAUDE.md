@@ -39,6 +39,8 @@ php artisan migrate && php artisan db:seed
 
 **CRITICAL: NEVER use `migrate:fresh` or `migrate:refresh` when asked to reseed. These commands DROP ALL TABLES and destroy user data. Use `php artisan db:seed` instead.**
 
+**CRITICAL: ALWAYS reseed after any operation that modifies or loses local database data.** This includes running migrations, schema dumps, database resets, table drops, or any other destructive database operation. After such operations, run `php artisan db:seed` to restore all seeded data (tax config, preview personas, market rates, etc.).
+
 **Reseed specific data:**
 
 | Issue | Command |

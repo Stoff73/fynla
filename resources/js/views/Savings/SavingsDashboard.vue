@@ -52,7 +52,22 @@
         </div>
 
         <!-- Main Content -->
-        <div v-else :class="isEmbedded ? 'savings-embedded' : 'bg-white rounded-lg shadow'">
+        <div v-else>
+          <!-- Life Events & Goal Strategies (above main card, only when not embedded) -->
+          <div v-if="!isEmbedded" class="space-y-4 mb-6">
+            <ModuleLifeEvents
+              module="savings"
+              :events="lifeEvents"
+              :impact-summary="lifeEventImpact"
+            />
+            <ModuleGoalStrategies
+              module="savings"
+              :strategies="goalStrategies"
+              :summary="goalsSummary"
+            />
+          </div>
+
+        <div :class="isEmbedded ? 'savings-embedded' : 'bg-white rounded-lg shadow'">
           <!-- Tab Navigation -->
           <div v-if="!isEmbedded" class="border-b border-gray-200">
             <nav class="-mb-px flex overflow-x-auto" aria-label="Tabs">
@@ -83,12 +98,30 @@
             <!-- Emergency Fund Tab -->
             <EmergencyFund v-else-if="activeTab === 'emergency'" />
 
-            <!-- Savings Goals Tab -->
-            <SavingsGoals v-else-if="activeTab === 'goals'" />
+            <!-- Savings Goals Tab (unified) -->
+            <div v-else-if="activeTab === 'goals'" class="text-center py-12">
+              <svg class="mx-auto h-12 w-12 text-primary-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+              </svg>
+              <h3 class="text-lg font-semibold text-gray-900 mb-2">Goals Have Moved</h3>
+              <p class="text-sm text-gray-600 mb-4 max-w-md mx-auto">
+                Savings goals are now managed in the unified Goals &amp; Life Events module, where you can track all your financial goals in one place.
+              </p>
+              <router-link
+                to="/goals?module=savings"
+                class="inline-flex items-center px-4 py-2 bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                Go to Goals &amp; Life Events
+                <svg class="ml-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </router-link>
+            </div>
 
             <!-- Recommendations Tab -->
             <Recommendations v-else-if="activeTab === 'recommendations'" />
           </div>
+        </div>
         </div>
       </template>
       </div>
@@ -101,10 +134,11 @@ import { mapState, mapActions } from 'vuex';
 import AppLayout from '@/layouts/AppLayout.vue';
 import CurrentSituation from '@/components/Savings/CurrentSituation.vue';
 import EmergencyFund from '@/components/Savings/EmergencyFund.vue';
-import SavingsGoals from '@/components/Savings/SavingsGoals.vue';
 import Recommendations from '@/components/Savings/Recommendations.vue';
 import AccountDetails from '@/components/Savings/AccountDetails.vue';
 import SavingsAccountDetailInline from '@/views/Savings/SavingsAccountDetailInline.vue';
+import ModuleLifeEvents from '@/components/Shared/ModuleLifeEvents.vue';
+import ModuleGoalStrategies from '@/components/Shared/ModuleGoalStrategies.vue';
 
 export default {
   name: 'SavingsDashboard',
@@ -113,10 +147,11 @@ export default {
     AppLayout,
     CurrentSituation,
     EmergencyFund,
-    SavingsGoals,
     Recommendations,
     AccountDetails,
     SavingsAccountDetailInline,
+    ModuleLifeEvents,
+    ModuleGoalStrategies,
   },
 
   data() {
@@ -133,7 +168,7 @@ export default {
   },
 
   computed: {
-    ...mapState('savings', ['loading', 'error']),
+    ...mapState('savings', ['loading', 'error', 'lifeEvents', 'lifeEventImpact', 'goalStrategies', 'goalsSummary']),
 
     // Check if this component is embedded in another page (like Net Worth)
     isEmbedded() {

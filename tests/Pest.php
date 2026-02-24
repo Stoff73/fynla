@@ -19,7 +19,7 @@ uses(
 uses(
     Tests\TestCase::class,
     Illuminate\Foundation\Testing\RefreshDatabase::class,
-)->in('Unit/Services');
+)->in('Unit/Services', 'Unit/Observers');
 
 // Agent tests that need database access (RefreshDatabase)
 uses(
@@ -43,7 +43,7 @@ beforeEach(function () {
             \App\Models\TaxConfiguration::factory()->create(['is_active' => true]);
         }
     }
-})->in('Feature', 'Unit/Services', 'Unit/Agents/ProtectionAgentTest.php', 'Unit/Agents/SavingsAgentTest.php', 'Unit/Agents/GoalsAgentTest.php', 'Integration');
+})->in('Feature', 'Unit/Services', 'Unit/Observers', 'Unit/Agents/ProtectionAgentTest.php', 'Unit/Agents/SavingsAgentTest.php', 'Unit/Agents/GoalsAgentTest.php', 'Integration');
 
 /*
 |--------------------------------------------------------------------------

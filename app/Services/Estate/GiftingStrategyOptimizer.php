@@ -5,13 +5,15 @@ declare(strict_types=1);
 namespace App\Services\Estate;
 
 use App\Models\User;
+use App\Services\Goals\LifeEventService;
 use App\Services\TaxConfigService;
 
 class GiftingStrategyOptimizer
 {
     public function __construct(
         private readonly FutureValueCalculator $fvCalculator,
-        private readonly TaxConfigService $taxConfig
+        private readonly TaxConfigService $taxConfig,
+        private readonly LifeEventService $lifeEventService
     ) {}
 
     /**
@@ -56,6 +58,19 @@ class GiftingStrategyOptimizer
         $strategies[] = $annualExemptionStrategy;
         $remainingIHTLiability -= $annualExemptionStrategy['iht_saved'];
         $remainingEstateValue -= $annualExemptionStrategy['total_gifted'];
+
+        // 1b. Planned Gift Life Events (gift_given events reduce available capacity)
+        $plannedGiftsStrategy = $this->calculatePlannedGiftEventsImpact(
+            $user,
+            $yearsUntilDeath,
+            $ihtRate
+        );
+
+        if ($plannedGiftsStrategy['total_gifted'] > 0) {
+            $strategies[] = $plannedGiftsStrategy;
+            $remainingIHTLiability -= $plannedGiftsStrategy['iht_saved'];
+            $remainingEstateValue -= $plannedGiftsStrategy['total_gifted'];
+        }
 
         // 2. Gifting from Income Strategy (if user has income and expenditure data)
         if ($user->annual_employment_income || $user->annual_self_employment_income) {
@@ -300,6 +315,74 @@ class GiftingStrategyOptimizer
                 'future_iht_saved' => round($targetGiftAmount * $ihtRate, 2),
                 'net_saving' => round($netIHTSaved, 2),
             ],
+        ];
+    }
+
+    /**
+     * Calculate IHT impact of planned gift_given life events.
+     *
+     * Finds future gift_given and gift_received events and factors them into
+     * the gifting strategy. Gift events that fall within the 7-year window
+     * are PETs; those beyond 7 years are fully exempt.
+     */
+    private function calculatePlannedGiftEventsImpact(
+        User $user,
+        int $yearsUntilDeath,
+        float $ihtRate
+    ): array {
+        $events = $this->lifeEventService->getActiveEventsForProjection($user->id);
+
+        $certaintyWeights = [
+            'confirmed' => 1.0,
+            'likely' => 0.75,
+            'possible' => 0.5,
+            'speculative' => 0.25,
+        ];
+
+        $totalGifted = 0;
+        $giftEvents = [];
+
+        foreach ($events as $event) {
+            if ($event->event_type !== 'gift_given') {
+                continue;
+            }
+
+            $yearsUntilEvent = max(0, (float) $event->years_until_event);
+            $weight = $certaintyWeights[$event->certainty] ?? 0.5;
+            $weightedAmount = (float) $event->amount * $weight;
+            $isExemptAfter7Years = $yearsUntilEvent + 7 <= $yearsUntilDeath;
+
+            $totalGifted += $weightedAmount;
+            $giftEvents[] = [
+                'event_name' => $event->event_name,
+                'amount' => (float) $event->amount,
+                'weighted_amount' => round($weightedAmount, 2),
+                'certainty' => $event->certainty,
+                'expected_date' => $event->expected_date->toDateString(),
+                'years_until_event' => round($yearsUntilEvent, 1),
+                'will_be_exempt' => $isExemptAfter7Years,
+            ];
+        }
+
+        // IHT saved: gifts that will be fully exempt (made 7+ years before death)
+        $exemptTotal = collect($giftEvents)
+            ->where('will_be_exempt', true)
+            ->sum('weighted_amount');
+
+        $ihtSaved = $exemptTotal * $ihtRate;
+
+        return [
+            'strategy_name' => 'Planned Gift Life Events',
+            'priority' => 1,
+            'description' => 'Planned gifts from your life events that will reduce your taxable estate',
+            'total_gifted' => round($totalGifted, 2),
+            'iht_saved' => round($ihtSaved, 2),
+            'gift_events' => $giftEvents,
+            'risk_level' => 'Low',
+            'exempt_immediately' => false,
+            'notes' => count($giftEvents) > 0
+                ? count($giftEvents).' planned gift'.($giftEvents !== 1 ? 's' : '').' totalling £'.number_format($totalGifted, 0).' (certainty-weighted)'
+                : 'No planned gift events found',
         ];
     }
 }

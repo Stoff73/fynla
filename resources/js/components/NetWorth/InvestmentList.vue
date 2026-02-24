@@ -52,6 +52,20 @@
         </div>
       </div>
 
+      <!-- Life Events & Goal Strategies -->
+      <div class="space-y-3 mb-5">
+        <ModuleLifeEvents
+          module="investment"
+          :events="lifeEvents"
+          :impact-summary="lifeEventImpact"
+        />
+        <ModuleGoalStrategies
+          module="investment"
+          :strategies="goalStrategies"
+          :summary="goalsSummary"
+        />
+      </div>
+
       <div v-if="loading" class="loading-state">
         <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         <p class="mt-3">Loading investments...</p>
@@ -206,18 +220,6 @@
             </div>
           </div>
 
-          <div v-else-if="activePortfolioTab === 'goals'" class="coming-soon-wrapper">
-            <div class="coming-soon-banner">
-              <p class="text-2xl font-bold text-blue-700">Coming Soon</p>
-            </div>
-            <div class="opacity-50">
-              <Goals />
-              <div class="mt-8">
-                <GoalProjection />
-              </div>
-            </div>
-          </div>
-
           <TaxEfficiencyPanel v-else-if="activePortfolioTab === 'taxefficiency'" />
 
           <FeeBreakdown v-else-if="activePortfolioTab === 'fees'" />
@@ -266,13 +268,13 @@ import DocumentUploadModal from '@/components/Shared/DocumentUploadModal.vue';
 import Holdings from '@/components/Investment/Holdings.vue';
 import Performance from '@/components/Investment/Performance.vue';
 import PortfolioOptimization from '@/components/Investment/PortfolioOptimization.vue';
-import Goals from '@/components/Investment/Goals.vue';
-import GoalProjection from '@/components/Investment/GoalProjection.vue';
 import AssetLocationOptimizer from '@/components/Investment/AssetLocationOptimizer.vue';
 import WrapperOptimizer from '@/components/Investment/WrapperOptimizer.vue';
 import FeeBreakdown from '@/components/Investment/FeeBreakdown.vue';
 import TaxEfficiencyPanel from '@/components/Investment/TaxEfficiencyPanel.vue';
 import PortfolioStrategyPanel from '@/views/Investment/PortfolioStrategyPanel.vue';
+import ModuleLifeEvents from '@/components/Shared/ModuleLifeEvents.vue';
+import ModuleGoalStrategies from '@/components/Shared/ModuleGoalStrategies.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
@@ -287,13 +289,13 @@ export default {
     Holdings,
     Performance,
     PortfolioOptimization,
-    Goals,
-    GoalProjection,
     AssetLocationOptimizer,
     WrapperOptimizer,
     FeeBreakdown,
     TaxEfficiencyPanel,
     PortfolioStrategyPanel,
+    ModuleLifeEvents,
+    ModuleGoalStrategies,
   },
 
   data() {
@@ -311,7 +313,6 @@ export default {
         { id: 'holdings', label: 'Holdings' },
         { id: 'performance', label: 'Performance' },
         { id: 'optimization', label: 'Optimisation' },
-        { id: 'goals', label: 'Goals' },
         { id: 'taxefficiency', label: 'Tax Efficiency' },
         { id: 'fees', label: 'Fees' },
         { id: 'strategy', label: 'Strategy' },
@@ -320,7 +321,7 @@ export default {
   },
 
   computed: {
-    ...mapState('investment', ['loading', 'error', 'recommendations']),
+    ...mapState('investment', ['loading', 'error', 'recommendations', 'lifeEvents', 'lifeEventImpact', 'goalStrategies', 'goalsSummary']),
     ...mapGetters('investment', [
       'accounts',
       'totalPortfolioValue',

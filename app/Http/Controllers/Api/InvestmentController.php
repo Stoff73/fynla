@@ -24,6 +24,8 @@ use App\Models\Investment\Holding;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\Investment\InvestmentGoal;
 use App\Models\Investment\RiskProfile;
+use App\Services\Goals\GoalStrategyService;
+use App\Services\Goals\LifeEventIntegrationService;
 use App\Services\Investment\DiversificationAnalyzer;
 use App\Services\Investment\InvestmentProjectionService;
 use App\Services\Investment\ReturnCalculationService;
@@ -52,7 +54,9 @@ class InvestmentController extends Controller
         private readonly InvestmentAgent $investmentAgent,
         private readonly InvestmentProjectionService $projectionService,
         private readonly DiversificationAnalyzer $diversificationAnalyzer,
-        private readonly ReturnCalculationService $returnCalculationService
+        private readonly ReturnCalculationService $returnCalculationService,
+        private readonly LifeEventIntegrationService $lifeEventIntegration,
+        private readonly GoalStrategyService $goalStrategy
     ) {}
 
     /**
@@ -98,12 +102,30 @@ class InvestmentController extends Controller
         $goals = InvestmentGoal::where('user_id', $user->id)->get();
         $riskProfile = RiskProfile::where('user_id', $user->id)->first();
 
+        // Get life events and goal strategies relevant to investments
+        try {
+            $lifeEvents = $this->lifeEventIntegration->getEventsForModule($user->id, 'investment');
+            $lifeEventImpact = $this->lifeEventIntegration->getModuleImpactSummary($user->id, 'investment');
+            $goalStrategies = $this->goalStrategy->getStrategiesForModule($user->id, 'investment');
+            $goalsSummary = $this->goalStrategy->getModuleGoalsSummary($user->id, 'investment');
+        } catch (\Throwable $e) {
+            report($e);
+            $lifeEvents = [];
+            $lifeEventImpact = null;
+            $goalStrategies = [];
+            $goalsSummary = null;
+        }
+
         return response()->json([
             'success' => true,
             'data' => [
                 'accounts' => $accountsData,
                 'goals' => $goals,
                 'risk_profile' => $riskProfile,
+                'life_events' => $lifeEvents,
+                'life_event_impact' => $lifeEventImpact,
+                'goal_strategies' => $goalStrategies,
+                'goals_summary' => $goalsSummary,
             ],
         ]);
     }

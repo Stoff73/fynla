@@ -20,6 +20,7 @@ use App\Models\Estate\Trust;
 use App\Models\Investment\InvestmentAccount;
 use App\Services\Estate\CashFlowProjector;
 use App\Services\Estate\NetWorthAnalyzer;
+use App\Services\Goals\LifeEventIntegrationService;
 use App\Services\TaxConfigService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -33,7 +34,8 @@ class EstateController extends Controller
         private readonly NetWorthAnalyzer $netWorthAnalyzer,
         private readonly CashFlowProjector $cashFlowProjector,
         private readonly \App\Services\Estate\ComprehensiveEstatePlanService $comprehensiveEstatePlan,
-        private readonly TaxConfigService $taxConfig
+        private readonly TaxConfigService $taxConfig,
+        private readonly LifeEventIntegrationService $lifeEventIntegration
     ) {}
 
     /**
@@ -88,6 +90,8 @@ class EstateController extends Controller
                 'gifts' => $gifts,
                 'trusts' => $trusts,
                 'iht_profile' => $ihtProfile,
+                'life_events' => rescue(fn () => $this->lifeEventIntegration->getEventsForModule($user->id, 'estate'), [], report: true),
+                'life_event_impact' => rescue(fn () => $this->lifeEventIntegration->getModuleImpactSummary($user->id, 'estate'), null, report: true),
             ],
         ]);
     }

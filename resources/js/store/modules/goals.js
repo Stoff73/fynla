@@ -36,6 +36,9 @@ const state = {
     projectionLoading: false,
     chartView: 'net_worth', // 'net_worth', 'cash_flow', 'asset_breakdown'
     viewMode: 'individual', // 'individual', 'household'
+
+    // Dependencies
+    goalDependencies: {}, // { goalId: { depends_on: [], depended_on_by: [] } }
 };
 
 const getters = {
@@ -250,6 +253,20 @@ const mutations = {
 
     SET_VIEW_MODE(state, mode) {
         state.viewMode = mode;
+    },
+
+    // Dependency mutations
+    SET_GOAL_DEPENDENCIES(state, { goalId, dependencies }) {
+        state.goalDependencies = {
+            ...state.goalDependencies,
+            [goalId]: dependencies,
+        };
+    },
+
+    CLEAR_GOAL_DEPENDENCIES(state, goalId) {
+        const deps = { ...state.goalDependencies };
+        delete deps[goalId];
+        state.goalDependencies = deps;
     },
 };
 
@@ -683,6 +700,62 @@ const actions = {
         await dispatch('fetchProjection');
         // Also refresh life events for household view
         await dispatch('fetchLifeEvents', { household: mode === 'household' });
+    },
+
+    // =========================================
+    // Dependency Actions
+    // =========================================
+
+    /**
+     * Fetch dependencies for a goal.
+     */
+    async fetchDependencies({ commit }, goalId) {
+        try {
+            const response = await goalsService.getDependencies(goalId);
+            if (response.success) {
+                commit('SET_GOAL_DEPENDENCIES', { goalId, dependencies: response.data });
+            }
+            return response;
+        } catch (error) {
+            console.error('Failed to fetch dependencies:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Add a dependency to a goal.
+     */
+    async addDependency({ dispatch }, { goalId, dependsOnGoalId, dependencyType, notes }) {
+        try {
+            const response = await goalsService.addDependency(goalId, {
+                depends_on_goal_id: dependsOnGoalId,
+                dependency_type: dependencyType || 'prerequisite',
+                notes: notes || null,
+            });
+            if (response.success) {
+                await dispatch('fetchDependencies', goalId);
+            }
+            return response;
+        } catch (error) {
+            console.error('Failed to add dependency:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Remove a dependency from a goal.
+     */
+    async removeDependency({ dispatch }, { goalId, dependsOnGoalId }) {
+        try {
+            const response = await goalsService.removeDependency(goalId, dependsOnGoalId);
+            if (response.success) {
+                await dispatch('fetchDependencies', goalId);
+            }
+            return response;
+        } catch (error) {
+            console.error('Failed to remove dependency:', error);
+            throw error;
+        }
     },
 };
 
