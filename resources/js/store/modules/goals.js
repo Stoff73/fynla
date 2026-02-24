@@ -39,6 +39,10 @@ const state = {
 
     // Dependencies
     goalDependencies: {}, // { goalId: { depends_on: [], depended_on_by: [] } }
+
+    // Life Event Allocations
+    eventAllocations: {}, // { [eventId]: [...allocations] }
+    allocationsLoading: false,
 };
 
 const getters = {
@@ -131,6 +135,17 @@ const getters = {
     lifeEventsForProjection: (state) => {
         return (state.lifeEvents || []).filter(e => e.show_in_projection);
     },
+
+    // Allocation getters
+    allocationsForEvent: (state) => (eventId) => {
+        return state.eventAllocations[eventId] || [];
+    },
+    enabledAllocationsTotal: (state) => (eventId) => {
+        return (state.eventAllocations[eventId] || [])
+            .filter(a => a.enabled)
+            .reduce((sum, a) => sum + parseFloat(a.amount || 0), 0);
+    },
+    allocationsLoading: (state) => state.allocationsLoading,
 
     // Projection getters
     currentChartView: (state) => state.chartView,
@@ -267,6 +282,25 @@ const mutations = {
         const deps = { ...state.goalDependencies };
         delete deps[goalId];
         state.goalDependencies = deps;
+    },
+
+    // Allocation mutations
+    SET_EVENT_ALLOCATIONS(state, { eventId, allocations }) {
+        state.eventAllocations = { ...state.eventAllocations, [eventId]: allocations };
+    },
+
+    UPDATE_EVENT_ALLOCATION(state, { eventId, allocation }) {
+        const rows = state.eventAllocations[eventId] || [];
+        const idx = rows.findIndex(a => a.id === allocation.id);
+        if (idx !== -1) {
+            const updated = [...rows];
+            updated.splice(idx, 1, allocation);
+            state.eventAllocations = { ...state.eventAllocations, [eventId]: updated };
+        }
+    },
+
+    SET_ALLOCATIONS_LOADING(state, loading) {
+        state.allocationsLoading = loading;
     },
 };
 
@@ -755,6 +789,64 @@ const actions = {
         } catch (error) {
             console.error('Failed to remove dependency:', error);
             throw error;
+        }
+    },
+
+    // =========================================
+    // Allocation Actions
+    // =========================================
+
+    /**
+     * Fetch allocations for a life event.
+     */
+    async fetchAllocations({ commit }, eventId) {
+        commit('SET_ALLOCATIONS_LOADING', true);
+        try {
+            const response = await goalsService.getAllocations(eventId);
+            if (response.success) {
+                commit('SET_EVENT_ALLOCATIONS', { eventId, allocations: response.data.allocations });
+            }
+            return response;
+        } catch (error) {
+            console.error('Failed to fetch allocations:', error);
+            throw error;
+        } finally {
+            commit('SET_ALLOCATIONS_LOADING', false);
+        }
+    },
+
+    /**
+     * Update a single allocation (amount and/or enabled status).
+     */
+    async updateAllocation({ commit }, { eventId, allocationId, amount, enabled }) {
+        try {
+            const response = await goalsService.updateAllocation(eventId, allocationId, { amount, enabled });
+            if (response.success) {
+                commit('UPDATE_EVENT_ALLOCATION', { eventId, allocation: response.data });
+            }
+            return response;
+        } catch (error) {
+            console.error('Failed to update allocation:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Regenerate allocation suggestions for a life event.
+     */
+    async regenerateAllocations({ commit }, eventId) {
+        commit('SET_ALLOCATIONS_LOADING', true);
+        try {
+            const response = await goalsService.regenerateAllocations(eventId);
+            if (response.success) {
+                commit('SET_EVENT_ALLOCATIONS', { eventId, allocations: response.data.allocations });
+            }
+            return response;
+        } catch (error) {
+            console.error('Failed to regenerate allocations:', error);
+            throw error;
+        } finally {
+            commit('SET_ALLOCATIONS_LOADING', false);
         }
     },
 };
