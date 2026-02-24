@@ -37,14 +37,14 @@ use App\Http\Controllers\Api\InvestmentProjectionController;
 use App\Http\Controllers\Api\LetterToSpouseController;
 use App\Http\Controllers\Api\MFAController;
 use App\Http\Controllers\Api\MortgageController;
-use App\Http\Controllers\Api\PasswordResetController;
-use App\Http\Controllers\Api\PostcodeLookupController;
 use App\Http\Controllers\Api\NetWorthController;
 use App\Http\Controllers\Api\OccupationController;
 use App\Http\Controllers\Api\OnboardingController;
+use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\PersonalAccountsController;
 use App\Http\Controllers\Api\Plans\InvestmentSavingsPlanController;
 use App\Http\Controllers\Api\PortfolioOptimizationController;
+use App\Http\Controllers\Api\PostcodeLookupController;
 use App\Http\Controllers\Api\PreviewController;
 use App\Http\Controllers\Api\ProfileCompletenessController;
 use App\Http\Controllers\Api\PropertyController;
@@ -52,10 +52,10 @@ use App\Http\Controllers\Api\ProtectionController;
 use App\Http\Controllers\Api\RecommendationsController;
 use App\Http\Controllers\Api\Retirement\DCPensionHoldingsController;
 use App\Http\Controllers\Api\RetirementController;
-use App\Http\Controllers\Api\Settings\AssumptionsController;
 use App\Http\Controllers\Api\RiskPreferenceController;
 use App\Http\Controllers\Api\SavingsController;
 use App\Http\Controllers\Api\SessionController;
+use App\Http\Controllers\Api\Settings\AssumptionsController;
 use App\Http\Controllers\Api\SpousePermissionController;
 use App\Http\Controllers\Api\UKTaxesController;
 use App\Http\Controllers\Api\UserProfileController;
@@ -936,9 +936,13 @@ Route::middleware('auth:sanctum')->prefix('tax-info')->group(function () {
 
 // Payment routes
 Route::middleware('auth:sanctum')->prefix('payment')->group(function () {
-    Route::post('/create-order', [\App\Http\Controllers\Api\PaymentController::class, 'createOrder']);
-    Route::get('/order/{id}/status', [\App\Http\Controllers\Api\PaymentController::class, 'orderStatus']);
+    Route::post('/subscribe', [\App\Http\Controllers\Api\PaymentController::class, 'subscribe'])->middleware('throttle:3,1');
+    Route::post('/create-order', [\App\Http\Controllers\Api\PaymentController::class, 'createOrder'])->middleware('throttle:3,1');
+    Route::get('/order-status', [\App\Http\Controllers\Api\PaymentController::class, 'orderStatus']);
     Route::get('/trial-status', [\App\Http\Controllers\Api\PaymentController::class, 'trialStatus']);
+    Route::get('/billing-history', [\App\Http\Controllers\Api\PaymentController::class, 'billingHistory']);
+    Route::post('/cancel-subscription', [\App\Http\Controllers\Api\PaymentController::class, 'cancelSubscription'])->middleware('throttle:1,1');
+    Route::post('/delete-all-data', [\App\Http\Controllers\Api\PaymentController::class, 'deleteAllData'])->middleware('throttle:1,5');
 });
 
 // Revolut Webhook (public, signature-verified, rate-limited)

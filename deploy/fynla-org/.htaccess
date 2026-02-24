@@ -59,8 +59,12 @@
     Header set Referrer-Policy "strict-origin-when-cross-origin"
     Header unset X-Powered-By
     Header set Strict-Transport-Security "max-age=31536000; includeSubDomains"
-    Header set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self' data:; frame-ancestors 'none';"
-    Header set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=(), bluetooth=()"
+    # CSP and Permissions-Policy are set dynamically by SecurityHeaders middleware
+    # (includes conditional Revolut domains when PAYMENT_ENABLED=true).
+    # Use "setifempty" so these only apply to static files (served by Apache without PHP).
+    # For PHP responses, the middleware sets the header first, and setifempty leaves it alone.
+    Header setifempty Content-Security-Policy "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; frame-ancestors 'none';"
+    Header setifempty Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=(), bluetooth=()"
 </IfModule>
 
 # =============================================================================

@@ -41,8 +41,10 @@ return [
 
     'revolut' => [
         'api_key' => env('REVOLUT_API_KEY', ''),
+        'public_key' => env('REVOLUT_PUBLIC_KEY', ''),
         'webhook_secret' => env('REVOLUT_WEBHOOK_SECRET', ''),
         'sandbox' => env('REVOLUT_SANDBOX', true),
+        'checkout_mode' => env('REVOLUT_CHECKOUT_MODE', 'popup'),
     ],
 
 ];

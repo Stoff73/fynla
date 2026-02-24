@@ -64,6 +64,7 @@
             <PersonalInformation v-show="activeTab === 'personal'" />
             <HealthInformation v-show="activeTab === 'health'" />
             <FamilyMembers v-show="activeTab === 'family'" />
+            <SubscriptionManagement v-show="activeTab === 'subscription'" />
           </div>
         </div>
       </div>
@@ -78,6 +79,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import PersonalInformation from '@/components/UserProfile/PersonalInformation.vue';
 import HealthInformation from '@/components/UserProfile/HealthInformation.vue';
 import FamilyMembers from '@/components/UserProfile/FamilyMembers.vue';
+import SubscriptionManagement from '@/components/UserProfile/SubscriptionManagement.vue';
 
 export default {
   name: 'UserProfile',
@@ -87,6 +89,7 @@ export default {
     PersonalInformation,
     HealthInformation,
     FamilyMembers,
+    SubscriptionManagement,
   },
 
   setup() {
@@ -101,6 +104,7 @@ export default {
       { id: 'personal', label: 'Personal Info' },
       { id: 'health', label: 'Health' },
       { id: 'family', label: 'Family' },
+      { id: 'subscription', label: 'Subscription' },
     ];
 
     const tabs = computed(() => allTabs);

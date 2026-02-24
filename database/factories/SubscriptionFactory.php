@@ -17,13 +17,13 @@ class SubscriptionFactory extends Factory
 
     public function definition(): array
     {
-        $plan = $this->faker->randomElement(['student', 'standard', 'pro']);
-        $billingCycle = $this->faker->randomElement(['monthly', 'yearly']);
+        $plan = fake()->randomElement(['student', 'standard', 'pro']);
+        $billingCycle = fake()->randomElement(['monthly', 'yearly']);
 
         $amount = match ($plan) {
-            'student' => $billingCycle === 'monthly' ? 499 : 4990,
-            'standard' => $billingCycle === 'monthly' ? 999 : 9990,
-            'pro' => $billingCycle === 'monthly' ? 1999 : 19990,
+            'student' => $billingCycle === 'monthly' ? 399 : 3000,
+            'standard' => $billingCycle === 'monthly' ? 1099 : 10000,
+            'pro' => $billingCycle === 'monthly' ? 1999 : 20000,
         };
 
         return [
@@ -35,7 +35,7 @@ class SubscriptionFactory extends Factory
             'trial_ends_at' => null,
             'current_period_start' => now(),
             'current_period_end' => $billingCycle === 'monthly' ? now()->addMonth() : now()->addYear(),
-            'revolut_order_id' => 'rev_' . $this->faker->uuid(),
+            'revolut_order_id' => 'rev_'.fake()->uuid(),
             'amount' => $amount,
         ];
     }

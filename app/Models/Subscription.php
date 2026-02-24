@@ -6,14 +6,19 @@ namespace App\Models;
 
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Model;
 
 class Subscription extends Model
 {
     use HasFactory, SoftDeletes;
+
+    protected $hidden = [
+        'revolut_order_id',
+        'revolut_subscription_id',
+    ];
 
     protected $fillable = [
         'user_id',
@@ -26,6 +31,10 @@ class Subscription extends Model
         'current_period_start',
         'current_period_end',
         'revolut_order_id',
+        'revolut_subscription_id',
+        'cancelled_at',
+        'cancellation_reason',
+        'data_retention_starts_at',
     ];
 
     protected $casts = [
@@ -33,7 +42,9 @@ class Subscription extends Model
         'trial_ends_at' => 'datetime',
         'current_period_start' => 'datetime',
         'current_period_end' => 'datetime',
-        'amount' => 'float',
+        'cancelled_at' => 'datetime',
+        'data_retention_starts_at' => 'datetime',
+        'amount' => 'integer',
     ];
 
     public function user(): BelongsTo
@@ -68,7 +79,40 @@ class Subscription extends Model
 
     public function isActive(): bool
     {
-        return $this->status === 'active';
+        if ($this->status === 'active') {
+            return true;
+        }
+
+        // Cancelled and past_due subscriptions retain access until the current period ends
+        if (in_array($this->status, ['cancelled', 'past_due']) && $this->current_period_end && $this->current_period_end->isFuture()) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if this subscription is in the 30-day data retention grace period.
+     */
+    public function isInGracePeriod(): bool
+    {
+        if (! $this->data_retention_starts_at) {
+            return false;
+        }
+
+        return $this->data_retention_starts_at->copy()->addDays(30)->isFuture();
+    }
+
+    /**
+     * Get the date when the grace period ends and data will be deleted.
+     */
+    public function gracePeriodEndsAt(): ?Carbon
+    {
+        if (! $this->data_retention_starts_at) {
+            return null;
+        }
+
+        return $this->data_retention_starts_at->copy()->addDays(30);
     }
 
     public function daysLeftInTrial(): int

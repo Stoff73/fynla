@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Payment extends Model
 {
@@ -24,11 +24,12 @@ class Payment extends Model
         'amount',
         'currency',
         'status',
+        'description',
         'revolut_payment_data',
     ];
 
     protected $casts = [
-        'amount' => 'float',
+        'amount' => 'integer',
         'revolut_payment_data' => 'array',
     ];
 

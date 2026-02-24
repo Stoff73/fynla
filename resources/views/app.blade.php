@@ -13,6 +13,10 @@
 
     <!-- Vite CSS -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+
+    @if(config('app.payment_enabled', false))
+        <script src="{{ config('services.revolut.sandbox') ? 'https://sandbox-merchant.revolut.com/embed.js' : 'https://merchant.revolut.com/embed.js' }}" defer crossorigin="anonymous"></script>
+    @endif
 </head>
 <body class="antialiased bg-gray-50" style="background-color: #F9FAFB;">
     <div id="app"></div>
