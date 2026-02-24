@@ -5,6 +5,9 @@
     <!-- Trial Countdown Banner (non-preview users only) -->
     <TrialCountdownBanner v-if="isAuthenticated && !isPreviewMode" />
 
+    <!-- Data Retention Overlay (non-dismissable modal for grace period users) -->
+    <DataRetentionOverlay v-if="isAuthenticated && !isPreviewMode" />
+
     <!-- Preview Mode Banner -->
     <PreviewBanner v-if="isPreviewMode" />
 
@@ -28,6 +31,7 @@ import Navbar from '@/components/Navbar.vue';
 import Footer from '@/components/Footer.vue';
 import PreviewBanner from '@/components/Preview/PreviewBanner.vue';
 import TrialCountdownBanner from '@/components/Trial/TrialCountdownBanner.vue';
+import DataRetentionOverlay from '@/components/Payment/DataRetentionOverlay.vue';
 import InfoGuideButton from '@/components/Shared/InfoGuideButton.vue';
 import InfoGuidePanel from '@/components/Shared/InfoGuidePanel.vue';
 
@@ -39,6 +43,7 @@ export default {
     Footer,
     PreviewBanner,
     TrialCountdownBanner,
+    DataRetentionOverlay,
     InfoGuideButton,
     InfoGuidePanel,
   },

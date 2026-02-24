@@ -9,13 +9,14 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
     /**
      * The attributes that are guarded against mass assignment.
@@ -191,6 +192,16 @@ class User extends Authenticatable
         $subscription = $this->relationLoaded('subscription') ? $this->subscription : $this->subscription()->first();
 
         return $subscription ? $subscription->daysLeftInTrial() : 0;
+    }
+
+    /**
+     * Check if user is in the 30-day data retention grace period.
+     */
+    public function isInGracePeriod(): bool
+    {
+        $subscription = $this->relationLoaded('subscription') ? $this->subscription : $this->subscription()->first();
+
+        return $subscription && $subscription->isInGracePeriod();
     }
 
     /**

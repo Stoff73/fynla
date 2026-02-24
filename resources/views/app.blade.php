@@ -13,6 +13,7 @@
 
     <!-- Vite CSS -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+
 </head>
 <body class="antialiased bg-gray-50" style="background-color: #F9FAFB;">
     <div id="app"></div>

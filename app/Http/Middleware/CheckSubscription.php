@@ -10,6 +10,29 @@ use Symfony\Component\HttpFoundation\Response;
 
 class CheckSubscription
 {
+    /**
+     * Routes that expired users must access regardless of subscription status (all HTTP methods).
+     */
+    private const ALWAYS_EXCLUDED_PATHS = [
+        'api/payment/',       // Subscribe, check status, cancel — required for resubscription
+        'api/auth/',          // Login, logout, register, verify, password reset
+        'api/webhooks/',      // Revolut webhooks (signature-verified, no user context)
+        'api/preview/',       // Preview mode switching
+        'api/onboarding/',    // Onboarding steps
+        'api/bug-report',     // Users should always be able to report issues
+        'api/gdpr/',          // GDPR: Users retain data portability/erasure rights regardless of subscription
+        'api/admin/',         // Admin users are separately gated by permission middleware
+    ];
+
+    /**
+     * Routes that expired users can read but not write to.
+     * Needed so users can view their profile (including subscription management tab).
+     */
+    private const READ_ONLY_EXCLUDED_PATHS = [
+        'api/user/',
+        'api/settings/',
+    ];
+
     public function handle(Request $request, Closure $next): Response
     {
         // Feature flag: when payments are disabled, let everyone through
@@ -28,14 +51,59 @@ class CheckSubscription
             return $next($request);
         }
 
+        // Eagerly load subscription to avoid multiple queries in the checks below
+        if (! $user->relationLoaded('subscription')) {
+            $user->load('subscription');
+        }
+
+        // Allow excluded paths (payment, auth, webhooks, etc.)
+        if ($this->isExcludedPath($request)) {
+            return $next($request);
+        }
+
         // User has active subscription or is trialing — allow through
         if ($user->hasActivePlan() || $user->onTrial()) {
             return $next($request);
         }
 
+        // User is in grace period — allow read-only access (Task 8 will enforce full overlay)
+        if ($user->isInGracePeriod()) {
+            if (in_array($request->method(), ['GET', 'HEAD', 'OPTIONS'])) {
+                return $next($request);
+            }
+
+            return response()->json([
+                'error' => 'grace_period',
+                'message' => 'Your subscription has expired. You have read-only access during the grace period.',
+            ], 403);
+        }
+
         return response()->json([
             'error' => 'subscription_required',
-            'message' => 'Your trial has expired. Please upgrade to continue.',
+            'message' => 'Your trial has expired. Please subscribe to continue.',
         ], 403);
+    }
+
+    private function isExcludedPath(Request $request): bool
+    {
+        $path = $request->path();
+
+        // Always-excluded: all HTTP methods allowed
+        foreach (self::ALWAYS_EXCLUDED_PATHS as $excluded) {
+            if (str_starts_with($path, $excluded)) {
+                return true;
+            }
+        }
+
+        // Read-only excluded: only safe methods (GET, HEAD, OPTIONS)
+        if (in_array($request->method(), ['GET', 'HEAD', 'OPTIONS'])) {
+            foreach (self::READ_ONLY_EXCLUDED_PATHS as $excluded) {
+                if (str_starts_with($path, $excluded)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 }

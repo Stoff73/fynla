@@ -89,6 +89,14 @@ export default {
     },
   },
 
+  watch: {
+    '$route.query.payment'(val) {
+      if (val === 'success') {
+        this.fetchTrialStatus();
+      }
+    },
+  },
+
   mounted() {
     this.fetchTrialStatus();
   },

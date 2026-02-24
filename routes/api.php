@@ -437,11 +437,6 @@ Route::middleware('auth:sanctum')->prefix('life-events')->group(function () {
     Route::put('/{id}', [\App\Http\Controllers\Api\LifeEventController::class, 'update']);
     Route::delete('/{id}', [\App\Http\Controllers\Api\LifeEventController::class, 'destroy']);
     Route::post('/{id}/complete', [\App\Http\Controllers\Api\LifeEventController::class, 'markCompleted']);
-
-    // Life Event Allocations
-    Route::get('/{id}/allocations', [\App\Http\Controllers\Api\LifeEventAllocationController::class, 'index']);
-    Route::post('/{id}/allocations/regenerate', [\App\Http\Controllers\Api\LifeEventAllocationController::class, 'regenerate']);
-    Route::put('/{id}/allocations/{allocationId}', [\App\Http\Controllers\Api\LifeEventAllocationController::class, 'update']);
 });
 
 // Investment module routes
@@ -941,9 +936,13 @@ Route::middleware('auth:sanctum')->prefix('tax-info')->group(function () {
 
 // Payment routes
 Route::middleware('auth:sanctum')->prefix('payment')->group(function () {
-    Route::post('/create-order', [\App\Http\Controllers\Api\PaymentController::class, 'createOrder']);
-    Route::get('/order/{id}/status', [\App\Http\Controllers\Api\PaymentController::class, 'orderStatus']);
+    Route::post('/subscribe', [\App\Http\Controllers\Api\PaymentController::class, 'subscribe'])->middleware('throttle:3,1');
+    Route::post('/create-order', [\App\Http\Controllers\Api\PaymentController::class, 'createOrder'])->middleware('throttle:3,1');
+    Route::get('/order-status', [\App\Http\Controllers\Api\PaymentController::class, 'orderStatus']);
     Route::get('/trial-status', [\App\Http\Controllers\Api\PaymentController::class, 'trialStatus']);
+    Route::get('/billing-history', [\App\Http\Controllers\Api\PaymentController::class, 'billingHistory']);
+    Route::post('/cancel-subscription', [\App\Http\Controllers\Api\PaymentController::class, 'cancelSubscription'])->middleware('throttle:1,1');
+    Route::post('/delete-all-data', [\App\Http\Controllers\Api\PaymentController::class, 'deleteAllData'])->middleware('throttle:1,5');
 });
 
 // Revolut Webhook (public, signature-verified, rate-limited)
