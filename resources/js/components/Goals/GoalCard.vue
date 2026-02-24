@@ -118,6 +118,7 @@
 
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { GOAL_TYPE_ICONS } from '@/constants/goalIcons';
 
 export default {
   name: 'GoalCard',
@@ -248,20 +249,7 @@ export default {
     },
 
     goalTypeIcon() {
-      const icons = {
-        emergency_fund: '🛡️',
-        property_purchase: '🏠',
-        home_deposit: '🔑',
-        education: '🎓',
-        retirement: '☀️',
-        wealth_accumulation: '📈',
-        wedding: '💍',
-        holiday: '✈️',
-        car_purchase: '🚗',
-        debt_repayment: '💳',
-        custom: '⭐',
-      };
-      return icons[this.goal.goal_type] || '🎯';
+      return GOAL_TYPE_ICONS[this.goal.goal_type] || '🎯';
     },
   },
 };

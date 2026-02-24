@@ -8,7 +8,6 @@ use App\Models\LifeEvent;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Cache;
 
 /**
  * Life Event Service
@@ -18,8 +17,6 @@ use Illuminate\Support\Facades\Cache;
  */
 class LifeEventService
 {
-    private const CACHE_TTL = 3600; // 1 hour
-
     /**
      * Get all events for a user, optionally including household (spouse) events.
      */
@@ -323,8 +320,6 @@ class LifeEventService
 
         $event = LifeEvent::create($data);
 
-        $this->clearCache($userId);
-
         return $event;
     }
 
@@ -342,8 +337,6 @@ class LifeEventService
 
         $event->update($data);
 
-        $this->clearCache($event->user_id);
-
         return $event->fresh();
     }
 
@@ -352,9 +345,7 @@ class LifeEventService
      */
     public function deleteEvent(LifeEvent $event): void
     {
-        $userId = $event->user_id;
         $event->delete();
-        $this->clearCache($userId);
     }
 
     /**
@@ -367,17 +358,6 @@ class LifeEventService
             'occurred_at' => $occurredAt ?? Carbon::now(),
         ]);
 
-        $this->clearCache($event->user_id);
-
         return $event->fresh();
-    }
-
-    /**
-     * Clear cached data for a user.
-     */
-    public function clearCache(int $userId): void
-    {
-        Cache::forget("life_events_{$userId}");
-        Cache::forget("life_events_projection_{$userId}");
     }
 }

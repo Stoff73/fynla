@@ -145,6 +145,7 @@
 <script>
 import { mapState, mapGetters, mapActions } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { getGoalIcon } from '@/constants/goalIcons';
 
 export default {
   name: 'GoalsOverviewCard',
@@ -215,22 +216,7 @@ export default {
       this.$router.push({ path: '/goals', query: { action: 'create' } });
     },
 
-    getGoalIcon(goalType) {
-      const icons = {
-        emergency_fund: '🛡️',
-        property_purchase: '🏠',
-        home_deposit: '🔑',
-        education: '🎓',
-        retirement: '☀️',
-        wealth_accumulation: '📈',
-        wedding: '💍',
-        holiday: '✈️',
-        car_purchase: '🚗',
-        debt_repayment: '💳',
-        custom: '⭐',
-      };
-      return icons[goalType] || '🎯';
-    },
+    getGoalIcon,
 
     formatTimeRemaining(days) {
       if (days === undefined || days === null) return '';

@@ -16,6 +16,8 @@ use App\Services\Goals\GoalRiskService;
  */
 class GoalsAgent extends BaseAgent
 {
+    private const SCENARIO_LUMP_SUM = 1000;
+
     public function __construct(
         private readonly GoalAssignmentService $assignmentService,
         private readonly GoalAffordabilityService $affordabilityService,
@@ -30,7 +32,9 @@ class GoalsAgent extends BaseAgent
     {
         return $this->rememberForUser($userId, 'analysis', function () use ($userId) {
             $user = User::findOrFail($userId);
-            $goals = Goal::where('user_id', $userId)->get();
+            $goals = Goal::where('user_id', $userId)
+                ->orWhere('joint_owner_id', $userId)
+                ->get();
 
             if ($goals->isEmpty()) {
                 return [
@@ -237,10 +241,10 @@ class GoalsAgent extends BaseAgent
         ];
 
         // Scenario 4: Add lump sum
-        $lumpSum = 1000;
+        $lumpSum = self::SCENARIO_LUMP_SUM;
         $monthsWithLumpSum = $currentContribution > 0 ? ($remaining - $lumpSum) / $currentContribution : null;
         $scenarios[] = [
-            'name' => 'Add £1,000 Lump Sum',
+            'name' => 'Add £'.number_format($lumpSum).' Lump Sum',
             'description' => 'One-time contribution to accelerate progress',
             'parameters' => [
                 'lump_sum' => $lumpSum,
@@ -268,7 +272,9 @@ class GoalsAgent extends BaseAgent
      */
     public function getDashboardOverview(int $userId): array
     {
-        $goals = Goal::where('user_id', $userId)->get();
+        $goals = Goal::where('user_id', $userId)
+            ->orWhere('joint_owner_id', $userId)
+            ->get();
 
         if ($goals->isEmpty()) {
             return [

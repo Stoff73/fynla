@@ -24,7 +24,7 @@ class LifeEventController extends Controller
     use SanitizedErrorResponse;
 
     public function __construct(
-        private LifeEventService $lifeEventService
+        private readonly LifeEventService $lifeEventService
     ) {}
 
     /**

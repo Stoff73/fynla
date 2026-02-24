@@ -408,3 +408,126 @@ Yes - backend + frontend changes. Run:
 ```
 
 Upload `public/build/` directory and all new/modified PHP files listed above. 2 new migrations require `php artisan migrate` on server. Reseed with `php artisan db:seed` after migration.
+
+---
+
+## Update - 24 February 2026 (RT1-13: Clean Up Goals Allocation and Processes)
+
+### What Changed
+
+**Dedicated cleanup pass across the entire Goals module** — fixes bugs, removes dead code, deduplicates logic, and improves consistency.
+
+#### Stream 1: Bug Fixes
+
+- **Projection cache invalidation:** `GoalsProjectionService::clearCache()` now called from `GoalsController` store/update/destroy/recordContribution and from `LifeEventMonteCarloObserver`. Previously the 30-minute cache was never invalidated after goal mutations.
+- **Joint goals missing from analysis:** `GoalsAgent::analyze()` and `getDashboardOverview()` now query `WHERE user_id = ? OR joint_owner_id = ?`. Previously only queried `user_id`.
+- **Gross income shown instead of net:** `FinancialForecastService` now uses `UKTaxCalculator` via `ResolvesIncome` trait for net income. Previously summed gross income fields, showing inflated surplus figures.
+- **Banned colours in API response:** `GoalAffordabilityService::categorizeAffordability()` changed `'yellow'` to `'blue'` and `'orange'` to `'red'` per design system.
+- **Auto-completion bypassed milestone tracking:** `GoalsController::recordContribution()` now calls `GoalProgressService::completeGoal()` instead of inline `$goal->update()`, ensuring the 100% milestone is recorded.
+- **DB facade usage:** `GoalsController::wouldCreateCircularDependency()` now uses Goal model relationship instead of `\DB::table()`.
+- **Destroy response:** `GoalsController::destroy()` returns `200` with `{success: true}` instead of `204 No Content`, matching project convention.
+
+#### Stream 2: Backend Deduplication
+
+- **`ResolvesIncome` trait** (NEW): Centralises gross and net annual income calculation. Sums 7 income fields, applies `UKTaxCalculator` for net. Applied to `GoalAffordabilityService`, `GoalsProjectionService`, and `FinancialForecastService`. Removed 3 duplicate local methods.
+- **`ResolvesExpenditure` trait applied:** `GoalAffordabilityService` and `LifeEventAllocationService` now use the existing trait instead of local expenditure methods. Removed 2 duplicate methods.
+- **Cash account lookup:** `LifeEventAllocationService::findCashAccount()` now delegates to `findCashAccountModel()?->id` instead of duplicating the query.
+
+#### Stream 3: Frontend Dead Code Removal
+
+- **9 orphaned Vue components deleted:** `GoalProgressBar`, `GoalCountdown`, `GoalMilestoneTracker`, `GoalContributionStreak`, `GoalsAnalysis`, `GoalsByModule`, `ChartTypeToggle`, `EventIconsOverlay`, `GoalsList` — confirmed no imports anywhere.
+- **3 orphaned service methods removed:** `goalsService.js` — `getContributionHistory()`, `markLifeEventCompleted()`, `getLifeEventsByAge()`.
+- **Dead Vuex state removed:** `goals.js` — removed `summary`, `topGoals`, `byModule`, `bestStreak`, `analysis`, `recommendations` state; `SET_SUMMARY`, `SET_TOP_GOALS`, `SET_BY_MODULE`, `SET_BEST_STREAK`, `SET_ANALYSIS`, `SET_RECOMMENDATIONS` mutations; `fetchAnalysis`, `getProjections`, `getScenarios` actions. Fixed `clearGoals` referencing removed `SET_ANALYSIS`.
+
+#### Stream 4: Frontend Deduplication
+
+- **`goalIcons.js` constant** (NEW): Shared `GOAL_TYPE_ICONS` map and `getGoalIcon()` function. Replaces identical icon maps duplicated in 5 components: `GoalCard`, `GoalDetailInline`, `GoalsOverview`, `ContributionModal`, `GoalsOverviewCard`.
+- **`formatDate` consolidation:** 3 components (`GoalDetailInline`, `LifeEventCard`, `LifeEventDetailInline`) now import `formatDateLong` from `utils/dateFormatter.js` instead of defining local methods.
+
+#### Stream 5: Backend Consistency Fixes
+
+- **N+1 query fixed:** `GoalProgressService::getMonthlySummary()` reduced from 12 queries (1 per month) to 1 query for the full range, grouped in PHP.
+- **Double save fixed:** `GoalProgressService::recordContribution()` saves once then passes `$goal->fresh()` to `checkMilestones()`.
+- **`readonly` added:** `LifeEventController` constructor property now `private readonly`.
+- **Observer deduplication:** Extracted `TracksGoalContributions` trait (NEW) used by both `InvestmentAccountGoalObserver` and `SavingsAccountGoalObserver`. Fixes hardcoded `streak_qualifying` — investment observers now correctly return `false`, savings return `true`.
+- **Dead cache removed:** `LifeEventService::clearCache()` removed along with unused `Cache` import and `CACHE_TTL` constant. The method was clearing cache keys that were never populated.
+
+#### Stream 6: Minor Cleanup
+
+- **Module mismatch fixed:** `GoalAssignmentService::getModuleByGoalType()` now returns `'savings'` for `debt_repayment`, matching `getGoalTypes()`.
+- **Dead wrapper inlined:** `GoalsProjectionService::getProjectionEndAge()` (always returned the constant) replaced with direct `self::DEFAULT_PROJECTION_END_AGE`.
+- **Hardcoded value extracted:** `GoalsAgent::buildScenarios()` `$lumpSum = 1000` replaced with `self::SCENARIO_LUMP_SUM` constant.
+- **Event type filtering simplified:** `LifeEventCashFlowService` removed `RETIREMENT_EVENT_TYPES` (which listed all types, making the filter a no-op). Retirement/default now returns `null` (all types), investment returns the subset.
+
+### New Files (24 Feb - RT1-13)
+
+| File | Type |
+|------|------|
+| `app/Traits/ResolvesIncome.php` | New trait (income calculation) |
+| `app/Traits/TracksGoalContributions.php` | New trait (observer shared logic) |
+| `resources/js/constants/goalIcons.js` | New constant (goal type icons) |
+
+### Modified Files (24 Feb - RT1-13)
+
+**Backend**
+
+| File | Change |
+|------|--------|
+| `app/Agents/GoalsAgent.php` | Joint goals query fix, lump sum constant |
+| `app/Http/Controllers/Api/GoalsController.php` | Cache invalidation, completeGoal(), DB facade, destroy response |
+| `app/Http/Controllers/Api/LifeEventController.php` | Added `readonly` |
+| `app/Observers/InvestmentAccountGoalObserver.php` | Refactored to use TracksGoalContributions trait |
+| `app/Observers/SavingsAccountGoalObserver.php` | Refactored to use TracksGoalContributions trait |
+| `app/Observers/LifeEventMonteCarloObserver.php` | Added GoalsProjectionService cache clearing |
+| `app/Services/Goals/FinancialForecastService.php` | Uses ResolvesIncome trait, net income |
+| `app/Services/Goals/GoalAffordabilityService.php` | Uses ResolvesIncome + ResolvesExpenditure traits, colour fix |
+| `app/Services/Goals/GoalAssignmentService.php` | debt_repayment module fix |
+| `app/Services/Goals/GoalProgressService.php` | N+1 fix, double save fix |
+| `app/Services/Goals/GoalsProjectionService.php` | Uses ResolvesIncome trait, inlined dead method |
+| `app/Services/Goals/LifeEventAllocationService.php` | Uses ResolvesExpenditure trait, cash account dedup |
+| `app/Services/Goals/LifeEventCashFlowService.php` | Simplified event type filtering |
+| `app/Services/Goals/LifeEventService.php` | Removed dead cache methods |
+
+**Frontend**
+
+| File | Change |
+|------|--------|
+| `resources/js/components/Dashboard/GoalsOverviewCard.vue` | Uses shared goalIcons.js |
+| `resources/js/components/Goals/GoalCard.vue` | Uses shared goalIcons.js |
+| `resources/js/components/Goals/GoalDetailInline.vue` | Uses shared goalIcons.js + formatDateLong |
+| `resources/js/components/Goals/GoalsOverview.vue` | Uses shared goalIcons.js |
+| `resources/js/components/Goals/ContributionModal.vue` | Uses shared goalIcons.js |
+| `resources/js/components/Goals/LifeEventCard.vue` | Uses formatDateLong |
+| `resources/js/components/Goals/LifeEventDetailInline.vue` | Uses formatDateLong |
+| `resources/js/services/goalsService.js` | Removed 3 orphaned methods |
+| `resources/js/store/modules/goals.js` | Removed dead state/mutations/actions |
+
+**Deleted (9 orphaned components)**
+
+| File |
+|------|
+| `resources/js/components/Goals/GoalProgressBar.vue` |
+| `resources/js/components/Goals/GoalCountdown.vue` |
+| `resources/js/components/Goals/GoalMilestoneTracker.vue` |
+| `resources/js/components/Goals/GoalContributionStreak.vue` |
+| `resources/js/components/Goals/GoalsAnalysis.vue` |
+| `resources/js/components/Goals/GoalsByModule.vue` |
+| `resources/js/components/Goals/ChartTypeToggle.vue` |
+| `resources/js/components/Goals/EventIconsOverlay.vue` |
+| `resources/js/components/Goals/GoalsList.vue` |
+
+### Rebuild Required
+
+Yes - backend + frontend changes. Run:
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+Upload `public/build/` directory and all new/modified PHP backend files listed above. No new migrations, no database changes.
+
+### Post-Upload Commands (SSH)
+
+```bash
+php artisan cache:clear && php artisan config:clear && php artisan view:clear && php artisan route:clear && php artisan optimize
+```

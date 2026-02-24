@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Services\Goals;
 
 use App\Models\User;
+use App\Services\UKTaxCalculator;
 use App\Traits\ResolvesExpenditure;
+use App\Traits\ResolvesIncome;
 use Carbon\Carbon;
 
 /**
@@ -18,9 +20,11 @@ use Carbon\Carbon;
 class FinancialForecastService
 {
     use ResolvesExpenditure;
+    use ResolvesIncome;
 
     public function __construct(
-        private readonly LifeEventService $lifeEventService
+        private readonly LifeEventService $lifeEventService,
+        private readonly UKTaxCalculator $taxCalculator
     ) {}
 
     /**
@@ -120,7 +124,7 @@ class FinancialForecastService
         $user = User::findOrFail($userId);
         $events = $this->lifeEventService->getActiveEventsForProjection($userId);
 
-        $annualIncome = $this->getAnnualIncome($user);
+        $annualIncome = $this->resolveNetAnnualIncome($user);
         $annualExpenditure = $this->resolveMonthlyExpenditure($user)['amount'] * 12;
 
         $forecast = [];
@@ -261,24 +265,10 @@ class FinancialForecastService
     }
 
     /**
-     * Get monthly income from user profile.
+     * Get monthly net income from user profile.
      */
     private function getMonthlyIncome(User $user): float
     {
-        return $this->getAnnualIncome($user) / 12;
-    }
-
-    /**
-     * Get annual income from all user income sources.
-     */
-    private function getAnnualIncome(User $user): float
-    {
-        return (float) ($user->annual_employment_income ?? 0)
-            + (float) ($user->annual_self_employment_income ?? 0)
-            + (float) ($user->annual_rental_income ?? 0)
-            + (float) ($user->annual_dividend_income ?? 0)
-            + (float) ($user->annual_interest_income ?? 0)
-            + (float) ($user->annual_other_income ?? 0)
-            + (float) ($user->annual_trust_income ?? 0);
+        return $this->resolveNetAnnualIncome($user) / 12;
     }
 }

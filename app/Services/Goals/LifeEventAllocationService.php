@@ -16,12 +16,14 @@ use App\Services\Retirement\AnnualAllowanceChecker;
 use App\Services\Savings\EmergencyFundCalculator;
 use App\Services\Savings\ISATracker;
 use App\Services\TaxConfigService;
+use App\Traits\ResolvesExpenditure;
 use App\Traits\StructuredLogging;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
 class LifeEventAllocationService
 {
+    use ResolvesExpenditure;
     use StructuredLogging;
 
     private const SHORT_TERM_YEARS = 3;
@@ -554,7 +556,7 @@ class LifeEventAllocationService
             $totalSavings = (float) SavingsAccount::where('user_id', $user->id)
                 ->sum('current_balance');
 
-            $monthlyExpenditure = $this->getMonthlyExpenditure($user);
+            $monthlyExpenditure = $this->resolveMonthlyExpenditure($user)['amount'];
             $runway = $this->efCalculator->calculateRunway($totalSavings, $monthlyExpenditure);
             $adequacy = $this->efCalculator->calculateAdequacy($runway);
         } catch (\Throwable $e) {
@@ -695,10 +697,7 @@ class LifeEventAllocationService
      */
     private function findCashAccount(int $userId): ?int
     {
-        return SavingsAccount::where('user_id', $userId)
-            ->where('is_isa', false)
-            ->orderByDesc('current_balance')
-            ->value('id');
+        return $this->findCashAccountModel($userId)?->id;
     }
 
     /**
@@ -713,32 +712,5 @@ class LifeEventAllocationService
                 ->where('is_isa', false)
                 ->orderByDesc('current_balance')
                 ->first();
-    }
-
-    /**
-     * Get monthly expenditure for emergency fund calculations.
-     */
-    private function getMonthlyExpenditure(User $user): float
-    {
-        $expenditureProfile = \App\Models\ExpenditureProfile::where('user_id', $user->id)->first();
-        if ($expenditureProfile && $expenditureProfile->total_monthly_expenditure > 0) {
-            return (float) $expenditureProfile->total_monthly_expenditure;
-        }
-
-        if ($user->monthly_expenditure > 0) {
-            return (float) $user->monthly_expenditure;
-        }
-
-        if ($user->annual_expenditure > 0) {
-            return (float) ($user->annual_expenditure / 12);
-        }
-
-        // Fallback: estimate from income
-        $profile = RetirementProfile::where('user_id', $user->id)->first();
-        if ($profile && $profile->current_annual_salary > 0) {
-            return (float) $profile->current_annual_salary / 12 * 0.7;
-        }
-
-        return 2500.0;
     }
 }

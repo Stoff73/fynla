@@ -103,14 +103,6 @@ const goalsService = {
     },
 
     /**
-     * Get contribution history for a goal.
-     */
-    async getContributionHistory(goalId, limit = 12) {
-        const response = await api.get(`/goals/${goalId}/contributions?limit=${limit}`);
-        return response.data;
-    },
-
-    /**
      * Calculate property purchase costs.
      */
     async calculatePropertyCosts(propertyData) {
@@ -173,26 +165,6 @@ const goalsService = {
      */
     async deleteLifeEvent(eventId) {
         const response = await api.delete(`/life-events/${eventId}`);
-        return response.data;
-    },
-
-    /**
-     * Mark a life event as completed.
-     */
-    async markLifeEventCompleted(eventId) {
-        const response = await api.post(`/life-events/${eventId}/complete`);
-        return response.data;
-    },
-
-    /**
-     * Get life events grouped by age.
-     */
-    async getLifeEventsByAge(filters = {}) {
-        const params = new URLSearchParams();
-        if (filters.household) params.append('household', 'true');
-
-        const queryString = params.toString();
-        const response = await api.get(`/life-events/by-age${queryString ? `?${queryString}` : ''}`);
         return response.data;
     },
 

@@ -69,6 +69,7 @@
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { LIFE_EVENT_ICONS } from '@/constants/eventIcons';
+import { formatDateLong } from '@/utils/dateFormatter';
 
 export default {
   name: 'LifeEventCard',
@@ -129,11 +130,7 @@ export default {
     },
 
     formatDate(date) {
-      if (!date) return '-';
-      return new Date(date).toLocaleDateString('en-GB', {
-        month: 'short',
-        year: 'numeric',
-      });
+      return formatDateLong(date, true) || '-';
     },
   },
 };

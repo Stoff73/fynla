@@ -61,7 +61,8 @@ class GoalAssignmentService
             'retirement' => 'retirement',
             'wealth_accumulation' => 'investment',
             'education' => null, // Depends on time horizon
-            'wedding', 'holiday', 'car_purchase', 'debt_repayment' => null, // Typically short-term
+            'debt_repayment' => 'savings',
+            'wedding', 'holiday', 'car_purchase' => null, // Typically short-term
             'custom' => null, // Depends on other factors
             default => null,
         };

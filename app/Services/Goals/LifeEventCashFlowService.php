@@ -21,29 +21,7 @@ class LifeEventCashFlowService
     private const MODULE_INVESTMENT = 'investment';
 
     /**
-     * Event types relevant to retirement projections.
-     */
-    private const RETIREMENT_EVENT_TYPES = [
-        'bonus',
-        'pension_lump_sum',
-        'redundancy_payment',
-        'inheritance',
-        'gift_received',
-        'property_sale',
-        'business_sale',
-        'lottery_windfall',
-        'custom_income',
-        'large_purchase',
-        'home_improvement',
-        'wedding',
-        'education_fees',
-        'gift_given',
-        'medical_expense',
-        'custom_expense',
-    ];
-
-    /**
-     * Event types relevant to investment projections.
+     * Event types relevant to investment projections (subset of all types).
      */
     private const INVESTMENT_EVENT_TYPES = [
         'inheritance',
@@ -77,9 +55,9 @@ class LifeEventCashFlowService
         $events = $this->lifeEventService->getActiveEventsForProjection($userId);
         $relevantTypes = $this->getRelevantEventTypes($module);
 
-        $filtered = $events->filter(
-            fn ($event) => in_array($event->event_type, $relevantTypes)
-        );
+        $filtered = $relevantTypes === null
+            ? $events
+            : $events->filter(fn ($event) => in_array($event->event_type, $relevantTypes));
 
         return $this->mapEventsToYears($filtered, $years);
     }
@@ -135,7 +113,7 @@ class LifeEventCashFlowService
         $applied = [];
 
         foreach ($events as $event) {
-            if (! in_array($event->event_type, $relevantTypes)) {
+            if ($relevantTypes !== null && ! in_array($event->event_type, $relevantTypes)) {
                 continue;
             }
 
@@ -168,9 +146,9 @@ class LifeEventCashFlowService
         $events = $this->lifeEventService->getActiveEventsForProjection($userId);
         $relevantTypes = $this->getRelevantEventTypes($module);
 
-        $filtered = $events->filter(
-            fn ($event) => in_array($event->event_type, $relevantTypes)
-        );
+        $filtered = $relevantTypes === null
+            ? $events
+            : $events->filter(fn ($event) => in_array($event->event_type, $relevantTypes));
 
         if ($filtered->isEmpty()) {
             return 'noevents';
@@ -215,12 +193,11 @@ class LifeEventCashFlowService
      *
      * @return string[]
      */
-    private function getRelevantEventTypes(string $module): array
+    private function getRelevantEventTypes(string $module): ?array
     {
         return match ($module) {
-            self::MODULE_RETIREMENT => self::RETIREMENT_EVENT_TYPES,
             self::MODULE_INVESTMENT => self::INVESTMENT_EVENT_TYPES,
-            default => array_merge(self::RETIREMENT_EVENT_TYPES, self::INVESTMENT_EVENT_TYPES),
+            default => null, // null = all event types (no filtering)
         };
     }
 }

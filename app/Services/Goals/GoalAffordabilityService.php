@@ -7,6 +7,8 @@ namespace App\Services\Goals;
 use App\Models\Goal;
 use App\Models\User;
 use App\Services\UKTaxCalculator;
+use App\Traits\ResolvesExpenditure;
+use App\Traits\ResolvesIncome;
 use Carbon\Carbon;
 
 /**
@@ -14,6 +16,9 @@ use Carbon\Carbon;
  */
 class GoalAffordabilityService
 {
+    use ResolvesExpenditure;
+    use ResolvesIncome;
+
     public function __construct(
         private readonly UKTaxCalculator $taxCalculator,
         private readonly LifeEventService $lifeEventService
@@ -54,64 +59,10 @@ class GoalAffordabilityService
      */
     public function calculateMonthlySurplus(User $user): float
     {
-        $annualNetIncome = $this->calculateAnnualNetIncome($user);
-        $monthlyNetIncome = $annualNetIncome / 12;
-
-        $monthlyExpenditure = $this->getMonthlyExpenditure($user);
+        $monthlyNetIncome = $this->resolveNetAnnualIncome($user) / 12;
+        $monthlyExpenditure = $this->resolveMonthlyExpenditure($user)['amount'];
 
         return max(0, $monthlyNetIncome - $monthlyExpenditure);
-    }
-
-    /**
-     * Calculate annual net income using UKTaxCalculator.
-     */
-    private function calculateAnnualNetIncome(User $user): float
-    {
-        $employmentIncome = (float) ($user->annual_employment_income ?? 0);
-        $selfEmploymentIncome = (float) ($user->annual_self_employment_income ?? 0);
-        $rentalIncome = (float) ($user->annual_rental_income ?? 0);
-        $dividendIncome = (float) ($user->annual_dividend_income ?? 0);
-        $interestIncome = (float) ($user->annual_interest_income ?? 0);
-        $otherIncome = (float) ($user->annual_other_income ?? 0) + (float) ($user->annual_trust_income ?? 0);
-
-        $grossIncome = $employmentIncome + $selfEmploymentIncome + $rentalIncome
-            + $dividendIncome + $interestIncome + $otherIncome;
-
-        if ($grossIncome <= 0) {
-            return 0.0;
-        }
-
-        $taxResult = $this->taxCalculator->calculateNetIncome(
-            $employmentIncome,
-            $selfEmploymentIncome,
-            $rentalIncome,
-            $dividendIncome,
-            $interestIncome,
-            $otherIncome
-        );
-
-        return (float) ($taxResult['net_income'] ?? 0);
-    }
-
-    /**
-     * Get user's total monthly expenditure.
-     */
-    private function getMonthlyExpenditure(User $user): float
-    {
-        // Sum up all monthly expenditure fields from user profile
-        $expenditure = 0;
-        $expenditure += (float) ($user->monthly_mortgage_rent ?? 0);
-        $expenditure += (float) ($user->monthly_utilities ?? 0);
-        $expenditure += (float) ($user->monthly_council_tax ?? 0);
-        $expenditure += (float) ($user->monthly_insurance ?? 0);
-        $expenditure += (float) ($user->monthly_transport ?? 0);
-        $expenditure += (float) ($user->monthly_food ?? 0);
-        $expenditure += (float) ($user->monthly_childcare ?? 0);
-        $expenditure += (float) ($user->monthly_entertainment ?? 0);
-        $expenditure += (float) ($user->monthly_other ?? 0);
-        $expenditure += (float) ($user->monthly_debt_repayments ?? 0);
-
-        return $expenditure;
     }
 
     /**
@@ -194,7 +145,7 @@ class GoalAffordabilityService
             return [
                 'category' => 'challenging',
                 'label' => 'Challenging',
-                'color' => 'yellow',
+                'color' => 'blue',
                 'message' => 'This goal will require significant commitment. Consider extending your timeline.',
                 'is_achievable' => true,
             ];
@@ -204,7 +155,7 @@ class GoalAffordabilityService
             return [
                 'category' => 'stretch',
                 'label' => 'Stretch Goal',
-                'color' => 'orange',
+                'color' => 'red',
                 'message' => 'This goal uses most of your available savings capacity. Any unexpected expenses could derail progress.',
                 'is_achievable' => true,
             ];

@@ -152,6 +152,7 @@ class GoalsController extends Controller
 
             // Clear cache
             $this->goalsAgent->clearCache($user->id);
+            $this->projectionService->clearCache($user->id);
 
             // Refresh to ensure casts are applied for serialization
             $goal = $goal->fresh();
@@ -267,6 +268,7 @@ class GoalsController extends Controller
 
             // Clear cache
             $this->goalsAgent->clearCache($user->id);
+            $this->projectionService->clearCache($user->id);
 
             return response()->json([
                 'success' => true,
@@ -301,8 +303,12 @@ class GoalsController extends Controller
 
             // Clear cache
             $this->goalsAgent->clearCache($user->id);
+            $this->projectionService->clearCache($user->id);
 
-            return response()->noContent();
+            return response()->json([
+                'success' => true,
+                'message' => 'Goal deleted successfully.',
+            ]);
         } catch (\Exception $e) {
             return $this->errorResponse($e, 'Delete goal', 500, ['goal_id' => $id]);
         }
@@ -343,13 +349,15 @@ class GoalsController extends Controller
                 $request->input('notes')
             );
 
-            // Check if goal is now complete
-            if ($goal->fresh()->progress_percentage >= 100 && $goal->status === 'active') {
-                $goal->update(['status' => 'completed', 'completed_at' => now()]);
+            // Check if goal is now complete — use progressService to record milestone
+            $freshGoal = $goal->fresh();
+            if ($freshGoal->progress_percentage >= 100 && $freshGoal->status === 'active') {
+                $this->progressService->completeGoal($freshGoal);
             }
 
             // Clear cache
             $this->goalsAgent->clearCache($user->id);
+            $this->projectionService->clearCache($user->id);
 
             return response()->json([
                 'success' => true,
@@ -599,7 +607,7 @@ class GoalsController extends Controller
         $goal = Goal::where('id', $id)
             ->where('user_id', $user->id)
             ->with(['dependsOn:id,goal_name,goal_type,status,target_amount,current_amount,target_date',
-                     'dependedOnBy:id,goal_name,goal_type,status,target_amount,current_amount,target_date'])
+                'dependedOnBy:id,goal_name,goal_type,status,target_amount,current_amount,target_date'])
             ->first();
 
         if (! $goal) {
@@ -740,12 +748,11 @@ class GoalsController extends Controller
             }
             $visited[] = $current;
 
-            $deps = \DB::table('goal_dependencies')
-                ->where('goal_id', $current)
-                ->pluck('depends_on_goal_id')
-                ->toArray();
-
-            $queue = array_merge($queue, $deps);
+            $currentGoal = Goal::find($current);
+            if ($currentGoal) {
+                $deps = $currentGoal->dependsOn()->pluck('goals.id')->toArray();
+                $queue = array_merge($queue, $deps);
+            }
         }
 
         return false;

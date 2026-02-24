@@ -2,23 +2,6 @@ import goalsService from '@/services/goalsService';
 
 const state = {
     goals: [],
-    summary: {
-        total_goals: 0,
-        on_track_count: 0,
-        total_target: 0,
-        total_current: 0,
-        overall_progress: 0,
-    },
-    topGoals: [],
-    byModule: {
-        savings: [],
-        investment: [],
-        property: [],
-        retirement: [],
-    },
-    bestStreak: 0,
-    analysis: null,
-    recommendations: [],
     goalTypes: [],
     riskLevels: [],
     dashboardOverview: null,
@@ -156,30 +139,6 @@ const getters = {
 const mutations = {
     SET_GOALS(state, goals) {
         state.goals = goals;
-    },
-
-    SET_SUMMARY(state, summary) {
-        state.summary = summary;
-    },
-
-    SET_TOP_GOALS(state, topGoals) {
-        state.topGoals = topGoals;
-    },
-
-    SET_BY_MODULE(state, byModule) {
-        state.byModule = byModule;
-    },
-
-    SET_BEST_STREAK(state, streak) {
-        state.bestStreak = streak;
-    },
-
-    SET_ANALYSIS(state, analysis) {
-        state.analysis = analysis;
-    },
-
-    SET_RECOMMENDATIONS(state, recommendations) {
-        state.recommendations = recommendations;
     },
 
     SET_GOAL_TYPES(state, types) {
@@ -320,33 +279,6 @@ const actions = {
             return response;
         } catch (error) {
             commit('SET_ERROR', error.response?.data?.message || 'Failed to fetch goals');
-            throw error;
-        } finally {
-            commit('SET_LOADING', false);
-        }
-    },
-
-    /**
-     * Fetch comprehensive goals analysis.
-     */
-    async fetchAnalysis({ commit }) {
-        commit('SET_LOADING', true);
-        commit('CLEAR_ERROR');
-
-        try {
-            const response = await goalsService.getAnalysis();
-            if (response.success) {
-                const data = response.data;
-                commit('SET_ANALYSIS', data);
-                commit('SET_SUMMARY', data.summary || {});
-                commit('SET_BY_MODULE', data.by_module || {});
-                commit('SET_TOP_GOALS', data.top_goals || []);
-                commit('SET_BEST_STREAK', data.streaks?.best_current_streak || 0);
-                commit('SET_RECOMMENDATIONS', data.recommendations?.recommendations || []);
-            }
-            return response;
-        } catch (error) {
-            commit('SET_ERROR', error.response?.data?.message || 'Failed to fetch analysis');
             throw error;
         } finally {
             commit('SET_LOADING', false);
@@ -528,32 +460,6 @@ const actions = {
     },
 
     /**
-     * Get projections for a goal.
-     */
-    async getProjections({ commit }, goalId) {
-        try {
-            const response = await goalsService.getProjections(goalId);
-            return response;
-        } catch (error) {
-            console.error('Failed to fetch projections:', error);
-            throw error;
-        }
-    },
-
-    /**
-     * Get scenarios for a goal.
-     */
-    async getScenarios({ commit }, goalId) {
-        try {
-            const response = await goalsService.getScenarios(goalId);
-            return response;
-        } catch (error) {
-            console.error('Failed to fetch scenarios:', error);
-            throw error;
-        }
-    },
-
-    /**
      * Calculate property costs.
      */
     async calculatePropertyCosts({ commit }, propertyData) {
@@ -571,7 +477,6 @@ const actions = {
      */
     clearGoals({ commit }) {
         commit('SET_GOALS', []);
-        commit('SET_ANALYSIS', null);
         commit('SET_DASHBOARD_OVERVIEW', null);
         commit('SET_SELECTED_GOAL', null);
         commit('SET_LIFE_EVENTS', []);

@@ -452,6 +452,8 @@
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { previewModeMixin } from '@/mixins/previewModeMixin';
 import goalsService from '@/services/goalsService';
+import { getGoalIcon } from '@/constants/goalIcons';
+import { formatDateLong } from '@/utils/dateFormatter';
 
 export default {
   name: 'GoalDetailInline',
@@ -645,12 +647,7 @@ export default {
     },
 
     formatDate(date) {
-      if (!date) return '\u2014';
-      return new Date(date).toLocaleDateString('en-GB', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-      });
+      return formatDateLong(date) || '\u2014';
     },
 
     formatGoalType(type) {
@@ -670,22 +667,7 @@ export default {
       return `${years}y ${remainingMonths}m`;
     },
 
-    getGoalIcon(goalType) {
-      const icons = {
-        emergency_fund: '🛡️',
-        property_purchase: '🏠',
-        home_deposit: '🔑',
-        education: '🎓',
-        retirement: '☀️',
-        wealth_accumulation: '📈',
-        wedding: '💍',
-        holiday: '✈️',
-        car_purchase: '🚗',
-        debt_repayment: '💳',
-        custom: '⭐',
-      };
-      return icons[goalType] || '🎯';
-    },
+    getGoalIcon,
   },
 };
 </script>

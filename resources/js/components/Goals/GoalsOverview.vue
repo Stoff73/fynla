@@ -164,6 +164,7 @@
 
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { getGoalIcon } from '@/constants/goalIcons';
 import GoalsProjectionChart from '@/components/Goals/GoalsProjectionChart.vue';
 
 export default {
@@ -204,22 +205,7 @@ export default {
   },
 
   methods: {
-    getGoalIcon(goalType) {
-      const icons = {
-        emergency_fund: '🛡️',
-        property_purchase: '🏠',
-        home_deposit: '🔑',
-        education: '🎓',
-        retirement: '☀️',
-        wealth_accumulation: '📈',
-        wedding: '💍',
-        holiday: '✈️',
-        car_purchase: '🚗',
-        debt_repayment: '💳',
-        custom: '⭐',
-      };
-      return icons[goalType] || '🎯';
-    },
+    getGoalIcon,
 
     getModuleLabel(module) {
       const labels = {

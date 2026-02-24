@@ -98,10 +98,9 @@ class GoalProgressService
             $this->updateContributionStreak($goal);
         }
 
+        // Save once after all updates, then check milestones
         $goal->save();
-
-        // Check and update milestones
-        $this->checkMilestones($goal);
+        $this->checkMilestones($goal->fresh());
 
         return $contribution;
     }
@@ -236,23 +235,29 @@ class GoalProgressService
      */
     public function getMonthlySummary(Goal $goal, int $months = 12): array
     {
-        $summary = [];
         $startDate = now()->subMonths($months - 1)->startOfMonth();
+        $endDate = now()->endOfMonth();
+
+        // Single query for the full date range
+        $contributions = $goal->contributions()
+            ->whereBetween('contribution_date', [$startDate, $endDate])
+            ->get()
+            ->groupBy(fn ($c) => $c->contribution_date->format('Y-m'));
+
+        $summary = [];
+        $monthlyTarget = $goal->monthly_contribution ?? 0;
 
         for ($i = 0; $i < $months; $i++) {
             $monthStart = $startDate->copy()->addMonths($i);
-            $monthEnd = $monthStart->copy()->endOfMonth();
-
-            $contributions = $goal->contributions()
-                ->whereBetween('contribution_date', [$monthStart, $monthEnd])
-                ->get();
+            $monthKey = $monthStart->format('Y-m');
+            $monthContributions = $contributions->get($monthKey, collect());
 
             $summary[] = [
-                'month' => $monthStart->format('Y-m'),
+                'month' => $monthKey,
                 'month_label' => $monthStart->format('M Y'),
-                'total_contributed' => round($contributions->sum('amount'), 2),
-                'contribution_count' => $contributions->count(),
-                'met_target' => $contributions->sum('amount') >= ($goal->monthly_contribution ?? 0),
+                'total_contributed' => round($monthContributions->sum('amount'), 2),
+                'contribution_count' => $monthContributions->count(),
+                'met_target' => $monthContributions->sum('amount') >= $monthlyTarget,
             ];
         }
 

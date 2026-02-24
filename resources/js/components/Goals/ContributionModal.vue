@@ -136,6 +136,7 @@
 
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { getGoalIcon } from '@/constants/goalIcons';
 
 export default {
   name: 'ContributionModal',
@@ -208,22 +209,7 @@ export default {
       this.loading = false;
     },
 
-    getGoalIcon(goalType) {
-      const icons = {
-        emergency_fund: '🛡️',
-        property_purchase: '🏠',
-        home_deposit: '🔑',
-        education: '🎓',
-        retirement: '☀️',
-        wealth_accumulation: '📈',
-        wedding: '💍',
-        holiday: '✈️',
-        car_purchase: '🚗',
-        debt_repayment: '💳',
-        custom: '⭐',
-      };
-      return icons[goalType] || '🎯';
-    },
+    getGoalIcon,
 
     close() {
       this.$emit('close');

@@ -249,6 +249,7 @@
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { previewModeMixin } from '@/mixins/previewModeMixin';
 import { LIFE_EVENT_ICONS } from '@/constants/eventIcons';
+import { formatDateLong } from '@/utils/dateFormatter';
 import LifeEventAllocationTab from '@/components/Goals/LifeEventAllocationTab.vue';
 
 export default {
@@ -329,12 +330,7 @@ export default {
     },
 
     formatDateDisplay(date) {
-      if (!date) return '\u2014';
-      return new Date(date).toLocaleDateString('en-GB', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-      });
+      return formatDateLong(date) || '\u2014';
     },
   },
 };

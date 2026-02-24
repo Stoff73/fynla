@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\NetWorth\NetWorthService;
 use App\Services\Settings\AssumptionsService;
 use App\Services\UKTaxCalculator;
+use App\Traits\ResolvesIncome;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -26,6 +27,8 @@ use Illuminate\Support\Facades\Cache;
  */
 class GoalsProjectionService
 {
+    use ResolvesIncome;
+
     private const DEFAULT_RETIREMENT_AGE = 68;
 
     private const DEFAULT_PROJECTION_END_AGE = 90;
@@ -56,7 +59,7 @@ class GoalsProjectionService
 
             $currentAge = $this->getCurrentAge($user);
             $retirementAge = $this->getRetirementAge($user);
-            $projectionEndAge = $this->getProjectionEndAge($user);
+            $projectionEndAge = self::DEFAULT_PROJECTION_END_AGE;
 
             // Get assumptions
             $assumptions = $this->getProjectionAssumptions($user);
@@ -334,44 +337,13 @@ class GoalsProjectionService
      */
     private function getAnnualNetIncome(User $user, bool $household): float
     {
-        $netIncome = $this->calculateUserNetIncome($user);
+        $netIncome = $this->resolveNetAnnualIncome($user);
 
         if ($household && $user->spouse) {
-            $netIncome += $this->calculateUserNetIncome($user->spouse);
+            $netIncome += $this->resolveNetAnnualIncome($user->spouse);
         }
 
         return $netIncome;
-    }
-
-    /**
-     * Calculate net income for a single user via UKTaxCalculator.
-     */
-    private function calculateUserNetIncome(User $user): float
-    {
-        $employmentIncome = (float) ($user->annual_employment_income ?? 0);
-        $selfEmploymentIncome = (float) ($user->annual_self_employment_income ?? 0);
-        $rentalIncome = (float) ($user->annual_rental_income ?? 0);
-        $dividendIncome = (float) ($user->annual_dividend_income ?? 0);
-        $interestIncome = (float) ($user->annual_interest_income ?? 0);
-        $otherIncome = (float) ($user->annual_other_income ?? 0) + (float) ($user->annual_trust_income ?? 0);
-
-        $grossIncome = $employmentIncome + $selfEmploymentIncome + $rentalIncome
-            + $dividendIncome + $interestIncome + $otherIncome;
-
-        if ($grossIncome <= 0) {
-            return 0.0;
-        }
-
-        $taxResult = $this->taxCalculator->calculateNetIncome(
-            $employmentIncome,
-            $selfEmploymentIncome,
-            $rentalIncome,
-            $dividendIncome,
-            $interestIncome,
-            $otherIncome
-        );
-
-        return (float) ($taxResult['net_income'] ?? 0);
     }
 
     /**
@@ -573,14 +545,6 @@ class GoalsProjectionService
         return $user->target_retirement_age
             ?? $user->retirementProfile?->target_retirement_age
             ?? self::DEFAULT_RETIREMENT_AGE;
-    }
-
-    /**
-     * Get projection end age - always project to life expectancy (90).
-     */
-    private function getProjectionEndAge(User $user): int
-    {
-        return self::DEFAULT_PROJECTION_END_AGE;
     }
 
     /**
