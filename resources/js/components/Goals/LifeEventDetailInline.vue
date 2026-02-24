@@ -231,6 +231,14 @@
               </div>
             </div>
           </div>
+
+          <!-- Tax Optimised Allocation Tab -->
+          <div v-show="activeTab === 'allocation'">
+            <LifeEventAllocationTab
+              :event="event"
+              :active="activeTab === 'allocation'"
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -241,10 +249,15 @@
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { previewModeMixin } from '@/mixins/previewModeMixin';
 import { LIFE_EVENT_ICONS } from '@/constants/eventIcons';
+import LifeEventAllocationTab from '@/components/Goals/LifeEventAllocationTab.vue';
 
 export default {
   name: 'LifeEventDetailInline',
   mixins: [currencyMixin, previewModeMixin],
+
+  components: {
+    LifeEventAllocationTab,
+  },
 
   props: {
     event: {
@@ -266,6 +279,7 @@ export default {
       return [
         { id: 'details', label: 'Details' },
         { id: 'impact', label: 'Impact' },
+        { id: 'allocation', label: 'Tax Optimised Allocation' },
       ];
     },
 

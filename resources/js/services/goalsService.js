@@ -258,6 +258,34 @@ const goalsService = {
         const response = await api.delete(`/goals/${goalId}/dependencies/${dependsOnGoalId}`);
         return response.data;
     },
+
+    // =========================================
+    // Life Event Allocations API
+    // =========================================
+
+    /**
+     * Get allocations for a life event.
+     */
+    async getAllocations(eventId) {
+        const response = await api.get(`/life-events/${eventId}/allocations`);
+        return response.data;
+    },
+
+    /**
+     * Update a single allocation (amount and enabled status).
+     */
+    async updateAllocation(eventId, allocationId, data) {
+        const response = await api.put(`/life-events/${eventId}/allocations/${allocationId}`, data);
+        return response.data;
+    },
+
+    /**
+     * Regenerate allocation suggestions for a life event.
+     */
+    async regenerateAllocations(eventId) {
+        const response = await api.post(`/life-events/${eventId}/allocations/regenerate`);
+        return response.data;
+    },
 };
 
 export default goalsService;

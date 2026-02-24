@@ -322,3 +322,89 @@ Yes - backend + frontend changes. Run:
 ```
 
 Upload `public/build/` directory and all new/modified PHP files listed above. No new migrations, no database changes.
+
+---
+
+## Update - 24 February 2026 (RT1-12: Update Allocation Logic for Life Events)
+
+### What Changed
+
+**Tax-optimised allocation engine for life events.** A new "Tax Optimised Allocation" tab on the life event detail card shows how event amounts should be distributed across user accounts for maximum tax efficiency. Users can toggle allocations on/off and edit amounts inline.
+
+#### Backend - Allocation Engine
+
+- `LifeEventAllocationService.php` (NEW): Core waterfall engine. Constructor injects ISATracker, AnnualAllowanceChecker, EmergencyFundCalculator, TaxConfigService. Income events follow Goals → ISA → Pension → Cash → Bond waterfall. Expense events show fund-from suggestions in reverse tax efficiency: cash/GIA → ISA → bond. Uses StructuredLogging trait.
+- `LifeEventAllocationController.php` (NEW): 3 API endpoints — GET (auto-generates on first access), PUT (update amount/enabled), POST regenerate. Uses SanitizedErrorResponse trait with ownership check via event's user_id.
+- `LifeEventAllocation.php` (NEW): Eloquent model with life_event_id, user_id, allocation_type (income/expense), allocation_step (goals/isa/pension/bond/cash), account references, amounts, enabled toggle, rationale text.
+
+#### Backend - Waterfall Logic
+
+1. **Goals** — active goals with shortfalls, prioritised by priority field then deadline. Short-term (<3yr) → cash, long-term → tax-wrapped accounts (pension with AA limits, ISA with allowance limits, bond)
+2. **ISA** — up to remaining annual allowance via ISATracker
+3. **Pension** — up to remaining Annual Allowance + carry forward via AnnualAllowanceChecker
+4. **Cash** — emergency fund top-up only if below 6-month target via EmergencyFundCalculator
+5. **Bond** — onshore (basic rate taxpayer) / offshore (higher/additional rate taxpayer) via TaxConfigService income tax bands
+
+#### Backend - Expense Events
+
+Fund-from suggestions drawn in reverse tax efficiency order: cash savings → GIA investments → ISA (savings + stocks & shares) → bond accounts. Remaining unfunded amount shown as "Additional Funding Required".
+
+#### Frontend - Allocation Tab
+
+- `LifeEventAllocationTab.vue` (NEW): Summary bar (total/allocated/remaining), allocation rows with toggle switches + inline amount editing, step badges (Goal/ISA/Pension/Bond/Cash), rationale text, regenerate button. Lazy-loads on first tab activation.
+- `LifeEventDetailInline.vue` (MODIFIED): Added third tab "Tax Optimised Allocation" with LifeEventAllocationTab component.
+- `goalsService.js` (MODIFIED): Added `getAllocations()`, `updateAllocation()`, `regenerateAllocations()` API methods.
+- `goals.js` store (MODIFIED): Added `eventAllocations` state, `SET_EVENT_ALLOCATIONS`/`UPDATE_EVENT_ALLOCATION`/`SET_ALLOCATIONS_LOADING` mutations, `fetchAllocations`/`updateAllocation`/`regenerateAllocations` actions, `allocationsForEvent`/`enabledAllocationsTotal`/`allocationsLoading` getters.
+
+#### Database
+
+- New `life_event_allocations` table with: life_event_id, user_id, allocation_type, allocation_step, account_type, account_id, account_label (varchar 255), suggested_amount, amount, enabled, rationale, display_order (unsignedSmallInteger), timestamps.
+- `LifeEvent.php` (MODIFIED): Added `allocations()` hasMany relationship.
+
+#### Quality Review Fixes Applied
+
+- Cash/emergency-fund step runs before bond step (was dead code when bond consumed all remaining)
+- Joint events use `$event->user_id` as canonical owner (prevents duplicate allocation sets)
+- `delete()` instead of `forceDelete()` for allocation cleanup
+- Route order: regenerate POST declared before `{allocationId}` PUT parameter route
+- `saveEdit` keeps editing state until API call succeeds (prevents UI flash on error)
+- StructuredLogging trait replaces raw `\Log::warning` calls
+
+### New Files (24 Feb - RT1-12)
+
+| File | Type |
+|------|------|
+| `app/Models/LifeEventAllocation.php` | New model |
+| `app/Services/Goals/LifeEventAllocationService.php` | New service (waterfall engine) |
+| `app/Http/Controllers/Api/LifeEventAllocationController.php` | New controller (3 endpoints) |
+| `database/migrations/2026_02_24_120001_create_life_event_allocations_table.php` | New migration |
+| `database/migrations/2026_02_24_120002_update_life_event_allocations_columns.php` | New migration (column fixes) |
+| `resources/js/components/Goals/LifeEventAllocationTab.vue` | New Vue component |
+
+### Modified Files (24 Feb - RT1-12)
+
+| File | Type |
+|------|------|
+| `app/Models/LifeEvent.php` | Modified (added allocations relationship) |
+| `routes/api.php` | Modified (3 new allocation routes) |
+| `resources/js/services/goalsService.js` | Modified (3 new API methods) |
+| `resources/js/store/modules/goals.js` | Modified (allocation state/actions/getters) |
+| `resources/js/components/Goals/LifeEventDetailInline.vue` | Modified (added allocation tab) |
+
+### New API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/life-events/{id}/allocations` | Get or auto-generate allocations |
+| POST | `/api/life-events/{id}/allocations/regenerate` | Regenerate allocation suggestions |
+| PUT | `/api/life-events/{id}/allocations/{allocationId}` | Update amount or enabled state |
+
+### Rebuild Required
+
+Yes - backend + frontend changes. Run:
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+Upload `public/build/` directory and all new/modified PHP files listed above. 2 new migrations require `php artisan migrate` on server. Reseed with `php artisan db:seed` after migration.

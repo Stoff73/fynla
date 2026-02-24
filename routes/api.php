@@ -37,14 +37,14 @@ use App\Http\Controllers\Api\InvestmentProjectionController;
 use App\Http\Controllers\Api\LetterToSpouseController;
 use App\Http\Controllers\Api\MFAController;
 use App\Http\Controllers\Api\MortgageController;
-use App\Http\Controllers\Api\PasswordResetController;
-use App\Http\Controllers\Api\PostcodeLookupController;
 use App\Http\Controllers\Api\NetWorthController;
 use App\Http\Controllers\Api\OccupationController;
 use App\Http\Controllers\Api\OnboardingController;
+use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\PersonalAccountsController;
 use App\Http\Controllers\Api\Plans\InvestmentSavingsPlanController;
 use App\Http\Controllers\Api\PortfolioOptimizationController;
+use App\Http\Controllers\Api\PostcodeLookupController;
 use App\Http\Controllers\Api\PreviewController;
 use App\Http\Controllers\Api\ProfileCompletenessController;
 use App\Http\Controllers\Api\PropertyController;
@@ -52,10 +52,10 @@ use App\Http\Controllers\Api\ProtectionController;
 use App\Http\Controllers\Api\RecommendationsController;
 use App\Http\Controllers\Api\Retirement\DCPensionHoldingsController;
 use App\Http\Controllers\Api\RetirementController;
-use App\Http\Controllers\Api\Settings\AssumptionsController;
 use App\Http\Controllers\Api\RiskPreferenceController;
 use App\Http\Controllers\Api\SavingsController;
 use App\Http\Controllers\Api\SessionController;
+use App\Http\Controllers\Api\Settings\AssumptionsController;
 use App\Http\Controllers\Api\SpousePermissionController;
 use App\Http\Controllers\Api\UKTaxesController;
 use App\Http\Controllers\Api\UserProfileController;
@@ -437,6 +437,11 @@ Route::middleware('auth:sanctum')->prefix('life-events')->group(function () {
     Route::put('/{id}', [\App\Http\Controllers\Api\LifeEventController::class, 'update']);
     Route::delete('/{id}', [\App\Http\Controllers\Api\LifeEventController::class, 'destroy']);
     Route::post('/{id}/complete', [\App\Http\Controllers\Api\LifeEventController::class, 'markCompleted']);
+
+    // Life Event Allocations
+    Route::get('/{id}/allocations', [\App\Http\Controllers\Api\LifeEventAllocationController::class, 'index']);
+    Route::post('/{id}/allocations/regenerate', [\App\Http\Controllers\Api\LifeEventAllocationController::class, 'regenerate']);
+    Route::put('/{id}/allocations/{allocationId}', [\App\Http\Controllers\Api\LifeEventAllocationController::class, 'update']);
 });
 
 // Investment module routes
