@@ -54,7 +54,7 @@ Services/
   Protection/         (5 services, flat)
   Savings/            (5 services, flat)
   Coordination/       (5 services)
-  Goals/              (7 services)
+  Goals/              (12 services)
   TaxConfigService.php  (centralised tax lookups)
   UKTaxCalculator.php   (primary tax calculation engine)
 ```
@@ -85,6 +85,8 @@ Loads active `TaxConfiguration` model (where `is_active = true`). Request-scoped
 | `FormatsCurrency` | `formatCurrency()`, `formatCurrencyCompact()` | In services returning formatted output |
 | `StructuredLogging` | `logInfo()`, `logError()`, `logCalculation()` with context | In services and controllers |
 | `ResolvesExpenditure` | Resolve monthly expenditure from priority chain | In services needing user spending data |
+| `ResolvesIncome` | Resolve gross/net annual income from priority chain | In services needing user income data |
+| `TracksGoalContributions` | Auto-record goal contributions when linked account balances change | In goal-tracking observers |
 | `PolicyCRUDTrait` | Common CRUD for protection policies with cache invalidation | In ProtectionController |
 
 ## Constants
@@ -99,7 +101,7 @@ Loads active `TaxConfiguration` model (where `is_active = true`). Request-scoped
 
 Risk recalculation observers extend `RiskRecalculationObserver` and auto-trigger when relevant model fields change. They use **debouncing** (5-second cache window) to batch rapid changes before dispatching `RecalculateRiskProfileJob`.
 
-Observers exist for: User, Property, InvestmentAccount, SavingsAccount, DCPension, FamilyMember.
+Observers exist for: User, Property, InvestmentAccount, SavingsAccount, DCPension, FamilyMember (risk), InvestmentAccountGoal, SavingsAccountGoal (goal tracking), LifeEventMonteCarlo (Monte Carlo triggers).
 
 ## Exception Handling
 

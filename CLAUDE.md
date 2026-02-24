@@ -8,10 +8,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 | Metric | Count |
 |--------|-------|
-| Vue Components | 315 |
-| PHP Services | 149 |
-| Controllers | 68 |
-| Models | 70 |
+| Vue Components | 312 |
+| PHP Services | 155 |
+| Controllers | 69 |
+| Models | 71 |
 | Vuex Stores | 21 |
 | Agents | 8 |
 
@@ -69,23 +69,23 @@ Vue Component → API Service → Controller → Agent → Services → Models �
 
 **Backend** (`app/`): See `app/Services/CLAUDE.md` and `app/Http/CLAUDE.md` for detailed conventions.
 - `Agents/` - Module orchestrators (ProtectionAgent, SavingsAgent, InvestmentAgent, RetirementAgent, EstateAgent, GoalsAgent, CoordinatingAgent)
-- `Services/{Module}/` - Domain calculations (141+ services across 15 module directories)
-- `Http/Controllers/Api/` - API endpoints (68 controllers)
-- `Http/Requests/` - Form request validation (150+ classes)
+- `Services/{Module}/` - Domain calculations (155 services across 27 module directories)
+- `Http/Controllers/Api/` - API endpoints (69 controllers)
+- `Http/Requests/` - Form request validation (70 classes)
 - `Http/Resources/` - API response transformation
-- `Traits/` - Shared behaviours (`Auditable`, `HasJointOwnership`, `CalculatesOwnershipShare`, `FormatsCurrency`, `StructuredLogging`, `PolicyCRUDTrait`, `ResolvesExpenditure`)
+- `Traits/` - Shared behaviours (`Auditable`, `HasJointOwnership`, `CalculatesOwnershipShare`, `FormatsCurrency`, `StructuredLogging`, `PolicyCRUDTrait`, `ResolvesExpenditure`, `ResolvesIncome`, `TracksGoalContributions`)
 - `Constants/` - `TaxDefaults`, `ValidationLimits`, `EstateDefaults`
-- `Observers/` - Risk recalculation observers (auto-trigger on model changes)
+- `Observers/` - Risk recalculation observers, goal contribution trackers, Monte Carlo triggers (10 observers)
 - `Exceptions/FinancialCalculationException` - Domain exception with factory methods
 
 **Frontend** (`resources/js/`): See `resources/js/CLAUDE.md` for detailed conventions.
-- `components/{Module}/` - Vue components (315 across 28 modules)
-- `views/` - Page-level route components (53 views)
+- `components/{Module}/` - Vue components (312 across 26 modules)
+- `views/` - Page-level route components (61 views)
 - `store/modules/` - Vuex state management (21 namespaced modules)
 - `services/` - API wrappers (35 services)
 - `mixins/` - `currencyMixin` (formatting), `previewModeMixin` (preview blocking)
 - `utils/` - `currency`, `dateFormatter`, `dates`, `ownership`, `poller`, `asyncAction`, `logger`
-- `constants/` - `designSystem`, `eventIcons`, `taxConfig`
+- `constants/` - `designSystem`, `eventIcons`, `eventIconSvgs`, `goalIcons`, `taxConfig`
 - `directives/` - `v-preview-disabled` (blocks actions in preview mode)
 - `layouts/` - `AppLayout` (authenticated), `PublicLayout` (public pages)
 - `router/index.js` - Routes with lazy loading, guards, meta flags (`requiresAuth`, `public`, `previewMode`)
@@ -232,7 +232,7 @@ Check routes: `php artisan route:list --path=endpoint`
 ## Testing
 
 ```bash
-./vendor/bin/pest                                          # All tests (1,075+)
+./vendor/bin/pest                                          # All tests (940+)
 ./vendor/bin/pest tests/Unit/Services/Estate/              # Module tests
 ./vendor/bin/pest --testsuite=Architecture                 # Code standards
 ./vendor/bin/pest --filter="calculateIHTLiability"         # By name

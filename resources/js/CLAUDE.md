@@ -88,6 +88,8 @@ import { previewModeMixin } from '@/mixins/previewModeMixin';
 |------|---------|
 | `designSystem.js` | `CHART_COLORS`, `ASSET_COLORS`, `PRIMARY_COLORS` - use for consistent chart palettes |
 | `eventIcons.js` | `LIFE_EVENT_ICONS` - maps event types to icon names |
+| `eventIconSvgs.js` | `EVENT_ICON_SVGS` - inline SVG components for life event icons |
+| `goalIcons.js` | `GOAL_TYPE_ICONS`, `getGoalIcon()` - maps goal types to emoji icons |
 | `taxConfig.js` | Frontend tax references (prefer backend `TaxConfigService` for calculations) |
 
 ## API Services Pattern
