@@ -2,16 +2,18 @@
 
 ## 1. System Overview
 
-The Payment & Subscription system handles Fynla's monetisation layer: a 7-day free trial on registration, Revolut-powered payment processing for upgrades, and subscription lifecycle management (trialing, active, expired, past_due, cancelled).
+The Payment & Subscription system handles Fynla's monetisation layer: a 7-day free trial on registration, Revolut-powered payment processing for upgrades, subscription lifecycle management (trialing, active, expired, past_due, cancelled), cancellation with access retention, and data deletion during grace period.
 
 **Key components:**
-- **Revolut Merchant API** integration for one-time order-based payments (not recurring billing)
+- **Revolut Embedded Checkout** integration using CDN script API for one-time order-based payments (not recurring billing)
 - **7-day free trial** initiated automatically when a user selects a plan during registration
-- **Three pricing tiers:** Student, Standard, Pro (each with monthly and yearly billing cycles)
-- **Feature flag:** The entire payment/subscription enforcement system is gated behind `config('app.payment_enabled')` (env: `PAYMENT_ENABLED`). When false (current default), all users have unrestricted access regardless of subscription status
+- **Three pricing tiers:** Student, Standard, Pro (each with monthly and yearly billing cycles) — stored in `subscription_plans` database table
+- **Feature flag:** The entire payment/subscription enforcement system is gated behind `config('app.payment_enabled')` (env: `PAYMENT_ENABLED`). When false, all users have unrestricted access regardless of subscription status
 - **Scheduled commands** for trial expiration and reminder emails
+- **Cancellation flow** with access retention until period end and optional data deletion during 30-day grace period
+- **Email notifications:** Payment confirmation, subscription cancellation, data deletion confirmation, trial reminders
 
-**Current state:** Payment is feature-flagged OFF. The CheckoutPage shows a "Payment Coming Soon" message when `payment_enabled` is false.
+**Current state:** Payment is feature-flagged ON in production. The Revolut Embedded Checkout widget loads showing Revolut Pay, Card, and Google Pay payment methods.
 
 ---
 
@@ -30,9 +32,13 @@ The Payment & Subscription system handles Fynla's monetisation layer: a 7-day fr
 | `status` | enum | `trialing`, `active`, `cancelled`, `expired`, `past_due` (default: `trialing`) | Current subscription state |
 | `trial_started_at` | timestamp | nullable | When the 7-day trial began |
 | `trial_ends_at` | timestamp | nullable | When the trial expires |
-| `current_period_start` | timestamp | nullable | Start of current paid period (set on ORDER_COMPLETED) |
-| `current_period_end` | timestamp | nullable | End of current paid period (set on ORDER_COMPLETED) |
-| `revolut_order_id` | varchar | nullable | Revolut order ID, set when `createOrder` is called |
+| `current_period_start` | timestamp | nullable | Start of current paid period |
+| `current_period_end` | timestamp | nullable | End of current paid period |
+| `cancelled_at` | timestamp | nullable | When user cancelled |
+| `cancellation_reason` | text | nullable | User-provided cancellation reason |
+| `data_retention_starts_at` | timestamp | nullable | When 30-day grace period began |
+| `revolut_order_id` | varchar | nullable | Revolut order ID from most recent payment |
+| `revolut_subscription_id` | varchar | nullable | Reserved for future Revolut subscription API |
 | `amount` | integer | NOT NULL | Price in pence (e.g. 1099 = GBP 10.99) |
 | `created_at` | timestamp | | |
 | `updated_at` | timestamp | | |
@@ -40,22 +46,41 @@ The Payment & Subscription system handles Fynla's monetisation layer: a 7-day fr
 
 ### 2.2 `payments` table
 
-**Migration:** `database/migrations/2026_02_12_100002_create_payments_table.php`
+**Migration:** `database/migrations/2026_02_12_100002_create_payments_table.php` + `2026_02_25_100001_add_columns_to_payments_table.php`
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | `id` | bigint (auto) | PK | |
 | `subscription_id` | bigint unsigned | FK -> subscriptions.id, CASCADE DELETE | Parent subscription |
 | `user_id` | bigint unsigned | FK -> users.id, CASCADE DELETE | Paying user |
-| `revolut_order_id` | varchar | NOT NULL | Revolut order reference |
+| `revolut_order_id` | varchar | NOT NULL | Revolut order UUID |
 | `amount` | integer | NOT NULL | Amount in pence |
 | `currency` | varchar(3) | default `GBP` | ISO currency code |
 | `status` | enum | `pending`, `completed`, `failed`, `refunded` (default: `pending`) | Payment outcome |
-| `revolut_payment_data` | json | nullable | Subset of Revolut order data (id, type, state, created_at, completed_at, order_amount, settlement_amount, email) |
+| `revolut_payment_data` | json | nullable | Full Revolut order response data |
+| `description` | varchar | nullable | Human-readable description (e.g. "Standard — Monthly") |
+| `plan_slug` | varchar | nullable | Plan slug at time of payment (source of truth) |
+| `billing_cycle` | varchar | nullable | Billing cycle at time of payment (source of truth) |
 | `created_at` | timestamp | | |
 | `updated_at` | timestamp | | |
 
-### 2.3 `trial_reminder_log` table
+### 2.3 `subscription_plans` table
+
+**Migration:** `database/migrations/2026_02_24_100001_create_subscription_plans_table.php`
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | bigint (auto) | PK | |
+| `slug` | varchar | UNIQUE | Plan identifier (`student`, `standard`, `pro`) |
+| `name` | varchar | NOT NULL | Display name |
+| `monthly_price` | integer | NOT NULL | Monthly price in pence |
+| `yearly_price` | integer | NOT NULL | Yearly price in pence |
+| `trial_days` | integer | default 7 | Trial duration |
+| `is_active` | boolean | default true | Whether plan is available |
+| `features` | json | nullable | Feature list for plan cards |
+| `sort_order` | integer | default 0 | Display ordering |
+
+### 2.4 `trial_reminder_log` table
 
 **Migration:** `database/migrations/2026_02_12_100004_create_trial_reminder_log_table.php`
 
@@ -66,14 +91,14 @@ The Payment & Subscription system handles Fynla's monetisation layer: a 7-day fr
 | `days_remaining` | integer | NOT NULL | Days remaining when email was sent (3, 2, or 1) |
 | `sent_at` | timestamp | NOT NULL | When the email was sent |
 
-**Unique constraint:** `(user_id, days_remaining)` -- prevents duplicate reminders for the same day threshold.
+**Unique constraint:** `(user_id, days_remaining)` — prevents duplicate reminders for the same day threshold.
 
-### 2.4 Related columns on `users` table
+### 2.5 Related columns on `users` table
 
 | Column | Type | Description |
 |--------|------|-------------|
-| `plan` | varchar | Current plan name (`free`, `student`, `standard`, `pro`). Set to the plan on trial start/payment; reverted to `free` on trial expiry |
-| `trial_ends_at` | datetime | Denormalised copy of `subscriptions.trial_ends_at`. Cast to datetime in User model |
+| `plan` | varchar | Current plan name (`free`, `student`, `standard`, `pro`). Set on trial start/payment; reverted to `free` on trial expiry |
+| `trial_ends_at` | datetime | Denormalised copy of `subscriptions.trial_ends_at`. Cleared on payment confirmation |
 
 ---
 
@@ -81,11 +106,11 @@ The Payment & Subscription system handles Fynla's monetisation layer: a 7-day fr
 
 ### 3.1 Subscription
 
-**File:** `app/Models/Subscription.php` (87 lines)
+**File:** `app/Models/Subscription.php` (137 lines)
 
 **Traits:** `HasFactory`, `SoftDeletes`
 
-**Guard:** `$guarded = ['id']` (mass-assignable except id)
+**Fillable:** `user_id`, `plan`, `billing_cycle`, `status`, `amount`, `trial_started_at`, `trial_ends_at`, `current_period_start`, `current_period_end`, `cancelled_at`, `cancellation_reason`, `data_retention_starts_at`, `revolut_order_id`, `revolut_subscription_id`
 
 **Casts:**
 | Attribute | Cast |
@@ -94,6 +119,8 @@ The Payment & Subscription system handles Fynla's monetisation layer: a 7-day fr
 | `trial_ends_at` | datetime |
 | `current_period_start` | datetime |
 | `current_period_end` | datetime |
+| `cancelled_at` | datetime |
+| `data_retention_starts_at` | datetime |
 | `amount` | integer |
 
 **Relationships:**
@@ -102,28 +129,25 @@ The Payment & Subscription system handles Fynla's monetisation layer: a 7-day fr
 | `user()` | BelongsTo | `User` |
 | `payments()` | HasMany | `Payment` |
 
-**Scopes:**
-| Scope | Filter |
-|-------|--------|
-| `scopeActive($query)` | `status = 'active'` |
-| `scopeTrialing($query)` | `status = 'trialing'` |
-| `scopeExpired($query)` | `status = 'expired'` |
+**Scopes:** `scopeActive`, `scopeTrialing`, `scopeExpired`
 
 **Methods:**
 | Method | Return | Description |
 |--------|--------|-------------|
 | `isTrialing()` | bool | True if status is `trialing` AND `trial_ends_at` is in the future |
-| `isActive()` | bool | True if status is `active` |
-| `daysLeftInTrial()` | int | Days between now and `trial_ends_at` (min 0). Returns 0 if `trial_ends_at` is null |
-| `trialProgress()` | float | Percentage of trial elapsed (0-100). Based on days elapsed vs total trial days. Returns 0 if dates missing, 100 if `totalDays` is 0 |
+| `isActive()` | bool | True if `active`, or `cancelled`/`past_due` with `current_period_end` in the future |
+| `isInGracePeriod()` | bool | True if `data_retention_starts_at` + 30 days is in the future |
+| `gracePeriodEndsAt()` | ?Carbon | Returns the date when grace period ends |
+| `daysLeftInTrial()` | int | Days between now and `trial_ends_at` (min 0) |
+| `trialProgress()` | float | Percentage of trial elapsed (0-100) |
 
 ### 3.2 Payment
 
-**File:** `app/Models/Payment.php` (31 lines)
+**File:** `app/Models/Payment.php` (42 lines)
 
 **Traits:** `HasFactory`
 
-**Guard:** `$guarded = ['id']`
+**Fillable:** `subscription_id`, `user_id`, `revolut_order_id`, `amount`, `currency`, `status`, `revolut_payment_data`, `description`, `plan_slug`, `billing_cycle`
 
 **Casts:**
 | Attribute | Cast |
@@ -137,24 +161,24 @@ The Payment & Subscription system handles Fynla's monetisation layer: a 7-day fr
 | `subscription()` | BelongsTo | `Subscription` |
 | `user()` | BelongsTo | `User` |
 
-### 3.3 User model (subscription-related methods)
+### 3.3 SubscriptionPlan
 
-**File:** `app/Models/User.php`
+**File:** `app/Models/SubscriptionPlan.php`
 
-**Relationship:**
-| Method | Type | Target |
-|--------|------|--------|
-| `subscription()` | HasOne | `Subscription` |
+**Key methods:**
+| Method | Description |
+|--------|-------------|
+| `findBySlug(string $slug)` | Find plan by slug |
+| `getPriceForCycle(string $cycle)` | Get price in pence for billing cycle |
+| `scopeActive($query)` | Filter active plans |
+
+### 3.4 User model (subscription-related)
+
+**Relationship:** `subscription()` → HasOne → `Subscription`
 
 **Cast:** `trial_ends_at` => `datetime`
 
-**Helper methods:**
-| Method | Return | Description |
-|--------|--------|-------------|
-| `onTrial()` | bool | Loads subscription (lazy or eager), delegates to `$subscription->isTrialing()` |
-| `hasActivePlan()` | bool | Loads subscription (lazy or eager), delegates to `$subscription->isActive()` |
-| `trialDaysRemaining()` | int | Loads subscription, delegates to `$subscription->daysLeftInTrial()`. Returns 0 if no subscription |
-| `planIs(string $plan)` | bool | Compares `$this->plan` to given plan name |
+**Helper methods:** `onTrial()`, `hasActivePlan()`, `trialDaysRemaining()`, `planIs(string $plan)`
 
 ---
 
@@ -162,308 +186,183 @@ The Payment & Subscription system handles Fynla's monetisation layer: a 7-day fr
 
 ### 4.1 PaymentController
 
-**File:** `app/Http/Controllers/Api/PaymentController.php` (70 lines)
+**File:** `app/Http/Controllers/Api/PaymentController.php` (492 lines)
 
-| Method | HTTP | Route | Parameters | Returns | Description |
-|--------|------|-------|------------|---------|-------------|
-| `createOrder(Request, RevolutService)` | POST | `/api/payment/create-order` | Auth user (implicit) | `JsonResponse { public_id, order_id }` | Creates a Revolut order for the user's current subscription plan/billing_cycle. Stores `revolut_order_id` on the subscription. Returns 404 if no subscription exists. |
-| `orderStatus(Request, string $id, RevolutService)` | GET | `/api/payment/order/{id}/status` | `$id` (Revolut order ID) | `JsonResponse` (raw Revolut order data) | Proxies a Revolut order status check. Returns the full Revolut order object. |
-| `trialStatus(Request)` | GET | `/api/payment/trial-status` | Auth user (implicit) | `JsonResponse` | Returns subscription details including: `has_subscription`, `plan`, `billing_cycle`, `status`, `trial_ends_at` (ISO string), `days_remaining`, `progress`, `amount`, `payment_enabled`. If no subscription exists, returns `{ has_subscription: false, payment_enabled }`. |
+**Constructor:** Injects `RevolutService`
 
-### 4.2 PaymentWebhookController
-
-**File:** `app/Http/Controllers/Api/PaymentWebhookController.php` (126 lines)
+**Trait:** `SanitizedErrorResponse`
 
 | Method | HTTP | Route | Description |
 |--------|------|-------|-------------|
-| `handle(Request)` | POST | `/api/webhooks/revolut` | Main webhook entry point. Verifies HMAC signature, dispatches to event handlers via `match` on `$payload['event']`. Returns 403 on invalid signature, 200 otherwise. |
+| `plans()` | GET | `/api/payment/plans` | Returns active subscription plans from database |
+| `createOrder(Request)` | POST | `/api/payment/create-order` | Creates Revolut order via embedded checkout flow. Creates pending Payment record, calls RevolutService, returns `{ token, order_id }` |
+| `confirmPayment(Request)` | POST | `/api/payment/confirm` | Confirms payment after Revolut `onSuccess`. Verifies order state with Revolut API (accepts `completed` and `processing`). Activates subscription in DB transaction. Sends PaymentConfirmation email |
+| `trialStatus(Request)` | GET | `/api/payment/trial-status` | Returns subscription details including trial countdown, grace period, and payment_enabled flag |
+| `billingHistory(Request)` | GET | `/api/payment/billing-history` | Returns up to 24 completed payments with references (FYN-XXXXXX format) |
+| `cancelSubscription(Request)` | POST | `/api/payment/cancel-subscription` | Cancels subscription with optional reason. Access retained until `current_period_end`. Sends SubscriptionCancellation email |
+| `deleteAllData(Request, DataPurgeService)` | POST | `/api/payment/delete-all-data` | Permanently deletes all user data during grace period. Requires password confirmation and typing "DELETE". Sends DataDeletionConfirmation email |
 
-**Private methods:**
+**Key design decisions:**
+- Preview users blocked at controller level (`is_preview_user` check)
+- `plan_slug` and `billing_cycle` persisted on Payment record as source of truth
+- Both `confirmPayment` and webhook are idempotent with `lockForUpdate()` transactions
+- Order ID validated as UUID before any Revolut API calls
+- `confirmPayment` accepts `"processing"` state because Revolut fires `onSuccess` before order reaches `"completed"`
 
-| Method | Trigger Event | Action |
-|--------|--------------|--------|
-| `handleOrderCompleted(array $orderData)` | `ORDER_COMPLETED` | Finds subscription by `revolut_order_id`. Updates subscription status to `active`, sets `current_period_start` to now, `current_period_end` to now + 1 month/year (based on billing_cycle). Creates a `Payment` record with status `completed`. Updates user's `plan` column to the subscription plan. |
-| `handlePaymentFailed(array $orderData)` | `ORDER_PAYMENT_FAILED` | Finds subscription by `revolut_order_id`. Updates subscription status to `past_due`. Logs warning. |
-| `verifySignature(Request)` | (internal) | Checks `Revolut-Signature` or `X-Revolut-Signature` header against HMAC-SHA256 of the raw payload body using `services.revolut.webhook_secret`. Returns true in local/testing environments if no secret is configured. Returns false (fail closed) in non-local environments without a configured secret. |
+### 4.2 WebhookController
 
-**Revolut payment data stored on Payment record (whitelisted keys):**
-- `id`, `type`, `state`, `created_at`, `completed_at`, `order_amount`, `settlement_amount`, `email`
+**File:** `app/Http/Controllers/Api/WebhookController.php` (175 lines)
+
+**Constructor:** Injects `RevolutService`
+
+| Method | HTTP | Route | Description |
+|--------|------|-------|-------------|
+| `handleRevolut(Request)` | POST | `/api/webhooks/revolut` | Verifies HMAC signature, handles `ORDER_COMPLETED` / `ORDER_AUTHORISED` events |
+
+**Private method: `handleOrderCompleted(string $orderId, ?string $merchantRef)`**
+- Finds Payment by `revolut_order_id` with `lockForUpdate()`
+- Cross-references `merchant_ref` against `payment_{id}`
+- Verifies order state with Revolut API (accepts `completed`, `authorised`)
+- Activates payment, subscription, and user plan
+- Sends PaymentConfirmation email
+- Fully idempotent (skips if payment already completed)
 
 ---
 
-## 5. Agent
+## 5. Services
 
-N/A -- No agent orchestrator exists for the payment system. Payment logic is handled directly through services and controllers.
+### 5.1 RevolutService
 
----
-
-## 6. Services
-
-### 6.1 RevolutService
-
-**File:** `app/Services/Payment/RevolutService.php` (84 lines)
+**File:** `app/Services/Payment/RevolutService.php` (182 lines)
 
 **Configuration:**
 - API key: `config('services.revolut.api_key')` (env: `REVOLUT_API_KEY`)
-- Sandbox mode: `config('services.revolut.sandbox')` (env: `REVOLUT_SANDBOX`, default: true)
-- Sandbox URL: `https://sandbox-merchant.revolut.com/api/1.0`
-- Production URL: `https://merchant.revolut.com/api/1.0`
-
-**Plan Pricing (amounts in pence):**
-
-| Plan | Monthly | Yearly |
-|------|---------|--------|
-| Student | 399 (GBP 3.99) | 3000 (GBP 30.00) |
-| Standard | 1099 (GBP 10.99) | 10000 (GBP 100.00) |
-| Pro | 1999 (GBP 19.99) | 20000 (GBP 200.00) |
+- Sandbox mode: `config('services.revolut.sandbox')` (env: `REVOLUT_SANDBOX`)
+- Sandbox URL: `https://sandbox-merchant.revolut.com/api`
+- Production URL: `https://merchant.revolut.com/api`
+- Webhook secret: `config('services.revolut.webhook_secret')` (env: `REVOLUT_WEBHOOK_SECRET`)
+- API version header: `Revolut-Api-Version: 2025-12-04`
 
 **Public methods:**
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
-| `createOrder` | `(User $user, string $plan, string $billingCycle): array` | Creates a Revolut order via `POST /orders`. Sends amount, currency (GBP), description, and metadata (user_id, plan, billing_cycle). Throws `RuntimeException` on failure. Returns Revolut order JSON. |
-| `getOrderStatus` | `(string $orderId): array` | Retrieves order status via `GET /orders/{orderId}`. Throws `RuntimeException` on failure. Returns Revolut order JSON. |
+| `createOrder` | `(int $amount, string $currency, string $description, string $redirectUrl, ?string $merchantRef, ?string $email): array` | Creates Revolut order via `POST /orders`. Returns order JSON with `id`, `token`, `state` |
+| `getOrder` | `(string $orderId): array` | Retrieves order via `GET /orders/{orderId}`. Returns full order JSON |
+| `verifyWebhookSignature` | `(string $rawPayload, string $signatureHeader, string $timestampHeader): bool` | HMAC-SHA256 verification with 5-minute replay protection. Constructs `v1.{timestamp}.{payload}`, compares against `Revolut-Signature` header |
 
-### 6.2 TrialService
+### 5.2 TrialService
 
-**File:** `app/Services/Payment/TrialService.php` (59 lines)
-
-**Constants:**
-- `TRIAL_DAYS = 7`
-- `PLAN_PRICING` -- Same pricing table as RevolutService (duplicated)
+**File:** `app/Services/Payment/TrialService.php`
 
 **Public methods:**
-
 | Method | Signature | Description |
 |--------|-----------|-------------|
-| `startTrial` | `(User $user, string $plan, string $billingCycle): Subscription` | Creates a Subscription record with status `trialing`, sets `trial_started_at` to now, `trial_ends_at` to now + 7 days, and `amount` based on plan/billing_cycle pricing. Also updates the User record: sets `plan` to the selected plan and `trial_ends_at` to the subscription's trial end date. |
-| `expireTrials` | `(): int` | Finds all subscriptions where `status = 'trialing'` AND `trial_ends_at < now()`. Sets each to `status = 'expired'` and updates the user's `plan` to `'free'`. Returns the count of expired subscriptions. |
+| `startTrial` | `(User $user, string $plan, string $billingCycle): Subscription` | Creates subscription with `trialing` status, 7-day trial. Uses `SubscriptionPlan::findBySlug()` for pricing |
+| `expireTrials` | `(): int` | Bulk-expires overdue trials. Returns count |
+
+### 5.3 DataPurgeService
+
+**File:** `app/Services/Payment/DataPurgeService.php`
+
+**Public methods:**
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `purgeUserData` | `(User $user): array` | Permanently deletes all financial data. Returns `{ tables_purged, records_deleted }` |
 
 ---
 
-## 7. Validation Requests
+## 6. Frontend Components
 
-No dedicated FormRequest classes exist for payment endpoints. The `PaymentController` methods use direct `Request` objects. Validation of plan/billing_cycle values occurs at the service level (array key lookup with `?? 0` fallback) and at the AuthController level (inline `in_array` checks).
+### 6.1 CheckoutPage
 
----
+**File:** `resources/js/views/Auth/CheckoutPage.vue` (331 lines)
 
-## 8. Vuex Store
+**Purpose:** Full checkout page with Revolut Embedded Checkout widget. Two-column layout: Order Summary (left) and Payment Method (right).
 
-No dedicated Vuex store module exists for payment/subscription state. The trial and subscription data is fetched directly by components via API calls (`api.get('/payment/trial-status')`) and stored in local component data.
+**SDK Loading:** Dynamic CDN script loading via `loadRevolutSDK(sandbox)` helper. Loads `sandbox-merchant.revolut.com/embed.js` or `merchant.revolut.com/embed.js`. The npm package `@revolut/checkout` does NOT support the static `embeddedCheckout()` API — CDN is required.
 
-The existing store modules (`investment.js`, `savings.js`, `netWorth.js`) contain unrelated references to the word "subscription" (referring to household expense "subscriptions" like Netflix, not application subscriptions).
+**Flow:**
+1. Page loads with `?plan=standard&cycle=monthly` query params
+2. Fetches plan data from `/api/payment/plans` for price display
+3. Initialises `RevolutCheckout.embeddedCheckout()` with `publicToken` (pk_...)
+4. Widget's `createOrder` callback calls `POST /api/payment/create-order`, stores `order_id` (UUID), returns `{ publicId: token }` to widget
+5. On `onSuccess`: calls `POST /api/payment/confirm` with stored UUID (NOT the callback's token)
+6. Shows success modal, then navigates to `/dashboard?payment=success`
 
----
+**CSS:** Hides Revolut's duplicate "Payment method" heading via `margin-top: -40px` on iframe with `overflow: hidden` on container.
 
-## 9. API Service (Frontend)
+### 6.2 PlanSelectionModal
 
-No dedicated payment service file exists. Components call the API directly using the shared `api` Axios instance:
+**File:** `resources/js/components/Payment/PlanSelectionModal.vue` (210 lines)
 
-```javascript
-// TrialCountdownBanner.vue and CheckoutPage.vue
-import api from '@/services/api';
+**Purpose:** Modal with monthly/yearly toggle showing 3 plan cards (Student, Standard, Pro). Fetches plans from `/api/payment/plans`. Emits `select` with `{ plan, billingCycle }` and `close`.
 
-api.get('/payment/trial-status');    // GET trial/subscription status
-api.post('/payment/create-order');   // POST create Revolut order
-```
+**Used by:** TrialCountdownBanner, SubscriptionManagement (for upgrade, renew, and re-subscribe flows)
 
-The admin dashboard uses `adminService.js` which includes:
-```javascript
-getSubscriptionStats()  // GET /admin/subscriptions/stats
-```
+### 6.3 TrialCountdownBanner
 
----
+**File:** `resources/js/components/Trial/TrialCountdownBanner.vue`
 
-## 10. Frontend Components
+**Purpose:** Persistent blue banner at top of application showing trial countdown and "Upgrade Now" button. Opens PlanSelectionModal instead of linking directly to /checkout.
 
-### 10.1 TrialCountdownBanner
+**Mounting:** `AppLayout.vue`: `<TrialCountdownBanner v-if="isAuthenticated && !isPreviewMode" />`
 
-**File:** `resources/js/components/Trial/TrialCountdownBanner.vue` (114 lines)
+**Visibility:** Shows only during `trialing` status. Dismissible when > 2 days remain; non-dismissible in final 2 days.
 
-**Purpose:** Displays a persistent blue banner at the top of the application showing trial countdown and an "Upgrade Now" button. Rendered inside `AppLayout.vue` for authenticated non-preview users only.
+### 6.4 SubscriptionManagement
 
-**Mounting:** `AppLayout.vue` line 6: `<TrialCountdownBanner v-if="isAuthenticated && !isPreviewMode" />`
+**File:** `resources/js/components/UserProfile/SubscriptionManagement.vue` (611 lines)
 
-**Data:** `trialData` (object from trial-status API), `dismissed` (boolean), `loading` (boolean)
+**Purpose:** Subscription tab on User Profile page. Shows different UI states based on subscription status:
 
-**Computed properties:**
-| Property | Logic |
-|----------|-------|
-| `shouldShow` | True if trialData exists, status is `trialing`, and not dismissed (or if `canDismiss` is false, always shows) |
-| `planName` | Capitalised plan name from trialData |
-| `daysRemaining` | `trialData.days_remaining` (default 0) |
-| `progress` | `trialData.progress` (default 0) |
-| `canDismiss` | True if `daysRemaining > 2` (cannot dismiss in final 2 days) |
+| State | Display |
+|-------|---------|
+| `trialing` | Free Trial card with countdown, plan details, "Subscribe Now" button |
+| `active` | Your Subscription card (Plan, Billing Cycle, Amount, Next Renewal), "Cancel Subscription" link |
+| `cancelled` | Cancelled card with access countdown, "Renew" button |
+| `past_due` | Payment Issue card with warning, "Update Payment Method" button |
+| `expired` / `none` | Expired/No Subscription card with optional grace period countdown, "Subscribe Now" button |
 
-**Behaviour:**
-- On mount, calls `GET /api/payment/trial-status`
-- Shows clock icon, trial message ("Your Standard trial ends in X days"), progress bar, and "Upgrade Now" link to `/checkout`
-- Dismissible via X button when more than 2 days remain; non-dismissible in final 2 days
-- Silently fails if API call fails (banner simply does not show)
+**Billing History:** Table with Date, Description, Reference (FYN-XXXXXX), Amount columns. Shows completed payments.
 
-### 10.2 CheckoutPage
+**Cancel flow:** Modal with reason dropdown (too_expensive, not_using_enough, missing_features, found_alternative, temporary_break, technical_issues, other). Calls `POST /api/payment/cancel-subscription`.
 
-**File:** `resources/js/views/Auth/CheckoutPage.vue` (178 lines)
+**Amount formatting:** Uses `formatCurrencyWithPence()` for 2 decimal places. No period suffix on amounts.
 
-**Purpose:** Checkout page for converting trial users to paid subscriptions. Has two states:
-1. **"Coming Soon"** state (when `payment_enabled` is false) -- shows informational message with back-to-dashboard link
-2. **Checkout** state (when `payment_enabled` is true) -- shows order summary and initialises Revolut payment widget
-
-**Layout:** Uses `AppLayout`
-
-**Data:** `trialData`, `loading`, `error`, `paymentEnabled`
-
-**Computed:**
-| Property | Logic |
-|----------|-------|
-| `planName` | Capitalised plan from trialData |
-| `formattedPrice` | Converts pence to GBP display (e.g. "GBP 10.99/month") using `amount / 100` |
-
-**Behaviour:**
-- On mount, fetches trial status; if `payment_enabled` and trialData exist, calls `initCheckout()`
-- `initCheckout()` calls `POST /api/payment/create-order`, receives `public_id`, then invokes the Revolut Checkout SDK's `payWithPopup()` method
-- On success: redirects to `/dashboard?payment=success`
-- On error: shows error message with retry button
-- On cancel: does nothing (user stays on page)
-
-### 10.3 PricingPage
+### 6.5 PricingPage
 
 **File:** `resources/js/views/Public/PricingPage.vue` (268 lines)
 
-**Purpose:** Public-facing pricing page showing three plan tiers with monthly/yearly toggle. Does not require authentication.
-
-**Layout:** Uses `PublicLayout`
-
-**Data:** `isYearly` (boolean, default: `true`)
-
-**Plans displayed:**
-
-| Plan | Monthly | Yearly | Yearly Savings | Features |
-|------|---------|--------|----------------|----------|
-| Student | GBP 3.99/mo | GBP 30/yr (GBP 2.50/mo) | 37% | Budgeting, debt tracking, basic investment tracking, goal setting |
-| Standard | GBP 10.99/mo | GBP 100/yr (GBP 8.33/mo) | 24% | All platform capabilities, protection/savings/investments, retirement & estate, spouse linking, 1 doc upload/day, 5/month |
-| Pro | GBP 19.99/mo | GBP 200/yr (GBP 16.67/mo) | 17% | Everything in Standard, unlimited document uploads, priority support |
-
-Standard is marked "Most Popular" with a highlighted border.
-
-**Behaviour:**
-- Each "Start Free Trial" button calls `startTrial(plan)` which navigates to `/register?plan={plan}&billing={yearly|monthly}`
-- The Register page captures these query params and passes them through to the registration API
+**Purpose:** Public-facing pricing page with monthly/yearly toggle. "Start Free Trial" buttons navigate to `/register?plan={plan}&billing={cycle}`.
 
 ---
 
-## 11. Frontend Routing
-
-**File:** `resources/js/router/index.js`
-
-| Path | Name | Component | Meta | Auth Required |
-|------|------|-----------|------|---------------|
-| `/pricing` | Pricing | `PricingPage.vue` | `{ public: true }` | No |
-| `/checkout` | Checkout | `CheckoutPage.vue` | `{ requiresAuth: true }` | Yes |
-
-The `/pricing` route is also listed in the `publicRoutes` array in the router guard, so it is accessible without authentication.
-
----
-
-## 12. Cross-Module Integration
-
-### 12.1 Registration Flow Integration
-
-**File:** `app/Http/Controllers/Api/AuthController.php`
-
-- `AuthController` constructor injects `TrialService`
-- `PendingRegistration` model stores `plan` and `billing_cycle` (passed from frontend during registration)
-- On `verifyCode()` (email verification success), if the pending registration has a valid plan (`student`, `standard`, `pro`), calls `$this->trialService->startTrial($user, $plan, $billingCycle)`
-- Defaults billing_cycle to `'yearly'` if not specified or invalid
-
-### 12.2 User Plan State
-
-The `users.plan` column serves as a denormalised indicator of the user's current plan:
-- Set to the plan name (e.g. `standard`) when a trial starts or payment completes
-- Reverted to `free` when a trial expires (via `TrialService::expireTrials()`)
-- Updated to the subscription plan on successful payment (via webhook `handleOrderCompleted`)
-
-### 12.3 Admin Dashboard
-
-**File:** `app/Http/Controllers/Api/AdminController.php`
-
-The `getSubscriptionStats()` endpoint provides aggregate statistics:
-- Count of trialing subscriptions
-- Count of active subscriptions
-- Count of expired subscriptions
-- Count of cancelled subscriptions
-- Total revenue (sum of all completed payment amounts)
-
-Admin user list eager-loads `subscription` and `payments` relationships.
-
-### 12.4 Preview Mode Bypass
-
-- `CheckSubscription` middleware explicitly bypasses preview users (`$user->is_preview_user`)
-- `TrialCountdownBanner` only renders for authenticated non-preview users (`v-if="isAuthenticated && !isPreviewMode"`)
-- Revolut webhook route is excluded from `PreviewWriteInterceptor` middleware
-
----
-
-## 13. Middleware
-
-### 13.1 CheckSubscription
-
-**File:** `app/Http/Middleware/CheckSubscription.php` (41 lines)
-
-**Registration:** The middleware class exists but is NOT registered as a named middleware alias in `app/Http/Kernel.php`. Based on the SharedInfrastructure docs, it appears in the middleware pipeline documentation but may be applied at the route group level or pending registration.
-
-**Logic flow:**
-
-```
-1. Is payment_enabled config false? -> PASS (let everyone through)
-2. No authenticated user? -> PASS
-3. User is preview_user? -> PASS (bypass subscription checks)
-4. User has active plan (hasActivePlan()) OR on trial (onTrial())? -> PASS
-5. Otherwise -> 403 JSON response:
-   {
-     "error": "subscription_required",
-     "message": "Your trial has expired. Please upgrade to continue."
-   }
-```
-
-**Feature flag:** When `PAYMENT_ENABLED=false` (the current default), the middleware passes all requests through, effectively disabling subscription enforcement entirely.
-
----
-
-## 14. Scheduled Tasks
-
-Two scheduled commands manage the trial lifecycle. See **ConsoleCommands.md Sections 2-3** for full implementation details.
-
-| Command | Schedule | Purpose |
-|---------|----------|---------|
-| `trials:expire` | Daily 00:05 | Marks overdue trials as expired via `TrialService::expireTrials()` |
-| `trials:send-reminders` | Daily 09:00 | Sends reminder emails at 3, 2, and 1 days before trial expiry |
-
----
-
-## 15. API Routing
+## 7. API Routing
 
 **File:** `routes/api.php`
 
-### 15.1 Payment Routes (authenticated)
+### 7.1 Payment Routes (authenticated)
 
-All routes require `auth:sanctum` middleware.
+All routes require `auth:sanctum` middleware. Prefix: `/api/payment/`
 
-| Method | Path | Controller Method | Description |
-|--------|------|-------------------|-------------|
-| POST | `/api/payment/create-order` | `PaymentController@createOrder` | Create Revolut order for user's subscription |
-| GET | `/api/payment/order/{id}/status` | `PaymentController@orderStatus` | Check Revolut order status |
-| GET | `/api/payment/trial-status` | `PaymentController@trialStatus` | Get user's trial/subscription info |
+| Method | Path | Controller Method | Throttle | Description |
+|--------|------|-------------------|----------|-------------|
+| GET | `/plans` | `PaymentController@plans` | default | Available subscription plans |
+| GET | `/trial-status` | `PaymentController@trialStatus` | default | Trial/subscription info |
+| GET | `/billing-history` | `PaymentController@billingHistory` | default | Payment history |
+| POST | `/create-order` | `PaymentController@createOrder` | 10/min | Create Revolut order |
+| POST | `/confirm` | `PaymentController@confirmPayment` | 10/min | Confirm payment after onSuccess |
+| POST | `/cancel-subscription` | `PaymentController@cancelSubscription` | 1/min | Cancel subscription |
+| POST | `/delete-all-data` | `PaymentController@deleteAllData` | 1/5min | Delete all user data (grace period only) |
 
-### 15.2 Webhook Route (public)
+### 7.2 Webhook Route (public)
 
-| Method | Path | Controller Method | Description |
-|--------|------|-------------------|-------------|
-| POST | `/api/webhooks/revolut` | `PaymentWebhookController@handle` | Revolut webhook (HMAC-verified, no auth middleware) |
+| Method | Path | Controller Method | Throttle | Description |
+|--------|------|-------------------|----------|-------------|
+| POST | `/api/webhooks/revolut` | `WebhookController@handleRevolut` | 60/min | Revolut webhook (HMAC-verified) |
 
-Note: The webhook route is listed in `PreviewWriteInterceptor::EXCLUDED_ROUTES` to prevent it from being blocked for preview users.
-
-### 15.3 Admin Route (authenticated + admin)
+### 7.3 Admin Route
 
 | Method | Path | Controller Method | Description |
 |--------|------|-------------------|-------------|
@@ -471,184 +370,205 @@ Note: The webhook route is listed in `PreviewWriteInterceptor::EXCLUDED_ROUTES` 
 
 ---
 
-## 16. Email Notifications
+## 8. Email Notifications
 
-### 16.1 TrialExpirationReminder
+### 8.1 PaymentConfirmation
 
-**Mailable:** `app/Mail/TrialExpirationReminder.php` (46 lines)
+**File:** `app/Mail/PaymentConfirmation.php` (49 lines)
 
-**Constructor:** `(User $user, int $daysRemaining)`
+**Subject:** "Payment confirmation - Fynla"
+**Template:** `emails.payment-confirmation`
+**Variables:** user, payment, planName, billingCycle, amount, paymentDate
+**Triggered by:** `confirmPayment()` and webhook `handleOrderCompleted()`
 
-**From:** `noreply@fynla.org` (name: "Fynla")
+### 8.2 SubscriptionCancellation
 
-**Subject:**
-- If 1 day remaining: "Your Fynla trial ends tomorrow"
-- Otherwise: "Your Fynla trial ends in {N} days"
+**File:** `app/Mail/SubscriptionCancellation.php` (45 lines)
 
-**View:** `resources/views/emails/trial-expiration-reminder.blade.php` (166 lines)
+**Subject:** "Subscription cancelled - Fynla"
+**Template:** `emails.subscription-cancellation`
+**Variables:** user, planName, billingCycle, accessUntil
+**Triggered by:** `cancelSubscription()`
 
-**Template variables:** `$user`, `$daysRemaining`, `$planName` (ucfirst of user's plan)
+### 8.3 DataDeletionConfirmation
 
-**Template content:**
-- Greeting with user's first name
-- Blue info box showing days remaining countdown
-- Red warning box listing features that will be lost (financial planning tools, protection/savings/investment tracking, retirement & estate planning, document uploads)
-- "Upgrade Now" CTA button linking to `{app.url}/checkout`
-- Sign-off from "The Fynla Team (Chris & Brett)" with logo
-- Footer with copyright and support email link
+**File:** `app/Mail/DataDeletionConfirmation.php`
 
----
+**Subject:** Data deletion confirmation
+**Triggered by:** `deleteAllData()`
 
-## 17. Known Issues and Limitations
+### 8.4 TrialExpirationReminder
 
-### 17.1 Duplicated Pricing Constants
-`PLAN_PRICING` is defined in both `RevolutService` and `TrialService` as separate `private const` arrays. If pricing changes, both must be updated independently. No shared pricing config or constant exists.
+**File:** `app/Mail/TrialExpirationReminder.php` (46 lines)
 
-### 17.2 No Recurring Billing
-The Revolut integration creates one-time orders, not recurring subscriptions. There is no automated renewal mechanism. When `current_period_end` passes, no automatic charge or expiry occurs. The system handles the initial payment conversion from trial to active, but subsequent billing cycles would require manual intervention or additional automation.
-
-### 17.3 CheckSubscription Middleware Not Registered
-The `CheckSubscription` middleware class exists but does not appear to be registered as a middleware alias in `app/Http/Kernel.php`. It is not applied to any route groups in `routes/api.php` via a named alias or direct class reference. It may be applied elsewhere or pending integration.
-
-### 17.4 No Cancellation Flow
-There is no endpoint or UI for users to cancel their subscription. The `cancelled` status exists in the database enum but no code path sets it.
-
-### 17.5 No Plan Upgrade/Downgrade
-There is no mechanism for changing plans (e.g. Student to Standard) or billing cycles after the initial selection. The plan is locked at registration time.
-
-### 17.6 Single Subscription Per User
-The `User` model has a `HasOne` relationship to `Subscription`. If a user's trial expires and they want to re-subscribe, the existing expired subscription record would need to be handled (potentially soft-deleted or updated in place). No re-subscription flow exists.
-
-### 17.7 No Payment Success Handling on Dashboard
-The CheckoutPage redirects to `/dashboard?payment=success` after a successful Revolut payment, but there is no code in the Dashboard component that reads or reacts to this query parameter (e.g. showing a success toast).
-
-### 17.8 Revolut SDK Loading
-The CheckoutPage checks for `typeof RevolutCheckout !== 'undefined'` but the Revolut checkout SDK script tag is not visible in the component. It must be loaded externally (likely in the HTML head or via a CDN script).
-
-### 17.9 User trial_ends_at Denormalisation
-`trial_ends_at` is stored on both the `users` table and `subscriptions` table. The User copy is set by `TrialService::startTrial()` but is never cleared or updated when the trial expires (only `users.plan` is set to `'free'`).
+**Subject:** "Your Fynla trial ends tomorrow" (1 day) or "Your Fynla trial ends in {N} days"
+**Template:** `emails.trial-expiration-reminder`
+**Triggered by:** `trials:send-reminders` scheduled command
 
 ---
 
-## 18. Deep Dive: Trial Lifecycle
+## 9. Middleware
 
-### Phase 1: Plan Selection (Unauthenticated)
+### 9.1 CheckSubscription
 
-1. User visits `/pricing` (PricingPage)
-2. User selects monthly/yearly billing toggle
-3. User clicks "Start Free Trial" on a plan (Student, Standard, or Pro)
-4. `startTrial(plan)` navigates to `/register?plan={plan}&billing={monthly|yearly}`
+**File:** `app/Http/Middleware/CheckSubscription.php`
 
-### Phase 2: Registration
+**Logic:** When `PAYMENT_ENABLED=true`, blocks requests from users without active subscription or trial. Bypasses preview users. Returns 403 with `subscription_required` error.
 
-5. Register page (`Register.vue`) captures `plan` and `billing` from query params
-6. User fills registration form and submits
-7. Frontend sends `POST /api/auth/register` with `plan` and `billing_cycle` in payload
-8. `AuthController::register()` stores data in `PendingRegistration` (including `plan`, `billing_cycle`)
-9. Verification code email is sent
+### 9.2 SecurityHeaders (Revolut CSP)
 
-### Phase 3: Verification & Trial Start
+**File:** `app/Http/Middleware/SecurityHeaders.php`
 
-10. User enters verification code
-11. `AuthController::verifyCode()` is called
-12. If `$pending->plan` is valid (`student`, `standard`, or `pro`):
-    - `$this->trialService->startTrial($user, $plan, $billingCycle)` is called
-    - Creates `Subscription` record with `status = 'trialing'`, `trial_started_at = now`, `trial_ends_at = now + 7 days`
-    - Updates `users.plan` to the selected plan
-    - Updates `users.trial_ends_at` to the subscription's trial end date
-13. User is logged in and redirected to onboarding/dashboard
-
-### Phase 4: Active Trial (Days 1-5)
-
-14. Every authenticated page load renders `TrialCountdownBanner` (via `AppLayout`)
-15. Banner calls `GET /api/payment/trial-status` and displays countdown
-16. Banner is dismissible during this period (more than 2 days remaining)
-
-### Phase 5: Trial Reminders (Days 5-7)
-
-17. At 09:00 daily, `trials:send-reminders` runs
-18. **Day 5** (3 days before expiry): First reminder email sent, logged to `trial_reminder_log`
-19. **Day 6** (2 days before expiry): Second reminder email sent. Banner becomes non-dismissible
-20. **Day 7** (1 day before expiry): Final reminder email ("Your Fynla trial ends tomorrow")
-
-### Phase 6: Trial Expiry
-
-21. At 00:05 daily, `trials:expire` runs
-22. Finds subscriptions with `status = 'trialing'` and `trial_ends_at` in the past
-23. Sets `subscription.status = 'expired'`
-24. Sets `users.plan = 'free'`
-25. If `CheckSubscription` middleware is active (payment_enabled = true), user receives 403 on protected API calls with message "Your trial has expired. Please upgrade to continue."
-
-### Phase 7: Payment Conversion (Upgrade)
-
-26. User clicks "Upgrade Now" (from banner or email) -> navigates to `/checkout`
-27. CheckoutPage fetches trial status
-28. If `payment_enabled` is false: shows "Payment Coming Soon" message
-29. If `payment_enabled` is true:
-    - Calls `POST /api/payment/create-order`
-    - Controller creates Revolut order via `RevolutService::createOrder()`
-    - Stores `revolut_order_id` on subscription
-    - Returns `public_id` to frontend
-30. Frontend invokes `RevolutCheckout(public_id).payWithPopup()`
-31. User completes payment in Revolut popup
-
-### Phase 8: Payment Confirmation
-
-32. Revolut sends `ORDER_COMPLETED` webhook to `POST /api/webhooks/revolut`
-33. `PaymentWebhookController::handle()` verifies HMAC signature
-34. `handleOrderCompleted()`:
-    - Finds subscription by `revolut_order_id`
-    - Sets `subscription.status = 'active'`
-    - Sets `current_period_start = now`, `current_period_end = now + 1 month/year`
-    - Creates `Payment` record with `status = 'completed'`
-    - Updates `users.plan` to the subscription plan
-35. Frontend receives `onSuccess` callback from Revolut widget
-36. User is redirected to `/dashboard?payment=success`
-
-### Alternative: Payment Failure
-
-32b. Revolut sends `ORDER_PAYMENT_FAILED` webhook
-33b. `handlePaymentFailed()` sets `subscription.status = 'past_due'`
-34b. Frontend receives `onError` callback, shows error message with retry option
+Revolut domains added to CSP directives:
+- `script-src`: `sandbox-merchant.revolut.com`, `merchant.revolut.com`
+- `connect-src`: Same domains + `sandbox-assets.revolut.com`, `assets.revolut.com`
+- `frame-src`: All Revolut domains
+- `img-src`: All Revolut domains
+- `Permissions-Policy`: `payment` allowed for Revolut domains
 
 ---
 
-## 19. Configuration Reference
+## 10. Cross-Module Integration
+
+### 10.1 Registration Flow
+- `AuthController` injects `TrialService`
+- `PendingRegistration` stores `plan` and `billing_cycle` from registration
+- On email verification, starts 7-day trial via `TrialService::startTrial()`
+
+### 10.2 User Plan State
+- `users.plan` set to plan name on trial start or payment
+- Reverted to `free` on trial expiry
+- Updated on successful payment (both confirm endpoint and webhook)
+- `users.trial_ends_at` cleared on payment confirmation
+
+### 10.3 Preview Mode Bypass
+- `CheckSubscription` middleware bypasses preview users
+- `TrialCountdownBanner` only shows for non-preview authenticated users
+- `PaymentController` blocks preview users at controller level
+- Webhook route excluded from `PreviewWriteInterceptor`
+
+---
+
+## 11. Scheduled Tasks
+
+| Command | Schedule | Purpose |
+|---------|----------|---------|
+| `trials:expire` | Daily 00:05 | Marks overdue trials as expired |
+| `trials:send-reminders` | Daily 09:00 | Sends reminders at 3, 2, and 1 days before expiry |
+
+---
+
+## 12. Configuration Reference
 
 ### Environment Variables
 
 | Variable | Config Path | Default | Description |
 |----------|-------------|---------|-------------|
-| `PAYMENT_ENABLED` | `app.payment_enabled` | `false` | Master feature flag for subscription enforcement |
-| `REVOLUT_API_KEY` | `services.revolut.api_key` | `''` | Revolut Merchant API key |
+| `PAYMENT_ENABLED` | `app.payment_enabled` | `false` | Master feature flag |
+| `REVOLUT_API_KEY` | `services.revolut.api_key` | `''` | Revolut Merchant API secret key (sk_...) |
+| `REVOLUT_PUBLIC_KEY` | `services.revolut.public_key` | `''` | Revolut public key for widget (pk_...) |
 | `REVOLUT_WEBHOOK_SECRET` | `services.revolut.webhook_secret` | `''` | HMAC secret for webhook verification |
-| `REVOLUT_SANDBOX` | `services.revolut.sandbox` | `true` | Whether to use Revolut sandbox API |
+| `REVOLUT_SANDBOX` | `services.revolut.sandbox` | `true` | Use sandbox API |
+| `VITE_REVOLUT_PUBLIC_KEY` | (frontend) | `''` | Public key exposed to Vue (mirrors REVOLUT_PUBLIC_KEY) |
+| `VITE_REVOLUT_SANDBOX` | (frontend) | `''` | Sandbox flag exposed to Vue |
 
 ### Config Files
 
-- `config/app.php` -- contains `payment_enabled` key
-- `config/services.php` -- contains `revolut` section with `api_key`, `webhook_secret`, `sandbox`
+- `config/app.php` — contains `payment_enabled` key
+- `config/services.php` — contains `revolut` section with `api_key`, `public_key`, `webhook_secret`, `sandbox`
 
 ---
 
-## 20. File Inventory
+## 13. Pricing
+
+Stored in `subscription_plans` table (seeded by `SubscriptionPlanSeeder`):
+
+| Plan | Monthly | Yearly | Yearly Equivalent |
+|------|---------|--------|-------------------|
+| Student | £3.99 (399p) | £30.00 (3000p) | £2.50/mo (37% saving) |
+| Standard | £10.99 (1099p) | £100.00 (10000p) | £8.33/mo (24% saving) |
+| Pro | £19.99 (1999p) | £200.00 (20000p) | £16.67/mo (17% saving) |
+
+---
+
+## 14. Payment Flow (End-to-End)
+
+### Happy Path: Trial → Payment → Active
+
+1. User selects plan on `/pricing` → navigates to `/register?plan=standard&billing=monthly`
+2. Registration creates `PendingRegistration` with plan/billing_cycle
+3. Email verification triggers `TrialService::startTrial()` → subscription `trialing`, 7-day trial
+4. Trial countdown banner shows on dashboard with "Upgrade Now" button
+5. User clicks "Upgrade Now" → PlanSelectionModal opens → selects plan → navigates to `/checkout?plan=standard&cycle=monthly`
+6. CheckoutPage loads Revolut SDK from CDN, initialises `embeddedCheckout()` with public token
+7. User clicks Pay → widget calls `createOrder` callback → `POST /api/payment/create-order`
+8. Backend creates pending Payment record, calls `RevolutService::createOrder()`, returns `{ token, order_id }`
+9. Frontend returns `{ publicId: token }` to widget, stores `order_id` (UUID)
+10. User enters card details (or uses Revolut Pay / Google Pay)
+11. Revolut fires `onSuccess` → frontend calls `POST /api/payment/confirm` with stored UUID
+12. Backend verifies order state (accepts `completed` or `processing`), activates subscription in DB transaction
+13. Sends PaymentConfirmation email
+14. Frontend shows success modal → user clicks "Go to Dashboard"
+15. Revolut later sends `ORDER_COMPLETED` webhook → idempotent handler skips (already completed)
+
+### Cancellation Flow
+
+1. User goes to Profile → Subscription tab → clicks "Cancel Subscription"
+2. Modal appears with reason dropdown → user selects reason → confirms
+3. `POST /api/payment/cancel-subscription` → sets status to `cancelled`, records reason
+4. Access continues until `current_period_end`
+5. SubscriptionCancellation email sent
+6. After period ends, user enters expired state with 30-day grace period for data retention
+
+### Data Deletion Flow
+
+1. During grace period, user can request data deletion on Profile → Subscription tab
+2. Must enter password and type "DELETE" to confirm
+3. `POST /api/payment/delete-all-data` → `DataPurgeService::purgeUserData()` cascades through all modules
+4. DataDeletionConfirmation email sent
+
+---
+
+## 15. File Inventory
 
 | File | Lines | Purpose |
 |------|-------|---------|
-| `app/Models/Subscription.php` | 87 | Subscription model |
-| `app/Models/Payment.php` | 31 | Payment model |
-| `app/Services/Payment/RevolutService.php` | 84 | Revolut Merchant API integration |
-| `app/Services/Payment/TrialService.php` | 59 | Trial start and expiry |
-| `app/Http/Controllers/Api/PaymentController.php` | 70 | Payment API endpoints |
-| `app/Http/Controllers/Api/PaymentWebhookController.php` | 126 | Revolut webhook handler |
-| `app/Http/Middleware/CheckSubscription.php` | 41 | Subscription enforcement middleware |
-| `app/Mail/TrialExpirationReminder.php` | 46 | Trial reminder mailable |
-| `app/Console/Commands/ExpireTrials.php` | 24 | Artisan command to expire trials |
-| `app/Console/Commands/SendTrialReminderEmails.php` | 73 | Artisan command for reminder emails |
-| `resources/views/emails/trial-expiration-reminder.blade.php` | 166 | Email template |
-| `resources/js/components/Trial/TrialCountdownBanner.vue` | 114 | Trial countdown banner component |
-| `resources/js/views/Auth/CheckoutPage.vue` | 178 | Checkout/upgrade page |
+| `app/Http/Controllers/Api/PaymentController.php` | 492 | Payment API endpoints (plans, create-order, confirm, trial-status, billing-history, cancel, delete-data) |
+| `app/Http/Controllers/Api/WebhookController.php` | 175 | Revolut webhook handler (ORDER_COMPLETED, ORDER_AUTHORISED) |
+| `app/Services/Payment/RevolutService.php` | 182 | Revolut Merchant API wrapper (createOrder, getOrder, verifyWebhookSignature) |
+| `app/Services/Payment/TrialService.php` | ~60 | Trial start and expiry |
+| `app/Services/Payment/DataPurgeService.php` | ~120 | Full data purge for user accounts |
+| `app/Models/Subscription.php` | 137 | Subscription model with lifecycle methods |
+| `app/Models/Payment.php` | 42 | Payment model |
+| `app/Models/SubscriptionPlan.php` | ~50 | Database-backed plan pricing |
+| `app/Http/Middleware/CheckSubscription.php` | ~41 | Subscription enforcement middleware |
+| `app/Http/Middleware/SecurityHeaders.php` | — | CSP headers including Revolut domains |
+| `app/Mail/PaymentConfirmation.php` | 49 | Payment confirmation email |
+| `app/Mail/SubscriptionCancellation.php` | 45 | Cancellation confirmation email |
+| `app/Mail/DataDeletionConfirmation.php` | ~40 | Data deletion confirmation email |
+| `app/Mail/TrialExpirationReminder.php` | 46 | Trial reminder email |
+| `resources/js/views/Auth/CheckoutPage.vue` | 331 | Revolut Embedded Checkout page |
+| `resources/js/components/Payment/PlanSelectionModal.vue` | 210 | Plan selection modal |
+| `resources/js/components/Trial/TrialCountdownBanner.vue` | ~120 | Trial countdown banner |
+| `resources/js/components/UserProfile/SubscriptionManagement.vue` | ~611 | Subscription management tab |
 | `resources/js/views/Public/PricingPage.vue` | 268 | Public pricing page |
-| `database/migrations/2026_02_12_100001_create_subscriptions_table.php` | 34 | Subscriptions migration |
-| `database/migrations/2026_02_12_100002_create_payments_table.php` | 30 | Payments migration |
-| `database/migrations/2026_02_12_100004_create_trial_reminder_log_table.php` | 27 | Trial reminder log migration |
+| `config/services.php` | — | Revolut config block |
+| `routes/api.php` | — | Payment + webhook routes |
+| `database/migrations/*` | — | 4 payment/subscription migrations |
+| `database/seeders/SubscriptionPlanSeeder.php` | — | Seeds 3 plans |
+
+---
+
+## 16. Known Limitations
+
+### 16.1 No Recurring Billing
+The Revolut integration creates one-time orders, not recurring subscriptions. When `current_period_end` passes, no automatic charge occurs. Users must manually renew.
+
+### 16.2 No Plan Upgrade/Downgrade Mid-Cycle
+Users can change plans at renewal time but there is no prorated upgrade/downgrade during an active billing period.
+
+### 16.3 No Automated Renewal Reminders
+No scheduled task sends reminders before `current_period_end`. Users must remember to renew.
+
+### 16.4 Dual Activation Paths
+Both `confirmPayment` (frontend-triggered) and webhook handle activation. Both are idempotent, but the dual path adds complexity. The frontend path accepts `processing` state; the webhook only accepts `completed`/`authorised`.

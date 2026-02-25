@@ -42,6 +42,24 @@ The Revolut widget also requires `frame-src`, `connect-src`, and `img-src` permi
 ### File: `app/Http/Controllers/Api/PaymentController.php`
 - Fixed `redirect_url` to use `https://fynla.org` when in sandbox mode instead of `localhost`
 
+## Additional Bug Fix: Subscription Not Activating After Payment
+
+### Symptom
+After successful card payment, the success modal appeared correctly but the trial banner persisted on the dashboard. The subscription was not activated.
+
+### Root Cause
+Revolut fires the `onSuccess` callback while the order is still in `"processing"` state — it has not yet reached `"completed"`. The `confirmPayment` endpoint only accepted `"completed"` as a valid state, so it returned a 400 error. The frontend catch block silently showed the success modal anyway (designed as a safety net for webhook backup), masking the failed confirmation.
+
+### Resolution
+
+**File: `app/Http/Controllers/Api/PaymentController.php`**
+- Added `"processing"` to the acceptable order states in `confirmPayment()`
+- For automatic capture mode: accepts `['completed', 'processing']`
+- For manual capture mode: accepts `['completed', 'authorised', 'processing']`
+
 ## Verified
 
-Widget loads successfully showing Revolut Pay, Card (Visa/Mastercard), and Google Pay payment methods. No console errors.
+- Widget loads successfully showing Revolut Pay, Card (Visa/Mastercard), and Google Pay payment methods
+- Payment completes and subscription activates immediately
+- Trial banner clears on dashboard after payment
+- No console errors
