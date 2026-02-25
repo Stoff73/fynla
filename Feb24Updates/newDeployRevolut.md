@@ -40,11 +40,11 @@ Key decisions
 
 ---
 
-## Bug Fix: Revolut Widget Loading (25 Feb 2026)
+## Bug Fixes (25 Feb 2026)
+
+### 1. Revolut Widget Loading
 
 The Revolut embedded checkout widget failed to load due to 3 issues. See `revolut/bugFix.md` for full details.
-
-### Additional files changed by bug fix
 
 | File | Change | Deploy Action |
 |------|--------|---------------|
@@ -53,6 +53,14 @@ The Revolut embedded checkout widget failed to load due to 3 issues. See `revolu
 | app/Http/Controllers/Api/PaymentController.php | Fixed redirect_url to use production URL in sandbox mode | **Upload PHP file** |
 | package.json | Removed @revolut/checkout npm dependency | Build-time only |
 | package-lock.json | Updated lockfile | Build-time only |
+
+### 2. Subscription Not Activating After Payment
+
+After successful card payment, the trial banner persisted on the dashboard. Root cause: Revolut fires `onSuccess` while the order is still in `"processing"` state — the `confirmPayment` endpoint only accepted `"completed"`, so the subscription was never activated.
+
+| File | Change | Deploy Action |
+|------|--------|---------------|
+| app/Http/Controllers/Api/PaymentController.php | Accept `"processing"` as valid order state in confirmPayment | **Upload PHP file** |
 
 ### Deployment Steps
 
