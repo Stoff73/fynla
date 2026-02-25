@@ -27,12 +27,12 @@
         </div>
 
         <div class="flex items-center gap-2">
-          <router-link
-            to="/checkout"
+          <button
+            @click="showPlanModal = true"
             class="inline-flex items-center px-4 py-1.5 text-sm font-semibold text-white bg-blue-500 rounded-lg hover:bg-blue-600 transition-colors"
           >
             Upgrade Now
-          </router-link>
+          </button>
           <button
             v-if="canDismiss"
             @click="dismiss"
@@ -46,20 +46,31 @@
         </div>
       </div>
     </div>
+    <PlanSelectionModal
+      v-if="showPlanModal"
+      @select="handlePlanSelect"
+      @close="showPlanModal = false"
+    />
   </div>
 </template>
 
 <script>
 import api from '@/services/api';
+import PlanSelectionModal from '@/components/Payment/PlanSelectionModal.vue';
 
 export default {
   name: 'TrialCountdownBanner',
+
+  components: {
+    PlanSelectionModal,
+  },
 
   data() {
     return {
       trialData: null,
       dismissed: false,
       loading: false,
+      showPlanModal: false,
     };
   },
 
@@ -116,6 +127,11 @@ export default {
 
     dismiss() {
       this.dismissed = true;
+    },
+
+    handlePlanSelect({ plan, billingCycle }) {
+      this.showPlanModal = false;
+      this.$router.push(`/checkout?plan=${plan}&cycle=${billingCycle}`);
     },
   },
 };

@@ -89,9 +89,9 @@
           </div>
         </div>
 
-        <router-link to="/checkout" class="btn-primary w-full text-center block">
+        <button @click="showPlanModal = true" class="btn-primary w-full text-center block">
           Subscribe Now
-        </router-link>
+        </button>
       </div>
 
       <!-- ACTIVE (Subscribed) State -->
@@ -212,9 +212,9 @@
           </div>
         </div>
 
-        <router-link to="/checkout" class="btn-primary w-full text-center block">
-          Resubscribe
-        </router-link>
+        <button @click="showPlanModal = true" class="btn-primary w-full text-center block">
+          Renew
+        </button>
       </div>
 
       <!-- PAST DUE (Overdue) State -->
@@ -262,9 +262,9 @@
           </div>
         </div>
 
-        <router-link to="/checkout" class="btn-primary w-full text-center block">
+        <button @click="showPlanModal = true" class="btn-primary w-full text-center block">
           Update Payment Method
-        </router-link>
+        </button>
       </div>
 
       <!-- EXPIRED / NO SUBSCRIPTION State -->
@@ -316,9 +316,9 @@
           </p>
         </div>
 
-        <router-link to="/checkout" class="btn-primary w-full text-center block">
+        <button @click="showPlanModal = true" class="btn-primary w-full text-center block">
           Subscribe Now
-        </router-link>
+        </button>
       </div>
       <!-- Billing History (visible for active, cancelled, past_due, expired states) -->
       <div
@@ -352,6 +352,13 @@
         </div>
       </div>
     </template>
+
+    <!-- Plan Selection Modal -->
+    <PlanSelectionModal
+      v-if="showPlanModal"
+      @select="handlePlanSelect"
+      @close="showPlanModal = false"
+    />
 
     <!-- Cancel Subscription Modal -->
     <div
@@ -441,19 +448,27 @@
 
 <script>
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
+import { useRouter } from 'vue-router';
 import api from '@/services/api';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import PlanSelectionModal from '@/components/Payment/PlanSelectionModal.vue';
 import logger from '@/utils/logger';
 
 export default {
   name: 'SubscriptionManagement',
 
+  components: {
+    PlanSelectionModal,
+  },
+
   mixins: [currencyMixin],
 
   setup() {
+    const router = useRouter();
     const loading = ref(true);
     const error = ref(null);
     const subscriptionData = ref(null);
+    const showPlanModal = ref(false);
     const showCancelModal = ref(false);
     const cancelling = ref(false);
     const cancelError = ref(null);
@@ -543,6 +558,11 @@ export default {
       });
     };
 
+    const handlePlanSelect = ({ plan, billingCycle }) => {
+      showPlanModal.value = false;
+      router.push(`/checkout?plan=${plan}&cycle=${billingCycle}`);
+    };
+
     const confirmCancel = async () => {
       cancelling.value = true;
       cancelError.value = null;
@@ -604,6 +624,8 @@ export default {
       gracePeriodCountdown,
       isInGracePeriod,
       billingHistory,
+      showPlanModal,
+      handlePlanSelect,
       showCancelModal,
       cancelling,
       cancelError,
