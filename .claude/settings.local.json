@@ -62,7 +62,20 @@
       "Bash(ln:*)",
       "Bash(cd /Users/CSJ/Desktop/fynla-revolut && composer dump-autoload 2>&1)",
       "WebFetch(domain:sandbox-merchant.revolut.com)",
-      "WebFetch(domain:merchant.revolut.com)"
+      "WebFetch(domain:merchant.revolut.com)",
+      "mcp__plugin_context7_context7__resolve-library-id",
+      "mcp__plugin_context7_context7__query-docs",
+      "Bash(php artisan clear-compiled && composer dump-autoload 2>&1)",
+      "Bash(cp:*)",
+      "Bash(git stash:*)",
+      "Bash(gh pr:*)",
+      "Bash(git worktree:*)",
+      "Bash(git:*)",
+      "WebFetch(domain:dev.to)",
+      "Bash(brew install:*)",
+      "Bash(mkcert:*)",
+      "Bash(npm view:*)",
+      "Bash(npm uninstall:*)"
     ]
   },
   "enabledMcpjsonServers": [
